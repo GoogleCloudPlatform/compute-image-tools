@@ -1,6 +1,6 @@
 ## Compute Engine Image Tools
 
-In progress.
+Tools for Google Compute Engine image management.
 
 ## Contributing
 
