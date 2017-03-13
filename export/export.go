@@ -40,6 +40,7 @@ var (
 	noconfirm = flag.Bool("y", false, "skip confirmation")
 )
 
+// progress is a io.Writer that updates total in Write.
 type progress struct {
 	total int64
 }
@@ -144,6 +145,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// This function only serves to update progress for the user.
 	go func() {
 		time.Sleep(5 * time.Second)
 		var ou int64
