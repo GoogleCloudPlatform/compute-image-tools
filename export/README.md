@@ -7,7 +7,6 @@ created so no additional disk space needs to be allocated. Once complete the
 image file can be imported in GCE as described here:
 https://cloud.google.com/compute/docs/images/import-existing-image
 
-
 ### Flags
 
 + -disk: disk to copy, on linux this would be something like '/dev/sdb', and on
