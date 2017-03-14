@@ -50,7 +50,7 @@ func testCreateDisk(got, want *compute.Disk) error {
 		return fmt.Errorf("unexpected Name, got: %s, want: %s", got.Name, want.Name)
 	}
 	if got.SizeGb != want.SizeGb {
-		return fmt.Errorf("unexpected SizeGb, got: %s, want: %s", got.SizeGb, want.SizeGb)
+		return fmt.Errorf("unexpected SizeGb, got: %d, want: %d", got.SizeGb, want.SizeGb)
 	}
 	if got.Type != want.Type {
 		return fmt.Errorf("unexpected Type, got: %s, want: %s", got.Type, want.Type)
