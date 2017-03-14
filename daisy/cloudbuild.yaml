@@ -1,0 +1,11 @@
+steps:
+- name: 'gcr.io/cloud-builders/go'
+  args: ['get', '-d', './daisy/...']
+  env: ['GOPATH=.']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o', './daisy/daisy', './daisy']
+  env: ['GOPATH=.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy', './daisy']
+images: ['gcr.io/$PROJECT_ID/daisy']
+
