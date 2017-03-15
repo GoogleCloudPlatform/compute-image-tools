@@ -56,7 +56,7 @@ func splitVariables(input string) map[string]string {
 
 func main() {
 	flag.Parse()
-	if len(os.Args) < 2 {
+	if len(flag.Args()) == 0 {
 		log.Fatal("Not enough args, first arg needs to be the path to a workflow.")
 	}
 	ctx := context.Background()
@@ -64,10 +64,7 @@ func main() {
 	varMap := splitVariables(*variables)
 
 	var wfs []*workflow.Workflow
-	for i, path := range os.Args {
-		if i == 0 {
-			continue
-		}
+	for _, path := range flag.Args() {
 		wf, err := workflow.ReadWorkflow(path)
 		if err != nil {
 			log.Fatal(err)

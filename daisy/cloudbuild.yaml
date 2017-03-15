@@ -1,11 +1,11 @@
 steps:
 - name: 'gcr.io/cloud-builders/go'
-  args: ['get', '-d', './daisy/...']
-  env: ['GOPATH=.']
+  args: ['get', '-d', './...']
+  env: ['PROJECT_ROOT=daisy']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o', './daisy/daisy', './daisy']
-  env: ['GOPATH=.']
+  args: ['install', '.']
+  env: ['PROJECT_ROOT=daisy']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy', './daisy']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy', '.']
 images: ['gcr.io/$PROJECT_ID/daisy']
 
