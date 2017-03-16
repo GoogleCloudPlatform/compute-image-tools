@@ -65,7 +65,8 @@ func main() {
 
 	var wfs []*workflow.Workflow
 	for _, path := range flag.Args() {
-		wf, err := workflow.ReadWorkflow(path)
+		wf := workflow.New(ctx)
+		err := wf.FromFile(path)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -105,7 +106,7 @@ func main() {
 		wg.Add(1)
 		go func(wf *workflow.Workflow) {
 			defer wg.Done()
-			if err := wf.Run(ctx); err != nil {
+			if err := wf.Run(); err != nil {
 				fmt.Fprintln(os.Stderr, "[WORKFLOW ERROR]:", err)
 				errors <- err
 			}

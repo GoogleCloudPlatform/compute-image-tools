@@ -168,14 +168,14 @@ func TestValidateWorkflow(t *testing.T) {
 		desc string
 		wf   *Workflow
 	}{
-		{"no name", &Workflow{Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
-		{"no project", &Workflow{Name: "n", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
-		{"no zone", &Workflow{Name: "n", Project: "p", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
-		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
-		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Ctx: ctx}},
-		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, Ctx: ctx}},
-		{"no step timeout", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {testType: &mockStep{}}}, Ctx: ctx}},
-		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout}}, Ctx: ctx}},
+		{"no name", &Workflow{Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, ctx: ctx}},
+		{"no project", &Workflow{Name: "n", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, ctx: ctx}},
+		{"no zone", &Workflow{Name: "n", Project: "p", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, ctx: ctx}},
+		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, ctx: ctx}},
+		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", ctx: ctx}},
+		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, ctx: ctx}},
+		{"no step timeout", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {testType: &mockStep{}}}, ctx: ctx}},
+		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout}}, ctx: ctx}},
 	}
 
 	for _, tt := range tests {

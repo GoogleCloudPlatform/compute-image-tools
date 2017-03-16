@@ -56,7 +56,7 @@ func (d *DeleteResources) run(w *Workflow) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			if err := w.deleteInstance(namer(i, w.Name, w.suffix)); err != nil {
+			if err := w.deleteInstance(namer(i, w.Name, w.id)); err != nil {
 				e <- err
 			}
 		}(i)
@@ -92,7 +92,7 @@ func (d *DeleteResources) run(w *Workflow) error {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			if err := w.deleteDisk(namer(d, w.Name, w.suffix)); err != nil {
+			if err := w.deleteDisk(namer(d, w.Name, w.id)); err != nil {
 				e <- err
 			}
 		}(d)

@@ -68,12 +68,12 @@ func filter(ss []string, s string) []string {
 	return result
 }
 
-func namer(name, wfName, suffix string) string {
+func namer(name, wfName, wfId string) string {
 	prefix := fmt.Sprintf("%s-%s", name, wfName)
 	if len(prefix) > 57 {
 		prefix = prefix[0:56]
 	}
-	n := fmt.Sprintf("%s-%s", prefix, suffix)
+	n := fmt.Sprintf("%s-%s", prefix, wfId)
 	if len(n) > 64 {
 		n = n[0:63]
 	}
@@ -98,10 +98,6 @@ func splitGCSPath(p string) (string, string, error) {
 		}
 	}
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
-}
-
-func xor(x, y bool) bool {
-	return x != y
 }
 
 // substitute iterates through the public fields of the struct represented
@@ -183,4 +179,8 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 			}
 		}
 	}
+}
+
+func xor(x, y bool) bool {
+	return x != y
 }

@@ -34,7 +34,7 @@ type CreateInstance struct {
 	AttachedDisks []string `json:"attached_disks"`
 	MachineType   string   `json:"machine_type"`
 	// StartupScript is the local path to a startup script to use in this step.
-	// This will be automatically mapped to the appropiate metadata key.
+	// This will be automatically mapped to the appropriate metadata key.
 	StartupScript string `json:"startup_script"`
 	// Additional metadata to set for the instance.
 	Metadata map[string]string
@@ -73,7 +73,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 		wg.Add(1)
 		go func(ci CreateInstance) {
 			defer wg.Done()
-			name := namer(ci.Name, w.Name, w.suffix)
+			name := namer(ci.Name, w.Name, w.id)
 
 			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType)
 			if err != nil {
@@ -82,7 +82,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 			}
 
 			for i, d := range ci.AttachedDisks {
-				dn := namer(d, w.Name, w.suffix)
+				dn := namer(d, w.Name, w.id)
 				link := w.getCreatedDisk(dn)
 				inst.AddPD(dn, link, false, i == 0)
 			}

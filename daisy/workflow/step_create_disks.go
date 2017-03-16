@@ -65,7 +65,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 		wg.Add(1)
 		go func(cd CreateDisk) {
 			defer wg.Done()
-			name := namer(cd.Name, w.Name, w.suffix)
+			name := namer(cd.Name, w.Name, w.id)
 			// If cd.SourceImage does not contain a '/' assume it's referencing a Workflow image.
 			if !strings.Contains(cd.SourceImage, "/") {
 				cd.SourceImage = w.getCreatedImage(cd.SourceImage)

@@ -78,7 +78,7 @@ func (c *CreateImages) run(w *Workflow) error {
 			defer wg.Done()
 			// If ci.SourceDisk does not contain a '/' assume it's referencing a Workflow disk.
 			if ci.SourceDisk != "" && !strings.Contains(ci.SourceDisk, "/") {
-				ci.SourceDisk = w.getCreatedDisk(namer(ci.SourceDisk, w.Name, w.suffix))
+				ci.SourceDisk = w.getCreatedDisk(namer(ci.SourceDisk, w.Name, w.id))
 			}
 			i, err := w.ComputeClient.CreateImage(ci.Name, w.Project, ci.SourceDisk, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {

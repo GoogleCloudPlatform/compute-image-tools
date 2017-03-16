@@ -30,7 +30,7 @@ func (s *WaitForInstancesStopped) run(w *Workflow) error {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, namer(name, w.Name, w.suffix)); err != nil {
+			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, namer(name, w.Name, w.id)); err != nil {
 				e <- err
 			}
 		}(name)

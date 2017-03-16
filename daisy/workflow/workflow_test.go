@@ -59,7 +59,7 @@ func init() {
 }
 
 func testWorkflow() *Workflow {
-	return &Workflow{Name: testWf, Bucket: testBucket, Project: testProject, Zone: testZone, ComputeClient: testGCEClient, StorageClient: testGCSClient, suffix: testSuffix, Ctx: context.Background()}
+	return &Workflow{Name: testWf, Bucket: testBucket, Project: testProject, Zone: testZone, ComputeClient: testGCEClient, StorageClient: testGCSClient, id: testSuffix, ctx: context.Background()}
 }
 
 func newTestGCEClient() (*compute.Client, error) {
@@ -160,19 +160,19 @@ func TestPopulate(t *testing.T) {
 		Zone:      "zone",
 		Project:   "project",
 		OAuthPath: tf,
-		suffix:    got.suffix,
-		Ctx:       got.Ctx,
-		Cancel:    got.Cancel,
+		id:    got.id,
+		ctx:       got.Ctx,
+		cancel:    got.Cancel,
 		Vars: map[string]string{
 			"step_name": "step1",
 			"timeout":   "60m",
 			"path":      "./test_sub.workflow",
 			"name":      "some-name",
 		},
-		scratchPath: "gs://some-bucket/images/daisy-some-name-" + got.suffix,
-		sourcesPath: fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/sources", got.suffix),
-		logsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/logs", got.suffix),
-		outsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/outs", got.suffix),
+		scratchPath: "gs://some-bucket/images/daisy-some-name-" + got.id,
+		sourcesPath: fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/sources", got.id),
+		logsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/logs", got.id),
+		outsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/outs", got.id),
 		Steps: map[string]*Step{
 			"step1": {
 				name:    "step1",
@@ -196,13 +196,13 @@ func TestPopulate(t *testing.T) {
 						Zone:        "zone",
 						Project:     "project",
 						OAuthPath:   tf,
-						suffix:      got.suffix,
-						Ctx:         got.Ctx,
-						Cancel:      got.Cancel,
-						scratchPath: "gs://some-bucket/images/daisy-some-name-" + got.suffix,
-						sourcesPath: fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/sources", got.suffix),
-						logsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/logs", got.suffix),
-						outsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/outs", got.suffix),
+						id:      got.id,
+						ctx:         got.Ctx,
+						cancel:      got.Cancel,
+						scratchPath: "gs://some-bucket/images/daisy-some-name-" + got.id,
+						sourcesPath: fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/sources", got.id),
+						logsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/logs", got.id),
+						outsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/outs", got.id),
 						Steps: map[string]*Step{
 							"step1": {
 								name:    "step1",

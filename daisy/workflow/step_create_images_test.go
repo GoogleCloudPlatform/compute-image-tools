@@ -21,7 +21,7 @@ import (
 
 func TestCreateImagesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.createdDisks = map[string]string{namer("somedisk", wf.Name, wf.suffix): "link"}
+	wf.createdDisks = map[string]string{namer("somedisk", wf.Name, wf.id): "link"}
 	ci := &CreateImages{
 		{Name: "image1", SourceDisk: "somedisk"},
 		{Name: "image2", SourceFile: "somefile"},
