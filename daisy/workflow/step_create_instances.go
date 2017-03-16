@@ -40,14 +40,14 @@ type CreateInstance struct {
 	Metadata map[string]string
 }
 
-func (c *CreateInstances) validate() error {
+func (c *CreateInstances) validate(w *Workflow) error {
 	for _, ci := range *c {
 		// Disk checking.
 		if len(ci.AttachedDisks) == 0 {
 			return errors.New("cannot create instance: no disks provided")
 		}
 		for _, d := range ci.AttachedDisks {
-			if !diskExists(d) {
+			if !diskValid(w, d) {
 				return fmt.Errorf("cannot create instance: disk not found: %s", d)
 			}
 		}
@@ -58,7 +58,7 @@ func (c *CreateInstances) validate() error {
 		}
 
 		// Try adding instance name.
-		if err := instanceNames.add(ci.Name); err != nil {
+		if err := validatedInstances.add(w, ci.Name); err != nil {
 			return fmt.Errorf("error adding instance: %s", err)
 		}
 	}

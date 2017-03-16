@@ -21,10 +21,10 @@ type RunTests []RunTest
 type RunTest struct {
 }
 
-func (r *RunTests) validate() error {
+func (r *RunTests) validate(w *Workflow) error {
 	return nil
 }
 
-func (r *RunTests) run(wf *Workflow) error {
+func (r *RunTests) run(w *Workflow) error {
 	return nil
 }

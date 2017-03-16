@@ -26,16 +26,16 @@ type ExportImage struct {
 	Bucket      string
 }
 
-func (e *ExportImages) validate() error {
+func (e *ExportImages) validate(w *Workflow) error {
 	for _, ei := range *e {
 		// Image/Disk checking.
 		if !xor(ei.Image == "", ei.Disk == "") {
 			return fmt.Errorf("cannot export image. Must provide either Disk or Image, exclusively")
 		}
-		if ei.Image != "" && !imageExists(ei.Image) {
+		if ei.Image != "" && !imageValid(w, ei.Image) {
 			return fmt.Errorf("cannot export image. Image not found: %s", ei.Image)
 		}
-		if ei.Disk != "" && !diskExists(ei.Disk) {
+		if ei.Disk != "" && !diskValid(w, ei.Disk) {
 			return fmt.Errorf("cannot export image. Disk not found: %s", ei.Disk)
 		}
 	}
@@ -43,6 +43,6 @@ func (e *ExportImages) validate() error {
 	return nil
 }
 
-func (e *ExportImages) run(wf *Workflow) error {
+func (e *ExportImages) run(w *Workflow) error {
 	return nil
 }

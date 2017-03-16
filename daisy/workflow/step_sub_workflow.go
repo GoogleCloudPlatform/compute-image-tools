@@ -20,34 +20,11 @@ type SubWorkflow struct {
 	Workflow *Workflow `json:"-"`
 }
 
-func (s *SubWorkflow) validate() error {
+func (s *SubWorkflow) validate(w *Workflow) error {
 	return s.Workflow.validate()
 }
 
 func (s *SubWorkflow) run(w *Workflow) error {
-	// As this is a sub workflow, we need to copy all resources from the main
-	// workflow at start, and back at the end.
-	copy(s.Workflow.createdInstances, w.createdInstances)
-	s.Workflow.createdDisks = map[string]string{}
-	for name, link := range w.createdDisks {
-		s.Workflow.createdDisks[name] = link
-	}
-	s.Workflow.createdImages = map[string]string{}
-	for name, link := range w.createdImages {
-		s.Workflow.createdImages[name] = link
-	}
-
-	defer func() {
-		for _, name := range s.Workflow.createdInstances {
-			w.addCreatedInstance(name)
-		}
-		for name, link := range s.Workflow.createdDisks {
-			w.addCreatedDisk(name, link)
-		}
-		for name, link := range s.Workflow.createdImages {
-			w.addCreatedImage(name, link)
-		}
-	}()
-
-	return s.Workflow.traverseDAG(func(st step) error { return s.Workflow.runStep(st.(*Step)) })
+	// prerun() work has already been done. Just run(), not Run().
+	return s.Workflow.run()
 }

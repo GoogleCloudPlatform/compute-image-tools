@@ -20,35 +20,31 @@ func TestAttachDisksRun(t *testing.T) {}
 
 func TestAttachDisksValidate(t *testing.T) {
 	// Set up.
-	diskNames = nameSet{"d-foo"}
-	instanceNames = nameSet{"i-foo"}
-	defer func() {
-		// Clean up.
-		diskNames = nameSet{}
-		instanceNames = nameSet{}
-	}()
+	w := &Workflow{}
+	validatedDisks = nameSet{w: {"d-foo"}}
+	validatedInstances = nameSet{w: {"i-foo"}}
 
 	// Test normal, good case.
 	ad := AttachDisks{AttachDisk{"d-foo", "i-foo"}}
-	if err := ad.validate(); err != nil {
+	if err := ad.validate(w); err != nil {
 		t.Fatal("validation should not have failed")
 	}
 
 	// Test disk DNE.
 	ad = AttachDisks{AttachDisk{"d-dne", "i-foo"}}
-	if err := ad.validate(); err == nil {
+	if err := ad.validate(w); err == nil {
 		t.Fatal("validation should have failed")
 	}
 
 	// Test instance DNE.
 	ad = AttachDisks{AttachDisk{"d-foo", "i-dne"}}
-	if err := ad.validate(); err == nil {
+	if err := ad.validate(w); err == nil {
 		t.Fatal("validation should have failed")
 	}
 
 	// Test both DNE.
 	ad = AttachDisks{AttachDisk{"d-dne", "i-dne"}}
-	if err := ad.validate(); err == nil {
+	if err := ad.validate(w); err == nil {
 		t.Fatal("validation should have failed")
 	}
 }

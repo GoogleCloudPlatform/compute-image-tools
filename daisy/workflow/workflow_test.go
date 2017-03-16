@@ -59,7 +59,7 @@ func init() {
 }
 
 func testWorkflow() *Workflow {
-	return &Workflow{Name: testWf, Bucket: testBucket, Project: testProject, Zone: testZone, ComputeClient: testGCEClient, StorageClient: testGCSClient, id: testSuffix, ctx: context.Background()}
+	return &Workflow{Name: testWf, Bucket: testBucket, Project: testProject, Zone: testZone, ComputeClient: testGCEClient, StorageClient: testGCSClient, id: testSuffix, Ctx: context.Background()}
 }
 
 func newTestGCEClient() (*compute.Client, error) {
@@ -115,29 +115,39 @@ func TestPopulate(t *testing.T) {
 
 	got := &Workflow{
 		Name:      "${name}",
-		Bucket:    "some-bucket/images",
-		Zone:      "zone",
-		Project:   "project",
+		Bucket:    "parent-bucket/images",
+		Zone:      "parent-zone",
+		Project:   "parent-project",
 		OAuthPath: tf,
 		Vars: map[string]string{
-			"step_name": "step1",
+			"step_name": "parent-step1",
 			"timeout":   "60m",
 			"path":      "./test_sub.workflow",
-			"name":      "some-name",
+			"name":      "parent-name",
 		},
 		Steps: map[string]*Step{
 			"${step_name}": {
 				Timeout: "${timeout}",
 			},
-			"step2": {},
-			"step3": {
+			"parent-step2": {},
+			"parent-step3": {
 				SubWorkflow: &SubWorkflow{
 					Path: "${path}",
 					Workflow: &Workflow{
+						Name:      "${name}",
+						Bucket:    "sub-bucket/images",
+						Project:   "sub-project",
+						Zone:      "sub-zone",
+						OAuthPath: "sub-oauth-path",
 						Steps: map[string]*Step{
 							"${step_name}": {
 								Timeout: "${timeout}",
 							},
+						},
+						Vars: map[string]string{
+							"name":      "sub-name",
+							"step_name": "sub-step1",
+							"timeout":   "60m",
 						},
 					},
 				},
@@ -145,70 +155,70 @@ func TestPopulate(t *testing.T) {
 		},
 	}
 
-	if err := got.populate(context.Background()); err != nil {
+	if err := got.populate(); err != nil {
 		t.Fatal(err)
 	}
+
+	subGot := got.Steps["parent-step3"].SubWorkflow.Workflow
+
 	// Set the clients to nil as pretty.Diff will cause a stack overflow otherwise.
 	got.ComputeClient = nil
 	got.StorageClient = nil
-	got.Steps["step3"].SubWorkflow.Workflow.ComputeClient = nil
-	got.Steps["step3"].SubWorkflow.Workflow.StorageClient = nil
+	subGot.ComputeClient = nil
+	subGot.StorageClient = nil
 
 	want := &Workflow{
-		Name:      "some-name",
-		Bucket:    "some-bucket/images",
-		Zone:      "zone",
-		Project:   "project",
+		Name:      "parent-name",
+		Bucket:    "parent-bucket/images",
+		Zone:      "parent-zone",
+		Project:   "parent-project",
 		OAuthPath: tf,
-		id:    got.id,
-		ctx:       got.Ctx,
-		cancel:    got.Cancel,
+		id:        got.id,
+		Ctx:       got.Ctx,
+		Cancel:    got.Cancel,
 		Vars: map[string]string{
-			"step_name": "step1",
+			"step_name": "parent-step1",
 			"timeout":   "60m",
 			"path":      "./test_sub.workflow",
-			"name":      "some-name",
+			"name":      "parent-name",
 		},
-		scratchPath: "gs://some-bucket/images/daisy-some-name-" + got.id,
-		sourcesPath: fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/sources", got.id),
-		logsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/logs", got.id),
-		outsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/outs", got.id),
+		scratchPath: "gs://parent-bucket/images/daisy-parent-name-" + got.id,
+		sourcesPath: fmt.Sprintf("gs://parent-bucket/images/daisy-parent-name-%s/sources", got.id),
+		logsPath:    fmt.Sprintf("gs://parent-bucket/images/daisy-parent-name-%s/logs", got.id),
+		outsPath:    fmt.Sprintf("gs://parent-bucket/images/daisy-parent-name-%s/outs", got.id),
 		Steps: map[string]*Step{
-			"step1": {
-				name:    "step1",
+			"parent-step1": {
+				name:    "parent-step1",
 				Timeout: "60m",
 				timeout: time.Duration(60 * time.Minute),
 			},
-			"step2": {
-				name:    "step2",
+			"parent-step2": {
+				name:    "parent-step2",
 				Timeout: "10m",
 				timeout: time.Duration(10 * time.Minute),
 			},
-			"step3": {
-				name:    "step3",
+			"parent-step3": {
+				name:    "parent-step3",
 				Timeout: "10m",
 				timeout: time.Duration(10 * time.Minute),
 				SubWorkflow: &SubWorkflow{
 					Path: "./test_sub.workflow",
 					Workflow: &Workflow{
-						Name:        "some-name",
-						Bucket:      "some-bucket/images",
-						Zone:        "zone",
-						Project:     "project",
-						OAuthPath:   tf,
-						id:      got.id,
-						ctx:         got.Ctx,
-						cancel:      got.Cancel,
-						scratchPath: "gs://some-bucket/images/daisy-some-name-" + got.id,
-						sourcesPath: fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/sources", got.id),
-						logsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/logs", got.id),
-						outsPath:    fmt.Sprintf("gs://some-bucket/images/daisy-some-name-%s/outs", got.id),
+						// This subworkflow should not have been modified by the parent's populate().
+						Name:      "${name}",
+						Bucket:    "sub-bucket/images",
+						Project:   "sub-project",
+						Zone:      "sub-zone",
+						OAuthPath: "sub-oauth-path",
 						Steps: map[string]*Step{
-							"step1": {
-								name:    "step1",
-								Timeout: "60m",
-								timeout: time.Duration(60 * time.Minute),
+							"${step_name}": {
+								Timeout: "${timeout}",
 							},
+						},
+						Vars: map[string]string{
+							"name":      "sub-name",
+							"step_name": "sub-step1",
+							"timeout":   "60m",
 						},
 					},
 				},
@@ -221,13 +231,21 @@ func TestPopulate(t *testing.T) {
 	}
 }
 
-func TestReadWorkflow(t *testing.T) {
-	got, err := ReadWorkflow("./test.workflow")
+func TestFromFile(t *testing.T) {
+	got := New(context.Background())
+	err := got.FromFile("./test.workflow")
 	if err != nil {
 		t.Fatal(err)
 	}
+	subGot := got.Steps["sub workflow"].SubWorkflow.Workflow
+	// pretty.Compare freaks out (nil pointer dereference somewhere) over the Cancel functions.
+	got.Ctx = nil
+	got.Cancel = nil
+	subGot.Ctx = nil
+	subGot.Cancel = nil
 
 	want := &Workflow{
+		id:      got.id,
 		Name:    "some-name",
 		Project: "some-project",
 		Zone:    "us-central1-a",
@@ -295,8 +313,10 @@ func TestReadWorkflow(t *testing.T) {
 				SubWorkflow: &SubWorkflow{
 					Path: "./test_sub.workflow",
 					Workflow: &Workflow{
+						id: subGot.id,
 						Steps: map[string]*Step{
 							"create disks": {
+								name: "create disks",
 								CreateDisks: &CreateDisks{
 									{
 										Name:        "bootstrap",
@@ -307,6 +327,7 @@ func TestReadWorkflow(t *testing.T) {
 								},
 							},
 							"bootstrap": {
+								name: "bootstrap",
 								CreateInstances: &CreateInstances{
 									{
 										Name:          "bootstrap",
@@ -318,6 +339,7 @@ func TestReadWorkflow(t *testing.T) {
 								},
 							},
 							"bootstrap stopped": {
+								name: "bootstrap stopped",
 								Timeout:                 "1h",
 								WaitForInstancesStopped: &WaitForInstancesStopped{"bootstrap"},
 							},
@@ -496,7 +518,7 @@ func TestTraverseDAG(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := w.Run(context.Background()); err != nil {
+	if err := w.Run(); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
 	if err := checkCallOrder(); err != nil {
@@ -512,7 +534,7 @@ func TestTraverseDAG(t *testing.T) {
 		t.Fatal(err)
 	}
 	errs[2] = errors.New("s2 failure")
-	if err := w.Run(context.Background()); err != errs[2] {
+	if err := w.Run(); err != errs[2] {
 		t.Errorf("error %s != %s", err, errs[2])
 	}
 	if err := checkCallOrder(); err != nil {

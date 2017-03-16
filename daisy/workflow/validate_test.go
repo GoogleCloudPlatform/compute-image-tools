@@ -46,108 +46,112 @@ func TestCheckName(t *testing.T) {
 }
 
 func TestDiskExists(t *testing.T) {
+	w := &Workflow{}
 	// Try a disk that has not been added.
-	if diskExists("DNE") {
-		t.Errorf("reported non-existent disk name, DNE, as found")
+	if diskValid(w, "DNE") {
+		t.Error("reported non-existent disk name, DNE, as found")
 	}
 
 	// Try a disk that is added.
-	diskNames.add("test-exists-1")
-	if !diskExists("test-exists-1") {
-		t.Errorf("reported disk test-exists-1 does not exist")
+	validatedDisks.add(w, "test-exists-1")
+	if !diskValid(w, "test-exists-1") {
+		t.Error("reported disk test-exists-1 does not exist")
 	}
 
 	// Try a disk that has been added, but also deleted.
-	diskNames.add("test-exists-2")
-	diskNamesToDelete.add("test-exists-2")
-	if diskExists("test-exists-2") {
-		t.Errorf("reported disk test-exists-2 exists when it is to be deleted")
+	validatedDisks.add(w, "test-exists-2")
+	validatedDiskDeletions.add(w, "test-exists-2")
+	if diskValid(w, "test-exists-2") {
+		t.Error("reported disk test-exists-2 exists when it is to be deleted")
 	}
 }
 
 func TestImageExists(t *testing.T) {
+	w := &Workflow{}
 	// Try an image that has not been added.
-	if imageExists("DNE") {
-		t.Errorf("reported non-existent image name, DNE, as found")
+	if imageValid(w, "DNE") {
+		t.Error("reported non-existent image name, DNE, as found")
 	}
 
 	// Try an image that is added.
-	imageNames.add("test-exists-1")
-	if !imageExists("test-exists-1") {
-		t.Errorf("reported image test-exists-1 does not exist")
+	validatedImages.add(w, "test-exists-1")
+	if !imageValid(w, "test-exists-1") {
+		t.Error("reported image test-exists-1 does not exist")
 	}
 }
 
 func TestInstanceExists(t *testing.T) {
+	w := &Workflow{}
 	// Try an instance that has not been added.
-	if instanceExists("DNE") {
-		t.Errorf("reported non-existent instance name, DNE, as found")
+	if instanceValid(w, "DNE") {
+		t.Error("reported non-existent instance name, DNE, as found")
 	}
 
 	// Try an instance that is added.
-	instanceNames.add("test-exists-1")
-	if !instanceExists("test-exists-1") {
-		t.Errorf("reported instance test-exists-1 does not exist")
+	validatedInstances.add(w, "test-exists-1")
+	if !instanceValid(w, "test-exists-1") {
+		t.Error("reported instance test-exists-1 does not exist")
 	}
 
 	// Try an instance that has been added, but also deleted.
-	instanceNames.add("test-exists-2")
-	instanceNamesToDelete.add("test-exists-2")
-	if instanceExists("test-exists-2") {
-		t.Errorf("reported instance test-exists-2 exists when it is to be deleted")
+	validatedInstances.add(w, "test-exists-2")
+	validatedInstanceDeletions.add(w, "test-exists-2")
+	if instanceValid(w, "test-exists-2") {
+		t.Error("reported instance test-exists-2 exists when it is to be deleted")
 	}
 }
 
 func TestNameSet(t *testing.T) {
-	var s nameSet
-	var expected []string
+	n := nameSet{}
+	expected := nameSet{}
+	w := &Workflow{}
 
 	// Check init value.
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Error("nameSet did not init as empty string array")
+	if !reflect.DeepEqual(n, expected) {
+		t.Error("nameSet did not init as empty")
 	}
 
 	// Simple add check.
-	if s.add("hello") != nil {
+	if n.add(w, "hello") != nil {
 		t.Error("nameSet.add returned an incorrect error")
 	}
-	expected = append(expected, "hello")
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Errorf("nameSet.add didn't add %s != %s", s, expected)
+	expected[w] = &[]string{"hello"}
+	if !reflect.DeepEqual(n, expected) {
+		t.Errorf("nameSet.add didn't add %s != %s", n, expected)
 	}
 
 	// Check adds are ordered.
-	if s.add("world") != nil {
+	if n.add(w, "world") != nil {
 		t.Error("nameSet.add returned an incorrect error")
 	}
-	expected = append(expected, "world")
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Errorf("nameSet.add didn't add %s != %s", s, expected)
+	*expected[w] = append(*expected[w], "world")
+	if !reflect.DeepEqual(n, expected) {
+		t.Errorf("nameSet.add didn't add %s != %s", n, expected)
 	}
 
 	// Check that dupe add of "world" fails.
-	if s.add("world") == nil {
+	if n.add(w, "world") == nil {
 		t.Error("nameSet.add didn't err when adding dupe name")
 	}
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Errorf("nameSet.add shouldn't have modified set: %s != %s", s, expected)
+	if !reflect.DeepEqual(n, expected) {
+		t.Errorf("nameSet.add shouldn't have modified set: %s != %s", n, expected)
 	}
 
 	// Check adding a bad name.
-	if s.add("b@dname") == nil {
+	if n.add(w, "b@dname") == nil {
 		t.Error("nameSet.add didn't err when adding bad name")
 	}
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Errorf("nameSet.add shouldn't have modified set: %s != %s", s, expected)
+	if !reflect.DeepEqual(n, expected) {
+		t.Errorf("nameSet.add shouldn't have modified set: %s != %s", n, expected)
 	}
 
 	// Check has on a name that DNE.
-	if s.has("DNE") {
+	if n.has(w, "DNE") {
 		t.Error("nameSet.has reporting a non-existent name exists")
 	}
 
 	// Check has on a name that exists.
-	if !s.has("world") {
+	if !n.has(w, "world") {
 		t.Error("nameSet.has reporting a existent name doesn't exist")
 	}
 }
@@ -168,14 +172,14 @@ func TestValidateWorkflow(t *testing.T) {
 		desc string
 		wf   *Workflow
 	}{
-		{"no name", &Workflow{Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, ctx: ctx}},
-		{"no project", &Workflow{Name: "n", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, ctx: ctx}},
-		{"no zone", &Workflow{Name: "n", Project: "p", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, ctx: ctx}},
-		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, ctx: ctx}},
-		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", ctx: ctx}},
-		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, ctx: ctx}},
-		{"no step timeout", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {testType: &mockStep{}}}, ctx: ctx}},
-		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout}}, ctx: ctx}},
+		{"no name", &Workflow{Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
+		{"no project", &Workflow{Name: "n", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
+		{"no zone", &Workflow{Name: "n", Project: "p", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
+		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
+		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Ctx: ctx}},
+		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, Ctx: ctx}},
+		{"no step timeout", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {testType: &mockStep{}}}, Ctx: ctx}},
+		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout}}, Ctx: ctx}},
 	}
 
 	for _, tt := range tests {
@@ -189,8 +193,8 @@ func TestValidateDAG(t *testing.T) {
 	calls := make([]int, 5)
 	errs := make([]error, 5)
 	var rw sync.Mutex
-	mockValidate := func(i int) func() error {
-		return func() error {
+	mockValidate := func(i int) func(w *Workflow) error {
+		return func(w *Workflow) error {
 			rw.Lock()
 			defer rw.Unlock()
 			calls[i] = calls[i] + 1

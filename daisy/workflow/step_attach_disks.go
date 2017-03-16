@@ -24,12 +24,12 @@ type AttachDisk struct {
 	Disk, Instance string
 }
 
-func (a *AttachDisks) validate() error {
+func (a *AttachDisks) validate(w *Workflow) error {
 	for _, ad := range *a {
-		if !diskExists(ad.Disk) {
+		if !diskValid(w, ad.Disk) {
 			return fmt.Errorf("cannot attach disk. Disk not found: %s", ad.Disk)
 		}
-		if !instanceExists(ad.Instance) {
+		if !instanceValid(w, ad.Instance) {
 			return fmt.Errorf("cannot attach disk. Instance not found: %s", ad.Instance)
 		}
 	}
@@ -37,6 +37,6 @@ func (a *AttachDisks) validate() error {
 	return nil
 }
 
-func (a *AttachDisks) run(wf *Workflow) error {
+func (a *AttachDisks) run(w *Workflow) error {
 	return nil
 }

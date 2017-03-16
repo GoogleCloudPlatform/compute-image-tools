@@ -28,7 +28,9 @@ func TestWaitForInstancesStoppedRun(t *testing.T) {
 }
 
 func TestWaitForInstancesStoppedValidate(t *testing.T) {
-	instanceNames = nameSet{"instance1"}
+	// Set up.
+	w := &Workflow{}
+	validatedInstances = nameSet{w: {"instance1"}}
 
 	tests := []struct {
 		desc      string
@@ -40,7 +42,7 @@ func TestWaitForInstancesStoppedValidate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := test.step.validate(); (err != nil) != test.shouldErr {
+		if err := test.step.validate(w); (err != nil) != test.shouldErr {
 			t.Errorf("fail: %s; step: %s; error result: %s", test.desc, test.step, err)
 		}
 	}

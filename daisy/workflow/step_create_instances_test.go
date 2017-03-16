@@ -53,50 +53,46 @@ func TestCreateInstancesRun(t *testing.T) {
 
 func TestCreateInstancesValidate(t *testing.T) {
 	// Set up.
-	diskNames = nameSet{"d-foo", "d-bar"}
-	instanceNames = nameSet{"i-foo"}
-	defer func() {
-		// Clean up.
-		diskNames = nameSet{}
-		instanceNames = nameSet{}
-	}()
+	w := &Workflow{}
+	validatedDisks = nameSet{w: {"d-foo", "d-bar"}}
+	validatedInstances = nameSet{w: {"i-foo"}}
 
 	// Good case. Using multiple disks.
 	ci := CreateInstances{
 		CreateInstance{Name: "i-bar", AttachedDisks: []string{"d-foo", "d-bar"}},
 	}
-	if err := ci.validate(); err != nil {
-		t.Fatal("validation should not have failed")
+	if err := ci.validate(w); err != nil {
+		t.Error("validation should not have failed")
 	}
-	if !reflect.DeepEqual(instanceNames, nameSet{"i-foo", "i-bar"}) {
-		t.Fatalf("%s != %s", instanceNames, nameSet{"i-foo", "i-bar"})
+	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
+		t.Errorf("%s != %s", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
 	}
 
 	// Bad case. Dupe name.
 	ci = CreateInstances{
 		CreateInstance{Name: "i-bar", AttachedDisks: []string{"d-foo", "d-bar"}},
 	}
-	if !reflect.DeepEqual(instanceNames, nameSet{"i-foo", "i-bar"}) {
-		t.Fatalf("%s != %s", instanceNames, nameSet{"i-foo", "i-bar"})
+	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
+		t.Errorf("%s != %s", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
 	}
 
 	// Bad case. No disks.
 	ci = CreateInstances{CreateInstance{Name: "i-baz"}}
-	if err := ci.validate(); err == nil {
-		t.Fatal("validation should have failed")
+	if err := ci.validate(w); err == nil {
+		t.Error("validation should have failed")
 	}
-	if !reflect.DeepEqual(instanceNames, nameSet{"i-foo", "i-bar"}) {
-		t.Fatalf("%s != %s", instanceNames, nameSet{"i-foo", "i-bar"})
+	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
+		t.Errorf("%s != %s", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
 	}
 
 	// Bad case. Disk DNE.
 	ci = CreateInstances{
 		CreateInstance{Name: "i-baz", AttachedDisks: []string{"d-foo", "d-bar", "d-dne"}},
 	}
-	if err := ci.validate(); err == nil {
-		t.Fatal("validation should have failed")
+	if err := ci.validate(w); err == nil {
+		t.Error("validation should have failed")
 	}
-	if !reflect.DeepEqual(instanceNames, nameSet{"i-foo", "i-bar"}) {
-		t.Fatalf("%s != %s", instanceNames, nameSet{"i-foo", "i-bar"})
+	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
+		t.Errorf("%s != %s", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
 	}
 }

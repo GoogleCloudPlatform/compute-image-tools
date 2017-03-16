@@ -33,7 +33,7 @@ import (
 
 type step interface {
 	run(w *Workflow) error
-	validate() error
+	validate(w *Workflow) error
 }
 
 // Step is a single daisy workflow step.
@@ -127,10 +127,10 @@ func (s *Step) run(w *Workflow) error {
 	return err
 }
 
-func (s *Step) validate() error {
+func (s *Step) validate(w *Workflow) error {
 	realStep, err := s.realStep()
 	if err == nil {
-		return realStep.validate()
+		return realStep.validate(w)
 	}
 	return err
 }
@@ -181,11 +181,11 @@ type Workflow struct {
 func (w *Workflow) FromFile(file string) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := json.Unmarshal(data, &w); err != nil {
-		return nil, err
+		return err
 	}
 
 	// We need to unmarshal any SubWorkflows.
@@ -197,9 +197,11 @@ func (w *Workflow) FromFile(file string) error {
 		}
 
 		sw := New(w.Ctx)
-		sw.FromFile(step.SubWorkflow.Path)
+		if err := sw.FromFile(step.SubWorkflow.Path); err != nil {
+			return err
+		}
 
-		step.SubWorkflow.Workflow = &sw
+		step.SubWorkflow.Workflow = sw
 	}
 
 	return nil
@@ -353,7 +355,6 @@ func (w *Workflow) populate() error {
 	for k, v := range w.Vars {
 		oldnew = append(oldnew, fmt.Sprintf("${%s}", k), v)
 	}
-	SCOTT: substitute shouldn't recurse into subworkflows.
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(oldnew...))
 
 	var err error
@@ -396,11 +397,17 @@ func (w *Workflow) prerun() error {
 		return err
 	}
 
-	// Do every subworkflows' prerun as well.
+	// Modify subworkflows' GCE and GCS locations to match this workflow, then run their own preruns.
 	for _, step := range w.Steps {
 		if step.SubWorkflow == nil {
 			continue
 		}
+		step.SubWorkflow.Workflow.Bucket = w.Bucket
+		step.SubWorkflow.Workflow.Project = w.Project
+		step.SubWorkflow.Workflow.Zone = w.Zone
+		step.SubWorkflow.Workflow.OAuthPath = w.OAuthPath
+		step.SubWorkflow.Workflow.ComputeClient = w.ComputeClient
+		step.SubWorkflow.Workflow.StorageClient = w.StorageClient
 		if err := step.SubWorkflow.Workflow.prerun(); err != nil {
 			return err
 		}

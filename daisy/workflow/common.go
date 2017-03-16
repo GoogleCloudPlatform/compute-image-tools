@@ -104,6 +104,7 @@ func splitGCSPath(p string) (string, string, error) {
 // by s, if the field type matches one of the known types the provided
 // replacer.Replace is run on all string values replacing the original value
 // in the underlying struct.
+// Exceptions: will not change Vars fields or Workflow fields of SubWorkflow types.
 func substitute(s reflect.Value, replacer *strings.Replacer) {
 	if s.Kind() != reflect.Struct {
 		return
@@ -119,6 +120,16 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 		if !f.CanSet() {
 			continue
 		}
+
+		// Don't recurse on subworkflows. Let subworkflows do their own substitutions.
+		switch f.Interface().(type){
+		case *Workflow:
+			switch s.Interface().(type){
+			case SubWorkflow:
+				continue
+			}
+		}
+
 		switch f.Kind() {
 		case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Slice:
 			// A nil entry will cause additional reflect operations to panic.
