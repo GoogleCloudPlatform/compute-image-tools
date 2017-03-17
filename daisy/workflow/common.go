@@ -121,15 +121,6 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 			continue
 		}
 
-		// Don't recurse on subworkflows. Let subworkflows do their own substitutions.
-		switch f.Interface().(type){
-		case *Workflow:
-			switch s.Interface().(type){
-			case SubWorkflow:
-				continue
-			}
-		}
-
 		switch f.Kind() {
 		case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Slice:
 			// A nil entry will cause additional reflect operations to panic.
@@ -140,6 +131,12 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 
 		raw := f.Interface()
 		switch raw.(type) {
+		case *Workflow:
+			switch s.Interface().(type) {
+			case SubWorkflow:
+				// Don't recurse on subworkflows. Let subworkflows do their own substitutions.
+				continue
+			}
 		case string:
 			f.SetString(replacer.Replace(f.String()))
 		case []string:

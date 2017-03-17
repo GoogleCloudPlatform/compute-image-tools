@@ -59,13 +59,12 @@ func main() {
 	if len(flag.Args()) == 0 {
 		log.Fatal("Not enough args, first arg needs to be the path to a workflow.")
 	}
-	ctx := context.Background()
 
 	varMap := splitVariables(*variables)
 
 	var wfs []*workflow.Workflow
 	for _, path := range flag.Args() {
-		wf := workflow.New(ctx)
+		wf := workflow.New(context.Background())
 		err := wf.FromFile(path)
 		if err != nil {
 			log.Fatal(err)

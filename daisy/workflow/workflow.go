@@ -122,24 +122,24 @@ func (s *Step) realStep() (step, error) {
 
 func (s *Step) run(w *Workflow) error {
 	realStep, err := s.realStep()
-	if err == nil {
-		err = realStep.run(w)
+	if err != nil {
+		return s.wrapRunError(err)
 	}
-	if err == nil {
-		return nil
+	if err = realStep.run(w); err != nil {
+		return s.wrapRunError(err)
 	}
-	return s.wrapRunError(err)
+	return nil
 }
 
 func (s *Step) validate(w *Workflow) error {
 	realStep, err := s.realStep()
-	if err == nil {
-		err = realStep.validate(w)
+	if err != nil {
+		return s.wrapValidateError(err)
 	}
-	if err == nil {
-		return nil
+	if err = realStep.validate(w); err != nil {
+		return s.wrapValidateError(err)
 	}
-	return s.wrapValidateError(err)
+	return nil
 }
 
 func (s *Step) wrapRunError(e error) error {
