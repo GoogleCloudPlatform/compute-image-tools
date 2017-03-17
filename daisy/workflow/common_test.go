@@ -187,7 +187,7 @@ func TestSubstitute(t *testing.T) {
 					"step3": {
 						SubWorkflow: &SubWorkflow{
 							Path: "key3",
-							Workflow: &Workflow{
+							workflow: &Workflow{
 								Name: "key1",
 								Steps: map[string]*Step{
 									"key1": {
@@ -226,7 +226,7 @@ func TestSubstitute(t *testing.T) {
 					"step3": {
 						SubWorkflow: &SubWorkflow{
 							Path: "value3",
-							Workflow: &Workflow{
+							workflow: &Workflow{
 								Name: "key1",  // substitution should not recurse into subworkflows
 								Steps: map[string]*Step{
 									"key1": {  // substitution should not recurse into subworkflows

@@ -108,7 +108,7 @@ func TestFromFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	subGot := got.Steps["sub workflow"].SubWorkflow.Workflow
+	subGot := got.Steps["sub workflow"].SubWorkflow.workflow
 	// pretty.Compare freaks out (nil pointer dereference somewhere) over the Cancel functions.
 	got.Ctx = nil
 	got.Cancel = nil
@@ -183,7 +183,7 @@ func TestFromFile(t *testing.T) {
 				name: "sub workflow",
 				SubWorkflow: &SubWorkflow{
 					Path: "./test_sub.workflow",
-					Workflow: &Workflow{
+					workflow: &Workflow{
 						id: subGot.id,
 						Steps: map[string]*Step{
 							"create disks": {
@@ -270,7 +270,7 @@ func TestPopulate(t *testing.T) {
 			"parent-step3": {
 				SubWorkflow: &SubWorkflow{
 					Path: "${path}",
-					Workflow: &Workflow{
+					workflow: &Workflow{
 						Name:      "${name}",
 						Bucket:    "sub-bucket/images",
 						Project:   "sub-project",
@@ -296,7 +296,7 @@ func TestPopulate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	subGot := got.Steps["parent-step3"].SubWorkflow.Workflow
+	subGot := got.Steps["parent-step3"].SubWorkflow.workflow
 
 	// Set the clients to nil as pretty.Diff will cause a stack overflow otherwise.
 	got.ComputeClient = nil
@@ -340,7 +340,7 @@ func TestPopulate(t *testing.T) {
 				timeout: time.Duration(10 * time.Minute),
 				SubWorkflow: &SubWorkflow{
 					Path: "./test_sub.workflow",
-					Workflow: &Workflow{
+					workflow: &Workflow{
 						// This subworkflow should not have been modified by the parent's populate().
 						Name:      "${name}",
 						Bucket:    "sub-bucket/images",
@@ -473,7 +473,7 @@ func TestPrerun(t *testing.T) {
 				name: "parent-step3",
 				SubWorkflow: &SubWorkflow{
 					Path: "${path}",
-					Workflow: subGot,
+					workflow: subGot,
 				},
 			},
 		},
@@ -523,7 +523,7 @@ func TestPrerun(t *testing.T) {
 				timeout:     defaultTimeoutParsed,
 				SubWorkflow: &SubWorkflow{
 					Path:     "./test_sub.workflow",
-					Workflow: subWant,
+					workflow: subWant,
 				},
 			},
 		},

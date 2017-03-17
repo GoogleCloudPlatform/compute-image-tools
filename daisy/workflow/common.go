@@ -162,10 +162,8 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 				newMap[replacer.Replace(k)] = v
 			}
 			f.Set(reflect.ValueOf(newMap))
-		case *compute.Client, *storage.Client, context.Context, context.CancelFunc, *Workflow:
+		case *compute.Client, *storage.Client, context.Context, context.CancelFunc:
 			// We specifically do not want to change fields with these types.
-			// Types of *Workflow are only in subworkflows. We'll let them call their own
-			// substitutes.
 			continue
 		default:
 			if f.Kind() != reflect.Ptr {

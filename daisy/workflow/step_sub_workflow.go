@@ -17,7 +17,7 @@ package workflow
 // SubWorkflow defines a Daisy sub workflow.
 type SubWorkflow struct {
 	Path     string
-	Workflow *Workflow `json:"-"`
+	workflow *Workflow `json:"-"`
 }
 
 func (s *SubWorkflow) validate(w *Workflow) error {
@@ -27,5 +27,5 @@ func (s *SubWorkflow) validate(w *Workflow) error {
 
 func (s *SubWorkflow) run(w *Workflow) error {
 	// prerun() work has already been done. Just run(), not Run().
-	return s.Workflow.run()
+	return s.workflow.run()
 }

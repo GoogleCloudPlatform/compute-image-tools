@@ -216,7 +216,7 @@ func (w *Workflow) FromFile(file string) error {
 			return err
 		}
 
-		step.SubWorkflow.Workflow = sw
+		step.SubWorkflow.workflow = sw
 	}
 
 	return nil
@@ -417,13 +417,13 @@ func (w *Workflow) prerun() error {
 		if step.SubWorkflow == nil {
 			continue
 		}
-		step.SubWorkflow.Workflow.Bucket = w.Bucket
-		step.SubWorkflow.Workflow.Project = w.Project
-		step.SubWorkflow.Workflow.Zone = w.Zone
-		step.SubWorkflow.Workflow.OAuthPath = w.OAuthPath
-		step.SubWorkflow.Workflow.ComputeClient = w.ComputeClient
-		step.SubWorkflow.Workflow.StorageClient = w.StorageClient
-		if err := step.SubWorkflow.Workflow.prerun(); err != nil {
+		step.SubWorkflow.workflow.Bucket = w.Bucket
+		step.SubWorkflow.workflow.Project = w.Project
+		step.SubWorkflow.workflow.Zone = w.Zone
+		step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
+		step.SubWorkflow.workflow.ComputeClient = w.ComputeClient
+		step.SubWorkflow.workflow.StorageClient = w.StorageClient
+		if err := step.SubWorkflow.workflow.prerun(); err != nil {
 			return err
 		}
 	}
