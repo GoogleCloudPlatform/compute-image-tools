@@ -1,6 +1,15 @@
-## Compute Engine Image Tools
+# Compute Engine Image Tools
+[![Build Status](https://travis-ci.org/GoogleCloudPlatform/compute-image-tools.svg?branch=master)](https://travis-ci.org/GoogleCloudPlatform/compute-image-tools)
 
 Tools for Google Compute Engine image management.
+
+## Daisy (WIP)
+
+Daisy is a GCE workflow tool for running image type workflows on GCE.
+
+## Export tool
+
+The export tool streams a local disk to a Google Compute Engine image file in a Google Cloud Storage bucket.
 
 ## Contributing
 
