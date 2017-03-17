@@ -19,6 +19,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"reflect"
@@ -111,10 +112,10 @@ func (s *Step) realStep() (step, error) {
 	}
 
 	if matchCount == 0 {
-		return nil, fmt.Errorf("malformed step %q, no step types defined: %+v", s.name, s)
+		return nil, errors.New("no step type defined")
 	}
 	if matchCount > 1 {
-		return nil, fmt.Errorf("malformed step %q, more than one step type defined: %+v", s.name, s)
+		return nil, errors.New("multiple step types defined")
 	}
 	return result, nil
 }
@@ -122,17 +123,31 @@ func (s *Step) realStep() (step, error) {
 func (s *Step) run(w *Workflow) error {
 	realStep, err := s.realStep()
 	if err == nil {
-		return realStep.run(w)
+		err = realStep.run(w)
 	}
-	return err
+	if err == nil {
+		return nil
+	}
+	return s.wrapRunError(err)
 }
 
 func (s *Step) validate(w *Workflow) error {
 	realStep, err := s.realStep()
 	if err == nil {
-		return realStep.validate(w)
+		err = realStep.validate(w)
 	}
-	return err
+	if err == nil {
+		return nil
+	}
+	return s.wrapValidateError(err)
+}
+
+func (s *Step) wrapRunError(e error) error {
+	return fmt.Errorf("%q run error: %s", s.name, e)
+}
+
+func (s *Step) wrapValidateError(e error) error {
+	return fmt.Errorf("%q validation error: %s", s.name, e)
 }
 
 // Workflow is a single Daisy workflow workflow.

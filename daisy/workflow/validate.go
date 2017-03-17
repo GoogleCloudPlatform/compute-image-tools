@@ -19,9 +19,11 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 )
 
 const defaultTimeout = "10m"
+const defaultTimeoutParsed = time.Duration(10 * time.Minute)
 
 type nameSet map[*Workflow]*[]string
 

@@ -105,54 +105,63 @@ func TestNameSet(t *testing.T) {
 	n := nameSet{}
 	expected := nameSet{}
 	w := &Workflow{}
+	w2 := &Workflow{}
+	w3 := &Workflow{}
+
 
 	// Check init value.
 	if !reflect.DeepEqual(n, expected) {
 		t.Error("nameSet did not init as empty")
 	}
 
-	// Simple add check.
-	if n.add(w, "hello") != nil {
-		t.Error("nameSet.add returned an incorrect error")
-	}
-	expected[w] = &[]string{"hello"}
-	if !reflect.DeepEqual(n, expected) {
-		t.Errorf("nameSet.add didn't add %s != %s", n, expected)
-	}
-
-	// Check adds are ordered.
-	if n.add(w, "world") != nil {
-		t.Error("nameSet.add returned an incorrect error")
-	}
-	*expected[w] = append(*expected[w], "world")
-	if !reflect.DeepEqual(n, expected) {
-		t.Errorf("nameSet.add didn't add %s != %s", n, expected)
+	// Check add(). nameSet state persists across test cases.
+	addTests := []struct{
+		desc string
+		wf *Workflow
+		s string
+		shouldErr bool
+		wantSet nameSet
+	} {
+		{"normal add", w, "hello", false, nameSet{w: {"hello"}}},
+		{"add ordering", w, "world", false, nameSet{w: {"hello", "world"}}},
+		{"add dupe", w, "world", true, nameSet{w: {"hello", "world"}}},
+		{"add bad name", w, "b@dname", true, nameSet{w: {"hello", "world"}}},
+		{"add to second workflow", w2, "hello", false, nameSet{w: {"hello", "world"}, w2: {"hello"}}},
 	}
 
-	// Check that dupe add of "world" fails.
-	if n.add(w, "world") == nil {
-		t.Error("nameSet.add didn't err when adding dupe name")
-	}
-	if !reflect.DeepEqual(n, expected) {
-		t.Errorf("nameSet.add shouldn't have modified set: %s != %s", n, expected)
-	}
-
-	// Check adding a bad name.
-	if n.add(w, "b@dname") == nil {
-		t.Error("nameSet.add didn't err when adding bad name")
-	}
-	if !reflect.DeepEqual(n, expected) {
-		t.Errorf("nameSet.add shouldn't have modified set: %s != %s", n, expected)
+	for _, test := range addTests {
+		err := n.add(test.wf, test.s)
+		if test.shouldErr && err == nil {
+			t.Errorf("%q should have erred", test.desc)
+		} else if !test.shouldErr && err != nil {
+			t.Errorf("%q had incorrect error: %s", test.desc, err)
+		}
+		if !reflect.DeepEqual(n, test.wantSet) {
+			t.Errorf("bad state after %q, want: %v; got: %v", test.desc, test.wantSet, n)
+		}
 	}
 
-	// Check has on a name that DNE.
-	if n.has(w, "DNE") {
-		t.Error("nameSet.has reporting a non-existent name exists")
+	// w has "hello" and "world", w2 has "hello" and (now) "bob".
+	// Check has().
+	n.add(w2, "bob")
+	hasTests := []struct{
+		desc string
+		wf *Workflow
+		s string
+		want bool
+	}{
+		{"w has hello", w, "hello", true},
+		{"w2 has hello", w2, "hello", true},
+		{"w has world", w, "world", true},
+		{"w2 does not have world", w2, "world", false},
+		{"w does not have bob", w, "bob", false},
+		{"w2 has bob", w2, "bob", true},
+		{"w3 should have nothing", w3, "empty", false},
 	}
-
-	// Check has on a name that exists.
-	if !n.has(w, "world") {
-		t.Error("nameSet.has reporting a existent name doesn't exist")
+  for _, test := range hasTests {
+		if got := n.has(test.wf, test.s); got != test.want {
+			t.Errorf("%q failed, bad n.has() result, want: %b; got: %b", test.desc, test.want, got)
+		}
 	}
 }
 
