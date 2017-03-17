@@ -130,15 +130,6 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 		}
 
 		raw := f.Interface()
-		// Preliminary check for subworkflows.
-		// Don't recurse on subworkflows. Let subworkflows do their own substitutions.
-		switch raw.(type) {
-		case *Workflow:
-			switch s.Interface().(type) {
-			case SubWorkflow:
-				continue
-			}
-		}
 		switch raw.(type) {
 		case string:
 			f.SetString(replacer.Replace(f.String()))
@@ -171,8 +162,10 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 				newMap[replacer.Replace(k)] = v
 			}
 			f.Set(reflect.ValueOf(newMap))
-		case *compute.Client, *storage.Client, context.Context, context.CancelFunc:
+		case *compute.Client, *storage.Client, context.Context, context.CancelFunc, *Workflow:
 			// We specifically do not want to change fields with these types.
+			// Types of *Workflow are only in subworkflows. We'll let them call their own
+			// substitutes.
 			continue
 		default:
 			if f.Kind() != reflect.Ptr {
