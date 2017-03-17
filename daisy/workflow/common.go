@@ -130,13 +130,16 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 		}
 
 		raw := f.Interface()
+		// Preliminary check for subworkflows.
+		// Don't recurse on subworkflows. Let subworkflows do their own substitutions.
 		switch raw.(type) {
 		case *Workflow:
 			switch s.Interface().(type) {
 			case SubWorkflow:
-				// Don't recurse on subworkflows. Let subworkflows do their own substitutions.
 				continue
 			}
+		}
+		switch raw.(type) {
 		case string:
 			f.SetString(replacer.Replace(f.String()))
 		case []string:
