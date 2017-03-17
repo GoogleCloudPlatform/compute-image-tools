@@ -65,7 +65,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 		t.Error("validation should not have failed")
 	}
 	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Errorf("%s != %s", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
+		t.Errorf("%v != %v", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
 	}
 
 	// Bad case. Dupe name.
@@ -73,7 +73,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 		CreateInstance{Name: "i-bar", AttachedDisks: []string{"d-foo", "d-bar"}},
 	}
 	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Errorf("%s != %s", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
+		t.Errorf("%v != %v", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
 	}
 
 	// Bad case. No disks.
@@ -82,7 +82,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 		t.Error("validation should have failed")
 	}
 	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Errorf("%s != %s", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
+		t.Errorf("%v != %v", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
 	}
 
 	// Bad case. Disk DNE.
@@ -93,6 +93,6 @@ func TestCreateInstancesValidate(t *testing.T) {
 		t.Error("validation should have failed")
 	}
 	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Errorf("%s != %s", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
+		t.Errorf("%v != %v", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
 	}
 }

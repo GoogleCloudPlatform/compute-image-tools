@@ -160,7 +160,7 @@ func TestNameSet(t *testing.T) {
 	}
   for _, test := range hasTests {
 		if got := n.has(test.wf, test.s); got != test.want {
-			t.Errorf("%q failed, bad n.has() result, want: %b; got: %b", test.desc, test.want, got)
+			t.Errorf("%q failed, bad n.has() result, want: %t; got: %t", test.desc, test.want, got)
 		}
 	}
 }

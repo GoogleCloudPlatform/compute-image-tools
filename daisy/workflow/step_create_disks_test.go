@@ -50,7 +50,7 @@ func TestCreateDisksValidate(t *testing.T) {
 		t.Error(err)
 	}
 	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar"}}) {
-		t.Errorf("%s != %s", validatedDisks, nameSet{w: {"d-foo", "d-bar"}})
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar"}})
 	}
 
 	// Good case. No source image.
@@ -59,7 +59,7 @@ func TestCreateDisksValidate(t *testing.T) {
 		t.Error(err)
 	}
 	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
-		t.Errorf("%s != %s", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
 	}
 
 	// Bad case. Dupe disk name.
@@ -68,7 +68,7 @@ func TestCreateDisksValidate(t *testing.T) {
 		t.Error(err)
 	}
 	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
-		t.Errorf("%s != %s", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
 	}
 
 	// Bad case. No Size.
@@ -77,7 +77,7 @@ func TestCreateDisksValidate(t *testing.T) {
 		t.Error(err)
 	}
 	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
-		t.Errorf("%s != %s", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
 	}
 
 	// Bad case. Image DNE.
@@ -86,6 +86,6 @@ func TestCreateDisksValidate(t *testing.T) {
 		t.Error(err)
 	}
 	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
-		t.Errorf("%s != %s", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
 	}
 }

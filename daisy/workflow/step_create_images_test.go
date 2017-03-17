@@ -51,7 +51,7 @@ func TestCreateImagesValidate(t *testing.T) {
 		t.Fatal("validation should not have failed")
 	}
 	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Fatalf("%s != %s", validatedImages, nameSet{w: {"i-foo", "i-bar"}})
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar"}})
 	}
 
 	// Good case. Using file.
@@ -60,7 +60,7 @@ func TestCreateImagesValidate(t *testing.T) {
 		t.Fatal("validation should not have failed")
 	}
 	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}}) {
-		t.Fatalf("%s != %s", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
 	}
 
 	// Bad case. Dupe name.
@@ -69,7 +69,7 @@ func TestCreateImagesValidate(t *testing.T) {
 		t.Fatal("validation should have failed")
 	}
 	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}}) {
-		t.Fatalf("%s != %s", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
 	}
 
 	// Bad case. No disk/file.
@@ -78,7 +78,7 @@ func TestCreateImagesValidate(t *testing.T) {
 		t.Fatal("validation should have failed")
 	}
 	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}}) {
-		t.Fatalf("%s != %s", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
 	}
 
 	// Bad case. Using both disk/file.
@@ -87,6 +87,6 @@ func TestCreateImagesValidate(t *testing.T) {
 		t.Fatal("validation should have failed")
 	}
 	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}}) {
-		t.Fatalf("%s != %s", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
 	}
 }
