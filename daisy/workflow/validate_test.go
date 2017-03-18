@@ -108,20 +108,19 @@ func TestNameSet(t *testing.T) {
 	w2 := &Workflow{}
 	w3 := &Workflow{}
 
-
 	// Check init value.
 	if !reflect.DeepEqual(n, expected) {
 		t.Error("nameSet did not init as empty")
 	}
 
 	// Check add(). nameSet state persists across test cases.
-	addTests := []struct{
-		desc string
-		wf *Workflow
-		s string
+	addTests := []struct {
+		desc      string
+		wf        *Workflow
+		s         string
 		shouldErr bool
-		wantSet nameSet
-	} {
+		wantSet   nameSet
+	}{
 		{"normal add", w, "hello", false, nameSet{w: {"hello"}}},
 		{"add ordering", w, "world", false, nameSet{w: {"hello", "world"}}},
 		{"add dupe", w, "world", true, nameSet{w: {"hello", "world"}}},
@@ -144,10 +143,10 @@ func TestNameSet(t *testing.T) {
 	// w has "hello" and "world", w2 has "hello" and (now) "bob".
 	// Check has().
 	n.add(w2, "bob")
-	hasTests := []struct{
+	hasTests := []struct {
 		desc string
-		wf *Workflow
-		s string
+		wf   *Workflow
+		s    string
 		want bool
 	}{
 		{"w has hello", w, "hello", true},
@@ -158,7 +157,7 @@ func TestNameSet(t *testing.T) {
 		{"w2 has bob", w2, "bob", true},
 		{"w3 should have nothing", w3, "empty", false},
 	}
-  for _, test := range hasTests {
+	for _, test := range hasTests {
 		if got := n.has(test.wf, test.s); got != test.want {
 			t.Errorf("%q failed, bad n.has() result, want: %t; got: %t", test.desc, test.want, got)
 		}

@@ -159,20 +159,20 @@ type Workflow struct {
 
 	// Workflow template fields.
 	// Workflow name.
-	Name         string
+	Name string
 	// Project to run in.
-	Project      string
+	Project string
 	// Zone to run in.
-	Zone         string
+	Zone string
 	// GCS Bucket to use for scratch data and write logs/results to.
-	Bucket       string
+	Bucket string
 	// Path to OAuth credentials file.
-	OAuthPath    string `json:"oauth_path"`
+	OAuthPath string `json:"oauth_path"`
 	// Sources used by this workflow, map of destination to source.
-	Sources      map[string]string
+	Sources map[string]string
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars         map[string]string
-	Steps        map[string]*Step
+	Vars  map[string]string
+	Steps map[string]*Step
 	// Map of steps to their dependencies.
 	Dependencies map[string][]string
 
@@ -183,12 +183,13 @@ type Workflow struct {
 	createdInstancesMx sync.Mutex
 	createdImages      map[string]string
 	createdImagesMx    sync.Mutex
+	parent             *Workflow
 	scratchPath        string
 	sourcesPath        string
 	logsPath           string
 	outsPath           string
-	ComputeClient      *compute.Client    `json:"-"`
-	StorageClient      *storage.Client    `json:"-"`
+	ComputeClient      *compute.Client `json:"-"`
+	StorageClient      *storage.Client `json:"-"`
 }
 
 // FromFile reads and unmarshals a workflow file.
@@ -215,8 +216,8 @@ func (w *Workflow) FromFile(file string) error {
 		if err := sw.FromFile(step.SubWorkflow.Path); err != nil {
 			return err
 		}
-
 		step.SubWorkflow.workflow = sw
+		sw.parent = w
 	}
 
 	return nil
@@ -362,10 +363,22 @@ func (w *Workflow) populateStep(step *Step) error {
 	}
 	step.timeout = timeout
 
-	return nil
+	// Recurse on subworkflows.
+	if step.SubWorkflow == nil {
+		return nil
+	}
+	step.SubWorkflow.workflow.Bucket = w.Bucket
+	step.SubWorkflow.workflow.Project = w.Project
+	step.SubWorkflow.workflow.Zone = w.Zone
+	step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
+	step.SubWorkflow.workflow.ComputeClient = w.ComputeClient
+	step.SubWorkflow.workflow.StorageClient = w.StorageClient
+	return step.SubWorkflow.workflow.populate()
 }
 
 func (w *Workflow) populate() error {
+	w.id = randString(5)
+
 	var oldnew []string
 	for k, v := range w.Vars {
 		oldnew = append(oldnew, fmt.Sprintf("${%s}", k), v)
@@ -408,26 +421,7 @@ func (w *Workflow) prerun() error {
 	if err := w.validate(); err != nil {
 		return err
 	}
-	if err := w.uploadSources(); err != nil {
-		return err
-	}
-
-	// Modify subworkflows' GCE and GCS locations to match this workflow, then run their own preruns.
-	for _, step := range w.Steps {
-		if step.SubWorkflow == nil {
-			continue
-		}
-		step.SubWorkflow.workflow.Bucket = w.Bucket
-		step.SubWorkflow.workflow.Project = w.Project
-		step.SubWorkflow.workflow.Zone = w.Zone
-		step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
-		step.SubWorkflow.workflow.ComputeClient = w.ComputeClient
-		step.SubWorkflow.workflow.StorageClient = w.StorageClient
-		if err := step.SubWorkflow.workflow.prerun(); err != nil {
-			return err
-		}
-	}
-	return nil
+	return w.uploadSources()
 }
 
 func (w *Workflow) run() error {
@@ -561,6 +555,11 @@ func (w *Workflow) uploadSources() error {
 			}
 		}
 	}
+	for _, step := range w.Steps {
+		if step.SubWorkflow != nil {
+			step.SubWorkflow.workflow.uploadSources()
+		}
+	}
 	return nil
 }
 
@@ -568,7 +567,6 @@ func (w *Workflow) uploadSources() error {
 func New(ctx context.Context) *Workflow {
 	var w Workflow
 	w.Ctx, w.Cancel = context.WithCancel(ctx)
-	w.id = randString(5)
 	return &w
 }
 

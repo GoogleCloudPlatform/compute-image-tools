@@ -21,8 +21,7 @@ type SubWorkflow struct {
 }
 
 func (s *SubWorkflow) validate(w *Workflow) error {
-	// This subworkflow's prerun already calls validate(). Skip doing it here.
-	return nil
+	return s.workflow.validate()
 }
 
 func (s *SubWorkflow) run(w *Workflow) error {

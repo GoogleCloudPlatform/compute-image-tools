@@ -109,11 +109,6 @@ func TestFromFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	subGot := got.Steps["sub workflow"].SubWorkflow.workflow
-	// pretty.Compare freaks out (nil pointer dereference somewhere) over the Cancel functions.
-	got.Ctx = nil
-	got.Cancel = nil
-	subGot.Ctx = nil
-	subGot.Cancel = nil
 
 	want := &Workflow{
 		id:      got.id,
@@ -210,7 +205,7 @@ func TestFromFile(t *testing.T) {
 								},
 							},
 							"bootstrap stopped": {
-								name: "bootstrap stopped",
+								name:                    "bootstrap stopped",
 								Timeout:                 "1h",
 								WaitForInstancesStopped: &WaitForInstancesStopped{"bootstrap"},
 							},
@@ -233,6 +228,18 @@ func TestFromFile(t *testing.T) {
 			"sub workflow":        {"create image"},
 		},
 	}
+
+	// Check that subworkflow has workflow as parent.
+	if subGot.parent != got {
+		t.Error("subworkflow does not point to parent workflow")
+	}
+
+	// Fix pretty.Compare recursion freak outs.
+	got.Ctx = nil
+	got.Cancel = nil
+	subGot.Ctx = nil
+	subGot.Cancel = nil
+	subGot.parent = nil
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
@@ -342,14 +349,17 @@ func TestPopulate(t *testing.T) {
 					Path: "./test_sub.workflow",
 					workflow: &Workflow{
 						// This subworkflow should not have been modified by the parent's populate().
-						Name:      "${name}",
-						Bucket:    "sub-bucket/images",
-						Project:   "sub-project",
-						Zone:      "sub-zone",
-						OAuthPath: "sub-oauth-path",
+						Name:      "sub-name",
+						Bucket:    "parent-bucket/images",
+						Zone:      "parent-zone",
+						Project:   "parent-project",
+						OAuthPath: tf,
+						id:        subGot.id,
 						Steps: map[string]*Step{
-							"${step_name}": {
-								Timeout: "${timeout}",
+							"sub-step1": {
+								name:    "sub-step1",
+								Timeout: "60m",
+								timeout: time.Duration(60 * time.Minute),
 							},
 						},
 						Vars: map[string]string{
@@ -357,6 +367,10 @@ func TestPopulate(t *testing.T) {
 							"step_name": "sub-step1",
 							"timeout":   "60m",
 						},
+						scratchPath: "gs://parent-bucket/images/daisy-sub-name-" + subGot.id,
+						sourcesPath: fmt.Sprintf("gs://parent-bucket/images/daisy-sub-name-%s/sources", subGot.id),
+						logsPath:    fmt.Sprintf("gs://parent-bucket/images/daisy-sub-name-%s/logs", subGot.id),
+						outsPath:    fmt.Sprintf("gs://parent-bucket/images/daisy-sub-name-%s/outs", subGot.id),
 					},
 				},
 			},
@@ -384,7 +398,6 @@ func TestPrerun(t *testing.T) {
 	// parent fields for GCS and GCE locations get passed to children subworkflow,
 	// e.g. Bucket, Project, Zone, OAuth stuff.
 	subGot := &Workflow{
-		id:        "wvxyz",
 		Name:      "${name}",
 		Bucket:    "sub-bucket/images",
 		Project:   "sub-project",
@@ -412,7 +425,6 @@ func TestPrerun(t *testing.T) {
 	}
 
 	subWant := &Workflow{
-		id:        "wvxyz",
 		Name:      "sub-name",
 		Bucket:    "parent-bucket/images",
 		Project:   "parent-project",
@@ -438,14 +450,9 @@ func TestPrerun(t *testing.T) {
 			"timeout":   "60m",
 		},
 		Ctx: subGot.Ctx,
-		scratchPath: "gs://parent-bucket/images/daisy-sub-name-wvxyz",
-		sourcesPath: "gs://parent-bucket/images/daisy-sub-name-wvxyz/sources",
-		logsPath: "gs://parent-bucket/images/daisy-sub-name-wvxyz/logs",
-		outsPath: "gs://parent-bucket/images/daisy-sub-name-wvxyz/outs",
 	}
 
 	got := &Workflow{
-		id:        "abcde",
 		Name:      "${name}",
 		Bucket:    "parent-bucket/images",
 		Zone:      "parent-zone",
@@ -453,8 +460,8 @@ func TestPrerun(t *testing.T) {
 		OAuthPath: tf,
 		Steps: map[string]*Step{
 			"${step_name}": {
-				name:        "${step_name}",
-				Timeout:     "${timeout}",
+				name:    "${step_name}",
+				Timeout: "${timeout}",
 				CreateDisks: &CreateDisks{
 					{
 						Name:        "d",
@@ -465,14 +472,14 @@ func TestPrerun(t *testing.T) {
 				},
 			},
 			"parent-step2": {
-				name: "parent-step2",
-				Timeout: "15m",
-				DeleteResources: &DeleteResources{Disks:[]string{"d"}},
+				name:            "parent-step2",
+				Timeout:         "15m",
+				DeleteResources: &DeleteResources{Disks: []string{"d"}},
 			},
 			"parent-step3": {
 				name: "parent-step3",
 				SubWorkflow: &SubWorkflow{
-					Path: "${path}",
+					Path:     "${path}",
 					workflow: subGot,
 				},
 			},
@@ -482,26 +489,25 @@ func TestPrerun(t *testing.T) {
 		},
 		Vars: map[string]string{
 			"source_image": "projects/windows-cloud/global/images/family/windows-server-2016-core",
-			"step_name": "parent-step1",
-			"timeout":   "60m",
-			"path":      "./test_sub.workflow",
-			"name":      "parent-name",
+			"step_name":    "parent-step1",
+			"timeout":      "60m",
+			"path":         "./test_sub.workflow",
+			"name":         "parent-name",
 		},
 		Ctx: context.Background(),
 	}
 
 	want := &Workflow{
-		id:   "abcde",
-		Name: "parent-name",
-		Bucket: "parent-bucket/images",
-		Project: "parent-project",
-		Zone: "parent-zone",
+		Name:      "parent-name",
+		Bucket:    "parent-bucket/images",
+		Project:   "parent-project",
+		Zone:      "parent-zone",
 		OAuthPath: tf,
 		Steps: map[string]*Step{
 			"parent-step1": {
-				name:        "parent-step1",
-				Timeout:     "60m",
-				timeout:     time.Duration(60 * time.Minute),
+				name:    "parent-step1",
+				Timeout: "60m",
+				timeout: time.Duration(60 * time.Minute),
 				CreateDisks: &CreateDisks{
 					{
 						Name:        "d",
@@ -512,15 +518,15 @@ func TestPrerun(t *testing.T) {
 				},
 			},
 			"parent-step2": {
-				name: "parent-step2",
+				name:            "parent-step2",
 				Timeout:         "15m",
 				timeout:         time.Duration(15 * time.Minute),
-				DeleteResources: &DeleteResources{Disks:[]string{"d"}},
+				DeleteResources: &DeleteResources{Disks: []string{"d"}},
 			},
 			"parent-step3": {
-				name:        "parent-step3",
-				Timeout:     defaultTimeout,
-				timeout:     defaultTimeoutParsed,
+				name:    "parent-step3",
+				Timeout: defaultTimeout,
+				timeout: defaultTimeoutParsed,
 				SubWorkflow: &SubWorkflow{
 					Path:     "./test_sub.workflow",
 					workflow: subWant,
@@ -532,23 +538,31 @@ func TestPrerun(t *testing.T) {
 		},
 		Vars: map[string]string{
 			"source_image": "projects/windows-cloud/global/images/family/windows-server-2016-core",
-			"step_name": "parent-step1",
-			"timeout":   "60m",
-			"path":      "./test_sub.workflow",
-			"name":      "parent-name",
+			"step_name":    "parent-step1",
+			"timeout":      "60m",
+			"path":         "./test_sub.workflow",
+			"name":         "parent-name",
 		},
 		Ctx: got.Ctx,
-		scratchPath: "gs://parent-bucket/images/daisy-parent-name-abcde",
-		sourcesPath: "gs://parent-bucket/images/daisy-parent-name-abcde/sources",
-		logsPath: "gs://parent-bucket/images/daisy-parent-name-abcde/logs",
-		outsPath: "gs://parent-bucket/images/daisy-parent-name-abcde/outs",
 	}
 
 	if err := got.prerun(); err != nil {
 		t.Fatal(err)
 	}
 
-	// These cause pretty.Compare to freak out.
+	// These are generated at populate time, so we have to cheat.
+	want.id = got.id
+	subWant.id = subGot.id
+	want.scratchPath = fmt.Sprintf("gs://parent-bucket/images/daisy-parent-name-%s", want.id)
+	want.sourcesPath = want.scratchPath + "/sources"
+	want.logsPath = want.scratchPath + "/logs"
+	want.outsPath = want.scratchPath + "/outs"
+	subWant.scratchPath = fmt.Sprintf("gs://parent-bucket/images/daisy-sub-name-%s", subWant.id)
+	subWant.sourcesPath = subWant.scratchPath + "/sources"
+	subWant.logsPath = subWant.scratchPath + "/logs"
+	subWant.outsPath = subWant.scratchPath + "/outs"
+
+	// Fix pretty.Compare recursion freak outs.
 	got.ComputeClient = nil
 	got.StorageClient = nil
 	subGot.ComputeClient = nil
