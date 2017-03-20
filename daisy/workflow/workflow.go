@@ -16,20 +16,24 @@
 package workflow
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
+	"bytes"
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
+	"io"
+	"log"
+	"os"
 )
 
 type refMap struct {
@@ -93,7 +97,8 @@ type Step struct {
 	SubWorkflow             *SubWorkflow             `json:"sub_workflow"`
 	WaitForInstancesSignal  *WaitForInstancesSignal  `json:"wait_for_instances_signal"`
 	WaitForInstancesStopped *WaitForInstancesStopped `json:"wait_for_instances_stopped"`
-	testType                step
+	// Used for unit tests.
+	testType step
 }
 
 func (s *Step) realStep() (step, error) {
@@ -162,6 +167,13 @@ func (s *Step) run(w *Workflow) error {
 	if err != nil {
 		return s.wrapRunError(err)
 	}
+	var st string
+	if t := reflect.TypeOf(realStep); t.Kind() == reflect.Ptr {
+		st = t.Elem().Name()
+	} else {
+		st = t.Name()
+	}
+	w.logger.Printf("Running step %q (%s)", s.name, st)
 	if err = realStep.run(w); err != nil {
 		return s.wrapRunError(err)
 	}
@@ -169,6 +181,7 @@ func (s *Step) run(w *Workflow) error {
 }
 
 func (s *Step) validate(w *Workflow) error {
+	w.logger.Printf("Validating step %q", s.name)
 	realStep, err := s.realStep()
 	if err != nil {
 		return s.wrapValidateError(err)
@@ -180,17 +193,16 @@ func (s *Step) validate(w *Workflow) error {
 }
 
 func (s *Step) wrapRunError(e error) error {
-	return fmt.Errorf("%q run error: %s", s.name, e)
+	return fmt.Errorf("step %q run error: %s", s.name, e)
 }
 
 func (s *Step) wrapValidateError(e error) error {
-	return fmt.Errorf("%q validation error: %s", s.name, e)
+	return fmt.Errorf("step %q validation error: %s", s.name, e)
 }
 
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
-	id     string
 	Ctx    context.Context    `json:"-"`
 	Cancel context.CancelFunc `json:"-"`
 
@@ -224,6 +236,8 @@ type Workflow struct {
 	outsPath      string
 	ComputeClient *compute.Client `json:"-"`
 	StorageClient *storage.Client `json:"-"`
+	id            string
+	logger        *log.Logger
 }
 
 // FromFile reads and unmarshals a workflow file.
@@ -259,8 +273,30 @@ func (w *Workflow) FromFile(file string) error {
 
 // Run runs a workflow.
 func (w *Workflow) Run() error {
-	w.prerun()
-	return w.run()
+	if err := w.populate(); err != nil {
+		w.Cancel()
+		return err
+	}
+
+	w.logger.Print("Validating workflow")
+	if err := w.validate(); err != nil {
+		w.logger.Printf("Error validating workflow: %v", err)
+		w.Cancel()
+		return err
+	}
+	w.logger.Print("Uploading sources")
+	if err := w.uploadSources(); err != nil {
+		w.logger.Printf("Error validating workflow: %v", err)
+		w.Cancel()
+		return err
+	}
+	w.logger.Print("Running workflow")
+	if err := w.run(); err != nil {
+		w.logger.Printf("Error running workflow: %v", err)
+		w.Cancel()
+		return err
+	}
+	return nil
 }
 
 func (w *Workflow) String() string {
@@ -269,6 +305,7 @@ func (w *Workflow) String() string {
 }
 
 func (w *Workflow) cleanup() {
+	w.logger.Print("Cleaning ephemeral resources")
 	w.cleanupHelper(w.imageRefs, w.deleteImage)
 	w.cleanupHelper(w.instanceRefs, w.deleteInstance)
 	w.cleanupHelper(w.diskRefs, w.deleteDisk)
@@ -343,6 +380,27 @@ func (w *Workflow) nameToInstanceLink(n string) string {
 	return fmt.Sprintf("projects/%s/zones/%s/instances/%s", w.Project, w.Zone, n)
 }
 
+type gcsLogger struct {
+	client         *storage.Client
+	bucket, object string
+	buf            *bytes.Buffer
+	ctx            context.Context
+}
+
+func (l *gcsLogger) Write(b []byte) (int, error) {
+	if l.buf == nil {
+		l.buf = new(bytes.Buffer)
+	}
+	l.buf.Write(b)
+	wc := l.client.Bucket(l.bucket).Object(l.object).NewWriter(l.ctx)
+	wc.ContentType = "text/plain"
+	n, err := wc.Write(l.buf.Bytes())
+	if err := wc.Close(); err != nil {
+		return 0, err
+	}
+	return n, err
+}
+
 func (w *Workflow) populateStep(step *Step) error {
 	if step.Timeout == "" {
 		step.Timeout = defaultTimeout
@@ -393,10 +451,22 @@ func (w *Workflow) populate() error {
 	w.diskRefs = &refMap{m: map[string]*resource{}}
 	w.imageRefs = &refMap{m: map[string]*resource{}}
 	w.instanceRefs = &refMap{m: map[string]*resource{}}
-	w.scratchPath = fmt.Sprintf("gs://%s/daisy-%s-%s", w.Bucket, w.Name, w.id)
-	w.sourcesPath = fmt.Sprintf("%s/sources", w.scratchPath)
-	w.logsPath = fmt.Sprintf("%s/logs", w.scratchPath)
-	w.outsPath = fmt.Sprintf("%s/outs", w.scratchPath)
+	w.scratchPath = fmt.Sprintf("daisy-%s-%s", w.Name, w.id)
+	w.sourcesPath = path.Join(w.scratchPath, "sources")
+	w.logsPath = path.Join(w.scratchPath, "logs")
+	w.outsPath = path.Join(w.scratchPath, "outs")
+
+	if w.logger == nil {
+		gcs := &gcsLogger{client: w.StorageClient, bucket: w.Bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
+		name := w.Name
+		for parent := w.parent; parent != nil; parent = w.parent.parent {
+			name = parent.Name + "." + name
+		}
+		prefix := fmt.Sprintf("[%s]: ", name)
+		flags := log.Ldate | log.Ltime
+		log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.Bucket, w.logsPath, "daisy.log"))
+		w.logger = log.New(io.MultiWriter(os.Stdout, gcs), prefix, flags)
+	}
 
 	for name, step := range w.Steps {
 		step.name = name
@@ -405,16 +475,6 @@ func (w *Workflow) populate() error {
 		}
 	}
 	return nil
-}
-
-func (w *Workflow) prerun() error {
-	if err := w.populate(); err != nil {
-		return err
-	}
-	if err := w.validate(); err != nil {
-		return err
-	}
-	return w.uploadSources()
 }
 
 func (w *Workflow) run() error {
@@ -524,29 +584,25 @@ func (w *Workflow) traverseDAG(f func(step) error) error {
 }
 
 func (w *Workflow) uploadSources() error {
-	dstB := w.StorageClient.Bucket(w.Bucket)
-	for path, origPath := range w.Sources {
-		dstOPath := strings.TrimLeft(fmt.Sprintf("%s/%s", w.sourcesPath, path), "/")
-		dstO := dstB.Object(dstOPath)
+	for p, origPath := range w.Sources {
+		dst := w.StorageClient.Bucket(w.Bucket).Object(path.Join(w.sourcesPath, p))
 		if b, o, err := splitGCSPath(origPath); err == nil {
 			// GCS to GCS.
-			srcB := w.StorageClient.Bucket(b)
-			srcO := srcB.Object(o)
-			if _, err := dstO.CopierFrom(srcO).Run(w.Ctx); err != nil {
+			src := w.StorageClient.Bucket(b).Object(o)
+			if _, err := dst.CopierFrom(src).Run(w.Ctx); err != nil {
 				return err
 			}
 		} else {
 			// Local to GCS.
-			writer := dstO.NewWriter(w.Ctx)
-			bs, err := ioutil.ReadFile(origPath)
+			gcs := dst.NewWriter(w.Ctx)
+			f, err := os.Open(origPath)
 			if err != nil {
 				return err
 			}
-			buf := bufio.NewWriterSize(writer, len(bs))
-			if _, err = buf.Write(bs); err != nil {
+			if _, err := io.Copy(gcs, f); err != nil {
 				return err
 			}
-			if err = buf.Flush(); err != nil {
+			if err := gcs.Close(); err != nil {
 				return err
 			}
 		}

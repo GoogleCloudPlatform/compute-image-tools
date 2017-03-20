@@ -105,28 +105,30 @@ func main() {
 		wg.Add(1)
 		go func(wf *workflow.Workflow) {
 			defer wg.Done()
+			fmt.Printf("[Daisy] Running workflow %q\n", wf.Name)
 			if err := wf.Run(); err != nil {
-				fmt.Fprintln(os.Stderr, "[WORKFLOW ERROR]:", err)
 				errors <- err
+				return
 			}
+			fmt.Printf("[Daisy] Workflow %q finished\n", wf.Name)
 		}(wf)
 	}
 	wg.Wait()
 
 	select {
 	case err := <-errors:
-		fmt.Fprintln(os.Stderr, "\nErrors in one or more workflows:")
-		fmt.Fprintln(os.Stderr, "[WORKFLOW ERROR]:", err)
+		fmt.Fprintln(os.Stderr, "\n[Daisy] Errors in one or more workflows:")
+		fmt.Fprintln(os.Stderr, " ", err)
 		for {
 			select {
 			case err := <-errors:
-				fmt.Fprintln(os.Stderr, "[WORKFLOW ERROR]:", err)
+				fmt.Fprintln(os.Stderr, " ", err)
 				continue
 			default:
 				os.Exit(1)
 			}
 		}
 	default:
-		fmt.Println("All workflows completed successfully.")
+		fmt.Println("[Daisy] All workflows completed successfully.")
 	}
 }
