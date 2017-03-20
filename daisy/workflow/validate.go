@@ -48,11 +48,11 @@ var (
 	// So, on sane workflows, reference checking will be fine.
 	// On insane workflows, validation may or may not catch the disk
 	// reference discrepancy.
-	validatedDisks             nameSet = nameSet{}
-	validatedDiskDeletions     nameSet = nameSet{}
-	validatedImages            nameSet = nameSet{}
-	validatedInstances         nameSet = nameSet{}
-	validatedInstanceDeletions nameSet = nameSet{}
+	validatedDisks             nameSet    = nameSet{}
+	validatedDiskDeletions     nameSet    = nameSet{}
+	validatedImages            nameSet    = nameSet{}
+	validatedInstances         nameSet    = nameSet{}
+	validatedInstanceDeletions nameSet    = nameSet{}
 	nameSetsMx                 sync.Mutex = sync.Mutex{}
 )
 
