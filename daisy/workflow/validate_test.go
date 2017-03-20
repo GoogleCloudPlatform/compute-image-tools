@@ -46,109 +46,121 @@ func TestCheckName(t *testing.T) {
 }
 
 func TestDiskExists(t *testing.T) {
+	w := &Workflow{}
 	// Try a disk that has not been added.
-	if diskExists("DNE") {
-		t.Errorf("reported non-existent disk name, DNE, as found")
+	if diskValid(w, "DNE") {
+		t.Error("reported non-existent disk name, DNE, as found")
 	}
 
 	// Try a disk that is added.
-	diskNames.add("test-exists-1")
-	if !diskExists("test-exists-1") {
-		t.Errorf("reported disk test-exists-1 does not exist")
+	validatedDisks.add(w, "test-exists-1")
+	if !diskValid(w, "test-exists-1") {
+		t.Error("reported disk test-exists-1 does not exist")
 	}
 
 	// Try a disk that has been added, but also deleted.
-	diskNames.add("test-exists-2")
-	diskNamesToDelete.add("test-exists-2")
-	if diskExists("test-exists-2") {
-		t.Errorf("reported disk test-exists-2 exists when it is to be deleted")
+	validatedDisks.add(w, "test-exists-2")
+	validatedDiskDeletions.add(w, "test-exists-2")
+	if diskValid(w, "test-exists-2") {
+		t.Error("reported disk test-exists-2 exists when it is to be deleted")
 	}
 }
 
 func TestImageExists(t *testing.T) {
+	w := &Workflow{}
 	// Try an image that has not been added.
-	if imageExists("DNE") {
-		t.Errorf("reported non-existent image name, DNE, as found")
+	if imageValid(w, "DNE") {
+		t.Error("reported non-existent image name, DNE, as found")
 	}
 
 	// Try an image that is added.
-	imageNames.add("test-exists-1")
-	if !imageExists("test-exists-1") {
-		t.Errorf("reported image test-exists-1 does not exist")
+	validatedImages.add(w, "test-exists-1")
+	if !imageValid(w, "test-exists-1") {
+		t.Error("reported image test-exists-1 does not exist")
 	}
 }
 
 func TestInstanceExists(t *testing.T) {
+	w := &Workflow{}
 	// Try an instance that has not been added.
-	if instanceExists("DNE") {
-		t.Errorf("reported non-existent instance name, DNE, as found")
+	if instanceValid(w, "DNE") {
+		t.Error("reported non-existent instance name, DNE, as found")
 	}
 
 	// Try an instance that is added.
-	instanceNames.add("test-exists-1")
-	if !instanceExists("test-exists-1") {
-		t.Errorf("reported instance test-exists-1 does not exist")
+	validatedInstances.add(w, "test-exists-1")
+	if !instanceValid(w, "test-exists-1") {
+		t.Error("reported instance test-exists-1 does not exist")
 	}
 
 	// Try an instance that has been added, but also deleted.
-	instanceNames.add("test-exists-2")
-	instanceNamesToDelete.add("test-exists-2")
-	if instanceExists("test-exists-2") {
-		t.Errorf("reported instance test-exists-2 exists when it is to be deleted")
+	validatedInstances.add(w, "test-exists-2")
+	validatedInstanceDeletions.add(w, "test-exists-2")
+	if instanceValid(w, "test-exists-2") {
+		t.Error("reported instance test-exists-2 exists when it is to be deleted")
 	}
 }
 
 func TestNameSet(t *testing.T) {
-	var s nameSet
-	var expected []string
+	n := nameSet{}
+	expected := nameSet{}
+	w := &Workflow{}
+	w2 := &Workflow{}
+	w3 := &Workflow{}
 
 	// Check init value.
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Error("nameSet did not init as empty string array")
+	if !reflect.DeepEqual(n, expected) {
+		t.Error("nameSet did not init as empty")
 	}
 
-	// Simple add check.
-	if s.add("hello") != nil {
-		t.Error("nameSet.add returned an incorrect error")
-	}
-	expected = append(expected, "hello")
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Errorf("nameSet.add didn't add %s != %s", s, expected)
-	}
-
-	// Check adds are ordered.
-	if s.add("world") != nil {
-		t.Error("nameSet.add returned an incorrect error")
-	}
-	expected = append(expected, "world")
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Errorf("nameSet.add didn't add %s != %s", s, expected)
+	// Check add(). nameSet state persists across test cases.
+	addTests := []struct {
+		desc      string
+		wf        *Workflow
+		s         string
+		shouldErr bool
+		wantSet   nameSet
+	}{
+		{"normal add", w, "hello", false, nameSet{w: {"hello"}}},
+		{"add ordering", w, "world", false, nameSet{w: {"hello", "world"}}},
+		{"add dupe", w, "world", true, nameSet{w: {"hello", "world"}}},
+		{"add bad name", w, "b@dname", true, nameSet{w: {"hello", "world"}}},
+		{"add to second workflow", w2, "hello", false, nameSet{w: {"hello", "world"}, w2: {"hello"}}},
 	}
 
-	// Check that dupe add of "world" fails.
-	if s.add("world") == nil {
-		t.Error("nameSet.add didn't err when adding dupe name")
-	}
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Errorf("nameSet.add shouldn't have modified set: %s != %s", s, expected)
-	}
-
-	// Check adding a bad name.
-	if s.add("b@dname") == nil {
-		t.Error("nameSet.add didn't err when adding bad name")
-	}
-	if !reflect.DeepEqual([]string(s), expected) {
-		t.Errorf("nameSet.add shouldn't have modified set: %s != %s", s, expected)
+	for _, test := range addTests {
+		err := n.add(test.wf, test.s)
+		if test.shouldErr && err == nil {
+			t.Errorf("%q should have erred", test.desc)
+		} else if !test.shouldErr && err != nil {
+			t.Errorf("%q had incorrect error: %s", test.desc, err)
+		}
+		if !reflect.DeepEqual(n, test.wantSet) {
+			t.Errorf("bad state after %q, want: %v; got: %v", test.desc, test.wantSet, n)
+		}
 	}
 
-	// Check has on a name that DNE.
-	if s.has("DNE") {
-		t.Error("nameSet.has reporting a non-existent name exists")
+	// w has "hello" and "world", w2 has "hello" and (now) "bob".
+	// Check has().
+	n.add(w2, "bob")
+	hasTests := []struct {
+		desc string
+		wf   *Workflow
+		s    string
+		want bool
+	}{
+		{"w has hello", w, "hello", true},
+		{"w2 has hello", w2, "hello", true},
+		{"w has world", w, "world", true},
+		{"w2 does not have world", w2, "world", false},
+		{"w does not have bob", w, "bob", false},
+		{"w2 has bob", w2, "bob", true},
+		{"w3 should have nothing", w3, "empty", false},
 	}
-
-	// Check has on a name that exists.
-	if !s.has("world") {
-		t.Error("nameSet.has reporting a existent name doesn't exist")
+	for _, test := range hasTests {
+		if got := n.has(test.wf, test.s); got != test.want {
+			t.Errorf("%q failed, bad n.has() result, want: %t; got: %t", test.desc, test.want, got)
+		}
 	}
 }
 
@@ -189,8 +201,8 @@ func TestValidateDAG(t *testing.T) {
 	calls := make([]int, 5)
 	errs := make([]error, 5)
 	var rw sync.Mutex
-	mockValidate := func(i int) func() error {
-		return func() error {
+	mockValidate := func(i int) func(w *Workflow) error {
+		return func(w *Workflow) error {
 			rw.Lock()
 			defer rw.Unlock()
 			calls[i] = calls[i] + 1

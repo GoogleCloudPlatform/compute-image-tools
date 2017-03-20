@@ -68,12 +68,12 @@ func filter(ss []string, s string) []string {
 	return result
 }
 
-func namer(name, wfName, suffix string) string {
+func namer(name, wfName, wfId string) string {
 	prefix := fmt.Sprintf("%s-%s", name, wfName)
 	if len(prefix) > 57 {
 		prefix = prefix[0:56]
 	}
-	n := fmt.Sprintf("%s-%s", prefix, suffix)
+	n := fmt.Sprintf("%s-%s", prefix, wfId)
 	if len(n) > 64 {
 		n = n[0:63]
 	}
@@ -100,14 +100,11 @@ func splitGCSPath(p string) (string, string, error) {
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
-func xor(x, y bool) bool {
-	return x != y
-}
-
 // substitute iterates through the public fields of the struct represented
 // by s, if the field type matches one of the known types the provided
 // replacer.Replace is run on all string values replacing the original value
 // in the underlying struct.
+// Exceptions: will not change Vars fields or Workflow fields of SubWorkflow types.
 func substitute(s reflect.Value, replacer *strings.Replacer) {
 	if s.Kind() != reflect.Struct {
 		return
@@ -123,6 +120,7 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 		if !f.CanSet() {
 			continue
 		}
+
 		switch f.Kind() {
 		case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Slice:
 			// A nil entry will cause additional reflect operations to panic.
@@ -183,4 +181,8 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 			}
 		}
 	}
+}
+
+func xor(x, y bool) bool {
+	return x != y
 }

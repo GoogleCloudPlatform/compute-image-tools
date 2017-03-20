@@ -40,56 +40,52 @@ func TestCreateDisksRun(t *testing.T) {
 
 func TestCreateDisksValidate(t *testing.T) {
 	// Set up.
-	diskNames = nameSet{"d-foo"}
-	imageNames = nameSet{"i-foo"}
-	defer func() {
-		// Clean up.
-		diskNames = nameSet{}
-		imageNames = nameSet{}
-	}()
+	w := &Workflow{}
+	validatedDisks = nameSet{w: {"d-foo"}}
+	validatedImages = nameSet{w: {"i-foo"}}
 
 	// Good case.
 	cd := CreateDisks{CreateDisk{Name: "d-bar", SourceImage: "i-foo", SizeGB: "50"}}
-	if err := cd.validate(); err != nil {
+	if err := cd.validate(w); err != nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(diskNames, nameSet{"d-foo", "d-bar"}) {
-		t.Errorf("%s != %s", diskNames, nameSet{"d-foo", "d-bar"})
+	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar"}}) {
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar"}})
 	}
 
 	// Good case. No source image.
 	cd = CreateDisks{CreateDisk{Name: "d-baz", SizeGB: "50"}}
-	if err := cd.validate(); err != nil {
+	if err := cd.validate(w); err != nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(diskNames, nameSet{"d-foo", "d-bar", "d-baz"}) {
-		t.Errorf("%s != %s", diskNames, nameSet{"d-foo", "d-bar", "d-baz"})
+	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
 	}
 
 	// Bad case. Dupe disk name.
 	cd = CreateDisks{CreateDisk{Name: "d-foo", SizeGB: "50"}}
-	if err := cd.validate(); err == nil {
+	if err := cd.validate(w); err == nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(diskNames, nameSet{"d-foo", "d-bar", "d-baz"}) {
-		t.Errorf("%s != %s", diskNames, nameSet{"d-foo", "d-bar", "d-baz"})
+	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
 	}
 
 	// Bad case. No Size.
 	cd = CreateDisks{CreateDisk{Name: "d-new"}}
-	if err := cd.validate(); err == nil {
+	if err := cd.validate(w); err == nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(diskNames, nameSet{"d-foo", "d-bar", "d-baz"}) {
-		t.Errorf("%s != %s", diskNames, nameSet{"d-foo", "d-bar", "d-baz"})
+	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
 	}
 
 	// Bad case. Image DNE.
 	cd = CreateDisks{CreateDisk{Name: "d-gaz", SourceImage: "i-dne"}}
-	if err := cd.validate(); err == nil {
+	if err := cd.validate(w); err == nil {
 		t.Error(err)
 	}
-	if !reflect.DeepEqual(diskNames, nameSet{"d-foo", "d-bar", "d-baz"}) {
-		t.Errorf("%s != %s", diskNames, nameSet{"d-foo", "d-bar", "d-baz"})
+	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
+		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
 	}
 }

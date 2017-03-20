@@ -21,7 +21,7 @@ import (
 
 func TestCreateImagesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.createdDisks = map[string]string{namer("somedisk", wf.Name, wf.suffix): "link"}
+	wf.createdDisks = map[string]string{namer("somedisk", wf.Name, wf.id): "link"}
 	ci := &CreateImages{
 		{Name: "image1", SourceDisk: "somedisk"},
 		{Name: "image2", SourceFile: "somefile"},
@@ -41,56 +41,52 @@ func TestCreateImagesRun(t *testing.T) {
 
 func TestCreateImagesValidate(t *testing.T) {
 	// Set up.
-	diskNames = nameSet{"d-foo"}
-	imageNames = nameSet{"i-foo"}
-	defer func() {
-		// Clean up.
-		diskNames = nameSet{}
-		imageNames = nameSet{}
-	}()
+	w := &Workflow{}
+	validatedDisks = nameSet{w: {"d-foo"}}
+	validatedImages = nameSet{w: {"i-foo"}}
 
 	// Good case. Using disk.
 	ci := CreateImages{CreateImage{Name: "i-bar", SourceDisk: "d-foo"}}
-	if err := ci.validate(); err != nil {
+	if err := ci.validate(w); err != nil {
 		t.Fatal("validation should not have failed")
 	}
-	if !reflect.DeepEqual(imageNames, nameSet{"i-foo", "i-bar"}) {
-		t.Fatalf("%s != %s", imageNames, nameSet{"i-foo", "i-bar"})
+	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar"}}) {
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar"}})
 	}
 
 	// Good case. Using file.
 	ci = CreateImages{CreateImage{Name: "i-baz", SourceFile: "/path/to/file"}}
-	if err := ci.validate(); err != nil {
+	if err := ci.validate(w); err != nil {
 		t.Fatal("validation should not have failed")
 	}
-	if !reflect.DeepEqual(imageNames, nameSet{"i-foo", "i-bar", "i-baz"}) {
-		t.Fatalf("%s != %s", imageNames, nameSet{"i-foo", "i-bar", "i-baz"})
+	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}}) {
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
 	}
 
 	// Bad case. Dupe name.
 	ci = CreateImages{CreateImage{Name: "i-baz", SourceFile: "/path/to/file"}}
-	if err := ci.validate(); err == nil {
+	if err := ci.validate(w); err == nil {
 		t.Fatal("validation should have failed")
 	}
-	if !reflect.DeepEqual(imageNames, nameSet{"i-foo", "i-bar", "i-baz"}) {
-		t.Fatalf("%s != %s", imageNames, nameSet{"i-foo", "i-bar", "i-baz"})
+	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}}) {
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
 	}
 
 	// Bad case. No disk/file.
 	ci = CreateImages{CreateImage{Name: "i-gaz"}}
-	if err := ci.validate(); err == nil {
+	if err := ci.validate(w); err == nil {
 		t.Fatal("validation should have failed")
 	}
-	if !reflect.DeepEqual(imageNames, nameSet{"i-foo", "i-bar", "i-baz"}) {
-		t.Fatalf("%s != %s", imageNames, nameSet{"i-foo", "i-bar", "i-baz"})
+	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}}) {
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
 	}
 
 	// Bad case. Using both disk/file.
 	ci = CreateImages{CreateImage{Name: "i-gaz", SourceDisk: "d-foo", SourceFile: "/path/to/file"}}
-	if err := ci.validate(); err == nil {
+	if err := ci.validate(w); err == nil {
 		t.Fatal("validation should have failed")
 	}
-	if !reflect.DeepEqual(imageNames, nameSet{"i-foo", "i-bar", "i-baz"}) {
-		t.Fatalf("%s != %s", imageNames, nameSet{"i-foo", "i-bar", "i-baz"})
+	if !reflect.DeepEqual(validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}}) {
+		t.Fatalf("%v != %v", validatedImages, nameSet{w: {"i-foo", "i-bar", "i-baz"}})
 	}
 }

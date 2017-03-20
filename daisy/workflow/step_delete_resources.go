@@ -24,23 +24,23 @@ type DeleteResources struct {
 	Instances, Disks, Images []string
 }
 
-func (d *DeleteResources) validate() error {
+func (d *DeleteResources) validate(w *Workflow) error {
 	// Disk checking.
 	for _, disk := range d.Disks {
-		if !diskExists(disk) {
+		if !diskValid(w, disk) {
 			return fmt.Errorf("cannot delete disk. Disk not found: %s", disk)
 		}
-		if err := diskNamesToDelete.add(disk); err != nil {
+		if err := validatedDiskDeletions.add(w, disk); err != nil {
 			return fmt.Errorf("error scheduling disk for deletion: %s", err)
 		}
 	}
 
 	// Instance checking.
 	for _, i := range d.Instances {
-		if !instanceExists(i) {
+		if !instanceValid(w, i) {
 			return fmt.Errorf("cannot delete instance. Instance not found: %s", i)
 		}
-		if err := instanceNamesToDelete.add(i); err != nil {
+		if err := validatedInstanceDeletions.add(w, i); err != nil {
 			return fmt.Errorf("error scheduling instance for deletion: %s", err)
 		}
 	}
@@ -56,7 +56,7 @@ func (d *DeleteResources) run(w *Workflow) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			if err := w.deleteInstance(namer(i, w.Name, w.suffix)); err != nil {
+			if err := w.deleteInstance(namer(i, w.Name, w.id)); err != nil {
 				e <- err
 			}
 		}(i)
@@ -92,7 +92,7 @@ func (d *DeleteResources) run(w *Workflow) error {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			if err := w.deleteDisk(namer(d, w.Name, w.suffix)); err != nil {
+			if err := w.deleteDisk(namer(d, w.Name, w.id)); err != nil {
 				e <- err
 			}
 		}(d)

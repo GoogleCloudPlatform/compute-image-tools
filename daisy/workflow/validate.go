@@ -19,11 +19,14 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 )
 
 const defaultTimeout = "10m"
+const defaultTimeoutParsed = time.Duration(10 * time.Minute)
 
-type nameSet []string
+type nameSet map[*Workflow]*[]string
 
 var (
 	// The steps DAG is inspected in DAG order.
@@ -45,56 +48,71 @@ var (
 	// So, on sane workflows, reference checking will be fine.
 	// On insane workflows, validation may or may not catch the disk
 	// reference discrepancy.
-	diskNames             nameSet
-	diskNamesToDelete     nameSet
-	imageNames            nameSet
-	instanceNames         nameSet
-	instanceNamesToDelete nameSet
+	validatedDisks             nameSet    = nameSet{}
+	validatedDiskDeletions     nameSet    = nameSet{}
+	validatedImages            nameSet    = nameSet{}
+	validatedInstances         nameSet    = nameSet{}
+	validatedInstanceDeletions nameSet    = nameSet{}
+	nameSetsMx                 sync.Mutex = sync.Mutex{}
 )
 
 var rfc1035Rgx = regexp.MustCompile("^[a-z]([-a-z0-9]*[a-z0-9])?$")
 
-func (n *nameSet) add(s string) error {
+func (n nameSet) add(w *Workflow, s string) error {
+	nameSetsMx.Lock()
+	defer nameSetsMx.Unlock()
+	ss := n.getNames(w)
+
 	// Name checking first.
-	if n.has(s) {
-		return fmt.Errorf("nameSet %s already has %q", *n, s)
+	if containsString(s, *ss) {
+		return fmt.Errorf("workflow %q has duplicate references for %q", w.Name, s)
 	}
 	if !checkName(s) {
 		return fmt.Errorf("bad name %q", s)
 	}
 
-	*n = append(*n, s)
+	*ss = append(*ss, s)
 	return nil
 }
 
-func (n *nameSet) has(s string) bool {
-	return containsString(s, *n)
+func (n nameSet) getNames(w *Workflow) *[]string {
+	if ss, ok := n[w]; ok {
+		return ss
+	}
+	n[w] = &[]string{}
+	return n[w]
+}
+
+func (n nameSet) has(w *Workflow, s string) bool {
+	nameSetsMx.Lock()
+	defer nameSetsMx.Unlock()
+	return containsString(s, *n.getNames(w))
 }
 
 func checkName(s string) bool {
 	return len(s) < 64 && rfc1035Rgx.MatchString(s)
 }
 
-func diskExists(d string) bool {
-	if !diskNames.has(d) {
+func diskValid(w *Workflow, d string) bool {
+	if !validatedDisks.has(w, d) {
 		return false
 	}
-	if diskNamesToDelete.has(d) {
+	if validatedDiskDeletions.has(w, d) {
 		return false
 	}
 	return true
 }
 
-func imageExists(i string) bool {
+func imageValid(w *Workflow, i string) bool {
 	// TODO(crunkleton): better checking for resource names pointing to GCE resources.
-	return imageNames.has(i) || strings.HasPrefix(i, "projects/")
+	return validatedImages.has(w, i) || strings.HasPrefix(i, "projects/")
 }
 
-func instanceExists(i string) bool {
-	if !instanceNames.has(i) {
+func instanceValid(w *Workflow, i string) bool {
+	if !validatedInstances.has(w, i) {
 		return false
 	}
-	if instanceNamesToDelete.has(i) {
+	if validatedInstanceDeletions.has(w, i) {
 		return false
 	}
 	return true
@@ -115,16 +133,16 @@ func (w *Workflow) validate() error {
 		return errors.New("must provide workflow field 'name'")
 	}
 	if w.Project == "" {
-		return fmt.Errorf("must provide workflow field 'project'")
+		return errors.New("must provide workflow field 'project'")
 	}
 	if w.Zone == "" {
-		return fmt.Errorf("must provide workflow field 'zone'")
+		return errors.New("must provide workflow field 'zone'")
 	}
 	if w.Bucket == "" {
-		return fmt.Errorf("must provide workflow field 'bucket'")
+		return errors.New("must provide workflow field 'bucket'")
 	}
 	if len(w.Steps) == 0 {
-		return fmt.Errorf("must provide at least one step in workflow field 'steps'")
+		return errors.New("must provide at least one step in workflow field 'steps'")
 	}
 	for name, step := range w.Steps {
 		if name == "" {
@@ -164,5 +182,5 @@ func (w *Workflow) validateDAG() error {
 			return fmt.Errorf("cyclic dependency on step %s", s)
 		}
 	}
-	return w.traverseDAG(func(s step) error { return s.validate() })
+	return w.traverseDAG(func(s step) error { return s.validate(w) })
 }

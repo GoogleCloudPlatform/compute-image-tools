@@ -37,10 +37,10 @@ type CreateDisk struct {
 	SSD bool
 }
 
-func (c *CreateDisks) validate() error {
+func (c *CreateDisks) validate(w *Workflow) error {
 	for _, cd := range *c {
 		// Image checking.
-		if cd.SourceImage != "" && !imageExists(cd.SourceImage) {
+		if cd.SourceImage != "" && !imageValid(w, cd.SourceImage) {
 			return fmt.Errorf("cannot create disk: image not found: %s", cd.SourceImage)
 		}
 
@@ -50,7 +50,7 @@ func (c *CreateDisks) validate() error {
 		}
 
 		// Try adding disk name.
-		if err := diskNames.add(cd.Name); err != nil {
+		if err := validatedDisks.add(w, cd.Name); err != nil {
 			return fmt.Errorf("error adding disk: %s", err)
 		}
 	}
@@ -65,7 +65,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 		wg.Add(1)
 		go func(cd CreateDisk) {
 			defer wg.Done()
-			name := namer(cd.Name, w.Name, w.suffix)
+			name := namer(cd.Name, w.Name, w.id)
 			// If cd.SourceImage does not contain a '/' assume it's referencing a Workflow image.
 			if !strings.Contains(cd.SourceImage, "/") {
 				cd.SourceImage = w.getCreatedImage(cd.SourceImage)

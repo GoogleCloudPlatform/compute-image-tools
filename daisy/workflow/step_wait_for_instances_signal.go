@@ -19,14 +19,14 @@ import "fmt"
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []string
 
-func (w *WaitForInstancesSignal) run(wf *Workflow) error {
+func (s *WaitForInstancesSignal) run(w *Workflow) error {
 	return nil
 }
 
-func (w *WaitForInstancesSignal) validate() error {
+func (s *WaitForInstancesSignal) validate(w *Workflow) error {
 	// Instance checking.
-	for _, i := range *w {
-		if !instanceExists(i) {
+	for _, i := range *s {
+		if !instanceValid(w, i) {
 			return fmt.Errorf("cannot wait for instance signal. Instance not found: %s", i)
 		}
 	}

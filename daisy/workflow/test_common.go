@@ -16,7 +16,7 @@ package workflow
 
 type mockStep struct {
 	runImpl      func(*Workflow) error
-	validateImpl func() error
+	validateImpl func(*Workflow) error
 }
 
 func (m *mockStep) run(w *Workflow) error {
@@ -26,9 +26,9 @@ func (m *mockStep) run(w *Workflow) error {
 	return nil
 }
 
-func (m *mockStep) validate() error {
+func (m *mockStep) validate(w *Workflow) error {
 	if m.validateImpl != nil {
-		return m.validateImpl()
+		return m.validateImpl(w)
 	}
 	return nil
 }

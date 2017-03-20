@@ -19,6 +19,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"reflect"
@@ -33,7 +34,7 @@ import (
 
 type step interface {
 	run(w *Workflow) error
-	validate() error
+	validate(w *Workflow) error
 }
 
 // Step is a single daisy workflow step.
@@ -111,32 +112,52 @@ func (s *Step) realStep() (step, error) {
 	}
 
 	if matchCount == 0 {
-		return nil, fmt.Errorf("malformed step %q, no step types defined: %+v", s.name, s)
+		return nil, errors.New("no step type defined")
 	}
 	if matchCount > 1 {
-		return nil, fmt.Errorf("malformed step %q, more than one step type defined: %+v", s.name, s)
+		return nil, errors.New("multiple step types defined")
 	}
 	return result, nil
 }
 
 func (s *Step) run(w *Workflow) error {
 	realStep, err := s.realStep()
-	if err == nil {
-		return realStep.run(w)
+	if err != nil {
+		return s.wrapRunError(err)
 	}
-	return err
+	if err = realStep.run(w); err != nil {
+		return s.wrapRunError(err)
+	}
+	return nil
 }
 
-func (s *Step) validate() error {
+func (s *Step) validate(w *Workflow) error {
 	realStep, err := s.realStep()
-	if err == nil {
-		return realStep.validate()
+	if err != nil {
+		return s.wrapValidateError(err)
 	}
-	return err
+	if err = realStep.validate(w); err != nil {
+		return s.wrapValidateError(err)
+	}
+	return nil
+}
+
+func (s *Step) wrapRunError(e error) error {
+	return fmt.Errorf("%q run error: %s", s.name, e)
+}
+
+func (s *Step) wrapValidateError(e error) error {
+	return fmt.Errorf("%q validation error: %s", s.name, e)
 }
 
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
+	// Populated on New() construction.
+	id     string
+	Ctx    context.Context    `json:"-"`
+	Cancel context.CancelFunc `json:"-"`
+
+	// Workflow template fields.
 	// Workflow name.
 	Name string
 	// Project to run in.
@@ -149,47 +170,68 @@ type Workflow struct {
 	OAuthPath string `json:"oauth_path"`
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string
-	// Vars defines workflow variables, substitution is done at Workflow
-	// run time.
+	// Vars defines workflow variables, substitution is done at Workflow run time.
 	Vars  map[string]string
 	Steps map[string]*Step
 	// Map of steps to their dependencies.
-	// Only steps named here will be run.
-	Dependencies       map[string][]string
+	Dependencies map[string][]string
+
+	// Working fields.
 	createdDisks       map[string]string
 	createdDisksMx     sync.Mutex
 	createdInstances   []string
 	createdInstancesMx sync.Mutex
 	createdImages      map[string]string
 	createdImagesMx    sync.Mutex
-	suffix             string
+	parent             *Workflow
 	scratchPath        string
 	sourcesPath        string
 	logsPath           string
 	outsPath           string
-	ComputeClient      *compute.Client    `json:"-"`
-	StorageClient      *storage.Client    `json:"-"`
-	Ctx                context.Context    `json:"-"`
-	Cancel             context.CancelFunc `json:"-"`
+	ComputeClient      *compute.Client `json:"-"`
+	StorageClient      *storage.Client `json:"-"`
+}
+
+// FromFile reads and unmarshals a workflow file.
+// Recursively reads subworkflow steps as well.
+func (w *Workflow) FromFile(file string) error {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(data, &w); err != nil {
+		return err
+	}
+
+	// We need to unmarshal any SubWorkflows.
+	for name, step := range w.Steps {
+		step.name = name
+
+		if step.SubWorkflow == nil {
+			continue
+		}
+
+		sw := New(w.Ctx)
+		if err := sw.FromFile(step.SubWorkflow.Path); err != nil {
+			return err
+		}
+		step.SubWorkflow.workflow = sw
+		sw.parent = w
+	}
+
+	return nil
 }
 
 // Run runs a workflow.
-func (w *Workflow) Run(ctx context.Context) error {
-	if err := w.populate(ctx); err != nil {
-		return err
-	}
-	if err := w.validate(); err != nil {
-		return err
-	}
-	if err := w.uploadSources(); err != nil {
-		return err
-	}
-	return w.traverseDAG(func(s step) error { return w.runStep(s.(*Step)) })
+func (w *Workflow) Run() error {
+	w.prerun()
+	return w.run()
 }
 
 func (w *Workflow) String() string {
-	f := "{Name:%q Project:%q Zone:%q Bucket:%q OAuthPath:%q Sources:%s Vars:%s Steps:%s Dependencies:%s suffix:%q}"
-	return fmt.Sprintf(f, w.Name, w.Project, w.Zone, w.Bucket, w.OAuthPath, w.Sources, w.Vars, w.Steps, w.Dependencies, w.suffix)
+	f := "{Name:%q Project:%q Zone:%q Bucket:%q OAuthPath:%q Sources:%s Vars:%s Steps:%s Dependencies:%s id:%q}"
+	return fmt.Sprintf(f, w.Name, w.Project, w.Zone, w.Bucket, w.OAuthPath, w.Sources, w.Vars, w.Steps, w.Dependencies, w.id)
 }
 
 func (w *Workflow) addCreatedDisk(name, link string) {
@@ -311,47 +353,6 @@ func (w *Workflow) hasCreatedInstance(name string) bool {
 	return containsString(name, w.createdInstances)
 }
 
-// ReadWorkflow reads and unmarshals a workflow file.
-// Any sub workflows listed in Imports will be also be added to the Workflow.
-func ReadWorkflow(file string) (*Workflow, error) {
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	var w Workflow
-	if err := json.Unmarshal(data, &w); err != nil {
-		return nil, err
-	}
-
-	// We need to unmarshal any SubWorkflows
-	for name, step := range w.Steps {
-		step.name = name
-
-		if step.SubWorkflow == nil {
-			continue
-		}
-
-		data, err := ioutil.ReadFile(step.SubWorkflow.Path)
-		if err != nil {
-			return nil, err
-		}
-
-		var sw Workflow
-		if err := json.Unmarshal(data, &sw); err != nil {
-			return nil, err
-		}
-
-		for k, v := range sw.Sources {
-			w.Sources[k] = v
-		}
-
-		step.SubWorkflow.Workflow = &sw
-	}
-
-	return &w, nil
-}
-
 func (w *Workflow) populateStep(step *Step) error {
 	if step.Timeout == "" {
 		step.Timeout = defaultTimeout
@@ -362,38 +363,21 @@ func (w *Workflow) populateStep(step *Step) error {
 	}
 	step.timeout = timeout
 
-	if step.SubWorkflow != nil {
-		// Duplicate all needed fields from main workflow.
-		step.SubWorkflow.Workflow.Name = w.Name
-		step.SubWorkflow.Workflow.Project = w.Project
-		step.SubWorkflow.Workflow.Zone = w.Zone
-		step.SubWorkflow.Workflow.Bucket = w.Bucket
-		step.SubWorkflow.Workflow.OAuthPath = w.OAuthPath
-		step.SubWorkflow.Workflow.Sources = w.Sources
-		step.SubWorkflow.Workflow.ComputeClient = w.ComputeClient
-		step.SubWorkflow.Workflow.StorageClient = w.StorageClient
-		step.SubWorkflow.Workflow.Ctx = w.Ctx
-		step.SubWorkflow.Workflow.Cancel = w.Cancel
-		step.SubWorkflow.Workflow.suffix = w.suffix
-		step.SubWorkflow.Workflow.scratchPath = w.scratchPath
-		step.SubWorkflow.Workflow.sourcesPath = w.sourcesPath
-		step.SubWorkflow.Workflow.logsPath = w.logsPath
-		step.SubWorkflow.Workflow.outsPath = w.outsPath
-
-		for name, step := range step.SubWorkflow.Workflow.Steps {
-			step.name = name
-			if err := w.populateStep(step); err != nil {
-				return err
-			}
-		}
+	// Recurse on subworkflows.
+	if step.SubWorkflow == nil {
+		return nil
 	}
-
-	return nil
+	step.SubWorkflow.workflow.Bucket = w.Bucket
+	step.SubWorkflow.workflow.Project = w.Project
+	step.SubWorkflow.workflow.Zone = w.Zone
+	step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
+	step.SubWorkflow.workflow.ComputeClient = w.ComputeClient
+	step.SubWorkflow.workflow.StorageClient = w.StorageClient
+	return step.SubWorkflow.workflow.populate()
 }
 
-func (w *Workflow) populate(ctx context.Context) error {
-	w.suffix = randString(5)
-	w.Ctx, w.Cancel = context.WithCancel(ctx)
+func (w *Workflow) populate() error {
+	w.id = randString(5)
 
 	var oldnew []string
 	for k, v := range w.Vars {
@@ -416,7 +400,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 		}
 	}
 
-	w.scratchPath = fmt.Sprintf("gs://%s/daisy-%s-%s", w.Bucket, w.Name, w.suffix)
+	w.scratchPath = fmt.Sprintf("gs://%s/daisy-%s-%s", w.Bucket, w.Name, w.id)
 	w.sourcesPath = fmt.Sprintf("%s/sources", w.scratchPath)
 	w.logsPath = fmt.Sprintf("%s/logs", w.scratchPath)
 	w.outsPath = fmt.Sprintf("%s/outs", w.scratchPath)
@@ -430,17 +414,14 @@ func (w *Workflow) populate(ctx context.Context) error {
 	return nil
 }
 
-func (w *Workflow) prerun(ctx context.Context) error {
-	if err := w.populate(ctx); err != nil {
+func (w *Workflow) prerun() error {
+	if err := w.populate(); err != nil {
 		return err
 	}
 	if err := w.validate(); err != nil {
 		return err
 	}
-	if err := w.uploadSources(); err != nil {
-		return err
-	}
-	return nil
+	return w.uploadSources()
 }
 
 func (w *Workflow) run() error {
@@ -574,7 +555,19 @@ func (w *Workflow) uploadSources() error {
 			}
 		}
 	}
+	for _, step := range w.Steps {
+		if step.SubWorkflow != nil {
+			step.SubWorkflow.workflow.uploadSources()
+		}
+	}
 	return nil
+}
+
+// New instantiates a new workflow.
+func New(ctx context.Context) *Workflow {
+	var w Workflow
+	w.Ctx, w.Cancel = context.WithCancel(ctx)
+	return &w
 }
 
 // stepsListen returns the first step that finishes/errs.

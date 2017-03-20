@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -42,13 +43,13 @@ type CreateImage struct {
 	SourceFile string `json:"source_file"`
 }
 
-func (c *CreateImages) validate() error {
+func (c *CreateImages) validate(w *Workflow) error {
 	for _, ci := range *c {
 		// File/Disk checking.
 		if !xor(ci.SourceDisk == "", ci.SourceFile == "") {
-			return fmt.Errorf("must provide either Disk or File, exclusively")
+			return errors.New("must provide either Disk or File, exclusively")
 		}
-		if ci.SourceDisk != "" && !strings.Contains(ci.SourceDisk, "/") && !diskExists(ci.SourceDisk) {
+		if ci.SourceDisk != "" && !strings.Contains(ci.SourceDisk, "/") && !diskValid(w, ci.SourceDisk) {
 			return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
 		}
 		if ci.SourceFile != "" && !sourceExists(ci.SourceFile) {
@@ -61,7 +62,7 @@ func (c *CreateImages) validate() error {
 		}
 
 		// Try adding image name.
-		if err := imageNames.add(ci.Name); err != nil {
+		if err := validatedImages.add(w, ci.Name); err != nil {
 			return fmt.Errorf("error adding image: %s", err)
 		}
 	}
@@ -78,7 +79,7 @@ func (c *CreateImages) run(w *Workflow) error {
 			defer wg.Done()
 			// If ci.SourceDisk does not contain a '/' assume it's referencing a Workflow disk.
 			if ci.SourceDisk != "" && !strings.Contains(ci.SourceDisk, "/") {
-				ci.SourceDisk = w.getCreatedDisk(namer(ci.SourceDisk, w.Name, w.suffix))
+				ci.SourceDisk = w.getCreatedDisk(namer(ci.SourceDisk, w.Name, w.id))
 			}
 			i, err := w.ComputeClient.CreateImage(ci.Name, w.Project, ci.SourceDisk, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {

@@ -25,9 +25,9 @@ type ImportDisk struct {
 	Name, File string
 }
 
-func (i *ImportDisks) validate() error {
+func (i *ImportDisks) validate(w *Workflow) error {
 	for _, id := range *i {
-		if err := diskNames.add(id.Name); err != nil {
+		if err := validatedDisks.add(w, id.Name); err != nil {
 			return fmt.Errorf("error adding disk: %s", err)
 		}
 
@@ -39,6 +39,6 @@ func (i *ImportDisks) validate() error {
 	return nil
 }
 
-func (i *ImportDisks) run(wf *Workflow) error {
+func (i *ImportDisks) run(w *Workflow) error {
 	return nil
 }

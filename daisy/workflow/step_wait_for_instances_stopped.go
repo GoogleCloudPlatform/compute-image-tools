@@ -30,7 +30,7 @@ func (s *WaitForInstancesStopped) run(w *Workflow) error {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, namer(name, w.Name, w.suffix)); err != nil {
+			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, namer(name, w.Name, w.id)); err != nil {
 				e <- err
 			}
 		}(name)
@@ -49,10 +49,10 @@ func (s *WaitForInstancesStopped) run(w *Workflow) error {
 	}
 }
 
-func (s *WaitForInstancesStopped) validate() error {
+func (s *WaitForInstancesStopped) validate(w *Workflow) error {
 	// Instance checking.
 	for _, i := range *s {
-		if !instanceExists(i) {
+		if !instanceValid(w, i) {
 			return fmt.Errorf("cannot wait for instance stopped. Instance not found: %s", i)
 		}
 	}
