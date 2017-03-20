@@ -2,4 +2,6 @@ language: go
 go: 1.8
 script:
   - go vet ./...
+  - ./.travis.gofmt.sh
   - go test -v -race ./...
+
