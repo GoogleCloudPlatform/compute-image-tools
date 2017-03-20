@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -52,11 +53,14 @@ var (
 	validatedImages            nameSet = nameSet{}
 	validatedInstances         nameSet = nameSet{}
 	validatedInstanceDeletions nameSet = nameSet{}
+	nameSetsMx                 sync.Mutex = sync.Mutex{}
 )
 
 var rfc1035Rgx = regexp.MustCompile("^[a-z]([-a-z0-9]*[a-z0-9])?$")
 
 func (n nameSet) add(w *Workflow, s string) error {
+	nameSetsMx.Lock()
+	defer nameSetsMx.Unlock()
 	ss := n.getNames(w)
 
 	// Name checking first.
@@ -80,6 +84,8 @@ func (n nameSet) getNames(w *Workflow) *[]string {
 }
 
 func (n nameSet) has(w *Workflow, s string) bool {
+	nameSetsMx.Lock()
+	defer nameSetsMx.Unlock()
 	return containsString(s, *n.getNames(w))
 }
 
