@@ -17,6 +17,7 @@ package workflow
 import (
 	"fmt"
 	"sync"
+	"strings"
 )
 
 // WaitForInstancesStopped is a Daisy WaitForInstancesStopped workflow step.
@@ -30,6 +31,7 @@ func (s *WaitForInstancesStopped) run(w *Workflow) error {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
+			if strings.Contains()
 			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, namer(name, w.Name, w.id)); err != nil {
 				e <- err
 			}

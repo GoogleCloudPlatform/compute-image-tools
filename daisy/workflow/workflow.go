@@ -32,6 +32,34 @@ import (
 	"google.golang.org/api/option"
 )
 
+type RefMap struct {
+	m  map[string]*Resource
+	mx sync.Mutex
+}
+
+func (rm *RefMap) add(name string, r *Resource) {
+	rm.mx.Lock()
+	defer rm.mx.Unlock()
+	rm.m[name] = r
+}
+
+func (rm *RefMap) del(name string) {
+	rm.mx.Lock()
+	defer rm.mx.Unlock()
+	delete(rm.m, name)
+}
+
+func (rm *RefMap) get(name string) (*Resource, bool) {
+	rm.mx.Lock()
+	defer rm.mx.Unlock()
+	return rm.m[name]
+}
+
+type Resource struct {
+	name, real, link string
+	persist          bool
+}
+
 type step interface {
 	run(w *Workflow) error
 	validate(w *Workflow) error
@@ -39,11 +67,11 @@ type step interface {
 
 // Step is a single daisy workflow step.
 type Step struct {
-	name string
+	name                    string
 	// Time to wait for this step to complete (default 10m).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	Timeout string
-	timeout time.Duration
+	Timeout                 string
+	timeout                 time.Duration
 	// Only one of the below fields should exist for each instance of Step.
 	AttachDisks             *AttachDisks             `json:"attach_disks"`
 	CreateDisks             *CreateDisks             `json:"create_disks"`
@@ -153,43 +181,40 @@ func (s *Step) wrapValidateError(e error) error {
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
-	id     string
-	Ctx    context.Context    `json:"-"`
-	Cancel context.CancelFunc `json:"-"`
+	id             string
+	Ctx            context.Context    `json:"-"`
+	Cancel         context.CancelFunc `json:"-"`
 
 	// Workflow template fields.
 	// Workflow name.
-	Name string
+	Name           string
 	// Project to run in.
-	Project string
+	Project        string
 	// Zone to run in.
-	Zone string
+	Zone           string
 	// GCS Bucket to use for scratch data and write logs/results to.
-	Bucket string
+	Bucket         string
 	// Path to OAuth credentials file.
-	OAuthPath string `json:"oauth_path"`
+	OAuthPath      string `json:"oauth_path"`
 	// Sources used by this workflow, map of destination to source.
-	Sources map[string]string
+	Sources        map[string]string
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars  map[string]string
-	Steps map[string]*Step
+	Vars           map[string]string
+	Steps          map[string]*Step
 	// Map of steps to their dependencies.
-	Dependencies map[string][]string
+	Dependencies   map[string][]string
 
 	// Working fields.
-	createdDisks       map[string]string
-	createdDisksMx     sync.Mutex
-	createdInstances   []string
-	createdInstancesMx sync.Mutex
-	createdImages      map[string]string
-	createdImagesMx    sync.Mutex
-	parent             *Workflow
-	scratchPath        string
-	sourcesPath        string
-	logsPath           string
-	outsPath           string
-	ComputeClient      *compute.Client `json:"-"`
-	StorageClient      *storage.Client `json:"-"`
+	diskRefs       *RefMap
+	instanceRefs   *RefMap
+	imageRefs      *RefMap
+	parent         *Workflow
+	scratchPath    string
+	sourcesPath    string
+	logsPath       string
+	outsPath       string
+	ComputeClient  *compute.Client `json:"-"`
+	StorageClient  *storage.Client `json:"-"`
 }
 
 // FromFile reads and unmarshals a workflow file.
@@ -234,123 +259,77 @@ func (w *Workflow) String() string {
 	return fmt.Sprintf(f, w.Name, w.Project, w.Zone, w.Bucket, w.OAuthPath, w.Sources, w.Vars, w.Steps, w.Dependencies, w.id)
 }
 
-func (w *Workflow) addCreatedDisk(name, link string) {
-	w.createdDisksMx.Lock()
-	defer w.createdDisksMx.Unlock()
-	if w.createdDisks == nil {
-		w.createdDisks = map[string]string{}
-	}
-	w.createdDisks[name] = link
-}
-
-func (w *Workflow) addCreatedImage(name, link string) {
-	w.createdImagesMx.Lock()
-	defer w.createdImagesMx.Unlock()
-	if w.createdImages == nil {
-		w.createdImages = map[string]string{}
-	}
-	w.createdImages[name] = link
-}
-
-func (w *Workflow) addCreatedInstance(name string) {
-	w.createdInstancesMx.Lock()
-	defer w.createdInstancesMx.Unlock()
-	w.createdInstances = append(w.createdInstances, name)
-}
-
 func (w *Workflow) cleanup() {
+	w.cleanupHelper(w.imageRefs, w.deleteImage)
+	w.cleanupHelper(w.instanceRefs, w.deleteInstance)
+	w.cleanupHelper(w.diskRefs, w.deleteDisk)
+}
+
+func (w *Workflow) cleanupHelper(rm RefMap, deleteFn func(*Resource) error) {
 	var wg sync.WaitGroup
-	for _, i := range w.createdInstances {
+	for ref, resource := range rm.m {
 		wg.Add(1)
-		go func(i string) {
+		go func(r *Resource) {
 			defer wg.Done()
-			if err := w.deleteInstance(i); err != nil {
-				fmt.Println(err)
+			if !r.persist {
+				// Only delete non-persistent resources.
+				if err := deleteFn(r); err != nil {
+					fmt.Println(err)
+				}
 			}
-		}(i)
-	}
-	wg.Wait()
-
-	for d := range w.createdDisks {
-		wg.Add(1)
-		go func(d string) {
-			defer wg.Done()
-			if err := w.deleteDisk(d); err != nil {
-				fmt.Println(err)
-			}
-		}(d)
+			// Remove the reference.
+			rm.del(ref)
+		}(resource)
 	}
 	wg.Wait()
 }
 
-func (w *Workflow) delCreatedDisk(name string) {
-	w.createdDisksMx.Lock()
-	defer w.createdDisksMx.Unlock()
-	delete(w.createdDisks, name)
-}
-
-func (w *Workflow) delCreatedImage(name string) {
-	w.createdImagesMx.Lock()
-	defer w.createdImagesMx.Unlock()
-	delete(w.createdImages, name)
-}
-
-func (w *Workflow) delCreatedInstance(name string) {
-	w.createdInstancesMx.Lock()
-	defer w.createdInstancesMx.Unlock()
-	for i, n := range w.createdInstances {
-		if n == name {
-			w.createdInstances = append(w.createdInstances[:i], w.createdInstances[i+1:]...)
-		}
-	}
-}
-
-func (w *Workflow) deleteDisk(name string) error {
-	if err := w.ComputeClient.DeleteDisk(w.Project, w.Zone, name); err != nil {
+func (w *Workflow) deleteDisk(r *Resource) error {
+	if err := w.ComputeClient.DeleteDisk(w.Project, w.Zone, r.real); err != nil {
 		return err
 	}
-	w.delCreatedDisk(name)
+	w.diskRefs.del(r.name)
 	return nil
 }
 
-func (w *Workflow) deleteImage(name string) error {
-	if err := w.ComputeClient.DeleteImage(w.Project, name); err != nil {
+func (w *Workflow) deleteImage(r *Resource) error {
+	if err := w.ComputeClient.DeleteImage(w.Project, r.real); err != nil {
 		return err
 	}
-	w.delCreatedImage(name)
+	w.imageRefs.del(r.name)
 	return nil
 }
 
-func (w *Workflow) deleteInstance(name string) error {
-	if err := w.ComputeClient.DeleteInstance(w.Project, w.Zone, name); err != nil {
+func (w *Workflow) deleteInstance(r *Resource) error {
+	if err := w.ComputeClient.DeleteInstance(w.Project, w.Zone, r.real); err != nil {
 		return err
 	}
-	w.delCreatedInstance(name)
+	w.instanceRefs.del(r.name)
 	return nil
 }
 
-func (w *Workflow) getCreatedDisk(name string) string {
-	w.createdDisksMx.Lock()
-	defer w.createdDisksMx.Unlock()
-	if v, ok := w.createdDisks[name]; ok {
-		return v
+func (w *Workflow) ephemeralName(n string) string {
+	prefix := fmt.Sprintf("%s-%s", n, w.Name)
+	if len(prefix) > 57 {
+		prefix = prefix[0:56]
 	}
-	return ""
+	result := fmt.Sprintf("%s-%s", prefix, w.id)
+	if len(n) > 64 {
+		n = n[0:63]
+	}
+	return result
 }
 
-func (w *Workflow) getCreatedImage(name string) string {
-	w.createdImagesMx.Lock()
-	defer w.createdImagesMx.Unlock()
-	if v, ok := w.createdImages[name]; ok {
-		return v
-	}
-	return ""
+func (w *Workflow) nameToDiskLink(n string) string {
+	return fmt.Sprintf("projects/%s/zones/%s/disks/%s", w.Project, w.Zone, n)
 }
 
-func (w *Workflow) hasCreatedInstance(name string) bool {
-	w.createdInstancesMx.Lock()
-	defer w.createdInstancesMx.Unlock()
-	return containsString(name, w.createdInstances)
+func (w *Workflow) nameToImageLink(n string) string {
+	return fmt.Sprintf("projects/%s/global/images/%s", w.Project, n)
+}
+
+func (w *Workflow) nameToInstanceLink(n string) string {
+	return fmt.Sprintf("projects/%s/zones/%s/instances/%s", w.Project, w.Zone, n)
 }
 
 func (w *Workflow) populateStep(step *Step) error {
@@ -400,6 +379,9 @@ func (w *Workflow) populate() error {
 		}
 	}
 
+	w.diskRefs = &RefMap{m: map[string]*Resource{}}
+	w.imageRefs = &RefMap{m: map[string]*Resource{}}
+	w.instanceRefs = &RefMap{m: map[string]*Resource{}}
 	w.scratchPath = fmt.Sprintf("gs://%s/daisy-%s-%s", w.Bucket, w.Name, w.id)
 	w.sourcesPath = fmt.Sprintf("%s/sources", w.scratchPath)
 	w.logsPath = fmt.Sprintf("%s/logs", w.scratchPath)
@@ -425,7 +407,10 @@ func (w *Workflow) prerun() error {
 }
 
 func (w *Workflow) run() error {
-	return w.traverseDAG(func(s step) error { return w.runStep(s.(*Step)) })
+	defer w.cleanup()
+	return w.traverseDAG(func(s step) error {
+		return w.runStep(s.(*Step))
+	})
 }
 
 func (w *Workflow) runStep(s *Step) error {
@@ -568,6 +553,15 @@ func New(ctx context.Context) *Workflow {
 	var w Workflow
 	w.Ctx, w.Cancel = context.WithCancel(ctx)
 	return &w
+}
+
+func resolveLink(name string, rm RefMap) string {
+	if isLink(name) {
+		return name
+	} else if r, ok := rm.get(name); ok {
+		return r.link
+	}
+	return ""
 }
 
 // stepsListen returns the first step that finishes/errs.

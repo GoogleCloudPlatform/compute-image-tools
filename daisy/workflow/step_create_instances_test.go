@@ -21,7 +21,7 @@ import (
 
 func TestCreateInstancesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.createdDisks = map[string]string{
+	wf.diskRefs = map[string]string{
 		namer("disk1", testWf, testSuffix): "link",
 		namer("disk2", testWf, testSuffix): "link",
 		namer("disk3", testWf, testSuffix): "link"}
@@ -38,14 +38,14 @@ func TestCreateInstancesRun(t *testing.T) {
 		namer("instance2", testWf, testSuffix),
 		namer("instance3", testWf, testSuffix)}
 
-	for _, name := range wf.createdInstances {
+	for _, name := range wf.instanceRefs {
 		if !containsString(name, want) {
 			t.Errorf("Workflow.createdInstances does not contain expected instance %s", name)
 		}
 	}
 
 	for _, name := range want {
-		if !containsString(name, wf.createdInstances) {
+		if !containsString(name, wf.instanceRefs) {
 			t.Errorf("Workflow.createdInstances does not contain expected instance %s", name)
 		}
 	}

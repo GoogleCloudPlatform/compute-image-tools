@@ -21,17 +21,17 @@ import (
 
 func TestDeleteResourcesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.createdInstances = []string{
+	wf.instanceRefs = []string{
 		namer("instance1", testWf, testSuffix),
 		namer("instance2", testWf, testSuffix),
 		namer("instance3", testWf, testSuffix),
 		namer("instance4", testWf, testSuffix)}
-	wf.createdImages = map[string]string{
+	wf.imageRefs = map[string]string{
 		"image1": "link",
 		"image2": "link",
 		"image3": "link",
 		"image4": "link"}
-	wf.createdDisks = map[string]string{
+	wf.diskRefs = map[string]string{
 		namer("disk1", testWf, testSuffix): "link",
 		namer("disk2", testWf, testSuffix): "link",
 		namer("disk3", testWf, testSuffix): "link",
@@ -46,18 +46,18 @@ func TestDeleteResourcesRun(t *testing.T) {
 	}
 
 	instWant := []string{namer("instance4", testWf, testSuffix)}
-	if !reflect.DeepEqual(wf.createdInstances, instWant) {
-		t.Errorf("Workflow.createdInstances does not match expectations, got: %q, want: %q", wf.createdInstances, instWant)
+	if !reflect.DeepEqual(wf.instanceRefs, instWant) {
+		t.Errorf("Workflow.createdInstances does not match expectations, got: %q, want: %q", wf.instanceRefs, instWant)
 	}
 
 	imgWant := map[string]string{"image4": "link"}
-	if !reflect.DeepEqual(wf.createdImages, imgWant) {
-		t.Errorf("Workflow.createdImages does not match expectations, got: %+v, want: %+v", wf.createdImages, imgWant)
+	if !reflect.DeepEqual(wf.imageRefs, imgWant) {
+		t.Errorf("Workflow.createdImages does not match expectations, got: %+v, want: %+v", wf.imageRefs, imgWant)
 	}
 
 	diskWant := map[string]string{namer("disk4", testWf, testSuffix): "link"}
-	if !reflect.DeepEqual(wf.createdDisks, diskWant) {
-		t.Errorf("Workflow.createdDisks does not match expectations, got: %+v, want: %+v", wf.createdDisks, diskWant)
+	if !reflect.DeepEqual(wf.diskRefs, diskWant) {
+		t.Errorf("Workflow.createdDisks does not match expectations, got: %+v, want: %+v", wf.diskRefs, diskWant)
 	}
 }
 

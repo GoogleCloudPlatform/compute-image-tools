@@ -21,7 +21,7 @@ import (
 
 func TestCreateImagesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.createdDisks = map[string]string{namer("somedisk", wf.Name, wf.id): "link"}
+	wf.diskRefs = map[string]string{namer("somedisk", wf.Name, wf.id): "link"}
 	ci := &CreateImages{
 		{Name: "image1", SourceDisk: "somedisk"},
 		{Name: "image2", SourceFile: "somefile"},
@@ -34,8 +34,8 @@ func TestCreateImagesRun(t *testing.T) {
 		"image1": "link",
 		"image2": "link",
 		"image3": "link"}
-	if !reflect.DeepEqual(wf.createdImages, want) {
-		t.Errorf("Workflow.createdImages does not match expectations, got: %+v, want: %+v", wf.createdImages, want)
+	if !reflect.DeepEqual(wf.imageRefs, want) {
+		t.Errorf("Workflow.createdImages does not match expectations, got: %+v, want: %+v", wf.imageRefs, want)
 	}
 }
 

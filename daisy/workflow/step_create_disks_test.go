@@ -33,8 +33,8 @@ func TestCreateDisksRun(t *testing.T) {
 		namer("disk1", testWf, testSuffix): "link",
 		namer("disk2", testWf, testSuffix): "link",
 		namer("disk3", testWf, testSuffix): "link"}
-	if !reflect.DeepEqual(wf.createdDisks, want) {
-		t.Errorf("Workflow.createdDisks does not match expectations, got: %q, want: %q", wf.createdDisks, want)
+	if !reflect.DeepEqual(wf.diskRefs, want) {
+		t.Errorf("Workflow.createdDisks does not match expectations, got: %q, want: %q", wf.diskRefs, want)
 	}
 }
 

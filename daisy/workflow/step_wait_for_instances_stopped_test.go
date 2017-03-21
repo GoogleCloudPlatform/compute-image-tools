@@ -20,7 +20,7 @@ import (
 
 func TestWaitForInstancesStoppedRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.createdInstances = []string{namer("instance1", testWf, testSuffix), namer("instance2", testWf, testSuffix), namer("instance3", testWf, testSuffix)}
+	wf.instanceRefs = []string{namer("instance1", testWf, testSuffix), namer("instance2", testWf, testSuffix), namer("instance3", testWf, testSuffix)}
 	ws := &WaitForInstancesStopped{"instance1", "instance2", "instance3"}
 	if err := ws.run(wf); err != nil {
 		t.Fatalf("error running WaitForInstancesStopped.run(): %v", err)

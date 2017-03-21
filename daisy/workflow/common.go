@@ -68,16 +68,8 @@ func filter(ss []string, s string) []string {
 	return result
 }
 
-func namer(name, wfName, wfId string) string {
-	prefix := fmt.Sprintf("%s-%s", name, wfName)
-	if len(prefix) > 57 {
-		prefix = prefix[0:56]
-	}
-	n := fmt.Sprintf("%s-%s", prefix, wfId)
-	if len(n) > 64 {
-		n = n[0:63]
-	}
-	return n
+func isLink(s string) bool {
+	return strings.Contains(s, "/")
 }
 
 func randString(n int) string {

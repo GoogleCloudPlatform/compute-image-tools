@@ -65,22 +65,22 @@ func (c *CreateDisks) run(w *Workflow) error {
 		wg.Add(1)
 		go func(cd CreateDisk) {
 			defer wg.Done()
-			name := namer(cd.Name, w.Name, w.id)
-			// If cd.SourceImage does not contain a '/' assume it's referencing a Workflow image.
-			if !strings.Contains(cd.SourceImage, "/") {
-				cd.SourceImage = w.getCreatedImage(cd.SourceImage)
+			name := w.ephemeralName(cd.Name)
+			imageLink := resolveLink(cd.SourceImage, w.imageRefs)
+			if imageLink == "" {
+				e <- fmt.Errorf("unresolved image %q", cd.SourceImage)
 			}
 			size, err := strconv.ParseInt(cd.SizeGB, 10, 64)
 			if err != nil {
 				e <- err
 				return
 			}
-			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, cd.SourceImage, size, cd.SSD)
+			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.SSD)
 			if err != nil {
 				e <- err
 				return
 			}
-			w.addCreatedDisk(name, d.SelfLink)
+			w.diskRefs.add(cd.Name, &Resource{cd.Name, name, d.SelfLink, false})
 		}(cd)
 	}
 
