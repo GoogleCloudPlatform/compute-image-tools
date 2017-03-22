@@ -286,8 +286,6 @@ func (w *Workflow) cleanupHelper(rm *refMap, deleteFn func(*resource) error) {
 					fmt.Println(err)
 				}
 			}
-			// Remove the reference.
-			rm.del(ref)
 		}(ref, res)
 	}
 	wg.Wait()

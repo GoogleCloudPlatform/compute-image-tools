@@ -34,6 +34,35 @@ import (
 	"reflect"
 )
 
+func TestCleanup(t *testing.T) {
+	w := testWorkflow()
+
+	d1 := &resource{name: "d1", link: "link", persist: false}
+	d2 := &resource{name: "d2", link: "link", persist: true}
+	im1 := &resource{name: "im1", link: "link", persist: false}
+	im2 := &resource{name: "im2", link: "link", persist: true}
+	in1 := &resource{name: "in1", link: "link", persist: false}
+	in2 := &resource{name: "in2", link: "link", persist: true}
+	w.diskRefs.m = map[string]*resource{"d1": d1, "d2": d2}
+	w.imageRefs.m = map[string]*resource{"im1": im1, "im2": im2}
+	w.instanceRefs.m = map[string]*resource{"in1": in1, "in2": in2}
+
+	w.cleanup()
+
+	want := map[string]*resource{"d2": d2}
+	if !reflect.DeepEqual(w.diskRefs.m, want) {
+		t.Errorf("cleanup didn't clean disks properly, want: %v; got: %v", want, w.diskRefs.m)
+	}
+	want = map[string]*resource{"im2": im2}
+	if !reflect.DeepEqual(w.imageRefs.m, want) {
+		t.Errorf("cleanup didn't clean images properly, want: %v; got: %v", want, w.imageRefs.m)
+	}
+	want = map[string]*resource{"in2": in2}
+	if !reflect.DeepEqual(w.instanceRefs.m, want) {
+		t.Errorf("cleanup didn't clean instances properly, want: %v; got: %v", want, w.instanceRefs.m)
+	}
+}
+
 func TestEphemeralName(t *testing.T) {
 	tests := []struct{ name, wfName, wfID, want string }{
 		{"name", "wfname", "123456789", "name-wfname-123456789"},
