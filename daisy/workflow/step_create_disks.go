@@ -34,6 +34,8 @@ type CreateDisk struct {
 	SizeGB string
 	// Is this disk PD-SSD.
 	SSD bool
+	// Should this resource persist?
+	Persist bool
 }
 
 func (c *CreateDisks) validate(w *Workflow) error {
@@ -80,7 +82,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 				e <- err
 				return
 			}
-			w.diskRefs.add(cd.Name, &resource{cd.Name, name, d.SelfLink, false})
+			w.diskRefs.add(cd.Name, &resource{cd.Name, name, d.SelfLink, cd.Persist})
 		}(cd)
 	}
 

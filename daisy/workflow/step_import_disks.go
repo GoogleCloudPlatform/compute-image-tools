@@ -23,6 +23,8 @@ type ImportDisks []ImportDisk
 // This step is used to import vmdk, vhd or RAW disks.
 type ImportDisk struct {
 	Name, File string
+	// Should this resource persist?
+	Persist bool
 }
 
 func (i *ImportDisks) validate(w *Workflow) error {

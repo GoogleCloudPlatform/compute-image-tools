@@ -38,6 +38,8 @@ type CreateInstance struct {
 	StartupScript string `json:"startup_script"`
 	// Additional metadata to set for the instance.
 	Metadata map[string]string
+	// Should this resource persist?
+	Persist bool
 }
 
 func (c *CreateInstances) validate(w *Workflow) error {
@@ -118,7 +120,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 				e <- err
 				return
 			}
-			w.instanceRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, false})
+			w.instanceRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.Persist})
 		}(ci)
 	}
 
