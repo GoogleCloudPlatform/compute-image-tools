@@ -276,7 +276,8 @@ func (w *Workflow) cleanup() {
 
 func (w *Workflow) cleanupHelper(rm *refMap, deleteFn func(*resource) error) {
 	var wg sync.WaitGroup
-	for ref, res := range rm.m {
+	m := rm.m
+	for ref, res := range m {
 		wg.Add(1)
 		go func(ref string, r *resource) {
 			defer wg.Done()
