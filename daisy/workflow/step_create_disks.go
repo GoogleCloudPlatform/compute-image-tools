@@ -68,6 +68,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 			imageLink := resolveLink(cd.SourceImage, w.imageRefs)
 			if imageLink == "" {
 				e <- fmt.Errorf("unresolved image %q", cd.SourceImage)
+				return
 			}
 			size, err := strconv.ParseInt(cd.SizeGB, 10, 64)
 			if err != nil {
