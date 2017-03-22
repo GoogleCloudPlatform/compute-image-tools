@@ -27,7 +27,7 @@ func TestCreateDisksRun(t *testing.T) {
 	cd := &CreateDisks{
 		{Name: "d1", SourceImage: "i1", SizeGB: "100", SSD: false},
 		{Name: "d2", SourceImage: "projects/global/images/i2", SizeGB: "100", SSD: false},
-		{Name: "d3", SourceImage: "i1", SizeGB: "100", SSD: false}}
+		{Name: "d3", SourceImage: "i1", SizeGB: "100", SSD: false, Persist: true}}
 	if err := cd.run(wf); err != nil {
 		t.Fatalf("error running CreateDisks.run(): %v", err)
 	}
@@ -35,7 +35,7 @@ func TestCreateDisksRun(t *testing.T) {
 	want := map[string]*resource{
 		"d1": {"d1", wf.ephemeralName("d1"), "link", false},
 		"d2": {"d2", wf.ephemeralName("d2"), "link", false},
-		"d3": {"d3", wf.ephemeralName("d3"), "link", false}}
+		"d3": {"d3", wf.ephemeralName("d3"), "link", true}}
 
 	if diff := pretty.Compare(wf.diskRefs.m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)

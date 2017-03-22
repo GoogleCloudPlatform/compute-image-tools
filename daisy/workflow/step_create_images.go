@@ -40,6 +40,8 @@ type CreateImage struct {
 	// Only one of these source types should be specified.
 	SourceDisk string `json:"source_disk"`
 	SourceFile string `json:"source_file"`
+	// Should this resource persist?
+	Persist bool
 }
 
 func (c *CreateImages) validate(w *Workflow) error {
@@ -91,7 +93,7 @@ func (c *CreateImages) run(w *Workflow) error {
 				e <- err
 				return
 			}
-			w.imageRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, false})
+			w.imageRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.Persist})
 		}(ci)
 	}
 

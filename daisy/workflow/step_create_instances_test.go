@@ -31,7 +31,7 @@ func TestCreateInstancesRun(t *testing.T) {
 	ci := &CreateInstances{
 		{Name: "i1", MachineType: "foo-type", AttachedDisks: []string{"d1"}},
 		{Name: "i2", MachineType: "foo-type", AttachedDisks: []string{"d2"}},
-		{Name: "i3", MachineType: "foo-type", AttachedDisks: []string{"d3"}},
+		{Name: "i3", MachineType: "foo-type", AttachedDisks: []string{"d3"}, Persist: true},
 	}
 	if err := ci.run(wf); err != nil {
 		t.Fatalf("error running CreateInstances.run(): %v", err)
@@ -40,7 +40,7 @@ func TestCreateInstancesRun(t *testing.T) {
 	want := map[string]*resource{
 		"i1": {"i1", wf.ephemeralName("i1"), "link", false},
 		"i2": {"i2", wf.ephemeralName("i2"), "link", false},
-		"i3": {"i3", wf.ephemeralName("i3"), "link", false},
+		"i3": {"i3", wf.ephemeralName("i3"), "link", true},
 	}
 
 	if diff := pretty.Compare(wf.instanceRefs.m, want); diff != "" {
