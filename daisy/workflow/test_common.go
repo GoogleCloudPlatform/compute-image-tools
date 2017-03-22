@@ -51,7 +51,7 @@ var (
 	testGCEClient *compute.Client
 	testGCSClient *storage.Client
 	testGCSDNEVal = "dne"
-	testId        = randString(5)
+	testID        = randString(5)
 	testWf        = "test-wf"
 	testProject   = "test-project"
 	testZone      = "test-zone"
@@ -78,11 +78,11 @@ func testWorkflow() *Workflow {
 		Zone:          testZone,
 		ComputeClient: testGCEClient,
 		StorageClient: testGCSClient,
-		id:            testId,
+		id:            testID,
 		Ctx:           context.Background(),
-		diskRefs:      &RefMap{},
-		imageRefs:     &RefMap{},
-		instanceRefs:  &RefMap{},
+		diskRefs:      &refMap{},
+		imageRefs:     &refMap{},
+		instanceRefs:  &refMap{},
 	}
 }
 

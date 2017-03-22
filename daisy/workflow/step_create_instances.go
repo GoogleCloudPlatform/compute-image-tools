@@ -118,7 +118,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 				e <- err
 				return
 			}
-			w.instanceRefs.add(ci.Name, &Resource{ci.Name, name, i.SelfLink, false})
+			w.instanceRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, false})
 		}(ci)
 	}
 

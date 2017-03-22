@@ -35,21 +35,21 @@ import (
 )
 
 func TestEphemeralName(t *testing.T) {
-	tests := []struct{ name, wfName, wfId, want string }{
+	tests := []struct{ name, wfName, wfID, want string }{
 		{"name", "wfname", "123456789", "name-wfname-123456789"},
 		{"super-long-name-really-long", "super-long-workflow-name-like-really-really-long", "1", "super-long-name-really-long-super-long-workflow-name-lik-1"},
 		{"super-long-name-really-long", "super-long-workflow-name-like-really-really-long", "123456789", "super-long-name-really-long-super-long-workflow-name-lik-123456"},
 	}
 	w := &Workflow{}
 	for _, tt := range tests {
-		w.id = tt.wfId
+		w.id = tt.wfID
 		w.Name = tt.wfName
 		result := w.ephemeralName(tt.name)
 		if result != tt.want {
-			t.Errorf("bad result, input: name=%s wfName=%s wfId=%s; got: %s; want: %s", tt.name, tt.wfName, tt.wfId, result, tt.want)
+			t.Errorf("bad result, input: name=%s wfName=%s wfId=%s; got: %s; want: %s", tt.name, tt.wfName, tt.wfID, result, tt.want)
 		}
 		if len(result) > 64 {
-			t.Errorf("result > 64 characters, input: name=%s wfName=%s wfId=%s; got: %s", tt.name, tt.wfName, tt.wfId, result)
+			t.Errorf("result > 64 characters, input: name=%s wfName=%s wfId=%s; got: %s", tt.name, tt.wfName, tt.wfID, result)
 		}
 	}
 }
@@ -272,9 +272,9 @@ func TestPopulate(t *testing.T) {
 		id:           got.id,
 		Ctx:          got.Ctx,
 		Cancel:       got.Cancel,
-		diskRefs:     &RefMap{},
-		imageRefs:    &RefMap{},
-		instanceRefs: &RefMap{},
+		diskRefs:     &refMap{},
+		imageRefs:    &refMap{},
+		instanceRefs: &refMap{},
 		Vars: map[string]string{
 			"step_name": "parent-step1",
 			"timeout":   "60m",
@@ -310,9 +310,9 @@ func TestPopulate(t *testing.T) {
 						Project:      "parent-project",
 						OAuthPath:    tf,
 						id:           subGot.id,
-						diskRefs:     &RefMap{},
-						imageRefs:    &RefMap{},
-						instanceRefs: &RefMap{},
+						diskRefs:     &refMap{},
+						imageRefs:    &refMap{},
+						instanceRefs: &refMap{},
 						Steps: map[string]*Step{
 							"sub-step1": {
 								name:    "sub-step1",
@@ -408,9 +408,9 @@ func TestPrerun(t *testing.T) {
 			"timeout":   "60m",
 		},
 		Ctx:          subGot.Ctx,
-		diskRefs:     &RefMap{},
-		imageRefs:    &RefMap{},
-		instanceRefs: &RefMap{},
+		diskRefs:     &refMap{},
+		imageRefs:    &refMap{},
+		instanceRefs: &refMap{},
 	}
 
 	got := &Workflow{
@@ -505,9 +505,9 @@ func TestPrerun(t *testing.T) {
 			"name":         "parent-name",
 		},
 		Ctx:          got.Ctx,
-		diskRefs:     &RefMap{},
-		imageRefs:    &RefMap{},
-		instanceRefs: &RefMap{},
+		diskRefs:     &refMap{},
+		imageRefs:    &refMap{},
+		instanceRefs: &refMap{},
 	}
 
 	if err := got.prerun(); err != nil {
@@ -537,8 +537,8 @@ func TestPrerun(t *testing.T) {
 }
 
 func TestResolveLink(t *testing.T) {
-	rm := &RefMap{}
-	rm.m = map[string]*Resource{"x": {"x", "realX", "link", false}}
+	rm := &refMap{}
+	rm.m = map[string]*resource{"x": {"x", "realX", "link", false}}
 
 	tests := []struct{ desc, input, want string }{
 		{"", "x", "link"},
@@ -626,15 +626,15 @@ func TestRealStep(t *testing.T) {
 }
 
 func TestRefMapAdd(t *testing.T) {
-	rm := RefMap{}
+	rm := refMap{}
 
 	tests := []struct {
 		desc, ref string
-		res       *Resource
-		want      map[string]*Resource
+		res       *resource
+		want      map[string]*resource
 	}{
-		{"normal add", "x", &Resource{name: "x"}, map[string]*Resource{"x": {name: "x"}}},
-		{"dupe add", "x", &Resource{name: "otherx"}, map[string]*Resource{"x": {name: "otherx"}}},
+		{"normal add", "x", &resource{name: "x"}, map[string]*resource{"x": {name: "x"}}},
+		{"dupe add", "x", &resource{name: "otherx"}, map[string]*resource{"x": {name: "otherx"}}},
 	}
 
 	for _, tt := range tests {
@@ -646,7 +646,7 @@ func TestRefMapAdd(t *testing.T) {
 }
 
 func TestRefMapConcurrency(t *testing.T) {
-	rm := RefMap{}
+	rm := refMap{}
 
 	tests := []struct {
 		desc string
@@ -681,16 +681,16 @@ func TestRefMapConcurrency(t *testing.T) {
 }
 
 func TestRefMapDel(t *testing.T) {
-	xRes := &Resource{}
-	yRes := &Resource{}
-	rm := RefMap{m: map[string]*Resource{"x": xRes, "y": yRes}}
+	xRes := &resource{}
+	yRes := &resource{}
+	rm := refMap{m: map[string]*resource{"x": xRes, "y": yRes}}
 
 	tests := []struct {
 		desc, input string
-		want        map[string]*Resource
+		want        map[string]*resource
 	}{
-		{"normal del", "y", map[string]*Resource{"x": xRes}},
-		{"del dne", "foo", map[string]*Resource{"x": xRes}},
+		{"normal del", "y", map[string]*resource{"x": xRes}},
+		{"del dne", "foo", map[string]*resource{"x": xRes}},
 	}
 
 	for _, tt := range tests {
@@ -702,13 +702,13 @@ func TestRefMapDel(t *testing.T) {
 }
 
 func TestRefMapGet(t *testing.T) {
-	xRes := &Resource{}
-	yRes := &Resource{}
-	rm := RefMap{m: map[string]*Resource{"x": xRes, "y": yRes}}
+	xRes := &resource{}
+	yRes := &resource{}
+	rm := refMap{m: map[string]*resource{"x": xRes, "y": yRes}}
 
 	tests := []struct {
 		desc, input string
-		wantR       *Resource
+		wantR       *resource
 		wantOk      bool
 	}{
 		{"normal get", "y", yRes, true},

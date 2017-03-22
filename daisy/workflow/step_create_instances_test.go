@@ -23,7 +23,7 @@ import (
 
 func TestCreateInstancesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.diskRefs.m = map[string]*Resource{
+	wf.diskRefs.m = map[string]*resource{
 		"d1": {"d1", wf.ephemeralName("d1"), "link", false},
 		"d2": {"d2", wf.ephemeralName("d2"), "link", false},
 		"d3": {"d3", wf.ephemeralName("d3"), "link", false},
@@ -37,7 +37,7 @@ func TestCreateInstancesRun(t *testing.T) {
 		t.Fatalf("error running CreateInstances.run(): %v", err)
 	}
 
-	want := map[string]*Resource{
+	want := map[string]*resource{
 		"i1": {"i1", wf.ephemeralName("i1"), "link", false},
 		"i2": {"i2", wf.ephemeralName("i2"), "link", false},
 		"i3": {"i3", wf.ephemeralName("i3"), "link", false},

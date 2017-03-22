@@ -22,17 +22,17 @@ import (
 
 func TestDeleteResourcesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.instanceRefs.m = map[string]*Resource{
+	wf.instanceRefs.m = map[string]*resource{
 		"in1": {"in1", wf.ephemeralName("in1"), "link", false},
 		"in2": {"in2", wf.ephemeralName("in2"), "link", false},
 		"in3": {"in3", wf.ephemeralName("in3"), "link", false},
 		"in4": {"in4", wf.ephemeralName("in4"), "link", false}}
-	wf.imageRefs.m = map[string]*Resource{
+	wf.imageRefs.m = map[string]*resource{
 		"im1": {"im1", wf.ephemeralName("im1"), "link", false},
 		"im2": {"im2", wf.ephemeralName("im2"), "link", false},
 		"im3": {"im3", wf.ephemeralName("im3"), "link", false},
 		"im4": {"im4", wf.ephemeralName("im4"), "link", false}}
-	wf.diskRefs.m = map[string]*Resource{
+	wf.diskRefs.m = map[string]*resource{
 		"d1": {"d1", wf.ephemeralName("d1"), "link", false},
 		"d2": {"d2", wf.ephemeralName("d2"), "link", false},
 		"d3": {"d3", wf.ephemeralName("d3"), "link", false},
@@ -46,17 +46,17 @@ func TestDeleteResourcesRun(t *testing.T) {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
 	}
 
-	want := map[string]*Resource{"in4": {"in4", wf.ephemeralName("in4"), "link", false}}
+	want := map[string]*resource{"in4": {"in4", wf.ephemeralName("in4"), "link", false}}
 	if diff := pretty.Compare(wf.instanceRefs.m, want); diff != "" {
 		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 
-	want = map[string]*Resource{"im4": {"im4", wf.ephemeralName("im4"), "link", false}}
+	want = map[string]*resource{"im4": {"im4", wf.ephemeralName("im4"), "link", false}}
 	if diff := pretty.Compare(wf.imageRefs.m, want); diff != "" {
 		t.Errorf("imageRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 
-	want = map[string]*Resource{"d4": {"d4", wf.ephemeralName("d4"), "link", false}}
+	want = map[string]*resource{"d4": {"d4", wf.ephemeralName("d4"), "link", false}}
 	if diff := pretty.Compare(wf.diskRefs.m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
 	}

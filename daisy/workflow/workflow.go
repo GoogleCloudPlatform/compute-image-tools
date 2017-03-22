@@ -32,21 +32,21 @@ import (
 	"google.golang.org/api/option"
 )
 
-type RefMap struct {
-	m  map[string]*Resource
+type refMap struct {
+	m  map[string]*resource
 	mx sync.Mutex
 }
 
-func (rm *RefMap) add(name string, r *Resource) {
+func (rm *refMap) add(name string, r *resource) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
 	if rm.m == nil {
-		rm.m = map[string]*Resource{}
+		rm.m = map[string]*resource{}
 	}
 	rm.m[name] = r
 }
 
-func (rm *RefMap) del(name string) {
+func (rm *refMap) del(name string) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
 	if rm.m != nil {
@@ -54,7 +54,7 @@ func (rm *RefMap) del(name string) {
 	}
 }
 
-func (rm *RefMap) get(name string) (*Resource, bool) {
+func (rm *refMap) get(name string) (*resource, bool) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
 	if rm.m == nil {
@@ -64,7 +64,7 @@ func (rm *RefMap) get(name string) (*Resource, bool) {
 	return r, ok
 }
 
-type Resource struct {
+type resource struct {
 	name, real, link string
 	persist          bool
 }
@@ -214,9 +214,9 @@ type Workflow struct {
 	Dependencies map[string][]string
 
 	// Working fields.
-	diskRefs      *RefMap
-	instanceRefs  *RefMap
-	imageRefs     *RefMap
+	diskRefs      *refMap
+	instanceRefs  *refMap
+	imageRefs     *refMap
 	parent        *Workflow
 	scratchPath   string
 	sourcesPath   string
@@ -274,11 +274,11 @@ func (w *Workflow) cleanup() {
 	w.cleanupHelper(w.diskRefs, w.deleteDisk)
 }
 
-func (w *Workflow) cleanupHelper(rm *RefMap, deleteFn func(*Resource) error) {
+func (w *Workflow) cleanupHelper(rm *refMap, deleteFn func(*resource) error) {
 	var wg sync.WaitGroup
-	for ref, resource := range rm.m {
+	for ref, res := range rm.m {
 		wg.Add(1)
-		go func(ref string, r *Resource) {
+		go func(ref string, r *resource) {
 			defer wg.Done()
 			if !r.persist {
 				// Only delete non-persistent resources.
@@ -288,12 +288,12 @@ func (w *Workflow) cleanupHelper(rm *RefMap, deleteFn func(*Resource) error) {
 			}
 			// Remove the reference.
 			rm.del(ref)
-		}(ref, resource)
+		}(ref, res)
 	}
 	wg.Wait()
 }
 
-func (w *Workflow) deleteDisk(r *Resource) error {
+func (w *Workflow) deleteDisk(r *resource) error {
 	if err := w.ComputeClient.DeleteDisk(w.Project, w.Zone, r.real); err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func (w *Workflow) deleteDisk(r *Resource) error {
 	return nil
 }
 
-func (w *Workflow) deleteImage(r *Resource) error {
+func (w *Workflow) deleteImage(r *resource) error {
 	if err := w.ComputeClient.DeleteImage(w.Project, r.real); err != nil {
 		return err
 	}
@@ -309,7 +309,7 @@ func (w *Workflow) deleteImage(r *Resource) error {
 	return nil
 }
 
-func (w *Workflow) deleteInstance(r *Resource) error {
+func (w *Workflow) deleteInstance(r *resource) error {
 	if err := w.ComputeClient.DeleteInstance(w.Project, w.Zone, r.real); err != nil {
 		return err
 	}
@@ -388,9 +388,9 @@ func (w *Workflow) populate() error {
 		}
 	}
 
-	w.diskRefs = &RefMap{m: map[string]*Resource{}}
-	w.imageRefs = &RefMap{m: map[string]*Resource{}}
-	w.instanceRefs = &RefMap{m: map[string]*Resource{}}
+	w.diskRefs = &refMap{m: map[string]*resource{}}
+	w.imageRefs = &refMap{m: map[string]*resource{}}
+	w.instanceRefs = &refMap{m: map[string]*resource{}}
 	w.scratchPath = fmt.Sprintf("gs://%s/daisy-%s-%s", w.Bucket, w.Name, w.id)
 	w.sourcesPath = fmt.Sprintf("%s/sources", w.scratchPath)
 	w.logsPath = fmt.Sprintf("%s/logs", w.scratchPath)
@@ -564,7 +564,7 @@ func New(ctx context.Context) *Workflow {
 	return &w
 }
 
-func resolveLink(name string, rm *RefMap) string {
+func resolveLink(name string, rm *refMap) string {
 	if isLink(name) {
 		return name
 	} else if r, ok := rm.get(name); ok {

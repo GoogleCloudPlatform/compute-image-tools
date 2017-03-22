@@ -79,7 +79,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 				e <- err
 				return
 			}
-			w.diskRefs.add(cd.Name, &Resource{cd.Name, name, d.SelfLink, false})
+			w.diskRefs.add(cd.Name, &resource{cd.Name, name, d.SelfLink, false})
 		}(cd)
 	}
 
