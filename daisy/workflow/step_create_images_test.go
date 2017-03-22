@@ -25,8 +25,8 @@ func TestCreateImagesRun(t *testing.T) {
 	wf := testWorkflow()
 	wf.diskRefs.m = map[string]*Resource{"d": {"d", wf.ephemeralName("d"), "link", false}}
 	ci := &CreateImages{
-		//{Name: "i1", SourceDisk: "d"},
-		//{Name: "i2", SourceFile: "f"},
+		{Name: "i1", SourceDisk: "d"},
+		{Name: "i2", SourceFile: "f"},
 		{Name: "i3", SourceDisk: "d"},
 	}
 	if err := ci.run(wf); err != nil {
@@ -34,8 +34,8 @@ func TestCreateImagesRun(t *testing.T) {
 	}
 
 	want := map[string]*Resource{
-		//"i1": {"i1", wf.ephemeralName("i1"), "link", false},
-		//"i2": {"i2", wf.ephemeralName("i2"), "link", false},
+		"i1": {"i1", wf.ephemeralName("i1"), "link", false},
+		"i2": {"i2", wf.ephemeralName("i2"), "link", false},
 		"i3": {"i3", wf.ephemeralName("i3"), "link", false},
 	}
 
