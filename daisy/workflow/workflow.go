@@ -276,18 +276,20 @@ func (w *Workflow) cleanup() {
 
 func (w *Workflow) cleanupHelper(rm *refMap, deleteFn func(*resource) error) {
 	var wg sync.WaitGroup
+	toDel := map[string]*resource{}
 	for ref, res := range rm.m {
+		// Delete only non-persistent resources.
+		if !res.persist {
+			toDel[ref] = res
+		}
+	}
+	for ref, res := range toDel {
 		wg.Add(1)
 		go func(ref string, r *resource) {
 			defer wg.Done()
-			if !r.persist {
-				// Only delete non-persistent resources.
-				if err := deleteFn(r); err != nil {
-					fmt.Println(err)
-				}
+			if err := deleteFn(r); err != nil {
+				fmt.Println(err)
 			}
-			// Remove the reference.
-			rm.del(ref)
 		}(ref, res)
 	}
 	wg.Wait()
