@@ -17,37 +17,34 @@ package workflow
 import (
 	"reflect"
 	"testing"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestCreateInstancesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.diskRefs = map[string]string{
-		namer("disk1", testWf, testSuffix): "link",
-		namer("disk2", testWf, testSuffix): "link",
-		namer("disk3", testWf, testSuffix): "link"}
+	wf.diskRefs.m = map[string]*Resource{
+		"d1": {"d1", wf.ephemeralName("d1"), "link", false},
+		"d2": {"d2", wf.ephemeralName("d2"), "link", false},
+		"d3": {"d3", wf.ephemeralName("d3"), "link", false},
+	}
 	ci := &CreateInstances{
-		{Name: "instance1", MachineType: "foo-type", AttachedDisks: []string{"disk1"}},
-		{Name: "instance2", MachineType: "foo-type", AttachedDisks: []string{"disk2"}},
-		{Name: "instance3", MachineType: "foo-type", AttachedDisks: []string{"disk3"}}}
+		{Name: "i1", MachineType: "foo-type", AttachedDisks: []string{"d1"}},
+		{Name: "i2", MachineType: "foo-type", AttachedDisks: []string{"d2"}},
+		{Name: "i3", MachineType: "foo-type", AttachedDisks: []string{"d3"}},
+	}
 	if err := ci.run(wf); err != nil {
 		t.Fatalf("error running CreateInstances.run(): %v", err)
 	}
 
-	want := []string{
-		namer("instance1", testWf, testSuffix),
-		namer("instance2", testWf, testSuffix),
-		namer("instance3", testWf, testSuffix)}
-
-	for _, name := range wf.instanceRefs {
-		if !containsString(name, want) {
-			t.Errorf("Workflow.createdInstances does not contain expected instance %s", name)
-		}
+	want := map[string]*Resource{
+		"i1": {"i1", wf.ephemeralName("i1"), "link", false},
+		"i2": {"i2", wf.ephemeralName("i2"), "link", false},
+		"i3": {"i3", wf.ephemeralName("i3"), "link", false},
 	}
 
-	for _, name := range want {
-		if !containsString(name, wf.instanceRefs) {
-			t.Errorf("Workflow.createdInstances does not contain expected instance %s", name)
-		}
+	if diff := pretty.Compare(wf.instanceRefs.m, want); diff != "" {
+		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 }
 

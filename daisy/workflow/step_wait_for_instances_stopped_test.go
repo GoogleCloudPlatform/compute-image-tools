@@ -20,8 +20,11 @@ import (
 
 func TestWaitForInstancesStoppedRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.instanceRefs = []string{namer("instance1", testWf, testSuffix), namer("instance2", testWf, testSuffix), namer("instance3", testWf, testSuffix)}
-	ws := &WaitForInstancesStopped{"instance1", "instance2", "instance3"}
+	wf.instanceRefs.m = map[string]*Resource{
+		"i1": {"i1", wf.ephemeralName("i1"), "link", false},
+		"i2": {"i2", wf.ephemeralName("i2"), "link", false},
+		"i3": {"i3", wf.ephemeralName("i3"), "link", false}}
+	ws := &WaitForInstancesStopped{"i1", "i2", "i3"}
 	if err := ws.run(wf); err != nil {
 		t.Fatalf("error running WaitForInstancesStopped.run(): %v", err)
 	}

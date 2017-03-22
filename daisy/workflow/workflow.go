@@ -40,19 +40,28 @@ type RefMap struct {
 func (rm *RefMap) add(name string, r *Resource) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
+	if rm.m == nil {
+		rm.m = map[string]*Resource{}
+	}
 	rm.m[name] = r
 }
 
 func (rm *RefMap) del(name string) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
-	delete(rm.m, name)
+	if rm.m != nil {
+		delete(rm.m, name)
+	}
 }
 
 func (rm *RefMap) get(name string) (*Resource, bool) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
-	return rm.m[name]
+	if rm.m == nil {
+		return nil, false
+	}
+	r, ok := rm.m[name]
+	return r, ok
 }
 
 type Resource struct {
@@ -67,11 +76,11 @@ type step interface {
 
 // Step is a single daisy workflow step.
 type Step struct {
-	name                    string
+	name string
 	// Time to wait for this step to complete (default 10m).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	Timeout                 string
-	timeout                 time.Duration
+	Timeout string
+	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
 	AttachDisks             *AttachDisks             `json:"attach_disks"`
 	CreateDisks             *CreateDisks             `json:"create_disks"`
@@ -181,40 +190,40 @@ func (s *Step) wrapValidateError(e error) error {
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
-	id             string
-	Ctx            context.Context    `json:"-"`
-	Cancel         context.CancelFunc `json:"-"`
+	id     string
+	Ctx    context.Context    `json:"-"`
+	Cancel context.CancelFunc `json:"-"`
 
 	// Workflow template fields.
 	// Workflow name.
-	Name           string
+	Name string
 	// Project to run in.
-	Project        string
+	Project string
 	// Zone to run in.
-	Zone           string
+	Zone string
 	// GCS Bucket to use for scratch data and write logs/results to.
-	Bucket         string
+	Bucket string
 	// Path to OAuth credentials file.
-	OAuthPath      string `json:"oauth_path"`
+	OAuthPath string `json:"oauth_path"`
 	// Sources used by this workflow, map of destination to source.
-	Sources        map[string]string
+	Sources map[string]string
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars           map[string]string
-	Steps          map[string]*Step
+	Vars  map[string]string
+	Steps map[string]*Step
 	// Map of steps to their dependencies.
-	Dependencies   map[string][]string
+	Dependencies map[string][]string
 
 	// Working fields.
-	diskRefs       *RefMap
-	instanceRefs   *RefMap
-	imageRefs      *RefMap
-	parent         *Workflow
-	scratchPath    string
-	sourcesPath    string
-	logsPath       string
-	outsPath       string
-	ComputeClient  *compute.Client `json:"-"`
-	StorageClient  *storage.Client `json:"-"`
+	diskRefs      *RefMap
+	instanceRefs  *RefMap
+	imageRefs     *RefMap
+	parent        *Workflow
+	scratchPath   string
+	sourcesPath   string
+	logsPath      string
+	outsPath      string
+	ComputeClient *compute.Client `json:"-"`
+	StorageClient *storage.Client `json:"-"`
 }
 
 // FromFile reads and unmarshals a workflow file.
@@ -265,11 +274,11 @@ func (w *Workflow) cleanup() {
 	w.cleanupHelper(w.diskRefs, w.deleteDisk)
 }
 
-func (w *Workflow) cleanupHelper(rm RefMap, deleteFn func(*Resource) error) {
+func (w *Workflow) cleanupHelper(rm *RefMap, deleteFn func(*Resource) error) {
 	var wg sync.WaitGroup
 	for ref, resource := range rm.m {
 		wg.Add(1)
-		go func(r *Resource) {
+		go func(ref string, r *Resource) {
 			defer wg.Done()
 			if !r.persist {
 				// Only delete non-persistent resources.
@@ -279,7 +288,7 @@ func (w *Workflow) cleanupHelper(rm RefMap, deleteFn func(*Resource) error) {
 			}
 			// Remove the reference.
 			rm.del(ref)
-		}(resource)
+		}(ref, resource)
 	}
 	wg.Wait()
 }
@@ -314,8 +323,8 @@ func (w *Workflow) ephemeralName(n string) string {
 		prefix = prefix[0:56]
 	}
 	result := fmt.Sprintf("%s-%s", prefix, w.id)
-	if len(n) > 64 {
-		n = n[0:63]
+	if len(result) > 64 {
+		result = result[0:63]
 	}
 	return result
 }
@@ -555,7 +564,7 @@ func New(ctx context.Context) *Workflow {
 	return &w
 }
 
-func resolveLink(name string, rm RefMap) string {
+func resolveLink(name string, rm *RefMap) string {
 	if isLink(name) {
 		return name
 	} else if r, ok := rm.get(name); ok {

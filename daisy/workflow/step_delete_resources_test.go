@@ -15,49 +15,50 @@
 package workflow
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestDeleteResourcesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.instanceRefs = []string{
-		namer("instance1", testWf, testSuffix),
-		namer("instance2", testWf, testSuffix),
-		namer("instance3", testWf, testSuffix),
-		namer("instance4", testWf, testSuffix)}
-	wf.imageRefs = map[string]string{
-		"image1": "link",
-		"image2": "link",
-		"image3": "link",
-		"image4": "link"}
-	wf.diskRefs = map[string]string{
-		namer("disk1", testWf, testSuffix): "link",
-		namer("disk2", testWf, testSuffix): "link",
-		namer("disk3", testWf, testSuffix): "link",
-		namer("disk4", testWf, testSuffix): "link"}
+	wf.instanceRefs.m = map[string]*Resource{
+		"in1": {"in1", wf.ephemeralName("in1"), "link", false},
+		"in2": {"in2", wf.ephemeralName("in2"), "link", false},
+		"in3": {"in3", wf.ephemeralName("in3"), "link", false},
+		"in4": {"in4", wf.ephemeralName("in4"), "link", false}}
+	wf.imageRefs.m = map[string]*Resource{
+		"im1": {"im1", wf.ephemeralName("im1"), "link", false},
+		"im2": {"im2", wf.ephemeralName("im2"), "link", false},
+		"im3": {"im3", wf.ephemeralName("im3"), "link", false},
+		"im4": {"im4", wf.ephemeralName("im4"), "link", false}}
+	wf.diskRefs.m = map[string]*Resource{
+		"d1": {"d1", wf.ephemeralName("d1"), "link", false},
+		"d2": {"d2", wf.ephemeralName("d2"), "link", false},
+		"d3": {"d3", wf.ephemeralName("d3"), "link", false},
+		"d4": {"d4", wf.ephemeralName("d4"), "link", false}}
 
 	dr := &DeleteResources{
-		Instances: []string{"instance1", "instance2", "instance3"},
-		Images:    []string{"image1", "image2", "image3"},
-		Disks:     []string{"disk1", "disk2", "disk3"}}
+		Instances: []string{"in1", "in2", "in3"},
+		Images:    []string{"im1", "im2", "im3"},
+		Disks:     []string{"d1", "d2", "d3"}}
 	if err := dr.run(wf); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
 	}
 
-	instWant := []string{namer("instance4", testWf, testSuffix)}
-	if !reflect.DeepEqual(wf.instanceRefs, instWant) {
-		t.Errorf("Workflow.createdInstances does not match expectations, got: %q, want: %q", wf.instanceRefs, instWant)
+	want := map[string]*Resource{"in4": {"in4", wf.ephemeralName("in4"), "link", false}}
+	if diff := pretty.Compare(wf.instanceRefs.m, want); diff != "" {
+		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 
-	imgWant := map[string]string{"image4": "link"}
-	if !reflect.DeepEqual(wf.imageRefs, imgWant) {
-		t.Errorf("Workflow.createdImages does not match expectations, got: %+v, want: %+v", wf.imageRefs, imgWant)
+	want = map[string]*Resource{"im4": {"im4", wf.ephemeralName("im4"), "link", false}}
+	if diff := pretty.Compare(wf.imageRefs.m, want); diff != "" {
+		t.Errorf("imageRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 
-	diskWant := map[string]string{namer("disk4", testWf, testSuffix): "link"}
-	if !reflect.DeepEqual(wf.diskRefs, diskWant) {
-		t.Errorf("Workflow.createdDisks does not match expectations, got: %+v, want: %+v", wf.diskRefs, diskWant)
+	want = map[string]*Resource{"d4": {"d4", wf.ephemeralName("d4"), "link", false}}
+	if diff := pretty.Compare(wf.diskRefs.m, want); diff != "" {
+		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 }
 

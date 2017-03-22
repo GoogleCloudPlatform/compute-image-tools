@@ -20,7 +20,6 @@ import (
 	"path"
 	"path/filepath"
 	"sync"
-	"strings"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.

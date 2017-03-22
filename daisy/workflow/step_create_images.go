@@ -17,7 +17,6 @@ package workflow
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -77,21 +76,22 @@ func (c *CreateImages) run(w *Workflow) error {
 		wg.Add(1)
 		go func(ci CreateImage) {
 			defer wg.Done()
+			name := w.ephemeralName(ci.Name)
 			var diskLink string
 			if ci.SourceDisk != "" {
 				// Using source disk case.
-				diskLink := resolveLink(ci.SourceDisk, w.diskRefs)
+				diskLink = resolveLink(ci.SourceDisk, w.diskRefs)
 				if diskLink == "" {
 					e <- fmt.Errorf("unresolved disk %q", ci.SourceDisk)
 					return
 				}
 			}
-			i, err := w.ComputeClient.CreateImage(ci.Name, w.Project, diskLink, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
+			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {
 				e <- err
 				return
 			}
-			w.imageRefs.add(ci.Name, &Resource{ci.Name, ci.Name, i.SelfLink, true})
+			w.imageRefs.add(ci.Name, &Resource{ci.Name, name, i.SelfLink, false})
 		}(ci)
 	}
 
