@@ -17,25 +17,30 @@ package workflow
 import (
 	"reflect"
 	"testing"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestCreateImagesRun(t *testing.T) {
 	wf := testWorkflow()
-	wf.createdDisks = map[string]string{namer("somedisk", wf.Name, wf.id): "link"}
+	wf.diskRefs.m = map[string]*resource{"d": {"d", wf.ephemeralName("d"), "link", false}}
 	ci := &CreateImages{
-		{Name: "image1", SourceDisk: "somedisk"},
-		{Name: "image2", SourceFile: "somefile"},
-		{Name: "image3", SourceDisk: "somedisk"}}
+		{Name: "i1", SourceDisk: "d"},
+		{Name: "i2", SourceFile: "f"},
+		{Name: "i3", SourceDisk: "d"},
+	}
 	if err := ci.run(wf); err != nil {
 		t.Fatalf("error running CreateImages.run(): %v", err)
 	}
 
-	want := map[string]string{
-		"image1": "link",
-		"image2": "link",
-		"image3": "link"}
-	if !reflect.DeepEqual(wf.createdImages, want) {
-		t.Errorf("Workflow.createdImages does not match expectations, got: %+v, want: %+v", wf.createdImages, want)
+	want := map[string]*resource{
+		"i1": {"i1", wf.ephemeralName("i1"), "link", false},
+		"i2": {"i2", wf.ephemeralName("i2"), "link", false},
+		"i3": {"i3", wf.ephemeralName("i3"), "link", false},
+	}
+
+	if diff := pretty.Compare(wf.imageRefs.m, want); diff != "" {
+		t.Errorf("imageRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 }
 

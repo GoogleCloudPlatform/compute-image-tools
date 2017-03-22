@@ -17,7 +17,6 @@ package workflow
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -49,7 +48,7 @@ func (c *CreateImages) validate(w *Workflow) error {
 		if !xor(ci.SourceDisk == "", ci.SourceFile == "") {
 			return errors.New("must provide either Disk or File, exclusively")
 		}
-		if ci.SourceDisk != "" && !strings.Contains(ci.SourceDisk, "/") && !diskValid(w, ci.SourceDisk) {
+		if ci.SourceDisk != "" && !isLink(ci.SourceDisk) && !diskValid(w, ci.SourceDisk) {
 			return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
 		}
 		if ci.SourceFile != "" && !sourceExists(ci.SourceFile) {
@@ -77,16 +76,22 @@ func (c *CreateImages) run(w *Workflow) error {
 		wg.Add(1)
 		go func(ci CreateImage) {
 			defer wg.Done()
-			// If ci.SourceDisk does not contain a '/' assume it's referencing a Workflow disk.
-			if ci.SourceDisk != "" && !strings.Contains(ci.SourceDisk, "/") {
-				ci.SourceDisk = w.getCreatedDisk(namer(ci.SourceDisk, w.Name, w.id))
+			name := w.ephemeralName(ci.Name)
+			var diskLink string
+			if ci.SourceDisk != "" {
+				// Using source disk case.
+				diskLink = resolveLink(ci.SourceDisk, w.diskRefs)
+				if diskLink == "" {
+					e <- fmt.Errorf("unresolved disk %q", ci.SourceDisk)
+					return
+				}
 			}
-			i, err := w.ComputeClient.CreateImage(ci.Name, w.Project, ci.SourceDisk, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
+			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {
 				e <- err
 				return
 			}
-			w.addCreatedImage(ci.Name, i.SelfLink)
+			w.imageRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, false})
 		}(ci)
 	}
 

@@ -73,7 +73,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 		wg.Add(1)
 		go func(ci CreateInstance) {
 			defer wg.Done()
-			name := namer(ci.Name, w.Name, w.id)
+			name := w.ephemeralName(ci.Name)
 
 			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType)
 			if err != nil {
@@ -81,10 +81,17 @@ func (c *CreateInstances) run(w *Workflow) error {
 				return
 			}
 
-			for i, d := range ci.AttachedDisks {
-				dn := namer(d, w.Name, w.id)
-				link := w.getCreatedDisk(dn)
-				inst.AddPD(dn, link, false, i == 0)
+			for i, sourceDisk := range ci.AttachedDisks {
+				if isLink(sourceDisk) {
+					// Real link.
+					inst.AddPD("", sourceDisk, false, i == 0)
+				} else if r, ok := w.diskRefs.get(sourceDisk); ok {
+					// Reference.
+					inst.AddPD(r.name, r.link, false, i == 0)
+				} else {
+					e <- fmt.Errorf("unresolved disk %q", sourceDisk)
+					return
+				}
 			}
 			if ci.StartupScript != "" {
 				var startup string
@@ -106,10 +113,12 @@ func (c *CreateInstances) run(w *Workflow) error {
 			inst.AddMetadata(md)
 			inst.AddNetworkInterface("global/networks/default")
 
-			if _, err := inst.Insert(); err != nil {
+			i, err := inst.Insert()
+			if err != nil {
 				e <- err
+				return
 			}
-			w.addCreatedInstance(name)
+			w.instanceRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, false})
 		}(ci)
 	}
 

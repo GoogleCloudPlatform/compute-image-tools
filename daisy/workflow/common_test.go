@@ -41,23 +41,6 @@ func TestContainsString(t *testing.T) {
 	}
 }
 
-func TestNamer(t *testing.T) {
-	tests := []struct{ name, wfName, suffix, want string }{
-		{"name", "wfname", "123456789", "name-wfname-123456789"},
-		{"super-long-name-really-long", "super-long-workflow-name-like-really-really-long", "1", "super-long-name-really-long-super-long-workflow-name-lik-1"},
-		{"super-long-name-really-long", "super-long-workflow-name-like-really-really-long", "123456789", "super-long-name-really-long-super-long-workflow-name-lik-123456"},
-	}
-	for _, tt := range tests {
-		result := namer(tt.name, tt.wfName, tt.suffix)
-		if result != tt.want {
-			t.Errorf("bad result, input: name=%s wfName=%s suffix=%s; got: %s; want: %s", tt.name, tt.wfName, tt.suffix, result, tt.want)
-		}
-		if len(result) > 64 {
-			t.Errorf("result > 64 characters, input: name=%s wfName=%s suffix=%s; got: %s", tt.name, tt.wfName, tt.suffix, result)
-		}
-	}
-}
-
 func TestRandString(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		l := len(randString(i))

@@ -23,8 +23,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -33,73 +31,27 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
+	"reflect"
 )
 
-var (
-	testGCEClient *compute.Client
-	testGCSClient *storage.Client
-	testGCSDNEVal = "dne"
-	testSuffix    = randString(5)
-	testWf        = "test-wf"
-	testProject   = "test-project"
-	testZone      = "test-zone"
-	testBucket    = "test-bucket"
-)
-
-func init() {
-	var err error
-	testGCEClient, err = newTestGCEClient()
-	if err != nil {
-		panic(err)
+func TestEphemeralName(t *testing.T) {
+	tests := []struct{ name, wfName, wfID, want string }{
+		{"name", "wfname", "123456789", "name-wfname-123456789"},
+		{"super-long-name-really-long", "super-long-workflow-name-like-really-really-long", "1", "super-long-name-really-long-super-long-workflow-name-lik-1"},
+		{"super-long-name-really-long", "super-long-workflow-name-like-really-really-long", "123456789", "super-long-name-really-long-super-long-workflow-name-lik-123456"},
 	}
-	testGCSClient, err = newTestGCSClient()
-	if err != nil {
-		panic(err)
+	w := &Workflow{}
+	for _, tt := range tests {
+		w.id = tt.wfID
+		w.Name = tt.wfName
+		result := w.ephemeralName(tt.name)
+		if result != tt.want {
+			t.Errorf("bad result, input: name=%s wfName=%s wfId=%s; got: %s; want: %s", tt.name, tt.wfName, tt.wfID, result, tt.want)
+		}
+		if len(result) > 64 {
+			t.Errorf("result > 64 characters, input: name=%s wfName=%s wfId=%s; got: %s", tt.name, tt.wfName, tt.wfID, result)
+		}
 	}
-}
-
-func testWorkflow() *Workflow {
-	return &Workflow{Name: testWf, Bucket: testBucket, Project: testProject, Zone: testZone, ComputeClient: testGCEClient, StorageClient: testGCSClient, id: testSuffix, Ctx: context.Background()}
-}
-
-func newTestGCEClient() (*compute.Client, error) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/", testProject, testZone)) {
-			fmt.Fprintln(w, `{"Status":"TERMINATED"}`)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/machineTypes", testProject, testZone)) {
-			fmt.Fprintln(w, `{"Items":[{"Name": "foo-type"}]}`)
-		} else {
-			fmt.Fprintln(w, `{"Status":"DONE","SelfLink":"link"}`)
-		}
-	}))
-
-	return compute.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
-}
-
-func newTestGCSClient() (*storage.Client, error) {
-	nameRgx := regexp.MustCompile(`"name":"([^"].*)"`)
-	rewriteRgx := regexp.MustCompile("/b/([^/]+)/o/([^/]+)/rewriteTo/b/([^/]+)/o/([^?]+)")
-	uploadRgx := regexp.MustCompile("/b/([^/]+)/o?.*uploadType=multipart.*")
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u := r.URL.String()
-		m := r.Method
-
-		if match := uploadRgx.FindStringSubmatch(u); m == "POST" && match != nil {
-			body, _ := ioutil.ReadAll(r.Body)
-			n := nameRgx.FindStringSubmatch(string(body))[1]
-			fmt.Fprintf(w, `{"kind":"storage#object","bucket":"%s","name":"%s"}\n`, match[1], n)
-		} else if match := rewriteRgx.FindStringSubmatch(u); m == "POST" && match != nil {
-			if strings.Contains(match[1], testGCSDNEVal) || strings.Contains(match[2], testGCSDNEVal) {
-				w.WriteHeader(http.StatusNotFound)
-			}
-			o := fmt.Sprintf(`{"bucket":"%s","name":"%s"}`, match[3], match[4])
-			fmt.Fprintf(w, `{"kind": "storage#rewriteResponse", "done": true, "objectSize": "1", "totalBytesRewritten": "1", "resource": %s}\n`, o)
-		} else {
-			fmt.Println("got something else")
-		}
-	}))
-
-	return storage.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
 }
 
 func TestFromFile(t *testing.T) {
@@ -312,14 +264,17 @@ func TestPopulate(t *testing.T) {
 	subGot.StorageClient = nil
 
 	want := &Workflow{
-		Name:      "parent-name",
-		Bucket:    "parent-bucket/images",
-		Zone:      "parent-zone",
-		Project:   "parent-project",
-		OAuthPath: tf,
-		id:        got.id,
-		Ctx:       got.Ctx,
-		Cancel:    got.Cancel,
+		Name:         "parent-name",
+		Bucket:       "parent-bucket/images",
+		Zone:         "parent-zone",
+		Project:      "parent-project",
+		OAuthPath:    tf,
+		id:           got.id,
+		Ctx:          got.Ctx,
+		Cancel:       got.Cancel,
+		diskRefs:     &refMap{},
+		imageRefs:    &refMap{},
+		instanceRefs: &refMap{},
 		Vars: map[string]string{
 			"step_name": "parent-step1",
 			"timeout":   "60m",
@@ -349,12 +304,15 @@ func TestPopulate(t *testing.T) {
 					Path: "./test_sub.workflow",
 					workflow: &Workflow{
 						// This subworkflow should not have been modified by the parent's populate().
-						Name:      "sub-name",
-						Bucket:    "parent-bucket/images",
-						Zone:      "parent-zone",
-						Project:   "parent-project",
-						OAuthPath: tf,
-						id:        subGot.id,
+						Name:         "sub-name",
+						Bucket:       "parent-bucket/images",
+						Zone:         "parent-zone",
+						Project:      "parent-project",
+						OAuthPath:    tf,
+						id:           subGot.id,
+						diskRefs:     &refMap{},
+						imageRefs:    &refMap{},
+						instanceRefs: &refMap{},
 						Steps: map[string]*Step{
 							"sub-step1": {
 								name:    "sub-step1",
@@ -449,7 +407,10 @@ func TestPrerun(t *testing.T) {
 			"step_name": "sub-step1",
 			"timeout":   "60m",
 		},
-		Ctx: subGot.Ctx,
+		Ctx:          subGot.Ctx,
+		diskRefs:     &refMap{},
+		imageRefs:    &refMap{},
+		instanceRefs: &refMap{},
 	}
 
 	got := &Workflow{
@@ -543,7 +504,10 @@ func TestPrerun(t *testing.T) {
 			"path":         "./test_sub.workflow",
 			"name":         "parent-name",
 		},
-		Ctx: got.Ctx,
+		Ctx:          got.Ctx,
+		diskRefs:     &refMap{},
+		imageRefs:    &refMap{},
+		instanceRefs: &refMap{},
 	}
 
 	if err := got.prerun(); err != nil {
@@ -569,6 +533,23 @@ func TestPrerun(t *testing.T) {
 	subGot.StorageClient = nil
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
+	}
+}
+
+func TestResolveLink(t *testing.T) {
+	rm := &refMap{}
+	rm.m = map[string]*resource{"x": {"x", "realX", "link", false}}
+
+	tests := []struct{ desc, input, want string }{
+		{"", "x", "link"},
+		{"", "projects/foo/bar/baz", "projects/foo/bar/baz"},
+		{"unresolved link", "blah", ""},
+	}
+
+	for _, tt := range tests {
+		if got := resolveLink(tt.input, rm); got != tt.want {
+			t.Errorf("%q case failed, input: %q; want: %q; got: %q", tt.desc, tt.input, tt.want, got)
+		}
 	}
 }
 
@@ -641,6 +622,103 @@ func TestRealStep(t *testing.T) {
 	}
 	if _, err := s.realStep(); err == nil {
 		t.Fatal("malformed step should have thrown an error")
+	}
+}
+
+func TestRefMapAdd(t *testing.T) {
+	rm := refMap{}
+
+	tests := []struct {
+		desc, ref string
+		res       *resource
+		want      map[string]*resource
+	}{
+		{"normal add", "x", &resource{name: "x"}, map[string]*resource{"x": {name: "x"}}},
+		{"dupe add", "x", &resource{name: "otherx"}, map[string]*resource{"x": {name: "otherx"}}},
+	}
+
+	for _, tt := range tests {
+		rm.add(tt.ref, tt.res)
+		if diff := pretty.Compare(rm.m, tt.want); diff != "" {
+			t.Errorf("%q case failed, refmap does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		}
+	}
+}
+
+func TestRefMapConcurrency(t *testing.T) {
+	rm := refMap{}
+
+	tests := []struct {
+		desc string
+		f    func()
+	}{
+		{"add", func() { rm.add("foo", nil) }},
+		{"del", func() { rm.del("foo") }},
+		{"get", func() { rm.get("foo") }},
+	}
+
+	for _, tt := range tests {
+		order := []string{}
+		releaseStr := "lock released"
+		returnedStr := "func returned"
+		want := []string{releaseStr, returnedStr}
+		gunshot := sync.Mutex{}
+		gunshot.Lock() // Wait for the goroutine to say we can go ahead.
+		go func() {
+			rm.mx.Lock()
+			defer rm.mx.Unlock()
+			gunshot.Unlock()
+			time.Sleep(1 * time.Second)
+			order = append(order, releaseStr)
+		}()
+		gunshot.Lock() // Wait for the go ahead.
+		tt.f()
+		order = append(order, returnedStr)
+		if !reflect.DeepEqual(order, want) {
+			t.Errorf("%q case failed, unexpected concurrency order, want: %v; got: %v", tt.desc, want, order)
+		}
+	}
+}
+
+func TestRefMapDel(t *testing.T) {
+	xRes := &resource{}
+	yRes := &resource{}
+	rm := refMap{m: map[string]*resource{"x": xRes, "y": yRes}}
+
+	tests := []struct {
+		desc, input string
+		want        map[string]*resource
+	}{
+		{"normal del", "y", map[string]*resource{"x": xRes}},
+		{"del dne", "foo", map[string]*resource{"x": xRes}},
+	}
+
+	for _, tt := range tests {
+		rm.del(tt.input)
+		if !reflect.DeepEqual(rm.m, tt.want) {
+			t.Errorf("%q case failed, refmap does not match expectation, want: %v; got: %v", tt.desc, tt.want, rm.m)
+		}
+	}
+}
+
+func TestRefMapGet(t *testing.T) {
+	xRes := &resource{}
+	yRes := &resource{}
+	rm := refMap{m: map[string]*resource{"x": xRes, "y": yRes}}
+
+	tests := []struct {
+		desc, input string
+		wantR       *resource
+		wantOk      bool
+	}{
+		{"normal get", "y", yRes, true},
+		{"get dne", "dne", nil, false},
+	}
+
+	for _, tt := range tests {
+		if gotR, gotOk := rm.get(tt.input); !(gotOk == tt.wantOk && gotR == tt.wantR) {
+			t.Errorf("%q case failed, want: (%v, %t); got: (%v, %t)", tt.desc, tt.wantR, tt.wantOk, gotR, gotOk)
+		}
 	}
 }
 

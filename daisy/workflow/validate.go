@@ -48,12 +48,12 @@ var (
 	// So, on sane workflows, reference checking will be fine.
 	// On insane workflows, validation may or may not catch the disk
 	// reference discrepancy.
-	validatedDisks             nameSet    = nameSet{}
-	validatedDiskDeletions     nameSet    = nameSet{}
-	validatedImages            nameSet    = nameSet{}
-	validatedInstances         nameSet    = nameSet{}
-	validatedInstanceDeletions nameSet    = nameSet{}
-	nameSetsMx                 sync.Mutex = sync.Mutex{}
+	validatedDisks             = nameSet{}
+	validatedDiskDeletions     = nameSet{}
+	validatedImages            = nameSet{}
+	validatedInstances         = nameSet{}
+	validatedInstanceDeletions = nameSet{}
+	nameSetsMx                 = sync.Mutex{}
 )
 
 var rfc1035Rgx = regexp.MustCompile("^[a-z]([-a-z0-9]*[a-z0-9])?$")

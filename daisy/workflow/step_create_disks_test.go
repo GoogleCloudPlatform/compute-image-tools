@@ -17,24 +17,28 @@ package workflow
 import (
 	"reflect"
 	"testing"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestCreateDisksRun(t *testing.T) {
 	wf := testWorkflow()
+	wf.imageRefs.m = map[string]*resource{"i1": {"i1", wf.ephemeralName("i1"), "link", false}}
 	cd := &CreateDisks{
-		{Name: "disk1", SourceImage: "", SizeGB: "100", SSD: false},
-		{Name: "disk2", SourceImage: "", SizeGB: "100", SSD: false},
-		{Name: "disk3", SourceImage: "", SizeGB: "100", SSD: false}}
+		{Name: "d1", SourceImage: "i1", SizeGB: "100", SSD: false},
+		{Name: "d2", SourceImage: "projects/global/images/i2", SizeGB: "100", SSD: false},
+		{Name: "d3", SourceImage: "i1", SizeGB: "100", SSD: false}}
 	if err := cd.run(wf); err != nil {
 		t.Fatalf("error running CreateDisks.run(): %v", err)
 	}
 
-	want := map[string]string{
-		namer("disk1", testWf, testSuffix): "link",
-		namer("disk2", testWf, testSuffix): "link",
-		namer("disk3", testWf, testSuffix): "link"}
-	if !reflect.DeepEqual(wf.createdDisks, want) {
-		t.Errorf("Workflow.createdDisks does not match expectations, got: %q, want: %q", wf.createdDisks, want)
+	want := map[string]*resource{
+		"d1": {"d1", wf.ephemeralName("d1"), "link", false},
+		"d2": {"d2", wf.ephemeralName("d2"), "link", false},
+		"d3": {"d3", wf.ephemeralName("d3"), "link", false}}
+
+	if diff := pretty.Compare(wf.diskRefs.m, want); diff != "" {
+		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 }
 

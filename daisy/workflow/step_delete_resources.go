@@ -20,6 +20,7 @@ import (
 )
 
 // DeleteResources deletes GCE resources.
+// TODO(crunkleton) DeleteResources only works on Workflow references right now.
 type DeleteResources struct {
 	Instances, Disks, Images []string
 }
@@ -56,7 +57,10 @@ func (d *DeleteResources) run(w *Workflow) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			if err := w.deleteInstance(namer(i, w.Name, w.id)); err != nil {
+			r, ok := w.instanceRefs.get(i)
+			if !ok {
+				e <- fmt.Errorf("unresolved instance %q", i)
+			} else if err := w.deleteInstance(r); err != nil {
 				e <- err
 			}
 		}(i)
@@ -66,7 +70,10 @@ func (d *DeleteResources) run(w *Workflow) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			if err := w.deleteImage(i); err != nil {
+			r, ok := w.imageRefs.get(i)
+			if !ok {
+				e <- fmt.Errorf("unresolved image %q", i)
+			} else if err := w.deleteImage(r); err != nil {
 				e <- err
 			}
 		}(i)
@@ -92,7 +99,10 @@ func (d *DeleteResources) run(w *Workflow) error {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			if err := w.deleteDisk(namer(d, w.Name, w.id)); err != nil {
+			r, ok := w.diskRefs.get(d)
+			if !ok {
+				e <- fmt.Errorf("unresolved disk %q", d)
+			} else if err := w.deleteDisk(r); err != nil {
 				e <- err
 			}
 		}(d)
