@@ -34,8 +34,10 @@ type CreateDisk struct {
 	SizeGB string
 	// Is this disk PD-SSD.
 	SSD bool
-	// Should this resource persist?
-	Persist bool
+	// Should this resource be cleaned up after the workflow?
+	NoCleanup bool `json:"no_cleanup"`
+	// Should we use the user-provided reference name as the actual resource name?
+	ExactName bool `json:"exact_name"`
 }
 
 func (c *CreateDisks) validate(w *Workflow) error {
@@ -66,7 +68,10 @@ func (c *CreateDisks) run(w *Workflow) error {
 		wg.Add(1)
 		go func(cd CreateDisk) {
 			defer wg.Done()
-			name := w.ephemeralName(cd.Name)
+			name := cd.Name
+			if !cd.ExactName {
+				name = w.ephemeralName(cd.Name)
+			}
 			imageLink := resolveLink(cd.SourceImage, w.imageRefs)
 			if imageLink == "" {
 				e <- fmt.Errorf("unresolved image %q", cd.SourceImage)
@@ -82,7 +87,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 				e <- err
 				return
 			}
-			w.diskRefs.add(cd.Name, &resource{cd.Name, name, d.SelfLink, cd.Persist})
+			w.diskRefs.add(cd.Name, &resource{cd.Name, name, d.SelfLink, cd.NoCleanup})
 		}(cd)
 	}
 

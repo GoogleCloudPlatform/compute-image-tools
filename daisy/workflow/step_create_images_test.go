@@ -27,7 +27,8 @@ func TestCreateImagesRun(t *testing.T) {
 	ci := &CreateImages{
 		{Name: "i1", SourceDisk: "d"},
 		{Name: "i2", SourceFile: "f"},
-		{Name: "i3", SourceDisk: "d", Persist: true},
+		{Name: "i3", SourceDisk: "d", NoCleanup: true},
+		{Name: "i4", SourceDisk: "d", ExactName: true},
 	}
 	if err := ci.run(wf); err != nil {
 		t.Fatalf("error running CreateImages.run(): %v", err)
@@ -37,6 +38,7 @@ func TestCreateImagesRun(t *testing.T) {
 		"i1": {"i1", wf.ephemeralName("i1"), "link", false},
 		"i2": {"i2", wf.ephemeralName("i2"), "link", false},
 		"i3": {"i3", wf.ephemeralName("i3"), "link", true},
+		"i4": {"i4", "i4", "link", false},
 	}
 
 	if diff := pretty.Compare(wf.imageRefs.m, want); diff != "" {

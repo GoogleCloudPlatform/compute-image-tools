@@ -40,8 +40,10 @@ type CreateImage struct {
 	// Only one of these source types should be specified.
 	SourceDisk string `json:"source_disk"`
 	SourceFile string `json:"source_file"`
-	// Should this resource persist?
-	Persist bool
+	// Should this resource be cleaned up after the workflow?
+	NoCleanup bool `json:"no_cleanup"`
+	// Should we use the user-provided reference name as the actual resource name?
+	ExactName bool `json:"exact_name"`
 }
 
 func (c *CreateImages) validate(w *Workflow) error {
@@ -78,7 +80,10 @@ func (c *CreateImages) run(w *Workflow) error {
 		wg.Add(1)
 		go func(ci CreateImage) {
 			defer wg.Done()
-			name := w.ephemeralName(ci.Name)
+			name := ci.Name
+			if !ci.ExactName {
+				name = w.ephemeralName(ci.Name)
+			}
 			var diskLink string
 			if ci.SourceDisk != "" {
 				// Using source disk case.
@@ -93,7 +98,7 @@ func (c *CreateImages) run(w *Workflow) error {
 				e <- err
 				return
 			}
-			w.imageRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.Persist})
+			w.imageRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup})
 		}(ci)
 	}
 

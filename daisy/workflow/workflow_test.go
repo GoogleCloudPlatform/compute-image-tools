@@ -37,12 +37,12 @@ import (
 func TestCleanup(t *testing.T) {
 	w := testWorkflow()
 
-	d1 := &resource{name: "d1", link: "link", persist: false}
-	d2 := &resource{name: "d2", link: "link", persist: true}
-	im1 := &resource{name: "im1", link: "link", persist: false}
-	im2 := &resource{name: "im2", link: "link", persist: true}
-	in1 := &resource{name: "in1", link: "link", persist: false}
-	in2 := &resource{name: "in2", link: "link", persist: true}
+	d1 := &resource{name: "d1", link: "link", noCleanup: false}
+	d2 := &resource{name: "d2", link: "link", noCleanup: true}
+	im1 := &resource{name: "im1", link: "link", noCleanup: false}
+	im2 := &resource{name: "im2", link: "link", noCleanup: true}
+	in1 := &resource{name: "in1", link: "link", noCleanup: false}
+	in2 := &resource{name: "in2", link: "link", noCleanup: true}
 	w.diskRefs.m = map[string]*resource{"d1": d1, "d2": d2}
 	w.imageRefs.m = map[string]*resource{"im1": im1, "im2": im2}
 	w.instanceRefs.m = map[string]*resource{"in1": in1, "in2": in2}
