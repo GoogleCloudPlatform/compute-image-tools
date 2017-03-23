@@ -30,12 +30,12 @@ func (s *WaitForInstancesStopped) run(w *Workflow) error {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			instanceLink := resolveLink(name, w.instanceRefs)
-			if instanceLink == "" {
+			i, ok := w.instanceRefs.get(name)
+			if !ok {
 				e <- fmt.Errorf("unresolved instance %q", name)
 				return
 			}
-			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, instanceLink); err != nil {
+			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, i.real); err != nil {
 				e <- err
 			}
 		}(name)
