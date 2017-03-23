@@ -66,7 +66,7 @@ func (rm *refMap) get(name string) (*resource, bool) {
 
 type resource struct {
 	name, real, link string
-	persist          bool
+	noCleanup        bool
 }
 
 type step interface {
@@ -279,7 +279,7 @@ func (w *Workflow) cleanupHelper(rm *refMap, deleteFn func(*resource) error) {
 	toDel := map[string]*resource{}
 	for ref, res := range rm.m {
 		// Delete only non-persistent resources.
-		if !res.persist {
+		if !res.noCleanup {
 			toDel[ref] = res
 		}
 	}
@@ -319,7 +319,7 @@ func (w *Workflow) deleteInstance(r *resource) error {
 	return nil
 }
 
-func (w *Workflow) ephemeralName(n string) string {
+func (w *Workflow) genName(n string) string {
 	prefix := fmt.Sprintf("%s-%s", n, w.Name)
 	if len(prefix) > 57 {
 		prefix = prefix[0:56]

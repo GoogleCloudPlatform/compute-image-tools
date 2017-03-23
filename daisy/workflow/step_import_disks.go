@@ -23,8 +23,10 @@ type ImportDisks []ImportDisk
 // This step is used to import vmdk, vhd or RAW disks.
 type ImportDisk struct {
 	Name, File string
-	// Should this resource persist?
-	Persist bool
+	// Should this resource be cleaned up after the workflow?
+	NoCleanup bool `json:"no_cleanup"`
+	// Should we use the user-provided reference name as the actual resource name?
+	ExactName bool `json:"exact_name"`
 }
 
 func (i *ImportDisks) validate(w *Workflow) error {

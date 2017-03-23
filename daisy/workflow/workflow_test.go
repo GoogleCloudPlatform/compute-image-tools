@@ -37,12 +37,12 @@ import (
 func TestCleanup(t *testing.T) {
 	w := testWorkflow()
 
-	d1 := &resource{name: "d1", link: "link", persist: false}
-	d2 := &resource{name: "d2", link: "link", persist: true}
-	im1 := &resource{name: "im1", link: "link", persist: false}
-	im2 := &resource{name: "im2", link: "link", persist: true}
-	in1 := &resource{name: "in1", link: "link", persist: false}
-	in2 := &resource{name: "in2", link: "link", persist: true}
+	d1 := &resource{name: "d1", link: "link", noCleanup: false}
+	d2 := &resource{name: "d2", link: "link", noCleanup: true}
+	im1 := &resource{name: "im1", link: "link", noCleanup: false}
+	im2 := &resource{name: "im2", link: "link", noCleanup: true}
+	in1 := &resource{name: "in1", link: "link", noCleanup: false}
+	in2 := &resource{name: "in2", link: "link", noCleanup: true}
 	w.diskRefs.m = map[string]*resource{"d1": d1, "d2": d2}
 	w.imageRefs.m = map[string]*resource{"im1": im1, "im2": im2}
 	w.instanceRefs.m = map[string]*resource{"in1": in1, "in2": in2}
@@ -63,7 +63,7 @@ func TestCleanup(t *testing.T) {
 	}
 }
 
-func TestEphemeralName(t *testing.T) {
+func TestGenName(t *testing.T) {
 	tests := []struct{ name, wfName, wfID, want string }{
 		{"name", "wfname", "123456789", "name-wfname-123456789"},
 		{"super-long-name-really-long", "super-long-workflow-name-like-really-really-long", "1", "super-long-name-really-long-super-long-workflow-name-lik-1"},
@@ -73,7 +73,7 @@ func TestEphemeralName(t *testing.T) {
 	for _, tt := range tests {
 		w.id = tt.wfID
 		w.Name = tt.wfName
-		result := w.ephemeralName(tt.name)
+		result := w.genName(tt.name)
 		if result != tt.want {
 			t.Errorf("bad result, input: name=%s wfName=%s wfId=%s; got: %s; want: %s", tt.name, tt.wfName, tt.wfID, result, tt.want)
 		}

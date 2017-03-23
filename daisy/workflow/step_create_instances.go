@@ -38,8 +38,10 @@ type CreateInstance struct {
 	StartupScript string `json:"startup_script"`
 	// Additional metadata to set for the instance.
 	Metadata map[string]string
-	// Should this resource persist?
-	Persist bool
+	// Should this resource be cleaned up after the workflow?
+	NoCleanup bool `json:"no_cleanup"`
+	// Should we use the user-provided reference name as the actual resource name?
+	ExactName bool `json:"exact_name"`
 }
 
 func (c *CreateInstances) validate(w *Workflow) error {
@@ -75,7 +77,10 @@ func (c *CreateInstances) run(w *Workflow) error {
 		wg.Add(1)
 		go func(ci CreateInstance) {
 			defer wg.Done()
-			name := w.ephemeralName(ci.Name)
+			name := ci.Name
+			if !ci.ExactName {
+				name = w.genName(ci.Name)
+			}
 
 			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType)
 			if err != nil {
@@ -120,7 +125,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 				e <- err
 				return
 			}
-			w.instanceRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.Persist})
+			w.instanceRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup})
 		}(ci)
 	}
 
