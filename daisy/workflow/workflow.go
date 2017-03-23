@@ -319,7 +319,7 @@ func (w *Workflow) deleteInstance(r *resource) error {
 	return nil
 }
 
-func (w *Workflow) ephemeralName(n string) string {
+func (w *Workflow) genName(n string) string {
 	prefix := fmt.Sprintf("%s-%s", n, w.Name)
 	if len(prefix) > 57 {
 		prefix = prefix[0:56]

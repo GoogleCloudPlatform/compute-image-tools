@@ -82,7 +82,7 @@ func (c *CreateImages) run(w *Workflow) error {
 			defer wg.Done()
 			name := ci.Name
 			if !ci.ExactName {
-				name = w.ephemeralName(ci.Name)
+				name = w.genName(ci.Name)
 			}
 			var diskLink string
 			if ci.SourceDisk != "" {

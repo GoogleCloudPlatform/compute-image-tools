@@ -70,7 +70,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 			defer wg.Done()
 			name := cd.Name
 			if !cd.ExactName {
-				name = w.ephemeralName(cd.Name)
+				name = w.genName(cd.Name)
 			}
 			imageLink := resolveLink(cd.SourceImage, w.imageRefs)
 			if imageLink == "" {

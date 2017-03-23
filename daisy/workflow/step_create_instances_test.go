@@ -24,9 +24,9 @@ import (
 func TestCreateInstancesRun(t *testing.T) {
 	wf := testWorkflow()
 	wf.diskRefs.m = map[string]*resource{
-		"d1": {"d1", wf.ephemeralName("d1"), "link", false},
-		"d2": {"d2", wf.ephemeralName("d2"), "link", false},
-		"d3": {"d3", wf.ephemeralName("d3"), "link", false},
+		"d1": {"d1", wf.genName("d1"), "link", false},
+		"d2": {"d2", wf.genName("d2"), "link", false},
+		"d3": {"d3", wf.genName("d3"), "link", false},
 	}
 	ci := &CreateInstances{
 		{Name: "i1", MachineType: "foo-type", AttachedDisks: []string{"d1"}},
@@ -39,9 +39,9 @@ func TestCreateInstancesRun(t *testing.T) {
 	}
 
 	want := map[string]*resource{
-		"i1": {"i1", wf.ephemeralName("i1"), "link", false},
-		"i2": {"i2", wf.ephemeralName("i2"), "link", false},
-		"i3": {"i3", wf.ephemeralName("i3"), "link", true},
+		"i1": {"i1", wf.genName("i1"), "link", false},
+		"i2": {"i2", wf.genName("i2"), "link", false},
+		"i3": {"i3", wf.genName("i3"), "link", true},
 		"i4": {"i4", "i4", "link", false},
 	}
 

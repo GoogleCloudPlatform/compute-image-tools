@@ -79,7 +79,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 			defer wg.Done()
 			name := ci.Name
 			if !ci.ExactName {
-				name = w.ephemeralName(ci.Name)
+				name = w.genName(ci.Name)
 			}
 
 			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType)

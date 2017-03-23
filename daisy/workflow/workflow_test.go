@@ -63,7 +63,7 @@ func TestCleanup(t *testing.T) {
 	}
 }
 
-func TestEphemeralName(t *testing.T) {
+func TestGenName(t *testing.T) {
 	tests := []struct{ name, wfName, wfID, want string }{
 		{"name", "wfname", "123456789", "name-wfname-123456789"},
 		{"super-long-name-really-long", "super-long-workflow-name-like-really-really-long", "1", "super-long-name-really-long-super-long-workflow-name-lik-1"},
@@ -73,7 +73,7 @@ func TestEphemeralName(t *testing.T) {
 	for _, tt := range tests {
 		w.id = tt.wfID
 		w.Name = tt.wfName
-		result := w.ephemeralName(tt.name)
+		result := w.genName(tt.name)
 		if result != tt.want {
 			t.Errorf("bad result, input: name=%s wfName=%s wfId=%s; got: %s; want: %s", tt.name, tt.wfName, tt.wfID, result, tt.want)
 		}
