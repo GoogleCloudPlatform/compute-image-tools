@@ -475,9 +475,9 @@ func (w *Workflow) populate() error {
 		w.logger = log.New(io.MultiWriter(os.Stdout, gcs), prefix, flags)
 	}
 
-	for name, step := range w.Steps {
-		step.name = name
-		if err := w.populateStep(step); err != nil {
+	for name, s := range w.Steps {
+		s.name = name
+		if err := w.populateStep(s); err != nil {
 			return err
 		}
 	}
