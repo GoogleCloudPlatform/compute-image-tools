@@ -138,8 +138,8 @@ func (w *Workflow) validate() error {
 	if w.Zone == "" {
 		return errors.New("must provide workflow field 'zone'")
 	}
-	if w.Bucket == "" {
-		return errors.New("must provide workflow field 'bucket'")
+	if w.GCSPath == "" {
+		return errors.New("must provide workflow field 'gcs_path'")
 	}
 	if len(w.Steps) == 0 {
 		return errors.New("must provide at least one step in workflow field 'steps'")

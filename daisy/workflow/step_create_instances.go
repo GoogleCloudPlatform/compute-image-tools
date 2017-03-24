@@ -113,9 +113,9 @@ func (c *CreateInstances) run(w *Workflow) error {
 			inst.AddMetadata(ci.Metadata)
 			// Add standard Daisy metadata.
 			md := map[string]string{
-				"daisy-sources-path": "gs://" + path.Join(w.Bucket, w.sourcesPath),
-				"daisy-logs-path":    "gs://" + path.Join(w.Bucket, w.logsPath),
-				"daisy-outs-path":    "gs://" + path.Join(w.Bucket, w.outsPath),
+				"daisy-sources-path": "gs://" + path.Join(w.bucket, w.sourcesPath),
+				"daisy-logs-path":    "gs://" + path.Join(w.bucket, w.logsPath),
+				"daisy-outs-path":    "gs://" + path.Join(w.bucket, w.outsPath),
 			}
 			inst.AddMetadata(md)
 			inst.AddNetworkInterface("global/networks/default")

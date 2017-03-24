@@ -33,11 +33,12 @@ var (
 	// Many of the Google Storage URLs are supported below.
 	// It is preferred that customers specify their object using
 	// its gs://<bucket>/<object> URL.
-	gsRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/%s`, bucket, object))
+	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s$`, bucket))
+	gsRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/%s$`, bucket, object))
 	// Check for the Google Storage URLs:
 	// http://<bucket>.storage.googleapis.com/<object>
 	// https://<bucket>.storage.googleapis.com/<object>
-	gsHTTPRegex = regexp.MustCompile(fmt.Sprintf(`^http[s]?://%s\.storage\.googleapis\.com/%s`, bucket, object))
+	gsHTTPRegex = regexp.MustCompile(fmt.Sprintf(`^http[s]?://%s\.storage\.googleapis\.com/%s$`, bucket, object))
 	// Check for the other possible Google Storage URLs:
 	// http://storage.googleapis.com/<bucket>/<object>
 	// https://storage.googleapis.com/<bucket>/<object>
@@ -45,7 +46,7 @@ var (
 	// The following are deprecated but checked:
 	// http://commondatastorage.googleapis.com/<bucket>/<object>
 	// https://commondatastorage.googleapis.com/<bucket>/<object>
-	gsHTTPRegex2 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://(?:commondata)?storage\.googleapis\.com/%s/%s`, bucket, object))
+	gsHTTPRegex2 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://(?:commondata)?storage\.googleapis\.com/%s/%s$`, bucket, object))
 )
 
 func containsString(s string, ss []string) bool {
@@ -88,6 +89,10 @@ func splitGCSPath(p string) (string, string, error) {
 		if matches != nil {
 			return matches[1], matches[2], nil
 		}
+	}
+	matches := bucketRegex.FindStringSubmatch(p)
+	if matches != nil {
+		return matches[1], "", nil
 	}
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }

@@ -213,8 +213,8 @@ type Workflow struct {
 	Project string
 	// Zone to run in.
 	Zone string
-	// GCS Bucket to use for scratch data and write logs/results to.
-	Bucket string
+	// GCS Path to use for scratch data and write logs/results to.
+	GCSPath string `json:"gcs_path"`
 	// Path to OAuth credentials file.
 	OAuthPath string `json:"oauth_path"`
 	// Sources used by this workflow, map of destination to source.
@@ -230,6 +230,7 @@ type Workflow struct {
 	instanceRefs  *refMap
 	imageRefs     *refMap
 	parent        *Workflow
+	bucket        string
 	scratchPath   string
 	sourcesPath   string
 	logsPath      string
@@ -301,7 +302,7 @@ func (w *Workflow) Run() error {
 
 func (w *Workflow) String() string {
 	f := "{Name:%q Project:%q Zone:%q Bucket:%q OAuthPath:%q Sources:%s Vars:%s Steps:%s Dependencies:%s id:%q}"
-	return fmt.Sprintf(f, w.Name, w.Project, w.Zone, w.Bucket, w.OAuthPath, w.Sources, w.Vars, w.Steps, w.Dependencies, w.id)
+	return fmt.Sprintf(f, w.Name, w.Project, w.Zone, w.bucket, w.OAuthPath, w.Sources, w.Vars, w.Steps, w.Dependencies, w.id)
 }
 
 func (w *Workflow) cleanup() {
@@ -415,7 +416,7 @@ func (w *Workflow) populateStep(step *Step) error {
 	if step.SubWorkflow == nil {
 		return nil
 	}
-	step.SubWorkflow.workflow.Bucket = w.Bucket
+	step.SubWorkflow.workflow.GCSPath = w.GCSPath
 	step.SubWorkflow.workflow.Project = w.Project
 	step.SubWorkflow.workflow.Zone = w.Zone
 	step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
@@ -451,20 +452,26 @@ func (w *Workflow) populate() error {
 	w.diskRefs = &refMap{m: map[string]*resource{}}
 	w.imageRefs = &refMap{m: map[string]*resource{}}
 	w.instanceRefs = &refMap{m: map[string]*resource{}}
-	w.scratchPath = fmt.Sprintf("daisy-%s-%s", w.Name, w.id)
+
+	bkt, p, err := splitGCSPath(w.GCSPath)
+	if err != nil {
+		return err
+	}
+	w.bucket = bkt
+	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s", w.Name, w.id))
 	w.sourcesPath = path.Join(w.scratchPath, "sources")
 	w.logsPath = path.Join(w.scratchPath, "logs")
 	w.outsPath = path.Join(w.scratchPath, "outs")
 
 	if w.logger == nil {
-		gcs := &gcsLogger{client: w.StorageClient, bucket: w.Bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
+		gcs := &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
 		name := w.Name
 		for parent := w.parent; parent != nil; parent = w.parent.parent {
 			name = parent.Name + "." + name
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.Bucket, w.logsPath, "daisy.log"))
+		log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		w.logger = log.New(io.MultiWriter(os.Stdout, gcs), prefix, flags)
 	}
 
@@ -585,7 +592,7 @@ func (w *Workflow) traverseDAG(f func(step) error) error {
 
 func (w *Workflow) uploadSources() error {
 	for p, origPath := range w.Sources {
-		dst := w.StorageClient.Bucket(w.Bucket).Object(path.Join(w.sourcesPath, p))
+		dst := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, p))
 		if b, o, err := splitGCSPath(origPath); err == nil {
 			// GCS to GCS.
 			src := w.StorageClient.Bucket(b).Object(o)

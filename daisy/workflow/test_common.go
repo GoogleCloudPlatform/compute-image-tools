@@ -55,7 +55,7 @@ var (
 	testWf        = "test-wf"
 	testProject   = "test-project"
 	testZone      = "test-zone"
-	testBucket    = "test-bucket"
+	testGCSPath   = "gs://test-bucket"
 )
 
 func init() {
@@ -74,7 +74,7 @@ func testWorkflow() *Workflow {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Workflow{
 		Name:          testWf,
-		Bucket:        testBucket,
+		GCSPath:       testGCSPath,
 		Project:       testProject,
 		Zone:          testZone,
 		ComputeClient: testGCEClient,

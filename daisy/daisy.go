@@ -31,7 +31,7 @@ import (
 var (
 	oauth     = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
 	project   = flag.String("project", "", "project to run in, overrides what is set in workflow")
-	bucket    = flag.String("bucket", "", "GCS bucket to use, overrides what is set in workflow")
+	gcsPath   = flag.String("gcs_path", "", "GCS bucket to use, overrides what is set in workflow")
 	zone      = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	// TODO(ajackura): Implement the endpoint overrides.
@@ -78,8 +78,8 @@ func main() {
 		if *zone != "" {
 			wf.Zone = *zone
 		}
-		if *bucket != "" {
-			wf.Bucket = *bucket
+		if *gcsPath != "" {
+			wf.GCSPath = *gcsPath
 		}
 		if *oauth != "" {
 			wf.OAuthPath = *oauth
