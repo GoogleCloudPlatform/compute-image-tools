@@ -36,6 +36,27 @@ import (
 	"os"
 )
 
+type gcsLogger struct {
+	client         *storage.Client
+	bucket, object string
+	buf            *bytes.Buffer
+	ctx            context.Context
+}
+
+func (l *gcsLogger) Write(b []byte) (int, error) {
+	if l.buf == nil {
+		l.buf = new(bytes.Buffer)
+	}
+	l.buf.Write(b)
+	wc := l.client.Bucket(l.bucket).Object(l.object).NewWriter(l.ctx)
+	wc.ContentType = "text/plain"
+	n, err := wc.Write(l.buf.Bytes())
+	if err := wc.Close(); err != nil {
+		return 0, err
+	}
+	return n, err
+}
+
 type refMap struct {
 	m  map[string]*resource
 	mx sync.Mutex
@@ -287,7 +308,7 @@ func (w *Workflow) Run() error {
 	}
 	w.logger.Print("Uploading sources")
 	if err := w.uploadSources(); err != nil {
-		w.logger.Printf("Error validating workflow: %v", err)
+		w.logger.Printf("Error uploading sources: %v", err)
 		w.Cancel()
 		return err
 	}
@@ -379,27 +400,6 @@ func (w *Workflow) nameToImageLink(n string) string {
 
 func (w *Workflow) nameToInstanceLink(n string) string {
 	return fmt.Sprintf("projects/%s/zones/%s/instances/%s", w.Project, w.Zone, n)
-}
-
-type gcsLogger struct {
-	client         *storage.Client
-	bucket, object string
-	buf            *bytes.Buffer
-	ctx            context.Context
-}
-
-func (l *gcsLogger) Write(b []byte) (int, error) {
-	if l.buf == nil {
-		l.buf = new(bytes.Buffer)
-	}
-	l.buf.Write(b)
-	wc := l.client.Bucket(l.bucket).Object(l.object).NewWriter(l.ctx)
-	wc.ContentType = "text/plain"
-	n, err := wc.Write(l.buf.Bytes())
-	if err := wc.Close(); err != nil {
-		return 0, err
-	}
-	return n, err
 }
 
 func (w *Workflow) populateStep(step *Step) error {
