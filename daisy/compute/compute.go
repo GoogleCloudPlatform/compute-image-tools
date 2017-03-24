@@ -314,7 +314,8 @@ func (c *Client) NewInstance(name, project, zone, machineType string) (*Instance
 func (i *Instance) AddMetadata(metadata map[string]string) {
 	var md []*compute.MetadataItems
 	for k, v := range metadata {
-		md = append(md, &compute.MetadataItems{Key: k, Value: &v})
+		newV := v
+		md = append(md, &compute.MetadataItems{Key: k, Value: &newV})
 	}
 	if i.metadata == nil {
 		i.metadata = &compute.Metadata{Items: md}
