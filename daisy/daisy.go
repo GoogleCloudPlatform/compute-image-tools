@@ -31,7 +31,7 @@ import (
 var (
 	oauth     = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
 	project   = flag.String("project", "", "project to run in, overrides what is set in workflow")
-	bucket    = flag.String("bucket", "", "GCS bucket to use, overrides what is set in workflow")
+	gcsPath   = flag.String("gcs_path", "", "GCS bucket to use, overrides what is set in workflow")
 	zone      = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	// TODO(ajackura): Implement the endpoint overrides.
@@ -78,8 +78,8 @@ func main() {
 		if *zone != "" {
 			wf.Zone = *zone
 		}
-		if *bucket != "" {
-			wf.Bucket = *bucket
+		if *gcsPath != "" {
+			wf.GCSPath = *gcsPath
 		}
 		if *oauth != "" {
 			wf.OAuthPath = *oauth
@@ -105,28 +105,30 @@ func main() {
 		wg.Add(1)
 		go func(wf *workflow.Workflow) {
 			defer wg.Done()
+			fmt.Printf("[Daisy] Running workflow %q\n", wf.Name)
 			if err := wf.Run(); err != nil {
-				fmt.Fprintln(os.Stderr, "[WORKFLOW ERROR]:", err)
 				errors <- err
+				return
 			}
+			fmt.Printf("[Daisy] Workflow %q finished\n", wf.Name)
 		}(wf)
 	}
 	wg.Wait()
 
 	select {
 	case err := <-errors:
-		fmt.Fprintln(os.Stderr, "\nErrors in one or more workflows:")
-		fmt.Fprintln(os.Stderr, "[WORKFLOW ERROR]:", err)
+		fmt.Fprintln(os.Stderr, "\n[Daisy] Errors in one or more workflows:")
+		fmt.Fprintln(os.Stderr, " ", err)
 		for {
 			select {
 			case err := <-errors:
-				fmt.Fprintln(os.Stderr, "[WORKFLOW ERROR]:", err)
+				fmt.Fprintln(os.Stderr, " ", err)
 				continue
 			default:
 				os.Exit(1)
 			}
 		}
 	default:
-		fmt.Println("All workflows completed successfully.")
+		fmt.Println("[Daisy] All workflows completed successfully.")
 	}
 }

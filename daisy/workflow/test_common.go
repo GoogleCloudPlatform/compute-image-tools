@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -51,11 +52,10 @@ var (
 	testGCEClient *compute.Client
 	testGCSClient *storage.Client
 	testGCSDNEVal = "dne"
-	testID        = randString(5)
 	testWf        = "test-wf"
 	testProject   = "test-project"
 	testZone      = "test-zone"
-	testBucket    = "test-bucket"
+	testGCSPath   = "gs://test-bucket"
 )
 
 func init() {
@@ -71,18 +71,20 @@ func init() {
 }
 
 func testWorkflow() *Workflow {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Workflow{
 		Name:          testWf,
-		Bucket:        testBucket,
+		GCSPath:       testGCSPath,
 		Project:       testProject,
 		Zone:          testZone,
 		ComputeClient: testGCEClient,
 		StorageClient: testGCSClient,
-		id:            testID,
-		Ctx:           context.Background(),
+		Ctx:           ctx,
+		Cancel:        cancel,
 		diskRefs:      &refMap{},
 		imageRefs:     &refMap{},
 		instanceRefs:  &refMap{},
+		logger:        log.New(ioutil.Discard, "", 0),
 	}
 }
 

@@ -2,7 +2,7 @@
   "name": "some-name",
   "project": "some-project",
   "zone": "us-central1-a",
-  "bucket": "some-bucket/images",
+  "gcs_path": "gs://some-bucket/images",
   "vars": {
     "bootstrap_instance_name": "bootstrap",
     "machine_type": "n1-standard-1"

@@ -108,14 +108,14 @@ func (c *CreateInstances) run(w *Workflow) error {
 				default:
 					startup = "startup-script-url"
 				}
-				inst.AddMetadata(map[string]string{startup: path.Join(w.sourcesPath, ci.StartupScript)})
+				inst.AddMetadata(map[string]string{startup: "gs://" + path.Join(w.bucket, w.sourcesPath, ci.StartupScript)})
 			}
 			inst.AddMetadata(ci.Metadata)
 			// Add standard Daisy metadata.
 			md := map[string]string{
-				"daisy-sources-path": w.sourcesPath,
-				"daisy-logs-path":    w.logsPath,
-				"daisy-outs-path":    w.outsPath,
+				"daisy-sources-path": "gs://" + path.Join(w.bucket, w.sourcesPath),
+				"daisy-logs-path":    "gs://" + path.Join(w.bucket, w.logsPath),
+				"daisy-outs-path":    "gs://" + path.Join(w.bucket, w.outsPath),
 			}
 			inst.AddMetadata(md)
 			inst.AddNetworkInterface("global/networks/default")

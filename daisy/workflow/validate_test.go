@@ -17,6 +17,8 @@ package workflow
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"log"
 	"reflect"
 	"sync"
 	"testing"
@@ -175,19 +177,20 @@ func TestValidateWorkflow(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	logger := log.New(ioutil.Discard, "", 0)
 	// Bad test cases.
 	tests := []struct {
 		desc string
 		wf   *Workflow
 	}{
-		{"no name", &Workflow{Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
-		{"no project", &Workflow{Name: "n", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
-		{"no zone", &Workflow{Name: "n", Project: "p", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
-		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx}},
-		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Ctx: ctx}},
-		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, Ctx: ctx}},
-		{"no step timeout", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {testType: &mockStep{}}}, Ctx: ctx}},
-		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", Bucket: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout}}, Ctx: ctx}},
+		{"no name", &Workflow{Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
+		{"no project", &Workflow{Name: "n", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
+		{"no zone", &Workflow{Name: "n", Project: "p", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
+		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
+		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Ctx: ctx, logger: logger}},
+		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, Ctx: ctx, logger: logger}},
+		{"no step timeout", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {testType: &mockStep{}}}, Ctx: ctx, logger: logger}},
+		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout}}, Ctx: ctx, logger: logger}},
 	}
 
 	for _, tt := range tests {

@@ -19,18 +19,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
-	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
-	"google.golang.org/api/option"
 	"reflect"
 )
 
@@ -96,7 +91,7 @@ func TestFromFile(t *testing.T) {
 		Name:    "some-name",
 		Project: "some-project",
 		Zone:    "us-central1-a",
-		Bucket:  "some-bucket/images",
+		GCSPath: "gs://some-bucket/images",
 		Vars: map[string]string{
 			"bootstrap_instance_name": "bootstrap",
 			"machine_type":            "n1-standard-1",
@@ -240,7 +235,7 @@ func TestPopulate(t *testing.T) {
 
 	got := &Workflow{
 		Name:      "${name}",
-		Bucket:    "parent-bucket/images",
+		GCSPath:   "gs://parent-bucket/images",
 		Zone:      "parent-zone",
 		Project:   "parent-project",
 		OAuthPath: tf,
@@ -260,7 +255,7 @@ func TestPopulate(t *testing.T) {
 					Path: "${path}",
 					workflow: &Workflow{
 						Name:      "${name}",
-						Bucket:    "sub-bucket/images",
+						GCSPath:   "gs://sub-bucket/images",
 						Project:   "sub-project",
 						Zone:      "sub-zone",
 						OAuthPath: "sub-oauth-path",
@@ -289,12 +284,14 @@ func TestPopulate(t *testing.T) {
 	// Set the clients to nil as pretty.Diff will cause a stack overflow otherwise.
 	got.ComputeClient = nil
 	got.StorageClient = nil
+	got.logger = nil
 	subGot.ComputeClient = nil
 	subGot.StorageClient = nil
+	subGot.logger = nil
 
 	want := &Workflow{
 		Name:         "parent-name",
-		Bucket:       "parent-bucket/images",
+		GCSPath:      "gs://parent-bucket/images",
 		Zone:         "parent-zone",
 		Project:      "parent-project",
 		OAuthPath:    tf,
@@ -310,10 +307,11 @@ func TestPopulate(t *testing.T) {
 			"path":      "./test_sub.workflow",
 			"name":      "parent-name",
 		},
-		scratchPath: "gs://parent-bucket/images/daisy-parent-name-" + got.id,
-		sourcesPath: fmt.Sprintf("gs://parent-bucket/images/daisy-parent-name-%s/sources", got.id),
-		logsPath:    fmt.Sprintf("gs://parent-bucket/images/daisy-parent-name-%s/logs", got.id),
-		outsPath:    fmt.Sprintf("gs://parent-bucket/images/daisy-parent-name-%s/outs", got.id),
+		bucket:      "parent-bucket",
+		scratchPath: "images/daisy-parent-name-" + got.id,
+		sourcesPath: fmt.Sprintf("images/daisy-parent-name-%s/sources", got.id),
+		logsPath:    fmt.Sprintf("images/daisy-parent-name-%s/logs", got.id),
+		outsPath:    fmt.Sprintf("images/daisy-parent-name-%s/outs", got.id),
 		Steps: map[string]*Step{
 			"parent-step1": {
 				name:    "parent-step1",
@@ -334,7 +332,7 @@ func TestPopulate(t *testing.T) {
 					workflow: &Workflow{
 						// This subworkflow should not have been modified by the parent's populate().
 						Name:         "sub-name",
-						Bucket:       "parent-bucket/images",
+						GCSPath:      "gs://parent-bucket/images",
 						Zone:         "parent-zone",
 						Project:      "parent-project",
 						OAuthPath:    tf,
@@ -354,212 +352,17 @@ func TestPopulate(t *testing.T) {
 							"step_name": "sub-step1",
 							"timeout":   "60m",
 						},
-						scratchPath: "gs://parent-bucket/images/daisy-sub-name-" + subGot.id,
-						sourcesPath: fmt.Sprintf("gs://parent-bucket/images/daisy-sub-name-%s/sources", subGot.id),
-						logsPath:    fmt.Sprintf("gs://parent-bucket/images/daisy-sub-name-%s/logs", subGot.id),
-						outsPath:    fmt.Sprintf("gs://parent-bucket/images/daisy-sub-name-%s/outs", subGot.id),
+						bucket:      "parent-bucket",
+						scratchPath: "images/daisy-sub-name-" + subGot.id,
+						sourcesPath: fmt.Sprintf("images/daisy-sub-name-%s/sources", subGot.id),
+						logsPath:    fmt.Sprintf("images/daisy-sub-name-%s/logs", subGot.id),
+						outsPath:    fmt.Sprintf("images/daisy-sub-name-%s/outs", subGot.id),
 					},
 				},
 			},
 		},
 	}
 
-	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
-	}
-}
-
-func TestPrerun(t *testing.T) {
-	td, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatalf("error creating temp dir: %v", err)
-	}
-	defer os.RemoveAll(td)
-	tf := filepath.Join(td, "test.cred")
-	if err := ioutil.WriteFile(tf, []byte(`{ "type": "service_account" }`), 0600); err != nil {
-		t.Fatalf("error creating temp file: %v", err)
-	}
-
-	// Test that populating and validation occurs recursively on subworkflows.
-	// Subworkflows validate and populate themselves, with the exception that
-	// parent fields for GCS and GCE locations get passed to children subworkflow,
-	// e.g. Bucket, Project, Zone, OAuth stuff.
-	subGot := &Workflow{
-		Name:      "${name}",
-		Bucket:    "sub-bucket/images",
-		Project:   "sub-project",
-		Zone:      "sub-zone",
-		OAuthPath: "sub-oauth-path",
-		Steps: map[string]*Step{
-			"${step_name}": {
-				name:    "${step_name}",
-				Timeout: "${timeout}",
-				CreateImages: &CreateImages{
-					{
-						Name:       "image-name",
-						Project:    "image-project",
-						SourceFile: "/local/path",
-					},
-				},
-			},
-		},
-		Vars: map[string]string{
-			"name":      "sub-name",
-			"step_name": "sub-step1",
-			"timeout":   "60m",
-		},
-		Ctx: context.Background(),
-	}
-
-	subWant := &Workflow{
-		Name:      "sub-name",
-		Bucket:    "parent-bucket/images",
-		Project:   "parent-project",
-		Zone:      "parent-zone",
-		OAuthPath: tf,
-		Steps: map[string]*Step{
-			"sub-step1": {
-				name:    "sub-step1",
-				Timeout: "60m",
-				timeout: time.Duration(60 * time.Minute),
-				CreateImages: &CreateImages{
-					{
-						Name:       "image-name",
-						Project:    "image-project",
-						SourceFile: "/local/path",
-					},
-				},
-			},
-		},
-		Vars: map[string]string{
-			"name":      "sub-name",
-			"step_name": "sub-step1",
-			"timeout":   "60m",
-		},
-		Ctx:          subGot.Ctx,
-		diskRefs:     &refMap{},
-		imageRefs:    &refMap{},
-		instanceRefs: &refMap{},
-	}
-
-	got := &Workflow{
-		Name:      "${name}",
-		Bucket:    "parent-bucket/images",
-		Zone:      "parent-zone",
-		Project:   "parent-project",
-		OAuthPath: tf,
-		Steps: map[string]*Step{
-			"${step_name}": {
-				name:    "${step_name}",
-				Timeout: "${timeout}",
-				CreateDisks: &CreateDisks{
-					{
-						Name:        "d",
-						SourceImage: "${source_image}",
-						SizeGB:      "50",
-						SSD:         true,
-					},
-				},
-			},
-			"parent-step2": {
-				name:            "parent-step2",
-				Timeout:         "15m",
-				DeleteResources: &DeleteResources{Disks: []string{"d"}},
-			},
-			"parent-step3": {
-				name: "parent-step3",
-				SubWorkflow: &SubWorkflow{
-					Path:     "${path}",
-					workflow: subGot,
-				},
-			},
-		},
-		Dependencies: map[string][]string{
-			"parent-step2": []string{"${step_name}"},
-		},
-		Vars: map[string]string{
-			"source_image": "projects/windows-cloud/global/images/family/windows-server-2016-core",
-			"step_name":    "parent-step1",
-			"timeout":      "60m",
-			"path":         "./test_sub.workflow",
-			"name":         "parent-name",
-		},
-		Ctx: context.Background(),
-	}
-
-	want := &Workflow{
-		Name:      "parent-name",
-		Bucket:    "parent-bucket/images",
-		Project:   "parent-project",
-		Zone:      "parent-zone",
-		OAuthPath: tf,
-		Steps: map[string]*Step{
-			"parent-step1": {
-				name:    "parent-step1",
-				Timeout: "60m",
-				timeout: time.Duration(60 * time.Minute),
-				CreateDisks: &CreateDisks{
-					{
-						Name:        "d",
-						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-						SizeGB:      "50",
-						SSD:         true,
-					},
-				},
-			},
-			"parent-step2": {
-				name:            "parent-step2",
-				Timeout:         "15m",
-				timeout:         time.Duration(15 * time.Minute),
-				DeleteResources: &DeleteResources{Disks: []string{"d"}},
-			},
-			"parent-step3": {
-				name:    "parent-step3",
-				Timeout: defaultTimeout,
-				timeout: defaultTimeoutParsed,
-				SubWorkflow: &SubWorkflow{
-					Path:     "./test_sub.workflow",
-					workflow: subWant,
-				},
-			},
-		},
-		Dependencies: map[string][]string{
-			"parent-step2": []string{"parent-step1"},
-		},
-		Vars: map[string]string{
-			"source_image": "projects/windows-cloud/global/images/family/windows-server-2016-core",
-			"step_name":    "parent-step1",
-			"timeout":      "60m",
-			"path":         "./test_sub.workflow",
-			"name":         "parent-name",
-		},
-		Ctx:          got.Ctx,
-		diskRefs:     &refMap{},
-		imageRefs:    &refMap{},
-		instanceRefs: &refMap{},
-	}
-
-	if err := got.prerun(); err != nil {
-		t.Fatal(err)
-	}
-
-	// These are generated at populate time, so we have to cheat.
-	want.id = got.id
-	subWant.id = subGot.id
-	want.scratchPath = fmt.Sprintf("gs://parent-bucket/images/daisy-parent-name-%s", want.id)
-	want.sourcesPath = want.scratchPath + "/sources"
-	want.logsPath = want.scratchPath + "/logs"
-	want.outsPath = want.scratchPath + "/outs"
-	subWant.scratchPath = fmt.Sprintf("gs://parent-bucket/images/daisy-sub-name-%s", subWant.id)
-	subWant.sourcesPath = subWant.scratchPath + "/sources"
-	subWant.logsPath = subWant.scratchPath + "/logs"
-	subWant.outsPath = subWant.scratchPath + "/outs"
-
-	// Fix pretty.Compare recursion freak outs.
-	got.ComputeClient = nil
-	got.StorageClient = nil
-	subGot.ComputeClient = nil
-	subGot.StorageClient = nil
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
 	}
@@ -751,7 +554,7 @@ func TestRefMapGet(t *testing.T) {
 	}
 }
 
-func testTraverseWorkflow(mockRun func(i int) func(*Workflow) error) (*Workflow, error) {
+func testTraverseWorkflow(mockRun func(i int) func(*Workflow) error) *Workflow {
 	// s0---->s1---->s3
 	//   \         /
 	//    --->s2---
@@ -769,18 +572,7 @@ func testTraverseWorkflow(mockRun func(i int) func(*Workflow) error) (*Workflow,
 		"s2": {"s0"},
 		"s3": {"s1", "s2"},
 	}
-
-	var err error
-	ts := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
-	w.ComputeClient, err = compute.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
-	if err != nil {
-		return nil, fmt.Errorf("error creating test client: %s", err)
-	}
-	w.StorageClient, err = storage.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
-	if err != nil {
-		return nil, fmt.Errorf("error creating test client: %s", err)
-	}
-	return w, nil
+	return w
 }
 
 func TestTraverseDAG(t *testing.T) {
@@ -825,10 +617,7 @@ func TestTraverseDAG(t *testing.T) {
 	}
 
 	// Normal, good run.
-	w, err := testTraverseWorkflow(mockRun)
-	if err != nil {
-		t.Fatal(err)
-	}
+	w := testTraverseWorkflow(mockRun)
 	if err := w.Run(); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -840,10 +629,7 @@ func TestTraverseDAG(t *testing.T) {
 	errs = make([]error, 5)
 
 	// s2 failure.
-	w, err = testTraverseWorkflow(mockRun)
-	if err != nil {
-		t.Fatal(err)
-	}
+	w = testTraverseWorkflow(mockRun)
 	errs[2] = errors.New("failure")
 	want := w.Steps["s2"].wrapRunError(errs[2])
 	if err := w.Run(); err.Error() != want.Error() {
