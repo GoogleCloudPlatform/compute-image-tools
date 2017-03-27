@@ -162,6 +162,12 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 		case *compute.Client, *storage.Client, context.Context, context.CancelFunc:
 			// We specifically do not want to change fields with these types.
 			continue
+		case *WaitForInstancesStopped:
+			var newSlice WaitForInstancesStopped
+			for _, v := range *raw.(*WaitForInstancesStopped) {
+				newSlice = append(newSlice, replacer.Replace(v))
+			}
+			f.Set(reflect.ValueOf(&newSlice))
 		default:
 			if f.Kind() != reflect.Ptr {
 				continue
@@ -172,8 +178,8 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 				for i := 0; i < e.Len(); i++ {
 					substitute(e.Index(i), replacer)
 				}
-			case reflect.Struct:
-				// Run structs right back through substitute.
+			default:
+				// Run right back through substitute.
 				substitute(e, replacer)
 			}
 		}
