@@ -16,24 +16,24 @@
 package workflow
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
+	"os"
 	"path"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
-	"bytes"
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
-	"io"
-	"log"
-	"os"
 )
 
 type gcsLogger struct {
@@ -271,7 +271,26 @@ func (w *Workflow) FromFile(file string) error {
 	}
 
 	if err := json.Unmarshal(data, &w); err != nil {
-		return err
+		// If this is a syntax error return a useful error.
+		sErr, ok := err.(*json.SyntaxError)
+		if !ok {
+			return err
+		}
+
+		// Byte number where the error line starts.
+		start := bytes.LastIndex(data[:sErr.Offset], []byte("\n")) + 1
+		// Assume end byte of error line is EOF unless this isn't the last line.
+		end := len(data)
+		if i := bytes.Index(data[start:], []byte("\n")); i >= 0 {
+			end = start + i
+		}
+
+		// Line number of error.
+		line := bytes.Count(data[:start], []byte("\n")) + 1
+		// Position of error in line (where to place the '^').
+		pos := int(sErr.Offset) - start - 1
+
+		return fmt.Errorf("JSON syntax error in line %d: %s \n%s\n%s^", line, err, data[start:end], strings.Repeat(" ", pos))
 	}
 
 	// We need to unmarshal any SubWorkflows.

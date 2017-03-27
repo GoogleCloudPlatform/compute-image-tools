@@ -78,6 +78,44 @@ func TestGenName(t *testing.T) {
 	}
 }
 
+func TestFromFileSyntax(t *testing.T) {
+	got := New(context.Background())
+
+	td, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %v", err)
+	}
+	defer os.RemoveAll(td)
+	tf := filepath.Join(td, "test.workflow")
+
+	tests := []struct{ data, error string }{
+		{
+			`{"test":["1", "2",]}`,
+			"JSON syntax error in line 1: invalid character ']' looking for beginning of value \n{\"test\":[\"1\", \"2\",]}\n                  ^",
+		},
+		{
+			`{"test":{"key1":"value1" "key2":"value2"}}`,
+			"JSON syntax error in line 1: invalid character '\"' after object key:value pair \n{\"test\":{\"key1\":\"value1\" \"key2\":\"value2\"}}\n                         ^",
+		},
+		{
+			`{"test": value}`,
+			"JSON syntax error in line 1: invalid character 'v' looking for beginning of value \n{\"test\": value}\n         ^",
+		},
+	}
+
+	for _, tt := range tests {
+		if err := ioutil.WriteFile(tf, []byte(tt.data), 0600); err != nil {
+			t.Fatalf("error creating json file: %v", err)
+		}
+
+		if err := got.FromFile(tf); err == nil {
+			t.Error("expected error, got nil")
+		} else if err.Error() != tt.error {
+			t.Errorf("did not get expected error from FromFile():\ngot: %q\nwant: %q", err.Error(), tt.error)
+		}
+	}
+}
+
 func TestFromFile(t *testing.T) {
 	got := New(context.Background())
 	err := got.FromFile("./test.workflow")
