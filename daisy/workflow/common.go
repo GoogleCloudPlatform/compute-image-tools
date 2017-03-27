@@ -168,6 +168,12 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 				newSlice = append(newSlice, replacer.Replace(v))
 			}
 			f.Set(reflect.ValueOf(&newSlice))
+		case *WaitForInstancesSignal:
+			var newSlice WaitForInstancesSignal
+			for _, v := range *raw.(*WaitForInstancesSignal) {
+				newSlice = append(newSlice, replacer.Replace(v))
+			}
+			f.Set(reflect.ValueOf(&newSlice))
 		default:
 			if f.Kind() != reflect.Ptr {
 				continue
