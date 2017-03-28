@@ -72,11 +72,20 @@ func (c *CreateDisks) run(w *Workflow) error {
 			if !cd.ExactName {
 				name = w.genName(cd.Name)
 			}
-			imageLink := resolveLink(cd.SourceImage, w.imageRefs)
-			if imageLink == "" {
-				e <- fmt.Errorf("unresolved image %q", cd.SourceImage)
+
+			// Get the source image link.
+			var imageLink string
+			var image *resource
+			var err error
+			if isLink(cd.SourceImage) {
+				imageLink = cd.SourceImage
+			} else if image, err = w.getImage(cd.SourceImage); err == nil {
+				imageLink = image.link
+			} else {
+				e <- err
 				return
 			}
+
 			size, err := strconv.ParseInt(cd.SizeGB, 10, 64)
 			if err != nil {
 				e <- err

@@ -409,6 +409,27 @@ func (w *Workflow) genName(n string) string {
 	return result
 }
 
+func (w *Workflow) getDisk(n string) (*resource, error) {
+	return w.getResourceHelper(n, func(name string, wf *Workflow) (*resource, bool) { return wf.diskRefs.get(n) })
+}
+
+func (w *Workflow) getImage(n string) (*resource, error) {
+	return w.getResourceHelper(n, func(name string, wf *Workflow) (*resource, bool) { return wf.imageRefs.get(n) })
+}
+
+func (w *Workflow) getInstance(n string) (*resource, error) {
+	return w.getResourceHelper(n, func(name string, wf *Workflow) (*resource, bool) { return wf.instanceRefs.get(n) })
+}
+
+func (w *Workflow) getResourceHelper(n string, f func(string, *Workflow) (*resource, bool)) (*resource, error) {
+	for cur := w; cur != nil; cur = cur.parent {
+		if r, ok := f(n, cur); ok {
+			return r, nil
+		}
+	}
+	return nil, fmt.Errorf("unresolved instance reference %q", n)
+}
+
 func (w *Workflow) nameToDiskLink(n string) string {
 	return fmt.Sprintf("projects/%s/zones/%s/disks/%s", w.Project, w.Zone, n)
 }
@@ -646,15 +667,6 @@ func New(ctx context.Context) *Workflow {
 	var w Workflow
 	w.Ctx, w.Cancel = context.WithCancel(ctx)
 	return &w
-}
-
-func resolveLink(name string, rm *refMap) string {
-	if isLink(name) {
-		return name
-	} else if r, ok := rm.get(name); ok {
-		return r.link
-	}
-	return ""
 }
 
 // stepsListen returns the first step that finishes/errs.

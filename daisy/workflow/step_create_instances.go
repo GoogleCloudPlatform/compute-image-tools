@@ -89,14 +89,16 @@ func (c *CreateInstances) run(w *Workflow) error {
 			}
 
 			for i, sourceDisk := range ci.AttachedDisks {
+				var disk *resource
+				var err error
 				if isLink(sourceDisk) {
 					// Real link.
 					inst.AddPD("", sourceDisk, false, i == 0)
-				} else if r, ok := w.diskRefs.get(sourceDisk); ok {
+				} else if disk, err = w.getDisk(sourceDisk); err == nil {
 					// Reference.
-					inst.AddPD(r.name, r.link, false, i == 0)
+					inst.AddPD(disk.name, disk.link, false, i == 0)
 				} else {
-					e <- fmt.Errorf("unresolved disk %q", sourceDisk)
+					e <- err
 					return
 				}
 			}
