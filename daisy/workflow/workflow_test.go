@@ -84,12 +84,12 @@ func TestGetResource(t *testing.T) {
 	r3 := &resource{}
 	r4 := &resource{}
 	w := &Workflow{
-		diskRefs: &refMap{m: map[string]*resource{"foo": r1}},
-		imageRefs: &refMap{},
+		diskRefs:     &refMap{m: map[string]*resource{"foo": r1}},
+		imageRefs:    &refMap{},
 		instanceRefs: &refMap{m: map[string]*resource{"baz": r3}},
 		parent: &Workflow{
-			diskRefs: &refMap{},
-			imageRefs: &refMap{m: map[string]*resource{"bar": r2}},
+			diskRefs:     &refMap{},
+			imageRefs:    &refMap{m: map[string]*resource{"bar": r2}},
 			instanceRefs: &refMap{m: map[string]*resource{"baz": r4}},
 		},
 	}
