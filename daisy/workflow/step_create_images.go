@@ -84,15 +84,22 @@ func (c *CreateImages) run(w *Workflow) error {
 			if !ci.ExactName {
 				name = w.genName(ci.Name)
 			}
+
+			// Get source disk link, if applicable.
 			var diskLink string
 			if ci.SourceDisk != "" {
-				// Using source disk case.
-				diskLink = resolveLink(ci.SourceDisk, w.diskRefs)
-				if diskLink == "" {
-					e <- fmt.Errorf("unresolved disk %q", ci.SourceDisk)
+				var disk *resource
+				var err error
+				if isLink(ci.SourceDisk) {
+					diskLink = ci.SourceDisk
+				} else if disk, err = w.getDisk(ci.SourceDisk); err == nil {
+					diskLink = disk.link
+				} else {
+					e <- err
 					return
 				}
 			}
+
 			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {
 				e <- err

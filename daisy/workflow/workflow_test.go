@@ -78,6 +78,55 @@ func TestGenName(t *testing.T) {
 	}
 }
 
+func TestGetResource(t *testing.T) {
+	r1 := &resource{}
+	r2 := &resource{}
+	r3 := &resource{}
+	r4 := &resource{}
+	w := &Workflow{
+		diskRefs: &refMap{m: map[string]*resource{"foo": r1}},
+		imageRefs: &refMap{},
+		instanceRefs: &refMap{m: map[string]*resource{"baz": r3}},
+		parent: &Workflow{
+			diskRefs: &refMap{},
+			imageRefs: &refMap{m: map[string]*resource{"bar": r2}},
+			instanceRefs: &refMap{m: map[string]*resource{"baz": r4}},
+		},
+	}
+
+	r, err := w.getDisk("foo")
+	if r != r1 {
+		t.Errorf("getDisk(foo) returned the wrong resource, want: %p; got: %p", r1, r)
+	}
+	if err != nil {
+		t.Errorf("getDisk(foo) unexpected error: %s", err)
+	}
+
+	r, err = w.getImage("bar")
+	if r != r2 {
+		t.Errorf("getImage(bar) returned the wrong resource, want: %p; got: %p", r2, r)
+	}
+	if err != nil {
+		t.Errorf("getDisk(bar) unexpected error: %s", err)
+	}
+
+	r, err = w.getInstance("baz")
+	if r != r3 {
+		t.Errorf("getInstance(baz) returned the wrong resource, want: %p; got: %p", r3, r)
+	}
+	if err != nil {
+		t.Errorf("getInstance(baz) unexpected error: %s", err)
+	}
+
+	r, err = w.getInstance("dne")
+	if r != nil {
+		t.Errorf("getInstance(dne) returned a resource when it shouldn't: %p", r)
+	}
+	if err == nil {
+		t.Error("getInstance(dne) should have returned an error")
+	}
+}
+
 func TestFromFileSyntax(t *testing.T) {
 	got := New(context.Background())
 
@@ -403,23 +452,6 @@ func TestPopulate(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
-	}
-}
-
-func TestResolveLink(t *testing.T) {
-	rm := &refMap{}
-	rm.m = map[string]*resource{"x": {"x", "realX", "link", false}}
-
-	tests := []struct{ desc, input, want string }{
-		{"", "x", "link"},
-		{"", "projects/foo/bar/baz", "projects/foo/bar/baz"},
-		{"unresolved link", "blah", ""},
-	}
-
-	for _, tt := range tests {
-		if got := resolveLink(tt.input, rm); got != tt.want {
-			t.Errorf("%q case failed, input: %q; want: %q; got: %q", tt.desc, tt.input, tt.want, got)
-		}
 	}
 }
 
