@@ -318,6 +318,7 @@ func (w *Workflow) Run() error {
 		close(w.Cancel)
 		return err
 	}
+	defer w.cleanup()
 	w.logger.Print("Uploading sources")
 	if err := w.uploadSources(); err != nil {
 		w.logger.Printf("Error uploading sources: %v", err)
@@ -325,7 +326,6 @@ func (w *Workflow) Run() error {
 		return err
 	}
 	w.logger.Print("Running workflow")
-	defer w.cleanup()
 	if err := w.run(); err != nil {
 		w.logger.Printf("Error running workflow: %v", err)
 		close(w.Cancel)

@@ -178,20 +178,34 @@ func (c *Client) GetSerialPortOutput(project, zone, instance string, port, start
 	return c.raw.Instances.GetSerialPortOutput(project, zone, instance).Start(start).Port(port).Do()
 }
 
-// WaitForInstanceStopped waits a GCE instance to enter 'STOPPED' state.
+// InstanceStopped checks if a GCE instance is in a 'TERMINATED' state.
+func (c *Client) InstanceStopped(project, zone, instance string) (bool, error) {
+	inst, err := c.raw.Instances.Get(project, zone, instance).Do()
+	if err != nil {
+		return false, err
+	}
+	switch inst.Status {
+	case "PROVISIONING", "RUNNING", "STAGING", "STOPPING":
+		return false, nil
+	case "TERMINATED":
+		return true, nil
+	default:
+		return false, fmt.Errorf("unexpected instance status %q: %+v", inst.Status, inst)
+	}
+}
+
+// WaitForInstanceStopped waits a GCE instance to enter 'TERMINATED' state.
 func (c *Client) WaitForInstanceStopped(project, zone, instance string) error {
 	for {
-		inst, err := c.raw.Instances.Get(project, zone, instance).Do()
+		stopped, err := c.InstanceStopped(project, zone, instance)
 		if err != nil {
 			return err
 		}
-		switch inst.Status {
-		case "PROVISIONING", "RUNNING", "STAGING", "STOPPING":
-			time.Sleep(20 * time.Second)
-		case "TERMINATED":
+		switch stopped {
+		case true:
 			return nil
-		default:
-			return fmt.Errorf("unexpected instance status %q: %+v", inst.Status, inst)
+		case false:
+			time.Sleep(20 * time.Second)
 		}
 	}
 }

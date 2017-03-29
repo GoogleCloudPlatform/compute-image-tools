@@ -25,12 +25,11 @@ import (
 // WaitForInstancesStopped is a Daisy WaitForInstancesStopped workflow step.
 type WaitForInstancesStopped []string
 
-func steamSerial(w *Workflow, name string) {
+func streamSerial(w *Workflow, name string) {
 	logsObj := path.Join(w.logsPath, name+"-serial.log")
 	w.logger.Printf("WaitForInstancesStopped: streaming serial output to gs://%s/%s.", w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
-	var seenErr bool
 	for {
 		tick := time.Tick(1 * time.Second)
 		select {
@@ -38,9 +37,11 @@ func steamSerial(w *Workflow, name string) {
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, 1, start)
 			if err != nil {
-				// This is most likely because the instance has stopped, don't log but try one more time.
-				seenErr = true
-				continue
+				stopped, sErr := w.ComputeClient.InstanceStopped(w.Project, w.Zone, name)
+				if stopped || sErr != nil {
+					w.logger.Println("WaitForInstancesStopped: error getting serial port:", err)
+				}
+				return
 			}
 			start = resp.Next
 			buf.WriteString(resp.Contents)
@@ -48,21 +49,12 @@ func steamSerial(w *Workflow, name string) {
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil {
 				w.logger.Println("WaitForInstancesStopped: error writing log to GCS:", err)
-				if seenErr {
-					return
-				}
-				seenErr = true
-				continue
+				return
 			}
 			if err := wc.Close(); err != nil {
 				w.logger.Println("WaitForInstancesStopped: error writing log to GCS:", err)
-				if seenErr {
-					return
-				}
-				seenErr = true
-				continue
+				return
 			}
-			seenErr = false
 		}
 	}
 }
@@ -81,7 +73,7 @@ func (s *WaitForInstancesStopped) run(w *Workflow) error {
 				return
 			}
 			// Stream serial port output to GCS.
-			go steamSerial(w, i.real)
+			go streamSerial(w, i.real)
 			w.logger.Printf("WaitForInstancesStopped: waiting for instance %q.", i.real)
 			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, i.real); err != nil {
 				e <- err
