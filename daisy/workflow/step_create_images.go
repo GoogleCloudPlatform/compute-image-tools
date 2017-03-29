@@ -100,6 +100,7 @@ func (c *CreateImages) run(w *Workflow) error {
 				}
 			}
 
+			w.logger.Printf("CreateImages: creating image %q.", name)
 			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {
 				e <- err
@@ -117,7 +118,7 @@ func (c *CreateImages) run(w *Workflow) error {
 	select {
 	case err := <-e:
 		return err
-	case <-w.Ctx.Done():
+	case <-w.Cancel:
 		// Wait so images being created now will complete.
 		wg.Wait()
 		return nil

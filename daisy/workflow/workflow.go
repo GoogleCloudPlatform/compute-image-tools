@@ -51,6 +51,9 @@ func (l *gcsLogger) Write(b []byte) (int, error) {
 	wc := l.client.Bucket(l.bucket).Object(l.object).NewWriter(l.ctx)
 	wc.ContentType = "text/plain"
 	n, err := wc.Write(l.buf.Bytes())
+	if err != nil {
+		return 0, err
+	}
 	if err := wc.Close(); err != nil {
 		return 0, err
 	}
@@ -112,8 +115,6 @@ type Step struct {
 	CreateImages            *CreateImages            `json:"create_images"`
 	CreateInstances         *CreateInstances         `json:"create_instances"`
 	DeleteResources         *DeleteResources         `json:"delete_resources"`
-	ExportImages            *ExportImages            `json:"export_images"`
-	ImportDisks             *ImportDisks             `json:"import_disks"`
 	RunTests                *RunTests                `json:"run_tests"`
 	SubWorkflow             *SubWorkflow             `json:"sub_workflow"`
 	WaitForInstancesSignal  *WaitForInstancesSignal  `json:"wait_for_instances_signal"`
@@ -144,14 +145,6 @@ func (s *Step) realStep() (step, error) {
 	if s.DeleteResources != nil {
 		matchCount++
 		result = s.DeleteResources
-	}
-	if s.ExportImages != nil {
-		matchCount++
-		result = s.ExportImages
-	}
-	if s.ImportDisks != nil {
-		matchCount++
-		result = s.ImportDisks
 	}
 	if s.RunTests != nil {
 		matchCount++
@@ -224,8 +217,8 @@ func (s *Step) wrapValidateError(e error) error {
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
-	Ctx    context.Context    `json:"-"`
-	Cancel context.CancelFunc `json:"-"`
+	Ctx    context.Context `json:"-"`
+	Cancel chan struct{}   `json:"-"`
 
 	// Workflow template fields.
 	// Workflow name.
@@ -315,26 +308,27 @@ func (w *Workflow) FromFile(file string) error {
 // Run runs a workflow.
 func (w *Workflow) Run() error {
 	if err := w.populate(); err != nil {
-		w.Cancel()
+		close(w.Cancel)
 		return err
 	}
 
 	w.logger.Print("Validating workflow")
 	if err := w.validate(); err != nil {
 		w.logger.Printf("Error validating workflow: %v", err)
-		w.Cancel()
+		close(w.Cancel)
 		return err
 	}
+	defer w.cleanup()
 	w.logger.Print("Uploading sources")
 	if err := w.uploadSources(); err != nil {
 		w.logger.Printf("Error uploading sources: %v", err)
-		w.Cancel()
+		close(w.Cancel)
 		return err
 	}
 	w.logger.Print("Running workflow")
 	if err := w.run(); err != nil {
 		w.logger.Printf("Error running workflow: %v", err)
-		w.Cancel()
+		close(w.Cancel)
 		return err
 	}
 	return nil
@@ -525,7 +519,6 @@ func (w *Workflow) populate() error {
 }
 
 func (w *Workflow) run() error {
-	defer w.cleanup()
 	return w.traverseDAG(func(s step) error {
 		return w.runStep(s.(*Step))
 	})
@@ -601,7 +594,7 @@ func (w *Workflow) traverseDAG(f func(step) error) error {
 	var running []string
 	for len(waiting) != 0 || len(running) != 0 {
 		select {
-		case <-w.Ctx.Done():
+		case <-w.Cancel:
 			waiting = map[string][]string{}
 		default:
 		}
@@ -665,7 +658,9 @@ func (w *Workflow) uploadSources() error {
 // New instantiates a new workflow.
 func New(ctx context.Context) *Workflow {
 	var w Workflow
-	w.Ctx, w.Cancel = context.WithCancel(ctx)
+	w.Ctx = ctx
+	// We can't use context.WithCancel as we use the context even after cancel for cleanup.
+	w.Cancel = make(chan struct{})
 	return &w
 }
 

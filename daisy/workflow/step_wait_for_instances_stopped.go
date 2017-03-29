@@ -15,12 +15,49 @@
 package workflow
 
 import (
+	"bytes"
 	"fmt"
+	"path"
 	"sync"
+	"time"
 )
 
 // WaitForInstancesStopped is a Daisy WaitForInstancesStopped workflow step.
 type WaitForInstancesStopped []string
+
+func streamSerial(w *Workflow, name string) {
+	logsObj := path.Join(w.logsPath, name+"-serial.log")
+	w.logger.Printf("WaitForInstancesStopped: streaming serial output to gs://%s/%s.", w.bucket, logsObj)
+	var start int64
+	var buf bytes.Buffer
+	for {
+		tick := time.Tick(1 * time.Second)
+		select {
+		case <-w.Ctx.Done():
+		case <-tick:
+			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, 1, start)
+			if err != nil {
+				stopped, sErr := w.ComputeClient.InstanceStopped(w.Project, w.Zone, name)
+				if stopped || sErr != nil {
+					w.logger.Println("WaitForInstancesStopped: error getting serial port:", err)
+				}
+				return
+			}
+			start = resp.Next
+			buf.WriteString(resp.Contents)
+			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(w.Ctx)
+			wc.ContentType = "text/plain"
+			if _, err := wc.Write(buf.Bytes()); err != nil {
+				w.logger.Println("WaitForInstancesStopped: error writing log to GCS:", err)
+				return
+			}
+			if err := wc.Close(); err != nil {
+				w.logger.Println("WaitForInstancesStopped: error writing log to GCS:", err)
+				return
+			}
+		}
+	}
+}
 
 func (s *WaitForInstancesStopped) run(w *Workflow) error {
 	var wg sync.WaitGroup
@@ -35,6 +72,9 @@ func (s *WaitForInstancesStopped) run(w *Workflow) error {
 				e <- fmt.Errorf("unresolved instance %q", name)
 				return
 			}
+			// Stream serial port output to GCS.
+			go streamSerial(w, i.real)
+			w.logger.Printf("WaitForInstancesStopped: waiting for instance %q.", i.real)
 			if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, i.real); err != nil {
 				e <- err
 			}
@@ -49,7 +89,7 @@ func (s *WaitForInstancesStopped) run(w *Workflow) error {
 	select {
 	case err := <-e:
 		return err
-	case <-w.Ctx.Done():
+	case <-w.Cancel:
 		return nil
 	}
 }

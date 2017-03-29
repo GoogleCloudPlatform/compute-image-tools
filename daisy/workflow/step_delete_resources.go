@@ -60,7 +60,10 @@ func (d *DeleteResources) run(w *Workflow) error {
 			r, ok := w.instanceRefs.get(i)
 			if !ok {
 				e <- fmt.Errorf("unresolved instance %q", i)
-			} else if err := w.deleteInstance(r); err != nil {
+				return
+			}
+			w.logger.Printf("DeleteResources: deleting instance %q.", r.real)
+			if err := w.deleteInstance(r); err != nil {
 				e <- err
 			}
 		}(i)
@@ -73,7 +76,10 @@ func (d *DeleteResources) run(w *Workflow) error {
 			r, ok := w.imageRefs.get(i)
 			if !ok {
 				e <- fmt.Errorf("unresolved image %q", i)
-			} else if err := w.deleteImage(r); err != nil {
+				return
+			}
+			w.logger.Printf("DeleteResources: deleting image %q.", r.real)
+			if err := w.deleteImage(r); err != nil {
 				e <- err
 			}
 		}(i)
@@ -102,7 +108,10 @@ func (d *DeleteResources) run(w *Workflow) error {
 			r, ok := w.diskRefs.get(d)
 			if !ok {
 				e <- fmt.Errorf("unresolved disk %q", d)
-			} else if err := w.deleteDisk(r); err != nil {
+				return
+			}
+			w.logger.Printf("DeleteResources: deleting disk %q.", r.real)
+			if err := w.deleteDisk(r); err != nil {
 				e <- err
 			}
 		}(d)
@@ -116,7 +125,7 @@ func (d *DeleteResources) run(w *Workflow) error {
 	select {
 	case err := <-e:
 		return err
-	case <-w.Ctx.Done():
+	case <-w.Cancel:
 		return nil
 	}
 }
