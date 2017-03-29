@@ -77,7 +77,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 			var imageLink string
 			var image *resource
 			var err error
-			if isLink(cd.SourceImage) {
+			if cd.SourceImage == "" || sLink(cd.SourceImage) {
 				imageLink = cd.SourceImage
 			} else if image, err = w.getImage(cd.SourceImage); err == nil {
 				imageLink = image.link
@@ -91,6 +91,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 				e <- err
 				return
 			}
+			w.logger.Printf("CreateDisks: creating disk %q.", name)
 			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.SSD)
 			if err != nil {
 				e <- err
@@ -108,7 +109,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 	select {
 	case err := <-e:
 		return err
-	case <-w.Ctx.Done():
+	case <-w.Cancel:
 		// Wait so disks being created now can be deleted.
 		wg.Wait()
 		return nil

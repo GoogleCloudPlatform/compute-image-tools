@@ -173,6 +173,11 @@ func (c *Client) DeleteInstance(project, zone, instance string) error {
 	return c.operationsWait(project, zone, resp.Name)
 }
 
+// GetSerialPortOutput gets the serial port output of a GCE instance.
+func (c *Client) GetSerialPortOutput(project, zone, instance string, port, start int64) (*compute.SerialPortOutput, error) {
+	return c.raw.Instances.GetSerialPortOutput(project, zone, instance).Start(start).Port(port).Do()
+}
+
 // WaitForInstanceStopped waits a GCE instance to enter 'STOPPED' state.
 func (c *Client) WaitForInstanceStopped(project, zone, instance string) error {
 	for {

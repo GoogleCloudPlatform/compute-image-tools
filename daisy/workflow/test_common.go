@@ -71,7 +71,7 @@ func init() {
 }
 
 func testWorkflow() *Workflow {
-	ctx, cancel := context.WithCancel(context.Background())
+	cancel := make(chan struct{})
 	return &Workflow{
 		Name:          testWf,
 		GCSPath:       testGCSPath,
@@ -79,7 +79,7 @@ func testWorkflow() *Workflow {
 		Zone:          testZone,
 		ComputeClient: testGCEClient,
 		StorageClient: testGCSClient,
-		Ctx:           ctx,
+		Ctx:           context.Background(),
 		Cancel:        cancel,
 		diskRefs:      &refMap{},
 		imageRefs:     &refMap{},

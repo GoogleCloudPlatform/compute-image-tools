@@ -122,6 +122,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 			inst.AddMetadata(md)
 			inst.AddNetworkInterface("global/networks/default")
 
+			w.logger.Printf("CreateInstances: creating instance %q.", name)
 			i, err := inst.Insert()
 			if err != nil {
 				e <- err
@@ -139,7 +140,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 	select {
 	case err := <-e:
 		return err
-	case <-w.Ctx.Done():
+	case <-w.Cancel:
 		// Wait so instances being created now can be deleted.
 		wg.Wait()
 		return nil

@@ -97,9 +97,9 @@ func main() {
 			select {
 			case <-c:
 				fmt.Printf("\nCtrl-C caught, stopping and cleaning up workflow %q, this may take a second...\n", wf.Name)
-				wf.Cancel()
+				close(wf.Cancel)
 				errors <- fmt.Errorf("workflow %q was canceled", wf.Name)
-			case <-wf.Ctx.Done():
+			case <-wf.Cancel:
 			}
 		}()
 		wg.Add(1)
