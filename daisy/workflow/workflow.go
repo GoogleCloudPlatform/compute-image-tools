@@ -110,15 +110,15 @@ type Step struct {
 	Timeout string
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
-	AttachDisks             *AttachDisks             `json:"attach_disks"`
-	CreateDisks             *CreateDisks             `json:"create_disks"`
-	CreateImages            *CreateImages            `json:"create_images"`
-	CreateInstances         *CreateInstances         `json:"create_instances"`
-	DeleteResources         *DeleteResources         `json:"delete_resources"`
-	RunTests                *RunTests                `json:"run_tests"`
-	SubWorkflow             *SubWorkflow             `json:"sub_workflow"`
-	WaitForInstancesSignal  *WaitForInstancesSignal  `json:"wait_for_instances_signal"`
-	WaitForInstancesStopped *WaitForInstancesStopped `json:"wait_for_instances_stopped"`
+	AttachDisks             *AttachDisks
+	CreateDisks             *CreateDisks
+	CreateImages            *CreateImages
+	CreateInstances         *CreateInstances
+	DeleteResources         *DeleteResources
+	RunTests                *RunTests
+	SubWorkflow             *SubWorkflow
+	WaitForInstancesSignal  *WaitForInstancesSignal
+	WaitForInstancesStopped *WaitForInstancesStopped
 	// Used for unit tests.
 	testType step
 }
@@ -228,9 +228,9 @@ type Workflow struct {
 	// Zone to run in.
 	Zone string
 	// GCS Path to use for scratch data and write logs/results to.
-	GCSPath string `json:"gcs_path"`
+	GCSPath string
 	// Path to OAuth credentials file.
-	OAuthPath string `json:"oauth_path"`
+	OAuthPath string
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string
 	// Vars defines workflow variables, substitution is done at Workflow run time.

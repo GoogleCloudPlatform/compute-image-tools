@@ -29,15 +29,15 @@ type CreateDisk struct {
 	Name string
 	// SourceImage to use during disk creation. Leave blank for a blank disk.
 	// See https://godoc.org/google.golang.org/api/compute/v1#Disk.
-	SourceImage string `json:"source_image"`
+	SourceImage string
 	// Size of this disk.
 	SizeGB string
 	// Is this disk PD-SSD.
 	SSD bool
 	// Should this resource be cleaned up after the workflow?
-	NoCleanup bool `json:"no_cleanup"`
+	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?
-	ExactName bool `json:"exact_name"`
+	ExactName bool
 }
 
 func (c *CreateDisks) validate(w *Workflow) error {

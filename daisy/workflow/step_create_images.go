@@ -36,14 +36,14 @@ type CreateImage struct {
 	Licenses []string
 	// A list of features to enable on the guest OS.
 	// https://godoc.org/google.golang.org/api/compute/v1#GuestOsFeature
-	GuestOsFeatures []string `json:"guest_os_features"`
+	GuestOsFeatures []string
 	// Only one of these source types should be specified.
-	SourceDisk string `json:"source_disk"`
-	SourceFile string `json:"source_file"`
+	SourceDisk string
+	SourceFile string
 	// Should this resource be cleaned up after the workflow?
-	NoCleanup bool `json:"no_cleanup"`
+	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?
-	ExactName bool `json:"exact_name"`
+	ExactName bool
 }
 
 func (c *CreateImages) validate(w *Workflow) error {

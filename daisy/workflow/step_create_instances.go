@@ -31,20 +31,20 @@ type CreateInstance struct {
 	Name string
 	// Disks to attach to the instance, must match a disk created in a previous step.
 	// First one gets set as boot disk. At least one disk must be listed.
-	AttachedDisks []string `json:"attached_disks"`
-	MachineType   string   `json:"machine_type"`
+	AttachedDisks []string
+	MachineType   string
 	// StartupScript is the local path to a startup script to use in this step.
 	// This will be automatically mapped to the appropriate metadata key.
-	StartupScript string `json:"startup_script"`
+	StartupScript string
 	// Additional metadata to set for the instance.
 	Metadata map[string]string
 	// OAuth2 scopes to give the instance. If non are specified
 	// https://www.googleapis.com/auth/devstorage.read_only will be added.
 	Scopes []string
 	// Should this resource be cleaned up after the workflow?
-	NoCleanup bool `json:"no_cleanup"`
+	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?
-	ExactName bool `json:"exact_name"`
+	ExactName bool
 }
 
 func (c *CreateInstances) validate(w *Workflow) error {

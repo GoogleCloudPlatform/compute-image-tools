@@ -1,31 +1,31 @@
 {
   "steps": {
     "create disks": {
-      "create_disks": [
+      "createDisks": [
         {
           "name": "bootstrap",
-          "source_image": "projects/windows-cloud/global/images/family/windows-server-2016-core",
+          "sourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
           "sizeGb": "50",
           "ssd": true
         }
       ]
     },
     "bootstrap": {
-      "create_instances": [
+      "createInstances": [
         {
           "name": "bootstrap",
-          "attached_disks": ["bootstrap"],
+          "attachedDisks": ["bootstrap"],
           "metadata": {
             "test_metadata": "this was a test"
           },
-          "machine_type": "n1-standard-1",
-          "startup_script": "shutdown /h"
+          "machineType": "n1-standard-1",
+          "startupScript": "shutdown /h"
         }
       ]
     },
     "bootstrap stopped": {
       "timeout": "1h",
-      "wait_for_instances_stopped": ["bootstrap"]
+      "waitForInstancesStopped": ["bootstrap"]
     }
   },
   "dependencies": {
