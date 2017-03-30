@@ -51,13 +51,12 @@ func (d *DeleteResources) validate(w *Workflow) error {
 
 func (d *DeleteResources) run(w *Workflow) error {
 	var wg sync.WaitGroup
-	var wg2 sync.WaitGroup
 	e := make(chan error)
 
 	for _, i := range d.Instances {
-		wg2.Add(1)
+		wg.Add(1)
 		go func(i string) {
-			defer wg2.Done()
+			defer wg.Done()
 			r, ok := w.instanceRefs.get(i)
 			if !ok {
 				e <- fmt.Errorf("unresolved instance %q", i)
@@ -103,9 +102,9 @@ func (d *DeleteResources) run(w *Workflow) error {
 	// Delete disks only after instances have been deleted.
 	e = make(chan error)
 	for _, d := range d.Disks {
-		wg2.Add(1)
+		wg.Add(1)
 		go func(d string) {
-			defer wg2.Done()
+			defer wg.Done()
 			r, ok := w.diskRefs.get(d)
 			if !ok {
 				e <- fmt.Errorf("unresolved disk %q", d)
@@ -119,7 +118,7 @@ func (d *DeleteResources) run(w *Workflow) error {
 	}
 
 	go func() {
-		wg2.Wait()
+		wg.Wait()
 		e <- nil
 	}()
 
