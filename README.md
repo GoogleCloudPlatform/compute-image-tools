@@ -5,7 +5,7 @@ Tools for Google Compute Engine image management.
 
 ## Daisy (WIP)
 
-Daisy is a GCE workflow tool for running image type workflows on GCE.
+Daisy is a GCE workflow tool. Documentation and code still very much a work in progress.
 
 ## Export tool
 
