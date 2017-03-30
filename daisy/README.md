@@ -1,13 +1,7 @@
 # Daisy
 
-Daisy is a GCE workflow tool for running image type workflows on GCE. Development is ongoing.
+Daisy is a GCE workflow tool. Development is ongoing.
 https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy
-
-Daisy takes a JSON workflow specification as input. This workflow contains the step information
-for the various steps of the workflow as well as a directed acyclic graph (DAG) of workflow steps.
-Each step may specify dependencies on other steps’ completion, but these dependencies must form a
-DAG. In other words, a step cannot transitively depend on another step which  transitively depends
-on it.
 
 ## Table of contents
 
@@ -24,13 +18,13 @@ on it.
   * [Dependency Map](#dependency-map)
 
 ## Workflow Steps
-A Daisy workflow consists of a set of steps and a dependancy map. Step types are defined here:
+A Daisy workflow consists of a set of steps and a dependency map. Step types are defined here:
 https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow#Step
 
 In a workflow file the `steps` field is a mapping of step names to their type descriptions. The
-name can be whatever you chose, it's how you will reference the steps in the dependency map as
-well as how they will show up in the logs. For each individual 'step' in steps you set one step
-type along with any of its required fields.
+name can be whatever you choose, it's how you will reference the steps in the dependency map as
+well as how they will show up in the logs. For each individual 'step' you set one 'step type'
+along with any of its required fields.
 ```
 "steps": {
   "step name 1" {
@@ -52,7 +46,7 @@ Not implemented yet.
 ### CreateDisks
 Creates GCE disks.
 
-This CreateDisks step example creates two disks, the first is a standard PD disk created from a
+This CreateDisks step example creates two disks: the first is a standard PD disk created from a
 source image, the second is blank PD SSD.
 ```
 "create disks step": {
@@ -102,9 +96,9 @@ and the exact_name flag to tell Daisy to not use an generated name for the resou
 ```
 
 ### CreateInstances
-Creates GCE images.
+Creates GCE instances.
 
-This CreateInstances step example  creates an instance with two attahced disks and uses
+This CreateInstances step example creates an instance with two attahced disks and uses
 the machine type n1-standard-4.
 ```
 "create instances step": {
