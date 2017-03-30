@@ -9,8 +9,7 @@ Each step may specify dependencies on other steps’ completion, but these depen
 DAG. In other words, a step cannot transitively depend on another step which  transitively depends
 on it.
 
-Table of contents
-=================
+## Table of contents
 
   * [Workflow Steps](#workflow-steps)
     * [AttachDisks](#attachdisks)
