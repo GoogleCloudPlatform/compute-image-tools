@@ -217,6 +217,7 @@ type Instance struct {
 	zone              string
 	project           string
 	machineType       string
+	scopes            []string
 	disks             []*compute.AttachedDisk
 	networkInterfaces []*compute.NetworkInterface
 
@@ -284,10 +285,14 @@ func (i *Instance) Insert() (*compute.Instance, error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + i.project
 	machineType := prefix + "/zones/" + i.zone + "/machineTypes/" + i.machineType
 
+	scopes := []string{"https://www.googleapis.com/auth/devstorage.read_only"}
+	if len(i.scopes) > 0 {
+		scopes = i.scopes
+	}
 	serviceAccounts := []*compute.ServiceAccount{
 		{
 			Email:  "default",
-			Scopes: []string{"https://www.googleapis.com/auth/devstorage.full_control"},
+			Scopes: scopes,
 		},
 	}
 
@@ -313,13 +318,14 @@ func (i *Instance) Insert() (*compute.Instance, error) {
 }
 
 // NewInstance creates a new Instance struct.
-func (c *Client) NewInstance(name, project, zone, machineType string) (*Instance, error) {
+func (c *Client) NewInstance(name, project, zone, machineType string, scopes []string) (*Instance, error) {
 	instance := &Instance{
 		client:      c,
 		name:        name,
 		zone:        zone,
 		project:     project,
 		machineType: machineType,
+		scopes:      scopes,
 	}
 
 	if err := instance.checkMachineType(); err != nil {

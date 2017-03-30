@@ -38,6 +38,9 @@ type CreateInstance struct {
 	StartupScript string `json:"startup_script"`
 	// Additional metadata to set for the instance.
 	Metadata map[string]string
+	// OAuth2 scopes to give the instance. If non are specified
+	// https://www.googleapis.com/auth/devstorage.read_only will be added.
+	Scopes []string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool `json:"no_cleanup"`
 	// Should we use the user-provided reference name as the actual resource name?
@@ -82,7 +85,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 				name = w.genName(ci.Name)
 			}
 
-			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType)
+			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType, ci.Scopes)
 			if err != nil {
 				e <- err
 				return
