@@ -9,8 +9,23 @@ Each step may specify dependencies on other steps’ completion, but these depen
 DAG. In other words, a step cannot transitively depend on another step which  transitively depends
 on it.
 
+Table of contents
+=================
+
+  * [Workflow Steps](#workflow-steps)
+    * [AttachDisks](#attachdisks)
+    * [CreateDisks](#createdisks)
+    * [CreateImages](#createimages)
+    * [CreateInstances](#createinstances)
+    * [DeleteResources](#deleteresources)
+    * [RunTests](#runtests)
+    * [SubWorkflow](#subworkflow)
+    * [WaitForInstancesSignal](#waitforinstancessignal)
+    * [WaitForInstancesStopped](#waitforinstancesstopped)
+  * [Dependency Map](#dependency-map)
+
 ## Workflow Steps
-A Daisy workflow consists of a set of steps and a dependency map. Step types are defined here:
+A Daisy workflow consists of a set of steps and a dependancy map. Step types are defined here:
 https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow#Step
 
 In a workflow file the `steps` field is a mapping of step names to their type descriptions. The
@@ -146,4 +161,34 @@ This WaitForInstancesStopped step example waits up to 1 hour for 'instance1' to 
   "timeout": "1h",
   "waitForInstancesStopped": ["instance1"]
 },
+```
+
+## Dependency Map
+
+The dependency map describes the order in which workflow steps will run. Steps without any
+dependencies will run immediately, otherwise a step will only run once its dependencies have
+completed successfully.
+
+In this example step1 will run immediately as it has no dependencies, step2 and step3 will run
+as soon as step1 completes, and step4 will run as soon as both step2 and step3 complete.
+```
+"steps": {
+  "step1" {
+    ...
+  },
+  "step2" {
+    ...
+  },
+  "step3" {
+    ...
+  },
+  "step4" {
+    ...
+  }
+}
+"dependencies": {
+  "step2": ["step1"],
+  "step3": ["step1"],
+  "step4": ["step2", "step3"]
+}
 ```
