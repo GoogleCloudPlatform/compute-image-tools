@@ -462,16 +462,16 @@ func (w *Workflow) populateStep(step *Step) error {
 func (w *Workflow) populate() error {
 	w.id = randString(5)
 
-	autovars := map[string]string {
-		"ID": w.id,
-		"NAME": w.Name,
-		"ZONE": w.Zone,
-		"PROJECT": w.Project,
-		"DATE": time.Now().Format("20170329"),
+	autovars := map[string]string{
+		"ID":          w.id,
+		"NAME":        w.Name,
+		"ZONE":        w.Zone,
+		"PROJECT":     w.Project,
+		"DATE":        time.Now().Format("20170329"),
 		"SCRATCHPATH": w.scratchPath,
 		"SOURCESPATH": w.sourcesPath,
-		"LOGSPATH": w.logsPath,
-		"OUTSPATH": w.outsPath,
+		"LOGSPATH":    w.logsPath,
+		"OUTSPATH":    w.outsPath,
 	}
 
 	vars := map[string]string{}
