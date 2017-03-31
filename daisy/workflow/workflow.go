@@ -462,8 +462,28 @@ func (w *Workflow) populateStep(step *Step) error {
 func (w *Workflow) populate() error {
 	w.id = randString(5)
 
-	var oldnew []string
+	autovars := map[string]string {
+		"ID": w.id,
+		"NAME": w.Name,
+		"ZONE": w.Zone,
+		"PROJECT": w.Project,
+		"DATE": time.Now().Format("20170329"),
+		"SCRATCHPATH": w.scratchPath,
+		"SOURCESPATH": w.sourcesPath,
+		"LOGSPATH": w.logsPath,
+		"OUTSPATH": w.outsPath,
+	}
+
+	vars := map[string]string{}
 	for k, v := range w.Vars {
+		vars[k] = v
+	}
+	for k, v := range autovars {
+		vars[k] = v
+	}
+
+	var oldnew []string
+	for k, v := range vars {
 		oldnew = append(oldnew, fmt.Sprintf("${%s}", k), v)
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(oldnew...))
