@@ -190,13 +190,13 @@ func TestFromFile(t *testing.T) {
 					{
 						Name:        "bootstrap",
 						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-						SizeGB:      50,
+						SizeGB:      "50",
 						SSD:         true,
 					},
 					{
 						Name:        "image",
 						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-						SizeGB:      50,
+						SizeGB:      "50",
 						SSD:         true,
 					},
 				},
@@ -250,7 +250,7 @@ func TestFromFile(t *testing.T) {
 									{
 										Name:        "bootstrap",
 										SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-										SizeGB:      50,
+										SizeGB:      "50",
 										SSD:         true,
 									},
 								},
