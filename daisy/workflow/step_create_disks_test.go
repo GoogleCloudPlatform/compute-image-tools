@@ -25,10 +25,10 @@ func TestCreateDisksRun(t *testing.T) {
 	wf := testWorkflow()
 	wf.imageRefs.m = map[string]*resource{"i1": {"i1", wf.genName("i1"), "link", false}}
 	cd := &CreateDisks{
-		{Name: "d1", SourceImage: "i1", SizeGB: "100", SSD: false},
-		{Name: "d2", SourceImage: "projects/global/images/i2", SizeGB: "100", SSD: false},
-		{Name: "d3", SourceImage: "i1", SizeGB: "100", SSD: false, NoCleanup: true},
-		{Name: "d4", SourceImage: "i1", SizeGB: "100", SSD: false, ExactName: true}}
+		{Name: "d1", SourceImage: "i1", SizeGB: 100, SSD: false},
+		{Name: "d2", SourceImage: "projects/global/images/i2", SizeGB: 100, SSD: false},
+		{Name: "d3", SourceImage: "i1", SizeGB: 100, SSD: false, NoCleanup: true},
+		{Name: "d4", SourceImage: "i1", SizeGB: 100, SSD: false, ExactName: true}}
 	if err := cd.run(wf); err != nil {
 		t.Fatalf("error running CreateDisks.run(): %v", err)
 	}
@@ -51,7 +51,7 @@ func TestCreateDisksValidate(t *testing.T) {
 	validatedImages = nameSet{w: {"i-foo"}}
 
 	// Good case.
-	cd := CreateDisks{CreateDisk{Name: "d-bar", SourceImage: "i-foo", SizeGB: "50"}}
+	cd := CreateDisks{CreateDisk{Name: "d-bar", SourceImage: "i-foo", SizeGB: 50}}
 	if err := cd.validate(w); err != nil {
 		t.Error(err)
 	}
@@ -60,7 +60,7 @@ func TestCreateDisksValidate(t *testing.T) {
 	}
 
 	// Good case. No source image.
-	cd = CreateDisks{CreateDisk{Name: "d-baz", SizeGB: "50"}}
+	cd = CreateDisks{CreateDisk{Name: "d-baz", SizeGB: 50}}
 	if err := cd.validate(w); err != nil {
 		t.Error(err)
 	}
@@ -69,7 +69,7 @@ func TestCreateDisksValidate(t *testing.T) {
 	}
 
 	// Bad case. Dupe disk name.
-	cd = CreateDisks{CreateDisk{Name: "d-foo", SizeGB: "50"}}
+	cd = CreateDisks{CreateDisk{Name: "d-foo", SizeGB: 50}}
 	if err := cd.validate(w); err == nil {
 		t.Error(err)
 	}

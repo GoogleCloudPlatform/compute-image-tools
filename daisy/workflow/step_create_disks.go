@@ -16,7 +16,6 @@ package workflow
 
 import (
 	"fmt"
-	"strconv"
 	"sync"
 )
 
@@ -31,7 +30,7 @@ type CreateDisk struct {
 	// See https://godoc.org/google.golang.org/api/compute/v1#Disk.
 	SourceImage string
 	// Size of this disk.
-	SizeGB string
+	SizeGB int64
 	// Is this disk PD-SSD.
 	SSD bool
 	// Should this resource be cleaned up after the workflow?
@@ -47,9 +46,9 @@ func (c *CreateDisks) validate(w *Workflow) error {
 			return fmt.Errorf("cannot create disk: image not found: %s", cd.SourceImage)
 		}
 
-		_, err := strconv.ParseInt(cd.SizeGB, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot parse SizeGB: %s, err: %v", cd.SizeGB, err)
+		// No SizeGB set when not supplying SourceImage.
+		if cd.SizeGB == 0 && cd.SourceImage == "" {
+			return fmt.Errorf("cannot create disk: SizeGB and SourceImage not set: %s", cd.SourceImage)
 		}
 
 		// Try adding disk name.
@@ -86,13 +85,8 @@ func (c *CreateDisks) run(w *Workflow) error {
 				return
 			}
 
-			size, err := strconv.ParseInt(cd.SizeGB, 10, 64)
-			if err != nil {
-				e <- err
-				return
-			}
 			w.logger.Printf("CreateDisks: creating disk %q.", name)
-			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.SSD)
+			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, cd.SizeGB, cd.SSD)
 			if err != nil {
 				e <- err
 				return

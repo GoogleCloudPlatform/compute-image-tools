@@ -95,12 +95,15 @@ func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64,
 		diskType = fmt.Sprintf("zones/%s/diskTypes/pd-ssd", zone)
 	}
 
-	resp, err := c.raw.Disks.Insert(project, zone, &compute.Disk{
+	disk := &compute.Disk{
 		Name:        name,
-		SizeGb:      size,
 		Type:        diskType,
 		SourceImage: sourceImage,
-	}).Do()
+	}
+	if size != 0 {
+		disk.SizeGb = size
+	}
+	resp, err := c.raw.Disks.Insert(project, zone, disk).Do()
 	if err != nil {
 		return nil, err
 	}
