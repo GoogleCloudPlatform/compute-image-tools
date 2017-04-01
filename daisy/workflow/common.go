@@ -15,16 +15,12 @@
 package workflow
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
 	"regexp"
 	"strings"
 	"time"
-
-	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 var (
@@ -97,97 +93,60 @@ func splitGCSPath(p string) (string, string, error) {
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
-// substitute iterates through the public fields of the struct represented
-// by s, if the field type matches one of the known types the provided
-// replacer.Replace is run on all string values replacing the original value
-// in the underlying struct.
-// Exceptions: will not change Vars fields or Workflow fields of SubWorkflow types.
+// substitute analyzes an element for string values and replaces
+// found instances of indicated substrings with given replacement strings.
+// Private fields of a struct are not modified.
 func substitute(s reflect.Value, replacer *strings.Replacer) {
-	if s.Kind() != reflect.Struct {
+	if !s.CanSet() {
 		return
 	}
-	for i := 0; i < s.NumField(); i++ {
-		// Skip the Vars field as thats where the replacer gets populated from.
-		if s.Type().Field(i).Name == "Vars" {
-			continue
+	switch s.Kind() {
+	case reflect.Map, reflect.Slice, reflect.Ptr:
+		// A nil entry will cause additional reflect operations to panic.
+		if s.IsNil() {
+			return
 		}
+	}
 
-		f := s.Field(i)
-		// Don't attempt to modify private fields.
-		if !f.CanSet() {
-			continue
+	if s.Kind() == reflect.Ptr {
+		// Dereference me.
+		substitute(s.Elem(), replacer)
+	}
+
+	// If this is a string, run the replacer on it.
+	switch s.Interface().(type) {
+	case string:
+		s.SetString(replacer.Replace(s.String()))
+		return
+	}
+
+	switch s.Kind() {
+	case reflect.Struct:
+		for i := 0; i < s.NumField(); i++ {
+			substitute(s.Field(i), replacer)
 		}
-
-		switch f.Kind() {
-		case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Interface, reflect.Slice:
-			// A nil entry will cause additional reflect operations to panic.
-			if f.IsNil() {
-				continue
-			}
+	case reflect.Slice:
+		for i := 0; i < s.Len(); i++ {
+			substitute(s.Index(i), replacer)
 		}
+	case reflect.Map:
+		kvs := s.MapKeys()
+		for _, kv := range kvs {
+			vv := s.MapIndex(kv)
 
-		raw := f.Interface()
-		switch raw.(type) {
-		case string:
-			f.SetString(replacer.Replace(f.String()))
-		case []string:
-			var newSlice []string
-			for _, v := range raw.([]string) {
-				newSlice = append(newSlice, replacer.Replace(v))
-			}
-			f.Set(reflect.ValueOf(newSlice))
-		case map[string]string:
-			newMap := map[string]string{}
-			for k, v := range raw.(map[string]string) {
-				newMap[replacer.Replace(k)] = replacer.Replace(v)
-			}
-			f.Set(reflect.ValueOf(newMap))
-		case map[string][]string:
-			newMap := map[string][]string{}
-			for k, v := range raw.(map[string][]string) {
-				var newSlice []string
-				for _, sv := range v {
-					newSlice = append(newSlice, replacer.Replace(sv))
-				}
-				newMap[replacer.Replace(k)] = newSlice
-			}
-			f.Set(reflect.ValueOf(newMap))
-		case map[string]*Step:
-			newMap := map[string]*Step{}
-			for k, v := range raw.(map[string]*Step) {
-				substitute(reflect.ValueOf(v).Elem(), replacer)
-				newMap[replacer.Replace(k)] = v
-			}
-			f.Set(reflect.ValueOf(newMap))
-		case *compute.Client, *storage.Client, context.Context, context.CancelFunc:
-			// We specifically do not want to change fields with these types.
-			continue
-		case *WaitForInstancesStopped:
-			var newSlice WaitForInstancesStopped
-			for _, v := range *raw.(*WaitForInstancesStopped) {
-				newSlice = append(newSlice, replacer.Replace(v))
-			}
-			f.Set(reflect.ValueOf(&newSlice))
-		case *WaitForInstancesSignal:
-			var newSlice WaitForInstancesSignal
-			for _, v := range *raw.(*WaitForInstancesSignal) {
-				newSlice = append(newSlice, replacer.Replace(v))
-			}
-			f.Set(reflect.ValueOf(&newSlice))
-		default:
-			if f.Kind() != reflect.Ptr {
-				continue
-			}
-			switch e := f.Elem(); e.Kind() {
-			case reflect.Slice:
-				// Iterate through then run them back through substitute.
-				for i := 0; i < e.Len(); i++ {
-					substitute(e.Index(i), replacer)
-				}
-			default:
-				// Run right back through substitute.
-				substitute(e, replacer)
-			}
+			// Create new mutable copies of the key and value.
+			// Modify the copies.
+			newKv := reflect.New(kv.Type()).Elem()
+			newKv.Set(kv)
+			newVv := reflect.New(vv.Type()).Elem()
+			newVv.Set(vv)
+			substitute(newKv, replacer)
+			substitute(newVv, replacer)
+
+			// Delete the old key-value.
+			s.SetMapIndex(kv, reflect.Value{})
+			// Set the new key-value.
+			s.SetMapIndex(newKv, newVv)
 		}
 	}
 }
