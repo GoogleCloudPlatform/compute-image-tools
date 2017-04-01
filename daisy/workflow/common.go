@@ -96,43 +96,43 @@ func splitGCSPath(p string) (string, string, error) {
 // substitute analyzes an element for string values and replaces
 // found instances of indicated substrings with given replacement strings.
 // Private fields of a struct are not modified.
-func substitute(s reflect.Value, replacer *strings.Replacer) {
-	if !s.CanSet() {
+func substitute(v reflect.Value, replacer *strings.Replacer) {
+	if !v.CanSet() {
 		return
 	}
-	switch s.Kind() {
+	switch v.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Ptr:
 		// A nil entry will cause additional reflect operations to panic.
-		if s.IsNil() {
+		if v.IsNil() {
 			return
 		}
 	}
 
-	if s.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Ptr {
 		// Dereference me.
-		substitute(s.Elem(), replacer)
+		substitute(v.Elem(), replacer)
 	}
 
 	// If this is a string, run the replacer on it.
-	switch s.Interface().(type) {
+	switch v.Interface().(type) {
 	case string:
-		s.SetString(replacer.Replace(s.String()))
+		v.SetString(replacer.Replace(v.String()))
 		return
 	}
 
-	switch s.Kind() {
+	switch v.Kind() {
 	case reflect.Struct:
-		for i := 0; i < s.NumField(); i++ {
-			substitute(s.Field(i), replacer)
+		for i := 0; i < v.NumField(); i++ {
+			substitute(v.Field(i), replacer)
 		}
 	case reflect.Slice:
-		for i := 0; i < s.Len(); i++ {
-			substitute(s.Index(i), replacer)
+		for i := 0; i < v.Len(); i++ {
+			substitute(v.Index(i), replacer)
 		}
 	case reflect.Map:
-		kvs := s.MapKeys()
+		kvs := v.MapKeys()
 		for _, kv := range kvs {
-			vv := s.MapIndex(kv)
+			vv := v.MapIndex(kv)
 
 			// Create new mutable copies of the key and value.
 			// Modify the copies.
@@ -144,9 +144,9 @@ func substitute(s reflect.Value, replacer *strings.Replacer) {
 			substitute(newVv, replacer)
 
 			// Delete the old key-value.
-			s.SetMapIndex(kv, reflect.Value{})
+			v.SetMapIndex(kv, reflect.Value{})
 			// Set the new key-value.
-			s.SetMapIndex(newKv, newVv)
+			v.SetMapIndex(newKv, newVv)
 		}
 	}
 }
