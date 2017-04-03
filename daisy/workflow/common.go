@@ -93,8 +93,8 @@ func splitGCSPath(p string) (string, string, error) {
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
-// substitute analyzes an element for string values and replaces
-// found instances of indicated substrings with given replacement strings.
+// substitute analyzes an element and subelements for strings.
+// A strings.Replacer is run on found string elements/fields.
 // Private fields of a struct are not modified.
 func substitute(v reflect.Value, replacer *strings.Replacer) {
 	if !v.CanSet() {
