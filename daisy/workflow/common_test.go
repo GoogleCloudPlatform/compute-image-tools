@@ -185,6 +185,11 @@ func TestSubstitute(t *testing.T) {
 							},
 						},
 					},
+					"typed slice step": {
+						WaitForInstancesSignal: &WaitForInstancesSignal{
+							"key1", "foo-instance", "key2",
+						},
+					},
 				},
 			},
 			test{
@@ -222,6 +227,11 @@ func TestSubstitute(t *testing.T) {
 									},
 								},
 							},
+						},
+					},
+					"typed slice step": {
+						WaitForInstancesSignal: &WaitForInstancesSignal{
+							"value1", "foo-instance", "value2",
 						},
 					},
 				},
