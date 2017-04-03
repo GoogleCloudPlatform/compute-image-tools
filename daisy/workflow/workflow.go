@@ -34,6 +34,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
+	"strconv"
 )
 
 type gcsLogger struct {
@@ -462,33 +463,50 @@ func (w *Workflow) populateStep(step *Step) error {
 func (w *Workflow) populate() error {
 	w.id = randString(5)
 
+	// Do replacement from Vars.
+	vars := map[string]string{}
+	for k, v := range w.Vars {
+		vars[k] = v
+	}
+	var replacements []string
+	for k, v := range vars {
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
+	}
+	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
+
+	// Set up GCS paths.
+	bkt, p, err := splitGCSPath(w.GCSPath)
+	if err != nil {
+		return err
+	}
+	w.bucket = bkt
+	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s", w.Name, w.id))
+	w.sourcesPath = path.Join(w.scratchPath, "sources")
+	w.logsPath = path.Join(w.scratchPath, "logs")
+	w.outsPath = path.Join(w.scratchPath, "outs")
+
+	// Do replacement for autovars. Autovars pull from workflow fields,
+	// so Vars replacement must run before this to resolve the final
+	// value for those fields.
+	now := time.Now()
 	autovars := map[string]string{
 		"ID":          w.id,
 		"NAME":        w.Name,
 		"ZONE":        w.Zone,
 		"PROJECT":     w.Project,
-		"DATE":        time.Now().Format("20170329"),
-		"SCRATCHPATH": w.scratchPath,
-		"SOURCESPATH": w.sourcesPath,
-		"LOGSPATH":    w.logsPath,
-		"OUTSPATH":    w.outsPath,
+		"DATE":        now.Format("20170329"),
+		"TIMESTAMP":   strconv.FormatInt(now.Unix(), 10),
+		"SCRATCHPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath),
+		"SOURCESPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath),
+		"LOGSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.logsPath),
+		"OUTSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.outsPath),
 	}
-
-	vars := map[string]string{}
-	for k, v := range w.Vars {
-		vars[k] = v
-	}
+	replacements = []string{}
 	for k, v := range autovars {
-		vars[k] = v
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
+	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
-	var oldnew []string
-	for k, v := range vars {
-		oldnew = append(oldnew, fmt.Sprintf("${%s}", k), v)
-	}
-	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(oldnew...))
-
-	var err error
 	if w.ComputeClient == nil {
 		w.ComputeClient, err = compute.NewClient(w.Ctx, option.WithServiceAccountFile(w.OAuthPath))
 		if err != nil {
@@ -506,16 +524,6 @@ func (w *Workflow) populate() error {
 	w.diskRefs = &refMap{m: map[string]*resource{}}
 	w.imageRefs = &refMap{m: map[string]*resource{}}
 	w.instanceRefs = &refMap{m: map[string]*resource{}}
-
-	bkt, p, err := splitGCSPath(w.GCSPath)
-	if err != nil {
-		return err
-	}
-	w.bucket = bkt
-	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s", w.Name, w.id))
-	w.sourcesPath = path.Join(w.scratchPath, "sources")
-	w.logsPath = path.Join(w.scratchPath, "logs")
-	w.outsPath = path.Join(w.scratchPath, "outs")
 
 	if w.logger == nil {
 		gcs := &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
