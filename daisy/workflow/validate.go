@@ -17,6 +17,7 @@ package workflow
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -153,6 +154,11 @@ func (w *Workflow) validate() error {
 		}
 	}
 
+	// Check for unsubstituted vars.
+	if err := w.validateVarsSubbed(); err != nil {
+		return err
+	}
+
 	return w.validateDAG()
 }
 
@@ -183,4 +189,17 @@ func (w *Workflow) validateDAG() error {
 		}
 	}
 	return w.traverseDAG(func(s step) error { return s.validate(w) })
+}
+
+func (w *Workflow) validateVarsSubbed() error {
+	unsubbedVarRgx := regexp.MustCompile(`\$\{[^}]+}`)
+	return traverseDataStructure(reflect.ValueOf(w).Elem(), func(v reflect.Value) error {
+		switch v.Interface().(type) {
+		case string:
+			if unsubbedVarRgx.MatchString(v.String()) {
+				return fmt.Errorf("Unresolved var found in %q", v.String())
+			}
+		}
+		return nil
+	})
 }

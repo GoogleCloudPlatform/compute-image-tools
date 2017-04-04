@@ -166,6 +166,18 @@ func TestNameSet(t *testing.T) {
 	}
 }
 
+func TestValidateVarsSubbed(t *testing.T) {
+	w := testWorkflow()
+
+	if err := w.validateVarsSubbed(); err != nil {
+		t.Errorf("unexpected error on good workflow: %s", err)
+	}
+
+	w.Name = "workflow-${unsubbed}"
+	if err := w.validateVarsSubbed(); err == nil {
+		t.Error("bad workflow with unsubbed var should have returned an error, but didn't")
+	}
+}
 func TestValidateWorkflow(t *testing.T) {
 	s := &Step{Timeout: "my-timeout", testType: &mockStep{}}
 

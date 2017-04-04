@@ -91,47 +91,47 @@ func TestSubstitute(t *testing.T) {
 		replacer  *strings.Replacer
 		got, want test
 	}{
+		{ // 0
+			strings.NewReplacer(),
+			test{String: "", private: ""},
+			test{String: "", private: ""},
+		},
 		{ // 1
 			strings.NewReplacer(),
-			test{String: "", private: ""},
-			test{String: "", private: ""},
+			test{String: "string"},
+			test{String: "string"},
 		},
 		{ // 2
-			strings.NewReplacer(),
-			test{String: "string"},
-			test{String: "string"},
-		},
-		{ // 3
 			strings.NewReplacer("key", "value"),
 			test{String: "key-string", private: "private-key-string"},
 			test{String: "value-string", private: "private-key-string"},
 		},
-		{ // 4
+		{ // 3
 			strings.NewReplacer("key", "value"),
 			test{String: "key-key"},
 			test{String: "value-value"},
 		},
-		{ // 5
+		{ // 4
 			strings.NewReplacer("key1", "value1", "key2", "value2"),
 			test{String: "key1-key2"},
 			test{String: "value1-value2"},
 		},
-		{ // 6
+		{ // 5
 			strings.NewReplacer(),
 			test{StringMap: map[string]string{"key1": "value1"}},
 			test{StringMap: map[string]string{"key1": "value1"}},
 		},
-		{ // 7
+		{ // 6
 			strings.NewReplacer("key1", "value1", "key2", "value2", "key3", "value3"),
 			test{StringMap: map[string]string{"key1": "key2key2", "key3": "value"}},
 			test{StringMap: map[string]string{"value1": "value2value2", "value3": "value"}},
 		},
-		{ // 8
+		{ // 7
 			strings.NewReplacer("key1", "value1", "key2", "value2", "key3", "value3"),
 			test{SliceStringMap: map[string][]string{"key": {"value1", "value2"}}},
 			test{SliceStringMap: map[string][]string{"key": {"value1", "value2"}}},
 		},
-		{ // 9
+		{ // 8
 			strings.NewReplacer("key1", "value1", "key2", "value2", "key3", "value3"),
 			test{
 				SliceStringMap: map[string][]string{
@@ -146,7 +146,7 @@ func TestSubstitute(t *testing.T) {
 				},
 			},
 		},
-		{ // 10
+		{ // 9
 			strings.NewReplacer("key1", "value1", "key2", "value2", "key3", "value3"),
 			test{
 				StringMap:      map[string]string{"key1": "key2key2", "key3": "value"},
@@ -244,7 +244,7 @@ func TestSubstitute(t *testing.T) {
 		substitute(s, tt.replacer)
 
 		if diff := pretty.Compare(tt.got, tt.want); diff != "" {
-			t.Errorf("test %d: post substitute workflow does not match expectation: (-got +want)\n%s", i+1, diff)
+			t.Errorf("test %d: post substitute workflow does not match expectation: (-got +want)\n%s", i, diff)
 		}
 	}
 }
