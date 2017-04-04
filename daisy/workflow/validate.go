@@ -193,7 +193,7 @@ func (w *Workflow) validateDAG() error {
 
 func (w *Workflow) validateVarsSubbed() error {
 	unsubbedVarRgx := regexp.MustCompile(`\$\{[^}]+}`)
-	return traverseDataStructure(reflect.ValueOf(w).Elem(), func(v reflect.Value) error {
+	return traverseData(reflect.ValueOf(w).Elem(), func(v reflect.Value) error {
 		switch v.Interface().(type) {
 		case string:
 			if unsubbedVarRgx.MatchString(v.String()) {

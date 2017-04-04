@@ -96,7 +96,7 @@ func splitGCSPath(p string) (string, string, error) {
 // substitute runs replacer on string elements within a complex data structure
 // (except those contained in private data structure fields).
 func substitute(v reflect.Value, replacer *strings.Replacer) {
-	traverseDataStructure(v, func(val reflect.Value) error {
+	traverseData(v, func(val reflect.Value) error {
 		switch val.Interface().(type) {
 		case string:
 			val.SetString(replacer.Replace(val.String()))
@@ -105,14 +105,14 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 	})
 }
 
-// traverseDataStructure traverses complex data structures and runs
+// traverseData traverses complex data structures and runs
 // a function, f, on its basic data types.
 // Traverses arrays, maps, slices, and public fields of structs.
 // For example, f will be run on bool, int, string, etc.
 // Slices, maps, and structs will not have f called on them, but will
 // traverse their subelements.
 // Errors returned from f will be returned by traverseDataStructure.
-func traverseDataStructure(v reflect.Value, f func(reflect.Value) error) error {
+func traverseData(v reflect.Value, f func(reflect.Value) error) error {
 	if !v.CanSet() {
 		// Don't run on private fields.
 		return nil
@@ -126,13 +126,13 @@ func traverseDataStructure(v reflect.Value, f func(reflect.Value) error) error {
 			return nil
 		}
 		// I'm a pointer, dereference me.
-		return traverseDataStructure(v.Elem(), f)
+		return traverseData(v.Elem(), f)
 	}
 
 	switch v.Kind() {
 	case reflect.Array, reflect.Slice:
 		for i := 0; i < v.Len(); i++ {
-			if err := traverseDataStructure(v.Index(i), f); err != nil {
+			if err := traverseData(v.Index(i), f); err != nil {
 				return err
 			}
 		}
@@ -147,10 +147,10 @@ func traverseDataStructure(v reflect.Value, f func(reflect.Value) error) error {
 			newKv.Set(kv)
 			newVv := reflect.New(vv.Type()).Elem()
 			newVv.Set(vv)
-			if err := traverseDataStructure(newKv, f); err != nil {
+			if err := traverseData(newKv, f); err != nil {
 				return err
 			}
-			if err := traverseDataStructure(newVv, f); err != nil {
+			if err := traverseData(newVv, f); err != nil {
 				return err
 			}
 
@@ -161,7 +161,7 @@ func traverseDataStructure(v reflect.Value, f func(reflect.Value) error) error {
 		}
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
-			if err := traverseDataStructure(v.Field(i), f); err != nil {
+			if err := traverseData(v.Field(i), f); err != nil {
 				return err
 			}
 		}
