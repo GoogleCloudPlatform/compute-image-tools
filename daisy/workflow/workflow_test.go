@@ -321,27 +321,31 @@ func TestPopulate(t *testing.T) {
 	}
 
 	got := &Workflow{
-		Name:      "${name}",
-		GCSPath:   "gs://parent-bucket/images",
+		Name:      "${wf-name}",
+		GCSPath:   "gs://${bucket}/images",
 		Zone:      "parent-zone",
 		Project:   "parent-project",
 		OAuthPath: tf,
 		Vars: map[string]string{
+			"bucket":    "parent-bucket",
 			"step_name": "parent-step1",
 			"timeout":   "60m",
 			"path":      "./test_sub.workflow",
-			"name":      "parent-name",
+			"wf-name":   "parent",
 		},
 		Steps: map[string]*Step{
 			"${step_name}": {
 				Timeout: "${timeout}",
+				CreateImages: &CreateImages{
+					{SourceFile: "${SOURCESPATH}/image_file"},
+				},
 			},
-			"parent-step2": {},
-			"parent-step3": {
+			"${NAME}-step2": {},
+			"${NAME}-step3": {
 				SubWorkflow: &SubWorkflow{
 					Path: "${path}",
 					workflow: &Workflow{
-						Name:      "${name}",
+						Name:      "${wf-name}",
 						GCSPath:   "gs://sub-bucket/images",
 						Project:   "sub-project",
 						Zone:      "sub-zone",
@@ -352,7 +356,7 @@ func TestPopulate(t *testing.T) {
 							},
 						},
 						Vars: map[string]string{
-							"name":      "sub-name",
+							"wf-name":   "sub",
 							"step_name": "sub-step1",
 							"timeout":   "60m",
 						},
@@ -377,7 +381,7 @@ func TestPopulate(t *testing.T) {
 	subGot.logger = nil
 
 	want := &Workflow{
-		Name:         "parent-name",
+		Name:         "parent",
 		GCSPath:      "gs://parent-bucket/images",
 		Zone:         "parent-zone",
 		Project:      "parent-project",
@@ -389,21 +393,25 @@ func TestPopulate(t *testing.T) {
 		imageRefs:    &refMap{},
 		instanceRefs: &refMap{},
 		Vars: map[string]string{
+			"bucket":    "parent-bucket",
 			"step_name": "parent-step1",
 			"timeout":   "60m",
 			"path":      "./test_sub.workflow",
-			"name":      "parent-name",
+			"wf-name":   "parent",
 		},
 		bucket:      "parent-bucket",
-		scratchPath: "images/daisy-parent-name-" + got.id,
-		sourcesPath: fmt.Sprintf("images/daisy-parent-name-%s/sources", got.id),
-		logsPath:    fmt.Sprintf("images/daisy-parent-name-%s/logs", got.id),
-		outsPath:    fmt.Sprintf("images/daisy-parent-name-%s/outs", got.id),
+		scratchPath: "images/daisy-parent-" + got.id,
+		sourcesPath: fmt.Sprintf("images/daisy-parent-%s/sources", got.id),
+		logsPath:    fmt.Sprintf("images/daisy-parent-%s/logs", got.id),
+		outsPath:    fmt.Sprintf("images/daisy-parent-%s/outs", got.id),
 		Steps: map[string]*Step{
 			"parent-step1": {
 				name:    "parent-step1",
 				Timeout: "60m",
 				timeout: time.Duration(60 * time.Minute),
+				CreateImages: &CreateImages{
+					{SourceFile: fmt.Sprintf("gs://parent-bucket/images/daisy-parent-%s/sources/image_file", got.id)},
+				},
 			},
 			"parent-step2": {
 				name:    "parent-step2",
@@ -418,7 +426,7 @@ func TestPopulate(t *testing.T) {
 					Path: "./test_sub.workflow",
 					workflow: &Workflow{
 						// This subworkflow should not have been modified by the parent's populate().
-						Name:         "sub-name",
+						Name:         "sub",
 						GCSPath:      "gs://parent-bucket/images",
 						Zone:         "parent-zone",
 						Project:      "parent-project",
@@ -435,15 +443,15 @@ func TestPopulate(t *testing.T) {
 							},
 						},
 						Vars: map[string]string{
-							"name":      "sub-name",
+							"wf-name":   "sub",
 							"step_name": "sub-step1",
 							"timeout":   "60m",
 						},
 						bucket:      "parent-bucket",
-						scratchPath: "images/daisy-sub-name-" + subGot.id,
-						sourcesPath: fmt.Sprintf("images/daisy-sub-name-%s/sources", subGot.id),
-						logsPath:    fmt.Sprintf("images/daisy-sub-name-%s/logs", subGot.id),
-						outsPath:    fmt.Sprintf("images/daisy-sub-name-%s/outs", subGot.id),
+						scratchPath: "images/daisy-sub-" + subGot.id,
+						sourcesPath: fmt.Sprintf("images/daisy-sub-%s/sources", subGot.id),
+						logsPath:    fmt.Sprintf("images/daisy-sub-%s/logs", subGot.id),
+						outsPath:    fmt.Sprintf("images/daisy-sub-%s/outs", subGot.id),
 					},
 				},
 			},
