@@ -457,6 +457,9 @@ func (w *Workflow) populateStep(step *Step) error {
 	step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
 	step.SubWorkflow.workflow.ComputeClient = w.ComputeClient
 	step.SubWorkflow.workflow.StorageClient = w.StorageClient
+	for k, v := range step.SubWorkflow.Vars {
+		step.SubWorkflow.workflow.Vars[k] = v
+	}
 	return step.SubWorkflow.workflow.populate()
 }
 

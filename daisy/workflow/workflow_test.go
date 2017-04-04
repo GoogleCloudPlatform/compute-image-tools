@@ -344,6 +344,9 @@ func TestPopulate(t *testing.T) {
 			"${NAME}-step3": {
 				SubWorkflow: &SubWorkflow{
 					Path: "${path}",
+					Vars: map[string]string{
+						"overridden": "bar",
+					},
 					workflow: &Workflow{
 						Name:      "${wf-name}",
 						GCSPath:   "gs://sub-bucket/images",
@@ -356,9 +359,10 @@ func TestPopulate(t *testing.T) {
 							},
 						},
 						Vars: map[string]string{
-							"wf-name":   "sub",
-							"step_name": "sub-step1",
-							"timeout":   "60m",
+							"wf-name":    "sub",
+							"step_name":  "sub-step1",
+							"timeout":    "60m",
+							"overridden": "foo", // This should be changed to "bar" by populate().
 						},
 					},
 				},
@@ -424,6 +428,9 @@ func TestPopulate(t *testing.T) {
 				timeout: time.Duration(10 * time.Minute),
 				SubWorkflow: &SubWorkflow{
 					Path: "./test_sub.workflow",
+					Vars: map[string]string{
+						"overridden": "bar",
+					},
 					workflow: &Workflow{
 						// This subworkflow should not have been modified by the parent's populate().
 						Name:         "sub",
@@ -443,9 +450,10 @@ func TestPopulate(t *testing.T) {
 							},
 						},
 						Vars: map[string]string{
-							"wf-name":   "sub",
-							"step_name": "sub-step1",
-							"timeout":   "60m",
+							"wf-name":    "sub",
+							"step_name":  "sub-step1",
+							"timeout":    "60m",
+							"overridden": "bar", // Check that this changed from "foo" to "bar".
 						},
 						bucket:      "parent-bucket",
 						scratchPath: "images/daisy-sub-" + subGot.id,

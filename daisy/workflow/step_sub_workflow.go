@@ -17,6 +17,7 @@ package workflow
 // SubWorkflow defines a Daisy sub workflow.
 type SubWorkflow struct {
 	Path     string
+	Vars     map[string]string
 	workflow *Workflow
 }
 
