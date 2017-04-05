@@ -93,41 +93,48 @@ func splitGCSPath(p string) (string, string, error) {
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
-// substitute analyzes an element and subelements for strings.
-// A strings.Replacer is run on found string elements/fields.
-// Private fields of a struct are not modified.
+// substitute runs replacer on string elements within a complex data structure
+// (except those contained in private data structure fields).
 func substitute(v reflect.Value, replacer *strings.Replacer) {
+	traverseData(v, func(val reflect.Value) error {
+		switch val.Interface().(type) {
+		case string:
+			val.SetString(replacer.Replace(val.String()))
+		}
+		return nil
+	})
+}
+
+// traverseData traverses complex data structures and runs
+// a function, f, on its basic data types.
+// Traverses arrays, maps, slices, and public fields of structs.
+// For example, f will be run on bool, int, string, etc.
+// Slices, maps, and structs will not have f called on them, but will
+// traverse their subelements.
+// Errors returned from f will be returned by traverseDataStructure.
+func traverseData(v reflect.Value, f func(reflect.Value) error) error {
 	if !v.CanSet() {
-		return
+		// Don't run on private fields.
+		return nil
 	}
+
 	switch v.Kind() {
-	case reflect.Map, reflect.Slice, reflect.Ptr:
-		// A nil entry will cause additional reflect operations to panic.
+	case reflect.Chan, reflect.Func:
+		return nil
+	case reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
 		if v.IsNil() {
-			return
+			return nil
 		}
-	}
-
-	if v.Kind() == reflect.Ptr {
-		// Dereference me.
-		substitute(v.Elem(), replacer)
-	}
-
-	// If this is a string, run the replacer on it.
-	switch v.Interface().(type) {
-	case string:
-		v.SetString(replacer.Replace(v.String()))
-		return
+		// I'm a pointer, dereference me.
+		return traverseData(v.Elem(), f)
 	}
 
 	switch v.Kind() {
-	case reflect.Struct:
-		for i := 0; i < v.NumField(); i++ {
-			substitute(v.Field(i), replacer)
-		}
-	case reflect.Slice:
+	case reflect.Array, reflect.Slice:
 		for i := 0; i < v.Len(); i++ {
-			substitute(v.Index(i), replacer)
+			if err := traverseData(v.Index(i), f); err != nil {
+				return err
+			}
 		}
 	case reflect.Map:
 		kvs := v.MapKeys()
@@ -140,15 +147,29 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 			newKv.Set(kv)
 			newVv := reflect.New(vv.Type()).Elem()
 			newVv.Set(vv)
-			substitute(newKv, replacer)
-			substitute(newVv, replacer)
+			if err := traverseData(newKv, f); err != nil {
+				return err
+			}
+			if err := traverseData(newVv, f); err != nil {
+				return err
+			}
 
 			// Delete the old key-value.
 			v.SetMapIndex(kv, reflect.Value{})
 			// Set the new key-value.
 			v.SetMapIndex(newKv, newVv)
 		}
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			if err := traverseData(v.Field(i), f); err != nil {
+				return err
+			}
+		}
+	default:
+		// As far as I can tell, this is a basic data type. Run f on it.
+		return f(v)
 	}
+	return nil
 }
 
 func xor(x, y bool) bool {
