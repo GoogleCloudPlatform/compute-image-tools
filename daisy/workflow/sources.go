@@ -14,11 +14,7 @@ import (
 
 func (w *Workflow) recursiveGCS(bkt, prefix, dst string) error {
 	it := w.StorageClient.Bucket(bkt).Objects(w.Ctx, &storage.Query{Prefix: prefix})
-	for {
-		objAttr, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
+	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
 		if err != nil {
 			return err
 		}
@@ -51,17 +47,17 @@ func (w *Workflow) uploadFile(src, obj string) error {
 func (w *Workflow) uploadSources() error {
 	for dst, origPath := range w.Sources {
 		// GCS to GCS.
-		if bkt, prefix, err := splitGCSPath(origPath); err == nil {
-			if prefix == "" {
-				if err := w.recursiveGCS(bkt, prefix, dst); err != nil {
+		if bkt, objPath, err := splitGCSPath(origPath); err == nil {
+			if objPath == "" || strings.HasSuffix(objPath, "/") {
+				if err := w.recursiveGCS(bkt, objPath, dst); err != nil {
 					return err
 				}
 				continue
 			}
-			src := w.StorageClient.Bucket(bkt).Object(path.Clean(prefix))
-			// If this is a GCS 'directory' we will get ErrObjectNotExist.
+			src := w.StorageClient.Bucket(bkt).Object(objPath)
+			// If this is a GCS 'directory' (and not a object) we will get ErrObjectNotExist.
 			if _, err := src.Attrs(w.Ctx); err == storage.ErrObjectNotExist {
-				if err := w.recursiveGCS(bkt, prefix, dst); err == storage.ErrBucketNotExist {
+				if err := w.recursiveGCS(bkt, objPath, dst); err == storage.ErrBucketNotExist {
 					return fmt.Errorf("source %q is not a GCS bucket or object", origPath)
 				} else if err != nil {
 					return err
