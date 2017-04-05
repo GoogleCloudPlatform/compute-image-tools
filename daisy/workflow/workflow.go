@@ -27,6 +27,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,7 +35,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
-	"strconv"
 )
 
 type gcsLogger struct {
@@ -650,38 +650,6 @@ func (w *Workflow) traverseDAG(f func(step) error) error {
 			waiting[name] = filter(deps, finished)
 		}
 		running = filter(running, finished)
-	}
-	return nil
-}
-
-func (w *Workflow) uploadSources() error {
-	for p, origPath := range w.Sources {
-		dst := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, p))
-		if b, o, err := splitGCSPath(origPath); err == nil {
-			// GCS to GCS.
-			src := w.StorageClient.Bucket(b).Object(o)
-			if _, err := dst.CopierFrom(src).Run(w.Ctx); err != nil {
-				return err
-			}
-		} else {
-			// Local to GCS.
-			gcs := dst.NewWriter(w.Ctx)
-			f, err := os.Open(origPath)
-			if err != nil {
-				return err
-			}
-			if _, err := io.Copy(gcs, f); err != nil {
-				return err
-			}
-			if err := gcs.Close(); err != nil {
-				return err
-			}
-		}
-	}
-	for _, step := range w.Steps {
-		if step.SubWorkflow != nil {
-			step.SubWorkflow.workflow.uploadSources()
-		}
 	}
 	return nil
 }

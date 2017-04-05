@@ -5,6 +5,7 @@ https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy
 
 ## Table of contents
 
+  * [Workflow Sources](#workflow-sources)
   * [Workflow Steps](#workflow-steps)
     * [AttachDisks](#attachdisks)
     * [CreateDisks](#createdisks)
@@ -17,13 +18,39 @@ https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy
     * [WaitForInstancesStopped](#waitforinstancesstopped)
   * [Dependency Map](#dependency-map)
 
+## Workflow Sources
+
+Daisy will upload any workflow sources to the sources directory in GCS
+prior to running the workflow. The `sources` field in a workflow
+JSON file is a map of 'destination' to 'sources'. Sources can be a local
+or GCS file or folder. Folders will be recursively copied into
+destination.
+
+In this example the local file `./path/to/startup.sh` will be copied to
+`startup.sh` in the sources folder. Similarly the GCS file
+`gs://my-bucket/some/path/install.py` will be copied to `install.py`.
+The contents of paths referencing directories like
+`./path/to/drivers_folder` and  `gs://my-bucket/my-files` will be
+recursively copied to the directories `drivers` and `files` in GCS
+respectively.
+
+```
+"sources": {
+  "startup.sh": "./path/to/startup.sh",
+  "install.py": "gs://my-bucket/some/path/install.py",
+  "drivers": "./path/to/drivers_folder",
+  "files": "gs://my-bucket/my-files"
+}
+```
+
 ## Workflow Steps
-A Daisy workflow consists of a set of steps and a dependency map. Step types are defined here:
+Step types are defined here:
 https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow#Step
 
-In a workflow file the `steps` field is a mapping of step names to their type descriptions. The
-name can be whatever you choose, it's how you will reference the steps in the dependency map as
-well as how they will show up in the logs. For each individual 'step' you set one 'step type'
+In a workflow file the `steps` field is a mapping of step names to their
+type descriptions. The name can be whatever you choose, it's how you
+will reference the steps in the dependency map as well as how they will
+show up in the logs. For each individual 'step' you set one 'step type'
 along with any of its required fields.
 ```
 "steps": {
@@ -46,8 +73,8 @@ Not implemented yet.
 ### CreateDisks
 Creates GCE disks.
 
-This CreateDisks step example creates two disks: the first is a standard PD disk created from a
-source image, the second is blank PD SSD.
+This CreateDisks step example creates two disks: the first is a standard
+PD disk created from a source image, the second is blank PD SSD.
 ```
 "create disks step": {
   "createDisks": [
@@ -79,9 +106,10 @@ This CreateImages example creates an image from a source disk.
 }
 ```
 
-This CreateImages example creates an image from a file in GCS, it also uses the
-no_cleanup flag to tell Daisy that this resource should exist after workflow completion,
-and the exact_name flag to tell Daisy to not use an generated name for the resource.
+This CreateImages example creates an image from a file in GCS, it also
+uses the no_cleanup flag to tell Daisy that this resource should exist
+after workflow completion, and the exact_name flag to tell Daisy to not
+use an generated name for the resource.
 ```
 "create image step": {
   "createImages": [
@@ -98,8 +126,8 @@ and the exact_name flag to tell Daisy to not use an generated name for the resou
 ### CreateInstances
 Creates GCE instances.
 
-This CreateInstances step example creates an instance with two attahced disks and uses
-the machine type n1-standard-4.
+This CreateInstances step example creates an instance with two attached
+disks and uses the machine type n1-standard-4.
 ```
 "create instances step": {
   "createInstances": [
@@ -113,10 +141,11 @@ the machine type n1-standard-4.
 ```
 
 ### DeleteResources
-Deletes GCE resources (images, instances, disks). Any disks listed will be deleted after any
-listed instances.
+Deletes GCE resources (images, instances, disks). Any disks listed will
+be deleted after any listed instances.
 
-This DeleteResources step example deletes an image, an instance, and two disks.
+This DeleteResources step example deletes an image, an instance, and two
+disks.
 ```
 "delete resources step": {
   "deleteResources": {
@@ -148,7 +177,8 @@ Not implemented yet.
 ### WaitForInstancesStopped
 Waits for a set of instances to stop.
 
-This WaitForInstancesStopped step example waits up to 1 hour for 'instance1' to stop.
+This WaitForInstancesStopped step example waits up to 1 hour for
+'instance1' to stop.
 ```
 "wait for instances stopped step": {
   "timeout": "1h",
@@ -158,12 +188,13 @@ This WaitForInstancesStopped step example waits up to 1 hour for 'instance1' to 
 
 ## Dependency Map
 
-The dependency map describes the order in which workflow steps will run. Steps without any
-dependencies will run immediately, otherwise a step will only run once its dependencies have
-completed successfully.
+The dependency map describes the order in which workflow steps will run.
+Steps without any dependencies will run immediately, otherwise a step
+will only run once its dependencies have completed successfully.
 
-In this example step1 will run immediately as it has no dependencies, step2 and step3 will run
-as soon as step1 completes, and step4 will run as soon as both step2 and step3 complete.
+In this example step1 will run immediately as it has no dependencies,
+step2 and step3 will run as soon as step1 completes, and step4 will run
+as soon as both step2 and step3 complete.
 ```
 "steps": {
   "step1" {

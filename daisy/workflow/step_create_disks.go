@@ -47,9 +47,13 @@ func (c *CreateDisks) validate(w *Workflow) error {
 			return fmt.Errorf("cannot create disk: image not found: %s", cd.SourceImage)
 		}
 
-		_, err := strconv.ParseInt(cd.SizeGB, 10, 64)
-		if err != nil {
+		if _, err := strconv.ParseInt(cd.SizeGB, 10, 64); cd.SizeGB != "" && err != nil {
 			return fmt.Errorf("cannot parse SizeGB: %s, err: %v", cd.SizeGB, err)
+		}
+
+		// No SizeGB set when not supplying SourceImage.
+		if cd.SizeGB == "" && cd.SourceImage == "" {
+			return fmt.Errorf("cannot create disk: SizeGB and SourceImage not set: %s", cd.SourceImage)
 		}
 
 		// Try adding disk name.
@@ -87,10 +91,11 @@ func (c *CreateDisks) run(w *Workflow) error {
 			}
 
 			size, err := strconv.ParseInt(cd.SizeGB, 10, 64)
-			if err != nil {
+			if cd.SizeGB != "" && err != nil {
 				e <- err
 				return
 			}
+
 			w.logger.Printf("CreateDisks: creating disk %q.", name)
 			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.SSD)
 			if err != nil {

@@ -21,6 +21,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -51,11 +52,11 @@ func (m *mockStep) validate(w *Workflow) error {
 var (
 	testGCEClient *compute.Client
 	testGCSClient *storage.Client
-	testGCSDNEVal = "dne"
 	testWf        = "test-wf"
 	testProject   = "test-project"
 	testZone      = "test-zone"
 	testGCSPath   = "gs://test-bucket"
+	testGCSObjs   []string
 )
 
 func init() {
@@ -104,24 +105,58 @@ func newTestGCEClient() (*compute.Client, error) {
 
 func newTestGCSClient() (*storage.Client, error) {
 	nameRgx := regexp.MustCompile(`"name":"([^"].*)"`)
-	rewriteRgx := regexp.MustCompile("/b/([^/]+)/o/([^/]+)/rewriteTo/b/([^/]+)/o/([^?]+)")
-	uploadRgx := regexp.MustCompile("/b/([^/]+)/o?.*uploadType=multipart.*")
+	rewriteRgx := regexp.MustCompile(`/b/([^/]+)/o/([^/]+)/rewriteTo/b/([^/]+)/o/([^?]+)`)
+	uploadRgx := regexp.MustCompile(`/b/([^/]+)/o?.*uploadType=multipart.*`)
+	getObjRgx := regexp.MustCompile(`/b/.+/o/.+alt=json&projection=full`)
+	listObjsRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&pageToken=&prefix=.+&projection=full&versions=false`)
+	listObjsNoPrefixRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&pageToken=&prefix=&projection=full&versions=false`)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		u := r.URL.String()
 		m := r.Method
 
 		if match := uploadRgx.FindStringSubmatch(u); m == "POST" && match != nil {
 			body, _ := ioutil.ReadAll(r.Body)
 			n := nameRgx.FindStringSubmatch(string(body))[1]
-			fmt.Fprintf(w, `{"kind":"storage#object","bucket":"%s","name":"%s"}\n`, match[1], n)
+			testGCSObjs = append(testGCSObjs, n)
+			fmt.Fprintf(w, `{"kind":"storage#object","bucket":"%s","name":"%s"}`, match[1], n)
 		} else if match := rewriteRgx.FindStringSubmatch(u); m == "POST" && match != nil {
-			if strings.Contains(match[1], testGCSDNEVal) || strings.Contains(match[2], testGCSDNEVal) {
+			if strings.Contains(match[1], "dne") || strings.Contains(match[2], "dne") {
 				w.WriteHeader(http.StatusNotFound)
+				fmt.Fprint(w, storage.ErrObjectNotExist)
+				return
 			}
+			path, err := url.PathUnescape(match[4])
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(w, err)
+				return
+			}
+			testGCSObjs = append(testGCSObjs, path)
 			o := fmt.Sprintf(`{"bucket":"%s","name":"%s"}`, match[3], match[4])
-			fmt.Fprintf(w, `{"kind": "storage#rewriteResponse", "done": true, "objectSize": "1", "totalBytesRewritten": "1", "resource": %s}\n`, o)
+			fmt.Fprintf(w, `{"kind": "storage#rewriteResponse", "done": true, "objectSize": "1", "totalBytesRewritten": "1", "resource": %s}`, o)
+		} else if match := getObjRgx.FindStringSubmatch(u); m == "GET" && match != nil {
+			// Return StatusNotFound for objects that do not exist.
+			if strings.Contains(match[0], "dne") {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			// Yes this object exists, we don't need to fill out the values, just return something.
+			fmt.Fprint(w, "{}")
+		} else if match := listObjsRgx.FindStringSubmatch(u); m == "GET" && match != nil {
+			// Return StatusNotFound for objects that do not exist.
+			if strings.Contains(match[0], "dne") {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			// Return 2 objects for testing recursiveGCS.
+			fmt.Fprint(w, `{"kind": "storage#objects", "items": [{"kind": "storage#object", "name": "folder/object", "size": "1"},{"kind": "storage#object", "name": "folder/folder/object", "size": "1"}]}`)
+		} else if match := listObjsNoPrefixRgx.FindStringSubmatch(u); m == "GET" && match != nil {
+			// Return 2 objects for testing recursiveGCS.
+			fmt.Fprint(w, `{"kind": "storage#objects", "items": [{"kind": "storage#object", "name": "object", "size": "1"},{"kind": "storage#object", "name": "folder/object", "size": "1"}]}`)
 		} else {
-			fmt.Println("got something else")
+			fmt.Printf("testGCSClient unknown request: %+v\n", r)
+			w.WriteHeader(http.StatusBadRequest)
 		}
 	}))
 
