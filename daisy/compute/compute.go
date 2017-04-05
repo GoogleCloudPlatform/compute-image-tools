@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	compute "google.golang.org/api/compute/v1"
@@ -89,15 +90,19 @@ func (c *Client) operationsWait(project, zone, name string) error {
 }
 
 // CreateDisk creates a GCE persistant disk.
-func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64, isSSD bool) (*compute.Disk, error) {
-	diskType := fmt.Sprintf("zones/%s/diskTypes/pd-standard", zone)
-	if isSSD {
-		diskType = fmt.Sprintf("zones/%s/diskTypes/pd-ssd", zone)
+func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64, diskType string) (*compute.Disk, error) {
+	dt := fmt.Sprintf("zones/%s/diskTypes/pd-standard", zone)
+	if diskType != "" {
+		if strings.Contains(diskType, "/") {
+			dt = diskType
+		} else {
+			dt = fmt.Sprintf("zones/%s/diskTypes/%s", zone, diskType)
+		}
 	}
 
 	disk := &compute.Disk{
 		Name:        name,
-		Type:        diskType,
+		Type:        dt,
 		SourceImage: sourceImage,
 	}
 	if size != 0 {

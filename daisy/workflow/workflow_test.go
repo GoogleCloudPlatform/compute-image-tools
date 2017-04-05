@@ -21,12 +21,12 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/kylelemons/godebug/pretty"
-	"reflect"
 )
 
 func TestCleanup(t *testing.T) {
@@ -140,15 +140,15 @@ func TestFromFileSyntax(t *testing.T) {
 	tests := []struct{ data, error string }{
 		{
 			`{"test":["1", "2",]}`,
-			"JSON syntax error in line 1: invalid character ']' looking for beginning of value \n{\"test\":[\"1\", \"2\",]}\n                  ^",
+			tf + ": JSON syntax error in line 1: invalid character ']' looking for beginning of value \n{\"test\":[\"1\", \"2\",]}\n                  ^",
 		},
 		{
 			`{"test":{"key1":"value1" "key2":"value2"}}`,
-			"JSON syntax error in line 1: invalid character '\"' after object key:value pair \n{\"test\":{\"key1\":\"value1\" \"key2\":\"value2\"}}\n                         ^",
+			tf + ": JSON syntax error in line 1: invalid character '\"' after object key:value pair \n{\"test\":{\"key1\":\"value1\" \"key2\":\"value2\"}}\n                         ^",
 		},
 		{
 			`{"test": value}`,
-			"JSON syntax error in line 1: invalid character 'v' looking for beginning of value \n{\"test\": value}\n         ^",
+			tf + ": JSON syntax error in line 1: invalid character 'v' looking for beginning of value \n{\"test\": value}\n         ^",
 		},
 	}
 
@@ -191,13 +191,13 @@ func TestFromFile(t *testing.T) {
 						Name:        "bootstrap",
 						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
 						SizeGB:      "50",
-						SSD:         true,
+						DiskType:    "pd-ssd",
 					},
 					{
 						Name:        "image",
 						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
 						SizeGB:      "50",
-						SSD:         true,
+						DiskType:    "pd-standard",
 					},
 				},
 			},
@@ -251,7 +251,6 @@ func TestFromFile(t *testing.T) {
 										Name:        "bootstrap",
 										SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
 										SizeGB:      "50",
-										SSD:         true,
 									},
 								},
 							},

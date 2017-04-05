@@ -14,13 +14,13 @@
           "name": "bootstrap",
           "sourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
           "sizeGb": "50",
-          "ssd": true
+          "DiskType": "pd-ssd"
         },
         {
           "name": "image",
           "sourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
           "sizeGb": "50",
-          "ssd": true
+          "DiskType": "pd-standard"
         }
       ]
     },

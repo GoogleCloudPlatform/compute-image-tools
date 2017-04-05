@@ -87,7 +87,7 @@ func TestCreateDisk(t *testing.T) {
 
 	// Blank disk.
 	want := &compute.Disk{Name: testDisk, SizeGb: 100, Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", testZone)}
-	got, err := c.CreateDisk(testDisk, testProject, testZone, "", want.SizeGb, false)
+	got, err := c.CreateDisk(testDisk, testProject, testZone, "", want.SizeGb, "")
 	if err != nil {
 		t.Fatalf("error running CreateDisk: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestCreateDisk(t *testing.T) {
 
 	// Test SSD and non blank disk.
 	want = &compute.Disk{Name: testDisk, SizeGb: 50, Type: fmt.Sprintf("zones/%s/diskTypes/pd-ssd", testZone), SourceImage: "some-image"}
-	got, err = c.CreateDisk(testDisk, testProject, testZone, "some-image", 50, true)
+	got, err = c.CreateDisk(testDisk, testProject, testZone, "some-image", 50, "pd-ssd")
 	if err != nil {
 		t.Fatalf("error running CreateDisk: %v", err)
 	}

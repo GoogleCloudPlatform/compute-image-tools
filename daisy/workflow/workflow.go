@@ -284,7 +284,7 @@ func (w *Workflow) FromFile(file string) error {
 		// Position of error in line (where to place the '^').
 		pos := int(sErr.Offset) - start - 1
 
-		return fmt.Errorf("JSON syntax error in line %d: %s \n%s\n%s^", line, err, data[start:end], strings.Repeat(" ", pos))
+		return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 	}
 
 	// We need to unmarshal any SubWorkflows.
