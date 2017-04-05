@@ -1,12 +1,13 @@
 package workflow
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"fmt"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"
@@ -50,25 +51,14 @@ func (w *Workflow) uploadSources() error {
 		if bkt, objPath, err := splitGCSPath(origPath); err == nil {
 			if objPath == "" || strings.HasSuffix(objPath, "/") {
 				if err := w.recursiveGCS(bkt, objPath, dst); err != nil {
-					return err
+					return fmt.Errorf("error copying from bucket %s: %v", origPath, err)
 				}
 				continue
 			}
 			src := w.StorageClient.Bucket(bkt).Object(objPath)
-			// If this is a GCS 'directory' (and not a object) we will get ErrObjectNotExist.
-			if _, err := src.Attrs(w.Ctx); err == storage.ErrObjectNotExist {
-				if err := w.recursiveGCS(bkt, objPath, dst); err == storage.ErrBucketNotExist {
-					return fmt.Errorf("source %q is not a GCS bucket or object", origPath)
-				} else if err != nil {
-					return err
-				}
-				continue
-			} else if err != nil {
-				return err
-			}
 			dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, dst))
 			if _, err := dstPath.CopierFrom(src).Run(w.Ctx); err != nil {
-				return err
+				return fmt.Errorf("error copying from file %s: %v", origPath, err)
 			}
 
 			continue

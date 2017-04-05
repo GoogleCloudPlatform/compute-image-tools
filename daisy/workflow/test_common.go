@@ -123,19 +123,23 @@ func newTestGCSClient() (*storage.Client, error) {
 		} else if match := rewriteRgx.FindStringSubmatch(u); m == "POST" && match != nil {
 			if strings.Contains(match[1], "dne") || strings.Contains(match[2], "dne") {
 				w.WriteHeader(http.StatusNotFound)
+				fmt.Fprint(w, storage.ErrObjectNotExist)
+				return
 			}
 			path, err := url.PathUnescape(match[4])
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				fmt.Fprint(w, err)
+				return
 			}
 			testGCSObjs = append(testGCSObjs, path)
 			o := fmt.Sprintf(`{"bucket":"%s","name":"%s"}`, match[3], match[4])
 			fmt.Fprintf(w, `{"kind": "storage#rewriteResponse", "done": true, "objectSize": "1", "totalBytesRewritten": "1", "resource": %s}`, o)
 		} else if match := getObjRgx.FindStringSubmatch(u); m == "GET" && match != nil {
 			// Return StatusNotFound for objects that do not exist.
-			if strings.Contains(match[0], "dne") || strings.Contains(match[0], "folder?") {
+			if strings.Contains(match[0], "dne") {
 				w.WriteHeader(http.StatusNotFound)
+				return
 			}
 			// Yes this object exists, we don't need to fill out the values, just return something.
 			fmt.Fprint(w, "{}")
@@ -143,6 +147,7 @@ func newTestGCSClient() (*storage.Client, error) {
 			// Return StatusNotFound for objects that do not exist.
 			if strings.Contains(match[0], "dne") {
 				w.WriteHeader(http.StatusNotFound)
+				return
 			}
 			// Return 2 objects for testing recursiveGCS.
 			fmt.Fprint(w, `{"kind": "storage#objects", "items": [{"kind": "storage#object", "name": "folder/object", "size": "1"},{"kind": "storage#object", "name": "folder/folder/object", "size": "1"}]}`)
