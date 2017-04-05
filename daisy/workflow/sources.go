@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"fmt"
+
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"
 )
@@ -51,10 +53,18 @@ func (w *Workflow) uploadSources() error {
 	for dst, origPath := range w.Sources {
 		// GCS to GCS.
 		if bkt, prefix, err := splitGCSPath(origPath); err == nil {
+			if prefix == "" {
+				if err := w.recursiveGCS(bkt, prefix, dst); err != nil {
+					return err
+				}
+				continue
+			}
 			src := w.StorageClient.Bucket(bkt).Object(path.Clean(prefix))
 			// If this is a GCS 'directory' we will get ErrObjectNotExist.
 			if _, err := src.Attrs(w.Ctx); err == storage.ErrObjectNotExist {
-				if err := w.recursiveGCS(bkt, prefix, dst); err != nil {
+				if err := w.recursiveGCS(bkt, prefix, dst); err == storage.ErrBucketNotExist {
+					return fmt.Errorf("source %q is not a GCS bucket or object", origPath)
+				} else if err != nil {
 					return err
 				}
 				continue

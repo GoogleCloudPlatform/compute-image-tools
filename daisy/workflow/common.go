@@ -29,7 +29,7 @@ var (
 	// Many of the Google Storage URLs are supported below.
 	// It is preferred that customers specify their object using
 	// its gs://<bucket>/<object> URL.
-	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s$`, bucket))
+	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/?$`, bucket))
 	gsRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/%s$`, bucket, object))
 	// Check for the Google Storage URLs:
 	// http://<bucket>.storage.googleapis.com/<object>
