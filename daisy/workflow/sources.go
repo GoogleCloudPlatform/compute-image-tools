@@ -6,7 +6,6 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-
 	"fmt"
 
 	"cloud.google.com/go/storage"
