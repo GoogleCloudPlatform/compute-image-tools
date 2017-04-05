@@ -1,12 +1,12 @@
 package workflow
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"fmt"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"
