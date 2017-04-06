@@ -191,13 +191,13 @@ func TestFromFile(t *testing.T) {
 						Name:        "bootstrap",
 						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
 						SizeGB:      "50",
-						DiskType:    "pd-ssd",
+						Type:    "pd-ssd",
 					},
 					{
 						Name:        "image",
 						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
 						SizeGB:      "50",
-						DiskType:    "pd-standard",
+						Type:    "pd-standard",
 					},
 				},
 			},
@@ -585,7 +585,7 @@ func TestRefMapConcurrency(t *testing.T) {
 			rm.mx.Lock()
 			defer rm.mx.Unlock()
 			gunshot.Unlock()
-			time.Sleep(1 * time.Second)
+			time.Sleep(1 * time.Millisecond)
 			order = append(order, releaseStr)
 		}()
 		gunshot.Lock() // Wait for the go ahead.
