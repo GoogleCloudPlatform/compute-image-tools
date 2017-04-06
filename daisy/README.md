@@ -85,7 +85,7 @@ PD disk created from a source image, the second is blank PD SSD.
     {
       "name": "disk2",
       "sizeGb": "200",
-      "diskType": "pd-ssd"
+      "type": "pd-ssd"
     }
   ]
 }
