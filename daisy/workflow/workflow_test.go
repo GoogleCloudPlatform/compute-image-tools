@@ -128,8 +128,6 @@ func TestGetResource(t *testing.T) {
 }
 
 func TestFromFileSyntax(t *testing.T) {
-	got := New(context.Background())
-
 	td, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatalf("error creating temp dir: %v", err)
@@ -157,17 +155,16 @@ func TestFromFileSyntax(t *testing.T) {
 			t.Fatalf("error creating json file: %v", err)
 		}
 
-		if err := got.FromFile(tf); err == nil {
+		if _, err := NewFromFile(context.Background(), tf); err == nil {
 			t.Error("expected error, got nil")
 		} else if err.Error() != tt.error {
-			t.Errorf("did not get expected error from FromFile():\ngot: %q\nwant: %q", err.Error(), tt.error)
+			t.Errorf("did not get expected error from NewFromFile():\ngot: %q\nwant: %q", err.Error(), tt.error)
 		}
 	}
 }
 
 func TestFromFile(t *testing.T) {
-	got := New(context.Background())
-	err := got.FromFile("./test.workflow")
+	got, err := NewFromFile(context.Background(), "./test.workflow")
 	if err != nil {
 		t.Fatal(err)
 	}

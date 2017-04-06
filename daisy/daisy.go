@@ -64,8 +64,7 @@ func main() {
 
 	var wfs []*workflow.Workflow
 	for _, path := range flag.Args() {
-		wf := workflow.New(context.Background())
-		err := wf.FromFile(path)
+		wf, err := workflow.NewFromFile(context.Background(), path)
 		if err != nil {
 			log.Fatal(err)
 		}
