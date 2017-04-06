@@ -32,8 +32,8 @@ type CreateDisk struct {
 	SourceImage string
 	// Size of this disk.
 	SizeGB string
-	// Is this disk PD-SSD.
-	SSD bool
+	// Type of disk, pd-standard (default) or pd-ssd.
+	Type string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?
@@ -97,7 +97,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 			}
 
 			w.logger.Printf("CreateDisks: creating disk %q.", name)
-			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.SSD)
+			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.Type)
 			if err != nil {
 				e <- err
 				return

@@ -178,6 +178,7 @@ func TestValidateVarsSubbed(t *testing.T) {
 		t.Error("bad workflow with unsubbed var should have returned an error, but didn't")
 	}
 }
+
 func TestValidateWorkflow(t *testing.T) {
 	s := &Step{Timeout: "my-timeout", testType: &mockStep{}}
 

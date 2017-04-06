@@ -18,9 +18,7 @@ it accepted.
 
 1.  Please sign our [Contributor License Agreement](CONTRIBUTING.md).
 1.  Fork this Git repository and make your changes.
-1.  Create a Pull Request against the
-    [development](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/development)
-    branch.
+1.  Create a Pull Request.
 1.  Incorporate review feedback to your changes.
 1.  Accepted!
 
