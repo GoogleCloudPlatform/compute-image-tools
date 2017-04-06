@@ -25,7 +25,10 @@ import (
 	"strings"
 	"sync"
 
+	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -35,8 +38,8 @@ var (
 	zone      = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	// TODO(ajackura): Implement the endpoint overrides.
-	//ce      = flag.String("compute_endpoint_override", "", "API endpoint to override default")
-	//se      = flag.String("storage_endpoint_override", "", "API endpoint to override default")
+	ce = flag.String("compute_endpoint_override", "", "API endpoint to override default")
+	se = flag.String("storage_endpoint_override", "", "API endpoint to override default")
 )
 
 func splitVariables(input string) map[string]string {
@@ -62,43 +65,57 @@ func main() {
 
 	varMap := splitVariables(*variables)
 
-	var wfs []*workflow.Workflow
+	var ws []*workflow.Workflow
 	for _, path := range flag.Args() {
-		wf, err := workflow.NewFromFile(context.Background(), path)
+		w, err := workflow.NewFromFile(context.Background(), path)
 		if err != nil {
 			log.Fatal(err)
 		}
 		for k, v := range varMap {
-			wf.Vars[k] = v
+			w.Vars[k] = v
 		}
 		if *project != "" {
-			wf.Project = *project
+			w.Project = *project
 		}
 		if *zone != "" {
-			wf.Zone = *zone
+			w.Zone = *zone
 		}
 		if *gcsPath != "" {
-			wf.GCSPath = *gcsPath
+			w.GCSPath = *gcsPath
 		}
 		if *oauth != "" {
-			wf.OAuthPath = *oauth
+			w.OAuthPath = *oauth
 		}
 
-		wfs = append(wfs, wf)
+		if *ce != "" {
+			w.ComputeClient, err = compute.NewClient(w.Ctx, option.WithEndpoint(*ce), option.WithServiceAccountFile(w.OAuthPath))
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		if *se != "" {
+			w.StorageClient, err = storage.NewClient(w.Ctx, option.WithEndpoint(*ce), option.WithServiceAccountFile(w.OAuthPath))
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		ws = append(ws, w)
 	}
 
-	errors := make(chan error, len(wfs))
+	errors := make(chan error, len(ws))
 	var wg sync.WaitGroup
-	for _, wf := range wfs {
+	for _, w := range ws {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
 		go func() {
 			select {
 			case <-c:
-				fmt.Printf("\nCtrl-C caught, stopping and cleaning up workflow %q, this may take a second...\n", wf.Name)
-				close(wf.Cancel)
-				errors <- fmt.Errorf("workflow %q was canceled", wf.Name)
-			case <-wf.Cancel:
+				fmt.Printf("\nCtrl-C caught, stopping and cleaning up workflow %q, this may take a second...\n", w.Name)
+				close(w.Cancel)
+				errors <- fmt.Errorf("workflow %q was canceled", w.Name)
+			case <-w.Cancel:
 			}
 		}()
 		wg.Add(1)
@@ -110,7 +127,7 @@ func main() {
 				return
 			}
 			fmt.Printf("[Daisy] Workflow %q finished\n", wf.Name)
-		}(wf)
+		}(w)
 	}
 	wg.Wait()
 
