@@ -256,56 +256,6 @@ type Workflow struct {
 	logger        *log.Logger
 }
 
-// FromFile reads and unmarshals a workflow file.
-// Recursively reads subworkflow steps as well.
-func (w *Workflow) FromFile(file string) error {
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return err
-	}
-
-	if err := json.Unmarshal(data, &w); err != nil {
-		// If this is a syntax error return a useful error.
-		sErr, ok := err.(*json.SyntaxError)
-		if !ok {
-			return err
-		}
-
-		// Byte number where the error line starts.
-		start := bytes.LastIndex(data[:sErr.Offset], []byte("\n")) + 1
-		// Assume end byte of error line is EOF unless this isn't the last line.
-		end := len(data)
-		if i := bytes.Index(data[start:], []byte("\n")); i >= 0 {
-			end = start + i
-		}
-
-		// Line number of error.
-		line := bytes.Count(data[:start], []byte("\n")) + 1
-		// Position of error in line (where to place the '^').
-		pos := int(sErr.Offset) - start - 1
-
-		return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
-	}
-
-	// We need to unmarshal any SubWorkflows.
-	for name, step := range w.Steps {
-		step.name = name
-
-		if step.SubWorkflow == nil {
-			continue
-		}
-
-		sw := New(w.Ctx)
-		if err := sw.FromFile(step.SubWorkflow.Path); err != nil {
-			return err
-		}
-		step.SubWorkflow.workflow = sw
-		sw.parent = w
-	}
-
-	return nil
-}
-
 // Run runs a workflow.
 func (w *Workflow) Run() error {
 	if err := w.populate(); err != nil {
@@ -457,6 +407,8 @@ func (w *Workflow) populateStep(step *Step) error {
 	step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
 	step.SubWorkflow.workflow.ComputeClient = w.ComputeClient
 	step.SubWorkflow.workflow.StorageClient = w.StorageClient
+	step.SubWorkflow.workflow.Ctx = w.Ctx
+	step.SubWorkflow.workflow.Cancel = w.Cancel
 	for k, v := range step.SubWorkflow.Vars {
 		step.SubWorkflow.workflow.Vars[k] = v
 	}
@@ -661,6 +613,57 @@ func New(ctx context.Context) *Workflow {
 	// We can't use context.WithCancel as we use the context even after cancel for cleanup.
 	w.Cancel = make(chan struct{})
 	return &w
+}
+
+// NewFromFile reads and unmarshals a workflow file.
+// Recursively reads subworkflow steps as well.
+func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
+	w := New(ctx)
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(data, &w); err != nil {
+		// If this is a syntax error return a useful error.
+		sErr, ok := err.(*json.SyntaxError)
+		if !ok {
+			return nil, err
+		}
+
+		// Byte number where the error line starts.
+		start := bytes.LastIndex(data[:sErr.Offset], []byte("\n")) + 1
+		// Assume end byte of error line is EOF unless this isn't the last line.
+		end := len(data)
+		if i := bytes.Index(data[start:], []byte("\n")); i >= 0 {
+			end = start + i
+		}
+
+		// Line number of error.
+		line := bytes.Count(data[:start], []byte("\n")) + 1
+		// Position of error in line (where to place the '^').
+		pos := int(sErr.Offset) - start - 1
+
+		return nil, fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
+	}
+
+	// We need to unmarshal any SubWorkflows.
+	for name, step := range w.Steps {
+		step.name = name
+
+		if step.SubWorkflow == nil {
+			continue
+		}
+
+		sw, err := NewFromFile(w.Ctx, step.SubWorkflow.Path)
+		if err != nil {
+			return nil, err
+		}
+		step.SubWorkflow.workflow = sw
+		sw.parent = w
+	}
+
+	return w, nil
 }
 
 // stepsListen returns the first step that finishes/errs.

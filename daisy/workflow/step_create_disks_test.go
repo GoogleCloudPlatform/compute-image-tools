@@ -53,45 +53,47 @@ func TestCreateDisksValidate(t *testing.T) {
 	// Good case.
 	cd := CreateDisks{CreateDisk{Name: "d-bar", SourceImage: "i-foo", SizeGB: "50"}}
 	if err := cd.validate(w); err != nil {
-		t.Error(err)
+		t.Errorf("validation should not have failed: %v", err)
 	}
-	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar"}}) {
-		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar"}})
+	want := []string{"d-foo", "d-bar"}
+	if !reflect.DeepEqual(validatedDisks[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
 	}
 
 	// Good case. No source image.
 	cd = CreateDisks{CreateDisk{Name: "d-baz", SizeGB: "50"}}
 	if err := cd.validate(w); err != nil {
-		t.Error(err)
+		t.Errorf("validation should not have failed: %v", err)
 	}
-	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
-		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
+	want = []string{"d-foo", "d-bar", "d-baz"}
+	if !reflect.DeepEqual(validatedDisks[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
 	}
 
 	// Bad case. Dupe disk name.
 	cd = CreateDisks{CreateDisk{Name: "d-foo", SizeGB: "50"}}
 	if err := cd.validate(w); err == nil {
-		t.Error(err)
+		t.Errorf("validation should have failed: %v", err)
 	}
-	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
-		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
+	if !reflect.DeepEqual(validatedDisks[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
 	}
 
 	// Bad case. No Size.
 	cd = CreateDisks{CreateDisk{Name: "d-new"}}
 	if err := cd.validate(w); err == nil {
-		t.Error(err)
+		t.Errorf("validation should have failed: %v", err)
 	}
-	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
-		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
+	if !reflect.DeepEqual(validatedDisks[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
 	}
 
 	// Bad case. Image DNE.
 	cd = CreateDisks{CreateDisk{Name: "d-gaz", SourceImage: "i-dne"}}
 	if err := cd.validate(w); err == nil {
-		t.Error(err)
+		t.Errorf("validation should have failed: %v", err)
 	}
-	if !reflect.DeepEqual(validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}}) {
-		t.Errorf("%v != %v", validatedDisks, nameSet{w: {"d-foo", "d-bar", "d-baz"}})
+	if !reflect.DeepEqual(validatedDisks[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
 	}
 }

@@ -34,7 +34,10 @@ var (
 	// Check for the Google Storage URLs:
 	// http://<bucket>.storage.googleapis.com/<object>
 	// https://<bucket>.storage.googleapis.com/<object>
-	gsHTTPRegex = regexp.MustCompile(fmt.Sprintf(`^http[s]?://%s\.storage\.googleapis\.com/%s$`, bucket, object))
+	gsHTTPRegex1 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://%s\.storage\.googleapis\.com/%s$`, bucket, object))
+	// http://storage.cloud.google.com/<bucket>/<object>
+	// https://storage.cloud.google.com/<bucket>/<object>
+	gsHTTPRegex2 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://storage\.cloud\.google\.com/%s/%s$`, bucket, object))
 	// Check for the other possible Google Storage URLs:
 	// http://storage.googleapis.com/<bucket>/<object>
 	// https://storage.googleapis.com/<bucket>/<object>
@@ -42,7 +45,7 @@ var (
 	// The following are deprecated but checked:
 	// http://commondatastorage.googleapis.com/<bucket>/<object>
 	// https://commondatastorage.googleapis.com/<bucket>/<object>
-	gsHTTPRegex2 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://(?:commondata)?storage\.googleapis\.com/%s/%s$`, bucket, object))
+	gsHTTPRegex3 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://(?:commondata)?storage\.googleapis\.com/%s/%s$`, bucket, object))
 )
 
 func containsString(s string, ss []string) bool {
@@ -80,7 +83,7 @@ func randString(n int) string {
 }
 
 func splitGCSPath(p string) (string, string, error) {
-	for _, rgx := range []*regexp.Regexp{gsRegex, gsHTTPRegex, gsHTTPRegex2} {
+	for _, rgx := range []*regexp.Regexp{gsRegex, gsHTTPRegex1, gsHTTPRegex2, gsHTTPRegex3} {
 		matches := rgx.FindStringSubmatch(p)
 		if matches != nil {
 			return matches[1], matches[2], nil

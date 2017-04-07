@@ -60,7 +60,7 @@ func (c *CreateInstances) validate(w *Workflow) error {
 		}
 
 		// Startup script checking.
-		if !sourceExists(ci.StartupScript) {
+		if ci.StartupScript != "" && !w.sourceExists(ci.StartupScript) {
 			return fmt.Errorf("cannot create instance: file not found: %s", ci.StartupScript)
 		}
 

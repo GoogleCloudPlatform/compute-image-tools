@@ -1,13 +1,12 @@
 package workflow
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-
-	"fmt"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/iterator"
@@ -30,6 +29,11 @@ func (w *Workflow) recursiveGCS(bkt, prefix, dst string) error {
 		}
 	}
 	return nil
+}
+
+func (w *Workflow) sourceExists(s string) bool {
+	_, ok := w.Sources[s]
+	return ok
 }
 
 func (w *Workflow) uploadFile(src, obj string) error {

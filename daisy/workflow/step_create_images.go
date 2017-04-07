@@ -17,6 +17,7 @@ package workflow
 import (
 	"errors"
 	"fmt"
+	"path"
 	"sync"
 )
 
@@ -55,8 +56,8 @@ func (c *CreateImages) validate(w *Workflow) error {
 		if ci.SourceDisk != "" && !isLink(ci.SourceDisk) && !diskValid(w, ci.SourceDisk) {
 			return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
 		}
-		if ci.SourceFile != "" && !sourceExists(ci.SourceFile) {
-			return fmt.Errorf("cannot create image: file not found: %s", ci.SourceFile)
+		if _, _, err := splitGCSPath(ci.SourceFile); err != nil && ci.SourceFile != "" && !w.sourceExists(ci.SourceFile) {
+			return fmt.Errorf("cannot create image: file not in sources or valid GCS path: %s", ci.SourceFile)
 		}
 
 		// Project checking.
@@ -100,8 +101,21 @@ func (c *CreateImages) run(w *Workflow) error {
 				}
 			}
 
+			// Resolve SourceFile, if applicable.
+			var sourceFile string
+			if ci.SourceFile != "" {
+				if w.sourceExists(ci.SourceFile) {
+					sourceFile = fmt.Sprintf("https://storage.cloud.google.com/%s", path.Join(w.bucket, w.sourcesPath, ci.SourceFile))
+				} else if bkt, obj, err := splitGCSPath(ci.SourceFile); err == nil {
+					sourceFile = fmt.Sprintf("https://storage.cloud.google.com/%s", path.Join(bkt, obj))
+				} else {
+					e <- fmt.Errorf("%q is not in Sources and is not a valid GCS path", ci.SourceFile)
+					return
+				}
+			}
+
 			w.logger.Printf("CreateImages: creating image %q.", name)
-			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, ci.SourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
+			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, sourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {
 				e <- err
 				return
