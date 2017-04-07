@@ -291,7 +291,7 @@ func (w *Workflow) String() string {
 }
 
 func (w *Workflow) cleanup() {
-	w.logger.Print("Cleaning ephemeral resources")
+	w.logger.Printf("Cleaning ephemeral resources for workflow %q.", w.Name)
 	w.cleanupHelper(w.imageRefs, w.deleteImage)
 	w.cleanupHelper(w.instanceRefs, w.deleteInstance)
 	w.cleanupHelper(w.diskRefs, w.deleteDisk)
