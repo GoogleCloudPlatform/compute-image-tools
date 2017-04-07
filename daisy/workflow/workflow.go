@@ -111,14 +111,14 @@ type Step struct {
 	Timeout string
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
-	AttachDisks             *AttachDisks
-	CreateDisks             *CreateDisks
-	CreateImages            *CreateImages
-	CreateInstances         *CreateInstances
-	DeleteResources         *DeleteResources
-	RunTests                *RunTests
-	SubWorkflow             *SubWorkflow
-	WaitForInstancesSignal  *WaitForInstancesSignal
+	AttachDisks            *AttachDisks
+	CreateDisks            *CreateDisks
+	CreateImages           *CreateImages
+	CreateInstances        *CreateInstances
+	DeleteResources        *DeleteResources
+	RunTests               *RunTests
+	SubWorkflow            *SubWorkflow
+	WaitForInstancesSignal *WaitForInstancesSignal
 	// Used for unit tests.
 	testType step
 }
