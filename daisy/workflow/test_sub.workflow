@@ -24,7 +24,7 @@
     },
     "bootstrap stopped": {
       "timeout": "1h",
-      "waitForInstancesStopped": ["bootstrap"]
+      "waitForInstancesSignal": [{"name": "bootstrap", "stopped": true}]
     }
   },
   "dependencies": {

@@ -39,7 +39,7 @@
     },
     "${bootstrap_instance_name} stopped": {
       "timeout": "1h",
-      "waitForInstancesStopped": ["${bootstrap_instance_name}"]
+      "waitForInstancesSignal": [{"name": "${bootstrap_instance_name}", "stopped": true}]
     },
     "postinstall": {
       "createInstances": [
@@ -52,7 +52,7 @@
       ]
     },
     "postinstall stopped": {
-      "waitForInstancesStopped": ["postinstall"]
+      "waitForInstancesSignal": [{"name": "postinstall", "stopped": true}]
     },
     "create image": {
       "createImages": [

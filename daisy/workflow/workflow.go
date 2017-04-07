@@ -119,7 +119,6 @@ type Step struct {
 	RunTests                *RunTests
 	SubWorkflow             *SubWorkflow
 	WaitForInstancesSignal  *WaitForInstancesSignal
-	WaitForInstancesStopped *WaitForInstancesStopped
 	// Used for unit tests.
 	testType step
 }
@@ -158,10 +157,6 @@ func (s *Step) realStep() (step, error) {
 	if s.WaitForInstancesSignal != nil {
 		matchCount++
 		result = s.WaitForInstancesSignal
-	}
-	if s.WaitForInstancesStopped != nil {
-		matchCount++
-		result = s.WaitForInstancesStopped
 	}
 	if s.testType != nil {
 		matchCount++

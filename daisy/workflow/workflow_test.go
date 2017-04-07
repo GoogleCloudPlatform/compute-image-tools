@@ -211,9 +211,9 @@ func TestFromFile(t *testing.T) {
 				},
 			},
 			"${bootstrap_instance_name} stopped": {
-				name:                    "${bootstrap_instance_name} stopped",
-				Timeout:                 "1h",
-				WaitForInstancesStopped: &WaitForInstancesStopped{"${bootstrap_instance_name}"},
+				name:                   "${bootstrap_instance_name} stopped",
+				Timeout:                "1h",
+				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true}},
 			},
 			"postinstall": {
 				name: "postinstall",
@@ -228,7 +228,7 @@ func TestFromFile(t *testing.T) {
 			},
 			"postinstall stopped": {
 				name: "postinstall stopped",
-				WaitForInstancesStopped: &WaitForInstancesStopped{"postinstall"},
+				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "postinstall", Stopped: true}},
 			},
 			"create image": {
 				name:         "create image",
@@ -264,9 +264,9 @@ func TestFromFile(t *testing.T) {
 								},
 							},
 							"bootstrap stopped": {
-								name:                    "bootstrap stopped",
-								Timeout:                 "1h",
-								WaitForInstancesStopped: &WaitForInstancesStopped{"bootstrap"},
+								name:                   "bootstrap stopped",
+								Timeout:                "1h",
+								WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "bootstrap", Stopped: true}},
 							},
 						},
 						Dependencies: map[string][]string{
