@@ -401,7 +401,7 @@ func (w *Workflow) populateStep(step *Step) error {
 	if step.SubWorkflow == nil {
 		return nil
 	}
-	step.SubWorkflow.workflow.GCSPath = w.GCSPath
+	step.SubWorkflow.workflow.GCSPath = fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath)
 	step.SubWorkflow.workflow.Project = w.Project
 	step.SubWorkflow.workflow.Zone = w.Zone
 	step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
