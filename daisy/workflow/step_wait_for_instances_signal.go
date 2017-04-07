@@ -26,15 +26,26 @@ import (
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []InstanceSignal
 
+// SerialOutput streams SerialOutput and optionally checks the contents.
+// The listed serial port output will be streamed to the GCS logs directory
+// regardless of whether SuccessMatch or FailureMatch are set.
+// If SuccessMatch or FailureMatch are set the step will not complete until
+// a line in the serial output matches SuccessMatch or FailureMatch. A match
+// with FailureMatch will cause the step to fail.
+type SerialOutput struct {
+	Port         int64
+	SuccessMatch string
+	FailureMatch string
+}
+
 // InstanceSignal waits for a signal from an instance.
 type InstanceSignal struct {
-	Name         string
-	Stopped      bool
-	SerialOutput struct {
-		Port         int64
-		SuccessMatch string
-		FailureMatch string
-	}
+	// Instance name to wait for.
+	Name string
+	// Wait for the instance to stop.
+	Stopped bool
+	// Stream SerialOutput and optionally checks the contents.
+	SerialOutput *SerialOutput
 }
 
 func waitForSerialOutput(w *Workflow, name string, port int64, success, failure string) error {
@@ -99,7 +110,7 @@ func (s *WaitForInstancesSignal) run(w *Workflow) error {
 					return
 				}
 			}
-			if is.SerialOutput.Port != 0 {
+			if is.SerialOutput != nil {
 				if err := waitForSerialOutput(w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch); err != nil {
 					e <- err
 					return

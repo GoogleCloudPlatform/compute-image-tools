@@ -264,9 +264,16 @@ func TestFromFile(t *testing.T) {
 								},
 							},
 							"bootstrap stopped": {
-								name:                   "bootstrap stopped",
-								Timeout:                "1h",
-								WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "bootstrap", Stopped: true}},
+								name:    "bootstrap stopped",
+								Timeout: "1h",
+								WaitForInstancesSignal: &WaitForInstancesSignal{
+									{
+										Name: "bootstrap",
+										SerialOutput: &SerialOutput{
+											Port: 1, SuccessMatch: "complete", FailureMatch: "fail",
+										},
+									},
+								},
 							},
 						},
 						Dependencies: map[string][]string{
