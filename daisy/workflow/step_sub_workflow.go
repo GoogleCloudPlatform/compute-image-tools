@@ -26,6 +26,12 @@ func (s *SubWorkflow) validate(w *Workflow) error {
 }
 
 func (s *SubWorkflow) run(w *Workflow) error {
-	// prerun() work has already been done. Just run(), not Run().
-	return s.workflow.run()
+	// Prerun work has already been done. Just run(), not Run().
+	defer s.workflow.cleanup()
+	w.logger.Printf("Running subworkflow %q", s.workflow.Name)
+	if err := s.workflow.run(); err != nil {
+		s.workflow.logger.Printf("Error running subworkflow %q: %v", s.workflow.Name, err)
+		return err
+	}
+	return nil
 }
