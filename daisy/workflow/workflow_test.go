@@ -380,6 +380,10 @@ func TestPopulate(t *testing.T) {
 	subGot.StorageClient = nil
 	subGot.logger = nil
 
+	// For simplicity, here is the subworkflow scratch path.
+	// The subworkflow scratch path is a subdir of the parent workflow scratch path.
+	subScratch := fmt.Sprintf("%s/daisy-sub-%s", got.scratchPath, subGot.id)
+
 	want := &Workflow{
 		Name:         "parent",
 		GCSPath:      "gs://parent-bucket/images",
@@ -428,9 +432,8 @@ func TestPopulate(t *testing.T) {
 						"overridden": "bar",
 					},
 					workflow: &Workflow{
-						// This subworkflow should not have been modified by the parent's populate().
 						Name:         "sub",
-						GCSPath:      "gs://parent-bucket/images",
+						GCSPath:      fmt.Sprintf("gs://%s/%s", got.bucket, got.scratchPath),
 						Zone:         "parent-zone",
 						Project:      "parent-project",
 						OAuthPath:    tf,
@@ -452,10 +455,10 @@ func TestPopulate(t *testing.T) {
 							"overridden": "bar", // Check that this changed from "foo" to "bar".
 						},
 						bucket:      "parent-bucket",
-						scratchPath: "images/daisy-sub-" + subGot.id,
-						sourcesPath: fmt.Sprintf("images/daisy-sub-%s/sources", subGot.id),
-						logsPath:    fmt.Sprintf("images/daisy-sub-%s/logs", subGot.id),
-						outsPath:    fmt.Sprintf("images/daisy-sub-%s/outs", subGot.id),
+						scratchPath: subScratch,
+						sourcesPath: fmt.Sprintf("%s/sources", subScratch),
+						logsPath:    fmt.Sprintf("%s/logs", subScratch),
+						outsPath:    fmt.Sprintf("%s/outs", subScratch),
 					},
 				},
 			},
