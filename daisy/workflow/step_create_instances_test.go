@@ -61,27 +61,56 @@ func TestCreateInstancesValidate(t *testing.T) {
 		CreateInstance{Name: "i-bar", AttachedDisks: []string{"d-foo", "d-bar"}},
 	}
 	if err := ci.validate(w); err != nil {
-		t.Error("validation should not have failed")
+		t.Errorf("validation should not have failed: %v", err)
 	}
-	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Errorf("%v != %v", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
+	want := []string{"i-foo", "i-bar"}
+	if !reflect.DeepEqual(validatedInstances[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedInstances[w], want)
+	}
+
+	// Good case. StartupScript.
+	ci = CreateInstances{
+		CreateInstance{Name: "i-bas", AttachedDisks: []string{"d-foo", "d-bar"}, StartupScript: "file"},
+	}
+	w.Sources = map[string]string{"file": "gs://some/file"}
+	want = []string{"i-foo", "i-bar", "i-bas"}
+	if err := ci.validate(w); err != nil {
+		t.Errorf("validation should not have failed: %v", err)
+	}
+	if !reflect.DeepEqual(validatedInstances[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedInstances[w], want)
 	}
 
 	// Bad case. Dupe name.
 	ci = CreateInstances{
 		CreateInstance{Name: "i-bar", AttachedDisks: []string{"d-foo", "d-bar"}},
 	}
-	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Errorf("%v != %v", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
+	if err := ci.validate(w); err == nil {
+		t.Errorf("validation should have failed: %v", err)
+	}
+	if !reflect.DeepEqual(validatedInstances[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedInstances[w], want)
+	}
+
+	// Bad case. StartupScript not in Sources.
+	w.Sources = nil
+	ci = CreateInstances{
+		CreateInstance{Name: "i-baz", AttachedDisks: []string{"d-foo", "d-bar"}, StartupScript: "file"},
+	}
+	if err := ci.validate(w); err == nil {
+		t.Errorf("validation should have failed: %v", err)
+	}
+	if !reflect.DeepEqual(validatedInstances[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedInstances[w], want)
 	}
 
 	// Bad case. No disks.
 	ci = CreateInstances{CreateInstance{Name: "i-baz"}}
 	if err := ci.validate(w); err == nil {
-		t.Error("validation should have failed")
+		t.Errorf("validation should have failed: %v", err)
 	}
-	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Errorf("%v != %v", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
+	if !reflect.DeepEqual(validatedInstances[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedInstances[w], want)
 	}
 
 	// Bad case. Disk DNE.
@@ -89,9 +118,9 @@ func TestCreateInstancesValidate(t *testing.T) {
 		CreateInstance{Name: "i-baz", AttachedDisks: []string{"d-foo", "d-bar", "d-dne"}},
 	}
 	if err := ci.validate(w); err == nil {
-		t.Error("validation should have failed")
+		t.Errorf("validation should have failed: %v", err)
 	}
-	if !reflect.DeepEqual(validatedInstances, nameSet{w: {"i-foo", "i-bar"}}) {
-		t.Errorf("%v != %v", validatedInstances, nameSet{w: {"i-foo", "i-bar"}})
+	if !reflect.DeepEqual(validatedInstances[w], want) {
+		t.Fatalf("got:(%v) != want(%v)", validatedInstances[w], want)
 	}
 }

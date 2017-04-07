@@ -260,6 +260,8 @@ func TestSplitGCSPath(t *testing.T) {
 		{"gs://foo/bar", "foo", "bar", false},
 		{"http://foo.storage.googleapis.com/bar", "foo", "bar", false},
 		{"https://foo.storage.googleapis.com/bar", "foo", "bar", false},
+		{"http://storage.cloud.google.com/foo/bar", "foo", "bar", false},
+		{"https://storage.cloud.google.com/foo/bar/bar", "foo", "bar/bar", false},
 		{"http://storage.googleapis.com/foo/bar", "foo", "bar", false},
 		{"https://storage.googleapis.com/foo/bar", "foo", "bar", false},
 		{"http://commondatastorage.googleapis.com/foo/bar", "foo", "bar", false},

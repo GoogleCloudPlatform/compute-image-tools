@@ -25,7 +25,7 @@ import (
 
 const defaultTimeout = "10m"
 
-type nameSet map[*Workflow]*[]string
+type nameSet map[*Workflow][]string
 
 var (
 	// The steps DAG is inspected in DAG order.
@@ -63,29 +63,29 @@ func (n nameSet) add(w *Workflow, s string) error {
 	ss := n.getNames(w)
 
 	// Name checking first.
-	if containsString(s, *ss) {
+	if containsString(s, ss) {
 		return fmt.Errorf("workflow %q has duplicate references for %q", w.Name, s)
 	}
 	if !checkName(s) {
 		return fmt.Errorf("bad name %q", s)
 	}
 
-	*ss = append(*ss, s)
+	n[w] = append(ss, s)
 	return nil
 }
 
-func (n nameSet) getNames(w *Workflow) *[]string {
+func (n nameSet) getNames(w *Workflow) []string {
 	if ss, ok := n[w]; ok {
 		return ss
 	}
-	n[w] = &[]string{}
+	n[w] = []string{}
 	return n[w]
 }
 
 func (n nameSet) has(w *Workflow, s string) bool {
 	nameSetsMx.Lock()
 	defer nameSetsMx.Unlock()
-	return containsString(s, *n.getNames(w))
+	return containsString(s, n.getNames(w))
 }
 
 func checkName(s string) bool {
@@ -118,11 +118,6 @@ func instanceValid(w *Workflow, i string) bool {
 }
 
 func projectExists(p string) bool {
-	// TODO(crunkleton)
-	return true
-}
-
-func sourceExists(s string) bool {
 	// TODO(crunkleton)
 	return true
 }
