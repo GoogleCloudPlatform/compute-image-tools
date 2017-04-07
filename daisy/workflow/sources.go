@@ -32,10 +32,8 @@ func (w *Workflow) recursiveGCS(bkt, prefix, dst string) error {
 }
 
 func (w *Workflow) sourceExists(s string) bool {
-	if _, ok := w.Sources[s]; ok {
-		return true
-	}
-	return false
+	_, ok := w.Sources[s]
+	return ok
 }
 
 func (w *Workflow) uploadFile(src, obj string) error {
