@@ -64,7 +64,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 			}
 			start = resp.Next
 			if strings.Contains(resp.Contents, success) {
-				return fmt.Errorf("WaitForInstancesSignal: SuccessMatch instance %q: %q in %q", name, failure, resp.Contents)
+				w.logger.Printf("WaitForInstancesSignal: SuccessMatch instance %q: %q in %q", name, failure, resp.Contents)
 				return nil
 			}
 			if failure != "" && strings.Contains(resp.Contents, failure) {

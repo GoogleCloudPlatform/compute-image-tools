@@ -74,11 +74,11 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(w.Ctx)
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil {
-				w.logger.Println("CreateInstances: instance %q: error writing log to GCS:", name, err)
+				w.logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
 				return
 			}
 			if err := wc.Close(); err != nil {
-				w.logger.Println("CreateInstances: instance %q: error writing log to GCS:", name, err)
+				w.logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
 				return
 			}
 		}
