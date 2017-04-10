@@ -46,7 +46,7 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 
 	for _, test := range tests {
 		if err := test.step.validate(w); (err != nil) != test.shouldErr {
-			t.Errorf("fail: %s; step: %s; error result: %s", test.desc, test.step, err)
+			t.Errorf("fail: %s; step: %+v; error result: %s", test.desc, test.step, err)
 		}
 	}
 }
