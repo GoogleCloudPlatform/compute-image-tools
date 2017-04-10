@@ -15,17 +15,20 @@
 package workflow
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
 type CreateInstances []CreateInstance
 
-// CreateInstance describes a GCE instance.
+// CreateInstance creates a GCE instance. Output of serial port 1 will be
+// streamed to the daisy logs directory.
 type CreateInstance struct {
 	// Name of the instance.
 	Name string
@@ -45,6 +48,42 @@ type CreateInstance struct {
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?
 	ExactName bool
+}
+
+func logSerialOutput(w *Workflow, name string, port int64) {
+	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
+	w.logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s.", name, port, w.bucket, logsObj)
+	var start int64
+	var buf bytes.Buffer
+	tick := time.Tick(1 * time.Second)
+	for {
+		select {
+		case <-w.Ctx.Done():
+			return
+		case <-tick:
+			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
+			if err != nil {
+				stopped, sErr := w.ComputeClient.InstanceStopped(w.Project, w.Zone, name)
+				if stopped && sErr == nil {
+					return
+				}
+				w.logger.Printf("CreateInstances: instance %q: error getting serial port: %v", name, err)
+				return
+			}
+			start = resp.Next
+			buf.WriteString(resp.Contents)
+			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(w.Ctx)
+			wc.ContentType = "text/plain"
+			if _, err := wc.Write(buf.Bytes()); err != nil {
+				w.logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
+				return
+			}
+			if err := wc.Close(); err != nil {
+				w.logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
+				return
+			}
+		}
+	}
 }
 
 func (c *CreateInstances) validate(w *Workflow) error {
@@ -131,6 +170,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 				e <- err
 				return
 			}
+			go logSerialOutput(w, name, 1)
 			w.instanceRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup})
 		}(ci)
 	}

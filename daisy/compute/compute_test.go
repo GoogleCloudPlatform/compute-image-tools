@@ -23,6 +23,8 @@ import (
 	"reflect"
 	"testing"
 
+	"time"
+
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
@@ -260,7 +262,7 @@ func TestWaitForInstanceStopped(t *testing.T) {
 	}
 	defer svr.Close()
 
-	if err := c.WaitForInstanceStopped(testProject, testZone, testInstance); err != nil {
+	if err := c.WaitForInstanceStopped(testProject, testZone, testInstance, 5*time.Second); err != nil {
 		t.Fatalf("error running WaitForInstanceStopped: %v", err)
 	}
 }

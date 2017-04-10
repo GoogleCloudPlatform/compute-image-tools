@@ -24,7 +24,9 @@
     },
     "bootstrap stopped": {
       "timeout": "1h",
-      "waitForInstancesStopped": ["bootstrap"]
+      "waitForInstancesSignal": [
+        {"name": "bootstrap", "serialOutput": {"port": 1, "successMatch": "complete", "failureMatch": "fail"}}
+      ]
     }
   },
   "dependencies": {

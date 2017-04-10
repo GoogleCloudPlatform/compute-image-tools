@@ -203,7 +203,7 @@ func (c *Client) InstanceStopped(project, zone, instance string) (bool, error) {
 }
 
 // WaitForInstanceStopped waits a GCE instance to enter 'TERMINATED' state.
-func (c *Client) WaitForInstanceStopped(project, zone, instance string) error {
+func (c *Client) WaitForInstanceStopped(project, zone, instance string, interval time.Duration) error {
 	for {
 		stopped, err := c.InstanceStopped(project, zone, instance)
 		if err != nil {
@@ -213,7 +213,7 @@ func (c *Client) WaitForInstanceStopped(project, zone, instance string) error {
 		case true:
 			return nil
 		case false:
-			time.Sleep(20 * time.Second)
+			time.Sleep(interval)
 		}
 	}
 }

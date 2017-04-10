@@ -111,15 +111,14 @@ type Step struct {
 	Timeout string
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
-	AttachDisks             *AttachDisks
-	CreateDisks             *CreateDisks
-	CreateImages            *CreateImages
-	CreateInstances         *CreateInstances
-	DeleteResources         *DeleteResources
-	RunTests                *RunTests
-	SubWorkflow             *SubWorkflow
-	WaitForInstancesSignal  *WaitForInstancesSignal
-	WaitForInstancesStopped *WaitForInstancesStopped
+	AttachDisks            *AttachDisks
+	CreateDisks            *CreateDisks
+	CreateImages           *CreateImages
+	CreateInstances        *CreateInstances
+	DeleteResources        *DeleteResources
+	RunTests               *RunTests
+	SubWorkflow            *SubWorkflow
+	WaitForInstancesSignal *WaitForInstancesSignal
 	// Used for unit tests.
 	testType step
 }
@@ -158,10 +157,6 @@ func (s *Step) realStep() (step, error) {
 	if s.WaitForInstancesSignal != nil {
 		matchCount++
 		result = s.WaitForInstancesSignal
-	}
-	if s.WaitForInstancesStopped != nil {
-		matchCount++
-		result = s.WaitForInstancesStopped
 	}
 	if s.testType != nil {
 		matchCount++

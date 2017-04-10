@@ -18,7 +18,17 @@ import (
 	"testing"
 )
 
-func TestWaitForInstancesSignalRun(t *testing.T) {}
+func TestWaitForInstancesSignalRun(t *testing.T) {
+	wf := testWorkflow()
+	wf.instanceRefs.m = map[string]*resource{
+		"i1": {"i1", wf.genName("i1"), "link", false},
+		"i2": {"i2", wf.genName("i2"), "link", false},
+		"i3": {"i3", wf.genName("i3"), "link", false}}
+	ws := &WaitForInstancesSignal{{Name: "i1", Stopped: true}, {Name: "i2", Stopped: true}, {Name: "i3", Stopped: true}}
+	if err := ws.run(wf); err != nil {
+		t.Fatalf("error running WaitForInstancesStopped.run(): %v", err)
+	}
+}
 
 func TestWaitForInstancesSignalValidate(t *testing.T) {
 	// Set up.
@@ -30,13 +40,16 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 		step      WaitForInstancesSignal
 		shouldErr bool
 	}{
-		{"normal case", WaitForInstancesSignal{"instance1"}, false},
-		{"instance DNE error check", WaitForInstancesSignal{"instance1", "instance2"}, true},
+		{"normal case Stopped", WaitForInstancesSignal{{Name: "instance1", Stopped: true}}, false},
+		{"normal SerialOutput", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test"}}}, false},
+		{"SerialOutput no port", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{SuccessMatch: "test"}}}, true},
+		{"SerialOutput no SuccessMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1}}}, true},
+		{"instance DNE error check", WaitForInstancesSignal{{Name: "instance1", Stopped: true}, {Name: "instance2", Stopped: true}}, true},
 	}
 
 	for _, test := range tests {
 		if err := test.step.validate(w); (err != nil) != test.shouldErr {
-			t.Errorf("fail: %s; step: %s; error result: %s", test.desc, test.step, err)
+			t.Errorf("fail: %s; step: %+v; error result: %s", test.desc, test.step, err)
 		}
 	}
 }
