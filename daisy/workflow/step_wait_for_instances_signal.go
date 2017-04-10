@@ -15,9 +15,7 @@
 package workflow
 
 import (
-	"bytes"
 	"fmt"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -26,12 +24,9 @@ import (
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []InstanceSignal
 
-// SerialOutput streams SerialOutput and optionally checks the contents.
-// The listed serial port output will be streamed to the GCS logs directory
-// regardless of whether SuccessMatch or FailureMatch are set.
-// If SuccessMatch or FailureMatch are set the step will not complete until
-// a line in the serial output matches SuccessMatch or FailureMatch. A match
-// with FailureMatch will cause the step to fail.
+// This step will not complete until a line in the serial output matches
+// SuccessMatch or FailureMatch. A match with FailureMatch will cause the step
+// to fail.
 type SerialOutput struct {
 	Port         int64
 	SuccessMatch string
@@ -46,18 +41,13 @@ type InstanceSignal struct {
 	Interval time.Duration
 	// Wait for the instance to stop.
 	Stopped bool
-	// Stream SerialOutput and optionally checks the contents.
+	// Wait for a string match in the serial output.
 	SerialOutput *SerialOutput
 }
 
 func waitForSerialOutput(w *Workflow, name string, port int64, success, failure string, interval time.Duration) error {
-	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
-	w.logger.Printf("WaitForInstancesSignal: streaming serial port %d output to gs://%s/%s.", port, w.bucket, logsObj)
-	if success != "" || failure != "" {
-		w.logger.Printf("WaitForInstancesSignal: watching serial port %d, SuccessMatch: %q, FailureMatch: %q.", port, success, failure)
-	}
+	w.logger.Printf("WaitForInstancesSignal: watching serial port %d, SuccessMatch: %q, FailureMatch: %q.", port, success, failure)
 	var start int64
-	var buf bytes.Buffer
 	for {
 		tick := time.Tick(interval)
 		select {
@@ -66,23 +56,15 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
 			if err != nil {
 				stopped, sErr := w.ComputeClient.InstanceStopped(w.Project, w.Zone, name)
-				if (!stopped || sErr != nil) && success != "" {
-					return fmt.Errorf("WaitForInstancesStopped: error getting serial port: %v", err)
+				if stopped && sErr == nil {
+					w.logger.Printf("WaitForInstancesSignal: instance %q stopped, not waiting for serial output.", name)
+					return nil
 				}
-				w.logger.Printf("WaitForInstancesSignal: error getting serial port: %v", err)
-				return nil
+				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
-			buf.WriteString(resp.Contents)
-			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(w.Ctx)
-			wc.ContentType = "text/plain"
-			if _, err := wc.Write(buf.Bytes()); err != nil {
-				w.logger.Println("WaitForInstancesStopped: error writing log to GCS:", err)
-			}
-			if err := wc.Close(); err != nil {
-				w.logger.Println("WaitForInstancesStopped: error writing log to GCS:", err)
-			}
-			if success != "" && strings.Contains(resp.Contents, success) {
+			if strings.Contains(resp.Contents, success) {
+				return fmt.Errorf("WaitForInstancesSignal: SuccessMatch instance %q: %q in %q", name, failure, resp.Contents)
 				return nil
 			}
 			if failure != "" && strings.Contains(resp.Contents, failure) {
@@ -114,6 +96,7 @@ func (s *WaitForInstancesSignal) run(w *Workflow) error {
 					e <- err
 					return
 				}
+				w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
 			}
 			if is.SerialOutput != nil {
 				if err := waitForSerialOutput(w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.Interval); err != nil {
@@ -141,7 +124,15 @@ func (s *WaitForInstancesSignal) validate(w *Workflow) error {
 	// Instance checking.
 	for _, i := range *s {
 		if !instanceValid(w, i.Name) {
-			return fmt.Errorf("cannot wait for instance stopped. Instance not found: %s", i.Name)
+			return fmt.Errorf("cannot wait for instance signal. Instance not found: %q", i.Name)
+		}
+		if i.SerialOutput != nil {
+			if i.SerialOutput.Port == 0 {
+				return fmt.Errorf("%q: cannot wait for instance signal via SerialOutput, no Port given", i.Name)
+			}
+			if i.SerialOutput.SuccessMatch == "" {
+				return fmt.Errorf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch given", i.Name)
+			}
 		}
 	}
 	return nil

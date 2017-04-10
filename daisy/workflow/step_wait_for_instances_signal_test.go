@@ -40,7 +40,10 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 		step      WaitForInstancesSignal
 		shouldErr bool
 	}{
-		{"normal case", WaitForInstancesSignal{{Name: "instance1", Stopped: true}}, false},
+		{"normal case Stopped", WaitForInstancesSignal{{Name: "instance1", Stopped: true}}, false},
+		{"normal SerialOutput", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test"}}}, false},
+		{"SerialOutput no port", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{SuccessMatch: "test"}}}, true},
+		{"SerialOutput no SuccessMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1}}}, true},
 		{"instance DNE error check", WaitForInstancesSignal{{Name: "instance1", Stopped: true}, {Name: "instance2", Stopped: true}}, true},
 	}
 
