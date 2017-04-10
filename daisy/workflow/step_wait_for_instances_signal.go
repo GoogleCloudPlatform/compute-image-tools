@@ -48,10 +48,11 @@ type InstanceSignal struct {
 func waitForSerialOutput(w *Workflow, name string, port int64, success, failure string, interval time.Duration) error {
 	w.logger.Printf("WaitForInstancesSignal: watching serial port %d, SuccessMatch: %q, FailureMatch: %q.", port, success, failure)
 	var start int64
+	tick := time.Tick(interval)
 	for {
-		tick := time.Tick(interval)
 		select {
 		case <-w.Ctx.Done():
+			return nil
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
 			if err != nil {

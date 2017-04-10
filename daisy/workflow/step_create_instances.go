@@ -55,10 +55,11 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 	w.logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s.", name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
+	tick := time.Tick(1 * time.Second)
 	for {
-		tick := time.Tick(1 * time.Second)
 		select {
 		case <-w.Ctx.Done():
+			return
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
 			if err != nil {
