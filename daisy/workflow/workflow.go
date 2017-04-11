@@ -447,7 +447,7 @@ func (w *Workflow) populate() error {
 		"NAME":        w.Name,
 		"ZONE":        w.Zone,
 		"PROJECT":     w.Project,
-		"DATE":        now.Format("20170329"),
+		"DATE":        now.Format("20060102"),
 		"TIMESTAMP":   strconv.FormatInt(now.Unix(), 10),
 		"SCRATCHPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath),
 		"SOURCESPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath),
