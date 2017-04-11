@@ -69,6 +69,9 @@ func (w *Workflow) uploadSources() error {
 		}
 
 		// Local to GCS.
+		if !filepath.IsAbs(origPath) {
+			origPath = filepath.Join(w.workflowDir, origPath)
+		}
 		fi, err := os.Stat(origPath)
 		if err != nil {
 			return err

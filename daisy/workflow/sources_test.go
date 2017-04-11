@@ -34,7 +34,7 @@ func TestUploadSources(t *testing.T) {
 		{"normal local folder to GCS", map[string]string{"local": dir}, "", []string{w.sourcesPath + "/local/test"}},
 		{"normal GCS obj to GCS", map[string]string{"gcs": "gs://gcs/file"}, "", []string{w.sourcesPath + "/gcs"}},
 		{"normal GCS bkt to GCS", map[string]string{"gcs": "gs://gcs/folder/"}, "", []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
-		{"dne local path", map[string]string{"local": "./this/file/dne"}, "stat ./this/file/dne: no such file or directory", nil},
+		{"dne local path", map[string]string{"local": "./this/file/dne"}, "stat this/file/dne: no such file or directory", nil},
 		{"dne GCS path", map[string]string{"gcs": "gs://gcs/path/dne"}, `error copying from file gs://gcs/path/dne: googleapi: got HTTP response code 404 with body: storage: object doesn't exist`, nil},
 		{"GCS path, no object", map[string]string{"gcs": "gs://folder"}, "", []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
 	}

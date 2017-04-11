@@ -32,6 +32,8 @@ import (
 	"sync"
 	"time"
 
+	"path/filepath"
+
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
@@ -236,6 +238,7 @@ type Workflow struct {
 	Dependencies map[string][]string
 
 	// Working fields.
+	workflowDir   string
 	diskRefs      *refMap
 	instanceRefs  *refMap
 	imageRefs     *refMap
@@ -619,6 +622,11 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		return nil, err
 	}
 
+	w.workflowDir, err = filepath.Abs(filepath.Dir(file))
+	if err != nil {
+		return nil, err
+	}
+
 	if err := json.Unmarshal(data, &w); err != nil {
 		// If this is a syntax error return a useful error.
 		sErr, ok := err.(*json.SyntaxError)
@@ -650,7 +658,12 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 			continue
 		}
 
-		sw, err := NewFromFile(w.Ctx, step.SubWorkflow.Path)
+		swPath := step.SubWorkflow.Path
+		if !filepath.IsAbs(swPath) {
+			swPath = filepath.Join(w.workflowDir, swPath)
+		}
+
+		sw, err := NewFromFile(w.Ctx, swPath)
 		if err != nil {
 			return nil, err
 		}
