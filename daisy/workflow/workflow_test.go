@@ -168,14 +168,20 @@ func TestFromFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	subGot := got.Steps["sub workflow"].SubWorkflow.workflow
 
 	want := &Workflow{
-		id:      got.id,
-		Name:    "some-name",
-		Project: "some-project",
-		Zone:    "us-central1-a",
-		GCSPath: "gs://some-bucket/images",
+		id:          got.id,
+		workflowDir: wd,
+		Name:        "some-name",
+		Project:     "some-project",
+		Zone:        "us-central1-a",
+		GCSPath:     "gs://some-bucket/images",
 		Vars: map[string]string{
 			"bootstrap_instance_name": "bootstrap",
 			"machine_type":            "n1-standard-1",
@@ -239,7 +245,8 @@ func TestFromFile(t *testing.T) {
 				SubWorkflow: &SubWorkflow{
 					Path: "./test_sub.workflow",
 					workflow: &Workflow{
-						id: subGot.id,
+						id:          subGot.id,
+						workflowDir: wd,
 						Steps: map[string]*Step{
 							"create disks": {
 								name: "create disks",
