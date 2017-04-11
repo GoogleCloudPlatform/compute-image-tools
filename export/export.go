@@ -35,7 +35,7 @@ import (
 var (
 	disk      = flag.String("disk", "", "disk to copy, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive0'")
 	bucket    = flag.String("bucket", "", "bucket to copy the image to")
-	out       = flag.String("out", "image", "what to call the resultant image (.tar.gz will be appened)")
+	out       = flag.String("out", "image.tar.gz", "what to call the resultant image")
 	licenses  = flag.String("licenses", "", "comma deliminated list of licenses to add to the image")
 	noconfirm = flag.Bool("y", false, "skip confirmation")
 )
@@ -89,8 +89,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	name := *out + ".tar.gz"
-	w := client.Bucket(*bucket).Object(name).NewWriter(ctx)
+	w := client.Bucket(*bucket).Object(*out).NewWriter(ctx)
 	up := progress{}
 	gw := gzip.NewWriter(io.MultiWriter(&up, w))
 	rp := progress{}
@@ -99,9 +98,9 @@ func main() {
 	ls := splitLicenses(*licenses)
 	fmt.Printf("Disk %s is %s, compressed size will most likely be much smaller.\n", *disk, humanize.IBytes(uint64(size)))
 	if ls != nil {
-		fmt.Printf("Exporting disk with licenses %q to gs://%s/%s.\n", ls, *bucket, name)
+		fmt.Printf("Exporting disk with licenses %q to gs://%s/%s.\n", ls, *bucket, *out)
 	} else {
-		fmt.Printf("Exporting disk to gs://%s/%s.\n", *bucket, name)
+		fmt.Printf("Exporting disk to gs://%s/%s.\n", *bucket, *out)
 	}
 
 	if !*noconfirm {
