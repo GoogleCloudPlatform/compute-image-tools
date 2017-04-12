@@ -651,7 +651,7 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		return nil, fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 	}
 
-	if w.OAuthPath != nil && !filepath.IsAbs(w.OAuthPath) {
+	if w.OAuthPath != "" && !filepath.IsAbs(w.OAuthPath) {
 		w.OAuthPath = filepath.Join(w.workflowDir, w.OAuthPath)
 	}
 
