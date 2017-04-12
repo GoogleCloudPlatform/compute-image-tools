@@ -447,6 +447,7 @@ func (w *Workflow) populate() error {
 		"NAME":        w.Name,
 		"ZONE":        w.Zone,
 		"PROJECT":     w.Project,
+		"GCSPATH":     w.GCSPath,
 		"DATE":        now.Format("20060102"),
 		"TIMESTAMP":   strconv.FormatInt(now.Unix(), 10),
 		"SCRATCHPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath),
@@ -648,6 +649,10 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		pos := int(sErr.Offset) - start - 1
 
 		return nil, fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
+	}
+
+	if w.OAuthPath != "" && !filepath.IsAbs(w.OAuthPath) {
+		w.OAuthPath = filepath.Join(w.workflowDir, w.OAuthPath)
 	}
 
 	// We need to unmarshal any SubWorkflows.
