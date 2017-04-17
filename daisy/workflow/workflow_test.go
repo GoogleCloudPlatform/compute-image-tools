@@ -396,7 +396,7 @@ func TestPopulate(t *testing.T) {
 
 	// For simplicity, here is the subworkflow scratch path.
 	// The subworkflow scratch path is a subdir of the parent workflow scratch path.
-	subScratch := fmt.Sprintf("%s/daisy-sub-%s", got.scratchPath, subGot.id)
+	subScratch := fmt.Sprintf("%s/daisy-sub-%d-%s", got.scratchPath, time.Now().Unix(), subGot.id)
 
 	want := &Workflow{
 		Name:         "parent",
@@ -418,17 +418,17 @@ func TestPopulate(t *testing.T) {
 			"wf-name":   "parent",
 		},
 		bucket:      "parent-bucket",
-		scratchPath: "images/daisy-parent-" + got.id,
-		sourcesPath: fmt.Sprintf("images/daisy-parent-%s/sources", got.id),
-		logsPath:    fmt.Sprintf("images/daisy-parent-%s/logs", got.id),
-		outsPath:    fmt.Sprintf("images/daisy-parent-%s/outs", got.id),
+		scratchPath: fmt.Sprintf("images/daisy-parent-%d-%s", time.Now().Unix(), got.id),
+		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
+		logsPath:    fmt.Sprintf("%s/logs", got.scratchPath),
+		outsPath:    fmt.Sprintf("%s/outs", got.scratchPath),
 		Steps: map[string]*Step{
 			"parent-step1": {
 				name:    "parent-step1",
 				Timeout: "60m",
 				timeout: time.Duration(60 * time.Minute),
 				CreateImages: &CreateImages{
-					{SourceFile: fmt.Sprintf("gs://parent-bucket/images/daisy-parent-%s/sources/image_file", got.id)},
+					{SourceFile: fmt.Sprintf("gs://parent-bucket/%s/sources/image_file", got.scratchPath)},
 				},
 			},
 			"parent-step2": {

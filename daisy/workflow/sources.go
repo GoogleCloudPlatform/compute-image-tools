@@ -37,7 +37,8 @@ func (w *Workflow) sourceExists(s string) bool {
 }
 
 func (w *Workflow) uploadFile(src, obj string) error {
-	dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, filepath.ToSlash(obj)))
+	obj = filepath.ToSlash(obj)
+	dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, obj))
 	gcs := dstPath.NewWriter(w.Ctx)
 	f, err := os.Open(src)
 	if err != nil {

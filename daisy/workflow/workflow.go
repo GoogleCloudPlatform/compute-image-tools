@@ -415,6 +415,9 @@ func (w *Workflow) populateStep(step *Step) error {
 
 func (w *Workflow) populate() error {
 	w.id = randString(5)
+	now := time.Now()
+	datestamp := now.Format("20060102")
+	timestamp := strconv.FormatInt(now.Unix(), 10)
 
 	// Do replacement from Vars.
 	vars := map[string]string{}
@@ -433,7 +436,7 @@ func (w *Workflow) populate() error {
 		return err
 	}
 	w.bucket = bkt
-	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s", w.Name, w.id))
+	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s-%s", w.Name, timestamp, w.id))
 	w.sourcesPath = path.Join(w.scratchPath, "sources")
 	w.logsPath = path.Join(w.scratchPath, "logs")
 	w.outsPath = path.Join(w.scratchPath, "outs")
@@ -441,15 +444,15 @@ func (w *Workflow) populate() error {
 	// Do replacement for autovars. Autovars pull from workflow fields,
 	// so Vars replacement must run before this to resolve the final
 	// value for those fields.
-	now := time.Now()
+
 	autovars := map[string]string{
 		"ID":          w.id,
 		"NAME":        w.Name,
 		"ZONE":        w.Zone,
 		"PROJECT":     w.Project,
 		"GCSPATH":     w.GCSPath,
-		"DATE":        now.Format("20060102"),
-		"TIMESTAMP":   strconv.FormatInt(now.Unix(), 10),
+		"DATE":        datestamp,
+		"TIMESTAMP":   timestamp,
 		"SCRATCHPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath),
 		"SOURCESPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath),
 		"LOGSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.logsPath),
