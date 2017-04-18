@@ -189,6 +189,7 @@ func (s *Step) run(w *Workflow) error {
 	if err = realStep.run(w); err != nil {
 		return s.wrapRunError(err)
 	}
+	w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
 	return nil
 }
 

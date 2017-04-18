@@ -161,7 +161,7 @@ func (c *Client) DeleteImage(project, image string) error {
 	return c.operationsWait(project, "", resp.Name)
 }
 
-// DeleteDisk deletes a GCE persistant disk.
+// DeleteDisk deletes a GCE persistent disk.
 func (c *Client) DeleteDisk(project, zone, disk string) error {
 	resp, err := c.raw.Disks.Delete(project, zone, disk).Do()
 	if err != nil {
