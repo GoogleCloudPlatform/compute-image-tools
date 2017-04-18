@@ -20,6 +20,10 @@ func TestUploadSources(t *testing.T) {
 	}
 
 	w := testWorkflow()
+	sw := &Workflow{}
+	w.Steps = map[string]*Step{
+		"sub": {SubWorkflow: &SubWorkflow{workflow: sw}},
+	}
 	if err := w.populate(); err != nil {
 		t.Fatal(err)
 	}
@@ -41,6 +45,24 @@ func TestUploadSources(t *testing.T) {
 
 	for _, tt := range tests {
 		w.Sources = tt.sources
+		testGCSObjs = nil
+		err = w.uploadSources()
+		if tt.err != "" && err == nil {
+			t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
+		} else if tt.err != "" && err != nil && err.Error() != tt.err {
+			t.Errorf("unexpected error, test case: %q; input: %s; want error: %s, got error: %s", tt.desc, tt.sources, tt.err, err)
+		} else if tt.err == "" && err != nil {
+			t.Errorf("unexpected error, test case: %q; input: %s; error result: %s", tt.desc, tt.sources, err)
+		}
+		if !reflect.DeepEqual(tt.gcs, testGCSObjs) {
+			t.Errorf("expected GCS objects list does not match, test case: %q; input: %s; want: %q, got: %q", tt.desc, tt.sources, tt.gcs, testGCSObjs)
+		}
+	}
+
+	// Check that subworkflows report errors as well.
+	w.Sources = map[string]string{}
+	for _, tt := range tests {
+		sw.Sources = tt.sources
 		testGCSObjs = nil
 		err = w.uploadSources()
 		if tt.err != "" && err == nil {
