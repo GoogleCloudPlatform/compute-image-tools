@@ -294,6 +294,14 @@ func (w *Workflow) cleanup() {
 	w.cleanupHelper(w.imageRefs, w.deleteImage)
 	w.cleanupHelper(w.instanceRefs, w.deleteInstance)
 	w.cleanupHelper(w.diskRefs, w.deleteDisk)
+
+	// SubWorkflows leave resources around if the workflow fails before the
+	// SubWorkflows finish. To be safe, try to clean up SubWorkflows again.
+	for _, s := range w.Steps {
+		if s.SubWorkflow != nil {
+			s.SubWorkflow.workflow.cleanup()
+		}
+	}
 }
 
 func (w *Workflow) cleanupHelper(rm *refMap, deleteFn func(*resource) error) {
@@ -552,22 +560,28 @@ func (w *Workflow) stepDepends(consumer, consumed string) bool {
 }
 
 // Concurrently traverse the DAG, running func f on each step.
+// Return an error if f returns an error on any step.
 func (w *Workflow) traverseDAG(f func(step) error) error {
-	notify := map[string]chan error{}
+	// waiting = steps and the dependencies they are waiting for.
+	// running = the currently running steps.
+	// start = map of steps' start channels/semaphores.
+	// done = map of steps' done channels for signaling step completion.
+	waiting := map[string][]string{}
+	var running []string
+	start := map[string]chan error{}
 	done := map[string]chan error{}
 
 	// Setup: channels, copy dependencies.
-	waiting := map[string][]string{}
 	for name := range w.Steps {
 		waiting[name] = w.Dependencies[name]
-		notify[name] = make(chan error)
+		start[name] = make(chan error)
 		done[name] = make(chan error)
 	}
 	// Setup: goroutine for each step. Each waits to be notified to start.
 	for name, s := range w.Steps {
 		go func(name string, s *Step) {
 			// Wait for signal, then run the function. Return any errs.
-			if err := <-notify[name]; err != nil {
+			if err := <-start[name]; err != nil {
 				done[name] <- err
 			} else if err := f(s); err != nil {
 				done[name] <- err
@@ -577,33 +591,42 @@ func (w *Workflow) traverseDAG(f func(step) error) error {
 	}
 
 	// Main signaling logic.
-	var running []string
 	for len(waiting) != 0 || len(running) != 0 {
+		// If we got a Cancel signal, kill all waiting steps.
+		// Let running steps finish.
 		select {
 		case <-w.Cancel:
 			waiting = map[string][]string{}
 		default:
 		}
+
 		// Kick off all steps that aren't waiting for anything.
 		for name, deps := range waiting {
 			if len(deps) == 0 {
 				delete(waiting, name)
 				running = append(running, name)
-				close(notify[name])
+				close(start[name])
 			}
 		}
 
+		// Sanity check. There should be at least one running step,
+		// but loop back through if there isn't.
 		if len(running) == 0 {
 			continue
 		}
-		// Get next finished step.
+
+		// Get next finished step. Return the step error if it erred.
 		finished, err := stepsListen(running, done)
 		if err != nil {
 			return err
 		}
+
+		// Remove finished step from other steps' waiting lists.
 		for name, deps := range waiting {
 			waiting[name] = filter(deps, finished)
 		}
+
+		// Remove finished from currently running list.
 		running = filter(running, finished)
 	}
 	return nil
@@ -692,6 +715,7 @@ func stepsListen(names []string, chans map[string]chan error) (string, error) {
 	caseIndex, value, recvOk := reflect.Select(cases)
 	name := names[caseIndex]
 	if recvOk {
+		// recvOk -> a step failed, return the error.
 		return name, value.Interface().(error)
 	}
 	return name, nil
