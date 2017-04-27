@@ -426,6 +426,7 @@ func (w *Workflow) populate() error {
 	w.id = randString(5)
 	now := time.Now()
 	datestamp := now.Format("20060102")
+	datetimestamp := now.Format("20060102150405")
 	timestamp := strconv.FormatInt(now.Unix(), 10)
 
 	// Do replacement from Vars.
@@ -461,6 +462,7 @@ func (w *Workflow) populate() error {
 		"PROJECT":     w.Project,
 		"GCSPATH":     w.GCSPath,
 		"DATE":        datestamp,
+		"DATETIME":    datetimestamp,
 		"TIMESTAMP":   timestamp,
 		"SCRATCHPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath),
 		"SOURCESPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath),
