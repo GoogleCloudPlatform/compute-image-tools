@@ -13,6 +13,19 @@ The current Daisy stepset includes support for creating/deleting GCE resources,
 waiting for signals from GCE VMs, streaming GCE VM logs, uploading local files
 to GCE and GCE VMs, and more.
 
+For example, Daisy is used to create Google Official Guest OS images. The
+workflow does:
+1. Creates a Debian 8 disk and another empty disk.
+2. Creates and boots a VM with the two disks.
+3. The VM runs a script which installs an OS on the empty disk.
+4. The previously empty disk, now with an OS on it, is turned into an image.
+5. Daisy automatically cleans up ephemeral workflow resources (the VM and disks).
+
+Other use-case examples:
+* Image import workflows for images from other virtualization providers.
+* GCE environment deployment
+* Ad hoc GCE testing environment deployment and test running.
+
 ## Table of contents
   * [Setup](#setup)
   * [Running Daisy](#running-daisy)
