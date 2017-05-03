@@ -15,12 +15,12 @@ waiting for signals from GCE VMs, streaming GCE VM logs, uploading local files
 to GCE and GCE VMs, and more.
 
 For example, Daisy is used to create Google Official Guest OS images. The
-workflow does:
+workflow:
 1. Creates a Debian 8 disk and another empty disk.
 2. Creates and boots a VM with the two disks.
-3. The VM runs a script which installs an OS on the empty disk.
-4. The previously empty disk, now with an OS on it, is turned into an image.
-5. Daisy automatically cleans up ephemeral workflow resources (the VM and disks).
+3. Waits for the VM to run a script which installs an OS on the empty disk.
+4. Creates an image from the previously empty disk, now with an OS on it.
+5. Automatically cleans up ephemeral workflow resources (the VM and disks).
 
 Other use-case examples:
 * Image import workflows for images from other virtualization providers.
