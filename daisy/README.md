@@ -32,10 +32,8 @@ to GCE and GCE VMs, and more.
   * [Dependency Map](#dependency-map)
 
 ## Setup
-Daisy is available for Windows, macOS, and Linux distros. We are in the process
-of releasing precompiled binaries.
-
-Until then, Daisy is easily buildable with the Golang SDK.
+Daisy is available for Windows, macOS, and Linux distros and is easily buildable
+with the Golang SDK.
 ```shell
 go get github.com/GoogleCloudPlatform/compute-image-tools/daisy
 ```
