@@ -8,6 +8,7 @@ relationships
 # What is Daisy?
 Motivated by Google-internal image build workflows, Daisy is a solution for
 running complex, multi-step procedures on and involving GCE.
+https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy
 
 The current Daisy stepset includes support for creating/deleting GCE resources,
 waiting for signals from GCE VMs, streaming GCE VM logs, uploading local files
