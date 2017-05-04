@@ -40,6 +40,11 @@ Other use-case examples:
       * [WaitForInstancesStopped](#type-waitforinstancesstopped)
   * [Dependency Map](#dependency-map)
   * [Glossary of Terms](#glossary-of-terms)
+    * [GCE](#glossary-gce)
+    * [GCP](#glossary-gcp)
+    * [GCS](#glossary-gcs)
+    * [Partial URL](#glossary-partialurl)
+    * [Workflow](#glossary-workflow)
 
 ## Setup
 Daisy is available for Windows, macOS, and Linux distros and is easily buildable
