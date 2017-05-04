@@ -6,8 +6,7 @@ Definitions:
 relationships
 
 # What is Daisy?
-Motivated by Google-internal image build workflows, Daisy is a solution for
-running complex, multi-step procedures on and involving GCE.
+Daisy is a solution for running complex, multi-step workflows on GCE.
 https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy
 
 The current Daisy stepset includes support for creating/deleting GCE resources,
@@ -23,8 +22,8 @@ workflow:
 5. Automatically cleans up ephemeral workflow resources (the VM and disks).
 
 Other use-case examples:
-* Image import workflows for images from other virtualization providers.
-* GCE environment deployment
+* Workflows for importing external physical or virtual disks to GCE.
+* GCE environment deployment.
 * Ad hoc GCE testing environment deployment and test running.
 
 ## Table of contents
@@ -47,7 +46,7 @@ Other use-case examples:
 
 ## Setup
 Daisy is available for Windows, macOS, and Linux distros and is easily buildable
-with the Golang SDK.
+with the [Golang SDK](https://golang.org).
 ```shell
 go get github.com/GoogleCloudPlatform/compute-image-tools/daisy
 ```
