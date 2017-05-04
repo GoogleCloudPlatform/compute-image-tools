@@ -183,10 +183,20 @@ along with any of its required fields.
 Not implemented yet.
 
 #### CreateDisks
-Creates GCE disks.
+Creates GCE disks. Each disk has the following fields:
 
-This CreateDisks step example creates two disks: the first is a standard
-PD disk created from a source image, the second is blank PD SSD.
+| Field Name | Type | Description |
+| - | - | - |
+| Name | string | The name of the GCE disk. If ExactName is false, the **literal** name for this disk will be different. |
+| SourceImage | string | *Optional.* Creates a blank disk by default. The source image can be one of two possibilities: the Name of an image created in the workflow or the partial URL of an existing GCE image. |
+| SizeGB | string | *Optional if SourceImage is being used.* The size of the disk in GB. |
+| Type | string | *Optional.* Defaults to "pd-standard". The type of disk. "pd-standard" or "pd-ssd". |
+| NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
+| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE disk exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+
+
+Example: the first is a standard PD disk created from a source image, the second
+is a blank PD SSD.
 ```json
 "create disks step": {
   "createDisks": [
@@ -204,7 +214,19 @@ PD disk created from a source image, the second is blank PD SSD.
 ```
 
 #### CreateImages
-Creates GCE images.
+Creates GCE images. Each image has the following fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Name | string | The name of the GCE image. If ExactName is false, the **literal** name for this disk will be different. |
+| Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this image. |
+| Family | string | *Optional.* The image family for the image. |
+| Licenses | list(string) | *Optional.* A list of licenses to attach to the image. |
+| GuestOsFeatures | list(string) | *Optional.* A list of features to enable on the Guest OS. |
+| SourceDisk | string | *Mutually exclusive with SourceFile.* The disk from which to create the image. Can be one of two possibilities: the Name of a disk created in the workflow or the partial URL of an existing GCE disk. |
+| SourceFile | string | *Mutually exclusive with SourceDisk.* The file from which to create the image. Can be one of two possibilities: a source path as defined in the workflow Sources or a GCS path in the format "gs://..." |
+| NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this image when the workflow terminates. |
+| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE image exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateImages example creates an image from a source disk.
 ```json
