@@ -187,7 +187,7 @@ Creates GCE disks. Each disk has the following fields:
 
 | Field Name | Type | Description |
 | - | - | - |
-| Name | string | The name of the GCE disk. If ExactName is false, the **literal** name for this disk will be different. |
+| Name | string | The name of the GCE disk. If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
 | SourceImage | string | *Optional.* Creates a blank disk by default. The source image can be one of two possibilities: the Name of an image created in the workflow or the partial URL of an existing GCE image. |
 | SizeGB | string | *Optional if SourceImage is being used.* The size of the disk in GB. |
 | Type | string | *Optional.* Defaults to "pd-standard". The type of disk. "pd-standard" or "pd-ssd". |
@@ -218,7 +218,7 @@ Creates GCE images. Each image has the following fields:
 
 | Field Name | Type | Description |
 | - | - | - |
-| Name | string | The name of the GCE image. If ExactName is false, the **literal** name for this disk will be different. |
+| Name | string | The name of the GCE image. If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
 | Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this image. |
 | Family | string | *Optional.* The image family for the image. |
 | Licenses | list(string) | *Optional.* A list of licenses to attach to the image. |
