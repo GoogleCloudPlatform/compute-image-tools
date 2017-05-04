@@ -33,15 +33,15 @@ Other use-case examples:
     * [Autovars](#autovars)
     * [Sources](#sources)
     * [Steps](#steps)
-      * [AttachDisks](#attachdisks)
-      * [CreateDisks](#createdisks)
-      * [CreateImages](#createimages)
-      * [CreateInstances](#createinstances)
-      * [DeleteResources](#deleteresources)
-      * [RunTests](#runtests)
-      * [SubWorkflow](#subworkflow)
-      * [WaitForInstancesSignal](#waitforinstancessignal)
-      * [WaitForInstancesStopped](#waitforinstancesstopped)
+      * [AttachDisks](#type-attachdisks)
+      * [CreateDisks](#type-createdisks)
+      * [CreateImages](#type-createimages)
+      * [CreateInstances](#type-createinstances)
+      * [DeleteResources](#type-deleteresources)
+      * [RunTests](#type-runtests)
+      * [SubWorkflow](#type-subworkflow)
+      * [WaitForInstancesSignal](#type-waitforinstancessignal)
+      * [WaitForInstancesStopped](#type-waitforinstancesstopped)
   * [Dependency Map](#dependency-map)
 
 ## Setup
@@ -167,22 +167,22 @@ along with any of its required fields.
 ```json
 "Steps": {
   "step name 1": {
-    "stepType": {
+    "<STEP 1 TYPE>": {
       ...
     }
   },
   "step name 2": {
-    "stepType": {
+    "<STEP 2 TYPE>": {
       ...
     }
   }
 }
 ```
 
-#### AttachDisks
+#### Type: AttachDisks
 Not implemented yet.
 
-#### CreateDisks
+#### Type: CreateDisks
 Creates GCE disks. Each disk has the following fields:
 
 | Field Name | Type | Description |
@@ -199,21 +199,21 @@ Example: the first is a standard PD disk created from a source image, the second
 is a blank PD SSD.
 ```json
 "create disks step": {
-  "createDisks": [
+  "CreateDisks": [
     {
-      "name": "disk1",
-      "sourceImage": "projects/debian-cloud/global/images/family/debian-8"
+      "Name": "disk1",
+      "SourceImage": "projects/debian-cloud/global/images/family/debian-8"
     },
     {
-      "name": "disk2",
-      "sizeGb": "200",
-      "type": "pd-ssd"
+      "Name": "disk2",
+      "SizeGb": "200",
+      "Type": "pd-ssd"
     }
   ]
 }
 ```
 
-#### CreateImages
+#### Type: CreateImages
 Creates GCE images. Each image has the following fields:
 
 | Field Name | Type | Description |
@@ -231,33 +231,33 @@ Creates GCE images. Each image has the following fields:
 This CreateImages example creates an image from a source disk.
 ```json
 "create image step": {
-  "createImages": [
+  "CreateImages": [
     {
-      "name": "image1",
-      "sourceDisk": "disk2"
+      "Name": "image1",
+      "SourceDisk": "disk2"
     }
   ]
 }
 ```
 
 This CreateImages example creates an image from a file in GCS, it also
-uses the no_cleanup flag to tell Daisy that this resource should exist
-after workflow completion, and the exact_name flag to tell Daisy to not
+uses the NoCleanup flag to tell Daisy that this resource should exist
+after workflow completion, and the ExactName flag to tell Daisy to not
 use an generated name for the resource.
 ```json
 "create image step": {
-  "createImages": [
+  "CreateImages": [
     {
-      "name": "image1",
-      "sourceFile": "gs://my-bucket/image.tar.gz",
-      "noCleanup": true,
-      "exactName": true
+      "Name": "image1",
+      "SourceFile": "gs://my-bucket/image.tar.gz",
+      "NoCleanup": true,
+      "ExactName": true
     }
   ]
 }
 ```
 
-#### CreateInstances
+#### Type: CreateInstances
 Creates GCE instances.
 
 This CreateInstances step example creates an instance with two attached
@@ -274,7 +274,7 @@ disks and uses the machine type n1-standard-4.
 }
 ```
 
-#### DeleteResources
+#### Type: DeleteResources
 Deletes GCE resources (images, instances, disks). Any disks listed will
 be deleted after any listed instances.
 
@@ -290,10 +290,10 @@ disks.
 }
 ```
 
-#### RunTests
+#### Type: RunTests
 Not implemented yet.
 
-#### SubWorkflow
+#### Type: SubWorkflow
 Runs a Daisy subworkflow.
 
 This SubWorkflow step example uses a local workflow file.
@@ -305,10 +305,10 @@ This SubWorkflow step example uses a local workflow file.
 }
 ```
 
-#### WaitForInstancesSignal
+#### Type: WaitForInstancesSignal
 Not implemented yet.
 
-#### WaitForInstancesStopped
+#### Type: WaitForInstancesStopped
 Waits for a set of instances to stop.
 
 This WaitForInstancesStopped step example waits up to 1 hour for
