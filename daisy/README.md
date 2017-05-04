@@ -1,9 +1,4 @@
-Definitions:
-* GCP: Google Cloud Platform
-* GCS: Google Cloud Storage
-* GCE: Google Compute Engine
-* Workflow: a graph of executable, blocking steps and their dependency
-relationships
+
 
 # What is Daisy?
 Daisy is a solution for running complex, multi-step workflows on GCE.
@@ -33,16 +28,22 @@ Other use-case examples:
     * [Autovars](#autovars)
     * [Sources](#sources)
     * [Steps](#steps)
-      * [AttachDisks](#attachdisks)
-      * [CreateDisks](#createdisks)
-      * [CreateImages](#createimages)
-      * [CreateInstances](#createinstances)
-      * [DeleteResources](#deleteresources)
-      * [RunTests](#runtests)
-      * [SubWorkflow](#subworkflow)
-      * [WaitForInstancesSignal](#waitforinstancessignal)
-      * [WaitForInstancesStopped](#waitforinstancesstopped)
+      * [AttachDisks](#type-attachdisks)
+      * [CreateDisks](#type-createdisks)
+      * [CreateImages](#type-createimages)
+      * [CreateInstances](#type-createinstances)
+      * [DeleteResources](#type-deleteresources)
+      * [RunTests](#type-runtests)
+      * [SubWorkflow](#type-subworkflow)
+      * [WaitForInstancesSignal](#type-waitforinstancessignal)
+      * [WaitForInstancesStopped](#type-waitforinstancesstopped)
   * [Dependency Map](#dependency-map)
+  * [Glossary of Terms](#glossary-of-terms)
+    * [GCE](#glossary-gce)
+    * [GCP](#glossary-gcp)
+    * [GCS](#glossary-gcs)
+    * [Partial URL](#glossary-partialurl)
+    * [Workflow](#glossary-workflow)
 
 ## Setup
 Daisy is available for Windows, macOS, and Linux distros and is easily buildable
@@ -167,75 +168,97 @@ along with any of its required fields.
 ```json
 "Steps": {
   "step name 1": {
-    "stepType": {
+    "<STEP 1 TYPE>": {
       ...
     }
   },
   "step name 2": {
-    "stepType": {
+    "<STEP 2 TYPE>": {
       ...
     }
   }
 }
 ```
 
-#### AttachDisks
+#### Type: AttachDisks
 Not implemented yet.
 
-#### CreateDisks
-Creates GCE disks.
+#### Type: CreateDisks
+Creates GCE disks. Each disk has the following fields:
 
-This CreateDisks step example creates two disks: the first is a standard
-PD disk created from a source image, the second is blank PD SSD.
+| Field Name | Type | Description |
+| - | - | - |
+| Name | string | The name of the GCE disk. If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
+| SourceImage | string | *Optional.* Creates a blank disk by default. The source image can be one of two possibilities: the Name of an image created in the workflow or the [partial URL](#glossary-partialurl) of an existing GCE image. |
+| SizeGB | string | *Optional if SourceImage is being used.* The size of the disk in GB. |
+| Type | string | *Optional.* Defaults to "pd-standard". The type of disk. "pd-standard" or "pd-ssd". |
+| NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
+| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE disk exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+
+
+Example: the first is a standard PD disk created from a source image, the second
+is a blank PD SSD.
 ```json
 "create disks step": {
-  "createDisks": [
+  "CreateDisks": [
     {
-      "name": "disk1",
-      "sourceImage": "projects/debian-cloud/global/images/family/debian-8"
+      "Name": "disk1",
+      "SourceImage": "projects/debian-cloud/global/images/family/debian-8"
     },
     {
-      "name": "disk2",
-      "sizeGb": "200",
-      "type": "pd-ssd"
+      "Name": "disk2",
+      "SizeGb": "200",
+      "Type": "pd-ssd"
     }
   ]
 }
 ```
 
-#### CreateImages
-Creates GCE images.
+#### Type: CreateImages
+Creates GCE images. Each image has the following fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Name | string | The name of the GCE image. If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
+| Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this image. |
+| Family | string | *Optional.* The image family for the image. |
+| Licenses | list(string) | *Optional.* A list of licenses to attach to the image. |
+| GuestOsFeatures | list(string) | *Optional.* A list of features to enable on the Guest OS. |
+| SourceDisk | string | *Mutually exclusive with SourceFile.* The disk from which to create the image. Can be one of two possibilities: the Name of a disk created in the workflow or the [partial URL](#glossary-partialurl) of an existing GCE disk. |
+| SourceFile | string | *Mutually exclusive with SourceDisk.* The file from which to create the image. Can be one of two possibilities: a source path as defined in the workflow Sources or a GCS path in the format "gs://..." |
+| NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this image when the workflow terminates. |
+| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE image exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateImages example creates an image from a source disk.
 ```json
 "create image step": {
-  "createImages": [
+  "CreateImages": [
     {
-      "name": "image1",
-      "sourceDisk": "disk2"
+      "Name": "image1",
+      "SourceDisk": "disk2"
     }
   ]
 }
 ```
 
 This CreateImages example creates an image from a file in GCS, it also
-uses the no_cleanup flag to tell Daisy that this resource should exist
-after workflow completion, and the exact_name flag to tell Daisy to not
+uses the NoCleanup flag to tell Daisy that this resource should exist
+after workflow completion, and the ExactName flag to tell Daisy to not
 use an generated name for the resource.
 ```json
 "create image step": {
-  "createImages": [
+  "CreateImages": [
     {
-      "name": "image1",
-      "sourceFile": "gs://my-bucket/image.tar.gz",
-      "noCleanup": true,
-      "exactName": true
+      "Name": "image1",
+      "SourceFile": "gs://my-bucket/image.tar.gz",
+      "NoCleanup": true,
+      "ExactName": true
     }
   ]
 }
 ```
 
-#### CreateInstances
+#### Type: CreateInstances
 Creates GCE instances.
 
 This CreateInstances step example creates an instance with two attached
@@ -252,7 +275,7 @@ disks and uses the machine type n1-standard-4.
 }
 ```
 
-#### DeleteResources
+#### Type: DeleteResources
 Deletes GCE resources (images, instances, disks). Any disks listed will
 be deleted after any listed instances.
 
@@ -268,10 +291,10 @@ disks.
 }
 ```
 
-#### RunTests
+#### Type: RunTests
 Not implemented yet.
 
-#### SubWorkflow
+#### Type: SubWorkflow
 Runs a Daisy subworkflow.
 
 This SubWorkflow step example uses a local workflow file.
@@ -283,10 +306,10 @@ This SubWorkflow step example uses a local workflow file.
 }
 ```
 
-#### WaitForInstancesSignal
+#### Type: WaitForInstancesSignal
 Not implemented yet.
 
-#### WaitForInstancesStopped
+#### Type: WaitForInstancesStopped
 Waits for a set of instances to stop.
 
 This WaitForInstancesStopped step example waits up to 1 hour for
@@ -328,3 +351,12 @@ as soon as both step2 and step3 complete.
   "step4": ["step2", "step3"]
 }
 ```
+
+## Glossary of Terms
+Definitions:
+* <a id="glossary-gce"></a>GCE: Google Compute Engine
+* <a id="glossary-gcp"></a>GCP: Google Cloud Platform
+* <a id="glossary-gcs"></a>GCS: Google Cloud Storage
+* <a id="glossary-partialurl"></a>Partial URL: a URL for a GCE resource. Has the
+form of "projects/PROJECT/zone/ZONE/RESOURCETYPE/RESOURCENAME"
+* <a id="glossary-workflow"></a>Workflow: a graph of executable, blocking steps and their dependency relationships.
