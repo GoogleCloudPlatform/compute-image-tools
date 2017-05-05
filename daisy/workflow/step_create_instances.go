@@ -32,11 +32,14 @@ type CreateInstances []CreateInstance
 type CreateInstance struct {
 	// Name of the instance.
 	Name string
-	// Disks to attach to the instance, must match a disk created in a previous step.
-	// First one gets set as boot disk. At least one disk must be listed.
+	// Disks to attach to the instance, must match a disk created in a
+	// previous step.
+	// The first disk gets set as the boot disk. At least one disk must be
+	// listed.
 	AttachedDisks []string
 	MachineType   string
-	// StartupScript is the local path to a startup script to use in this step.
+	// StartupScript is the local path to a startup script to use in this
+	// step.
 	// This will be automatically mapped to the appropriate metadata key.
 	StartupScript string
 	// Additional metadata to set for the instance.
@@ -44,6 +47,9 @@ type CreateInstance struct {
 	// OAuth2 scopes to give the instance. If non are specified
 	// https://www.googleapis.com/auth/devstorage.read_only will be added.
 	Scopes []string
+	// Optional description of the resource, if not specified Daisy will
+	// create one with the name of the project.
+	Description string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?
@@ -124,11 +130,17 @@ func (c *CreateInstances) run(w *Workflow) error {
 				name = w.genName(ci.Name)
 			}
 
-			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType, ci.Scopes)
+			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType)
 			if err != nil {
 				e <- err
 				return
 			}
+			inst.Scopes = ci.Scopes
+			description := ci.Description
+			if description == "" {
+				description = fmt.Sprintf("Instance created by Daisy in workflow %q.", w.Name)
+			}
+			inst.Description = description
 
 			for i, sourceDisk := range ci.AttachedDisks {
 				var disk *resource

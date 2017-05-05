@@ -29,7 +29,8 @@ type CreateImages []CreateImage
 type CreateImage struct {
 	// Name if the image.
 	Name string
-	// Project to import image into. If this is unset Workflow.Project is used.
+	// Project to import image into. If this is unset Workflow.Project is
+	// used.
 	Project string
 	// Image family
 	Family string
@@ -41,9 +42,13 @@ type CreateImage struct {
 	// Only one of these source types should be specified.
 	SourceDisk string
 	SourceFile string
+	// Optional description of the resource, if not specified Daisy will
+	// create one with the name of the project.
+	Description string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
-	// Should we use the user-provided reference name as the actual resource name?
+	// Should we use the user-provided reference name as the actual
+	// resource name?
 	ExactName bool
 }
 
@@ -115,7 +120,11 @@ func (c *CreateImages) run(w *Workflow) error {
 			}
 
 			w.logger.Printf("CreateImages: creating image %q.", name)
-			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, sourceFile, ci.Family, ci.Licenses, ci.GuestOsFeatures)
+			description := ci.Description
+			if description == "" {
+				description = fmt.Sprintf("Image created by Daisy in workflow %q.", w.Name)
+			}
+			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, sourceFile, ci.Family, description, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {
 				e <- err
 				return

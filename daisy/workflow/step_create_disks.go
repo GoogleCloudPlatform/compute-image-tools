@@ -27,16 +27,21 @@ type CreateDisks []CreateDisk
 type CreateDisk struct {
 	// Name of the disk.
 	Name string
-	// SourceImage to use during disk creation. Leave blank for a blank disk.
+	// SourceImage to use during disk creation. Leave blank for a blank
+	// disk.
 	// See https://godoc.org/google.golang.org/api/compute/v1#Disk.
 	SourceImage string
 	// Size of this disk.
 	SizeGB string
 	// Type of disk, pd-standard (default) or pd-ssd.
 	Type string
+	// Optional description of the resource, if not specified Daisy will
+	// create one with the name of the project.
+	Description string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
-	// Should we use the user-provided reference name as the actual resource name?
+	// Should we use the user-provided reference name as the actual
+	// resource name?
 	ExactName bool
 }
 
@@ -97,7 +102,11 @@ func (c *CreateDisks) run(w *Workflow) error {
 			}
 
 			w.logger.Printf("CreateDisks: creating disk %q.", name)
-			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.Type)
+			description := cd.Description
+			if description == "" {
+				description = fmt.Sprintf("Disk created by Daisy in workflow %q.", w.Name)
+			}
+			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.Type, description)
 			if err != nil {
 				e <- err
 				return
