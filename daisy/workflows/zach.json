@@ -1,0 +1,50 @@
+{
+  "name": "compute-image-packages",
+  "project": "zmarano-dev",
+  "zone": "us-west1-b",
+  "gcsPath": "gs://zmarano-build-bucket",
+  "sources": {
+    "package_build.sh": "package_build.sh"
+  },
+  "vars": {
+    "git_branch": "master",
+    "git_repo": "https://github.com/GoogleCloudPlatform/compute-image-packages.git",
+    "publish_bucket": "gs://zmarano-build-bucket/packages"
+  },
+  "steps": {
+    "create disks": {
+      "createDisks": [
+        {
+          "name": "package-build",
+          "sourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "sizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "package-builder": {
+      "createInstances": [
+        {
+          "name": "package-builder",
+          "attachedDisks": ["package-build"],
+          "metadata": {
+            "git_branch": "${git_branch}",
+            "git_repo": "${git_repo}",
+            "publish_bucket": "${publish_bucket}"
+          },
+          "machineType": "n1-standard-2",
+          "startupScript": "package_build.sh"
+        }
+      ]
+    },
+    "package-builder stopped": {
+      "timeout": "10m",
+      "waitForInstancesSignal": [{"name": "package-builder", "stopped": true}]
+    }
+  },
+  "dependencies": {
+    "create disks": [],
+    "package-builder": ["create disks"],
+    "package-builder stopped": ["package-builder"]
+  }
+}

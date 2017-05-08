@@ -26,13 +26,12 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"path/filepath"
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -257,9 +256,14 @@ type Workflow struct {
 
 // Run runs a workflow.
 func (w *Workflow) Run() error {
+	if err := w.validateRequiredFields(); err != nil {
+		close(w.Cancel)
+		return fmt.Errorf("error validating workflow: %v", err)
+	}
+
 	if err := w.populate(); err != nil {
 		close(w.Cancel)
-		return err
+		return fmt.Errorf("error populating workflow: %v", err)
 	}
 
 	w.logger.Print("Validating workflow")
