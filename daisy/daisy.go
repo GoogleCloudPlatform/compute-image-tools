@@ -28,7 +28,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow"
-	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
 
@@ -38,7 +37,7 @@ var (
 	gcsPath   = flag.String("gcs_path", "", "GCS bucket to use, overrides what is set in workflow")
 	zone      = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
-	print     = flag.Bool("print", false, "print out the parsed workflow before populating it")
+	print     = flag.Bool("print", false, "print out the parsed workflow for debugging")
 	ce        = flag.String("compute_endpoint_override", "", "API endpoint to override default")
 	se        = flag.String("storage_endpoint_override", "", "API endpoint to override default")
 )
@@ -121,11 +120,7 @@ func main() {
 		}()
 		if *print {
 			fmt.Printf("[Daisy] Printing workflow %q\n", w.Name)
-			cfg := &pretty.Config{
-				SkipZeroFields: true,
-				Formatter:      pretty.DefaultFormatter,
-			}
-			cfg.Print(w)
+			w.Print()
 			continue
 		}
 		wg.Add(1)
