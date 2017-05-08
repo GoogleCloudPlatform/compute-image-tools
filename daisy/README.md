@@ -35,7 +35,6 @@ Other use-case examples:
       * [RunTests](#type-runtests)
       * [SubWorkflow](#type-subworkflow)
       * [WaitForInstancesSignal](#type-waitforinstancessignal)
-      * [WaitForInstancesStopped](#type-waitforinstancesstopped)
     * [Dependencies](#dependencies)
     * [Vars](#vars)
       * [Autovars](#autovars)
@@ -173,7 +172,7 @@ Creates GCE disks. Each disk has the following fields:
 | Field Name | Type | Description |
 | - | - | - |
 | Name | string | The name of the GCE disk. If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
-| SourceImage | string | *Optional.* Creates a blank disk by default. The source image can be one of two possibilities: the Name of an image created in the workflow or the [partial URL](#glossary-partialurl) of an existing GCE image. |
+| SourceImage | string | *Optional.* Creates a blank disk by default. Value can be 1) the Name of an image created in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE image. |
 | SizeGB | string | *Optional if SourceImage is being used.* The size of the disk in GB. |
 | Type | string | *Optional.* Defaults to "pd-standard". The type of disk. "pd-standard" or "pd-ssd". |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
@@ -208,8 +207,8 @@ Creates GCE images. Each image has the following fields:
 | Family | string | *Optional.* The image family for the image. |
 | Licenses | list(string) | *Optional.* A list of licenses to attach to the image. |
 | GuestOsFeatures | list(string) | *Optional.* A list of features to enable on the Guest OS. |
-| SourceDisk | string | *Mutually exclusive with SourceFile.* The disk from which to create the image. Can be one of two possibilities: the Name of a disk created in the workflow or the [partial URL](#glossary-partialurl) of an existing GCE disk. |
-| SourceFile | string | *Mutually exclusive with SourceDisk.* The file from which to create the image. Can be one of two possibilities: a source path as defined in the workflow Sources or a GCS path in the format "gs://..." |
+| SourceDisk | string | *Mutually exclusive with SourceFile.* The disk from which to create the image. Value can be 1) the Name of a disk created in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE disk. |
+| SourceFile | string | *Mutually exclusive with SourceDisk.* The file from which to create the image. Value can be 1) a Sources path or 2) a GCS path in the format "gs://..." |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this image when the workflow terminates. |
 | ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE image exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
@@ -243,34 +242,51 @@ use an generated name for the resource.
 ```
 
 #### Type: CreateInstances
-Creates GCE instances.
+Creates GCE VM instances. Each VM has the following fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Name | string | The name of the GCE VM. If ExactName is false, the **literal** VM name will have a generated suffix for the running instance of the workflow. |
+| AttachedDisks | list(string) | The disks to attach to this VM. The first disk will be used as the boot disk. These disks can be 1) Names from disks created previously in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE disk. |
+| MachineType | string | *Optional.* Defaults to "n1-standard-1". The VM [machine type](#https://cloud.google.com/compute/docs/machine-types). |
+| StartupScript | string | *Optional.* The Sources path to the desired startup script. |
+| Metadata | map[string]string | *Optional.* Metadata key-value pairs to set on the VM instance. |
+| Scopes | list(string) | *Optional.* Defaults to https://www.googleapis.com/auth/devstorage.read_only. The workflow Project's default service account credentials scopes to grant to this VM. |
+| NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this VM when the workflow terminates. |
+| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE VM exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateInstances step example creates an instance with two attached
 disks and uses the machine type n1-standard-4.
 ```json
 "create instances step": {
-  "createInstances": [
+  "CreateInstances": [
     {
-      "name": "instance1",
-      "attachedDisks": ["disk1", "disk2"],
-      "machineType": "n1-standard-4"
+      "Name": "instance1",
+      "AttachedDisks": ["disk1", "disk2"],
+      "MachineType": "n1-standard-4"
     }
   ]
 }
 ```
 
 #### Type: DeleteResources
-Deletes GCE resources (images, instances, disks). Any disks listed will
-be deleted after any listed instances.
+Deletes GCE resources (images, instances, disks). Resources are deleted in the
+order: images, instances, disks.
+
+| Field Name | Type | Description |
+| - | - | - |
+| Disks | list(string) | *Optional, but at least one of these fields must be used.* The list of disks to delete. Values can be 1) Names of disks created in this workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE disk. |
+| Images | list(string) | *Optional, but at least one of these fields must be used.* The list of images to delete. Values can be 1) Names of images created in this workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE image. |
+| Instances | list(string) | *Optional, but at least one of these fields must be used.* The list of disks to delete. Values can be 1) Names of VMs created in this workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE VM. |
 
 This DeleteResources step example deletes an image, an instance, and two
 disks.
 ```json
 "delete resources step": {
-  "deleteResources": {
-     "images":["image1"],
-     "instances":["instance1"],
-     "disks":["disk1", "disk2"]
+  "DeleteResources": {
+     "Images":["image1"],
+     "Instances":["instance1"],
+     "Disks":["disk1", "disk2"]
    }
 }
 ```
@@ -279,31 +295,56 @@ disks.
 Not implemented yet.
 
 #### Type: SubWorkflow
-Runs a Daisy subworkflow.
+Runs a Daisy workflow as a step. The subworkflow will have some fields
+overwritten. For example, the subworkflow may specify a GCP Project "foo",
+but the parent workflow is working in Project "bar". The subworkflow's Project
+will be overwritten so that subworkflow is also running in "bar", the same as
+the parent. The fields that get modified by the parent:
+* Project (copied from parent)
+* Zone (copied from parent)
+* GCSPath (changed to a subdirectory in parent's GCSPath)
+* OAuthPath (not used, parent workflow's credentials will be used)
+* Vars (Vars can be passed in via the SubWorkflow step type Vars field)
 
-This SubWorkflow step example uses a local workflow file.
+SubWorkflow step type fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Path | string | The local path to the Daisy workflow file to run as a subworkflow. |
+| Vars | map[string]string | *Optional.* Key-value pairs of variables to send to the subworkflow. Analogous to calling the subworkflow via the commandline with the `-variables foo=bar,baz=gaz` flag. |
+
+This SubWorkflow step example uses a local workflow file and passes a var,
+"foo", to the subworkflow.
 ```json
 "sub workflow step": {
-  "subWorkflow": {
-    "path": "./some_subworkflow.workflow"
+  "SubWorkflow": {
+    "Path": "./some_subworkflow.workflow",
+    "Vars": {
+        "foo": "bar"
+    }
   }
 }
 ```
 
 #### Type: WaitForInstancesSignal
-Not implemented yet.
+Waits for a signal from GCE VM instances. This step will fail if its Timeout
+is reached or if a failure signal is received. The wait configuration for each
+VM has the following fields:
 
-#### Type: WaitForInstancesStopped
-Waits for a set of instances to stop.
+| Field Name | Type | Description |
+| - | - | - |
+| Name | string | The Name or [partial URL](#glossary-partialurl) of the VM. |
+| Interval | string (Go's time duration format, e.g. "5s" = 5 seconds) | The signal polling interval. |
+| Stopped | bool | Use the VM stopping as the signal. |
+| SerialOutput | SerialOutput (see below) | Parse the serial port output for a signal. |
 
-This WaitForInstancesStopped step example waits up to 1 hour for
-'instance1' to stop.
-```json
-"wait for instances stopped step": {
-  "timeout": "1h",
-  "waitForInstancesStopped": ["instance1"]
-},
-```
+SerialOutput:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Port | int64 | The serial port number to listen to. GCE VMs have serial ports 1-4. |
+| FailureMatch | string | *Optional, but this or SuccessMatch must be provided.* An expected string in case of a failure. |
+| SuccessMatch | string | *Optional, but this or FailureMatch must be provided.* An expected string when the VM performed its task successfully. |
 
 ### Dependencies
 
@@ -371,7 +412,7 @@ out of convenience. Here is the exhaustive list of autovars:
 |	ZONE | The workflow's Zone field. |
 |	GCSPATH | The workflow's GCSPath field. |
 |	DATE | The date of the current workflow run in YYYYMMDD. |
-|	DATE | The date and time of the current workflow run in YYYYMMDDhhmmss. |
+|	DATETIME | The date and time of the current workflow run in YYYYMMDDhhmmss. |
 |	TIMESTAMP | The Unix epoch of the current workflow run. |
 |	SCRATCHPATH | The scratch subdirectory of GCSPath that the running workflow instance uses. |
 |	SOURCESPATH | Equivalent to ${SCRATCHPATH}/sources. |

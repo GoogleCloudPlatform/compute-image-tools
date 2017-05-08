@@ -38,8 +38,7 @@ type CreateInstance struct {
 	// listed.
 	AttachedDisks []string
 	MachineType   string
-	// StartupScript is the local path to a startup script to use in this
-	// step.
+	// StartupScript is the Sources path to a startup script to use in this step.
 	// This will be automatically mapped to the appropriate metadata key.
 	StartupScript string
 	// Additional metadata to set for the instance.
@@ -157,13 +156,9 @@ func (c *CreateInstances) run(w *Workflow) error {
 				}
 			}
 			if ci.StartupScript != "" {
-				var startup string
-				switch filepath.Ext(ci.StartupScript) {
-				case ".ps1", ".bat", ".cmd":
-					startup = "windows-startup-script-url"
-				default:
-					startup = "startup-script-url"
-				}
+				startup := "startup-script-url"
+				inst.AddMetadata(map[string]string{startup: "gs://" + path.Join(w.bucket, w.sourcesPath, ci.StartupScript)})
+				startup = "windows-startup-script-url"
 				inst.AddMetadata(map[string]string{startup: "gs://" + path.Join(w.bucket, w.sourcesPath, ci.StartupScript)})
 			}
 			inst.AddMetadata(ci.Metadata)
