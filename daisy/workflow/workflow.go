@@ -518,6 +518,7 @@ func (w *Workflow) populate() error {
 	return nil
 }
 
+// Print populates then pretty prints the workflow.
 func (w *Workflow) Print() {
 	w.logger = log.New(ioutil.Discard, "", 0)
 	if err := w.populate(); err != nil {
