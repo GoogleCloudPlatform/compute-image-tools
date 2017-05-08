@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"path/filepath"
 	"sync"
 	"time"
 )
