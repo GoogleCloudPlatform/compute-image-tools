@@ -28,6 +28,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow"
+	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
 
