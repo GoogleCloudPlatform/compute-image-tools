@@ -156,8 +156,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 			}
 			if ci.StartupScript != "" {
 				script := "gs://" + path.Join(w.bucket, w.sourcesPath, ci.StartupScript)
-				inst.AddMetadata(map[string]string{"startup-script-url": script})
-				inst.AddMetadata(map[string]string{"windows-startup-script-url": script})
+				inst.AddMetadata(map[string]string{"startup-script-url": script, "windows-startup-script-url": script})
 			}
 			inst.AddMetadata(ci.Metadata)
 			// Add standard Daisy metadata.
