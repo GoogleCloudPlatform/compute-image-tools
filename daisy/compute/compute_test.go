@@ -89,7 +89,7 @@ func TestCreateDisk(t *testing.T) {
 
 	// Blank disk.
 	want := &compute.Disk{Name: testDisk, SizeGb: 100, Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", testZone)}
-	got, err := c.CreateDisk(testDisk, testProject, testZone, "", want.SizeGb, "")
+	got, err := c.CreateDisk(testDisk, testProject, testZone, "", want.SizeGb, "", "")
 	if err != nil {
 		t.Fatalf("error running CreateDisk: %v", err)
 	}
@@ -99,7 +99,7 @@ func TestCreateDisk(t *testing.T) {
 
 	// Test SSD and non blank disk.
 	want = &compute.Disk{Name: testDisk, SizeGb: 50, Type: fmt.Sprintf("zones/%s/diskTypes/pd-ssd", testZone), SourceImage: "some-image"}
-	got, err = c.CreateDisk(testDisk, testProject, testZone, "some-image", 50, "pd-ssd")
+	got, err = c.CreateDisk(testDisk, testProject, testZone, "some-image", 50, "pd-ssd", "")
 	if err != nil {
 		t.Fatalf("error running CreateDisk: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestCreateImage(t *testing.T) {
 
 	// Image from disk.
 	want := &compute.Image{Name: testImage, Family: family, Licenses: licenses, GuestOsFeatures: gosf, SourceDisk: testDisk, RawDisk: &compute.ImageRawDisk{}}
-	got, err := c.CreateImage(testImage, testProject, testDisk, "", family, licenses, []string{"somefeature"})
+	got, err := c.CreateImage(testImage, testProject, testDisk, "", family, "", licenses, []string{"somefeature"})
 	if err != nil {
 		t.Fatalf("error running CreateImage: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestCreateImage(t *testing.T) {
 
 	// Image from file.
 	want = &compute.Image{Name: testImage, Family: family, Licenses: licenses, GuestOsFeatures: gosf, RawDisk: &compute.ImageRawDisk{Source: "some/file"}}
-	got, err = c.CreateImage(testImage, testProject, "", "some/file", family, licenses, []string{"somefeature"})
+	got, err = c.CreateImage(testImage, testProject, "", "some/file", family, "", licenses, []string{"somefeature"})
 	if err != nil {
 		t.Fatalf("error running CreateImage: %v", err)
 	}
@@ -200,7 +200,7 @@ func TestCreateImage(t *testing.T) {
 	}
 
 	// Test error.
-	got, err = c.CreateImage(testImage, testProject, testDisk, "some/file", family, licenses, []string{"somefeature"})
+	got, err = c.CreateImage(testImage, testProject, testDisk, "some/file", family, "", licenses, []string{"somefeature"})
 	if err.Error() != "you must provide either a sourceDisk or a sourceFile but not both to create an image" {
 		t.Errorf("did not receive expected error from CreateImage, err: %q", err)
 	}

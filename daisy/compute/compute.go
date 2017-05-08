@@ -90,7 +90,7 @@ func (c *Client) operationsWait(project, zone, name string) error {
 }
 
 // CreateDisk creates a GCE persistant disk.
-func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64, diskType string) (*compute.Disk, error) {
+func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64, diskType, description string) (*compute.Disk, error) {
 	dt := fmt.Sprintf("zones/%s/diskTypes/pd-standard", zone)
 	if diskType != "" {
 		if strings.Contains(diskType, "/") {
@@ -104,6 +104,7 @@ func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64,
 		Name:        name,
 		Type:        dt,
 		SourceImage: sourceImage,
+		Description: description,
 	}
 	if size != 0 {
 		disk.SizeGb = size
@@ -124,7 +125,7 @@ func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64,
 // Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
 // url (full or partial) to the source disk, sourceFile is the full Google
 // Cloud Storage URL where the disk image is stored.
-func (c *Client) CreateImage(name, project, sourceDisk, sourceFile, family string, licenses, guestOsFeatures []string) (*compute.Image, error) {
+func (c *Client) CreateImage(name, project, sourceDisk, sourceFile, family, description string, licenses, guestOsFeatures []string) (*compute.Image, error) {
 	if (sourceDisk != "" && sourceFile != "") || (sourceDisk == "" && sourceFile == "") {
 		return nil, errors.New("you must provide either a sourceDisk or a sourceFile but not both to create an image")
 	}
@@ -139,6 +140,7 @@ func (c *Client) CreateImage(name, project, sourceDisk, sourceFile, family strin
 		GuestOsFeatures: gosf,
 		SourceDisk:      sourceDisk,
 		RawDisk:         &compute.ImageRawDisk{Source: sourceFile},
+		Description:     description,
 	}).Do()
 	if err != nil {
 		return nil, err
@@ -225,13 +227,14 @@ type Instance struct {
 	zone              string
 	project           string
 	machineType       string
-	scopes            []string
 	disks             []*compute.AttachedDisk
 	networkInterfaces []*compute.NetworkInterface
+	metadata          *compute.Metadata
 
 	// Optional description of the instance.
 	Description string
-	metadata    *compute.Metadata
+	// Optional scopes of the instance.
+	Scopes []string
 }
 
 func (i *Instance) checkMachineType() error {
@@ -294,8 +297,8 @@ func (i *Instance) Insert() (*compute.Instance, error) {
 	machineType := prefix + "/zones/" + i.zone + "/machineTypes/" + i.machineType
 
 	scopes := []string{"https://www.googleapis.com/auth/devstorage.read_only"}
-	if len(i.scopes) > 0 {
-		scopes = i.scopes
+	if len(i.Scopes) > 0 {
+		scopes = i.Scopes
 	}
 	serviceAccounts := []*compute.ServiceAccount{
 		{
@@ -326,14 +329,13 @@ func (i *Instance) Insert() (*compute.Instance, error) {
 }
 
 // NewInstance creates a new Instance struct.
-func (c *Client) NewInstance(name, project, zone, machineType string, scopes []string) (*Instance, error) {
+func (c *Client) NewInstance(name, project, zone, machineType string) (*Instance, error) {
 	instance := &Instance{
 		client:      c,
 		name:        name,
 		zone:        zone,
 		project:     project,
 		machineType: machineType,
-		scopes:      scopes,
 	}
 
 	if err := instance.checkMachineType(); err != nil {
