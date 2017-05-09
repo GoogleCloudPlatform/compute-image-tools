@@ -22,7 +22,7 @@ import (
 // DeleteResources deletes GCE resources.
 // TODO(crunkleton) DeleteResources only works on Workflow references right now.
 type DeleteResources struct {
-	Instances, Disks, Images []string
+	Instances, Disks, Images []string `json:",omitempty"`
 }
 
 func (d *DeleteResources) validate(w *Workflow) error {

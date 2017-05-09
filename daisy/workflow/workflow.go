@@ -26,13 +26,12 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"path/filepath"
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -113,14 +112,14 @@ type Step struct {
 	Timeout string
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
-	AttachDisks            *AttachDisks
-	CreateDisks            *CreateDisks
-	CreateImages           *CreateImages
-	CreateInstances        *CreateInstances
-	DeleteResources        *DeleteResources
-	RunTests               *RunTests
-	SubWorkflow            *SubWorkflow
-	WaitForInstancesSignal *WaitForInstancesSignal
+	AttachDisks            *AttachDisks            `json:",omitempty"`
+	CreateDisks            *CreateDisks            `json:",omitempty"`
+	CreateImages           *CreateImages           `json:",omitempty"`
+	CreateInstances        *CreateInstances        `json:",omitempty"`
+	DeleteResources        *DeleteResources        `json:",omitempty"`
+	RunTests               *RunTests               `json:",omitempty"`
+	SubWorkflow            *SubWorkflow            `json:",omitempty"`
+	WaitForInstancesSignal *WaitForInstancesSignal `json:",omitempty"`
 	// Used for unit tests.
 	testType step
 }
@@ -229,11 +228,11 @@ type Workflow struct {
 	// GCS Path to use for scratch data and write logs/results to.
 	GCSPath string
 	// Path to OAuth credentials file.
-	OAuthPath string
+	OAuthPath string `json:",omitempty"`
 	// Sources used by this workflow, map of destination to source.
-	Sources map[string]string
+	Sources map[string]string `json:",omitempty"`
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars  map[string]string
+	Vars  map[string]string `json:",omitempty"`
 	Steps map[string]*Step
 	// Map of steps to their dependencies.
 	Dependencies map[string][]string
@@ -257,9 +256,14 @@ type Workflow struct {
 
 // Run runs a workflow.
 func (w *Workflow) Run() error {
+	if err := w.validateRequiredFields(); err != nil {
+		close(w.Cancel)
+		return fmt.Errorf("error validating workflow: %v", err)
+	}
+
 	if err := w.populate(); err != nil {
 		close(w.Cancel)
-		return err
+		return fmt.Errorf("error populating workflow: %v", err)
 	}
 
 	w.logger.Print("Validating workflow")
@@ -512,6 +516,20 @@ func (w *Workflow) populate() error {
 		}
 	}
 	return nil
+}
+
+// Print populates then pretty prints the workflow.
+func (w *Workflow) Print() {
+	w.logger = log.New(ioutil.Discard, "", 0)
+	if err := w.populate(); err != nil {
+		fmt.Println("Error running populate:", err)
+	}
+
+	b, err := json.MarshalIndent(w, "", "  ")
+	if err != nil {
+		fmt.Println("Error marshalling workflow for printing:", err)
+	}
+	fmt.Println(string(b))
 }
 
 func (w *Workflow) run() error {

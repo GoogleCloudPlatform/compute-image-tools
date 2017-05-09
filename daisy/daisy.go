@@ -37,9 +37,9 @@ var (
 	gcsPath   = flag.String("gcs_path", "", "GCS bucket to use, overrides what is set in workflow")
 	zone      = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
-	// TODO(ajackura): Implement the endpoint overrides.
-	ce = flag.String("compute_endpoint_override", "", "API endpoint to override default")
-	se = flag.String("storage_endpoint_override", "", "API endpoint to override default")
+	print     = flag.Bool("print", false, "print out the parsed workflow for debugging")
+	ce        = flag.String("compute_endpoint_override", "", "API endpoint to override default")
+	se        = flag.String("storage_endpoint_override", "", "API endpoint to override default")
 )
 
 func splitVariables(input string) map[string]string {
@@ -118,6 +118,11 @@ func main() {
 			case <-w.Cancel:
 			}
 		}()
+		if *print {
+			fmt.Printf("[Daisy] Printing workflow %q\n", w.Name)
+			w.Print()
+			continue
+		}
 		wg.Add(1)
 		go func(wf *workflow.Workflow) {
 			defer wg.Done()
@@ -145,6 +150,8 @@ func main() {
 			}
 		}
 	default:
-		fmt.Println("[Daisy] All workflows completed successfully.")
+		if !*print {
+			fmt.Println("[Daisy] All workflows completed successfully.")
+		}
 	}
 }

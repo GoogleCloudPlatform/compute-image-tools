@@ -36,18 +36,18 @@ type CreateInstance struct {
 	// The first disk gets set as the boot disk. At least one disk must be
 	// listed.
 	AttachedDisks []string
-	MachineType   string
+	MachineType   string `json:",omitempty"`
 	// StartupScript is the Sources path to a startup script to use in this step.
 	// This will be automatically mapped to the appropriate metadata key.
-	StartupScript string
+	StartupScript string `json:",omitempty"`
 	// Additional metadata to set for the instance.
-	Metadata map[string]string
+	Metadata map[string]string `json:",omitempty"`
 	// OAuth2 scopes to give the instance. If non are specified
 	// https://www.googleapis.com/auth/devstorage.read_only will be added.
-	Scopes []string
+	Scopes []string `json:",omitempty"`
 	// Optional description of the resource, if not specified Daisy will
 	// create one with the name of the project.
-	Description string
+	Description string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?

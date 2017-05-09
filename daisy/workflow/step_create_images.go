@@ -31,20 +31,20 @@ type CreateImage struct {
 	Name string
 	// Project to import image into. If this is unset Workflow.Project is
 	// used.
-	Project string
+	Project string `json:",omitempty"`
 	// Image family
-	Family string
+	Family string `json:",omitempty"`
 	// Image licenses
-	Licenses []string
+	Licenses []string `json:",omitempty"`
 	// A list of features to enable on the guest OS.
 	// https://godoc.org/google.golang.org/api/compute/v1#GuestOsFeature
-	GuestOsFeatures []string
+	GuestOsFeatures []string `json:",omitempty"`
 	// Only one of these source types should be specified.
-	SourceDisk string
-	SourceFile string
+	SourceDisk string `json:",omitempty"`
+	SourceFile string `json:",omitempty"`
 	// Optional description of the resource, if not specified Daisy will
 	// create one with the name of the project.
-	Description string
+	Description string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual

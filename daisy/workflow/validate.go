@@ -122,29 +122,33 @@ func projectExists(p string) bool {
 	return true
 }
 
-func (w *Workflow) validate() error {
+func (w *Workflow) validateRequiredFields() error {
 	if w.Name == "" {
-		return errors.New("must provide workflow field 'name'")
+		return errors.New("must provide workflow field 'Name'")
 	}
 	if w.Project == "" {
-		return errors.New("must provide workflow field 'project'")
+		return errors.New("must provide workflow field 'Project'")
 	}
 	if w.Zone == "" {
-		return errors.New("must provide workflow field 'zone'")
+		return errors.New("must provide workflow field 'Zone'")
 	}
 	if w.GCSPath == "" {
-		return errors.New("must provide workflow field 'gcs_path'")
+		return errors.New("must provide workflow field 'GCSPath'")
 	}
 	if len(w.Steps) == 0 {
-		return errors.New("must provide at least one step in workflow field 'steps'")
+		return errors.New("must provide at least one step in workflow field 'Steps'")
 	}
-	for name, step := range w.Steps {
+	for name := range w.Steps {
 		if name == "" {
-			return fmt.Errorf("no name defined for step %q", name)
+			return fmt.Errorf("no name defined for Step %q", name)
 		}
-		if step.Timeout == "" {
-			return fmt.Errorf("no timeout defined for step %q", name)
-		}
+	}
+	return nil
+}
+
+func (w *Workflow) validate() error {
+	if err := w.validateRequiredFields(); err != nil {
+		return err
 	}
 
 	// Check for unsubstituted vars.

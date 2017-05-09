@@ -30,14 +30,14 @@ type CreateDisk struct {
 	// SourceImage to use during disk creation. Leave blank for a blank
 	// disk.
 	// See https://godoc.org/google.golang.org/api/compute/v1#Disk.
-	SourceImage string
+	SourceImage string `json:",omitempty"`
 	// Size of this disk.
-	SizeGB string
+	SizeGB string `json:",omitempty"`
 	// Type of disk, pd-standard (default) or pd-ssd.
-	Type string
+	Type string `json:",omitempty"`
 	// Optional description of the resource, if not specified Daisy will
 	// create one with the name of the project.
-	Description string
+	Description string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual
