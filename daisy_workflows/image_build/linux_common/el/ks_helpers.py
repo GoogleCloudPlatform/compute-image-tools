@@ -1,0 +1,293 @@
+"""Kickstart helper functions used to build kickstart files."""
+
+import logging
+import os
+
+
+class RepoString(object):
+  """Creates a yum.conf repository section statement for a kickstart file.
+
+  See the yum.conf man pages for more information about fomatting
+  requirements.
+
+  The attributes listed are the minimun data set for a repo section.
+
+  Attributes:
+    head: The header that should be used for the repo section.
+    name: The name as it will appear in yum.
+    baseurl: The url for the repo.
+    enabled: Set to 1 to enable.
+    gpgcheck: Set to 1 to enable.
+    repo_gpgcheck: Set to 1 to enable.
+    gpgkey: URLs pointing to GPG keys.
+  """
+
+  url_root = 'https://packages.cloud.google.com/yum/repos'
+  gpgkey_list = [
+      'https://packages.cloud.google.com/yum/doc/yum-key.gpg',
+      'https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg'
+  ]
+
+  # New repos should be added here. Create a dict for your repo bellow.
+  # This dict should contain the following:
+  # head: The header that should be used for the repo section.
+  # name: The name as it will appear in yum.
+  # url_branch: This is combined with url_root (defined in the class) and
+  #   repo_version to create the repo's baseurl. You must include a string
+  #   formatter '%s' to place the repo_version in your URL.
+  #   e.g. /google-cloud-compute-%s-x86_64-unstable
+  # filename: This is the location the yum.conf section file will live on the
+  # image.
+
+  repodict = {
+      'compute': {
+          'head': '[google-cloud-compute]',
+          'name': 'Google Cloud Compute',
+          'url_branch': '/google-cloud-compute-%s-x86_64',
+          'filename': '/etc/yum.repos.d/google-cloud.repo'
+      },
+      'sdk': {
+          'head': '[google-cloud-sdk]',
+          'name': 'Google Cloud SDK',
+          'url_branch': '/cloud-sdk-%s-x86_64',
+          'filename': '/etc/yum.repos.d/google-cloud.repo'
+      },
+      'unstable': {
+          'head': '[google-cloud-compute-unstable]',
+          'name': 'Google Cloud Compute Unstable',
+          'url_branch': '/google-cloud-compute-%s-x86_64-unstable',
+          'filename': '/etc/yum.repos.d/google-cloud-unstable.repo'
+      },
+      'staging': {
+          'head': '[google-cloud-compute-staging]',
+          'name': 'Google Cloud Compute Staging',
+          'url_branch': '/google-cloud-compute-%s-x86_64-staging',
+          'filename': '/etc/yum.repos.d/google-cloud-staging.repo'
+      }
+  }
+
+  def __init__(self, repo_version, repo):
+    """Initializes RepoString with attributes passes as arguments.
+
+    Args:
+      repo_version: string; expects 'el6', or 'el7'.
+
+      repo: string; used to specify which dict in repodict to use to assemble
+            the yum.conf repo segment.
+
+    repodata must contain the following:
+    head: The header that should be used for the repo entry.
+    name: The name as it will appear in yum.
+    url_branch: This is combined with url_root (defined in the class) and
+    repo_version to create the repo's baseurl. You must include a string
+      formatter '%s' to place the repo_version in your URL.
+      e.g. /google-cloud-compute-%s-x86_64-unstable
+
+    Returns:
+      An initialized RepoString object.
+    """
+    super(RepoString, self).__init__()
+    self.repo = repo
+    self.repo_version = repo_version
+    self.yumseg = {}
+    self.yumseg['head'] = self.repodict[self.repo]['head']
+    self.yumseg['name'] = self.repodict[self.repo]['name']
+    self.yumseg['baseurl'] = (
+        self.GetBaseURL(self.repodict[self.repo]['url_branch']))
+    self.yumseg['enabled'] = '1'
+    self.yumseg['gpgcheck'] = '1'
+    self.yumseg['repo_gpgcheck'] = '1'
+    self.yumseg['gpgkey'] = self.gpgkey_list
+
+  def __str__(self):
+    """Override the string method to return a yum.conf repository section.
+
+    Returns:
+      RepoString; tell python to treat this as a string using str().
+    """
+    keylist = ['head',
+               'name',
+               'baseurl',
+               'enabled',
+               'gpgcheck',
+               'repo_gpgcheck',
+               'gpgkey']
+    yum_repo_list = (
+        [('tee -a %s << EOM' % self.repodict[self.repo]['filename']),])
+    for key in keylist:
+      if key == 'head':
+        yum_repo_list.append(self.yumseg[key])
+      elif key == 'gpgkey':
+        yum_repo_list.append('%s=%s' %
+                             (key, '\n       '.join(self.gpgkey_list)))
+      else:
+        yum_repo_list.append('%s=%s' % (key, self.yumseg[key]))
+    yum_repo_list.append('EOM')
+    return '\n'.join(yum_repo_list)
+
+  def GetBaseURL(self, url_branch):
+    """Assembles the baseurl attribute of RepoString.
+
+    Proccesses the string formatting in url_branch then combines it with
+    url_root to create the baseurl.
+
+    Args:
+      url_branch: string; this is combined with url_root and repo_version to
+                  create the repo's baseurl. You must include a string
+                  formatter '%s' to place the repo_version in your URL.
+                    e.g. /google-cloud-compute-%s-x86_64-unstable
+
+    Returns:
+      string; baseurl
+    """
+    return self.url_root + (url_branch % self.repo_version)
+
+
+def BuildKsConfig(release, google_cloud_repo):
+  """Builds kickstart config from shards.
+
+  Args:
+    release: string; image from metadata.
+
+    google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
+
+  Returns:
+    string; a valid kickstart config.
+  """
+
+  # This is where we put the kickstart config together. There are three sections
+  # in a kickstart config. Sections are:
+  # Commands and options
+  # Packages
+  # pre and post
+  # Each section must be in a specific order, but items in that section do not
+  # have to be.
+
+  # Common
+  ks_packages = FetchConfigPart('common-packages.cfg')
+
+  if release == "rhel6":
+    ks_options = FetchConfigPart('el6-options.cfg')
+    custom_post = FetchConfigPart('el6-post.cfg')
+    repo_version = 'el6'
+  elif release == "centos6":
+    ks_options = FetchConfigPart('el6-options.cfg')
+    custom_post = FetchConfigPart('co6-post.cfg')
+    repo_version = 'el6'
+  elif release == "rhel7":
+    ks_options = FetchConfigPart('el7-options.cfg')
+    custom_post = FetchConfigPart('el7-post.cfg')
+    repo_version = 'el7'
+  elif release == "centos7":
+    ks_options = FetchConfigPart('el7-options.cfg')
+    custom_post = FetchConfigPart('co7-post.cfg')
+    repo_version = 'el7'
+  else:
+    logging.error('Unknown Image Name: %s', release)
+
+  ks_post = BuildPost(custom_post, repo_version, google_cloud_repo)
+
+  # This list should be in the order that you want each section to appear in the
+  # Kickstart config.
+  return '\n'.join([ks_options, ks_packages, ks_post])
+
+
+def BuildPost(custom_post, repo_version, google_cloud_repo):
+  """Assembles the %pre/post section of a kickstart file.
+
+  Args:
+    custom_post: string; a kickstart %pre/post segment containing post install
+                 steps needed for a given flavor of Enterprise Linux.
+
+    repo_version: string; expects 'el6', or 'el7'.
+
+    google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
+
+  Returns:
+    string; a complete %pre/post segment of a kickstart file.
+  """
+  # EL6 requires a %pre section to set up networking before the install.
+  el6_pre = FetchConfigPart('el6-pre.cfg')
+
+  # This is used to create a synopsis of the image and should appear right
+  # before the image is pushed to GCS.
+  create_synopsis = FetchConfigPart('create-synopsis-post.cfg')
+
+  # This pushes the image and logs to GCS and should be the last thing in post
+  # file.
+  upload_image = FetchConfigPart('upload-image-post.cfg')
+
+  # Configure repository %post section
+  repo_post = BuildReposPost(repo_version, google_cloud_repo)
+
+  if repo_version == 'el6':
+    ks_post_list = [
+        el6_pre, repo_post, custom_post, create_synopsis, upload_image]
+  else:
+    ks_post_list = [
+        repo_post, custom_post, create_synopsis, upload_image]
+
+  return '\n'.join(ks_post_list)
+
+
+def BuildReposPost(repo_version, google_cloud_repo):
+  """Creates a kickstart post macro with repos needed by GCE.
+
+  Args:
+    repo_version: string; expects 'el6', or 'el7'.
+
+    google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'
+
+  Returns:
+    string; a complete %post macro that can be added to a kickstart file. The
+    output should look like the following example.
+
+    %post
+    tee -a /etc/yum.repos.d/example.repo << EOF
+    [example-repo]
+    name=Example Repo
+    baseurl=https://example.com/yum/repos/example-repo-ver-x86_64
+    enabled=1
+    gpgcheck=1
+    repo_gpgcheck=1
+    gpgkey=https://example.com/yum/doc/yum-key.gpg
+           https://example.com/yum/doc/rpm-package-key.gpg
+    EOF
+    ...
+    %end
+
+  The values for enabled, gpgcheck, repo_gpgcheck, and gpgkey are constants. the
+  values for head, name, and baseurl can be modified to point to use any repo
+  that will accept the supplied gpg keys.
+  """
+
+  # Build a list of repos that will be returned. All images will get the compute
+  # repo. EL7 images get the cloud SDK repo. The unstable, and staging repos
+  # can be added to either by setting the google_cloud_repo value.
+  repolist = ['compute']
+  if repo_version == 'el7':
+    repolist.append('sdk')
+  if google_cloud_repo == 'unstable':
+    repolist.append('unstable')
+  if google_cloud_repo == 'staging':
+    repolist.append('staging')
+
+  filelist = ['%post']
+  for repo in repolist:
+    filelist.append(str(RepoString(repo_version, repo)))
+  filelist.append('%end')
+  return '\n'.join(filelist)
+
+
+def FetchConfigPart(config_file):
+  """Reads data from a kickstart file.
+
+  Args:
+    config_file: string; the name of a kickstart file shard located in
+        the 'kickstart' directory.
+
+  Returns:
+    string; contents of config_file should be a string with newlines.
+  """
+  with open(os.path.join('kickstart', config_file)) as f:
+    return f.read()
