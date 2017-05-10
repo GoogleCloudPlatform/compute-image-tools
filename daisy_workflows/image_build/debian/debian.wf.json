@@ -1,0 +1,64 @@
+{
+  "Name": "${wf-name}",
+  "Vars": {
+    "bootstrap-vz-manifest": "",
+    "bootstrap-vz-version": "7af9cd9fb85d845884b2bd031fa694cc3c101d81",
+    "google-cloud-repo": "stable",
+    "image-dest": "",
+    "license-id": "",
+    "release": "",
+    "wf-name": "build-debian-subwf"
+  },
+  "Sources": {
+    "build_files": "./",
+    "build_files/utils.py": "../linux_common/utils.py",
+    "startup_script": "../linux_common/bootstrap.py"
+  },
+  "Steps": {
+    "setup": {
+      "CreateDisks": [
+        {
+          "name": "${release}-build-${ID}",
+          "sourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "sizeGb": "10",
+          "type": "pd-ssd",
+          "exactName": true
+        }
+      ]
+    },
+    "run": {
+      "CreateInstances": [
+        {
+          "Name": "${release}-build-${ID}",
+          "AttachedDisks": ["${release}-build-${ID}"],
+          "MachineType": "n1-standard-8",
+          "Metadata": {
+            "bootstrap-vz-manifest": "${bootstrap-vz-manifest}",
+            "bootstrap-vz-version": "${bootstrap-vz-version}",
+            "build-files-gcs-dir": "${SOURCESPATH}/build_files",
+            "build-script": "build.py",
+            "google-cloud-repo": "${google-cloud-repo}",
+            "image-dest": "${image-dest}/${DATETIME}-${release}",
+            "license-id": "${license-id}",
+            "release": "${release}"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write"
+          ],
+          "StartupScript": "startup_script",
+          "ExactName": true
+        }
+      ]
+    },
+    "wait": {
+      "Timeout": "60m",
+      "WaitForInstancesSignal": [
+        {"Name": "${release}-build-${ID}", "Stopped": true}
+      ]
+    }
+  },
+  "Dependencies": {
+    "run": ["setup"],
+    "wait": ["run"]
+  }
+}

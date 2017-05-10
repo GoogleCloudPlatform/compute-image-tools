@@ -1,0 +1,14 @@
+{
+  "Name": "subworkflow",
+  "Project": "YOURPROJECT",
+  "Zone": "us-west1-a",
+  "GCSPath": "gs://YOUR/GCS/PATH",
+  "OAuthPath": "YOUR/CREDS.json",
+  "Steps": {
+    "sub": {
+      "SubWorkflow": {
+        "Path": "simple_vm.wf.json"
+      }
+    }
+  }
+}

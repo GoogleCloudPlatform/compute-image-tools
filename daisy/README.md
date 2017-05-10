@@ -153,7 +153,8 @@ along with any of its required fields.
   "step name 1": {
     "<STEP 1 TYPE>": {
       ...
-    }
+    },
+    "Timeout": "<OPTIONAL TIME DURATION>"
   },
   "step name 2": {
     "<STEP 2 TYPE>": {

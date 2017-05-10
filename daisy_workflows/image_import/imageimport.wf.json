@@ -1,0 +1,50 @@
+{
+  "Name": "image-import",
+  "Vars": {
+    "source": "",
+    "image-name": "my-image"
+  },
+  "Sources": {
+    "orig_image": "${source}",
+    "startup_script": "imageimport_startup.sh"
+  },
+  "Steps": {
+    "setup": {
+      "CreateDisks": [
+        {
+          "Name": "importer",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "import_image": {
+      "CreateInstances": [
+        {
+          "Name": "importer",
+          "AttachedDisks": ["importer"],
+          "MachineType": "n1-highcpu-16",
+          "Metadata": {
+            "source-url": "${SOURCESPATH}/orig_image",
+            "image-name": "${image-name}",
+            "vm-name": "importer-${NAME}-${ID}",
+            "workflow-name": "${NAME}",
+            "workflow-id": "${ID}",
+            "zone": "${ZONE}"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/compute", "https://www.googleapis.com/auth/devstorage.read_write"],
+          "StartupScript": "startup_script"
+        }
+      ]
+    },
+    "wait": {
+      "WaitForInstancesSignal": [{"Name": "importer", "Stopped": true}],
+      "Timeout": "60m"
+    }
+  },
+  "Dependencies": {
+    "import_image": ["setup"],
+    "wait": ["import_image"]
+  }
+}

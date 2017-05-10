@@ -1,0 +1,28 @@
+{
+  "Name": "build-rhel7",
+  "Vars": {
+    "image-dest": "",
+    "installer-iso": "",
+    "rhui-client-rpm": ""
+  },
+  "Sources": {
+    "installer.iso": "${installer-iso}",
+    "rhui_client.rpm": "${rhui-client-rpm}"
+  },
+  "Steps": {
+    "build-rhel7": {
+      "Timeout": "60m",
+      "SubWorkflow": {
+        "Path": "./rhel.wf.json",
+        "Vars": {
+          "wf-name": "build-rhel7",
+          "image-dest": "${image-dest}",
+          "installer-iso": "${SOURCESPATH}/installer.iso",
+          "license-id": "1000006",
+          "release": "rhel7",
+          "rhui-client-rpm": "${SOURCESPATH}/rhui_client.rpm"
+        }
+      }
+    }
+  }
+}
