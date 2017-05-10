@@ -68,7 +68,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
-			if strings.Contains(resp.Contents, success) {
+			if success != "" && strings.Contains(resp.Contents, success) {
 				w.logger.Printf("WaitForInstancesSignal: SuccessMatch instance %q: %q in %q", name, failure, resp.Contents)
 				return nil
 			}
@@ -132,8 +132,8 @@ func (s *WaitForInstancesSignal) validate(w *Workflow) error {
 			if i.SerialOutput.Port == 0 {
 				return fmt.Errorf("%q: cannot wait for instance signal via SerialOutput, no Port given", i.Name)
 			}
-			if i.SerialOutput.SuccessMatch == "" {
-				return fmt.Errorf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch given", i.Name)
+			if i.SerialOutput.SuccessMatch == "" && i.SerialOutput.FailureMatch == "" {
+				return fmt.Errorf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
 			}
 		}
 	}

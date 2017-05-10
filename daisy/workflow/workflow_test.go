@@ -149,6 +149,10 @@ func TestFromFileSyntax(t *testing.T) {
 			`{"test": value}`,
 			tf + ": JSON syntax error in line 1: invalid character 'v' looking for beginning of value \n{\"test\": value}\n         ^",
 		},
+		{
+			`{"test": "value"`,
+			tf + ": JSON syntax error in line 1: unexpected end of JSON input \n{\"test\": \"value\"\n               ^",
+		},
 	}
 
 	for _, tt := range tests {
