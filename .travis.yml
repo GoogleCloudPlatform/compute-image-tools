@@ -12,7 +12,7 @@ before_install:
 script:
   - go vet ./...
   - ./.travis.gofmt.sh
-  - go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+  - ./.travis.test.sh
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
