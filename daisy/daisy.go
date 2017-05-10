@@ -28,7 +28,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow"
-	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
 
@@ -39,6 +38,7 @@ var (
 	zone      = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	print     = flag.Bool("print", false, "print out the parsed workflow for debugging")
+	validate  = flag.Bool("validate", false, "validate the workflow and exit")
 	ce        = flag.String("compute_endpoint_override", "", "API endpoint to override default")
 	se        = flag.String("storage_endpoint_override", "", "API endpoint to override default")
 )

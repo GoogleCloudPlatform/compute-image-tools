@@ -708,7 +708,10 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		// Line number of error.
 		line := bytes.Count(data[:start], []byte("\n")) + 1
 		// Position of error in line (where to place the '^').
-		pos := int(sErr.Offset) - start - 1
+		pos := int(sErr.Offset) - start
+		if pos != 0 {
+			pos = pos - 1
+		}
 
 		return nil, fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 	}
