@@ -7,7 +7,7 @@ daisy -project my-project \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json
       -variables \
-              source_url=image.vmdk,\
+              source=image.vmdk,\
               image-name=my-new-imported-image \
       imageimport.wf.json
 ```

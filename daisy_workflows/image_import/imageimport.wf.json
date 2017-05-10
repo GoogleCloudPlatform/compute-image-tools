@@ -1,11 +1,11 @@
 {
   "Name": "image-import",
   "Vars": {
-    "source-url": "",
+    "source": "",
     "image-name": "my-image"
   },
   "Sources": {
-    "orig_image": "${source-url}",
+    "orig_image": "${source}",
     "startup_script": "imageimport_startup.sh"
   },
   "Steps": {
