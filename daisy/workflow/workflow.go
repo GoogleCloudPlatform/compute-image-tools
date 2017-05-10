@@ -478,10 +478,10 @@ func (w *Workflow) populate() error {
 	}
 
 	var replacements []string
-	for k, v := range vars {
+	for k, v := range autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	for k, v := range autovars {
+	for k, v := range vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
