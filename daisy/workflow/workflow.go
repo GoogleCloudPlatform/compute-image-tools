@@ -32,7 +32,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 	"os/user"
 
 	"cloud.google.com/go/storage"

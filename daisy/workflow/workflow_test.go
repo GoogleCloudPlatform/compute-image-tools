@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"reflect"
 	"sync"
@@ -330,6 +331,11 @@ func TestPopulate(t *testing.T) {
 		t.Fatalf("error creating temp file: %v", err)
 	}
 
+	cu, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	got := &Workflow{
 		Name:      "${wf-name}",
 		GCSPath:   "gs://${bucket}/images",
@@ -400,7 +406,7 @@ func TestPopulate(t *testing.T) {
 
 	// For simplicity, here is the subworkflow scratch path.
 	// The subworkflow scratch path is a subdir of the parent workflow scratch path.
-	subScratch := fmt.Sprintf("%s/daisy-sub-%d-%s", got.scratchPath, time.Now().Unix(), subGot.id)
+	subScratch := subGot.scratchPath
 
 	want := &Workflow{
 		Name:         "parent",
@@ -422,10 +428,11 @@ func TestPopulate(t *testing.T) {
 			"wf-name":   "parent",
 		},
 		bucket:      "parent-bucket",
-		scratchPath: fmt.Sprintf("images/daisy-parent-%d-%s", time.Now().Unix(), got.id),
+		scratchPath: got.scratchPath,
 		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
 		logsPath:    fmt.Sprintf("%s/logs", got.scratchPath),
 		outsPath:    fmt.Sprintf("%s/outs", got.scratchPath),
+		username:    cu.Username,
 		Steps: map[string]*Step{
 			"parent-step1": {
 				name:    "parent-step1",
@@ -480,6 +487,7 @@ func TestPopulate(t *testing.T) {
 						sourcesPath: fmt.Sprintf("%s/sources", subScratch),
 						logsPath:    fmt.Sprintf("%s/logs", subScratch),
 						outsPath:    fmt.Sprintf("%s/outs", subScratch),
+						username:    cu.Username,
 					},
 				},
 			},
