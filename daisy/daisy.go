@@ -38,6 +38,7 @@ var (
 	zone      = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	print     = flag.Bool("print", false, "print out the parsed workflow for debugging")
+	validate  = flag.Bool("validate", false, "validate the workflow and exit")
 	ce        = flag.String("compute_endpoint_override", "", "API endpoint to override default")
 	se        = flag.String("storage_endpoint_override", "", "API endpoint to override default")
 )
@@ -123,6 +124,11 @@ func main() {
 			w.Print()
 			continue
 		}
+		if *validate {
+			fmt.Printf("[Daisy] Validating workflow %q\n", w.Name)
+			w.Validate()
+			continue
+		}
 		wg.Add(1)
 		go func(wf *workflow.Workflow) {
 			defer wg.Done()
@@ -150,7 +156,7 @@ func main() {
 			}
 		}
 	default:
-		if !*print {
+		if !*print && !*validate {
 			fmt.Println("[Daisy] All workflows completed successfully.")
 		}
 	}

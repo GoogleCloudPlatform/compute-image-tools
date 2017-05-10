@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"reflect"
 	"sync"
@@ -148,6 +149,10 @@ func TestFromFileSyntax(t *testing.T) {
 			`{"test": value}`,
 			tf + ": JSON syntax error in line 1: invalid character 'v' looking for beginning of value \n{\"test\": value}\n         ^",
 		},
+		{
+			`{"test": "value"`,
+			tf + ": JSON syntax error in line 1: unexpected end of JSON input \n{\"test\": \"value\"\n               ^",
+		},
 	}
 
 	for _, tt := range tests {
@@ -219,7 +224,7 @@ func TestFromFile(t *testing.T) {
 			"${bootstrap_instance_name} stopped": {
 				name:                   "${bootstrap_instance_name} stopped",
 				Timeout:                "1h",
-				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true}},
+				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true, Interval: "1s"}},
 			},
 			"postinstall": {
 				name: "postinstall",
@@ -330,6 +335,11 @@ func TestPopulate(t *testing.T) {
 		t.Fatalf("error creating temp file: %v", err)
 	}
 
+	cu, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	got := &Workflow{
 		Name:      "${wf-name}",
 		GCSPath:   "gs://${bucket}/images",
@@ -350,7 +360,11 @@ func TestPopulate(t *testing.T) {
 					{SourceFile: "${SOURCESPATH}/image_file"},
 				},
 			},
-			"${NAME}-step2": {},
+			"${NAME}-step2": {
+				WaitForInstancesSignal: &WaitForInstancesSignal{
+					{Name: "blah", Interval: "10s"},
+				},
+			},
 			"${NAME}-step3": {
 				SubWorkflow: &SubWorkflow{
 					Path: "${path}",
@@ -396,7 +410,7 @@ func TestPopulate(t *testing.T) {
 
 	// For simplicity, here is the subworkflow scratch path.
 	// The subworkflow scratch path is a subdir of the parent workflow scratch path.
-	subScratch := fmt.Sprintf("%s/daisy-sub-%d-%s", got.scratchPath, time.Now().Unix(), subGot.id)
+	subScratch := subGot.scratchPath
 
 	want := &Workflow{
 		Name:         "parent",
@@ -418,10 +432,11 @@ func TestPopulate(t *testing.T) {
 			"wf-name":   "parent",
 		},
 		bucket:      "parent-bucket",
-		scratchPath: fmt.Sprintf("images/daisy-parent-%d-%s", time.Now().Unix(), got.id),
+		scratchPath: got.scratchPath,
 		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
 		logsPath:    fmt.Sprintf("%s/logs", got.scratchPath),
 		outsPath:    fmt.Sprintf("%s/outs", got.scratchPath),
+		username:    cu.Username,
 		Steps: map[string]*Step{
 			"parent-step1": {
 				name:    "parent-step1",
@@ -435,6 +450,9 @@ func TestPopulate(t *testing.T) {
 				name:    "parent-step2",
 				Timeout: "10m",
 				timeout: time.Duration(10 * time.Minute),
+				WaitForInstancesSignal: &WaitForInstancesSignal{
+					{Name: "blah", Interval: "10s", interval: 10 * time.Second},
+				},
 			},
 			"parent-step3": {
 				name:    "parent-step3",
@@ -473,6 +491,7 @@ func TestPopulate(t *testing.T) {
 						sourcesPath: fmt.Sprintf("%s/sources", subScratch),
 						logsPath:    fmt.Sprintf("%s/logs", subScratch),
 						outsPath:    fmt.Sprintf("%s/outs", subScratch),
+						username:    cu.Username,
 					},
 				},
 			},

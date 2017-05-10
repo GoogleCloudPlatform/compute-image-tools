@@ -104,7 +104,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 			w.logger.Printf("CreateDisks: creating disk %q.", name)
 			description := cd.Description
 			if description == "" {
-				description = fmt.Sprintf("Disk created by Daisy in workflow %q.", w.Name)
+				description = fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %q.", w.Name, w.username)
 			}
 			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.Type, description)
 			if err != nil {

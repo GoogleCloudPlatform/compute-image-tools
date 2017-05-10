@@ -21,6 +21,8 @@ import (
 	"time"
 )
 
+const defaultInterval = "5s"
+
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []InstanceSignal
 
@@ -38,7 +40,9 @@ type InstanceSignal struct {
 	// Instance name to wait for.
 	Name string
 	// Interval to check for signal (default is 5s).
-	Interval time.Duration
+	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
+	Interval string
+	interval time.Duration
 	// Wait for the instance to stop.
 	Stopped bool
 	// Wait for a string match in the serial output.
@@ -64,7 +68,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
-			if strings.Contains(resp.Contents, success) {
+			if success != "" && strings.Contains(resp.Contents, success) {
 				w.logger.Printf("WaitForInstancesSignal: SuccessMatch instance %q: %q in %q", name, failure, resp.Contents)
 				return nil
 			}
@@ -80,9 +84,6 @@ func (s *WaitForInstancesSignal) run(w *Workflow) error {
 	e := make(chan error)
 
 	for _, is := range *s {
-		if is.Interval == 0 {
-			is.Interval = 5 * time.Second
-		}
 		wg.Add(1)
 		go func(is InstanceSignal) {
 			defer wg.Done()
@@ -93,14 +94,14 @@ func (s *WaitForInstancesSignal) run(w *Workflow) error {
 			}
 			if is.Stopped {
 				w.logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", i.real)
-				if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, i.real, is.Interval); err != nil {
+				if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, i.real, is.interval); err != nil {
 					e <- err
 					return
 				}
 				w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
 			}
 			if is.SerialOutput != nil {
-				if err := waitForSerialOutput(w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.Interval); err != nil {
+				if err := waitForSerialOutput(w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
 					e <- err
 					return
 				}
@@ -131,8 +132,8 @@ func (s *WaitForInstancesSignal) validate(w *Workflow) error {
 			if i.SerialOutput.Port == 0 {
 				return fmt.Errorf("%q: cannot wait for instance signal via SerialOutput, no Port given", i.Name)
 			}
-			if i.SerialOutput.SuccessMatch == "" {
-				return fmt.Errorf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch given", i.Name)
+			if i.SerialOutput.SuccessMatch == "" && i.SerialOutput.FailureMatch == "" {
+				return fmt.Errorf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
 			}
 		}
 	}

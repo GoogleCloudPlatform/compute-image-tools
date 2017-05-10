@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -37,6 +38,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
 )
+
+const defaultTimeout = "10m"
 
 type gcsLogger struct {
 	client         *storage.Client
@@ -248,6 +251,8 @@ type Workflow struct {
 	sourcesPath   string
 	logsPath      string
 	outsPath      string
+	username      string
+	gcsLogs       bool
 	ComputeClient *compute.Client `json:"-"`
 	StorageClient *storage.Client `json:"-"`
 	id            string
@@ -255,7 +260,7 @@ type Workflow struct {
 }
 
 // Run runs a workflow.
-func (w *Workflow) Run() error {
+func (w *Workflow) Validate() error {
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
 		return fmt.Errorf("error validating workflow: %v", err)
@@ -270,6 +275,16 @@ func (w *Workflow) Run() error {
 	if err := w.validate(); err != nil {
 		w.logger.Printf("Error validating workflow: %v", err)
 		close(w.Cancel)
+		return err
+	}
+	w.logger.Print("Validation Complete")
+	return nil
+}
+
+// Run runs a workflow.
+func (w *Workflow) Run() error {
+	w.gcsLogs = true
+	if err := w.Validate(); err != nil {
 		return err
 	}
 	defer w.cleanup()
@@ -408,6 +423,19 @@ func (w *Workflow) populateStep(step *Step) error {
 	}
 	step.timeout = timeout
 
+	if step.WaitForInstancesSignal != nil {
+		for i, s := range *step.WaitForInstancesSignal {
+			if s.Interval == "" {
+				s.Interval = defaultInterval
+			}
+			interval, err := time.ParseDuration(s.Interval)
+			if err != nil {
+				return err
+			}
+			(*step.WaitForInstancesSignal)[i].interval = interval
+		}
+	}
+
 	// Recurse on subworkflows.
 	if step.SubWorkflow == nil {
 		return nil
@@ -420,6 +448,7 @@ func (w *Workflow) populateStep(step *Step) error {
 	step.SubWorkflow.workflow.StorageClient = w.StorageClient
 	step.SubWorkflow.workflow.Ctx = w.Ctx
 	step.SubWorkflow.workflow.Cancel = w.Cancel
+	step.SubWorkflow.workflow.gcsLogs = w.gcsLogs
 	for k, v := range step.SubWorkflow.Vars {
 		step.SubWorkflow.workflow.Vars[k] = v
 	}
@@ -428,17 +457,30 @@ func (w *Workflow) populateStep(step *Step) error {
 
 func (w *Workflow) populate() error {
 	w.id = randString(5)
-	now := time.Now()
-	datestamp := now.Format("20060102")
-	datetimestamp := now.Format("20060102150405")
-	timestamp := strconv.FormatInt(now.Unix(), 10)
+	now := time.Now().UTC()
+	cu, err := user.Current()
+	if err != nil {
+		return err
+	}
+	w.username = cu.Username
 
-	// Do replacement from Vars.
+	autovars := map[string]string{
+		"ID":        w.id,
+		"DATE":      now.Format("20060102"),
+		"DATETIME":  now.Format("20060102150405"),
+		"TIMESTAMP": strconv.FormatInt(now.Unix(), 10),
+		"USERNAME":  w.username,
+	}
+
 	vars := map[string]string{}
 	for k, v := range w.Vars {
 		vars[k] = v
 	}
+
 	var replacements []string
+	for k, v := range autovars {
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
+	}
 	for k, v := range vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
@@ -450,7 +492,7 @@ func (w *Workflow) populate() error {
 		return err
 	}
 	w.bucket = bkt
-	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s-%s", w.Name, timestamp, w.id))
+	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s-%s", w.Name, now.Format("20060102-15:04:05"), w.id))
 	w.sourcesPath = path.Join(w.scratchPath, "sources")
 	w.logsPath = path.Join(w.scratchPath, "logs")
 	w.outsPath = path.Join(w.scratchPath, "outs")
@@ -459,15 +501,11 @@ func (w *Workflow) populate() error {
 	// so Vars replacement must run before this to resolve the final
 	// value for those fields.
 
-	autovars := map[string]string{
-		"ID":          w.id,
+	autovars = map[string]string{
 		"NAME":        w.Name,
 		"ZONE":        w.Zone,
 		"PROJECT":     w.Project,
 		"GCSPATH":     w.GCSPath,
-		"DATE":        datestamp,
-		"DATETIME":    datetimestamp,
-		"TIMESTAMP":   timestamp,
 		"SCRATCHPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath),
 		"SOURCESPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath),
 		"LOGSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.logsPath),
@@ -498,14 +536,17 @@ func (w *Workflow) populate() error {
 	w.instanceRefs = &refMap{m: map[string]*resource{}}
 
 	if w.logger == nil {
-		gcs := &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
 		name := w.Name
 		for parent := w.parent; parent != nil; parent = w.parent.parent {
 			name = parent.Name + "." + name
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
+		gcs := ioutil.Discard
+		if w.gcsLogs {
+			gcs = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
+			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
+		}
 		w.logger = log.New(io.MultiWriter(os.Stdout, gcs), prefix, flags)
 	}
 
@@ -520,7 +561,6 @@ func (w *Workflow) populate() error {
 
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print() {
-	w.logger = log.New(ioutil.Discard, "", 0)
 	if err := w.populate(); err != nil {
 		fmt.Println("Error running populate:", err)
 	}
@@ -693,7 +733,10 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		// Line number of error.
 		line := bytes.Count(data[:start], []byte("\n")) + 1
 		// Position of error in line (where to place the '^').
-		pos := int(sErr.Offset) - start - 1
+		pos := int(sErr.Offset) - start
+		if pos != 0 {
+			pos = pos - 1
+		}
 
 		return nil, fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 	}

@@ -23,8 +23,6 @@ import (
 	"sync"
 )
 
-const defaultTimeout = "10m"
-
 type nameSet map[*Workflow][]string
 
 var (
