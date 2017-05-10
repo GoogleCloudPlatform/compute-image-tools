@@ -2,12 +2,7 @@ dist: trusty
 sudo: false
 language: go
 
-go:
-  - 1.x
-  - tip
-
-before_install:
-  - go get -t -v ./...
+go: 1.x
 
 script:
   - go vet ./...
