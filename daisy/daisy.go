@@ -124,6 +124,11 @@ func main() {
 			w.Print()
 			continue
 		}
+		if *validate {
+			fmt.Printf("[Daisy] Validating workflow %q\n", w.Name)
+			w.Validate()
+			continue
+		}
 		wg.Add(1)
 		go func(wf *workflow.Workflow) {
 			defer wg.Done()
@@ -151,7 +156,7 @@ func main() {
 			}
 		}
 	default:
-		if !*print {
+		if !*print && !*validate {
 			fmt.Println("[Daisy] All workflows completed successfully.")
 		}
 	}
