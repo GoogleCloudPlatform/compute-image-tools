@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -32,7 +33,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"os/user"
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
