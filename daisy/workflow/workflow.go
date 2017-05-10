@@ -38,6 +38,8 @@ import (
 	"google.golang.org/api/option"
 )
 
+const defaultTimeout = "10m"
+
 type gcsLogger struct {
 	client         *storage.Client
 	bucket, object string
@@ -407,6 +409,19 @@ func (w *Workflow) populateStep(step *Step) error {
 		return err
 	}
 	step.timeout = timeout
+
+	if step.WaitForInstancesSignal != nil {
+		for i, s := range *step.WaitForInstancesSignal {
+			if s.Interval == "" {
+				s.Interval = defaultInterval
+			}
+			interval, err := time.ParseDuration(s.Interval)
+			if err != nil {
+				return err
+			}
+			(*step.WaitForInstancesSignal)[i].interval = interval
+		}
+	}
 
 	// Recurse on subworkflows.
 	if step.SubWorkflow == nil {

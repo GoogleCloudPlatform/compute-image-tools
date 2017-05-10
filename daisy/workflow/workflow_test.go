@@ -219,7 +219,7 @@ func TestFromFile(t *testing.T) {
 			"${bootstrap_instance_name} stopped": {
 				name:                   "${bootstrap_instance_name} stopped",
 				Timeout:                "1h",
-				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true}},
+				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true, Interval: "1s"}},
 			},
 			"postinstall": {
 				name: "postinstall",
@@ -350,7 +350,11 @@ func TestPopulate(t *testing.T) {
 					{SourceFile: "${SOURCESPATH}/image_file"},
 				},
 			},
-			"${NAME}-step2": {},
+			"${NAME}-step2": {
+				WaitForInstancesSignal: &WaitForInstancesSignal{
+					{Name: "blah", Interval: "10s"},
+				},
+			},
 			"${NAME}-step3": {
 				SubWorkflow: &SubWorkflow{
 					Path: "${path}",
@@ -435,6 +439,9 @@ func TestPopulate(t *testing.T) {
 				name:    "parent-step2",
 				Timeout: "10m",
 				timeout: time.Duration(10 * time.Minute),
+				WaitForInstancesSignal: &WaitForInstancesSignal{
+					{Name: "blah", Interval: "10s", interval: 10 * time.Second},
+				},
 			},
 			"parent-step3": {
 				name:    "parent-step3",
