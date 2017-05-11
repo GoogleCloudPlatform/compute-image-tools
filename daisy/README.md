@@ -147,7 +147,7 @@ The `Steps` field is a named set of executable steps. It is a map of
 a step's name to the step's type and configuration.
 
 For each individual 'step', you set one 'step type' and the type's
-associated fields. You may optionally set a timeout out the step using
+associated fields. You may optionally set a step timeout using
 `Timeout`. `Timeout` uses [Golang's time.Duration string
 format](https://golang.org/pkg/time/#Duration.String) and defaults
 to "10m" (10 minutes).
