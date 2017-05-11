@@ -50,6 +50,7 @@ var (
 	validatedImages            = nameSet{}
 	validatedInstances         = nameSet{}
 	validatedInstanceDeletions = nameSet{}
+	validatedImageDeletions    = nameSet{}
 	nameSetsMx                 = sync.Mutex{}
 )
 
@@ -91,6 +92,9 @@ func checkName(s string) bool {
 }
 
 func diskValid(w *Workflow, d string) bool {
+	if strings.HasPrefix(d, "projects/") {
+		return true
+	}
 	if !validatedDisks.has(w, d) {
 		return false
 	}
@@ -102,10 +106,22 @@ func diskValid(w *Workflow, d string) bool {
 
 func imageValid(w *Workflow, i string) bool {
 	// TODO(crunkleton): better checking for resource names pointing to GCE resources.
-	return validatedImages.has(w, i) || strings.HasPrefix(i, "projects/")
+	if strings.HasPrefix(i, "projects/") {
+		return true
+	}
+	if !validatedImages.has(w, i) {
+		return false
+	}
+	if validatedImageDeletions.has(w, i) {
+		return false
+	}
+	return true
 }
 
 func instanceValid(w *Workflow, i string) bool {
+	if strings.HasPrefix(i, "projects/") {
+		return true
+	}
 	if !validatedInstances.has(w, i) {
 		return false
 	}
