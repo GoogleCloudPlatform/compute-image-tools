@@ -20,7 +20,6 @@ import (
 )
 
 // DeleteResources deletes GCE resources.
-// TODO(crunkleton) DeleteResources only works on Workflow references right now.
 type DeleteResources struct {
 	Instances, Disks, Images []string `json:",omitempty"`
 }
@@ -29,7 +28,7 @@ func (d *DeleteResources) validate(w *Workflow) error {
 	// Disk checking.
 	for _, disk := range d.Disks {
 		if !diskValid(w, disk) {
-			return fmt.Errorf("cannot delete disk. Disk not found: %s", disk)
+			return fmt.Errorf("cannot delete disk, disk not found: %s", disk)
 		}
 		if err := validatedDiskDeletions.add(w, disk); err != nil {
 			return fmt.Errorf("error scheduling disk for deletion: %s", err)
@@ -39,10 +38,20 @@ func (d *DeleteResources) validate(w *Workflow) error {
 	// Instance checking.
 	for _, i := range d.Instances {
 		if !instanceValid(w, i) {
-			return fmt.Errorf("cannot delete instance. Instance not found: %s", i)
+			return fmt.Errorf("cannot delete instance, instance not found: %s", i)
 		}
 		if err := validatedInstanceDeletions.add(w, i); err != nil {
 			return fmt.Errorf("error scheduling instance for deletion: %s", err)
+		}
+	}
+
+	// Instance checking.
+	for _, i := range d.Images {
+		if !imageValid(w, i) {
+			return fmt.Errorf("cannot delete image, image not found: %s", i)
+		}
+		if err := validatedImageDeletions.add(w, i); err != nil {
+			return fmt.Errorf("error scheduling image for deletion: %s", err)
 		}
 	}
 
@@ -95,7 +104,7 @@ func (d *DeleteResources) run(w *Workflow) error {
 		if err != nil {
 			return err
 		}
-	case <-w.Ctx.Done():
+	case <-w.Cancel:
 		return nil
 	}
 
