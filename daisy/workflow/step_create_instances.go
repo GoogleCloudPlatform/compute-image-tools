@@ -48,9 +48,9 @@ type CreateInstance struct {
 	// Optional description of the resource, if not specified Daisy will
 	// create one with the name of the project.
 	Description string `json:",omitempty"`
-	// Zone to create the instance in, overrides workflow zone.
+	// Zone to create the instance in, overrides workflow Zone.
 	Zone string
-	// Project to create the instance in, overrides workflow project.
+	// Project to create the instance in, overrides workflow Project.
 	Project string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
@@ -105,10 +105,10 @@ func (c *CreateInstances) validate(w *Workflow) error {
 				return fmt.Errorf("cannot create instance: disk not found: %s", d)
 			}
 			// Ensure disk is in the same project and zone.
-			if !isLink(d) {
+			match := diskURLRegex.FindStringSubmatch(d)
+			if match == nil {
 				continue
 			}
-			match := diskURLRegex.FindStringSubmatch(d)
 			result := make(map[string]string)
 			for i, name := range diskURLRegex.SubexpNames() {
 				if i != 0 {

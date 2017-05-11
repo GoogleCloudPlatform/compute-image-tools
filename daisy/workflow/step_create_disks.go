@@ -38,9 +38,9 @@ type CreateDisk struct {
 	// Optional description of the resource, if not specified Daisy will
 	// create one with the name of the project.
 	Description string `json:",omitempty"`
-	// Zone to create the instance in, overrides workflow zone.
+	// Zone to create the instance in, overrides workflow Zone.
 	Zone string
-	// Project to create the instance in, overrides workflow project.
+	// Project to create the instance in, overrides workflow Project.
 	Project string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
