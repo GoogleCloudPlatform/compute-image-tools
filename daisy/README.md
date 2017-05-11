@@ -183,6 +183,8 @@ Creates GCE disks. Each disk has the following fields:
 | SourceImage | string | *Optional.* Creates a blank disk by default. Value can be 1) the Name of an image created in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE image. |
 | SizeGB | string | *Optional if SourceImage is being used.* The size of the disk in GB. |
 | Type | string | *Optional.* Defaults to "pd-standard". The type of disk. "pd-standard" or "pd-ssd". |
+| Project | string | *Optional.* Project to create the disk in, overrides workflow Project. |
+| Zone | string | *Optional.* Zone to create the disk in, overrides workflow Zone. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
 | ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE disk exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
@@ -260,6 +262,8 @@ Creates GCE VM instances. Each VM has the following fields:
 | StartupScript | string | *Optional.* The Sources path to the desired startup script. |
 | Metadata | map[string]string | *Optional.* Metadata key-value pairs to set on the VM instance. |
 | Scopes | list(string) | *Optional.* Defaults to https://www.googleapis.com/auth/devstorage.read_only. The workflow Project's default service account credentials scopes to grant to this VM. |
+| Project | string | *Optional.* Project to create the instance in, overrides workflow Project. |
+| Zone | string | *Optional.* Zone to create the instance in, overrides workflow Zone. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this VM when the workflow terminates. |
 | ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE VM exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
