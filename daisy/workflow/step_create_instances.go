@@ -184,7 +184,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 			for i, sourceDisk := range ci.AttachedDisks {
 				var disk *resource
 				var err error
-				if isLink(sourceDisk) && diskValid(w, sourceDisk) {
+				if diskURLRegex.MatchString(sourceDisk) {
 					// Real link.
 					inst.AddPD("", sourceDisk, false, i == 0)
 				} else if disk, err = w.getDisk(sourceDisk); err == nil {

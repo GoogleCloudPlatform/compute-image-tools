@@ -101,7 +101,7 @@ func (c *CreateImages) run(w *Workflow) error {
 			if ci.SourceDisk != "" {
 				var disk *resource
 				var err error
-				if isLink(ci.SourceDisk) && diskValid(w, ci.SourceDisk) {
+				if diskURLRegex.MatchString(ci.SourceDisk) {
 					diskLink = ci.SourceDisk
 				} else if disk, err = w.getDisk(ci.SourceDisk); err == nil {
 					diskLink = disk.link

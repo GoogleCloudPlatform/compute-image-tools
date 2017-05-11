@@ -68,10 +68,6 @@ func filter(ss []string, s string) []string {
 	return result
 }
 
-func isLink(s string) bool {
-	return strings.Contains(s, "/")
-}
-
 func randString(n int) string {
 	gen := rand.New(rand.NewSource(time.Now().UnixNano()))
 	letters := "bdghjlmnpqrstvwxyz0123456789"

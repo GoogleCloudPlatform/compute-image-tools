@@ -100,7 +100,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 			var imageLink string
 			var image *resource
 			var err error
-			if cd.SourceImage == "" || (isLink(cd.SourceImage) && imageValid(w, cd.SourceImage)) {
+			if cd.SourceImage == "" || imageURLRegex.MatchString(cd.SourceImage) {
 				imageLink = cd.SourceImage
 			} else if image, err = w.getImage(cd.SourceImage); err == nil {
 				imageLink = image.link
