@@ -58,7 +58,7 @@ func (c *CreateImages) validate(w *Workflow) error {
 		if !xor(ci.SourceDisk == "", ci.SourceFile == "") {
 			return errors.New("must provide either Disk or File, exclusively")
 		}
-		if ci.SourceDisk != "" && !isLink(ci.SourceDisk) && !diskValid(w, ci.SourceDisk) {
+		if ci.SourceDisk != "" && !diskValid(w, ci.SourceDisk) {
 			return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
 		}
 		if _, _, err := splitGCSPath(ci.SourceFile); err != nil && ci.SourceFile != "" && !w.sourceExists(ci.SourceFile) {
@@ -66,7 +66,7 @@ func (c *CreateImages) validate(w *Workflow) error {
 		}
 
 		// Project checking.
-		if !projectExists(ci.Project) {
+		if ci.Project != "" && !projectExists(ci.Project) {
 			return fmt.Errorf("cannot create image: project not found: %s", ci.Project)
 		}
 
@@ -91,12 +91,17 @@ func (c *CreateImages) run(w *Workflow) error {
 				name = w.genName(ci.Name)
 			}
 
+			project := w.Project
+			if ci.Project != "" {
+				project = ci.Project
+			}
+
 			// Get source disk link, if applicable.
 			var diskLink string
 			if ci.SourceDisk != "" {
 				var disk *resource
 				var err error
-				if isLink(ci.SourceDisk) {
+				if isLink(ci.SourceDisk) && diskValid(w, ci.SourceDisk) {
 					diskLink = ci.SourceDisk
 				} else if disk, err = w.getDisk(ci.SourceDisk); err == nil {
 					diskLink = disk.link
@@ -124,7 +129,7 @@ func (c *CreateImages) run(w *Workflow) error {
 			if description == "" {
 				description = fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %q.", w.Name, w.username)
 			}
-			i, err := w.ComputeClient.CreateImage(name, w.Project, diskLink, sourceFile, ci.Family, description, ci.Licenses, ci.GuestOsFeatures)
+			i, err := w.ComputeClient.CreateImage(name, project, diskLink, sourceFile, ci.Family, description, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {
 				e <- err
 				return

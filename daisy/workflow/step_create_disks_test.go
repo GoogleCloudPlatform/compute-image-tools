@@ -22,24 +22,53 @@ import (
 )
 
 func TestCreateDisksRun(t *testing.T) {
-	wf := testWorkflow()
-	wf.imageRefs.m = map[string]*resource{"i1": {"i1", wf.genName("i1"), "link", false}}
+	w := testWorkflow()
+	w.imageRefs.m = map[string]*resource{"i1": {"i1", w.genName("i1"), "link", false}}
 	cd := &CreateDisks{
 		{Name: "d1", SourceImage: "i1", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "projects/global/images/i2", SizeGB: "100", Type: ""},
+		{Name: "d2", SourceImage: "projects/project/global/images/family/my-family", SizeGB: "100", Type: ""},
+		{Name: "d2", SourceImage: "projects/project/global/images/i2", SizeGB: "100", Type: ""},
+		{Name: "d2", SourceImage: "global/images/family/my-family", SizeGB: "100", Type: ""},
+		{Name: "d2", SourceImage: "global/images/i2", SizeGB: "100", Type: "", Zone: "zone", Project: "project"},
 		{Name: "d3", SourceImage: "i1", SizeGB: "100", Type: "", NoCleanup: true},
 		{Name: "d4", SourceImage: "i1", SizeGB: "100", Type: "", ExactName: true}}
-	if err := cd.run(wf); err != nil {
-		t.Fatalf("error running CreateDisks.run(): %v", err)
+	if err := cd.run(w); err != nil {
+		t.Errorf("error running CreateDisks.run(): %v", err)
+	}
+
+	// Bad cases.
+	badTests := []struct {
+		name string
+		cd   CreateDisks
+		err  string
+	}{
+		{
+			"image DNE",
+			CreateDisks{CreateDisk{Name: "d-foo", SourceImage: "i-dne"}},
+			"unresolved instance reference \"i-dne\"",
+		},
+		{
+			"bad size",
+			CreateDisks{CreateDisk{Name: "d-foo", SizeGB: "50s"}},
+			"strconv.ParseInt: parsing \"50s\": invalid syntax",
+		},
+	}
+
+	for _, tt := range badTests {
+		if err := tt.cd.run(w); err == nil {
+			t.Errorf("%q: expected error, got nil", tt.name)
+		} else if err.Error() != tt.err {
+			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
+		}
 	}
 
 	want := map[string]*resource{
-		"d1": {"d1", wf.genName("d1"), "link", false},
-		"d2": {"d2", wf.genName("d2"), "link", false},
-		"d3": {"d3", wf.genName("d3"), "link", true},
+		"d1": {"d1", w.genName("d1"), "link", false},
+		"d2": {"d2", w.genName("d2"), "link", false},
+		"d3": {"d3", w.genName("d3"), "link", true},
 		"d4": {"d4", "d4", "link", false}}
 
-	if diff := pretty.Compare(wf.diskRefs.m, want); diff != "" {
+	if diff := pretty.Compare(w.diskRefs.m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 }
@@ -50,50 +79,71 @@ func TestCreateDisksValidate(t *testing.T) {
 	validatedDisks = nameSet{w: {"d-foo"}}
 	validatedImages = nameSet{w: {"i-foo"}}
 
-	// Good case.
-	cd := CreateDisks{CreateDisk{Name: "d-bar", SourceImage: "i-foo", SizeGB: "50"}}
-	if err := cd.validate(w); err != nil {
-		t.Errorf("validation should not have failed: %v", err)
-	}
-	want := []string{"d-foo", "d-bar"}
-	if !reflect.DeepEqual(validatedDisks[w], want) {
-		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
-	}
-
-	// Good case. No source image.
-	cd = CreateDisks{CreateDisk{Name: "d-baz", SizeGB: "50"}}
-	if err := cd.validate(w); err != nil {
-		t.Errorf("validation should not have failed: %v", err)
-	}
-	want = []string{"d-foo", "d-bar", "d-baz"}
-	if !reflect.DeepEqual(validatedDisks[w], want) {
-		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
+	// Good cases.
+	goodTests := []struct {
+		name string
+		cd   CreateDisks
+		want []string
+	}{
+		{
+			"source image",
+			CreateDisks{{Name: "d-bar", SourceImage: "i-foo", SizeGB: "50"}},
+			[]string{"d-foo", "d-bar"},
+		},
+		{
+			"blank disk",
+			CreateDisks{{Name: "d-baz", SizeGB: "50", Zone: "foo"}},
+			[]string{"d-foo", "d-bar", "d-baz"},
+		},
 	}
 
-	// Bad case. Dupe disk name.
-	cd = CreateDisks{CreateDisk{Name: "d-foo", SizeGB: "50"}}
-	if err := cd.validate(w); err == nil {
-		t.Errorf("validation should have failed: %v", err)
-	}
-	if !reflect.DeepEqual(validatedDisks[w], want) {
-		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
-	}
-
-	// Bad case. No Size.
-	cd = CreateDisks{CreateDisk{Name: "d-new"}}
-	if err := cd.validate(w); err == nil {
-		t.Errorf("validation should have failed: %v", err)
-	}
-	if !reflect.DeepEqual(validatedDisks[w], want) {
-		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
+	for _, tt := range goodTests {
+		if err := tt.cd.validate(w); err != nil {
+			t.Errorf("%q: unexpected error: %v", tt.name, err)
+		}
+		if !reflect.DeepEqual(validatedDisks[w], tt.want) {
+			t.Errorf("%q: got:(%v) != want(%v)", tt.name, validatedDisks[w], tt.want)
+		}
 	}
 
-	// Bad case. Image DNE.
-	cd = CreateDisks{CreateDisk{Name: "d-gaz", SourceImage: "i-dne"}}
-	if err := cd.validate(w); err == nil {
-		t.Errorf("validation should have failed: %v", err)
+	// Bad cases.
+	badTests := []struct {
+		name string
+		cd   CreateDisks
+		err  string
+	}{
+		{
+			"dupe disk name",
+			CreateDisks{{Name: "d-foo", SizeGB: "50"}},
+			"error adding disk: workflow \"\" has duplicate references for \"d-foo\"",
+		},
+		{
+			"no Size.",
+			CreateDisks{{Name: "d-foo"}},
+			"cannot create disk: SizeGB and SourceImage not set: ",
+		},
+		{
+			"image DNE",
+			CreateDisks{{Name: "d-foo", SourceImage: "i-dne"}},
+			"cannot create disk: image not found: i-dne",
+		},
+		{
+			"bad size",
+			CreateDisks{{Name: "d-foo", SizeGB: "50s"}},
+			"cannot parse SizeGB: 50s, err: strconv.ParseInt: parsing \"50s\": invalid syntax",
+		},
 	}
+
+	for _, tt := range badTests {
+		if err := tt.cd.validate(w); err == nil {
+			t.Errorf("%q: expected error, got nil", tt.name)
+		} else if err.Error() != tt.err {
+			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
+		}
+	}
+
+	want := []string{"d-foo", "d-bar", "d-baz"}
 	if !reflect.DeepEqual(validatedDisks[w], want) {
-		t.Fatalf("got:(%v) != want(%v)", validatedDisks[w], want)
+		t.Errorf("got:(%v) != want(%v)", validatedDisks[w], want)
 	}
 }

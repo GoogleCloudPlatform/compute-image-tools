@@ -53,9 +53,9 @@ var (
 	nameSetsMx                 = sync.Mutex{}
 	rfc1035                    = "[a-z]([-a-z0-9]*[a-z0-9])?"
 	rfc1035Rgx                 = regexp.MustCompile(fmt.Sprintf("^%s$", rfc1035))
-	instanceURLRegex           = regexp.MustCompile(fmt.Sprintf(`^projects/(?P<project>%[1]s)/zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
-	imageURLRegex              = regexp.MustCompile(fmt.Sprintf(`^projects/(?P<project>%[1]s)/global/images/(?P<image>%[1]s)$`, rfc1035))
-	diskURLRegex               = regexp.MustCompile(fmt.Sprintf(`^projects/(?P<project>%[1]s)/zones/(?P<zone>%[1]s)/disks/(?P<disk>%[1]s)$`, rfc1035))
+	instanceURLRegex           = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
+	imageURLRegex              = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images/(?P<image>%[1]s)|family/(?P<family>%[1]s)$`, rfc1035))
+	diskURLRegex               = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/disks/(?P<disk>%[1]s)$`, rfc1035))
 )
 
 func (n nameSet) add(w *Workflow, s string) error {

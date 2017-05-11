@@ -38,6 +38,10 @@ type CreateDisk struct {
 	// Optional description of the resource, if not specified Daisy will
 	// create one with the name of the project.
 	Description string `json:",omitempty"`
+	// Zone to create the instance in, overrides workflow zone.
+	Zone string
+	// Project to create the instance in, overrides workflow project.
+	Project string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual
@@ -82,11 +86,21 @@ func (c *CreateDisks) run(w *Workflow) error {
 				name = w.genName(cd.Name)
 			}
 
+			zone := w.Zone
+			if cd.Zone != "" {
+				zone = cd.Zone
+			}
+
+			project := w.Project
+			if cd.Project != "" {
+				project = cd.Project
+			}
+
 			// Get the source image link.
 			var imageLink string
 			var image *resource
 			var err error
-			if cd.SourceImage == "" || isLink(cd.SourceImage) {
+			if cd.SourceImage == "" || (isLink(cd.SourceImage) && imageValid(w, cd.SourceImage)) {
 				imageLink = cd.SourceImage
 			} else if image, err = w.getImage(cd.SourceImage); err == nil {
 				imageLink = image.link
@@ -106,7 +120,7 @@ func (c *CreateDisks) run(w *Workflow) error {
 			if description == "" {
 				description = fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %q.", w.Name, w.username)
 			}
-			d, err := w.ComputeClient.CreateDisk(name, w.Project, w.Zone, imageLink, size, cd.Type, description)
+			d, err := w.ComputeClient.CreateDisk(name, project, zone, imageLink, size, cd.Type, description)
 			if err != nil {
 				e <- err
 				return
