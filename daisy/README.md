@@ -143,20 +143,27 @@ respectively.
 Step types are defined here:
 https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow#Step
 
-In a workflow file the `Steps` field is a mapping of step names to their
-type descriptions. The name can be whatever you choose, it's how you
-will reference the steps in the dependency map as well as how they will
-show up in the logs. For each individual 'step' you set one 'step type'
-along with any of its required fields.
+The `Steps` field is a named set of executable steps. It is a map of
+a step's name to the step's type and configuration.
+
+For each individual 'step', you set one 'step type' and the type's
+associated fields. You may optionally set a step timeout using
+`Timeout`. `Timeout` uses [Golang's time.Duration string
+format](https://golang.org/pkg/time/#Duration.String) and defaults
+to "10m" (10 minutes).
+
+This example has steps named "step 1" and "step 2". "step 1" has a type
+of "<STEP 1 TYPE>" and a timeout of 2 hours. "step2" has a type of
+"<STEP 2 TYPE>" and a timeout of 10 minutes, by default.
 ```json
 "Steps": {
-  "step name 1": {
+  "step 1": {
     "<STEP 1 TYPE>": {
       ...
     },
-    "Timeout": "<OPTIONAL TIME DURATION>"
+    "Timeout": "2h"
   },
-  "step name 2": {
+  "step 2": {
     "<STEP 2 TYPE>": {
       ...
     }
@@ -183,7 +190,7 @@ Creates GCE disks. Each disk has the following fields:
 Example: the first is a standard PD disk created from a source image, the second
 is a blank PD SSD.
 ```json
-"create disks step": {
+"step name": {
   "CreateDisks": [
     {
       "Name": "disk1",
@@ -215,7 +222,7 @@ Creates GCE images. Each image has the following fields:
 
 This CreateImages example creates an image from a source disk.
 ```json
-"create image step": {
+"step name": {
   "CreateImages": [
     {
       "Name": "image1",
@@ -230,7 +237,7 @@ uses the NoCleanup flag to tell Daisy that this resource should exist
 after workflow completion, and the ExactName flag to tell Daisy to not
 use an generated name for the resource.
 ```json
-"create image step": {
+"step name": {
   "CreateImages": [
     {
       "Name": "image1",
@@ -259,7 +266,7 @@ Creates GCE VM instances. Each VM has the following fields:
 This CreateInstances step example creates an instance with two attached
 disks and uses the machine type n1-standard-4.
 ```json
-"create instances step": {
+"step name": {
   "CreateInstances": [
     {
       "Name": "instance1",
@@ -283,7 +290,7 @@ order: images, instances, disks.
 This DeleteResources step example deletes an image, an instance, and two
 disks.
 ```json
-"delete resources step": {
+"step name": {
   "DeleteResources": {
      "Images":["image1"],
      "Instances":["instance1"],
@@ -317,7 +324,7 @@ SubWorkflow step type fields:
 This SubWorkflow step example uses a local workflow file and passes a var,
 "foo", to the subworkflow.
 ```json
-"sub workflow step": {
+"step name": {
   "SubWorkflow": {
     "Path": "./some_subworkflow.workflow",
     "Vars": {
@@ -335,7 +342,7 @@ VM has the following fields:
 | Field Name | Type | Description |
 | - | - | - |
 | Name | string | The Name or [partial URL](#glossary-partialurl) of the VM. |
-| Interval | string (Go's time duration format, e.g. "5s" = 5 seconds) | The signal polling interval. |
+| Interval | string ([Golang's time.Duration format](https://golang.org/pkg/time/#Duration.String)) | The signal polling interval. |
 | Stopped | bool | Use the VM stopping as the signal. |
 | SerialOutput | SerialOutput (see below) | Parse the serial port output for a signal. |
 
@@ -346,6 +353,26 @@ SerialOutput:
 | Port | int64 | The serial port number to listen to. GCE VMs have serial ports 1-4. |
 | FailureMatch | string | *Optional, but this or SuccessMatch must be provided.* An expected string in case of a failure. |
 | SuccessMatch | string | *Optional, but this or FailureMatch must be provided.* An expected string when the VM performed its task successfully. |
+
+This example step waits for VM "foo" to stop and for a signal from VM "bar":
+```json
+"step name": {
+    "WaitForInstancesSignal": [
+        {
+            "Name": "foo",
+            "Stopped": true
+        },
+        {
+            "Name": "bar",
+            "SerialOutput": {
+                "Port": 1,
+                "SuccessMatch": "this means I'm done! :)",
+                "FailureMatch": "this means I failed... :("
+            }
+        }
+    ]
+}
+```
 
 ### Dependencies
 
