@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strings"
 	"sync"
 )
 
@@ -52,9 +51,12 @@ var (
 	validatedInstanceDeletions = nameSet{}
 	validatedImageDeletions    = nameSet{}
 	nameSetsMx                 = sync.Mutex{}
+	rfc1035                    = "[a-z]([-a-z0-9]*[a-z0-9])?"
+	rfc1035Rgx                 = regexp.MustCompile(fmt.Sprintf("^%s$", rfc1035))
+	instanceURLRegex           = regexp.MustCompile(fmt.Sprintf(`^projects/(?P<project>%[1]s)/zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
+	imageURLRegex              = regexp.MustCompile(fmt.Sprintf(`^projects/(?P<project>%[1]s)/global/images/(?P<image>%[1]s)$`, rfc1035))
+	diskURLRegex               = regexp.MustCompile(fmt.Sprintf(`^projects/(?P<project>%[1]s)/zones/(?P<zone>%[1]s)/disks/(?P<disk>%[1]s)$`, rfc1035))
 )
-
-var rfc1035Rgx = regexp.MustCompile("^[a-z]([-a-z0-9]*[a-z0-9])?$")
 
 func (n nameSet) add(w *Workflow, s string) error {
 	nameSetsMx.Lock()
@@ -92,40 +94,39 @@ func checkName(s string) bool {
 }
 
 func diskValid(w *Workflow, d string) bool {
-	if strings.HasPrefix(d, "projects/") {
+	if validatedDiskDeletions.has(w, d) {
+		return false
+	}
+	if diskURLRegex.MatchString(d) {
 		return true
 	}
 	if !validatedDisks.has(w, d) {
-		return false
-	}
-	if validatedDiskDeletions.has(w, d) {
 		return false
 	}
 	return true
 }
 
 func imageValid(w *Workflow, i string) bool {
-	// TODO(crunkleton): better checking for resource names pointing to GCE resources.
-	if strings.HasPrefix(i, "projects/") {
+	if validatedImageDeletions.has(w, i) {
+		return false
+	}
+	if imageURLRegex.MatchString(i) {
 		return true
 	}
 	if !validatedImages.has(w, i) {
-		return false
-	}
-	if validatedImageDeletions.has(w, i) {
 		return false
 	}
 	return true
 }
 
 func instanceValid(w *Workflow, i string) bool {
-	if strings.HasPrefix(i, "projects/") {
+	if validatedInstanceDeletions.has(w, i) {
+		return false
+	}
+	if instanceURLRegex.MatchString(i) {
 		return true
 	}
 	if !validatedInstances.has(w, i) {
-		return false
-	}
-	if validatedInstanceDeletions.has(w, i) {
 		return false
 	}
 	return true

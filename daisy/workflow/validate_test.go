@@ -286,3 +286,108 @@ func TestValidateDAG(t *testing.T) {
 		t.Error("validation should have failed due to dependency cycle")
 	}
 }
+
+func TestDiskValid(t *testing.T) {
+	w := testWorkflow()
+	tests := []struct {
+		disk  string
+		valid bool
+	}{
+		{
+			"projects/project/zones/zone/disks/disk1",
+			true,
+		},
+		{
+			"disk2",
+			false,
+		},
+		{
+			"disk3",
+			false,
+		},
+		{
+			"disk4",
+			true,
+		},
+	}
+
+	validatedDisks = nameSet{w: {"disk3", "disk4"}}
+	if err := validatedDiskDeletions.add(w, "disk3"); err != nil {
+		t.Errorf("error scheduling disk for deletion: %s", err)
+	}
+	for _, tt := range tests {
+		if valid := diskValid(w, tt.disk); valid != tt.valid {
+			t.Errorf("unexpected return from diskValid() for disk %q, want: %v, got: %v", tt.disk, tt.valid, valid)
+		}
+	}
+}
+
+func TestInstanceValid(t *testing.T) {
+	w := testWorkflow()
+	tests := []struct {
+		instance string
+		valid    bool
+	}{
+		{
+			"projects/project/zones/zone/instances/instance1",
+			true,
+		},
+		{
+			"instance2",
+			false,
+		},
+		{
+			"instance3",
+			false,
+		},
+		{
+			"instance4",
+			true,
+		},
+	}
+
+	validatedInstances = nameSet{w: {"instance3", "instance4"}}
+	if err := validatedInstanceDeletions.add(w, "instance3"); err != nil {
+		t.Errorf("error scheduling instance for deletion: %s", err)
+	}
+	for _, tt := range tests {
+		if valid := instanceValid(w, tt.instance); valid != tt.valid {
+			t.Errorf("unexpected return from instanceValid() for instance %q, want: %v, got: %v", tt.instance, tt.valid, valid)
+		}
+	}
+}
+
+func TestImageValid(t *testing.T) {
+	w := testWorkflow()
+	tests := []struct {
+		image string
+		valid bool
+	}{
+		{
+			"projects/project/global/images/image1",
+			true,
+		},
+		{
+			"image2",
+			false,
+		},
+		{
+			"image3",
+			false,
+		},
+		{
+			"image4",
+			true,
+		},
+	}
+
+	validatedImages = nameSet{w: {"image3", "image4"}}
+	if err := validatedImageDeletions.add(w, "image3"); err != nil {
+		t.Errorf("error scheduling image for deletion: %s", err)
+	}
+	for _, tt := range tests {
+		if valid := imageValid(w, tt.image); valid != tt.valid {
+			t.Errorf("unexpected return from imageValid() for image %q, want: %v, got: %v", tt.image, tt.valid, valid)
+		}
+	}
+}
