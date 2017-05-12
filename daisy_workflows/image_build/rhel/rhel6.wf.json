@@ -5,22 +5,18 @@
     "installer-iso": "",
     "rhui-client-rpm": ""
   },
-  "Sources": {
-    "installer.iso": "${installer-iso}",
-    "rhui_client.rpm": "${rhui-client-rpm}"
-  },
   "Steps": {
     "build-rhel6": {
       "Timeout": "60m",
       "SubWorkflow": {
         "Path": "./rhel.wf.json",
         "Vars": {
-          "wf-name": "build-rhel6",
           "image-dest": "${image-dest}",
-          "installer-iso": "${SOURCESPATH}/installer.iso",
+          "installer-iso": "${installer-iso}",
           "license-id": "1000002",
           "release": "rhel6",
-          "rhui-client-rpm": "${SOURCESPATH}/rhui_client.rpm"
+          "rhui-client-rpm": "${rhui-client-rpm}",
+          "wf-name": "rhel6"
         }
       }
     }

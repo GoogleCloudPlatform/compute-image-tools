@@ -18,34 +18,28 @@
     "setupDisks": {
       "CreateDisks": [
         {
-          "Name": "${release}-installerprep-${ID}",
+          "Name": "installerprep",
           "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
           "SizeGb": "50",
-          "Type": "pd-ssd",
-          "ExactName": true
+          "Type": "pd-ssd"
         },
         {
-          "Name": "${release}-installer-${ID}",
+          "Name": "installer",
           "SizeGb": "50",
-          "Type": "pd-ssd",
-          "ExactName": true
+          "Type": "pd-ssd"
         },
         {
-          "Name": "${release}-installation-${ID}",
+          "Name": "installation",
           "SizeGb": "10",
-          "Type": "pd-ssd",
-          "ExactName": true
+          "Type": "pd-ssd"
         }
       ]
     },
     "runInstallerPrep": {
       "CreateInstances": [
         {
-          "Name": "${release}-installerprep-${ID}",
-          "AttachedDisks": [
-            "${release}-installerprep-${ID}",
-            "${release}-installer-${ID}"
-          ],
+          "Name": "installerprep",
+          "AttachedDisks": ["installerprep", "installer"],
           "MachineType": "n1-standard-8",
           "Metadata": {
             "build-files-gcs-dir": "${SOURCESPATH}/build_files",
@@ -53,31 +47,25 @@
             "google-cloud-repo": "${google-cloud-repo}",
             "release": "${release}"
           },
-          "StartupScript": "installerprep_startup_script",
-          "ExactName": true
+          "StartupScript": "installerprep_startup_script"
         }
       ]
     },
     "waitInstallerPrep": {
       "Timeout": "60m",
-      "WaitForInstancesSignal": [
-        {"Name": "${release}-installerprep-${ID}", "Stopped": true}
-      ]
+      "WaitForInstancesSignal": [{"Name": "installerprep", "Stopped": true}]
     },
     "deleteInstallerPrepResources": {
       "DeleteResources": {
-        "Disks": ["${release}-installerprep-${ID}"],
-        "Instances": ["${release}-installerprep-${ID}"]
+        "Disks": ["installerprep"],
+        "Instances": ["installerprep"]
       }
     },
     "runInstallation": {
       "CreateInstances": [
         {
-          "Name": "${release}-build-${ID}",
-          "AttachedDisks": [
-            "${release}-installer-${ID}",
-            "${release}-installation-${ID}"
-          ],
+          "Name": "build",
+          "AttachedDisks": ["installer", "installation"],
           "MachineType": "n1-standard-8",
           "Metadata": {
             "build-files-gcs-dir": "${SOURCESPATH}/build_files",
@@ -91,16 +79,13 @@
           "Scopes": [
             "https://www.googleapis.com/auth/compute",
             "https://www.googleapis.com/auth/devstorage.read_write"
-          ],
-          "ExactName": true
+          ]
         }
       ]
     },
     "waitInstallation": {
       "Timeout": "60m",
-      "WaitForInstancesSignal": [
-        {"Name": "${release}-build-${ID}", "Stopped": true}
-      ]
+      "WaitForInstancesSignal": [{"Name": "build", "Stopped": true}]
     }
   },
   "Dependencies": {

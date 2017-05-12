@@ -4,9 +4,6 @@
     "image-dest": "",
     "installer-iso": ""
   },
-  "Sources": {
-    "installer.iso": "${installer-iso}"
-  },
   "Steps": {
     "build-centos7": {
       "Timeout": "60m",
@@ -14,10 +11,10 @@
         "Path": "./centos.wf.json",
         "Vars": {
           "image-dest": "${image-dest}",
-          "installer-iso": "${SOURCESPATH}/installer.iso",
+          "installer-iso": "${installer-iso}",
           "license-id": "1000207",
           "release": "centos7",
-          "wf-name": "build-centos7"
+          "wf-name": "centos7"
         }
       }
     }
