@@ -47,7 +47,7 @@
             "google-cloud-repo": "${google-cloud-repo}",
             "release": "${release}"
           },
-          "StartupScript": "installerprep_startup_script",
+          "StartupScript": "installerprep_startup_script"
         }
       ]
     },
