@@ -48,6 +48,10 @@ type CreateInstance struct {
 	// Optional description of the resource, if not specified Daisy will
 	// create one with the name of the project.
 	Description string `json:",omitempty"`
+	// Zone to create the instance in, overrides workflow Zone.
+	Zone string
+	// Project to create the instance in, overrides workflow Project.
+	Project string
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?
@@ -100,6 +104,33 @@ func (c *CreateInstances) validate(w *Workflow) error {
 			if !diskValid(w, d) {
 				return fmt.Errorf("cannot create instance: disk not found: %s", d)
 			}
+			// Ensure disk is in the same project and zone.
+			match := diskURLRegex.FindStringSubmatch(d)
+			if match == nil {
+				continue
+			}
+			result := make(map[string]string)
+			for i, name := range diskURLRegex.SubexpNames() {
+				if i != 0 {
+					result[name] = match[i]
+				}
+			}
+
+			project := w.Project
+			if ci.Project != "" {
+				project = ci.Project
+			}
+			zone := w.Zone
+			if ci.Zone != "" {
+				zone = ci.Zone
+			}
+
+			if result["project"] != "" && result["project"] != project {
+				return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", project, result["project"], d)
+			}
+			if result["zone"] != zone {
+				return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", zone, result["zone"], d)
+			}
 		}
 
 		// Startup script checking.
@@ -128,7 +159,17 @@ func (c *CreateInstances) run(w *Workflow) error {
 				name = w.genName(ci.Name)
 			}
 
-			inst, err := w.ComputeClient.NewInstance(name, w.Project, w.Zone, ci.MachineType)
+			zone := w.Zone
+			if ci.Zone != "" {
+				zone = ci.Zone
+			}
+
+			project := w.Project
+			if ci.Project != "" {
+				project = ci.Project
+			}
+
+			inst, err := w.ComputeClient.NewInstance(name, project, zone, ci.MachineType)
 			if err != nil {
 				e <- err
 				return
@@ -143,7 +184,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 			for i, sourceDisk := range ci.AttachedDisks {
 				var disk *resource
 				var err error
-				if isLink(sourceDisk) {
+				if diskURLRegex.MatchString(sourceDisk) {
 					// Real link.
 					inst.AddPD("", sourceDisk, false, i == 0)
 				} else if disk, err = w.getDisk(sourceDisk); err == nil {
