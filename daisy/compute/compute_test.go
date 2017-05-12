@@ -272,7 +272,7 @@ func testCreateInstance(got, want *compute.Instance) error {
 		return fmt.Errorf("unexpected Name, got: %s, want: %s", got.Name, want.Name)
 	}
 	if got.MachineType != want.MachineType {
-		return fmt.Errorf("unexpected MachineType, got: %d, want: %d", got.MachineType, want.MachineType)
+		return fmt.Errorf("unexpected MachineType, got: %s, want: %s", got.MachineType, want.MachineType)
 	}
 	if diff := pretty.Compare(got.Disks, want.Disks); diff != "" {
 		return fmt.Errorf("Disks do not match expectation: (-got +want)\n%s", diff)
