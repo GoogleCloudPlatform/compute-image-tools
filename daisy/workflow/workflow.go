@@ -191,7 +191,11 @@ func (s *Step) run(w *Workflow) error {
 	if err = realStep.run(w); err != nil {
 		return s.wrapRunError(err)
 	}
-	w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
+	select {
+	case <-w.Cancel:
+	default:
+		w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
+	}
 	return nil
 }
 
@@ -320,7 +324,6 @@ func (w *Workflow) cleanup() {
 	select {
 	case <-w.Cancel:
 		w.logger.Printf("Workflow %q canceled, cleaning up (this may take up to 2 minutes).", w.Name)
-		w.logger = log.New(ioutil.Discard, "", 0)
 	default:
 		w.logger.Printf("Workflow %q complete, cleaning up ephemeral resources.", w.Name)
 	}
