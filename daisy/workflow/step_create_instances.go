@@ -177,7 +177,7 @@ func (c *CreateInstances) run(w *Workflow) error {
 			inst.Scopes = ci.Scopes
 			description := ci.Description
 			if description == "" {
-				description = fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %q.", w.Name, w.username)
+				description = fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", w.Name, w.username)
 			}
 			inst.Description = description
 

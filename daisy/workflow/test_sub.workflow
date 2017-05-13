@@ -1,6 +1,6 @@
 {
   "steps": {
-    "create disks": {
+    "create-disks": {
       "createDisks": [
         {
           "name": "bootstrap",
@@ -22,7 +22,7 @@
         }
       ]
     },
-    "bootstrap stopped": {
+    "bootstrap-stopped": {
       "timeout": "1h",
       "waitForInstancesSignal": [
         {"name": "bootstrap", "serialOutput": {"port": 1, "successMatch": "complete", "failureMatch": "fail"}}
@@ -30,7 +30,7 @@
     }
   },
   "dependencies": {
-    "bootstrap": ["create disks"],
-    "bootstrap stopped": ["bootstrap"]
+    "bootstrap": ["create-disks"],
+    "bootstrap-stopped": ["bootstrap"]
   }
 }

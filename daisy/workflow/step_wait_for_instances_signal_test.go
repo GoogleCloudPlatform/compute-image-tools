@@ -16,6 +16,7 @@ package workflow
 
 import (
 	"testing"
+	"time"
 )
 
 func TestWaitForInstancesSignalRun(t *testing.T) {
@@ -24,9 +25,21 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		"i1": {"i1", wf.genName("i1"), "link", false},
 		"i2": {"i2", wf.genName("i2"), "link", false},
 		"i3": {"i3", wf.genName("i3"), "link", false}}
-	ws := &WaitForInstancesSignal{{Name: "i1", Stopped: true}, {Name: "i2", Stopped: true}, {Name: "i3", Stopped: true}}
+	ws := &WaitForInstancesSignal{
+		{Name: "i1", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "success"}},
+		{Name: "i2", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 2, SuccessMatch: "success", FailureMatch: "fail"}},
+		{Name: "i3", Stopped: true},
+	}
 	if err := ws.run(wf); err != nil {
-		t.Fatalf("error running WaitForInstancesStopped.run(): %v", err)
+		t.Errorf("error running WaitForInstancesSignal.run(): %v", err)
+	}
+
+	ws = &WaitForInstancesSignal{
+		{Name: "i1", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail", SuccessMatch: "success"}},
+		{Name: "i2", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 2, FailureMatch: "fail"}},
+	}
+	if err := ws.run(wf); err == nil {
+		t.Error("expected error")
 	}
 }
 

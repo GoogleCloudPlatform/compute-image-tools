@@ -8,7 +8,7 @@
     "machine_type": "n1-standard-1"
   },
   "steps": {
-    "create disks": {
+    "create-disks": {
       "createDisks": [
         {
           "name": "bootstrap",
@@ -37,7 +37,7 @@
         }
       ]
     },
-    "${bootstrap_instance_name} stopped": {
+    "${bootstrap_instance_name}-stopped": {
       "timeout": "1h",
       "waitForInstancesSignal": [{"name": "${bootstrap_instance_name}", "stopped": true, "interval": "1s"}]
     },
@@ -51,10 +51,10 @@
         }
       ]
     },
-    "postinstall stopped": {
+    "postinstall-stopped": {
       "waitForInstancesSignal": [{"name": "postinstall", "stopped": true}]
     },
-    "create image": {
+    "create-image": {
       "createImages": [
         {
           "name": "image-from-disk",
@@ -62,19 +62,19 @@
         }
       ]
     },
-    "sub workflow": {
+    "sub-workflow": {
       "subWorkflow": {
         "path": "./test_sub.workflow"
       }
     }
   },
   "dependencies": {
-    "create disks": [],
-    "bootstrap": ["create disks"],
-    "bootstrap stopped": ["bootstrap"],
-    "postinstall": ["bootstrap stopped"],
-    "postinstall stopped": ["postinstall"],
-    "create image": ["postinstall stopped"],
-    "sub workflow": ["create image"]
+    "create-disks": [],
+    "bootstrap": ["create-disks"],
+    "bootstrap-stopped": ["bootstrap"],
+    "postinstall": ["bootstrap-stopped"],
+    "postinstall-stopped": ["postinstall"],
+    "create-image": ["postinstall-stopped"],
+    "sub-workflow": ["create-image"]
   }
 }

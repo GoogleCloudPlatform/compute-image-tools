@@ -178,7 +178,7 @@ func TestFromFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	subGot := got.Steps["sub workflow"].SubWorkflow.workflow
+	subGot := got.Steps["sub-workflow"].SubWorkflow.workflow
 
 	want := &Workflow{
 		id:          got.id,
@@ -192,8 +192,8 @@ func TestFromFile(t *testing.T) {
 			"machine_type":            "n1-standard-1",
 		},
 		Steps: map[string]*Step{
-			"create disks": {
-				name: "create disks",
+			"create-disks": {
+				name: "create-disks",
 				CreateDisks: &CreateDisks{
 					{
 						Name:        "bootstrap",
@@ -221,8 +221,8 @@ func TestFromFile(t *testing.T) {
 					},
 				},
 			},
-			"${bootstrap_instance_name} stopped": {
-				name:                   "${bootstrap_instance_name} stopped",
+			"${bootstrap_instance_name}-stopped": {
+				name:                   "${bootstrap_instance_name}-stopped",
 				Timeout:                "1h",
 				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true, Interval: "1s"}},
 			},
@@ -237,24 +237,24 @@ func TestFromFile(t *testing.T) {
 					},
 				},
 			},
-			"postinstall stopped": {
-				name: "postinstall stopped",
+			"postinstall-stopped": {
+				name: "postinstall-stopped",
 				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "postinstall", Stopped: true}},
 			},
-			"create image": {
-				name:         "create image",
+			"create-image": {
+				name:         "create-image",
 				CreateImages: &CreateImages{{Name: "image-from-disk", SourceDisk: "image"}},
 			},
-			"sub workflow": {
-				name: "sub workflow",
+			"sub-workflow": {
+				name: "sub-workflow",
 				SubWorkflow: &SubWorkflow{
 					Path: "./test_sub.workflow",
 					workflow: &Workflow{
 						id:          subGot.id,
 						workflowDir: wd,
 						Steps: map[string]*Step{
-							"create disks": {
-								name: "create disks",
+							"create-disks": {
+								name: "create-disks",
 								CreateDisks: &CreateDisks{
 									{
 										Name:        "bootstrap",
@@ -275,8 +275,8 @@ func TestFromFile(t *testing.T) {
 									},
 								},
 							},
-							"bootstrap stopped": {
-								name:    "bootstrap stopped",
+							"bootstrap-stopped": {
+								name:    "bootstrap-stopped",
 								Timeout: "1h",
 								WaitForInstancesSignal: &WaitForInstancesSignal{
 									{
@@ -289,21 +289,21 @@ func TestFromFile(t *testing.T) {
 							},
 						},
 						Dependencies: map[string][]string{
-							"bootstrap":         {"create disks"},
-							"bootstrap stopped": {"bootstrap"},
+							"bootstrap":         {"create-disks"},
+							"bootstrap-stopped": {"bootstrap"},
 						},
 					},
 				},
 			},
 		},
 		Dependencies: map[string][]string{
-			"create disks":        {},
-			"bootstrap":           {"create disks"},
-			"bootstrap stopped":   {"bootstrap"},
-			"postinstall":         {"bootstrap stopped"},
-			"postinstall stopped": {"postinstall"},
-			"create image":        {"postinstall stopped"},
-			"sub workflow":        {"create image"},
+			"create-disks":        {},
+			"bootstrap":           {"create-disks"},
+			"bootstrap-stopped":   {"bootstrap"},
+			"postinstall":         {"bootstrap-stopped"},
+			"postinstall-stopped": {"postinstall"},
+			"create-image":        {"postinstall-stopped"},
+			"sub-workflow":        {"create-image"},
 		},
 	}
 
@@ -464,7 +464,7 @@ func TestPopulate(t *testing.T) {
 						"overridden": "bar",
 					},
 					workflow: &Workflow{
-						Name:         "sub",
+						Name:         "parent-step3",
 						GCSPath:      fmt.Sprintf("gs://%s/%s", got.bucket, got.scratchPath),
 						Zone:         "parent-zone",
 						Project:      "parent-project",

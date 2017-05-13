@@ -188,19 +188,28 @@ func (c *Client) GetSerialPortOutput(project, zone, instance string, port, start
 	return c.raw.Instances.GetSerialPortOutput(project, zone, instance).Start(start).Port(port).Do()
 }
 
+// InstanceStatus returns an instances Status.
+func (c *Client) InstanceStatus(project, zone, instance string) (string, error) {
+	inst, err := c.raw.Instances.Get(project, zone, instance).Do()
+	if err != nil {
+		return "", err
+	}
+	return inst.Status, nil
+}
+
 // InstanceStopped checks if a GCE instance is in a 'TERMINATED' state.
 func (c *Client) InstanceStopped(project, zone, instance string) (bool, error) {
-	inst, err := c.raw.Instances.Get(project, zone, instance).Do()
+	status, err := c.InstanceStatus(project, zone, instance)
 	if err != nil {
 		return false, err
 	}
-	switch inst.Status {
+	switch status {
 	case "PROVISIONING", "RUNNING", "STAGING", "STOPPING":
 		return false, nil
 	case "TERMINATED":
 		return true, nil
 	default:
-		return false, fmt.Errorf("unexpected instance status %q: %+v", inst.Status, inst)
+		return false, fmt.Errorf("unexpected instance status %q", status)
 	}
 }
 

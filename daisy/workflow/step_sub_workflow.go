@@ -31,6 +31,7 @@ func (s *SubWorkflow) run(w *Workflow) error {
 	w.logger.Printf("Running subworkflow %q", s.workflow.Name)
 	if err := s.workflow.run(); err != nil {
 		s.workflow.logger.Printf("Error running subworkflow %q: %v", s.workflow.Name, err)
+		close(w.Cancel)
 		return err
 	}
 	return nil
