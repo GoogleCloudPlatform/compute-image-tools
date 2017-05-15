@@ -191,12 +191,19 @@ func (s *Step) run(w *Workflow) error {
 	if err = realStep.run(w); err != nil {
 		return s.wrapRunError(err)
 	}
-	w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
+	select {
+	case <-w.Cancel:
+	default:
+		w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
+	}
 	return nil
 }
 
 func (s *Step) validate(w *Workflow) error {
 	w.logger.Printf("Validating step %q", s.name)
+	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
+		return s.wrapValidateError(errors.New("step name must start with a letter and only contain letters, numbers, and hyphens"))
+	}
 	realStep, err := s.realStep()
 	if err != nil {
 		return s.wrapValidateError(err)
@@ -297,7 +304,11 @@ func (w *Workflow) Run() error {
 	w.logger.Print("Running workflow")
 	if err := w.run(); err != nil {
 		w.logger.Printf("Error running workflow: %v", err)
-		close(w.Cancel)
+		select {
+		case <-w.Cancel:
+		default:
+			close(w.Cancel)
+		}
 		return err
 	}
 	return nil
@@ -309,7 +320,13 @@ func (w *Workflow) String() string {
 }
 
 func (w *Workflow) cleanup() {
-	w.logger.Printf("Cleaning ephemeral resources for workflow %q.", w.Name)
+	// If canceled we don't want to log anymore.
+	select {
+	case <-w.Cancel:
+		w.logger.Printf("Workflow %q canceled, cleaning up (this may take up to 2 minutes).", w.Name)
+	default:
+		w.logger.Printf("Workflow %q complete, cleaning up ephemeral resources.", w.Name)
+	}
 	w.cleanupHelper(w.imageRefs, w.deleteImage)
 	w.cleanupHelper(w.instanceRefs, w.deleteInstance)
 	w.cleanupHelper(w.diskRefs, w.deleteDisk)
@@ -377,7 +394,7 @@ func (w *Workflow) genName(n string) string {
 	if len(result) > 64 {
 		result = result[0:63]
 	}
-	return result
+	return strings.ToLower(result)
 }
 
 func (w *Workflow) getDisk(n string) (*resource, error) {
@@ -441,6 +458,7 @@ func (w *Workflow) populateStep(step *Step) error {
 		return nil
 	}
 	step.SubWorkflow.workflow.GCSPath = fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath)
+	step.SubWorkflow.workflow.Name = step.name
 	step.SubWorkflow.workflow.Project = w.Project
 	step.SubWorkflow.workflow.Zone = w.Zone
 	step.SubWorkflow.workflow.OAuthPath = w.OAuthPath

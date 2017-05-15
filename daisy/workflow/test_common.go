@@ -91,7 +91,11 @@ func testWorkflow() *Workflow {
 
 func newTestGCEClient() (*compute.Client, error) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/", testProject, testZone)) {
+		if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=1") {
+			fmt.Fprintln(w, `{"Contents":"failsuccess","Start":"0"}`)
+		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=2") {
+			fmt.Fprintln(w, `{"Contents":"successfail","Start":"0"}`)
+		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/", testProject, testZone)) {
 			fmt.Fprintln(w, `{"Status":"TERMINATED","SelfLink":"link"}`)
 		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/machineTypes", testProject, testZone)) {
 			fmt.Fprintln(w, `{"Items":[{"Name": "foo-type"}]}`)

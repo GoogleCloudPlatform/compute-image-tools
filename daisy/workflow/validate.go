@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 	"sync"
 )
 
@@ -140,6 +141,9 @@ func projectExists(p string) bool {
 func (w *Workflow) validateRequiredFields() error {
 	if w.Name == "" {
 		return errors.New("must provide workflow field 'Name'")
+	}
+	if !rfc1035Rgx.MatchString(strings.ToLower(w.Name)) {
+		return errors.New("workflow field 'Name' must start with a letter and only contain letters, numbers, and hyphens")
 	}
 	if w.Project == "" {
 		return errors.New("must provide workflow field 'Project'")

@@ -127,7 +127,7 @@ func (c *CreateImages) run(w *Workflow) error {
 			w.logger.Printf("CreateImages: creating image %q.", name)
 			description := ci.Description
 			if description == "" {
-				description = fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %q.", w.Name, w.username)
+				description = fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", w.Name, w.username)
 			}
 			i, err := w.ComputeClient.CreateImage(name, project, diskLink, sourceFile, ci.Family, description, ci.Licenses, ci.GuestOsFeatures)
 			if err != nil {

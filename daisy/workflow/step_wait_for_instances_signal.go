@@ -55,13 +55,13 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 	tick := time.Tick(interval)
 	for {
 		select {
-		case <-w.Ctx.Done():
+		case <-w.Cancel:
 			return nil
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
 			if err != nil {
-				stopped, sErr := w.ComputeClient.InstanceStopped(w.Project, w.Zone, name)
-				if stopped && sErr == nil {
+				status, sErr := w.ComputeClient.InstanceStatus(w.Project, w.Zone, name)
+				if sErr == nil && (status == "TERMINATED" || status == "STOPPING") {
 					w.logger.Printf("WaitForInstancesSignal: instance %q stopped, not waiting for serial output.", name)
 					return nil
 				}
@@ -99,6 +99,7 @@ func (s *WaitForInstancesSignal) run(w *Workflow) error {
 					return
 				}
 				w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
+				return
 			}
 			if is.SerialOutput != nil {
 				if err := waitForSerialOutput(w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {

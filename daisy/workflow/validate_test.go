@@ -180,11 +180,14 @@ func TestValidateVarsSubbed(t *testing.T) {
 }
 
 func TestValidateWorkflow(t *testing.T) {
-	s := &Step{Timeout: "my-timeout", testType: &mockStep{}}
+	s := &Step{Timeout: "10s", testType: &mockStep{}}
 
 	// Normal, good validation.
 	w := testWorkflow()
 	w.Steps = map[string]*Step{"s0": s}
+	if err := w.populate(); err != nil {
+		t.Fatal(err)
+	}
 	if err := w.validate(); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
@@ -250,6 +253,9 @@ func TestValidateDAG(t *testing.T) {
 	}
 
 	// Normal case -- no issues.
+	if err := w.populate(); err != nil {
+		t.Fatal(err)
+	}
 	if err := w.validateDAG(); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
