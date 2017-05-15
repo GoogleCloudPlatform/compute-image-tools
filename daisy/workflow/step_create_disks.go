@@ -39,9 +39,9 @@ type CreateDisk struct {
 	// create one with the name of the project.
 	Description string `json:",omitempty"`
 	// Zone to create the instance in, overrides workflow Zone.
-	Zone string
+	Zone string `json:",omitempty"`
 	// Project to create the instance in, overrides workflow Project.
-	Project string
+	Project string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual

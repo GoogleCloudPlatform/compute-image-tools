@@ -259,7 +259,7 @@ type Workflow struct {
 	logsPath      string
 	outsPath      string
 	username      string
-	gcsLogs       bool
+	gcsLogging    bool
 	ComputeClient *compute.Client `json:"-"`
 	StorageClient *storage.Client `json:"-"`
 	id            string
@@ -290,7 +290,7 @@ func (w *Workflow) Validate() error {
 
 // Run runs a workflow.
 func (w *Workflow) Run() error {
-	w.gcsLogs = true
+	w.gcsLogging = true
 	if err := w.Validate(); err != nil {
 		return err
 	}
@@ -418,18 +418,6 @@ func (w *Workflow) getResourceHelper(n string, f func(string, *Workflow) (*resou
 	return nil, fmt.Errorf("unresolved instance reference %q", n)
 }
 
-func (w *Workflow) nameToDiskLink(n string) string {
-	return fmt.Sprintf("projects/%s/zones/%s/disks/%s", w.Project, w.Zone, n)
-}
-
-func (w *Workflow) nameToImageLink(n string) string {
-	return fmt.Sprintf("projects/%s/global/images/%s", w.Project, n)
-}
-
-func (w *Workflow) nameToInstanceLink(n string) string {
-	return fmt.Sprintf("projects/%s/zones/%s/instances/%s", w.Project, w.Zone, n)
-}
-
 func (w *Workflow) populateStep(step *Step) error {
 	if step.Timeout == "" {
 		step.Timeout = defaultTimeout
@@ -466,7 +454,7 @@ func (w *Workflow) populateStep(step *Step) error {
 	step.SubWorkflow.workflow.StorageClient = w.StorageClient
 	step.SubWorkflow.workflow.Ctx = w.Ctx
 	step.SubWorkflow.workflow.Cancel = w.Cancel
-	step.SubWorkflow.workflow.gcsLogs = w.gcsLogs
+	step.SubWorkflow.workflow.logger = w.logger
 	for k, v := range step.SubWorkflow.Vars {
 		step.SubWorkflow.workflow.Vars[k] = v
 	}
@@ -561,7 +549,7 @@ func (w *Workflow) populate() error {
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
 		gcs := ioutil.Discard
-		if w.gcsLogs {
+		if w.gcsLogging {
 			gcs = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
 			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		}

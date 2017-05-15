@@ -1,5 +1,3 @@
-
-
 # What is Daisy?
 Daisy is a solution for running complex, multi-step workflows on GCE.
 https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy
@@ -144,7 +142,8 @@ Step types are defined here:
 https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow#Step
 
 The `Steps` field is a named set of executable steps. It is a map of
-a step's name to the step's type and configuration.
+a step's name to the step's type and configuration. Step names must begin with
+a letter and only contain letters, numbers and hyphens.
 
 For each individual 'step', you set one 'step type' and the type's
 associated fields. You may optionally set a step timeout using
@@ -157,13 +156,13 @@ of "<STEP 1 TYPE>" and a timeout of 2 hours. "step2" has a type of
 "<STEP 2 TYPE>" and a timeout of 10 minutes, by default.
 ```json
 "Steps": {
-  "step 1": {
+  "step1": {
     "<STEP 1 TYPE>": {
       ...
     },
     "Timeout": "2h"
   },
-  "step 2": {
+  "step2": {
     "<STEP 2 TYPE>": {
       ...
     }
@@ -192,7 +191,7 @@ Creates GCE disks. Each disk has the following fields:
 Example: the first is a standard PD disk created from a source image, the second
 is a blank PD SSD.
 ```json
-"step name": {
+"stepName": {
   "CreateDisks": [
     {
       "Name": "disk1",
@@ -224,7 +223,7 @@ Creates GCE images. Each image has the following fields:
 
 This CreateImages example creates an image from a source disk.
 ```json
-"step name": {
+"stepName": {
   "CreateImages": [
     {
       "Name": "image1",
@@ -239,7 +238,7 @@ uses the NoCleanup flag to tell Daisy that this resource should exist
 after workflow completion, and the ExactName flag to tell Daisy to not
 use an generated name for the resource.
 ```json
-"step name": {
+"stepName": {
   "CreateImages": [
     {
       "Name": "image1",
@@ -270,7 +269,7 @@ Creates GCE VM instances. Each VM has the following fields:
 This CreateInstances step example creates an instance with two attached
 disks and uses the machine type n1-standard-4.
 ```json
-"step name": {
+"stepName": {
   "CreateInstances": [
     {
       "Name": "instance1",
@@ -294,7 +293,7 @@ order: images, instances, disks.
 This DeleteResources step example deletes an image, an instance, and two
 disks.
 ```json
-"step name": {
+"stepName": {
   "DeleteResources": {
      "Images":["image1"],
      "Instances":["instance1"],
@@ -328,7 +327,7 @@ SubWorkflow step type fields:
 This SubWorkflow step example uses a local workflow file and passes a var,
 "foo", to the subworkflow.
 ```json
-"step name": {
+"stepName": {
   "SubWorkflow": {
     "Path": "./some_subworkflow.workflow",
     "Vars": {
@@ -360,7 +359,7 @@ SerialOutput:
 
 This example step waits for VM "foo" to stop and for a signal from VM "bar":
 ```json
-"step name": {
+"stepName": {
     "WaitForInstancesSignal": [
         {
             "Name": "foo",

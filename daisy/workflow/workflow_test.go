@@ -27,6 +27,11 @@ import (
 	"testing"
 	"time"
 
+	"bytes"
+
+	"io"
+
+	"github.com/kylelemons/godebug/diff"
 	"github.com/kylelemons/godebug/pretty"
 )
 
@@ -128,7 +133,7 @@ func TestGetResource(t *testing.T) {
 	}
 }
 
-func TestFromFileSyntax(t *testing.T) {
+func TestNewFromFileError(t *testing.T) {
 	td, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatalf("error creating temp dir: %v", err)
@@ -153,6 +158,14 @@ func TestFromFileSyntax(t *testing.T) {
 			`{"test": "value"`,
 			tf + ": JSON syntax error in line 1: unexpected end of JSON input \n{\"test\": \"value\"\n               ^",
 		},
+		{
+			"{\n\"test\":[\"1\", \"2\",],\n\"test2\":[\"1\", \"2\"]\n}",
+			tf + ": JSON syntax error in line 2: invalid character ']' looking for beginning of value \n\"test\":[\"1\", \"2\",],\n                 ^",
+		},
+		{
+			`{"steps": {"somename": {"subWorkflow": {"path": "sub.workflow"}}}}`,
+			fmt.Sprintf("open %s/sub.workflow: no such file or directory", td),
+		},
 	}
 
 	for _, tt := range tests {
@@ -168,7 +181,7 @@ func TestFromFileSyntax(t *testing.T) {
 	}
 }
 
-func TestFromFile(t *testing.T) {
+func TestNewFromFile(t *testing.T) {
 	got, err := NewFromFile(context.Background(), "./test.workflow")
 	if err != nil {
 		t.Fatal(err)
@@ -187,6 +200,7 @@ func TestFromFile(t *testing.T) {
 		Project:     "some-project",
 		Zone:        "us-central1-a",
 		GCSPath:     "gs://some-bucket/images",
+		OAuthPath:   wd + "/somefile",
 		Vars: map[string]string{
 			"bootstrap_instance_name": "bootstrap",
 			"machine_type":            "n1-standard-1",
@@ -362,7 +376,7 @@ func TestPopulate(t *testing.T) {
 			},
 			"${NAME}-step2": {
 				WaitForInstancesSignal: &WaitForInstancesSignal{
-					{Name: "blah", Interval: "10s"},
+					{Name: "blah", Stopped: true},
 				},
 			},
 			"${NAME}-step3": {
@@ -451,7 +465,7 @@ func TestPopulate(t *testing.T) {
 				Timeout: "10m",
 				timeout: time.Duration(10 * time.Minute),
 				WaitForInstancesSignal: &WaitForInstancesSignal{
-					{Name: "blah", Interval: "10s", interval: 10 * time.Second},
+					{Name: "blah", Stopped: true, interval: 5 * time.Second},
 				},
 			},
 			"parent-step3": {
@@ -755,5 +769,130 @@ func TestTraverseDAG(t *testing.T) {
 	}
 	if err := checkCallOrder(); err != nil {
 		t.Errorf("call order error: %s", err)
+	}
+}
+
+func TestPrint(t *testing.T) {
+	data := []byte(`{
+"name": "some-name",
+"project": "some-project",
+"zone": "us-central1-a",
+"gcsPath": "gs://some-bucket/images",
+"vars": {
+  "instance_name": "step1",
+  "machine_type": "n1-standard-1"
+},
+"steps": {
+  "${instance_name}Run": {
+    "createInstances": [
+      {
+        "name": "${instance_name}",
+        "attachedDisks": ["disk"],
+        "machineType": "${machine_type}"
+      }
+    ]
+  }
+}
+}`)
+
+	want := `{
+  "Name": "some-name",
+  "Project": "some-project",
+  "Zone": "us-central1-a",
+  "GCSPath": "gs://some-bucket/images",
+  "Vars": {
+    "instance_name": "step1",
+    "machine_type": "n1-standard-1"
+  },
+  "Steps": {
+    "step1Run": {
+      "Timeout": "10m",
+      "CreateInstances": [
+        {
+          "Name": "step1",
+          "AttachedDisks": [
+            "disk"
+          ],
+          "MachineType": "n1-standard-1",
+          "NoCleanup": false,
+          "ExactName": false
+        }
+      ]
+    }
+  },
+  "Dependencies": null
+}
+`
+
+	td, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %v", err)
+	}
+	defer os.RemoveAll(td)
+	tf := filepath.Join(td, "test.workflow")
+	ioutil.WriteFile(tf, data, 0600)
+
+	got, err := NewFromFile(context.Background(), tf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	got.Print()
+	w.Close()
+	os.Stdout = old
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, r); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := diff.Diff(buf.String(), want); diff != "" {
+		t.Errorf("printed workflow does not match expectation: (-got +want)\n%s", diff)
+	}
+}
+
+func testValidateErrors(w *Workflow, want string) error {
+	if err := w.Validate(); err == nil {
+		return errors.New("expected error, got nil")
+	} else if err.Error() != want {
+		return fmt.Errorf("did not get expected error from Validate():\ngot: %q\nwant: %q", err.Error(), want)
+	}
+	select {
+	case <-w.Cancel:
+		return nil
+	default:
+		return errors.New("expected cancel to be closed after error")
+	}
+}
+
+func TestValidateErrors(t *testing.T) {
+	// Error from validateRequiredFields().
+	w := testWorkflow()
+	w.Name = "1"
+	want := "error validating workflow: workflow field 'Name' must start with a letter and only contain letters, numbers, and hyphens"
+	if err := testValidateErrors(w, want); err != nil {
+		t.Error(err)
+	}
+
+	// Error from populate().
+	w = testWorkflow()
+	w.Steps = map[string]*Step{"s0": {Timeout: "10", testType: &mockStep{}}}
+	want = "error populating workflow: time: missing unit in duration 10"
+	if err := testValidateErrors(w, want); err != nil {
+		t.Error(err)
+	}
+
+	// Error from validate().
+	w = testWorkflow()
+	w.Steps = map[string]*Step{"s0": {testType: &mockStep{}}}
+	w.Project = "${var}"
+	want = "Unresolved var found in \"${var}\""
+	if err := testValidateErrors(w, want); err != nil {
+		t.Error(err)
 	}
 }

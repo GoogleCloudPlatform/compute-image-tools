@@ -52,6 +52,9 @@ func (w *Workflow) uploadFile(src, obj string) error {
 
 func (w *Workflow) uploadSources() error {
 	for dst, origPath := range w.Sources {
+		if origPath == "" {
+			continue
+		}
 		// GCS to GCS.
 		if bkt, objPath, err := splitGCSPath(origPath); err == nil {
 			if objPath == "" || strings.HasSuffix(objPath, "/") {

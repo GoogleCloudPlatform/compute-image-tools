@@ -3,6 +3,7 @@
   "project": "some-project",
   "zone": "us-central1-a",
   "gcsPath": "gs://some-bucket/images",
+  "oauthPath": "somefile",
   "vars": {
     "bootstrap_instance_name": "bootstrap",
     "machine_type": "n1-standard-1"
