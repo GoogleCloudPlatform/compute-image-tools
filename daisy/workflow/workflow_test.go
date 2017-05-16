@@ -15,9 +15,11 @@
 package workflow
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/user"
@@ -25,11 +27,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"time"
-
-	"bytes"
-
-	"io"
+	"time"	
 
 	"github.com/kylelemons/godebug/diff"
 	"github.com/kylelemons/godebug/pretty"
@@ -806,7 +804,6 @@ func TestPrint(t *testing.T) {
   },
   "Steps": {
     "step1Run": {
-      "Timeout": "10m",
       "CreateInstances": [
         {
           "Name": "step1",
@@ -836,6 +833,9 @@ func TestPrint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	
+	got.ComputeClient = testGCEClient
+	got.StorageClient = testGCSClient
 
 	old := os.Stdout
 	r, w, err := os.Pipe()
