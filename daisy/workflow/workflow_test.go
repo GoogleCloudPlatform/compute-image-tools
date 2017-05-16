@@ -27,7 +27,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"time"	
+	"time"
 
 	"github.com/kylelemons/godebug/diff"
 	"github.com/kylelemons/godebug/pretty"
@@ -804,6 +804,7 @@ func TestPrint(t *testing.T) {
   },
   "Steps": {
     "step1Run": {
+      "Timeout": "10m",
       "CreateInstances": [
         {
           "Name": "step1",
@@ -833,7 +834,7 @@ func TestPrint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	got.ComputeClient = testGCEClient
 	got.StorageClient = testGCSClient
 
