@@ -25,6 +25,7 @@ func TestSplitVariables(t *testing.T) {
 		want  map[string]string
 	}{
 		{"", map[string]string{}},
+		{",", map[string]string{}},
 		{"key=var", map[string]string{"key": "var"}},
 		{"key1=var1,key2=var2", map[string]string{"key1": "var1", "key2": "var2"}},
 	}
@@ -33,6 +34,40 @@ func TestSplitVariables(t *testing.T) {
 		got := splitVariables(tt.input)
 		if !reflect.DeepEqual(tt.want, got) {
 			t.Errorf("splitVariables did not split %q as expected, want: %q, got: %q", tt.input, tt.want, got)
+		}
+	}
+}
+
+func TestParseWorkflows(t *testing.T) {
+	paths := []string{"./workflow/test.workflow"}
+	varMap := map[string]string{"key1": "var1", "key2": "var2"}
+	project := "project"
+	zone := "zone"
+	gcsPath := "gcspath"
+	oauth := "oauthpath"
+	ws, err := parseWorkflows(paths, varMap, project, zone, gcsPath, oauth, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, w := range ws {
+		tests := []struct {
+			want, got string
+		}{
+			{w.Project, project},
+			{w.Zone, zone},
+			{w.GCSPath, gcsPath},
+			{w.OAuthPath, oauth},
+		}
+
+		for _, tt := range tests {
+			if tt.want != tt.got {
+				t.Errorf("%s != %s", varMap, w.Vars)
+			}
+		}
+
+		if reflect.DeepEqual(w.Vars, varMap) {
+			t.Errorf("unexpected vars, want: %s, got: %s", varMap, w.Vars)
 		}
 	}
 }

@@ -21,16 +21,22 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/user"
 	"path/filepath"
 	"reflect"
+	"regexp"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/kylelemons/godebug/diff"
 	"github.com/kylelemons/godebug/pretty"
+	"google.golang.org/api/option"
 )
 
 func TestCleanup(t *testing.T) {
@@ -566,14 +572,57 @@ func TestStepDepends(t *testing.T) {
 
 func TestRealStep(t *testing.T) {
 	// Good. Try normal, working case.
-	s := Step{
-		RunTests: &RunTests{},
+	tests := []struct {
+		step     Step
+		stepType reflect.Type
+	}{
+		{
+			Step{AttachDisks: &AttachDisks{}},
+			reflect.TypeOf(&AttachDisks{}),
+		},
+		{
+			Step{CreateDisks: &CreateDisks{}},
+			reflect.TypeOf(&CreateDisks{}),
+		},
+		{
+			Step{CreateImages: &CreateImages{}},
+			reflect.TypeOf(&CreateImages{}),
+		},
+		{
+			Step{CreateInstances: &CreateInstances{}},
+			reflect.TypeOf(&CreateInstances{}),
+		},
+		{
+			Step{DeleteResources: &DeleteResources{}},
+			reflect.TypeOf(&DeleteResources{}),
+		},
+		{
+			Step{RunTests: &RunTests{}},
+			reflect.TypeOf(&RunTests{}),
+		},
+		{
+			Step{SubWorkflow: &SubWorkflow{}},
+			reflect.TypeOf(&SubWorkflow{}),
+		},
+		{
+			Step{WaitForInstancesSignal: &WaitForInstancesSignal{}},
+			reflect.TypeOf(&WaitForInstancesSignal{}),
+		},
 	}
-	if _, err := s.realStep(); err != nil {
-		t.Fatalf("unexpected error: %s", err)
+
+	for _, tt := range tests {
+		st, err := tt.step.realStep()
+		if err != nil {
+			t.Errorf("unexpected error: %s", err)
+		}
+		got := reflect.TypeOf(st)
+		if got != tt.stepType {
+			t.Errorf("unexpected step type, want: %s, got: %s", tt.stepType, got)
+		}
 	}
+
 	// Bad. Try empty step.
-	s = Step{}
+	s := Step{}
 	if _, err := s.realStep(); err == nil {
 		t.Fatal("empty step should have thrown an error")
 	}
@@ -895,5 +944,61 @@ func TestValidateErrors(t *testing.T) {
 	want = "Unresolved var found in \"${var}\""
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestWrite(t *testing.T) {
+	var buf bytes.Buffer
+	testBucket := "bucket"
+	testObject := "object"
+	var gotObj string
+	var gotBkt string
+	nameRgx := regexp.MustCompile(`"name":"([^"].*)"`)
+	uploadRgx := regexp.MustCompile(`/b/([^/]+)/o?.*uploadType=multipart.*`)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := r.URL.String()
+		m := r.Method
+		if match := uploadRgx.FindStringSubmatch(u); m == "POST" && match != nil {
+			body, _ := ioutil.ReadAll(r.Body)
+			buf.Write(body)
+			gotObj = nameRgx.FindStringSubmatch(string(body))[1]
+			gotBkt = match[1]
+			fmt.Fprintf(w, `{"kind":"storage#object","bucket":"%s","name":"%s"}`, gotBkt, gotObj)
+		}
+
+	}))
+
+	gcsClient, err := storage.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
+	if err != nil {
+		t.Fatal(err)
+	}
+	l := gcsLogger{
+		client: gcsClient,
+		bucket: testBucket,
+		object: testObject,
+		ctx:    context.Background(),
+	}
+
+	tests := []struct {
+		test, want string
+	}{
+		{"test log 1\n", "test log 1\n"},
+		{"test log 2\n", "test log 1\ntest log 2\n"},
+	}
+
+	for _, tt := range tests {
+		l.Write([]byte(tt.test))
+		if gotObj != testObject {
+			t.Errorf("object does not match, want: %q, got: %q", testObject, gotObj)
+		}
+		if gotBkt != testBucket {
+			t.Errorf("bucket does not match, want: %q, got: %q", testBucket, gotBkt)
+		}
+		if !strings.Contains(buf.String(), tt.want) {
+			t.Errorf("expected text did not get sent to GCS, want: %q, got: %q", tt.want, buf.String())
+		}
+		if l.buf.String() != tt.want {
+			t.Errorf("buffer does mot match expectation, want: %q, got: %q", tt.want, l.buf.String())
+		}
 	}
 }

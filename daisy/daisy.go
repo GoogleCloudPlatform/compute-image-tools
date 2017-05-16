@@ -58,6 +58,48 @@ func splitVariables(input string) map[string]string {
 	return varMap
 }
 
+func parseWorkflows(paths []string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint, sEndpoint string) ([]*workflow.Workflow, error) {
+	var ws []*workflow.Workflow
+	for _, path := range paths {
+		w, err := workflow.NewFromFile(context.Background(), path)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range varMap {
+			w.Vars[k] = v
+		}
+		if project != "" {
+			w.Project = project
+		}
+		if zone != "" {
+			w.Zone = zone
+		}
+		if gcsPath != "" {
+			w.GCSPath = gcsPath
+		}
+		if oauth != "" {
+			w.OAuthPath = oauth
+		}
+
+		if cEndpoint != "" {
+			w.ComputeClient, err = compute.NewClient(w.Ctx, option.WithEndpoint(cEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if sEndpoint != "" {
+			w.StorageClient, err = storage.NewClient(w.Ctx, option.WithEndpoint(sEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		ws = append(ws, w)
+	}
+	return ws, nil
+}
+
 func main() {
 	flag.Parse()
 	if len(flag.Args()) == 0 {
@@ -65,44 +107,9 @@ func main() {
 	}
 
 	varMap := splitVariables(*variables)
-
-	var ws []*workflow.Workflow
-	for _, path := range flag.Args() {
-		w, err := workflow.NewFromFile(context.Background(), path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for k, v := range varMap {
-			w.Vars[k] = v
-		}
-		if *project != "" {
-			w.Project = *project
-		}
-		if *zone != "" {
-			w.Zone = *zone
-		}
-		if *gcsPath != "" {
-			w.GCSPath = *gcsPath
-		}
-		if *oauth != "" {
-			w.OAuthPath = *oauth
-		}
-
-		if *ce != "" {
-			w.ComputeClient, err = compute.NewClient(w.Ctx, option.WithEndpoint(*ce), option.WithServiceAccountFile(w.OAuthPath))
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		if *se != "" {
-			w.StorageClient, err = storage.NewClient(w.Ctx, option.WithEndpoint(*ce), option.WithServiceAccountFile(w.OAuthPath))
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		ws = append(ws, w)
+	ws, err := parseWorkflows(flag.Args(), varMap, *project, *zone, *gcsPath, *oauth, *ce, *se)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	errors := make(chan error, len(ws))
