@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -102,125 +101,7 @@ type resource struct {
 	noCleanup        bool
 }
 
-type step interface {
-	run(w *Workflow) error
-	validate(w *Workflow) error
-}
 
-// Step is a single daisy workflow step.
-type Step struct {
-	name string
-	// Time to wait for this step to complete (default 10m).
-	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	Timeout string
-	timeout time.Duration
-	// Only one of the below fields should exist for each instance of Step.
-	AttachDisks            *AttachDisks            `json:",omitempty"`
-	CreateDisks            *CreateDisks            `json:",omitempty"`
-	CreateImages           *CreateImages           `json:",omitempty"`
-	CreateInstances        *CreateInstances        `json:",omitempty"`
-	DeleteResources        *DeleteResources        `json:",omitempty"`
-	RunTests               *RunTests               `json:",omitempty"`
-	SubWorkflow            *SubWorkflow            `json:",omitempty"`
-	WaitForInstancesSignal *WaitForInstancesSignal `json:",omitempty"`
-	// Used for unit tests.
-	testType step
-}
-
-func (s *Step) realStep() (step, error) {
-	var result step
-	matchCount := 0
-	if s.AttachDisks != nil {
-		matchCount++
-		result = s.AttachDisks
-	}
-	if s.CreateDisks != nil {
-		matchCount++
-		result = s.CreateDisks
-	}
-	if s.CreateImages != nil {
-		matchCount++
-		result = s.CreateImages
-	}
-	if s.CreateInstances != nil {
-		matchCount++
-		result = s.CreateInstances
-	}
-	if s.DeleteResources != nil {
-		matchCount++
-		result = s.DeleteResources
-	}
-	if s.RunTests != nil {
-		matchCount++
-		result = s.RunTests
-	}
-	if s.SubWorkflow != nil {
-		matchCount++
-		result = s.SubWorkflow
-	}
-	if s.WaitForInstancesSignal != nil {
-		matchCount++
-		result = s.WaitForInstancesSignal
-	}
-	if s.testType != nil {
-		matchCount++
-		result = s.testType
-	}
-
-	if matchCount == 0 {
-		return nil, errors.New("no step type defined")
-	}
-	if matchCount > 1 {
-		return nil, errors.New("multiple step types defined")
-	}
-	return result, nil
-}
-
-func (s *Step) run(w *Workflow) error {
-	realStep, err := s.realStep()
-	if err != nil {
-		return s.wrapRunError(err)
-	}
-	var st string
-	if t := reflect.TypeOf(realStep); t.Kind() == reflect.Ptr {
-		st = t.Elem().Name()
-	} else {
-		st = t.Name()
-	}
-	w.logger.Printf("Running step %q (%s)", s.name, st)
-	if err = realStep.run(w); err != nil {
-		return s.wrapRunError(err)
-	}
-	select {
-	case <-w.Cancel:
-	default:
-		w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
-	}
-	return nil
-}
-
-func (s *Step) validate(w *Workflow) error {
-	w.logger.Printf("Validating step %q", s.name)
-	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
-		return s.wrapValidateError(errors.New("step name must start with a letter and only contain letters, numbers, and hyphens"))
-	}
-	realStep, err := s.realStep()
-	if err != nil {
-		return s.wrapValidateError(err)
-	}
-	if err = realStep.validate(w); err != nil {
-		return s.wrapValidateError(err)
-	}
-	return nil
-}
-
-func (s *Step) wrapRunError(e error) error {
-	return fmt.Errorf("step %q run error: %s", s.name, e)
-}
-
-func (s *Step) wrapValidateError(e error) error {
-	return fmt.Errorf("step %q validation error: %s", s.name, e)
-}
 
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
@@ -579,8 +460,8 @@ func (w *Workflow) Print() {
 }
 
 func (w *Workflow) run() error {
-	return w.traverseDAG(func(s step) error {
-		return w.runStep(s.(*Step))
+	return w.traverseDAG(func(s *Step) error {
+		return w.runStep(s)
 	})
 }
 
@@ -604,30 +485,9 @@ func (w *Workflow) runStep(s *Step) error {
 	}
 }
 
-func (w *Workflow) stepDepends(consumer, consumed string) bool {
-	q := w.Dependencies[consumer]
-	seen := map[string]bool{}
-
-	for i := 0; i < len(q); i++ {
-		name := q[i]
-		if seen[name] {
-			continue
-		}
-		seen[name] = true
-		if name == consumed {
-			return true
-		}
-		for _, dep := range w.Dependencies[name] {
-			q = append(q, dep)
-		}
-	}
-
-	return false
-}
-
 // Concurrently traverse the DAG, running func f on each step.
 // Return an error if f returns an error on any step.
-func (w *Workflow) traverseDAG(f func(step) error) error {
+func (w *Workflow) traverseDAG(f func(*Step) error) error {
 	// waiting = steps and the dependencies they are waiting for.
 	// running = the currently running steps.
 	// start = map of steps' start channels/semaphores.
@@ -752,14 +612,15 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 	}
 
 	// We need to unmarshal any SubWorkflows.
-	for name, step := range w.Steps {
-		step.name = name
+	for name, s := range w.Steps {
+		s.name = name
+		s.w = w
 
-		if step.SubWorkflow == nil {
+		if s.SubWorkflow == nil {
 			continue
 		}
 
-		swPath := step.SubWorkflow.Path
+		swPath := s.SubWorkflow.Path
 		if !filepath.IsAbs(swPath) {
 			swPath = filepath.Join(w.workflowDir, swPath)
 		}
@@ -768,7 +629,7 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		if err != nil {
 			return nil, err
 		}
-		step.SubWorkflow.workflow = sw
+		s.SubWorkflow.workflow = sw
 		sw.parent = w
 	}
 

@@ -199,12 +199,12 @@ func (w *Workflow) validateDAG() error {
 	}
 
 	// Check for cycles.
-	for s := range w.Steps {
-		if w.stepDepends(s, s) {
+	for _, s := range w.Steps {
+		if s.depends(s) {
 			return fmt.Errorf("cyclic dependency on step %s", s)
 		}
 	}
-	return w.traverseDAG(func(s step) error { return s.validate(w) })
+	return w.traverseDAG(func(s *Step) error { return s.validate(w) })
 }
 
 func (w *Workflow) validateVarsSubbed() error {

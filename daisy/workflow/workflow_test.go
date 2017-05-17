@@ -37,6 +37,7 @@ import (
 	"github.com/kylelemons/godebug/diff"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
+	"runtime"
 )
 
 func TestCleanup(t *testing.T) {
@@ -145,6 +146,10 @@ func TestNewFromFileError(t *testing.T) {
 	defer os.RemoveAll(td)
 	tf := filepath.Join(td, "test.workflow")
 
+	localDNEErr := "open %s/sub.workflow: no such file or directory"
+	if runtime.GOOS == "windows" {
+		localDNEErr = "open %s\\sub.workflow: The system cannot find the file specified."
+	}
 	tests := []struct{ data, error string }{
 		{
 			`{"test":["1", "2",]}`,
@@ -168,7 +173,7 @@ func TestNewFromFileError(t *testing.T) {
 		},
 		{
 			`{"steps": {"somename": {"subWorkflow": {"path": "sub.workflow"}}}}`,
-			fmt.Sprintf("open %s/sub.workflow: no such file or directory", td),
+			fmt.Sprintf(localDNEErr, td),
 		},
 	}
 
@@ -521,120 +526,7 @@ func TestPopulate(t *testing.T) {
 	}
 }
 
-func TestStepDepends(t *testing.T) {
-	w := Workflow{
-		Steps: map[string]*Step{
-			"s1": {testType: &mockStep{}},
-			"s2": {testType: &mockStep{}},
-			"s3": {testType: &mockStep{}},
-			"s4": {testType: &mockStep{}},
-			"s5": {testType: &mockStep{}},
-		},
-		Dependencies: map[string][]string{},
-	}
-	// Check proper false.
-	if w.stepDepends("s1", "s2") {
-		t.Error("s1 shouldn't depend on s2")
-	}
 
-	// Check proper true.
-	w.Dependencies["s1"] = []string{"s2"}
-	if !w.stepDepends("s1", "s2") {
-		t.Error("s1 should depend on s2")
-	}
-
-	// Check transitive dependency returns true.
-	w.Dependencies["s2"] = []string{"s3"}
-	if !w.stepDepends("s1", "s3") {
-		t.Error("s1 should transitively depend on s3")
-	}
-
-	// Check cyclical graph terminates.
-	w.Dependencies["s2"] = append(w.Dependencies["s2"], "s4")
-	w.Dependencies["s4"] = []string{"s2"}
-	// s1 doesn't have any relation to s5, but we need to check
-	// if this can terminate on graphs with cycles.
-	if w.stepDepends("s1", "s5") {
-		t.Error("s1 shouldn't depend on s5")
-	}
-
-	// Check self depends on self -- false case.
-	if w.stepDepends("s1", "s1") {
-		t.Error("s1 shouldn't depend on s1")
-	}
-
-	// Check self depends on self true.
-	w.Dependencies["s5"] = []string{"s5"}
-	if !w.stepDepends("s5", "s5") {
-		t.Error("s5 should depend on s5")
-	}
-}
-
-func TestRealStep(t *testing.T) {
-	// Good. Try normal, working case.
-	tests := []struct {
-		step     Step
-		stepType reflect.Type
-	}{
-		{
-			Step{AttachDisks: &AttachDisks{}},
-			reflect.TypeOf(&AttachDisks{}),
-		},
-		{
-			Step{CreateDisks: &CreateDisks{}},
-			reflect.TypeOf(&CreateDisks{}),
-		},
-		{
-			Step{CreateImages: &CreateImages{}},
-			reflect.TypeOf(&CreateImages{}),
-		},
-		{
-			Step{CreateInstances: &CreateInstances{}},
-			reflect.TypeOf(&CreateInstances{}),
-		},
-		{
-			Step{DeleteResources: &DeleteResources{}},
-			reflect.TypeOf(&DeleteResources{}),
-		},
-		{
-			Step{RunTests: &RunTests{}},
-			reflect.TypeOf(&RunTests{}),
-		},
-		{
-			Step{SubWorkflow: &SubWorkflow{}},
-			reflect.TypeOf(&SubWorkflow{}),
-		},
-		{
-			Step{WaitForInstancesSignal: &WaitForInstancesSignal{}},
-			reflect.TypeOf(&WaitForInstancesSignal{}),
-		},
-	}
-
-	for _, tt := range tests {
-		st, err := tt.step.realStep()
-		if err != nil {
-			t.Errorf("unexpected error: %s", err)
-		}
-		got := reflect.TypeOf(st)
-		if got != tt.stepType {
-			t.Errorf("unexpected step type, want: %s, got: %s", tt.stepType, got)
-		}
-	}
-
-	// Bad. Try empty step.
-	s := Step{}
-	if _, err := s.realStep(); err == nil {
-		t.Fatal("empty step should have thrown an error")
-	}
-	// Bad. Try step with multiple real steps.
-	s = Step{
-		AttachDisks: &AttachDisks{},
-		RunTests:    &RunTests{},
-	}
-	if _, err := s.realStep(); err == nil {
-		t.Fatal("malformed step should have thrown an error")
-	}
-}
 
 func TestRefMapAdd(t *testing.T) {
 	rm := refMap{}
