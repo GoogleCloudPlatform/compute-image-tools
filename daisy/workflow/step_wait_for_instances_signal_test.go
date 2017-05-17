@@ -20,17 +20,18 @@ import (
 )
 
 func TestWaitForInstancesSignalRun(t *testing.T) {
-	wf := testWorkflow()
-	wf.instanceRefs.m = map[string]*resource{
-		"i1": {"i1", wf.genName("i1"), "link", false},
-		"i2": {"i2", wf.genName("i2"), "link", false},
-		"i3": {"i3", wf.genName("i3"), "link", false}}
+	w := testWorkflow()
+	s := &Step{w: w}
+	w.instanceRefs.m = map[string]*resource{
+		"i1": {"i1", w.genName("i1"), "link", false},
+		"i2": {"i2", w.genName("i2"), "link", false},
+		"i3": {"i3", w.genName("i3"), "link", false}}
 	ws := &WaitForInstancesSignal{
 		{Name: "i1", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "success"}},
 		{Name: "i2", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 2, SuccessMatch: "success", FailureMatch: "fail"}},
 		{Name: "i3", Stopped: true},
 	}
-	if err := ws.run(wf); err != nil {
+	if err := ws.run(s); err != nil {
 		t.Errorf("error running WaitForInstancesSignal.run(): %v", err)
 	}
 
@@ -38,7 +39,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		{Name: "i1", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail", SuccessMatch: "success"}},
 		{Name: "i2", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 2, FailureMatch: "fail"}},
 	}
-	if err := ws.run(wf); err == nil {
+	if err := ws.run(s); err == nil {
 		t.Error("expected error")
 	}
 }
@@ -46,6 +47,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 func TestWaitForInstancesSignalValidate(t *testing.T) {
 	// Set up.
 	w := &Workflow{}
+	s := &Step{w: w}
 	validatedInstances = nameSet{w: {"instance1"}}
 
 	tests := []struct {
@@ -63,7 +65,7 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := test.step.validate(w); (err != nil) != test.shouldErr {
+		if err := test.step.validate(s); (err != nil) != test.shouldErr {
 			t.Errorf("fail: %s; step: %+v; error result: %s", test.desc, test.step, err)
 		}
 	}

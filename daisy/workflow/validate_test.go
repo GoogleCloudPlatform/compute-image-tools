@@ -180,10 +180,9 @@ func TestValidateVarsSubbed(t *testing.T) {
 }
 
 func TestValidateWorkflow(t *testing.T) {
-	s := &Step{Timeout: "10s", testType: &mockStep{}}
-
 	// Normal, good validation.
 	w := testWorkflow()
+	s := &Step{Timeout: "10s", testType: &mockStep{}, w: w}
 	w.Steps = map[string]*Step{"s0": s}
 	if err := w.populate(); err != nil {
 		t.Fatal(err)
@@ -205,7 +204,7 @@ func TestValidateWorkflow(t *testing.T) {
 		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
 		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Ctx: ctx, logger: logger}},
 		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, Ctx: ctx, logger: logger}},
-		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout}}, Ctx: ctx, logger: logger}},
+		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout, w: w}}, Ctx: ctx, logger: logger}},
 	}
 
 	for _, tt := range tests {
@@ -219,8 +218,8 @@ func TestValidateDAG(t *testing.T) {
 	calls := make([]int, 5)
 	errs := make([]error, 5)
 	var rw sync.Mutex
-	mockValidate := func(i int) func(w *Workflow) error {
-		return func(w *Workflow) error {
+	mockValidate := func(i int) func(s *Step) error {
+		return func(s *Step) error {
 			rw.Lock()
 			defer rw.Unlock()
 			calls[i] = calls[i] + 1
@@ -240,11 +239,11 @@ func TestValidateDAG(t *testing.T) {
 	// s4
 	w := testWorkflow()
 	w.Steps = map[string]*Step{
-		"s0": {testType: &mockStep{validateImpl: mockValidate(0)}},
-		"s1": {testType: &mockStep{validateImpl: mockValidate(1)}},
-		"s2": {testType: &mockStep{validateImpl: mockValidate(2)}},
-		"s3": {testType: &mockStep{validateImpl: mockValidate(3)}},
-		"s4": {testType: &mockStep{validateImpl: mockValidate(4)}},
+		"s0": {testType: &mockStep{validateImpl: mockValidate(0)}, w: w},
+		"s1": {testType: &mockStep{validateImpl: mockValidate(1)}, w: w},
+		"s2": {testType: &mockStep{validateImpl: mockValidate(2)}, w: w},
+		"s3": {testType: &mockStep{validateImpl: mockValidate(3)}, w: w},
+		"s4": {testType: &mockStep{validateImpl: mockValidate(4)}, w: w},
 	}
 	w.Dependencies = map[string][]string{
 		"s1": {"s0"},

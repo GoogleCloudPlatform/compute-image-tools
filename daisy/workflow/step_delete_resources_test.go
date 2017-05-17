@@ -23,56 +23,59 @@ import (
 )
 
 func TestDeleteResourcesRun(t *testing.T) {
-	wf := testWorkflow()
-	wf.instanceRefs.m = map[string]*resource{
-		"in1": {"in1", wf.genName("in1"), "link", false},
-		"in2": {"in2", wf.genName("in2"), "link", false},
-		"in3": {"in3", wf.genName("in3"), "link", false},
-		"in4": {"in4", wf.genName("in4"), "link", false}}
-	wf.imageRefs.m = map[string]*resource{
-		"im1": {"im1", wf.genName("im1"), "link", false},
-		"im2": {"im2", wf.genName("im2"), "link", false},
-		"im3": {"im3", wf.genName("im3"), "link", false},
-		"im4": {"im4", wf.genName("im4"), "link", false}}
-	wf.diskRefs.m = map[string]*resource{
-		"d1": {"d1", wf.genName("d1"), "link", false},
-		"d2": {"d2", wf.genName("d2"), "link", false},
-		"d3": {"d3", wf.genName("d3"), "link", false},
-		"d4": {"d4", wf.genName("d4"), "link", false}}
+	w := testWorkflow()
+	s := &Step{w: w}
+	w.instanceRefs.m = map[string]*resource{
+		"in1": {"in1", w.genName("in1"), "link", false},
+		"in2": {"in2", w.genName("in2"), "link", false},
+		"in3": {"in3", w.genName("in3"), "link", false},
+		"in4": {"in4", w.genName("in4"), "link", false}}
+	w.imageRefs.m = map[string]*resource{
+		"im1": {"im1", w.genName("im1"), "link", false},
+		"im2": {"im2", w.genName("im2"), "link", false},
+		"im3": {"im3", w.genName("im3"), "link", false},
+		"im4": {"im4", w.genName("im4"), "link", false}}
+	w.diskRefs.m = map[string]*resource{
+		"d1": {"d1", w.genName("d1"), "link", false},
+		"d2": {"d2", w.genName("d2"), "link", false},
+		"d3": {"d3", w.genName("d3"), "link", false},
+		"d4": {"d4", w.genName("d4"), "link", false}}
 
 	dr := &DeleteResources{
 		Instances: []string{"in1", "in2", "in3"},
 		Images:    []string{"im1", "im2", "im3"},
 		Disks:     []string{"d1", "d2", "d3"}}
-	if err := dr.run(wf); err != nil {
+	if err := dr.run(s); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
 	}
 
-	want := map[string]*resource{"in4": {"in4", wf.genName("in4"), "link", false}}
-	if diff := pretty.Compare(wf.instanceRefs.m, want); diff != "" {
+	want := map[string]*resource{"in4": {"in4", w.genName("in4"), "link", false}}
+	if diff := pretty.Compare(w.instanceRefs.m, want); diff != "" {
 		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 
-	want = map[string]*resource{"im4": {"im4", wf.genName("im4"), "link", false}}
-	if diff := pretty.Compare(wf.imageRefs.m, want); diff != "" {
+	want = map[string]*resource{"im4": {"im4", w.genName("im4"), "link", false}}
+	if diff := pretty.Compare(w.imageRefs.m, want); diff != "" {
 		t.Errorf("imageRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 
-	want = map[string]*resource{"d4": {"d4", wf.genName("d4"), "link", false}}
-	if diff := pretty.Compare(wf.diskRefs.m, want); diff != "" {
+	want = map[string]*resource{"d4": {"d4", w.genName("d4"), "link", false}}
+	if diff := pretty.Compare(w.diskRefs.m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 
-	wf = testWorkflow()
+	w = testWorkflow()
+	s = &Step{w: w}
 	dr = &DeleteResources{
 		Disks: []string{"notexist"}}
-	close(wf.Cancel)
-	if err := dr.run(wf); err != nil {
+	close(w.Cancel)
+	if err := dr.run(s); err != nil {
 		t.Errorf("Should not error on non existent disk when Cancel is closed: %v", err)
 	}
 
 	// Bad cases.
-	wf = testWorkflow()
+	w = testWorkflow()
+	s = &Step{w: w}
 	tests := []struct {
 		dr  DeleteResources
 		err string
@@ -92,7 +95,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if err := tt.dr.run(wf); err == nil {
+		if err := tt.dr.run(s); err == nil {
 			t.Error("expected error, got nil")
 		} else if err.Error() != tt.err {
 			t.Errorf("did not get expected error from validate():\ngot: %q\nwant: %q", err.Error(), tt.err)
@@ -103,6 +106,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 func TestDeleteResourcesValidate(t *testing.T) {
 	// Set up.
 	w := &Workflow{}
+	s := &Step{w: w}
 	validatedDisks = nameSet{w: {"foo", ":/#"}}
 	validatedInstances = nameSet{w: {"foo", ":/#"}}
 	validatedImages = nameSet{w: {"foo", ":/#"}}
@@ -111,7 +115,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	dr := DeleteResources{
 		Instances: []string{"foo"}, Disks: []string{"foo"}, Images: []string{"foo"},
 	}
-	if err := dr.validate(w); err != nil {
+	if err := dr.validate(s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
 	}
 
@@ -147,7 +151,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if err := tt.dr.validate(w); err == nil {
+		if err := tt.dr.validate(s); err == nil {
 			t.Error("expected error, got nil")
 		} else if err.Error() != tt.err {
 			t.Errorf("did not get expected error from validate():\ngot: %q\nwant: %q", err.Error(), tt.err)

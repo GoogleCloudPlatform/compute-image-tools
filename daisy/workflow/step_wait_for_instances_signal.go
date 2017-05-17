@@ -79,11 +79,12 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 	}
 }
 
-func (s *WaitForInstancesSignal) run(w *Workflow) error {
+func (ws *WaitForInstancesSignal) run(s *Step) error {
 	var wg sync.WaitGroup
+	w := s.w
 	e := make(chan error)
 
-	for _, is := range *s {
+	for _, is := range *ws {
 		wg.Add(1)
 		go func(is InstanceSignal) {
 			defer wg.Done()
@@ -123,10 +124,10 @@ func (s *WaitForInstancesSignal) run(w *Workflow) error {
 	}
 }
 
-func (s *WaitForInstancesSignal) validate(w *Workflow) error {
+func (ws *WaitForInstancesSignal) validate(s *Step) error {
 	// Instance checking.
-	for _, i := range *s {
-		if !instanceValid(w, i.Name) {
+	for _, i := range *ws {
+		if !instanceValid(s.w, i.Name) {
 			return fmt.Errorf("cannot wait for instance signal. Instance not found: %q", i.Name)
 		}
 		if i.SerialOutput != nil {
