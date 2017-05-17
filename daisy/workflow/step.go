@@ -15,13 +15,13 @@ type stepImpl interface {
 
 // Step is a single daisy workflow step.
 type Step struct {
-	name                   string
-	w                      *Workflow
+	name string
+	w    *Workflow
 
 	// Time to wait for this step to complete (default 10m).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	Timeout                string
-	timeout                time.Duration
+	Timeout string
+	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
 	AttachDisks            *AttachDisks            `json:",omitempty"`
 	CreateDisks            *CreateDisks            `json:",omitempty"`
@@ -32,7 +32,7 @@ type Step struct {
 	SubWorkflow            *SubWorkflow            `json:",omitempty"`
 	WaitForInstancesSignal *WaitForInstancesSignal `json:",omitempty"`
 	// Used for unit tests.
-	testType               stepImpl
+	testType stepImpl
 }
 
 func (s *Step) stepImpl() (stepImpl, error) {

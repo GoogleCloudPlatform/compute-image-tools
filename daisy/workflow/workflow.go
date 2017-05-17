@@ -101,8 +101,6 @@ type resource struct {
 	noCleanup        bool
 }
 
-
-
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
@@ -147,7 +145,7 @@ type Workflow struct {
 	logger        *log.Logger
 }
 
-// Run runs a workflow.
+// Validate runs validation on the workflow.
 func (w *Workflow) Validate() error {
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)

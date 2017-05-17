@@ -526,8 +526,6 @@ func TestPopulate(t *testing.T) {
 	}
 }
 
-
-
 func TestRefMapAdd(t *testing.T) {
 	rm := refMap{}
 
