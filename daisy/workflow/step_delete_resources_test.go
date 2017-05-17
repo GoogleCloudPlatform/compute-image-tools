@@ -65,6 +65,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 	}
 
 	w = testWorkflow()
+	s = &Step{w: w}
 	dr = &DeleteResources{
 		Disks: []string{"notexist"}}
 	close(w.Cancel)
@@ -74,6 +75,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 
 	// Bad cases.
 	w = testWorkflow()
+	s = &Step{w: w}
 	tests := []struct {
 		dr  DeleteResources
 		err string
