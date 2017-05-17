@@ -701,19 +701,19 @@ func TestTraverseDAG(t *testing.T) {
 		t.Errorf("call order error: %s", err)
 	}
 
-	//callOrder = []int{}
-	//errs = make([]error, 5)
-	//
-	//// s2 failure.
-	//w = testTraverseWorkflow(mockRun)
-	//errs[2] = errors.New("failure")
-	//want := w.Steps["s2"].wrapRunError(errs[2])
-	//if err := w.Run(); err.Error() != want.Error() {
-	//	t.Errorf("unexpected error: %s != %s", err, want)
-	//}
-	//if err := checkCallOrder(); err != nil {
-	//	t.Errorf("call order error: %s", err)
-	//}
+	callOrder = []int{}
+	errs = make([]error, 5)
+
+	// s2 failure.
+	w = testTraverseWorkflow(mockRun)
+	errs[2] = errors.New("failure")
+	want := w.Steps["s2"].wrapRunError(errs[2])
+	if err := w.Run(); err.Error() != want.Error() {
+		t.Errorf("unexpected error: %s != %s", err, want)
+	}
+	if err := checkCallOrder(); err != nil {
+		t.Errorf("call order error: %s", err)
+	}
 }
 
 func TestPrint(t *testing.T) {
