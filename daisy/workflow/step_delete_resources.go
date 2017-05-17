@@ -24,7 +24,8 @@ type DeleteResources struct {
 	Instances, Disks, Images []string `json:",omitempty"`
 }
 
-func (d *DeleteResources) validate(w *Workflow) error {
+func (d *DeleteResources) validate(s *Step) error {
+	w := s.w
 	// Disk checking.
 	for _, disk := range d.Disks {
 		if !diskValid(w, disk) {
@@ -58,8 +59,9 @@ func (d *DeleteResources) validate(w *Workflow) error {
 	return nil
 }
 
-func (d *DeleteResources) run(w *Workflow) error {
+func (d *DeleteResources) run(s *Step) error {
 	var wg sync.WaitGroup
+	w := s.w
 	e := make(chan error)
 
 	for _, i := range d.Instances {

@@ -218,8 +218,8 @@ func TestValidateDAG(t *testing.T) {
 	calls := make([]int, 5)
 	errs := make([]error, 5)
 	var rw sync.Mutex
-	mockValidate := func(i int) func(w *Workflow) error {
-		return func(w *Workflow) error {
+	mockValidate := func(i int) func(s *Step) error {
+		return func(s *Step) error {
 			rw.Lock()
 			defer rw.Unlock()
 			calls[i] = calls[i] + 1

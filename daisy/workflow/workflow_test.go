@@ -623,7 +623,7 @@ func TestRefMapGet(t *testing.T) {
 	}
 }
 
-func testTraverseWorkflow(mockRun func(i int) func(*Workflow) error) *Workflow {
+func testTraverseWorkflow(mockRun func(i int) func(*Step) error) *Workflow {
 	// s0---->s1---->s3
 	//   \         /
 	//    --->s2---
@@ -648,8 +648,8 @@ func TestTraverseDAG(t *testing.T) {
 	var callOrder []int
 	errs := make([]error, 5)
 	var rw sync.Mutex
-	mockRun := func(i int) func(*Workflow) error {
-		return func(_ *Workflow) error {
+	mockRun := func(i int) func(*Step) error {
+		return func(_ *Step) error {
 			rw.Lock()
 			defer rw.Unlock()
 			callOrder = append(callOrder, i)

@@ -9,8 +9,8 @@ import (
 )
 
 type stepImpl interface {
-	run(w *Workflow) error
-	validate(w *Workflow) error
+	run(s *Step) error
+	validate(s *Step) error
 }
 
 // Step is a single daisy workflow step.
@@ -119,7 +119,7 @@ func (s *Step) run(w *Workflow) error {
 		st = t.Name()
 	}
 	w.logger.Printf("Running step %q (%s)", s.name, st)
-	if err = impl.run(w); err != nil {
+	if err = impl.run(s); err != nil {
 		return s.wrapRunError(err)
 	}
 	select {
@@ -139,7 +139,7 @@ func (s *Step) validate(w *Workflow) error {
 	if err != nil {
 		return s.wrapValidateError(err)
 	}
-	if err = impl.validate(w); err != nil {
+	if err = impl.validate(s); err != nil {
 		return s.wrapValidateError(err)
 	}
 	return nil

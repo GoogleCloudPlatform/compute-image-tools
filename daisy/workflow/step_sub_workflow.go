@@ -21,17 +21,17 @@ type SubWorkflow struct {
 	workflow *Workflow
 }
 
-func (s *SubWorkflow) validate(w *Workflow) error {
+func (s *SubWorkflow) validate(st *Step) error {
 	return s.workflow.validate()
 }
 
-func (s *SubWorkflow) run(w *Workflow) error {
+func (s *SubWorkflow) run(st *Step) error {
 	// Prerun work has already been done. Just run(), not Run().
 	defer s.workflow.cleanup()
-	w.logger.Printf("Running subworkflow %q", s.workflow.Name)
+	st.w.logger.Printf("Running subworkflow %q", s.workflow.Name)
 	if err := s.workflow.run(); err != nil {
 		s.workflow.logger.Printf("Error running subworkflow %q: %v", s.workflow.Name, err)
-		close(w.Cancel)
+		close(st.w.Cancel)
 		return err
 	}
 	return nil

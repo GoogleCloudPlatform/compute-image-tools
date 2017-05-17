@@ -23,6 +23,7 @@ import (
 
 func TestCreateDisksRun(t *testing.T) {
 	w := testWorkflow()
+	s := &Step{w: w}
 	w.imageRefs.m = map[string]*resource{"i1": {"i1", w.genName("i1"), "link", false}}
 	cd := &CreateDisks{
 		{Name: "d1", SourceImage: "i1", SizeGB: "100", Type: ""},
@@ -32,7 +33,7 @@ func TestCreateDisksRun(t *testing.T) {
 		{Name: "d2", SourceImage: "global/images/i2", SizeGB: "100", Type: "", Zone: "zone", Project: "project"},
 		{Name: "d3", SourceImage: "i1", SizeGB: "100", Type: "", NoCleanup: true},
 		{Name: "d4", SourceImage: "i1", SizeGB: "100", Type: "", ExactName: true}}
-	if err := cd.run(w); err != nil {
+	if err := cd.run(s); err != nil {
 		t.Errorf("error running CreateDisks.run(): %v", err)
 	}
 
@@ -55,7 +56,7 @@ func TestCreateDisksRun(t *testing.T) {
 	}
 
 	for _, tt := range badTests {
-		if err := tt.cd.run(w); err == nil {
+		if err := tt.cd.run(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
@@ -76,6 +77,7 @@ func TestCreateDisksRun(t *testing.T) {
 func TestCreateDisksValidate(t *testing.T) {
 	// Set up.
 	w := &Workflow{}
+	s := &Step{w: w}
 	validatedDisks = nameSet{w: {"d-foo"}}
 	validatedImages = nameSet{w: {"i-foo"}}
 
@@ -98,7 +100,7 @@ func TestCreateDisksValidate(t *testing.T) {
 	}
 
 	for _, tt := range goodTests {
-		if err := tt.cd.validate(w); err != nil {
+		if err := tt.cd.validate(s); err != nil {
 			t.Errorf("%q: unexpected error: %v", tt.name, err)
 		}
 		if !reflect.DeepEqual(validatedDisks[w], tt.want) {
@@ -135,7 +137,7 @@ func TestCreateDisksValidate(t *testing.T) {
 	}
 
 	for _, tt := range badTests {
-		if err := tt.cd.validate(w); err == nil {
+		if err := tt.cd.validate(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)

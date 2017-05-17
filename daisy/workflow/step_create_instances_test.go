@@ -23,6 +23,7 @@ import (
 
 func TestCreateInstancesRun(t *testing.T) {
 	w := testWorkflow()
+	s := &Step{w: w}
 	w.Sources = map[string]string{"file": "gs://some/file"}
 	w.diskRefs.m = map[string]*resource{
 		"d1": {"d1", w.genName("d1"), "link", false},
@@ -36,7 +37,7 @@ func TestCreateInstancesRun(t *testing.T) {
 		{Name: "i4", MachineType: "foo-type", AttachedDisks: []string{"d3"}, ExactName: true},
 		{Name: "i5", MachineType: "foo-type", AttachedDisks: []string{"zones/zone/disks/disk"}},
 	}
-	if err := ci.run(w); err != nil {
+	if err := ci.run(s); err != nil {
 		t.Errorf("error running CreateInstances.run(): %v", err)
 	}
 
@@ -54,7 +55,7 @@ func TestCreateInstancesRun(t *testing.T) {
 	}
 
 	for _, tt := range badTests {
-		if err := tt.ci.run(w); err == nil {
+		if err := tt.ci.run(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
@@ -77,6 +78,7 @@ func TestCreateInstancesRun(t *testing.T) {
 func TestCreateInstancesValidate(t *testing.T) {
 	// Set up.
 	w := &Workflow{}
+	s := &Step{w: w}
 	validatedDisks = nameSet{w: {"d-foo", "d-bar"}}
 	validatedInstances = nameSet{w: {"i-foo"}}
 	w.Sources = map[string]string{"file": "gs://some/file"}
@@ -110,7 +112,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 	}
 
 	for _, tt := range goodTests {
-		if err := tt.ci.validate(w); err != nil {
+		if err := tt.ci.validate(s); err != nil {
 			t.Errorf("%q: unexpected error: %v", tt.name, err)
 		}
 		if !reflect.DeepEqual(validatedInstances[w], tt.want) {
@@ -157,7 +159,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 	}
 
 	for _, tt := range badTests {
-		if err := tt.ci.validate(w); err == nil {
+		if err := tt.ci.validate(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)

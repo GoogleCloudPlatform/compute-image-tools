@@ -49,7 +49,8 @@ type CreateDisk struct {
 	ExactName bool
 }
 
-func (c *CreateDisks) validate(w *Workflow) error {
+func (c *CreateDisks) validate(s *Step) error {
+	w := s.w
 	for _, cd := range *c {
 		// Image checking.
 		if cd.SourceImage != "" && !imageValid(w, cd.SourceImage) {
@@ -74,8 +75,9 @@ func (c *CreateDisks) validate(w *Workflow) error {
 	return nil
 }
 
-func (c *CreateDisks) run(w *Workflow) error {
+func (c *CreateDisks) run(s *Step) error {
 	var wg sync.WaitGroup
+	w := s.w
 	e := make(chan error)
 	for _, cd := range *c {
 		wg.Add(1)

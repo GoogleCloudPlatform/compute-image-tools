@@ -31,20 +31,20 @@ import (
 )
 
 type mockStep struct {
-	runImpl      func(*Workflow) error
-	validateImpl func(*Workflow) error
+	runImpl      func(*Step) error
+	validateImpl func(*Step) error
 }
 
-func (m *mockStep) run(w *Workflow) error {
+func (m *mockStep) run(s *Step) error {
 	if m.runImpl != nil {
-		return m.runImpl(w)
+		return m.runImpl(s)
 	}
 	return nil
 }
 
-func (m *mockStep) validate(w *Workflow) error {
+func (m *mockStep) validate(s *Step) error {
 	if m.validateImpl != nil {
-		return m.validateImpl(w)
+		return m.validateImpl(s)
 	}
 	return nil
 }

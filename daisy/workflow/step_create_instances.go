@@ -94,7 +94,8 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 	}
 }
 
-func (c *CreateInstances) validate(w *Workflow) error {
+func (c *CreateInstances) validate(s *Step) error {
+	w := s.w
 	for _, ci := range *c {
 		// Disk checking.
 		if len(ci.AttachedDisks) == 0 {
@@ -147,8 +148,9 @@ func (c *CreateInstances) validate(w *Workflow) error {
 	return nil
 }
 
-func (c *CreateInstances) run(w *Workflow) error {
+func (c *CreateInstances) run(s *Step) error {
 	var wg sync.WaitGroup
+	w := s.w
 	e := make(chan error)
 	for _, ci := range *c {
 		wg.Add(1)

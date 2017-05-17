@@ -23,6 +23,7 @@ import (
 
 func TestCreateImagesRun(t *testing.T) {
 	w := testWorkflow()
+	s := &Step{w: w}
 	w.diskRefs.m = map[string]*resource{"d": {"d", w.genName("d"), "link", false}}
 	w.Sources = map[string]string{"file": "gs://some/path"}
 	ci := &CreateImages{
@@ -33,7 +34,7 @@ func TestCreateImagesRun(t *testing.T) {
 		{Name: "i4", SourceDisk: "d", ExactName: true},
 		{Name: "i5", SourceDisk: "zones/zone/disks/disk"},
 	}
-	if err := ci.run(w); err != nil {
+	if err := ci.run(s); err != nil {
 		t.Errorf("error running CreateImages.run(): %v", err)
 	}
 
@@ -61,7 +62,7 @@ func TestCreateImagesRun(t *testing.T) {
 	}
 
 	for _, tt := range badTests {
-		if err := tt.cd.run(w); err == nil {
+		if err := tt.cd.run(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
@@ -84,6 +85,7 @@ func TestCreateImagesRun(t *testing.T) {
 func TestCreateImagesValidate(t *testing.T) {
 	// Set up.
 	w := &Workflow{}
+	s := &Step{w: w}
 	validatedDisks = nameSet{w: {"d-foo"}}
 	validatedImages = nameSet{w: {"i-foo"}}
 	w.Sources = map[string]string{"file": "gs://some/file"}
@@ -112,7 +114,7 @@ func TestCreateImagesValidate(t *testing.T) {
 	}
 
 	for _, tt := range goodTests {
-		if err := tt.cd.validate(w); err != nil {
+		if err := tt.cd.validate(s); err != nil {
 			t.Errorf("%q: unexpected error: %v", tt.name, err)
 		}
 		if !reflect.DeepEqual(validatedImages[w], tt.want) {
@@ -154,7 +156,7 @@ func TestCreateImagesValidate(t *testing.T) {
 	}
 
 	for _, tt := range badTests {
-		if err := tt.cd.validate(w); err == nil {
+		if err := tt.cd.validate(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
