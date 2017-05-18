@@ -19,7 +19,7 @@ Windows '\\.\PhysicalDrive1'
 ### Usage
 
 While you can export a disk with currently mounted partitions, or even the disk
-containing the current root partition it is recommend to unmount all partitions
+containing the current root partition it is recommended to unmount all partitions
 prior to running export.
 
 #### Linux:
