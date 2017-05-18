@@ -11,15 +11,15 @@ https://cloud.google.com/compute/docs/images/import-existing-image
 
 + -disk: disk to copy, on linux this would be something like '/dev/sdb', and on
 Windows '\\.\PhysicalDrive1'
-+ -bucket: GCS bucket to copy the image to
-+ -out: (optional) what to call the resultant image file
++ -gcs_path: GCS path to upload the image to, in the form of gs://my-bucket/image.tar.gz
++ -oauth: path to oauth json file fo authenticating to the GCS bucket
 + -licenses: (optional) comma deliminated list of licenses to add to the image
 + -y: skip confirmation prompt
 
 ### Usage
 
 While you can export a disk with currently mounted partitions, or even the disk
-containing the current root partition it is recommened to unmount all partitions
+containing the current root partition it is recommend to unmount all partitions
 prior to running export.
 
 #### Linux:
@@ -27,7 +27,7 @@ prior to running export.
 This will stream /dev/sdb to the GCS path gs://some-bucket/linux.tar.gz
 
 ```
-export -bucket some-bucket -disk /dev/sdb -out linux.tar.gz
+export -disk /dev/sdb -gcs_path gs://some-bucket/linux.tar.gz
 ```
 
 #### Windows:
@@ -36,6 +36,6 @@ This will stream '\\.\PhysicalDrive1' to the GCS path
 gs://some-bucket/path/windows.tar.gz
 
 ```
-export.exe -bucket some-bucket -disk \\.\PhysicalDrive1 -out path/windows.tar.gz
+export.exe -disk \\.\PhysicalDrive1 gs://some-bucket/windows.tar.gz
 ```
 

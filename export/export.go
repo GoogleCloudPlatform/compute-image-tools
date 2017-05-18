@@ -17,7 +17,6 @@ package main
 
 import (
 	"archive/tar"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"flag"
@@ -25,19 +24,25 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
 	humanize "github.com/dustin/go-humanize"
+	gzip "github.com/klauspost/pgzip"
+	"google.golang.org/api/option"
 )
 
 var (
 	disk      = flag.String("disk", "", "disk to copy, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive0'")
-	bucket    = flag.String("bucket", "", "bucket to copy the image to")
-	out       = flag.String("out", "image.tar.gz", "what to call the resultant image")
+	gcsPath   = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
+	oauth     = flag.String("oauth", "", "path to oauth json file")
 	licenses  = flag.String("licenses", "", "comma deliminated list of licenses to add to the image")
 	noconfirm = flag.Bool("y", false, "skip confirmation")
+	level     = flag.Int("level", 3, "level of compression from 1-9, 1 being best speed, 9 being best compression")
+
+	gsRegex = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
 )
 
 // progress is a io.Writer that updates total in Write.
@@ -61,15 +66,29 @@ func splitLicenses(input string) []string {
 	return ls
 }
 
+func splitGCSPath(p string) (string, string, error) {
+	matches := gsRegex.FindStringSubmatch(p)
+	if matches != nil {
+		return matches[1], matches[2], nil
+	}
+
+	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
+}
+
 func main() {
 	flag.Parse()
 
-	if *bucket == "" {
-		log.Fatalf("The flag -bucket must be provided")
+	if *gcsPath == "" {
+		log.Fatal("The flag -gcs_path must be provided")
 	}
 
 	if *disk == "" {
-		log.Fatalf("The flag -disk must be provided")
+		log.Fatal("The flag -disk must be provided")
+	}
+
+	bkt, obj, err := splitGCSPath(*gcsPath)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	file, err := os.Open(*disk)
@@ -84,23 +103,26 @@ func main() {
 	}
 
 	ctx := context.Background()
-	client, err := storage.NewClient(ctx)
+	client, err := storage.NewClient(ctx, option.WithServiceAccountFile(*oauth))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	w := client.Bucket(*bucket).Object(*out).NewWriter(ctx)
+	w := client.Bucket(bkt).Object(obj).NewWriter(ctx)
 	up := progress{}
-	gw := gzip.NewWriter(io.MultiWriter(&up, w))
+	gw, err := gzip.NewWriterLevel(io.MultiWriter(&up, w), *level)
+	if err != nil {
+		log.Fatal(err)
+	}
 	rp := progress{}
 	tw := tar.NewWriter(io.MultiWriter(&rp, gw))
 
 	ls := splitLicenses(*licenses)
 	fmt.Printf("Disk %s is %s, compressed size will most likely be much smaller.\n", *disk, humanize.IBytes(uint64(size)))
 	if ls != nil {
-		fmt.Printf("Exporting disk with licenses %q to gs://%s/%s.\n", ls, *bucket, *out)
+		fmt.Printf("Exporting disk with licenses %q to gs://%s/%s.\n", ls, bkt, obj)
 	} else {
-		fmt.Printf("Exporting disk to gs://%s/%s.\n", *bucket, *out)
+		fmt.Printf("Exporting disk to gs://%s/%s.\n", bkt, obj)
 	}
 
 	if !*noconfirm {
@@ -147,18 +169,22 @@ func main() {
 	// This function only serves to update progress for the user.
 	go func() {
 		time.Sleep(5 * time.Second)
-		var ou int64
-		var or int64
+		var oldUpload int64
+		var oldRead int64
+		var oldSince int64
+		totalSize := humanize.IBytes(uint64(size))
 		for {
-			diskSpd := humanize.IBytes(uint64((rp.total - or) / 10))
-			upldSpd := humanize.IBytes(uint64((up.total - ou) / 10))
-			left := time.Since(start).Seconds() * (100 / (100 * (float64(rp.total) / float64(size))))
-
-			fmt.Printf("Read %s of %s (%s/sec, ~%s left), ", humanize.IBytes(uint64(rp.total)), humanize.IBytes(uint64(size)), diskSpd, time.Duration(int64(left))*time.Second)
-			fmt.Printf("total uploaded size: %s (%s/sec)\n", humanize.IBytes(uint64(up.total)), upldSpd)
-			ou = up.total
-			or = rp.total
-			time.Sleep(30 * time.Second)
+			since := int64(time.Since(start).Seconds())
+			diskSpd := humanize.IBytes(uint64((rp.total - oldRead) / (since - oldSince)))
+			upldSpd := humanize.IBytes(uint64((up.total - oldUpload) / (since - oldSince)))
+			uploadTotal := humanize.IBytes(uint64(up.total))
+			readTotal := humanize.IBytes(uint64(rp.total))
+			fmt.Printf("Read %s of %s (%s/sec),", readTotal, totalSize, diskSpd)
+			fmt.Printf(" total uploaded size: %s (%s/sec)\n", uploadTotal, upldSpd)
+			oldUpload = up.total
+			oldRead = rp.total
+			oldSince = since
+			time.Sleep(45 * time.Second)
 		}
 	}()
 
