@@ -264,12 +264,12 @@ func (i *Instance) checkMachineType() error {
 }
 
 // AddPD adds an additional disk from image to the instance.
-func (i *Instance) AddPD(name, source string, autoDelete, boot bool) {
+func (i *Instance) AddPD(name, source, mode string, autoDelete, boot bool) {
 	i.disks = append(i.disks, &compute.AttachedDisk{
 		AutoDelete: autoDelete,
 		Boot:       boot,
 		DeviceName: name,
-		Mode:       "READ_WRITE",
+		Mode:       mode,
 		Type:       "PERSISTENT",
 		Source:     source,
 	})

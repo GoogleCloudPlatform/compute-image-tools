@@ -36,6 +36,7 @@ func TestCreateInstancesRun(t *testing.T) {
 		{Name: "i3", MachineType: "foo-type", AttachedDisks: []string{"d3"}, NoCleanup: true},
 		{Name: "i4", MachineType: "foo-type", AttachedDisks: []string{"d3"}, ExactName: true},
 		{Name: "i5", MachineType: "foo-type", AttachedDisks: []string{"zones/zone/disks/disk"}},
+		{Name: "i6", AttachedDisks: []string{"d1"}, AttachedDisksRO: []string{"d2"}},
 	}
 	if err := ci.run(s); err != nil {
 		t.Errorf("error running CreateInstances.run(): %v", err)
@@ -50,6 +51,11 @@ func TestCreateInstancesRun(t *testing.T) {
 		{
 			"disk DNE",
 			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"dne"}}},
+			"unresolved instance reference \"dne\"",
+		},
+		{
+			"RO disk DNE",
+			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"d1"}, AttachedDisksRO: []string{"dne"}}},
 			"unresolved instance reference \"dne\"",
 		},
 	}
@@ -68,6 +74,7 @@ func TestCreateInstancesRun(t *testing.T) {
 		"i3": {"i3", w.genName("i3"), "link", true},
 		"i4": {"i4", "i4", "link", false},
 		"i5": {"i5", w.genName("i5"), "link", false},
+		"i6": {"i6", w.genName("i6"), "link", false},
 	}
 
 	if diff := pretty.Compare(w.instanceRefs.m, want); diff != "" {
@@ -91,23 +98,28 @@ func TestCreateInstancesValidate(t *testing.T) {
 	}{
 		{
 			"using multiple disks",
-			CreateInstances{{Name: "i-bar", AttachedDisks: []string{"d-foo", "d-bar"}}},
-			[]string{"i-foo", "i-bar"},
+			CreateInstances{{Name: "i-boo", AttachedDisks: []string{"d-foo", "d-bar"}}},
+			[]string{"i-foo", "i-boo"},
+		},
+		{
+			"using read only disks",
+			CreateInstances{{Name: "i-bar", AttachedDisks: []string{"d-foo"}, AttachedDisksRO: []string{"d-bar"}}},
+			[]string{"i-foo", "i-boo", "i-bar"},
 		},
 		{
 			"using StartupScript",
 			CreateInstances{{Name: "i-bas", AttachedDisks: []string{"d-foo", "d-bar"}, StartupScript: "file"}},
-			[]string{"i-foo", "i-bar", "i-bas"},
+			[]string{"i-foo", "i-boo", "i-bar", "i-bas"},
 		},
 		{
 			"partial disk url no project",
 			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"zones/zone/disks/disk"}, Zone: "zone", Project: "project"}},
-			[]string{"i-foo", "i-bar", "i-bas", "i-baz"},
+			[]string{"i-foo", "i-boo", "i-bar", "i-bas", "i-baz"},
 		},
 		{
 			"partial disk url",
 			CreateInstances{{Name: "i-bax", AttachedDisks: []string{"projects/project/zones/zone/disks/disk"}, Zone: "zone", Project: "project"}},
-			[]string{"i-foo", "i-bar", "i-bas", "i-baz", "i-bax"},
+			[]string{"i-foo", "i-boo", "i-bar", "i-bas", "i-baz", "i-bax"},
 		},
 	}
 
@@ -147,6 +159,11 @@ func TestCreateInstancesValidate(t *testing.T) {
 			"cannot create instance: disk not found: d-dne",
 		},
 		{
+			"RO disk DNE",
+			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"d-foo", "d-bar"}, AttachedDisksRO: []string{"d-dne"}}},
+			"cannot create instance: disk not found: d-dne",
+		},
+		{
 			"partial disk url wrong project",
 			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"projects/project1/zones/zone/disks/disk"}, Zone: "zone", Project: "project2"}},
 			"cannot create instance in project \"project2\" with disk in project \"project1\": \"projects/project1/zones/zone/disks/disk\"",
@@ -166,7 +183,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 		}
 	}
 
-	want := []string{"i-foo", "i-bar", "i-bas", "i-baz", "i-bax"}
+	want := []string{"i-foo", "i-boo", "i-bar", "i-bas", "i-baz", "i-bax"}
 	if !reflect.DeepEqual(validatedInstances[w], want) {
 		t.Fatalf("got:(%v) != want(%v)", validatedInstances[w], want)
 	}
