@@ -30,6 +30,7 @@ Other use-case examples:
       * [CreateDisks](#type-createdisks)
       * [CreateImages](#type-createimages)
       * [CreateInstances](#type-createinstances)
+      * [CopyGCSObjects](#type-copygcsobjects)
       * [DeleteResources](#type-deleteresources)
       * [RunTests](#type-runtests)
       * [SubWorkflow](#type-subworkflow)
@@ -258,6 +259,7 @@ Creates GCE VM instances. Each VM has the following fields:
 | - | - | - |
 | Name | string | The name of the GCE VM. If ExactName is false, the **literal** VM name will have a generated suffix for the running instance of the workflow. |
 | AttachedDisks | list(string) | The disks to attach to this VM. The first disk will be used as the boot disk. These disks can be 1) Names from disks created previously in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE disk. |
+| AttachedDisksRO | list(string) | *Optional.* The read only disks to attach to this VM. These disks can be 1) Names from disks created previously in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE disk. |
 | MachineType | string | *Optional.* Defaults to "n1-standard-1". The VM [machine type](#https://cloud.google.com/compute/docs/machine-types). |
 | StartupScript | string | *Optional.* The Sources path to the desired startup script. |
 | Metadata | map[string]string | *Optional.* Metadata key-value pairs to set on the VM instance. |
@@ -276,6 +278,26 @@ disks and uses the machine type n1-standard-4.
       "Name": "instance1",
       "AttachedDisks": ["disk1", "disk2"],
       "MachineType": "n1-standard-4"
+    }
+  ]
+}
+```
+
+#### Type: CopyGCSObjects
+Copies a GCS files from Source to Destination. Each copy has the following fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Source | string | Source path. |
+| Destination | list(string) | Destination path. |
+
+This CopyGCSObjects step example copies image.tar.gz from the Daisy OUTSPATH to gs://project2/my-image.tar.gz.
+```json
+"stepName": {
+  "CopyGCSObjects": [
+    {
+      "Source": "${OUTSPATH}/image.tar.gz",
+      "Destination": "gs://project/my-image.tar.gz"
     }
   ]
 }
