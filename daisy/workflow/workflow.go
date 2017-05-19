@@ -32,10 +32,11 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
-	"sync"
 )
 
 const defaultTimeout = "10m"
@@ -100,7 +101,7 @@ type Workflow struct {
 	logsPath       string
 	outsPath       string
 	username       string
-	gcsLogging     bool
+	gcsLogWriter   io.Writer
 	ComputeClient  *compute.Client `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
 	id             string
@@ -117,6 +118,7 @@ func (w *Workflow) addCleanupHook(hook func() error) {
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate() error {
+	w.gcsLogWriter = ioutil.Discard
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
 		return fmt.Errorf("error validating workflow: %v", err)
@@ -139,7 +141,6 @@ func (w *Workflow) Validate() error {
 
 // Run runs a workflow.
 func (w *Workflow) Run() error {
-	w.gcsLogging = true
 	if err := w.Validate(); err != nil {
 		return err
 	}
@@ -225,7 +226,7 @@ func (w *Workflow) populateStep(step *Step) error {
 	step.SubWorkflow.workflow.StorageClient = w.StorageClient
 	step.SubWorkflow.workflow.Ctx = w.Ctx
 	step.SubWorkflow.workflow.Cancel = w.Cancel
-	step.SubWorkflow.workflow.logger = w.logger
+	step.SubWorkflow.workflow.gcsLogWriter = w.gcsLogWriter
 	for k, v := range step.SubWorkflow.Vars {
 		step.SubWorkflow.workflow.Vars[k] = v
 	}
@@ -326,12 +327,11 @@ func (w *Workflow) populate() error {
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		gcs := ioutil.Discard
-		if w.gcsLogging {
-			gcs = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
+		if w.gcsLogWriter == nil {
+			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
 			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		}
-		w.logger = log.New(io.MultiWriter(os.Stdout, gcs), prefix, flags)
+		w.logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
 	}
 
 	for name, s := range w.Steps {
@@ -345,6 +345,7 @@ func (w *Workflow) populate() error {
 
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print() {
+	w.gcsLogWriter = ioutil.Discard
 	if err := w.populate(); err != nil {
 		fmt.Println("Error running populate:", err)
 	}

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -331,6 +332,7 @@ func TestPopulate(t *testing.T) {
 		Project:      "parent-project",
 		OAuthPath:    tf,
 		RequiredVars: []string{"bucket"},
+		logger:       log.New(ioutil.Discard, "", 0),
 		Vars: map[string]string{
 			"bucket":    "parent-bucket",
 			"step_name": "parent-step1",
@@ -362,6 +364,7 @@ func TestPopulate(t *testing.T) {
 						Project:   "sub-project",
 						Zone:      "sub-zone",
 						OAuthPath: "sub-oauth-path",
+						logger:    log.New(ioutil.Discard, "", 0),
 						Steps: map[string]*Step{
 							"${step_name}": {
 								Timeout: "${timeout}",

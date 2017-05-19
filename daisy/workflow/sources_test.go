@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"io/ioutil"
+	"log"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -23,6 +24,7 @@ func TestUploadSources(t *testing.T) {
 
 	w := testWorkflow()
 	sw := &Workflow{Name: "test-sw"}
+	sw.logger = log.New(ioutil.Discard, "", 0)
 	w.Steps = map[string]*Step{
 		"sub": {SubWorkflow: &SubWorkflow{workflow: sw}},
 	}
