@@ -83,6 +83,8 @@ type Workflow struct {
 	OAuthPath string `json:",omitempty"`
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string `json:",omitempty"`
+	// RequiredVars is the list of vars the caller must provide to this workflow.
+	RequiredVars []string `json:",omitempty"`
 	// Vars defines workflow variables, substitution is done at Workflow run time.
 	Vars  map[string]string `json:",omitempty"`
 	Steps map[string]*Step
@@ -245,6 +247,17 @@ func (w *Workflow) populate() error {
 		"DATETIME":  now.Format("20060102150405"),
 		"TIMESTAMP": strconv.FormatInt(now.Unix(), 10),
 		"USERNAME":  w.username,
+	}
+
+	for _, rv := range w.RequiredVars {
+		for k, v := range w.Vars {
+			if rv != k {
+				continue
+			}
+			if v == "" {
+				return fmt.Errorf("required var %q cannot be blank", k)
+			}
+		}
 	}
 
 	vars := map[string]string{}

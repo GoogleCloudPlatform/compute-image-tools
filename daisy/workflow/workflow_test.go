@@ -325,11 +325,12 @@ func TestPopulate(t *testing.T) {
 	}
 
 	got := &Workflow{
-		Name:      "${wf-name}",
-		GCSPath:   "gs://${bucket}/images",
-		Zone:      "parent-zone",
-		Project:   "parent-project",
-		OAuthPath: tf,
+		Name:         "${wf-name}",
+		GCSPath:      "gs://${bucket}/images",
+		Zone:         "parent-zone",
+		Project:      "parent-project",
+		OAuthPath:    tf,
+		RequiredVars: []string{"bucket"},
 		Vars: map[string]string{
 			"bucket":    "parent-bucket",
 			"step_name": "parent-step1",
@@ -397,14 +398,15 @@ func TestPopulate(t *testing.T) {
 	subScratch := subGot.scratchPath
 
 	want := &Workflow{
-		Name:      "parent",
-		GCSPath:   "gs://parent-bucket/images",
-		Zone:      "parent-zone",
-		Project:   "parent-project",
-		OAuthPath: tf,
-		id:        got.id,
-		Ctx:       got.Ctx,
-		Cancel:    got.Cancel,
+		Name:         "parent",
+		GCSPath:      "gs://parent-bucket/images",
+		Zone:         "parent-zone",
+		Project:      "parent-project",
+		OAuthPath:    tf,
+		id:           got.id,
+		Ctx:          got.Ctx,
+		Cancel:       got.Cancel,
+		RequiredVars: []string{"bucket"},
 		Vars: map[string]string{
 			"bucket":    "parent-bucket",
 			"step_name": "parent-step1",
@@ -478,6 +480,14 @@ func TestPopulate(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
+	}
+
+	got.RequiredVars = []string{"required-var"}
+	got.Vars = map[string]string{"required-var": ""}
+	got.GCSPath = "${required-var}"
+	wantErr := `required var "required-var" cannot be blank`
+	if err := got.populate(); err.Error() != wantErr {
+		t.Errorf("workflow with unsubbed required var bad error, want: %q got: %q", wantErr, err.Error())
 	}
 }
 
@@ -689,7 +699,7 @@ func TestValidateErrors(t *testing.T) {
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {testType: &mockStep{}}}
 	w.Project = "${var}"
-	want = "Unresolved var found in \"${var}\""
+	want = "Unresolved var \"${var}\" found in \"${var}\""
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
 	}
