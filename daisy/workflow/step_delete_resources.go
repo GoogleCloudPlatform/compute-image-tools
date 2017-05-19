@@ -68,13 +68,13 @@ func (d *DeleteResources) run(s *Step) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			r, ok := w.instanceRefs.get(i)
+			r, ok := instances[w].get(i)
 			if !ok {
 				e <- fmt.Errorf("unresolved instance %q", i)
 				return
 			}
 			w.logger.Printf("DeleteResources: deleting instance %q.", r.real)
-			if err := w.deleteInstance(r); err != nil {
+			if err := deleteInstance(w, r); err != nil {
 				e <- err
 			}
 		}(i)
@@ -84,13 +84,13 @@ func (d *DeleteResources) run(s *Step) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			r, ok := w.imageRefs.get(i)
+			r, ok := images[w].get(i)
 			if !ok {
 				e <- fmt.Errorf("unresolved image %q", i)
 				return
 			}
 			w.logger.Printf("DeleteResources: deleting image %q.", r.real)
-			if err := w.deleteImage(r); err != nil {
+			if err := deleteImage(w, r); err != nil {
 				e <- err
 			}
 		}(i)
@@ -116,13 +116,13 @@ func (d *DeleteResources) run(s *Step) error {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			r, ok := w.diskRefs.get(d)
+			r, ok := disks[w].get(d)
 			if !ok {
 				e <- fmt.Errorf("unresolved disk %q", d)
 				return
 			}
 			w.logger.Printf("DeleteResources: deleting disk %q.", r.real)
-			if err := w.deleteDisk(r); err != nil {
+			if err := deleteDisk(w, r); err != nil {
 				e <- err
 			}
 		}(d)

@@ -26,6 +26,8 @@ const defaultInterval = "5s"
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []InstanceSignal
 
+// SerialOutput describes text signal strings that will be written to the serial
+// port.
 // This step will not complete until a line in the serial output matches
 // SuccessMatch or FailureMatch. A match with FailureMatch will cause the step
 // to fail.
@@ -88,7 +90,7 @@ func (ws *WaitForInstancesSignal) run(s *Step) error {
 		wg.Add(1)
 		go func(is InstanceSignal) {
 			defer wg.Done()
-			i, ok := w.instanceRefs.get(is.Name)
+			i, ok := instances[w].get(is.Name)
 			if !ok {
 				e <- fmt.Errorf("unresolved instance %q", is.Name)
 				return

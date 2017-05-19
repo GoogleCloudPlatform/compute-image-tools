@@ -18,50 +18,50 @@ import (
 	"testing"
 
 	"reflect"
-
-	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestDeleteResourcesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
-	w.instanceRefs.m = map[string]*resource{
-		"in1": {"in1", w.genName("in1"), "link", false},
-		"in2": {"in2", w.genName("in2"), "link", false},
-		"in3": {"in3", w.genName("in3"), "link", false},
-		"in4": {"in4", w.genName("in4"), "link", false}}
-	w.imageRefs.m = map[string]*resource{
-		"im1": {"im1", w.genName("im1"), "link", false},
-		"im2": {"im2", w.genName("im2"), "link", false},
-		"im3": {"im3", w.genName("im3"), "link", false},
-		"im4": {"im4", w.genName("im4"), "link", false}}
-	w.diskRefs.m = map[string]*resource{
-		"d1": {"d1", w.genName("d1"), "link", false},
-		"d2": {"d2", w.genName("d2"), "link", false},
-		"d3": {"d3", w.genName("d3"), "link", false},
-		"d4": {"d4", w.genName("d4"), "link", false}}
+	ins := []*resource{
+		{"in0", w.genName("in0"), "link", false, false},
+		{"in1", w.genName("in1"), "link", false, false},
+		{"in2", w.genName("in2"), "link", false, false},
+		{"in3", w.genName("in3"), "link", false, false},
+	}
+	ims := []*resource{
+		{"im0", w.genName("im0"), "link", false, false},
+		{"im1", w.genName("im1"), "link", false, false},
+		{"im2", w.genName("im2"), "link", false, false},
+		{"im3", w.genName("im3"), "link", false, false},
+	}
+	ds := []*resource{
+		{"d0", w.genName("d0"), "link", false, false},
+		{"d1", w.genName("d1"), "link", false, false},
+		{"d2", w.genName("d2"), "link", false, false},
+		{"d3", w.genName("d3"), "link", false, false},
+	}
+	instances[w].m = map[string]*resource{"in0": ins[0], "in1": ins[1], "in2": ins[2], "in3": ins[3]}
+	images[w].m = map[string]*resource{"im0": ims[0], "im1": ims[1], "im2": ims[2], "im3": ims[3]}
+	disks[w].m = map[string]*resource{"d0": ds[0], "d1": ds[1], "d2": ds[2], "d3": ds[3]}
 
 	dr := &DeleteResources{
-		Instances: []string{"in1", "in2", "in3"},
-		Images:    []string{"im1", "im2", "im3"},
-		Disks:     []string{"d1", "d2", "d3"}}
+		Instances: []string{"in0", "in1", "in2"},
+		Images:    []string{"im0", "im1", "im2"},
+		Disks:     []string{"d0", "d1", "d2"}}
 	if err := dr.run(s); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
 	}
 
-	want := map[string]*resource{"in4": {"in4", w.genName("in4"), "link", false}}
-	if diff := pretty.Compare(w.instanceRefs.m, want); diff != "" {
-		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
-	}
-
-	want = map[string]*resource{"im4": {"im4", w.genName("im4"), "link", false}}
-	if diff := pretty.Compare(w.imageRefs.m, want); diff != "" {
-		t.Errorf("imageRefs do not match expectation: (-got +want)\n%s", diff)
-	}
-
-	want = map[string]*resource{"d4": {"d4", w.genName("d4"), "link", false}}
-	if diff := pretty.Compare(w.diskRefs.m, want); diff != "" {
-		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
+	for _, rs := range [][]*resource{ins, ims, ds} {
+		for i := 0; i < 3; i++ {
+			if r := rs[i]; !r.deleted {
+				t.Errorf("resource %q should have been deleted", r.name)
+			}
+		}
+		if rs[3].deleted {
+			t.Errorf("resource %q should not have been deleted", rs[3].name)
+		}
 	}
 
 	w = testWorkflow()

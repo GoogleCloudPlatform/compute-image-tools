@@ -28,6 +28,14 @@ func (s *SubWorkflow) validate(st *Step) error {
 func (s *SubWorkflow) run(st *Step) error {
 	// Prerun work has already been done. Just run(), not Run().
 	defer s.workflow.cleanup()
+	// If the workflow fails before the subworkflow completes, the previous
+	// "defer" cleanup won't happen. Add a failsafe here, have the workflow
+	// also call this subworkflow's cleanup.
+	st.w.addCleanupHook(func() error {
+		s.workflow.cleanup()
+		return nil
+	})
+
 	st.w.logger.Printf("Running subworkflow %q", s.workflow.Name)
 	if err := s.workflow.run(); err != nil {
 		s.workflow.logger.Printf("Error running subworkflow %q: %v", s.workflow.Name, err)

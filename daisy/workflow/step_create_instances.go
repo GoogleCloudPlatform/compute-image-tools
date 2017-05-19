@@ -202,16 +202,14 @@ func (c *CreateInstances) run(s *Step) error {
 			inst.Description = description
 
 			attachDisk := func(boot bool, sourceDisk, mode string) error {
-				var disk *resource
-				var err error
 				if diskURLRegex.MatchString(sourceDisk) {
 					// Real link.
 					inst.AddPD("", sourceDisk, mode, false, boot)
-				} else if disk, err = w.getDisk(sourceDisk); err == nil {
+				} else if disk, ok := disks[w].get(sourceDisk); ok {
 					// Reference.
 					inst.AddPD(disk.name, disk.link, mode, false, boot)
 				} else {
-					return err
+					return fmt.Errorf("invalid or missing reference to AttachedDisk %q", sourceDisk)
 				}
 				return nil
 			}
@@ -248,7 +246,7 @@ func (c *CreateInstances) run(s *Step) error {
 				return
 			}
 			go logSerialOutput(w, name, 1)
-			w.instanceRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup})
+			instances[w].add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup, false})
 		}(ci)
 	}
 
