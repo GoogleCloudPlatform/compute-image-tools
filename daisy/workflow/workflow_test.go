@@ -26,7 +26,6 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -41,31 +40,31 @@ import (
 )
 
 func TestCleanup(t *testing.T) {
+	cleanedup1 := false
+	cleanedup2 := false
+	cleanup1 := func() error {
+		cleanedup1 = true
+		return nil
+	}
+	cleanup2 := func() error {
+		cleanedup2 = true
+		return nil
+	}
+	cleanupFail := func() error {
+		return errors.New("failed cleanup")
+	}
+
 	w := testWorkflow()
-
-	d1 := &resource{name: "d1", link: "link", noCleanup: false}
-	d2 := &resource{name: "d2", link: "link", noCleanup: true}
-	im1 := &resource{name: "im1", link: "link", noCleanup: false}
-	im2 := &resource{name: "im2", link: "link", noCleanup: true}
-	in1 := &resource{name: "in1", link: "link", noCleanup: false}
-	in2 := &resource{name: "in2", link: "link", noCleanup: true}
-	w.diskRefs.m = map[string]*resource{"d1": d1, "d2": d2}
-	w.imageRefs.m = map[string]*resource{"im1": im1, "im2": im2}
-	w.instanceRefs.m = map[string]*resource{"in1": in1, "in2": in2}
-
+	w.addCleanupHook(cleanup1)
+	w.addCleanupHook(cleanupFail)
+	w.addCleanupHook(cleanup2)
 	w.cleanup()
 
-	want := map[string]*resource{"d2": d2}
-	if !reflect.DeepEqual(w.diskRefs.m, want) {
-		t.Errorf("cleanup didn't clean disks properly, want: %v; got: %v", want, w.diskRefs.m)
+	if !cleanedup1 {
+		t.Error("cleanup1 was not run")
 	}
-	want = map[string]*resource{"im2": im2}
-	if !reflect.DeepEqual(w.imageRefs.m, want) {
-		t.Errorf("cleanup didn't clean images properly, want: %v; got: %v", want, w.imageRefs.m)
-	}
-	want = map[string]*resource{"in2": in2}
-	if !reflect.DeepEqual(w.instanceRefs.m, want) {
-		t.Errorf("cleanup didn't clean instances properly, want: %v; got: %v", want, w.instanceRefs.m)
+	if !cleanedup2 {
+		t.Error("cleanup2 was not run")
 	}
 }
 
@@ -86,55 +85,6 @@ func TestGenName(t *testing.T) {
 		if len(result) > 64 {
 			t.Errorf("result > 64 characters, input: name=%s wfName=%s wfId=%s; got: %s", tt.name, tt.wfName, tt.wfID, result)
 		}
-	}
-}
-
-func TestGetResource(t *testing.T) {
-	r1 := &resource{}
-	r2 := &resource{}
-	r3 := &resource{}
-	r4 := &resource{}
-	w := &Workflow{
-		diskRefs:     &refMap{m: map[string]*resource{"foo": r1}},
-		imageRefs:    &refMap{},
-		instanceRefs: &refMap{m: map[string]*resource{"baz": r3}},
-		parent: &Workflow{
-			diskRefs:     &refMap{},
-			imageRefs:    &refMap{m: map[string]*resource{"bar": r2}},
-			instanceRefs: &refMap{m: map[string]*resource{"baz": r4}},
-		},
-	}
-
-	r, err := w.getDisk("foo")
-	if r != r1 {
-		t.Errorf("getDisk(foo) returned the wrong resource, want: %p; got: %p", r1, r)
-	}
-	if err != nil {
-		t.Errorf("getDisk(foo) unexpected error: %s", err)
-	}
-
-	r, err = w.getImage("bar")
-	if r != r2 {
-		t.Errorf("getImage(bar) returned the wrong resource, want: %p; got: %p", r2, r)
-	}
-	if err != nil {
-		t.Errorf("getDisk(bar) unexpected error: %s", err)
-	}
-
-	r, err = w.getInstance("baz")
-	if r != r3 {
-		t.Errorf("getInstance(baz) returned the wrong resource, want: %p; got: %p", r3, r)
-	}
-	if err != nil {
-		t.Errorf("getInstance(baz) unexpected error: %s", err)
-	}
-
-	r, err = w.getInstance("dne")
-	if r != nil {
-		t.Errorf("getInstance(dne) returned a resource when it shouldn't: %p", r)
-	}
-	if err == nil {
-		t.Error("getInstance(dne) should have returned an error")
 	}
 }
 
@@ -349,6 +299,10 @@ func TestNewFromFile(t *testing.T) {
 		s.w = nil
 	}
 
+	// Cleanup hooks are impossible to check right now.
+	got.cleanupHooks = nil
+	subGot.cleanupHooks = nil
+
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
 	}
@@ -443,17 +397,14 @@ func TestPopulate(t *testing.T) {
 	subScratch := subGot.scratchPath
 
 	want := &Workflow{
-		Name:         "parent",
-		GCSPath:      "gs://parent-bucket/images",
-		Zone:         "parent-zone",
-		Project:      "parent-project",
-		OAuthPath:    tf,
-		id:           got.id,
-		Ctx:          got.Ctx,
-		Cancel:       got.Cancel,
-		diskRefs:     &refMap{},
-		imageRefs:    &refMap{},
-		instanceRefs: &refMap{},
+		Name:      "parent",
+		GCSPath:   "gs://parent-bucket/images",
+		Zone:      "parent-zone",
+		Project:   "parent-project",
+		OAuthPath: tf,
+		id:        got.id,
+		Ctx:       got.Ctx,
+		Cancel:    got.Cancel,
 		Vars: map[string]string{
 			"bucket":    "parent-bucket",
 			"step_name": "parent-step1",
@@ -494,15 +445,12 @@ func TestPopulate(t *testing.T) {
 						"overridden": "bar",
 					},
 					workflow: &Workflow{
-						Name:         "parent-step3",
-						GCSPath:      fmt.Sprintf("gs://%s/%s", got.bucket, got.scratchPath),
-						Zone:         "parent-zone",
-						Project:      "parent-project",
-						OAuthPath:    tf,
-						id:           subGot.id,
-						diskRefs:     &refMap{},
-						imageRefs:    &refMap{},
-						instanceRefs: &refMap{},
+						Name:      "parent-step3",
+						GCSPath:   fmt.Sprintf("gs://%s/%s", got.bucket, got.scratchPath),
+						Zone:      "parent-zone",
+						Project:   "parent-project",
+						OAuthPath: tf,
+						id:        subGot.id,
 						Steps: map[string]*Step{
 							"sub-step1": {
 								name:    "sub-step1",
@@ -530,103 +478,6 @@ func TestPopulate(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
-	}
-}
-
-func TestRefMapAdd(t *testing.T) {
-	rm := refMap{}
-
-	tests := []struct {
-		desc, ref string
-		res       *resource
-		want      map[string]*resource
-	}{
-		{"normal add", "x", &resource{name: "x"}, map[string]*resource{"x": {name: "x"}}},
-		{"dupe add", "x", &resource{name: "otherx"}, map[string]*resource{"x": {name: "otherx"}}},
-	}
-
-	for _, tt := range tests {
-		rm.add(tt.ref, tt.res)
-		if diff := pretty.Compare(rm.m, tt.want); diff != "" {
-			t.Errorf("%q case failed, refmap does not match expectation: (-got +want)\n%s", tt.desc, diff)
-		}
-	}
-}
-
-func TestRefMapConcurrency(t *testing.T) {
-	rm := refMap{}
-
-	tests := []struct {
-		desc string
-		f    func()
-	}{
-		{"add", func() { rm.add("foo", nil) }},
-		{"del", func() { rm.del("foo") }},
-		{"get", func() { rm.get("foo") }},
-	}
-
-	for _, tt := range tests {
-		order := []string{}
-		releaseStr := "lock released"
-		returnedStr := "func returned"
-		want := []string{releaseStr, returnedStr}
-		gunshot := sync.Mutex{}
-		gunshot.Lock() // Wait for the goroutine to say we can go ahead.
-		go func() {
-			rm.mx.Lock()
-			defer rm.mx.Unlock()
-			gunshot.Unlock()
-			time.Sleep(1 * time.Millisecond)
-			order = append(order, releaseStr)
-		}()
-		gunshot.Lock() // Wait for the go ahead.
-		tt.f()
-		order = append(order, returnedStr)
-		if !reflect.DeepEqual(order, want) {
-			t.Errorf("%q case failed, unexpected concurrency order, want: %v; got: %v", tt.desc, want, order)
-		}
-	}
-}
-
-func TestRefMapDel(t *testing.T) {
-	xRes := &resource{}
-	yRes := &resource{}
-	rm := refMap{m: map[string]*resource{"x": xRes, "y": yRes}}
-
-	tests := []struct {
-		desc, input string
-		want        map[string]*resource
-	}{
-		{"normal del", "y", map[string]*resource{"x": xRes}},
-		{"del dne", "foo", map[string]*resource{"x": xRes}},
-	}
-
-	for _, tt := range tests {
-		rm.del(tt.input)
-		if !reflect.DeepEqual(rm.m, tt.want) {
-			t.Errorf("%q case failed, refmap does not match expectation, want: %v; got: %v", tt.desc, tt.want, rm.m)
-		}
-	}
-}
-
-func TestRefMapGet(t *testing.T) {
-	xRes := &resource{}
-	yRes := &resource{}
-	rm := refMap{m: map[string]*resource{"x": xRes, "y": yRes}}
-
-	tests := []struct {
-		desc, input string
-		wantR       *resource
-		wantOk      bool
-	}{
-		{"normal get", "y", yRes, true},
-		{"get dne", "dne", nil, false},
-	}
-
-	for _, tt := range tests {
-		if gotR, gotOk := rm.get(tt.input); !(gotOk == tt.wantOk && gotR == tt.wantR) {
-			t.Errorf("%q case failed, want: (%v, %t); got: (%v, %t)", tt.desc, tt.wantR, tt.wantOk, gotR, gotOk)
-		}
 	}
 }
 

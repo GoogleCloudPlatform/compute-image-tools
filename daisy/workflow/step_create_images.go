@@ -101,14 +101,12 @@ func (c *CreateImages) run(s *Step) error {
 			// Get source disk link, if applicable.
 			var diskLink string
 			if ci.SourceDisk != "" {
-				var disk *resource
-				var err error
 				if diskURLRegex.MatchString(ci.SourceDisk) {
 					diskLink = ci.SourceDisk
-				} else if disk, err = w.getDisk(ci.SourceDisk); err == nil {
+				} else if disk, ok := disks[w].get(ci.SourceDisk); ok {
 					diskLink = disk.link
 				} else {
-					e <- err
+					e <- fmt.Errorf("invalid or missing reference to SourceDisk %q", ci.SourceDisk)
 					return
 				}
 			}
@@ -136,7 +134,7 @@ func (c *CreateImages) run(s *Step) error {
 				e <- err
 				return
 			}
-			w.imageRefs.add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup})
+			images[w].add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup, false})
 		}(ci)
 	}
 

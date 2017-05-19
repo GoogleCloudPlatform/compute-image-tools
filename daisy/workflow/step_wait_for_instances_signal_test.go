@@ -22,10 +22,10 @@ import (
 func TestWaitForInstancesSignalRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
-	w.instanceRefs.m = map[string]*resource{
-		"i1": {"i1", w.genName("i1"), "link", false},
-		"i2": {"i2", w.genName("i2"), "link", false},
-		"i3": {"i3", w.genName("i3"), "link", false}}
+	instances[w].m = map[string]*resource{
+		"i1": {"i1", w.genName("i1"), "link", false, false},
+		"i2": {"i2", w.genName("i2"), "link", false, false},
+		"i3": {"i3", w.genName("i3"), "link", false, false}}
 	ws := &WaitForInstancesSignal{
 		{Name: "i1", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "success"}},
 		{Name: "i2", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 2, SuccessMatch: "success", FailureMatch: "fail"}},
