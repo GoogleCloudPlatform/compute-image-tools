@@ -75,6 +75,10 @@ func TestStepImpl(t *testing.T) {
 			reflect.TypeOf(&CreateInstances{}),
 		},
 		{
+			Step{CopyGCSObjects: &CopyGCSObjects{}},
+			reflect.TypeOf(&CopyGCSObjects{}),
+		},
+		{
 			Step{DeleteResources: &DeleteResources{}},
 			reflect.TypeOf(&DeleteResources{}),
 		},

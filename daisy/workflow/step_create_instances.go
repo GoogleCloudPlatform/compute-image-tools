@@ -32,11 +32,16 @@ type CreateInstance struct {
 	// Name of the instance.
 	Name string
 	// Disks to attach to the instance, must match a disk created in a
-	// previous step.
+	// previous step. Disks will get attached in ReadWrite mode before
+	// disks in AttachedDisksRO.
 	// The first disk gets set as the boot disk. At least one disk must be
 	// listed.
 	AttachedDisks []string
-	MachineType   string `json:",omitempty"`
+	// Disks to attach to the instance, must match a disk created in a
+	// previous step. Disks will get attached in ReadOnly mode after disk in
+	// AttachedDisks.
+	AttachedDisksRO []string `json:",omitempty"`
+	MachineType     string   `json:",omitempty"`
 	// StartupScript is the Sources path to a startup script to use in this step.
 	// This will be automatically mapped to the appropriate metadata key.
 	StartupScript string `json:",omitempty"`
@@ -94,6 +99,40 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 	}
 }
 
+func validateDisk(w *Workflow, d string, ci CreateInstance) error {
+	if !diskValid(w, d) {
+		return fmt.Errorf("cannot create instance: disk not found: %s", d)
+	}
+	// Ensure disk is in the same project and zone.
+	match := diskURLRegex.FindStringSubmatch(d)
+	if match == nil {
+		return nil
+	}
+	result := make(map[string]string)
+	for i, name := range diskURLRegex.SubexpNames() {
+		if i != 0 {
+			result[name] = match[i]
+		}
+	}
+
+	project := w.Project
+	if ci.Project != "" {
+		project = ci.Project
+	}
+	zone := w.Zone
+	if ci.Zone != "" {
+		zone = ci.Zone
+	}
+
+	if result["project"] != "" && result["project"] != project {
+		return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", project, result["project"], d)
+	}
+	if result["zone"] != zone {
+		return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", zone, result["zone"], d)
+	}
+	return nil
+}
+
 func (c *CreateInstances) validate(s *Step) error {
 	w := s.w
 	for _, ci := range *c {
@@ -102,35 +141,14 @@ func (c *CreateInstances) validate(s *Step) error {
 			return errors.New("cannot create instance: no disks provided")
 		}
 		for _, d := range ci.AttachedDisks {
-			if !diskValid(w, d) {
-				return fmt.Errorf("cannot create instance: disk not found: %s", d)
+			if err := validateDisk(w, d, ci); err != nil {
+				return err
 			}
-			// Ensure disk is in the same project and zone.
-			match := diskURLRegex.FindStringSubmatch(d)
-			if match == nil {
-				continue
-			}
-			result := make(map[string]string)
-			for i, name := range diskURLRegex.SubexpNames() {
-				if i != 0 {
-					result[name] = match[i]
-				}
-			}
+		}
 
-			project := w.Project
-			if ci.Project != "" {
-				project = ci.Project
-			}
-			zone := w.Zone
-			if ci.Zone != "" {
-				zone = ci.Zone
-			}
-
-			if result["project"] != "" && result["project"] != project {
-				return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", project, result["project"], d)
-			}
-			if result["zone"] != zone {
-				return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", zone, result["zone"], d)
+		for _, d := range ci.AttachedDisksRO {
+			if err := validateDisk(w, d, ci); err != nil {
+				return err
 			}
 		}
 
@@ -183,16 +201,28 @@ func (c *CreateInstances) run(s *Step) error {
 			}
 			inst.Description = description
 
-			for i, sourceDisk := range ci.AttachedDisks {
+			attachDisk := func(boot bool, sourceDisk, mode string) error {
 				var disk *resource
 				var err error
 				if diskURLRegex.MatchString(sourceDisk) {
 					// Real link.
-					inst.AddPD("", sourceDisk, false, i == 0)
+					inst.AddPD("", sourceDisk, mode, false, boot)
 				} else if disk, err = w.getDisk(sourceDisk); err == nil {
 					// Reference.
-					inst.AddPD(disk.name, disk.link, false, i == 0)
+					inst.AddPD(disk.name, disk.link, mode, false, boot)
 				} else {
+					return err
+				}
+				return nil
+			}
+			for i, sourceDisk := range ci.AttachedDisks {
+				if err := attachDisk(i == 0, sourceDisk, "READ_WRITE"); err != nil {
+					e <- err
+					return
+				}
+			}
+			for _, sourceDisk := range ci.AttachedDisksRO {
+				if err := attachDisk(false, sourceDisk, "READ_ONLY"); err != nil {
 					e <- err
 					return
 				}

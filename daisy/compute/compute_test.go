@@ -320,7 +320,7 @@ func TestCreateInstance(t *testing.T) {
 		t.Fatalf("error running NewInstance: %v", err)
 	}
 
-	instance.AddPD(testDisk, "source", false, true)
+	instance.AddPD(testDisk, "source", "READ_WRITE", false, true)
 	instance.AddNetworkInterface("default")
 	instance.AddNetworkInterfaceWithSubnetwork("default", "default")
 	value := "value"
