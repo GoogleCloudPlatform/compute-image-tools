@@ -453,7 +453,7 @@ is not set or is set as an empty string the workflow will fail with an error.
   "Zone": "${var2}",
   "Vars": {
     "var1": "",
-    "var2": {"Value": "foo-zone", "Description": "default zone to run the workflow in"}
+    "var2": {"Value": "foo-zone", "Description": "default zone to run the workflow in"},
     "var3": {"Required": true, "Description": "variable 3"}
   }
 }
