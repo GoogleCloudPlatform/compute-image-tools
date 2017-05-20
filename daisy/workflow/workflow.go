@@ -65,6 +65,12 @@ func (l *gcsLogger) Write(b []byte) (int, error) {
 	return n, err
 }
 
+type vars struct {
+	Value       string
+	Required    bool
+	Description string
+}
+
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
@@ -84,15 +90,14 @@ type Workflow struct {
 	OAuthPath string `json:",omitempty"`
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string `json:",omitempty"`
-	// RequiredVars is the list of vars the caller must provide to this workflow.
-	RequiredVars []string `json:",omitempty"`
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars  map[string]string `json:",omitempty"`
+	Vars  map[string]json.RawMessage `json:",omitempty"`
 	Steps map[string]*Step
 	// Map of steps to their dependencies.
 	Dependencies map[string][]string
 
 	// Working fields.
+	vars           map[string]vars
 	workflowDir    string
 	parent         *Workflow
 	bucket         string
@@ -108,6 +113,13 @@ type Workflow struct {
 	logger         *log.Logger
 	cleanupHooks   []func() error
 	cleanupHooksMx sync.Mutex
+}
+
+func (w *Workflow) AddVar(k, v string) {
+	if w.vars == nil {
+		w.vars = map[string]vars{}
+	}
+	w.vars[k] = vars{Value: v}
 }
 
 func (w *Workflow) addCleanupHook(hook func() error) {
@@ -227,10 +239,38 @@ func (w *Workflow) populateStep(step *Step) error {
 	step.SubWorkflow.workflow.Ctx = w.Ctx
 	step.SubWorkflow.workflow.Cancel = w.Cancel
 	step.SubWorkflow.workflow.gcsLogWriter = w.gcsLogWriter
+	step.SubWorkflow.workflow.vars = map[string]vars{}
 	for k, v := range step.SubWorkflow.Vars {
-		step.SubWorkflow.workflow.Vars[k] = v
+		step.SubWorkflow.workflow.vars[k] = vars{Value: v}
 	}
 	return step.SubWorkflow.workflow.populate()
+}
+
+func (w *Workflow) populateVars() error {
+	if w.vars == nil {
+		w.vars = map[string]vars{}
+	}
+	for k, v := range w.Vars {
+		// Don't overwrite existing vars (applies to subworkflows).
+		if _, ok := w.vars[k]; ok {
+			continue
+		}
+		var sv string
+		if err := json.Unmarshal(v, &sv); err == nil {
+			w.vars[k] = vars{Value: sv}
+			continue
+		}
+		var vv vars
+		if err := json.Unmarshal(v, &vv); err == nil {
+			if vv.Required && vv.Value == "" {
+				return fmt.Errorf("required var %q cannot be blank", k)
+			}
+			w.vars[k] = vv
+			continue
+		}
+		return fmt.Errorf("cannot unmarshal Var %q, value: %s", k, v)
+	}
+	return nil
 }
 
 func (w *Workflow) populate() error {
@@ -238,6 +278,10 @@ func (w *Workflow) populate() error {
 	now := time.Now().UTC()
 	cu, err := user.Current()
 	if err != nil {
+		return err
+	}
+
+	if err := w.populateVars(); err != nil {
 		return err
 	}
 	w.username = cu.Username
@@ -250,28 +294,12 @@ func (w *Workflow) populate() error {
 		"USERNAME":  w.username,
 	}
 
-	for _, rv := range w.RequiredVars {
-		for k, v := range w.Vars {
-			if rv != k {
-				continue
-			}
-			if v == "" {
-				return fmt.Errorf("required var %q cannot be blank", k)
-			}
-		}
-	}
-
-	vars := map[string]string{}
-	for k, v := range w.Vars {
-		vars[k] = v
-	}
-
 	var replacements []string
 	for k, v := range autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	for k, v := range vars {
-		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
+	for k, v := range w.vars {
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 

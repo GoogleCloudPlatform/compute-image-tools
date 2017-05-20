@@ -17,6 +17,7 @@ package workflow
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -162,9 +163,9 @@ func TestNewFromFile(t *testing.T) {
 		Zone:        "us-central1-a",
 		GCSPath:     "gs://some-bucket/images",
 		OAuthPath:   wantOAuthPath,
-		Vars: map[string]string{
-			"bootstrap_instance_name": "bootstrap",
-			"machine_type":            "n1-standard-1",
+		Vars: map[string]json.RawMessage{
+			"bootstrap_instance_name": []byte(`{"Value": "bootstrap", "Required": true}`),
+			"machine_type":            []byte(`"n1-standard-1"`),
 		},
 		Steps: map[string]*Step{
 			"create-disks": {
@@ -326,19 +327,18 @@ func TestPopulate(t *testing.T) {
 	}
 
 	got := &Workflow{
-		Name:         "${wf-name}",
-		GCSPath:      "gs://${bucket}/images",
-		Zone:         "parent-zone",
-		Project:      "parent-project",
-		OAuthPath:    tf,
-		RequiredVars: []string{"bucket"},
-		logger:       log.New(ioutil.Discard, "", 0),
-		Vars: map[string]string{
-			"bucket":    "parent-bucket",
-			"step_name": "parent-step1",
-			"timeout":   "60m",
-			"path":      "./test_sub.workflow",
-			"wf-name":   "parent",
+		Name:      "${wf-name}",
+		GCSPath:   "gs://${bucket}/images",
+		Zone:      "parent-zone",
+		Project:   "parent-project",
+		OAuthPath: tf,
+		logger:    log.New(ioutil.Discard, "", 0),
+		Vars: map[string]json.RawMessage{
+			"bucket":    []byte(`{"Value": "parent-bucket", "Required": true}`),
+			"step_name": []byte(`"parent-step1"`),
+			"timeout":   []byte(`"60m"`),
+			"path":      []byte(`"./test_sub.workflow"`),
+			"wf-name":   []byte(`"parent"`),
 		},
 		Steps: map[string]*Step{
 			"${step_name}": {
@@ -370,11 +370,11 @@ func TestPopulate(t *testing.T) {
 								Timeout: "${timeout}",
 							},
 						},
-						Vars: map[string]string{
-							"wf-name":    "sub",
-							"step_name":  "sub-step1",
-							"timeout":    "60m",
-							"overridden": "foo", // This should be changed to "bar" by populate().
+						Vars: map[string]json.RawMessage{
+							"wf-name":    []byte(`"sub"`),
+							"step_name":  []byte(`"sub-step1"`),
+							"timeout":    []byte(`"60m"`),
+							"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
 						},
 					},
 				},
@@ -383,7 +383,7 @@ func TestPopulate(t *testing.T) {
 	}
 
 	if err := got.populate(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("error populating workflow: %v", err)
 	}
 
 	subGot := got.Steps["parent-step3"].SubWorkflow.workflow
@@ -401,21 +401,27 @@ func TestPopulate(t *testing.T) {
 	subScratch := subGot.scratchPath
 
 	want := &Workflow{
-		Name:         "parent",
-		GCSPath:      "gs://parent-bucket/images",
-		Zone:         "parent-zone",
-		Project:      "parent-project",
-		OAuthPath:    tf,
-		id:           got.id,
-		Ctx:          got.Ctx,
-		Cancel:       got.Cancel,
-		RequiredVars: []string{"bucket"},
-		Vars: map[string]string{
-			"bucket":    "parent-bucket",
-			"step_name": "parent-step1",
-			"timeout":   "60m",
-			"path":      "./test_sub.workflow",
-			"wf-name":   "parent",
+		Name:      "parent",
+		GCSPath:   "gs://parent-bucket/images",
+		Zone:      "parent-zone",
+		Project:   "parent-project",
+		OAuthPath: tf,
+		id:        got.id,
+		Ctx:       got.Ctx,
+		Cancel:    got.Cancel,
+		Vars: map[string]json.RawMessage{
+			"bucket":    []byte(`{"Value": "parent-bucket", "Required": true}`),
+			"step_name": []byte(`"parent-step1"`),
+			"timeout":   []byte(`"60m"`),
+			"path":      []byte(`"./test_sub.workflow"`),
+			"wf-name":   []byte(`"parent"`),
+		},
+		vars: map[string]vars{
+			"bucket":    {Value: "parent-bucket", Required: true},
+			"step_name": {Value: "parent-step1"},
+			"timeout":   {Value: "60m"},
+			"path":      {Value: "./test_sub.workflow"},
+			"wf-name":   {Value: "parent"},
 		},
 		bucket:      "parent-bucket",
 		scratchPath: got.scratchPath,
@@ -463,11 +469,17 @@ func TestPopulate(t *testing.T) {
 								timeout: time.Duration(60 * time.Minute),
 							},
 						},
-						Vars: map[string]string{
-							"wf-name":    "sub",
-							"step_name":  "sub-step1",
-							"timeout":    "60m",
-							"overridden": "bar", // Check that this changed from "foo" to "bar".
+						Vars: map[string]json.RawMessage{
+							"wf-name":    []byte(`"sub"`),
+							"step_name":  []byte(`"sub-step1"`),
+							"timeout":    []byte(`"60m"`),
+							"overridden": []byte(`"foo"`),
+						},
+						vars: map[string]vars{
+							"wf-name":    {Value: "sub"},
+							"step_name":  {Value: "sub-step1"},
+							"timeout":    {Value: "60m"},
+							"overridden": {Value: "bar"},
 						},
 						bucket:      "parent-bucket",
 						scratchPath: subScratch,
@@ -483,14 +495,6 @@ func TestPopulate(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
-	}
-
-	got.RequiredVars = []string{"required-var"}
-	got.Vars = map[string]string{"required-var": ""}
-	got.GCSPath = "${required-var}"
-	wantErr := `required var "required-var" cannot be blank`
-	if err := got.populate(); err.Error() != wantErr {
-		t.Errorf("workflow with unsubbed required var bad error, want: %q got: %q", wantErr, err.Error())
 	}
 }
 
@@ -577,6 +581,51 @@ func TestTraverseDAG(t *testing.T) {
 	}
 	if err := checkCallOrder(); err != nil {
 		t.Errorf("call order error: %s", err)
+	}
+}
+
+func TestPopulateVars(t *testing.T) {
+	data := []byte(`{
+  "vars": {
+    "key1": "value1",
+    "key2": {"Value": "value2"},
+    "key3": {"Value": "value3", "Required": true},
+    "key4": {"Value": "value4", "Required": true, "Description": "test"}
+  }
+}`)
+	td, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %v", err)
+	}
+	defer os.RemoveAll(td)
+	tf := filepath.Join(td, "test.workflow")
+	ioutil.WriteFile(tf, data, 0600)
+
+	got, err := NewFromFile(context.Background(), tf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := got.populateVars(); err != nil {
+		t.Fatal(err)
+	}
+
+	want := map[string]vars{
+		"key1": {Value: "value1"},
+		"key2": {Value: "value2"},
+		"key3": {Value: "value3", Required: true},
+		"key4": {Value: "value4", Required: true, Description: "test"},
+	}
+
+	if diff := pretty.Compare(got.vars, want); diff != "" {
+		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
+	}
+
+	w := testWorkflow()
+	w.Vars = map[string]json.RawMessage{"required-var": []byte(`{"Required": true}`)}
+	wantErr := `required var "required-var" cannot be blank`
+	if err := w.populateVars(); err.Error() != wantErr {
+		t.Errorf("workflow with unsubbed required var bad error, want: %q got: %q", wantErr, err.Error())
 	}
 }
 

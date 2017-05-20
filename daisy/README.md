@@ -433,6 +433,24 @@ step3 complete.
 }
 ```
 
+### RequiredVars
+RequiredVars is a list of Vars that must be provided to the Workflow in order
+to run. RequiredVars are checked at workflow setup and validation. 
+
+In this example `var1` is an optional variable with an empty string as the 
+default value, `var2` is an example of an optional variable with a default 
+value provided, `var3` is a required variable with no default value. If `var3`
+is not set or is set as an empty stringthe workflow will 
+```json
+{
+  "RequiredVars": ["var3"],
+  "Vars": {
+    "var1": "",
+    "var2": ""
+  }
+}
+```
+
 ### Vars
 Vars are a user-provided set of key-value pairs. Vars are used in string
 substitutions in the rest of the workflow config using the syntax `${key}`.
