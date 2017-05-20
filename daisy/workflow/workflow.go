@@ -30,9 +30,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
-
 	"sync"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
