@@ -291,6 +291,7 @@ func (w *Workflow) populate() error {
 		"DATETIME":  now.Format("20060102150405"),
 		"TIMESTAMP": strconv.FormatInt(now.Unix(), 10),
 		"USERNAME":  w.username,
+		"WFDIR":     w.workflowDir,
 	}
 
 	var replacements []string
