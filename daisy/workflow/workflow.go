@@ -64,41 +64,10 @@ func (l *gcsLogger) Write(b []byte) (int, error) {
 	return n, err
 }
 
-type refMap struct {
-	m  map[string]*resource
-	mx sync.Mutex
-}
-
-func (rm *refMap) add(name string, r *resource) {
-	rm.mx.Lock()
-	defer rm.mx.Unlock()
-	if rm.m == nil {
-		rm.m = map[string]*resource{}
-	}
-	rm.m[name] = r
-}
-
-func (rm *refMap) del(name string) {
-	rm.mx.Lock()
-	defer rm.mx.Unlock()
-	if rm.m != nil {
-		delete(rm.m, name)
-	}
-}
-
-func (rm *refMap) get(name string) (*resource, bool) {
-	rm.mx.Lock()
-	defer rm.mx.Unlock()
-	if rm.m == nil {
-		return nil, false
-	}
-	r, ok := rm.m[name]
-	return r, ok
-}
-
-type resource struct {
-	name, real, link string
-	noCleanup        bool
+type vars struct {
+	Value       string
+	Required    bool
+	Description string
 }
 
 // Workflow is a single Daisy workflow workflow.
@@ -121,32 +90,46 @@ type Workflow struct {
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string `json:",omitempty"`
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars  map[string]string `json:",omitempty"`
+	Vars  map[string]json.RawMessage `json:",omitempty"`
 	Steps map[string]*Step
 	// Map of steps to their dependencies.
 	Dependencies map[string][]string
 
 	// Working fields.
-	workflowDir   string
-	diskRefs      *refMap
-	instanceRefs  *refMap
-	imageRefs     *refMap
-	parent        *Workflow
-	bucket        string
-	scratchPath   string
-	sourcesPath   string
-	logsPath      string
-	outsPath      string
-	username      string
-	gcsLogging    bool
-	ComputeClient *compute.Client `json:"-"`
-	StorageClient *storage.Client `json:"-"`
-	id            string
-	logger        *log.Logger
+	vars           map[string]vars
+	workflowDir    string
+	parent         *Workflow
+	bucket         string
+	scratchPath    string
+	sourcesPath    string
+	logsPath       string
+	outsPath       string
+	username       string
+	gcsLogWriter   io.Writer
+	ComputeClient  *compute.Client `json:"-"`
+	StorageClient  *storage.Client `json:"-"`
+	id             string
+	logger         *log.Logger
+	cleanupHooks   []func() error
+	cleanupHooksMx sync.Mutex
+}
+
+func (w *Workflow) AddVar(k, v string) {
+	if w.vars == nil {
+		w.vars = map[string]vars{}
+	}
+	w.vars[k] = vars{Value: v}
+}
+
+func (w *Workflow) addCleanupHook(hook func() error) {
+	w.cleanupHooksMx.Lock()
+	w.cleanupHooks = append(w.cleanupHooks, hook)
+	w.cleanupHooksMx.Unlock()
 }
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate() error {
+	w.gcsLogWriter = ioutil.Discard
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
 		return fmt.Errorf("error validating workflow: %v", err)
@@ -169,7 +152,6 @@ func (w *Workflow) Validate() error {
 
 // Run runs a workflow.
 func (w *Workflow) Run() error {
-	w.gcsLogging = true
 	if err := w.Validate(); err != nil {
 		return err
 	}
@@ -199,69 +181,12 @@ func (w *Workflow) String() string {
 }
 
 func (w *Workflow) cleanup() {
-	// If canceled we don't want to log anymore.
-	select {
-	case <-w.Cancel:
-		w.logger.Printf("Workflow %q canceled, cleaning up (this may take up to 2 minutes).", w.Name)
-	default:
-		w.logger.Printf("Workflow %q complete, cleaning up ephemeral resources.", w.Name)
-	}
-	w.cleanupHelper(w.imageRefs, w.deleteImage)
-	w.cleanupHelper(w.instanceRefs, w.deleteInstance)
-	w.cleanupHelper(w.diskRefs, w.deleteDisk)
-
-	// SubWorkflows leave resources around if the workflow fails before the
-	// SubWorkflows finish. To be safe, try to clean up SubWorkflows again.
-	for _, s := range w.Steps {
-		if s.SubWorkflow != nil {
-			s.SubWorkflow.workflow.cleanup()
+	w.logger.Printf("Workflow %q cleaning up (this may take up to 2 minutes.", w.Name)
+	for _, hook := range w.cleanupHooks {
+		if err := hook(); err != nil {
+			w.logger.Printf("Error returned from cleanup hook: %s", err)
 		}
 	}
-}
-
-func (w *Workflow) cleanupHelper(rm *refMap, deleteFn func(*resource) error) {
-	var wg sync.WaitGroup
-	toDel := map[string]*resource{}
-	for ref, res := range rm.m {
-		// Delete only non-persistent resources.
-		if !res.noCleanup {
-			toDel[ref] = res
-		}
-	}
-	for ref, res := range toDel {
-		wg.Add(1)
-		go func(ref string, r *resource) {
-			defer wg.Done()
-			if err := deleteFn(r); err != nil {
-				fmt.Println(err)
-			}
-		}(ref, res)
-	}
-	wg.Wait()
-}
-
-func (w *Workflow) deleteDisk(r *resource) error {
-	if err := w.ComputeClient.DeleteDisk(w.Project, w.Zone, r.real); err != nil {
-		return err
-	}
-	w.diskRefs.del(r.name)
-	return nil
-}
-
-func (w *Workflow) deleteImage(r *resource) error {
-	if err := w.ComputeClient.DeleteImage(w.Project, r.real); err != nil {
-		return err
-	}
-	w.imageRefs.del(r.name)
-	return nil
-}
-
-func (w *Workflow) deleteInstance(r *resource) error {
-	if err := w.ComputeClient.DeleteInstance(w.Project, w.Zone, r.real); err != nil {
-		return err
-	}
-	w.instanceRefs.del(r.name)
-	return nil
 }
 
 func (w *Workflow) genName(n string) string {
@@ -274,27 +199,6 @@ func (w *Workflow) genName(n string) string {
 		result = result[0:63]
 	}
 	return strings.ToLower(result)
-}
-
-func (w *Workflow) getDisk(n string) (*resource, error) {
-	return w.getResourceHelper(n, func(name string, wf *Workflow) (*resource, bool) { return wf.diskRefs.get(n) })
-}
-
-func (w *Workflow) getImage(n string) (*resource, error) {
-	return w.getResourceHelper(n, func(name string, wf *Workflow) (*resource, bool) { return wf.imageRefs.get(n) })
-}
-
-func (w *Workflow) getInstance(n string) (*resource, error) {
-	return w.getResourceHelper(n, func(name string, wf *Workflow) (*resource, bool) { return wf.instanceRefs.get(n) })
-}
-
-func (w *Workflow) getResourceHelper(n string, f func(string, *Workflow) (*resource, bool)) (*resource, error) {
-	for cur := w; cur != nil; cur = cur.parent {
-		if r, ok := f(n, cur); ok {
-			return r, nil
-		}
-	}
-	return nil, fmt.Errorf("unresolved instance reference %q", n)
 }
 
 func (w *Workflow) populateStep(step *Step) error {
@@ -333,11 +237,39 @@ func (w *Workflow) populateStep(step *Step) error {
 	step.SubWorkflow.workflow.StorageClient = w.StorageClient
 	step.SubWorkflow.workflow.Ctx = w.Ctx
 	step.SubWorkflow.workflow.Cancel = w.Cancel
-	step.SubWorkflow.workflow.logger = w.logger
+	step.SubWorkflow.workflow.gcsLogWriter = w.gcsLogWriter
+	step.SubWorkflow.workflow.vars = map[string]vars{}
 	for k, v := range step.SubWorkflow.Vars {
-		step.SubWorkflow.workflow.Vars[k] = v
+		step.SubWorkflow.workflow.vars[k] = vars{Value: v}
 	}
 	return step.SubWorkflow.workflow.populate()
+}
+
+func (w *Workflow) populateVars() error {
+	if w.vars == nil {
+		w.vars = map[string]vars{}
+	}
+	for k, v := range w.Vars {
+		// Don't overwrite existing vars (applies to subworkflows).
+		if _, ok := w.vars[k]; ok {
+			continue
+		}
+		var sv string
+		if err := json.Unmarshal(v, &sv); err == nil {
+			w.vars[k] = vars{Value: sv}
+			continue
+		}
+		var vv vars
+		if err := json.Unmarshal(v, &vv); err == nil {
+			if vv.Required && vv.Value == "" {
+				return fmt.Errorf("required var %q cannot be blank", k)
+			}
+			w.vars[k] = vv
+			continue
+		}
+		return fmt.Errorf("cannot unmarshal Var %q, value: %s", k, v)
+	}
+	return nil
 }
 
 func (w *Workflow) populate() error {
@@ -345,6 +277,10 @@ func (w *Workflow) populate() error {
 	now := time.Now().UTC()
 	cu, err := user.Current()
 	if err != nil {
+		return err
+	}
+
+	if err := w.populateVars(); err != nil {
 		return err
 	}
 	w.username = cu.Username
@@ -357,17 +293,12 @@ func (w *Workflow) populate() error {
 		"USERNAME":  w.username,
 	}
 
-	vars := map[string]string{}
-	for k, v := range w.Vars {
-		vars[k] = v
-	}
-
 	var replacements []string
 	for k, v := range autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	for k, v := range vars {
-		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
+	for k, v := range w.vars {
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
@@ -416,10 +347,6 @@ func (w *Workflow) populate() error {
 		}
 	}
 
-	w.diskRefs = &refMap{m: map[string]*resource{}}
-	w.imageRefs = &refMap{m: map[string]*resource{}}
-	w.instanceRefs = &refMap{m: map[string]*resource{}}
-
 	if w.logger == nil {
 		name := w.Name
 		for parent := w.parent; parent != nil; parent = w.parent.parent {
@@ -427,12 +354,11 @@ func (w *Workflow) populate() error {
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		gcs := ioutil.Discard
-		if w.gcsLogging {
-			gcs = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
+		if w.gcsLogWriter == nil {
+			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
 			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		}
-		w.logger = log.New(io.MultiWriter(os.Stdout, gcs), prefix, flags)
+		w.logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
 	}
 
 	for name, s := range w.Steps {
@@ -446,6 +372,7 @@ func (w *Workflow) populate() error {
 
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print() {
+	w.gcsLogWriter = ioutil.Discard
 	if err := w.populate(); err != nil {
 		fmt.Println("Error running populate:", err)
 	}
@@ -562,6 +489,7 @@ func New(ctx context.Context) *Workflow {
 	w.Ctx = ctx
 	// We can't use context.WithCancel as we use the context even after cancel for cleanup.
 	w.Cancel = make(chan struct{})
+	initWorkflowResources(&w)
 	return &w
 }
 

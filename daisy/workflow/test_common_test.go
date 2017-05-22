@@ -28,6 +28,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
+	"sync"
 )
 
 type mockStep struct {
@@ -57,6 +58,7 @@ var (
 	testZone      = "test-zone"
 	testGCSPath   = "gs://test-bucket"
 	testGCSObjs   []string
+	testGCSObjsMx = sync.Mutex{}
 )
 
 func init() {
@@ -72,21 +74,23 @@ func init() {
 }
 
 func testWorkflow() *Workflow {
-	cancel := make(chan struct{})
-	return &Workflow{
-		Name:          testWf,
-		GCSPath:       testGCSPath,
-		Project:       testProject,
-		Zone:          testZone,
-		ComputeClient: testGCEClient,
-		StorageClient: testGCSClient,
-		Ctx:           context.Background(),
-		Cancel:        cancel,
-		diskRefs:      &refMap{},
-		imageRefs:     &refMap{},
-		instanceRefs:  &refMap{},
-		logger:        log.New(ioutil.Discard, "", 0),
-	}
+	w := New(context.Background())
+	w.Name = testWf
+	w.GCSPath = testGCSPath
+	w.Project = testProject
+	w.Zone = testZone
+	w.ComputeClient = testGCEClient
+	w.StorageClient = testGCSClient
+	w.Ctx = context.Background()
+	w.Cancel = make(chan struct{})
+	w.logger = log.New(ioutil.Discard, "", 0)
+	return w
+}
+
+func addGCSObj(o string) {
+	testGCSObjsMx.Lock()
+	defer testGCSObjsMx.Unlock()
+	testGCSObjs = append(testGCSObjs, o)
 }
 
 func newTestGCEClient() (*compute.Client, error) {
@@ -122,7 +126,7 @@ func newTestGCSClient() (*storage.Client, error) {
 		if match := uploadRgx.FindStringSubmatch(u); m == "POST" && match != nil {
 			body, _ := ioutil.ReadAll(r.Body)
 			n := nameRgx.FindStringSubmatch(string(body))[1]
-			testGCSObjs = append(testGCSObjs, n)
+			addGCSObj(n)
 			fmt.Fprintf(w, `{"kind":"storage#object","bucket":"%s","name":"%s"}`, match[1], n)
 		} else if match := rewriteRgx.FindStringSubmatch(u); m == "POST" && match != nil {
 			if strings.Contains(match[1], "dne") || strings.Contains(match[2], "dne") {
@@ -136,7 +140,7 @@ func newTestGCSClient() (*storage.Client, error) {
 				fmt.Fprint(w, err)
 				return
 			}
-			testGCSObjs = append(testGCSObjs, path)
+			addGCSObj(path)
 			o := fmt.Sprintf(`{"bucket":"%s","name":"%s"}`, match[3], match[4])
 			fmt.Fprintf(w, `{"kind": "storage#rewriteResponse", "done": true, "objectSize": "1", "totalBytesRewritten": "1", "resource": %s}`, o)
 		} else if match := getObjRgx.FindStringSubmatch(u); m == "GET" && match != nil {

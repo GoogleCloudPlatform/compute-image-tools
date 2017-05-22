@@ -17,16 +17,17 @@ package workflow
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/user"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -41,31 +42,31 @@ import (
 )
 
 func TestCleanup(t *testing.T) {
+	cleanedup1 := false
+	cleanedup2 := false
+	cleanup1 := func() error {
+		cleanedup1 = true
+		return nil
+	}
+	cleanup2 := func() error {
+		cleanedup2 = true
+		return nil
+	}
+	cleanupFail := func() error {
+		return errors.New("failed cleanup")
+	}
+
 	w := testWorkflow()
-
-	d1 := &resource{name: "d1", link: "link", noCleanup: false}
-	d2 := &resource{name: "d2", link: "link", noCleanup: true}
-	im1 := &resource{name: "im1", link: "link", noCleanup: false}
-	im2 := &resource{name: "im2", link: "link", noCleanup: true}
-	in1 := &resource{name: "in1", link: "link", noCleanup: false}
-	in2 := &resource{name: "in2", link: "link", noCleanup: true}
-	w.diskRefs.m = map[string]*resource{"d1": d1, "d2": d2}
-	w.imageRefs.m = map[string]*resource{"im1": im1, "im2": im2}
-	w.instanceRefs.m = map[string]*resource{"in1": in1, "in2": in2}
-
+	w.addCleanupHook(cleanup1)
+	w.addCleanupHook(cleanupFail)
+	w.addCleanupHook(cleanup2)
 	w.cleanup()
 
-	want := map[string]*resource{"d2": d2}
-	if !reflect.DeepEqual(w.diskRefs.m, want) {
-		t.Errorf("cleanup didn't clean disks properly, want: %v; got: %v", want, w.diskRefs.m)
+	if !cleanedup1 {
+		t.Error("cleanup1 was not run")
 	}
-	want = map[string]*resource{"im2": im2}
-	if !reflect.DeepEqual(w.imageRefs.m, want) {
-		t.Errorf("cleanup didn't clean images properly, want: %v; got: %v", want, w.imageRefs.m)
-	}
-	want = map[string]*resource{"in2": in2}
-	if !reflect.DeepEqual(w.instanceRefs.m, want) {
-		t.Errorf("cleanup didn't clean instances properly, want: %v; got: %v", want, w.instanceRefs.m)
+	if !cleanedup2 {
+		t.Error("cleanup2 was not run")
 	}
 }
 
@@ -86,55 +87,6 @@ func TestGenName(t *testing.T) {
 		if len(result) > 64 {
 			t.Errorf("result > 64 characters, input: name=%s wfName=%s wfId=%s; got: %s", tt.name, tt.wfName, tt.wfID, result)
 		}
-	}
-}
-
-func TestGetResource(t *testing.T) {
-	r1 := &resource{}
-	r2 := &resource{}
-	r3 := &resource{}
-	r4 := &resource{}
-	w := &Workflow{
-		diskRefs:     &refMap{m: map[string]*resource{"foo": r1}},
-		imageRefs:    &refMap{},
-		instanceRefs: &refMap{m: map[string]*resource{"baz": r3}},
-		parent: &Workflow{
-			diskRefs:     &refMap{},
-			imageRefs:    &refMap{m: map[string]*resource{"bar": r2}},
-			instanceRefs: &refMap{m: map[string]*resource{"baz": r4}},
-		},
-	}
-
-	r, err := w.getDisk("foo")
-	if r != r1 {
-		t.Errorf("getDisk(foo) returned the wrong resource, want: %p; got: %p", r1, r)
-	}
-	if err != nil {
-		t.Errorf("getDisk(foo) unexpected error: %s", err)
-	}
-
-	r, err = w.getImage("bar")
-	if r != r2 {
-		t.Errorf("getImage(bar) returned the wrong resource, want: %p; got: %p", r2, r)
-	}
-	if err != nil {
-		t.Errorf("getDisk(bar) unexpected error: %s", err)
-	}
-
-	r, err = w.getInstance("baz")
-	if r != r3 {
-		t.Errorf("getInstance(baz) returned the wrong resource, want: %p; got: %p", r3, r)
-	}
-	if err != nil {
-		t.Errorf("getInstance(baz) unexpected error: %s", err)
-	}
-
-	r, err = w.getInstance("dne")
-	if r != nil {
-		t.Errorf("getInstance(dne) returned a resource when it shouldn't: %p", r)
-	}
-	if err == nil {
-		t.Error("getInstance(dne) should have returned an error")
 	}
 }
 
@@ -211,9 +163,9 @@ func TestNewFromFile(t *testing.T) {
 		Zone:        "us-central1-a",
 		GCSPath:     "gs://some-bucket/images",
 		OAuthPath:   wantOAuthPath,
-		Vars: map[string]string{
-			"bootstrap_instance_name": "bootstrap",
-			"machine_type":            "n1-standard-1",
+		Vars: map[string]json.RawMessage{
+			"bootstrap_instance_name": []byte(`{"Value": "bootstrap", "Required": true}`),
+			"machine_type":            []byte(`"n1-standard-1"`),
 		},
 		Steps: map[string]*Step{
 			"create-disks": {
@@ -349,6 +301,10 @@ func TestNewFromFile(t *testing.T) {
 		s.w = nil
 	}
 
+	// Cleanup hooks are impossible to check right now.
+	got.cleanupHooks = nil
+	subGot.cleanupHooks = nil
+
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
 	}
@@ -376,12 +332,13 @@ func TestPopulate(t *testing.T) {
 		Zone:      "parent-zone",
 		Project:   "parent-project",
 		OAuthPath: tf,
-		Vars: map[string]string{
-			"bucket":    "parent-bucket",
-			"step_name": "parent-step1",
-			"timeout":   "60m",
-			"path":      "./test_sub.workflow",
-			"wf-name":   "parent",
+		logger:    log.New(ioutil.Discard, "", 0),
+		Vars: map[string]json.RawMessage{
+			"bucket":    []byte(`{"Value": "parent-bucket", "Required": true}`),
+			"step_name": []byte(`"parent-step1"`),
+			"timeout":   []byte(`"60m"`),
+			"path":      []byte(`"./test_sub.workflow"`),
+			"wf-name":   []byte(`"parent"`),
 		},
 		Steps: map[string]*Step{
 			"${step_name}": {
@@ -407,16 +364,17 @@ func TestPopulate(t *testing.T) {
 						Project:   "sub-project",
 						Zone:      "sub-zone",
 						OAuthPath: "sub-oauth-path",
+						logger:    log.New(ioutil.Discard, "", 0),
 						Steps: map[string]*Step{
 							"${step_name}": {
 								Timeout: "${timeout}",
 							},
 						},
-						Vars: map[string]string{
-							"wf-name":    "sub",
-							"step_name":  "sub-step1",
-							"timeout":    "60m",
-							"overridden": "foo", // This should be changed to "bar" by populate().
+						Vars: map[string]json.RawMessage{
+							"wf-name":    []byte(`"sub"`),
+							"step_name":  []byte(`"sub-step1"`),
+							"timeout":    []byte(`"60m"`),
+							"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
 						},
 					},
 				},
@@ -425,7 +383,7 @@ func TestPopulate(t *testing.T) {
 	}
 
 	if err := got.populate(); err != nil {
-		t.Fatal(err)
+		t.Fatalf("error populating workflow: %v", err)
 	}
 
 	subGot := got.Steps["parent-step3"].SubWorkflow.workflow
@@ -443,23 +401,27 @@ func TestPopulate(t *testing.T) {
 	subScratch := subGot.scratchPath
 
 	want := &Workflow{
-		Name:         "parent",
-		GCSPath:      "gs://parent-bucket/images",
-		Zone:         "parent-zone",
-		Project:      "parent-project",
-		OAuthPath:    tf,
-		id:           got.id,
-		Ctx:          got.Ctx,
-		Cancel:       got.Cancel,
-		diskRefs:     &refMap{},
-		imageRefs:    &refMap{},
-		instanceRefs: &refMap{},
-		Vars: map[string]string{
-			"bucket":    "parent-bucket",
-			"step_name": "parent-step1",
-			"timeout":   "60m",
-			"path":      "./test_sub.workflow",
-			"wf-name":   "parent",
+		Name:      "parent",
+		GCSPath:   "gs://parent-bucket/images",
+		Zone:      "parent-zone",
+		Project:   "parent-project",
+		OAuthPath: tf,
+		id:        got.id,
+		Ctx:       got.Ctx,
+		Cancel:    got.Cancel,
+		Vars: map[string]json.RawMessage{
+			"bucket":    []byte(`{"Value": "parent-bucket", "Required": true}`),
+			"step_name": []byte(`"parent-step1"`),
+			"timeout":   []byte(`"60m"`),
+			"path":      []byte(`"./test_sub.workflow"`),
+			"wf-name":   []byte(`"parent"`),
+		},
+		vars: map[string]vars{
+			"bucket":    {Value: "parent-bucket", Required: true},
+			"step_name": {Value: "parent-step1"},
+			"timeout":   {Value: "60m"},
+			"path":      {Value: "./test_sub.workflow"},
+			"wf-name":   {Value: "parent"},
 		},
 		bucket:      "parent-bucket",
 		scratchPath: got.scratchPath,
@@ -494,15 +456,12 @@ func TestPopulate(t *testing.T) {
 						"overridden": "bar",
 					},
 					workflow: &Workflow{
-						Name:         "parent-step3",
-						GCSPath:      fmt.Sprintf("gs://%s/%s", got.bucket, got.scratchPath),
-						Zone:         "parent-zone",
-						Project:      "parent-project",
-						OAuthPath:    tf,
-						id:           subGot.id,
-						diskRefs:     &refMap{},
-						imageRefs:    &refMap{},
-						instanceRefs: &refMap{},
+						Name:      "parent-step3",
+						GCSPath:   fmt.Sprintf("gs://%s/%s", got.bucket, got.scratchPath),
+						Zone:      "parent-zone",
+						Project:   "parent-project",
+						OAuthPath: tf,
+						id:        subGot.id,
 						Steps: map[string]*Step{
 							"sub-step1": {
 								name:    "sub-step1",
@@ -510,11 +469,17 @@ func TestPopulate(t *testing.T) {
 								timeout: time.Duration(60 * time.Minute),
 							},
 						},
-						Vars: map[string]string{
-							"wf-name":    "sub",
-							"step_name":  "sub-step1",
-							"timeout":    "60m",
-							"overridden": "bar", // Check that this changed from "foo" to "bar".
+						Vars: map[string]json.RawMessage{
+							"wf-name":    []byte(`"sub"`),
+							"step_name":  []byte(`"sub-step1"`),
+							"timeout":    []byte(`"60m"`),
+							"overridden": []byte(`"foo"`),
+						},
+						vars: map[string]vars{
+							"wf-name":    {Value: "sub"},
+							"step_name":  {Value: "sub-step1"},
+							"timeout":    {Value: "60m"},
+							"overridden": {Value: "bar"},
 						},
 						bucket:      "parent-bucket",
 						scratchPath: subScratch,
@@ -530,103 +495,6 @@ func TestPopulate(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
-	}
-}
-
-func TestRefMapAdd(t *testing.T) {
-	rm := refMap{}
-
-	tests := []struct {
-		desc, ref string
-		res       *resource
-		want      map[string]*resource
-	}{
-		{"normal add", "x", &resource{name: "x"}, map[string]*resource{"x": {name: "x"}}},
-		{"dupe add", "x", &resource{name: "otherx"}, map[string]*resource{"x": {name: "otherx"}}},
-	}
-
-	for _, tt := range tests {
-		rm.add(tt.ref, tt.res)
-		if diff := pretty.Compare(rm.m, tt.want); diff != "" {
-			t.Errorf("%q case failed, refmap does not match expectation: (-got +want)\n%s", tt.desc, diff)
-		}
-	}
-}
-
-func TestRefMapConcurrency(t *testing.T) {
-	rm := refMap{}
-
-	tests := []struct {
-		desc string
-		f    func()
-	}{
-		{"add", func() { rm.add("foo", nil) }},
-		{"del", func() { rm.del("foo") }},
-		{"get", func() { rm.get("foo") }},
-	}
-
-	for _, tt := range tests {
-		order := []string{}
-		releaseStr := "lock released"
-		returnedStr := "func returned"
-		want := []string{releaseStr, returnedStr}
-		gunshot := sync.Mutex{}
-		gunshot.Lock() // Wait for the goroutine to say we can go ahead.
-		go func() {
-			rm.mx.Lock()
-			defer rm.mx.Unlock()
-			gunshot.Unlock()
-			time.Sleep(1 * time.Millisecond)
-			order = append(order, releaseStr)
-		}()
-		gunshot.Lock() // Wait for the go ahead.
-		tt.f()
-		order = append(order, returnedStr)
-		if !reflect.DeepEqual(order, want) {
-			t.Errorf("%q case failed, unexpected concurrency order, want: %v; got: %v", tt.desc, want, order)
-		}
-	}
-}
-
-func TestRefMapDel(t *testing.T) {
-	xRes := &resource{}
-	yRes := &resource{}
-	rm := refMap{m: map[string]*resource{"x": xRes, "y": yRes}}
-
-	tests := []struct {
-		desc, input string
-		want        map[string]*resource
-	}{
-		{"normal del", "y", map[string]*resource{"x": xRes}},
-		{"del dne", "foo", map[string]*resource{"x": xRes}},
-	}
-
-	for _, tt := range tests {
-		rm.del(tt.input)
-		if !reflect.DeepEqual(rm.m, tt.want) {
-			t.Errorf("%q case failed, refmap does not match expectation, want: %v; got: %v", tt.desc, tt.want, rm.m)
-		}
-	}
-}
-
-func TestRefMapGet(t *testing.T) {
-	xRes := &resource{}
-	yRes := &resource{}
-	rm := refMap{m: map[string]*resource{"x": xRes, "y": yRes}}
-
-	tests := []struct {
-		desc, input string
-		wantR       *resource
-		wantOk      bool
-	}{
-		{"normal get", "y", yRes, true},
-		{"get dne", "dne", nil, false},
-	}
-
-	for _, tt := range tests {
-		if gotR, gotOk := rm.get(tt.input); !(gotOk == tt.wantOk && gotR == tt.wantR) {
-			t.Errorf("%q case failed, want: (%v, %t); got: (%v, %t)", tt.desc, tt.wantR, tt.wantOk, gotR, gotOk)
-		}
 	}
 }
 
@@ -713,6 +581,51 @@ func TestTraverseDAG(t *testing.T) {
 	}
 	if err := checkCallOrder(); err != nil {
 		t.Errorf("call order error: %s", err)
+	}
+}
+
+func TestPopulateVars(t *testing.T) {
+	data := []byte(`{
+  "vars": {
+    "key1": "value1",
+    "key2": {"Value": "value2"},
+    "key3": {"Value": "value3", "Required": true},
+    "key4": {"Value": "value4", "Required": true, "Description": "test"}
+  }
+}`)
+	td, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %v", err)
+	}
+	defer os.RemoveAll(td)
+	tf := filepath.Join(td, "test.workflow")
+	ioutil.WriteFile(tf, data, 0600)
+
+	got, err := NewFromFile(context.Background(), tf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := got.populateVars(); err != nil {
+		t.Fatal(err)
+	}
+
+	want := map[string]vars{
+		"key1": {Value: "value1"},
+		"key2": {Value: "value2"},
+		"key3": {Value: "value3", Required: true},
+		"key4": {Value: "value4", Required: true, Description: "test"},
+	}
+
+	if diff := pretty.Compare(got.vars, want); diff != "" {
+		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
+	}
+
+	w := testWorkflow()
+	w.Vars = map[string]json.RawMessage{"required-var": []byte(`{"Required": true}`)}
+	wantErr := `required var "required-var" cannot be blank`
+	if err := w.populateVars(); err.Error() != wantErr {
+		t.Errorf("workflow with unsubbed required var bad error, want: %q got: %q", wantErr, err.Error())
 	}
 }
 
@@ -838,7 +751,7 @@ func TestValidateErrors(t *testing.T) {
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {testType: &mockStep{}}}
 	w.Project = "${var}"
-	want = "Unresolved var found in \"${var}\""
+	want = "Unresolved var \"${var}\" found in \"${var}\""
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
 	}

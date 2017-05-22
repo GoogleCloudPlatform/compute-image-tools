@@ -25,10 +25,10 @@ func TestCreateInstancesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
 	w.Sources = map[string]string{"file": "gs://some/file"}
-	w.diskRefs.m = map[string]*resource{
-		"d1": {"d1", w.genName("d1"), "link", false},
-		"d2": {"d2", w.genName("d2"), "link", false},
-		"d3": {"d3", w.genName("d3"), "link", false},
+	disks[w].m = map[string]*resource{
+		"d1": {"d1", w.genName("d1"), "link", false, false},
+		"d2": {"d2", w.genName("d2"), "link", false, false},
+		"d3": {"d3", w.genName("d3"), "link", false, false},
 	}
 	ci := &CreateInstances{
 		{Name: "i1", MachineType: "foo-type", AttachedDisks: []string{"d1"}, StartupScript: "file"},
@@ -51,12 +51,12 @@ func TestCreateInstancesRun(t *testing.T) {
 		{
 			"disk DNE",
 			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"dne"}}},
-			"unresolved instance reference \"dne\"",
+			"invalid or missing reference to AttachedDisk \"dne\"",
 		},
 		{
 			"RO disk DNE",
 			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"d1"}, AttachedDisksRO: []string{"dne"}}},
-			"unresolved instance reference \"dne\"",
+			"invalid or missing reference to AttachedDisk \"dne\"",
 		},
 	}
 
@@ -69,15 +69,15 @@ func TestCreateInstancesRun(t *testing.T) {
 	}
 
 	want := map[string]*resource{
-		"i1": {"i1", w.genName("i1"), "link", false},
-		"i2": {"i2", w.genName("i2"), "link", false},
-		"i3": {"i3", w.genName("i3"), "link", true},
-		"i4": {"i4", "i4", "link", false},
-		"i5": {"i5", w.genName("i5"), "link", false},
-		"i6": {"i6", w.genName("i6"), "link", false},
+		"i1": {"i1", w.genName("i1"), "link", false, false},
+		"i2": {"i2", w.genName("i2"), "link", false, false},
+		"i3": {"i3", w.genName("i3"), "link", true, false},
+		"i4": {"i4", "i4", "link", false, false},
+		"i5": {"i5", w.genName("i5"), "link", false, false},
+		"i6": {"i6", w.genName("i6"), "link", false, false},
 	}
 
-	if diff := pretty.Compare(w.instanceRefs.m, want); diff != "" {
+	if diff := pretty.Compare(instances[w].m, want); diff != "" {
 		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 }

@@ -24,7 +24,7 @@ import (
 func TestCreateImagesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
-	w.diskRefs.m = map[string]*resource{"d": {"d", w.genName("d"), "link", false}}
+	disks[w].m = map[string]*resource{"d": {"d", w.genName("d"), "link", false, false}}
 	w.Sources = map[string]string{"file": "gs://some/path"}
 	ci := &CreateImages{
 		{Name: "i1", SourceDisk: "d"},
@@ -47,7 +47,7 @@ func TestCreateImagesRun(t *testing.T) {
 		{
 			"disk DNE",
 			CreateImages{CreateImage{Name: "i-gaz", SourceDisk: "dne-disk"}},
-			"unresolved instance reference \"dne-disk\"",
+			"invalid or missing reference to SourceDisk \"dne-disk\"",
 		},
 		{
 			"no disk/file",
@@ -70,14 +70,14 @@ func TestCreateImagesRun(t *testing.T) {
 	}
 
 	want := map[string]*resource{
-		"i1": {"i1", w.genName("i1"), "link", false},
-		"i2": {"i2", w.genName("i2"), "link", false},
-		"i3": {"i3", w.genName("i3"), "link", true},
-		"i4": {"i4", "i4", "link", false},
-		"i5": {"i5", w.genName("i5"), "link", false},
+		"i1": {"i1", w.genName("i1"), "link", false, false},
+		"i2": {"i2", w.genName("i2"), "link", false, false},
+		"i3": {"i3", w.genName("i3"), "link", true, false},
+		"i4": {"i4", "i4", "link", false, false},
+		"i5": {"i5", w.genName("i5"), "link", false, false},
 	}
 
-	if diff := pretty.Compare(w.imageRefs.m, want); diff != "" {
+	if diff := pretty.Compare(images[w].m, want); diff != "" {
 		t.Errorf("imageRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 }

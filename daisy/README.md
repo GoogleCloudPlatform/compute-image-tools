@@ -439,14 +439,22 @@ substitutions in the rest of the workflow config using the syntax `${key}`.
 Vars can be hardcoded into the workflow config or passed via the commandline.
 Vars passed via the commandline will override the hardcoded Vars.
 
-Example (incomplete) config:
+Vars can be either a simple key:value pairing or with the following fields:
++ Value: (string) value of the variable
++ Description: (string) description of the variable
++ Required: (bool) whether this variable is required to be non empty
+
+In this example `var1` is an optional variable with an empty string as the 
+default value, `var2` is an example of an optional variable with a default 
+value provided, `var3` is a required variable with no default value. If `var3`
+is not set or is set as an empty string the workflow will fail with an error.
 ```json
 {
-  "Name": "${var1}",
   "Zone": "${var2}",
   "Vars": {
-    "var1": "foo-name",
-    "var2": "foo-zone"
+    "var1": "",
+    "var2": {"Value": "foo-zone", "Description": "default zone to run the workflow in"},
+    "var3": {"Required": true, "Description": "variable 3"}
   }
 }
 ```

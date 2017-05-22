@@ -5,7 +5,7 @@
   "gcsPath": "gs://some-bucket/images",
   "oauthPath": "somefile",
   "vars": {
-    "bootstrap_instance_name": "bootstrap",
+    "bootstrap_instance_name": {"Value": "bootstrap", "Required": true},
     "machine_type": "n1-standard-1"
   },
   "steps": {

@@ -54,9 +54,6 @@ var (
 	nameSetsMx                 = sync.Mutex{}
 	rfc1035                    = "[a-z]([-a-z0-9]*[a-z0-9])?"
 	rfc1035Rgx                 = regexp.MustCompile(fmt.Sprintf("^%s$", rfc1035))
-	instanceURLRegex           = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
-	imageURLRegex              = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images/(?P<image>%[1]s)|family/(?P<family>%[1]s)$`, rfc1035))
-	diskURLRegex               = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/disks/(?P<disk>%[1]s)$`, rfc1035))
 )
 
 func (n nameSet) add(w *Workflow, s string) error {
@@ -208,12 +205,12 @@ func (w *Workflow) validateDAG() error {
 }
 
 func (w *Workflow) validateVarsSubbed() error {
-	unsubbedVarRgx := regexp.MustCompile(`\$\{[^}]+}`)
+	unsubbedVarRgx := regexp.MustCompile(`\$\{([^}]+)}`)
 	return traverseData(reflect.ValueOf(w).Elem(), func(v reflect.Value) error {
 		switch v.Interface().(type) {
 		case string:
-			if unsubbedVarRgx.MatchString(v.String()) {
-				return fmt.Errorf("Unresolved var found in %q", v.String())
+			if match := unsubbedVarRgx.FindStringSubmatch(v.String()); match != nil {
+				return fmt.Errorf("Unresolved var %q found in %q", match[0], v.String())
 			}
 		}
 		return nil
