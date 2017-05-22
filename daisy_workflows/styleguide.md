@@ -56,5 +56,24 @@ a variable `image` instead use an explicit name `debian_image` or `debian_base_i
 }
 ```
 
+## Variable annotations
+Any variable can include a description, which is useful in and of itself as an
+annotation. Required variables should always include a description. The
+description will be printed to the user in case they forget to define the
+required variable. Optional variables do not explicitly need a description but
+it is helpful to annotate the purpose of the variable for users of the workflow.
+
+```json
+"Vars": {
+  "image_size_gb": "10",
+  "image_name": {"Required": true, "Description": "The name of the resulting
+  image being created."},
+  "debian_base_image": {"Value": "projects/bct-prod-images/global/images/family/debian-8",
+                        "Description": "The Debian base image family to build
+                        an image from."}
+}
+```
+
+
 ## Subworkflow usage
 TBD
