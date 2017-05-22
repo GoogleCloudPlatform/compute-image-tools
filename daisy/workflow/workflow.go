@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -262,7 +263,11 @@ func (w *Workflow) populateVars() error {
 		var vv vars
 		if err := json.Unmarshal(v, &vv); err == nil {
 			if vv.Required && vv.Value == "" {
-				return fmt.Errorf("required var %q cannot be blank", k)
+				msg := fmt.Sprintf("required vars cannot be blank, var: %q", k)
+				if vv.Description != "" {
+					msg = fmt.Sprintf("%s, description: %q", msg, vv.Description)
+				}
+				return errors.New(msg)
 			}
 			w.vars[k] = vv
 			continue
@@ -358,7 +363,7 @@ func (w *Workflow) populate() error {
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		if w.gcsLogWriter == nil {
+		if w.gcsLogWriter != ioutil.Discard {
 			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
 			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		}

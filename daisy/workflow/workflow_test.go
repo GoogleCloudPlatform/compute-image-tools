@@ -623,7 +623,7 @@ func TestPopulateVars(t *testing.T) {
 
 	w := testWorkflow()
 	w.Vars = map[string]json.RawMessage{"required-var": []byte(`{"Required": true}`)}
-	wantErr := `required var "required-var" cannot be blank`
+	wantErr := `required vars cannot be blank, var: "required-var"`
 	if err := w.populateVars(); err.Error() != wantErr {
 		t.Errorf("workflow with unsubbed required var bad error, want: %q got: %q", wantErr, err.Error())
 	}
