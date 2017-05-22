@@ -205,12 +205,12 @@ func (w *Workflow) validateDAG() error {
 }
 
 func (w *Workflow) validateVarsSubbed() error {
-	unsubbedVarRgx := regexp.MustCompile(`\$\{[^}]+}`)
+	unsubbedVarRgx := regexp.MustCompile(`\$\{([^}]+)}`)
 	return traverseData(reflect.ValueOf(w).Elem(), func(v reflect.Value) error {
 		switch v.Interface().(type) {
 		case string:
-			if unsubbedVarRgx.MatchString(v.String()) {
-				return fmt.Errorf("Unresolved var found in %q", v.String())
+			if match := unsubbedVarRgx.FindStringSubmatch(v.String()); match != nil {
+				return fmt.Errorf("Unresolved var %q found in %q", match[0], v.String())
 			}
 		}
 		return nil

@@ -66,7 +66,7 @@ func parseWorkflows(paths []string, varMap map[string]string, project, zone, gcs
 			return nil, err
 		}
 		for k, v := range varMap {
-			w.Vars[k] = v
+			w.AddVar(k, v)
 		}
 		if project != "" {
 			w.Project = project
