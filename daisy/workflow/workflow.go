@@ -292,6 +292,7 @@ func (w *Workflow) populate() error {
 		"TIMESTAMP": strconv.FormatInt(now.Unix(), 10),
 		"USERNAME":  w.username,
 		"WFDIR":     w.workflowDir,
+		"CWD":       os.Getwd(),
 	}
 
 	var replacements []string

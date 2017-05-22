@@ -476,6 +476,7 @@ out of convenience. Here is the exhaustive list of autovars:
 | DATETIME | The date and time of the current workflow run in YYYYMMDDhhmmss. |
 | TIMESTAMP | The Unix epoch of the current workflow run. |
 | WFDIR | The directory of the workflow file being run. |
+| CWD | The current working directory. |
 | GCSPATH | The workflow's GCSPath field. |
 | SCRATCHPATH | The scratch subdirectory of GCSPath that the running workflow instance uses. |
 | SOURCESPATH | Equivalent to ${SCRATCHPATH}/sources. |
