@@ -416,6 +416,7 @@ func TestPopulate(t *testing.T) {
 			"path":      []byte(`"./test_sub.workflow"`),
 			"wf-name":   []byte(`"parent"`),
 		},
+		autovars: got.autovars,
 		vars: map[string]vars{
 			"bucket":    {Value: "parent-bucket", Required: true},
 			"step_name": {Value: "parent-step1"},
@@ -469,6 +470,7 @@ func TestPopulate(t *testing.T) {
 								timeout: time.Duration(60 * time.Minute),
 							},
 						},
+						autovars: subGot.autovars,
 						Vars: map[string]json.RawMessage{
 							"wf-name":    []byte(`"sub"`),
 							"step_name":  []byte(`"sub-step1"`),

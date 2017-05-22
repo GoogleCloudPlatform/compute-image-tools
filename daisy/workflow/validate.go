@@ -201,7 +201,7 @@ func (w *Workflow) validateDAG() error {
 			return fmt.Errorf("cyclic dependency on step %v", s)
 		}
 	}
-	return w.traverseDAG(func(s *Step) error { return s.validate(w) })
+	return w.traverseDAG(func(s *Step) error { return s.validate() })
 }
 
 func (w *Workflow) validateVarsSubbed() error {

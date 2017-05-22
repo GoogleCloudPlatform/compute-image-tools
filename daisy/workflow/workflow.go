@@ -97,6 +97,7 @@ type Workflow struct {
 	Dependencies map[string][]string
 
 	// Working fields.
+	autovars       map[string]string
 	vars           map[string]vars
 	workflowDir    string
 	parent         *Workflow
@@ -226,9 +227,17 @@ func (w *Workflow) populateStep(step *Step) error {
 	}
 
 	// Recurse on subworkflows.
-	if step.SubWorkflow == nil {
-		return nil
+	if step.SubWorkflow != nil {
+		return w.populateSubworkflow(step)
 	}
+
+	if step.Injection != nil {
+		return w.populateInjection(step)
+	}
+	return nil
+}
+
+func (w *Workflow) populateSubworkflow(step *Step) error {
 	step.SubWorkflow.workflow.GCSPath = fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath)
 	step.SubWorkflow.workflow.Name = step.name
 	step.SubWorkflow.workflow.Project = w.Project
@@ -244,6 +253,33 @@ func (w *Workflow) populateStep(step *Step) error {
 		step.SubWorkflow.workflow.vars[k] = vars{Value: v}
 	}
 	return step.SubWorkflow.workflow.populate()
+}
+
+func (w *Workflow) populateInjection(step *Step) error {
+	for k, v := range step.Injection.Vars {
+		step.SubWorkflow.workflow.vars[k] = vars{Value: v}
+	}
+	if err := step.Injection.workflow.populateVars(); err != nil {
+		return err
+	}
+
+	var replacements []string
+	for k, v := range w.autovars {
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
+	}
+	for k, v := range step.Injection.workflow.vars {
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
+	}
+	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
+
+	for name, s := range w.Steps {
+		s.name = name
+		s.w = w
+		if err := w.populateStep(s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (w *Workflow) populateVars() error {
@@ -289,10 +325,10 @@ func (w *Workflow) populate() error {
 		return err
 	}
 	w.username = cu.Username
-
+	
 	cwd, _ := os.Getwd()
 
-	autovars := map[string]string{
+	w.autovars = map[string]string{
 		"ID":        w.id,
 		"DATE":      now.Format("20060102"),
 		"DATETIME":  now.Format("20060102150405"),
@@ -303,7 +339,7 @@ func (w *Workflow) populate() error {
 	}
 
 	var replacements []string
-	for k, v := range autovars {
+	for k, v := range w.autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
 	for k, v := range w.vars {
@@ -326,7 +362,7 @@ func (w *Workflow) populate() error {
 	// so Vars replacement must run before this to resolve the final
 	// value for those fields.
 
-	autovars = map[string]string{
+	for k, v := range map[string]string{
 		"NAME":        w.Name,
 		"ZONE":        w.Zone,
 		"PROJECT":     w.Project,
@@ -335,9 +371,11 @@ func (w *Workflow) populate() error {
 		"SOURCESPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath),
 		"LOGSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.logsPath),
 		"OUTSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.outsPath),
+	} {
+		w.autovars[k] = v
 	}
 	replacements = []string{}
-	for k, v := range autovars {
+	for k, v := range w.autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
@@ -408,7 +446,7 @@ func (w *Workflow) runStep(s *Step) error {
 
 	e := make(chan error)
 	go func() {
-		e <- s.run(w)
+		e <- s.run()
 	}()
 
 	select {
@@ -546,29 +584,54 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		w.OAuthPath = filepath.Join(w.workflowDir, w.OAuthPath)
 	}
 
-	// We need to unmarshal any SubWorkflows.
 	for name, s := range w.Steps {
 		s.name = name
 		s.w = w
 
-		if s.SubWorkflow == nil {
-			continue
+		if s.SubWorkflow != nil {
+			if err := readSubworkflow(w, s); err != nil {
+				return nil, err
+			}
 		}
 
-		swPath := s.SubWorkflow.Path
-		if !filepath.IsAbs(swPath) {
-			swPath = filepath.Join(w.workflowDir, swPath)
+		if s.Injection != nil {
+			if err := readInjection(w, s); err != nil {
+				return nil, err
+			}
 		}
-
-		sw, err := NewFromFile(w.Ctx, swPath)
-		if err != nil {
-			return nil, err
-		}
-		s.SubWorkflow.workflow = sw
-		sw.parent = w
 	}
 
 	return w, nil
+}
+
+func readSubworkflow(w *Workflow, s *Step) error {
+	swPath := s.SubWorkflow.Path
+	if !filepath.IsAbs(swPath) {
+		swPath = filepath.Join(w.workflowDir, swPath)
+	}
+
+	sw, err := NewFromFile(w.Ctx, swPath)
+	if err != nil {
+		return err
+	}
+	s.SubWorkflow.workflow = sw
+	sw.parent = w
+	return nil
+}
+
+func readInjection(w *Workflow, s *Step) error {
+	iPath := s.Injection.Path
+	if !filepath.IsAbs(iPath) {
+		iPath = filepath.Join(w.workflowDir, iPath)
+	}
+
+	iw, err := NewFromFile(w.Ctx, iPath)
+	if err != nil {
+		return err
+	}
+	s.SubWorkflow.workflow = iw
+	iw.parent = w
+	return nil
 }
 
 // stepsListen returns the first step that finishes/errs.

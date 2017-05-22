@@ -29,6 +29,7 @@ type Step struct {
 	CreateInstances        *CreateInstances        `json:",omitempty"`
 	CopyGCSObjects         *CopyGCSObjects         `json:",omitempty"`
 	DeleteResources        *DeleteResources        `json:",omitempty"`
+	Injection              *Injection              `json:",omitempty"`
 	RunTests               *RunTests               `json:",omitempty"`
 	SubWorkflow            *SubWorkflow            `json:",omitempty"`
 	WaitForInstancesSignal *WaitForInstancesSignal `json:",omitempty"`
@@ -112,7 +113,7 @@ func (s *Step) depends(other *Step) bool {
 	return false
 }
 
-func (s *Step) run(w *Workflow) error {
+func (s *Step) run() error {
 	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapRunError(err)
@@ -123,20 +124,20 @@ func (s *Step) run(w *Workflow) error {
 	} else {
 		st = t.Name()
 	}
-	w.logger.Printf("Running step %q (%s)", s.name, st)
+	s.w.logger.Printf("Running step %q (%s)", s.name, st)
 	if err = impl.run(s); err != nil {
 		return s.wrapRunError(err)
 	}
 	select {
-	case <-w.Cancel:
+	case <-s.w.Cancel:
 	default:
-		w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
+		s.w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
 	}
 	return nil
 }
 
-func (s *Step) validate(w *Workflow) error {
-	w.logger.Printf("Validating step %q", s.name)
+func (s *Step) validate() error {
+	s.w.logger.Printf("Validating step %q", s.name)
 	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
 		return s.wrapValidateError(errors.New("step name must start with a letter and only contain letters, numbers, and hyphens"))
 	}
