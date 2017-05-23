@@ -343,7 +343,7 @@ func (w *Workflow) populate() error {
 		return err
 	}
 	w.username = cu.Username
-	
+
 	cwd, _ := os.Getwd()
 
 	w.autovars = map[string]string{
@@ -379,19 +379,15 @@ func (w *Workflow) populate() error {
 	// Do replacement for autovars. Autovars pull from workflow fields,
 	// so Vars replacement must run before this to resolve the final
 	// value for those fields.
+	w.autovars["NAME"] = w.Name
+	w.autovars["ZONE"] = w.Zone
+	w.autovars["PROJECT"] = w.Project
+	w.autovars["GCSPATH"] = w.GCSPath
+	w.autovars["SCRATCHPATH"] = fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath)
+	w.autovars["SOURCESPATH"] = fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath)
+	w.autovars["LOGSPATH"] = fmt.Sprintf("gs://%s/%s", w.bucket, w.logsPath)
+	w.autovars["OUTSPATH"] = fmt.Sprintf("gs://%s/%s", w.bucket, w.outsPath)
 
-	for k, v := range map[string]string{
-		"NAME":        w.Name,
-		"ZONE":        w.Zone,
-		"PROJECT":     w.Project,
-		"GCSPATH":     w.GCSPath,
-		"SCRATCHPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath),
-		"SOURCESPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath),
-		"LOGSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.logsPath),
-		"OUTSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.outsPath),
-	} {
-		w.autovars[k] = v
-	}
 	replacements = []string{}
 	for k, v := range w.autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
