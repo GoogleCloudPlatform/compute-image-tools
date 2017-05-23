@@ -107,6 +107,7 @@ type Workflow struct {
 	logsPath       string
 	outsPath       string
 	username       string
+	gcsLogging     bool
 	gcsLogWriter   io.Writer
 	ComputeClient  *compute.Client `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
@@ -154,6 +155,7 @@ func (w *Workflow) Validate() error {
 
 // Run runs a workflow.
 func (w *Workflow) Run() error {
+	w.gcsLogging = true
 	if err := w.Validate(); err != nil {
 		return err
 	}
@@ -417,7 +419,7 @@ func (w *Workflow) populate() error {
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		if w.gcsLogWriter != ioutil.Discard {
+		if w.gcsLogging {
 			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
 			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		}

@@ -21,6 +21,8 @@ import (
 	"path"
 	"sync"
 	"time"
+
+	"google.golang.org/api/googleapi"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
@@ -80,6 +82,9 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 				if stopped && sErr == nil {
 					return
 				}
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 503 {
+					continue
+				}
 				w.logger.Printf("CreateInstances: instance %q: error getting serial port: %v", name, err)
 				return
 			}
@@ -92,7 +97,10 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 				return
 			}
 			if err := wc.Close(); err != nil {
-				w.logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 503 {
+					continue
+				}
+				w.logger.Printf("CreateInstances: instance %q: error saving log to GCS: %v", name, err)
 				return
 			}
 		}
