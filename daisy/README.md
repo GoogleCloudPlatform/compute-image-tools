@@ -325,6 +325,41 @@ disks.
 }
 ```
 
+#### Type: MergeWorkflow
+Merges another Daisy workflow JSON file into this workflow. The merged 
+workflow's steps will run as if they were part of the parent workflow, but
+follow the MergeWorkflow steps dependency map (all steps from a merged 
+workflow depend on steps the MergeWorkflow depends on). 
+
+Merged workflows have access to all of their parent workflows resources and 
+vice versa. For example the disk `disk1` created in a previous step will be 
+available to the merged workflow and the instance `instance1` created in the 
+merged workflow will be available to the parent. The merged workflow's Sources
+are similarly merged with the parent workflow and share the same scratch 
+directory. The merged workflow will not have access to the parent workflows 
+variables however, all variable substitustions will come from the `Var` field 
+in the MergeWorkflow step or from the merged workflow's JSON file.
+
+MergeWorkflow step type fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Path | string | The local path to the Daisy workflow file to run as a subworkflow. |
+| Vars | map[string]string | *Optional.* Key-value pairs of variables to send to the merged workflow. |
+
+This MergeWorkflow step example uses a local workflow file and passes a var,
+"foo", to the merged workflow.
+```json
+"stepName": {
+  "MergeWorkflow": {
+    "Path": "./some_subworkflow.workflow",
+    "Vars": {
+        "foo": "bar"
+    }
+  }
+}
+```
+
 #### Type: RunTests
 Not implemented yet.
 
@@ -482,6 +517,7 @@ out of convenience. Here is the exhaustive list of autovars:
 | SOURCESPATH | Equivalent to ${SCRATCHPATH}/sources. |
 | LOGSPATH | Equivalent to ${SCRATCHPATH}/logs. |
 | OUTSPATH | Equivalent to ${SCRATCHPATH}/outs. |
+| USERNAME | Username of the user running the workflow. |
 
 ## Glossary of Terms
 Definitions:
