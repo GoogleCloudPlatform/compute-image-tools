@@ -70,6 +70,7 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 	w.logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s.", name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
+	var errs int
 	tick := time.Tick(1 * time.Second)
 	for {
 		select {
@@ -78,11 +79,17 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
 			if err != nil {
+				// Instance was deleted by this workflow.
+				if _, ok := instances[w].get(name); !ok {
+					return
+				}
+				// Instance is stopped.
 				stopped, sErr := w.ComputeClient.InstanceStopped(w.Project, w.Zone, name)
 				if stopped && sErr == nil {
 					return
 				}
-				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 503 {
+				// Otherwise retry 3 times on 5xx error.
+				if apiErr, ok := err.(*googleapi.Error); ok && errs < 3 && (apiErr.Code >= 500 && apiErr.Code <= 599) {
 					continue
 				}
 				w.logger.Printf("CreateInstances: instance %q: error getting serial port: %v", name, err)
@@ -97,12 +104,14 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 				return
 			}
 			if err := wc.Close(); err != nil {
-				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 503 {
+				if apiErr, ok := err.(*googleapi.Error); ok && (apiErr.Code >= 500 && apiErr.Code <= 599) {
+					errs++
 					continue
 				}
 				w.logger.Printf("CreateInstances: instance %q: error saving log to GCS: %v", name, err)
 				return
 			}
+			errs = 0
 		}
 	}
 }

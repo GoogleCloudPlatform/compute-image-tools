@@ -64,8 +64,8 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 			return nil
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
-			// Retry up to 3 times in a row on a 503 error.
-			if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 503 && errs < 3 {
+			// Retry up to 3 times in a row on a 5xx error.
+			if apiErr, ok := err.(*googleapi.Error); ok && errs < 3 && (apiErr.Code >= 500 && apiErr.Code <= 599) {
 				errs++
 				continue
 			}
