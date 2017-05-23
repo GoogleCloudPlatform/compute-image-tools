@@ -231,8 +231,8 @@ func (w *Workflow) populateStep(step *Step) error {
 		return w.populateSubworkflow(step)
 	}
 
-	if step.Injection != nil {
-		return w.populateInjection(step)
+	if step.MergeWorkflow != nil {
+		return w.populateMergeWorkflow(step)
 	}
 	return nil
 }
@@ -255,11 +255,16 @@ func (w *Workflow) populateSubworkflow(step *Step) error {
 	return step.SubWorkflow.workflow.populate()
 }
 
-func (w *Workflow) populateInjection(step *Step) error {
-	for k, v := range step.Injection.Vars {
-		step.SubWorkflow.workflow.vars[k] = vars{Value: v}
+func (w *Workflow) populateMergeWorkflow(step *Step) error {
+	step.MergeWorkflow.workflow.GCSPath = w.GCSPath
+	step.MergeWorkflow.workflow.Name = step.name
+	step.MergeWorkflow.workflow.Project = w.Project
+	step.MergeWorkflow.workflow.Zone = w.Zone
+
+	for k, v := range step.MergeWorkflow.Vars {
+		step.MergeWorkflow.workflow.AddVar(k, v)
 	}
-	if err := step.Injection.workflow.populateVars(); err != nil {
+	if err := step.MergeWorkflow.workflow.populateVars(); err != nil {
 		return err
 	}
 
@@ -267,17 +272,28 @@ func (w *Workflow) populateInjection(step *Step) error {
 	for k, v := range w.autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	for k, v := range step.Injection.workflow.vars {
+	for k, v := range step.MergeWorkflow.workflow.vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
-	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
+	substitute(reflect.ValueOf(step.MergeWorkflow.workflow).Elem(), strings.NewReplacer(replacements...))
 
-	for name, s := range w.Steps {
+	for name, s := range step.MergeWorkflow.workflow.Steps {
 		s.name = name
 		s.w = w
 		if err := w.populateStep(s); err != nil {
 			return err
 		}
+	}
+
+	// Copy Sources up to parent.
+	for k, v := range step.MergeWorkflow.workflow.Sources {
+		if _, ok := w.Sources[k]; ok {
+			return fmt.Errorf("source %q already exists in parent workflow", k)
+		}
+		if w.Sources == nil {
+			w.Sources = map[string]string{}
+		}
+		w.Sources[k] = v
 	}
 	return nil
 }
@@ -594,8 +610,8 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 			}
 		}
 
-		if s.Injection != nil {
-			if err := readInjection(w, s); err != nil {
+		if s.MergeWorkflow != nil {
+			if err := readMergeWorkflow(w, s); err != nil {
 				return nil, err
 			}
 		}
@@ -619,8 +635,8 @@ func readSubworkflow(w *Workflow, s *Step) error {
 	return nil
 }
 
-func readInjection(w *Workflow, s *Step) error {
-	iPath := s.Injection.Path
+func readMergeWorkflow(w *Workflow, s *Step) error {
+	iPath := s.MergeWorkflow.Path
 	if !filepath.IsAbs(iPath) {
 		iPath = filepath.Join(w.workflowDir, iPath)
 	}
@@ -629,7 +645,7 @@ func readInjection(w *Workflow, s *Step) error {
 	if err != nil {
 		return err
 	}
-	s.SubWorkflow.workflow = iw
+	s.MergeWorkflow.workflow = iw
 	iw.parent = w
 	return nil
 }

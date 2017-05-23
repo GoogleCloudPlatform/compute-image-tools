@@ -63,6 +63,11 @@
         }
       ]
     },
+    "merge-workflow": {
+      "MergeWorkflow": {
+        "path": "./test_sub.workflow"
+      }
+    },
     "sub-workflow": {
       "subWorkflow": {
         "path": "./test_sub.workflow"
@@ -76,6 +81,7 @@
     "postinstall": ["bootstrap-stopped"],
     "postinstall-stopped": ["postinstall"],
     "create-image": ["postinstall-stopped"],
+    "merge-workflow": ["create-image"],
     "sub-workflow": ["create-image"]
   }
 }
