@@ -14,20 +14,20 @@
 
 package workflow
 
-// MergeWorkflow defines a Daisy workflow injection step. This step will 'inject'
-// the workflow found the path given into the parent workflow. Unlike
-// a Subworkflow the injected workflow will exist in the same namespace
+// IncludeWorkflow defines a Daisy workflow injection step. This step will
+// 'include' the workflow found the path given into the parent workflow. Unlike
+// a Subworkflow the included workflow will exist in the same namespace
 // as the parent and have access to all its resources.
-type MergeWorkflow struct {
+type IncludeWorkflow struct {
 	Path     string
 	Vars     map[string]string `json:",omitempty"`
 	workflow *Workflow
 }
 
-func (i *MergeWorkflow) validate(s *Step) error {
+func (i *IncludeWorkflow) validate(s *Step) error {
 	return i.workflow.validate()
 }
 
-func (i *MergeWorkflow) run(s *Step) error {
+func (i *IncludeWorkflow) run(s *Step) error {
 	return i.workflow.run()
 }

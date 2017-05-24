@@ -153,7 +153,7 @@ func TestNewFromFile(t *testing.T) {
 	}
 
 	subGot := got.Steps["sub-workflow"].SubWorkflow.workflow
-	mergeGot := got.Steps["merge-workflow"].MergeWorkflow.workflow
+	includeGot := got.Steps["include-workflow"].IncludeWorkflow.workflow
 
 	wantOAuthPath := filepath.Join(wd, "somefile")
 	want := &Workflow{
@@ -222,9 +222,9 @@ func TestNewFromFile(t *testing.T) {
 				name:         "create-image",
 				CreateImages: &CreateImages{{Name: "image-from-disk", SourceDisk: "image"}},
 			},
-			"merge-workflow": {
-				name: "merge-workflow",
-				MergeWorkflow: &MergeWorkflow{
+			"include-workflow": {
+				name: "include-workflow",
+				IncludeWorkflow: &IncludeWorkflow{
 					Path: "./test_sub.workflow",
 					workflow: &Workflow{
 						id:          subGot.id,
@@ -330,7 +330,7 @@ func TestNewFromFile(t *testing.T) {
 			"postinstall":         {"bootstrap-stopped"},
 			"postinstall-stopped": {"postinstall"},
 			"create-image":        {"postinstall-stopped"},
-			"merge-workflow":      {"create-image"},
+			"include-workflow":    {"create-image"},
 			"sub-workflow":        {"create-image"},
 		},
 	}
@@ -353,17 +353,17 @@ func TestNewFromFile(t *testing.T) {
 		s.w = nil
 	}
 
-	mergeGot.Ctx = nil
-	mergeGot.Cancel = nil
-	mergeGot.parent = nil
-	for _, s := range mergeGot.Steps {
+	includeGot.Ctx = nil
+	includeGot.Cancel = nil
+	includeGot.parent = nil
+	for _, s := range includeGot.Steps {
 		s.w = nil
 	}
 
 	// Cleanup hooks are impossible to check right now.
 	got.cleanupHooks = nil
 	subGot.cleanupHooks = nil
-	mergeGot.cleanupHooks = nil
+	includeGot.cleanupHooks = nil
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
@@ -440,7 +440,7 @@ func TestPopulate(t *testing.T) {
 				},
 			},
 			"${NAME}-step4": {
-				MergeWorkflow: &MergeWorkflow{
+				IncludeWorkflow: &IncludeWorkflow{
 					Path: "${path}",
 					Vars: map[string]string{
 						"overridden": "bar",
@@ -472,7 +472,7 @@ func TestPopulate(t *testing.T) {
 	}
 
 	subGot := got.Steps["parent-step3"].SubWorkflow.workflow
-	injGot := got.Steps["parent-step4"].MergeWorkflow.workflow
+	injGot := got.Steps["parent-step4"].IncludeWorkflow.workflow
 
 	// Set the clients to nil as pretty.Diff will cause a stack overflow otherwise.
 	got.ComputeClient = nil
@@ -590,7 +590,7 @@ func TestPopulate(t *testing.T) {
 				name:    "parent-step4",
 				Timeout: "10m",
 				timeout: time.Duration(10 * time.Minute),
-				MergeWorkflow: &MergeWorkflow{
+				IncludeWorkflow: &IncludeWorkflow{
 					Path: "./test_sub.workflow",
 					Vars: map[string]string{
 						"overridden": "bar",

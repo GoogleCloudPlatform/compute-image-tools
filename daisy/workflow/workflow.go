@@ -233,7 +233,7 @@ func (w *Workflow) populateStep(step *Step) error {
 		return w.populateSubworkflow(step)
 	}
 
-	if step.MergeWorkflow != nil {
+	if step.IncludeWorkflow != nil {
 		return w.populateMergeWorkflow(step)
 	}
 	return nil
@@ -258,24 +258,15 @@ func (w *Workflow) populateSubworkflow(step *Step) error {
 }
 
 func (w *Workflow) populateMergeWorkflow(step *Step) error {
-	step.MergeWorkflow.workflow.GCSPath = w.GCSPath
-	step.MergeWorkflow.workflow.Name = step.name
-	step.MergeWorkflow.workflow.Project = w.Project
-	step.MergeWorkflow.workflow.Zone = w.Zone
-	step.MergeWorkflow.workflow.OAuthPath = w.OAuthPath
-	step.MergeWorkflow.workflow.ComputeClient = w.ComputeClient
-	step.MergeWorkflow.workflow.StorageClient = w.StorageClient
-	step.MergeWorkflow.workflow.Ctx = w.Ctx
-	step.MergeWorkflow.workflow.Cancel = w.Cancel
-	step.MergeWorkflow.workflow.scratchPath = w.scratchPath
-	step.MergeWorkflow.workflow.sourcesPath = w.sourcesPath
-	step.MergeWorkflow.workflow.logsPath = w.logsPath
-	step.MergeWorkflow.workflow.outsPath = w.outsPath
+	step.IncludeWorkflow.workflow.GCSPath = w.GCSPath
+	step.IncludeWorkflow.workflow.Name = step.name
+	step.IncludeWorkflow.workflow.Project = w.Project
+	step.IncludeWorkflow.workflow.Zone = w.Zone
 
-	for k, v := range step.MergeWorkflow.Vars {
-		step.MergeWorkflow.workflow.AddVar(k, v)
+	for k, v := range step.IncludeWorkflow.Vars {
+		step.IncludeWorkflow.workflow.AddVar(k, v)
 	}
-	if err := step.MergeWorkflow.workflow.populateVars(); err != nil {
+	if err := step.IncludeWorkflow.workflow.populateVars(); err != nil {
 		return err
 	}
 
@@ -285,16 +276,16 @@ func (w *Workflow) populateMergeWorkflow(step *Step) error {
 			v = step.name
 		}
 		if k == "WFDIR" {
-			v = step.MergeWorkflow.workflow.workflowDir
+			v = step.IncludeWorkflow.workflow.workflowDir
 		}
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	for k, v := range step.MergeWorkflow.workflow.vars {
+	for k, v := range step.IncludeWorkflow.workflow.vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
-	substitute(reflect.ValueOf(step.MergeWorkflow.workflow).Elem(), strings.NewReplacer(replacements...))
+	substitute(reflect.ValueOf(step.IncludeWorkflow.workflow).Elem(), strings.NewReplacer(replacements...))
 
-	for name, s := range step.MergeWorkflow.workflow.Steps {
+	for name, s := range step.IncludeWorkflow.workflow.Steps {
 		s.name = name
 		s.w = w
 		if err := w.populateStep(s); err != nil {
@@ -303,7 +294,7 @@ func (w *Workflow) populateMergeWorkflow(step *Step) error {
 	}
 
 	// Copy Sources up to parent resolving relative paths as we go.
-	for k, v := range step.MergeWorkflow.workflow.Sources {
+	for k, v := range step.IncludeWorkflow.workflow.Sources {
 		if _, ok := w.Sources[k]; ok {
 			return fmt.Errorf("source %q already exists in parent workflow", k)
 		}
@@ -312,7 +303,7 @@ func (w *Workflow) populateMergeWorkflow(step *Step) error {
 		}
 
 		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
-			v = filepath.Join(step.MergeWorkflow.workflow.workflowDir, v)
+			v = filepath.Join(step.IncludeWorkflow.workflow.workflowDir, v)
 		}
 		w.Sources[k] = v
 	}
@@ -627,7 +618,7 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 			}
 		}
 
-		if s.MergeWorkflow != nil {
+		if s.IncludeWorkflow != nil {
 			if err := readMergeWorkflow(w, s); err != nil {
 				return nil, err
 			}
@@ -653,7 +644,7 @@ func readSubworkflow(w *Workflow, s *Step) error {
 }
 
 func readMergeWorkflow(w *Workflow, s *Step) error {
-	iPath := s.MergeWorkflow.Path
+	iPath := s.IncludeWorkflow.Path
 	if !filepath.IsAbs(iPath) {
 		iPath = filepath.Join(w.workflowDir, iPath)
 	}
@@ -662,7 +653,7 @@ func readMergeWorkflow(w *Workflow, s *Step) error {
 	if err != nil {
 		return err
 	}
-	s.MergeWorkflow.workflow = iw
+	s.IncludeWorkflow.workflow = iw
 	iw.parent = w
 	return nil
 }

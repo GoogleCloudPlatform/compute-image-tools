@@ -29,7 +29,7 @@ type Step struct {
 	CreateInstances        *CreateInstances        `json:",omitempty"`
 	CopyGCSObjects         *CopyGCSObjects         `json:",omitempty"`
 	DeleteResources        *DeleteResources        `json:",omitempty"`
-	MergeWorkflow          *MergeWorkflow          `json:",omitempty"`
+	IncludeWorkflow        *IncludeWorkflow        `json:",omitempty"`
 	RunTests               *RunTests               `json:",omitempty"`
 	SubWorkflow            *SubWorkflow            `json:",omitempty"`
 	WaitForInstancesSignal *WaitForInstancesSignal `json:",omitempty"`
@@ -64,9 +64,9 @@ func (s *Step) stepImpl() (stepImpl, error) {
 		matchCount++
 		result = s.DeleteResources
 	}
-	if s.MergeWorkflow != nil {
+	if s.IncludeWorkflow != nil {
 		matchCount++
-		result = s.MergeWorkflow
+		result = s.IncludeWorkflow
 	}
 	if s.RunTests != nil {
 		matchCount++

@@ -16,6 +16,6 @@ package workflow
 
 import "testing"
 
-func TestMergeRun(t *testing.T) {}
+func TestIncludeWorkflowRun(t *testing.T) {}
 
-func TestMergeValidate(t *testing.T) {}
+func TestIncludeWorkflowValidate(t *testing.T) {}
