@@ -285,12 +285,16 @@ func (w *Workflow) populate() error {
 	}
 	w.username = cu.Username
 
+	cwd, _ := os.Getwd()
+
 	autovars := map[string]string{
 		"ID":        w.id,
 		"DATE":      now.Format("20060102"),
 		"DATETIME":  now.Format("20060102150405"),
 		"TIMESTAMP": strconv.FormatInt(now.Unix(), 10),
 		"USERNAME":  w.username,
+		"WFDIR":     w.workflowDir,
+		"CWD":       cwd,
 	}
 
 	var replacements []string
