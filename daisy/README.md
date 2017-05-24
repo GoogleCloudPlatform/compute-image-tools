@@ -339,7 +339,7 @@ included workflow will be available to the parent. The included workflow's
 Sources are similarly merged with the parent workflow and share the same scratch 
 directory. The included workflow will not have access to the parent workflows 
 variables however, all variable substitutions will come from the `Var` field 
-in the IncludeWorkflow step or from the merged workflow's JSON file.
+in the IncludeWorkflow step or from the included workflow's JSON file.
 
 IncludeWorkflow step type fields:
 
