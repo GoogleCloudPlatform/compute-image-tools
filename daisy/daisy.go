@@ -141,7 +141,7 @@ func main() {
 			defer wg.Done()
 			fmt.Printf("[Daisy] Running workflow %q\n", wf.Name)
 			if err := wf.Run(); err != nil {
-				errors <- err
+				errors <- fmt.Errorf("%s: %v", wf.Name, err)
 				return
 			}
 			fmt.Printf("[Daisy] Workflow %q finished\n", wf.Name)

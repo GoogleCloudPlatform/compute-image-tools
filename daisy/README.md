@@ -32,6 +32,7 @@ Other use-case examples:
       * [CreateInstances](#type-createinstances)
       * [CopyGCSObjects](#type-copygcsobjects)
       * [DeleteResources](#type-deleteresources)
+      * [IncludeWorkflow](#type-includeworkflow)
       * [RunTests](#type-runtests)
       * [SubWorkflow](#type-subworkflow)
       * [WaitForInstancesSignal](#type-waitforinstancessignal)
@@ -325,6 +326,41 @@ disks.
 }
 ```
 
+#### Type: IncludeWorkflow
+Includes another Daisy workflow JSON file into this workflow. The included 
+workflow's steps will run as if they were part of the parent workflow, but
+follow the IncludeWorkflow steps dependency map (all steps from a included 
+workflow depend on steps the IncludeWorkflow depends on). 
+
+Included workflows have access to all of their parent workflows resources and 
+vice versa. For example the disk `disk1` created in a previous step will be 
+available to the included workflow and the instance `instance1` created in the 
+included workflow will be available to the parent. The included workflow's 
+Sources are similarly merged with the parent workflow and share the same scratch 
+directory. The included workflow will not have access to the parent workflows 
+variables however, all variable substitutions will come from the `Var` field 
+in the IncludeWorkflow step or from the included workflow's JSON file.
+
+IncludeWorkflow step type fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Path | string | The local path to the Daisy workflow file to include. |
+| Vars | map[string]string | *Optional.* Key-value pairs of variables to send to the included workflow. |
+
+This IncludeWorkflow step example uses a local workflow file and passes a var,
+"foo", to the included workflow.
+```json
+"step-name": {
+  "IncludeWorkflow": {
+    "Path": "./some_subworkflow.wf.json",
+    "Vars": {
+        "foo": "bar"
+    }
+  }
+}
+```
+
 #### Type: RunTests
 Not implemented yet.
 
@@ -482,6 +518,7 @@ out of convenience. Here is the exhaustive list of autovars:
 | SOURCESPATH | Equivalent to ${SCRATCHPATH}/sources. |
 | LOGSPATH | Equivalent to ${SCRATCHPATH}/logs. |
 | OUTSPATH | Equivalent to ${SCRATCHPATH}/outs. |
+| USERNAME | Username of the user running the workflow. |
 
 ## Glossary of Terms
 Definitions:

@@ -19,6 +19,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/api/googleapi"
 )
 
 const defaultInterval = "5s"
@@ -54,6 +56,7 @@ type InstanceSignal struct {
 func waitForSerialOutput(w *Workflow, name string, port int64, success, failure string, interval time.Duration) error {
 	w.logger.Printf("WaitForInstancesSignal: watching serial port %d, SuccessMatch: %q, FailureMatch: %q.", port, success, failure)
 	var start int64
+	var errs int
 	tick := time.Tick(interval)
 	for {
 		select {
@@ -61,6 +64,11 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 			return nil
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
+			// Retry up to 3 times in a row on a 5xx error.
+			if apiErr, ok := err.(*googleapi.Error); ok && errs < 3 && (apiErr.Code >= 500 && apiErr.Code <= 599) {
+				errs++
+				continue
+			}
 			if err != nil {
 				status, sErr := w.ComputeClient.InstanceStatus(w.Project, w.Zone, name)
 				if sErr == nil && (status == "TERMINATED" || status == "STOPPING") {
@@ -77,6 +85,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 			if failure != "" && strings.Contains(resp.Contents, failure) {
 				return fmt.Errorf("WaitForInstancesSignal: FailureMatch found for instance %q", name)
 			}
+			errs = 0
 		}
 	}
 }

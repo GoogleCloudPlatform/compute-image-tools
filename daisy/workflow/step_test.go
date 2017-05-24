@@ -83,6 +83,10 @@ func TestStepImpl(t *testing.T) {
 			reflect.TypeOf(&DeleteResources{}),
 		},
 		{
+			Step{IncludeWorkflow: &IncludeWorkflow{}},
+			reflect.TypeOf(&IncludeWorkflow{}),
+		},
+		{
 			Step{RunTests: &RunTests{}},
 			reflect.TypeOf(&RunTests{}),
 		},

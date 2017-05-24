@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -96,6 +97,7 @@ type Workflow struct {
 	Dependencies map[string][]string
 
 	// Working fields.
+	autovars       map[string]string
 	vars           map[string]vars
 	workflowDir    string
 	parent         *Workflow
@@ -105,6 +107,7 @@ type Workflow struct {
 	logsPath       string
 	outsPath       string
 	username       string
+	gcsLogging     bool
 	gcsLogWriter   io.Writer
 	ComputeClient  *compute.Client `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
@@ -152,6 +155,7 @@ func (w *Workflow) Validate() error {
 
 // Run runs a workflow.
 func (w *Workflow) Run() error {
+	w.gcsLogging = true
 	if err := w.Validate(); err != nil {
 		return err
 	}
@@ -225,9 +229,17 @@ func (w *Workflow) populateStep(step *Step) error {
 	}
 
 	// Recurse on subworkflows.
-	if step.SubWorkflow == nil {
-		return nil
+	if step.SubWorkflow != nil {
+		return w.populateSubworkflow(step)
 	}
+
+	if step.IncludeWorkflow != nil {
+		return w.populateIncludeWorkflow(step)
+	}
+	return nil
+}
+
+func (w *Workflow) populateSubworkflow(step *Step) error {
 	step.SubWorkflow.workflow.GCSPath = fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath)
 	step.SubWorkflow.workflow.Name = step.name
 	step.SubWorkflow.workflow.Project = w.Project
@@ -243,6 +255,59 @@ func (w *Workflow) populateStep(step *Step) error {
 		step.SubWorkflow.workflow.vars[k] = vars{Value: v}
 	}
 	return step.SubWorkflow.workflow.populate()
+}
+
+func (w *Workflow) populateIncludeWorkflow(step *Step) error {
+	step.IncludeWorkflow.workflow.GCSPath = w.GCSPath
+	step.IncludeWorkflow.workflow.Name = step.name
+	step.IncludeWorkflow.workflow.Project = w.Project
+	step.IncludeWorkflow.workflow.Zone = w.Zone
+
+	for k, v := range step.IncludeWorkflow.Vars {
+		step.IncludeWorkflow.workflow.AddVar(k, v)
+	}
+	if err := step.IncludeWorkflow.workflow.populateVars(); err != nil {
+		return err
+	}
+
+	var replacements []string
+	for k, v := range w.autovars {
+		if k == "NAME" {
+			v = step.name
+		}
+		if k == "WFDIR" {
+			v = step.IncludeWorkflow.workflow.workflowDir
+		}
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
+	}
+	for k, v := range step.IncludeWorkflow.workflow.vars {
+		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
+	}
+	substitute(reflect.ValueOf(step.IncludeWorkflow.workflow).Elem(), strings.NewReplacer(replacements...))
+
+	for name, s := range step.IncludeWorkflow.workflow.Steps {
+		s.name = name
+		s.w = w
+		if err := w.populateStep(s); err != nil {
+			return err
+		}
+	}
+
+	// Copy Sources up to parent resolving relative paths as we go.
+	for k, v := range step.IncludeWorkflow.workflow.Sources {
+		if _, ok := w.Sources[k]; ok {
+			return fmt.Errorf("source %q already exists in parent workflow", k)
+		}
+		if w.Sources == nil {
+			w.Sources = map[string]string{}
+		}
+
+		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
+			v = filepath.Join(step.IncludeWorkflow.workflow.workflowDir, v)
+		}
+		w.Sources[k] = v
+	}
+	return nil
 }
 
 func (w *Workflow) populateVars() error {
@@ -262,7 +327,11 @@ func (w *Workflow) populateVars() error {
 		var vv vars
 		if err := json.Unmarshal(v, &vv); err == nil {
 			if vv.Required && vv.Value == "" {
-				return fmt.Errorf("required var %q cannot be blank", k)
+				msg := fmt.Sprintf("required vars cannot be blank, var: %q", k)
+				if vv.Description != "" {
+					msg = fmt.Sprintf("%s, description: %q", msg, vv.Description)
+				}
+				return errors.New(msg)
 			}
 			w.vars[k] = vv
 			continue
@@ -287,7 +356,7 @@ func (w *Workflow) populate() error {
 
 	cwd, _ := os.Getwd()
 
-	autovars := map[string]string{
+	w.autovars = map[string]string{
 		"ID":        w.id,
 		"DATE":      now.Format("20060102"),
 		"DATETIME":  now.Format("20060102150405"),
@@ -298,7 +367,7 @@ func (w *Workflow) populate() error {
 	}
 
 	var replacements []string
-	for k, v := range autovars {
+	for k, v := range w.autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
 	for k, v := range w.vars {
@@ -320,19 +389,17 @@ func (w *Workflow) populate() error {
 	// Do replacement for autovars. Autovars pull from workflow fields,
 	// so Vars replacement must run before this to resolve the final
 	// value for those fields.
+	w.autovars["NAME"] = w.Name
+	w.autovars["ZONE"] = w.Zone
+	w.autovars["PROJECT"] = w.Project
+	w.autovars["GCSPATH"] = w.GCSPath
+	w.autovars["SCRATCHPATH"] = fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath)
+	w.autovars["SOURCESPATH"] = fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath)
+	w.autovars["LOGSPATH"] = fmt.Sprintf("gs://%s/%s", w.bucket, w.logsPath)
+	w.autovars["OUTSPATH"] = fmt.Sprintf("gs://%s/%s", w.bucket, w.outsPath)
 
-	autovars = map[string]string{
-		"NAME":        w.Name,
-		"ZONE":        w.Zone,
-		"PROJECT":     w.Project,
-		"GCSPATH":     w.GCSPath,
-		"SCRATCHPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath),
-		"SOURCESPATH": fmt.Sprintf("gs://%s/%s", w.bucket, w.sourcesPath),
-		"LOGSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.logsPath),
-		"OUTSPATH":    fmt.Sprintf("gs://%s/%s", w.bucket, w.outsPath),
-	}
 	replacements = []string{}
-	for k, v := range autovars {
+	for k, v := range w.autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
@@ -358,7 +425,7 @@ func (w *Workflow) populate() error {
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		if w.gcsLogWriter == nil {
+		if w.gcsLogging {
 			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
 			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		}
@@ -403,7 +470,7 @@ func (w *Workflow) runStep(s *Step) error {
 
 	e := make(chan error)
 	go func() {
-		e <- s.run(w)
+		e <- s.run()
 	}()
 
 	select {
@@ -541,29 +608,54 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		w.OAuthPath = filepath.Join(w.workflowDir, w.OAuthPath)
 	}
 
-	// We need to unmarshal any SubWorkflows.
 	for name, s := range w.Steps {
 		s.name = name
 		s.w = w
 
-		if s.SubWorkflow == nil {
-			continue
+		if s.SubWorkflow != nil {
+			if err := readSubworkflow(w, s); err != nil {
+				return nil, err
+			}
 		}
 
-		swPath := s.SubWorkflow.Path
-		if !filepath.IsAbs(swPath) {
-			swPath = filepath.Join(w.workflowDir, swPath)
+		if s.IncludeWorkflow != nil {
+			if err := readIncludeWorkflow(w, s); err != nil {
+				return nil, err
+			}
 		}
-
-		sw, err := NewFromFile(w.Ctx, swPath)
-		if err != nil {
-			return nil, err
-		}
-		s.SubWorkflow.workflow = sw
-		sw.parent = w
 	}
 
 	return w, nil
+}
+
+func readSubworkflow(w *Workflow, s *Step) error {
+	swPath := s.SubWorkflow.Path
+	if !filepath.IsAbs(swPath) {
+		swPath = filepath.Join(w.workflowDir, swPath)
+	}
+
+	sw, err := NewFromFile(w.Ctx, swPath)
+	if err != nil {
+		return err
+	}
+	s.SubWorkflow.workflow = sw
+	sw.parent = w
+	return nil
+}
+
+func readIncludeWorkflow(w *Workflow, s *Step) error {
+	iPath := s.IncludeWorkflow.Path
+	if !filepath.IsAbs(iPath) {
+		iPath = filepath.Join(w.workflowDir, iPath)
+	}
+
+	iw, err := NewFromFile(w.Ctx, iPath)
+	if err != nil {
+		return err
+	}
+	s.IncludeWorkflow.workflow = iw
+	iw.parent = w
+	return nil
 }
 
 // stepsListen returns the first step that finishes/errs.

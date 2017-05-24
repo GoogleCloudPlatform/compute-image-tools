@@ -153,6 +153,7 @@ func TestNewFromFile(t *testing.T) {
 	}
 
 	subGot := got.Steps["sub-workflow"].SubWorkflow.workflow
+	includeGot := got.Steps["include-workflow"].IncludeWorkflow.workflow
 
 	wantOAuthPath := filepath.Join(wd, "somefile")
 	want := &Workflow{
@@ -221,6 +222,56 @@ func TestNewFromFile(t *testing.T) {
 				name:         "create-image",
 				CreateImages: &CreateImages{{Name: "image-from-disk", SourceDisk: "image"}},
 			},
+			"include-workflow": {
+				name: "include-workflow",
+				IncludeWorkflow: &IncludeWorkflow{
+					Path: "./test_sub.workflow",
+					workflow: &Workflow{
+						id:          subGot.id,
+						workflowDir: wd,
+						Steps: map[string]*Step{
+							"create-disks": {
+								name: "create-disks",
+								CreateDisks: &CreateDisks{
+									{
+										Name:        "bootstrap",
+										SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+										SizeGB:      "50",
+									},
+								},
+							},
+							"bootstrap": {
+								name: "bootstrap",
+								CreateInstances: &CreateInstances{
+									{
+										Name:          "bootstrap",
+										AttachedDisks: []string{"bootstrap"},
+										MachineType:   "n1-standard-1",
+										StartupScript: "shutdown /h",
+										Metadata:      map[string]string{"test_metadata": "this was a test"},
+									},
+								},
+							},
+							"bootstrap-stopped": {
+								name:    "bootstrap-stopped",
+								Timeout: "1h",
+								WaitForInstancesSignal: &WaitForInstancesSignal{
+									{
+										Name: "bootstrap",
+										SerialOutput: &SerialOutput{
+											Port: 1, SuccessMatch: "complete", FailureMatch: "fail",
+										},
+									},
+								},
+							},
+						},
+						Dependencies: map[string][]string{
+							"bootstrap":         {"create-disks"},
+							"bootstrap-stopped": {"bootstrap"},
+						},
+					},
+				},
+			},
 			"sub-workflow": {
 				name: "sub-workflow",
 				SubWorkflow: &SubWorkflow{
@@ -279,6 +330,7 @@ func TestNewFromFile(t *testing.T) {
 			"postinstall":         {"bootstrap-stopped"},
 			"postinstall-stopped": {"postinstall"},
 			"create-image":        {"postinstall-stopped"},
+			"include-workflow":    {"create-image"},
 			"sub-workflow":        {"create-image"},
 		},
 	}
@@ -301,9 +353,17 @@ func TestNewFromFile(t *testing.T) {
 		s.w = nil
 	}
 
+	includeGot.Ctx = nil
+	includeGot.Cancel = nil
+	includeGot.parent = nil
+	for _, s := range includeGot.Steps {
+		s.w = nil
+	}
+
 	// Cleanup hooks are impossible to check right now.
 	got.cleanupHooks = nil
 	subGot.cleanupHooks = nil
+	includeGot.cleanupHooks = nil
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
@@ -379,6 +439,31 @@ func TestPopulate(t *testing.T) {
 					},
 				},
 			},
+			"${NAME}-step4": {
+				IncludeWorkflow: &IncludeWorkflow{
+					Path: "${path}",
+					Vars: map[string]string{
+						"overridden": "bar",
+						"timeout":    "60m",
+					},
+					workflow: &Workflow{
+						// These should be overwritten.
+						Name:    "some-name",
+						Project: "some-project",
+						Zone:    "some-zone",
+						GCSPath: "gs://some-bucket/images",
+						Steps: map[string]*Step{
+							"${step_name}": {
+								Timeout: "${timeout}",
+							},
+						},
+						Vars: map[string]json.RawMessage{
+							"step_name":  []byte(`"sub-step1"`),
+							"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -387,14 +472,23 @@ func TestPopulate(t *testing.T) {
 	}
 
 	subGot := got.Steps["parent-step3"].SubWorkflow.workflow
+	injGot := got.Steps["parent-step4"].IncludeWorkflow.workflow
 
 	// Set the clients to nil as pretty.Diff will cause a stack overflow otherwise.
 	got.ComputeClient = nil
 	got.StorageClient = nil
 	got.logger = nil
+
 	subGot.ComputeClient = nil
 	subGot.StorageClient = nil
 	subGot.logger = nil
+
+	injGot.ComputeClient = nil
+	injGot.StorageClient = nil
+	injGot.logger = nil
+	for _, s := range injGot.Steps {
+		s.w = nil
+	}
 
 	// For simplicity, here is the subworkflow scratch path.
 	// The subworkflow scratch path is a subdir of the parent workflow scratch path.
@@ -416,6 +510,7 @@ func TestPopulate(t *testing.T) {
 			"path":      []byte(`"./test_sub.workflow"`),
 			"wf-name":   []byte(`"parent"`),
 		},
+		autovars: got.autovars,
 		vars: map[string]vars{
 			"bucket":    {Value: "parent-bucket", Required: true},
 			"step_name": {Value: "parent-step1"},
@@ -469,6 +564,7 @@ func TestPopulate(t *testing.T) {
 								timeout: time.Duration(60 * time.Minute),
 							},
 						},
+						autovars: subGot.autovars,
 						Vars: map[string]json.RawMessage{
 							"wf-name":    []byte(`"sub"`),
 							"step_name":  []byte(`"sub-step1"`),
@@ -487,6 +583,40 @@ func TestPopulate(t *testing.T) {
 						logsPath:    fmt.Sprintf("%s/logs", subScratch),
 						outsPath:    fmt.Sprintf("%s/outs", subScratch),
 						username:    cu.Username,
+					},
+				},
+			},
+			"parent-step4": {
+				name:    "parent-step4",
+				Timeout: "10m",
+				timeout: time.Duration(10 * time.Minute),
+				IncludeWorkflow: &IncludeWorkflow{
+					Path: "./test_sub.workflow",
+					Vars: map[string]string{
+						"overridden": "bar",
+						"timeout":    "60m",
+					},
+					workflow: &Workflow{
+						Name:    "parent-step4",
+						Project: "parent-project",
+						Zone:    "parent-zone",
+						GCSPath: "gs://parent-bucket/images",
+						Steps: map[string]*Step{
+							"sub-step1": {
+								name:    "sub-step1",
+								Timeout: "60m",
+								timeout: time.Duration(60 * time.Minute),
+							},
+						},
+						Vars: map[string]json.RawMessage{
+							"step_name":  []byte(`"sub-step1"`),
+							"overridden": []byte(`"foo"`),
+						},
+						vars: map[string]vars{
+							"step_name":  {Value: "sub-step1"},
+							"timeout":    {Value: "60m"},
+							"overridden": {Value: "bar"},
+						},
 					},
 				},
 			},
@@ -623,7 +753,7 @@ func TestPopulateVars(t *testing.T) {
 
 	w := testWorkflow()
 	w.Vars = map[string]json.RawMessage{"required-var": []byte(`{"Required": true}`)}
-	wantErr := `required var "required-var" cannot be blank`
+	wantErr := `required vars cannot be blank, var: "required-var"`
 	if err := w.populateVars(); err.Error() != wantErr {
 		t.Errorf("workflow with unsubbed required var bad error, want: %q got: %q", wantErr, err.Error())
 	}
