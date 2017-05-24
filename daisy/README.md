@@ -193,7 +193,7 @@ Creates GCE disks. Each disk has the following fields:
 Example: the first is a standard PD disk created from a source image, the second
 is a blank PD SSD.
 ```json
-"stepName": {
+"step-name": {
   "CreateDisks": [
     {
       "Name": "disk1",
@@ -225,7 +225,7 @@ Creates GCE images. Each image has the following fields:
 
 This CreateImages example creates an image from a source disk.
 ```json
-"stepName": {
+"step-name": {
   "CreateImages": [
     {
       "Name": "image1",
@@ -240,7 +240,7 @@ uses the NoCleanup flag to tell Daisy that this resource should exist
 after workflow completion, and the ExactName flag to tell Daisy to not
 use an generated name for the resource.
 ```json
-"stepName": {
+"step-name": {
   "CreateImages": [
     {
       "Name": "image1",
@@ -272,7 +272,7 @@ Creates GCE VM instances. Each VM has the following fields:
 This CreateInstances step example creates an instance with two attached
 disks and uses the machine type n1-standard-4.
 ```json
-"stepName": {
+"step-name": {
   "CreateInstances": [
     {
       "Name": "instance1",
@@ -293,7 +293,7 @@ Copies a GCS files from Source to Destination. Each copy has the following field
 
 This CopyGCSObjects step example copies image.tar.gz from the Daisy OUTSPATH to gs://project2/my-image.tar.gz.
 ```json
-"stepName": {
+"step-name": {
   "CopyGCSObjects": [
     {
       "Source": "${OUTSPATH}/image.tar.gz",
@@ -316,7 +316,7 @@ order: images, instances, disks.
 This DeleteResources step example deletes an image, an instance, and two
 disks.
 ```json
-"stepName": {
+"step-name": {
   "DeleteResources": {
      "Images":["image1"],
      "Instances":["instance1"],
@@ -350,9 +350,9 @@ SubWorkflow step type fields:
 This SubWorkflow step example uses a local workflow file and passes a var,
 "foo", to the subworkflow.
 ```json
-"stepName": {
+"step-name": {
   "SubWorkflow": {
-    "Path": "./some_subworkflow.workflow",
+    "Path": "./some_subworkflow.wf.json",
     "Vars": {
         "foo": "bar"
     }
@@ -382,7 +382,7 @@ SerialOutput:
 
 This example step waits for VM "foo" to stop and for a signal from VM "bar":
 ```json
-"stepName": {
+"step-name": {
     "WaitForInstancesSignal": [
         {
             "Name": "foo",
