@@ -351,9 +351,9 @@ IncludeWorkflow step type fields:
 This IncludeWorkflow step example uses a local workflow file and passes a var,
 "foo", to the included workflow.
 ```json
-"stepName": {
+"step-name": {
   "IncludeWorkflow": {
-    "Path": "./some_subworkflow.workflow",
+    "Path": "./some_subworkflow.wf.json",
     "Vars": {
         "foo": "bar"
     }

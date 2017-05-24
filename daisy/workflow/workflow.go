@@ -234,7 +234,7 @@ func (w *Workflow) populateStep(step *Step) error {
 	}
 
 	if step.IncludeWorkflow != nil {
-		return w.populateMergeWorkflow(step)
+		return w.populateIncludeWorkflow(step)
 	}
 	return nil
 }
@@ -257,7 +257,7 @@ func (w *Workflow) populateSubworkflow(step *Step) error {
 	return step.SubWorkflow.workflow.populate()
 }
 
-func (w *Workflow) populateMergeWorkflow(step *Step) error {
+func (w *Workflow) populateIncludeWorkflow(step *Step) error {
 	step.IncludeWorkflow.workflow.GCSPath = w.GCSPath
 	step.IncludeWorkflow.workflow.Name = step.name
 	step.IncludeWorkflow.workflow.Project = w.Project
@@ -619,7 +619,7 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 		}
 
 		if s.IncludeWorkflow != nil {
-			if err := readMergeWorkflow(w, s); err != nil {
+			if err := readIncludeWorkflow(w, s); err != nil {
 				return nil, err
 			}
 		}
@@ -643,7 +643,7 @@ func readSubworkflow(w *Workflow, s *Step) error {
 	return nil
 }
 
-func readMergeWorkflow(w *Workflow, s *Step) error {
+func readIncludeWorkflow(w *Workflow, s *Step) error {
 	iPath := s.IncludeWorkflow.Path
 	if !filepath.IsAbs(iPath) {
 		iPath = filepath.Join(w.workflowDir, iPath)
