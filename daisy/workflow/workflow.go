@@ -262,6 +262,15 @@ func (w *Workflow) populateMergeWorkflow(step *Step) error {
 	step.MergeWorkflow.workflow.Name = step.name
 	step.MergeWorkflow.workflow.Project = w.Project
 	step.MergeWorkflow.workflow.Zone = w.Zone
+	step.MergeWorkflow.workflow.OAuthPath = w.OAuthPath
+	step.MergeWorkflow.workflow.ComputeClient = w.ComputeClient
+	step.MergeWorkflow.workflow.StorageClient = w.StorageClient
+	step.MergeWorkflow.workflow.Ctx = w.Ctx
+	step.MergeWorkflow.workflow.Cancel = w.Cancel
+	step.MergeWorkflow.workflow.scratchPath = w.scratchPath
+	step.MergeWorkflow.workflow.sourcesPath = w.sourcesPath
+	step.MergeWorkflow.workflow.logsPath = w.logsPath
+	step.MergeWorkflow.workflow.outsPath = w.outsPath
 
 	for k, v := range step.MergeWorkflow.Vars {
 		step.MergeWorkflow.workflow.AddVar(k, v)
@@ -272,6 +281,12 @@ func (w *Workflow) populateMergeWorkflow(step *Step) error {
 
 	var replacements []string
 	for k, v := range w.autovars {
+		if k == "NAME" {
+			v = step.name
+		}
+		if k == "WFDIR" {
+			v = step.MergeWorkflow.workflow.workflowDir
+		}
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
 	for k, v := range step.MergeWorkflow.workflow.vars {
@@ -287,13 +302,17 @@ func (w *Workflow) populateMergeWorkflow(step *Step) error {
 		}
 	}
 
-	// Copy Sources up to parent.
+	// Copy Sources up to parent resolving relative paths as we go.
 	for k, v := range step.MergeWorkflow.workflow.Sources {
 		if _, ok := w.Sources[k]; ok {
 			return fmt.Errorf("source %q already exists in parent workflow", k)
 		}
 		if w.Sources == nil {
 			w.Sources = map[string]string{}
+		}
+
+		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
+			v = filepath.Join(step.MergeWorkflow.workflow.workflowDir, v)
 		}
 		w.Sources[k] = v
 	}
