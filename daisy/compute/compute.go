@@ -126,11 +126,11 @@ func (c *Client) CreateImage(project string, i *compute.Image) error {
 	}
 	resp, err := c.raw.Images.Insert(project, i).Do()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if err := c.operationsWait(project, "", resp.Name); err != nil {
-		return nil
+		return err
 	}
 
 	var createdImage *compute.Image

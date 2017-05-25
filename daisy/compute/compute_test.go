@@ -100,7 +100,7 @@ func TestCreateDisk(t *testing.T) {
 		if err != nil && !tt.shouldErr {
 			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
 		} else if diff := pretty.Compare(d, getResponse); err == nil && diff != "" {
-			t.Errorf("Disk does not match expectation: (-got +want)\n%s", diff)
+			t.Errorf("%s: Disk does not match expectation: (-got +want)\n%s", tt.desc, diff)
 		}
 	}
 }
@@ -162,18 +162,23 @@ func TestCreateImage(t *testing.T) {
 		desc                       string
 		getErr, insertErr, waitErr error
 		shouldErr                  bool
-	}{}
+	}{
+		{"normal case", nil, nil, nil, false},
+		{"get err case", errors.New("get err"), nil, nil, true},
+		{"insert err case", nil, errors.New("insert err"), nil, true},
+		{"wait err case", nil, nil, errors.New("wait err"), true},
+	}
 
 	for _, tt := range tests {
 		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
 		i := &compute.Image{Name: testImage}
-		getResponse = &compute.Image{Name: testDisk, SelfLink: "foo"}
+		getResponse = &compute.Image{Name: testImage, SelfLink: "foo"}
 		err := c.CreateImage(testProject, i)
 		getResponse.ServerResponse = i.ServerResponse // We have to fudge this part in order to check that i == getResponse
 		if err != nil && !tt.shouldErr {
 			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
 		} else if diff := pretty.Compare(i, getResponse); err == nil && diff != "" {
-			t.Errorf("Image does not match expectation: (-got +want)\n%s", diff)
+			t.Errorf("%s: Image does not match expectation: (-got +want)\n%s", tt.desc, diff)
 		}
 	}
 }
