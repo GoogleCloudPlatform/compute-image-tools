@@ -202,7 +202,9 @@ func TestSubstitute(t *testing.T) {
 										Timeout: "key3",
 										CreateImages: &CreateImages{
 											{
-												Name: "key1",
+												Image: compute.Image{
+													Name: "key1",
+												},
 											},
 										},
 									},
@@ -248,7 +250,9 @@ func TestSubstitute(t *testing.T) {
 										Timeout: "key3", // substitution should not recurse into subworkflows
 										CreateImages: &CreateImages{
 											{
-												Name: "key1", // substitution should not recurse into subworkflows
+												Image: compute.Image{
+													Name: "key1", // substitution should not recurse into subworkflows
+												},
 											},
 										},
 									},

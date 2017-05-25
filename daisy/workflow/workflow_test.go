@@ -225,7 +225,7 @@ func TestNewFromFile(t *testing.T) {
 			},
 			"create-image": {
 				name:         "create-image",
-				CreateImages: &CreateImages{{Name: "image-from-disk", SourceDisk: "image"}},
+				CreateImages: &CreateImages{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}},
 			},
 			"include-workflow": {
 				name: "include-workflow",
@@ -413,7 +413,7 @@ func TestPopulate(t *testing.T) {
 			"${step_name}": {
 				Timeout: "${timeout}",
 				CreateImages: &CreateImages{
-					{SourceFile: "${SOURCESPATH}/image_file"},
+					{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "${SOURCESPATH}/image_file"}}},
 				},
 			},
 			"${NAME}-step2": {
@@ -539,7 +539,7 @@ func TestPopulate(t *testing.T) {
 				Timeout: "60m",
 				timeout: time.Duration(60 * time.Minute),
 				CreateImages: &CreateImages{
-					{SourceFile: fmt.Sprintf("gs://parent-bucket/%s/sources/image_file", got.scratchPath)},
+					{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: fmt.Sprintf("gs://parent-bucket/%s/sources/image_file", got.scratchPath)}}},
 				},
 			},
 			"parent-step2": {

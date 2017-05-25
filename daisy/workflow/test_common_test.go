@@ -75,6 +75,7 @@ func init() {
 
 func testWorkflow() *Workflow {
 	w := New(context.Background())
+	w.id = "abcdef"
 	w.Name = testWf
 	w.GCSPath = testGCSPath
 	w.Project = testProject

@@ -17,10 +17,10 @@ package workflow
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	compute "google.golang.org/api/compute/v1"
-	"strings"
 )
 
 // CreateDisks is a Daisy CreateDisks workflow step.
@@ -52,26 +52,27 @@ func (c *CreateDisks) validate(s *Step) error {
 		}
 
 		// No SizeGB set when not supplying SourceImage.
-		if cd.Disk.SizeGb == 0 && cd.SourceImage == "" {
+		if cd.SizeGb == 0 && cd.SourceImage == "" {
 			return errors.New("cannot create disk: SizeGb and SourceImage not set")
 		}
 
 		// Prepare field values: Disk.Name, Disk.Type, name, Project, Zone
-		cd.name = cd.Disk.Name
+		cd.name = cd.Name
 		if !cd.ExactName {
-			cd.Disk.Name = w.genName(cd.name)
+			cd.Name = w.genName(cd.name)
 		}
 		cd.Project = stringOr(cd.Project, w.Project)
 		cd.Zone = stringOr(cd.Zone, w.Zone)
 		dt := fmt.Sprintf("zones/%s/diskTypes/pd-standard", cd.Zone)
-		if cd.Disk.Type != "" {
-			if strings.Contains(cd.Disk.Type, "/") {
-				dt = cd.Disk.Type
+		if cd.Type != "" {
+			if strings.Contains(cd.Type, "/") {
+				dt = cd.Type
 			} else {
-				dt = fmt.Sprintf("zones/%s/diskTypes/%s", cd.Zone, cd.Disk.Type)
+				dt = fmt.Sprintf("zones/%s/diskTypes/%s", cd.Zone, cd.Type)
 			}
 		}
-		cd.Disk.Type = dt
+		cd.Type = dt
+		cd.Description = stringOr(cd.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
 
 		// Try adding disk name.
 		if err := validatedDisks.add(w, cd.name); err != nil {
@@ -92,25 +93,21 @@ func (c *CreateDisks) run(s *Step) error {
 			defer wg.Done()
 
 			// Get the source image link.  TODO(crunkleton): Move to validate after validation refactor.
-			if cd.Disk.SourceImage == "" || imageURLRegex.MatchString(cd.Disk.SourceImage) {
-				cd.Disk.SourceImage = cd.SourceImage
-			} else if image, ok := images[w].get(cd.Disk.SourceImage); ok {
-				cd.Disk.SourceImage = image.link
-			} else {
-				e <- fmt.Errorf("invalid or missing reference to SourceImage %q", cd.SourceImage)
-				return
+			if cd.SourceImage != "" && !imageURLRegex.MatchString(cd.SourceImage) {
+				if image, ok := images[w].get(cd.SourceImage); ok {
+					cd.SourceImage = image.link
+				} else {
+					e <- fmt.Errorf("invalid or missing reference to SourceImage %q", cd.SourceImage)
+					return
+				}
 			}
 
-			w.logger.Printf("CreateDisks: creating disk %q.", cd.Disk.Name)
-			description := cd.Description
-			if description == "" {
-				description = fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", w.Name, w.username)
-			}
+			w.logger.Printf("CreateDisks: creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
 				e <- err
 				return
 			}
-			disks[w].add(cd.name, &resource{cd.name, cd.Disk.Name, cd.Disk.SelfLink, cd.NoCleanup, false})
+			disks[w].add(cd.name, &resource{cd.name, cd.Name, cd.SelfLink, cd.NoCleanup, false})
 		}(cd)
 	}
 

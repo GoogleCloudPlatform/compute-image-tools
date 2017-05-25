@@ -79,10 +79,10 @@ func TestCreateDisksRun(t *testing.T) {
 	}
 
 	want := map[string]*resource{
-		"d1": {name: "d1", real: (*cds)[0].Disk.Name, link: "link", noCleanup: false, deleted: false},
-		"d2": {name: "d2", real: (*cds)[4].Disk.Name, link: "link", noCleanup: false, deleted: false},
-		"d3": {name: "d3", real: (*cds)[5].Disk.Name, link: "link", noCleanup: true, deleted: false},
-		"d4": {name: "d4", real: (*cds)[6].Disk.Name, link: "link", noCleanup: false, deleted: false}}
+		"d1": {name: "d1", real: (*cds)[0].Name, link: "link", noCleanup: false, deleted: false},
+		"d2": {name: "d2", real: (*cds)[4].Name, link: "link", noCleanup: false, deleted: false},
+		"d3": {name: "d3", real: (*cds)[5].Name, link: "link", noCleanup: true, deleted: false},
+		"d4": {name: "d4", real: (*cds)[6].Name, link: "link", noCleanup: false, deleted: false}}
 
 	if diff := pretty.Compare(disks[w].m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)

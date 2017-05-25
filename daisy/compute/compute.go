@@ -17,7 +17,6 @@ package compute
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -34,6 +33,7 @@ type Client struct {
 
 	OperationsWaitFake func(project, zone, name string) error
 	CreateDiskFake     func(project, zone string, d *compute.Disk) error
+	CreateImageFake    func(project string, i *compute.Image) error
 }
 
 // NewClient creates a new Google Cloud Compute client.
@@ -120,32 +120,25 @@ func (c *Client) CreateDisk(project, zone string, d *compute.Disk) error {
 // Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
 // url (full or partial) to the source disk, sourceFile is the full Google
 // Cloud Storage URL where the disk image is stored.
-func (c *Client) CreateImage(name, project, sourceDisk, sourceFile, family, description string, licenses, guestOsFeatures []string) (*compute.Image, error) {
-	if (sourceDisk != "" && sourceFile != "") || (sourceDisk == "" && sourceFile == "") {
-		return nil, errors.New("you must provide either a sourceDisk or a sourceFile but not both to create an image")
+func (c *Client) CreateImage(project string, i *compute.Image) error {
+	if c.CreateImageFake != nil {
+		return c.CreateImageFake(project, i)
 	}
-	var gosf []*compute.GuestOsFeature
-	for _, f := range guestOsFeatures {
-		gosf = append(gosf, &compute.GuestOsFeature{Type: f})
-	}
-	resp, err := c.raw.Images.Insert(project, &compute.Image{
-		Name:            name,
-		Family:          family,
-		Licenses:        licenses,
-		GuestOsFeatures: gosf,
-		SourceDisk:      sourceDisk,
-		RawDisk:         &compute.ImageRawDisk{Source: sourceFile},
-		Description:     description,
-	}).Do()
+	resp, err := c.raw.Images.Insert(project, i).Do()
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	if err := c.operationsWait(project, "", resp.Name); err != nil {
-		return nil, err
+		return nil
 	}
 
-	return c.raw.Images.Get(project, name).Do()
+	var createdImage *compute.Image
+	if createdImage, err = c.raw.Images.Get(project, i.Name).Do(); err != nil {
+		return err
+	}
+	*i = *createdImage
+	return nil
 }
 
 // DeleteImage deletes a GCE image.
