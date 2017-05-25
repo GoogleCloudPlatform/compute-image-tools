@@ -17,6 +17,8 @@ package compute
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -47,36 +49,29 @@ func newTestClient(handleFunc http.HandlerFunc) (*httptest.Server, *Client, erro
 	return ts, c, nil
 }
 
-func testCreateDisk(got, want *compute.Disk) error {
-	if got.Name != want.Name {
-		return fmt.Errorf("unexpected Name, got: %s, want: %s", got.Name, want.Name)
-	}
-	if got.SizeGb != want.SizeGb {
-		return fmt.Errorf("unexpected SizeGb, got: %d, want: %d", got.SizeGb, want.SizeGb)
-	}
-	if got.Type != want.Type {
-		return fmt.Errorf("unexpected Type, got: %s, want: %s", got.Type, want.Type)
-	}
-	if got.SourceImage != want.SourceImage {
-		return fmt.Errorf("unexpected SourceImage, got: %s, want: %s", got.SourceImage, want.SourceImage)
-	}
-	return nil
-}
-
 func TestCreateDisk(t *testing.T) {
-	var body string
+	var getErr, insertErr, waitErr error
+	var getResponse *compute.Disk
 	svr, c, err := newTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body []byte
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone) {
+			if insertErr != nil {
+				w.WriteHeader(400)
+				fmt.Fprintln(w, insertErr)
+			}
 			buf := new(bytes.Buffer)
 			if _, err := buf.ReadFrom(r.Body); err != nil {
 				t.Fatal(err)
 			}
-			body = buf.String()
-			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone) {
-			fmt.Fprint(w, `{"Status":"DONE"}`)
+			body = buf.Bytes()
+			fmt.Fprintln(w, `{}`)
 		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json", testProject, testZone, testDisk) {
-			fmt.Fprint(w, body)
+			if getErr != nil {
+				w.WriteHeader(400)
+				fmt.Fprintln(w, getErr)
+			}
+			body, _ = json.Marshal(getResponse)
+			fmt.Fprintln(w, string(body))
 		} else {
 			w.WriteHeader(500)
 			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
@@ -85,26 +80,32 @@ func TestCreateDisk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	c.OperationsWaitFake = func(project, zone, name string) error { return waitErr }
 	defer svr.Close()
 
-	// Blank disk.
-	want := &compute.Disk{Name: testDisk, SizeGb: 100, Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", testZone)}
-	got, err := c.CreateDisk(testDisk, testProject, testZone, "", want.SizeGb, "", "")
-	if err != nil {
-		t.Fatalf("error running CreateDisk: %v", err)
-	}
-	if err := testCreateDisk(got, want); err != nil {
-		t.Error(err)
+	tests := []struct {
+		desc                       string
+		getErr, insertErr, waitErr error
+		shouldErr                  bool
+	}{
+		{"normal case", nil, nil, nil, false},
+		{"get err case", errors.New("get err"), nil, nil, true},
+		{"insert err case", nil, errors.New("insert err"), nil, true},
+		{"wait err case", nil, nil, errors.New("wait err"), true},
 	}
 
-	// Test SSD and non blank disk.
-	want = &compute.Disk{Name: testDisk, SizeGb: 50, Type: fmt.Sprintf("zones/%s/diskTypes/pd-ssd", testZone), SourceImage: "some-image"}
-	got, err = c.CreateDisk(testDisk, testProject, testZone, "some-image", 50, "pd-ssd", "")
-	if err != nil {
-		t.Fatalf("error running CreateDisk: %v", err)
-	}
-	if err := testCreateDisk(got, want); err != nil {
-		t.Error(err)
+	for _, tt := range tests {
+		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
+		d := &compute.Disk{Name: testDisk}
+		getResponse = &compute.Disk{Name: testDisk, SelfLink: "foo"}
+		expectedD := &compute.Disk{Name: testDisk, SelfLink: "foo"}
+		err := c.CreateDisk(testProject, testZone, d)
+		expectedD.ServerResponse = d.ServerResponse
+		if err != nil && !tt.shouldErr {
+			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
+		} else if diff := pretty.Compare(d, expectedD); err == nil && diff != "" {
+			t.Errorf("Disks do not match expectation: (-got +want)\n%s", diff)
+		}
 	}
 }
 

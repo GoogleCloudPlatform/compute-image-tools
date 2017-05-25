@@ -93,10 +93,7 @@ func (c *CreateImages) run(s *Step) error {
 				name = w.genName(ci.Name)
 			}
 
-			project := w.Project
-			if ci.Project != "" {
-				project = ci.Project
-			}
+			project := stringOr(ci.Project, w.Project)
 
 			// Get source disk link, if applicable.
 			var diskLink string

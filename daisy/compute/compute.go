@@ -31,6 +31,9 @@ import (
 type Client struct {
 	hc  *http.Client
 	raw *compute.Service
+
+	OperationsWaitFake func(project, zone, name string) error
+	CreateDiskFake     func(project, zone string, d *compute.Disk) error
 }
 
 // NewClient creates a new Google Cloud Compute client.
@@ -55,6 +58,9 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 }
 
 func (c *Client) operationsWait(project, zone, name string) error {
+	if c.OperationsWaitFake != nil {
+		return c.OperationsWaitFake(project, zone, name)
+	}
 	for {
 		var err error
 		var op *compute.Operation
@@ -90,6 +96,9 @@ func (c *Client) operationsWait(project, zone, name string) error {
 
 // CreateDisk creates a GCE persistent disk.
 func (c *Client) CreateDisk(project, zone string, d *compute.Disk) error {
+	if c.CreateDiskFake != nil {
+		return c.CreateDiskFake(project, zone, d)
+	}
 	resp, err := c.raw.Disks.Insert(project, zone, d).Do()
 	if err != nil {
 		return err
