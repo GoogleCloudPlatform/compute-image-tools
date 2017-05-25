@@ -15,9 +15,12 @@
 package workflow
 
 import (
+	"errors"
 	"fmt"
-	"strconv"
 	"sync"
+
+	compute "google.golang.org/api/compute/v1"
+	"strings"
 )
 
 // CreateDisks is a Daisy CreateDisks workflow step.
@@ -25,20 +28,8 @@ type CreateDisks []CreateDisk
 
 // CreateDisk describes a GCE disk.
 type CreateDisk struct {
-	// Name of the disk.
-	Name string
-	// SourceImage to use during disk creation. Leave blank for a blank
-	// disk.
-	// See https://godoc.org/google.golang.org/api/compute/v1#Disk.
-	SourceImage string `json:",omitempty"`
-	// Size of this disk.
-	SizeGB string `json:",omitempty"`
-	// Type of disk, pd-standard (default) or pd-ssd.
-	Type string `json:",omitempty"`
-	// Optional description of the resource, if not specified Daisy will
-	// create one with the name of the project.
-	Description string `json:",omitempty"`
-	// Zone to create the instance in, overrides workflow Zone.
+	compute.Disk
+
 	Zone string `json:",omitempty"`
 	// Project to create the instance in, overrides workflow Project.
 	Project string `json:",omitempty"`
@@ -47,6 +38,9 @@ type CreateDisk struct {
 	// Should we use the user-provided reference name as the actual
 	// resource name?
 	ExactName bool
+
+	// The name of the disk as known internally to Daisy.
+	name string
 }
 
 func (c *CreateDisks) validate(s *Step) error {
@@ -57,17 +51,30 @@ func (c *CreateDisks) validate(s *Step) error {
 			return fmt.Errorf("cannot create disk: image not found: %s", cd.SourceImage)
 		}
 
-		if _, err := strconv.ParseInt(cd.SizeGB, 10, 64); cd.SizeGB != "" && err != nil {
-			return fmt.Errorf("cannot parse SizeGB: %s, err: %v", cd.SizeGB, err)
+		// No SizeGB set when not supplying SourceImage.
+		if cd.Disk.SizeGb == 0 && cd.SourceImage == "" {
+			return errors.New("cannot create disk: SizeGb and SourceImage not set")
 		}
 
-		// No SizeGB set when not supplying SourceImage.
-		if cd.SizeGB == "" && cd.SourceImage == "" {
-			return fmt.Errorf("cannot create disk: SizeGB and SourceImage not set: %s", cd.SourceImage)
+		// Prepare field values: Disk.Name, Disk.Type, name, Project, Zone
+		cd.name = cd.Disk.Name
+		if !cd.ExactName {
+			cd.Disk.Name = w.genName(cd.name)
 		}
+		cd.Project = stringOr(cd.Project, w.Project)
+		cd.Zone = stringOr(cd.Zone, w.Zone)
+		dt := fmt.Sprintf("zones/%s/diskTypes/pd-standard", cd.Zone)
+		if cd.Disk.Type != "" {
+			if strings.Contains(cd.Disk.Type, "/") {
+				dt = cd.Disk.Type
+			} else {
+				dt = fmt.Sprintf("zones/%s/diskTypes/%s", cd.Zone, cd.Disk.Type)
+			}
+		}
+		cd.Disk.Type = dt
 
 		// Try adding disk name.
-		if err := validatedDisks.add(w, cd.Name); err != nil {
+		if err := validatedDisks.add(w, cd.name); err != nil {
 			return fmt.Errorf("error adding disk: %s", err)
 		}
 	}
@@ -83,49 +90,27 @@ func (c *CreateDisks) run(s *Step) error {
 		wg.Add(1)
 		go func(cd CreateDisk) {
 			defer wg.Done()
-			name := cd.Name
-			if !cd.ExactName {
-				name = w.genName(cd.Name)
-			}
 
-			zone := w.Zone
-			if cd.Zone != "" {
-				zone = cd.Zone
-			}
-
-			project := w.Project
-			if cd.Project != "" {
-				project = cd.Project
-			}
-
-			// Get the source image link.
-			var imageLink string
-			if cd.SourceImage == "" || imageURLRegex.MatchString(cd.SourceImage) {
-				imageLink = cd.SourceImage
-			} else if image, ok := images[w].get(cd.SourceImage); ok {
-				imageLink = image.link
+			// Get the source image link.  TODO(crunkleton): Move to validate after validation refactor.
+			if cd.Disk.SourceImage == "" || imageURLRegex.MatchString(cd.Disk.SourceImage) {
+				cd.Disk.SourceImage = cd.SourceImage
+			} else if image, ok := images[w].get(cd.Disk.SourceImage); ok {
+				cd.Disk.SourceImage = image.link
 			} else {
 				e <- fmt.Errorf("invalid or missing reference to SourceImage %q", cd.SourceImage)
 				return
 			}
 
-			size, err := strconv.ParseInt(cd.SizeGB, 10, 64)
-			if cd.SizeGB != "" && err != nil {
-				e <- err
-				return
-			}
-
-			w.logger.Printf("CreateDisks: creating disk %q.", name)
+			w.logger.Printf("CreateDisks: creating disk %q.", cd.Disk.Name)
 			description := cd.Description
 			if description == "" {
 				description = fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", w.Name, w.username)
 			}
-			d, err := w.ComputeClient.CreateDisk(name, project, zone, imageLink, size, cd.Type, description)
-			if err != nil {
+			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
 				e <- err
 				return
 			}
-			disks[w].add(cd.Name, &resource{cd.Name, name, d.SelfLink, cd.NoCleanup, false})
+			disks[w].add(cd.name, &resource{cd.name, cd.Disk.Name, cd.Disk.SelfLink, cd.NoCleanup, false})
 		}(cd)
 	}
 

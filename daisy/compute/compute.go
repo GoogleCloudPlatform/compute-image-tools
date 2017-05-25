@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	compute "google.golang.org/api/compute/v1"
@@ -89,36 +88,23 @@ func (c *Client) operationsWait(project, zone, name string) error {
 	}
 }
 
-// CreateDisk creates a GCE persistant disk.
-func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64, diskType, description string) (*compute.Disk, error) {
-	dt := fmt.Sprintf("zones/%s/diskTypes/pd-standard", zone)
-	if diskType != "" {
-		if strings.Contains(diskType, "/") {
-			dt = diskType
-		} else {
-			dt = fmt.Sprintf("zones/%s/diskTypes/%s", zone, diskType)
-		}
-	}
-
-	disk := &compute.Disk{
-		Name:        name,
-		Type:        dt,
-		SourceImage: sourceImage,
-		Description: description,
-	}
-	if size != 0 {
-		disk.SizeGb = size
-	}
-	resp, err := c.raw.Disks.Insert(project, zone, disk).Do()
+// CreateDisk creates a GCE persistent disk.
+func (c *Client) CreateDisk(project, zone string, d *compute.Disk) error {
+	resp, err := c.raw.Disks.Insert(project, zone, d).Do()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.operationsWait(project, zone, resp.Name); err != nil {
-		return nil, err
+		return err
 	}
 
-	return c.raw.Disks.Get(project, zone, name).Do()
+	var createdDisk *compute.Disk
+	if createdDisk, err = c.raw.Disks.Get(project, zone, d.Name).Do(); err != nil {
+		return err
+	}
+	*d = *createdDisk
+	return nil
 }
 
 // CreateImage creates a GCE image.

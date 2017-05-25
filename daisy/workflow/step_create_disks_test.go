@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	compute "google.golang.org/api/compute/v1"
 )
 
 func TestCreateDisksRun(t *testing.T) {
@@ -26,13 +27,13 @@ func TestCreateDisksRun(t *testing.T) {
 	s := &Step{w: w}
 	images[w].m = map[string]*resource{"i1": {"i1", w.genName("i1"), "link", false, false}}
 	cd := &CreateDisks{
-		{Name: "d1", SourceImage: "i1", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "projects/project/global/images/family/my-family", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "projects/project/global/images/i2", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "global/images/family/my-family", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "global/images/i2", SizeGB: "100", Type: "", Zone: "zone", Project: "project"},
-		{Name: "d3", SourceImage: "i1", SizeGB: "100", Type: "", NoCleanup: true},
-		{Name: "d4", SourceImage: "i1", SizeGB: "100", Type: "", ExactName: true}}
+		{name: "d1", Disk: compute.Disk{Name: w.genName("d1"), SourceImage: "i1", SizeGb: 100, Type: ""}},
+		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "projects/project/global/images/family/my-family", SizeGb: 100, Type: ""}},
+		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "projects/project/global/images/i2", SizeGb: 100, Type: ""}},
+		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "global/images/family/my-family", SizeGb: 100, Type: ""}},
+		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "global/images/i2", SizeGb: 100, Type: ""}, Zone: "zone", Project: "project"},
+		{name: "d3", Disk: compute.Disk{Name: w.genName("d3"), SourceImage: "i1", SizeGb: 100, Type: ""}, NoCleanup: true},
+		{name: "d4", Disk: compute.Disk{Name: "d4", SourceImage: "i1", SizeGb: 100, Type: ""}, ExactName: true}}
 	if err := cd.run(s); err != nil {
 		t.Errorf("error running CreateDisks.run(): %v", err)
 	}
@@ -45,13 +46,8 @@ func TestCreateDisksRun(t *testing.T) {
 	}{
 		{
 			"image DNE",
-			CreateDisks{CreateDisk{Name: "d-foo", SourceImage: "i-dne"}},
+			CreateDisks{CreateDisk{Disk: compute.Disk{Name: "d-foo", SourceImage: "i-dne"}}},
 			"invalid or missing reference to SourceImage \"i-dne\"",
-		},
-		{
-			"bad size",
-			CreateDisks{CreateDisk{Name: "d-foo", SizeGB: "50s"}},
-			"strconv.ParseInt: parsing \"50s\": invalid syntax",
 		},
 	}
 
@@ -63,11 +59,12 @@ func TestCreateDisksRun(t *testing.T) {
 		}
 	}
 
+	// TODO(crunkleton) "real" can't be populated at this time because of test GCE Client limitations.
 	want := map[string]*resource{
-		"d1": {"d1", w.genName("d1"), "link", false, false},
-		"d2": {"d2", w.genName("d2"), "link", false, false},
-		"d3": {"d3", w.genName("d3"), "link", true, false},
-		"d4": {"d4", "d4", "link", false, false}}
+		"d1": {name: "d1", real: "", link: "link", noCleanup: false, deleted: false},
+		"d2": {name: "d2", real: "", link: "link", noCleanup: false, deleted: false},
+		"d3": {name: "d3", real: "", link: "link", noCleanup: true, deleted: false},
+		"d4": {name: "d4", real: "", link: "link", noCleanup: false, deleted: false}}
 
 	if diff := pretty.Compare(disks[w].m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
@@ -89,12 +86,12 @@ func TestCreateDisksValidate(t *testing.T) {
 	}{
 		{
 			"source image",
-			CreateDisks{{Name: "d-bar", SourceImage: "i-foo", SizeGB: "50"}},
+			CreateDisks{{Disk: compute.Disk{Name: "d-bar", SourceImage: "i-foo", SizeGb: 50}}},
 			[]string{"d-foo", "d-bar"},
 		},
 		{
 			"blank disk",
-			CreateDisks{{Name: "d-baz", SizeGB: "50", Zone: "foo"}},
+			CreateDisks{{Disk: compute.Disk{Name: "d-baz", SizeGb: 50}, Zone: "foo"}},
 			[]string{"d-foo", "d-bar", "d-baz"},
 		},
 	}
@@ -116,23 +113,18 @@ func TestCreateDisksValidate(t *testing.T) {
 	}{
 		{
 			"dupe disk name",
-			CreateDisks{{Name: "d-foo", SizeGB: "50"}},
+			CreateDisks{{Disk: compute.Disk{Name: "d-foo", SizeGb: 50}}},
 			"error adding disk: workflow \"\" has duplicate references for \"d-foo\"",
 		},
 		{
 			"no Size.",
-			CreateDisks{{Name: "d-foo"}},
-			"cannot create disk: SizeGB and SourceImage not set: ",
+			CreateDisks{{Disk: compute.Disk{Name: "d-foo"}}},
+			"cannot create disk: SizeGb and SourceImage not set",
 		},
 		{
 			"image DNE",
-			CreateDisks{{Name: "d-foo", SourceImage: "i-dne"}},
+			CreateDisks{{Disk: compute.Disk{Name: "d-foo", SourceImage: "i-dne"}}},
 			"cannot create disk: image not found: i-dne",
-		},
-		{
-			"bad size",
-			CreateDisks{{Name: "d-foo", SizeGB: "50s"}},
-			"cannot parse SizeGB: 50s, err: strconv.ParseInt: parsing \"50s\": invalid syntax",
 		},
 	}
 

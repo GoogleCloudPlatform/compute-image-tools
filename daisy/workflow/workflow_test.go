@@ -38,6 +38,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/kylelemons/godebug/diff"
 	"github.com/kylelemons/godebug/pretty"
+	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
 
@@ -173,16 +174,20 @@ func TestNewFromFile(t *testing.T) {
 				name: "create-disks",
 				CreateDisks: &CreateDisks{
 					{
-						Name:        "bootstrap",
-						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-						SizeGB:      "50",
-						Type:        "pd-ssd",
+						Disk: compute.Disk{
+							Name:        "bootstrap",
+							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+							SizeGb:      50,
+							Type:        "pd-ssd",
+						},
 					},
 					{
-						Name:        "image",
-						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-						SizeGB:      "50",
-						Type:        "pd-standard",
+						Disk: compute.Disk{
+							Name:        "image",
+							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+							SizeGb:      50,
+							Type:        "pd-standard",
+						},
 					},
 				},
 			},
@@ -234,9 +239,11 @@ func TestNewFromFile(t *testing.T) {
 								name: "create-disks",
 								CreateDisks: &CreateDisks{
 									{
-										Name:        "bootstrap",
-										SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-										SizeGB:      "50",
+										Disk: compute.Disk{
+											Name:        "bootstrap",
+											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+											SizeGb:      50,
+										},
 									},
 								},
 							},
@@ -284,9 +291,11 @@ func TestNewFromFile(t *testing.T) {
 								name: "create-disks",
 								CreateDisks: &CreateDisks{
 									{
-										Name:        "bootstrap",
-										SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-										SizeGB:      "50",
+										Disk: compute.Disk{
+											Name:        "bootstrap",
+											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+											SizeGb:      50,
+										},
 									},
 								},
 							},

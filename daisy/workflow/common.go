@@ -92,6 +92,16 @@ func splitGCSPath(p string) (string, string, error) {
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
+func stringOr(s string, ss ...string) string {
+	ss = append([]string{s}, ss...)
+	for _, st := range ss {
+		if st != "" {
+			return st
+		}
+	}
+	return ""
+}
+
 // substitute runs replacer on string elements within a complex data structure
 // (except those contained in private data structure fields).
 func substitute(v reflect.Value, replacer *strings.Replacer) {
