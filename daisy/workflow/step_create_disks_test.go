@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -24,34 +25,52 @@ import (
 
 func TestCreateDisksRun(t *testing.T) {
 	w := testWorkflow()
+	var fakeClientErr error
+	w.ComputeClient.CreateDiskFake = func(project, zone string, d *compute.Disk) error {
+		if fakeClientErr != nil {
+			return fakeClientErr
+		}
+		d.SelfLink = "link"
+		return nil
+	}
 	s := &Step{w: w}
 	images[w].m = map[string]*resource{"i1": {"i1", w.genName("i1"), "link", false, false}}
-	cd := &CreateDisks{
+
+	cds := &CreateDisks{
 		{name: "d1", Disk: compute.Disk{Name: w.genName("d1"), SourceImage: "i1", SizeGb: 100, Type: ""}},
 		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "projects/project/global/images/family/my-family", SizeGb: 100, Type: ""}},
 		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "projects/project/global/images/i2", SizeGb: 100, Type: ""}},
 		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "global/images/family/my-family", SizeGb: 100, Type: ""}},
 		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "global/images/i2", SizeGb: 100, Type: ""}, Zone: "zone", Project: "project"},
 		{name: "d3", Disk: compute.Disk{Name: w.genName("d3"), SourceImage: "i1", SizeGb: 100, Type: ""}, NoCleanup: true},
-		{name: "d4", Disk: compute.Disk{Name: "d4", SourceImage: "i1", SizeGb: 100, Type: ""}, ExactName: true}}
-	if err := cd.run(s); err != nil {
+		{name: "d4", Disk: compute.Disk{Name: "d4", SourceImage: "i1", SizeGb: 100, Type: ""}}}
+	if err := cds.run(s); err != nil {
 		t.Errorf("error running CreateDisks.run(): %v", err)
 	}
 
 	// Bad cases.
 	badTests := []struct {
-		name string
-		cd   CreateDisks
-		err  string
+		name          string
+		cd            CreateDisks
+		fakeClientErr error
+		err           string
 	}{
 		{
 			"image DNE",
 			CreateDisks{CreateDisk{Disk: compute.Disk{Name: "d-foo", SourceImage: "i-dne"}}},
+			nil,
 			"invalid or missing reference to SourceImage \"i-dne\"",
+		},
+		{
+			"client failure",
+			CreateDisks{CreateDisk{}},
+			errors.New("client err"),
+			"client err",
 		},
 	}
 
 	for _, tt := range badTests {
+		fakeClientErr = tt.fakeClientErr
 		if err := tt.cd.run(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
@@ -59,12 +78,11 @@ func TestCreateDisksRun(t *testing.T) {
 		}
 	}
 
-	// TODO(crunkleton) "real" can't be populated at this time because of test GCE Client limitations.
 	want := map[string]*resource{
-		"d1": {name: "d1", real: "", link: "link", noCleanup: false, deleted: false},
-		"d2": {name: "d2", real: "", link: "link", noCleanup: false, deleted: false},
-		"d3": {name: "d3", real: "", link: "link", noCleanup: true, deleted: false},
-		"d4": {name: "d4", real: "", link: "link", noCleanup: false, deleted: false}}
+		"d1": {name: "d1", real: (*cds)[0].Disk.Name, link: "link", noCleanup: false, deleted: false},
+		"d2": {name: "d2", real: (*cds)[4].Disk.Name, link: "link", noCleanup: false, deleted: false},
+		"d3": {name: "d3", real: (*cds)[5].Disk.Name, link: "link", noCleanup: true, deleted: false},
+		"d4": {name: "d4", real: (*cds)[6].Disk.Name, link: "link", noCleanup: false, deleted: false}}
 
 	if diff := pretty.Compare(disks[w].m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
