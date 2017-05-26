@@ -15,10 +15,9 @@
 package workflow
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
-
-	"fmt"
 
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
