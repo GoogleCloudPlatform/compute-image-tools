@@ -17,6 +17,7 @@ package workflow
 import (
 	"fmt"
 	"math/rand"
+	"path"
 	"reflect"
 	"regexp"
 	"strings"
@@ -46,6 +47,8 @@ var (
 	// http://commondatastorage.googleapis.com/<bucket>/<object>
 	// https://commondatastorage.googleapis.com/<bucket>/<object>
 	gsHTTPRegex3 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://(?:commondata)?storage\.googleapis\.com/%s/%s$`, bucket, object))
+
+	gcsAPIBase = "https://storage.cloud.google.com"
 )
 
 func containsString(s string, ss []string) bool {
@@ -66,6 +69,14 @@ func filter(ss []string, s string) []string {
 		}
 	}
 	return result
+}
+
+func getGCSAPIPath(p string) (string, error) {
+	b, o, e := splitGCSPath(p)
+	if e != nil {
+		return "", e
+	}
+	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(b, o)), nil
 }
 
 func randString(n int) string {
@@ -90,6 +101,16 @@ func splitGCSPath(p string) (string, string, error) {
 		return matches[1], "", nil
 	}
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
+}
+
+func stringOr(s string, ss ...string) string {
+	ss = append([]string{s}, ss...)
+	for _, st := range ss {
+		if st != "" {
+			return st
+		}
+	}
+	return ""
 }
 
 // substitute runs replacer on string elements within a complex data structure

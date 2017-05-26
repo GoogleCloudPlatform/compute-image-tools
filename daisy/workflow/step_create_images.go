@@ -17,54 +17,58 @@ package workflow
 import (
 	"errors"
 	"fmt"
-	"path"
 	"sync"
+
+	compute "google.golang.org/api/compute/v1"
 )
 
 // CreateImages is a Daisy CreateImages workflow step.
-type CreateImages []CreateImage
+type CreateImages []*CreateImage
 
 // CreateImage creates a GCE image in a project.
 // Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
 type CreateImage struct {
-	// Name if the image.
-	Name string
+	compute.Image
+
 	// Project to import image into. If this is unset Workflow.Project is
 	// used.
 	Project string `json:",omitempty"`
-	// Image family
-	Family string `json:",omitempty"`
-	// Image licenses
-	Licenses []string `json:",omitempty"`
-	// A list of features to enable on the guest OS.
-	// https://godoc.org/google.golang.org/api/compute/v1#GuestOsFeature
-	GuestOsFeatures []string `json:",omitempty"`
-	// Only one of these source types should be specified.
-	SourceDisk string `json:",omitempty"`
-	SourceFile string `json:",omitempty"`
-	// Optional description of the resource, if not specified Daisy will
-	// create one with the name of the project.
-	Description string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual
 	// resource name?
 	ExactName bool
+
+	// The name of the disk as known internally to Daisy.
+	name string
 }
 
 func (c *CreateImages) validate(s *Step) error {
 	w := s.w
 	for _, ci := range *c {
-		// File/Disk checking.
-		if !xor(ci.SourceDisk == "", ci.SourceFile == "") {
-			return errors.New("must provide either Disk or File, exclusively")
+		// Source disk checking.
+		if !xor(ci.SourceDisk == "", ci.RawDisk == nil) {
+			return errors.New("must provide either SourceDisk or RawDisk, exclusively")
 		}
-		if ci.SourceDisk != "" && !diskValid(w, ci.SourceDisk) {
-			return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
+
+		// Prepare field values: name, Name, RawDisk.Source, Description
+		ci.name = ci.Name
+		if !ci.ExactName {
+			ci.Name = w.genName(ci.name)
 		}
-		if _, _, err := splitGCSPath(ci.SourceFile); err != nil && ci.SourceFile != "" && !w.sourceExists(ci.SourceFile) {
-			return fmt.Errorf("cannot create image: file not in sources or valid GCS path: %s", ci.SourceFile)
+		if ci.SourceDisk != "" {
+			if !diskValid(w, ci.SourceDisk) {
+				return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
+			}
+		} else if w.sourceExists(ci.RawDisk.Source) {
+			ci.RawDisk.Source = w.getSourceGCSAPIPath(ci.RawDisk.Source)
+		} else if p, err := getGCSAPIPath(ci.RawDisk.Source); err == nil {
+			ci.RawDisk.Source = p
+		} else {
+			return fmt.Errorf("cannot create image: file not in sources or valid GCS path: %s", ci.RawDisk.Source)
 		}
+		ci.Description = stringOr(ci.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
+		ci.Project = stringOr(ci.Project, w.Project)
 
 		// Project checking.
 		if ci.Project != "" && !projectExists(ci.Project) {
@@ -72,7 +76,7 @@ func (c *CreateImages) validate(s *Step) error {
 		}
 
 		// Try adding image name.
-		if err := validatedImages.add(w, ci.Name); err != nil {
+		if err := validatedImages.add(w, ci.name); err != nil {
 			return fmt.Errorf("error adding image: %s", err)
 		}
 	}
@@ -86,55 +90,28 @@ func (c *CreateImages) run(s *Step) error {
 	e := make(chan error)
 	for _, ci := range *c {
 		wg.Add(1)
-		go func(ci CreateImage) {
+		go func(ci *CreateImage) {
 			defer wg.Done()
-			name := ci.Name
-			if !ci.ExactName {
-				name = w.genName(ci.Name)
-			}
 
-			project := w.Project
-			if ci.Project != "" {
-				project = ci.Project
-			}
+			project := stringOr(ci.Project, w.Project)
 
-			// Get source disk link, if applicable.
-			var diskLink string
+			// Get source disk link, if applicable.  TODO(crunkleton): Move to validate after validation refactor.
 			if ci.SourceDisk != "" {
-				if diskURLRegex.MatchString(ci.SourceDisk) {
-					diskLink = ci.SourceDisk
-				} else if disk, ok := disks[w].get(ci.SourceDisk); ok {
-					diskLink = disk.link
-				} else {
+				if disk, ok := disks[w].get(ci.SourceDisk); ok {
+					ci.SourceDisk = disk.link
+				} else if !diskURLRegex.MatchString(ci.SourceDisk) {
 					e <- fmt.Errorf("invalid or missing reference to SourceDisk %q", ci.SourceDisk)
 					return
 				}
 			}
 
-			// Resolve SourceFile, if applicable.
-			var sourceFile string
-			if ci.SourceFile != "" {
-				if w.sourceExists(ci.SourceFile) {
-					sourceFile = fmt.Sprintf("https://storage.cloud.google.com/%s", path.Join(w.bucket, w.sourcesPath, ci.SourceFile))
-				} else if bkt, obj, err := splitGCSPath(ci.SourceFile); err == nil {
-					sourceFile = fmt.Sprintf("https://storage.cloud.google.com/%s", path.Join(bkt, obj))
-				} else {
-					e <- fmt.Errorf("%q is not in Sources and is not a valid GCS path", ci.SourceFile)
-					return
-				}
-			}
-
-			w.logger.Printf("CreateImages: creating image %q.", name)
-			description := ci.Description
-			if description == "" {
-				description = fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", w.Name, w.username)
-			}
-			i, err := w.ComputeClient.CreateImage(name, project, diskLink, sourceFile, ci.Family, description, ci.Licenses, ci.GuestOsFeatures)
+			w.logger.Printf("CreateImages: creating image %q.", ci.Name)
+			err := w.ComputeClient.CreateImage(project, &ci.Image)
 			if err != nil {
 				e <- err
 				return
 			}
-			images[w].add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup, false})
+			images[w].add(ci.name, &resource{ci.name, ci.Name, ci.SelfLink, ci.NoCleanup, false})
 		}(ci)
 	}
 

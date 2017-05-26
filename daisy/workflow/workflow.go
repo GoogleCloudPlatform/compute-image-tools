@@ -205,6 +205,10 @@ func (w *Workflow) genName(n string) string {
 	return strings.ToLower(result)
 }
 
+func (w *Workflow) getSourceGCSAPIPath(s string) string {
+	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(w.bucket, w.sourcesPath, s))
+}
+
 func (w *Workflow) populateStep(step *Step) error {
 	if step.Timeout == "" {
 		step.Timeout = defaultTimeout

@@ -177,16 +177,21 @@ of "<STEP 1 TYPE>" and a timeout of 2 hours. "step2" has a type of
 Not implemented yet.
 
 #### Type: CreateDisks
-Creates GCE disks. Each disk has the following fields:
+Creates GCE disks. A list of GCE Disk resources. See https://cloud.google.com/compute/docs/reference/latest/disks for
+the Disk JSON representation. Daisy uses the same representation with a few modifications:
+
+| Field Name | Type | Description of Modification |
+| - | - | - |
+| Name | string | If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
+| SourceImage | string | You may also use the name of an image created in the workflow. |
+| Type | string | *Optional.* Defaults to "pd-standard". Instead of using the [partial URL](#glossary-partialurl), you may shorten this to just the disk type name, e.g. "pd-standard" or "pd-ssd". |
+
+Added fields:
 
 | Field Name | Type | Description |
 | - | - | - |
-| Name | string | The name of the GCE disk. If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
-| SourceImage | string | *Optional.* Creates a blank disk by default. Value can be 1) the Name of an image created in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE image. |
-| SizeGB | string | *Optional if SourceImage is being used.* The size of the disk in GB. |
-| Type | string | *Optional.* Defaults to "pd-standard". The type of disk. "pd-standard" or "pd-ssd". |
-| Project | string | *Optional.* Project to create the disk in, overrides workflow Project. |
-| Zone | string | *Optional.* Zone to create the disk in, overrides workflow Zone. |
+| Project | string | *Optional.* Defaults to workflow's Project. The GCP project in which to create the disk. |
+| Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
 | ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE disk exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
@@ -210,17 +215,20 @@ is a blank PD SSD.
 ```
 
 #### Type: CreateImages
-Creates GCE images. Each image has the following fields:
+Creates GCE images. A list of GCE Image resources. See https://cloud.google.com/compute/docs/reference/latest/images for
+the Image JSON representation. Daisy uses the same representation with a few modifications:
+
+| Field Name | Type | Description of Modification |
+| - | - | - |
+| Name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
+| RawDisk.File | string | Instead of requiring a GCS path, you may also use a source file from the workflow Sources. |
+| SourceDisk | string | Instead of requiring the [partial URL](#glossary-partialurl) of an existing GCE Disk, you may also use the name of an image created in the workflow. |
+
+Added fields:
 
 | Field Name | Type | Description |
 | - | - | - |
-| Name | string | The name of the GCE image. If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
 | Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this image. |
-| Family | string | *Optional.* The image family for the image. |
-| Licenses | list(string) | *Optional.* A list of licenses to attach to the image. |
-| GuestOsFeatures | list(string) | *Optional.* A list of features to enable on the Guest OS. |
-| SourceDisk | string | *Mutually exclusive with SourceFile.* The disk from which to create the image. Value can be 1) the Name of a disk created in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE disk. |
-| SourceFile | string | *Mutually exclusive with SourceDisk.* The file from which to create the image. Value can be 1) a Sources path or 2) a GCS path in the format "gs://..." |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this image when the workflow terminates. |
 | ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE image exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
@@ -236,18 +244,33 @@ This CreateImages example creates an image from a source disk.
 }
 ```
 
-This CreateImages example creates an image from a file in GCS, it also
-uses the NoCleanup flag to tell Daisy that this resource should exist
-after workflow completion, and the ExactName flag to tell Daisy to not
-use an generated name for the resource.
+This CreateImages example creates three images. `image1` is created from
+a source from the workflow's `Sources` and will not be cleaned up by
+Daisy. `image2` is created from a source from a GCS Path and will use
+the exact name, "image2". Lastly, `image3` is created from a disk from
+the workflow and will be created in a different project from the
+workflow's specified Project.
 ```json
 "step-name": {
   "CreateImages": [
     {
       "Name": "image1",
-      "SourceFile": "gs://my-bucket/image.tar.gz",
-      "NoCleanup": true,
+      "RawDisk": {
+        "Source": "my-source"
+      },my-source
+      "NoCleanup": true
+    },
+    {
+      "Name": "image2",
+      "RawDisk": {
+        "Source": "gs://my-bucket/image.tar.gz"
+      },
       "ExactName": true
+    },
+    {
+      "Name": "image3",
+      "SourceDisk": "my-disk",
+      "Project": "my-other-project"
     }
   ]
 }

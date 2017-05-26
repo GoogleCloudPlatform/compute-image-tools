@@ -15,53 +15,63 @@
 package workflow
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
+	"fmt"
 	"github.com/kylelemons/godebug/pretty"
+	compute "google.golang.org/api/compute/v1"
 )
 
 func TestCreateImagesRun(t *testing.T) {
 	w := testWorkflow()
+	var fakeClientErr error
+	w.ComputeClient.CreateImageFake = func(project string, i *compute.Image) error {
+		if fakeClientErr != nil {
+			return fakeClientErr
+		}
+		i.SelfLink = "link"
+		return nil
+	}
 	s := &Step{w: w}
 	disks[w].m = map[string]*resource{"d": {"d", w.genName("d"), "link", false, false}}
 	w.Sources = map[string]string{"file": "gs://some/path"}
-	ci := &CreateImages{
-		{Name: "i1", SourceDisk: "d"},
-		{Name: "i2", SourceFile: "gs://bucket/object"},
-		{Name: "i2", SourceFile: "file", Project: "project"},
-		{Name: "i3", SourceDisk: "d", NoCleanup: true},
-		{Name: "i4", SourceDisk: "d", ExactName: true},
-		{Name: "i5", SourceDisk: "zones/zone/disks/disk"},
+	cis := &CreateImages{
+		{name: "i1", Image: compute.Image{Name: "i1", SourceDisk: "d"}},
+		{name: "i2", Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}},
+		{name: "i2", Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "file"}}, Project: "project"},
+		{name: "i3", Image: compute.Image{Name: "i3", SourceDisk: "d"}, NoCleanup: true},
+		{name: "i4", Image: compute.Image{Name: "i4", SourceDisk: "d"}, ExactName: true},
+		{name: "i5", Image: compute.Image{Name: "i5", SourceDisk: "zones/zone/disks/disk"}},
 	}
-	if err := ci.run(s); err != nil {
+	if err := cis.run(s); err != nil {
 		t.Errorf("error running CreateImages.run(): %v", err)
 	}
 
 	// Bad cases.
 	badTests := []struct {
-		name string
-		cd   CreateImages
-		err  string
+		name          string
+		cd            CreateImages
+		fakeClientErr error
+		err           string
 	}{
 		{
 			"disk DNE",
-			CreateImages{CreateImage{Name: "i-gaz", SourceDisk: "dne-disk"}},
+			CreateImages{{Image: compute.Image{Name: "i-gaz", SourceDisk: "dne-disk"}}},
+			nil,
 			"invalid or missing reference to SourceDisk \"dne-disk\"",
 		},
 		{
-			"no disk/file",
-			CreateImages{CreateImage{Name: "i-gaz"}},
-			"you must provide either a sourceDisk or a sourceFile but not both to create an image",
-		},
-		{
-			"bad GCS path",
-			CreateImages{CreateImage{Name: "i-baz", SourceFile: "path/to/file"}},
-			"\"path/to/file\" is not in Sources and is not a valid GCS path",
+			"client failure",
+			CreateImages{{}},
+			errors.New("client err"),
+			"client err",
 		},
 	}
 
 	for _, tt := range badTests {
+		fakeClientErr = tt.fakeClientErr
 		if err := tt.cd.run(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
@@ -70,11 +80,11 @@ func TestCreateImagesRun(t *testing.T) {
 	}
 
 	want := map[string]*resource{
-		"i1": {"i1", w.genName("i1"), "link", false, false},
-		"i2": {"i2", w.genName("i2"), "link", false, false},
-		"i3": {"i3", w.genName("i3"), "link", true, false},
-		"i4": {"i4", "i4", "link", false, false},
-		"i5": {"i5", w.genName("i5"), "link", false, false},
+		"i1": {"i1", (*cis)[0].Name, "link", false, false},
+		"i2": {"i2", (*cis)[2].Name, "link", false, false},
+		"i3": {"i3", (*cis)[3].Name, "link", true, false},
+		"i4": {"i4", (*cis)[4].Name, "link", false, false},
+		"i5": {"i5", (*cis)[5].Name, "link", false, false},
 	}
 
 	if diff := pretty.Compare(images[w].m, want); diff != "" {
@@ -84,86 +94,109 @@ func TestCreateImagesRun(t *testing.T) {
 
 func TestCreateImagesValidate(t *testing.T) {
 	// Set up.
-	w := &Workflow{}
+	w := testWorkflow()
 	s := &Step{w: w}
-	validatedDisks = nameSet{w: {"d-foo"}}
-	validatedImages = nameSet{w: {"i-foo"}}
+	validatedDisks = nameSet{w: {"d1"}}
+	validatedImages = nameSet{w: {"i1"}}
 	w.Sources = map[string]string{"file": "gs://some/file"}
+
+	gcsAPIPath1 := w.getSourceGCSAPIPath("file")
+	gcsAPIPath2, _ := getGCSAPIPath("gs://path/to/file")
 
 	// Good cases.
 	goodTests := []struct {
-		name string
-		cd   CreateImages
-		want []string
+		desc                string
+		ci, wantCi          *CreateImage
+		wantValidatedImages []string
 	}{
 		{
 			"using disk",
-			CreateImages{{Name: "i-bar", SourceDisk: "d-foo"}},
-			[]string{"i-foo", "i-bar"},
+			&CreateImage{Image: compute.Image{Name: "i2", SourceDisk: "d1", Description: "foo"}},
+			&CreateImage{name: "i2", Image: compute.Image{Name: w.genName("i2"), SourceDisk: "d1", Description: "foo"}, Project: w.Project},
+			[]string{"i1", "i2"},
 		},
 		{
 			"using sources file",
-			CreateImages{{Name: "i-bas", SourceFile: "file"}},
-			[]string{"i-foo", "i-bar", "i-bas"},
+			&CreateImage{Image: compute.Image{Name: "i3", RawDisk: &compute.ImageRawDisk{Source: "file"}, Description: "foo"}},
+			&CreateImage{name: "i3", Image: compute.Image{Name: w.genName("i3"), RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath1}, Description: "foo"}, Project: w.Project},
+			[]string{"i1", "i2", "i3"},
 		},
 		{
 			"using GCS file",
-			CreateImages{{Name: "i-baz", SourceFile: "gs://path/to/file"}},
-			[]string{"i-foo", "i-bar", "i-bas", "i-baz"},
+			&CreateImage{Image: compute.Image{Name: "i4", RawDisk: &compute.ImageRawDisk{Source: "gs://path/to/file"}, Description: "foo"}},
+			&CreateImage{name: "i4", Image: compute.Image{Name: w.genName("i4"), RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath2}, Description: "foo"}, Project: w.Project},
+			[]string{"i1", "i2", "i3", "i4"},
+		},
+		{
+			"exact name",
+			&CreateImage{Image: compute.Image{Name: "i5", SourceDisk: "d1", Description: "foo"}, ExactName: true},
+			&CreateImage{name: "i5", Image: compute.Image{Name: "i5", SourceDisk: "d1", Description: "foo"}, Project: w.Project, ExactName: true},
+			[]string{"i1", "i2", "i3", "i4", "i5"},
+		},
+		{
+			"non default project",
+			&CreateImage{Image: compute.Image{Name: "i6", SourceDisk: "d1", Description: "foo"}, Project: "foo-project"},
+			&CreateImage{name: "i6", Image: compute.Image{Name: w.genName("i6"), SourceDisk: "d1", Description: "foo"}, Project: "foo-project"},
+			[]string{"i1", "i2", "i3", "i4", "i5", "i6"},
 		},
 	}
 
 	for _, tt := range goodTests {
-		if err := tt.cd.validate(s); err != nil {
-			t.Errorf("%q: unexpected error: %v", tt.name, err)
+		cis := CreateImages{tt.ci}
+		if err := cis.validate(s); err != nil {
+			t.Errorf("%q: unexpected error: %v", tt.desc, err)
 		}
-		if !reflect.DeepEqual(validatedImages[w], tt.want) {
-			t.Errorf("%q: got:(%v) != want(%v)", tt.name, validatedImages[w], tt.want)
+		if diff := pretty.Compare(tt.ci, tt.wantCi); diff != "" {
+			t.Errorf("%q: validated Disk does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		}
+		if !reflect.DeepEqual(validatedImages[w], tt.wantValidatedImages) {
+			t.Errorf("%q: got:(%v) != want(%v)", tt.desc, validatedImages[w], tt.wantValidatedImages)
 		}
 	}
 
 	// Bad cases.
 	badTests := []struct {
 		name string
-		cd   CreateImages
+		ci   *CreateImage
 		err  string
 	}{
 		{
 			"dupe name",
-			CreateImages{{Name: "i-baz", SourceFile: "gs://path/to/file"}},
-			"error adding image: workflow \"\" has duplicate references for \"i-baz\"",
+			&CreateImage{Image: compute.Image{Name: "i1", RawDisk: &compute.ImageRawDisk{Source: "gs://path/to/file"}}},
+			fmt.Sprintf("error adding image: workflow %q has duplicate references for %q", w.Name, "i1"),
 		},
 		{
 			"disk DNE",
-			CreateImages{{Name: "i-gaz", SourceDisk: "dne-disk"}},
+			&CreateImage{Image: compute.Image{Name: "bi1", SourceDisk: "dne-disk"}},
 			"cannot create image: disk not found: dne-disk",
 		},
 		{
 			"no disk/file",
-			CreateImages{{Name: "i-gaz"}},
-			"must provide either Disk or File, exclusively",
+			&CreateImage{Image: compute.Image{Name: "bi1"}},
+			"must provide either SourceDisk or RawDisk, exclusively",
 		},
 		{
 			"using both disk/file",
-			CreateImages{{Name: "i-gaz", SourceDisk: "d-foo", SourceFile: "gs://path/to/file"}},
-			"must provide either Disk or File, exclusively",
+			&CreateImage{Image: compute.Image{Name: "bi1", SourceDisk: "d-foo", RawDisk: &compute.ImageRawDisk{Source: "gs://path/to/file"}}},
+			"must provide either SourceDisk or RawDisk, exclusively",
 		},
 		{
 			"bad GCS path",
-			CreateImages{{Name: "i-baz", SourceFile: "path/to/file"}},
+			&CreateImage{Image: compute.Image{Name: "bi1", RawDisk: &compute.ImageRawDisk{Source: "path/to/file"}}},
 			"cannot create image: file not in sources or valid GCS path: path/to/file",
 		},
 	}
 
 	for _, tt := range badTests {
-		if err := tt.cd.validate(s); err == nil {
+		cis := CreateImages{tt.ci}
+		if err := cis.validate(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
 		}
 	}
 
-	want := []string{"i-foo", "i-bar", "i-bas", "i-baz"}
+	want := []string{"i1", "i2", "i3", "i4", "i5", "i6"}
 	if !reflect.DeepEqual(validatedImages[w], want) {
 		t.Fatalf("got:(%v) != want(%v)", validatedImages[w], want)
 	}

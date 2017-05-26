@@ -38,6 +38,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/kylelemons/godebug/diff"
 	"github.com/kylelemons/godebug/pretty"
+	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
 
@@ -87,6 +88,16 @@ func TestGenName(t *testing.T) {
 		if len(result) > 64 {
 			t.Errorf("result > 64 characters, input: name=%s wfName=%s wfId=%s; got: %s", tt.name, tt.wfName, tt.wfID, result)
 		}
+	}
+}
+
+func TestGetSourceGCSAPIPath(t *testing.T) {
+	w := testWorkflow()
+	w.sourcesPath = "my/sources"
+	got := w.getSourceGCSAPIPath("foo")
+	want := "https://storage.cloud.google.com/my/sources/foo"
+	if got != want {
+		t.Errorf("unexpected result: got: %q, want %q", got, want)
 	}
 }
 
@@ -173,16 +184,20 @@ func TestNewFromFile(t *testing.T) {
 				name: "create-disks",
 				CreateDisks: &CreateDisks{
 					{
-						Name:        "bootstrap",
-						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-						SizeGB:      "50",
-						Type:        "pd-ssd",
+						Disk: compute.Disk{
+							Name:        "bootstrap",
+							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+							SizeGb:      50,
+							Type:        "pd-ssd",
+						},
 					},
 					{
-						Name:        "image",
-						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-						SizeGB:      "50",
-						Type:        "pd-standard",
+						Disk: compute.Disk{
+							Name:        "image",
+							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+							SizeGb:      50,
+							Type:        "pd-standard",
+						},
 					},
 				},
 			},
@@ -220,7 +235,7 @@ func TestNewFromFile(t *testing.T) {
 			},
 			"create-image": {
 				name:         "create-image",
-				CreateImages: &CreateImages{{Name: "image-from-disk", SourceDisk: "image"}},
+				CreateImages: &CreateImages{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}},
 			},
 			"include-workflow": {
 				name: "include-workflow",
@@ -234,9 +249,11 @@ func TestNewFromFile(t *testing.T) {
 								name: "create-disks",
 								CreateDisks: &CreateDisks{
 									{
-										Name:        "bootstrap",
-										SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-										SizeGB:      "50",
+										Disk: compute.Disk{
+											Name:        "bootstrap",
+											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+											SizeGb:      50,
+										},
 									},
 								},
 							},
@@ -284,9 +301,11 @@ func TestNewFromFile(t *testing.T) {
 								name: "create-disks",
 								CreateDisks: &CreateDisks{
 									{
-										Name:        "bootstrap",
-										SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-										SizeGB:      "50",
+										Disk: compute.Disk{
+											Name:        "bootstrap",
+											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+											SizeGb:      50,
+										},
 									},
 								},
 							},
@@ -404,7 +423,7 @@ func TestPopulate(t *testing.T) {
 			"${step_name}": {
 				Timeout: "${timeout}",
 				CreateImages: &CreateImages{
-					{SourceFile: "${SOURCESPATH}/image_file"},
+					{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "${SOURCESPATH}/image_file"}}},
 				},
 			},
 			"${NAME}-step2": {
@@ -530,7 +549,7 @@ func TestPopulate(t *testing.T) {
 				Timeout: "60m",
 				timeout: time.Duration(60 * time.Minute),
 				CreateImages: &CreateImages{
-					{SourceFile: fmt.Sprintf("gs://parent-bucket/%s/sources/image_file", got.scratchPath)},
+					{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: fmt.Sprintf("gs://parent-bucket/%s/sources/image_file", got.scratchPath)}}},
 				},
 			},
 			"parent-step2": {

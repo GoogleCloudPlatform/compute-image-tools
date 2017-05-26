@@ -17,10 +17,8 @@ package compute
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	compute "google.golang.org/api/compute/v1"
@@ -32,6 +30,10 @@ import (
 type Client struct {
 	hc  *http.Client
 	raw *compute.Service
+
+	OperationsWaitFake func(project, zone, name string) error
+	CreateDiskFake     func(project, zone string, d *compute.Disk) error
+	CreateImageFake    func(project string, i *compute.Image) error
 }
 
 // NewClient creates a new Google Cloud Compute client.
@@ -56,6 +58,9 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 }
 
 func (c *Client) operationsWait(project, zone, name string) error {
+	if c.OperationsWaitFake != nil {
+		return c.OperationsWaitFake(project, zone, name)
+	}
 	for {
 		var err error
 		var op *compute.Operation
@@ -89,68 +94,51 @@ func (c *Client) operationsWait(project, zone, name string) error {
 	}
 }
 
-// CreateDisk creates a GCE persistant disk.
-func (c *Client) CreateDisk(name, project, zone, sourceImage string, size int64, diskType, description string) (*compute.Disk, error) {
-	dt := fmt.Sprintf("zones/%s/diskTypes/pd-standard", zone)
-	if diskType != "" {
-		if strings.Contains(diskType, "/") {
-			dt = diskType
-		} else {
-			dt = fmt.Sprintf("zones/%s/diskTypes/%s", zone, diskType)
-		}
+// CreateDisk creates a GCE persistent disk.
+func (c *Client) CreateDisk(project, zone string, d *compute.Disk) error {
+	if c.CreateDiskFake != nil {
+		return c.CreateDiskFake(project, zone, d)
 	}
-
-	disk := &compute.Disk{
-		Name:        name,
-		Type:        dt,
-		SourceImage: sourceImage,
-		Description: description,
-	}
-	if size != 0 {
-		disk.SizeGb = size
-	}
-	resp, err := c.raw.Disks.Insert(project, zone, disk).Do()
+	resp, err := c.raw.Disks.Insert(project, zone, d).Do()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.operationsWait(project, zone, resp.Name); err != nil {
-		return nil, err
+		return err
 	}
 
-	return c.raw.Disks.Get(project, zone, name).Do()
+	var createdDisk *compute.Disk
+	if createdDisk, err = c.raw.Disks.Get(project, zone, d.Name).Do(); err != nil {
+		return err
+	}
+	*d = *createdDisk
+	return nil
 }
 
 // CreateImage creates a GCE image.
 // Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
 // url (full or partial) to the source disk, sourceFile is the full Google
 // Cloud Storage URL where the disk image is stored.
-func (c *Client) CreateImage(name, project, sourceDisk, sourceFile, family, description string, licenses, guestOsFeatures []string) (*compute.Image, error) {
-	if (sourceDisk != "" && sourceFile != "") || (sourceDisk == "" && sourceFile == "") {
-		return nil, errors.New("you must provide either a sourceDisk or a sourceFile but not both to create an image")
+func (c *Client) CreateImage(project string, i *compute.Image) error {
+	if c.CreateImageFake != nil {
+		return c.CreateImageFake(project, i)
 	}
-	var gosf []*compute.GuestOsFeature
-	for _, f := range guestOsFeatures {
-		gosf = append(gosf, &compute.GuestOsFeature{Type: f})
-	}
-	resp, err := c.raw.Images.Insert(project, &compute.Image{
-		Name:            name,
-		Family:          family,
-		Licenses:        licenses,
-		GuestOsFeatures: gosf,
-		SourceDisk:      sourceDisk,
-		RawDisk:         &compute.ImageRawDisk{Source: sourceFile},
-		Description:     description,
-	}).Do()
+	resp, err := c.raw.Images.Insert(project, i).Do()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := c.operationsWait(project, "", resp.Name); err != nil {
-		return nil, err
+		return err
 	}
 
-	return c.raw.Images.Get(project, name).Do()
+	var createdImage *compute.Image
+	if createdImage, err = c.raw.Images.Get(project, i.Name).Do(); err != nil {
+		return err
+	}
+	*i = *createdImage
+	return nil
 }
 
 // DeleteImage deletes a GCE image.

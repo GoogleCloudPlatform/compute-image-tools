@@ -17,10 +17,11 @@ package compute
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 	"time"
 
@@ -47,36 +48,27 @@ func newTestClient(handleFunc http.HandlerFunc) (*httptest.Server, *Client, erro
 	return ts, c, nil
 }
 
-func testCreateDisk(got, want *compute.Disk) error {
-	if got.Name != want.Name {
-		return fmt.Errorf("unexpected Name, got: %s, want: %s", got.Name, want.Name)
-	}
-	if got.SizeGb != want.SizeGb {
-		return fmt.Errorf("unexpected SizeGb, got: %d, want: %d", got.SizeGb, want.SizeGb)
-	}
-	if got.Type != want.Type {
-		return fmt.Errorf("unexpected Type, got: %s, want: %s", got.Type, want.Type)
-	}
-	if got.SourceImage != want.SourceImage {
-		return fmt.Errorf("unexpected SourceImage, got: %s, want: %s", got.SourceImage, want.SourceImage)
-	}
-	return nil
-}
-
 func TestCreateDisk(t *testing.T) {
-	var body string
+	var getErr, insertErr, waitErr error
+	var getResponse *compute.Disk
 	svr, c, err := newTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone) {
+			if insertErr != nil {
+				w.WriteHeader(400)
+				fmt.Fprintln(w, insertErr)
+			}
 			buf := new(bytes.Buffer)
 			if _, err := buf.ReadFrom(r.Body); err != nil {
 				t.Fatal(err)
 			}
-			body = buf.String()
-			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone) {
-			fmt.Fprint(w, `{"Status":"DONE"}`)
+			fmt.Fprintln(w, `{}`)
 		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json", testProject, testZone, testDisk) {
-			fmt.Fprint(w, body)
+			if getErr != nil {
+				w.WriteHeader(400)
+				fmt.Fprintln(w, getErr)
+			}
+			body, _ := json.Marshal(getResponse)
+			fmt.Fprintln(w, string(body))
 		} else {
 			w.WriteHeader(500)
 			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
@@ -85,26 +77,31 @@ func TestCreateDisk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	c.OperationsWaitFake = func(project, zone, name string) error { return waitErr }
 	defer svr.Close()
 
-	// Blank disk.
-	want := &compute.Disk{Name: testDisk, SizeGb: 100, Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", testZone)}
-	got, err := c.CreateDisk(testDisk, testProject, testZone, "", want.SizeGb, "", "")
-	if err != nil {
-		t.Fatalf("error running CreateDisk: %v", err)
-	}
-	if err := testCreateDisk(got, want); err != nil {
-		t.Error(err)
+	tests := []struct {
+		desc                       string
+		getErr, insertErr, waitErr error
+		shouldErr                  bool
+	}{
+		{"normal case", nil, nil, nil, false},
+		{"get err case", errors.New("get err"), nil, nil, true},
+		{"insert err case", nil, errors.New("insert err"), nil, true},
+		{"wait err case", nil, nil, errors.New("wait err"), true},
 	}
 
-	// Test SSD and non blank disk.
-	want = &compute.Disk{Name: testDisk, SizeGb: 50, Type: fmt.Sprintf("zones/%s/diskTypes/pd-ssd", testZone), SourceImage: "some-image"}
-	got, err = c.CreateDisk(testDisk, testProject, testZone, "some-image", 50, "pd-ssd", "")
-	if err != nil {
-		t.Fatalf("error running CreateDisk: %v", err)
-	}
-	if err := testCreateDisk(got, want); err != nil {
-		t.Error(err)
+	for _, tt := range tests {
+		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
+		d := &compute.Disk{Name: testDisk}
+		getResponse = &compute.Disk{Name: testDisk, SelfLink: "foo"}
+		err := c.CreateDisk(testProject, testZone, d)
+		getResponse.ServerResponse = d.ServerResponse // We have to fudge this part in order to check that d == getResponse
+		if err != nil && !tt.shouldErr {
+			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
+		} else if diff := pretty.Compare(d, getResponse); err == nil && diff != "" {
+			t.Errorf("%s: Disk does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		}
 	}
 }
 
@@ -129,80 +126,60 @@ func TestDeleteDisk(t *testing.T) {
 	}
 }
 
-func testCreateImage(got, want *compute.Image) error {
-	if got.Name != want.Name {
-		return fmt.Errorf("unexpected Name, got: %s, want: %s", got.Name, want.Name)
-	}
-	if got.Family != want.Family {
-		return fmt.Errorf("unexpected Family, got: %s, want: %s", got.Family, want.Family)
-	}
-	if got.SourceDisk != want.SourceDisk {
-		return fmt.Errorf("unexpected SourceDisk, got: %s, want: %s", got.SourceDisk, want.SourceDisk)
-	}
-	if !reflect.DeepEqual(got.Licenses, want.Licenses) {
-		return fmt.Errorf("unexpected Licenses, got: %q, want: %q", got.Licenses, want.Licenses)
-	}
-	if !reflect.DeepEqual(got.RawDisk, want.RawDisk) {
-		return fmt.Errorf("unexpected RawDisk, got: %q, want: %q", got.RawDisk, want.RawDisk)
-	}
-	if !reflect.DeepEqual(got.GuestOsFeatures, want.GuestOsFeatures) {
-		return fmt.Errorf("unexpected GuestOsFeatures, got: %q, want: %q", got.GuestOsFeatures, want.GuestOsFeatures)
-	}
-	return nil
-}
-
 func TestCreateImage(t *testing.T) {
-	var body string
+	var getErr, insertErr, waitErr error
+	var getResponse *compute.Image
 	svr, c, err := newTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/images?alt=json", testProject) {
+			if insertErr != nil {
+				w.WriteHeader(400)
+				fmt.Fprintln(w, insertErr)
+			}
 			buf := new(bytes.Buffer)
 			if _, err := buf.ReadFrom(r.Body); err != nil {
 				t.Fatal(err)
 			}
-			body = buf.String()
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/global/operations/?alt=json", testProject) {
-			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/global/images/%s?alt=json", testProject, testImage) {
-			fmt.Fprint(w, body)
+			if getErr != nil {
+				w.WriteHeader(400)
+				fmt.Fprintln(w, getErr)
+			}
+			body, _ := json.Marshal(getResponse)
+			fmt.Fprintln(w, string(body))
 		} else {
 			w.WriteHeader(500)
 			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
 		}
 	}))
+	c.OperationsWaitFake = func(project, zone, name string) error { return waitErr }
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer svr.Close()
 
-	family := "somefamily"
-	licenses := []string{"123456"}
-	gosf := []*compute.GuestOsFeature{{Type: "somefeature"}}
-
-	// Image from disk.
-	want := &compute.Image{Name: testImage, Family: family, Licenses: licenses, GuestOsFeatures: gosf, SourceDisk: testDisk, RawDisk: &compute.ImageRawDisk{}}
-	got, err := c.CreateImage(testImage, testProject, testDisk, "", family, "", licenses, []string{"somefeature"})
-	if err != nil {
-		t.Fatalf("error running CreateImage: %v", err)
-	}
-	if err := testCreateImage(got, want); err != nil {
-		t.Error(err)
+	tests := []struct {
+		desc                       string
+		getErr, insertErr, waitErr error
+		shouldErr                  bool
+	}{
+		{"normal case", nil, nil, nil, false},
+		{"get err case", errors.New("get err"), nil, nil, true},
+		{"insert err case", nil, errors.New("insert err"), nil, true},
+		{"wait err case", nil, nil, errors.New("wait err"), true},
 	}
 
-	// Image from file.
-	want = &compute.Image{Name: testImage, Family: family, Licenses: licenses, GuestOsFeatures: gosf, RawDisk: &compute.ImageRawDisk{Source: "some/file"}}
-	got, err = c.CreateImage(testImage, testProject, "", "some/file", family, "", licenses, []string{"somefeature"})
-	if err != nil {
-		t.Fatalf("error running CreateImage: %v", err)
-	}
-	if err := testCreateImage(got, want); err != nil {
-		t.Error(err)
-	}
-
-	// Test error.
-	got, err = c.CreateImage(testImage, testProject, testDisk, "some/file", family, "", licenses, []string{"somefeature"})
-	if err.Error() != "you must provide either a sourceDisk or a sourceFile but not both to create an image" {
-		t.Errorf("did not receive expected error from CreateImage, err: %q", err)
+	for _, tt := range tests {
+		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
+		i := &compute.Image{Name: testImage}
+		getResponse = &compute.Image{Name: testImage, SelfLink: "foo"}
+		err := c.CreateImage(testProject, i)
+		getResponse.ServerResponse = i.ServerResponse // We have to fudge this part in order to check that i == getResponse
+		if err != nil && !tt.shouldErr {
+			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
+		} else if diff := pretty.Compare(i, getResponse); err == nil && diff != "" {
+			t.Errorf("%s: Image does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		}
 	}
 }
 

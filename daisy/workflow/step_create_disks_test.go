@@ -15,47 +15,63 @@
 package workflow
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
+	"fmt"
 	"github.com/kylelemons/godebug/pretty"
+	compute "google.golang.org/api/compute/v1"
 )
 
 func TestCreateDisksRun(t *testing.T) {
 	w := testWorkflow()
+	var fakeClientErr error
+	w.ComputeClient.CreateDiskFake = func(project, zone string, d *compute.Disk) error {
+		if fakeClientErr != nil {
+			return fakeClientErr
+		}
+		d.SelfLink = "link"
+		return nil
+	}
 	s := &Step{w: w}
 	images[w].m = map[string]*resource{"i1": {"i1", w.genName("i1"), "link", false, false}}
-	cd := &CreateDisks{
-		{Name: "d1", SourceImage: "i1", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "projects/project/global/images/family/my-family", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "projects/project/global/images/i2", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "global/images/family/my-family", SizeGB: "100", Type: ""},
-		{Name: "d2", SourceImage: "global/images/i2", SizeGB: "100", Type: "", Zone: "zone", Project: "project"},
-		{Name: "d3", SourceImage: "i1", SizeGB: "100", Type: "", NoCleanup: true},
-		{Name: "d4", SourceImage: "i1", SizeGB: "100", Type: "", ExactName: true}}
-	if err := cd.run(s); err != nil {
+
+	cds := &CreateDisks{
+		{name: "d1", Disk: compute.Disk{Name: w.genName("d1"), SourceImage: "i1", SizeGb: 100, Type: ""}},
+		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "projects/project/global/images/family/my-family", SizeGb: 100, Type: ""}},
+		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "projects/project/global/images/i2", SizeGb: 100, Type: ""}},
+		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "global/images/family/my-family", SizeGb: 100, Type: ""}},
+		{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "global/images/i2", SizeGb: 100, Type: ""}, Zone: "zone", Project: "project"},
+		{name: "d3", Disk: compute.Disk{Name: w.genName("d3"), SourceImage: "i1", SizeGb: 100, Type: ""}, NoCleanup: true},
+		{name: "d4", Disk: compute.Disk{Name: "d4", SourceImage: "i1", SizeGb: 100, Type: ""}}}
+	if err := cds.run(s); err != nil {
 		t.Errorf("error running CreateDisks.run(): %v", err)
 	}
 
 	// Bad cases.
 	badTests := []struct {
-		name string
-		cd   CreateDisks
-		err  string
+		name          string
+		cd            CreateDisks
+		fakeClientErr error
+		err           string
 	}{
 		{
 			"image DNE",
-			CreateDisks{CreateDisk{Name: "d-foo", SourceImage: "i-dne"}},
+			CreateDisks{{Disk: compute.Disk{Name: "d-foo", SourceImage: "i-dne"}}},
+			nil,
 			"invalid or missing reference to SourceImage \"i-dne\"",
 		},
 		{
-			"bad size",
-			CreateDisks{CreateDisk{Name: "d-foo", SizeGB: "50s"}},
-			"strconv.ParseInt: parsing \"50s\": invalid syntax",
+			"client failure",
+			CreateDisks{{}},
+			errors.New("client err"),
+			"client err",
 		},
 	}
 
 	for _, tt := range badTests {
+		fakeClientErr = tt.fakeClientErr
 		if err := tt.cd.run(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
@@ -64,10 +80,10 @@ func TestCreateDisksRun(t *testing.T) {
 	}
 
 	want := map[string]*resource{
-		"d1": {"d1", w.genName("d1"), "link", false, false},
-		"d2": {"d2", w.genName("d2"), "link", false, false},
-		"d3": {"d3", w.genName("d3"), "link", true, false},
-		"d4": {"d4", "d4", "link", false, false}}
+		"d1": {name: "d1", real: (*cds)[0].Name, link: "link", noCleanup: false, deleted: false},
+		"d2": {name: "d2", real: (*cds)[4].Name, link: "link", noCleanup: false, deleted: false},
+		"d3": {name: "d3", real: (*cds)[5].Name, link: "link", noCleanup: true, deleted: false},
+		"d4": {name: "d4", real: (*cds)[6].Name, link: "link", noCleanup: false, deleted: false}}
 
 	if diff := pretty.Compare(disks[w].m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)
@@ -76,75 +92,101 @@ func TestCreateDisksRun(t *testing.T) {
 
 func TestCreateDisksValidate(t *testing.T) {
 	// Set up.
-	w := &Workflow{}
+	w := testWorkflow()
 	s := &Step{w: w}
-	validatedDisks = nameSet{w: {"d-foo"}}
-	validatedImages = nameSet{w: {"i-foo"}}
+	validatedDisks = nameSet{w: {"d1"}}
+	validatedImages = nameSet{w: {"i1"}}
 
 	// Good cases.
 	goodTests := []struct {
-		name string
-		cd   CreateDisks
-		want []string
+		desc               string
+		cd, wantCd         *CreateDisk
+		wantValidatedDisks []string
 	}{
 		{
 			"source image",
-			CreateDisks{{Name: "d-bar", SourceImage: "i-foo", SizeGB: "50"}},
-			[]string{"d-foo", "d-bar"},
+			&CreateDisk{Disk: compute.Disk{Name: "d2", SourceImage: "i1", Description: "foo"}},
+			&CreateDisk{name: "d2", Disk: compute.Disk{Name: w.genName("d2"), SourceImage: "i1", Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", w.Zone), Description: "foo"}, Project: w.Project, Zone: w.Zone},
+			[]string{"d1", "d2"},
 		},
 		{
 			"blank disk",
-			CreateDisks{{Name: "d-baz", SizeGB: "50", Zone: "foo"}},
-			[]string{"d-foo", "d-bar", "d-baz"},
+			&CreateDisk{Disk: compute.Disk{Name: "d3", SizeGb: 50, Description: "foo"}},
+			&CreateDisk{name: "d3", Disk: compute.Disk{Name: w.genName("d3"), SizeGb: 50, Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", w.Zone), Description: "foo"}, Project: w.Project, Zone: w.Zone},
+			[]string{"d1", "d2", "d3"},
+		},
+		{
+			"exact name",
+			&CreateDisk{Disk: compute.Disk{Name: "d4", SourceImage: "i1", Description: "foo"}, ExactName: true},
+			&CreateDisk{name: "d4", Disk: compute.Disk{Name: "d4", SourceImage: "i1", Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", w.Zone), Description: "foo"}, Project: w.Project, Zone: w.Zone, ExactName: true},
+			[]string{"d1", "d2", "d3", "d4"},
+		},
+		{
+			"non default type",
+			&CreateDisk{Disk: compute.Disk{Name: "d5", SourceImage: "i1", Type: "pd-ssd", Description: "foo"}},
+			&CreateDisk{name: "d5", Disk: compute.Disk{Name: w.genName("d5"), SourceImage: "i1", Type: fmt.Sprintf("zones/%s/diskTypes/pd-ssd", w.Zone), Description: "foo"}, Project: w.Project, Zone: w.Zone},
+			[]string{"d1", "d2", "d3", "d4", "d5"},
+		},
+		{
+			"non default zone",
+			&CreateDisk{Disk: compute.Disk{Name: "d6", SourceImage: "i1", Description: "foo"}, Zone: "foo-zone"},
+			&CreateDisk{name: "d6", Disk: compute.Disk{Name: w.genName("d6"), SourceImage: "i1", Type: "zones/foo-zone/diskTypes/pd-standard", Description: "foo"}, Project: w.Project, Zone: "foo-zone"},
+			[]string{"d1", "d2", "d3", "d4", "d5", "d6"},
+		},
+		{
+			"non default project",
+			&CreateDisk{Disk: compute.Disk{Name: "d7", SourceImage: "i1", Description: "foo"}, Project: "foo-project"},
+			&CreateDisk{name: "d7", Disk: compute.Disk{Name: w.genName("d7"), SourceImage: "i1", Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", w.Zone), Description: "foo"}, Project: "foo-project", Zone: w.Zone},
+			[]string{"d1", "d2", "d3", "d4", "d5", "d6", "d7"},
 		},
 	}
 
 	for _, tt := range goodTests {
-		if err := tt.cd.validate(s); err != nil {
-			t.Errorf("%q: unexpected error: %v", tt.name, err)
+		cds := CreateDisks{tt.cd}
+		if err := cds.validate(s); err != nil {
+			t.Errorf("%q: unexpected error: %v", tt.desc, err)
 		}
-		if !reflect.DeepEqual(validatedDisks[w], tt.want) {
-			t.Errorf("%q: got:(%v) != want(%v)", tt.name, validatedDisks[w], tt.want)
+		if diff := pretty.Compare(tt.cd, tt.wantCd); diff != "" {
+			t.Errorf("%q: validated Disk does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		}
+		if !reflect.DeepEqual(validatedDisks[w], tt.wantValidatedDisks) {
+			t.Errorf("%q: got:(%v) != want(%v)", tt.desc, validatedDisks[w], tt.wantValidatedDisks)
 		}
 	}
 
 	// Bad cases.
 	badTests := []struct {
 		name string
-		cd   CreateDisks
+		cd   *CreateDisk
 		err  string
 	}{
 		{
 			"dupe disk name",
-			CreateDisks{{Name: "d-foo", SizeGB: "50"}},
-			"error adding disk: workflow \"\" has duplicate references for \"d-foo\"",
+			&CreateDisk{Disk: compute.Disk{Name: "d1", SizeGb: 50}},
+			fmt.Sprintf("error adding disk: workflow %q has duplicate references for %q", w.Name, "d1"),
 		},
 		{
-			"no Size.",
-			CreateDisks{{Name: "d-foo"}},
-			"cannot create disk: SizeGB and SourceImage not set: ",
+			"no size/source image",
+			&CreateDisk{Disk: compute.Disk{Name: "bd1"}},
+			"cannot create disk: SizeGb and SourceImage not set",
 		},
 		{
 			"image DNE",
-			CreateDisks{{Name: "d-foo", SourceImage: "i-dne"}},
+			&CreateDisk{Disk: compute.Disk{Name: "bd1", SourceImage: "i-dne"}},
 			"cannot create disk: image not found: i-dne",
-		},
-		{
-			"bad size",
-			CreateDisks{{Name: "d-foo", SizeGB: "50s"}},
-			"cannot parse SizeGB: 50s, err: strconv.ParseInt: parsing \"50s\": invalid syntax",
 		},
 	}
 
 	for _, tt := range badTests {
-		if err := tt.cd.validate(s); err == nil {
+		cds := CreateDisks{tt.cd}
+		if err := cds.validate(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
 		}
 	}
 
-	want := []string{"d-foo", "d-bar", "d-baz"}
+	want := []string{"d1", "d2", "d3", "d4", "d5", "d6", "d7"}
 	if !reflect.DeepEqual(validatedDisks[w], want) {
 		t.Errorf("got:(%v) != want(%v)", validatedDisks[w], want)
 	}

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	compute "google.golang.org/api/compute/v1"
 )
 
 func TestContainsString(t *testing.T) {
@@ -38,15 +39,6 @@ func TestContainsString(t *testing.T) {
 	// Edge case -- empty slice.
 	if containsString("dne", []string{}) {
 		t.Fatal("string found in empty slice")
-	}
-}
-
-func TestRandString(t *testing.T) {
-	for i := 0; i < 10; i++ {
-		l := len(randString(i))
-		if l != i {
-			t.Fatalf("wrong string length: %d != %d", l, i)
-		}
 	}
 }
 
@@ -75,6 +67,48 @@ func TestFilter(t *testing.T) {
 	result := filter([]string{}, "hello")
 	if !reflect.DeepEqual(result, []string{}) {
 		t.Error("remove on empty slice failed")
+	}
+}
+
+func TestGetGCSAPIPath(t *testing.T) {
+	got, err := getGCSAPIPath("gs://foo/bar")
+	want := "https://storage.cloud.google.com/foo/bar"
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if got != want {
+		t.Errorf("unexpected result: got: %q, want: %q", got, want)
+	}
+}
+
+func TestRandString(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		l := len(randString(i))
+		if l != i {
+			t.Fatalf("wrong string length: %d != %d", l, i)
+		}
+	}
+}
+
+func TestStringOr(t *testing.T) {
+
+	tests := []struct {
+		desc     string
+		s        string
+		ss       []string
+		expected string
+	}{
+		{"just one string", "foo", nil, "foo"},
+		{"second string is result", "", []string{"bar", "baz"}, "bar"},
+		{"third string is result", "", []string{"", "baz"}, "baz"},
+		{"all empty", "", []string{""}, ""},
+	}
+
+	for _, tt := range tests {
+		result := stringOr(tt.s, tt.ss...)
+		if result != tt.expected {
+			t.Errorf("%s: wanted %q, got %q", tt.desc, tt.expected, result)
+		}
 	}
 }
 
@@ -155,7 +189,9 @@ func TestSubstitute(t *testing.T) {
 					"create disks key1": {
 						CreateDisks: &CreateDisks{
 							{
-								Name: "key1",
+								Disk: compute.Disk{
+									Name: "key1",
+								},
 							},
 						},
 					},
@@ -177,7 +213,9 @@ func TestSubstitute(t *testing.T) {
 										Timeout: "key3",
 										CreateImages: &CreateImages{
 											{
-												Name: "key1",
+												Image: compute.Image{
+													Name: "key1",
+												},
 											},
 										},
 									},
@@ -199,7 +237,9 @@ func TestSubstitute(t *testing.T) {
 					"create disks value1": {
 						CreateDisks: &CreateDisks{
 							{
-								Name: "value1",
+								Disk: compute.Disk{
+									Name: "value1",
+								},
 							},
 						},
 					},
@@ -221,7 +261,9 @@ func TestSubstitute(t *testing.T) {
 										Timeout: "key3", // substitution should not recurse into subworkflows
 										CreateImages: &CreateImages{
 											{
-												Name: "key1", // substitution should not recurse into subworkflows
+												Image: compute.Image{
+													Name: "key1", // substitution should not recurse into subworkflows
+												},
 											},
 										},
 									},
