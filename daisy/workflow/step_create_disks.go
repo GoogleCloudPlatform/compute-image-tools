@@ -24,7 +24,7 @@ import (
 )
 
 // CreateDisks is a Daisy CreateDisks workflow step.
-type CreateDisks []CreateDisk
+type CreateDisks []*CreateDisk
 
 // CreateDisk describes a GCE disk.
 type CreateDisk struct {
@@ -43,6 +43,8 @@ type CreateDisk struct {
 	name string
 }
 
+// validate checks fields: SourceImage, SizeGb
+// and modifies: SourceImage, Name, name, Type, Project, Zone
 func (c *CreateDisks) validate(s *Step) error {
 	w := s.w
 	for _, cd := range *c {
@@ -63,15 +65,10 @@ func (c *CreateDisks) validate(s *Step) error {
 		}
 		cd.Project = stringOr(cd.Project, w.Project)
 		cd.Zone = stringOr(cd.Zone, w.Zone)
-		dt := fmt.Sprintf("zones/%s/diskTypes/pd-standard", cd.Zone)
-		if cd.Type != "" {
-			if strings.Contains(cd.Type, "/") {
-				dt = cd.Type
-			} else {
-				dt = fmt.Sprintf("zones/%s/diskTypes/%s", cd.Zone, cd.Type)
-			}
+		if cd.Type != "" && !strings.Contains(cd.Type, "/") {
+			cd.Type = fmt.Sprintf("zones/%s/diskTypes/%s", cd.Zone, cd.Type)
 		}
-		cd.Type = dt
+		cd.Type = stringOr(cd.Type, fmt.Sprintf("zones/%s/diskTypes/pd-standard", cd.Zone))
 		cd.Description = stringOr(cd.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
 
 		// Try adding disk name.
@@ -89,7 +86,7 @@ func (c *CreateDisks) run(s *Step) error {
 	e := make(chan error)
 	for _, cd := range *c {
 		wg.Add(1)
-		go func(cd CreateDisk) {
+		go func(cd *CreateDisk) {
 			defer wg.Done()
 
 			// Get the source image link.  TODO(crunkleton): Move to validate after validation refactor.

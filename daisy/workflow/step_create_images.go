@@ -17,14 +17,13 @@ package workflow
 import (
 	"errors"
 	"fmt"
-	"path"
 	"sync"
 
 	compute "google.golang.org/api/compute/v1"
 )
 
 // CreateImages is a Daisy CreateImages workflow step.
-type CreateImages []CreateImage
+type CreateImages []*CreateImage
 
 // CreateImage creates a GCE image in a project.
 // Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
@@ -62,13 +61,14 @@ func (c *CreateImages) validate(s *Step) error {
 				return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
 			}
 		} else if w.sourceExists(ci.RawDisk.Source) {
-			ci.RawDisk.Source = fmt.Sprintf("https://storage.cloud.google.com/%s", path.Join(w.bucket, w.sourcesPath, ci.RawDisk.Source))
-		} else if b, o, err := splitGCSPath(ci.RawDisk.Source); err == nil {
-			ci.RawDisk.Source = fmt.Sprintf("https://storage.cloud.google.com/%s", path.Join(b, o))
+			ci.RawDisk.Source = w.getSourceGCSAPIPath(ci.RawDisk.Source)
+		} else if p, err := getGCSAPIPath(ci.RawDisk.Source); err == nil {
+			ci.RawDisk.Source = p
 		} else {
 			return fmt.Errorf("cannot create image: file not in sources or valid GCS path: %s", ci.RawDisk.Source)
 		}
 		ci.Description = stringOr(ci.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
+		ci.Project = stringOr(ci.Project, w.Project)
 
 		// Project checking.
 		if ci.Project != "" && !projectExists(ci.Project) {
@@ -90,7 +90,7 @@ func (c *CreateImages) run(s *Step) error {
 	e := make(chan error)
 	for _, ci := range *c {
 		wg.Add(1)
-		go func(ci CreateImage) {
+		go func(ci *CreateImage) {
 			defer wg.Done()
 
 			project := stringOr(ci.Project, w.Project)

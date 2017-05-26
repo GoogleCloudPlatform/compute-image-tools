@@ -17,6 +17,7 @@ package workflow
 import (
 	"fmt"
 	"math/rand"
+	"path"
 	"reflect"
 	"regexp"
 	"strings"
@@ -46,6 +47,8 @@ var (
 	// http://commondatastorage.googleapis.com/<bucket>/<object>
 	// https://commondatastorage.googleapis.com/<bucket>/<object>
 	gsHTTPRegex3 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://(?:commondata)?storage\.googleapis\.com/%s/%s$`, bucket, object))
+
+	gcsAPIBase = "https://storage.cloud.google.com"
 )
 
 func containsString(s string, ss []string) bool {
@@ -66,6 +69,15 @@ func filter(ss []string, s string) []string {
 		}
 	}
 	return result
+}
+
+func getGCSAPIPath(p string) (string, error) {
+	var b, o string
+	var e error
+	if b, o, e = splitGCSPath(p); e != nil {
+		return "", e
+	}
+	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(b, o)), nil
 }
 
 func randString(n int) string {

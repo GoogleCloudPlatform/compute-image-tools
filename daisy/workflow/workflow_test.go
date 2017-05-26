@@ -91,6 +91,16 @@ func TestGenName(t *testing.T) {
 	}
 }
 
+func TestGetSourceGCSAPIPath(t *testing.T) {
+	w := testWorkflow()
+	w.sourcesPath = "my/sources"
+	got := w.getSourceGCSAPIPath("foo")
+	want := "https://storage.cloud.google.com/my/sources/foo"
+	if got != want {
+		t.Errorf("unexpected result: got: %q, want %q", got, want)
+	}
+}
+
 func TestNewFromFileError(t *testing.T) {
 	td, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {

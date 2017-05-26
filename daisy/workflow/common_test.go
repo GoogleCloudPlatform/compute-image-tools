@@ -70,6 +70,17 @@ func TestFilter(t *testing.T) {
 	}
 }
 
+func TestGetGCSAPIPath(t *testing.T) {
+	got, err := getGCSAPIPath("gs://foo/bar")
+	want := "https://storage.cloud.google.com/foo/bar"
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if got != want {
+		t.Errorf("unexpected result: got: %q, want: %q", got, want)
+	}
+}
+
 func TestRandString(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		l := len(randString(i))
