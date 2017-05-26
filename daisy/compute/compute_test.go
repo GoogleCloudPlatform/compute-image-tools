@@ -77,7 +77,7 @@ func TestCreateDisk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.OperationsWaitFake = func(project, zone, name string) error { return waitErr }
+	c.OperationsWaitFunc = func(project, zone, name string) error { return waitErr }
 	defer svr.Close()
 
 	tests := []struct {
@@ -152,7 +152,7 @@ func TestCreateImage(t *testing.T) {
 			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
 		}
 	}))
-	c.OperationsWaitFake = func(project, zone, name string) error { return waitErr }
+	c.OperationsWaitFunc = func(project, zone, name string) error { return waitErr }
 	if err != nil {
 		t.Fatal(err)
 	}

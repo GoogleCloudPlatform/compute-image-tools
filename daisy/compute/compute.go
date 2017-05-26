@@ -31,9 +31,7 @@ type Client struct {
 	hc  *http.Client
 	raw *compute.Service
 
-	OperationsWaitFake func(project, zone, name string) error
-	CreateDiskFake     func(project, zone string, d *compute.Disk) error
-	CreateImageFake    func(project string, i *compute.Image) error
+	OperationsWaitFunc func(project, zone, name string) error
 }
 
 // NewClient creates a new Google Cloud Compute client.
@@ -51,16 +49,16 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 	if ep != "" {
 		rawService.BasePath = ep
 	}
-	return &Client{
+	c := &Client{
 		hc:  hc,
 		raw: rawService,
-	}, nil
+	}
+	c.OperationsWaitFunc = c.operationsWait
+
+	return c, nil
 }
 
 func (c *Client) operationsWait(project, zone, name string) error {
-	if c.OperationsWaitFake != nil {
-		return c.OperationsWaitFake(project, zone, name)
-	}
 	for {
 		var err error
 		var op *compute.Operation
@@ -96,15 +94,12 @@ func (c *Client) operationsWait(project, zone, name string) error {
 
 // CreateDisk creates a GCE persistent disk.
 func (c *Client) CreateDisk(project, zone string, d *compute.Disk) error {
-	if c.CreateDiskFake != nil {
-		return c.CreateDiskFake(project, zone, d)
-	}
 	resp, err := c.raw.Disks.Insert(project, zone, d).Do()
 	if err != nil {
 		return err
 	}
 
-	if err := c.operationsWait(project, zone, resp.Name); err != nil {
+	if err := c.OperationsWaitFunc(project, zone, resp.Name); err != nil {
 		return err
 	}
 
@@ -121,15 +116,12 @@ func (c *Client) CreateDisk(project, zone string, d *compute.Disk) error {
 // url (full or partial) to the source disk, sourceFile is the full Google
 // Cloud Storage URL where the disk image is stored.
 func (c *Client) CreateImage(project string, i *compute.Image) error {
-	if c.CreateImageFake != nil {
-		return c.CreateImageFake(project, i)
-	}
 	resp, err := c.raw.Images.Insert(project, i).Do()
 	if err != nil {
 		return err
 	}
 
-	if err := c.operationsWait(project, "", resp.Name); err != nil {
+	if err := c.OperationsWaitFunc(project, "", resp.Name); err != nil {
 		return err
 	}
 
@@ -148,7 +140,7 @@ func (c *Client) DeleteImage(project, image string) error {
 		return err
 	}
 
-	return c.operationsWait(project, "", resp.Name)
+	return c.OperationsWaitFunc(project, "", resp.Name)
 }
 
 // DeleteDisk deletes a GCE persistent disk.
@@ -158,7 +150,7 @@ func (c *Client) DeleteDisk(project, zone, disk string) error {
 		return err
 	}
 
-	return c.operationsWait(project, zone, resp.Name)
+	return c.OperationsWaitFunc(project, zone, resp.Name)
 }
 
 // DeleteInstance deletes a GCE instance.
@@ -168,7 +160,7 @@ func (c *Client) DeleteInstance(project, zone, instance string) error {
 		return err
 	}
 
-	return c.operationsWait(project, zone, resp.Name)
+	return c.OperationsWaitFunc(project, zone, resp.Name)
 }
 
 // GetSerialPortOutput gets the serial port output of a GCE instance.
@@ -319,7 +311,7 @@ func (i *Instance) Insert() (*compute.Instance, error) {
 		return nil, fmt.Errorf("Failed to create instance: %v", err)
 	}
 
-	if err := i.client.operationsWait(i.project, i.zone, resp.Name); err != nil {
+	if err := i.client.OperationsWaitFunc(i.project, i.zone, resp.Name); err != nil {
 		return nil, err
 	}
 	return i.client.raw.Instances.Get(i.project, i.zone, i.name).Do()

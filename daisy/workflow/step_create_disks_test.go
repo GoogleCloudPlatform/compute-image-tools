@@ -15,7 +15,6 @@
 package workflow
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
@@ -26,14 +25,6 @@ import (
 
 func TestCreateDisksRun(t *testing.T) {
 	w := testWorkflow()
-	var fakeClientErr error
-	w.ComputeClient.CreateDiskFake = func(project, zone string, d *compute.Disk) error {
-		if fakeClientErr != nil {
-			return fakeClientErr
-		}
-		d.SelfLink = "link"
-		return nil
-	}
 	s := &Step{w: w}
 	images[w].m = map[string]*resource{"i1": {"i1", w.genName("i1"), "link", false, false}}
 
@@ -62,16 +53,9 @@ func TestCreateDisksRun(t *testing.T) {
 			nil,
 			"invalid or missing reference to SourceImage \"i-dne\"",
 		},
-		{
-			"client failure",
-			CreateDisks{{}},
-			errors.New("client err"),
-			"client err",
-		},
 	}
 
 	for _, tt := range badTests {
-		fakeClientErr = tt.fakeClientErr
 		if err := tt.cd.run(s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
