@@ -17,6 +17,7 @@ package workflow
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -30,6 +31,9 @@ type CreateDisks []*CreateDisk
 type CreateDisk struct {
 	compute.Disk
 
+	// Size of this disk.
+	SizeGb string `json:",omitempty"`
+	// Zone to create the instance in, overrides workflow Zone.
 	Zone string `json:",omitempty"`
 	// Project to create the instance in, overrides workflow Project.
 	Project string `json:",omitempty"`
@@ -54,8 +58,16 @@ func (c *CreateDisks) validate(s *Step) error {
 		}
 
 		// No SizeGB set when not supplying SourceImage.
-		if cd.SizeGb == 0 && cd.SourceImage == "" {
+		if cd.SizeGb == "" && cd.SourceImage == "" {
 			return errors.New("cannot create disk: SizeGb and SourceImage not set")
+		}
+		if cd.SizeGb != "" {
+			size, err := strconv.ParseInt(cd.SizeGb, 10, 64)
+			if err != nil {
+				return fmt.Errorf("cannot parse SizeGb: %s, err: %v", cd.SizeGb, err)
+			}
+
+			cd.Disk.SizeGb = size
 		}
 
 		// Prepare field values: Disk.Name, Disk.Type, name, Project, Zone
