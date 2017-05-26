@@ -72,9 +72,8 @@ func filter(ss []string, s string) []string {
 }
 
 func getGCSAPIPath(p string) (string, error) {
-	var b, o string
-	var e error
-	if b, o, e = splitGCSPath(p); e != nil {
+	b, o, e := splitGCSPath(p)
+	if e != nil {
 		return "", e
 	}
 	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(b, o)), nil
