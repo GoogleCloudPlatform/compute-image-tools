@@ -245,25 +245,25 @@ This CreateImages example creates an image from a source disk.
 ```
 
 This CreateImages example creates three images. `image1` is created from
-a GCS path and will not be cleaned up by Daisy. `image2` is created from
-a source from the workflow's `Sources` and will use the exact name,
-"image2". Lastly, `image3` is created from a disk from the workflow and
-will be created in a different project from the workflow's specified
-Project.
+a source from the workflow's `Sources` and will not be cleaned up by
+Daisy. `image2` is created from a source from a GCS Path and will use
+the exact name, "image2". Lastly, `image3` is created from a disk from
+the workflow and will be created in a different project from the
+workflow's specified Project.
 ```json
 "step-name": {
   "CreateImages": [
     {
       "Name": "image1",
       "RawDisk": {
-        "Source": "gs://my-bucket/image.tar.gz"
-      },
+        "Source": "my-source"
+      },my-source
       "NoCleanup": true
     },
     {
       "Name": "image2",
       "RawDisk": {
-        "Source": "my-source"
+        "Source": "gs://my-bucket/image.tar.gz"
       },
       "ExactName": true
     },
