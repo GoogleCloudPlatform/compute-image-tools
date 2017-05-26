@@ -244,18 +244,33 @@ This CreateImages example creates an image from a source disk.
 }
 ```
 
-This CreateImages example creates an image from a file in GCS, it also
-uses the NoCleanup flag to tell Daisy that this resource should exist
-after workflow completion, and the ExactName flag to tell Daisy to not
-use an generated name for the resource.
+This CreateImages example creates three images. `image1` is created from
+a GCS path and will not be cleaned up by Daisy. `image2` is created from
+a source from the workflow's `Sources` and will use the exact name,
+"image2". Lastly, `image3` is created from a disk from the workflow and
+will be created in a different project from the workflow's specified
+Project.
 ```json
 "step-name": {
   "CreateImages": [
     {
       "Name": "image1",
-      "SourceFile": "gs://my-bucket/image.tar.gz",
-      "NoCleanup": true,
+      "RawDisk": {
+        "Source": "gs://my-bucket/image.tar.gz"
+      },
+      "NoCleanup": true
+    },
+    {
+      "Name": "image2",
+      "RawDisk": {
+        "Source": "my-source"
+      },
       "ExactName": true
+    },
+    {
+      "Name": "image3",
+      "SourceDisk": "my-disk",
+      "Project": "my-other-project"
     }
   ]
 }
