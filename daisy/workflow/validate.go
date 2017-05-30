@@ -179,12 +179,16 @@ func (w *Workflow) validate() error {
 func (w *Workflow) validateDAG() error {
 	// Sanitation.
 	for s, deps := range w.Dependencies {
+		// Check for missing steps.
+		if _, ok := w.Steps[s]; !ok {
+			return fmt.Errorf("Dependencies reference non existent step %q: %q:%q", s, s, deps)
+		}
 		seen := map[string]bool{}
 		var clean []string
 		for _, dep := range deps {
 			// Check for missing dependencies.
 			if _, ok := w.Steps[dep]; !ok {
-				return fmt.Errorf("missing reference for dependency %s", dep)
+				return fmt.Errorf("Dependencies reference non existent step %q: %q:%q", dep, s, deps)
 			}
 			// Remove duplicate dependencies.
 			if !seen[dep] {

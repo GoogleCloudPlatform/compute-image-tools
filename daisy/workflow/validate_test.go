@@ -292,6 +292,12 @@ func TestValidateDAG(t *testing.T) {
 		t.Error("validation should have failed due to missing dependency")
 	}
 
+	// Fail, missing step.
+	w.Dependencies["dne"] = []string{"s0"}
+	if err := w.validateDAG(); err == nil {
+		t.Error("validation should have failed due to missing dependency")
+	}
+
 	// Fail, cyclical deps.
 	w.Dependencies["s0"] = []string{"s3"}
 	if err := w.validateDAG(); err == nil {

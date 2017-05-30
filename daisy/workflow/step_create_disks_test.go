@@ -15,10 +15,10 @@
 package workflow
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
-	"fmt"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
 )
@@ -95,8 +95,8 @@ func TestCreateDisksValidate(t *testing.T) {
 		},
 		{
 			"blank disk",
-			&CreateDisk{Disk: compute.Disk{Name: "d3", SizeGb: 50, Description: "foo"}},
-			&CreateDisk{name: "d3", Disk: compute.Disk{Name: w.genName("d3"), SizeGb: 50, Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", w.Zone), Description: "foo"}, Project: w.Project, Zone: w.Zone},
+			&CreateDisk{SizeGb: "50", Disk: compute.Disk{Name: "d3", Description: "foo"}},
+			&CreateDisk{name: "d3", SizeGb: "50", Disk: compute.Disk{Name: w.genName("d3"), SizeGb: 50, Type: fmt.Sprintf("zones/%s/diskTypes/pd-standard", w.Zone), Description: "foo"}, Project: w.Project, Zone: w.Zone},
 			[]string{"d1", "d2", "d3"},
 		},
 		{
@@ -146,7 +146,7 @@ func TestCreateDisksValidate(t *testing.T) {
 	}{
 		{
 			"dupe disk name",
-			&CreateDisk{Disk: compute.Disk{Name: "d1", SizeGb: 50}},
+			&CreateDisk{SizeGb: "50", Disk: compute.Disk{Name: "d1"}},
 			fmt.Sprintf("error adding disk: workflow %q has duplicate references for %q", w.Name, "d1"),
 		},
 		{
