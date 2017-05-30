@@ -25,10 +25,11 @@ import (
 	"regexp"
 	"strings"
 
+	"sync"
+
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
-	"sync"
 )
 
 type mockStep struct {
@@ -149,9 +150,11 @@ func newTestGCSClient() (*storage.Client, error) {
 		} else if match := listObjsNoPrefixRgx.FindStringSubmatch(u); m == "GET" && match != nil {
 			// Return 2 objects for testing recursiveGCS.
 			fmt.Fprint(w, `{"kind": "storage#objects", "items": [{"kind": "storage#object", "name": "object", "size": "1"},{"kind": "storage#object", "name": "folder/object", "size": "1"}]}`)
+		} else if m == "PUT" && u == "/b/bucket/o/object/acl/allUsers?alt=json" {
+			fmt.Fprint(w, `{}`)
 		} else {
-			fmt.Printf("testGCSClient unknown request: %+v\n", r)
 			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "testGCSClient unknown request: %+v\n", r)
 		}
 	}))
 

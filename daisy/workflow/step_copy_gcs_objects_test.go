@@ -14,26 +14,31 @@
 
 package workflow
 
-import "testing"
+import (
+	"testing"
+
+	"cloud.google.com/go/storage"
+)
 
 func TestCopyGCSObjectsRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
 	w.Steps = map[string]*Step{
-		"copy": {CopyGCSObjects: &CopyGCSObjects{{"", ""}}},
+		"copy": {CopyGCSObjects: &CopyGCSObjects{{Source: "", Destination: ""}}},
 	}
 
 	ws := &CopyGCSObjects{
-		{"gs://bucket", "gs://bucket"},
-		{"gs://bucket/object", "gs://bucket/object"},
+		{Source: "gs://bucket", Destination: "gs://bucket"},
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object"},
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []storage.ACLRule{{"allUsers", "OWNER"}}},
 	}
 	if err := ws.run(s); err != nil {
 		t.Errorf("error running CopyGCSObjects.run(): %v", err)
 	}
 
 	ws = &CopyGCSObjects{
-		{"gs://bucket", ""},
-		{"", "gs://bucket"},
+		{Source: "gs://bucket", Destination: ""},
+		{Source: "", Destination: "gs://bucket"},
 	}
 	if err := ws.run(s); err == nil {
 		t.Error("expected error")
