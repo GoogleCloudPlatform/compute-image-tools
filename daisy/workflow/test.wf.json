@@ -29,7 +29,14 @@
       "createInstances": [
         {
           "name": "${bootstrap_instance_name}",
-          "attachedDisks": ["bootstrap", "image"],
+          "disks": [
+            {
+              "source": "bootstrap"
+            },
+            {
+              "source": "image"
+            }
+          ],
           "metadata": {
             "test_metadata": "this was a test"
           },
@@ -46,7 +53,14 @@
       "createInstances": [
         {
           "name": "postinstall",
-          "attachedDisks": ["image", "bootstrap"],
+          "disks": [
+            {
+              "source": "image"
+            },
+            {
+              "source": "bootstrap"
+            }
+          ],
           "machineType": "${machine_type}",
           "startupScript": "shutdown /h"
         }
@@ -65,12 +79,12 @@
     },
     "include-workflow": {
       "IncludeWorkflow": {
-        "path": "./test_sub.workflow"
+        "path": "./test_sub.wf.json"
       }
     },
     "sub-workflow": {
       "subWorkflow": {
-        "path": "./test_sub.workflow"
+        "path": "./test_sub.wf.json"
       }
     }
   },

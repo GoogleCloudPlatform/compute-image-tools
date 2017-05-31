@@ -21,6 +21,7 @@ import (
 	"strings"
 	"sync"
 
+	"encoding/json"
 	compute "google.golang.org/api/compute/v1"
 )
 
@@ -45,6 +46,12 @@ type CreateDisk struct {
 
 	// The name of the disk as known internally to Daisy.
 	name string
+}
+
+// MarshalJSON is a hacky workaround to prevent CreateDisk from using
+// compute.Disk's implementation.
+func (c *CreateDisk) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*c)
 }
 
 // validate checks fields: SourceImage, SizeGb

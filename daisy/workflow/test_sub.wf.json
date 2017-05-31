@@ -13,7 +13,11 @@
       "createInstances": [
         {
           "name": "bootstrap",
-          "attachedDisks": ["bootstrap"],
+          "disks": [
+            {
+              "source": "bootstrap"
+            }
+          ],
           "metadata": {
             "test_metadata": "this was a test"
           },

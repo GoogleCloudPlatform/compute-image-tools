@@ -51,8 +51,6 @@ func (m *mockStep) validate(s *Step) error {
 }
 
 var (
-	testGCEClient compute.Client
-	testGCSClient *storage.Client
 	testWf        = "test-wf"
 	testProject   = "test-project"
 	testZone      = "test-zone"
@@ -61,18 +59,6 @@ var (
 	testGCSObjsMx = sync.Mutex{}
 )
 
-func init() {
-	var err error
-	testGCEClient, err = newTestGCEClient()
-	if err != nil {
-		panic(err)
-	}
-	testGCSClient, err = newTestGCSClient()
-	if err != nil {
-		panic(err)
-	}
-}
-
 func testWorkflow() *Workflow {
 	w := New(context.Background())
 	w.id = "abcdef"
@@ -80,8 +66,8 @@ func testWorkflow() *Workflow {
 	w.GCSPath = testGCSPath
 	w.Project = testProject
 	w.Zone = testZone
-	w.ComputeClient = testGCEClient
-	w.StorageClient = testGCSClient
+	w.ComputeClient, _ = newTestGCEClient()
+	w.StorageClient, _ = newTestGCSClient()
 	w.Ctx = context.Background()
 	w.Cancel = make(chan struct{})
 	w.logger = log.New(ioutil.Discard, "", 0)
@@ -94,8 +80,8 @@ func addGCSObj(o string) {
 	testGCSObjs = append(testGCSObjs, o)
 }
 
-func newTestGCEClient() (compute.Client, error) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func newTestGCEClient() (*compute.TestClient, error) {
+	_, c, err := compute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=1") {
 			fmt.Fprintln(w, `{"Contents":"failsuccess","Start":"0"}`)
 		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=2") {
@@ -109,7 +95,7 @@ func newTestGCEClient() (compute.Client, error) {
 		}
 	}))
 
-	return compute.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
+	return c, err
 }
 
 func newTestGCSClient() (*storage.Client, error) {

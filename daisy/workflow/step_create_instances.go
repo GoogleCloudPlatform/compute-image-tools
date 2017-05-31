@@ -16,53 +16,52 @@ package workflow
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-multierror"
+	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 	"path"
+	"strings"
 	"sync"
 	"time"
-
-	"google.golang.org/api/googleapi"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
-type CreateInstances []CreateInstance
+type CreateInstances []*CreateInstance
 
 // CreateInstance creates a GCE instance. Output of serial port 1 will be
 // streamed to the daisy logs directory.
 type CreateInstance struct {
-	// Name of the instance.
-	Name string
-	// Disks to attach to the instance, must match a disk created in a
-	// previous step. Disks will get attached in ReadWrite mode before
-	// disks in AttachedDisksRO.
-	// The first disk gets set as the boot disk. At least one disk must be
-	// listed.
-	AttachedDisks []string
-	// Disks to attach to the instance, must match a disk created in a
-	// previous step. Disks will get attached in ReadOnly mode after disk in
-	// AttachedDisks.
-	AttachedDisksRO []string `json:",omitempty"`
-	MachineType     string   `json:",omitempty"`
+	compute.Instance
+
+	// Additional metadata to set for the instance.
+	Metadata map[string]string `json:"metadata,omitempty"`
+	// OAuth2 scopes to give the instance. If none are specified
+	// https://www.googleapis.com/auth/devstorage.read_only will be added.
+	Scopes []string `json:",omitempty"`
+
 	// StartupScript is the Sources path to a startup script to use in this step.
 	// This will be automatically mapped to the appropriate metadata key.
 	StartupScript string `json:",omitempty"`
-	// Additional metadata to set for the instance.
-	Metadata map[string]string `json:",omitempty"`
-	// OAuth2 scopes to give the instance. If non are specified
-	// https://www.googleapis.com/auth/devstorage.read_only will be added.
-	Scopes []string `json:",omitempty"`
-	// Optional description of the resource, if not specified Daisy will
-	// create one with the name of the project.
-	Description string `json:",omitempty"`
-	// Zone to create the instance in, overrides workflow Zone.
-	Zone string `json:",omitempty"`
 	// Project to create the instance in, overrides workflow Project.
 	Project string `json:",omitempty"`
+	// Zone to create the instance in, overrides workflow Zone.
+	Zone string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
 	// Should we use the user-provided reference name as the actual resource name?
 	ExactName bool
+
+	// The name of the disk as known internally to Daisy.
+	daisyName string
+}
+
+// MarshalJSON is a hacky workaround to prevent CreateInstance from using
+// compute.Instance's implementation.
+func (c *CreateInstance) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*c)
 }
 
 func logSerialOutput(w *Workflow, name string, port int64) {
@@ -116,71 +115,138 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 	}
 }
 
-func validateDisk(w *Workflow, d string, ci CreateInstance) error {
-	if !diskValid(w, d) {
-		return fmt.Errorf("cannot create instance: disk not found: %s", d)
+func (c *CreateInstance) processDisks(w *Workflow) error {
+	if len(c.Disks) == 0 {
+		return errors.New("cannot create instance: no disks provided")
 	}
-	// Ensure disk is in the same project and zone.
-	match := diskURLRegex.FindStringSubmatch(d)
-	if match == nil {
-		return nil
-	}
-	result := make(map[string]string)
-	for i, name := range diskURLRegex.SubexpNames() {
-		if i != 0 {
-			result[name] = match[i]
+
+	for _, d := range c.Disks {
+		if !diskValid(w, d.Source) {
+			return fmt.Errorf("cannot create instance: disk not found: %s", d.Source)
+		}
+		d.Mode = strOr(d.Mode, "READ_WRITE")
+		if !strIn(d.Mode, []string{"READ_ONLY", "READ_WRITE"}) {
+			return fmt.Errorf("cannot create instance: bad disk mode: %q", d.Mode)
+		}
+
+		// Ensure disk is in the same project and zone.
+		match := diskURLRegex.FindStringSubmatch(d.Source)
+		if match == nil {
+			return nil
+		}
+		result := make(map[string]string)
+		for i, name := range diskURLRegex.SubexpNames() {
+			if i != 0 {
+				result[name] = match[i]
+			}
+		}
+
+		if result["project"] != "" && result["project"] != c.Project {
+			return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", c.Project, result["project"], d.Source)
+		}
+		if result["zone"] != c.Zone {
+			return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", c.Zone, result["zone"], d.Source)
 		}
 	}
+	return nil
+}
 
-	project := w.Project
-	if ci.Project != "" {
-		project = ci.Project
+func (c *CreateInstance) processMachineType() error {
+	c.MachineType = strOr(c.MachineType, "n1-standard-1")
+	mt := c.MachineType
+	if !strings.Contains(c.MachineType, "/") {
+		c.MachineType = fmt.Sprintf("zones/%s/machineTypes/%s", c.Zone, c.MachineType)
 	}
-	zone := w.Zone
-	if ci.Zone != "" {
-		zone = ci.Zone
+	if !machineTypeURLRegex.MatchString(c.MachineType) {
+		return fmt.Errorf("cannot create instance: bad machine type %q", mt)
 	}
+	return nil
+}
 
-	if result["project"] != "" && result["project"] != project {
-		return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", project, result["project"], d)
+func (c *CreateInstance) processMetadata(w *Workflow) error {
+	if c.Metadata == nil {
+		c.Metadata = map[string]string{}
 	}
-	if result["zone"] != zone {
-		return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", zone, result["zone"], d)
+	if c.Instance.Metadata == nil {
+		c.Instance.Metadata = &compute.Metadata{}
+	}
+	c.Metadata["daisy-sources-path"] = "gs://" + path.Join(w.bucket, w.sourcesPath)
+	c.Metadata["daisy-logs-path"] = "gs://" + path.Join(w.bucket, w.logsPath)
+	c.Metadata["daisy-outs-path"] = "gs://" + path.Join(w.bucket, w.outsPath)
+	if c.StartupScript != "" {
+		if !w.sourceExists(c.StartupScript) {
+			return fmt.Errorf("cannot create instance: file not found: %s", c.StartupScript)
+		}
+		c.StartupScript = "gs://" + path.Join(w.bucket, w.sourcesPath, c.StartupScript)
+		c.Metadata["startup-script-url"] = c.StartupScript
+		c.Metadata["windows-startup-script-url"] = c.StartupScript
+	}
+	for k, v := range c.Metadata {
+		vCopy := v
+		c.Instance.Metadata.Items = append(c.Instance.Metadata.Items, &compute.MetadataItems{Key: k, Value: &vCopy})
+	}
+	return nil
+}
+
+func (c *CreateInstance) processNetworks() error {
+	defaultAcs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
+	if c.NetworkInterfaces == nil {
+		c.NetworkInterfaces = []*compute.NetworkInterface{{AccessConfigs: defaultAcs, Network: "global/networks/default"}}
+	} else {
+		for _, n := range c.NetworkInterfaces {
+			if n.AccessConfigs == nil {
+				n.AccessConfigs = defaultAcs
+			}
+			if !networkURLRegex.MatchString(n.Network) {
+				if !rfc1035Rgx.MatchString(n.Network) {
+					return fmt.Errorf("%q is not a valid network", n.Network)
+				}
+				n.Network = path.Join("global/networks", n.Network)
+			}
+		}
+	}
+	return nil
+}
+
+func (c *CreateInstance) processScopes() error {
+	if len(c.Scopes) == 0 {
+		c.Scopes = append(c.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
+	}
+	if c.ServiceAccounts == nil {
+		c.ServiceAccounts = []*compute.ServiceAccount{{Email: "default", Scopes: c.Scopes}}
 	}
 	return nil
 }
 
 func (c *CreateInstances) validate(s *Step) error {
 	w := s.w
+
+	errs := []error{}
 	for _, ci := range *c {
-		// Disk checking.
-		if len(ci.AttachedDisks) == 0 {
-			return errors.New("cannot create instance: no disks provided")
+		// General fields preprocessing.
+		ci.daisyName = ci.Name
+		if !ci.ExactName {
+			ci.Name = w.genName(ci.Name)
 		}
-		for _, d := range ci.AttachedDisks {
-			if err := validateDisk(w, d, ci); err != nil {
-				return err
-			}
-		}
+		ci.Project = strOr(ci.Project, w.Project)
+		ci.Zone = strOr(ci.Zone, w.Zone)
+		ci.Description = strOr(ci.Description, fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
 
-		for _, d := range ci.AttachedDisksRO {
-			if err := validateDisk(w, d, ci); err != nil {
-				return err
-			}
-		}
-
-		// Startup script checking.
-		if ci.StartupScript != "" && !w.sourceExists(ci.StartupScript) {
-			return fmt.Errorf("cannot create instance: file not found: %s", ci.StartupScript)
-		}
+		errs = append(errs, ci.processDisks(w))
+		errs = append(errs, ci.processMachineType())
+		errs = append(errs, ci.processMetadata(w))
+		errs = append(errs, ci.processNetworks())
+		errs = append(errs, ci.processScopes())
 
 		// Try adding instance name.
-		if err := validatedInstances.add(w, ci.Name); err != nil {
-			return fmt.Errorf("error adding instance: %s", err)
-		}
+		errs = append(errs, validatedInstances.add(w, ci.daisyName))
 	}
 
-	return nil
+	var multiErr *multierror.Error
+	if len(errs) > 0 {
+		multiErr = multierror.Append(errs[0], errs[1:]...)
+	}
+	return multiErr.ErrorOrNil()
 }
 
 func (c *CreateInstances) run(s *Step) error {
@@ -189,75 +255,22 @@ func (c *CreateInstances) run(s *Step) error {
 	e := make(chan error)
 	for _, ci := range *c {
 		wg.Add(1)
-		go func(ci CreateInstance) {
+		go func(ci *CreateInstance) {
 			defer wg.Done()
-			name := ci.Name
-			if !ci.ExactName {
-				name = w.genName(ci.Name)
+
+			for _, d := range ci.Disks {
+				if diskRes, ok := disks[w].get(d.Source); ok {
+					d.Source = diskRes.link
+				}
 			}
 
-			zone := strOr(ci.Zone, w.Zone)
-
-			project := strOr(ci.Project, w.Project)
-
-			inst, err := w.ComputeClient.NewInstance(name, project, zone, ci.MachineType)
-			if err != nil {
+			w.logger.Printf("CreateInstances: creating instance %q.", ci.Name)
+			if err := w.ComputeClient.CreateInstance(ci.Project, ci.Zone, &ci.Instance); err != nil {
 				e <- err
 				return
 			}
-			inst.Scopes = ci.Scopes
-			description := ci.Description
-			if description == "" {
-				description = fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", w.Name, w.username)
-			}
-			inst.Description = description
-
-			attachDisk := func(boot bool, sourceDisk, mode string) error {
-				if diskURLRegex.MatchString(sourceDisk) {
-					// Real link.
-					inst.AddPD("", sourceDisk, mode, false, boot)
-				} else if disk, ok := disks[w].get(sourceDisk); ok {
-					// Reference.
-					inst.AddPD(disk.name, disk.link, mode, false, boot)
-				} else {
-					return fmt.Errorf("invalid or missing reference to AttachedDisk %q", sourceDisk)
-				}
-				return nil
-			}
-			for i, sourceDisk := range ci.AttachedDisks {
-				if err := attachDisk(i == 0, sourceDisk, "READ_WRITE"); err != nil {
-					e <- err
-					return
-				}
-			}
-			for _, sourceDisk := range ci.AttachedDisksRO {
-				if err := attachDisk(false, sourceDisk, "READ_ONLY"); err != nil {
-					e <- err
-					return
-				}
-			}
-			if ci.StartupScript != "" {
-				script := "gs://" + path.Join(w.bucket, w.sourcesPath, ci.StartupScript)
-				inst.AddMetadata(map[string]string{"startup-script-url": script, "windows-startup-script-url": script})
-			}
-			inst.AddMetadata(ci.Metadata)
-			// Add standard Daisy metadata.
-			md := map[string]string{
-				"daisy-sources-path": "gs://" + path.Join(w.bucket, w.sourcesPath),
-				"daisy-logs-path":    "gs://" + path.Join(w.bucket, w.logsPath),
-				"daisy-outs-path":    "gs://" + path.Join(w.bucket, w.outsPath),
-			}
-			inst.AddMetadata(md)
-			inst.AddNetworkInterface("global/networks/default")
-
-			w.logger.Printf("CreateInstances: creating instance %q.", name)
-			i, err := inst.Insert()
-			if err != nil {
-				e <- err
-				return
-			}
-			go logSerialOutput(w, name, 1)
-			instances[w].add(ci.Name, &resource{ci.Name, name, i.SelfLink, ci.NoCleanup, false})
+			go logSerialOutput(w, ci.Name, 1)
+			instances[w].add(ci.daisyName, &resource{ci.daisyName, ci.Name, ci.SelfLink, ci.NoCleanup, false})
 		}(ci)
 	}
 

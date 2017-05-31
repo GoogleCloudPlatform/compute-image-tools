@@ -39,7 +39,7 @@ func TestSplitVariables(t *testing.T) {
 }
 
 func TestParseWorkflows(t *testing.T) {
-	paths := []string{"./workflow/test.workflow"}
+	paths := []string{"./workflow/test.wf.json"}
 	varMap := map[string]string{"key1": "var1", "key2": "var2"}
 	project := "project"
 	zone := "zone"
