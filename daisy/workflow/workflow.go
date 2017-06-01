@@ -109,7 +109,7 @@ type Workflow struct {
 	username       string
 	gcsLogging     bool
 	gcsLogWriter   io.Writer
-	ComputeClient  *compute.Client `json:"-"`
+	ComputeClient  compute.Client  `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
 	id             string
 	logger         *log.Logger
