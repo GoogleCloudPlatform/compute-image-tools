@@ -51,15 +51,6 @@ var (
 	gcsAPIBase = "https://storage.cloud.google.com"
 )
 
-func containsString(s string, ss []string) bool {
-	for _, x := range ss {
-		if s == x {
-			return true
-		}
-	}
-	return false
-}
-
 // filter creates a copy of ss, excluding any instances of s.
 func filter(ss []string, s string) []string {
 	result := []string{}
@@ -101,6 +92,15 @@ func splitGCSPath(p string) (string, string, error) {
 		return matches[1], "", nil
 	}
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
+}
+
+func stringIn(s string, ss []string) bool {
+	for _, x := range ss {
+		if s == x {
+			return true
+		}
+	}
+	return false
 }
 
 func stringOr(s string, ss ...string) string {
