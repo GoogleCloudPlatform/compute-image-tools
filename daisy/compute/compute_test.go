@@ -71,7 +71,6 @@ func TestCreateDisk(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		fmt.Println("here")
 		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
 		d := &compute.Disk{Name: testDisk}
 		getResponse = &compute.Disk{Name: testDisk, SelfLink: "foo"}

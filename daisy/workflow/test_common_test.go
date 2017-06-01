@@ -51,7 +51,7 @@ func (m *mockStep) validate(s *Step) error {
 }
 
 var (
-	testGCEClient *compute.Client
+	testGCEClient compute.Client
 	testGCSClient *storage.Client
 	testWf        = "test-wf"
 	testProject   = "test-project"
@@ -94,7 +94,7 @@ func addGCSObj(o string) {
 	testGCSObjs = append(testGCSObjs, o)
 }
 
-func newTestGCEClient() (*compute.Client, error) {
+func newTestGCEClient() (compute.Client, error) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=1") {
 			fmt.Fprintln(w, `{"Contents":"failsuccess","Start":"0"}`)
