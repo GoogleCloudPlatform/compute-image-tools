@@ -39,6 +39,7 @@ type TestClient struct {
 	client
 	CreateDiskFn             func(project, zone string, d *compute.Disk) error
 	CreateImageFn            func(project string, i *compute.Image) error
+	CreateInstanceFn         func(project, zone string, i *compute.Instance) error
 	DeleteDiskFn             func(project, zone, name string) error
 	DeleteImageFn            func(project, name string) error
 	DeleteInstanceFn         func(project, zone, name string) error
@@ -63,6 +64,13 @@ func (c *TestClient) CreateImage(project string, i *compute.Image) error {
 		return c.CreateImageFn(project, i)
 	}
 	return c.client.CreateImage(project, i)
+}
+
+func (c *TestClient) CreateInstance(project, zone string, i *compute.Instance) error {
+	if c.CreateImageFn != nil {
+		return c.CreateInstanceFn(project, zone, i)
+	}
+	return c.client.CreateInstance(project, zone, i)
 }
 
 func (c *TestClient) DeleteDisk(project, zone, name string) error {

@@ -30,6 +30,7 @@ import (
 type Client interface {
 	CreateDisk(project, zone string, d *compute.Disk) error
 	CreateImage(project string, i *compute.Image) error
+	CreateInstance(project, zone string, i *compute.Instance) error
 	DeleteDisk(project, zone, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
@@ -146,9 +147,27 @@ func (c *client) CreateImage(project string, i *compute.Image) error {
 	return nil
 }
 
+func (c *client) CreateInstance(project, zone string, i *compute.Instance) error {
+	resp, err := c.raw.Instances.Insert(project, zone, i).Do()
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.operationsWait(project, zone, resp.Name); err != nil {
+		return err
+	}
+
+	var createdInstance *compute.Instance
+	if createdInstance, err = c.raw.Instances.Get(project, zone, i.Name).Do(); err != nil {
+		return err
+	}
+	*i = *createdInstance
+	return nil
+}
+
 // DeleteImage deletes a GCE image.
-func (c *client) DeleteImage(project, image string) error {
-	resp, err := c.raw.Images.Delete(project, image).Do()
+func (c *client) DeleteImage(project, name string) error {
+	resp, err := c.raw.Images.Delete(project, name).Do()
 	if err != nil {
 		return err
 	}
@@ -157,8 +176,8 @@ func (c *client) DeleteImage(project, image string) error {
 }
 
 // DeleteDisk deletes a GCE persistent disk.
-func (c *client) DeleteDisk(project, zone, disk string) error {
-	resp, err := c.raw.Disks.Delete(project, zone, disk).Do()
+func (c *client) DeleteDisk(project, zone, name string) error {
+	resp, err := c.raw.Disks.Delete(project, zone, name).Do()
 	if err != nil {
 		return err
 	}
@@ -167,8 +186,8 @@ func (c *client) DeleteDisk(project, zone, disk string) error {
 }
 
 // DeleteInstance deletes a GCE instance.
-func (c *client) DeleteInstance(project, zone, instance string) error {
-	resp, err := c.raw.Instances.Delete(project, zone, instance).Do()
+func (c *client) DeleteInstance(project, zone, name string) error {
+	resp, err := c.raw.Instances.Delete(project, zone, name).Do()
 	if err != nil {
 		return err
 	}
@@ -177,13 +196,13 @@ func (c *client) DeleteInstance(project, zone, instance string) error {
 }
 
 // GetSerialPortOutput gets the serial port output of a GCE instance.
-func (c *client) GetSerialPortOutput(project, zone, instance string, port, start int64) (*compute.SerialPortOutput, error) {
-	return c.raw.Instances.GetSerialPortOutput(project, zone, instance).Start(start).Port(port).Do()
+func (c *client) GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error) {
+	return c.raw.Instances.GetSerialPortOutput(project, zone, name).Start(start).Port(port).Do()
 }
 
 // InstanceStatus returns an instances Status.
-func (c *client) InstanceStatus(project, zone, instance string) (string, error) {
-	inst, err := c.raw.Instances.Get(project, zone, instance).Do()
+func (c *client) InstanceStatus(project, zone, name string) (string, error) {
+	inst, err := c.raw.Instances.Get(project, zone, name).Do()
 	if err != nil {
 		return "", err
 	}
@@ -191,8 +210,8 @@ func (c *client) InstanceStatus(project, zone, instance string) (string, error) 
 }
 
 // InstanceStopped checks if a GCE instance is in a 'TERMINATED' state.
-func (c *client) InstanceStopped(project, zone, instance string) (bool, error) {
-	status, err := c.i.InstanceStatus(project, zone, instance)
+func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
+	status, err := c.i.InstanceStatus(project, zone, name)
 	if err != nil {
 		return false, err
 	}

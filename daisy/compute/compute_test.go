@@ -29,12 +29,13 @@ import (
 
 func TestCreateDisk(t *testing.T) {
 	var getErr, insertErr, waitErr error
-	var getResponse *compute.Disk
+	var getResp *compute.Disk
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone) {
 			if insertErr != nil {
 				w.WriteHeader(400)
 				fmt.Fprintln(w, insertErr)
+				return
 			}
 			buf := new(bytes.Buffer)
 			if _, err := buf.ReadFrom(r.Body); err != nil {
@@ -45,8 +46,9 @@ func TestCreateDisk(t *testing.T) {
 			if getErr != nil {
 				w.WriteHeader(400)
 				fmt.Fprintln(w, getErr)
+				return
 			}
-			body, _ := json.Marshal(getResponse)
+			body, _ := json.Marshal(getResp)
 			fmt.Fprintln(w, string(body))
 		} else {
 			w.WriteHeader(500)
@@ -56,8 +58,8 @@ func TestCreateDisk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
 	defer svr.Close()
+	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
 
 	tests := []struct {
 		desc                       string
@@ -73,12 +75,12 @@ func TestCreateDisk(t *testing.T) {
 	for _, tt := range tests {
 		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
 		d := &compute.Disk{Name: testDisk}
-		getResponse = &compute.Disk{Name: testDisk, SelfLink: "foo"}
+		getResp = &compute.Disk{Name: testDisk, SelfLink: "foo"}
 		err := c.CreateDisk(testProject, testZone, d)
-		getResponse.ServerResponse = d.ServerResponse // We have to fudge this part in order to check that d == getResponse
+		getResp.ServerResponse = d.ServerResponse // We have to fudge this part in order to check that d == getResp
 		if err != nil && !tt.shouldErr {
 			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
-		} else if diff := pretty.Compare(d, getResponse); err == nil && diff != "" {
+		} else if diff := pretty.Compare(d, getResp); err == nil && diff != "" {
 			t.Errorf("%s: Disk does not match expectation: (-got +want)\n%s", tt.desc, diff)
 		}
 	}
@@ -86,12 +88,13 @@ func TestCreateDisk(t *testing.T) {
 
 func TestCreateImage(t *testing.T) {
 	var getErr, insertErr, waitErr error
-	var getResponse *compute.Image
+	var getResp *compute.Image
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/images?alt=json", testProject) {
 			if insertErr != nil {
 				w.WriteHeader(400)
 				fmt.Fprintln(w, insertErr)
+				return
 			}
 			buf := new(bytes.Buffer)
 			if _, err := buf.ReadFrom(r.Body); err != nil {
@@ -102,8 +105,9 @@ func TestCreateImage(t *testing.T) {
 			if getErr != nil {
 				w.WriteHeader(400)
 				fmt.Fprintln(w, getErr)
+				return
 			}
-			body, _ := json.Marshal(getResponse)
+			body, _ := json.Marshal(getResp)
 			fmt.Fprintln(w, string(body))
 		} else {
 			w.WriteHeader(500)
@@ -113,8 +117,8 @@ func TestCreateImage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
 	defer svr.Close()
+	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
 
 	tests := []struct {
 		desc                       string
@@ -130,13 +134,72 @@ func TestCreateImage(t *testing.T) {
 	for _, tt := range tests {
 		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
 		i := &compute.Image{Name: testImage}
-		getResponse = &compute.Image{Name: testImage, SelfLink: "foo"}
+		getResp = &compute.Image{Name: testImage, SelfLink: "foo"}
 		err := c.CreateImage(testProject, i)
-		getResponse.ServerResponse = i.ServerResponse // We have to fudge this part in order to check that i == getResponse
+		getResp.ServerResponse = i.ServerResponse // We have to fudge this part in order to check that i == getResp
 		if err != nil && !tt.shouldErr {
 			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
-		} else if diff := pretty.Compare(i, getResponse); err == nil && diff != "" {
+		} else if diff := pretty.Compare(i, getResp); err == nil && diff != "" {
 			t.Errorf("%s: Image does not match expectation: (-got +want)\n%s", tt.desc, diff)
+		}
+	}
+}
+
+func TestCreateInstanceNew(t *testing.T) {
+	var getErr, insertErr, waitErr error
+	var getResp *compute.Instance
+	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances?alt=json", testProject, testZone) {
+			if insertErr != nil {
+				w.WriteHeader(400)
+				fmt.Println(w, insertErr)
+				return
+			}
+			buf := new(bytes.Buffer)
+			if _, err := buf.ReadFrom(r.Body); err != nil {
+				t.Fatal(err)
+			}
+			fmt.Fprintln(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, testInstance) {
+			if getErr != nil {
+				w.WriteHeader(400)
+				fmt.Println(w, getErr)
+				return
+			}
+			body, _ := json.Marshal(getResp)
+			fmt.Fprintln(w, string(body))
+		} else {
+			w.WriteHeader(500)
+			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
+		}
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svr.Close()
+	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
+
+	tests := []struct {
+		desc                       string
+		getErr, insertErr, waitErr error
+		shouldErr                  bool
+	}{
+		{"normal case", nil, nil, nil, false},
+		{"get err case", errors.New("get err"), nil, nil, true},
+		{"insert err case", nil, errors.New("insert err"), nil, true},
+		{"wait err case", nil, nil, errors.New("wait err"), true},
+	}
+
+	for _, tt := range tests {
+		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
+		i := &compute.Instance{Name: testInstance}
+		getResp = &compute.Instance{Name: testInstance, SelfLink: "foo"}
+		err := c.CreateInstance(testProject, testZone, i)
+		getResp.ServerResponse = i.ServerResponse // We have to fudge this part in order to check that i == getResp
+		if err != nil && !tt.shouldErr {
+			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
+		} else if diff := pretty.Compare(i, getResp); err == nil && diff != "" {
+			t.Errorf("%s: Instance does not match expectation: (-got +want)\n%s", tt.desc, diff)
 		}
 	}
 }
