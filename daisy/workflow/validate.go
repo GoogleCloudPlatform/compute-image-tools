@@ -62,7 +62,7 @@ func (n nameSet) add(w *Workflow, s string) error {
 	ss := n.getNames(w)
 
 	// Name checking first.
-	if containsString(s, ss) {
+	if stringIn(s, ss) {
 		return fmt.Errorf("workflow %q has duplicate references for %q", w.Name, s)
 	}
 	if !checkName(s) {
@@ -84,7 +84,7 @@ func (n nameSet) getNames(w *Workflow) []string {
 func (n nameSet) has(w *Workflow, s string) bool {
 	nameSetsMx.Lock()
 	defer nameSetsMx.Unlock()
-	return containsString(s, n.getNames(w))
+	return stringIn(s, n.getNames(w))
 }
 
 func checkName(s string) bool {

@@ -23,25 +23,6 @@ import (
 	compute "google.golang.org/api/compute/v1"
 )
 
-func TestContainsString(t *testing.T) {
-	ss := []string{"hello", "world", "my", "name", "is", "daisy"}
-
-	// True case.
-	if !containsString("hello", ss) {
-		t.Fatal("hello not found in slice")
-	}
-
-	// False case.
-	if containsString("dne", ss) {
-		t.Fatal("dne found in slice")
-	}
-
-	// Edge case -- empty slice.
-	if containsString("dne", []string{}) {
-		t.Fatal("string found in empty slice")
-	}
-}
-
 func TestFilter(t *testing.T) {
 	ss := []string{"my", "name", "is", "daisy", "what", "is", "yours"}
 
@@ -87,6 +68,25 @@ func TestRandString(t *testing.T) {
 		if l != i {
 			t.Fatalf("wrong string length: %d != %d", l, i)
 		}
+	}
+}
+
+func TestStringIn(t *testing.T) {
+	ss := []string{"hello", "world", "my", "name", "is", "daisy"}
+
+	// True case.
+	if !stringIn("hello", ss) {
+		t.Fatal("hello not found in slice")
+	}
+
+	// False case.
+	if stringIn("dne", ss) {
+		t.Fatal("dne found in slice")
+	}
+
+	// Edge case -- empty slice.
+	if stringIn("dne", []string{}) {
+		t.Fatal("string found in empty slice")
 	}
 }
 
