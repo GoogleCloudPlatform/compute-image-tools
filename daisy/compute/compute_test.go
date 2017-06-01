@@ -65,9 +65,9 @@ func TestCreateDisk(t *testing.T) {
 		shouldErr                  bool
 	}{
 		{"normal case", nil, nil, nil, false},
-		//{"get err case", errors.New("get err"), nil, nil, true},
-		//{"insert err case", nil, errors.New("insert err"), nil, true},
-		//{"wait err case", nil, nil, errors.New("wait err"), true},
+		{"get err case", errors.New("get err"), nil, nil, true},
+		{"insert err case", nil, errors.New("insert err"), nil, true},
+		{"wait err case", nil, nil, errors.New("wait err"), true},
 	}
 
 	for _, tt := range tests {
