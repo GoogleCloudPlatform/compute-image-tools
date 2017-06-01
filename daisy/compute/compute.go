@@ -26,16 +26,26 @@ import (
 	"google.golang.org/api/transport"
 )
 
+type Client interface {
+	CreateDisk(project, zone string, d *compute.Disk) error
+	CreateImage(project string, i *compute.Image) error
+	DeleteDisk(project, zone, name string) error
+	DeleteImage(project, name string) error
+	DeleteInstance(project, zone, name string) error
+	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
+	InstanceStatus(project, zone, name string) (string, error)
+	InstanceStopped(project, zone, name string) (bool, error)
+  WaitForInstanceStopped(project, zone, name string, interval time.Duration) error
+}
+
 // Client is a client for interacting with Google Cloud Compute.
-type Client struct {
+type realClient struct {
 	hc  *http.Client
 	raw *compute.Service
-
-	OperationsWaitFunc func(project, zone, name string) error
 }
 
 // NewClient creates a new Google Cloud Compute client.
-func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error) {
+func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error) {
 	o := []option.ClientOption{option.WithScopes(compute.ComputeScope)}
 	opts = append(o, opts...)
 	hc, ep, err := transport.NewHTTPClient(ctx, opts...)
@@ -49,16 +59,15 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (*Client, error
 	if ep != "" {
 		rawService.BasePath = ep
 	}
-	c := &Client{
+	c := &realClient{
 		hc:  hc,
 		raw: rawService,
 	}
-	c.OperationsWaitFunc = c.operationsWait
 
 	return c, nil
 }
 
-func (c *Client) operationsWait(project, zone, name string) error {
+func (c *realClient) operationsWait(project, zone, name string) error {
 	for {
 		var err error
 		var op *compute.Operation
@@ -93,20 +102,24 @@ func (c *Client) operationsWait(project, zone, name string) error {
 }
 
 // CreateDisk creates a GCE persistent disk.
-func (c *Client) CreateDisk(project, zone string, d *compute.Disk) error {
+func (c *realClient) CreateDisk(project, zone string, d *compute.Disk) error {
+	fmt.Println("here1")
 	resp, err := c.raw.Disks.Insert(project, zone, d).Do()
 	if err != nil {
 		return err
 	}
 
-	if err := c.OperationsWaitFunc(project, zone, resp.Name); err != nil {
+	fmt.Println("here2")
+	if err := c.operationsWait(project, zone, resp.Name); err != nil {
 		return err
 	}
+	fmt.Println("here3")
 
 	var createdDisk *compute.Disk
 	if createdDisk, err = c.raw.Disks.Get(project, zone, d.Name).Do(); err != nil {
 		return err
 	}
+	fmt.Println("here4")
 	*d = *createdDisk
 	return nil
 }
@@ -115,13 +128,13 @@ func (c *Client) CreateDisk(project, zone string, d *compute.Disk) error {
 // Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
 // url (full or partial) to the source disk, sourceFile is the full Google
 // Cloud Storage URL where the disk image is stored.
-func (c *Client) CreateImage(project string, i *compute.Image) error {
+func (c *realClient) CreateImage(project string, i *compute.Image) error {
 	resp, err := c.raw.Images.Insert(project, i).Do()
 	if err != nil {
 		return err
 	}
 
-	if err := c.OperationsWaitFunc(project, "", resp.Name); err != nil {
+	if err := c.operationsWait(project, "", resp.Name); err != nil {
 		return err
 	}
 
@@ -134,42 +147,42 @@ func (c *Client) CreateImage(project string, i *compute.Image) error {
 }
 
 // DeleteImage deletes a GCE image.
-func (c *Client) DeleteImage(project, image string) error {
+func (c *realClient) DeleteImage(project, image string) error {
 	resp, err := c.raw.Images.Delete(project, image).Do()
 	if err != nil {
 		return err
 	}
 
-	return c.OperationsWaitFunc(project, "", resp.Name)
+	return c.operationsWait(project, "", resp.Name)
 }
 
 // DeleteDisk deletes a GCE persistent disk.
-func (c *Client) DeleteDisk(project, zone, disk string) error {
+func (c *realClient) DeleteDisk(project, zone, disk string) error {
 	resp, err := c.raw.Disks.Delete(project, zone, disk).Do()
 	if err != nil {
 		return err
 	}
 
-	return c.OperationsWaitFunc(project, zone, resp.Name)
+	return c.operationsWait(project, zone, resp.Name)
 }
 
 // DeleteInstance deletes a GCE instance.
-func (c *Client) DeleteInstance(project, zone, instance string) error {
+func (c *realClient) DeleteInstance(project, zone, instance string) error {
 	resp, err := c.raw.Instances.Delete(project, zone, instance).Do()
 	if err != nil {
 		return err
 	}
 
-	return c.OperationsWaitFunc(project, zone, resp.Name)
+	return c.operationsWait(project, zone, resp.Name)
 }
 
 // GetSerialPortOutput gets the serial port output of a GCE instance.
-func (c *Client) GetSerialPortOutput(project, zone, instance string, port, start int64) (*compute.SerialPortOutput, error) {
+func (c *realClient) GetSerialPortOutput(project, zone, instance string, port, start int64) (*compute.SerialPortOutput, error) {
 	return c.raw.Instances.GetSerialPortOutput(project, zone, instance).Start(start).Port(port).Do()
 }
 
 // InstanceStatus returns an instances Status.
-func (c *Client) InstanceStatus(project, zone, instance string) (string, error) {
+func (c *realClient) InstanceStatus(project, zone, instance string) (string, error) {
 	inst, err := c.raw.Instances.Get(project, zone, instance).Do()
 	if err != nil {
 		return "", err
@@ -178,7 +191,7 @@ func (c *Client) InstanceStatus(project, zone, instance string) (string, error) 
 }
 
 // InstanceStopped checks if a GCE instance is in a 'TERMINATED' state.
-func (c *Client) InstanceStopped(project, zone, instance string) (bool, error) {
+func (c *realClient) InstanceStopped(project, zone, instance string) (bool, error) {
 	status, err := c.InstanceStatus(project, zone, instance)
 	if err != nil {
 		return false, err
@@ -194,7 +207,7 @@ func (c *Client) InstanceStopped(project, zone, instance string) (bool, error) {
 }
 
 // WaitForInstanceStopped waits a GCE instance to enter 'TERMINATED' state.
-func (c *Client) WaitForInstanceStopped(project, zone, instance string, interval time.Duration) error {
+func (c *realClient) WaitForInstanceStopped(project, zone, instance string, interval time.Duration) error {
 	for {
 		stopped, err := c.InstanceStopped(project, zone, instance)
 		if err != nil {
@@ -211,7 +224,7 @@ func (c *Client) WaitForInstanceStopped(project, zone, instance string, interval
 
 // Instance is the definition of a GCE instance.
 type Instance struct {
-	client            *Client
+	client            *realClient
 	name              string
 	zone              string
 	project           string
@@ -311,14 +324,14 @@ func (i *Instance) Insert() (*compute.Instance, error) {
 		return nil, fmt.Errorf("Failed to create instance: %v", err)
 	}
 
-	if err := i.client.OperationsWaitFunc(i.project, i.zone, resp.Name); err != nil {
+	if err := i.client.operationsWait(i.project, i.zone, resp.Name); err != nil {
 		return nil, err
 	}
 	return i.client.raw.Instances.Get(i.project, i.zone, i.name).Do()
 }
 
 // NewInstance creates a new Instance struct.
-func (c *Client) NewInstance(name, project, zone, machineType string) (*Instance, error) {
+func (c *realClient) NewInstance(name, project, zone, machineType string) (*Instance, error) {
 	instance := &Instance{
 		client:      c,
 		name:        name,
