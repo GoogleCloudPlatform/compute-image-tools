@@ -196,9 +196,9 @@ func (c *CreateInstances) run(s *Step) error {
 				name = w.genName(ci.Name)
 			}
 
-			zone := stringOr(ci.Zone, w.Zone)
+			zone := strOr(ci.Zone, w.Zone)
 
-			project := stringOr(ci.Project, w.Project)
+			project := strOr(ci.Project, w.Project)
 
 			inst, err := w.ComputeClient.NewInstance(name, project, zone, ci.MachineType)
 			if err != nil {
