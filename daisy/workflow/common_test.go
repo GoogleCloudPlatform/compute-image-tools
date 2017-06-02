@@ -71,26 +71,34 @@ func TestRandString(t *testing.T) {
 	}
 }
 
-func TestStringIn(t *testing.T) {
+func TestStrIn(t *testing.T) {
 	ss := []string{"hello", "world", "my", "name", "is", "daisy"}
 
 	// True case.
-	if !stringIn("hello", ss) {
+	if !strIn("hello", ss) {
 		t.Fatal("hello not found in slice")
 	}
 
 	// False case.
-	if stringIn("dne", ss) {
+	if strIn("dne", ss) {
 		t.Fatal("dne found in slice")
 	}
 
 	// Edge case -- empty slice.
-	if stringIn("dne", []string{}) {
+	if strIn("dne", []string{}) {
 		t.Fatal("string found in empty slice")
 	}
 }
 
-func TestStringOr(t *testing.T) {
+func TestStrLitPtr(t *testing.T) {
+	s1 := "foo"
+	s2 := strLitPtr(s1)
+	if *s2 != s1 {
+		t.Errorf("%q != %q", *s2, s1)
+	}
+}
+
+func TestStrOr(t *testing.T) {
 
 	tests := []struct {
 		desc     string
@@ -105,7 +113,7 @@ func TestStringOr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result := stringOr(tt.s, tt.ss...)
+		result := strOr(tt.s, tt.ss...)
 		if result != tt.expected {
 			t.Errorf("%s: wanted %q, got %q", tt.desc, tt.expected, result)
 		}

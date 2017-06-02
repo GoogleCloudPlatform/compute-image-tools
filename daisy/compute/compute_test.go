@@ -27,6 +27,14 @@ import (
 	compute "google.golang.org/api/compute/v1"
 )
 
+var (
+	testProject  = "test-project"
+	testZone     = "test-zone"
+	testDisk     = "test-disk"
+	testImage    = "test-image"
+	testInstance = "test-instance"
+)
+
 func TestCreateDisk(t *testing.T) {
 	var getErr, insertErr, waitErr error
 	var getResp *compute.Disk

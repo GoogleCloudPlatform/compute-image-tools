@@ -75,13 +75,13 @@ func (c *CreateDisks) validate(s *Step) error {
 		if !cd.ExactName {
 			cd.Name = w.genName(cd.name)
 		}
-		cd.Project = stringOr(cd.Project, w.Project)
-		cd.Zone = stringOr(cd.Zone, w.Zone)
+		cd.Project = strOr(cd.Project, w.Project)
+		cd.Zone = strOr(cd.Zone, w.Zone)
 		if cd.Type != "" && !strings.Contains(cd.Type, "/") {
 			cd.Type = fmt.Sprintf("zones/%s/diskTypes/%s", cd.Zone, cd.Type)
 		}
-		cd.Type = stringOr(cd.Type, fmt.Sprintf("zones/%s/diskTypes/pd-standard", cd.Zone))
-		cd.Description = stringOr(cd.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
+		cd.Type = strOr(cd.Type, fmt.Sprintf("zones/%s/diskTypes/pd-standard", cd.Zone))
+		cd.Description = strOr(cd.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
 
 		// Try adding disk name.
 		if err := validatedDisks.add(w, cd.name); err != nil {

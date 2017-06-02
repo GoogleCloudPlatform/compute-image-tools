@@ -67,8 +67,8 @@ func (c *CreateImages) validate(s *Step) error {
 		} else {
 			return fmt.Errorf("cannot create image: file not in sources or valid GCS path: %s", ci.RawDisk.Source)
 		}
-		ci.Description = stringOr(ci.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
-		ci.Project = stringOr(ci.Project, w.Project)
+		ci.Description = strOr(ci.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
+		ci.Project = strOr(ci.Project, w.Project)
 
 		// Project checking.
 		if ci.Project != "" && !projectExists(ci.Project) {
@@ -93,7 +93,7 @@ func (c *CreateImages) run(s *Step) error {
 		go func(ci *CreateImage) {
 			defer wg.Done()
 
-			project := stringOr(ci.Project, w.Project)
+			project := strOr(ci.Project, w.Project)
 
 			// Get source disk link, if applicable.  TODO(crunkleton): Move to validate after validation refactor.
 			if ci.SourceDisk != "" {

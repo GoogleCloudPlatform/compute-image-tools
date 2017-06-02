@@ -94,7 +94,7 @@ func splitGCSPath(p string) (string, string, error) {
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
-func stringIn(s string, ss []string) bool {
+func strIn(s string, ss []string) bool {
 	for _, x := range ss {
 		if s == x {
 			return true
@@ -103,7 +103,11 @@ func stringIn(s string, ss []string) bool {
 	return false
 }
 
-func stringOr(s string, ss ...string) string {
+func strLitPtr(s string) *string {
+	return &s
+}
+
+func strOr(s string, ss ...string) string {
 	ss = append([]string{s}, ss...)
 	for _, st := range ss {
 		if st != "" {
