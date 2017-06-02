@@ -10,14 +10,6 @@ import (
 	"net/http/httptest"
 )
 
-var (
-	testProject  = "test-project"
-	testZone     = "test-zone"
-	testDisk     = "test-disk"
-	testImage    = "test-image"
-	testInstance = "test-instance"
-)
-
 func NewTestClient(handleFunc http.HandlerFunc) (*httptest.Server, *TestClient, error) {
 	ts := httptest.NewServer(handleFunc)
 	opts := []option.ClientOption{
