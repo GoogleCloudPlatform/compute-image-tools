@@ -33,7 +33,7 @@ type CreateDisk struct {
 	compute.Disk
 
 	// Size of this disk.
-	SizeGb string `json:",omitempty"`
+	SizeGb string `json:"sizeGb,omitempty"`
 	// Zone to create the instance in, overrides workflow Zone.
 	Zone string `json:",omitempty"`
 	// Project to create the instance in, overrides workflow Project.
