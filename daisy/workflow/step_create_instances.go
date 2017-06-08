@@ -120,7 +120,8 @@ func (c *CreateInstance) processDisks(w *Workflow) error {
 		return errors.New("cannot create instance: no disks provided")
 	}
 
-	for _, d := range c.Disks {
+	for i, d := range c.Disks {
+		d.Boot = i == 0
 		if !diskValid(w, d.Source) {
 			return fmt.Errorf("cannot create instance: disk not found: %s", d.Source)
 		}
@@ -129,10 +130,10 @@ func (c *CreateInstance) processDisks(w *Workflow) error {
 			return fmt.Errorf("cannot create instance: bad disk mode: %q", d.Mode)
 		}
 
-		// Ensure disk is in the same project and zone.
+		// Disk is a partial URL, ensure disk is in the same project and zone.
 		match := diskURLRegex.FindStringSubmatch(d.Source)
 		if match == nil {
-			return nil
+			continue
 		}
 		result := make(map[string]string)
 		for i, name := range diskURLRegex.SubexpNames() {

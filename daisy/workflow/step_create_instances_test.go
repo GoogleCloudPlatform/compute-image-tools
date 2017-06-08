@@ -28,14 +28,16 @@ import (
 func TestCreateInstanceProcessDisks(t *testing.T) {
 	w := testWorkflow()
 	validatedDisks.add(w, "d1")
+	validatedDisks.add(w, "d2")
 
 	tests := []struct {
 		desc       string
 		ad, wantAd []*compute.AttachedDisk
 		shouldErr  bool
 	}{
-		{"normal case", []*compute.AttachedDisk{{Source: "d1"}}, []*compute.AttachedDisk{{Source: "d1", Mode: "READ_WRITE"}}, false},
-		{"mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "READ_ONLY"}}, []*compute.AttachedDisk{{Source: "d1", Mode: "READ_ONLY"}}, false},
+		{"normal case", []*compute.AttachedDisk{{Source: "d1"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}}, false},
+		{"multiple disks case", []*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}, {Boot: false, Source: "d2", Mode: "READ_WRITE"}}, false},
+		{"mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "READ_ONLY"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_ONLY"}}, false},
 		{"bad mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "FOO"}}, nil, true},
 		{"no disks case", []*compute.AttachedDisk{}, nil, true},
 		{"disk dne case", []*compute.AttachedDisk{{Source: "dne"}}, nil, true},
