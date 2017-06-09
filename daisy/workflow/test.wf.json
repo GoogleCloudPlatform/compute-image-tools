@@ -12,15 +12,15 @@
     "create-disks": {
       "createDisks": [
         {
-          "name": "bootstrap",
-          "sourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
-          "sizeGb": "50",
+          "Name": "bootstrap",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
+          "SizeGb": "50",
           "Type": "pd-ssd"
         },
         {
-          "name": "image",
-          "sourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
-          "sizeGb": "50",
+          "Name": "image",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
+          "SizeGb": "50",
           "Type": "pd-standard"
         }
       ]
@@ -28,20 +28,20 @@
     "${bootstrap_instance_name}": {
       "createInstances": [
         {
-          "name": "${bootstrap_instance_name}",
-          "disks": [
+          "Name": "${bootstrap_instance_name}",
+          "Disks": [
             {
-              "source": "bootstrap"
+              "Source": "bootstrap"
             },
             {
-              "source": "image"
+              "Source": "image"
             }
           ],
-          "metadata": {
+          "Metadata": {
             "test_metadata": "this was a test"
           },
-          "machineType": "${machine_type}",
-          "startupScript": "shutdown /h"
+          "MachineType": "${machine_type}",
+          "StartupScript": "shutdown /h"
         }
       ]
     },
@@ -52,17 +52,17 @@
     "postinstall": {
       "createInstances": [
         {
-          "name": "postinstall",
-          "disks": [
+          "Name": "postinstall",
+          "Disks": [
             {
-              "source": "image"
+              "Source": "image"
             },
             {
-              "source": "bootstrap"
+              "Source": "bootstrap"
             }
           ],
-          "machineType": "${machine_type}",
-          "startupScript": "shutdown /h"
+          "MachineType": "${machine_type}",
+          "StartupScript": "shutdown /h"
         }
       ]
     },
@@ -72,8 +72,8 @@
     "create-image": {
       "createImages": [
         {
-          "name": "image-from-disk",
-          "sourceDisk": "image"
+          "Name": "image-from-disk",
+          "SourceDisk": "image"
         }
       ]
     },

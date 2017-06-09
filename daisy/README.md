@@ -182,9 +182,9 @@ the Disk JSON representation. Daisy uses the same representation with a few modi
 
 | Field Name | Type | Description of Modification |
 | - | - | - |
-| name | string | If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
-| sourceImage | string | Either image [partial URLs](#glossary-partialurl) or workflow-internal image names are valid. |
-| type | string | *Optional.* Defaults to "pd-standard". Either disk type [partial URLs](#glossary-partialurl) or disk type names are valid. |
+| Name | string | If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
+| SourceImage | string | Either image [partial URLs](#glossary-partialurl) or workflow-internal image names are valid. |
+| Type | string | *Optional.* Defaults to "pd-standard". Either disk type [partial URLs](#glossary-partialurl) or disk type names are valid. |
 
 Added fields:
 
@@ -201,13 +201,13 @@ is a blank PD SSD.
 "step-name": {
   "CreateDisks": [
     {
-      "name": "disk1",
-      "sourceImage": "projects/debian-cloud/global/images/family/debian-8"
+      "Name": "disk1",
+      "SourceImage": "projects/debian-cloud/global/images/family/debian-8"
     },
     {
-      "name": "disk2",
-      "sizeGb": "200",
-      "type": "pd-ssd"
+      "Name": "disk2",
+      "SizeGb": "200",
+      "Type": "pd-ssd"
     }
   ]
 }
@@ -219,9 +219,9 @@ the Image JSON representation. Daisy uses the same representation with a few mod
 
 | Field Name | Type | Description of Modification |
 | - | - | - |
-| name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
-| rawDisk.source | string | Either a GCS Path or a key from Sources are valid. |
-| sourceDisk | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+| Name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
+| RawDisk.Source | string | Either a GCS Path or a key from Sources are valid. |
+| SourceDisk | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
 
 Added fields:
 
@@ -236,8 +236,8 @@ This CreateImages example creates an image from a source disk.
 "step-name": {
   "CreateImages": [
     {
-      "name": "image1",
-      "sourceDisk": "disk2"
+      "Name": "image1",
+      "SourceDisk": "disk2"
     }
   ]
 }
@@ -253,22 +253,22 @@ workflow's specified Project.
 "step-name": {
   "CreateImages": [
     {
-      "name": "image1",
-      "rawDisk": {
-        "source": "my-source"
+      "Name": "image1",
+      "RawDisk": {
+        "Source": "my-source"
       },
       "NoCleanup": true
     },
     {
-      "name": "image2",
-      "rawDisk": {
-        "source": "gs://my-bucket/image.tar.gz"
+      "Name": "image2",
+      "RawDisk": {
+        "Source": "gs://my-bucket/image.tar.gz"
       },
       "ExactName": true
     },
     {
-      "name": "image3",
-      "sourceDisk": "my-disk",
+      "Name": "image3",
+      "SourceDisk": "my-disk",
       "Project": "my-other-project"
     }
   ]
@@ -281,14 +281,14 @@ the Instance JSON representation. Daisy uses the same representation with a few 
 
 | Field Name | Type | Description of Modification |
 | - | - | - |
-| name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
-| disks[].source | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
-| disks[].mode | string | *Now Optional.* Now defaults to "READ_WRITE". |
-| machineType | string | *Now Optional.* Now defaults to "n1-standard-1". Either machine type [partial URLs](#glossary-partialurl) or machine type names are valid. |
-| metadata | map[string]string | *Optional.* Instead of the GCE JSON API's more complex object structure, Daisy uses a simple key-value map. Daisy will provide metadata keys `daisy-logs-path`, `daisy-outs-path`, and `daisy-sources-path`. |
-| networkInterfaces[] | list | *Now Optional.* Now defaults to `[{"network": "global/networks/default", "accessConfigs": [{"type": "ONE_TO_ONE_NAT"}]}`. |
-| networkInterfaces[].network | string | Either network [partial URLs](#glossary-partialurl) or network names are valid. |
-| networkInterfaces[].accessConfigs[] | list | *Now Optional.* Now defaults to `[{"type": "ONE_TO_ONE_NAT}]`. |
+| Name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
+| Disks[].Source | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+| Disks[].Mode | string | *Now Optional.* Now defaults to "READ_WRITE". |
+| MachineType | string | *Now Optional.* Now defaults to "n1-standard-1". Either machine type [partial URLs](#glossary-partialurl) or machine type names are valid. |
+| Metadata | map[string]string | *Optional.* Instead of the GCE JSON API's more complex object structure, Daisy uses a simple key-value map. Daisy will provide metadata keys `daisy-logs-path`, `daisy-outs-path`, and `daisy-sources-path`. |
+| NetworkInterfaces[] | list | *Now Optional.* Now defaults to `[{"network": "global/networks/default", "accessConfigs": [{"type": "ONE_TO_ONE_NAT"}]}`. |
+| NetworkInterfaces[].Network | string | Either network [partial URLs](#glossary-partialurl) or network names are valid. |
+| NetworkInterfaces[].AccessConfigs[] | list | *Now Optional.* Now defaults to `[{"type": "ONE_TO_ONE_NAT}]`. |
 
 Added fields:
 
@@ -309,13 +309,13 @@ network.
 "step-name": {
   "CreateInstances": [
     {
-      "name": "instance1",
-      "disks": [
-        {"source": "disk1"},
-        {"source": "zones/foo/disks/disk2", "mode": "READ_ONLY"}
+      "Name": "instance1",
+      "Disks": [
+        {"Source": "disk1"},
+        {"Source": "zones/foo/disks/disk2", "Mode": "READ_ONLY"}
       ],
-      "machineType": "n1-standard-4",
-      "metadata": {"key": "value"}
+      "MachineType": "n1-standard-4",
+      "Metadata": {"key": "value"}
     }
   ]
 }
