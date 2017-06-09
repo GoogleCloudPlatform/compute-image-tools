@@ -187,17 +187,17 @@ func TestNewFromFile(t *testing.T) {
 						Disk: compute.Disk{
 							Name:        "bootstrap",
 							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-							SizeGb:      50,
 							Type:        "pd-ssd",
 						},
+						SizeGb: "50",
 					},
 					{
 						Disk: compute.Disk{
 							Name:        "image",
 							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-							SizeGb:      50,
 							Type:        "pd-standard",
 						},
+						SizeGb: "50",
 					},
 				},
 			},
@@ -256,8 +256,8 @@ func TestNewFromFile(t *testing.T) {
 										Disk: compute.Disk{
 											Name:        "bootstrap",
 											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-											SizeGb:      50,
 										},
+										SizeGb: "50",
 									},
 								},
 							},
@@ -310,8 +310,8 @@ func TestNewFromFile(t *testing.T) {
 										Disk: compute.Disk{
 											Name:        "bootstrap",
 											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-											SizeGb:      50,
 										},
+										SizeGb: "50",
 									},
 								},
 							},
