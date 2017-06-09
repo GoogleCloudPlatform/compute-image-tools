@@ -788,21 +788,21 @@ func TestPopulateVars(t *testing.T) {
 
 func TestPrint(t *testing.T) {
 	data := []byte(`{
-"name": "some-name",
-"project": "some-project",
-"zone": "us-central1-a",
-"gcsPath": "gs://some-bucket/images",
-"vars": {
+"Name": "some-name",
+"Project": "some-project",
+"Zone": "us-central1-a",
+"GCSPath": "gs://some-bucket/images",
+"Vars": {
   "instance_name": "step1",
   "machine_type": "n1-standard-1"
 },
-"steps": {
+"Steps": {
   "${instance_name}Run": {
     "createInstances": [
       {
-        "name": "${instance_name}",
-        "disks": [{"source": "disk"}],
-        "machineType": "${machine_type}"
+        "Name": "${instance_name}",
+        "Disks": [{"Source": "disk"}],
+        "MachineType": "${machine_type}"
       }
     ]
   }
