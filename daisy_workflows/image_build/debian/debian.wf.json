@@ -4,13 +4,13 @@
     "bootstrap-vz-manifest": "",
     "bootstrap-vz-version": "7af9cd9fb85d845884b2bd031fa694cc3c101d81",
     "google-cloud-repo": "stable",
-    "image-dest": "",
-    "license-id": "",
-    "release": "",
+    "image-dest": {"Required": true, "Description": "The GCS directory destination to which to copy the image."},
+    "license-id": {"Required": true, "Description": "The GCE license id."},
+    "release": {"Required": true, "Description": "The Debian release name."},
     "wf-name": "build-debian-subwf"
   },
   "Sources": {
-    "build_files": "./",
+    "build_files/build.py": "./build.py",
     "build_files/utils.py": "../linux_common/utils.py",
     "startup_script": "../linux_common/bootstrap.py"
   },
@@ -18,19 +18,18 @@
     "setup": {
       "CreateDisks": [
         {
-          "name": "${release}-build-${ID}",
-          "sourceImage": "projects/debian-cloud/global/images/family/debian-8",
-          "sizeGb": "10",
-          "type": "pd-ssd",
-          "exactName": true
+          "Name": "builder",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
         }
       ]
     },
     "run": {
       "CreateInstances": [
         {
-          "Name": "${release}-build-${ID}",
-          "AttachedDisks": ["${release}-build-${ID}"],
+          "Name": "builder",
+          "Disks": [{"Source": "builder"}],
           "MachineType": "n1-standard-8",
           "Metadata": {
             "bootstrap-vz-manifest": "${bootstrap-vz-manifest}",
@@ -38,27 +37,30 @@
             "build-files-gcs-dir": "${SOURCESPATH}/build_files",
             "build-script": "build.py",
             "google-cloud-repo": "${google-cloud-repo}",
-            "image-dest": "${image-dest}/${DATETIME}-${release}",
             "license-id": "${license-id}",
             "release": "${release}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
           ],
-          "StartupScript": "startup_script",
-          "ExactName": true
+          "StartupScript": "startup_script"
         }
       ]
     },
     "wait": {
       "Timeout": "60m",
-      "WaitForInstancesSignal": [
-        {"Name": "${release}-build-${ID}", "Stopped": true}
+      "WaitForInstancesSignal": [{"Name": "builder", "Stopped": true}]
+    },
+    "copy-to-dest": {
+      "CopyGCSObjects": [
+        {"Source": "${OUTSPATH}/image.tar.gz", "Destination": "${image-dest}/${DATETIME}-${release}/image.tar.gz"},
+        {"Source": "${OUTSPATH}/synopsis.json", "Destination": "${image-dest}/${DATETIME}-${release}/synopsis.json"}
       ]
     }
   },
   "Dependencies": {
     "run": ["setup"],
-    "wait": ["run"]
+    "wait": ["run"],
+    "copy-to-dest": ["wait"]
   }
 }
