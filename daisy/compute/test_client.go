@@ -2,12 +2,12 @@ package compute
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"time"
 
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
-	"net/http"
-	"net/http/httptest"
 )
 
 // NewTestClient returns a TestClient with a replacement http handler function.
