@@ -19,13 +19,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	compute "google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 	"path"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
