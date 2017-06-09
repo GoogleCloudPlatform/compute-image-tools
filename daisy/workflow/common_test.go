@@ -206,8 +206,10 @@ func TestSubstitute(t *testing.T) {
 					"key2": {
 						CreateInstances: &CreateInstances{
 							{
-								AttachedDisks: []string{"key1"},
-								Metadata:      map[string]string{"test_metadata": "key3"},
+								Instance: compute.Instance{
+									Disks: []*compute.AttachedDisk{{Source: "key1"}},
+								},
+								Metadata: map[string]string{"test_metadata": "key3"},
 							},
 						},
 					},
@@ -254,8 +256,10 @@ func TestSubstitute(t *testing.T) {
 					"value2": {
 						CreateInstances: &CreateInstances{
 							{
-								AttachedDisks: []string{"value1"},
-								Metadata:      map[string]string{"test_metadata": "value3"},
+								Instance: compute.Instance{
+									Disks: []*compute.AttachedDisk{{Source: "value1"}},
+								},
+								Metadata: map[string]string{"test_metadata": "value3"},
 							},
 						},
 					},

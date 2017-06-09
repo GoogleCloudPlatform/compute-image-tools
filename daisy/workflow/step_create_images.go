@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"sync"
 
+	"encoding/json"
 	compute "google.golang.org/api/compute/v1"
 )
 
@@ -41,6 +42,12 @@ type CreateImage struct {
 
 	// The name of the disk as known internally to Daisy.
 	name string
+}
+
+// MarshalJSON is a hacky workaround to prevent CreateImage from using
+// compute.Image's implementation.
+func (c *CreateImage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*c)
 }
 
 func (c *CreateImages) validate(s *Step) error {

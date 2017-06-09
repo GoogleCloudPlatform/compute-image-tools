@@ -21,6 +21,7 @@ import (
 	"strings"
 	"sync"
 
+	"encoding/json"
 	compute "google.golang.org/api/compute/v1"
 )
 
@@ -32,7 +33,7 @@ type CreateDisk struct {
 	compute.Disk
 
 	// Size of this disk.
-	SizeGb string `json:",omitempty"`
+	SizeGb string `json:"sizeGb,omitempty"`
 	// Zone to create the instance in, overrides workflow Zone.
 	Zone string `json:",omitempty"`
 	// Project to create the instance in, overrides workflow Project.
@@ -45,6 +46,12 @@ type CreateDisk struct {
 
 	// The name of the disk as known internally to Daisy.
 	name string
+}
+
+// MarshalJSON is a hacky workaround to prevent CreateDisk from using
+// compute.Disk's implementation.
+func (c *CreateDisk) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*c)
 }
 
 // validate checks fields: SourceImage, SizeGb

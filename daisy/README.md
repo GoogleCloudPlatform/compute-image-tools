@@ -183,8 +183,8 @@ the Disk JSON representation. Daisy uses the same representation with a few modi
 | Field Name | Type | Description of Modification |
 | - | - | - |
 | Name | string | If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
-| SourceImage | string | You may also use the name of an image created in the workflow. |
-| Type | string | *Optional.* Defaults to "pd-standard". Instead of using the [partial URL](#glossary-partialurl), you may shorten this to just the disk type name, e.g. "pd-standard" or "pd-ssd". |
+| SourceImage | string | Either image [partial URLs](#glossary-partialurl) or workflow-internal image names are valid. |
+| Type | string | *Optional.* Defaults to "pd-standard". Either disk type [partial URLs](#glossary-partialurl) or disk type names are valid. |
 
 Added fields:
 
@@ -194,7 +194,6 @@ Added fields:
 | Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
 | ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE disk exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
-
 
 Example: the first is a standard PD disk created from a source image, the second
 is a blank PD SSD.
@@ -221,8 +220,8 @@ the Image JSON representation. Daisy uses the same representation with a few mod
 | Field Name | Type | Description of Modification |
 | - | - | - |
 | Name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
-| RawDisk.File | string | Instead of requiring a GCS path, you may also use a source file from the workflow Sources. |
-| SourceDisk | string | Instead of requiring the [partial URL](#glossary-partialurl) of an existing GCE Disk, you may also use the name of an image created in the workflow. |
+| RawDisk.Source | string | Either a GCS Path or a key from Sources are valid. |
+| SourceDisk | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
 
 Added fields:
 
@@ -257,7 +256,7 @@ workflow's specified Project.
       "Name": "image1",
       "RawDisk": {
         "Source": "my-source"
-      },my-source
+      },
       "NoCleanup": true
     },
     {
@@ -277,31 +276,46 @@ workflow's specified Project.
 ```
 
 #### Type: CreateInstances
-Creates GCE VM instances. Each VM has the following fields:
+Creates GCE instances. A list of GCE Instance resources. See https://cloud.google.com/compute/docs/reference/latest/instances for
+the Instance JSON representation. Daisy uses the same representation with a few modifications:
+
+| Field Name | Type | Description of Modification |
+| - | - | - |
+| Name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
+| Disks[].Source | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+| Disks[].Mode | string | *Now Optional.* Now defaults to "READ_WRITE". |
+| MachineType | string | *Now Optional.* Now defaults to "n1-standard-1". Either machine type [partial URLs](#glossary-partialurl) or machine type names are valid. |
+| Metadata | map[string]string | *Optional.* Instead of the GCE JSON API's more complex object structure, Daisy uses a simple key-value map. Daisy will provide metadata keys `daisy-logs-path`, `daisy-outs-path`, and `daisy-sources-path`. |
+| NetworkInterfaces[] | list | *Now Optional.* Now defaults to `[{"network": "global/networks/default", "accessConfigs": [{"type": "ONE_TO_ONE_NAT"}]}`. |
+| NetworkInterfaces[].Network | string | Either network [partial URLs](#glossary-partialurl) or network names are valid. |
+| NetworkInterfaces[].AccessConfigs[] | list | *Now Optional.* Now defaults to `[{"type": "ONE_TO_ONE_NAT}]`. |
+
+Added fields:
 
 | Field Name | Type | Description |
 | - | - | - |
-| Name | string | The name of the GCE VM. If ExactName is false, the **literal** VM name will have a generated suffix for the running instance of the workflow. |
-| AttachedDisks | list(string) | The disks to attach to this VM. The first disk will be used as the boot disk. These disks can be 1) Names from disks created previously in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE disk. |
-| AttachedDisksRO | list(string) | *Optional.* The read only disks to attach to this VM. These disks can be 1) Names from disks created previously in the workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE disk. |
-| MachineType | string | *Optional.* Defaults to "n1-standard-1". The VM [machine type](#https://cloud.google.com/compute/docs/machine-types). |
-| StartupScript | string | *Optional.* The Sources path to the desired startup script. |
-| Metadata | map[string]string | *Optional.* Metadata key-value pairs to set on the VM instance. |
-| Scopes | list(string) | *Optional.* Defaults to https://www.googleapis.com/auth/devstorage.read_only. The workflow Project's default service account credentials scopes to grant to this VM. |
-| Project | string | *Optional.* Project to create the instance in, overrides workflow Project. |
-| Zone | string | *Optional.* Zone to create the instance in, overrides workflow Zone. |
-| NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this VM when the workflow terminates. |
-| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE VM exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+| Scopes | list(string) | *Optional.* Defaults to `["https://www.googleapis.com/auth/devstorage.read_only"]`. Only used if serviceAccounts is not used. Sets default service account scopes by setting serviceAccounts to `[{"email": "default", "scopes": <value of Scopes>}]`.|
+| StartupScript | string | *Optional.* A source file from Sources. If provided, metadata will be set for `startup-script-url` and `windows-startup-script-url`.|
+| Project | string | *Optional.* Defaults to workflow's Project. The GCP project in which to create the disk. |
+| Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
+| NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
+| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE disk exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateInstances step example creates an instance with two attached
-disks and uses the machine type n1-standard-4.
+disks, with machine type n1-standard-4, and with metadata "key" = "value".
+The instance will have default scopes and will be attached to the default
+network.
 ```json
 "step-name": {
   "CreateInstances": [
     {
       "Name": "instance1",
-      "AttachedDisks": ["disk1", "disk2"],
-      "MachineType": "n1-standard-4"
+      "Disks": [
+        {"Source": "disk1"},
+        {"Source": "zones/foo/disks/disk2", "Mode": "READ_ONLY"}
+      ],
+      "MachineType": "n1-standard-4",
+      "Metadata": {"key": "value"}
     }
   ]
 }

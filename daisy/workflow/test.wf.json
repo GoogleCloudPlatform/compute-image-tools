@@ -12,15 +12,15 @@
     "create-disks": {
       "createDisks": [
         {
-          "name": "bootstrap",
-          "sourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
-          "sizeGb": "50",
+          "Name": "bootstrap",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
+          "SizeGb": "50",
           "Type": "pd-ssd"
         },
         {
-          "name": "image",
-          "sourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
-          "sizeGb": "50",
+          "Name": "image",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-server-2016-core",
+          "SizeGb": "50",
           "Type": "pd-standard"
         }
       ]
@@ -28,13 +28,20 @@
     "${bootstrap_instance_name}": {
       "createInstances": [
         {
-          "name": "${bootstrap_instance_name}",
-          "attachedDisks": ["bootstrap", "image"],
-          "metadata": {
+          "Name": "${bootstrap_instance_name}",
+          "Disks": [
+            {
+              "Source": "bootstrap"
+            },
+            {
+              "Source": "image"
+            }
+          ],
+          "Metadata": {
             "test_metadata": "this was a test"
           },
-          "machineType": "${machine_type}",
-          "startupScript": "shutdown /h"
+          "MachineType": "${machine_type}",
+          "StartupScript": "shutdown /h"
         }
       ]
     },
@@ -45,10 +52,17 @@
     "postinstall": {
       "createInstances": [
         {
-          "name": "postinstall",
-          "attachedDisks": ["image", "bootstrap"],
-          "machineType": "${machine_type}",
-          "startupScript": "shutdown /h"
+          "Name": "postinstall",
+          "Disks": [
+            {
+              "Source": "image"
+            },
+            {
+              "Source": "bootstrap"
+            }
+          ],
+          "MachineType": "${machine_type}",
+          "StartupScript": "shutdown /h"
         }
       ]
     },
@@ -58,19 +72,19 @@
     "create-image": {
       "createImages": [
         {
-          "name": "image-from-disk",
-          "sourceDisk": "image"
+          "Name": "image-from-disk",
+          "SourceDisk": "image"
         }
       ]
     },
     "include-workflow": {
       "IncludeWorkflow": {
-        "path": "./test_sub.workflow"
+        "path": "./test_sub.wf.json"
       }
     },
     "sub-workflow": {
       "subWorkflow": {
-        "path": "./test_sub.workflow"
+        "path": "./test_sub.wf.json"
       }
     }
   },

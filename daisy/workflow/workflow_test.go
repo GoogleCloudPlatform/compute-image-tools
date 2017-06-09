@@ -107,7 +107,7 @@ func TestNewFromFileError(t *testing.T) {
 		t.Fatalf("error creating temp dir: %v", err)
 	}
 	defer os.RemoveAll(td)
-	tf := filepath.Join(td, "test.workflow")
+	tf := filepath.Join(td, "test.wf.json")
 
 	localDNEErr := "open %s/sub.workflow: no such file or directory"
 	if runtime.GOOS == "windows" {
@@ -154,7 +154,7 @@ func TestNewFromFileError(t *testing.T) {
 }
 
 func TestNewFromFile(t *testing.T) {
-	got, err := NewFromFile(context.Background(), "./test.workflow")
+	got, err := NewFromFile(context.Background(), "./test.wf.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,17 +187,17 @@ func TestNewFromFile(t *testing.T) {
 						Disk: compute.Disk{
 							Name:        "bootstrap",
 							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-							SizeGb:      50,
 							Type:        "pd-ssd",
 						},
+						SizeGb: "50",
 					},
 					{
 						Disk: compute.Disk{
 							Name:        "image",
 							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-							SizeGb:      50,
 							Type:        "pd-standard",
 						},
+						SizeGb: "50",
 					},
 				},
 			},
@@ -205,9 +205,11 @@ func TestNewFromFile(t *testing.T) {
 				name: "${bootstrap_instance_name}",
 				CreateInstances: &CreateInstances{
 					{
-						Name:          "${bootstrap_instance_name}",
-						AttachedDisks: []string{"bootstrap", "image"},
-						MachineType:   "${machine_type}",
+						Instance: compute.Instance{
+							Name:        "${bootstrap_instance_name}",
+							Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
+							MachineType: "${machine_type}",
+						},
 						StartupScript: "shutdown /h",
 						Metadata:      map[string]string{"test_metadata": "this was a test"},
 					},
@@ -222,9 +224,11 @@ func TestNewFromFile(t *testing.T) {
 				name: "postinstall",
 				CreateInstances: &CreateInstances{
 					{
-						Name:          "postinstall",
-						AttachedDisks: []string{"image", "bootstrap"},
-						MachineType:   "${machine_type}",
+						Instance: compute.Instance{
+							Name:        "postinstall",
+							Disks:       []*compute.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
+							MachineType: "${machine_type}",
+						},
 						StartupScript: "shutdown /h",
 					},
 				},
@@ -240,7 +244,7 @@ func TestNewFromFile(t *testing.T) {
 			"include-workflow": {
 				name: "include-workflow",
 				IncludeWorkflow: &IncludeWorkflow{
-					Path: "./test_sub.workflow",
+					Path: "./test_sub.wf.json",
 					workflow: &Workflow{
 						id:          subGot.id,
 						workflowDir: wd,
@@ -252,8 +256,8 @@ func TestNewFromFile(t *testing.T) {
 										Disk: compute.Disk{
 											Name:        "bootstrap",
 											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-											SizeGb:      50,
 										},
+										SizeGb: "50",
 									},
 								},
 							},
@@ -261,9 +265,11 @@ func TestNewFromFile(t *testing.T) {
 								name: "bootstrap",
 								CreateInstances: &CreateInstances{
 									{
-										Name:          "bootstrap",
-										AttachedDisks: []string{"bootstrap"},
-										MachineType:   "n1-standard-1",
+										Instance: compute.Instance{
+											Name:        "bootstrap",
+											Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}},
+											MachineType: "n1-standard-1",
+										},
 										StartupScript: "shutdown /h",
 										Metadata:      map[string]string{"test_metadata": "this was a test"},
 									},
@@ -292,7 +298,7 @@ func TestNewFromFile(t *testing.T) {
 			"sub-workflow": {
 				name: "sub-workflow",
 				SubWorkflow: &SubWorkflow{
-					Path: "./test_sub.workflow",
+					Path: "./test_sub.wf.json",
 					workflow: &Workflow{
 						id:          subGot.id,
 						workflowDir: wd,
@@ -304,8 +310,8 @@ func TestNewFromFile(t *testing.T) {
 										Disk: compute.Disk{
 											Name:        "bootstrap",
 											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-											SizeGb:      50,
 										},
+										SizeGb: "50",
 									},
 								},
 							},
@@ -313,9 +319,11 @@ func TestNewFromFile(t *testing.T) {
 								name: "bootstrap",
 								CreateInstances: &CreateInstances{
 									{
-										Name:          "bootstrap",
-										AttachedDisks: []string{"bootstrap"},
-										MachineType:   "n1-standard-1",
+										Instance: compute.Instance{
+											Name:        "bootstrap",
+											Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}},
+											MachineType: "n1-standard-1",
+										},
 										StartupScript: "shutdown /h",
 										Metadata:      map[string]string{"test_metadata": "this was a test"},
 									},
@@ -416,7 +424,7 @@ func TestPopulate(t *testing.T) {
 			"bucket":    []byte(`{"Value": "parent-bucket", "Required": true}`),
 			"step_name": []byte(`"parent-step1"`),
 			"timeout":   []byte(`"60m"`),
-			"path":      []byte(`"./test_sub.workflow"`),
+			"path":      []byte(`"./test_sub.wf.json"`),
 			"wf-name":   []byte(`"parent"`),
 		},
 		Steps: map[string]*Step{
@@ -526,7 +534,7 @@ func TestPopulate(t *testing.T) {
 			"bucket":    []byte(`{"Value": "parent-bucket", "Required": true}`),
 			"step_name": []byte(`"parent-step1"`),
 			"timeout":   []byte(`"60m"`),
-			"path":      []byte(`"./test_sub.workflow"`),
+			"path":      []byte(`"./test_sub.wf.json"`),
 			"wf-name":   []byte(`"parent"`),
 		},
 		autovars: got.autovars,
@@ -534,7 +542,7 @@ func TestPopulate(t *testing.T) {
 			"bucket":    {Value: "parent-bucket", Required: true},
 			"step_name": {Value: "parent-step1"},
 			"timeout":   {Value: "60m"},
-			"path":      {Value: "./test_sub.workflow"},
+			"path":      {Value: "./test_sub.wf.json"},
 			"wf-name":   {Value: "parent"},
 		},
 		bucket:      "parent-bucket",
@@ -565,7 +573,7 @@ func TestPopulate(t *testing.T) {
 				Timeout: "10m",
 				timeout: time.Duration(10 * time.Minute),
 				SubWorkflow: &SubWorkflow{
-					Path: "./test_sub.workflow",
+					Path: "./test_sub.wf.json",
 					Vars: map[string]string{
 						"overridden": "bar",
 					},
@@ -610,7 +618,7 @@ func TestPopulate(t *testing.T) {
 				Timeout: "10m",
 				timeout: time.Duration(10 * time.Minute),
 				IncludeWorkflow: &IncludeWorkflow{
-					Path: "./test_sub.workflow",
+					Path: "./test_sub.wf.json",
 					Vars: map[string]string{
 						"overridden": "bar",
 						"timeout":    "60m",
@@ -747,7 +755,7 @@ func TestPopulateVars(t *testing.T) {
 		t.Fatalf("error creating temp dir: %v", err)
 	}
 	defer os.RemoveAll(td)
-	tf := filepath.Join(td, "test.workflow")
+	tf := filepath.Join(td, "test.wf.json")
 	ioutil.WriteFile(tf, data, 0600)
 
 	got, err := NewFromFile(context.Background(), tf)
@@ -780,21 +788,21 @@ func TestPopulateVars(t *testing.T) {
 
 func TestPrint(t *testing.T) {
 	data := []byte(`{
-"name": "some-name",
-"project": "some-project",
-"zone": "us-central1-a",
-"gcsPath": "gs://some-bucket/images",
-"vars": {
+"Name": "some-name",
+"Project": "some-project",
+"Zone": "us-central1-a",
+"GCSPath": "gs://some-bucket/images",
+"Vars": {
   "instance_name": "step1",
   "machine_type": "n1-standard-1"
 },
-"steps": {
+"Steps": {
   "${instance_name}Run": {
     "createInstances": [
       {
-        "name": "${instance_name}",
-        "attachedDisks": ["disk"],
-        "machineType": "${machine_type}"
+        "Name": "${instance_name}",
+        "Disks": [{"Source": "disk"}],
+        "MachineType": "${machine_type}"
       }
     ]
   }
@@ -815,11 +823,13 @@ func TestPrint(t *testing.T) {
       "Timeout": "10m",
       "CreateInstances": [
         {
-          "Name": "step1",
-          "AttachedDisks": [
-            "disk"
+          "disks": [
+            {
+              "source": "disk"
+            }
           ],
-          "MachineType": "n1-standard-1",
+          "machineType": "n1-standard-1",
+          "name": "step1",
           "NoCleanup": false,
           "ExactName": false
         }
@@ -835,7 +845,7 @@ func TestPrint(t *testing.T) {
 		t.Fatalf("error creating temp dir: %v", err)
 	}
 	defer os.RemoveAll(td)
-	tf := filepath.Join(td, "test.workflow")
+	tf := filepath.Join(td, "test.wf.json")
 	ioutil.WriteFile(tf, data, 0600)
 
 	got, err := NewFromFile(context.Background(), tf)
@@ -843,8 +853,8 @@ func TestPrint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got.ComputeClient = testGCEClient
-	got.StorageClient = testGCSClient
+	got.ComputeClient, _ = newTestGCEClient()
+	got.StorageClient, _ = newTestGCSClient()
 
 	old := os.Stdout
 	r, w, err := os.Pipe()

@@ -15,176 +15,265 @@
 package workflow
 
 import (
-	"reflect"
+	"errors"
+	"path"
+	"sort"
 	"testing"
 
+	daisy_compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
+	compute "google.golang.org/api/compute/v1"
 )
 
-func TestCreateInstancesRun(t *testing.T) {
+func TestCreateInstanceProcessDisks(t *testing.T) {
 	w := testWorkflow()
+	validatedDisks.add(w, "d1")
+	validatedDisks.add(w, "d2")
+
+	tests := []struct {
+		desc       string
+		ad, wantAd []*compute.AttachedDisk
+		shouldErr  bool
+	}{
+		{"normal case", []*compute.AttachedDisk{{Source: "d1"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}}, false},
+		{"multiple disks case", []*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}, {Boot: false, Source: "d2", Mode: "READ_WRITE"}}, false},
+		{"mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "READ_ONLY"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_ONLY"}}, false},
+		{"bad mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "FOO"}}, nil, true},
+		{"no disks case", []*compute.AttachedDisk{}, nil, true},
+		{"disk dne case", []*compute.AttachedDisk{{Source: "dne"}}, nil, true},
+	}
+
+	for _, tt := range tests {
+		ci := CreateInstance{Instance: compute.Instance{Disks: tt.ad}}
+		err := ci.processDisks(w)
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: processDisks should have erred but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: processDisks returned an unexpected error: %v", tt.desc, err)
+		} else if diff := pretty.Compare(tt.ad, tt.wantAd); err == nil && diff != "" {
+			t.Errorf("%s: AttachedDisks not modified as expected: (-got +want)\n%s", tt.desc, diff)
+		}
+	}
+}
+
+func TestCreateInstanceProcessMachineType(t *testing.T) {
+	tests := []struct {
+		desc, mt, wantMt string
+		shouldErr        bool
+	}{
+		{"normal case", "mt", "zones/foo/machineTypes/mt", false},
+		{"bad machine type case", "garbage/url", "", true},
+		{"bad machine type case 2", "illegal-machine-type-name!!!", "", true},
+	}
+
+	for _, tt := range tests {
+		ci := CreateInstance{Instance: compute.Instance{MachineType: tt.mt}, Zone: "foo"}
+		err := ci.processMachineType()
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: processMachineType should have erred but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: processMachineType returned an unexpected error: %v", tt.desc, err)
+		} else if err == nil && ci.MachineType != tt.wantMt {
+			t.Errorf("%s: MachineType not modified as expected: got: %q, want: %q", tt.desc, ci.MachineType, tt.wantMt)
+		}
+	}
+}
+
+func TestCreateInstanceProcessMetadata(t *testing.T) {
+	w := testWorkflow()
+	w.populate()
+	w.Sources = map[string]string{"file": "foo/bar"}
+	filePath := "gs://" + path.Join(w.bucket, w.sourcesPath, "file")
+
+	baseMd := map[string]string{
+		"daisy-sources-path": "gs://" + path.Join(w.bucket, w.sourcesPath),
+		"daisy-logs-path":    "gs://" + path.Join(w.bucket, w.logsPath),
+		"daisy-outs-path":    "gs://" + path.Join(w.bucket, w.outsPath),
+	}
+	getWantMd := func(md map[string]string) *compute.Metadata {
+		for k, v := range baseMd {
+			md[k] = v
+		}
+		result := &compute.Metadata{}
+		for k, v := range md {
+			vCopy := v
+			result.Items = append(result.Items, &compute.MetadataItems{Key: k, Value: &vCopy})
+		}
+		return result
+	}
+
+	tests := []struct {
+		desc          string
+		md            map[string]string
+		startupScript string
+		wantMd        *compute.Metadata
+		shouldErr     bool
+	}{
+		{"defaults case", nil, "", getWantMd(map[string]string{}), false},
+		{"startup script case", nil, "file", getWantMd(map[string]string{"startup-script-url": filePath, "windows-startup-script-url": filePath}), false},
+		{"bad startup script case", nil, "foo", nil, true},
+	}
+
+	for _, tt := range tests {
+		ci := CreateInstance{Metadata: tt.md, StartupScript: tt.startupScript}
+		err := ci.processMetadata(w)
+		if err == nil {
+			if tt.shouldErr {
+				t.Errorf("%s: processMetadata should have erred but didn't", tt.desc)
+			} else {
+				compFactory := func(items []*compute.MetadataItems) func(i, j int) bool {
+					return func(i, j int) bool { return items[i].Key < items[j].Key }
+				}
+				sort.Slice(ci.Instance.Metadata.Items, compFactory(ci.Instance.Metadata.Items))
+				sort.Slice(tt.wantMd.Items, compFactory(tt.wantMd.Items))
+				if diff := pretty.Compare(ci.Instance.Metadata, tt.wantMd); diff != "" {
+					t.Errorf("%s: Metadata not modified as expected: (-got +want)\n%s", tt.desc, diff)
+				}
+			}
+		} else if !tt.shouldErr {
+			t.Errorf("%s: processMetadata returned an unexpected error: %v", tt.desc, err)
+		}
+	}
+}
+
+func TestCreateInstanceProcessNetworks(t *testing.T) {
+	defaultAcs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
+	tests := []struct {
+		desc        string
+		input, want []*compute.NetworkInterface
+		shouldErr   bool
+	}{
+		{"default case", nil, []*compute.NetworkInterface{{Network: "global/networks/default", AccessConfigs: defaultAcs}}, false},
+		{"default AccessConfig case", []*compute.NetworkInterface{{Network: "global/networks/foo"}}, []*compute.NetworkInterface{{Network: "global/networks/foo", AccessConfigs: defaultAcs}}, false},
+		{"network URL resolution case", []*compute.NetworkInterface{{Network: "foo", AccessConfigs: []*compute.AccessConfig{}}}, []*compute.NetworkInterface{{Network: "global/networks/foo", AccessConfigs: []*compute.AccessConfig{}}}, false},
+		{"bad network case", []*compute.NetworkInterface{{Network: "bad network!"}}, nil, true},
+	}
+
+	for _, tt := range tests {
+		ci := &CreateInstance{Instance: compute.Instance{NetworkInterfaces: tt.input}}
+		err := ci.processNetworks()
+		if err == nil {
+			if tt.shouldErr {
+				t.Errorf("%s: should have returned an error", tt.desc)
+			} else if diff := pretty.Compare(ci.NetworkInterfaces, tt.want); diff != "" {
+				t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc, diff)
+			}
+		} else if !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+}
+
+func TestCreateInstanceProcessScopes(t *testing.T) {
+	defaultScopes := []string{"https://www.googleapis.com/auth/devstorage.read_only"}
+	tests := []struct {
+		desc           string
+		input          []string
+		inputSas, want []*compute.ServiceAccount
+		shouldErr      bool
+	}{
+		{"default case", nil, nil, []*compute.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, false},
+		{"nondefault case", []string{"foo"}, nil, []*compute.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, false},
+		{"service accounts override case", []string{"foo"}, []*compute.ServiceAccount{}, []*compute.ServiceAccount{}, false},
+	}
+
+	for _, tt := range tests {
+		ci := &CreateInstance{Scopes: tt.input, Instance: compute.Instance{ServiceAccounts: tt.inputSas}}
+		err := ci.processScopes()
+		if err == nil {
+			if tt.shouldErr {
+				t.Errorf("%s: should have returned an error", tt.desc)
+			} else if diff := pretty.Compare(ci.ServiceAccounts, tt.want); diff != "" {
+				t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc, diff)
+			}
+		} else if !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+}
+
+func TestCreateInstancesRun(t *testing.T) {
+	var createErr error
+	w := testWorkflow()
+	w.ComputeClient.(*daisy_compute.TestClient).CreateInstanceFn = func(p, z string, i *compute.Instance) error {
+		i.SelfLink = "insertedLink"
+		return createErr
+	}
 	s := &Step{w: w}
 	w.Sources = map[string]string{"file": "gs://some/file"}
 	disks[w].m = map[string]*resource{
-		"d1": {"d1", w.genName("d1"), "link", false, false},
-		"d2": {"d2", w.genName("d2"), "link", false, false},
-		"d3": {"d3", w.genName("d3"), "link", false, false},
+		"d0": {name: "d0", real: w.genName("d0"), link: "diskLink0"},
 	}
-	ci := &CreateInstances{
-		{Name: "i1", MachineType: "foo-type", AttachedDisks: []string{"d1"}, StartupScript: "file"},
-		{Name: "i2", AttachedDisks: []string{"d2"}, Zone: "zone", Project: "project"},
-		{Name: "i3", MachineType: "foo-type", AttachedDisks: []string{"d3"}, NoCleanup: true},
-		{Name: "i4", MachineType: "foo-type", AttachedDisks: []string{"d3"}, ExactName: true},
-		{Name: "i5", MachineType: "foo-type", AttachedDisks: []string{"zones/zone/disks/disk"}},
-		{Name: "i6", AttachedDisks: []string{"d1"}, AttachedDisksRO: []string{"d2"}},
-	}
+
+	// Good case: check disk link gets resolved. Check instance reference map updates.
+	i0 := &CreateInstance{daisyName: "i0", Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}}
+	i1 := &CreateInstance{daisyName: "i1", Project: "foo", Zone: "bar", Instance: compute.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "other"}}}}
+	ci := &CreateInstances{i0, i1}
 	if err := ci.run(s); err != nil {
-		t.Errorf("error running CreateInstances.run(): %v", err)
+		t.Errorf("unexpected error running CreateInstances.run(): %v", err)
+	}
+	if i0.Disks[0].Source != disks[w].m["d0"].link {
+		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", disks[w].m["d0"].link, i0.Disks[0].Source)
+	}
+	if i1.Disks[0].Source != "other" {
+		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", "other", i1.Disks[0].Source)
+	}
+	wantM := map[string]*resource{
+		"i0": {name: "i0", real: "realI0", link: i0.SelfLink},
+		"i1": {name: "i1", real: "realI1", link: i1.SelfLink},
+	}
+	if diff := pretty.Compare(instances[w].m, wantM); diff != "" {
+		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 
-	// Bad cases.
-	badTests := []struct {
-		name string
-		ci   CreateInstances
-		err  string
-	}{
-		{
-			"disk DNE",
-			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"dne"}}},
-			"invalid or missing reference to AttachedDisk \"dne\"",
-		},
-		{
-			"RO disk DNE",
-			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"d1"}, AttachedDisksRO: []string{"dne"}}},
-			"invalid or missing reference to AttachedDisk \"dne\"",
-		},
+	// Bad case: compute client CreateInstance error. Check instance ref map doesn't update.
+	instances[w].m = map[string]*resource{}
+	createErr = errors.New("client error")
+	ci = &CreateInstances{
+		{daisyName: "i0", Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},
 	}
-
-	for _, tt := range badTests {
-		if err := tt.ci.run(s); err == nil {
-			t.Errorf("%q: expected error, got nil", tt.name)
-		} else if err.Error() != tt.err {
-			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
-		}
+	if err := ci.run(s); err != createErr {
+		t.Errorf("CreateInstances.run() should have return compute client error: %v != %v", err, createErr)
 	}
-
-	want := map[string]*resource{
-		"i1": {"i1", w.genName("i1"), "link", false, false},
-		"i2": {"i2", w.genName("i2"), "link", false, false},
-		"i3": {"i3", w.genName("i3"), "link", true, false},
-		"i4": {"i4", "i4", "link", false, false},
-		"i5": {"i5", w.genName("i5"), "link", false, false},
-		"i6": {"i6", w.genName("i6"), "link", false, false},
-	}
-
-	if diff := pretty.Compare(instances[w].m, want); diff != "" {
+	if diff := pretty.Compare(instances[w].m, map[string]*resource{}); diff != "" {
 		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
 	}
 }
 
 func TestCreateInstancesValidate(t *testing.T) {
-	// Set up.
-	w := &Workflow{}
-	s := &Step{w: w}
-	validatedDisks = nameSet{w: {"d-foo", "d-bar"}}
-	validatedInstances = nameSet{w: {"i-foo"}}
-	w.Sources = map[string]string{"file": "gs://some/file"}
+	w := testWorkflow()
+	validatedDisks.add(w, "d1")
+	ad := []*compute.AttachedDisk{{Source: "d1"}}
 
-	// Good cases.
-	goodTests := []struct {
-		name string
-		ci   CreateInstances
-		want []string
+	tests := []struct {
+		desc        string
+		input, want *CreateInstance
+		shouldErr   bool
 	}{
-		{
-			"using multiple disks",
-			CreateInstances{{Name: "i-boo", AttachedDisks: []string{"d-foo", "d-bar"}}},
-			[]string{"i-foo", "i-boo"},
-		},
-		{
-			"using read only disks",
-			CreateInstances{{Name: "i-bar", AttachedDisks: []string{"d-foo"}, AttachedDisksRO: []string{"d-bar"}}},
-			[]string{"i-foo", "i-boo", "i-bar"},
-		},
-		{
-			"using StartupScript",
-			CreateInstances{{Name: "i-bas", AttachedDisks: []string{"d-foo", "d-bar"}, StartupScript: "file"}},
-			[]string{"i-foo", "i-boo", "i-bar", "i-bas"},
-		},
-		{
-			"partial disk url no project",
-			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"zones/zone/disks/disk"}, Zone: "zone", Project: "project"}},
-			[]string{"i-foo", "i-boo", "i-bar", "i-bas", "i-baz"},
-		},
-		{
-			"partial disk url",
-			CreateInstances{{Name: "i-bax", AttachedDisks: []string{"projects/project/zones/zone/disks/disk"}, Zone: "zone", Project: "project"}},
-			[]string{"i-foo", "i-boo", "i-bar", "i-bas", "i-baz", "i-bax"},
-		},
+		{"good normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad}}, &CreateInstance{Instance: compute.Instance{Name: w.genName("foo")}, Project: w.Project, Zone: w.Zone, daisyName: "foo"}, false},
+		{"nondefault zone/project case", &CreateInstance{Instance: compute.Instance{Name: "bar", Disks: ad}, Project: "p", Zone: "z"}, &CreateInstance{Instance: compute.Instance{Name: w.genName("bar")}, Project: "p", Zone: "z", daisyName: "bar"}, false},
+		{"exact name case", &CreateInstance{Instance: compute.Instance{Name: "baz", Disks: ad}, ExactName: true}, &CreateInstance{Instance: compute.Instance{Name: "baz"}, Project: w.Project, Zone: w.Zone, daisyName: "baz"}, false},
+		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad}}, nil, true},
+		{"bad processing (no disks) case", &CreateInstance{Instance: compute.Instance{Name: "gaz"}}, nil, true},
 	}
 
-	for _, tt := range goodTests {
-		if err := tt.ci.validate(s); err != nil {
-			t.Errorf("%q: unexpected error: %v", tt.name, err)
+	for _, tt := range tests {
+		s := &Step{name: "s", w: w, CreateInstances: &CreateInstances{tt.input}}
+		err := s.validate()
+		if err == nil {
+			if tt.shouldErr {
+				t.Errorf("%s: should have returned an error", tt.desc)
+			} else if tt.input.daisyName != tt.want.daisyName {
+				t.Errorf("%s: incorrect internal daisy name: got: %q, want: %q", tt.desc, tt.input.daisyName, tt.want.daisyName)
+			} else if tt.input.Name != tt.want.Name {
+				t.Errorf("%s: incorrect real name: got: %q, want: %q", tt.desc, tt.input.Name, tt.want.Name)
+			} else if tt.input.Project != tt.want.Project {
+				t.Errorf("%s: incorrect project: got: %q, want: %q", tt.desc, tt.input.Project, tt.want.Project)
+			} else if tt.input.Zone != tt.want.Zone {
+				t.Errorf("%s: incorrect internal daisy name: got: %q, want: %q", tt.desc, tt.input.daisyName, tt.want.daisyName)
+			}
+		} else if !tt.shouldErr {
+			t.Errorf("%s: unexpected error %v", tt.desc, err)
 		}
-		if !reflect.DeepEqual(validatedInstances[w], tt.want) {
-			t.Errorf("%q: got:(%v) != want(%v)", tt.name, validatedInstances[w], tt.want)
-		}
-	}
-
-	// Bad cases.
-	badTests := []struct {
-		name string
-		ci   CreateInstances
-		err  string
-	}{
-		{
-			"dupe name",
-			CreateInstances{{Name: "i-bar", AttachedDisks: []string{"d-foo", "d-bar"}}},
-			"error adding instance: workflow \"\" has duplicate references for \"i-bar\"",
-		},
-		{
-			"StartupScript not in Sources",
-			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"d-foo", "d-bar"}, StartupScript: "dne-file"}},
-			"cannot create instance: file not found: dne-file",
-		},
-		{
-			"no disks",
-			CreateInstances{{Name: "i-baz"}},
-			"cannot create instance: no disks provided",
-		},
-		{
-			"disk DNE",
-			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"d-foo", "d-bar", "d-dne"}}},
-			"cannot create instance: disk not found: d-dne",
-		},
-		{
-			"RO disk DNE",
-			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"d-foo", "d-bar"}, AttachedDisksRO: []string{"d-dne"}}},
-			"cannot create instance: disk not found: d-dne",
-		},
-		{
-			"partial disk url wrong project",
-			CreateInstances{{Name: "i-baz", AttachedDisks: []string{"projects/project1/zones/zone/disks/disk"}, Zone: "zone", Project: "project2"}},
-			"cannot create instance in project \"project2\" with disk in project \"project1\": \"projects/project1/zones/zone/disks/disk\"",
-		},
-		{
-			"partial disk url wrong zone",
-			CreateInstances{{Name: "i-bax", AttachedDisks: []string{"projects/project/zones/zone1/disks/disk"}, Zone: "zone2", Project: "project"}},
-			"cannot create instance in project \"zone2\" with disk in project \"zone1\": \"projects/project/zones/zone1/disks/disk\"",
-		},
-	}
-
-	for _, tt := range badTests {
-		if err := tt.ci.validate(s); err == nil {
-			t.Errorf("%q: expected error, got nil", tt.name)
-		} else if err.Error() != tt.err {
-			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
-		}
-	}
-
-	want := []string{"i-foo", "i-boo", "i-bar", "i-bas", "i-baz", "i-bax"}
-	if !reflect.DeepEqual(validatedInstances[w], want) {
-		t.Fatalf("got:(%v) != want(%v)", validatedInstances[w], want)
 	}
 }
