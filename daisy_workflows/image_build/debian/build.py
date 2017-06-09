@@ -57,7 +57,7 @@ def main():
   build_files_gcs_dir = utils.GetMetadataParam(
       'build-files-gcs-dir', raise_on_not_found=True)
   repo = utils.GetMetadataParam('google-cloud-repo', raise_on_not_found=True)
-  image_dest = utils.GetMetadataParam('image-dest', raise_on_not_found=True)
+  outs_path = utils.GetMetadataParam('daisy-outs-path', raise_on_not_found=True)
   license_id = utils.GetMetadataParam('license-id', raise_on_not_found=True)
   if repo not in REPOS:
     raise ValueError(
@@ -66,7 +66,6 @@ def main():
 
   logging.info('Debian Builder')
   logging.info('==============')
-  logging.info('Image Path: %s', image_dest)
   logging.info('Bootstrap_vz manifest: %s', BVZ_MANIFEST)
   logging.info('Bootstrap_vz version: %s', bvz_version)
   logging.info('Google Cloud repo: %s', repo)
@@ -113,17 +112,17 @@ def main():
     tar.extractall(tmpfs)
 
   # Create tar with license manifest included.
-  disk_raw_tar = os.path.join(tmpfs, os.path.basename(image))
-  with tarfile.open(disk_raw_tar, 'w:gz') as tar:
+  image_tar_gz = os.path.join(tmpfs, os.path.basename(image))
+  with tarfile.open(image_tar_gz, 'w:gz') as tar:
     tar_info = tarfile.TarInfo(name='disk.raw')
     tar_info.type = tarfile.GNUTYPE_SPARSE
     tar.add(license_manifest, arcname='manifest.json')
     tar.add(os.path.join(tmpfs, 'disk.raw'), arcname='disk.raw')
 
   # Upload tar.
-  disk_raw_tar_dest = os.path.join(image_dest, 'disk.tar.gz')
-  logging.info('Saving %s to %s', disk_raw_tar, disk_raw_tar_dest)
-  utils.Gsutil(['cp', disk_raw_tar, disk_raw_tar_dest])
+  image_tar_gz_dest = os.path.join(outs_path, 'image.tar.gz')
+  logging.info('Saving %s to %s', image_tar_gz, image_tar_gz_dest)
+  utils.Gsutil(['cp', image_tar_gz, image_tar_gz_dest])
 
   # Create and upload the synopsis of the image.
   logging.info('Creating image synopsis.')
@@ -137,8 +136,13 @@ def main():
   with open('/tmp/synopsis.json', 'w') as f:
     f.write(json.dumps(synopsis))
   logging.info('Uploading image synopsis.')
-  synopsis_dest = os.path.join(image_dest, 'synopsis.json')
+  synopsis_dest = os.path.join(outs_path, 'synopsis.json')
   utils.Gsutil(['cp', '/tmp/synopsis.json', synopsis_dest])
 
 if __name__ == '__main__':
-  utils.RunScript(main)
+  try:
+    utils.RunScript(main)
+    logging.info('STARTUP SCRIPT COMPLETED')
+  except:
+    logging.info('STARTUP SCRIPT FAILED')
+    raise
