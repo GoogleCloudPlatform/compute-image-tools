@@ -30,6 +30,7 @@ type CopyGCSObjects []CopyGCSObject
 // CopyGCSFile copies a GCS file from Source to Destination.
 type CopyGCSObject struct {
 	Source, Destination string
+	ACLRules            []storage.ACLRule
 }
 
 func (c *CopyGCSObjects) validate(s *Step) error {
@@ -87,6 +88,12 @@ func (c *CopyGCSObjects) run(s *Step) error {
 			if _, err := dstPath.CopierFrom(src).Run(s.w.Ctx); err != nil {
 				e <- fmt.Errorf("error copying from %s to %s: %v", co.Source, co.Destination, err)
 				return
+			}
+			for _, acl := range co.ACLRules {
+				if err := dstPath.ACL().Set(s.w.Ctx, acl.Entity, acl.Role); err != nil {
+					e <- fmt.Errorf("error setting ACLRule on %s: %v", co.Destination, err)
+					return
+				}
 			}
 		}(co)
 	}
