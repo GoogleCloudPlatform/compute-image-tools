@@ -335,7 +335,6 @@ An ACLRule has two fields:
 + Entity - Refers to a user or group, see entity in https://cloud.google.com/storage/docs/json_api/v1/objectAccessControls
 + Role - Access level to grant, one of OWNER, READER, or WRITER
 
-
 This CopyGCSObjects step example copies image.tar.gz from the Daisy OUTSPATH to
 gs://project2/my-image.tar.gz and gives the special user "allUsers" read 
 permissions.
