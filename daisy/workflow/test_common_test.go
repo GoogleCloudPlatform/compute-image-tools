@@ -24,7 +24,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-
 	"sync"
 
 	"cloud.google.com/go/storage"
