@@ -30,7 +30,7 @@ func TestCopyGCSObjectsRun(t *testing.T) {
 	ws := &CopyGCSObjects{
 		{Source: "gs://bucket", Destination: "gs://bucket"},
 		{Source: "gs://bucket/object", Destination: "gs://bucket/object"},
-		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []storage.ACLRule{{"allUsers", "OWNER"}}},
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
 	}
 	if err := ws.run(s); err != nil {
 		t.Errorf("error running CopyGCSObjects.run(): %v", err)
