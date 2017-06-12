@@ -11,9 +11,9 @@ For example, Daisy is used to create Google Official Guest OS images. The
 workflow:
 1. Creates a Debian 8 disk and another empty disk.
 2. Creates and boots a VM with the two disks.
-3. Waits for the VM to run a script which installs an OS on the empty disk.
-4. Creates an image from the previously empty disk, now with an OS on it.
-5. Automatically cleans up ephemeral workflow resources (the VM and disks).
+3. Runs and waits for a script on the VM.
+4. Creates an image from the previously empty disk.
+5. Automatically cleans up the VM and disks.
 
 Other use-case examples:
 * Workflows for importing external physical or virtual disks to GCE.
@@ -73,7 +73,8 @@ For additional information about Daisy flags, use `daisy -h`.
 ## Workflow Config Overview
 A workflow is described by a JSON config file and contains information for the
 workflow's steps, step dependencies, GCE/GCP/GCS credentials/configuration,
-and file resources. The config has the following fields:
+and file resources. The config has the following fields (**NOTE: all
+workflow and step field names are case-insensitive, but we suggest upper camel case.**):
 
 | Field Name | Type | Description |
 |-|-|-|
@@ -120,11 +121,12 @@ Example workflow config:
 Daisy will upload any workflow sources to the sources directory in GCS
 prior to running the workflow. The `Sources` field in a workflow
 JSON file is a map of 'destination' to 'source' file. Sources can be a local
-or GCS file or folder. Folders will be recursively copied into
-destination.
+or GCS file or directory. Directories will be recursively copied into
+destination. The GCS path for the sources directory is available via the
+[autovar](#autovars) `${SOURCESPATH}`.
 
 In this example the local file `./path/to/startup.sh` will be copied to
-`startup.sh` in the sources folder. Similarly the GCS file
+`startup.sh` in the sources directory. Similarly the GCS file
 `gs://my-bucket/some/path/install.py` will be copied to `install.py`.
 The contents of paths referencing directories like
 `./path/to/drivers_folder` and  `gs://my-bucket/my-files` will be
@@ -152,7 +154,8 @@ For each individual 'step', you set one 'step type' and the type's
 associated fields. You may optionally set a step timeout using
 `Timeout`. `Timeout` uses [Golang's time.Duration string
 format](https://golang.org/pkg/time/#Duration.String) and defaults
-to "10m" (10 minutes).
+to "10m" (10 minutes). As with workflow fields, step field names are
+case-insensitive, but we suggest upper camel case.
 
 This example has steps named "step 1" and "step 2". "step 1" has a type
 of "<STEP 1 TYPE>" and a timeout of 2 hours. "step2" has a type of
