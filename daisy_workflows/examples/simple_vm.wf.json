@@ -22,7 +22,7 @@
       "CreateInstances": [
         {
           "Name": "foo-instance",
-          "AttachedDisks": ["foo-disk"],
+          "Disks": [{"Source": "foo-disk"}],
           "MachineType": "n1-standard-1",
           "StartupScript": "startup"
         }
