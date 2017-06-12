@@ -1,11 +1,11 @@
 {
   "Name": "${wf-name}",
   "Vars": {
-    "image-dest": "",
-    "installer-iso": "",
-    "license-id": "",
+    "image-dest": {"Required": true, "Description": "The GCS directory destination to which to copy the image."},
+    "installer-iso": {"Required": true, "Description": "The path to the CentOS installation ISO."},
+    "license-id": {"Required": true, "Description": "The GCE license id."},
     "google-cloud-repo": "stable",
-    "release": "",
+    "release": {"Required": true, "Description": "The Debian release name."},
     "wf-name": "build-centos-subwf"
   },
   "Sources": {
@@ -15,7 +15,7 @@
     "installerprep_startup_script": "../linux_common/bootstrap.py"
   },
   "Steps": {
-    "setupDisks": {
+    "setup-disks": {
       "CreateDisks": [
         {
           "Name": "installerprep",
@@ -35,11 +35,11 @@
         }
       ]
     },
-    "runInstallerPrep": {
+    "run-installer-prep": {
       "CreateInstances": [
         {
           "Name": "installerprep",
-          "AttachedDisks": ["installerprep", "installer"],
+          "Disks": [{"Source": "installerprep"}, {"Source": "installer"}],
           "MachineType": "n1-standard-8",
           "Metadata": {
             "build-files-gcs-dir": "${SOURCESPATH}/build_files",
@@ -51,25 +51,24 @@
         }
       ]
     },
-    "waitInstallerPrep": {
+    "wait-installer-prep": {
       "Timeout": "60m",
       "WaitForInstancesSignal": [{"Name": "installerprep", "Stopped": true}]
     },
-    "deleteInstallerPrepResources": {
+    "delete-installer-prep-resources": {
       "DeleteResources": {
         "Disks": ["installerprep"],
         "Instances": ["installerprep"]
       }
     },
-    "runInstallation": {
+    "run-installation": {
       "CreateInstances": [
         {
           "Name": "build",
-          "AttachedDisks": ["installer", "installation"],
+          "Disks": [{"Source": "installer"}, {"Source": "installation"}],
           "MachineType": "n1-standard-8",
           "Metadata": {
             "build-files-gcs-dir": "${SOURCESPATH}/build_files",
-            "image-dest": "${image-dest}/${DATETIME}-${release}",
             "license-id": "${license-id}",
             "google-cloud-repo": "${google-cloud-repo}",
             "release": "${release}",
@@ -83,16 +82,23 @@
         }
       ]
     },
-    "waitInstallation": {
+    "wait-installation": {
       "Timeout": "60m",
       "WaitForInstancesSignal": [{"Name": "build", "Stopped": true}]
+    },
+    "copy-to-dest": {
+      "CopyGCSObjects": [
+        {"Source": "${OUTSPATH}/image.tar.gz", "Destination": "${image-dest}/${DATETIME}-${release}/image.tar.gz"},
+        {"Source": "${OUTSPATH}/synopsis.json", "Destination": "${image-dest}/${DATETIME}-${release}/synopsis.json"}
+      ]
     }
   },
   "Dependencies": {
-    "runInstallerPrep": ["setupDisks"],
-    "waitInstallerPrep": ["runInstallerPrep"],
-    "deleteInstallerPrepResources": ["waitInstallerPrep"],
-    "runInstallation": ["deleteInstallerPrepResources"],
-    "waitInstallation": ["runInstallation"]
+    "run-installer-prep": ["setup-disks"],
+    "wait-installer-prep": ["run-installer-prep"],
+    "delete-installer-prep-resources": ["wait-installer-prep"],
+    "run-installation": ["delete-installer-prep-resources"],
+    "wait-installation": ["run-installation"],
+    "copy-to-dest": ["wait-installation"]
   }
 }
