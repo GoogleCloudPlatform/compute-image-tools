@@ -1,11 +1,11 @@
 {
   "Name": "image-import",
   "Vars": {
-    "source": "",
+    "source": {"Required": true, "Description": "The local or GCS path to virtual disk image to import."},
     "image-name": "my-image"
   },
   "Sources": {
-    "orig_image": "${source}",
+    "image": "${source}",
     "startup_script": "imageimport_startup.sh"
   },
   "Steps": {
@@ -19,14 +19,13 @@
         }
       ]
     },
-    "import_image": {
+    "import-image": {
       "CreateInstances": [
         {
           "Name": "importer",
-          "AttachedDisks": ["importer"],
+          "Disks": [{"Source": "importer"}],
           "MachineType": "n1-highcpu-16",
           "Metadata": {
-            "source-url": "${SOURCESPATH}/orig_image",
             "image-name": "${image-name}",
             "vm-name": "importer-${NAME}-${ID}",
             "workflow-name": "${NAME}",
@@ -44,7 +43,7 @@
     }
   },
   "Dependencies": {
-    "import_image": ["setup"],
-    "wait": ["import_image"]
+    "import-image": ["setup"],
+    "wait": ["import-image"]
   }
 }

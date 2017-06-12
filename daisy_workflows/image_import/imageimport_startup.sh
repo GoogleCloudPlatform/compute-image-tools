@@ -2,9 +2,9 @@
 set -x
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
-SOURCE_URL=$(curl -f -H Metadata-Flavor:Google ${URL}/source-url)
-SOURCE_BUCKET=$(echo ${SOURCE_URL} | awk -F/ '{print $3}')
-SOURCE_PATH=${SOURCE_URL#"gs://"}
+IMAGEURL=$(curl -f -H Metadata-Flavor:Google ${URL}/daisy-sources-path)/image
+IMAGEBUCKET=$(echo ${IMAGEURL} | awk -F/ '{print $3}')
+IMAGEPATH=${IMAGEURL#"gs://"}
 IMAGENAME=$(curl -f -H Metadata-Flavor:Google ${URL}/image-name)
 ME=$(curl -f -H Metadata-Flavor:Google ${URL}/vm-name)
 WF=$(curl -f -H Metadata-Flavor:Google ${URL}/workflow-name)
@@ -15,9 +15,9 @@ ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
 echo "#################"
 echo "# Configuration #"
 echo "#################"
-echo "SOURCE_URL: ${SOURCE_URL}"
-echo "SOURCE_BUCKET: ${SOURCE_BUCKET}"
-echo "SOURCE_PATH: ${SOURCE_PATH}"
+echo "IMAGEURL: ${IMAGEURL}"
+echo "IMAGEBUCKET: ${IMAGEBUCKET}"
+echo "IMAGEPATH: ${IMAGEPATH}"
 echo "IMAGENAME: ${IMAGENAME}"
 echo "ME: ${ME}"
 echo "WF: ${WF}"
@@ -34,11 +34,11 @@ apt-get update
 apt-get -q -y install qemu-utils gcsfuse
 
 # Mount GCS bucket containing the image.
-mkdir -p /gcs/${SOURCE_BUCKET}
-gcsfuse --implicit-dirs ${SOURCE_BUCKET} /gcs/${SOURCE_BUCKET}
+mkdir -p /gcs/${IMAGEBUCKET}
+gcsfuse --implicit-dirs ${IMAGEBUCKET} /gcs/${IMAGEBUCKET}
 
 # Image size info.
-SIZEGB=$(qemu-img info /gcs/${SOURCE_PATH} | perl -n -e'/^virtual size: (\d+)G/ && print $1')
+SIZEGB=$(qemu-img info /gcs/${IMAGEPATH} | perl -n -e'/^virtual size: (\d+)G/ && print $1')
 SIZEGB=$(( (${SIZEGB} / 10 + 1) * 10 )) # Round up to next 10 GB increment (with a little extra space for rounding issues/overhead).
 
 # Image disk.
@@ -47,7 +47,7 @@ gcloud compute disks create ${IMAGEDISK} --size=${SIZEGB}GB --zone=${ZONE} --typ
 gcloud compute instances attach-disk ${ME} --disk=${IMAGEDISK} --zone=${ZONE}
 
 # Write image to disk.
-qemu-img convert /gcs/${SOURCE_PATH} -O raw -S 512b /dev/sdb
+qemu-img convert /gcs/${IMAGEPATH} -O raw -S 512b /dev/sdb
 
 # Create image.
 gcloud compute instances detach-disk ${ME} --disk=${IMAGEDISK} --zone=${ZONE}
