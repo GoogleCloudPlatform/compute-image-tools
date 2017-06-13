@@ -24,7 +24,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -244,11 +243,20 @@ func (c *CreateInstances) validate(s *Step) error {
 		errs = append(errs, validatedInstances.add(w, ci.daisyName))
 	}
 
-	var multiErr *multierror.Error
-	if len(errs) > 0 {
-		multiErr = multierror.Append(errs[0], errs[1:]...)
+	errStrs := []string{}
+	for _, e := range errs {
+		if e != nil {
+			errStrs = append(errStrs, e.Error())
+		}
 	}
-	return multiErr.ErrorOrNil()
+	if len(errStrs) > 0 {
+		msg := fmt.Sprintf("%d errors:", len(errStrs))
+		for _, s := range errStrs {
+			msg += fmt.Sprintf("\n* %s", s)
+		}
+		return errors.New(msg)
+	}
+	return nil
 }
 
 func (c *CreateInstances) run(s *Step) error {
