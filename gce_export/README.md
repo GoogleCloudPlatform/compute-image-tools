@@ -9,8 +9,8 @@ Once complete the image file can be imported in GCE as described in the
 
 ### Build
 Download and install [Go](https://golang.org/doc/install). Then pull and 
-install the `gce_export` tool, this should place the binary in the Go bin 
-directory (described [here](https://golang.org/doc/code.html#GOPATH)): 
+install the `gce_export` tool, this should place the binary in the 
+[Go bin directory](https://golang.org/doc/code.html#GOPATH):
 
 ```
 go get github.com/GoogleCloudPlatform/compute-image-tools/gce_export
