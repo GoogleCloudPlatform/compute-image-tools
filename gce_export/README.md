@@ -1,16 +1,16 @@
 ## Compute Engine Image Export
 
-The `gce_export` tool streams a local disk to a Google Compute Engine image file in
-a Google Cloud Storage bucket (steps 9 and 10 
-[here](https://cloud.google.com/compute/docs/images/export-image)). No local file is
-created so no additional disk space needs to be allocated. Once complete the
-image file can be imported in GCE as described here:
-https://cloud.google.com/compute/docs/images/import-existing-image.
+The `gce_export` tool streams a local disk to a Google Compute Engine image 
+file in a Google Cloud Storage bucket (steps 9 and 10 in the
+[image export documentation](https://cloud.google.com/compute/docs/images/export-image)).
+No local file is created so no additional disk space needs to be allocated. 
+Once complete the image file can be imported in GCE as described in the 
+[image import documentation](https://cloud.google.com/compute/docs/images/import-existing-image).
 
 ### Build
 Download and install [Go](https://golang.org/doc/install). Then pull and 
-install the `gce_export` tool, this should place the binary in the go bin directory
-(which you should have added to your path as part of the Go install): 
+install the `gce_export` tool, this should place the binary in the Go bin 
+directory (described [here](https://golang.org/doc/code.html#GOPATH)): 
 
 ```
 go get github.com/GoogleCloudPlatform/compute-image-tools/gce_export
