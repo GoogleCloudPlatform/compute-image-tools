@@ -2,7 +2,7 @@
 
 The `gce_export` tool streams a local disk to a Google Compute Engine image file in
 a Google Cloud Storage bucket (steps 9 and 10 
-[here](https://cloud.google.com/compute/docs/images/export-image). No local file is
+[here](https://cloud.google.com/compute/docs/images/export-image)). No local file is
 created so no additional disk space needs to be allocated. Once complete the
 image file can be imported in GCE as described here:
 https://cloud.google.com/compute/docs/images/import-existing-image.
