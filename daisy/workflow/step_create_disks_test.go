@@ -26,7 +26,7 @@ import (
 func TestCreateDisksRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
-	images[w].m = map[string]*resource{"i1": {"i1", w.genName("i1"), "link", false, false}}
+	images[w].m = map[string]*resource{"i1": {real: w.genName("i1"), link: "link"}}
 
 	cds := &CreateDisks{
 		{name: "d1", Disk: compute.Disk{Name: w.genName("d1"), SourceImage: "i1", SizeGb: 100, Type: ""}},
@@ -64,10 +64,10 @@ func TestCreateDisksRun(t *testing.T) {
 	}
 
 	want := map[string]*resource{
-		"d1": {name: "d1", real: (*cds)[0].Name, link: "link", noCleanup: false, deleted: false},
-		"d2": {name: "d2", real: (*cds)[4].Name, link: "link", noCleanup: false, deleted: false},
-		"d3": {name: "d3", real: (*cds)[5].Name, link: "link", noCleanup: true, deleted: false},
-		"d4": {name: "d4", real: (*cds)[6].Name, link: "link", noCleanup: false, deleted: false}}
+		"d1": {real: (*cds)[0].Name, link: "link", noCleanup: false},
+		"d2": {real: (*cds)[4].Name, link: "link", noCleanup: false},
+		"d3": {real: (*cds)[5].Name, link: "link", noCleanup: true},
+		"d4": {real: (*cds)[6].Name, link: "link", noCleanup: false}}
 
 	if diff := pretty.Compare(disks[w].m, want); diff != "" {
 		t.Errorf("diskRefs do not match expectation: (-got +want)\n%s", diff)

@@ -26,7 +26,7 @@ import (
 func TestCreateImagesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
-	disks[w].m = map[string]*resource{"d": {"d", w.genName("d"), "link", false, false}}
+	disks[w].m = map[string]*resource{"d": {real: w.genName("d"), link: "link"}}
 	w.Sources = map[string]string{"file": "gs://some/path"}
 	cis := &CreateImages{
 		{name: "i1", Image: compute.Image{Name: "i1", SourceDisk: "d"}},
@@ -64,11 +64,11 @@ func TestCreateImagesRun(t *testing.T) {
 	}
 
 	want := map[string]*resource{
-		"i1": {"i1", (*cis)[0].Name, "link", false, false},
-		"i2": {"i2", (*cis)[2].Name, "link", false, false},
-		"i3": {"i3", (*cis)[3].Name, "link", true, false},
-		"i4": {"i4", (*cis)[4].Name, "link", false, false},
-		"i5": {"i5", (*cis)[5].Name, "link", false, false},
+		"i1": {real: (*cis)[0].Name, link: "link"},
+		"i2": {real: (*cis)[2].Name, link: "link"},
+		"i3": {real: (*cis)[3].Name, link: "link", noCleanup: true},
+		"i4": {real: (*cis)[4].Name, link: "link"},
+		"i5": {real: (*cis)[5].Name, link: "link"},
 	}
 
 	if diff := pretty.Compare(images[w].m, want); diff != "" {

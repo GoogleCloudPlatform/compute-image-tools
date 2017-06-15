@@ -118,7 +118,7 @@ func (c *CreateImages) run(s *Step) error {
 				e <- err
 				return
 			}
-			images[w].add(ci.name, &resource{ci.name, ci.Name, ci.SelfLink, ci.NoCleanup, false})
+			images[w].add(ci.name, &resource{real: ci.Name, link: ci.SelfLink, noCleanup: ci.NoCleanup})
 		}(ci)
 	}
 

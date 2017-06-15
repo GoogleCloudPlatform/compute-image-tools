@@ -77,6 +77,7 @@ func (d *DeleteResources) run(s *Step) error {
 			if err := deleteInstance(w, r); err != nil {
 				e <- err
 			}
+			r.deleter = s
 		}(i)
 	}
 
@@ -93,6 +94,7 @@ func (d *DeleteResources) run(s *Step) error {
 			if err := deleteImage(w, r); err != nil {
 				e <- err
 			}
+			r.deleter = s
 		}(i)
 	}
 
@@ -125,6 +127,7 @@ func (d *DeleteResources) run(s *Step) error {
 			if err := deleteDisk(w, r); err != nil {
 				e <- err
 			}
+			r.deleter = s
 		}(d)
 	}
 
