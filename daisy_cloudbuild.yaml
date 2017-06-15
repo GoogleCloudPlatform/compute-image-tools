@@ -4,8 +4,7 @@ steps:
   env: ['PROJECT_ROOT=daisy']
 - name: 'gcr.io/cloud-builders/go'
   args: ['install', './daisy']
-  env: ['PROJECT_ROOT=daisy']
+  env: ['PROJECT_ROOT=daisy', 'CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy', '--file=Dockerfile.daisy', '.']
 images: ['gcr.io/$PROJECT_ID/daisy']
-

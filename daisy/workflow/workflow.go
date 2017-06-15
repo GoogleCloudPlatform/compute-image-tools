@@ -350,13 +350,14 @@ func (w *Workflow) populate() error {
 	now := time.Now().UTC()
 	cu, err := user.Current()
 	if err != nil {
-		return err
+		w.username = "unknown"
+	} else {
+		w.username = cu.Username
 	}
 
 	if err := w.populateVars(); err != nil {
 		return err
 	}
-	w.username = cu.Username
 
 	cwd, _ := os.Getwd()
 
