@@ -24,10 +24,20 @@ var (
 	imageURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images/(?P<image>%[1]s)|family/(?P<family>%[1]s)$`, rfc1035))
 )
 
+func initImagesMap(w *Workflow) {
+	m := &resourceMap{}
+	images[w] = m
+	m.usageRegistrationHook = imageUsageRegistrationHook
+}
+
+func imageUsageRegistrationHook(name string, s *Step) error {
+	return nil
+}
+
 func deleteImage(w *Workflow, r *resource) error {
-	r.deleted = true
 	if err := w.ComputeClient.DeleteImage(w.Project, r.real); err != nil {
 		return err
 	}
+	r.deleted = true
 	return nil
 }

@@ -280,7 +280,7 @@ func (c *CreateInstances) run(s *Step) error {
 				return
 			}
 			go logSerialOutput(w, ci.Name, 1)
-			instances[w].add(ci.daisyName, &resource{ci.daisyName, ci.Name, ci.SelfLink, ci.NoCleanup, false})
+			instances[w].add(ci.daisyName, &resource{real: ci.Name, link: ci.SelfLink, noCleanup: ci.NoCleanup})
 		}(ci)
 	}
 

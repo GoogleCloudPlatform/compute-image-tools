@@ -202,7 +202,7 @@ func TestCreateInstancesRun(t *testing.T) {
 	s := &Step{w: w}
 	w.Sources = map[string]string{"file": "gs://some/file"}
 	disks[w].m = map[string]*resource{
-		"d0": {name: "d0", real: w.genName("d0"), link: "diskLink0"},
+		"d0": {real: w.genName("d0"), link: "diskLink0"},
 	}
 
 	// Good case: check disk link gets resolved. Check instance reference map updates.
@@ -219,8 +219,8 @@ func TestCreateInstancesRun(t *testing.T) {
 		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", "other", i1.Disks[0].Source)
 	}
 	wantM := map[string]*resource{
-		"i0": {name: "i0", real: "realI0", link: i0.SelfLink},
-		"i1": {name: "i1", real: "realI1", link: i1.SelfLink},
+		"i0": {real: "realI0", link: i0.SelfLink},
+		"i1": {real: "realI1", link: i1.SelfLink},
 	}
 	if diff := pretty.Compare(instances[w].m, wantM); diff != "" {
 		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)

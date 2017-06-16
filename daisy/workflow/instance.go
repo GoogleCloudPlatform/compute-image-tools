@@ -24,10 +24,20 @@ var (
 	instanceURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
 )
 
+func initInstancesMap(w *Workflow) {
+	m := &resourceMap{}
+	instances[w] = m
+	m.usageRegistrationHook = instanceUsageRegistrationHook
+}
+
+func instanceUsageRegistrationHook(name string, s *Step) error {
+	return nil
+}
+
 func deleteInstance(w *Workflow, r *resource) error {
-	r.deleted = true
 	if err := w.ComputeClient.DeleteInstance(w.Project, w.Zone, r.real); err != nil {
 		return err
 	}
+	r.deleted = true
 	return nil
 }

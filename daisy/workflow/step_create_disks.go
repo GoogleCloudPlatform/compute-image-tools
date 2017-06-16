@@ -123,7 +123,7 @@ func (c *CreateDisks) run(s *Step) error {
 				e <- err
 				return
 			}
-			disks[w].add(cd.name, &resource{cd.name, cd.Name, cd.SelfLink, cd.NoCleanup, false})
+			disks[w].add(cd.name, &resource{real: cd.Name, link: cd.SelfLink, noCleanup: cd.NoCleanup})
 		}(cd)
 	}
 

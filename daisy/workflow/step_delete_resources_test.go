@@ -23,44 +23,39 @@ import (
 func TestDeleteResourcesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
-	ins := []*resource{
-		{"in0", w.genName("in0"), "link", false, false},
-		{"in1", w.genName("in1"), "link", false, false},
-		{"in2", w.genName("in2"), "link", false, false},
-		{"in3", w.genName("in3"), "link", false, false},
-	}
-	ims := []*resource{
-		{"im0", w.genName("im0"), "link", false, false},
-		{"im1", w.genName("im1"), "link", false, false},
-		{"im2", w.genName("im2"), "link", false, false},
-		{"im3", w.genName("im3"), "link", false, false},
-	}
-	ds := []*resource{
-		{"d0", w.genName("d0"), "link", false, false},
-		{"d1", w.genName("d1"), "link", false, false},
-		{"d2", w.genName("d2"), "link", false, false},
-		{"d3", w.genName("d3"), "link", false, false},
-	}
-	instances[w].m = map[string]*resource{"in0": ins[0], "in1": ins[1], "in2": ins[2], "in3": ins[3]}
-	images[w].m = map[string]*resource{"im0": ims[0], "im1": ims[1], "im2": ims[2], "im3": ims[3]}
-	disks[w].m = map[string]*resource{"d0": ds[0], "d1": ds[1], "d2": ds[2], "d3": ds[3]}
+	ins := []*resource{{real: "in0", link: "link"}, {real: "in1", link: "link"}}
+	ims := []*resource{{real: "im0", link: "link"}, {real: "im1", link: "link"}}
+	ds := []*resource{{real: "d0", link: "link"}, {real: "d1", link: "link"}}
+	instances[w].m = map[string]*resource{"in0": ins[0], "in1": ins[1]}
+	images[w].m = map[string]*resource{"im0": ims[0], "im1": ims[1]}
+	disks[w].m = map[string]*resource{"d0": ds[0], "d1": ds[1]}
 
-	dr := &DeleteResources{
-		Instances: []string{"in0", "in1", "in2"},
-		Images:    []string{"im0", "im1", "im2"},
-		Disks:     []string{"d0", "d1", "d2"}}
+	dr := &DeleteResources{Instances: []string{"in0"}, Images: []string{"im0"}, Disks: []string{"d0"}}
 	if err := dr.run(s); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
 	}
 
-	for _, rs := range [][]*resource{ins, ims, ds} {
-		for i := 0; i < 3; i++ {
-			if r := rs[i]; !r.deleted {
-				t.Errorf("resource %q should have been deleted", r.name)
+	deletedChecks := []struct {
+		r               *resource
+		shouldBeDeleted bool
+	}{
+		{ins[0], true},
+		{ins[1], false},
+		{ims[0], true},
+		{ims[1], false},
+		{ds[0], true},
+		{ds[1], false},
+	}
+	for _, c := range deletedChecks {
+		if c.shouldBeDeleted {
+			if !c.r.deleted {
+				t.Errorf("resource %q should have been deleted", c.r.real)
 			}
-		}
-		if rs[3].deleted {
-			t.Errorf("resource %q should not have been deleted", rs[3].name)
+			if c.r.deleter != s {
+				t.Errorf("resource %q should have the deletion step as its deleter, but doesn't", c.r.real)
+			}
+		} else if c.r.deleted {
+			t.Errorf("resource %q should not have been deleted", c.r.real)
 		}
 	}
 
