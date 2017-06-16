@@ -20,18 +20,15 @@ import (
 )
 
 var (
-	instances        = map[*Workflow]*resourceMap{}
-	instanceURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
+	instances      = map[*Workflow]*resourceMap{}
+	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
 )
 
 func initInstancesMap(w *Workflow) {
 	m := &resourceMap{}
 	instances[w] = m
-	m.usageRegistrationHook = instanceUsageRegistrationHook
-}
-
-func instanceUsageRegistrationHook(name string, s *Step) error {
-	return nil
+	m.typeName = "instance"
+	m.urlRgx = instanceURLRgx
 }
 
 func deleteInstance(w *Workflow, r *resource) error {

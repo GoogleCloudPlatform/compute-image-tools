@@ -20,18 +20,15 @@ import (
 )
 
 var (
-	images        = map[*Workflow]*resourceMap{}
-	imageURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images/(?P<image>%[1]s)|family/(?P<family>%[1]s)$`, rfc1035))
+	images      = map[*Workflow]*resourceMap{}
+	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images/(?P<image>%[1]s)|family/(?P<family>%[1]s)$`, rfc1035))
 )
 
 func initImagesMap(w *Workflow) {
 	m := &resourceMap{}
 	images[w] = m
-	m.usageRegistrationHook = imageUsageRegistrationHook
-}
-
-func imageUsageRegistrationHook(name string, s *Step) error {
-	return nil
+	m.typeName = "image"
+	m.urlRgx = imageURLRgx
 }
 
 func deleteImage(w *Workflow, r *resource) error {

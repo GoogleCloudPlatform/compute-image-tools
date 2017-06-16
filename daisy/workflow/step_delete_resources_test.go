@@ -16,7 +16,6 @@ package workflow
 
 import (
 	"context"
-	"reflect"
 	"testing"
 )
 
@@ -65,104 +64,59 @@ func TestDeleteResourcesRun(t *testing.T) {
 			t.Errorf("resource %q should not have been deleted", c.r.real)
 		}
 	}
-
-	w = testWorkflow()
-	s = &Step{w: w}
-	dr = &DeleteResources{
-		Disks: []string{"notexist"}}
-	close(w.Cancel)
-	if err := dr.run(ctx, s); err != nil {
-		t.Errorf("Should not error on non existent disk when Cancel is closed: %v", err)
-	}
-
-	// Bad cases.
-	w = testWorkflow()
-	s = &Step{w: w}
-	tests := []struct {
-		dr  DeleteResources
-		err string
-	}{
-		{
-			DeleteResources{Disks: []string{"notexist"}},
-			"unresolved disk \"notexist\"",
-		},
-		{
-			DeleteResources{Instances: []string{"notexist"}},
-			"unresolved instance \"notexist\"",
-		},
-		{
-			DeleteResources{Images: []string{"notexist"}},
-			"unresolved image \"notexist\"",
-		},
-	}
-
-	for _, tt := range tests {
-		if err := tt.dr.run(ctx, s); err == nil {
-			t.Error("expected error, got nil")
-		} else if err.Error() != tt.err {
-			t.Errorf("did not get expected error from validate():\ngot: %q\nwant: %q", err.Error(), tt.err)
-		}
-	}
 }
 
 func TestDeleteResourcesValidate(t *testing.T) {
 	ctx := context.Background()
 	// Set up.
-	w := &Workflow{}
-	s := &Step{w: w}
-	validatedDisks = nameSet{w: {"foo"}}
-	validatedInstances = nameSet{w: {"foo"}}
-	validatedImages = nameSet{w: {"foo"}}
+	w := testWorkflow()
+	s := &Step{name: "s", w: w}
+	dCreator := &Step{name: "dCreator", w: w}
+	imCreator := &Step{name: "imCreator", w: w}
+	inCreator := &Step{name: "inCreator", w: w}
+	otherDeleter := &Step{}
+	w.Steps = map[string]*Step{"s": s, "dCreator": dCreator, "imCreator": imCreator, "inCreator": inCreator}
+	w.Dependencies = map[string][]string{"s": {"dCreator", "imCreator", "inCreator"}}
+	ds := []*resource{{real: "d0", link: "link", creator: dCreator}, {real: "d1", link: "link", creator: dCreator}}
+	ims := []*resource{{real: "im0", link: "link", creator: imCreator}, {real: "im1", link: "link", creator: imCreator}}
+	ins := []*resource{{real: "in0", link: "link", creator: inCreator}, {real: "in1", link: "link", creator: inCreator}}
+	instances[w].m = map[string]*resource{"in0": ins[0], "in1": ins[1]}
+	images[w].m = map[string]*resource{"im0": ims[0], "im1": ims[1]}
+	disks[w].m = map[string]*resource{"d0": ds[0], "d1": ds[1]}
 
 	// Good case.
-	dr := DeleteResources{
-		Instances: []string{"foo"}, Disks: []string{"foo"}, Images: []string{"foo"},
-	}
+	dr := DeleteResources{Disks: []string{"d0"}, Images: []string{"im0"}, Instances: []string{"in0"}}
 	if err := dr.validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
 	}
-
-	// Bad cases.
-	tests := []struct {
-		dr  DeleteResources
-		err string
-	}{
-		{
-			DeleteResources{Disks: []string{"foo"}},
-			"cannot delete disk, disk not found: foo",
-		},
-		{
-			DeleteResources{Disks: []string{"baz"}},
-			"cannot delete disk, disk not found: baz",
-		},
-		{
-			DeleteResources{Instances: []string{"baz"}},
-			"cannot delete instance, instance not found: baz",
-		},
-		{
-			DeleteResources{Images: []string{"baz"}},
-			"cannot delete image, image not found: baz",
-		},
-	}
-
-	for _, tt := range tests {
-		if err := tt.dr.validate(ctx, s); err == nil {
-			t.Error("expected error, got nil")
-		} else if err.Error() != tt.err {
-			t.Errorf("did not get expected error from validate():\ngot: %q\nwant: %q", err.Error(), tt.err)
+	for _, l := range [][]*resource{ds, ims, ins} {
+		if l[0].deleter != s {
+			t.Errorf("Resource %q incorrect deleter: got: %v, want: %v", l[0].real, l[0].deleter, s)
 		}
 	}
 
-	want := []string{"foo"}
-	if !reflect.DeepEqual(validatedDiskDeletions[w], want) {
-		t.Errorf("got:(%v) != want(%v)", validatedDisks[w], want)
+	// Bad cases.
+	// Test failure for each resource type (by marking each type as already registered for deletion).
+	// Test deleting a resource that DNE.
+	for _, l := range [][]*resource{ds, ims, ins} {
+		l[1].deleter = otherDeleter
 	}
 
-	if !reflect.DeepEqual(validatedInstanceDeletions[w], want) {
-		t.Errorf("got:(%v) != want(%v)", validatedInstances[w], want)
+	if err := (&DeleteResources{Disks: []string{"d1"}}).validate(ctx, s); err == nil {
+		t.Error("DeleteResources should have returned an error when deleting an already deleted disk")
 	}
-
-	if !reflect.DeepEqual(validatedImageDeletions[w], want) {
-		t.Errorf("got:(%v) != want(%v)", validatedImages[w], want)
+	if err := (&DeleteResources{Images: []string{"im1"}}).validate(ctx, s); err == nil {
+		t.Error("DeleteResources should have returned an error when deleting an already deleted image")
+	}
+	if err := (&DeleteResources{Instances: []string{"in1"}}).validate(ctx, s); err == nil {
+		t.Error("DeleteResources should have returned an error when deleting an already deleted instance")
+	}
+	if err := (&DeleteResources{Disks: []string{"dne"}}).validate(ctx, s); err == nil {
+		t.Error("DeleteResources should have returned an error when deleting an already deleted disk")
+	}
+	for _, l := range [][]*resource{ds, ims, ins} {
+		if l[1].deleter != otherDeleter {
+			t.Errorf("Resource %q should not have changed deleters: got: %v, want: %v", l[1].real, l[1].deleter, otherDeleter)
+		}
 	}
 }

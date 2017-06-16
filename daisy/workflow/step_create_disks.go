@@ -70,7 +70,7 @@ func (c *CreateDisks) populate(ctx context.Context, s *Step) error {
 			}
 			cd.Disk.SizeGb = size
 		}
-		if imageURLRegex.MatchString(cd.SourceImage) {
+		if imageURLRgx.MatchString(cd.SourceImage) {
 			cd.SourceImage = extendPartialURL(cd.SourceImage, cd.Project)
 		}
 		if cd.Type == "" {
@@ -87,29 +87,31 @@ func (c *CreateDisks) populate(ctx context.Context, s *Step) error {
 func (c *CreateDisks) validate(ctx context.Context, s *Step) error {
 	for _, cd := range *c {
 		if !checkName(cd.Name) {
-			return fmt.Errorf("cannot create disk: invalid name: %q", cd.Name)
+			return fmt.Errorf("cannot create disk: bad name: %q", cd.Name)
 		}
-		if !rfc1035Rgx.MatchString(cd.Project) {
-			return fmt.Errorf("cannot create disk: invalid project: %q", cd.Project)
+		if !checkName(cd.Project) {
+			return fmt.Errorf("cannot create disk: bad project: %q", cd.Project)
 		}
-		if !rfc1035Rgx.MatchString(cd.Zone) {
-			return fmt.Errorf("cannot create disk: invalid zone: %q", cd.Zone)
+		if !checkName(cd.Zone) {
+			return fmt.Errorf("cannot create disk: bad zone: %q", cd.Zone)
 		}
 		if !diskTypeURLRgx.MatchString(cd.Type) {
-			return fmt.Errorf("cannot create disk: invalid disk type: %q", cd.Type)
+			return fmt.Errorf("cannot create disk: bad disk type: %q", cd.Type)
 		}
 
 		if cd.SourceImage != "" {
-			if !imageValid(s.w, cd.SourceImage) {
-				return fmt.Errorf("cannot create disk: image not found: %q", cd.SourceImage)
+			if _, err := images[s.w].registerUsage(cd.SourceImage, s); err != nil {
+				return fmt.Errorf("cannot create disk: can't use image %q: %v", cd.SourceImage, err)
 			}
-		} else if cd.SizeGb == "" {
+		} else if cd.Disk.SizeGb == 0 {
 			return errors.New("cannot create disk: SizeGb and SourceImage not set")
 		}
 
-		// Try adding disk name.
-		if err := validatedDisks.add(s.w, cd.daisyName); err != nil {
-			return fmt.Errorf("error adding disk: %s", err)
+		// Register creation.
+		link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", cd.Project, cd.Zone, cd.Name)
+		r := &resource{real: cd.Name, link: link, noCleanup: cd.NoCleanup}
+		if err := disks[s.w].registerCreation(cd.daisyName, r, s); err != nil {
+			return fmt.Errorf("error creating disk: %s", err)
 		}
 	}
 	return nil
@@ -125,7 +127,7 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) error {
 			defer wg.Done()
 
 			// Get the source image link if using a source image.
-			if cd.SourceImage != "" && !imageURLRegex.MatchString(cd.SourceImage) {
+			if cd.SourceImage != "" {
 				image, _ := images[w].get(cd.SourceImage)
 				cd.SourceImage = image.link
 			}
@@ -135,7 +137,6 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) error {
 				e <- err
 				return
 			}
-			disks[w].add(cd.daisyName, &resource{real: cd.Name, link: cd.SelfLink, noCleanup: cd.NoCleanup})
 		}(cd)
 	}
 

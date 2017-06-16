@@ -102,30 +102,20 @@ func TestIncludeWorkflowRun(t *testing.T) {}
 func TestIncludeWorkflowValidate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
-	disks[w].add("foo", &resource{})
 	iw := w.NewIncludedWorkflow()
-	w.Steps = map[string]*Step{
-		"included": {
-			IncludeWorkflow: &IncludeWorkflow{
-				w: iw,
-			},
-			w: w,
-		},
-	}
-	iw.Steps = map[string]*Step{
-		"del": {
-			DeleteResources: &DeleteResources{
-				Disks: []string{"foo"},
-			},
-		},
-	}
-	validatedDisks.add(w, "foo")
+	dCreator, _ := w.NewStep("dCreator")
+	dCreator.CreateImages = &CreateImages{}
+	incStep, _ := w.NewStep("incStep")
+	incStep.IncludeWorkflow = &IncludeWorkflow{w: iw}
+	w.AddDependency("incStep", "dCreator")
+	dDeleter, _ := iw.NewStep("dDeleter")
+	dDeleter.DeleteResources = &DeleteResources{Disks: []string{"d"}}
+	disks[w].registerCreation("d", &resource{}, dCreator)
 
 	if err := w.populate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	s := w.Steps["included"]
-	if err := s.IncludeWorkflow.validate(ctx, s); err != nil {
+	if err := incStep.IncludeWorkflow.validate(ctx, incStep); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

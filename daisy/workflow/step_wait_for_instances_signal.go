@@ -164,8 +164,8 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) error {
 func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) error {
 	// Instance checking.
 	for _, i := range *w {
-		if !instanceValid(s.w, i.Name) {
-			return fmt.Errorf("cannot wait for instance signal. Instance not found: %q", i.Name)
+		if _, err := instances[s.w].registerUsage(i.Name, s); err != nil {
+			return err
 		}
 		if i.interval == 0*time.Second {
 			return fmt.Errorf("%q: cannot wait for instance signal, no interval given", i.Name)

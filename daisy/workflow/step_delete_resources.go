@@ -16,13 +16,14 @@ package workflow
 
 import (
 	"context"
-	"fmt"
 	"sync"
 )
 
 // DeleteResources deletes GCE resources.
 type DeleteResources struct {
-	Instances, Disks, Images []string `json:",omitempty"`
+	Disks     []string `json:",omitempty"`
+	Images    []string `json:",omitempty"`
+	Instances []string `json:",omitempty"`
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) error {
@@ -33,31 +34,22 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
 	w := s.w
 	// Disk checking.
 	for _, disk := range d.Disks {
-		if !diskValid(w, disk) {
-			return fmt.Errorf("cannot delete disk, disk not found: %s", disk)
-		}
-		if err := validatedDiskDeletions.add(w, disk); err != nil {
-			return fmt.Errorf("error scheduling disk for deletion: %s", err)
+		if err := disks[w].registerDeletion(disk, s); err != nil {
+			return err
 		}
 	}
 
 	// Instance checking.
 	for _, i := range d.Instances {
-		if !instanceValid(w, i) {
-			return fmt.Errorf("cannot delete instance, instance not found: %s", i)
-		}
-		if err := validatedInstanceDeletions.add(w, i); err != nil {
-			return fmt.Errorf("error scheduling instance for deletion: %s", err)
+		if err := instances[w].registerDeletion(i, s); err != nil {
+			return err
 		}
 	}
 
 	// Instance checking.
 	for _, i := range d.Images {
-		if !imageValid(w, i) {
-			return fmt.Errorf("cannot delete image, image not found: %s", i)
-		}
-		if err := validatedImageDeletions.add(w, i); err != nil {
-			return fmt.Errorf("error scheduling image for deletion: %s", err)
+		if err := images[w].registerDeletion(i, s); err != nil {
+			return err
 		}
 	}
 
@@ -73,11 +65,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			r, ok := instances[w].get(i)
-			if !ok {
-				e <- fmt.Errorf("unresolved instance %q", i)
-				return
-			}
+			r, _ := instances[w].get(i)
 			w.logger.Printf("DeleteResources: deleting instance %q.", r.real)
 			if err := deleteInstance(w, r); err != nil {
 				e <- err
@@ -90,11 +78,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			r, ok := images[w].get(i)
-			if !ok {
-				e <- fmt.Errorf("unresolved image %q", i)
-				return
-			}
+			r, _ := images[w].get(i)
 			w.logger.Printf("DeleteResources: deleting image %q.", r.real)
 			if err := deleteImage(w, r); err != nil {
 				e <- err
@@ -123,11 +107,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			r, ok := disks[w].get(d)
-			if !ok {
-				e <- fmt.Errorf("unresolved disk %q", d)
-				return
-			}
+			r, _ := disks[w].get(d)
 			w.logger.Printf("DeleteResources: deleting disk %q.", r.real)
 			if err := deleteDisk(w, r); err != nil {
 				e <- err

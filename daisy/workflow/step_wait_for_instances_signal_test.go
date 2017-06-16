@@ -136,9 +136,11 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 
 func TestWaitForInstancesSignalValidate(t *testing.T) {
 	// Set up.
-	w := &Workflow{}
-	s := &Step{w: w}
-	validatedInstances = nameSet{w: {"instance1"}}
+	w := testWorkflow()
+	s, _ := w.NewStep("s")
+	iCreator, _ := w.NewStep("iCreator")
+	w.AddDependency("s", "iCreator")
+	instances[w].registerCreation("instance1", &resource{}, iCreator)
 
 	tests := []struct {
 		desc      string
@@ -155,9 +157,9 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 		{"no interval", WaitForInstancesSignal{{Name: "instance1", Stopped: true, Interval: "0s"}}, true},
 	}
 
-	for _, test := range tests {
-		if err := test.step.validate(context.Background(), s); (err != nil) != test.shouldErr {
-			t.Errorf("fail: %s; step: %+v; error result: %s", test.desc, test.step, err)
+	for _, tt := range tests {
+		if err := tt.step.validate(context.Background(), s); (err != nil) != tt.shouldErr {
+			t.Errorf("fail: %s; step: %+v; error result: %s", tt.desc, tt.step, err)
 		}
 	}
 }

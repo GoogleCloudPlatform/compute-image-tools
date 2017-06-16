@@ -41,6 +41,34 @@ import (
 	"google.golang.org/api/option"
 )
 
+func TestAddDependency(t *testing.T) {
+	w := &Workflow{Steps: map[string]*Step{"a": nil, "b": nil}}
+
+	tests := []struct {
+		desc      string
+		in1, in2  string
+		shouldErr bool
+	}{
+		{"good case", "a", "b", false},
+		{"idempotent good case", "a", "b", false},
+		{"bad case 1", "a", "c", true},
+		{"bad case 2", "c", "b", true},
+	}
+
+	for _, tt := range tests {
+		if err := w.AddDependency(tt.in1, tt.in2); err == nil && tt.shouldErr {
+			t.Errorf("%s: should have erred but didn't", tt.desc)
+		} else if err != nil && !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+
+	wantDeps := map[string][]string{"a": {"b"}}
+	if diff := pretty.Compare(w.Dependencies, wantDeps); diff != "" {
+		t.Errorf("incorrect dependencies: (-got,+want)\n%s", diff)
+	}
+}
+
 func TestDaisyBkt(t *testing.T) {
 	client, err := newTestGCSClient()
 	if err != nil {
@@ -426,6 +454,27 @@ func TestNewFromFile(t *testing.T) {
 	}
 }
 
+func TestNewStep(t *testing.T) {
+	w := &Workflow{}
+
+	s, err := w.NewStep("s")
+	wantS := &Step{name: "s", w: w}
+	if s == nil || s.name != "s" || s.w != w {
+		t.Errorf("step does not meet expectation: got: %v, want: %v", s, wantS)
+	}
+	if err != nil {
+		t.Error("unexpected error when creating new step")
+	}
+
+	s, err = w.NewStep("s")
+	if s != nil {
+		t.Errorf("step should not have been created: %v", s)
+	}
+	if err == nil {
+		t.Error("should have erred, but didn't")
+	}
+}
+
 func TestPopulate(t *testing.T) {
 	ctx := context.Background()
 	client, err := newTestGCSClient()
@@ -541,7 +590,7 @@ func TestPopulate(t *testing.T) {
 		t.Error("did not call step's populate")
 	}
 
-	stepPopErr = errors.New("error!")
+	stepPopErr = errors.New("error")
 	if err := got.populate(ctx); err != stepPopErr {
 		t.Errorf("did not get proper step populate error: %v != %v", err, stepPopErr)
 	}
