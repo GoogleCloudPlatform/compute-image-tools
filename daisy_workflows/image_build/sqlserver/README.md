@@ -1,5 +1,5 @@
 ## Daisy sqlserver image build workflow
-Builds a SQL Server image derivative image. 
+Builds a SQL Server derivative image. 
 Proper install media must be provided.
 
 Required vars:
@@ -14,9 +14,9 @@ Optional vars:
 ### SQL 2016 Express workflow example
 This workflow builds a SQl Server 2016 Express image on the latest Server 2016 GCE image.
 Different versions of SQL Server can be installed by replacing `sql_server_media` with the 
-correct media. Be sure to use the correct `sql_server_config` version to match the installed
-version.
-The image is created in the project the Daisy workflow is run in (`MYPROJECT`).
+correct media. Be sure to use the correct `sql_server_config` year version to match that of 
+the media used.
+The image completed image will created in the project the Daisy workflow is run in
 
 SQl Server media for this install can be found here:
 https://www.microsoft.com/en-us/sql-server/sql-server-editions-express
