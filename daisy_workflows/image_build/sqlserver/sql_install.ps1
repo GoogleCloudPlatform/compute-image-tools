@@ -1,0 +1,331 @@
+# Copyright 2017 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+$ErrorActionPreference = 'Stop'
+
+$gce_install_dir = 'C:\Program Files\Google\Compute Engine'
+$log_path = 'D:\logs'
+$log_file = "${log_path}\win_bootstrap_log.txt"
+
+# Updates
+$wu_server = 'windows-update-server.c.gce-image-builder.internal'
+$windows_update_base_path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows'
+$windows_update_path = "${windows_update_base_path}\WindowsUpdate"
+$windows_update_au_path = "${windows_update_path}\AU"
+
+function Write-Log {
+  <#
+    .SYNOPSIS
+      Writes messages to the console and log file.
+
+    .PARAMETER $msg
+      The message to write.
+  #>
+  param (
+    [parameter(Mandatory=$true)]
+      [string]$msg
+  )
+  Write-Host $msg
+  if (Test-Path 'D:\') {
+    Add-Content $log_file $msg
+  }
+}
+
+function Format-ScratchDisk {
+  <#
+    .SYNOPSIS
+      Clears then formats the scratch disk and assigns as D:
+  #>
+  Write-Log 'Formatting scratch disk.'
+  Set-Disk -Number 1 -IsOffline $false
+  Initialize-Disk -Number 1 -PartitionStyle MBR
+  New-Partition -DiskNumber 1 -UseMaximumSize -DriveLetter D -IsActive |
+    Format-Volume -FileSystem 'NTFS' -Confirm:$false
+  New-Item $log_path -Type Directory
+  Write-Log 'Formatting scratch disk complete.'
+}
+
+function Get-MetadataValue {
+  <#
+    .SYNOPSIS
+      Returns a value for a given metadata key.
+
+    .DESCRIPTION
+      Attempt to retrieve the value for a given metadata key.
+      Returns null if not found.
+
+    .PARAMETER $key
+      The metadata key to retrieve.
+
+    .PARAMETER $default
+      The value to return if the key is not found.
+
+    .RETURNS
+      The value for the key or null.
+  #>
+  param (
+    [parameter(Mandatory=$true)]
+      [string]$key,
+    [parameter(Mandatory=$false)]
+      [string]$default
+  )
+
+  # Returns the provided metadata value for a given key.
+  $url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/${key}"
+  try {
+    $client = New-Object Net.WebClient
+    $client.Headers.Add('Metadata-Flavor', 'Google')
+    return ($client.DownloadString($url)).Trim()
+  }
+  catch [System.Net.WebException] {
+    if ($default) {
+      return $default
+    }
+    else {
+      Write-Log "Failed to retrieve value for ${key}."
+      return $null
+    }
+  }
+}
+
+function Set-WindowsUpdateServer {
+  <#
+    .SYNOPSIS
+      Set the Windows update server to the internal build WSUS.
+  #>
+
+  if (-not (Test-Path $windows_update_path)) {
+    New-Item -Path $windows_update_path -Value ""
+    New-Item -Path $windows_update_au_path -Value ""
+
+    # Set the registry keys to use a WSUS 6.x server.
+    New-ItemProperty -Path $windows_update_path -Name WUServer -Value "http://$wu_server`:8530" -PropertyType String
+    New-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "http://$wu_server`:8530" -PropertyType String
+    New-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1 -PropertyType DWord
+    New-ItemProperty -Path $windows_update_au_path -Name NoAutoUpdate -Value 1 -PropertyType DWord
+    Write-Log "Update server set to $wu_server"
+  }
+}
+
+function Reset-WindowsUpdateServer {
+  <#
+    .SYNOPOSIS
+      Reset the Windows update server to default settings and enable automatic updates.
+  #>
+
+  Remove-Item -Path $windows_update_path -Recurse -Force
+  New-Item -Path $windows_update_path -Value ""
+  New-Item -Path $windows_update_au_path -Value ""
+  New-ItemProperty -Path $windows_update_au_path -Name AUOptions -Value 4 -PropertyType DWord
+  New-ItemProperty -Path $windows_update_au_path -Name ScheduledInstallDay -Value 0 -PropertyType DWord
+  New-ItemProperty -Path $windows_update_au_path -Name ScheduledInstallTime -Value 3 -PropertyType DWord
+}
+
+function Install-WindowsUpdates {
+  <#
+    .SYNOPSIS
+      Check for updates, returns true if restart is required.
+  #>
+
+  Write-Log 'Starting Windows update.'
+  if (Test-Connection $wu_server -Count 1 -ErrorAction SilentlyContinue) {
+    Set-WindowsUpdateServer
+  }
+  # Default back to Microsoft update servers if WSUS is not available.
+  else {
+    if (-not (Test-Connection download.microsoft.com -Count 1 -ErrorAction SilentlyContinue)) {
+      throw 'Windows update server is not reachable. Cannot complete image build.'
+    }
+  }
+
+  # If MSFT_WUOperationsSession exists use that.
+  $ci = New-CimInstance -Namespace root/Microsoft/Windows/WindowsUpdate -ClassName MSFT_WUOperationsSession -ErrorAction SilentlyContinue
+  if ($ci) {
+    $scan = $ci | Invoke-CimMethod -MethodName ScanForUpdates -Arguments @{SearchCriteria='IsInstalled=0';OnlineScan=$true}
+    if ($scan.Updates.Count -eq 0) {
+      Write-Log 'No updates to install'
+      return $false
+    }
+    Write-Log "Downloading $($scan.Updates.Count) updates"
+    $download = $ci | Invoke-CimMethod -MethodName DownloadUpdates -Arguments @{Updates=$scan.Updates}
+    Write-Log "Download finished with HResult: $($download.HResult)"
+    Write-Log "Installing $($scan.Updates.Count) updates"
+    $install = $ci | Invoke-CimMethod -MethodName InstallUpdates -Arguments @{Updates=$scan.Updates}
+    Write-Log "Install finished with HResult: $($install.HResult)"
+    Write-Log 'Finished Windows update.'
+
+    return (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired')
+  }
+
+  # In 2008 R2 the initial search can fail with error 0x80244010, something
+  # to do with the number of trips the client is making to the WSUS server.
+  # Trying the search again fixes this. Searching around the net didn't
+  # yield any actual fixes other than trying again. It does seem to be a
+  # somewhat common issue that has been around for years and has no other fix.
+  # http://blogs.technet.com/b/sus/archive/2008/09/18/wsus-clients-fail-with-warning-syncserverupdatesinternal-failed-0x80244010.aspx
+  $session = New-Object -ComObject 'Microsoft.Update.Session'
+  $query = 'IsInstalled=0'
+  $searcher = $session.CreateUpdateSearcher()
+  $i = 1
+  while ($i -lt 10) {
+    try {
+      Write-Log "Searching for updates, try $i."
+      $updates = $searcher.Search($query).Updates
+      break
+    } catch {
+      Write-Log 'Update search failed.'
+      $i++
+      if ($i -ge 10) {
+        Write-Log 'Reseting update server'
+        Reset-WindowsUpdateServer
+        Write-Log 'Searching for updates one last time'
+        $updates = $searcher.Search($query).Updates
+      }
+    }
+  }
+
+  if ($updates.Count -eq 0) {
+    Write-Log 'No updates required!'
+    return $false
+  }
+  else {
+    foreach ($update in $updates) {
+      if (-not ($update.EulaAccepted)) {
+        Write-Log 'The following update required a EULA to be accepted:'
+        Write-Log '----------------------------------------------------'
+        Write-Log ($update.Description)
+        Write-Log '----------------------------------------------------'
+        Write-Log ($update.EulaText)
+        Write-Log '----------------------------------------------------'
+        $update.AcceptEula()
+      }
+    }
+    $count = $updates.Count
+    if ($count -eq 1) {
+      # Sometimes we have a bug where we get stuck on one update. Let's
+      # log what this one update is in case we are having trouble with it.
+      Write-Log 'Downloading the following update:'
+      Write-Log ($updates | Out-String)
+    }
+    else {
+      Write-Log "Downloading $count updates."
+    }
+    $downloader = $session.CreateUpdateDownloader()
+    $downloader.Updates = $updates
+    $downloader.Download()
+    Write-Log 'Download complete. Installing updates.'
+    $installer = $session.CreateUpdateInstaller()
+    $installer.Updates = $updates
+    $installer.AllowSourcePrompts = $false
+    $result = $installer.Install()
+    $hresult = $result.HResult
+    Write-Log "Install Finished with HResult: $hresult"
+    Write-Log 'Finished Windows update.'
+    return $result.RebootRequired
+  }
+}
+
+function Install-SqlServer {
+  Write-Log 'Beginning SQL Server install.'
+
+  $sql_server_media = Get-MetadataValue -key 'sql-server-media'
+  $sql_server_config = Get-MetadataValue -key 'sql-server-config'
+  $gs_path = Get-MetadataValue -key 'daisy-sources-path'
+  $sql_install = 'C:\sql_server_install'
+
+  $sql_config_path = "${gs_path}/sql_config.ini"
+  $sql_config = 'D:\sql_config.ini'
+  & 'gsutil' -m cp $sql_config_path $sql_config
+
+  if ($sql_server_config -like '*2012*' -or $sql_server_config -like '*2014*') {
+    Write-Log 'Installing .Net 3.5'
+    Install-WindowsFeature Net-Framework-Core
+  }
+
+  if ($sql_server_media -like '*.iso') {
+    Write-Log 'Downloading SQL Server ISO'
+    $iso = 'D:\sql_server.iso'
+    & 'gsutil' -m cp "${gs_path}/sql_installer.media" $iso
+    Write-Log 'Mount ISO'
+    $mount_result = Mount-DiskImage -ImagePath $iso -PassThru
+    $iso_drive = ($mount_result | Get-Volume).DriveLetter
+
+    Write-Log 'Copying ISO contents'
+    New-Item $sql_install -Type Directory
+    Copy-Item "${iso_drive}:\*" $sql_install -Recurse
+
+    Write-Log 'Unmounting ISO'
+    Dismount-DiskImage -ImagePath $iso
+  }
+  elseif ($sql_server_media -like '*.exe') {
+    Write-Log 'Downloading SQL Server exe'
+    $exe = 'D:\sql_server.exe'
+    & 'gsutil' -m cp "${gs_path}/sql_installer.media" $exe
+    Start-Process $exe -ArgumentList @("/x:${sql_install}",'/u') -Wait
+  }
+  else {
+    throw "Install media not iso or exe: ${sql_server_media}"
+  }
+
+  Write-Log 'Opening port 1433 for SQL Server'
+  & netsh advfirewall firewall add rule name='SQL Server' dir=in action=allow protocol=TCP localport=1433
+
+  Write-Log 'Installing SQL Server'
+  & "${sql_install}\setup.exe" "/ConfigurationFile=${sql_config}"
+  Write-Log 'Finished installing SQL Server'
+}
+
+function Install-SSMS {
+  $sql_server_config = Get-MetadataValue -key 'sql-server-config'
+  if ($sql_server_config -notlike '*2016*' -or $sql_server_config -like '*core*') {
+    Write-Log "Not installing SSMS for config ${sql_server_config}"
+    return
+  }
+  Write-Log 'Installing SSMS'
+
+  $gs_path = Get-MetadataValue -key 'daisy-sources-path'
+  $ssms_exe = 'D:\SSMS-Setup-ENU.exe'
+  & 'gsutil' -m cp "${gs_path}/SSMS-Setup-ENU.exe" $ssms_exe
+
+  Start-Process $ssms_exe -ArgumentList @('/install','/quiet','/norestart') -Wait
+
+  Write-Log 'Finished installing SSMS'
+}
+
+try {
+  if (!(Test-Path 'D:\')) {
+    $sysprep = 'c:\Windows\System32\Sysprep'
+    Remove-Item "${sysprep}\Panther\*" -Recurse -Force -ErrorAction Continue
+    Remove-Item "${sysprep}\Sysprep_succeeded.tag" -Recurse -Force -ErrorAction Continue
+    Format-ScratchDisk
+    Install-SqlServer
+    Install-SSMS
+  }
+
+  $reboot_required = Install-WindowsUpdates
+  if ($reboot_required) {
+    Write-Log 'Reboot required.'
+    Restart-Computer
+    exit
+  }
+  Reset-WindowsUpdateServer
+
+  Write-Log 'Launching sysprep.'
+  & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat' > "${log_path}\sysprep.txt" 2>&1
+}
+catch {
+  Write-Log $_.Exception.Message
+  Write-Log 'SQL image build failed'
+  exit 1
+}
