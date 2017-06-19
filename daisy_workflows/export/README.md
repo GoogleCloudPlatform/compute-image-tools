@@ -2,7 +2,7 @@
 Exports a GCE disk to a GCS location.
 
 Required vars:
-+ `source_disk` disk to export
++ `source_disk` GCE disk to export
 + `destination` GCS path to export image to
 
 ### Command line example
@@ -41,7 +41,7 @@ This workflow uses the IncludeWorkflow step to export the disk
 Exports a GCE image to a GCS location.
 
 Required vars:
-+ `source_image` disk to export
++ `source_image` GCE image to export
 + `destination` GCS path to export image to
 
 ### Command line example
