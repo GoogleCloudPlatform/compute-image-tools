@@ -1,0 +1,69 @@
+{
+  "Name": "sqlserver-image-creation",
+  "Sources": {
+    "sql_install.ps1": "./sql_install.ps1",
+    "SSMS-Setup-ENU.exe": "${ssms_exe}",
+    "sql_installer.media": "${sql_server_media}",
+    "sql_config.ini": "${sql_server_config}"
+  },
+  "Vars": {
+    "ssms_exe": {"Description": "GCS or local path to SSMS installer for SQL 2016 installs"},
+    "source_image": {"Required": true, "Description": "GCE image to base build on"},
+    "sql_server_media": {"Required": true, "Description": "GCS or local path to Windows installer media"},
+    "sql_server_config": {"Required": true, "Description": "GCS or local path to SQLServer config ini file"},
+    "install_disk": {"Value": "disk-install", "Description": "Name of the GCE disk to use for the SQL install"}
+  },
+  "Steps": {
+    "create-disks": {
+      "CreateDisks": [
+        {
+          "Name": "${install_disk}",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        },
+        {
+          "Name": "disk-scratch",
+          "SizeGb": "200",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-inst-install": {
+      "CreateInstances": [
+        {
+          "Name": "inst-install",
+          "Disks": [{"Source": "${install_disk}"}, {"Source": "disk-scratch"}],
+          "MachineType": "n1-standard-4",
+          "StartupScript": "sql_install.ps1",
+          "MetaData": {
+            "sql-server-config": "${sql_server_config}",
+            "sql-server-media": "${sql_server_media}"
+          }
+        }
+      ]
+    },
+    "wait-for-inst-install": {
+      "TimeOut": "1h",
+      "waitForInstancesSignal": [
+        {
+          "Name": "inst-install",
+          "Stopped": true,
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "windows-startup-script-url exit status 1"
+          }
+        }
+      ]
+    },
+    "delete-inst-install": {
+      "DeleteResources": {
+        "Image": "inst-install"
+      }
+    }
+  },
+  "Dependencies": {
+    "create-inst-install": ["create-disks"],
+    "wait-for-inst-install": ["create-inst-install"],
+    "delete-inst-install": ["wait-for-inst-install"]
+  }
+}

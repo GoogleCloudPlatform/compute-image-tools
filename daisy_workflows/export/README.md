@@ -8,7 +8,7 @@ Required vars:
 ### Command line example
 This will export the disk `project/PROJECT/zone/ZONE/disks/MYDISK` to `gs://some/bucket/image.tar.gz`.
 ```
-daisy -project MYPROJECT -zone MYZONE -gcs_path gs://MY/GCS/PATH \
+daisy -project MYPROJECT -zone MYZONE -gcs_path gs://MYBUCKET/daisy/${USERNAME} \
   -variables source_disk=project/MYPROJECT/zone/MYZONE/disks/MYDISK,destination=gs://some/bucket/image.tar.gz \
   disk_export.wf.json
 ```
@@ -21,7 +21,7 @@ This workflow uses the IncludeWorkflow step to export the disk
   "Name": "my-workflow",
   "Project": "MYPROJECT",
   "Zone": "MYZONE",
-  "GCSPath": "gs://MYBUCKET",
+  "GCSPath": "gs://MYBUCKET/daisy/${USERNAME}",
   "Steps": {
     "export-disk": {
       "Timeout": "30m",
@@ -47,7 +47,7 @@ Required vars:
 ### Command line example
 This will export the image `project/MYPROJECT/zone/ZONE/images/MYIMAGE` to `gs://some/bucket/image.tar.gz`
 ```
-daisy -project MYPROJECT -zone MYZONE -gcs_path gs://MY/GCS/PATH \
+daisy -project MYPROJECT -zone MYZONE -gcs_path gs://MYBUCKET/daisy/${USERNAME} \
   -variables source_image=project/MYPROJECT/global/images/MYIMAGE,destination=gs://some/bucket/image.tar.gz \
   image_export.wf.json
 ```
@@ -60,7 +60,7 @@ This workflow uses the IncludeWorkflow step to export the image
   "Name": "my-workflow",
   "Project": "MYPROJECT",
   "Zone": "MYZONE",
-  "GCSPath": "gs://MYBUCKET",
+  "GCSPath": "gs://MYBUCKET/daisy/${USERNAME}",
   "Steps": {
     "export-image": {
       "Timeout": "30m",
