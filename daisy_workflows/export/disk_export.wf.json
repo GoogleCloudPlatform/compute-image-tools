@@ -1,0 +1,77 @@
+{
+  "Name": "disk-export",
+  "Vars": {
+    "source_disk": {
+      "Required": true,
+      "Description": "disk to export"
+    },
+    "destination": {
+      "Required": true,
+      "Description": "GCS path to export image to"
+    },
+    "licenses": {
+      "Description": "list of GCE licenses to record in the exported image"
+    },
+    "export_instance_disk_size": {
+      "Value": "200",
+      "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
+    }
+  },
+  "Sources": {
+    "${NAME}_export_disk.sh": "./export_disk.sh"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-${NAME}",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "SizeGb": "${export_instance_disk_size}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run-${NAME}": {
+      "CreateInstances": [
+        {
+          "Name": "inst-${NAME}",
+          "Disks": [{"Source": "disk-${NAME}"}, {"Source": "${source_disk}", "Mode": "READ_ONLY"}],
+          "MachineType": "n1-highcpu-4",
+          "Metadata": {
+            "gcs-path": "${OUTSPATH}/${NAME}.tar.gz",
+            "licenses": "${licenses}"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "StartupScript": "${NAME}_export_disk.sh"
+        }
+      ]
+    },
+    "wait-for-inst-${NAME}": {
+      "Timeout": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-${NAME}",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "export success",
+            "FailureMatch": "export failed"
+          }
+        }
+      ]
+    },
+    "copy-image-object": {
+      "Timeout": "30m",
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/${NAME}.tar.gz",
+          "Destination": "${destination}"
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "run-${NAME}": ["setup-disks"],
+    "wait-for-inst-${NAME}": ["run-${NAME}"],
+    "copy-image-object": ["wait-for-inst-${NAME}"]
+  }
+}
