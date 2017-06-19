@@ -41,7 +41,7 @@ https://docs.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-
         "Vars": {
           "sql_server_config": "./configs/sql_server_2016_config.ini",
           "sql_server_media": "gs://PATH/TO/SQLEXPRADV_x64_ENU.exe",
-          "source_image": "projects/bct-prod-images/global/images/family/windows-2016",
+          "source_image": "projects/windows-cloud/global/images/family/windows-2016",
           "install_disk": "${install_disk}",
           "ssms_exe": "gs://PATH/TO/SSMS-Setup-ENU.exe"
         }
