@@ -16,7 +16,7 @@ daisy -project MYPROJECT -zone MYZONE -gcs_path gs://MY/GCS/PATH \
 ### Workflow example
 This workflow uses the IncludeWorkflow step to export the disk 
 `project/MYPROJECT/zone/ZONE/disks/MYDISK` to `gs://some/bucket/image.tar.gz`.
-```
+```json
 {
   "Name": "my-workflow",
   "Project": "MYPROJECT",
@@ -55,7 +55,7 @@ daisy -project MYPROJECT -zone MYZONE -gcs_path gs://MY/GCS/PATH \
 ### Workflow example
 This workflow uses the IncludeWorkflow step to export the image 
 `project/MYPROJECT/global/images/MYIMAGE` to `gs://some/bucket/image.tar.gz`.
-```
+```json
 {
   "Name": "my-workflow",
   "Project": "MYPROJECT",
