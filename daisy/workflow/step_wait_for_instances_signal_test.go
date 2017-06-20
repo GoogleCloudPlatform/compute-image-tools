@@ -19,6 +19,12 @@ import (
 	"time"
 )
 
+func TestWaitForInstancesSignalPopulate(t *testing.T) {
+	if err := (&WaitForInstancesSignal{}).populate(&Step{}); err != nil {
+		t.Error("not implemented, err should be nil")
+	}
+}
+
 func TestWaitForInstancesSignalRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}

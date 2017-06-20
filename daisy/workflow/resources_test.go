@@ -24,6 +24,32 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 )
 
+func TestExtendPartialURL(t *testing.T) {
+	want := "projects/foo/zones/bar/disks/baz"
+	if s := extendPartialURL("zones/bar/disks/baz", "foo"); s != want {
+		t.Errorf("got: %q, want: %q", s, want)
+	}
+
+	if s := extendPartialURL("projects/foo/zones/bar/disks/baz", "gaz"); s != want {
+		t.Errorf("got: %q, want %q", s, want)
+	}
+}
+
+func TestResourceNameHelper(t *testing.T) {
+	w := testWorkflow()
+	want := w.genName("foo")
+	got := resourceNameHelper("foo", w, false)
+	if got != want {
+		t.Errorf("%q != %q", got, want)
+	}
+
+	want = "foo"
+	got = resourceNameHelper("foo", w, true)
+	if got != want {
+		t.Errorf("%q != %q", got, want)
+	}
+}
+
 func TestResourceCleanup(t *testing.T) {
 	w := testWorkflow()
 

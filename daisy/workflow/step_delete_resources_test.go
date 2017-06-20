@@ -20,6 +20,12 @@ import (
 	"reflect"
 )
 
+func TestDeleteResourcesPopulate(t *testing.T) {
+	if err := (&DeleteResources{}).populate(&Step{}); err != nil {
+		t.Error("not implemented, err should be nil")
+	}
+}
+
 func TestDeleteResourcesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
@@ -102,9 +108,9 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	// Set up.
 	w := &Workflow{}
 	s := &Step{w: w}
-	validatedDisks = nameSet{w: {"foo", ":/#"}}
-	validatedInstances = nameSet{w: {"foo", ":/#"}}
-	validatedImages = nameSet{w: {"foo", ":/#"}}
+	validatedDisks = nameSet{w: {"foo"}}
+	validatedInstances = nameSet{w: {"foo"}}
+	validatedImages = nameSet{w: {"foo"}}
 
 	// Good case.
 	dr := DeleteResources{
@@ -120,16 +126,8 @@ func TestDeleteResourcesValidate(t *testing.T) {
 		err string
 	}{
 		{
-			DeleteResources{Disks: []string{":/#"}},
-			"error scheduling disk for deletion: bad name \":/#\"",
-		},
-		{
-			DeleteResources{Instances: []string{":/#"}},
-			"error scheduling instance for deletion: bad name \":/#\"",
-		},
-		{
-			DeleteResources{Images: []string{":/#"}},
-			"error scheduling image for deletion: bad name \":/#\"",
+			DeleteResources{Disks: []string{"foo"}},
+			"cannot delete disk, disk not found: foo",
 		},
 		{
 			DeleteResources{Disks: []string{"baz"}},

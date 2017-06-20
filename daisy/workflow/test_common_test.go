@@ -32,8 +32,16 @@ import (
 )
 
 type mockStep struct {
+	populateImpl func(*Step) error
 	runImpl      func(*Step) error
 	validateImpl func(*Step) error
+}
+
+func (m *mockStep) populate(s *Step) error {
+	if m.populateImpl != nil {
+		return m.populateImpl(s)
+	}
+	return nil
 }
 
 func (m *mockStep) run(s *Step) error {

@@ -20,66 +20,109 @@ import (
 	"sort"
 	"testing"
 
+	"fmt"
 	daisy_compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
 )
 
-func TestCreateInstanceProcessDisks(t *testing.T) {
+func TestCreateInstancePopulate(t *testing.T) {
 	w := testWorkflow()
-	validatedDisks.add(w, "d1")
-	validatedDisks.add(w, "d2")
+
+	desc := "desc"
+	defP := w.Project
+	defZ := w.Zone
+	defMT := fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", defP, defZ)
+	defDM := "READ_WRITE"
+	defDs := []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}}
+	defNs := []*compute.NetworkInterface{{Network: "global/networks/default", AccessConfigs: []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}}}
+	defMD := map[string]string{"daisy-sources-path": "gs://", "daisy-logs-path": "gs://", "daisy-outs-path": "gs://"}
+	defSs := []string{"https://www.googleapis.com/auth/devstorage.read_only"}
+	defSAs := []*compute.ServiceAccount{{Email: "default", Scopes: defSs}}
+
+	tests := []struct {
+		desc        string
+		input, want *CreateInstance
+		shouldErr   bool
+	}{
+		{
+			"defaults, non exact name case",
+			&CreateInstance{Instance: compute.Instance{Name: "foo", Description: desc, Disks: []*compute.AttachedDisk{{Source: "foo"}}}},
+			&CreateInstance{Instance: compute.Instance{Name: w.genName("foo"), Description: desc, Disks: defDs, MachineType: defMT, NetworkInterfaces: defNs, ServiceAccounts: defSAs}, Metadata: defMD, Scopes: defSs, Project: defP, Zone: defZ, daisyName: "foo"},
+			false,
+		},
+		{
+			"nondefault zone/project case",
+			&CreateInstance{Instance: compute.Instance{Name: "foo", Description: desc, Disks: []*compute.AttachedDisk{{Source: "foo"}}}, Project: "pfoo", Zone: "zfoo", ExactName: true},
+			&CreateInstance{Instance: compute.Instance{Name: "foo", Description: desc, Disks: []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}}, MachineType: "projects/pfoo/zones/zfoo/machineTypes/n1-standard-1", NetworkInterfaces: defNs, ServiceAccounts: defSAs}, Metadata: defMD, Scopes: defSs, Project: "pfoo", Zone: "zfoo", daisyName: "foo", ExactName: true},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		s := &Step{w: w, CreateInstances: &CreateInstances{tt.input}}
+		err := s.CreateInstances.populate(s)
+		if tt.shouldErr {
+			if err == nil {
+				t.Errorf("%s: should have returned error but didn't", tt.desc)
+			}
+		} else if err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		} else {
+			tt.input.Instance.Metadata = nil // This is undeterministic, but we can check tt.input.Metadata.
+			if diff := pretty.Compare(tt.input, tt.want); diff != "" {
+				t.Errorf("%s: CreateInstance not modified as expected: (-got +want)\n%s", tt.desc, diff)
+			}
+		}
+	}
+}
+
+func TestCreateInstancePopulateDisks(t *testing.T) {
+	w := testWorkflow()
 
 	tests := []struct {
 		desc       string
 		ad, wantAd []*compute.AttachedDisk
-		shouldErr  bool
 	}{
-		{"normal case", []*compute.AttachedDisk{{Source: "d1"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}}, false},
-		{"multiple disks case", []*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}, {Boot: false, Source: "d2", Mode: "READ_WRITE"}}, false},
-		{"mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "READ_ONLY"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_ONLY"}}, false},
-		{"bad mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "FOO"}}, nil, true},
-		{"no disks case", []*compute.AttachedDisk{}, nil, true},
-		{"disk dne case", []*compute.AttachedDisk{{Source: "dne"}}, nil, true},
+		{"normal case", []*compute.AttachedDisk{{Source: "d1"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}}},
+		{"multiple disks case", []*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}, {Boot: false, Source: "d2", Mode: "READ_WRITE"}}},
+		{"mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "READ_ONLY"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_ONLY"}}},
 	}
 
 	for _, tt := range tests {
 		ci := CreateInstance{Instance: compute.Instance{Disks: tt.ad}}
-		err := ci.processDisks(w)
-		if tt.shouldErr && err == nil {
-			t.Errorf("%s: processDisks should have erred but didn't", tt.desc)
-		} else if !tt.shouldErr && err != nil {
-			t.Errorf("%s: processDisks returned an unexpected error: %v", tt.desc, err)
-		} else if diff := pretty.Compare(tt.ad, tt.wantAd); err == nil && diff != "" {
+		err := ci.populateDisks(w)
+		if err != nil {
+			t.Errorf("%s: populateDisks returned an unexpected error: %v", tt.desc, err)
+		} else if diff := pretty.Compare(tt.ad, tt.wantAd); diff != "" {
 			t.Errorf("%s: AttachedDisks not modified as expected: (-got +want)\n%s", tt.desc, diff)
 		}
 	}
 }
 
-func TestCreateInstanceProcessMachineType(t *testing.T) {
+func TestCreateInstancePopulateMachineType(t *testing.T) {
 	tests := []struct {
 		desc, mt, wantMt string
 		shouldErr        bool
 	}{
-		{"normal case", "mt", "zones/foo/machineTypes/mt", false},
-		{"bad machine type case", "garbage/url", "", true},
-		{"bad machine type case 2", "illegal-machine-type-name!!!", "", true},
+		{"normal case", "mt", "projects/foo/zones/bar/machineTypes/mt", false},
+		{"expand case", "zones/bar/machineTypes/mt", "projects/foo/zones/bar/machineTypes/mt", false},
 	}
 
 	for _, tt := range tests {
-		ci := CreateInstance{Instance: compute.Instance{MachineType: tt.mt}, Zone: "foo"}
-		err := ci.processMachineType()
+		ci := CreateInstance{Instance: compute.Instance{MachineType: tt.mt}, Project: "foo", Zone: "bar"}
+		err := ci.populateMachineType()
 		if tt.shouldErr && err == nil {
-			t.Errorf("%s: processMachineType should have erred but didn't", tt.desc)
+			t.Errorf("%s: populateMachineType should have erred but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
-			t.Errorf("%s: processMachineType returned an unexpected error: %v", tt.desc, err)
+			t.Errorf("%s: populateMachineType returned an unexpected error: %v", tt.desc, err)
 		} else if err == nil && ci.MachineType != tt.wantMt {
 			t.Errorf("%s: MachineType not modified as expected: got: %q, want: %q", tt.desc, ci.MachineType, tt.wantMt)
 		}
 	}
 }
 
-func TestCreateInstanceProcessMetadata(t *testing.T) {
+func TestCreateInstancePopulateMetadata(t *testing.T) {
 	w := testWorkflow()
 	w.populate()
 	w.Sources = map[string]string{"file": "foo/bar"}
@@ -116,10 +159,10 @@ func TestCreateInstanceProcessMetadata(t *testing.T) {
 
 	for _, tt := range tests {
 		ci := CreateInstance{Metadata: tt.md, StartupScript: tt.startupScript}
-		err := ci.processMetadata(w)
+		err := ci.populateMetadata(w)
 		if err == nil {
 			if tt.shouldErr {
-				t.Errorf("%s: processMetadata should have erred but didn't", tt.desc)
+				t.Errorf("%s: populateMetadata should have erred but didn't", tt.desc)
 			} else {
 				compFactory := func(items []*compute.MetadataItems) func(i, j int) bool {
 					return func(i, j int) bool { return items[i].Key < items[j].Key }
@@ -131,40 +174,34 @@ func TestCreateInstanceProcessMetadata(t *testing.T) {
 				}
 			}
 		} else if !tt.shouldErr {
-			t.Errorf("%s: processMetadata returned an unexpected error: %v", tt.desc, err)
+			t.Errorf("%s: populateMetadata returned an unexpected error: %v", tt.desc, err)
 		}
 	}
 }
 
-func TestCreateInstanceProcessNetworks(t *testing.T) {
+func TestCreateInstancePopulateNetworks(t *testing.T) {
 	defaultAcs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	tests := []struct {
 		desc        string
 		input, want []*compute.NetworkInterface
-		shouldErr   bool
 	}{
-		{"default case", nil, []*compute.NetworkInterface{{Network: "global/networks/default", AccessConfigs: defaultAcs}}, false},
-		{"default AccessConfig case", []*compute.NetworkInterface{{Network: "global/networks/foo"}}, []*compute.NetworkInterface{{Network: "global/networks/foo", AccessConfigs: defaultAcs}}, false},
-		{"network URL resolution case", []*compute.NetworkInterface{{Network: "foo", AccessConfigs: []*compute.AccessConfig{}}}, []*compute.NetworkInterface{{Network: "global/networks/foo", AccessConfigs: []*compute.AccessConfig{}}}, false},
-		{"bad network case", []*compute.NetworkInterface{{Network: "bad network!"}}, nil, true},
+		{"default case", nil, []*compute.NetworkInterface{{Network: "global/networks/default", AccessConfigs: defaultAcs}}},
+		{"default AccessConfig case", []*compute.NetworkInterface{{Network: "global/networks/foo"}}, []*compute.NetworkInterface{{Network: "global/networks/foo", AccessConfigs: defaultAcs}}},
+		{"network URL resolution case", []*compute.NetworkInterface{{Network: "foo", AccessConfigs: []*compute.AccessConfig{}}}, []*compute.NetworkInterface{{Network: "global/networks/foo", AccessConfigs: []*compute.AccessConfig{}}}},
 	}
 
 	for _, tt := range tests {
 		ci := &CreateInstance{Instance: compute.Instance{NetworkInterfaces: tt.input}}
-		err := ci.processNetworks()
-		if err == nil {
-			if tt.shouldErr {
-				t.Errorf("%s: should have returned an error", tt.desc)
-			} else if diff := pretty.Compare(ci.NetworkInterfaces, tt.want); diff != "" {
-				t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc, diff)
-			}
-		} else if !tt.shouldErr {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		err := ci.populateNetworks()
+		if err != nil {
+			t.Errorf("%s: should have returned an error", tt.desc)
+		} else if diff := pretty.Compare(ci.NetworkInterfaces, tt.want); diff != "" {
+			t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc, diff)
 		}
 	}
 }
 
-func TestCreateInstanceProcessScopes(t *testing.T) {
+func TestCreateInstancePopulateScopes(t *testing.T) {
 	defaultScopes := []string{"https://www.googleapis.com/auth/devstorage.read_only"}
 	tests := []struct {
 		desc           string
@@ -179,7 +216,7 @@ func TestCreateInstanceProcessScopes(t *testing.T) {
 
 	for _, tt := range tests {
 		ci := &CreateInstance{Scopes: tt.input, Instance: compute.Instance{ServiceAccounts: tt.inputSas}}
-		err := ci.processScopes()
+		err := ci.populateScopes()
 		if err == nil {
 			if tt.shouldErr {
 				t.Errorf("%s: should have returned an error", tt.desc)
@@ -240,40 +277,109 @@ func TestCreateInstancesRun(t *testing.T) {
 	}
 }
 
+func TestCreateInstanceValidateDisks(t *testing.T) {
+	w := testWorkflow()
+	validatedDisks.add(w, "d1")
+	m := "READ_WRITE"
+
+	tests := []struct {
+		desc      string
+		ci        *CreateInstance
+		shouldErr bool
+	}{
+		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d1", Mode: m}}}}, false},
+		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "projects/p/zones/z/disks/d", Mode: m}}}, Project: "p", Zone: "z"}, false},
+		{"no disks case", &CreateInstance{Instance: compute.Instance{Name: "foo"}}, true},
+		{"disk dne case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "dne", Mode: m}}}}, true},
+		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "projects/p2/zones/z/disks/d", Mode: m}}}, Project: "p", Zone: "z"}, true},
+		{"bad zone case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "zones/z2/disks/d", Mode: m}}}, Project: "p", Zone: "z"}, true},
+		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d1", Mode: "bad mode!"}}}}, true},
+	}
+
+	for _, tt := range tests {
+		if err := tt.ci.validateDisks(w); tt.shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+}
+
+func TestCreateInstanceValidateMachineType(t *testing.T) {
+	p := "project"
+	z := "zone"
+
+	tests := []struct {
+		desc      string
+		mt        string
+		shouldErr bool
+	}{
+		{"good case", fmt.Sprintf("projects/%s/zones/%s/machineTypes/mt", p, z), false},
+		{"good case 2", fmt.Sprintf("zones/%s/machineTypes/mt", z), false},
+		{"bad machine type case", "bad machine type!", true},
+		{"bad project case", fmt.Sprintf("projects/p2/zones/%s/machineTypes/mt", z), true},
+		{"bad zone case", fmt.Sprintf("projects/%s/zones/z2/machineTypes/mt", p), true},
+		{"bad zone case 2", "zones/z2/machineTypes/mt", true},
+	}
+
+	for _, tt := range tests {
+		ci := &CreateInstance{Instance: compute.Instance{MachineType: tt.mt}, Project: p, Zone: z}
+		if err := ci.validateMachineType(); tt.shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+}
+
+func TestCreateInstanceValidateNetworks(t *testing.T) {
+	acs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
+	p := "project"
+
+	tests := []struct {
+		desc      string
+		nis       []*compute.NetworkInterface
+		shouldErr bool
+	}{
+		{"good case", []*compute.NetworkInterface{{Network: "global/networks/n", AccessConfigs: acs}}, false},
+		{"good case 2", []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/n", p), AccessConfigs: acs}}, false},
+		{"bad name case", []*compute.NetworkInterface{{Network: "global/networks/bad!", AccessConfigs: acs}}, true},
+		{"bad project case", []*compute.NetworkInterface{{Network: "projects/bad-project/global/networks/n", AccessConfigs: acs}}, true},
+	}
+
+	for _, tt := range tests {
+		ci := &CreateInstance{Instance: compute.Instance{NetworkInterfaces: tt.nis}, Project: p}
+		if err := ci.validateNetworks(); tt.shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+}
+
 func TestCreateInstancesValidate(t *testing.T) {
 	w := testWorkflow()
 	validatedDisks.add(w, "d1")
-	ad := []*compute.AttachedDisk{{Source: "d1"}}
+	ad := []*compute.AttachedDisk{{Source: "d1", Mode: "READ_WRITE"}}
+	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/good-machinetype", w.Project, w.Zone)
 
 	tests := []struct {
-		desc        string
-		input, want *CreateInstance
-		shouldErr   bool
+		desc      string
+		input     *CreateInstance
+		shouldErr bool
 	}{
-		{"good normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad}}, &CreateInstance{Instance: compute.Instance{Name: w.genName("foo")}, Project: w.Project, Zone: w.Zone, daisyName: "foo"}, false},
-		{"nondefault zone/project case", &CreateInstance{Instance: compute.Instance{Name: "bar", Disks: ad}, Project: "p", Zone: "z"}, &CreateInstance{Instance: compute.Instance{Name: w.genName("bar")}, Project: "p", Zone: "z", daisyName: "bar"}, false},
-		{"exact name case", &CreateInstance{Instance: compute.Instance{Name: "baz", Disks: ad}, ExactName: true}, &CreateInstance{Instance: compute.Instance{Name: "baz"}, Project: w.Project, Zone: w.Zone, daisyName: "baz"}, false},
-		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad}}, nil, true},
-		{"bad processing (no disks) case", &CreateInstance{Instance: compute.Instance{Name: "gaz"}}, nil, true},
+		{"normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: w.Project, Zone: w.Zone, daisyName: "foo"}, false},
+		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: w.Project, Zone: w.Zone, daisyName: "foo"}, true},
+		{"bad machine type case", &CreateInstance{Instance: compute.Instance{Name: "gaz", Disks: ad, MachineType: "bad machine type!"}}, true},
+		{"machine type wrong project/zone case", &CreateInstance{Instance: compute.Instance{Name: "gaz", Disks: ad, MachineType: "projects/blah/zones/blah/machineTypes/n1-standard-1"}}, true},
 	}
 
 	for _, tt := range tests {
 		s := &Step{name: "s", w: w, CreateInstances: &CreateInstances{tt.input}}
-		err := s.validate()
-		if err == nil {
-			if tt.shouldErr {
-				t.Errorf("%s: should have returned an error", tt.desc)
-			} else if tt.input.daisyName != tt.want.daisyName {
-				t.Errorf("%s: incorrect internal daisy name: got: %q, want: %q", tt.desc, tt.input.daisyName, tt.want.daisyName)
-			} else if tt.input.Name != tt.want.Name {
-				t.Errorf("%s: incorrect real name: got: %q, want: %q", tt.desc, tt.input.Name, tt.want.Name)
-			} else if tt.input.Project != tt.want.Project {
-				t.Errorf("%s: incorrect project: got: %q, want: %q", tt.desc, tt.input.Project, tt.want.Project)
-			} else if tt.input.Zone != tt.want.Zone {
-				t.Errorf("%s: incorrect internal daisy name: got: %q, want: %q", tt.desc, tt.input.daisyName, tt.want.daisyName)
-			}
-		} else if !tt.shouldErr {
-			t.Errorf("%s: unexpected error %v", tt.desc, err)
+		if err := s.validate(); tt.shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		}
 	}
 }

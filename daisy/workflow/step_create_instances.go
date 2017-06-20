@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"path"
-	"strings"
 	"sync"
 	"time"
 
@@ -115,56 +114,28 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 	}
 }
 
-func (c *CreateInstance) processDisks(w *Workflow) error {
-	if len(c.Disks) == 0 {
-		return errors.New("cannot create instance: no disks provided")
-	}
-
+func (c *CreateInstance) populateDisks(w *Workflow) error {
 	for i, d := range c.Disks {
-		d.Boot = i == 0
-		if !diskValid(w, d.Source) {
-			return fmt.Errorf("cannot create instance: disk not found: %s", d.Source)
-		}
+		d.Boot = i == 0 // TODO(crunkleton) should we do this?
 		d.Mode = strOr(d.Mode, "READ_WRITE")
-		if !strIn(d.Mode, []string{"READ_ONLY", "READ_WRITE"}) {
-			return fmt.Errorf("cannot create instance: bad disk mode: %q", d.Mode)
-		}
-
-		// Disk is a partial URL, ensure disk is in the same project and zone.
-		match := diskURLRegex.FindStringSubmatch(d.Source)
-		if match == nil {
-			continue
-		}
-		result := make(map[string]string)
-		for i, name := range diskURLRegex.SubexpNames() {
-			if i != 0 {
-				result[name] = match[i]
-			}
-		}
-
-		if result["project"] != "" && result["project"] != c.Project {
-			return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", c.Project, result["project"], d.Source)
-		}
-		if result["zone"] != c.Zone {
-			return fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", c.Zone, result["zone"], d.Source)
+		if diskURLRegex.MatchString(d.Source) {
+			d.Source = extendPartialURL(d.Source, c.Project)
 		}
 	}
 	return nil
 }
 
-func (c *CreateInstance) processMachineType() error {
+func (c *CreateInstance) populateMachineType() error {
 	c.MachineType = strOr(c.MachineType, "n1-standard-1")
-	mt := c.MachineType
-	if !strings.Contains(c.MachineType, "/") {
-		c.MachineType = fmt.Sprintf("zones/%s/machineTypes/%s", c.Zone, c.MachineType)
-	}
-	if !machineTypeURLRegex.MatchString(c.MachineType) {
-		return fmt.Errorf("cannot create instance: bad machine type %q", mt)
+	if machineTypeURLRegex.MatchString(c.MachineType) {
+		c.MachineType = extendPartialURL(c.MachineType, c.Project)
+	} else {
+		c.MachineType = fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", c.Project, c.Zone, c.MachineType)
 	}
 	return nil
 }
 
-func (c *CreateInstance) processMetadata(w *Workflow) error {
+func (c *CreateInstance) populateMetadata(w *Workflow) error {
 	if c.Metadata == nil {
 		c.Metadata = map[string]string{}
 	}
@@ -176,7 +147,7 @@ func (c *CreateInstance) processMetadata(w *Workflow) error {
 	c.Metadata["daisy-outs-path"] = "gs://" + path.Join(w.bucket, w.outsPath)
 	if c.StartupScript != "" {
 		if !w.sourceExists(c.StartupScript) {
-			return fmt.Errorf("cannot create instance: file not found: %s", c.StartupScript)
+			return fmt.Errorf("bad value for StartupScript, source not found: %s", c.StartupScript)
 		}
 		c.StartupScript = "gs://" + path.Join(w.bucket, w.sourcesPath, c.StartupScript)
 		c.Metadata["startup-script-url"] = c.StartupScript
@@ -189,7 +160,7 @@ func (c *CreateInstance) processMetadata(w *Workflow) error {
 	return nil
 }
 
-func (c *CreateInstance) processNetworks() error {
+func (c *CreateInstance) populateNetworks() error {
 	defaultAcs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	if c.NetworkInterfaces == nil {
 		c.NetworkInterfaces = []*compute.NetworkInterface{{AccessConfigs: defaultAcs, Network: "global/networks/default"}}
@@ -199,9 +170,6 @@ func (c *CreateInstance) processNetworks() error {
 				n.AccessConfigs = defaultAcs
 			}
 			if !networkURLRegex.MatchString(n.Network) {
-				if !rfc1035Rgx.MatchString(n.Network) {
-					return fmt.Errorf("%q is not a valid network", n.Network)
-				}
 				n.Network = path.Join("global/networks", n.Network)
 			}
 		}
@@ -209,7 +177,7 @@ func (c *CreateInstance) processNetworks() error {
 	return nil
 }
 
-func (c *CreateInstance) processScopes() error {
+func (c *CreateInstance) populateScopes() error {
 	if len(c.Scopes) == 0 {
 		c.Scopes = append(c.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
@@ -219,28 +187,133 @@ func (c *CreateInstance) processScopes() error {
 	return nil
 }
 
-func (c *CreateInstances) validate(s *Step) error {
-	w := s.w
-
+// populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.
+// - sets defaults
+// - extends short partial URLs to include "projects/<project>"
+func (c *CreateInstances) populate(s *Step) error {
 	errs := []error{}
 	for _, ci := range *c {
 		// General fields preprocessing.
 		ci.daisyName = ci.Name
 		if !ci.ExactName {
-			ci.Name = w.genName(ci.Name)
+			ci.Name = s.w.genName(ci.Name)
 		}
-		ci.Project = strOr(ci.Project, w.Project)
-		ci.Zone = strOr(ci.Zone, w.Zone)
-		ci.Description = strOr(ci.Description, fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
+		ci.Project = strOr(ci.Project, s.w.Project)
+		ci.Zone = strOr(ci.Zone, s.w.Zone)
+		ci.Description = strOr(ci.Description, fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 
-		errs = append(errs, ci.processDisks(w))
-		errs = append(errs, ci.processMachineType())
-		errs = append(errs, ci.processMetadata(w))
-		errs = append(errs, ci.processNetworks())
-		errs = append(errs, ci.processScopes())
+		errs = append(errs, ci.populateDisks(s.w))
+		errs = append(errs, ci.populateMachineType())
+		errs = append(errs, ci.populateMetadata(s.w))
+		errs = append(errs, ci.populateNetworks())
+		errs = append(errs, ci.populateScopes())
+	}
+
+	errStrs := []string{}
+	for _, e := range errs {
+		if e != nil {
+			errStrs = append(errStrs, e.Error())
+		}
+	}
+	if len(errStrs) > 0 {
+		msg := fmt.Sprintf("%d errors:", len(errStrs))
+		for _, s := range errStrs {
+			msg += fmt.Sprintf("\n* %s", s)
+		}
+		return errors.New(msg)
+	}
+	return nil
+}
+
+func (c *CreateInstance) validateDisks(w *Workflow) (errs []error) {
+	if len(c.Disks) == 0 {
+		errs = append(errs, fmt.Errorf("can't create instance %q: no disks attached", c.Name))
+	}
+	for _, d := range c.Disks {
+		match := diskURLRegex.FindStringSubmatch(d.Source)
+		if match == nil {
+			if !diskValid(w, d.Source) {
+				errs = append(errs, fmt.Errorf("can't create instance: disk not found: %q", d.Source))
+			}
+		} else {
+			result := make(map[string]string)
+			for i, name := range diskURLRegex.SubexpNames() {
+				if i != 0 {
+					result[name] = match[i]
+				}
+			}
+			if result["project"] != "" && result["project"] != c.Project {
+				errs = append(errs, fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", c.Project, result["project"], d.Source))
+			}
+			if result["zone"] != c.Zone {
+				errs = append(errs, fmt.Errorf("cannot create instance in zone %q with disk in zone %q: %q", c.Zone, result["zone"], d.Source))
+			}
+		}
+
+		if !strIn(d.Mode, []string{"READ_ONLY", "READ_WRITE"}) {
+			errs = append(errs, fmt.Errorf("can't create instance: bad Disk.Mode: %q", d.Mode))
+		}
+	}
+	return
+}
+
+func (c *CreateInstance) validateMachineType() (errs []error) {
+	if !machineTypeURLRegex.MatchString(c.MachineType) {
+		errs = append(errs, fmt.Errorf("can't create instance: bad MachineType: %q", c.MachineType))
+	}
+	match := machineTypeURLRegex.FindStringSubmatch(c.MachineType)
+	if match == nil {
+		errs = append(errs, fmt.Errorf("can't create instance: bad MachineType: %q", c.MachineType))
+	} else {
+		result := make(map[string]string)
+		for i, name := range machineTypeURLRegex.SubexpNames() {
+			if i != 0 {
+				result[name] = match[i]
+			}
+		}
+		if result["project"] != "" && result["project"] != c.Project {
+			errs = append(errs, fmt.Errorf("cannot create instance in project %q with machineType in project %q: %q", c.Project, result["project"], c.MachineType))
+		}
+		if result["zone"] != c.Zone {
+			errs = append(errs, fmt.Errorf("cannot create instance in zone %q with machineType in zone %q: %q", c.Zone, result["zone"], c.MachineType))
+		}
+	}
+	return
+}
+
+func (c *CreateInstance) validateNetworks() (errs []error) {
+	for _, n := range c.NetworkInterfaces {
+		match := networkURLRegex.FindStringSubmatch(n.Network)
+		if match == nil {
+			errs = append(errs, fmt.Errorf("can't create instance: bad value for NetworkInterface.Network: %q", n.Network))
+		} else {
+			result := make(map[string]string)
+			for i, name := range networkURLRegex.SubexpNames() {
+				if i != 0 {
+					result[name] = match[i]
+				}
+			}
+			if result["project"] != "" && result["project"] != c.Project {
+				errs = append(errs, fmt.Errorf("cannot create instance in project %q with network in project %q: %q", c.Project, result["project"], n.Network))
+			}
+		}
+	}
+	return
+}
+
+func (c *CreateInstances) validate(s *Step) error {
+	errs := []error{}
+	for _, ci := range *c {
+		if !checkName(ci.Name) {
+			errs = append(errs, fmt.Errorf("can't create instance %q: bad name", ci.Name))
+		}
+
+		errs = append(errs, ci.validateDisks(s.w)...)
+		errs = append(errs, ci.validateMachineType()...)
+		errs = append(errs, ci.validateNetworks()...)
 
 		// Try adding instance name.
-		errs = append(errs, validatedInstances.add(w, ci.daisyName))
+		errs = append(errs, validatedInstances.add(s.w, ci.daisyName))
 	}
 
 	errStrs := []string{}

@@ -419,249 +419,102 @@ func TestPopulate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := &Workflow{
-		Name:      "${wf-name}",
-		GCSPath:   "gs://${bucket}/images",
-		Zone:      "parent-zone",
-		Project:   "parent-project",
-		OAuthPath: tf,
-		logger:    log.New(ioutil.Discard, "", 0),
-		Vars: map[string]vars{
-			"bucket":    {Value: "parent-bucket", Required: true},
-			"step_name": {Value: "parent-step1"},
-			"timeout":   {Value: "60m"},
-			"path":      {Value: "./test_sub.wf.json"},
-			"wf-name":   {Value: "parent"},
-			"test-var":  {Value: "${ZONE}-this-should-populate-${NAME}"},
-		},
-		Steps: map[string]*Step{
-			"${step_name}": {
-				Timeout: "${timeout}",
-				CreateImages: &CreateImages{
-					{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "${SOURCESPATH}/image_file"}}},
-				},
-			},
-			"${NAME}-step2": {
-				WaitForInstancesSignal: &WaitForInstancesSignal{
-					{Name: "blah", Stopped: true},
-				},
-			},
-			"${NAME}-step3": {
-				SubWorkflow: &SubWorkflow{
-					Path: "${path}",
-					Vars: map[string]string{
-						"overridden": "bar",
-					},
-				},
-			},
-			"${NAME}-step4": {
-				IncludeWorkflow: &IncludeWorkflow{
-					Path: "${path}",
-					Vars: map[string]string{
-						"overridden": "bar",
-						"timeout":    "60m",
-					},
-					w: &Workflow{
-						// These should be overwritten.
-						Name:    "some-name",
-						Project: "some-project",
-						Zone:    "some-zone",
-						GCSPath: "gs://some-bucket/images",
-						Steps: map[string]*Step{
-							"${step_name}": {
-								Timeout: "${timeout}",
-							},
-						},
-						Vars: map[string]vars{
-							"step_name":  {Value: "sub-step1"},
-							"overridden": {Value: "foo"}, // This should be changed to "bar" by populate().
-						},
-					},
-				},
-			},
-		},
+	called := false
+	var stepPopErr error
+	stepPop := func(s *Step) error {
+		called = true
+		return stepPopErr
 	}
-	subGot := got.NewSubWorkflow()
-	subGot.Name = "${wf-name}"
-	subGot.GCSPath = "gs://sub-bucket/images"
-	subGot.Project = "sub-project"
-	subGot.Zone = "sub-zone"
-	subGot.OAuthPath = "sub-oauth-path"
-	subGot.logger = log.New(ioutil.Discard, "", 0)
-	subGot.Steps = map[string]*Step{
-		"${step_name}": {
+
+	got := New(context.Background())
+	got.Name = "${wf_name}"
+	got.GCSPath = "gs://${bucket}/images"
+	got.Zone = "wf-zone"
+	got.Project = "wf-project"
+	got.OAuthPath = tf
+	got.logger = log.New(ioutil.Discard, "", 0)
+	got.Vars = map[string]vars{
+		"bucket":    {Value: "wf-bucket", Required: true},
+		"step_name": {Value: "step1"},
+		"timeout":   {Value: "60m"},
+		"path":      {Value: "./test_sub.wf.json"},
+		"wf_name":   {Value: "wf-name"},
+		"test-var":  {Value: "${ZONE}-this-should-populate-${NAME}"},
+	}
+	got.Steps = map[string]*Step{
+		"${NAME}-${step_name}": {
+			w:       got,
 			Timeout: "${timeout}",
+			testType: &mockStep{
+				populateImpl: stepPop,
+			},
 		},
 	}
-	subGot.Vars = map[string]vars{
-		"wf-name":    {Value: "sub"},
-		"step_name":  {Value: "sub-step1"},
-		"timeout":    {Value: "60m"},
-		"overridden": {Value: "foo"}, // This should be changed to "bar" by populate().
-	}
-	got.Steps["${NAME}-step3"].SubWorkflow.w = subGot
-	incGot := got.NewIncludedWorkflow()
-	// These should be overwritten.
-	incGot.Name = "some-name"
-	incGot.Project = "some-project"
-	incGot.Zone = "some-zone"
-	incGot.GCSPath = "gs://some-bucket/images"
-	incGot.Steps = map[string]*Step{
-		"${step_name}": {
-			Timeout: "${timeout}",
-		},
-	}
-	incGot.Vars = map[string]vars{
-		"step_name":  {Value: "sub-step1"},
-		"overridden": {Value: "foo"}, // This should be changed to "bar" by populate().
-	}
-	got.Steps["${NAME}-step4"].IncludeWorkflow.w = incGot
 
 	if err := got.populate(); err != nil {
 		t.Fatalf("error populating workflow: %v", err)
 	}
 
-	// Some things to override before checking equivalence:
-	// - stuff that breaks pretty.Compare (ComputeClient and StorageClient, parent workflows)
-	// - stuff that is irrelevant and difficult to check (cleanupHooks and logger)
-	got.ComputeClient = nil
-	got.StorageClient = nil
-	got.logger = nil
-	got.cleanupHooks = nil
-	subGot.ComputeClient = nil
-	subGot.StorageClient = nil
-	subGot.parent = nil
-	subGot.logger = nil
-	subGot.cleanupHooks = nil
-	incGot.ComputeClient = nil
-	incGot.StorageClient = nil
-	incGot.parent = nil
-	incGot.logger = nil
-	incGot.cleanupHooks = nil
-	for _, s := range incGot.Steps {
-		s.w = nil
-	}
-
-	// For simplicity, here is the subworkflow scratch path.
-	// The subworkflow scratch path is a subdir of the parent workflow scratch path.
-	subScratch := subGot.scratchPath
-
 	want := &Workflow{
-		Name:      "parent",
-		GCSPath:   "gs://parent-bucket/images",
-		Zone:      "parent-zone",
-		Project:   "parent-project",
+		Name:      "wf-name",
+		GCSPath:   "gs://wf-bucket/images",
+		Zone:      "wf-zone",
+		Project:   "wf-project",
 		OAuthPath: tf,
 		id:        got.id,
 		Ctx:       got.Ctx,
 		Cancel:    got.Cancel,
 		Vars: map[string]vars{
-			"bucket":    {Value: "parent-bucket", Required: true},
-			"step_name": {Value: "parent-step1"},
+			"bucket":    {Value: "wf-bucket", Required: true},
+			"step_name": {Value: "step1"},
 			"timeout":   {Value: "60m"},
 			"path":      {Value: "./test_sub.wf.json"},
-			"wf-name":   {Value: "parent"},
-			"test-var":  {Value: "parent-zone-this-should-populate-parent"},
+			"wf_name":   {Value: "wf-name"},
+			"test-var":  {Value: "wf-zone-this-should-populate-wf-name"},
 		},
 		autovars:    got.autovars,
-		bucket:      "parent-bucket",
+		bucket:      "wf-bucket",
 		scratchPath: got.scratchPath,
 		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
 		logsPath:    fmt.Sprintf("%s/logs", got.scratchPath),
 		outsPath:    fmt.Sprintf("%s/outs", got.scratchPath),
 		username:    cu.Username,
 		Steps: map[string]*Step{
-			"parent-step1": {
-				name:    "parent-step1",
+			"wf-name-step1": {
+				name:    "wf-name-step1",
 				Timeout: "60m",
 				timeout: time.Duration(60 * time.Minute),
-				CreateImages: &CreateImages{
-					{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: fmt.Sprintf("gs://parent-bucket/%s/sources/image_file", got.scratchPath)}}},
-				},
-			},
-			"parent-step2": {
-				name:    "parent-step2",
-				Timeout: "10m",
-				timeout: time.Duration(10 * time.Minute),
-				WaitForInstancesSignal: &WaitForInstancesSignal{
-					{Name: "blah", Stopped: true, interval: 5 * time.Second},
-				},
-			},
-			"parent-step3": {
-				name:    "parent-step3",
-				Timeout: "10m",
-				timeout: time.Duration(10 * time.Minute),
-				SubWorkflow: &SubWorkflow{
-					Path: "./test_sub.wf.json",
-					Vars: map[string]string{
-						"overridden": "bar",
-					},
-					w: &Workflow{
-						Name:      "parent-step3",
-						GCSPath:   fmt.Sprintf("gs://%s/%s", got.bucket, got.scratchPath),
-						Zone:      "parent-zone",
-						Project:   "parent-project",
-						OAuthPath: tf,
-						id:        subGot.id,
-						Steps: map[string]*Step{
-							"sub-step1": {
-								name:    "sub-step1",
-								Timeout: "60m",
-								timeout: time.Duration(60 * time.Minute),
-							},
-						},
-						autovars: subGot.autovars,
-						Vars: map[string]vars{
-							"wf-name":    {Value: "sub"},
-							"step_name":  {Value: "sub-step1"},
-							"timeout":    {Value: "60m"},
-							"overridden": {Value: "bar"},
-						},
-						bucket:      "parent-bucket",
-						scratchPath: subScratch,
-						sourcesPath: fmt.Sprintf("%s/sources", subScratch),
-						logsPath:    fmt.Sprintf("%s/logs", subScratch),
-						outsPath:    fmt.Sprintf("%s/outs", subScratch),
-						username:    cu.Username,
-					},
-				},
-			},
-			"parent-step4": {
-				name:    "parent-step4",
-				Timeout: "10m",
-				timeout: time.Duration(10 * time.Minute),
-				IncludeWorkflow: &IncludeWorkflow{
-					Path: "./test_sub.wf.json",
-					Vars: map[string]string{
-						"overridden": "bar",
-						"timeout":    "60m",
-					},
-					w: &Workflow{
-						Name:    "parent-step4",
-						Project: "parent-project",
-						Zone:    "parent-zone",
-						GCSPath: "gs://parent-bucket/images",
-						Steps: map[string]*Step{
-							"sub-step1": {
-								name:    "sub-step1",
-								Timeout: "60m",
-								timeout: time.Duration(60 * time.Minute),
-							},
-						},
-						autovars: incGot.autovars,
-						Vars: map[string]vars{
-							"step_name":  {Value: "sub-step1"},
-							"timeout":    {Value: "60m"},
-							"overridden": {Value: "bar"},
-						},
-					},
+				testType: &mockStep{
+					populateImpl: stepPop,
 				},
 			},
 		},
 	}
 
+	// Some things to override before checking equivalence:
+	// - recursive stuff that breaks pretty.Compare (ComputeClient, StorageClient, Step.w)
+	// - stuff that is irrelevant and difficult to check (cleanupHooks and logger)
+	for _, wf := range []*Workflow{got, want} {
+		wf.ComputeClient = nil
+		wf.StorageClient = nil
+		wf.logger = nil
+		wf.cleanupHooks = nil
+		for _, s := range wf.Steps {
+			s.w = nil
+		}
+	}
+
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
+	}
+
+	if !called {
+		t.Error("did not call step's populate")
+	}
+
+	stepPopErr = errors.New("error!")
+	if err := got.populate(); err != stepPopErr {
+		t.Errorf("did not get proper step populate error: %v != %v", err, stepPopErr)
 	}
 }
 
@@ -755,21 +608,17 @@ func TestPrint(t *testing.T) {
 	data := []byte(`{
 "Name": "some-name",
 "Project": "some-project",
-"Zone": "us-central1-a",
+"Zone": "some-zone",
 "GCSPath": "gs://some-bucket/images",
 "Vars": {
-  "instance_name": "step1",
+  "instance_name": "i1",
   "machine_type": {"Value": "n1-standard-1", "Required": true}
 },
 "Steps": {
-  "${instance_name}Run": {
-    "createInstances": [
-      {
-        "Name": "${instance_name}",
-        "Disks": [{"Source": "disk"}],
-        "MachineType": "${machine_type}"
-      }
-    ]
+  "${instance_name}Delete": {
+    "DeleteResources": {
+      "Instances": ["${instance_name}"]
+    }
   }
 }
 }`)
@@ -777,11 +626,11 @@ func TestPrint(t *testing.T) {
 	want := `{
   "Name": "some-name",
   "Project": "some-project",
-  "Zone": "us-central1-a",
+  "Zone": "some-zone",
   "GCSPath": "gs://some-bucket/images",
   "Vars": {
     "instance_name": {
-      "Value": "step1",
+      "Value": "i1",
       "Required": false,
       "Description": ""
     },
@@ -792,21 +641,13 @@ func TestPrint(t *testing.T) {
     }
   },
   "Steps": {
-    "step1Run": {
+    "i1Delete": {
       "Timeout": "10m",
-      "CreateInstances": [
-        {
-          "disks": [
-            {
-              "source": "disk"
-            }
-          ],
-          "machineType": "n1-standard-1",
-          "name": "step1",
-          "NoCleanup": false,
-          "ExactName": false
-        }
-      ]
+      "DeleteResources": {
+        "Instances": [
+          "i1"
+        ]
+      }
     }
   },
   "Dependencies": {}

@@ -24,6 +24,10 @@ type DeleteResources struct {
 	Instances, Disks, Images []string `json:",omitempty"`
 }
 
+func (d *DeleteResources) populate(s *Step) error {
+	return nil
+}
+
 func (d *DeleteResources) validate(s *Step) error {
 	w := s.w
 	// Disk checking.

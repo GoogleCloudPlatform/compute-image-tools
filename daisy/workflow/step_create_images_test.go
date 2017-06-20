@@ -29,12 +29,12 @@ func TestCreateImagesRun(t *testing.T) {
 	disks[w].m = map[string]*resource{"d": {real: w.genName("d"), link: "link"}}
 	w.Sources = map[string]string{"file": "gs://some/path"}
 	cis := &CreateImages{
-		{name: "i1", Image: compute.Image{Name: "i1", SourceDisk: "d"}},
-		{name: "i2", Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}},
-		{name: "i2", Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "file"}}, Project: "project"},
-		{name: "i3", Image: compute.Image{Name: "i3", SourceDisk: "d"}, NoCleanup: true},
-		{name: "i4", Image: compute.Image{Name: "i4", SourceDisk: "d"}, ExactName: true},
-		{name: "i5", Image: compute.Image{Name: "i5", SourceDisk: "zones/zone/disks/disk"}},
+		{daisyName: "i1", Image: compute.Image{Name: "i1", SourceDisk: "d"}},
+		{daisyName: "i2", Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}},
+		{daisyName: "i2", Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "file"}}, Project: "project"},
+		{daisyName: "i3", Image: compute.Image{Name: "i3", SourceDisk: "d"}, NoCleanup: true},
+		{daisyName: "i4", Image: compute.Image{Name: "i4", SourceDisk: "d"}, ExactName: true},
+		{daisyName: "i5", Image: compute.Image{Name: "i5", SourceDisk: "zones/zone/disks/disk"}},
 	}
 	if err := cis.run(s); err != nil {
 		t.Errorf("error running CreateImages.run(): %v", err)
@@ -96,31 +96,31 @@ func TestCreateImagesValidate(t *testing.T) {
 		{
 			"using disk",
 			&CreateImage{Image: compute.Image{Name: "i2", SourceDisk: "d1", Description: "foo"}},
-			&CreateImage{name: "i2", Image: compute.Image{Name: w.genName("i2"), SourceDisk: "d1", Description: "foo"}, Project: w.Project},
+			&CreateImage{daisyName: "i2", Image: compute.Image{Name: w.genName("i2"), SourceDisk: "d1", Description: "foo"}, Project: w.Project},
 			[]string{"i1", "i2"},
 		},
 		{
 			"using sources file",
 			&CreateImage{Image: compute.Image{Name: "i3", RawDisk: &compute.ImageRawDisk{Source: "file"}, Description: "foo"}},
-			&CreateImage{name: "i3", Image: compute.Image{Name: w.genName("i3"), RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath1}, Description: "foo"}, Project: w.Project},
+			&CreateImage{daisyName: "i3", Image: compute.Image{Name: w.genName("i3"), RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath1}, Description: "foo"}, Project: w.Project},
 			[]string{"i1", "i2", "i3"},
 		},
 		{
 			"using GCS file",
 			&CreateImage{Image: compute.Image{Name: "i4", RawDisk: &compute.ImageRawDisk{Source: "gs://path/to/file"}, Description: "foo"}},
-			&CreateImage{name: "i4", Image: compute.Image{Name: w.genName("i4"), RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath2}, Description: "foo"}, Project: w.Project},
+			&CreateImage{daisyName: "i4", Image: compute.Image{Name: w.genName("i4"), RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath2}, Description: "foo"}, Project: w.Project},
 			[]string{"i1", "i2", "i3", "i4"},
 		},
 		{
 			"exact name",
 			&CreateImage{Image: compute.Image{Name: "i5", SourceDisk: "d1", Description: "foo"}, ExactName: true},
-			&CreateImage{name: "i5", Image: compute.Image{Name: "i5", SourceDisk: "d1", Description: "foo"}, Project: w.Project, ExactName: true},
+			&CreateImage{daisyName: "i5", Image: compute.Image{Name: "i5", SourceDisk: "d1", Description: "foo"}, Project: w.Project, ExactName: true},
 			[]string{"i1", "i2", "i3", "i4", "i5"},
 		},
 		{
 			"non default project",
 			&CreateImage{Image: compute.Image{Name: "i6", SourceDisk: "d1", Description: "foo"}, Project: "foo-project"},
-			&CreateImage{name: "i6", Image: compute.Image{Name: w.genName("i6"), SourceDisk: "d1", Description: "foo"}, Project: "foo-project"},
+			&CreateImage{daisyName: "i6", Image: compute.Image{Name: w.genName("i6"), SourceDisk: "d1", Description: "foo"}, Project: "foo-project"},
 			[]string{"i1", "i2", "i3", "i4", "i5", "i6"},
 		},
 	}
@@ -167,7 +167,7 @@ func TestCreateImagesValidate(t *testing.T) {
 		{
 			"bad GCS path",
 			&CreateImage{Image: compute.Image{Name: "bi1", RawDisk: &compute.ImageRawDisk{Source: "path/to/file"}}},
-			"cannot create image: file not in sources or valid GCS path: path/to/file",
+			"bad value for RawDisk.Source: \"path/to/file\"",
 		},
 	}
 

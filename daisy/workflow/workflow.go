@@ -219,38 +219,21 @@ func (w *Workflow) getSourceGCSAPIPath(s string) string {
 	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(w.bucket, w.sourcesPath, s))
 }
 
-func (w *Workflow) populateStep(step *Step) error {
-	if step.Timeout == "" {
-		step.Timeout = defaultTimeout
+func (w *Workflow) populateStep(s *Step) error {
+	if s.Timeout == "" {
+		s.Timeout = defaultTimeout
 	}
-	timeout, err := time.ParseDuration(step.Timeout)
+	timeout, err := time.ParseDuration(s.Timeout)
 	if err != nil {
 		return err
 	}
-	step.timeout = timeout
+	s.timeout = timeout
 
-	if step.WaitForInstancesSignal != nil {
-		for i, s := range *step.WaitForInstancesSignal {
-			if s.Interval == "" {
-				s.Interval = defaultInterval
-			}
-			interval, err := time.ParseDuration(s.Interval)
-			if err != nil {
-				return err
-			}
-			(*step.WaitForInstancesSignal)[i].interval = interval
-		}
+	var step stepImpl
+	if step, err = s.stepImpl(); err != nil {
+		return err
 	}
-
-	// Recurse on subworkflows.
-	if step.SubWorkflow != nil {
-		return step.SubWorkflow.populate(step)
-	}
-
-	if step.IncludeWorkflow != nil {
-		return step.IncludeWorkflow.populate(step)
-	}
-	return nil
+	return step.populate(s)
 }
 
 func (w *Workflow) populate() error {
@@ -586,6 +569,7 @@ func readWorkflow(file string, w *Workflow) error {
 			}
 		}
 	}
+
 	return nil
 }
 
