@@ -16,9 +16,9 @@ package workflow
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
-	"path/filepath"
 )
 
 // IncludeWorkflow defines a Daisy workflow injection step. This step will

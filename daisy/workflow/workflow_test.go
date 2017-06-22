@@ -481,12 +481,12 @@ func TestPopulate(t *testing.T) {
 	subGot.Zone = "sub-zone"
 	subGot.OAuthPath = "sub-oauth-path"
 	subGot.logger = log.New(ioutil.Discard, "", 0)
-	subGot.Steps = map[string]*Step {
+	subGot.Steps = map[string]*Step{
 		"${step_name}": {
 			Timeout: "${timeout}",
 		},
 	}
-	subGot.Vars = map[string]json.RawMessage {
+	subGot.Vars = map[string]json.RawMessage{
 		"wf-name":    []byte(`"sub"`),
 		"step_name":  []byte(`"sub-step1"`),
 		"timeout":    []byte(`"60m"`),

@@ -25,7 +25,7 @@ var (
 )
 
 func initDisksMap(w *Workflow) {
-	m := &resourceMap{m: map[string]*resource{}}
+	m := &resourceMap{}
 	disks[w] = m
 	m.usageRegistrationHook = diskUsageRegistrationHook
 }

@@ -394,11 +394,12 @@ func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, error) {
 	return iw, nil
 }
 
-// NewSubWorkflow instantiates a new workflow with this workflow as the parent.
+// NewSubWorkflow instantiates a new workflow as a child to this workflow.
 func (w *Workflow) NewSubWorkflow() *Workflow {
 	return &Workflow{Ctx: w.Ctx, Cancel: w.Cancel, parent: w}
 }
 
+// NewSubWorkflowFromFile reads and unmarshals a workflow as a child to this workflow.
 func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 	sw := w.NewSubWorkflow()
 	if !filepath.IsAbs(file) {
