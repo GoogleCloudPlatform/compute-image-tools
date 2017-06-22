@@ -47,17 +47,12 @@ func (rm *resourceMap) add(name string, r *resource) {
 func (rm *resourceMap) del(name string) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
-	if rm.m != nil {
-		delete(rm.m, name)
-	}
+	delete(rm.m, name)
 }
 
 func (rm *resourceMap) get(name string) (*resource, bool) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
-	if rm.m == nil {
-		return nil, false
-	}
 	r, ok := rm.m[name]
 	return r, ok
 }
@@ -126,6 +121,12 @@ func initWorkflowResources(w *Workflow) {
 	initImagesMap(w)
 	initInstancesMap(w)
 	w.addCleanupHook(resourceCleanupHook(w))
+}
+
+func shareWorkflowResources(giver, taker *Workflow) {
+	disks[taker] = disks[giver]
+	images[taker] = images[giver]
+	instances[taker] = instances[giver]
 }
 
 func resourceCleanupHook(w *Workflow) func() error {

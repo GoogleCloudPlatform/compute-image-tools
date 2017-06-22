@@ -18,4 +18,28 @@ import "testing"
 
 func TestIncludeWorkflowRun(t *testing.T) {}
 
-func TestIncludeWorkflowValidate(t *testing.T) {}
+func TestIncludeWorkflowValidate(t *testing.T) {
+	w := testWorkflow()
+	disks[w].add("foo", &resource{})
+	iw := w.NewIncludedWorkflow()
+	w.Steps = map[string]*Step{
+		"included": {
+			IncludeWorkflow: &IncludeWorkflow{
+				w: iw,
+			},
+		},
+	}
+	iw.Steps = map[string]*Step{
+		"del": {
+			DeleteResources: &DeleteResources{
+				Disks: []string{"foo"},
+			},
+		},
+	}
+
+	w.populate()
+	s := w.Steps["included"]
+	if err := s.IncludeWorkflow.populate(s); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}

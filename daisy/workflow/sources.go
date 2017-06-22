@@ -122,7 +122,7 @@ func (w *Workflow) uploadSources() error {
 	}
 	for _, step := range w.Steps {
 		if step.SubWorkflow != nil {
-			if err := step.SubWorkflow.workflow.uploadSources(); err != nil {
+			if err := step.SubWorkflow.w.uploadSources(); err != nil {
 				return err
 			}
 		}

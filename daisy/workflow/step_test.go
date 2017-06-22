@@ -73,10 +73,6 @@ func TestStepImpl(t *testing.T) {
 		stepType reflect.Type
 	}{
 		{
-			Step{AttachDisks: &AttachDisks{}},
-			reflect.TypeOf(&AttachDisks{}),
-		},
-		{
 			Step{CreateDisks: &CreateDisks{}},
 			reflect.TypeOf(&CreateDisks{}),
 		},
@@ -99,10 +95,6 @@ func TestStepImpl(t *testing.T) {
 		{
 			Step{IncludeWorkflow: &IncludeWorkflow{}},
 			reflect.TypeOf(&IncludeWorkflow{}),
-		},
-		{
-			Step{RunTests: &RunTests{}},
-			reflect.TypeOf(&RunTests{}),
 		},
 		{
 			Step{SubWorkflow: &SubWorkflow{}},
@@ -132,8 +124,8 @@ func TestStepImpl(t *testing.T) {
 	}
 	// Bad. Try step with multiple real steps.
 	s = Step{
-		AttachDisks: &AttachDisks{},
-		RunTests:    &RunTests{},
+		CreateDisks:  &CreateDisks{},
+		CreateImages: &CreateImages{},
 	}
 	if _, err := s.stepImpl(); err == nil {
 		t.Fatal("malformed step should have thrown an error")
