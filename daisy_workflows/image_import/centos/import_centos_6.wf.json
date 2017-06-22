@@ -1,0 +1,62 @@
+{
+  "Name": "centos-6-import",
+  "Vars": {
+    "source_disk_file": {
+      "Required": true,
+      "Description": "The local path or GCS path to the virtual disk to import."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    }
+  },
+  "Steps": {
+    "create-import-disk": {
+      "CreateDisks": [
+        {
+          "Name": "centos6-import",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "import-virtual-disk": {
+      "IncludeWorkflow": {
+        "Path": "../disk_import.wf.json",
+        "Vars": {
+          "source_disk_file": "${source_disk_file}",
+          "imported_disk": "centos6-import-${NAME}-${ID}"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "translate-centos": {
+      "IncludeWorkflow": {
+        "Path": "./translate_centos.wf.json",
+        "Vars": {
+          "el_release": "6",
+          "install_gce_packages": "${install_gce_packages}",
+          "imported_disk": "centos6-import"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "centos-6-${ID}",
+          "SourceDisk": "centos6-import",
+          "Project": "${PROJECT}",
+          "ExactName": true,
+          "NoCleanup": true
+
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "import-virtual-disk": ["create-import-disk"],
+    "translate-centos": ["import-virtual-disk"],
+    "create-image": ["translate-centos"]
+  }
+}
