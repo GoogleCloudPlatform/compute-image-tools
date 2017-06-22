@@ -14,31 +14,49 @@
 
 package workflow
 
+import "fmt"
+
 // SubWorkflow defines a Daisy sub workflow.
 type SubWorkflow struct {
-	Path     string
-	Vars     map[string]string `json:",omitempty"`
-	workflow *Workflow
+	Path string
+	Vars map[string]string `json:",omitempty"`
+	w    *Workflow
+}
+
+func (s *SubWorkflow) populate(st *Step) error {
+	s.w.GCSPath = fmt.Sprintf("gs://%s/%s", s.w.parent.bucket, s.w.parent.scratchPath)
+	s.w.Name = st.name
+	s.w.Project = s.w.parent.Project
+	s.w.Zone = s.w.parent.Zone
+	s.w.OAuthPath = s.w.parent.OAuthPath
+	s.w.ComputeClient = s.w.parent.ComputeClient
+	s.w.StorageClient = s.w.parent.StorageClient
+	s.w.gcsLogWriter = s.w.parent.gcsLogWriter
+	s.w.vars = map[string]vars{}
+	for k, v := range s.Vars {
+		s.w.vars[k] = vars{Value: v}
+	}
+	return s.w.populate()
 }
 
 func (s *SubWorkflow) validate(st *Step) error {
-	return s.workflow.validate()
+	return s.w.validate()
 }
 
 func (s *SubWorkflow) run(st *Step) error {
 	// Prerun work has already been done. Just run(), not Run().
-	defer s.workflow.cleanup()
+	defer s.w.cleanup()
 	// If the workflow fails before the subworkflow completes, the previous
 	// "defer" cleanup won't happen. Add a failsafe here, have the workflow
 	// also call this subworkflow's cleanup.
 	st.w.addCleanupHook(func() error {
-		s.workflow.cleanup()
+		s.w.cleanup()
 		return nil
 	})
 
-	st.w.logger.Printf("Running subworkflow %q", s.workflow.Name)
-	if err := s.workflow.run(); err != nil {
-		s.workflow.logger.Printf("Error running subworkflow %q: %v", s.workflow.Name, err)
+	st.w.logger.Printf("Running subworkflow %q", s.w.Name)
+	if err := s.w.run(); err != nil {
+		s.w.logger.Printf("Error running subworkflow %q: %v", s.w.Name, err)
 		close(st.w.Cancel)
 		return err
 	}

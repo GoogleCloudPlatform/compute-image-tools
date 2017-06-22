@@ -37,14 +37,12 @@ type Step struct {
 	Timeout string
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
-	AttachDisks            *AttachDisks            `json:",omitempty"`
 	CreateDisks            *CreateDisks            `json:",omitempty"`
 	CreateImages           *CreateImages           `json:",omitempty"`
 	CreateInstances        *CreateInstances        `json:",omitempty"`
 	CopyGCSObjects         *CopyGCSObjects         `json:",omitempty"`
 	DeleteResources        *DeleteResources        `json:",omitempty"`
 	IncludeWorkflow        *IncludeWorkflow        `json:",omitempty"`
-	RunTests               *RunTests               `json:",omitempty"`
 	SubWorkflow            *SubWorkflow            `json:",omitempty"`
 	WaitForInstancesSignal *WaitForInstancesSignal `json:",omitempty"`
 	// Used for unit tests.
@@ -54,10 +52,6 @@ type Step struct {
 func (s *Step) stepImpl() (stepImpl, error) {
 	var result stepImpl
 	matchCount := 0
-	if s.AttachDisks != nil {
-		matchCount++
-		result = s.AttachDisks
-	}
 	if s.CreateDisks != nil {
 		matchCount++
 		result = s.CreateDisks
@@ -81,10 +75,6 @@ func (s *Step) stepImpl() (stepImpl, error) {
 	if s.IncludeWorkflow != nil {
 		matchCount++
 		result = s.IncludeWorkflow
-	}
-	if s.RunTests != nil {
-		matchCount++
-		result = s.RunTests
 	}
 	if s.SubWorkflow != nil {
 		matchCount++

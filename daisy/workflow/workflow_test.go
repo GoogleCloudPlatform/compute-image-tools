@@ -163,8 +163,8 @@ func TestNewFromFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	subGot := got.Steps["sub-workflow"].SubWorkflow.workflow
-	includeGot := got.Steps["include-workflow"].IncludeWorkflow.workflow
+	subGot := got.Steps["sub-workflow"].SubWorkflow.w
+	includeGot := got.Steps["include-workflow"].IncludeWorkflow.w
 
 	wantOAuthPath := filepath.Join(wd, "somefile")
 	want := &Workflow{
@@ -245,7 +245,7 @@ func TestNewFromFile(t *testing.T) {
 				name: "include-workflow",
 				IncludeWorkflow: &IncludeWorkflow{
 					Path: "./test_sub.wf.json",
-					workflow: &Workflow{
+					w: &Workflow{
 						id:          subGot.id,
 						workflowDir: wd,
 						Steps: map[string]*Step{
@@ -299,7 +299,7 @@ func TestNewFromFile(t *testing.T) {
 				name: "sub-workflow",
 				SubWorkflow: &SubWorkflow{
 					Path: "./test_sub.wf.json",
-					workflow: &Workflow{
+					w: &Workflow{
 						id:          subGot.id,
 						workflowDir: wd,
 						Steps: map[string]*Step{
@@ -445,25 +445,6 @@ func TestPopulate(t *testing.T) {
 					Vars: map[string]string{
 						"overridden": "bar",
 					},
-					workflow: &Workflow{
-						Name:      "${wf-name}",
-						GCSPath:   "gs://sub-bucket/images",
-						Project:   "sub-project",
-						Zone:      "sub-zone",
-						OAuthPath: "sub-oauth-path",
-						logger:    log.New(ioutil.Discard, "", 0),
-						Steps: map[string]*Step{
-							"${step_name}": {
-								Timeout: "${timeout}",
-							},
-						},
-						Vars: map[string]json.RawMessage{
-							"wf-name":    []byte(`"sub"`),
-							"step_name":  []byte(`"sub-step1"`),
-							"timeout":    []byte(`"60m"`),
-							"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
-						},
-					},
 				},
 			},
 			"${NAME}-step4": {
@@ -473,7 +454,7 @@ func TestPopulate(t *testing.T) {
 						"overridden": "bar",
 						"timeout":    "60m",
 					},
-					workflow: &Workflow{
+					w: &Workflow{
 						// These should be overwritten.
 						Name:    "some-name",
 						Project: "some-project",
@@ -493,27 +474,59 @@ func TestPopulate(t *testing.T) {
 			},
 		},
 	}
+	subGot := got.NewSubWorkflow()
+	subGot.Name = "${wf-name}"
+	subGot.GCSPath = "gs://sub-bucket/images"
+	subGot.Project = "sub-project"
+	subGot.Zone = "sub-zone"
+	subGot.OAuthPath = "sub-oauth-path"
+	subGot.logger = log.New(ioutil.Discard, "", 0)
+	subGot.Steps = map[string]*Step{
+		"${step_name}": {
+			Timeout: "${timeout}",
+		},
+	}
+	subGot.Vars = map[string]json.RawMessage{
+		"wf-name":    []byte(`"sub"`),
+		"step_name":  []byte(`"sub-step1"`),
+		"timeout":    []byte(`"60m"`),
+		"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
+	}
+	got.Steps["${NAME}-step3"].SubWorkflow.w = subGot
+	incGot := got.NewIncludedWorkflow()
+	// These should be overwritten.
+	incGot.Name = "some-name"
+	incGot.Project = "some-project"
+	incGot.Zone = "some-zone"
+	incGot.GCSPath = "gs://some-bucket/images"
+	incGot.Steps = map[string]*Step{
+		"${step_name}": {
+			Timeout: "${timeout}",
+		},
+	}
+	incGot.Vars = map[string]json.RawMessage{
+		"step_name":  []byte(`"sub-step1"`),
+		"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
+	}
+	got.Steps["${NAME}-step4"].IncludeWorkflow.w = incGot
 
 	if err := got.populate(); err != nil {
 		t.Fatalf("error populating workflow: %v", err)
 	}
 
-	subGot := got.Steps["parent-step3"].SubWorkflow.workflow
-	injGot := got.Steps["parent-step4"].IncludeWorkflow.workflow
-
-	// Set the clients to nil as pretty.Diff will cause a stack overflow otherwise.
+	// Make the workflows compatible with pretty.Compare.
 	got.ComputeClient = nil
 	got.StorageClient = nil
 	got.logger = nil
-
 	subGot.ComputeClient = nil
 	subGot.StorageClient = nil
+	subGot.parent = nil
 	subGot.logger = nil
-
-	injGot.ComputeClient = nil
-	injGot.StorageClient = nil
-	injGot.logger = nil
-	for _, s := range injGot.Steps {
+	incGot.ComputeClient = nil
+	incGot.StorageClient = nil
+	incGot.parent = nil
+	incGot.logger = nil
+	for _, s := range incGot.Steps {
 		s.w = nil
 	}
 
@@ -577,7 +590,7 @@ func TestPopulate(t *testing.T) {
 					Vars: map[string]string{
 						"overridden": "bar",
 					},
-					workflow: &Workflow{
+					w: &Workflow{
 						Name:      "parent-step3",
 						GCSPath:   fmt.Sprintf("gs://%s/%s", got.bucket, got.scratchPath),
 						Zone:      "parent-zone",
@@ -623,7 +636,7 @@ func TestPopulate(t *testing.T) {
 						"overridden": "bar",
 						"timeout":    "60m",
 					},
-					workflow: &Workflow{
+					w: &Workflow{
 						Name:    "parent-step4",
 						Project: "parent-project",
 						Zone:    "parent-zone",

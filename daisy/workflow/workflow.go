@@ -234,82 +234,11 @@ func (w *Workflow) populateStep(step *Step) error {
 
 	// Recurse on subworkflows.
 	if step.SubWorkflow != nil {
-		return w.populateSubworkflow(step)
+		return step.SubWorkflow.populate(step)
 	}
 
 	if step.IncludeWorkflow != nil {
-		return w.populateIncludeWorkflow(step)
-	}
-	return nil
-}
-
-func (w *Workflow) populateSubworkflow(step *Step) error {
-	step.SubWorkflow.workflow.GCSPath = fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath)
-	step.SubWorkflow.workflow.Name = step.name
-	step.SubWorkflow.workflow.Project = w.Project
-	step.SubWorkflow.workflow.Zone = w.Zone
-	step.SubWorkflow.workflow.OAuthPath = w.OAuthPath
-	step.SubWorkflow.workflow.ComputeClient = w.ComputeClient
-	step.SubWorkflow.workflow.StorageClient = w.StorageClient
-	step.SubWorkflow.workflow.Ctx = w.Ctx
-	step.SubWorkflow.workflow.Cancel = w.Cancel
-	step.SubWorkflow.workflow.gcsLogWriter = w.gcsLogWriter
-	step.SubWorkflow.workflow.vars = map[string]vars{}
-	for k, v := range step.SubWorkflow.Vars {
-		step.SubWorkflow.workflow.vars[k] = vars{Value: v}
-	}
-	return step.SubWorkflow.workflow.populate()
-}
-
-func (w *Workflow) populateIncludeWorkflow(step *Step) error {
-	step.IncludeWorkflow.workflow.GCSPath = w.GCSPath
-	step.IncludeWorkflow.workflow.Name = step.name
-	step.IncludeWorkflow.workflow.Project = w.Project
-	step.IncludeWorkflow.workflow.Zone = w.Zone
-
-	for k, v := range step.IncludeWorkflow.Vars {
-		step.IncludeWorkflow.workflow.AddVar(k, v)
-	}
-	if err := step.IncludeWorkflow.workflow.populateVars(); err != nil {
-		return err
-	}
-
-	var replacements []string
-	for k, v := range w.autovars {
-		if k == "NAME" {
-			v = step.name
-		}
-		if k == "WFDIR" {
-			v = step.IncludeWorkflow.workflow.workflowDir
-		}
-		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
-	}
-	for k, v := range step.IncludeWorkflow.workflow.vars {
-		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
-	}
-	substitute(reflect.ValueOf(step.IncludeWorkflow.workflow).Elem(), strings.NewReplacer(replacements...))
-
-	for name, s := range step.IncludeWorkflow.workflow.Steps {
-		s.name = name
-		s.w = w
-		if err := w.populateStep(s); err != nil {
-			return err
-		}
-	}
-
-	// Copy Sources up to parent resolving relative paths as we go.
-	for k, v := range step.IncludeWorkflow.workflow.Sources {
-		if _, ok := w.Sources[k]; ok {
-			return fmt.Errorf("source %q already exists in parent workflow", k)
-		}
-		if w.Sources == nil {
-			w.Sources = map[string]string{}
-		}
-
-		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
-			v = filepath.Join(step.IncludeWorkflow.workflow.workflowDir, v)
-		}
-		w.Sources[k] = v
+		return step.IncludeWorkflow.populate(step)
 	}
 	return nil
 }
@@ -446,6 +375,42 @@ func (w *Workflow) populate() error {
 	return nil
 }
 
+// NewIncludedWorkflow instantiates a new workflow with the same resources as the parent.
+func (w *Workflow) NewIncludedWorkflow() *Workflow {
+	iw := &Workflow{Ctx: w.Ctx, Cancel: w.Cancel, parent: w}
+	shareWorkflowResources(w, iw)
+	return iw
+}
+
+// NewIncludedWorkflowFromFile reads and unmarshals a workflow with the same resources as the parent.
+func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, error) {
+	iw := w.NewIncludedWorkflow()
+	if !filepath.IsAbs(file) {
+		file = filepath.Join(w.workflowDir, file)
+	}
+	if err := readWorkflow(file, iw); err != nil {
+		return nil, err
+	}
+	return iw, nil
+}
+
+// NewSubWorkflow instantiates a new workflow as a child to this workflow.
+func (w *Workflow) NewSubWorkflow() *Workflow {
+	return &Workflow{Ctx: w.Ctx, Cancel: w.Cancel, parent: w}
+}
+
+// NewSubWorkflowFromFile reads and unmarshals a workflow as a child to this workflow.
+func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
+	sw := w.NewSubWorkflow()
+	if !filepath.IsAbs(file) {
+		file = filepath.Join(w.workflowDir, file)
+	}
+	if err := readWorkflow(file, sw); err != nil {
+		return nil, err
+	}
+	return sw, nil
+}
+
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print() {
 	w.gcsLogWriter = ioutil.Discard
@@ -561,33 +526,38 @@ func (w *Workflow) traverseDAG(f func(*Step) error) error {
 
 // New instantiates a new workflow.
 func New(ctx context.Context) *Workflow {
-	var w Workflow
-	w.Ctx = ctx
 	// We can't use context.WithCancel as we use the context even after cancel for cleanup.
-	w.Cancel = make(chan struct{})
-	initWorkflowResources(&w)
-	return &w
+	w := &Workflow{Ctx: ctx, Cancel: make(chan struct{})}
+	initWorkflowResources(w)
+	return w
 }
 
 // NewFromFile reads and unmarshals a workflow file.
 // Recursively reads subworkflow steps as well.
 func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 	w := New(ctx)
+	if err := readWorkflow(file, w); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+func readWorkflow(file string, w *Workflow) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	w.workflowDir, err = filepath.Abs(filepath.Dir(file))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := json.Unmarshal(data, &w); err != nil {
 		// If this is a syntax error return a useful error.
 		sErr, ok := err.(*json.SyntaxError)
 		if !ok {
-			return nil, err
+			return err
 		}
 
 		// Byte number where the error line starts.
@@ -606,7 +576,7 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 			pos = pos - 1
 		}
 
-		return nil, fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
+		return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 	}
 
 	if w.OAuthPath != "" && !filepath.IsAbs(w.OAuthPath) {
@@ -616,50 +586,20 @@ func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
 	for name, s := range w.Steps {
 		s.name = name
 		s.w = w
+		var err error
 
 		if s.SubWorkflow != nil {
-			if err := readSubworkflow(w, s); err != nil {
-				return nil, err
+			if s.SubWorkflow.w, err = w.NewSubWorkflowFromFile(s.SubWorkflow.Path); err != nil {
+				return err
 			}
 		}
 
 		if s.IncludeWorkflow != nil {
-			if err := readIncludeWorkflow(w, s); err != nil {
-				return nil, err
+			if s.IncludeWorkflow.w, err = w.NewIncludedWorkflowFromFile(s.IncludeWorkflow.Path); err != nil {
+				return err
 			}
 		}
 	}
-
-	return w, nil
-}
-
-func readSubworkflow(w *Workflow, s *Step) error {
-	swPath := s.SubWorkflow.Path
-	if !filepath.IsAbs(swPath) {
-		swPath = filepath.Join(w.workflowDir, swPath)
-	}
-
-	sw, err := NewFromFile(w.Ctx, swPath)
-	if err != nil {
-		return err
-	}
-	s.SubWorkflow.workflow = sw
-	sw.parent = w
-	return nil
-}
-
-func readIncludeWorkflow(w *Workflow, s *Step) error {
-	iPath := s.IncludeWorkflow.Path
-	if !filepath.IsAbs(iPath) {
-		iPath = filepath.Join(w.workflowDir, iPath)
-	}
-
-	iw, err := NewFromFile(w.Ctx, iPath)
-	if err != nil {
-		return err
-	}
-	s.IncludeWorkflow.workflow = iw
-	iw.parent = w
 	return nil
 }
 
