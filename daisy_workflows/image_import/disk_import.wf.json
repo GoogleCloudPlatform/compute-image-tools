@@ -1,0 +1,63 @@
+{
+  "Name": "disk-import",
+  "Vars": {
+    "source_disk_file": {
+      "Required": true,
+      "Description": "The local path or GCS path to the virtual disk to import."
+    },
+    "imported_disk": {
+      "Required": true,
+      "Description": "A disk to import the source disk file to."
+    }
+  },
+  "Sources": {
+    "disk_file": "${source_disk_file}",
+    "disk_import.sh": "./disk_import.sh"
+  },
+  "Steps": {
+    "setup-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-importer",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "importer-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-importer",
+          "Disks": [{"Source": "disk-importer"}],
+          "MachineType": "n1-highcpu-4",
+          "Metadata": {
+            "disk-name": "${imported_disk}"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/compute"
+          ],
+          "StartupScript": "disk_import.sh"
+        }
+      ]
+    },
+    "wait-for-import": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-importer",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "ImportSuccess:",
+            "FailureMatch": "ImportFailed:"
+          }
+        }
+      ],
+      "Timeout": "60m"
+    }
+  },
+  "Dependencies": {
+    "importer-instance": ["setup-disk"],
+    "wait-for-import": ["importer-instance"]
+  }
+}

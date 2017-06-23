@@ -1,0 +1,45 @@
+{
+  "Name": "image-import",
+  "Vars": {
+    "source_disk_file": {
+      "Required": true,
+      "Description": "The local path or GCS path to the virtual disk to import."
+    }
+  },
+  "Steps": {
+    "create-import-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-import",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "import-virtual-disk": {
+      "IncludeWorkflow": {
+        "Path": "./disk_import.wf.json",
+        "Vars": {
+          "source_disk_file": "${source_disk_file}",
+          "imported_disk": "disk-import"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "imported-iamge-${ID}",
+          "SourceDisk": "disk-import",
+          "Project": "${PROJECT}",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "import-virtual-disk": ["create-import-disk"],
+    "create-image": ["import-virtual-disk"]
+  }
+}

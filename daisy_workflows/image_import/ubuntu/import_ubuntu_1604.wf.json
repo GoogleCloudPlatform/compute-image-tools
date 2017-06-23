@@ -1,0 +1,61 @@
+{
+  "Name": "ubuntu-1604-import",
+  "Vars": {
+    "source_disk_file": {
+      "Required": true,
+      "Description": "The local path or GCS path to the virtual disk to import."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    }
+  },
+  "Steps": {
+    "create-import-disk": {
+      "CreateDisks": [
+        {
+          "Name": "ubu1604-import",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "import-virtual-disk": {
+      "IncludeWorkflow": {
+        "Path": "../disk_import.wf.json",
+        "Vars": {
+          "source_disk_file": "${source_disk_file}",
+          "imported_disk": "ubu1604-import-${NAME}-${ID}"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "translate-ubuntu": {
+      "IncludeWorkflow": {
+        "Path": "./translate_ubuntu.wf.json",
+        "Vars": {
+          "ubuntu_release": "xenial",
+          "install_gce_packages": "${install_gce_packages}",
+          "imported_disk": "ubu1604-import"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "ubuntu-1604-${ID}",
+          "SourceDisk": "ubu1604-import",
+          "Project": "${PROJECT}",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "import-virtual-disk": ["create-import-disk"],
+    "translate-ubuntu": ["import-virtual-disk"],
+    "create-image": ["translate-ubuntu"]
+  }
+}
