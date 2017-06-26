@@ -377,7 +377,9 @@ func (w *Workflow) populate() error {
 
 // NewIncludedWorkflow instantiates a new workflow with the same resources as the parent.
 func (w *Workflow) NewIncludedWorkflow() *Workflow {
-	iw := &Workflow{Ctx: w.Ctx, Cancel: w.Cancel, parent: w}
+	iw := New(w.Ctx)
+	iw.Cancel = w.Cancel
+	iw.parent = w
 	shareWorkflowResources(w, iw)
 	return iw
 }
@@ -396,7 +398,10 @@ func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, error) {
 
 // NewSubWorkflow instantiates a new workflow as a child to this workflow.
 func (w *Workflow) NewSubWorkflow() *Workflow {
-	return &Workflow{Ctx: w.Ctx, Cancel: w.Cancel, parent: w}
+	sw := New(w.Ctx)
+	sw.Cancel = w.Cancel
+	sw.parent = w
+	return sw
 }
 
 // NewSubWorkflowFromFile reads and unmarshals a workflow as a child to this workflow.
@@ -528,6 +533,13 @@ func (w *Workflow) traverseDAG(f func(*Step) error) error {
 func New(ctx context.Context) *Workflow {
 	// We can't use context.WithCancel as we use the context even after cancel for cleanup.
 	w := &Workflow{Ctx: ctx, Cancel: make(chan struct{})}
+	// Init nil'ed fields
+	w.Sources = map[string]string{}
+	w.Vars = map[string]json.RawMessage{}
+	w.Steps = map[string]*Step{}
+	w.Dependencies = map[string][]string{}
+	w.autovars = map[string]string{}
+	w.vars = map[string]vars{}
 	initWorkflowResources(w)
 	return w
 }

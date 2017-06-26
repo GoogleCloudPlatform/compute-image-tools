@@ -514,18 +514,23 @@ func TestPopulate(t *testing.T) {
 		t.Fatalf("error populating workflow: %v", err)
 	}
 
-	// Make the workflows compatible with pretty.Compare.
+	// Some things to override before checking equivalence:
+	// - stuff that breaks pretty.Compare (ComputeClient and StorageClient, parent workflows)
+	// - stuff that is irrelevant and difficult to check (cleanupHooks and logger)
 	got.ComputeClient = nil
 	got.StorageClient = nil
 	got.logger = nil
+	got.cleanupHooks = nil
 	subGot.ComputeClient = nil
 	subGot.StorageClient = nil
 	subGot.parent = nil
 	subGot.logger = nil
+	subGot.cleanupHooks = nil
 	incGot.ComputeClient = nil
 	incGot.StorageClient = nil
 	incGot.parent = nil
 	incGot.logger = nil
+	incGot.cleanupHooks = nil
 	for _, s := range incGot.Steps {
 		s.w = nil
 	}
@@ -849,7 +854,7 @@ func TestPrint(t *testing.T) {
       ]
     }
   },
-  "Dependencies": null
+  "Dependencies": {}
 }
 `
 
