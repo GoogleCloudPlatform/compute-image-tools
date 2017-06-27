@@ -253,39 +253,6 @@ func (w *Workflow) populateStep(step *Step) error {
 	return nil
 }
 
-/*
-func (w *Workflow) populateVars() error {
-	if w.vars == nil {
-		w.vars = map[string]vars{}
-	}
-	for k, v := range w.Vars {
-		// Don't overwrite existing vars (applies to subworkflows).
-		if _, ok := w.vars[k]; ok {
-			continue
-		}
-		var sv string
-		if err := json.Unmarshal(v, &sv); err == nil {
-			w.vars[k] = vars{Value: sv}
-			continue
-		}
-		var vv vars
-		if err := json.Unmarshal(v, &vv); err == nil {
-			if vv.Required && vv.Value == "" {
-				msg := fmt.Sprintf("required vars cannot be blank, var: %q", k)
-				if vv.Description != "" {
-					msg = fmt.Sprintf("%s, description: %q", msg, vv.Description)
-				}
-				return errors.New(msg)
-			}
-			w.vars[k] = vv
-			continue
-		}
-		return fmt.Errorf("cannot unmarshal Var %q, value: %s", k, v)
-	}
-	return nil
-}
-*/
-
 func (w *Workflow) populate() error {
 	w.id = randString(5)
 	now := time.Now().UTC()
