@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -71,6 +70,18 @@ type vars struct {
 	Description string
 }
 
+func (v *vars) UnmarshalJSON(b []byte) error {
+	var sv string
+	if err := json.Unmarshal(b, &sv); err == nil {
+		v.Value = sv
+		return nil
+	}
+
+	// We can't unmarshal into vars directly as it would create an infinite loop.
+	type aVars vars
+	return json.Unmarshal(b, &struct{ *aVars }{aVars: (*aVars)(v)})
+}
+
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
@@ -91,14 +102,13 @@ type Workflow struct {
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string `json:",omitempty"`
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars  map[string]json.RawMessage `json:",omitempty"`
+	Vars  map[string]vars `json:",omitempty"`
 	Steps map[string]*Step
 	// Map of steps to their dependencies.
 	Dependencies map[string][]string
 
 	// Working fields.
 	autovars       map[string]string
-	vars           map[string]vars
 	workflowDir    string
 	parent         *Workflow
 	bucket         string
@@ -118,10 +128,10 @@ type Workflow struct {
 }
 
 func (w *Workflow) AddVar(k, v string) {
-	if w.vars == nil {
-		w.vars = map[string]vars{}
+	if w.Vars == nil {
+		w.Vars = map[string]vars{}
 	}
-	w.vars[k] = vars{Value: v}
+	w.Vars[k] = vars{Value: v}
 }
 
 func (w *Workflow) addCleanupHook(hook func() error) {
@@ -243,6 +253,7 @@ func (w *Workflow) populateStep(step *Step) error {
 	return nil
 }
 
+/*
 func (w *Workflow) populateVars() error {
 	if w.vars == nil {
 		w.vars = map[string]vars{}
@@ -273,6 +284,7 @@ func (w *Workflow) populateVars() error {
 	}
 	return nil
 }
+*/
 
 func (w *Workflow) populate() error {
 	w.id = randString(5)
@@ -282,10 +294,6 @@ func (w *Workflow) populate() error {
 		w.username = "unknown"
 	} else {
 		w.username = cu.Username
-	}
-
-	if err := w.populateVars(); err != nil {
-		return err
 	}
 
 	cwd, _ := os.Getwd()
@@ -304,7 +312,7 @@ func (w *Workflow) populate() error {
 	for k, v := range w.autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	for k, v := range w.vars {
+	for k, v := range w.Vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
@@ -535,11 +543,10 @@ func New(ctx context.Context) *Workflow {
 	w := &Workflow{Ctx: ctx, Cancel: make(chan struct{})}
 	// Init nil'ed fields
 	w.Sources = map[string]string{}
-	w.Vars = map[string]json.RawMessage{}
+	w.Vars = map[string]vars{}
 	w.Steps = map[string]*Step{}
 	w.Dependencies = map[string][]string{}
 	w.autovars = map[string]string{}
-	w.vars = map[string]vars{}
 	initWorkflowResources(w)
 	return w
 }

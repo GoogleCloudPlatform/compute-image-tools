@@ -17,7 +17,6 @@ package workflow
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -158,6 +157,7 @@ func TestNewFromFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -175,9 +175,9 @@ func TestNewFromFile(t *testing.T) {
 		Zone:        "us-central1-a",
 		GCSPath:     "gs://some-bucket/images",
 		OAuthPath:   wantOAuthPath,
-		Vars: map[string]json.RawMessage{
-			"bootstrap_instance_name": []byte(`{"Value": "bootstrap", "Required": true}`),
-			"machine_type":            []byte(`"n1-standard-1"`),
+		Vars: map[string]vars{
+			"bootstrap_instance_name": {Value: "bootstrap-${NAME}", Required: true},
+			"machine_type":            {Value: "n1-standard-1"},
 		},
 		Steps: map[string]*Step{
 			"create-disks": {
@@ -244,6 +244,9 @@ func TestNewFromFile(t *testing.T) {
 			"include-workflow": {
 				name: "include-workflow",
 				IncludeWorkflow: &IncludeWorkflow{
+					Vars: map[string]string{
+						"key": "value",
+					},
 					Path: "./test_sub.wf.json",
 					w: &Workflow{
 						id:          subGot.id,
@@ -271,7 +274,7 @@ func TestNewFromFile(t *testing.T) {
 											MachineType: "n1-standard-1",
 										},
 										StartupScript: "shutdown /h",
-										Metadata:      map[string]string{"test_metadata": "this was a test"},
+										Metadata:      map[string]string{"test_metadata": "${key}"},
 									},
 								},
 							},
@@ -298,6 +301,9 @@ func TestNewFromFile(t *testing.T) {
 			"sub-workflow": {
 				name: "sub-workflow",
 				SubWorkflow: &SubWorkflow{
+					Vars: map[string]string{
+						"key": "value",
+					},
 					Path: "./test_sub.wf.json",
 					w: &Workflow{
 						id:          subGot.id,
@@ -325,7 +331,7 @@ func TestNewFromFile(t *testing.T) {
 											MachineType: "n1-standard-1",
 										},
 										StartupScript: "shutdown /h",
-										Metadata:      map[string]string{"test_metadata": "this was a test"},
+										Metadata:      map[string]string{"test_metadata": "${key}"},
 									},
 								},
 							},
@@ -420,12 +426,13 @@ func TestPopulate(t *testing.T) {
 		Project:   "parent-project",
 		OAuthPath: tf,
 		logger:    log.New(ioutil.Discard, "", 0),
-		Vars: map[string]json.RawMessage{
-			"bucket":    []byte(`{"Value": "parent-bucket", "Required": true}`),
-			"step_name": []byte(`"parent-step1"`),
-			"timeout":   []byte(`"60m"`),
-			"path":      []byte(`"./test_sub.wf.json"`),
-			"wf-name":   []byte(`"parent"`),
+		Vars: map[string]vars{
+			"bucket":    {Value: "parent-bucket", Required: true},
+			"step_name": {Value: "parent-step1"},
+			"timeout":   {Value: "60m"},
+			"path":      {Value: "./test_sub.wf.json"},
+			"wf-name":   {Value: "parent"},
+			"test-var":  {Value: "${ZONE}-this-should-populate-${NAME}"},
 		},
 		Steps: map[string]*Step{
 			"${step_name}": {
@@ -465,9 +472,9 @@ func TestPopulate(t *testing.T) {
 								Timeout: "${timeout}",
 							},
 						},
-						Vars: map[string]json.RawMessage{
-							"step_name":  []byte(`"sub-step1"`),
-							"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
+						Vars: map[string]vars{
+							"step_name":  {Value: "sub-step1"},
+							"overridden": {Value: "foo"}, // This should be changed to "bar" by populate().
 						},
 					},
 				},
@@ -486,11 +493,11 @@ func TestPopulate(t *testing.T) {
 			Timeout: "${timeout}",
 		},
 	}
-	subGot.Vars = map[string]json.RawMessage{
-		"wf-name":    []byte(`"sub"`),
-		"step_name":  []byte(`"sub-step1"`),
-		"timeout":    []byte(`"60m"`),
-		"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
+	subGot.Vars = map[string]vars{
+		"wf-name":    {Value: "sub"},
+		"step_name":  {Value: "sub-step1"},
+		"timeout":    {Value: "60m"},
+		"overridden": {Value: "foo"}, // This should be changed to "bar" by populate().
 	}
 	got.Steps["${NAME}-step3"].SubWorkflow.w = subGot
 	incGot := got.NewIncludedWorkflow()
@@ -504,9 +511,9 @@ func TestPopulate(t *testing.T) {
 			Timeout: "${timeout}",
 		},
 	}
-	incGot.Vars = map[string]json.RawMessage{
-		"step_name":  []byte(`"sub-step1"`),
-		"overridden": []byte(`"foo"`), // This should be changed to "bar" by populate().
+	incGot.Vars = map[string]vars{
+		"step_name":  {Value: "sub-step1"},
+		"overridden": {Value: "foo"}, // This should be changed to "bar" by populate().
 	}
 	got.Steps["${NAME}-step4"].IncludeWorkflow.w = incGot
 
@@ -548,21 +555,15 @@ func TestPopulate(t *testing.T) {
 		id:        got.id,
 		Ctx:       got.Ctx,
 		Cancel:    got.Cancel,
-		Vars: map[string]json.RawMessage{
-			"bucket":    []byte(`{"Value": "parent-bucket", "Required": true}`),
-			"step_name": []byte(`"parent-step1"`),
-			"timeout":   []byte(`"60m"`),
-			"path":      []byte(`"./test_sub.wf.json"`),
-			"wf-name":   []byte(`"parent"`),
-		},
-		autovars: got.autovars,
-		vars: map[string]vars{
+		Vars: map[string]vars{
 			"bucket":    {Value: "parent-bucket", Required: true},
 			"step_name": {Value: "parent-step1"},
 			"timeout":   {Value: "60m"},
 			"path":      {Value: "./test_sub.wf.json"},
 			"wf-name":   {Value: "parent"},
+			"test-var":  {Value: "parent-zone-this-should-populate-parent"},
 		},
+		autovars:    got.autovars,
 		bucket:      "parent-bucket",
 		scratchPath: got.scratchPath,
 		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
@@ -610,13 +611,7 @@ func TestPopulate(t *testing.T) {
 							},
 						},
 						autovars: subGot.autovars,
-						Vars: map[string]json.RawMessage{
-							"wf-name":    []byte(`"sub"`),
-							"step_name":  []byte(`"sub-step1"`),
-							"timeout":    []byte(`"60m"`),
-							"overridden": []byte(`"foo"`),
-						},
-						vars: map[string]vars{
+						Vars: map[string]vars{
 							"wf-name":    {Value: "sub"},
 							"step_name":  {Value: "sub-step1"},
 							"timeout":    {Value: "60m"},
@@ -653,11 +648,8 @@ func TestPopulate(t *testing.T) {
 								timeout: time.Duration(60 * time.Minute),
 							},
 						},
-						Vars: map[string]json.RawMessage{
-							"step_name":  []byte(`"sub-step1"`),
-							"overridden": []byte(`"foo"`),
-						},
-						vars: map[string]vars{
+						autovars: incGot.autovars,
+						Vars: map[string]vars{
 							"step_name":  {Value: "sub-step1"},
 							"timeout":    {Value: "60m"},
 							"overridden": {Value: "bar"},
@@ -759,51 +751,6 @@ func TestTraverseDAG(t *testing.T) {
 	}
 }
 
-func TestPopulateVars(t *testing.T) {
-	data := []byte(`{
-  "vars": {
-    "key1": "value1",
-    "key2": {"Value": "value2"},
-    "key3": {"Value": "value3", "Required": true},
-    "key4": {"Value": "value4", "Required": true, "Description": "test"}
-  }
-}`)
-	td, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatalf("error creating temp dir: %v", err)
-	}
-	defer os.RemoveAll(td)
-	tf := filepath.Join(td, "test.wf.json")
-	ioutil.WriteFile(tf, data, 0600)
-
-	got, err := NewFromFile(context.Background(), tf)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := got.populateVars(); err != nil {
-		t.Fatal(err)
-	}
-
-	want := map[string]vars{
-		"key1": {Value: "value1"},
-		"key2": {Value: "value2"},
-		"key3": {Value: "value3", Required: true},
-		"key4": {Value: "value4", Required: true, Description: "test"},
-	}
-
-	if diff := pretty.Compare(got.vars, want); diff != "" {
-		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
-	}
-
-	w := testWorkflow()
-	w.Vars = map[string]json.RawMessage{"required-var": []byte(`{"Required": true}`)}
-	wantErr := `required vars cannot be blank, var: "required-var"`
-	if err := w.populateVars(); err.Error() != wantErr {
-		t.Errorf("workflow with unsubbed required var bad error, want: %q got: %q", wantErr, err.Error())
-	}
-}
-
 func TestPrint(t *testing.T) {
 	data := []byte(`{
 "Name": "some-name",
@@ -812,7 +759,7 @@ func TestPrint(t *testing.T) {
 "GCSPath": "gs://some-bucket/images",
 "Vars": {
   "instance_name": "step1",
-  "machine_type": "n1-standard-1"
+  "machine_type": {"Value": "n1-standard-1", "Required": true}
 },
 "Steps": {
   "${instance_name}Run": {
@@ -833,8 +780,16 @@ func TestPrint(t *testing.T) {
   "Zone": "us-central1-a",
   "GCSPath": "gs://some-bucket/images",
   "Vars": {
-    "instance_name": "step1",
-    "machine_type": "n1-standard-1"
+    "instance_name": {
+      "Value": "step1",
+      "Required": false,
+      "Description": ""
+    },
+    "machine_type": {
+      "Value": "n1-standard-1",
+      "Required": true,
+      "Description": ""
+    }
   },
   "Steps": {
     "step1Run": {
@@ -870,6 +825,8 @@ func TestPrint(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	fmt.Printf("%+v\n", got.Vars)
 
 	got.ComputeClient, _ = newTestGCEClient()
 	got.StorageClient, _ = newTestGCSClient()

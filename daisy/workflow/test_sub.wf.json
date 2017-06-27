@@ -19,7 +19,7 @@
             }
           ],
           "Metadata": {
-            "test_metadata": "this was a test"
+            "test_metadata": "${key}"
           },
           "MachineType": "n1-standard-1",
           "StartupScript": "shutdown /h"

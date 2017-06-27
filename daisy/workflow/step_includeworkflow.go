@@ -36,16 +36,14 @@ func (i *IncludeWorkflow) populate(s *Step) error {
 	i.w.Name = s.name
 	i.w.Project = i.w.parent.Project
 	i.w.Zone = i.w.parent.Zone
+	i.w.autovars = i.w.parent.autovars
 
 	for k, v := range i.Vars {
 		i.w.AddVar(k, v)
 	}
-	if err := i.w.populateVars(); err != nil {
-		return err
-	}
 
 	var replacements []string
-	for k, v := range i.w.parent.autovars {
+	for k, v := range i.w.autovars {
 		if k == "NAME" {
 			v = s.name
 		}
@@ -54,7 +52,7 @@ func (i *IncludeWorkflow) populate(s *Step) error {
 		}
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	for k, v := range i.w.vars {
+	for k, v := range i.w.Vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
 	substitute(reflect.ValueOf(i.w).Elem(), strings.NewReplacer(replacements...))
