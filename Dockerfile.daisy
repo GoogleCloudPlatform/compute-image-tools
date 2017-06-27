@@ -6,6 +6,7 @@ FROM scratch
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY gopath/bin/daisy /daisy
 COPY /daisy_workflows/ /workflows/
+COPY /daisy_workflows/ /workspace/workflows/
 
 ENV GCE_METADATA_HOST 172.17.0.2
 
