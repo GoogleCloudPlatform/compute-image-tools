@@ -37,7 +37,7 @@ else
 fi
 
 # Setup DNS for chroot.
-for f in proc sys dev, do
+for f in proc sys dev; do
   mount -o bind /$f ${MNT}/$f
 done
 cp /etc/resolv.conf ${MNT}/etc/resolv.conf
