@@ -62,12 +62,12 @@ func TestParseWorkflows(t *testing.T) {
 
 		for _, tt := range tests {
 			if tt.want != tt.got {
-				t.Errorf("%s != %s", varMap, w.Vars)
+				t.Errorf("%s != %v", varMap, w.Vars)
 			}
 		}
 
 		if reflect.DeepEqual(w.Vars, varMap) {
-			t.Errorf("unexpected vars, want: %s, got: %s", varMap, w.Vars)
+			t.Errorf("unexpected vars, want: %s, got: %v", varMap, w.Vars)
 		}
 	}
 }

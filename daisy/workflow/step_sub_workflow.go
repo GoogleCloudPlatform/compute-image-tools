@@ -32,9 +32,8 @@ func (s *SubWorkflow) populate(st *Step) error {
 	s.w.ComputeClient = s.w.parent.ComputeClient
 	s.w.StorageClient = s.w.parent.StorageClient
 	s.w.gcsLogWriter = s.w.parent.gcsLogWriter
-	s.w.vars = map[string]vars{}
 	for k, v := range s.Vars {
-		s.w.vars[k] = vars{Value: v}
+		s.w.Vars[k] = vars{Value: v}
 	}
 	return s.w.populate()
 }
