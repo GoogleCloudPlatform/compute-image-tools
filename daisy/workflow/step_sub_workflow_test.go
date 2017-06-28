@@ -15,14 +15,14 @@
 package workflow
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
-	"context"
 )
 
 func TestSubWorkflowPopulate(t *testing.T) {
-	ctx:=context.Background()
+	ctx := context.Background()
 	w := testWorkflow()
 	w.populate(ctx)
 	sw := &Workflow{parent: w}

@@ -25,11 +25,11 @@ type DeleteResources struct {
 	Instances, Disks, Images []string `json:",omitempty"`
 }
 
-func (d *DeleteResources) populate(ctx context.Context,s *Step) error {
+func (d *DeleteResources) populate(ctx context.Context, s *Step) error {
 	return nil
 }
 
-func (d *DeleteResources) validate(ctx context.Context,s *Step) error {
+func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
 	w := s.w
 	// Disk checking.
 	for _, disk := range d.Disks {

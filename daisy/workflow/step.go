@@ -29,7 +29,7 @@ type stepImpl interface {
 	// URLs (partial URLs including the "projects/<project>" prefix), etc.
 	// This should not perform value validation.
 	// Returns any parsing errors.
-	populate(ctx context.Context,s *Step) error
+	populate(ctx context.Context, s *Step) error
 	validate(ctx context.Context, s *Step) error
 	run(ctx context.Context, s *Step) error
 }

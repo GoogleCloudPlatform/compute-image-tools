@@ -16,10 +16,10 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
-	"encoding/json"
 
 	compute "google.golang.org/api/compute/v1"
 )

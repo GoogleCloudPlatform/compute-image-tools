@@ -131,7 +131,7 @@ func TestCreateDisksRun(t *testing.T) {
 }
 
 func TestCreateDisksValidate(t *testing.T) {
-	ctx :=  context.Background()
+	ctx := context.Background()
 	// Set up.
 	w := testWorkflow()
 	s := &Step{w: w}

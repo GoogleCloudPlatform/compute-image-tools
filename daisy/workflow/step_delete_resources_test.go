@@ -15,9 +15,9 @@
 package workflow
 
 import (
-	"testing"
 	"context"
 	"reflect"
+	"testing"
 )
 
 func TestDeleteResourcesPopulate(t *testing.T) {
@@ -27,7 +27,7 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 }
 
 func TestDeleteResourcesRun(t *testing.T) {
-	ctx:=context.Background()
+	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
 	ins := []*resource{{real: "in0", link: "link"}, {real: "in1", link: "link"}}
@@ -106,7 +106,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 }
 
 func TestDeleteResourcesValidate(t *testing.T) {
-	ctx:=context.Background()
+	ctx := context.Background()
 	// Set up.
 	w := &Workflow{}
 	s := &Step{w: w}

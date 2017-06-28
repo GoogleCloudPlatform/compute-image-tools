@@ -27,7 +27,7 @@ func TestWaitForInstancesSignalPopulate(t *testing.T) {
 }
 
 func TestWaitForInstancesSignalRun(t *testing.T) {
-	ctx:=context.Background()
+	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
 	instances[w].m = map[string]*resource{

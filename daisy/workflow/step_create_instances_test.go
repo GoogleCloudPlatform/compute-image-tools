@@ -17,10 +17,10 @@ package workflow
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path"
 	"sort"
 	"testing"
-	"fmt"
 
 	daisy_compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"

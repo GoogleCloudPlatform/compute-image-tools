@@ -16,9 +16,9 @@ package workflow
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"testing"
-	"fmt"
 
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
@@ -79,7 +79,7 @@ func TestCreateImagesRun(t *testing.T) {
 }
 
 func TestCreateImagesValidate(t *testing.T) {
-	ctx:=context.Background()
+	ctx := context.Background()
 	// Set up.
 	w := testWorkflow()
 	s := &Step{w: w}
