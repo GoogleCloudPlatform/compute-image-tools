@@ -15,17 +15,19 @@
 package workflow
 
 import (
+	"context"
 	"testing"
 	"time"
 )
 
 func TestWaitForInstancesSignalPopulate(t *testing.T) {
-	if err := (&WaitForInstancesSignal{}).populate(&Step{}); err != nil {
+	if err := (&WaitForInstancesSignal{}).populate(context.Background(), &Step{}); err != nil {
 		t.Error("not implemented, err should be nil")
 	}
 }
 
 func TestWaitForInstancesSignalRun(t *testing.T) {
+	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
 	instances[w].m = map[string]*resource{
@@ -37,7 +39,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		{Name: "i2", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 2, SuccessMatch: "success", FailureMatch: "fail"}},
 		{Name: "i3", Stopped: true},
 	}
-	if err := ws.run(s); err != nil {
+	if err := ws.run(ctx, s); err != nil {
 		t.Errorf("error running WaitForInstancesSignal.run(): %v", err)
 	}
 
@@ -45,7 +47,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		{Name: "i1", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail", SuccessMatch: "success"}},
 		{Name: "i2", interval: 1 * time.Second, SerialOutput: &SerialOutput{Port: 2, FailureMatch: "fail"}},
 	}
-	if err := ws.run(s); err == nil {
+	if err := ws.run(ctx, s); err == nil {
 		t.Error("expected error")
 	}
 }
@@ -71,7 +73,7 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		if err := test.step.validate(s); (err != nil) != test.shouldErr {
+		if err := test.step.validate(context.Background(), s); (err != nil) != test.shouldErr {
 			t.Errorf("fail: %s; step: %+v; error result: %s", test.desc, test.step, err)
 		}
 	}

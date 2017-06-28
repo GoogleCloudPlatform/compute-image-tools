@@ -85,8 +85,7 @@ func (v *vars) UnmarshalJSON(b []byte) error {
 // Workflow is a single Daisy workflow workflow.
 type Workflow struct {
 	// Populated on New() construction.
-	Ctx    context.Context `json:"-"`
-	Cancel chan struct{}   `json:"-"`
+	Cancel chan struct{} `json:"-"`
 
 	// Workflow template fields.
 	// Workflow name.
@@ -141,20 +140,20 @@ func (w *Workflow) addCleanupHook(hook func() error) {
 }
 
 // Validate runs validation on the workflow.
-func (w *Workflow) Validate() error {
+func (w *Workflow) Validate(ctx context.Context) error {
 	w.gcsLogWriter = ioutil.Discard
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
 		return fmt.Errorf("error validating workflow: %v", err)
 	}
 
-	if err := w.populate(); err != nil {
+	if err := w.populate(ctx); err != nil {
 		close(w.Cancel)
 		return fmt.Errorf("error populating workflow: %v", err)
 	}
 
 	w.logger.Print("Validating workflow")
-	if err := w.validate(); err != nil {
+	if err := w.validate(ctx); err != nil {
 		w.logger.Printf("Error validating workflow: %v", err)
 		close(w.Cancel)
 		return err
@@ -164,20 +163,20 @@ func (w *Workflow) Validate() error {
 }
 
 // Run runs a workflow.
-func (w *Workflow) Run() error {
+func (w *Workflow) Run(ctx context.Context) error {
 	w.gcsLogging = true
-	if err := w.Validate(); err != nil {
+	if err := w.Validate(ctx); err != nil {
 		return err
 	}
 	defer w.cleanup()
 	w.logger.Print("Uploading sources")
-	if err := w.uploadSources(); err != nil {
+	if err := w.uploadSources(ctx); err != nil {
 		w.logger.Printf("Error uploading sources: %v", err)
 		close(w.Cancel)
 		return err
 	}
 	w.logger.Print("Running workflow")
-	if err := w.run(); err != nil {
+	if err := w.run(ctx); err != nil {
 		w.logger.Printf("Error running workflow: %v", err)
 		select {
 		case <-w.Cancel:
@@ -219,7 +218,7 @@ func (w *Workflow) getSourceGCSAPIPath(s string) string {
 	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(w.bucket, w.sourcesPath, s))
 }
 
-func (w *Workflow) populateStep(s *Step) error {
+func (w *Workflow) populateStep(ctx context.Context, s *Step) error {
 	if s.Timeout == "" {
 		s.Timeout = defaultTimeout
 	}
@@ -233,10 +232,10 @@ func (w *Workflow) populateStep(s *Step) error {
 	if step, err = s.stepImpl(); err != nil {
 		return err
 	}
-	return step.populate(s)
+	return step.populate(ctx, s)
 }
 
-func (w *Workflow) populate() error {
+func (w *Workflow) populate(ctx context.Context) error {
 	w.id = randString(5)
 	now := time.Now().UTC()
 	cu, err := user.Current()
@@ -297,14 +296,14 @@ func (w *Workflow) populate() error {
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
 	if w.ComputeClient == nil {
-		w.ComputeClient, err = compute.NewClient(w.Ctx, option.WithServiceAccountFile(w.OAuthPath))
+		w.ComputeClient, err = compute.NewClient(ctx, option.WithServiceAccountFile(w.OAuthPath))
 		if err != nil {
 			return err
 		}
 	}
 
 	if w.StorageClient == nil {
-		w.StorageClient, err = storage.NewClient(w.Ctx, option.WithServiceAccountFile(w.OAuthPath))
+		w.StorageClient, err = storage.NewClient(ctx, option.WithServiceAccountFile(w.OAuthPath))
 		if err != nil {
 			return err
 		}
@@ -318,7 +317,7 @@ func (w *Workflow) populate() error {
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
 		if w.gcsLogging {
-			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: w.Ctx}
+			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx}
 			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		}
 		w.logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
@@ -326,7 +325,7 @@ func (w *Workflow) populate() error {
 
 	for name, s := range w.Steps {
 		s.name = name
-		if err := w.populateStep(s); err != nil {
+		if err := w.populateStep(ctx, s); err != nil {
 			return err
 		}
 	}
@@ -335,7 +334,7 @@ func (w *Workflow) populate() error {
 
 // NewIncludedWorkflow instantiates a new workflow with the same resources as the parent.
 func (w *Workflow) NewIncludedWorkflow() *Workflow {
-	iw := New(w.Ctx)
+	iw := New()
 	iw.Cancel = w.Cancel
 	iw.parent = w
 	shareWorkflowResources(w, iw)
@@ -356,7 +355,7 @@ func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, error) {
 
 // NewSubWorkflow instantiates a new workflow as a child to this workflow.
 func (w *Workflow) NewSubWorkflow() *Workflow {
-	sw := New(w.Ctx)
+	sw := New()
 	sw.Cancel = w.Cancel
 	sw.parent = w
 	return sw
@@ -375,9 +374,9 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 }
 
 // Print populates then pretty prints the workflow.
-func (w *Workflow) Print() {
+func (w *Workflow) Print(ctx context.Context) {
 	w.gcsLogWriter = ioutil.Discard
-	if err := w.populate(); err != nil {
+	if err := w.populate(ctx); err != nil {
 		fmt.Println("Error running populate:", err)
 	}
 
@@ -388,13 +387,13 @@ func (w *Workflow) Print() {
 	fmt.Println(string(b))
 }
 
-func (w *Workflow) run() error {
+func (w *Workflow) run(ctx context.Context) error {
 	return w.traverseDAG(func(s *Step) error {
-		return w.runStep(s)
+		return w.runStep(ctx, s)
 	})
 }
 
-func (w *Workflow) runStep(s *Step) error {
+func (w *Workflow) runStep(ctx context.Context, s *Step) error {
 	timeout := make(chan struct{})
 	go func() {
 		time.Sleep(s.timeout)
@@ -403,7 +402,7 @@ func (w *Workflow) runStep(s *Step) error {
 
 	e := make(chan error)
 	go func() {
-		e <- s.run()
+		e <- s.run(ctx)
 	}()
 
 	select {
@@ -488,9 +487,9 @@ func (w *Workflow) traverseDAG(f func(*Step) error) error {
 }
 
 // New instantiates a new workflow.
-func New(ctx context.Context) *Workflow {
+func New() *Workflow {
 	// We can't use context.WithCancel as we use the context even after cancel for cleanup.
-	w := &Workflow{Ctx: ctx, Cancel: make(chan struct{})}
+	w := &Workflow{Cancel: make(chan struct{})}
 	// Init nil'ed fields
 	w.Sources = map[string]string{}
 	w.Vars = map[string]vars{}
@@ -503,8 +502,8 @@ func New(ctx context.Context) *Workflow {
 
 // NewFromFile reads and unmarshals a workflow file.
 // Recursively reads subworkflow steps as well.
-func NewFromFile(ctx context.Context, file string) (*Workflow, error) {
-	w := New(ctx)
+func NewFromFile(file string) (*Workflow, error) {
+	w := New()
 	if err := readWorkflow(file, w); err != nil {
 		return nil, err
 	}

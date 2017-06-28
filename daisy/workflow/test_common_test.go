@@ -32,28 +32,28 @@ import (
 )
 
 type mockStep struct {
-	populateImpl func(*Step) error
-	runImpl      func(*Step) error
-	validateImpl func(*Step) error
+	populateImpl func(context.Context, *Step) error
+	runImpl      func(context.Context, *Step) error
+	validateImpl func(context.Context, *Step) error
 }
 
-func (m *mockStep) populate(s *Step) error {
+func (m *mockStep) populate(ctx context.Context, s *Step) error {
 	if m.populateImpl != nil {
-		return m.populateImpl(s)
+		return m.populateImpl(ctx, s)
 	}
 	return nil
 }
 
-func (m *mockStep) run(s *Step) error {
+func (m *mockStep) run(ctx context.Context, s *Step) error {
 	if m.runImpl != nil {
-		return m.runImpl(s)
+		return m.runImpl(ctx, s)
 	}
 	return nil
 }
 
-func (m *mockStep) validate(s *Step) error {
+func (m *mockStep) validate(ctx context.Context, s *Step) error {
 	if m.validateImpl != nil {
-		return m.validateImpl(s)
+		return m.validateImpl(ctx, s)
 	}
 	return nil
 }
@@ -68,7 +68,7 @@ var (
 )
 
 func testWorkflow() *Workflow {
-	w := New(context.Background())
+	w := New()
 	w.id = "abcdef"
 	w.Name = testWf
 	w.GCSPath = testGCSPath
@@ -76,7 +76,6 @@ func testWorkflow() *Workflow {
 	w.Zone = testZone
 	w.ComputeClient, _ = newTestGCEClient()
 	w.StorageClient, _ = newTestGCSClient()
-	w.Ctx = context.Background()
 	w.Cancel = make(chan struct{})
 	w.logger = log.New(ioutil.Discard, "", 0)
 	return w

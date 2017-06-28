@@ -15,18 +15,20 @@
 package workflow
 
 import (
+	"context"
 	"testing"
 
 	"cloud.google.com/go/storage"
 )
 
 func TestCopyGCSObjectsPopulate(t *testing.T) {
-	if err := (&CopyGCSObjects{}).populate(&Step{}); err != nil {
+	if err := (&CopyGCSObjects{}).populate(context.Background(), &Step{}); err != nil {
 		t.Error("not implemented, err should be nil")
 	}
 }
 
 func TestCopyGCSObjectsRun(t *testing.T) {
+	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
 	w.Steps = map[string]*Step{
@@ -38,7 +40,7 @@ func TestCopyGCSObjectsRun(t *testing.T) {
 		{Source: "gs://bucket/object", Destination: "gs://bucket/object"},
 		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
 	}
-	if err := ws.run(s); err != nil {
+	if err := ws.run(ctx, s); err != nil {
 		t.Errorf("error running CopyGCSObjects.run(): %v", err)
 	}
 
@@ -46,13 +48,13 @@ func TestCopyGCSObjectsRun(t *testing.T) {
 		{Source: "gs://bucket", Destination: ""},
 		{Source: "", Destination: "gs://bucket"},
 	}
-	if err := ws.run(s); err == nil {
+	if err := ws.run(ctx, s); err == nil {
 		t.Error("expected error")
 	}
 }
 
 func TestCopyGCSObjectsValidate(t *testing.T) {
-	if err := (&CopyGCSObjects{}).validate(&Step{}); err != nil {
+	if err := (&CopyGCSObjects{}).validate(context.Background(), &Step{}); err != nil {
 		t.Error("not implemented, err should be nil")
 	}
 }

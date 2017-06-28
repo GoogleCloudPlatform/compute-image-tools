@@ -144,7 +144,7 @@ func TestNewFromFileError(t *testing.T) {
 			t.Fatalf("error creating json file: %v", err)
 		}
 
-		if _, err := NewFromFile(context.Background(), tf); err == nil {
+		if _, err := NewFromFile(tf); err == nil {
 			t.Error("expected error, got nil")
 		} else if err.Error() != tt.error {
 			t.Errorf("did not get expected error from NewFromFile():\ngot: %q\nwant: %q", err.Error(), tt.error)
@@ -153,7 +153,7 @@ func TestNewFromFileError(t *testing.T) {
 }
 
 func TestNewFromFile(t *testing.T) {
-	got, err := NewFromFile(context.Background(), "./test.wf.json")
+	got, err := NewFromFile("./test.wf.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,19 +374,16 @@ func TestNewFromFile(t *testing.T) {
 	}
 
 	// Fix pretty.Compare recursion freak outs.
-	got.Ctx = nil
 	got.Cancel = nil
 	for _, s := range got.Steps {
 		s.w = nil
 	}
-	subGot.Ctx = nil
 	subGot.Cancel = nil
 	subGot.parent = nil
 	for _, s := range subGot.Steps {
 		s.w = nil
 	}
 
-	includeGot.Ctx = nil
 	includeGot.Cancel = nil
 	includeGot.parent = nil
 	for _, s := range includeGot.Steps {
@@ -404,6 +401,7 @@ func TestNewFromFile(t *testing.T) {
 }
 
 func TestPopulate(t *testing.T) {
+	ctx := context.Background()
 	td, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatalf("error creating temp dir: %v", err)
@@ -421,12 +419,12 @@ func TestPopulate(t *testing.T) {
 
 	called := false
 	var stepPopErr error
-	stepPop := func(s *Step) error {
+	stepPop := func(ctx context.Context, s *Step) error {
 		called = true
 		return stepPopErr
 	}
 
-	got := New(context.Background())
+	got := New()
 	got.Name = "${wf_name}"
 	got.GCSPath = "gs://${bucket}/images"
 	got.Zone = "wf-zone"
@@ -451,7 +449,7 @@ func TestPopulate(t *testing.T) {
 		},
 	}
 
-	if err := got.populate(); err != nil {
+	if err := got.populate(ctx); err != nil {
 		t.Fatalf("error populating workflow: %v", err)
 	}
 
@@ -462,7 +460,6 @@ func TestPopulate(t *testing.T) {
 		Project:   "wf-project",
 		OAuthPath: tf,
 		id:        got.id,
-		Ctx:       got.Ctx,
 		Cancel:    got.Cancel,
 		Vars: map[string]vars{
 			"bucket":    {Value: "wf-bucket", Required: true},
@@ -513,12 +510,12 @@ func TestPopulate(t *testing.T) {
 	}
 
 	stepPopErr = errors.New("error!")
-	if err := got.populate(); err != stepPopErr {
+	if err := got.populate(ctx); err != stepPopErr {
 		t.Errorf("did not get proper step populate error: %v != %v", err, stepPopErr)
 	}
 }
 
-func testTraverseWorkflow(mockRun func(i int) func(*Step) error) *Workflow {
+func testTraverseWorkflow(mockRun func(i int) func(context.Context, *Step) error) *Workflow {
 	// s0---->s1---->s3
 	//   \         /
 	//    --->s2---
@@ -540,11 +537,12 @@ func testTraverseWorkflow(mockRun func(i int) func(*Step) error) *Workflow {
 }
 
 func TestTraverseDAG(t *testing.T) {
+	ctx := context.Background()
 	var callOrder []int
 	errs := make([]error, 5)
 	var rw sync.Mutex
-	mockRun := func(i int) func(*Step) error {
-		return func(_ *Step) error {
+	mockRun := func(i int) func(context.Context, *Step) error {
+		return func(_ context.Context, _ *Step) error {
 			rw.Lock()
 			defer rw.Unlock()
 			callOrder = append(callOrder, i)
@@ -582,7 +580,7 @@ func TestTraverseDAG(t *testing.T) {
 
 	// Normal, good run.
 	w := testTraverseWorkflow(mockRun)
-	if err := w.Run(); err != nil {
+	if err := w.Run(ctx); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
 	if err := checkCallOrder(); err != nil {
@@ -596,7 +594,7 @@ func TestTraverseDAG(t *testing.T) {
 	w = testTraverseWorkflow(mockRun)
 	errs[2] = errors.New("failure")
 	want := w.Steps["s2"].wrapRunError(errs[2])
-	if err := w.Run(); err.Error() != want.Error() {
+	if err := w.Run(ctx); err.Error() != want.Error() {
 		t.Errorf("unexpected error: %s != %s", err, want)
 	}
 	if err := checkCallOrder(); err != nil {
@@ -662,7 +660,7 @@ func TestPrint(t *testing.T) {
 	tf := filepath.Join(td, "test.wf.json")
 	ioutil.WriteFile(tf, data, 0600)
 
-	got, err := NewFromFile(context.Background(), tf)
+	got, err := NewFromFile(tf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -678,7 +676,7 @@ func TestPrint(t *testing.T) {
 		t.Fatal(err)
 	}
 	os.Stdout = w
-	got.Print()
+	got.Print(context.Background())
 	w.Close()
 	os.Stdout = old
 	var buf bytes.Buffer
@@ -692,7 +690,7 @@ func TestPrint(t *testing.T) {
 }
 
 func testValidateErrors(w *Workflow, want string) error {
-	if err := w.Validate(); err == nil {
+	if err := w.Validate(context.Background()); err == nil {
 		return errors.New("expected error, got nil")
 	} else if err.Error() != want {
 		return fmt.Errorf("did not get expected error from Validate():\ngot: %q\nwant: %q", err.Error(), want)

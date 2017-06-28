@@ -58,10 +58,10 @@ func splitVariables(input string) map[string]string {
 	return varMap
 }
 
-func parseWorkflows(paths []string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint, sEndpoint string) ([]*workflow.Workflow, error) {
+func parseWorkflows(ctx context.Context, paths []string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint, sEndpoint string) ([]*workflow.Workflow, error) {
 	var ws []*workflow.Workflow
 	for _, path := range paths {
-		w, err := workflow.NewFromFile(context.Background(), path)
+		w, err := workflow.NewFromFile(path)
 		if err != nil {
 			return nil, err
 		}
@@ -82,14 +82,14 @@ func parseWorkflows(paths []string, varMap map[string]string, project, zone, gcs
 		}
 
 		if cEndpoint != "" {
-			w.ComputeClient, err = compute.NewClient(w.Ctx, option.WithEndpoint(cEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+			w.ComputeClient, err = compute.NewClient(ctx, option.WithEndpoint(cEndpoint), option.WithServiceAccountFile(w.OAuthPath))
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if sEndpoint != "" {
-			w.StorageClient, err = storage.NewClient(w.Ctx, option.WithEndpoint(sEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+			w.StorageClient, err = storage.NewClient(ctx, option.WithEndpoint(sEndpoint), option.WithServiceAccountFile(w.OAuthPath))
 			if err != nil {
 				return nil, err
 			}
@@ -105,9 +105,10 @@ func main() {
 	if len(flag.Args()) == 0 {
 		log.Fatal("Not enough args, first arg needs to be the path to a workflow.")
 	}
+	ctx := context.Background()
 
 	varMap := splitVariables(*variables)
-	ws, err := parseWorkflows(flag.Args(), varMap, *project, *zone, *gcsPath, *oauth, *ce, *se)
+	ws, err := parseWorkflows(ctx, flag.Args(), varMap, *project, *zone, *gcsPath, *oauth, *ce, *se)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -128,19 +129,21 @@ func main() {
 		}()
 		if *print {
 			fmt.Printf("[Daisy] Printing workflow %q\n", w.Name)
-			w.Print()
+			w.Print(ctx)
 			continue
 		}
 		if *validate {
 			fmt.Printf("[Daisy] Validating workflow %q\n", w.Name)
-			w.Validate()
+			if err := w.Validate(ctx); err != nil {
+				fmt.Fprintln(os.Stderr, "[Daisy] Error validating workflow:", err)
+			}
 			continue
 		}
 		wg.Add(1)
 		go func(wf *workflow.Workflow) {
 			defer wg.Done()
 			fmt.Printf("[Daisy] Running workflow %q\n", wf.Name)
-			if err := wf.Run(); err != nil {
+			if err := wf.Run(ctx); err != nil {
 				errors <- fmt.Errorf("%s: %v", wf.Name, err)
 				return
 			}

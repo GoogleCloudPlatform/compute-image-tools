@@ -15,15 +15,17 @@
 package workflow
 
 import (
+	"context"
+	"fmt"
 	"reflect"
 	"testing"
 
-	"fmt"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
 )
 
 func TestCreateImagesRun(t *testing.T) {
+	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
 	disks[w].m = map[string]*resource{"d": {real: w.genName("d"), link: "link"}}
@@ -36,7 +38,7 @@ func TestCreateImagesRun(t *testing.T) {
 		{daisyName: "i4", Image: compute.Image{Name: "i4", SourceDisk: "d"}, ExactName: true},
 		{daisyName: "i5", Image: compute.Image{Name: "i5", SourceDisk: "zones/zone/disks/disk"}},
 	}
-	if err := cis.run(s); err != nil {
+	if err := cis.run(ctx, s); err != nil {
 		t.Errorf("error running CreateImages.run(): %v", err)
 	}
 
@@ -56,7 +58,7 @@ func TestCreateImagesRun(t *testing.T) {
 	}
 
 	for _, tt := range badTests {
-		if err := tt.cd.run(s); err == nil {
+		if err := tt.cd.run(ctx, s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
@@ -77,6 +79,7 @@ func TestCreateImagesRun(t *testing.T) {
 }
 
 func TestCreateImagesValidate(t *testing.T) {
+	ctx := context.Background()
 	// Set up.
 	w := testWorkflow()
 	s := &Step{w: w}
@@ -127,7 +130,7 @@ func TestCreateImagesValidate(t *testing.T) {
 
 	for _, tt := range goodTests {
 		cis := CreateImages{tt.ci}
-		if err := cis.validate(s); err != nil {
+		if err := cis.validate(ctx, s); err != nil {
 			t.Errorf("%q: unexpected error: %v", tt.desc, err)
 		}
 		if diff := pretty.Compare(tt.ci, tt.wantCi); diff != "" {
@@ -173,7 +176,7 @@ func TestCreateImagesValidate(t *testing.T) {
 
 	for _, tt := range badTests {
 		cis := CreateImages{tt.ci}
-		if err := cis.validate(s); err == nil {
+		if err := cis.validate(ctx, s); err == nil {
 			t.Errorf("%q: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)

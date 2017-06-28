@@ -14,7 +14,10 @@
 
 package workflow
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // SubWorkflow defines a Daisy sub workflow.
 type SubWorkflow struct {
@@ -23,7 +26,7 @@ type SubWorkflow struct {
 	w    *Workflow
 }
 
-func (s *SubWorkflow) populate(st *Step) error {
+func (s *SubWorkflow) populate(ctx context.Context, st *Step) error {
 	s.w.GCSPath = fmt.Sprintf("gs://%s/%s", s.w.parent.bucket, s.w.parent.scratchPath)
 	s.w.Name = st.name
 	s.w.Project = s.w.parent.Project
@@ -35,14 +38,14 @@ func (s *SubWorkflow) populate(st *Step) error {
 	for k, v := range s.Vars {
 		s.w.Vars[k] = vars{Value: v}
 	}
-	return s.w.populate()
+	return s.w.populate(ctx)
 }
 
-func (s *SubWorkflow) validate(st *Step) error {
-	return s.w.validate()
+func (s *SubWorkflow) validate(ctx context.Context, st *Step) error {
+	return s.w.validate(ctx)
 }
 
-func (s *SubWorkflow) run(st *Step) error {
+func (s *SubWorkflow) run(ctx context.Context, st *Step) error {
 	// Prerun work has already been done. Just run(), not Run().
 	defer s.w.cleanup()
 	// If the workflow fails before the subworkflow completes, the previous
@@ -54,7 +57,7 @@ func (s *SubWorkflow) run(st *Step) error {
 	})
 
 	st.w.logger.Printf("Running subworkflow %q", s.w.Name)
-	if err := s.w.run(); err != nil {
+	if err := s.w.run(ctx); err != nil {
 		s.w.logger.Printf("Error running subworkflow %q: %v", s.w.Name, err)
 		close(st.w.Cancel)
 		return err
