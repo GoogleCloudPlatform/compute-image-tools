@@ -22,6 +22,9 @@ Other use-case examples:
 
 ## Table of contents
   * [Setup](#setup)
+    * [Prebuilt binaries](#prebuilt-binaries)
+    * [Daisy container](#daisy-container)
+    * [Build from source](#build-from-source)
   * [Running Daisy](#running-daisy)
   * [Workflow Config Overview](#workflow-config-overview)
     * [Sources](#sources)
