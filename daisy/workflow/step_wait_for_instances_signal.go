@@ -104,20 +104,30 @@ func (ws *WaitForInstancesSignal) run(s *Step) error {
 				e <- fmt.Errorf("unresolved instance %q", is.Name)
 				return
 			}
+			sig := make(chan struct{})
 			if is.Stopped {
-				w.logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", i.real)
-				if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, i.real, is.interval); err != nil {
-					e <- err
-					return
-				}
-				w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
-				return
+				go func() {
+					w.logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", i.real)
+					if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, i.real, is.interval); err != nil {
+						e <- err
+						close(sig)
+						return
+					}
+					w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
+					close(sig)
+				}()
 			}
 			if is.SerialOutput != nil {
-				if err := waitForSerialOutput(w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
-					e <- err
-					return
-				}
+				go func() {
+					if err := waitForSerialOutput(w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
+						e <- err
+					}
+					close(sig)
+				}()
+			}
+			select {
+			case <-sig:
+				return
 			}
 		}(is)
 	}
