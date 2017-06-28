@@ -109,6 +109,7 @@ func TestIncludeWorkflowValidate(t *testing.T) {
 			IncludeWorkflow: &IncludeWorkflow{
 				w: iw,
 			},
+			w: w,
 		},
 	}
 	iw.Steps = map[string]*Step{
@@ -118,10 +119,13 @@ func TestIncludeWorkflowValidate(t *testing.T) {
 			},
 		},
 	}
+	validatedDisks.add(w, "foo")
 
-	w.populate(ctx)
+	if err := w.populate(ctx); err != nil {
+		t.Fatal(err)
+	}
 	s := w.Steps["included"]
-	if err := s.IncludeWorkflow.populate(ctx, s); err != nil {
+	if err := s.IncludeWorkflow.validate(ctx, s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
