@@ -134,7 +134,9 @@ func main() {
 		}
 		if *validate {
 			fmt.Printf("[Daisy] Validating workflow %q\n", w.Name)
-			w.Validate(ctx)
+			if err := w.Validate(ctx); err != nil {
+				fmt.Fprintln(os.Stderr, "[Daisy] Error validating workflow:", err)
+			}
 			continue
 		}
 		wg.Add(1)

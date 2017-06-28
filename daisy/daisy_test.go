@@ -15,9 +15,9 @@
 package main
 
 import (
+	"context"
 	"reflect"
 	"testing"
-	"context"
 )
 
 func TestSplitVariables(t *testing.T) {
