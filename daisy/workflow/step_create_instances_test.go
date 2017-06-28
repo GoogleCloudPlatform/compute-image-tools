@@ -20,7 +20,6 @@ import (
 	"path"
 	"sort"
 	"testing"
-
 	"fmt"
 
 	daisy_compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"

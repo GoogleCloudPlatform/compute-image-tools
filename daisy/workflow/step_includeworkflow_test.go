@@ -15,10 +15,11 @@
 package workflow
 
 import (
-	"github.com/kylelemons/godebug/pretty"
+	"context"
 	"testing"
 	"time"
-	"context"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestIncludeWorkflowPopulate(t *testing.T) {
@@ -28,7 +29,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 	// - vars get passed into included workflow
 	// - included workflow name is step name
 
-	ctx:=context.Background()
+	ctx := context.Background()
 	w := testWorkflow()
 	got := &Workflow{
 		parent: w,
@@ -99,7 +100,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 func TestIncludeWorkflowRun(t *testing.T) {}
 
 func TestIncludeWorkflowValidate(t *testing.T) {
-	ctx:=context.Background()
+	ctx := context.Background()
 	w := testWorkflow()
 	disks[w].add("foo", &resource{})
 	iw := w.NewIncludedWorkflow()

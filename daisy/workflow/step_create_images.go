@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-
 	"encoding/json"
 
 	compute "google.golang.org/api/compute/v1"

@@ -16,12 +16,11 @@ package workflow
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"sync"
-
-	"encoding/json"
 
 	compute "google.golang.org/api/compute/v1"
 )
@@ -55,7 +54,7 @@ func (c *CreateDisk) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*c)
 }
 
-func (c *CreateDisks) populate(ctx context.Context,s *Step) error {
+func (c *CreateDisks) populate(ctx context.Context, s *Step) error {
 	for _, cd := range *c {
 		cd.daisyName = cd.Name
 		if !cd.ExactName {
