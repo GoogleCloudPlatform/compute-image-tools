@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -28,9 +29,9 @@ type stepImpl interface {
 	// URLs (partial URLs including the "projects/<project>" prefix), etc.
 	// This should not perform value validation.
 	// Returns any parsing errors.
-	populate(s *Step) error
-	validate(s *Step) error
-	run(s *Step) error
+	populate(ctx context.Context,s *Step) error
+	validate(ctx context.Context, s *Step) error
+	run(ctx context.Context, s *Step) error
 }
 
 // Step is a single daisy workflow step.
@@ -127,7 +128,7 @@ func (s *Step) depends(other *Step) bool {
 	return false
 }
 
-func (s *Step) run() error {
+func (s *Step) run(ctx context.Context) error {
 	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapRunError(err)
@@ -139,7 +140,7 @@ func (s *Step) run() error {
 		st = t.Name()
 	}
 	s.w.logger.Printf("Running step %q (%s)", s.name, st)
-	if err = impl.run(s); err != nil {
+	if err = impl.run(ctx, s); err != nil {
 		return s.wrapRunError(err)
 	}
 	select {
@@ -150,7 +151,7 @@ func (s *Step) run() error {
 	return nil
 }
 
-func (s *Step) validate() error {
+func (s *Step) validate(ctx context.Context) error {
 	s.w.logger.Printf("Validating step %q", s.name)
 	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
 		return s.wrapValidateError(errors.New("step name must start with a letter and only contain letters, numbers, and hyphens"))
@@ -159,7 +160,7 @@ func (s *Step) validate() error {
 	if err != nil {
 		return s.wrapValidateError(err)
 	}
-	if err = impl.validate(s); err != nil {
+	if err = impl.validate(ctx, s); err != nil {
 		return s.wrapValidateError(err)
 	}
 	return nil

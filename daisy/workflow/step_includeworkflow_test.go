@@ -18,6 +18,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"testing"
 	"time"
+	"context"
 )
 
 func TestIncludeWorkflowPopulate(t *testing.T) {
@@ -27,6 +28,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 	// - vars get passed into included workflow
 	// - included workflow name is step name
 
+	ctx:=context.Background()
 	w := testWorkflow()
 	got := &Workflow{
 		parent: w,
@@ -48,7 +50,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 		},
 	}
 
-	if err := s.IncludeWorkflow.populate(s); err != nil {
+	if err := s.IncludeWorkflow.populate(ctx, s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -97,6 +99,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 func TestIncludeWorkflowRun(t *testing.T) {}
 
 func TestIncludeWorkflowValidate(t *testing.T) {
+	ctx:=context.Background()
 	w := testWorkflow()
 	disks[w].add("foo", &resource{})
 	iw := w.NewIncludedWorkflow()
@@ -115,9 +118,9 @@ func TestIncludeWorkflowValidate(t *testing.T) {
 		},
 	}
 
-	w.populate()
+	w.populate(ctx)
 	s := w.Steps["included"]
-	if err := s.IncludeWorkflow.populate(s); err != nil {
+	if err := s.IncludeWorkflow.populate(ctx, s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

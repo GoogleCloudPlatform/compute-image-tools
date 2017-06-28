@@ -15,12 +15,14 @@
 package workflow
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 	"sync"
 
 	"encoding/json"
+
 	compute "google.golang.org/api/compute/v1"
 )
 
@@ -53,7 +55,7 @@ func (c *CreateDisk) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*c)
 }
 
-func (c *CreateDisks) populate(s *Step) error {
+func (c *CreateDisks) populate(ctx context.Context,s *Step) error {
 	for _, cd := range *c {
 		cd.daisyName = cd.Name
 		if !cd.ExactName {
@@ -83,7 +85,7 @@ func (c *CreateDisks) populate(s *Step) error {
 	return nil
 }
 
-func (c *CreateDisks) validate(s *Step) error {
+func (c *CreateDisks) validate(ctx context.Context, s *Step) error {
 	for _, cd := range *c {
 		if !checkName(cd.Name) {
 			return fmt.Errorf("cannot create disk: invalid name: %q", cd.Name)
@@ -114,7 +116,7 @@ func (c *CreateDisks) validate(s *Step) error {
 	return nil
 }
 
-func (c *CreateDisks) run(s *Step) error {
+func (c *CreateDisks) run(ctx context.Context, s *Step) error {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan error)

@@ -16,6 +16,7 @@ package workflow
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -63,7 +64,7 @@ func (c *CreateInstance) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*c)
 }
 
-func logSerialOutput(w *Workflow, name string, port int64) {
+func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64) {
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
 	w.logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s.", name, port, w.bucket, logsObj)
 	var start int64
@@ -72,7 +73,7 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 	tick := time.Tick(1 * time.Second)
 	for {
 		select {
-		case <-w.Ctx.Done():
+		case <-ctx.Done():
 			return
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
@@ -95,7 +96,7 @@ func logSerialOutput(w *Workflow, name string, port int64) {
 			}
 			start = resp.Next
 			buf.WriteString(resp.Contents)
-			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(w.Ctx)
+			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil {
 				w.logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
@@ -190,7 +191,7 @@ func (c *CreateInstance) populateScopes() error {
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.
 // - sets defaults
 // - extends short partial URLs to include "projects/<project>"
-func (c *CreateInstances) populate(s *Step) error {
+func (c *CreateInstances) populate(ctx context.Context, s *Step) error {
 	errs := []error{}
 	for _, ci := range *c {
 		// General fields preprocessing.
@@ -225,7 +226,7 @@ func (c *CreateInstances) populate(s *Step) error {
 	return nil
 }
 
-func (c *CreateInstance) validateDisks(w *Workflow) (errs []error) {
+func (c *CreateInstance) validateDisks(ctx context.Context, w *Workflow) (errs []error) {
 	if len(c.Disks) == 0 {
 		errs = append(errs, fmt.Errorf("can't create instance %q: no disks attached", c.Name))
 	}
@@ -301,14 +302,14 @@ func (c *CreateInstance) validateNetworks() (errs []error) {
 	return
 }
 
-func (c *CreateInstances) validate(s *Step) error {
+func (c *CreateInstances) validate(ctx context.Context, s *Step) error {
 	errs := []error{}
 	for _, ci := range *c {
 		if !checkName(ci.Name) {
 			errs = append(errs, fmt.Errorf("can't create instance %q: bad name", ci.Name))
 		}
 
-		errs = append(errs, ci.validateDisks(s.w)...)
+		errs = append(errs, ci.validateDisks(ctx, s.w)...)
 		errs = append(errs, ci.validateMachineType()...)
 		errs = append(errs, ci.validateNetworks()...)
 
@@ -332,7 +333,7 @@ func (c *CreateInstances) validate(s *Step) error {
 	return nil
 }
 
-func (c *CreateInstances) run(s *Step) error {
+func (c *CreateInstances) run(ctx context.Context, s *Step) error {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan error)
@@ -352,7 +353,7 @@ func (c *CreateInstances) run(s *Step) error {
 				e <- err
 				return
 			}
-			go logSerialOutput(w, ci.Name, 1)
+			go logSerialOutput(ctx, w, ci.Name, 1)
 			instances[w].add(ci.daisyName, &resource{real: ci.Name, link: ci.SelfLink, noCleanup: ci.NoCleanup})
 		}(ci)
 	}

@@ -15,18 +15,21 @@
 package workflow
 
 import (
+	"context"
 	"errors"
 	"path"
 	"sort"
 	"testing"
 
 	"fmt"
+
 	daisy_compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
 )
 
 func TestCreateInstancePopulate(t *testing.T) {
+	ctx := context.Background()
 	w := testWorkflow()
 
 	desc := "desc"
@@ -61,7 +64,7 @@ func TestCreateInstancePopulate(t *testing.T) {
 
 	for _, tt := range tests {
 		s := &Step{w: w, CreateInstances: &CreateInstances{tt.input}}
-		err := s.CreateInstances.populate(s)
+		err := s.CreateInstances.populate(ctx, s)
 		if tt.shouldErr {
 			if err == nil {
 				t.Errorf("%s: should have returned error but didn't", tt.desc)
@@ -124,7 +127,7 @@ func TestCreateInstancePopulateMachineType(t *testing.T) {
 
 func TestCreateInstancePopulateMetadata(t *testing.T) {
 	w := testWorkflow()
-	w.populate()
+	w.populate(context.Background())
 	w.Sources = map[string]string{"file": "foo/bar"}
 	filePath := "gs://" + path.Join(w.bucket, w.sourcesPath, "file")
 
@@ -230,6 +233,7 @@ func TestCreateInstancePopulateScopes(t *testing.T) {
 }
 
 func TestCreateInstancesRun(t *testing.T) {
+	ctx := context.Background()
 	var createErr error
 	w := testWorkflow()
 	w.ComputeClient.(*daisy_compute.TestClient).CreateInstanceFn = func(p, z string, i *compute.Instance) error {
@@ -246,7 +250,7 @@ func TestCreateInstancesRun(t *testing.T) {
 	i0 := &CreateInstance{daisyName: "i0", Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}}
 	i1 := &CreateInstance{daisyName: "i1", Project: "foo", Zone: "bar", Instance: compute.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "other"}}}}
 	ci := &CreateInstances{i0, i1}
-	if err := ci.run(s); err != nil {
+	if err := ci.run(ctx, s); err != nil {
 		t.Errorf("unexpected error running CreateInstances.run(): %v", err)
 	}
 	if i0.Disks[0].Source != disks[w].m["d0"].link {
@@ -269,7 +273,7 @@ func TestCreateInstancesRun(t *testing.T) {
 	ci = &CreateInstances{
 		{daisyName: "i0", Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},
 	}
-	if err := ci.run(s); err != createErr {
+	if err := ci.run(ctx, s); err != createErr {
 		t.Errorf("CreateInstances.run() should have return compute client error: %v != %v", err, createErr)
 	}
 	if diff := pretty.Compare(instances[w].m, map[string]*resource{}); diff != "" {
@@ -297,7 +301,7 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if err := tt.ci.validateDisks(w); tt.shouldErr && err == nil {
+		if err := tt.ci.validateDisks(context.Background(), w); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -376,7 +380,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		s := &Step{name: "s", w: w, CreateInstances: &CreateInstances{tt.input}}
-		if err := s.validate(); tt.shouldErr && err == nil {
+		if err := s.validate(context.Background()); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)

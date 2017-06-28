@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"strings"
@@ -33,12 +34,12 @@ type CopyGCSObject struct {
 	ACLRules            []storage.ACLRule
 }
 
-func (c *CopyGCSObjects) populate(s *Step) error { return nil }
+func (c *CopyGCSObjects) populate(ctx context.Context, s *Step) error { return nil }
 
-func (c *CopyGCSObjects) validate(s *Step) error { return nil }
+func (c *CopyGCSObjects) validate(ctx context.Context, s *Step) error { return nil }
 
-func recursiveGCS(w *Workflow, sBkt, sPrefix, dBkt, dPrefix string) error {
-	it := w.StorageClient.Bucket(sBkt).Objects(w.Ctx, &storage.Query{Prefix: sPrefix})
+func recursiveGCS(ctx context.Context, w *Workflow, sBkt, sPrefix, dBkt, dPrefix string) error {
+	it := w.StorageClient.Bucket(sBkt).Objects(ctx, &storage.Query{Prefix: sPrefix})
 	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
 		if err != nil {
 			return err
@@ -49,14 +50,14 @@ func recursiveGCS(w *Workflow, sBkt, sPrefix, dBkt, dPrefix string) error {
 		srcPath := w.StorageClient.Bucket(sBkt).Object(objAttr.Name)
 		o := path.Join(dPrefix, strings.TrimPrefix(objAttr.Name, sPrefix))
 		dstPath := w.StorageClient.Bucket(dBkt).Object(o)
-		if _, err := dstPath.CopierFrom(srcPath).Run(w.Ctx); err != nil {
+		if _, err := dstPath.CopierFrom(srcPath).Run(ctx); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *CopyGCSObjects) run(s *Step) error {
+func (c *CopyGCSObjects) run(ctx context.Context, s *Step) error {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan error)
@@ -76,7 +77,7 @@ func (c *CopyGCSObjects) run(s *Step) error {
 			}
 
 			if sObj == "" || strings.HasSuffix(sObj, "/") {
-				if err := recursiveGCS(s.w, sBkt, sObj, dBkt, dObj); err != nil {
+				if err := recursiveGCS(ctx, s.w, sBkt, sObj, dBkt, dObj); err != nil {
 					e <- fmt.Errorf("error copying from %s to %s: %v", co.Source, co.Destination, err)
 					return
 				}
@@ -85,12 +86,12 @@ func (c *CopyGCSObjects) run(s *Step) error {
 
 			src := s.w.StorageClient.Bucket(sBkt).Object(sObj)
 			dstPath := s.w.StorageClient.Bucket(dBkt).Object(dObj)
-			if _, err := dstPath.CopierFrom(src).Run(s.w.Ctx); err != nil {
+			if _, err := dstPath.CopierFrom(src).Run(ctx); err != nil {
 				e <- fmt.Errorf("error copying from %s to %s: %v", co.Source, co.Destination, err)
 				return
 			}
 			for _, acl := range co.ACLRules {
-				if err := dstPath.ACL().Set(s.w.Ctx, acl.Entity, acl.Role); err != nil {
+				if err := dstPath.ACL().Set(ctx, acl.Entity, acl.Role); err != nil {
 					e <- fmt.Errorf("error setting ACLRule on %s: %v", co.Destination, err)
 					return
 				}

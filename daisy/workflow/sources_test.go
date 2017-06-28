@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -25,6 +26,8 @@ import (
 )
 
 func TestUploadSources(t *testing.T) {
+	ctx := context.Background()
+
 	// Set up a local test file.
 	dir, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -43,7 +46,7 @@ func TestUploadSources(t *testing.T) {
 	w.Steps = map[string]*Step{
 		"sub": {w: w, SubWorkflow: &SubWorkflow{w: sw}},
 	}
-	if err := w.populate(); err != nil {
+	if err := w.populate(ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -69,7 +72,7 @@ func TestUploadSources(t *testing.T) {
 	for _, tt := range tests {
 		w.Sources = tt.sources
 		testGCSObjs = nil
-		err = w.uploadSources()
+		err = w.uploadSources(ctx)
 		if tt.err != "" && err == nil {
 			t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
 		} else if tt.err != "" && err != nil && err.Error() != tt.err {
@@ -87,7 +90,7 @@ func TestUploadSources(t *testing.T) {
 	for _, tt := range tests {
 		sw.Sources = tt.sources
 		testGCSObjs = nil
-		err = w.uploadSources()
+		err = w.uploadSources(ctx)
 		if tt.err != "" && err == nil {
 			t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
 		} else if tt.err != "" && err != nil && err.Error() != tt.err {

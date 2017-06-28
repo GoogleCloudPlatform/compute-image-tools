@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"fmt"
 	"sync"
 )
@@ -24,11 +25,11 @@ type DeleteResources struct {
 	Instances, Disks, Images []string `json:",omitempty"`
 }
 
-func (d *DeleteResources) populate(s *Step) error {
+func (d *DeleteResources) populate(ctx context.Context,s *Step) error {
 	return nil
 }
 
-func (d *DeleteResources) validate(s *Step) error {
+func (d *DeleteResources) validate(ctx context.Context,s *Step) error {
 	w := s.w
 	// Disk checking.
 	for _, disk := range d.Disks {
@@ -63,7 +64,7 @@ func (d *DeleteResources) validate(s *Step) error {
 	return nil
 }
 
-func (d *DeleteResources) run(s *Step) error {
+func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan error)

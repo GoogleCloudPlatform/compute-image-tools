@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -90,7 +91,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 	}
 }
 
-func (w *WaitForInstancesSignal) populate(s *Step) error {
+func (w *WaitForInstancesSignal) populate(ctx context.Context, s *Step) error {
 	for _, ws := range *w {
 		if ws.Interval == "" {
 			ws.Interval = defaultInterval
@@ -104,7 +105,7 @@ func (w *WaitForInstancesSignal) populate(s *Step) error {
 	return nil
 }
 
-func (w *WaitForInstancesSignal) run(s *Step) error {
+func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) error {
 	var wg sync.WaitGroup
 	wf := s.w
 	e := make(chan error)
@@ -159,7 +160,7 @@ func (w *WaitForInstancesSignal) run(s *Step) error {
 	}
 }
 
-func (w *WaitForInstancesSignal) validate(s *Step) error {
+func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) error {
 	// Instance checking.
 	for _, i := range *w {
 		if !instanceValid(s.w, i.Name) {

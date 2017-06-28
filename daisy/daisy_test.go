@@ -17,6 +17,7 @@ package main
 import (
 	"reflect"
 	"testing"
+	"context"
 )
 
 func TestSplitVariables(t *testing.T) {
@@ -45,7 +46,7 @@ func TestParseWorkflows(t *testing.T) {
 	zone := "zone"
 	gcsPath := "gcspath"
 	oauth := "oauthpath"
-	ws, err := parseWorkflows(paths, varMap, project, zone, gcsPath, oauth, "", "")
+	ws, err := parseWorkflows(context.Background(), paths, varMap, project, zone, gcsPath, oauth, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

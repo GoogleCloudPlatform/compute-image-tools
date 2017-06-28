@@ -186,46 +186,47 @@ func TestValidateVarsSubbed(t *testing.T) {
 }
 
 func TestValidateWorkflow(t *testing.T) {
+	ctx := context.Background()
 	// Normal, good validation.
 	w := testWorkflow()
 	s := &Step{Timeout: "10s", testType: &mockStep{}, w: w}
 	w.Steps = map[string]*Step{"s0": s}
-	if err := w.populate(); err != nil {
+	if err := w.populate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := w.validate(); err != nil {
+	if err := w.validate(ctx); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
 
-	ctx := context.Background()
 	logger := log.New(ioutil.Discard, "", 0)
 	// Bad test cases.
 	tests := []struct {
 		desc string
 		wf   *Workflow
 	}{
-		{"no name", &Workflow{Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
-		{"no project", &Workflow{Name: "n", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
-		{"no zone", &Workflow{Name: "n", Project: "p", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
-		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Ctx: ctx, logger: logger}},
-		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Ctx: ctx, logger: logger}},
-		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, Ctx: ctx, logger: logger}},
-		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout, w: w}}, Ctx: ctx, logger: logger}},
+		{"no name", &Workflow{Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, logger: logger}},
+		{"no project", &Workflow{Name: "n", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, logger: logger}},
+		{"no zone", &Workflow{Name: "n", Project: "p", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, logger: logger}},
+		{"no bucket", &Workflow{Name: "n", Project: "p", Zone: "z", OAuthPath: "o", Steps: map[string]*Step{"s": s}, logger: logger}},
+		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", logger: logger}},
+		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, logger: logger}},
+		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout, w: w}}, logger: logger}},
 	}
 
 	for _, tt := range tests {
-		if err := tt.wf.validate(); err == nil {
+		if err := tt.wf.validate(ctx); err == nil {
 			t.Errorf("validation should have failed on %s because of %q", tt.wf, tt.desc)
 		}
 	}
 }
 
 func TestValidateDAG(t *testing.T) {
+	ctx := context.Background()
 	calls := make([]int, 5)
 	errs := make([]error, 5)
 	var rw sync.Mutex
-	mockValidate := func(i int) func(s *Step) error {
-		return func(s *Step) error {
+	mockValidate := func(i int) func(ctx context.Context, s *Step) error {
+		return func(ctx context.Context, s *Step) error {
 			rw.Lock()
 			defer rw.Unlock()
 			calls[i] = calls[i] + 1
@@ -258,10 +259,10 @@ func TestValidateDAG(t *testing.T) {
 	}
 
 	// Normal case -- no issues.
-	if err := w.populate(); err != nil {
+	if err := w.populate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := w.validateDAG(); err != nil {
+	if err := w.validateDAG(ctx); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
 	for i, callCount := range calls {
@@ -278,7 +279,7 @@ func TestValidateDAG(t *testing.T) {
 
 	// Failed step 2.
 	errs[2] = errors.New("fail")
-	if err := w.validateDAG(); err == nil {
+	if err := w.validateDAG(ctx); err == nil {
 		t.Error("step 2 should have failed validation")
 	}
 
@@ -287,19 +288,19 @@ func TestValidateDAG(t *testing.T) {
 
 	// Fail, missing dep.
 	w.Dependencies["s0"] = []string{"dne"}
-	if err := w.validateDAG(); err == nil {
+	if err := w.validateDAG(ctx); err == nil {
 		t.Error("validation should have failed due to missing dependency")
 	}
 
 	// Fail, missing step.
 	w.Dependencies["dne"] = []string{"s0"}
-	if err := w.validateDAG(); err == nil {
+	if err := w.validateDAG(ctx); err == nil {
 		t.Error("validation should have failed due to missing dependency")
 	}
 
 	// Fail, cyclical deps.
 	w.Dependencies["s0"] = []string{"s3"}
-	if err := w.validateDAG(); err == nil {
+	if err := w.validateDAG(ctx); err == nil {
 		t.Error("validation should have failed due to dependency cycle")
 	}
 }

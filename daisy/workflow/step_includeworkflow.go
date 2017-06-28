@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -31,7 +32,7 @@ type IncludeWorkflow struct {
 	w    *Workflow
 }
 
-func (i *IncludeWorkflow) populate(s *Step) error {
+func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 	i.w.GCSPath = i.w.parent.GCSPath
 	i.w.Name = s.name
 	i.w.Project = i.w.parent.Project
@@ -60,7 +61,7 @@ func (i *IncludeWorkflow) populate(s *Step) error {
 	for name, st := range i.w.Steps {
 		st.name = name
 		st.w = s.w
-		if err := st.w.populateStep(st); err != nil {
+		if err := st.w.populateStep(ctx, st); err != nil {
 			return err
 		}
 	}
@@ -82,10 +83,10 @@ func (i *IncludeWorkflow) populate(s *Step) error {
 	return nil
 }
 
-func (i *IncludeWorkflow) validate(s *Step) error {
-	return i.w.validate()
+func (i *IncludeWorkflow) validate(ctx context.Context, s *Step) error {
+	return i.w.validate(ctx)
 }
 
-func (i *IncludeWorkflow) run(s *Step) error {
-	return i.w.run()
+func (i *IncludeWorkflow) run(ctx context.Context, s *Step) error {
+	return i.w.run(ctx)
 }

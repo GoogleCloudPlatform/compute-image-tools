@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -24,6 +25,7 @@ import (
 )
 
 func TestCreateDisksPopulate(t *testing.T) {
+	ctx := context.Background()
 	w := testWorkflow()
 	w.ComputeClient = nil
 	w.StorageClient = nil
@@ -82,7 +84,7 @@ func TestCreateDisksPopulate(t *testing.T) {
 
 	for _, tt := range tests {
 		cds := &CreateDisks{tt.input}
-		err := cds.populate(s)
+		err := cds.populate(ctx, s)
 		// Short circuit the description field -- difficult to test, and unimportant.
 		if tt.want != nil {
 			tt.want.Description = tt.input.Description
@@ -100,6 +102,7 @@ func TestCreateDisksPopulate(t *testing.T) {
 }
 
 func TestCreateDisksRun(t *testing.T) {
+	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
 	images[w].m = map[string]*resource{"i1": {real: "i1", link: "link"}}
@@ -112,7 +115,7 @@ func TestCreateDisksRun(t *testing.T) {
 		{daisyName: "d2", Disk: compute.Disk{Name: "d2", SourceImage: "global/images/i2", SizeGb: 100, Type: ""}, Zone: "zone", Project: "project"},
 		{daisyName: "d3", Disk: compute.Disk{Name: "d3", SourceImage: "i1", SizeGb: 100, Type: ""}, NoCleanup: true},
 		{daisyName: "d4", Disk: compute.Disk{Name: "d4", SourceImage: "i1", SizeGb: 100, Type: ""}}}
-	if err := cds.run(s); err != nil {
+	if err := cds.run(ctx, s); err != nil {
 		t.Errorf("error running CreateDisks.run(): %v", err)
 	}
 
@@ -128,6 +131,7 @@ func TestCreateDisksRun(t *testing.T) {
 }
 
 func TestCreateDisksValidate(t *testing.T) {
+	ctx :=  context.Background()
 	// Set up.
 	w := testWorkflow()
 	s := &Step{w: w}
@@ -158,7 +162,7 @@ func TestCreateDisksValidate(t *testing.T) {
 
 	for _, tt := range goodTests {
 		cds := CreateDisks{tt.cd}
-		if err := cds.validate(s); err != nil {
+		if err := cds.validate(ctx, s); err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		}
 		if diff := pretty.Compare(tt.cd, tt.wantCd); diff != "" {
@@ -214,7 +218,7 @@ func TestCreateDisksValidate(t *testing.T) {
 
 	for _, tt := range badTests {
 		cds := CreateDisks{tt.cd}
-		if err := cds.validate(s); err == nil {
+		if err := cds.validate(ctx, s); err == nil {
 			t.Errorf("%s: expected error, got nil", tt.name)
 		} else if err.Error() != tt.err {
 			t.Errorf("%s: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)

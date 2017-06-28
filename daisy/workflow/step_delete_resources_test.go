@@ -17,16 +17,18 @@ package workflow
 import (
 	"testing"
 
+	"context"
 	"reflect"
 )
 
 func TestDeleteResourcesPopulate(t *testing.T) {
-	if err := (&DeleteResources{}).populate(&Step{}); err != nil {
+	if err := (&DeleteResources{}).populate(context.Background(), &Step{}); err != nil {
 		t.Error("not implemented, err should be nil")
 	}
 }
 
 func TestDeleteResourcesRun(t *testing.T) {
+	ctx:=context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
 	ins := []*resource{{real: "in0", link: "link"}, {real: "in1", link: "link"}}
@@ -37,7 +39,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 	disks[w].m = map[string]*resource{"d0": ds[0], "d1": ds[1]}
 
 	dr := &DeleteResources{Instances: []string{"in0"}, Images: []string{"im0"}, Disks: []string{"d0"}}
-	if err := dr.run(s); err != nil {
+	if err := dr.run(ctx, s); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
 	}
 
@@ -70,7 +72,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 	dr = &DeleteResources{
 		Disks: []string{"notexist"}}
 	close(w.Cancel)
-	if err := dr.run(s); err != nil {
+	if err := dr.run(ctx, s); err != nil {
 		t.Errorf("Should not error on non existent disk when Cancel is closed: %v", err)
 	}
 
@@ -96,7 +98,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if err := tt.dr.run(s); err == nil {
+		if err := tt.dr.run(ctx, s); err == nil {
 			t.Error("expected error, got nil")
 		} else if err.Error() != tt.err {
 			t.Errorf("did not get expected error from validate():\ngot: %q\nwant: %q", err.Error(), tt.err)
@@ -105,6 +107,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 }
 
 func TestDeleteResourcesValidate(t *testing.T) {
+	ctx:=context.Background()
 	// Set up.
 	w := &Workflow{}
 	s := &Step{w: w}
@@ -116,7 +119,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	dr := DeleteResources{
 		Instances: []string{"foo"}, Disks: []string{"foo"}, Images: []string{"foo"},
 	}
-	if err := dr.validate(s); err != nil {
+	if err := dr.validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
 	}
 
@@ -144,7 +147,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if err := tt.dr.validate(s); err == nil {
+		if err := tt.dr.validate(ctx, s); err == nil {
 			t.Error("expected error, got nil")
 		} else if err.Error() != tt.err {
 			t.Errorf("did not get expected error from validate():\ngot: %q\nwant: %q", err.Error(), tt.err)

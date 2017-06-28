@@ -18,11 +18,13 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"context"
 )
 
 func TestSubWorkflowPopulate(t *testing.T) {
+	ctx:=context.Background()
 	w := testWorkflow()
-	w.populate()
+	w.populate(ctx)
 	sw := &Workflow{parent: w}
 	sw.Vars = map[string]vars{"foo": {Value: "bar1"}, "baz": {Value: "gaz"}}
 	s := &Step{
@@ -33,7 +35,7 @@ func TestSubWorkflowPopulate(t *testing.T) {
 			w:    sw,
 		},
 	}
-	if err := s.SubWorkflow.populate(s); err != nil {
+	if err := s.SubWorkflow.populate(ctx, s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

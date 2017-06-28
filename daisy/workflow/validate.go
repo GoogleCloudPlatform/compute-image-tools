@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -159,7 +160,7 @@ func (w *Workflow) validateRequiredFields() error {
 	return nil
 }
 
-func (w *Workflow) validate() error {
+func (w *Workflow) validate(ctx context.Context) error {
 	if err := w.validateRequiredFields(); err != nil {
 		return err
 	}
@@ -169,11 +170,11 @@ func (w *Workflow) validate() error {
 		return err
 	}
 
-	return w.validateDAG()
+	return w.validateDAG(ctx)
 }
 
 // Step through the step DAG, calling each step's validate().
-func (w *Workflow) validateDAG() error {
+func (w *Workflow) validateDAG(ctx context.Context) error {
 	// Sanitation.
 	for s, deps := range w.Dependencies {
 		// Check for missing steps.
@@ -202,7 +203,7 @@ func (w *Workflow) validateDAG() error {
 			return fmt.Errorf("cyclic dependency on step %v", s)
 		}
 	}
-	return w.traverseDAG(func(s *Step) error { return s.validate() })
+	return w.traverseDAG(func(s *Step) error { return s.validate(ctx) })
 }
 
 func (w *Workflow) validateVarsSubbed() error {

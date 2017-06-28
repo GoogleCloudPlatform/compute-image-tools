@@ -15,11 +15,13 @@
 package workflow
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
 
 	"encoding/json"
+
 	compute "google.golang.org/api/compute/v1"
 )
 
@@ -53,7 +55,7 @@ func (c *CreateImage) MarshalJSON() ([]byte, error) {
 // populate preprocesses fields: Name, Project, Description, SourceDisk, RawDisk, and daisyName.
 // - sets defaults
 // - extends short partial URLs to include "projects/<project>"
-func (c *CreateImages) populate(s *Step) error {
+func (c *CreateImages) populate(ctx context.Context, s *Step) error {
 	for _, ci := range *c {
 		// Prepare field values: name, Name, RawDisk.Source, Description
 		ci.daisyName = ci.Name
@@ -80,8 +82,8 @@ func (c *CreateImages) populate(s *Step) error {
 	return nil
 }
 
-func (c *CreateImages) validate(s *Step) error {
-	if err := c.populate(s); err != nil {
+func (c *CreateImages) validate(ctx context.Context, s *Step) error {
+	if err := c.populate(ctx, s); err != nil {
 		return err
 	}
 	for _, ci := range *c {
@@ -109,7 +111,7 @@ func (c *CreateImages) validate(s *Step) error {
 	return nil
 }
 
-func (c *CreateImages) run(s *Step) error {
+func (c *CreateImages) run(ctx context.Context, s *Step) error {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan error)

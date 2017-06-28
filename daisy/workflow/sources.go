@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -26,8 +27,8 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func (w *Workflow) recursiveGCS(bkt, prefix, dst string) error {
-	it := w.StorageClient.Bucket(bkt).Objects(w.Ctx, &storage.Query{Prefix: prefix})
+func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) error {
+	it := w.StorageClient.Bucket(bkt).Objects(ctx, &storage.Query{Prefix: prefix})
 	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
 		if err != nil {
 			return err
@@ -38,7 +39,7 @@ func (w *Workflow) recursiveGCS(bkt, prefix, dst string) error {
 		srcPath := w.StorageClient.Bucket(bkt).Object(objAttr.Name)
 		o := path.Join(w.sourcesPath, dst, strings.TrimPrefix(objAttr.Name, prefix))
 		dstPath := w.StorageClient.Bucket(w.bucket).Object(o)
-		if _, err := dstPath.CopierFrom(srcPath).Run(w.Ctx); err != nil {
+		if _, err := dstPath.CopierFrom(srcPath).Run(ctx); err != nil {
 			return err
 		}
 	}
@@ -50,10 +51,10 @@ func (w *Workflow) sourceExists(s string) bool {
 	return ok
 }
 
-func (w *Workflow) uploadFile(src, obj string) error {
+func (w *Workflow) uploadFile(ctx context.Context, src, obj string) error {
 	obj = filepath.ToSlash(obj)
 	dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, obj))
-	gcs := dstPath.NewWriter(w.Ctx)
+	gcs := dstPath.NewWriter(ctx)
 	f, err := os.Open(src)
 	if err != nil {
 		return err
@@ -64,7 +65,7 @@ func (w *Workflow) uploadFile(src, obj string) error {
 	return gcs.Close()
 }
 
-func (w *Workflow) uploadSources() error {
+func (w *Workflow) uploadSources(ctx context.Context) error {
 	for dst, origPath := range w.Sources {
 		if origPath == "" {
 			continue
@@ -72,14 +73,14 @@ func (w *Workflow) uploadSources() error {
 		// GCS to GCS.
 		if bkt, objPath, err := splitGCSPath(origPath); err == nil {
 			if objPath == "" || strings.HasSuffix(objPath, "/") {
-				if err := w.recursiveGCS(bkt, objPath, dst); err != nil {
+				if err := w.recursiveGCS(ctx, bkt, objPath, dst); err != nil {
 					return fmt.Errorf("error copying from bucket %s: %v", origPath, err)
 				}
 				continue
 			}
 			src := w.StorageClient.Bucket(bkt).Object(objPath)
 			dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, dst))
-			if _, err := dstPath.CopierFrom(src).Run(w.Ctx); err != nil {
+			if _, err := dstPath.CopierFrom(src).Run(ctx); err != nil {
 				return fmt.Errorf("error copying from file %s: %v", origPath, err)
 			}
 
@@ -110,19 +111,19 @@ func (w *Workflow) uploadSources() error {
 			}
 			for _, file := range files {
 				obj := path.Join(dst, strings.TrimPrefix(file, filepath.Clean(origPath)))
-				if err := w.uploadFile(file, obj); err != nil {
+				if err := w.uploadFile(ctx, file, obj); err != nil {
 					return err
 				}
 			}
 			continue
 		}
-		if err := w.uploadFile(origPath, dst); err != nil {
+		if err := w.uploadFile(ctx, origPath, dst); err != nil {
 			return err
 		}
 	}
 	for _, step := range w.Steps {
 		if step.SubWorkflow != nil {
-			if err := step.SubWorkflow.w.uploadSources(); err != nil {
+			if err := step.SubWorkflow.w.uploadSources(ctx); err != nil {
 				return err
 			}
 		}
