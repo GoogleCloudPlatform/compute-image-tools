@@ -47,7 +47,8 @@ Other use-case examples:
     * [Workflow](#glossary-workflow)
 
 ## Setup
-Prebuilt Daisy binaries are available for Windows, macOS, and Linux distros:
+### Prebuilt binaries
+Prebuilt Daisy binaries are available for Windows, macOS, and Linux distros.
 
 Built from the latest GitHub release (all 64bit):
 + [Windows](https://storage.googleapis.com/compute-image-tools/release/windows/daisy.exe)
@@ -59,10 +60,14 @@ Built from the latest commit to the master branch (all 64bit):
 + [macOS](https://storage.googleapis.com/compute-image-tools/latest/darwin/daisy)
 + [Linux](https://storage.googleapis.com/compute-image-tools/latest/linux/daisy)
 
-Daisy containers are also available at gcr.io/compute-image-tools/daisy
+### Daisy container
+Daisy containers are available at gcr.io/compute-image-tools/daisy. All the 
+workflows in `compute-image-tools/daisy_workflows` are put in the `workflows` 
+directory at the root of the container.
 + Built from the latest GitHub release: gcr.io/compute-image-tools/daisy:release
 + Built from the latest commit to the master branch: gcr.io/compute-image-tools/daisy:latest
 
+### Build from source
 Daisy can be easily built from source with the [Golang SDK](https://golang.org)
 ```shell
 go get github.com/GoogleCloudPlatform/compute-image-tools/daisy
