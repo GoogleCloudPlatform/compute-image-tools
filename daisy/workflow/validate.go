@@ -65,9 +65,6 @@ func (n nameSet) add(w *Workflow, s string) error {
 	if strIn(s, ss) {
 		return fmt.Errorf("workflow %q has duplicate references for %q", w.Name, s)
 	}
-	if !checkName(s) {
-		return fmt.Errorf("bad name %q", s)
-	}
 
 	n[w] = append(ss, s)
 	return nil

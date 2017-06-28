@@ -16,6 +16,7 @@ package workflow
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -153,4 +154,18 @@ func resourceCleanupHelper(rm *resourceMap, deleteFn func(*resource) error) {
 		}(name, r)
 	}
 	wg.Wait()
+}
+
+func extendPartialURL(url, project string) string {
+	if strings.HasPrefix(url, "projects") {
+		return url
+	}
+	return fmt.Sprintf("projects/%s/%s", project, url)
+}
+
+func resourceNameHelper(name string, w *Workflow, exactName bool) string {
+	if !exactName {
+		name = w.genName(name)
+	}
+	return name
 }

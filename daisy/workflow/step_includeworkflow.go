@@ -60,7 +60,7 @@ func (i *IncludeWorkflow) populate(s *Step) error {
 	for name, st := range i.w.Steps {
 		st.name = name
 		st.w = s.w
-		if err := s.w.populateStep(st); err != nil {
+		if err := st.w.populateStep(st); err != nil {
 			return err
 		}
 	}

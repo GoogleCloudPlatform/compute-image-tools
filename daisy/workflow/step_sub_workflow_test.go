@@ -15,8 +15,46 @@
 package workflow
 
 import (
+	"fmt"
+	"reflect"
 	"testing"
 )
+
+func TestSubWorkflowPopulate(t *testing.T) {
+	w := testWorkflow()
+	w.populate()
+	sw := &Workflow{parent: w}
+	sw.Vars = map[string]vars{"foo": {Value: "bar1"}, "baz": {Value: "gaz"}}
+	s := &Step{
+		name: "sw-step",
+		w:    w,
+		SubWorkflow: &SubWorkflow{
+			Vars: map[string]string{"foo": "bar2", "hello": "world"},
+			w:    sw,
+		},
+	}
+	if err := s.SubWorkflow.populate(s); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if sw.Name != s.name {
+		t.Errorf("unexpected subworkflow Name: %q != %q", sw.Name, s.name)
+	}
+	if sw.Project != w.Project {
+		t.Errorf("unexpected subworkflow Project: %q != %q", sw.Project, w.Project)
+	}
+	if sw.Zone != w.Zone {
+		t.Errorf("unexpected subworkflow Zone: %q != %q", sw.Zone, w.Zone)
+	}
+	wantGCSPath := fmt.Sprintf("gs://%s/%s", w.bucket, w.scratchPath)
+	if sw.GCSPath != wantGCSPath {
+		t.Errorf("unexpected subworkflow GCSPath: %q != %q", sw.GCSPath, wantGCSPath)
+	}
+	wantVars := map[string]vars{"foo": {Value: "bar2"}, "baz": {Value: "gaz"}, "hello": {Value: "world"}}
+	if !reflect.DeepEqual(sw.Vars, wantVars) {
+		t.Errorf("unexpected subworkflow Vars: %v != %v", sw.Vars, wantVars)
+	}
+}
 
 func TestSubWorkflowRun(t *testing.T) {}
 

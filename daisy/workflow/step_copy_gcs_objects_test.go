@@ -20,6 +20,12 @@ import (
 	"cloud.google.com/go/storage"
 )
 
+func TestCopyGCSObjectsPopulate(t *testing.T) {
+	if err := (&CopyGCSObjects{}).populate(&Step{}); err != nil {
+		t.Error("not implemented, err should be nil")
+	}
+}
+
 func TestCopyGCSObjectsRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
@@ -45,4 +51,8 @@ func TestCopyGCSObjectsRun(t *testing.T) {
 	}
 }
 
-func TestCopyGCSObjectsValidate(t *testing.T) {}
+func TestCopyGCSObjectsValidate(t *testing.T) {
+	if err := (&CopyGCSObjects{}).validate(&Step{}); err != nil {
+		t.Error("not implemented, err should be nil")
+	}
+}

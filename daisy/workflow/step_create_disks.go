@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 
 	"encoding/json"
@@ -45,7 +44,7 @@ type CreateDisk struct {
 	ExactName bool
 
 	// The name of the disk as known internally to Daisy.
-	name string
+	daisyName string
 }
 
 // MarshalJSON is a hacky workaround to prevent CreateDisk from using
@@ -54,48 +53,64 @@ func (c *CreateDisk) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*c)
 }
 
-// validate checks fields: SourceImage, SizeGb
-// and modifies: SourceImage, Name, name, Type, Project, Zone
-func (c *CreateDisks) validate(s *Step) error {
-	w := s.w
+func (c *CreateDisks) populate(s *Step) error {
 	for _, cd := range *c {
-		// Image checking.
-		if cd.SourceImage != "" && !imageValid(w, cd.SourceImage) {
-			return fmt.Errorf("cannot create disk: image not found: %s", cd.SourceImage)
+		cd.daisyName = cd.Name
+		if !cd.ExactName {
+			cd.Name = s.w.genName(cd.daisyName)
 		}
-
-		// No SizeGB set when not supplying SourceImage.
-		if cd.SizeGb == "" && cd.SourceImage == "" {
-			return errors.New("cannot create disk: SizeGb and SourceImage not set")
-		}
+		cd.Project = strOr(cd.Project, s.w.Project)
+		cd.Zone = strOr(cd.Zone, s.w.Zone)
+		cd.Description = strOr(cd.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 		if cd.SizeGb != "" {
 			size, err := strconv.ParseInt(cd.SizeGb, 10, 64)
 			if err != nil {
 				return fmt.Errorf("cannot parse SizeGb: %s, err: %v", cd.SizeGb, err)
 			}
-
 			cd.Disk.SizeGb = size
 		}
+		if imageURLRegex.MatchString(cd.SourceImage) {
+			cd.SourceImage = extendPartialURL(cd.SourceImage, cd.Project)
+		}
+		if cd.Type == "" {
+			cd.Type = fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-standard", cd.Project, cd.Zone)
+		} else if diskTypeURLRgx.MatchString(cd.Type) {
+			cd.Type = extendPartialURL(cd.Type, cd.Project)
+		} else {
+			cd.Type = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", cd.Project, cd.Zone, cd.Type)
+		}
+	}
+	return nil
+}
 
-		// Prepare field values: Disk.Name, Disk.Type, name, Project, Zone
-		cd.name = cd.Name
-		if !cd.ExactName {
-			cd.Name = w.genName(cd.name)
+func (c *CreateDisks) validate(s *Step) error {
+	for _, cd := range *c {
+		if !checkName(cd.Name) {
+			return fmt.Errorf("cannot create disk: invalid name: %q", cd.Name)
 		}
-		cd.Project = strOr(cd.Project, w.Project)
-		cd.Zone = strOr(cd.Zone, w.Zone)
-		if cd.Type != "" && !strings.Contains(cd.Type, "/") {
-			cd.Type = fmt.Sprintf("zones/%s/diskTypes/%s", cd.Zone, cd.Type)
+		if !rfc1035Rgx.MatchString(cd.Project) {
+			return fmt.Errorf("cannot create disk: invalid project: %q", cd.Project)
 		}
-		cd.Type = strOr(cd.Type, fmt.Sprintf("zones/%s/diskTypes/pd-standard", cd.Zone))
-		cd.Description = strOr(cd.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
+		if !rfc1035Rgx.MatchString(cd.Zone) {
+			return fmt.Errorf("cannot create disk: invalid zone: %q", cd.Zone)
+		}
+		if !diskTypeURLRgx.MatchString(cd.Type) {
+			return fmt.Errorf("cannot create disk: invalid disk type: %q", cd.Type)
+		}
+
+		if cd.SourceImage != "" {
+			if !imageValid(s.w, cd.SourceImage) {
+				return fmt.Errorf("cannot create disk: image not found: %q", cd.SourceImage)
+			}
+		} else if cd.SizeGb == "" {
+			return errors.New("cannot create disk: SizeGb and SourceImage not set")
+		}
 
 		// Try adding disk name.
-		if err := validatedDisks.add(w, cd.name); err != nil {
+		if err := validatedDisks.add(s.w, cd.daisyName); err != nil {
 			return fmt.Errorf("error adding disk: %s", err)
 		}
 	}
-
 	return nil
 }
 
@@ -108,14 +123,10 @@ func (c *CreateDisks) run(s *Step) error {
 		go func(cd *CreateDisk) {
 			defer wg.Done()
 
-			// Get the source image link.  TODO(crunkleton): Move to validate after validation refactor.
+			// Get the source image link if using a source image.
 			if cd.SourceImage != "" && !imageURLRegex.MatchString(cd.SourceImage) {
-				if image, ok := images[w].get(cd.SourceImage); ok {
-					cd.SourceImage = image.link
-				} else {
-					e <- fmt.Errorf("invalid or missing reference to SourceImage %q", cd.SourceImage)
-					return
-				}
+				image, _ := images[w].get(cd.SourceImage)
+				cd.SourceImage = image.link
 			}
 
 			w.logger.Printf("CreateDisks: creating disk %q.", cd.Name)
@@ -123,7 +134,7 @@ func (c *CreateDisks) run(s *Step) error {
 				e <- err
 				return
 			}
-			disks[w].add(cd.name, &resource{real: cd.Name, link: cd.SelfLink, noCleanup: cd.NoCleanup})
+			disks[w].add(cd.daisyName, &resource{real: cd.Name, link: cd.SelfLink, noCleanup: cd.NoCleanup})
 		}(cd)
 	}
 

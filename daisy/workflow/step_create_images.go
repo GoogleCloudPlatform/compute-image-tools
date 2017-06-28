@@ -41,7 +41,7 @@ type CreateImage struct {
 	ExactName bool
 
 	// The name of the disk as known internally to Daisy.
-	name string
+	daisyName string
 }
 
 // MarshalJSON is a hacky workaround to prevent CreateImage from using
@@ -50,40 +50,58 @@ func (c *CreateImage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*c)
 }
 
-func (c *CreateImages) validate(s *Step) error {
-	w := s.w
+// populate preprocesses fields: Name, Project, Description, SourceDisk, RawDisk, and daisyName.
+// - sets defaults
+// - extends short partial URLs to include "projects/<project>"
+func (c *CreateImages) populate(s *Step) error {
 	for _, ci := range *c {
+		// Prepare field values: name, Name, RawDisk.Source, Description
+		ci.daisyName = ci.Name
+		if !ci.ExactName {
+			ci.Name = s.w.genName(ci.daisyName)
+		}
+		ci.Project = strOr(ci.Project, s.w.Project)
+		ci.Description = strOr(ci.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
+
+		if diskURLRegex.MatchString(ci.SourceDisk) {
+			ci.SourceDisk = extendPartialURL(ci.SourceDisk, ci.Project)
+		}
+
+		if ci.RawDisk != nil {
+			if s.w.sourceExists(ci.RawDisk.Source) {
+				ci.RawDisk.Source = s.w.getSourceGCSAPIPath(ci.RawDisk.Source)
+			} else if p, err := getGCSAPIPath(ci.RawDisk.Source); err == nil {
+				ci.RawDisk.Source = p
+			} else {
+				return fmt.Errorf("bad value for RawDisk.Source: %q", ci.RawDisk.Source)
+			}
+		}
+	}
+	return nil
+}
+
+func (c *CreateImages) validate(s *Step) error {
+	if err := c.populate(s); err != nil {
+		return err
+	}
+	for _, ci := range *c {
+		if !checkName(ci.Name) {
+			return fmt.Errorf("can't create image: bad name: %q", ci.Name)
+		}
+
 		// Source disk checking.
 		if !xor(ci.SourceDisk == "", ci.RawDisk == nil) {
 			return errors.New("must provide either SourceDisk or RawDisk, exclusively")
 		}
 
-		// Prepare field values: name, Name, RawDisk.Source, Description
-		ci.name = ci.Name
-		if !ci.ExactName {
-			ci.Name = w.genName(ci.name)
-		}
 		if ci.SourceDisk != "" {
-			if !diskValid(w, ci.SourceDisk) {
+			if !diskValid(s.w, ci.SourceDisk) {
 				return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
 			}
-		} else if w.sourceExists(ci.RawDisk.Source) {
-			ci.RawDisk.Source = w.getSourceGCSAPIPath(ci.RawDisk.Source)
-		} else if p, err := getGCSAPIPath(ci.RawDisk.Source); err == nil {
-			ci.RawDisk.Source = p
-		} else {
-			return fmt.Errorf("cannot create image: file not in sources or valid GCS path: %s", ci.RawDisk.Source)
-		}
-		ci.Description = strOr(ci.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", w.Name, w.username))
-		ci.Project = strOr(ci.Project, w.Project)
-
-		// Project checking.
-		if ci.Project != "" && !projectExists(ci.Project) {
-			return fmt.Errorf("cannot create image: project not found: %s", ci.Project)
 		}
 
 		// Try adding image name.
-		if err := validatedImages.add(w, ci.name); err != nil {
+		if err := validatedImages.add(s.w, ci.daisyName); err != nil {
 			return fmt.Errorf("error adding image: %s", err)
 		}
 	}
@@ -118,7 +136,7 @@ func (c *CreateImages) run(s *Step) error {
 				e <- err
 				return
 			}
-			images[w].add(ci.name, &resource{real: ci.Name, link: ci.SelfLink, noCleanup: ci.NoCleanup})
+			images[w].add(ci.daisyName, &resource{real: ci.Name, link: ci.SelfLink, noCleanup: ci.NoCleanup})
 		}(ci)
 	}
 

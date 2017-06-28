@@ -23,8 +23,14 @@ import (
 )
 
 type stepImpl interface {
-	run(s *Step) error
+	// populate modifies the step type field values.
+	// populate should set defaults, extend GCE partial URLs to full partial
+	// URLs (partial URLs including the "projects/<project>" prefix), etc.
+	// This should not perform value validation.
+	// Returns any parsing errors.
+	populate(s *Step) error
 	validate(s *Step) error
+	run(s *Step) error
 }
 
 // Step is a single daisy workflow step.
@@ -157,6 +163,10 @@ func (s *Step) validate() error {
 		return s.wrapValidateError(err)
 	}
 	return nil
+}
+
+func (s *Step) wrapPopulateError(e error) error {
+	return fmt.Errorf("step %q populate error: %s", s.name, e)
 }
 
 func (s *Step) wrapRunError(e error) error {

@@ -14,7 +14,85 @@
 
 package workflow
 
-import "testing"
+import (
+	"github.com/kylelemons/godebug/pretty"
+	"testing"
+	"time"
+)
+
+func TestIncludeWorkflowPopulate(t *testing.T) {
+	// Tests:
+	// - adopt parent project, zone, and gcs path
+	// - included sources go into parent sources
+	// - vars get passed into included workflow
+	// - included workflow name is step name
+
+	w := testWorkflow()
+	got := &Workflow{
+		parent: w,
+		Sources: map[string]string{
+			"file": "path",
+		},
+		Steps: map[string]*Step{
+			"${foo}": {
+				testType: &mockStep{},
+			},
+		},
+	}
+	s := &Step{
+		name: "step-name",
+		w:    w,
+		IncludeWorkflow: &IncludeWorkflow{
+			Vars: map[string]string{"foo": "bar"},
+			w:    got,
+		},
+	}
+
+	if err := s.IncludeWorkflow.populate(s); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	wantTimeout, _ := time.ParseDuration(defaultTimeout)
+	want := &Workflow{
+		Name:    s.name,
+		Project: w.Project,
+		Zone:    w.Zone,
+		GCSPath: w.GCSPath,
+		Vars: map[string]vars{
+			"foo": {Value: "bar"},
+		},
+		Sources: map[string]string{
+			"file": "path",
+		},
+		Steps: map[string]*Step{
+			"bar": {
+				name:     "bar",
+				Timeout:  defaultTimeout,
+				timeout:  wantTimeout,
+				testType: &mockStep{},
+			},
+		},
+	}
+
+	// Fixes for pretty.Compare.
+	for _, wf := range []*Workflow{got, want} {
+		wf.ComputeClient = nil
+		wf.StorageClient = nil
+		wf.logger = nil
+		wf.cleanupHooks = nil
+		wf.parent = nil
+		for _, s := range wf.Steps {
+			s.w = nil
+		}
+	}
+
+	if diff := pretty.Compare(got, want); diff != "" {
+		t.Errorf("populated IncludeWorkflow does not match expectation: (-got +want)\n%s", diff)
+	}
+	if diff := pretty.Compare(w.Sources, got.Sources); diff != "" {
+		t.Errorf("parent workflow sources don't match expectation: (-got +want)\n%s", diff)
+	}
+}
 
 func TestIncludeWorkflowRun(t *testing.T) {}
 

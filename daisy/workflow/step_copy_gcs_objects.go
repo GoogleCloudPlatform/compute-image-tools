@@ -33,9 +33,9 @@ type CopyGCSObject struct {
 	ACLRules            []storage.ACLRule
 }
 
-func (c *CopyGCSObjects) validate(s *Step) error {
-	return nil
-}
+func (c *CopyGCSObjects) populate(s *Step) error { return nil }
+
+func (c *CopyGCSObjects) validate(s *Step) error { return nil }
 
 func recursiveGCS(w *Workflow, sBkt, sPrefix, dBkt, dPrefix string) error {
 	it := w.StorageClient.Bucket(sBkt).Objects(w.Ctx, &storage.Query{Prefix: sPrefix})

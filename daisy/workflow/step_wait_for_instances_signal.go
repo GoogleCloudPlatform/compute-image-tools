@@ -90,16 +90,30 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 	}
 }
 
-func (ws *WaitForInstancesSignal) run(s *Step) error {
+func (w *WaitForInstancesSignal) populate(s *Step) error {
+	for _, ws := range *w {
+		if ws.Interval == "" {
+			ws.Interval = defaultInterval
+		}
+		interval, err := time.ParseDuration(ws.Interval)
+		if err != nil {
+			return err
+		}
+		ws.interval = interval
+	}
+	return nil
+}
+
+func (w *WaitForInstancesSignal) run(s *Step) error {
 	var wg sync.WaitGroup
-	w := s.w
+	wf := s.w
 	e := make(chan error)
 
-	for _, is := range *ws {
+	for _, is := range *w {
 		wg.Add(1)
 		go func(is InstanceSignal) {
 			defer wg.Done()
-			i, ok := instances[w].get(is.Name)
+			i, ok := instances[wf].get(is.Name)
 			if !ok {
 				e <- fmt.Errorf("unresolved instance %q", is.Name)
 				return
@@ -107,19 +121,19 @@ func (ws *WaitForInstancesSignal) run(s *Step) error {
 			sig := make(chan struct{})
 			if is.Stopped {
 				go func() {
-					w.logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", i.real)
-					if err := w.ComputeClient.WaitForInstanceStopped(w.Project, w.Zone, i.real, is.interval); err != nil {
+					wf.logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", i.real)
+					if err := wf.ComputeClient.WaitForInstanceStopped(wf.Project, wf.Zone, i.real, is.interval); err != nil {
 						e <- err
 						close(sig)
 						return
 					}
-					w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
+					wf.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
 					close(sig)
 				}()
 			}
 			if is.SerialOutput != nil {
 				go func() {
-					if err := waitForSerialOutput(w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
+					if err := waitForSerialOutput(wf, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
 						e <- err
 					}
 					close(sig)
@@ -140,14 +154,14 @@ func (ws *WaitForInstancesSignal) run(s *Step) error {
 	select {
 	case err := <-e:
 		return err
-	case <-w.Cancel:
+	case <-wf.Cancel:
 		return nil
 	}
 }
 
-func (ws *WaitForInstancesSignal) validate(s *Step) error {
+func (w *WaitForInstancesSignal) validate(s *Step) error {
 	// Instance checking.
-	for _, i := range *ws {
+	for _, i := range *w {
 		if !instanceValid(s.w, i.Name) {
 			return fmt.Errorf("cannot wait for instance signal. Instance not found: %q", i.Name)
 		}

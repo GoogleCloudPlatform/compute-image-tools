@@ -126,7 +126,6 @@ func TestNameSet(t *testing.T) {
 		{"normal add", w, "hello", false, nameSet{w: {"hello"}}},
 		{"add ordering", w, "world", false, nameSet{w: {"hello", "world"}}},
 		{"add dupe", w, "world", true, nameSet{w: {"hello", "world"}}},
-		{"add bad name", w, "b@dname", true, nameSet{w: {"hello", "world"}}},
 		{"add to second workflow", w2, "hello", false, nameSet{w: {"hello", "world"}, w2: {"hello"}}},
 	}
 
