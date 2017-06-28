@@ -30,7 +30,7 @@ steps:
 # Build Linux binary.
 - name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=linux/daisy', './daisy/daisy.go']
-  env: ['PROJECT_ROOT=daisy']
+  env: ['PROJECT_ROOT=daisy', 'CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './linux/daisy', 'gs://compute-image-tools/release/linux/daisy']
 - name: 'gcr.io/cloud-builders/gsutil'
