@@ -27,7 +27,7 @@ import (
 const defaultInterval = "5s"
 
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
-type WaitForInstancesSignal []InstanceSignal
+type WaitForInstancesSignal []*InstanceSignal
 
 // SerialOutput describes text signal strings that will be written to the serial
 // port.
@@ -92,7 +92,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 }
 
 func (w *WaitForInstancesSignal) populate(ctx context.Context, s *Step) error {
-	for i, ws := range *w {
+	for _, ws := range *w {
 		if ws.Interval == "" {
 			ws.Interval = defaultInterval
 		}
@@ -101,7 +101,6 @@ func (w *WaitForInstancesSignal) populate(ctx context.Context, s *Step) error {
 		if err != nil {
 			return err
 		}
-		(*w)[i] = ws
 	}
 	return nil
 }
@@ -112,7 +111,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) error {
 
 	for _, is := range *w {
 		wg.Add(1)
-		go func(is InstanceSignal) {
+		go func(is *InstanceSignal) {
 			defer wg.Done()
 			i, ok := instances[s.w].get(is.Name)
 			if !ok {

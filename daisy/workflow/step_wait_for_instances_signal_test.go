@@ -22,12 +22,12 @@ import (
 )
 
 func TestWaitForInstancesSignalPopulate(t *testing.T) {
-	got := &WaitForInstancesSignal{InstanceSignal{Name: "test"}}
+	got := &WaitForInstancesSignal{&InstanceSignal{Name: "test"}}
 	if err := got.populate(context.Background(), &Step{}); err != nil {
 		t.Fatalf("error running populate: %v", err)
 	}
 
-	want := &WaitForInstancesSignal{InstanceSignal{Name: "test", Interval: "5s", interval: 5 * time.Second}}
+	want := &WaitForInstancesSignal{&InstanceSignal{Name: "test", Interval: "5s", interval: 5 * time.Second}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got != want:\ngot:  %+v\nwant: %+v", got, want)
 	}
