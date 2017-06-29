@@ -336,7 +336,6 @@ func (w *Workflow) populate(ctx context.Context) error {
 func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw := New()
 	iw.Cancel = w.Cancel
-	iw.parent = w
 	shareWorkflowResources(w, iw)
 	return iw
 }

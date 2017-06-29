@@ -33,11 +33,11 @@ type IncludeWorkflow struct {
 }
 
 func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
-	i.w.GCSPath = i.w.parent.GCSPath
+	i.w.GCSPath = s.w.GCSPath
 	i.w.Name = s.name
-	i.w.Project = i.w.parent.Project
-	i.w.Zone = i.w.parent.Zone
-	i.w.autovars = i.w.parent.autovars
+	i.w.Project = s.w.Project
+	i.w.Zone = s.w.Zone
+	i.w.autovars = s.w.autovars
 
 	for k, v := range i.Vars {
 		i.w.AddVar(k, v)
@@ -58,6 +58,21 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 	}
 	substitute(reflect.ValueOf(i.w).Elem(), strings.NewReplacer(replacements...))
 
+	// Copy Sources up to parent resolving relative paths as we go.
+	for k, v := range i.w.Sources {
+		if _, ok := s.w.Sources[k]; ok {
+			return fmt.Errorf("source %q already exists in workflow", k)
+		}
+		if s.w.Sources == nil {
+			s.w.Sources = map[string]string{}
+		}
+
+		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
+			v = filepath.Join(i.w.workflowDir, v)
+		}
+		s.w.Sources[k] = v
+	}
+
 	for name, st := range i.w.Steps {
 		st.name = name
 		st.w = s.w
@@ -66,20 +81,6 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 		}
 	}
 
-	// Copy Sources up to parent resolving relative paths as we go.
-	for k, v := range i.w.Sources {
-		if _, ok := s.w.Sources[k]; ok {
-			return fmt.Errorf("source %q already exists in parent workflow", k)
-		}
-		if i.w.parent.Sources == nil {
-			i.w.parent.Sources = map[string]string{}
-		}
-
-		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
-			v = filepath.Join(i.w.workflowDir, v)
-		}
-		i.w.parent.Sources[k] = v
-	}
 	return nil
 }
 
