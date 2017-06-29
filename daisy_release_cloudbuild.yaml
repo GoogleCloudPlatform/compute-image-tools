@@ -1,18 +1,29 @@
 steps:
-# Build docker container.
+# Setup workspace
+- name: 'alpine'
+  args: ['mkdir', '-p', './src/github.com/GoogleCloudPlatform/compute-image-tools']
+- name: 'alpine'
+  args: ['mv', './daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['get', '-d', './daisy/...']
-  env: ['PROJECT_ROOT=daisy']
+  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy/...']
+  env: ['GOPATH=./']
+
+### Daisy builds with V1 API ###
+# Build Linux binary + container.
 - name: 'gcr.io/cloud-builders/go'
-  args: ['install', './daisy']
-  env: ['PROJECT_ROOT=daisy', 'CGO_ENABLED=0']
+  args: ['build', '-o=linux/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy/daisy.go']
+  env: ['CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy:release', '--file=Dockerfile.daisy', '.']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './linux/daisy', 'gs://compute-image-tools/release/linux/daisy']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/release/linux/daisy']
 
 # Build Windows binary.
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=windows/daisy.exe', './daisy/daisy.go']
-  env: ['GOOS=windows', 'PROJECT_ROOT=daisy']
+  args: ['build', '-o=windows/daisy.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy/daisy.go']
+  env: ['GOOS=windows']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './windows/daisy.exe', 'gs://compute-image-tools/release/windows/daisy.exe']
 - name: 'gcr.io/cloud-builders/gsutil'
@@ -20,20 +31,45 @@ steps:
 
 # Build OSX binary.
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=darwin/daisy', './daisy/daisy.go']
-  env: ['GOOS=darwin', 'PROJECT_ROOT=daisy']
+  args: ['build', '-o=darwin/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy/daisy.go']
+  env: ['GOOS=darwin']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './darwin/daisy', 'gs://compute-image-tools/release/darwin/daisy']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/release/darwin/daisy']
 
-# Build Linux binary.
-- name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=linux/daisy', './daisy/daisy.go']
-  env: ['PROJECT_ROOT=daisy', 'CGO_ENABLED=0']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', './linux/daisy', 'gs://compute-image-tools/release/linux/daisy']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/release/linux/daisy']
+### Daisy builds with Beta API ###
+# Rewrite v1 import to beta
+- name: 'golang:alpine'
+  args: ['gofmt', '-w', '-r', '"google.golang.org/api/compute/v1" -> "google.golang.org/api/compute/v0.beta"', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy']
 
-images: ['gcr.io/$PROJECT_ID/daisy:release']
+# Build Linux binary + container.
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy/daisy.go']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy_beta:release', '--file=Dockerfile.daisy', '.']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './linux/daisy', 'gs://compute-image-tools/release/linux/daisy_beta']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/release/linux/daisy_beta']
+
+# Build Windows binary.
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=windows/daisy.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy/daisy.go']
+  env: ['GOOS=windows']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './windows/daisy.exe', 'gs://compute-image-tools/release/windows/daisy_beta.exe']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/release/windows/daisy_beta.exe']
+
+# Build OSX binary.
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=darwin/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy/daisy.go']
+  env: ['GOOS=darwin']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './darwin/daisy', 'gs://compute-image-tools/release/darwin/daisy_beta']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/release/darwin/daisy_beta']
+
+images: ['gcr.io/$PROJECT_ID/daisy:release', 'gcr.io/$PROJECT_ID/daisy_beta:release']
