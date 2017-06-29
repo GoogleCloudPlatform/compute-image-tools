@@ -16,13 +16,20 @@ package workflow
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 )
 
 func TestWaitForInstancesSignalPopulate(t *testing.T) {
-	if err := (&WaitForInstancesSignal{}).populate(context.Background(), &Step{}); err != nil {
-		t.Error("not implemented, err should be nil")
+	got := &WaitForInstancesSignal{InstanceSignal{Name: "test"}}
+	if err := got.populate(context.Background(), &Step{}); err != nil {
+		t.Fatalf("error running populate: %v")
+	}
+
+	want := &WaitForInstancesSignal{InstanceSignal{Name: "test", Interval: "5s", interval: 5 * time.Second}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got != want:\ngot:  %+v\nwant: %+v", got, want)
 	}
 }
 
@@ -63,13 +70,14 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 		step      WaitForInstancesSignal
 		shouldErr bool
 	}{
-		{"normal case Stopped", WaitForInstancesSignal{{Name: "instance1", Stopped: true}}, false},
-		{"normal SerialOutput SuccessMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test"}}}, false},
-		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail"}}}, false},
-		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test", FailureMatch: "fail"}}}, false},
-		{"SerialOutput no port", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{SuccessMatch: "test"}}}, true},
-		{"SerialOutput no SuccessMatch or FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1}}}, true},
-		{"instance DNE error check", WaitForInstancesSignal{{Name: "instance1", Stopped: true}, {Name: "instance2", Stopped: true}}, true},
+		{"normal case Stopped", WaitForInstancesSignal{{Name: "instance1", Stopped: true, interval: 1*time.Second}}, false},
+		{"normal SerialOutput SuccessMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test"},interval: 1*time.Second}}, false},
+		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail"},interval: 1*time.Second}}, false},
+		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test", FailureMatch: "fail"},interval: 1*time.Second}}, false},
+		{"SerialOutput no port", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{SuccessMatch: "test"},interval: 1*time.Second}}, true},
+		{"SerialOutput no SuccessMatch or FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1},interval: 1*time.Second}}, true},
+		{"instance DNE error check", WaitForInstancesSignal{{Name: "instance1", Stopped: true,interval: 1*time.Second}, {Name: "instance2", Stopped: true,interval: 1*time.Second}}, true},
+		{"no interval", WaitForInstancesSignal{{Name: "instance1", Stopped: true, Interval: "0s"}}, true},
 	}
 
 	for _, test := range tests {
