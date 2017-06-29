@@ -16,8 +16,8 @@
 set -x
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
-DEB_RELEASE="$(curl -f -H Metadata-Flavor:Google ${URL}/debian-release)"
-INSTALL_GCE="$(curl -f -H Metadata-Flavor:Google ${URL}/install-gce-packages)"
+DEB_RELEASE="$(curl -f -H Metadata-Flavor:Google ${URL}/debian_release)"
+INSTALL_GCE="$(curl -f -H Metadata-Flavor:Google ${URL}/install_gce_packages)"
 MNT="/mnt/imported_disk"
 
 # Mount the imported disk.
@@ -27,12 +27,14 @@ if [ -b /dev/sdb1 ]; then
   mount /dev/sdb1 ${MNT}
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: Unable to mount imported disk."
+    exit 1
   fi
 else
   echo "Trying to mount /dev/sdb"
   mount /dev/sdb ${MNT}
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: Unable to mount imported disk."
+    exit 1
   fi
 fi
 
@@ -68,6 +70,7 @@ EOF
 
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: GCE package install failed."
+    exit 1
   fi
 fi
 
@@ -86,6 +89,7 @@ fi
 chroot ${MNT} update-grub2
 if [ $? -ne 0 ]; then
   echo "TranslateFailed: Grub update failed."
+  exit 1
 fi
 
 # Reset network for DHCP.
@@ -102,11 +106,9 @@ EOF
 echo "Removing SSH host keys."
 rm -f ${MNT}/etc/ssh/ssh_host_*
 
-for f in proc sys dev, do
+for f in proc sys dev; do
   umount -l ${MNT}/$f
 done
 umount -l ${MNT}
 
 echo "TranslateSuccess: Translation finished."
-sync
-shutdown -h not

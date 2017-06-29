@@ -1,0 +1,53 @@
+{
+  "Name": "translate-ubuntu-1604",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "The Ubuntu 16.04 GCE image to translate."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "image_name": {
+      "Value": "ubuntu-1604-${ID}",
+      "Description": "The name of the translated Ubuntu 16.04 image."
+    }
+  },
+  "Steps": {
+    "setup-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-ubu-1604-import",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "translate-disk": {
+      "IncludeWorkflow": {
+        "Path": "./translate_ubuntu.wf.json",
+        "Vars": {
+          "ubuntu_release": "xenial",
+          "install_gce_packages": "${install_gce_packages}",
+          "imported_disk": "disk-ubu-1604-import"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "disk-ubu-1604-import",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "translate-disk": ["setup-disk"],
+    "create-image": ["translate-disk"]
+  }
+}

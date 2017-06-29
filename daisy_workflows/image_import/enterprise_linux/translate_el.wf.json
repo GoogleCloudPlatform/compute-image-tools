@@ -1,9 +1,9 @@
 {
-  "Name": "translate-centos",
+  "Name": "translate-el",
   "Vars": {
     "el_release": {
       "Required": true,
-      "Description": "The CentOS release to translate."
+      "Description": "The EL release to translate."
     },
     "install_gce_packages": {
       "Value": "true",
@@ -12,40 +12,35 @@
     "imported_disk": {
       "Required": true,
       "Description": "The name of the imported GCE disk resource."
+    },
+    "translator_disk": {
+      "Required": true,
+      "Description": "The name of the GCE translator OS disk resource."
+    },
+    "use_rhel_gce_license": {
+      "Value": "false",
+      "Description": "Whether to use a GCE RHEL license or not."
     }
   },
   "Sources": {
-    "translate_centos.sh": "./translate_centos.sh"
+    "translate_el.sh": "./translate_el.sh"
   },
   "Steps": {
-    "setup-disk": {
-      "CreateDisks": [
-        {
-          "Name": "disk-translator",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "SizeGb": "10",
-          "Type": "pd-ssd"
-        }
-      ]
-    },
     "translate-disk-inst": {
       "CreateInstances": [
         {
           "Name": "inst-translator",
           "Disks": [
-            {"Source": "disk-translator"},
+            {"Source": "${translator_disk}"},
             {"Source": "${imported_disk}"}
           ],
           "MachineType": "n1-standard-2",
           "Metadata": {
-            "el-release": "${el_release}",
-            "install-gce-packages": "${install_gce_packages}"
+            "el_release": "${el_release}",
+            "install_gce_packages": "${install_gce_packages}",
+            "use_rhel_gce_license": "${use_rhel_gce_license}"
           },
-          "Scopes": [
-            "https://www.googleapis.com/auth/devstorage.read_write",
-            "https://www.googleapis.com/auth/compute"
-          ],
-          "StartupScript": "translate_centos.sh"
+          "StartupScript": "translate_el.sh"
         }
       ]
     },
@@ -61,10 +56,15 @@
         }
       ],
       "Timeout": "60m"
+    },
+    "delete-instance": {
+      "DeleteResources": {
+        "Instances":["inst-translator"]
+      }
     }
   },
   "Dependencies": {
-    "translate-disk-inst": ["setup-disk"],
-    "wait-for-translator": ["translate-disk-inst"]
+    "wait-for-translator": ["translate-disk-inst"],
+    "delete-instance": ["wait-for-translator"]
   }
 }

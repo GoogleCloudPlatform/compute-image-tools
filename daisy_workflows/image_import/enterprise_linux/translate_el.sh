@@ -16,9 +16,9 @@
 set -x
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
-EL_RELEASE="$(curl -f -H Metadata-Flavor:Google ${URL}/el-release)"
-INSTALL_GCE="$(curl -f -H Metadata-Flavor:Google ${URL}/install-gce-packages)"
-GCE_LICENSE="$(curl -f -H Metadata-Flavor:Google ${URL}/use-gce-license)"
+EL_RELEASE="$(curl -f -H Metadata-Flavor:Google ${URL}/el_release)"
+INSTALL_GCE="$(curl -f -H Metadata-Flavor:Google ${URL}/install_gce_packages)"
+RHEL_LICENSE="$(curl -f -H Metadata-Flavor:Google ${URL}/use_rhel_gce_license)"
 MNT="/mnt/imported_disk"
 
 # Mount the imported disk.
@@ -28,12 +28,14 @@ if [ -b /dev/sdb1 ]; then
   mount /dev/sdb1 ${MNT}
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: Unable to mount imported disk."
+    exit 1
   fi
 else
   echo "Trying to mount /dev/sdb"
   mount /dev/sdb ${MNT}
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: Unable to mount imported disk."
+    exit 1
   fi
 fi
 
@@ -42,15 +44,17 @@ for f in proc sys dev run; do
   mount -o bind /$f ${MNT}/$f
 done
 cp /etc/resolv.conf ${MNT}/etc/resolv.conf
-chroot ${MNT} restorecon /etc/resolv.conf
+oot ${MNT} restorecon /etc/resolv.conf
 
-if [[ "${GCE_LIENSE}" == "true" ]]; then
-  # Remove rhui packages and add the google rhui package.
-  yum install -y --downloadonly --downloaddir=${MNT}/tmp google-rhui-client-rhel${EL_RELEASE}
-  if [ $? -eq 0 ]; then
-    chroot ${MNT} yum remove -y *rhui*
-    echo "Adding in GCE RHUI package."
-    chroot ${MNT} yum install -y /tmp/google-rhui-client-rhel${EL_RELEASE}*.rpm
+if [[ "${RHEL_LIENSE}" == "true" ]]; then
+  if $(grep -q "Red Hat" /etc/redhat-release); then
+    # Remove rhui packages and add the google rhui package.
+    yum install -y --downloadonly --downloaddir=${MNT}/tmp google-rhui-client-rhel${EL_RELEASE}
+    if [ $? -eq 0 ]; then
+      chroot ${MNT} yum remove -y *rhui*
+      echo "Adding in GCE RHUI package."
+      chroot ${MNT} yum install -y /tmp/google-rhui-client-rhel${EL_RELEASE}*.rpm
+    fi
   fi
 fi
 
@@ -85,6 +89,7 @@ fi
   chroot ${MNT} yum -y install google-compute-engine google-compute-engine-init google-config
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: GCE package install failed."
+    exit 1
   fi
 fi
 
@@ -97,6 +102,7 @@ if [[ ${EL_RELEASE} == "7" ]]; then
   chroot ${MNT} grub2-mkconfig -o /boot/grub2/grub.cfg
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: Grub update failed."
+    exit 1
   fi
 fi
 
@@ -122,11 +128,9 @@ chroot ${MNT} restorecon /etc/sysconfig/network-scripts/ifcfg-eth0
 echo "Removing SSH host keys."
 rm -f ${MNT}/etc/ssh/ssh_host_*
 
-for f in proc sys dev run, do
+for f in proc sys dev run; do
   umount -l ${MNT}/$f
 done
 umount -l ${MNT}
 
 echo "TranslateSuccess: Translation finished."
-sync
-shutdown -h now

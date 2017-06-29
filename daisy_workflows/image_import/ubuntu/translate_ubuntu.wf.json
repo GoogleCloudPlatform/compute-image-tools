@@ -38,13 +38,9 @@
           ],
           "MachineType": "n1-standard-2",
           "Metadata": {
-            "ubuntu-release": "${ubuntu_release}",
-            "install-gce-packages": "${install_gce_packages}"
+            "ubuntu_release": "${ubuntu_release}",
+            "install_gce_packages": "${install_gce_packages}"
           },
-          "Scopes": [
-            "https://www.googleapis.com/auth/devstorage.read_write",
-            "https://www.googleapis.com/auth/compute"
-          ],
           "StartupScript": "translate_ubuntu.sh"
         }
       ]
@@ -61,10 +57,16 @@
         }
       ],
       "Timeout": "60m"
+    },
+    "delete-instance": {
+      "DeleteResources": {
+        "Instances":["inst-translator"]
+      }
     }
   },
   "Dependencies": {
     "translate-disk-inst": ["setup-disk"],
-    "wait-for-translator": ["translate-disk-inst"]
+    "wait-for-translator": ["translate-disk-inst"],
+    "delete-instance": ["wait-for-translator"]
   }
 }

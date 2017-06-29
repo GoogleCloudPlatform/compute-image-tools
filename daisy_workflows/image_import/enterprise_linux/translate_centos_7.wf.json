@@ -1,0 +1,61 @@
+{
+  "Name": "translate-centos-7",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "The CentOS 7 GCE image to translate."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "image_name": {
+      "Value": "centos-7-${ID}",
+      "Description": "The name of the translated CentOS 7 image."
+    }
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-translator",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        },
+        {
+          "Name": "disk-centos-7-import",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "translate-disk": {
+      "IncludeWorkflow": {
+        "Path": "./translate_centos.wf.json",
+        "Vars": {
+          "el_release": "7",
+          "install_gce_packages": "${install_gce_packages}",
+          "translator_disk": "disk-translator",
+          "imported_disk": "disk-centos-7-import"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "disk-centos-7-import",
+          "ExactName": true,
+          "NoCleanup": true
+
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "translate-disk": ["setup-disks"],
+    "create-image": ["translate-disk"]
+  }
+}
