@@ -65,7 +65,6 @@
         {
           "Name": "${image_name}",
           "SourceDisk": "disk-import",
-          "Project": "${PROJECT}",
           "ExactName": true,
           "NoCleanup": true
         }

@@ -40,7 +40,6 @@
         {
           "Name": "${image_name}",
           "SourceDisk": "disk-deb-8-import",
-          "Project": "${PROJECT}",
           "ExactName": true,
           "NoCleanup": true
         }

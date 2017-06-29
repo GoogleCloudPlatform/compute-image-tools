@@ -40,7 +40,6 @@
         {
           "Name": "${image_name}",
           "SourceDisk": "disk-ubu-1404-import",
-          "Project": "${PROJECT}",
           "ExactName": true,
           "NoCleanup": true
         }

@@ -48,7 +48,6 @@
         {
           "Name": "${image_name}",
           "SourceDisk": "disk-rhel-7-import",
-          "Project": "${PROJECT}",
           "ExactName": true,
           "NoCleanup": true
 
