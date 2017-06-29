@@ -70,13 +70,13 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 		step      WaitForInstancesSignal
 		shouldErr bool
 	}{
-		{"normal case Stopped", WaitForInstancesSignal{{Name: "instance1", Stopped: true, interval: 1*time.Second}}, false},
-		{"normal SerialOutput SuccessMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test"},interval: 1*time.Second}}, false},
-		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail"},interval: 1*time.Second}}, false},
-		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test", FailureMatch: "fail"},interval: 1*time.Second}}, false},
-		{"SerialOutput no port", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{SuccessMatch: "test"},interval: 1*time.Second}}, true},
-		{"SerialOutput no SuccessMatch or FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1},interval: 1*time.Second}}, true},
-		{"instance DNE error check", WaitForInstancesSignal{{Name: "instance1", Stopped: true,interval: 1*time.Second}, {Name: "instance2", Stopped: true,interval: 1*time.Second}}, true},
+		{"normal case Stopped", WaitForInstancesSignal{{Name: "instance1", Stopped: true, interval: 1 * time.Second}}, false},
+		{"normal SerialOutput SuccessMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test"}, interval: 1 * time.Second}}, false},
+		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail"}, interval: 1 * time.Second}}, false},
+		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test", FailureMatch: "fail"}, interval: 1 * time.Second}}, false},
+		{"SerialOutput no port", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{SuccessMatch: "test"}, interval: 1 * time.Second}}, true},
+		{"SerialOutput no SuccessMatch or FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1}, interval: 1 * time.Second}}, true},
+		{"instance DNE error check", WaitForInstancesSignal{{Name: "instance1", Stopped: true, interval: 1 * time.Second}, {Name: "instance2", Stopped: true, interval: 1 * time.Second}}, true},
 		{"no interval", WaitForInstancesSignal{{Name: "instance1", Stopped: true, Interval: "0s"}}, true},
 	}
 
