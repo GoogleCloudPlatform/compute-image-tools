@@ -60,6 +60,9 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 
 	// Copy Sources up to parent resolving relative paths as we go.
 	for k, v := range i.w.Sources {
+		if v == "" {
+			continue
+		}
 		if _, ok := s.w.Sources[k]; ok {
 			return fmt.Errorf("source %q already exists in workflow", k)
 		}
