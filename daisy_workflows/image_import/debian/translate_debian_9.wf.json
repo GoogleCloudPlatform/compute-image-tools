@@ -1,0 +1,54 @@
+{
+  "Name": "translate-debian-9",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "The Debian 9 GCE image to translate."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "image_name": {
+      "Value": "debian-9-${ID}",
+      "Description": "The name of the translated Debian 9 image."
+    }
+  },
+  "Steps": {
+    "setup-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-deb-9-import",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "translate-disk": {
+      "IncludeWorkflow": {
+        "Path": "./translate_debian.wf.json",
+        "Vars": {
+          "debian_release": "stretch",
+          "install_gce_packages": "${install_gce_packages}",
+          "imported_disk": "disk-deb-9-import"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "disk-deb-9-import",
+          "Project": "${PROJECT}",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "translate-disk": ["setup-disk"],
+    "create-image": ["translate-disk"]
+  }
+}

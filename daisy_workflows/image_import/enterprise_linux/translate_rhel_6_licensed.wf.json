@@ -1,0 +1,63 @@
+{
+  "Name": "translate-rhel-6-licensed",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "The RHEL 6 GCE image to translate."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "image_name": {
+      "Value": "rhel-6-${ID}",
+      "Description": "The name of the translated RHEL 6 image."
+    }
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-translator",
+          "SourceImage": "projects/rhel-cloud/global/images/family/rhel-6",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        },
+        {
+          "Name": "disk-rhel-6-import",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "translate-disk": {
+      "IncludeWorkflow": {
+        "Path": "./translate_el.wf.json",
+        "Vars": {
+          "el_release": "6",
+          "install_gce_packages": "${install_gce_packages}",
+          "translator_disk": "disk-translator",
+          "imported_disk": "disk-rhel-6-import",
+          "use_rhel_gce_license": "true"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "disk-rhel-6-import",
+          "Project": "${PROJECT}",
+          "ExactName": true,
+          "NoCleanup": true
+
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "translate-disk": ["setup-disks"],
+    "create-image": ["translate-disk"]
+  }
+}

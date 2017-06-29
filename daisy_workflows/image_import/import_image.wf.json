@@ -1,48 +1,53 @@
 {
-  "Name": "disk-import",
+  "Name": "import-image",
   "Vars": {
     "source_disk_file": {
       "Required": true,
       "Description": "The local path or GCS path to the virtual disk to import."
     },
-    "imported_disk": {
-      "Required": true,
-      "Description": "A disk to import the source disk file to."
+    "image_name": {
+      "Value": "imported-image-${ID}",
+      "Description": "The name of the imported image."
     }
   },
   "Sources": {
-    "disk_file": "${source_disk_file}",
-    "disk_import.sh": "./disk_import.sh"
+    "import_image.sh": "./import_image.sh",
+    "source_disk_file": "${source_disk_file}"
   },
   "Steps": {
-    "setup-disk": {
+    "setup-disks": {
       "CreateDisks": [
         {
           "Name": "disk-importer",
           "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
           "SizeGb": "10",
           "Type": "pd-ssd"
+        },
+        {
+          "Name": "disk-import",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
         }
       ]
     },
-    "importer-instance": {
+    "import-virtual-disk": {
       "CreateInstances": [
         {
           "Name": "inst-importer",
           "Disks": [{"Source": "disk-importer"}],
-          "MachineType": "n1-highcpu-4",
+          "MachineType": "n1-standard-4",
           "Metadata": {
-            "disk-name": "${imported_disk}"
+            "disk_name": "disk-import-${NAME}-${ID}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write",
             "https://www.googleapis.com/auth/compute"
           ],
-          "StartupScript": "disk_import.sh"
+          "StartupScript": "import_image.sh"
         }
       ]
     },
-    "wait-for-import": {
+    "wait-for-signal": {
       "WaitForInstancesSignal": [
         {
           "Name": "inst-importer",
@@ -54,10 +59,22 @@
         }
       ],
       "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "disk-import",
+          "Project": "${PROJECT}",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
     }
   },
   "Dependencies": {
-    "importer-instance": ["setup-disk"],
-    "wait-for-import": ["importer-instance"]
+    "import-virtual-disk": ["setup-disks"],
+    "wait-for-signal": ["import-virtual-disk"],
+    "create-image": ["wait-for-signal"]
   }
 }

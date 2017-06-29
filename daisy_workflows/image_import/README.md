@@ -14,12 +14,13 @@ We use [qemu-img](http://www.qemu.org/documentation) to convert formats to a GCE
 * qed
 * vpc
 
-### image_import.wf.json
+### import_image.wf.json
 
 Imports a virtual disk file and converts it into a GCE image resource.
 
 Variables:
 * `source_disk_file`: A supported source virtual disk file, either local or in GCS.
+* `image_name`: The name of the imported image, will default to "imported-image-${ID}".
 
 Example Daisy invocation:
 ```shell
@@ -29,46 +30,10 @@ daisy -project my-project \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json \
       -variables source_disk_file=image.vmdk \
-      image_import.wf.json
+      import_image.wf.json
 ```
 
-### disk_import.wf.json
-
-Import a virtual disk file and converts it into a given GCE disk resource. This
-workflow can be included in other workflows to perform further actions on the
-imported disk.
-
-Variables:
-* `imported_disk`: A GCE disk resource to convert the imported disk to. This GCE disk must already exist.
-* `source_disk_file`: A supported source virtual disk file, either local or in GCS.
-
-In the following example, we are creating a disk with Daisy and passing the Daisy internal name of the disk resource into the workflow. This is because the VM acting up on the disk needs to know what the real name of the disk resource is in order to correctly resize it.
-
-```json
-"Steps": {
-  "create-import-disk": {
-    "CreateDisks": [
-      {
-        "Name": "ubuntu14-import",
-        "SizeGb": "10",
-        "Type": "pd-ssd"
-      }
-    ]
-  },
-  "import-virtual-disk": {
-    "IncludeWorkflow": {
-      "Path": "./disk_import.wf.json",
-      "Vars": {
-        "source_disk_file": "${source_disk_file}",
-        "imported_disk": "ubuntu14-import-${NAME}-${ID}"
-      }
-    },
-    "Timeout": "60m"
-  }
-}
-```
-
-## Imports w/Translation
+## Image Translation
 
 Translation workflows attempt to add GCE packages, remove known problematic
 packages, assure networking it setup to boot correctly, and configure the bootloader
@@ -76,30 +41,30 @@ packages, assure networking it setup to boot correctly, and configure the bootlo
 These are generic assumptions and will not work in every case.
 
 Variables:
-* `source_disk_file`: A supported source virtual disk file, either local or in GCS.
-* `install_gce_packages`: True by default, if set to false, will not attempt to
-  install packages for GCE.
+* `source_image`: The source GCE image to translate.
+* `install_gce_packages`: True by default, if set to false, will not attempt to install packages for GCE.
+* `image_name`: The name of the translated image, will default to "$DISTRO-$VER-${ID}".
 
 ### Workflows
 
-* **centos/import_centos_6.wf.json**: imports and translates a CentOS 6 based virtual disk.
-* **centos/import_centos_7.wf.json**: imports and translates a CentOS 7 based virtual disk.
-* **debian/import_debian_8.wf.json**: imports and translates a Debian 8 Jessie based virtual disk.
-* **debian/import_debian_9.wf.json**: imports and translates a Debian 9 Stretch based virtual disk.
-* **rhel/import_rhel_6_byol.wf.json**: imports and translates a Red Hat Enterprise Linux 6 based virtual disk using your own Red Hat license.
-* **rhel/import_rhel_6_licensed.wf.json**: imports and translates a Red Hat Enterprise Linux 6 based virtual disk and converts it to use a GCE based Red Hat cloud license. If you use the resulting image you will be charged for the license.
-* **rhel/import_rhel_7_byol.wf.json**: imports and translates a Red Hat Enterprise Linux 7 based virtual disk using your own Red Hat license.
-* **rhel/import_rhel_7_licensed.wf.json**: imports and translates a Red Hat Enterprise Linux 7 based virtual disk and converts it to use a GCE based Red Hat cloud license. If you use the resulting image you will be charged for the license.
-* **ubuntu/import_ubuntu_1404.wf.json**: imports and translates an Ubuntu 14.04 Trusty based virtual disk.
-* **ubuntu/import_ubuntu_1604.wf.json**: imports and translates an Ubuntu 16.04 Xenial based virtual disk.
+* **debian/translate_debian_8.wf.json**: translates a Debian 8 Jessie based virtual disk.
+* **debian/translate_debian_9.wf.json**: translates a Debian 9 Stretch based virtual disk.
+* **enterprise_linux//translate_centos_6.wf.json**: translates a CentOS 6 based virtual disk.
+* **enterprise_linux//translate_centos_7.wf.json**: translates a CentOS 7 based virtual disk.
+* **enterprise_linux/translate_rhel_6_byol.wf.json**: translates a Red Hat Enterprise Linux 6 based virtual disk using your own Red Hat license.
+* **enterprise_linux/translate_rhel_6_licensed.wf.json**: translates a Red Hat Enterprise Linux 6 based virtual disk and converts it to use a GCE based Red Hat cloud license. If you use the resulting image you will be charged for the license.
+* **enterprise_linux/translate_rhel_7_byol.wf.json**: translates a Red Hat Enterprise Linux 7 based virtual disk using your own Red Hat license.
+* **enterprise_linux/translate_rhel_7_licensed.wf.json**: translates a Red Hat Enterprise Linux 7 based virtual disk and converts it to use a GCE based Red Hat cloud license. If you use the resulting image you will be charged for the license.
+* **ubuntu/translate_ubuntu_1404.wf.json**: translates an Ubuntu 14.04 Trusty based virtual disk.
+* **ubuntu/translate_ubuntu_1604.wf.json**: translates an Ubuntu 16.04 Xenial based virtual disk.
 
 Example Daisy invocation:
 ```shell
-# Example importing an Ubuntu 14.04 VMDK (using a credentials file)
+# Example translating an Ubuntu 14.04 VMDK (using a credentials file)
 daisy -project my-project \
       -zone us-west1-a \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json \
-      -variables source_disk_file=gs://my-vmdk-bucket/ubuntu-1404.vmdk \
-      ubuntu/import_ubuntu_1404.wf.json
+      -variables source_image=projects/my-project/global/images/ubuntu-1404-xy23f \
+      ubuntu/translate_ubuntu_1404.wf.json
 ```

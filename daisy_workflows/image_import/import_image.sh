@@ -16,10 +16,10 @@
 set -x
 
 URL="http://metadata/computeMetadata/v1/instance"
-SOURCEURL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)/disk_file"
+SOURCEURL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)/source_disk_file"
 SOURCEBUCKET="$(echo ${SOURCEURL} | awk -F/ '{print $3}')"
 SOURCEPATH="${SOURCEURL#"gs://"}"
-DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk-name)"
+DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk_name)"
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
 ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
 
@@ -79,5 +79,3 @@ sync
 gcloud compute instances detach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE}
 
 echo "ImportSuccess: Finished import."
-sync
-shutdown -h now

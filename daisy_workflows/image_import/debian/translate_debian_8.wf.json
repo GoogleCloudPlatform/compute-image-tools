@@ -1,0 +1,54 @@
+{
+  "Name": "translate-debian-8",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "The Debian 8 GCE image to translate."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "image_name": {
+      "Value": "debian-8-${ID}",
+      "Description": "The name of the translated Debian 8 image."
+    }
+  },
+  "Steps": {
+    "setup-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-deb-8-import",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "translate-disk": {
+      "IncludeWorkflow": {
+        "Path": "./translate_debian.wf.json",
+        "Vars": {
+          "debian_release": "jessie",
+          "install_gce_packages": "${install_gce_packages}",
+          "imported_disk": "disk-deb-8-import"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "disk-deb-8-import",
+          "Project": "${PROJECT}",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "translate-disk": ["setup-disk"],
+    "create-image": ["translate-disk"]
+  }
+}

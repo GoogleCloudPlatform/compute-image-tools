@@ -66,7 +66,7 @@ func (c *CreateInstance) MarshalJSON() ([]byte, error) {
 
 func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64) {
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
-	w.logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s.", name, port, w.bucket, logsObj)
+	w.logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s", name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
 	var errs int
