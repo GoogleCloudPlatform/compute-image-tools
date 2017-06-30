@@ -15,32 +15,37 @@
 package workflow
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
 	"path"
 	"sort"
-	"testing"
-
-	"net/http"
 	"strings"
-
-	"bytes"
-	"log"
+	"testing"
 	"time"
 
 	daisy_compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
+	"reflect"
 )
 
 func TestLogSerialOutput(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 
+	var get []string
 	_, c, err := daisy_compute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=1") {
-			fmt.Fprintln(w, `{"Contents":"test","Start":"0"}`)
+			if len(get) == 0 {
+				fmt.Fprintln(w, `{"Contents":"test","Start":"0"}`)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			get = append(get, r.URL.String())
 		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=2") {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintln(w, "500 error")
@@ -58,6 +63,7 @@ func TestLogSerialOutput(t *testing.T) {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "bad request: %+v", r)
 		}
+		get = append(get, r.URL.String())
 	}))
 	if err != nil {
 		t.Fatal(err)
@@ -77,36 +83,52 @@ func TestLogSerialOutput(t *testing.T) {
 	tests := []struct {
 		test, want, name string
 		port             int64
+		get              []string // Test expected api call flow.
 	}{
 		{
 			"400 error but instance stopped",
 			"CreateInstances: streaming instance \"i1\" serial port 2 output to gs://test-bucket/i1-serial-port2.log\n",
 			"i1",
 			2,
+			[]string{"/test-project/zones/test-zone/instances/i1/serialPort?alt=json&port=2&start=0", "/test-project/zones/test-zone/instances/i1?alt=json"},
 		},
 		{
 			"400 error but instance running",
 			"CreateInstances: streaming instance \"i2\" serial port 3 output to gs://test-bucket/i2-serial-port3.log\nCreateInstances: instance \"i2\": error getting serial port: googleapi: got HTTP response code 400 with body: 400 error\n",
 			"i2",
 			3,
+			[]string{"/test-project/zones/test-zone/instances/i2/serialPort?alt=json&port=3&start=0", "/test-project/zones/test-zone/instances/i2?alt=json"},
 		},
 		{
 			"500 error but instance running",
 			"CreateInstances: streaming instance \"i2\" serial port 2 output to gs://test-bucket/i2-serial-port2.log\nCreateInstances: instance \"i2\": error getting serial port: googleapi: got HTTP response code 500 with body: 500 error\n",
 			"i2",
 			2,
+			[]string{"/test-project/zones/test-zone/instances/i2/serialPort?alt=json&port=2&start=0", "/test-project/zones/test-zone/instances/i2?alt=json", "/test-project/zones/test-zone/instances/i2/serialPort?alt=json&port=2&start=0", "/test-project/zones/test-zone/instances/i2?alt=json", "/test-project/zones/test-zone/instances/i2/serialPort?alt=json&port=2&start=0", "/test-project/zones/test-zone/instances/i2?alt=json", "/test-project/zones/test-zone/instances/i2/serialPort?alt=json&port=2&start=0", "/test-project/zones/test-zone/instances/i2?alt=json"},
 		},
 		{
 			"500 error but instance deleted",
 			"CreateInstances: streaming instance \"i4\" serial port 2 output to gs://test-bucket/i4-serial-port2.log\n",
 			"i4",
 			2,
+			[]string{"/test-project/zones/test-zone/instances/i4/serialPort?alt=json&port=2&start=0"},
+		},
+		{
+			"normal flow",
+			"CreateInstances: streaming instance \"i1\" serial port 1 output to gs://test-bucket/i1-serial-port1.log\n",
+			"i1",
+			1,
+			[]string{"/test-project/zones/test-zone/instances/i1/serialPort?alt=json&port=1&start=0", "/test-project/zones/test-zone/instances/i1/serialPort?alt=json&port=1&start=0", "/test-project/zones/test-zone/instances/i1/serialPort?alt=json&port=1&start=0", "/test-project/zones/test-zone/instances/i1/serialPort?alt=json&port=1&start=0", "/test-project/zones/test-zone/instances/i1?alt=json"},
 		},
 	}
 
 	for _, tt := range tests {
+		get = nil
 		buf.Reset()
 		logSerialOutput(ctx, w, tt.name, tt.port, 1*time.Microsecond)
+		if !reflect.DeepEqual(get, tt.get) {
+			t.Errorf("%s: got get calls: %q, want get calls: %q", tt.test, get, tt.get)
+		}
 		if buf.String() != tt.want {
 			t.Errorf("%s: got: %q, want: %q", tt.test, buf.String(), tt.want)
 		}

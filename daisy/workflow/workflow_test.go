@@ -697,8 +697,6 @@ func TestPrint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Printf("%+v\n", got.Vars)
-
 	got.ComputeClient, _ = newTestGCEClient()
 	got.StorageClient, _ = newTestGCSClient()
 
