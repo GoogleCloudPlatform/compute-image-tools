@@ -27,6 +27,7 @@ type SubWorkflow struct {
 }
 
 func (s *SubWorkflow) populate(ctx context.Context, st *Step) error {
+	s.w.parent = st.w
 	s.w.GCSPath = fmt.Sprintf("gs://%s/%s", s.w.parent.bucket, s.w.parent.scratchPath)
 	s.w.Name = st.name
 	s.w.Project = s.w.parent.Project

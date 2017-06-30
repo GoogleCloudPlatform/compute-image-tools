@@ -66,6 +66,41 @@ func TestDepends(t *testing.T) {
 	}
 }
 
+func TestGetRootStep(t *testing.T) {
+	a := &Workflow{}
+	b := &Workflow{}
+	c := &Workflow{}
+	a1 := &Step{w: a}
+	a2 := &Step{w: a, IncludeWorkflow: &IncludeWorkflow{w: b}}
+	b1 := &Step{w: b}
+	b2 := &Step{w: b, SubWorkflow: &SubWorkflow{w: c}}
+	c1 := &Step{w: c}
+	orphan := &Step{}
+	a.Steps = map[string]*Step{"a1": a1, "a2": a2}
+	b.Steps = map[string]*Step{"b1": b1, "b2": b2}
+	c.Steps = map[string]*Step{"c1": c1}
+
+	tests := []struct {
+		desc string
+		s *Step
+		w *Workflow
+		wantS *Step
+	} {
+		{"step from same workflow case", a1, a, a1},
+		{"step from include case", b1, a, a2},
+		{"step from sub case", c1, b, b2},
+		{"recursive case", c1, a, a2},
+		{"not related case", a1, b, nil},
+		{"orphan step case", orphan, b, nil},
+	}
+
+	for _, tt := range tests {
+		if s := tt.s.getRootStep(tt.w); s != tt.wantS{
+			t.Errorf("%s: %v != %v", tt.desc, s, tt.wantS)
+		}
+	}
+}
+
 func TestStepImpl(t *testing.T) {
 	// Good. Try normal, working case.
 	tests := []struct {

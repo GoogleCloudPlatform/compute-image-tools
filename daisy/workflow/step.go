@@ -106,18 +106,29 @@ func (s *Step) stepImpl() (stepImpl, error) {
 }
 
 func (s *Step) depends(other *Step) bool {
+	if s == nil || other == nil || s.w == nil || other.w == nil {
+		return false
+	}
+	target := other
+	if s.w != target.w {
+		target = target.getRootStep(s.w)
+		if target == nil {
+			return false
+		}
+	}
 	deps := s.w.Dependencies
 	steps := s.w.Steps
 	q := deps[s.name]
 	seen := map[string]bool{}
 
+	// Do a BFS search on s's dependencies, looking for the target dependency. Don't revisit visited dependencies.
 	for i := 0; i < len(q); i++ {
 		name := q[i]
 		if seen[name] {
 			continue
 		}
 		seen[name] = true
-		if steps[name] == other {
+		if steps[name] == target {
 			return true
 		}
 		for _, dep := range deps[name] {
@@ -126,6 +137,29 @@ func (s *Step) depends(other *Step) bool {
 	}
 
 	return false
+}
+
+// getChain returns the step chain getting to a step. A link in the chain represents an IncludeWorkflow step, a
+// SubWorkflow step, or the step itself.
+// For example, workflow A has a step s1 which includes workflow B. B has a step s2 which subworkflows C. Finally,
+// C has a step s3. s3.getChain() will return []*Step{s1, s2, s3}
+func (s *Step) getChain() []*Step {
+	if s.w == nil {
+		return nil
+	}
+	if s.w.parent == nil {
+		return []*Step{s}
+	}
+	for _, st := range s.w.parent.Steps {
+		if st.IncludeWorkflow != nil && st.IncludeWorkflow.w == s.w {
+			return append(st.getChain(), s)
+		}
+		if st.SubWorkflow != nil && st.SubWorkflow.w == s.w {
+			return append(st.getChain(), s)
+		}
+	}
+	// We shouldn't get here.
+	return nil
 }
 
 func (s *Step) run(ctx context.Context) error {
