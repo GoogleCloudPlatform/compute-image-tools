@@ -81,10 +81,10 @@ func TestGetChain(t *testing.T) {
 	c.Steps = map[string]*Step{"c1": c1}
 
 	tests := []struct {
-		desc string
-		s *Step
+		desc      string
+		s         *Step
 		wantChain []*Step
-	} {
+	}{
 		{"leaf case", a1, []*Step{a1}},
 		{"step from include case", b1, []*Step{a2, b1}},
 		{"step from sub case", c1, []*Step{a2, b2, c1}},
@@ -130,10 +130,10 @@ func TestNestedDepends(t *testing.T) {
 	b.Dependencies = map[string][]string{"b1": {"b2"}}
 
 	tests := []struct {
-		desc string
+		desc   string
 		s1, s2 *Step
-		want bool
-	} {
+		want   bool
+	}{
 		{"depends on niece/nephew case", a1, b3, true},
 		{"doesn't depend on niece/nephew case", b3, c1, false},
 		{"depends on great niece/nephew case", a1, c1, true},

@@ -65,10 +65,10 @@ func TestGetGCSAPIPath(t *testing.T) {
 func TestMinInt(t *testing.T) {
 	tests := []struct {
 		desc string
-		x int
-		ys []int
+		x    int
+		ys   []int
 		want int
-	} {
+	}{
 		{"single int case", 1, nil, 1},
 		{"first int case", 2, []int{1}, 1},
 		{"same ints case", 2, []int{2}, 2},
