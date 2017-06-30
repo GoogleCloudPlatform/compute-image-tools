@@ -22,10 +22,96 @@ import (
 	"sort"
 	"testing"
 
+	"net/http"
+	"strings"
+
+	"bytes"
+	"log"
+	"time"
+
 	daisy_compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
 )
+
+func TestLogSerialOutput(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+
+	_, c, err := daisy_compute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=1") {
+			fmt.Fprintln(w, `{"Contents":"test","Start":"0"}`)
+		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=2") {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintln(w, "500 error")
+		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=3") {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, "400 error")
+		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/i1", testProject, testZone)) {
+			fmt.Fprintln(w, `{"Status":"TERMINATED","SelfLink":"link"}`)
+		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/i2", testProject, testZone)) {
+			fmt.Fprintln(w, `{"Status":"RUNNING","SelfLink":"link"}`)
+		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/i3", testProject, testZone)) {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, "test error")
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "bad request: %+v", r)
+		}
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.ComputeClient = c
+	w.bucket = "test-bucket"
+
+	instances[w].m = map[string]*resource{
+		"i1": {real: w.genName("i1"), link: "link"},
+		"i2": {real: w.genName("i2"), link: "link"},
+		"i3": {real: w.genName("i3"), link: "link"},
+	}
+
+	var buf bytes.Buffer
+	w.logger = log.New(&buf, "", 0)
+
+	tests := []struct {
+		test, want, name string
+		port             int64
+	}{
+		{
+			"400 error but instance stopped",
+			"CreateInstances: streaming instance \"i1\" serial port 2 output to gs://test-bucket/i1-serial-port2.log\n",
+			"i1",
+			2,
+		},
+		{
+			"400 error but instance running",
+			"CreateInstances: streaming instance \"i2\" serial port 3 output to gs://test-bucket/i2-serial-port3.log\nCreateInstances: instance \"i2\": error getting serial port: googleapi: got HTTP response code 400 with body: 400 error\n",
+			"i2",
+			3,
+		},
+		{
+			"500 error but instance running",
+			"CreateInstances: streaming instance \"i2\" serial port 2 output to gs://test-bucket/i2-serial-port2.log\nCreateInstances: instance \"i2\": error getting serial port: googleapi: got HTTP response code 500 with body: 500 error\n",
+			"i2",
+			2,
+		},
+		{
+			"500 error but instance deleted",
+			"CreateInstances: streaming instance \"i4\" serial port 2 output to gs://test-bucket/i4-serial-port2.log\n",
+			"i4",
+			2,
+		},
+	}
+
+	for _, tt := range tests {
+		buf.Reset()
+		logSerialOutput(ctx, w, tt.name, tt.port, 1*time.Microsecond)
+		if buf.String() != tt.want {
+			t.Errorf("%s: got: %q, want: %q", tt.test, buf.String(), tt.want)
+		}
+	}
+}
 
 func TestCreateInstancePopulate(t *testing.T) {
 	ctx := context.Background()

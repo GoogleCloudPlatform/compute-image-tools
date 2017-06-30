@@ -64,13 +64,13 @@ func (c *CreateInstance) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*c)
 }
 
-func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64) {
+func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, interval time.Duration) {
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
 	w.logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s", name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
 	var errs int
-	tick := time.Tick(1 * time.Second)
+	tick := time.Tick(interval)
 	for {
 		select {
 		case <-ctx.Done():
@@ -89,6 +89,7 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64) 
 				}
 				// Otherwise retry 3 times on 5xx error.
 				if apiErr, ok := err.(*googleapi.Error); ok && errs < 3 && (apiErr.Code >= 500 && apiErr.Code <= 599) {
+					errs++
 					continue
 				}
 				w.logger.Printf("CreateInstances: instance %q: error getting serial port: %v", name, err)
@@ -353,7 +354,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) error {
 				e <- err
 				return
 			}
-			go logSerialOutput(ctx, w, ci.Name, 1)
+			go logSerialOutput(ctx, w, ci.Name, 1, 1*time.Second)
 			instances[w].add(ci.daisyName, &resource{real: ci.Name, link: ci.SelfLink, noCleanup: ci.NoCleanup})
 		}(ci)
 	}
