@@ -25,6 +25,7 @@ import (
 	"strings"
 	"sync"
 
+	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow"
@@ -58,46 +59,52 @@ func splitVariables(input string) map[string]string {
 	return varMap
 }
 
-func parseWorkflows(ctx context.Context, paths []string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint, sEndpoint string) ([]*workflow.Workflow, error) {
-	var ws []*workflow.Workflow
-	for _, path := range paths {
-		w, err := workflow.NewFromFile(path)
+func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint, sEndpoint string) (*workflow.Workflow, error) {
+	w, err := workflow.NewFromFile(path)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range varMap {
+		w.AddVar(k, v)
+	}
+
+	if cEndpoint != "" {
+		w.ComputeClient, err = compute.NewClient(ctx, option.WithEndpoint(cEndpoint), option.WithServiceAccountFile(w.OAuthPath))
 		if err != nil {
 			return nil, err
 		}
-		for k, v := range varMap {
-			w.AddVar(k, v)
-		}
-		if project != "" {
-			w.Project = project
-		}
-		if zone != "" {
-			w.Zone = zone
-		}
-		if gcsPath != "" {
-			w.GCSPath = gcsPath
-		}
-		if oauth != "" {
-			w.OAuthPath = oauth
-		}
-
-		if cEndpoint != "" {
-			w.ComputeClient, err = compute.NewClient(ctx, option.WithEndpoint(cEndpoint), option.WithServiceAccountFile(w.OAuthPath))
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if sEndpoint != "" {
-			w.StorageClient, err = storage.NewClient(ctx, option.WithEndpoint(sEndpoint), option.WithServiceAccountFile(w.OAuthPath))
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		ws = append(ws, w)
 	}
-	return ws, nil
+
+	if sEndpoint != "" {
+		w.StorageClient, err = storage.NewClient(ctx, option.WithEndpoint(sEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if project != "" {
+		w.Project = project
+	} else if w.Project == "" && metadata.OnGCE() {
+		w.Project, err = metadata.ProjectID()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if zone != "" {
+		w.Zone = zone
+	} else if w.Zone == "" && metadata.OnGCE() {
+		w.Zone, err = metadata.Zone()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if gcsPath != "" {
+		w.GCSPath = gcsPath
+	}
+	if oauth != "" {
+		w.OAuthPath = oauth
+	}
+	return w, nil
 }
 
 func main() {
@@ -107,10 +114,14 @@ func main() {
 	}
 	ctx := context.Background()
 
+	var ws []*workflow.Workflow
 	varMap := splitVariables(*variables)
-	ws, err := parseWorkflows(ctx, flag.Args(), varMap, *project, *zone, *gcsPath, *oauth, *ce, *se)
-	if err != nil {
-		log.Fatal(err)
+	for _, path := range flag.Args() {
+		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce, *se)
+		if err != nil {
+			log.Fatalf("error parsing workflow %q: %v", path, err)
+		}
+		ws = append(ws, w)
 	}
 
 	errors := make(chan error, len(ws))

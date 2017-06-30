@@ -35,6 +35,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -62,6 +63,28 @@ func (l *gcsLogger) Write(b []byte) (int, error) {
 		return 0, err
 	}
 	return n, err
+}
+
+func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, error) {
+	dBkt := project + "-daisy-bkt"
+	it := client.Buckets(ctx, project)
+	for {
+		bucketAttrs, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		if bucketAttrs.Name == dBkt {
+			return dBkt, nil
+		}
+	}
+
+	if err := client.Bucket(dBkt).Create(ctx, project, nil); err != nil {
+		return "", err
+	}
+	return dBkt, nil
 }
 
 type vars struct {
@@ -169,6 +192,8 @@ func (w *Workflow) Run(ctx context.Context) error {
 		return err
 	}
 	defer w.cleanup()
+	w.logger.Println("Using the GCS path", "gs://"+path.Join(w.bucket, w.scratchPath))
+
 	w.logger.Print("Uploading sources")
 	if err := w.uploadSources(ctx); err != nil {
 		w.logger.Printf("Error uploading sources: %v", err)
@@ -236,6 +261,29 @@ func (w *Workflow) populateStep(ctx context.Context, s *Step) error {
 }
 
 func (w *Workflow) populate(ctx context.Context) error {
+	var err error
+	if w.ComputeClient == nil {
+		w.ComputeClient, err = compute.NewClient(ctx, option.WithServiceAccountFile(w.OAuthPath))
+		if err != nil {
+			return err
+		}
+	}
+
+	if w.StorageClient == nil {
+		w.StorageClient, err = storage.NewClient(ctx, option.WithServiceAccountFile(w.OAuthPath))
+		if err != nil {
+			return err
+		}
+	}
+
+	if w.GCSPath == "" {
+		dBkt, err := daisyBkt(ctx, w.StorageClient, w.Project)
+		if err != nil {
+			return err
+		}
+		w.GCSPath = "gs://" + dBkt
+	}
+
 	w.id = randString(5)
 	now := time.Now().UTC()
 	cu, err := user.Current()
@@ -295,20 +343,6 @@ func (w *Workflow) populate(ctx context.Context) error {
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
-	if w.ComputeClient == nil {
-		w.ComputeClient, err = compute.NewClient(ctx, option.WithServiceAccountFile(w.OAuthPath))
-		if err != nil {
-			return err
-		}
-	}
-
-	if w.StorageClient == nil {
-		w.StorageClient, err = storage.NewClient(ctx, option.WithServiceAccountFile(w.OAuthPath))
-		if err != nil {
-			return err
-		}
-	}
-
 	if w.logger == nil {
 		name := w.Name
 		for parent := w.parent; parent != nil; parent = w.parent.parent {
@@ -318,7 +352,6 @@ func (w *Workflow) populate(ctx context.Context) error {
 		flags := log.Ldate | log.Ltime
 		if w.gcsLogging {
 			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx}
-			log.New(os.Stdout, prefix, flags).Println("Logs will be streamed to", "gs://"+path.Join(w.bucket, w.logsPath, "daisy.log"))
 		}
 		w.logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
 	}
