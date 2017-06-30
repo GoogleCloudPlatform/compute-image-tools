@@ -106,15 +106,8 @@ func (s *Step) stepImpl() (stepImpl, error) {
 }
 
 func (s *Step) depends(other *Step) bool {
-	if s == nil || other == nil || s.w == nil || other.w == nil {
+	if s == nil || other == nil || s.w == nil || s.w != other.w {
 		return false
-	}
-	target := other
-	if s.w != target.w {
-		target = target.getRootStep(s.w)
-		if target == nil {
-			return false
-		}
 	}
 	deps := s.w.Dependencies
 	steps := s.w.Steps
@@ -128,7 +121,7 @@ func (s *Step) depends(other *Step) bool {
 			continue
 		}
 		seen[name] = true
-		if steps[name] == target {
+		if steps[name] == other {
 			return true
 		}
 		for _, dep := range deps[name] {
@@ -139,12 +132,37 @@ func (s *Step) depends(other *Step) bool {
 	return false
 }
 
+// nestedDepends determines if s depends on other, taking into account the recursive, nested nature of
+// workflows, i.e. workflows in IncludeWorkflow and SubWorkflow.
+// Example: if s depends on an IncludeWorkflow whose workflow contains other, then s depends on other.
+func (s *Step) nestedDepends(other *Step) bool {
+	sChain := s.getChain()
+	oChain := other.getChain()
+	// If sChain and oChain don't share the same root workflow, then there is no dependency relationship.
+	if len(sChain) == 0 || len(oChain) == 0 || sChain[0].w != oChain[0].w {
+		return false
+	}
+
+	// Find where the step chains diverge.
+	// A divergence in the chains indicates sibling steps, where we can check dependency.
+	// We want to see if s's branch depends on other's branch.
+	var sStep, oStep *Step
+	for i := 0; i < minInt(len(sChain), len(oChain)); i++ {
+		sStep = sChain[i]
+		oStep = oChain[i]
+		if sStep != oStep {
+			break
+		}
+	}
+	return sStep.depends(oStep)
+}
+
 // getChain returns the step chain getting to a step. A link in the chain represents an IncludeWorkflow step, a
 // SubWorkflow step, or the step itself.
 // For example, workflow A has a step s1 which includes workflow B. B has a step s2 which subworkflows C. Finally,
 // C has a step s3. s3.getChain() will return []*Step{s1, s2, s3}
 func (s *Step) getChain() []*Step {
-	if s.w == nil {
+	if s == nil || s.w == nil {
 		return nil
 	}
 	if s.w.parent == nil {

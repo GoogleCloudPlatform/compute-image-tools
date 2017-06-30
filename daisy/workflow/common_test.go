@@ -62,6 +62,26 @@ func TestGetGCSAPIPath(t *testing.T) {
 	}
 }
 
+func TestMinInt(t *testing.T) {
+	tests := []struct {
+		desc string
+		x int
+		ys []int
+		want int
+	} {
+		{"single int case", 1, nil, 1},
+		{"first int case", 2, []int{1}, 1},
+		{"same ints case", 2, []int{2}, 2},
+		{"third int case", 4, []int{3, 2}, 2},
+	}
+
+	for _, tt := range tests {
+		if got := minInt(tt.x, tt.ys...); got != tt.want {
+			t.Errorf("%s: %d != %d", tt.desc, got, tt.want)
+		}
+	}
+}
+
 func TestRandString(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		l := len(randString(i))
