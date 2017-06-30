@@ -41,6 +41,32 @@ import (
 	"google.golang.org/api/option"
 )
 
+func TestDaisyBkt(t *testing.T) {
+	client, err := newTestGCSClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project := "foo-project"
+	got, err := daisyBkt(context.Background(), client, project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := project + "-daisy-bkt"
+	if got != project+"-daisy-bkt" {
+		t.Errorf("bucket does not match, got: %q, want: %q", got, want)
+	}
+
+	project = "bar-project"
+	got, err = daisyBkt(context.Background(), client, project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = project + "-daisy-bkt"
+	if got != project+"-daisy-bkt" {
+		t.Errorf("bucket does not match, got: %q, want: %q", got, want)
+	}
+}
+
 func TestCleanup(t *testing.T) {
 	cleanedup1 := false
 	cleanedup2 := false
