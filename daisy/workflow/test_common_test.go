@@ -158,6 +158,12 @@ func newTestGCSClient() (*storage.Client, error) {
 			fmt.Fprint(w, `{"kind": "storage#objects", "items": [{"kind": "storage#object", "name": "object", "size": "1"},{"kind": "storage#object", "name": "folder/object", "size": "1"}]}`)
 		} else if m == "PUT" && u == "/b/bucket/o/object/acl/allUsers?alt=json" {
 			fmt.Fprint(w, `{}`)
+		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&project=foo-project&projection=full" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&project=bar-project&projection=full" {
+			fmt.Fprint(w, `{"items": [{"name": "bar-project-daisy-bkt"}]}`)
+		} else if m == "POST" && u == "/b?alt=json&project=foo-project" {
+			fmt.Fprint(w, `{}`)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "testGCSClient unknown request: %+v\n", r)

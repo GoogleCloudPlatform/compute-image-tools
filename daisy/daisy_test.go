@@ -40,35 +40,42 @@ func TestSplitVariables(t *testing.T) {
 }
 
 func TestParseWorkflows(t *testing.T) {
-	paths := []string{"./workflow/test.wf.json"}
+	path := "./workflow/test.wf.json"
 	varMap := map[string]string{"key1": "var1", "key2": "var2"}
 	project := "project"
 	zone := "zone"
 	gcsPath := "gcspath"
 	oauth := "oauthpath"
-	ws, err := parseWorkflows(context.Background(), paths, varMap, project, zone, gcsPath, oauth, "", "")
+	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, w := range ws {
-		tests := []struct {
-			want, got string
-		}{
-			{w.Project, project},
-			{w.Zone, zone},
-			{w.GCSPath, gcsPath},
-			{w.OAuthPath, oauth},
-		}
+	tests := []struct {
+		want, got string
+	}{
+		{w.Project, project},
+		{w.Zone, zone},
+		{w.GCSPath, gcsPath},
+		{w.OAuthPath, oauth},
+	}
 
-		for _, tt := range tests {
-			if tt.want != tt.got {
-				t.Errorf("%s != %v", varMap, w.Vars)
-			}
+	for _, tt := range tests {
+		if tt.want != tt.got {
+			t.Errorf("%s != %v", varMap, w.Vars)
 		}
+	}
 
-		if reflect.DeepEqual(w.Vars, varMap) {
-			t.Errorf("unexpected vars, want: %s, got: %v", varMap, w.Vars)
-		}
+	if reflect.DeepEqual(w.Vars, varMap) {
+		t.Errorf("unexpected vars, want: %s, got: %v", varMap, w.Vars)
+	}
+
+	want := "dialing: cannot read service account file: open oauthpath: no such file or directory"
+	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "noplace", ""); err.Error() != want {
+		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
+	}
+
+	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", "noplace"); err.Error() != want {
+		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
 }

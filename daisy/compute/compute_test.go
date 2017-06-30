@@ -160,7 +160,6 @@ func TestCreateInstance(t *testing.T) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances?alt=json", testProject, testZone) {
 			if insertErr != nil {
 				w.WriteHeader(400)
-				fmt.Println(w, insertErr)
 				return
 			}
 			buf := new(bytes.Buffer)

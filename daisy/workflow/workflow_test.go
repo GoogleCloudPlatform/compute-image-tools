@@ -41,6 +41,32 @@ import (
 	"google.golang.org/api/option"
 )
 
+func TestDaisyBkt(t *testing.T) {
+	client, err := newTestGCSClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	project := "foo-project"
+	got, err := daisyBkt(context.Background(), client, project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := project + "-daisy-bkt"
+	if got != project+"-daisy-bkt" {
+		t.Errorf("bucket does not match, got: %q, want: %q", got, want)
+	}
+
+	project = "bar-project"
+	got, err = daisyBkt(context.Background(), client, project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = project + "-daisy-bkt"
+	if got != project+"-daisy-bkt" {
+		t.Errorf("bucket does not match, got: %q, want: %q", got, want)
+	}
+}
+
 func TestCleanup(t *testing.T) {
 	cleanedup1 := false
 	cleanedup2 := false
@@ -402,6 +428,10 @@ func TestNewFromFile(t *testing.T) {
 
 func TestPopulate(t *testing.T) {
 	ctx := context.Background()
+	client, err := newTestGCSClient()
+	if err != nil {
+		t.Fatal(err)
+	}
 	td, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatalf("error creating temp dir: %v", err)
@@ -426,9 +456,8 @@ func TestPopulate(t *testing.T) {
 
 	got := New()
 	got.Name = "${wf_name}"
-	got.GCSPath = "gs://${bucket}/images"
 	got.Zone = "wf-zone"
-	got.Project = "wf-project"
+	got.Project = "bar-project"
 	got.OAuthPath = tf
 	got.logger = log.New(ioutil.Discard, "", 0)
 	got.Vars = map[string]vars{
@@ -448,19 +477,22 @@ func TestPopulate(t *testing.T) {
 			},
 		},
 	}
+	got.StorageClient = client
+	got.gcsLogging = true
 
 	if err := got.populate(ctx); err != nil {
 		t.Fatalf("error populating workflow: %v", err)
 	}
 
 	want := &Workflow{
-		Name:      "wf-name",
-		GCSPath:   "gs://wf-bucket/images",
-		Zone:      "wf-zone",
-		Project:   "wf-project",
-		OAuthPath: tf,
-		id:        got.id,
-		Cancel:    got.Cancel,
+		Name:       "wf-name",
+		GCSPath:    "gs://bar-project-daisy-bkt",
+		Zone:       "wf-zone",
+		Project:    "bar-project",
+		OAuthPath:  tf,
+		id:         got.id,
+		gcsLogging: true,
+		Cancel:     got.Cancel,
 		Vars: map[string]vars{
 			"bucket":    {Value: "wf-bucket", Required: true},
 			"step_name": {Value: "step1"},
@@ -470,7 +502,7 @@ func TestPopulate(t *testing.T) {
 			"test-var":  {Value: "wf-zone-this-should-populate-wf-name"},
 		},
 		autovars:    got.autovars,
-		bucket:      "wf-bucket",
+		bucket:      "bar-project-daisy-bkt",
 		scratchPath: got.scratchPath,
 		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
 		logsPath:    fmt.Sprintf("%s/logs", got.scratchPath),
@@ -665,8 +697,6 @@ func TestPrint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Printf("%+v\n", got.Vars)
-
 	got.ComputeClient, _ = newTestGCEClient()
 	got.StorageClient, _ = newTestGCSClient()
 
@@ -783,5 +813,22 @@ func TestWrite(t *testing.T) {
 		if l.buf.String() != tt.want {
 			t.Errorf("buffer does mot match expectation, want: %q, got: %q", tt.want, l.buf.String())
 		}
+	}
+}
+
+func TestRunStepTimeout(t *testing.T) {
+	w := testWorkflow()
+	s := &Step{
+		name:    "test",
+		w:       w,
+		timeout: 1 * time.Microsecond,
+		testType: &mockStep{runImpl: func(ctx context.Context, s *Step) error {
+			time.Sleep(1 * time.Millisecond)
+			return nil
+		}},
+	}
+	want := `step "test" did not stop in specified timeout of 1µs`
+	if err := w.runStep(context.Background(), s); err.Error() != want {
+		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
 }

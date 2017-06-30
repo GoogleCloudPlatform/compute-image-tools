@@ -146,9 +146,6 @@ func (w *Workflow) validateRequiredFields() error {
 	if w.Zone == "" {
 		return errors.New("must provide workflow field 'Zone'")
 	}
-	if w.GCSPath == "" {
-		return errors.New("must provide workflow field 'GCSPath'")
-	}
 	if len(w.Steps) == 0 {
 		return errors.New("must provide at least one step in workflow field 'Steps'")
 	}
