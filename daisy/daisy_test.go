@@ -69,4 +69,12 @@ func TestParseWorkflows(t *testing.T) {
 	if reflect.DeepEqual(w.Vars, varMap) {
 		t.Errorf("unexpected vars, want: %s, got: %v", varMap, w.Vars)
 	}
+
+	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "noplace", ""); err == nil {
+		t.Error("did not get expected error")
+	}
+
+	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", "noplace"); err == nil {
+		t.Error("did not get expected error")
+	}
 }

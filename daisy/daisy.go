@@ -68,20 +68,6 @@ func parseWorkflow(ctx context.Context, path string, varMap map[string]string, p
 		w.AddVar(k, v)
 	}
 
-	if cEndpoint != "" {
-		w.ComputeClient, err = compute.NewClient(ctx, option.WithEndpoint(cEndpoint), option.WithServiceAccountFile(w.OAuthPath))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if sEndpoint != "" {
-		w.StorageClient, err = storage.NewClient(ctx, option.WithEndpoint(sEndpoint), option.WithServiceAccountFile(w.OAuthPath))
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	if project != "" {
 		w.Project = project
 	} else if w.Project == "" && metadata.OnGCE() {
@@ -104,6 +90,21 @@ func parseWorkflow(ctx context.Context, path string, varMap map[string]string, p
 	if oauth != "" {
 		w.OAuthPath = oauth
 	}
+
+	if cEndpoint != "" {
+		w.ComputeClient, err = compute.NewClient(ctx, option.WithEndpoint(cEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if sEndpoint != "" {
+		w.StorageClient, err = storage.NewClient(ctx, option.WithEndpoint(sEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return w, nil
 }
 
