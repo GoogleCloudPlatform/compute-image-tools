@@ -70,11 +70,12 @@ func TestParseWorkflows(t *testing.T) {
 		t.Errorf("unexpected vars, want: %s, got: %v", varMap, w.Vars)
 	}
 
-	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "noplace", ""); err == nil {
-		t.Error("did not get expected error")
+	want:= "dialing: cannot read service account file: open oauthpath: no such file or directory"
+	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "noplace", ""); err.Error() != want {
+		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
-
-	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", "noplace"); err == nil {
-		t.Error("did not get expected error")
+	
+	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", "noplace"); err.Error() != want {
+		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
 }
