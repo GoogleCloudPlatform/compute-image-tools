@@ -106,11 +106,15 @@ func (s *Step) stepImpl() (stepImpl, error) {
 }
 
 func (s *Step) depends(other *Step) bool {
+	if s == nil || other == nil || s.w == nil || s.w != other.w {
+		return false
+	}
 	deps := s.w.Dependencies
 	steps := s.w.Steps
 	q := deps[s.name]
 	seen := map[string]bool{}
 
+	// Do a BFS search on s's dependencies, looking for the target dependency. Don't revisit visited dependencies.
 	for i := 0; i < len(q); i++ {
 		name := q[i]
 		if seen[name] {
@@ -126,6 +130,54 @@ func (s *Step) depends(other *Step) bool {
 	}
 
 	return false
+}
+
+// nestedDepends determines if s depends on other, taking into account the recursive, nested nature of
+// workflows, i.e. workflows in IncludeWorkflow and SubWorkflow.
+// Example: if s depends on an IncludeWorkflow whose workflow contains other, then s depends on other.
+func (s *Step) nestedDepends(other *Step) bool {
+	sChain := s.getChain()
+	oChain := other.getChain()
+	// If sChain and oChain don't share the same root workflow, then there is no dependency relationship.
+	if len(sChain) == 0 || len(oChain) == 0 || sChain[0].w != oChain[0].w {
+		return false
+	}
+
+	// Find where the step chains diverge.
+	// A divergence in the chains indicates sibling steps, where we can check dependency.
+	// We want to see if s's branch depends on other's branch.
+	var sStep, oStep *Step
+	for i := 0; i < minInt(len(sChain), len(oChain)); i++ {
+		sStep = sChain[i]
+		oStep = oChain[i]
+		if sStep != oStep {
+			break
+		}
+	}
+	return sStep.depends(oStep)
+}
+
+// getChain returns the step chain getting to a step. A link in the chain represents an IncludeWorkflow step, a
+// SubWorkflow step, or the step itself.
+// For example, workflow A has a step s1 which includes workflow B. B has a step s2 which subworkflows C. Finally,
+// C has a step s3. s3.getChain() will return []*Step{s1, s2, s3}
+func (s *Step) getChain() []*Step {
+	if s == nil || s.w == nil {
+		return nil
+	}
+	if s.w.parent == nil {
+		return []*Step{s}
+	}
+	for _, st := range s.w.parent.Steps {
+		if st.IncludeWorkflow != nil && st.IncludeWorkflow.w == s.w {
+			return append(st.getChain(), s)
+		}
+		if st.SubWorkflow != nil && st.SubWorkflow.w == s.w {
+			return append(st.getChain(), s)
+		}
+	}
+	// We shouldn't get here.
+	return nil
 }
 
 func (s *Step) run(ctx context.Context) error {

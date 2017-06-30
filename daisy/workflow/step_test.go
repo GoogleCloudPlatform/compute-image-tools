@@ -66,6 +66,96 @@ func TestDepends(t *testing.T) {
 	}
 }
 
+func TestGetChain(t *testing.T) {
+	a := &Workflow{}
+	b := &Workflow{parent: a}
+	c := &Workflow{parent: b}
+	a1 := &Step{w: a}
+	a2 := &Step{w: a, IncludeWorkflow: &IncludeWorkflow{w: b}}
+	b1 := &Step{w: b}
+	b2 := &Step{w: b, SubWorkflow: &SubWorkflow{w: c}}
+	c1 := &Step{w: c}
+	orphan := &Step{}
+	a.Steps = map[string]*Step{"a1": a1, "a2": a2}
+	b.Steps = map[string]*Step{"b1": b1, "b2": b2}
+	c.Steps = map[string]*Step{"c1": c1}
+
+	tests := []struct {
+		desc      string
+		s         *Step
+		wantChain []*Step
+	}{
+		{"leaf case", a1, []*Step{a1}},
+		{"step from include case", b1, []*Step{a2, b1}},
+		{"step from sub case", c1, []*Step{a2, b2, c1}},
+		{"orphan step case", orphan, nil},
+	}
+
+	for _, tt := range tests {
+		if chain := tt.s.getChain(); !reflect.DeepEqual(chain, tt.wantChain) {
+			t.Errorf("%s: %v != %v", tt.desc, chain, tt.wantChain)
+		}
+	}
+}
+
+func TestNestedDepends(t *testing.T) {
+	// root -- a1 (some step)
+	//     |
+	//      -- a2 (IncludeWorkflow) -- b1 (SubWorkflow) -- c1 (some step)
+	//                             |
+	//                              -- b2 (SubWorkflow) -- d1 (some step)
+	//                             |
+	//                              -- b3 (some step)
+	// different root -- e1 (some step)
+	a := &Workflow{}
+	b := &Workflow{parent: a}
+	c := &Workflow{parent: b}
+	d := &Workflow{parent: b}
+	e := &Workflow{}
+	a1 := &Step{name: "a1", w: a}
+	a2 := &Step{name: "a2", w: a, IncludeWorkflow: &IncludeWorkflow{w: b}}
+	b1 := &Step{name: "b1", w: b, SubWorkflow: &SubWorkflow{w: c}}
+	b2 := &Step{name: "b2", w: b, SubWorkflow: &SubWorkflow{w: d}}
+	b3 := &Step{name: "b3", w: b}
+	c1 := &Step{name: "c1", w: c}
+	d1 := &Step{name: "d1", w: d}
+	e1 := &Step{name: "e1", w: e}
+	orphan := &Step{}
+	a.Steps = map[string]*Step{"a1": a1, "a2": a2}
+	b.Steps = map[string]*Step{"b1": b1, "b2": b2, "b3": b3}
+	c.Steps = map[string]*Step{"c1": c1}
+	d.Steps = map[string]*Step{"d1": d1}
+	e.Steps = map[string]*Step{"e1": e1}
+	a.Dependencies = map[string][]string{"a1": {"a2"}}
+	b.Dependencies = map[string][]string{"b1": {"b2"}}
+
+	tests := []struct {
+		desc   string
+		s1, s2 *Step
+		want   bool
+	}{
+		{"depends on niece/nephew case", a1, b3, true},
+		{"doesn't depend on niece/nephew case", b3, c1, false},
+		{"depends on great niece/nephew case", a1, c1, true},
+		{"doesn't depend on son/daughter case", b1, c1, false},
+		{"doesn't depend on mother/father case", c1, b1, false},
+		{"depends on aunt/uncle case", c1, b2, true},
+		{"depends on cousin case", c1, d1, true},
+		{"doesn't depend on brother from another mother case", a1, e1, false},
+		{"orphan step case", a1, orphan, false},
+		{"orphan step case 2", orphan, a1, false},
+		{"nil step case", a1, nil, false},
+		{"nil step case 2", nil, a1, false},
+	}
+
+	for _, tt := range tests {
+		got := tt.s1.nestedDepends(tt.s2)
+		if got != tt.want {
+			t.Errorf("%s: got %t, want %t", tt.desc, got, tt.want)
+		}
+	}
+}
+
 func TestStepImpl(t *testing.T) {
 	// Good. Try normal, working case.
 	tests := []struct {

@@ -70,6 +70,15 @@ func getGCSAPIPath(p string) (string, error) {
 	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(b, o)), nil
 }
 
+func minInt(x int, ys ...int) int {
+	for _, y := range ys {
+		if y < x {
+			x = y
+		}
+	}
+	return x
+}
+
 func randString(n int) string {
 	gen := rand.New(rand.NewSource(time.Now().UnixNano()))
 	letters := "bdghjlmnpqrstvwxyz0123456789"
