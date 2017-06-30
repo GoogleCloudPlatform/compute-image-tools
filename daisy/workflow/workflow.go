@@ -68,11 +68,7 @@ func (l *gcsLogger) Write(b []byte) (int, error) {
 func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, error) {
 	dBkt := project + "-daisy-bkt"
 	it := client.Buckets(ctx, project)
-	for {
-		bucketAttrs, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
+	for bucketAttrs, err := it.Next(); err != iterator.Done; bucketAttrs, err = it.Next() {
 		if err != nil {
 			return "", err
 		}
