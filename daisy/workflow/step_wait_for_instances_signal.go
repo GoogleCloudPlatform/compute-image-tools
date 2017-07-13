@@ -118,17 +118,17 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) error {
 				e <- fmt.Errorf("unresolved instance %q", is.Name)
 				return
 			}
-			sig := make(chan struct{})
+			serialSig := make(chan struct{})
+			stoppedSig := make(chan struct{})
 			if is.Stopped {
 				go func() {
 					s.w.logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", i.real)
 					if err := s.w.ComputeClient.WaitForInstanceStopped(s.w.Project, s.w.Zone, i.real, is.interval); err != nil {
 						e <- err
-						close(sig)
-						return
+					} else {
+						s.w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
 					}
-					s.w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
-					close(sig)
+					close(stoppedSig)
 				}()
 			}
 			if is.SerialOutput != nil {
@@ -136,11 +136,13 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) error {
 					if err := waitForSerialOutput(s.w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
 						e <- err
 					}
-					close(sig)
+					close(serialSig)
 				}()
 			}
 			select {
-			case <-sig:
+			case <-serialSig:
+				return
+			case <-stoppedSig:
 				return
 			}
 		}(is)
