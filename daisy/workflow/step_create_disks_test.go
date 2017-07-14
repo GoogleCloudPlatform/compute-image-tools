@@ -190,11 +190,6 @@ func TestCreateDisksValidate(t *testing.T) {
 			true,
 		},
 		{
-			"bad project case",
-			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: "p!", Zone: z},
-			true,
-		},
-		{
 			"bad zone case",
 			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: p, Zone: "z!"},
 			true,

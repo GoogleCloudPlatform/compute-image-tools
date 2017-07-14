@@ -33,6 +33,7 @@ type IncludeWorkflow struct {
 }
 
 func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
+	i.w.id = s.w.id
 	i.w.parent = s.w
 	i.w.GCSPath = s.w.GCSPath
 	i.w.Name = s.name

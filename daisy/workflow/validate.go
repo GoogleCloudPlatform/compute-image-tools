@@ -32,7 +32,7 @@ func checkName(s string) bool {
 	return len(s) < 64 && rfc1035Rgx.MatchString(s)
 }
 
-func projectExists(p string) bool {
+func checkProject(p string) bool {
 	// TODO(crunkleton)
 	return true
 }
@@ -47,8 +47,8 @@ func (w *Workflow) validateRequiredFields() error {
 	if w.Project == "" {
 		return errors.New("must provide workflow field 'Project'")
 	}
-	if w.Zone == "" {
-		return errors.New("must provide workflow field 'Zone'")
+	if !checkName(w.Zone) {
+		return fmt.Errorf("invalid value for workflow field 'Zone': %q", w.Zone)
 	}
 	if len(w.Steps) == 0 {
 		return errors.New("must provide at least one step in workflow field 'Steps'")
