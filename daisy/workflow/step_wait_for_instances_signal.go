@@ -83,7 +83,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 					w.logger.Printf("WaitForInstancesSignal: instance %q stopped, not waiting for serial output.", name)
 					return nil
 				}
-				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
+				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v, error getting status: %v", name, err, sErr)
 			}
 			start = resp.Next
 			if success != "" && strings.Contains(resp.Contents, success) {

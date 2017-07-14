@@ -19,6 +19,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"google.golang.org/api/googleapi"
 )
 
 type resource struct {
@@ -175,7 +176,9 @@ func resourceCleanupHelper(rm *resourceMap, deleteFn func(*resource) error) {
 		go func(ref string, res *resource) {
 			defer wg.Done()
 			if err := deleteFn(res); err != nil {
-				fmt.Println(err)
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code != 404 {
+					fmt.Println(err)
+				}
 			}
 		}(name, r)
 	}
