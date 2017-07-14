@@ -39,7 +39,7 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 	i.w.ComputeClient = s.w.ComputeClient
 	i.w.StorageClient = s.w.StorageClient
 	i.w.GCSPath = s.w.GCSPath
-	i.w.Name = s.name
+	i.w.Name = s.w.Name
 	i.w.Project = s.w.Project
 	i.w.Zone = s.w.Zone
 	i.w.autovars = s.w.autovars
