@@ -313,9 +313,6 @@ func (c *CreateInstances) validate(ctx context.Context, s *Step) error {
 		if !checkName(ci.Name) {
 			errs = append(errs, fmt.Errorf("can't create instance %q: bad name", ci.Name))
 		}
-		if !checkName(ci.Project) {
-			errs = append(errs, fmt.Errorf("can't create instance %q: bad project", ci.Project))
-		}
 		if !checkName(ci.Zone) {
 			errs = append(errs, fmt.Errorf("can't create instance %q: bad zone", ci.Zone))
 		}

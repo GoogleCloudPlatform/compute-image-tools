@@ -105,7 +105,6 @@ func TestCreateImagesValidate(t *testing.T) {
 		{"good disk url case", &CreateImage{Project: p, Image: compute.Image{Name: "i4", SourceDisk: "zones/z/disks/d"}}, false},
 		{"good disk url case 2", &CreateImage{Project: p, Image: compute.Image{Name: "i5", SourceDisk: fmt.Sprintf("projects/%s/zones/z/disks/d", p)}}, false},
 		{"bad name case", &CreateImage{Project: p, Image: compute.Image{Name: "bad!", SourceDisk: "d1"}}, true},
-		{"bad project case", &CreateImage{Project: "bad!", Image: compute.Image{Name: "i6", SourceDisk: "d1"}}, true},
 		{"bad dupe name case", &CreateImage{Project: p, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, true},
 		{"bad missing dep on disk creator case", &CreateImage{Project: p, Image: compute.Image{Name: "i6", SourceDisk: "d3"}}, true},
 		{"bad disk deleted case", &CreateImage{Project: p, Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},

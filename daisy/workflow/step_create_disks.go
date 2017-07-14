@@ -89,9 +89,6 @@ func (c *CreateDisks) validate(ctx context.Context, s *Step) error {
 		if !checkName(cd.Name) {
 			return fmt.Errorf("cannot create disk: bad name: %q", cd.Name)
 		}
-		if !checkName(cd.Project) {
-			return fmt.Errorf("cannot create disk: bad project: %q", cd.Project)
-		}
 		if !checkName(cd.Zone) {
 			return fmt.Errorf("cannot create disk: bad zone: %q", cd.Zone)
 		}

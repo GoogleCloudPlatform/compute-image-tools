@@ -33,6 +33,7 @@ type IncludeWorkflow struct {
 }
 
 func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
+	i.w.id = s.w.id
 	i.w.parent = s.w
 	i.w.GCSPath = s.w.GCSPath
 	i.w.Name = s.name
@@ -40,6 +41,9 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 	i.w.Zone = s.w.Zone
 	i.w.autovars = s.w.autovars
 	i.w.gcsLogWriter = s.w.gcsLogWriter
+	i.w.username = s.w.username
+	i.w.ComputeClient = s.w.ComputeClient
+	i.w.StorageClient = s.w.StorageClient
 
 	for k, v := range i.Vars {
 		i.w.AddVar(k, v)

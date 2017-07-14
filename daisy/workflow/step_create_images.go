@@ -89,9 +89,6 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		if !checkName(ci.Name) {
 			return fmt.Errorf("can't create image: bad name: %q", ci.Name)
 		}
-		if !checkName(ci.Project) {
-			return fmt.Errorf("can't create image: bad project: %q", ci.Project)
-		}
 
 		// Source disk checking.
 		if !xor(ci.SourceDisk == "", ci.RawDisk == nil) {
@@ -108,7 +105,7 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		}
 
 		// Project checking.
-		if ci.Project != "" && !projectExists(ci.Project) {
+		if ci.Project != "" && !checkProject(ci.Project) {
 			return fmt.Errorf("cannot create image: project not found: %s", ci.Project)
 		}
 
