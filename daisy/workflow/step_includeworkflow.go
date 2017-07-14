@@ -42,6 +42,8 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 	i.w.autovars = s.w.autovars
 	i.w.gcsLogWriter = s.w.gcsLogWriter
 	i.w.username = s.w.username
+	i.w.ComputeClient = s.w.ComputeClient
+	i.w.StorageClient = s.w.StorageClient
 
 	for k, v := range i.Vars {
 		i.w.AddVar(k, v)
