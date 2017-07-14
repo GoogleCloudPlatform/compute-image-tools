@@ -359,11 +359,9 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
+		writers := []io.Writer{os.Stdout}
 		if w.gcsLogging {
 			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx}
-		}
-		writers := []io.Writer{os.Stdout}
-		if w.gcsLogWriter != nil {
 			writers = append(writers, w.gcsLogWriter)
 		}
 		w.logger = log.New(io.MultiWriter(writers...), prefix, flags)
