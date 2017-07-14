@@ -208,7 +208,7 @@ func (c *client) InstanceStatus(project, zone, name string) (string, error) {
 	return inst.Status, nil
 }
 
-// InstanceStopped checks if a GCE instance is in a 'TERMINATED' state.
+// InstanceStopped checks if a GCE instance is in a 'TERMINATED' or 'STOPPED' state.
 func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
 	status, err := c.i.InstanceStatus(project, zone, name)
 	if err != nil {
@@ -217,7 +217,7 @@ func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
 	switch status {
 	case "PROVISIONING", "RUNNING", "STAGING", "STOPPING":
 		return false, nil
-	case "TERMINATED":
+	case "TERMINATED", "STOPPED":
 		return true, nil
 	default:
 		return false, fmt.Errorf("unexpected instance status %q", status)
