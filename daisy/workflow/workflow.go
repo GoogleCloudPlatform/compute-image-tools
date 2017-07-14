@@ -354,16 +354,14 @@ func (w *Workflow) populate(ctx context.Context) error {
 func (w *Workflow) populateLogger(ctx context.Context) {
 	if w.logger == nil {
 		name := w.Name
-		for parent := w.parent; parent != nil; parent = w.parent.parent {
+		for parent := w.parent; parent != nil; parent = parent.parent {
 			name = parent.Name + "." + name
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		if w.gcsLogging && w.gcsLogWriter == nil {
-			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx}
-		}
 		writers := []io.Writer{os.Stdout}
-		if w.gcsLogWriter != nil {
+		if w.gcsLogging {
+			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx}
 			writers = append(writers, w.gcsLogWriter)
 		}
 		w.logger = log.New(io.MultiWriter(writers...), prefix, flags)

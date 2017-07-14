@@ -55,7 +55,14 @@ type InstanceSignal struct {
 }
 
 func waitForSerialOutput(w *Workflow, name string, port int64, success, failure string, interval time.Duration) error {
-	w.logger.Printf("WaitForInstancesSignal: watching serial port %d, SuccessMatch: %q, FailureMatch: %q.", port, success, failure)
+	msg := fmt.Sprintf("WaitForInstancesSignal: watching serial port %d", port)
+	if success != "" {
+		msg += fmt.Sprintf(", SuccessMatch: %q", success)
+	}
+	if failure != "" {
+		msg += fmt.Sprintf(", FailureMatch: %q", failure)
+	}
+	w.logger.Printf(msg + ".")
 	var start int64
 	var errs int
 	tick := time.Tick(interval)
@@ -72,7 +79,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 			}
 			if err != nil {
 				status, sErr := w.ComputeClient.InstanceStatus(w.Project, w.Zone, name)
-				if sErr == nil && (status == "TERMINATED" || status == "STOPPING") {
+				if sErr == nil && (status == "TERMINATED" || status == "STOPPING" || status == "STOPPED") {
 					w.logger.Printf("WaitForInstancesSignal: instance %q stopped, not waiting for serial output.", name)
 					return nil
 				}
