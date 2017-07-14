@@ -10,7 +10,8 @@ Daisy is a solution for running complex, multi-step workflows on GCE.
 
 ## Daisy Workflows
 
-Daisy workflow examples, image builds, and image import workflows.
+Daisy workflow examples, image builds, and image import workflows. A [user
+guide](daisy_workflows/import_userguide.md) for VM imports is also provided here.
 
 ## GCE Export tool
 
