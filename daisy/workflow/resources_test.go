@@ -74,35 +74,16 @@ func TestResourceCleanup(t *testing.T) {
 	}
 }
 
-func TestResourceMapAdd(t *testing.T) {
-	rm := resourceMap{}
-
-	tests := []struct {
-		desc, ref string
-		res       *resource
-		want      map[string]*resource
-	}{
-		{"normal add", "x", &resource{real: "x"}, map[string]*resource{"x": {real: "x"}}},
-		{"dupe add", "x", &resource{real: "otherx"}, map[string]*resource{"x": {real: "otherx"}}},
-	}
-
-	for _, tt := range tests {
-		rm.add(tt.ref, tt.res)
-		if diff := pretty.Compare(rm.m, tt.want); diff != "" {
-			t.Errorf("%q case failed, refmap does not match expectation: (-got +want)\n%s", tt.desc, diff)
-		}
-	}
-}
-
 func TestResourceMapConcurrency(t *testing.T) {
-	rm := resourceMap{}
+	rm := resourceMap{usageRegistrationHook: func(name string, s *Step) error { return nil }}
 
 	tests := []struct {
 		desc string
 		f    func()
 	}{
-		{"add", func() { rm.add("foo", nil) }},
-		{"del", func() { rm.del("foo") }},
+		{"registerCreation", func() { rm.registerCreation("foo", &resource{}, nil) }},
+		{"registerDeletion", func() { rm.registerDeletion("foo", nil) }},
+		{"registerUsage", func() { rm.registerUsage("foo", nil) }},
 		{"get", func() { rm.get("foo") }},
 	}
 
@@ -125,27 +106,6 @@ func TestResourceMapConcurrency(t *testing.T) {
 		order = append(order, returnedStr)
 		if !reflect.DeepEqual(order, want) {
 			t.Errorf("%q case failed, unexpected concurrency order, want: %v; got: %v", tt.desc, want, order)
-		}
-	}
-}
-
-func TestResourceMapDel(t *testing.T) {
-	xRes := &resource{}
-	yRes := &resource{}
-	rm := resourceMap{m: map[string]*resource{"x": xRes, "y": yRes}}
-
-	tests := []struct {
-		desc, input string
-		want        map[string]*resource
-	}{
-		{"normal del", "y", map[string]*resource{"x": xRes}},
-		{"del dne", "foo", map[string]*resource{"x": xRes}},
-	}
-
-	for _, tt := range tests {
-		rm.del(tt.input)
-		if !reflect.DeepEqual(rm.m, tt.want) {
-			t.Errorf("%q case failed, refmap does not match expectation, want: %v; got: %v", tt.desc, tt.want, rm.m)
 		}
 	}
 }
@@ -236,6 +196,40 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 	}
 }
 
+func TestResourceMapRegisterExisting(t *testing.T) {
+	rm := &resourceMap{}
+
+	defURL := "projects/p/zones/z/disks/d"
+	tests := []struct {
+		desc, url string
+		wantR     *resource
+		shouldErr bool
+	}{
+		{"normal case", defURL, &resource{real: "d", link: defURL, noCleanup: true}, false},
+		{"dupe case", defURL, &resource{real: "d", link: defURL, noCleanup: true}, false},
+		{"incomplete partial URL case", "zones/z/disks/bad", nil, true},
+	}
+
+	for _, tt := range tests {
+		r, err := rm.registerExisting(tt.url)
+		if !tt.shouldErr {
+			if err != nil {
+				t.Errorf("%s: unexpected error: %v", tt.desc, err)
+			} else if diff := pretty.Compare(r, tt.wantR); diff != "" {
+				t.Errorf("%s: generated resource doesn't match expectation (-got +want)\n%s", tt.desc, diff)
+			} else if rm.m[tt.url] != r {
+				t.Errorf("%s: resource was not added to the resource map", tt.desc)
+			}
+		} else if err == nil {
+			t.Errorf("%s: should have returned an error, but didn't", tt.desc)
+		}
+	}
+
+	if diff := pretty.Compare(rm.m, map[string]*resource{defURL: {real: "d", link: defURL, noCleanup: true}}); diff != "" {
+		t.Errorf("resource map doesn't match expectation (-got +want)\n%s", diff)
+	}
+}
+
 func TestResourceMapRegisterUsage(t *testing.T) {
 	w := testWorkflow()
 	creator := &Step{name: "creator", w: w}
@@ -266,21 +260,24 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 		name    string
 		step    *Step
 		wantErr bool
+		wantRes *resource
 	}{
-		{"normal case", "r1", user, false},
-		{"missing dependency on creator case", "r1", badUser, true},
-		{"use deleted case", "r2", badUser2, true},
-		{"hook error case", "r1", badUser3, true},
+		{"normal case", "r1", user, false, r1},
+		{"missing dependency on creator case", "r1", badUser, true, nil},
+		{"use deleted case", "r2", badUser2, true, nil},
+		{"hook error case", "r1", badUser3, true, nil},
 	}
 
 	for _, tt := range tests {
-		err := rm.registerUsage(tt.name, tt.step)
+		r, err := rm.registerUsage(tt.name, tt.step)
 		if tt.wantErr {
 			if err == nil {
 				t.Errorf("%s: did not return an error as expected", tt.desc)
 			}
 		} else if err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		} else if r != tt.wantRes {
+			t.Errorf("%s: unexpected resource returned: want: %v, got: %v", tt.desc, tt.wantRes, r)
 		}
 	}
 

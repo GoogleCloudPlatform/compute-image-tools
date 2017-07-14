@@ -120,7 +120,7 @@ func (c *CreateInstance) populateDisks(w *Workflow) error {
 	for i, d := range c.Disks {
 		d.Boot = i == 0 // TODO(crunkleton) should we do this?
 		d.Mode = strOr(d.Mode, "READ_WRITE")
-		if diskURLRegex.MatchString(d.Source) {
+		if diskURLRgx.MatchString(d.Source) {
 			d.Source = extendPartialURL(d.Source, c.Project)
 		}
 	}
@@ -227,33 +227,37 @@ func (c *CreateInstances) populate(ctx context.Context, s *Step) error {
 	return nil
 }
 
-func (c *CreateInstance) validateDisks(ctx context.Context, w *Workflow) (errs []error) {
+func (c *CreateInstance) validateDisks(ctx context.Context, s *Step) (errs []error) {
 	if len(c.Disks) == 0 {
-		errs = append(errs, fmt.Errorf("can't create instance %q: no disks attached", c.Name))
+		errs = append(errs, errors.New("cannot create instance: no disks provided"))
 	}
-	for _, d := range c.Disks {
-		match := diskURLRegex.FindStringSubmatch(d.Source)
-		if match == nil {
-			if !diskValid(w, d.Source) {
-				errs = append(errs, fmt.Errorf("can't create instance: disk not found: %q", d.Source))
-			}
-		} else {
-			result := make(map[string]string)
-			for i, name := range diskURLRegex.SubexpNames() {
-				if i != 0 {
-					result[name] = match[i]
-				}
-			}
-			if result["project"] != "" && result["project"] != c.Project {
-				errs = append(errs, fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", c.Project, result["project"], d.Source))
-			}
-			if result["zone"] != c.Zone {
-				errs = append(errs, fmt.Errorf("cannot create instance in zone %q with disk in zone %q: %q", c.Zone, result["zone"], d.Source))
+
+	for i, d := range c.Disks {
+		d.Boot = i == 0
+		dr, err := disks[s.w].registerUsage(d.Source, s)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		d.Mode = strOr(d.Mode, "READ_WRITE")
+		if !strIn(d.Mode, []string{"READ_ONLY", "READ_WRITE"}) {
+			errs = append(errs, fmt.Errorf("cannot create instance: bad disk mode: %q", d.Mode))
+		}
+
+		// Ensure disk is in the same project and zone.
+		match := diskURLRgx.FindStringSubmatch(dr.link)
+		result := map[string]string{}
+		for i, name := range diskURLRgx.SubexpNames() {
+			if i != 0 {
+				result[name] = match[i]
 			}
 		}
 
-		if !strIn(d.Mode, []string{"READ_ONLY", "READ_WRITE"}) {
-			errs = append(errs, fmt.Errorf("can't create instance: bad Disk.Mode: %q", d.Mode))
+		if result["project"] != "" && result["project"] != c.Project {
+			errs = append(errs, fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", c.Project, result["project"], d.Source))
+		}
+		if result["zone"] != c.Zone {
+			errs = append(errs, fmt.Errorf("cannot create instance in project %q with disk in project %q: %q", c.Zone, result["zone"], d.Source))
 		}
 	}
 	return
@@ -309,13 +313,21 @@ func (c *CreateInstances) validate(ctx context.Context, s *Step) error {
 		if !checkName(ci.Name) {
 			errs = append(errs, fmt.Errorf("can't create instance %q: bad name", ci.Name))
 		}
+		if !checkName(ci.Project) {
+			errs = append(errs, fmt.Errorf("can't create instance %q: bad project", ci.Project))
+		}
+		if !checkName(ci.Zone) {
+			errs = append(errs, fmt.Errorf("can't create instance %q: bad zone", ci.Zone))
+		}
 
-		errs = append(errs, ci.validateDisks(ctx, s.w)...)
+		errs = append(errs, ci.validateDisks(ctx, s)...)
 		errs = append(errs, ci.validateMachineType()...)
 		errs = append(errs, ci.validateNetworks()...)
 
-		// Try adding instance name.
-		errs = append(errs, validatedInstances.add(s.w, ci.daisyName))
+		// Register creation.
+		link := fmt.Sprintf("projects/%s/zones/%s/instances/%s", ci.Project, ci.Zone, ci.Name)
+		r := &resource{real: ci.Name, link: link, noCleanup: ci.NoCleanup}
+		errs = append(errs, instances[s.w].registerCreation(ci.daisyName, r, s))
 	}
 
 	errStrs := []string{}
@@ -355,7 +367,6 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) error {
 				return
 			}
 			go logSerialOutput(ctx, w, ci.Name, 1, 1*time.Second)
-			instances[w].add(ci.daisyName, &resource{real: ci.Name, link: ci.SelfLink, noCleanup: ci.NoCleanup})
 		}(ci)
 	}
 

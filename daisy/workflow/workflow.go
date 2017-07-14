@@ -339,6 +339,19 @@ func (w *Workflow) populate(ctx context.Context) error {
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
+	w.populateLogger(ctx)
+
+	for name, s := range w.Steps {
+		s.name = name
+		s.w = w
+		if err := w.populateStep(ctx, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (w *Workflow) populateLogger(ctx context.Context) {
 	if w.logger == nil {
 		name := w.Name
 		for parent := w.parent; parent != nil; parent = w.parent.parent {
@@ -346,17 +359,32 @@ func (w *Workflow) populate(ctx context.Context) error {
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
 		flags := log.Ldate | log.Ltime
-		if w.gcsLogging {
+		if w.gcsLogging && w.gcsLogWriter == nil {
 			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx}
 		}
-		w.logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
-	}
-
-	for name, s := range w.Steps {
-		s.name = name
-		if err := w.populateStep(ctx, s); err != nil {
-			return err
+		writers := []io.Writer{os.Stdout}
+		if w.gcsLogWriter != nil {
+			writers = append(writers, w.gcsLogWriter)
 		}
+		w.logger = log.New(io.MultiWriter(writers...), prefix, flags)
+	}
+}
+
+// AddDependency creates a dependency of dependent on dependency. Returns an
+// error if dependent or dependency are not steps in this workflow.
+func (w *Workflow) AddDependency(dependent, dependency string) error {
+	if _, ok := w.Steps[dependent]; !ok {
+		return fmt.Errorf("can't create dependency: step %q does not exist", dependent)
+	}
+	if _, ok := w.Steps[dependency]; !ok {
+		return fmt.Errorf("can't create dependency: step %q does not exist", dependency)
+	}
+	deps := w.Dependencies[dependent]
+	if !strIn(dependency, deps) { // Don't add if dependency already exists.
+		if w.Dependencies == nil {
+			w.Dependencies = map[string][]string{}
+		}
+		w.Dependencies[dependent] = append(deps, dependency)
 	}
 	return nil
 }
@@ -365,6 +393,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw := New()
 	iw.Cancel = w.Cancel
+
 	shareWorkflowResources(w, iw)
 	return iw
 }
@@ -379,6 +408,20 @@ func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, error) {
 		return nil, err
 	}
 	return iw, nil
+}
+
+// NewStep instantiates a new, typeless step for this workflow.
+// The step type must be specified before running this workflow.
+func (w *Workflow) NewStep(name string) (*Step, error) {
+	if _, ok := w.Steps[name]; ok {
+		return nil, fmt.Errorf("can't create step %q: a step already exists with that name", name)
+	}
+	s := &Step{name: name, w: w}
+	if w.Steps == nil {
+		w.Steps = map[string]*Step{}
+	}
+	w.Steps[name] = s
+	return s, nil
 }
 
 // NewSubWorkflow instantiates a new workflow as a child to this workflow.

@@ -39,6 +39,7 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 	i.w.Project = s.w.Project
 	i.w.Zone = s.w.Zone
 	i.w.autovars = s.w.autovars
+	i.w.gcsLogWriter = s.w.gcsLogWriter
 
 	for k, v := range i.Vars {
 		i.w.AddVar(k, v)
@@ -77,9 +78,11 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 		s.w.Sources[k] = v
 	}
 
+	i.w.populateLogger(ctx)
+
 	for name, st := range i.w.Steps {
 		st.name = name
-		st.w = s.w
+		st.w = i.w
 		if err := st.w.populateStep(ctx, st); err != nil {
 			return err
 		}

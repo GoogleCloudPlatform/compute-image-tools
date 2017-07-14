@@ -20,18 +20,15 @@ import (
 )
 
 var (
-	disks        = map[*Workflow]*resourceMap{}
-	diskURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/disks/(?P<disk>%[1]s)$`, rfc1035))
+	disks      = map[*Workflow]*resourceMap{}
+	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/disks/(?P<disk>%[1]s)$`, rfc1035))
 )
 
 func initDisksMap(w *Workflow) {
 	m := &resourceMap{}
 	disks[w] = m
-	m.usageRegistrationHook = diskUsageRegistrationHook
-}
-
-func diskUsageRegistrationHook(name string, s *Step) error {
-	return nil
+	m.typeName = "disk"
+	m.urlRgx = diskURLRgx
 }
 
 func deleteDisk(w *Workflow, r *resource) error {

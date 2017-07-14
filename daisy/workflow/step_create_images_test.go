@@ -16,10 +16,11 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"reflect"
 	"testing"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
 )
@@ -28,163 +29,100 @@ func TestCreateImagesRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
-	disks[w].m = map[string]*resource{"d": {real: w.genName("d"), link: "link"}}
+	p := "project"
+	disks[w].m = map[string]*resource{"d": {real: w.genName("d"), link: "dLink"}}
 	w.Sources = map[string]string{"file": "gs://some/path"}
-	cis := &CreateImages{
-		{daisyName: "i1", Image: compute.Image{Name: "i1", SourceDisk: "d"}},
-		{daisyName: "i2", Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}},
-		{daisyName: "i2", Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "file"}}, Project: "project"},
-		{daisyName: "i3", Image: compute.Image{Name: "i3", SourceDisk: "d"}, NoCleanup: true},
-		{daisyName: "i4", Image: compute.Image{Name: "i4", SourceDisk: "d"}, ExactName: true},
-		{daisyName: "i5", Image: compute.Image{Name: "i5", SourceDisk: "zones/zone/disks/disk"}},
-	}
-	if err := cis.run(ctx, s); err != nil {
-		t.Errorf("error running CreateImages.run(): %v", err)
-	}
 
-	// Bad cases.
-	badTests := []struct {
-		name          string
-		cd            CreateImages
-		fakeClientErr error
-		err           string
+	testClient := &daisyCompute.TestClient{}
+	w.ComputeClient = testClient
+	tests := []struct {
+		desc      string
+		ci        *CreateImage
+		clientErr error
+		shouldErr bool
 	}{
-		{
-			"disk DNE",
-			CreateImages{{Image: compute.Image{Name: "i-gaz", SourceDisk: "dne-disk"}}},
-			nil,
-			"invalid or missing reference to SourceDisk \"dne-disk\"",
-		},
+		{"source disk case", &CreateImage{Image: compute.Image{SourceDisk: "d"}, Project: p}, nil, false},
+		{"raw image case", &CreateImage{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}, Project: p}, nil, false},
+		{"client err case", &CreateImage{Image: compute.Image{SourceDisk: "d"}, Project: p}, errors.New("error"), true},
 	}
 
-	for _, tt := range badTests {
-		if err := tt.cd.run(ctx, s); err == nil {
-			t.Errorf("%q: expected error, got nil", tt.name)
-		} else if err.Error() != tt.err {
-			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
+	type call struct {
+		p string
+		i *compute.Image
+	}
+	calls := []call{}
+	for _, tt := range tests {
+		testClient.CreateImageFn = func(p string, i *compute.Image) error {
+			calls = append(calls, call{p, i})
+			return tt.clientErr
+		}
+		cis := &CreateImages{tt.ci}
+		if err := cis.run(ctx, s); err == nil && tt.shouldErr {
+			t.Errorf("%s: should have returned an error, but didn't", tt.desc)
+		} else if err != nil && !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		}
 	}
-
-	want := map[string]*resource{
-		"i1": {real: (*cis)[0].Name, link: "link"},
-		"i2": {real: (*cis)[2].Name, link: "link"},
-		"i3": {real: (*cis)[3].Name, link: "link", noCleanup: true},
-		"i4": {real: (*cis)[4].Name, link: "link"},
-		"i5": {real: (*cis)[5].Name, link: "link"},
+	wantCalls := []call{
+		{p, &compute.Image{SourceDisk: "dLink"}},
+		{p, &compute.Image{RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}},
+		{p, &compute.Image{SourceDisk: "dLink"}},
 	}
-
-	if diff := pretty.Compare(images[w].m, want); diff != "" {
-		t.Errorf("imageRefs do not match expectation: (-got +want)\n%s", diff)
+	if diff := pretty.Compare(calls, wantCalls); diff != "" {
+		t.Errorf("client was not called as expected:  (-got +want)\n%s", diff)
 	}
 }
 
 func TestCreateImagesValidate(t *testing.T) {
 	ctx := context.Background()
-	// Set up.
 	w := testWorkflow()
-	s := &Step{w: w}
-	validatedDisks = nameSet{w: {"d1"}}
-	validatedImages = nameSet{w: {"i1"}}
-	w.Sources = map[string]string{"file": "gs://some/file"}
+	p := "p"
+	w.ComputeClient = nil
+	w.StorageClient = nil
+	d1Creator := &Step{name: "d1Creator", w: w}
+	w.Steps["d1Creator"] = d1Creator
+	d2Creator := &Step{name: "d2Creator", w: w}
+	w.Steps["d2Creator"] = d2Creator
+	d2Deleter := &Step{name: "d2Deleter", w: w}
+	w.Steps["d2Deleter"] = d2Deleter
+	w.Dependencies["d2Deleter"] = []string{"d2Creator"}
+	d3Creator := &Step{name: "d3Creator", w: w}
+	w.Steps["d3Creator"] = d3Creator
+	disks[w].registerCreation("d1", &resource{}, d1Creator)
+	disks[w].registerCreation("d2", &resource{}, d2Creator)
+	disks[w].registerDeletion("d2", d2Deleter)
+	disks[w].registerCreation("d3", &resource{}, d3Creator)
+	w.Sources = map[string]string{"source": "gs://some/file"}
 
-	gcsAPIPath1 := w.getSourceGCSAPIPath("file")
-	gcsAPIPath2, _ := getGCSAPIPath("gs://path/to/file")
-
-	// Good cases.
-	goodTests := []struct {
-		desc                string
-		ci, wantCi          *CreateImage
-		wantValidatedImages []string
+	tests := []struct {
+		desc      string
+		ci        *CreateImage
+		shouldErr bool
 	}{
-		{
-			"using disk",
-			&CreateImage{Image: compute.Image{Name: "i2", SourceDisk: "d1", Description: "foo"}},
-			&CreateImage{daisyName: "i2", Image: compute.Image{Name: w.genName("i2"), SourceDisk: "d1", Description: "foo"}, Project: w.Project},
-			[]string{"i1", "i2"},
-		},
-		{
-			"using sources file",
-			&CreateImage{Image: compute.Image{Name: "i3", RawDisk: &compute.ImageRawDisk{Source: "file"}, Description: "foo"}},
-			&CreateImage{daisyName: "i3", Image: compute.Image{Name: w.genName("i3"), RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath1}, Description: "foo"}, Project: w.Project},
-			[]string{"i1", "i2", "i3"},
-		},
-		{
-			"using GCS file",
-			&CreateImage{Image: compute.Image{Name: "i4", RawDisk: &compute.ImageRawDisk{Source: "gs://path/to/file"}, Description: "foo"}},
-			&CreateImage{daisyName: "i4", Image: compute.Image{Name: w.genName("i4"), RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath2}, Description: "foo"}, Project: w.Project},
-			[]string{"i1", "i2", "i3", "i4"},
-		},
-		{
-			"exact name",
-			&CreateImage{Image: compute.Image{Name: "i5", SourceDisk: "d1", Description: "foo"}, ExactName: true},
-			&CreateImage{daisyName: "i5", Image: compute.Image{Name: "i5", SourceDisk: "d1", Description: "foo"}, Project: w.Project, ExactName: true},
-			[]string{"i1", "i2", "i3", "i4", "i5"},
-		},
-		{
-			"non default project",
-			&CreateImage{Image: compute.Image{Name: "i6", SourceDisk: "d1", Description: "foo"}, Project: "foo-project"},
-			&CreateImage{daisyName: "i6", Image: compute.Image{Name: w.genName("i6"), SourceDisk: "d1", Description: "foo"}, Project: "foo-project"},
-			[]string{"i1", "i2", "i3", "i4", "i5", "i6"},
-		},
+		{"good disk case", &CreateImage{Project: p, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, false},
+		{"good raw disk case", &CreateImage{Project: p, Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "source"}}}, false},
+		{"good raw disk case 2", &CreateImage{Project: p, Image: compute.Image{Name: "i3", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, false},
+		{"good disk url case", &CreateImage{Project: p, Image: compute.Image{Name: "i4", SourceDisk: "zones/z/disks/d"}}, false},
+		{"good disk url case 2", &CreateImage{Project: p, Image: compute.Image{Name: "i5", SourceDisk: fmt.Sprintf("projects/%s/zones/z/disks/d", p)}}, false},
+		{"bad name case", &CreateImage{Project: p, Image: compute.Image{Name: "bad!", SourceDisk: "d1"}}, true},
+		{"bad project case", &CreateImage{Project: "bad!", Image: compute.Image{Name: "i6", SourceDisk: "d1"}}, true},
+		{"bad dupe name case", &CreateImage{Project: p, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, true},
+		{"bad missing dep on disk creator case", &CreateImage{Project: p, Image: compute.Image{Name: "i6", SourceDisk: "d3"}}, true},
+		{"bad disk deleted case", &CreateImage{Project: p, Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},
+		{"bad using disk and raw disk case", &CreateImage{Project: p, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},
 	}
 
-	for _, tt := range goodTests {
-		cis := CreateImages{tt.ci}
-		if err := cis.validate(ctx, s); err != nil {
-			t.Errorf("%q: unexpected error: %v", tt.desc, err)
+	for _, tt := range tests {
+		s := &Step{name: tt.desc, w: w, CreateImages: &CreateImages{tt.ci}}
+		w.Steps[tt.desc] = s
+		w.Dependencies[tt.desc] = []string{"d1Creator", "d2Deleter"}
+		if err := s.CreateImages.validate(ctx, s); err == nil {
+			if tt.shouldErr {
+				t.Errorf("%s: should have returned an error but didn't", tt.desc)
+			}
+		} else if !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		}
-		if diff := pretty.Compare(tt.ci, tt.wantCi); diff != "" {
-			t.Errorf("%q: validated Disk does not match expectation: (-got +want)\n%s", tt.desc, diff)
-		}
-		if !reflect.DeepEqual(validatedImages[w], tt.wantValidatedImages) {
-			t.Errorf("%q: got:(%v) != want(%v)", tt.desc, validatedImages[w], tt.wantValidatedImages)
-		}
-	}
-
-	// Bad cases.
-	badTests := []struct {
-		name string
-		ci   *CreateImage
-		err  string
-	}{
-		{
-			"dupe name",
-			&CreateImage{Image: compute.Image{Name: "i1", RawDisk: &compute.ImageRawDisk{Source: "gs://path/to/file"}}},
-			fmt.Sprintf("error adding image: workflow %q has duplicate references for %q", w.Name, "i1"),
-		},
-		{
-			"disk DNE",
-			&CreateImage{Image: compute.Image{Name: "bi1", SourceDisk: "dne-disk"}},
-			"cannot create image: disk not found: dne-disk",
-		},
-		{
-			"no disk/file",
-			&CreateImage{Image: compute.Image{Name: "bi1"}},
-			"must provide either SourceDisk or RawDisk, exclusively",
-		},
-		{
-			"using both disk/file",
-			&CreateImage{Image: compute.Image{Name: "bi1", SourceDisk: "d-foo", RawDisk: &compute.ImageRawDisk{Source: "gs://path/to/file"}}},
-			"must provide either SourceDisk or RawDisk, exclusively",
-		},
-		{
-			"bad GCS path",
-			&CreateImage{Image: compute.Image{Name: "bi1", RawDisk: &compute.ImageRawDisk{Source: "path/to/file"}}},
-			"bad value for RawDisk.Source: \"path/to/file\"",
-		},
-	}
-
-	for _, tt := range badTests {
-		cis := CreateImages{tt.ci}
-		if err := cis.validate(ctx, s); err == nil {
-			t.Errorf("%q: expected error, got nil", tt.name)
-		} else if err.Error() != tt.err {
-			t.Errorf("%q: did not get expected error from validate():\ngot: %q\nwant: %q", tt.name, err.Error(), tt.err)
-		}
-	}
-
-	want := []string{"i1", "i2", "i3", "i4", "i5", "i6"}
-	if !reflect.DeepEqual(validatedImages[w], want) {
-		t.Fatalf("got:(%v) != want(%v)", validatedImages[w], want)
+		s.w = nil // prepare for pretty.Compare below
 	}
 }

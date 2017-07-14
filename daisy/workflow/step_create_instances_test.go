@@ -22,15 +22,15 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 
-	daisy_compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
-	"reflect"
 )
 
 func TestLogSerialOutput(t *testing.T) {
@@ -38,7 +38,7 @@ func TestLogSerialOutput(t *testing.T) {
 	w := testWorkflow()
 
 	var get []string
-	_, c, err := daisy_compute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=1") {
 			if len(get) == 0 {
 				fmt.Fprintln(w, `{"Contents":"test","Start":"0"}`)
@@ -343,7 +343,7 @@ func TestCreateInstancesRun(t *testing.T) {
 	ctx := context.Background()
 	var createErr error
 	w := testWorkflow()
-	w.ComputeClient.(*daisy_compute.TestClient).CreateInstanceFn = func(p, z string, i *compute.Instance) error {
+	w.ComputeClient.(*daisyCompute.TestClient).CreateInstanceFn = func(p, z string, i *compute.Instance) error {
 		i.SelfLink = "insertedLink"
 		return createErr
 	}
@@ -366,13 +366,6 @@ func TestCreateInstancesRun(t *testing.T) {
 	if i1.Disks[0].Source != "other" {
 		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", "other", i1.Disks[0].Source)
 	}
-	wantM := map[string]*resource{
-		"i0": {real: "realI0", link: i0.SelfLink},
-		"i1": {real: "realI1", link: i1.SelfLink},
-	}
-	if diff := pretty.Compare(instances[w].m, wantM); diff != "" {
-		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
-	}
 
 	// Bad case: compute client CreateInstance error. Check instance ref map doesn't update.
 	instances[w].m = map[string]*resource{}
@@ -383,14 +376,14 @@ func TestCreateInstancesRun(t *testing.T) {
 	if err := ci.run(ctx, s); err != createErr {
 		t.Errorf("CreateInstances.run() should have return compute client error: %v != %v", err, createErr)
 	}
-	if diff := pretty.Compare(instances[w].m, map[string]*resource{}); diff != "" {
-		t.Errorf("instanceRefs do not match expectation: (-got +want)\n%s", diff)
-	}
 }
 
 func TestCreateInstanceValidateDisks(t *testing.T) {
+	ctx := context.Background()
 	w := testWorkflow()
-	validatedDisks.add(w, "d1")
+	p := "p"
+	z := "z"
+	disks[w].m = map[string]*resource{"d": {link: fmt.Sprintf("projects/%s/zones/%s/disks/d", p, z)}}
 	m := "READ_WRITE"
 
 	tests := []struct {
@@ -398,17 +391,18 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 		ci        *CreateInstance
 		shouldErr bool
 	}{
-		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d1", Mode: m}}}}, false},
-		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "projects/p/zones/z/disks/d", Mode: m}}}, Project: "p", Zone: "z"}, false},
+		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d", Mode: m}}}, Project: p, Zone: z}, false},
+		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "projects/p/zones/z/disks/d", Mode: m}}}, Project: p, Zone: z}, false},
 		{"no disks case", &CreateInstance{Instance: compute.Instance{Name: "foo"}}, true},
 		{"disk dne case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "dne", Mode: m}}}}, true},
-		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "projects/p2/zones/z/disks/d", Mode: m}}}, Project: "p", Zone: "z"}, true},
-		{"bad zone case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "zones/z2/disks/d", Mode: m}}}, Project: "p", Zone: "z"}, true},
-		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d1", Mode: "bad mode!"}}}}, true},
+		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "projects/p2/zones/z/disks/d", Mode: m}}}, Project: p, Zone: z}, true},
+		{"bad zone case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "zones/z2/disks/d", Mode: m}}}, Project: p, Zone: z}, true},
+		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d", Mode: "bad mode!"}}}, Project: p, Zone: z}, true},
 	}
 
 	for _, tt := range tests {
-		if err := tt.ci.validateDisks(context.Background(), w); tt.shouldErr && err == nil {
+		s := &Step{w: w, CreateInstances: &CreateInstances{tt.ci}}
+		if err := tt.ci.validateDisks(ctx, s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -445,7 +439,6 @@ func TestCreateInstanceValidateMachineType(t *testing.T) {
 
 func TestCreateInstanceValidateNetworks(t *testing.T) {
 	acs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
-	p := "project"
 
 	tests := []struct {
 		desc      string
@@ -453,13 +446,13 @@ func TestCreateInstanceValidateNetworks(t *testing.T) {
 		shouldErr bool
 	}{
 		{"good case", []*compute.NetworkInterface{{Network: "global/networks/n", AccessConfigs: acs}}, false},
-		{"good case 2", []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/n", p), AccessConfigs: acs}}, false},
+		{"good case 2", []*compute.NetworkInterface{{Network: "projects/p/global/networks/n", AccessConfigs: acs}}, false},
 		{"bad name case", []*compute.NetworkInterface{{Network: "global/networks/bad!", AccessConfigs: acs}}, true},
 		{"bad project case", []*compute.NetworkInterface{{Network: "projects/bad-project/global/networks/n", AccessConfigs: acs}}, true},
 	}
 
 	for _, tt := range tests {
-		ci := &CreateInstance{Instance: compute.Instance{NetworkInterfaces: tt.nis}, Project: p}
+		ci := &CreateInstance{Instance: compute.Instance{NetworkInterfaces: tt.nis}, Project: "p"}
 		if err := ci.validateNetworks(); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -469,25 +462,34 @@ func TestCreateInstanceValidateNetworks(t *testing.T) {
 }
 
 func TestCreateInstancesValidate(t *testing.T) {
+	ctx := context.Background()
 	w := testWorkflow()
-	validatedDisks.add(w, "d1")
-	ad := []*compute.AttachedDisk{{Source: "d1", Mode: "READ_WRITE"}}
-	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/good-machinetype", w.Project, w.Zone)
+	p := "p"
+	z := "z"
+	ad := []*compute.AttachedDisk{{Source: "d", Mode: "READ_WRITE"}}
+	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/mt", p, z)
+	dCreator := &Step{name: "dCreator", w: w}
+	w.Steps["dCreator"] = dCreator
+	disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", p, z)}, dCreator)
 
 	tests := []struct {
 		desc      string
 		input     *CreateInstance
 		shouldErr bool
 	}{
-		{"normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: w.Project, Zone: w.Zone, daisyName: "foo"}, false},
-		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: w.Project, Zone: w.Zone, daisyName: "foo"}, true},
-		{"bad machine type case", &CreateInstance{Instance: compute.Instance{Name: "gaz", Disks: ad, MachineType: "bad machine type!"}}, true},
-		{"machine type wrong project/zone case", &CreateInstance{Instance: compute.Instance{Name: "gaz", Disks: ad, MachineType: "projects/blah/zones/blah/machineTypes/n1-standard-1"}}, true},
+		{"normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: p, Zone: z}, false},
+		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: p, Zone: z}, true},
+		{"bad name case", &CreateInstance{Instance: compute.Instance{Name: "bad!", Disks: ad, MachineType: mt}, Project: p, Zone: z}, true},
+		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "bar", Disks: ad, MachineType: mt}, Project: "bad!", Zone: z}, true},
+		{"bad zone case", &CreateInstance{Instance: compute.Instance{Name: "baz", Disks: ad, MachineType: mt}, Project: p, Zone: "bad!"}, true},
+		{"machine type validation fails case", &CreateInstance{Instance: compute.Instance{Name: "gaz", Disks: ad, MachineType: "bad machine type!"}, Project: p, Zone: z, daisyName: "gaz"}, true},
 	}
 
 	for _, tt := range tests {
-		s := &Step{name: "s", w: w, CreateInstances: &CreateInstances{tt.input}}
-		if err := s.validate(context.Background()); tt.shouldErr && err == nil {
+		s := &Step{name: tt.desc, w: w, CreateInstances: &CreateInstances{tt.input}}
+		w.Steps[tt.desc] = s
+		w.Dependencies[tt.desc] = []string{"dCreator"}
+		if err := s.CreateInstances.validate(ctx, s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)

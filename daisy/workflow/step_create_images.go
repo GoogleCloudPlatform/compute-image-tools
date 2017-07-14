@@ -64,7 +64,7 @@ func (c *CreateImages) populate(ctx context.Context, s *Step) error {
 		ci.Project = strOr(ci.Project, s.w.Project)
 		ci.Description = strOr(ci.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 
-		if diskURLRegex.MatchString(ci.SourceDisk) {
+		if diskURLRgx.MatchString(ci.SourceDisk) {
 			ci.SourceDisk = extendPartialURL(ci.SourceDisk, ci.Project)
 		}
 
@@ -89,6 +89,9 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		if !checkName(ci.Name) {
 			return fmt.Errorf("can't create image: bad name: %q", ci.Name)
 		}
+		if !checkName(ci.Project) {
+			return fmt.Errorf("can't create image: bad project: %q", ci.Project)
+		}
 
 		// Source disk checking.
 		if !xor(ci.SourceDisk == "", ci.RawDisk == nil) {
@@ -96,14 +99,24 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		}
 
 		if ci.SourceDisk != "" {
-			if !diskValid(s.w, ci.SourceDisk) {
-				return fmt.Errorf("cannot create image: disk not found: %s", ci.SourceDisk)
+			if ci.RawDisk != nil {
+				return errors.New("must provide either SourceDisk or RawDisk, exclusively")
+			}
+			if _, err := disks[s.w].registerUsage(ci.SourceDisk, s); err != nil {
+				return err
 			}
 		}
 
-		// Try adding image name.
-		if err := validatedImages.add(s.w, ci.daisyName); err != nil {
-			return fmt.Errorf("error adding image: %s", err)
+		// Project checking.
+		if ci.Project != "" && !projectExists(ci.Project) {
+			return fmt.Errorf("cannot create image: project not found: %s", ci.Project)
+		}
+
+		// Register image creation.
+		link := fmt.Sprintf("projects/%s/global/images/%s", ci.Project, ci.Name)
+		r := &resource{real: ci.Name, link: link, noCleanup: ci.NoCleanup}
+		if err := images[s.w].registerCreation(ci.daisyName, r, s); err != nil {
+			return fmt.Errorf("error creating image: %s", err)
 		}
 	}
 
@@ -121,14 +134,9 @@ func (c *CreateImages) run(ctx context.Context, s *Step) error {
 
 			project := strOr(ci.Project, w.Project)
 
-			// Get source disk link, if applicable.  TODO(crunkleton): Move to validate after validation refactor.
-			if ci.SourceDisk != "" {
-				if disk, ok := disks[w].get(ci.SourceDisk); ok {
-					ci.SourceDisk = disk.link
-				} else if !diskURLRegex.MatchString(ci.SourceDisk) {
-					e <- fmt.Errorf("invalid or missing reference to SourceDisk %q", ci.SourceDisk)
-					return
-				}
+			// Get source disk link if SourceDisk is a daisy reference to a disk.
+			if d, ok := disks[w].get(ci.SourceDisk); ok {
+				ci.SourceDisk = d.link
 			}
 
 			w.logger.Printf("CreateImages: creating image %q.", ci.Name)
@@ -137,7 +145,6 @@ func (c *CreateImages) run(ctx context.Context, s *Step) error {
 				e <- err
 				return
 			}
-			images[w].add(ci.daisyName, &resource{real: ci.Name, link: ci.SelfLink, noCleanup: ci.NoCleanup})
 		}(ci)
 	}
 
