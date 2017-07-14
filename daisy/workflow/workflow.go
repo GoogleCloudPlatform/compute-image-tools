@@ -354,7 +354,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 func (w *Workflow) populateLogger(ctx context.Context) {
 	if w.logger == nil {
 		name := w.Name
-		for parent := w.parent; parent != nil; parent = w.parent.parent {
+		for parent := w.parent; parent != nil; parent = parent.parent {
 			name = parent.Name + "." + name
 		}
 		prefix := fmt.Sprintf("[%s]: ", name)
