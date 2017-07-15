@@ -34,7 +34,10 @@ type Client interface {
 	DeleteDisk(project, zone, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
+	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
+	GetProject(project string) (*compute.Project, error)
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
+	GetZone(project, zone string) (*compute.Zone, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	WaitForInstanceStopped(project, zone, name string, interval time.Duration) error
@@ -194,9 +197,24 @@ func (c *client) DeleteInstance(project, zone, name string) error {
 	return c.i.operationsWait(project, zone, resp.Name)
 }
 
+// GetMachineType gets a GCE MachineType.
+func (c *client) GetMachineType(project, zone, machineType string) (*compute.MachineType, error) {
+	return c.raw.MachineTypes.Get(project, zone, machineType).Do()
+}
+
+// GetProject gets a GCE Project.
+func (c *client) GetProject(project string) (*compute.Project, error) {
+	return c.raw.Projects.Get(project).Do()
+}
+
 // GetSerialPortOutput gets the serial port output of a GCE instance.
 func (c *client) GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error) {
 	return c.raw.Instances.GetSerialPortOutput(project, zone, name).Start(start).Port(port).Do()
+}
+
+// GetZone gets a GCE Zone.
+func (c *client) GetZone(project, zone string) (*compute.Zone, error) {
+	return c.raw.Zones.Get(project, zone).Do()
 }
 
 // InstanceStatus returns an instances Status.

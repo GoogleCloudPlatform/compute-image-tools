@@ -414,6 +414,18 @@ func TestCreateInstanceValidateMachineType(t *testing.T) {
 	p := "project"
 	z := "zone"
 
+	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.String() == "/project/zones/zone/machineTypes/mt?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "bad request: %+v", r)
+		}
+	}))
+	if err != nil {
+		t.Fatalf("error creating test client: %v", err)
+	}
+
 	tests := []struct {
 		desc      string
 		mt        string
@@ -429,7 +441,7 @@ func TestCreateInstanceValidateMachineType(t *testing.T) {
 
 	for _, tt := range tests {
 		ci := &CreateInstance{Instance: compute.Instance{MachineType: tt.mt}, Project: p, Zone: z}
-		if err := ci.validateMachineType(); tt.shouldErr && err == nil {
+		if err := ci.validateMachineType(p, c); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -464,6 +476,24 @@ func TestCreateInstanceValidateNetworks(t *testing.T) {
 func TestCreateInstancesValidate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
+
+	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.String() == "/p/zones/z?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == "/p/zones/z/machineTypes/mt?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == "/p?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "bad request: %+v", r)
+		}
+	}))
+	if err != nil {
+		t.Fatalf("error creating test client: %v", err)
+	}
+	w.ComputeClient = c
+
 	p := "p"
 	z := "z"
 	ad := []*compute.AttachedDisk{{Source: "d", Mode: "READ_WRITE"}}

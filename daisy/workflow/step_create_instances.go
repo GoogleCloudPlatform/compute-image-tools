@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -263,28 +264,39 @@ func (c *CreateInstance) validateDisks(ctx context.Context, s *Step) (errs []err
 	return
 }
 
-func (c *CreateInstance) validateMachineType() (errs []error) {
+func (c *CreateInstance) validateMachineType(project string, client daisyCompute.Client) []error {
+	var errs []error
 	if !machineTypeURLRegex.MatchString(c.MachineType) {
 		errs = append(errs, fmt.Errorf("can't create instance: bad MachineType: %q", c.MachineType))
 	}
 	match := machineTypeURLRegex.FindStringSubmatch(c.MachineType)
 	if match == nil {
-		errs = append(errs, fmt.Errorf("can't create instance: bad MachineType: %q", c.MachineType))
-	} else {
-		result := make(map[string]string)
-		for i, name := range machineTypeURLRegex.SubexpNames() {
-			if i != 0 {
-				result[name] = match[i]
-			}
-		}
-		if result["project"] != "" && result["project"] != c.Project {
-			errs = append(errs, fmt.Errorf("cannot create instance in project %q with machineType in project %q: %q", c.Project, result["project"], c.MachineType))
-		}
-		if result["zone"] != c.Zone {
-			errs = append(errs, fmt.Errorf("cannot create instance in zone %q with machineType in zone %q: %q", c.Zone, result["zone"], c.MachineType))
+		return append(errs, fmt.Errorf("can't create instance: bad MachineType: %q", c.MachineType))
+	}
+
+	result := make(map[string]string)
+	for i, name := range machineTypeURLRegex.SubexpNames() {
+		if i != 0 {
+			result[name] = match[i]
 		}
 	}
-	return
+	if result["project"] != "" && result["project"] != c.Project {
+		errs = append(errs, fmt.Errorf("cannot create instance in project %q with machineType in project %q: %q", c.Project, result["project"], c.MachineType))
+	}
+	if result["zone"] != c.Zone {
+		errs = append(errs, fmt.Errorf("cannot create instance in zone %q with machineType in zone %q: %q", c.Zone, result["zone"], c.MachineType))
+	}
+
+	p := result["project"]
+	if p == "" {
+		p = project
+	}
+
+	if _, err := client.GetMachineType(p, result["zone"], result["machinetype"]); err != nil {
+		return append(errs, fmt.Errorf("cannot create instance, bad machineType: %q, error: %v", result["machinetype"], err))
+	}
+
+	return errs
 }
 
 func (c *CreateInstance) validateNetworks() (errs []error) {
@@ -313,15 +325,15 @@ func (c *CreateInstances) validate(ctx context.Context, s *Step) error {
 		if !checkName(ci.Name) {
 			errs = append(errs, fmt.Errorf("can't create instance %q: bad name", ci.Name))
 		}
-		if !checkName(ci.Project) {
-			errs = append(errs, fmt.Errorf("can't create instance %q: bad project", ci.Project))
+		if _, err := s.w.ComputeClient.GetProject(ci.Project); err != nil {
+			return fmt.Errorf("cannot create disk: bad project: %q, error: %v", ci.Project, err)
 		}
-		if !checkName(ci.Zone) {
-			errs = append(errs, fmt.Errorf("can't create instance %q: bad zone", ci.Zone))
+		if _, err := s.w.ComputeClient.GetZone(ci.Project, ci.Zone); err != nil {
+			return fmt.Errorf("cannot create instance: bad zone: %q, error: %v", ci.Zone, err)
 		}
 
 		errs = append(errs, ci.validateDisks(ctx, s)...)
-		errs = append(errs, ci.validateMachineType()...)
+		errs = append(errs, ci.validateMachineType(ci.Project, s.w.ComputeClient)...)
 		errs = append(errs, ci.validateNetworks()...)
 
 		// Register creation.
