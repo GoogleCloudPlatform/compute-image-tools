@@ -6,7 +6,7 @@ Example Daisy invocations:
 daisy -project my-project \
       -zone us-west1-a \
       -gcs_path gs://bucket/daisyscratch \
-      -variables image-dest=gs://bucket/images \
+      -variables image_dest=gs://bucket/images \
       debian8.wf.json
 
 
@@ -15,6 +15,6 @@ daisy -project my-project \
       -zone us-west1-a \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json \
-      -variables image-dest=gs://bucket/images \
+      -variables image_dest=gs://bucket/images \
       debian9.wf.json
 ```

@@ -38,8 +38,8 @@ def Bootstrap():
   """Get build files, run build, poweroff."""
   try:
     logging.info('Starting bootstrap.py.')
-    build_gcs_dir = GetMetadataAttribute('build-files-gcs-dir')
-    build_script = GetMetadataAttribute('build-script')
+    build_gcs_dir = GetMetadataAttribute('build_files_gcs_dir')
+    build_script = GetMetadataAttribute('build_script')
     build_dir = '/build_files'
     full_build_script = os.path.join(build_dir, build_script)
     subprocess.call(['mkdir', build_dir])
