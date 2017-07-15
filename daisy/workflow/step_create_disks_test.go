@@ -18,9 +18,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"testing"
-
 	"net/http"
+	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"

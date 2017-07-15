@@ -18,12 +18,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
-	"net/http"
 )
 
 func TestCreateImagesRun(t *testing.T) {
