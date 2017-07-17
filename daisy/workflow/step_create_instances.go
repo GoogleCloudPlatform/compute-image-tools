@@ -266,9 +266,6 @@ func (c *CreateInstance) validateDisks(ctx context.Context, s *Step) (errs []err
 
 func (c *CreateInstance) validateMachineType(project string, client daisyCompute.Client) []error {
 	var errs []error
-	if !machineTypeURLRegex.MatchString(c.MachineType) {
-		errs = append(errs, fmt.Errorf("can't create instance: bad MachineType: %q", c.MachineType))
-	}
 	match := machineTypeURLRegex.FindStringSubmatch(c.MachineType)
 	if match == nil {
 		return append(errs, fmt.Errorf("can't create instance: bad MachineType: %q", c.MachineType))
@@ -292,7 +289,7 @@ func (c *CreateInstance) validateMachineType(project string, client daisyCompute
 		p = project
 	}
 
-	if _, err := client.GetMachineType(p, result["zone"], result["machinetype"]); err != nil {
+	if err := checkMachineType(client, p, result["zone"], result["machinetype"]); err != nil {
 		return append(errs, fmt.Errorf("cannot create instance, bad machineType: %q, error: %v", result["machinetype"], err))
 	}
 
@@ -323,12 +320,12 @@ func (c *CreateInstances) validate(ctx context.Context, s *Step) error {
 	errs := []error{}
 	for _, ci := range *c {
 		if !checkName(ci.Name) {
-			errs = append(errs, fmt.Errorf("can't create instance %q: bad name", ci.Name))
+			errs = append(errs, fmt.Errorf("cannot create instance %q: bad name", ci.Name))
 		}
-		if _, err := s.w.ComputeClient.GetProject(ci.Project); err != nil {
+		if err := checkProject(s.w.ComputeClient, ci.Project); err != nil {
 			return fmt.Errorf("cannot create disk: bad project: %q, error: %v", ci.Project, err)
 		}
-		if _, err := s.w.ComputeClient.GetZone(ci.Project, ci.Zone); err != nil {
+		if err := checkZone(s.w.ComputeClient, ci.Project, ci.Zone); err != nil {
 			return fmt.Errorf("cannot create instance: bad zone: %q, error: %v", ci.Zone, err)
 		}
 

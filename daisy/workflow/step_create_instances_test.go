@@ -433,7 +433,7 @@ func TestCreateInstanceValidateMachineType(t *testing.T) {
 	}{
 		{"good case", fmt.Sprintf("projects/%s/zones/%s/machineTypes/mt", p, z), false},
 		{"good case 2", fmt.Sprintf("zones/%s/machineTypes/mt", z), false},
-		{"bad machine type case", "bad machine type!", true},
+		{"bad machine type case", fmt.Sprintf("projects/%s/zones/%s/machineTypes/bad-mt", p, z), true},
 		{"bad project case", fmt.Sprintf("projects/p2/zones/%s/machineTypes/mt", z), true},
 		{"bad zone case", fmt.Sprintf("projects/%s/zones/z2/machineTypes/mt", p), true},
 		{"bad zone case 2", "zones/z2/machineTypes/mt", true},
