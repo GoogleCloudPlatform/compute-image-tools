@@ -15,29 +15,25 @@
 package workflow
 
 import (
-	"fmt"
-	"regexp"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-var machineTypeURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/machineTypes/(?P<machinetype>%[1]s)$`, rfc1035))
-
-var machineTypes struct {
+var zones struct {
 	valid []string
 	mu    sync.Mutex
 }
 
-func checkMachineType(client compute.Client, project, zone, machineType string) error {
-	machineTypes.mu.Lock()
-	defer machineTypes.mu.Unlock()
-	if strIn(machineType, machineTypes.valid) {
+func checkZone(client compute.Client, project, zone string) error {
+	zones.mu.Lock()
+	defer zones.mu.Unlock()
+	if strIn(zone, zones.valid) {
 		return nil
 	}
-	if _, err := client.GetMachineType(project, zone, machineType); err != nil {
+	if _, err := client.GetZone(project, zone); err != nil {
 		return err
 	}
-	machineTypes.valid = append(machineTypes.valid, machineType)
+	zones.valid = append(zones.valid, zone)
 	return nil
 }

@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -138,8 +139,20 @@ func TestCreateDisksValidate(t *testing.T) {
 	ctx := context.Background()
 	// Set up.
 	w := testWorkflow()
-	w.ComputeClient = nil
-	w.StorageClient = nil
+	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.String() == "/p/zones/z?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == "/p?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "bad request: %+v", r)
+		}
+	}))
+	if err != nil {
+		t.Fatalf("error creating test client: %v", err)
+	}
+	w.ComputeClient = c
 	iCreator := &Step{name: "iCreator", w: w}
 	w.Steps["iCreator"] = iCreator
 	images[w].m = map[string]*resource{"i1": {creator: iCreator}}

@@ -32,11 +32,6 @@ func checkName(s string) bool {
 	return len(s) < 64 && rfc1035Rgx.MatchString(s)
 }
 
-func projectExists(p string) bool {
-	// TODO(crunkleton)
-	return true
-}
-
 func (w *Workflow) validateRequiredFields() error {
 	if w.Name == "" {
 		return errors.New("must provide workflow field 'Name'")

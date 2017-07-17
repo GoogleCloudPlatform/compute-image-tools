@@ -89,8 +89,10 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		if !checkName(ci.Name) {
 			return fmt.Errorf("can't create image: bad name: %q", ci.Name)
 		}
-		if !checkName(ci.Project) {
-			return fmt.Errorf("can't create image: bad project: %q", ci.Project)
+
+		// Project checking.
+		if err := checkProject(s.w.ComputeClient, ci.Project); err != nil {
+			return fmt.Errorf("cannot create disk: bad project: %q, error: %v", ci.Project, err)
 		}
 
 		// Source disk checking.
@@ -105,11 +107,6 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 			if _, err := disks[s.w].registerUsage(ci.SourceDisk, s); err != nil {
 				return err
 			}
-		}
-
-		// Project checking.
-		if ci.Project != "" && !projectExists(ci.Project) {
-			return fmt.Errorf("cannot create image: project not found: %s", ci.Project)
 		}
 
 		// Register image creation.

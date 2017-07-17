@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -77,8 +78,20 @@ func TestCreateImagesValidate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	p := "p"
-	w.ComputeClient = nil
-	w.StorageClient = nil
+
+	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" && r.URL.String() == "/p?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "bad request: %+v", r)
+		}
+	}))
+	if err != nil {
+		t.Fatalf("error creating test client: %v", err)
+	}
+	w.ComputeClient = c
+
 	d1Creator := &Step{name: "d1Creator", w: w}
 	w.Steps["d1Creator"] = d1Creator
 	d2Creator := &Step{name: "d2Creator", w: w}
