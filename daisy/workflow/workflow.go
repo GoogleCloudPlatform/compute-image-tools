@@ -37,6 +37,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	"bufio"
 )
 
 const defaultTimeout = "10m"
@@ -136,7 +137,7 @@ type Workflow struct {
 	outsPath       string
 	username       string
 	gcsLogging     bool
-	gcsLogWriter   io.Writer
+	gcsLogWriter   *bufio.Writer
 	ComputeClient  compute.Client  `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
 	id             string
@@ -160,7 +161,6 @@ func (w *Workflow) addCleanupHook(hook func() error) {
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate(ctx context.Context) error {
-	w.gcsLogWriter = ioutil.Discard
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
 		return fmt.Errorf("error validating workflow: %v", err)
@@ -361,7 +361,15 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 		flags := log.Ldate | log.Ltime
 		writers := []io.Writer{os.Stdout}
 		if w.gcsLogging {
-			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx}
+			if w.gcsLogWriter == nil {
+				w.gcsLogWriter = bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})
+				go func() {
+					for {
+						time.Sleep(1*time.Second)
+						w.gcsLogWriter.Flush()
+					}
+				}()
+			}
 			writers = append(writers, w.gcsLogWriter)
 		}
 		w.logger = log.New(io.MultiWriter(writers...), prefix, flags)
@@ -444,7 +452,7 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print(ctx context.Context) {
-	w.gcsLogWriter = ioutil.Discard
+	w.gcsLogging = false
 	if err := w.populate(ctx); err != nil {
 		fmt.Println("Error running populate:", err)
 	}

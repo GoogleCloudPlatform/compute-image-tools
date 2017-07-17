@@ -16,6 +16,7 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -27,7 +28,8 @@ import (
 	"sync"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
 
@@ -62,6 +64,7 @@ var (
 	testWf        = "test-wf"
 	testProject   = "test-project"
 	testZone      = "test-zone"
+	testMachineType     = "test-machine-type"
 	testGCSPath   = "gs://test-bucket"
 	testGCSObjs   []string
 	testGCSObjsMx = sync.Mutex{}
@@ -87,8 +90,8 @@ func addGCSObj(o string) {
 	testGCSObjs = append(testGCSObjs, o)
 }
 
-func newTestGCEClient() (*compute.TestClient, error) {
-	_, c, err := compute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func newTestGCEClient() (*daisyCompute.TestClient, error) {
+	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=1") {
 			fmt.Fprintln(w, `{"Contents":"failsuccess","Start":"0"}`)
 		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=2") {
@@ -101,6 +104,25 @@ func newTestGCEClient() (*compute.TestClient, error) {
 			fmt.Fprintln(w, `{"Status":"DONE","SelfLink":"link"}`)
 		}
 	}))
+
+	c.GetProjectFn = func(project string) (*compute.Project, error) {
+		if project == testProject {
+			return nil, nil
+		}
+		return nil, errors.New("bad project")
+	}
+	c.GetZoneFn = func(_, zone string) (*compute.Zone, error) {
+		if zone == testZone {
+			return nil, nil
+		}
+		return nil, errors.New("bad zone")
+	}
+	c.GetMachineTypeFn = func(_, _, mt string) (*compute.MachineType, error) {
+		if mt == testMachineType {
+			return nil, nil
+		}
+		return nil, errors.New("bad machinetype")
+	}
 
 	return c, err
 }

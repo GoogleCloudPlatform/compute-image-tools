@@ -20,7 +20,7 @@ import (
 	"net/http/httptest"
 	"time"
 
-	"google.golang.org/api/compute/v1"
+	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
 
@@ -52,7 +52,10 @@ type TestClient struct {
 	DeleteDiskFn             func(project, zone, name string) error
 	DeleteImageFn            func(project, name string) error
 	DeleteInstanceFn         func(project, zone, name string) error
+	GetMachineTypeFn         func(project, zone, machineType string) (*compute.MachineType, error)
+	GetProjectFn             func(project string) (*compute.Project, error)
 	GetSerialPortOutputFn    func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
+	GetZoneFn                func(project, zone string) (*compute.Zone, error)
 	InstanceStatusFn         func(project, zone, name string) (string, error)
 	InstanceStoppedFn        func(project, zone, name string) (bool, error)
 	WaitForInstanceStoppedFn func(project, zone, name string, interval time.Duration) error
@@ -106,6 +109,30 @@ func (c *TestClient) DeleteInstance(project, zone, name string) error {
 		return c.DeleteInstanceFn(project, zone, name)
 	}
 	return c.client.DeleteInstance(project, zone, name)
+}
+
+// GetProject uses the override method GetProjectFn or the real implementation.
+func (c *TestClient) GetProject(project string) (*compute.Project, error) {
+	if c.GetProjectFn != nil {
+		return c.GetProjectFn(project)
+	}
+	return c.client.GetProject(project)
+}
+
+// GetMachineType uses the override method GetMachineTypeFn or the real implementation.
+func (c *TestClient) GetMachineType(project, zone, machineType string) (*compute.MachineType, error) {
+	if c.GetZoneFn != nil {
+		return c.GetMachineTypeFn(project, zone, machineType)
+	}
+	return c.client.GetMachineType(project, zone, machineType)
+}
+
+// GetZone uses the override method GetZoneFn or the real implementation.
+func (c *TestClient) GetZone(project, zone string) (*compute.Zone, error) {
+	if c.GetZoneFn != nil {
+		return c.GetZoneFn(project, zone)
+	}
+	return c.client.GetZone(project, zone)
 }
 
 // GetSerialPortOutput uses the override method GetSerialPortOutputFn or the real implementation.

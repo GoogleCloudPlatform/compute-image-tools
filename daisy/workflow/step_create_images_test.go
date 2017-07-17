@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -76,21 +75,8 @@ func TestCreateImagesRun(t *testing.T) {
 
 func TestCreateImagesValidate(t *testing.T) {
 	ctx := context.Background()
-	w := testWorkflow()
-	p := "p"
 
-	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.String() == "/p?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "bad request: %+v", r)
-		}
-	}))
-	if err != nil {
-		t.Fatalf("error creating test client: %v", err)
-	}
-	w.ComputeClient = c
+	w := testWorkflow()
 
 	d1Creator := &Step{name: "d1Creator", w: w}
 	w.Steps["d1Creator"] = d1Creator
@@ -112,17 +98,17 @@ func TestCreateImagesValidate(t *testing.T) {
 		ci        *CreateImage
 		shouldErr bool
 	}{
-		{"good disk case", &CreateImage{Project: p, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, false},
-		{"good raw disk case", &CreateImage{Project: p, Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "source"}}}, false},
-		{"good raw disk case 2", &CreateImage{Project: p, Image: compute.Image{Name: "i3", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, false},
-		{"good disk url case", &CreateImage{Project: p, Image: compute.Image{Name: "i4", SourceDisk: "zones/z/disks/d"}}, false},
-		{"good disk url case 2", &CreateImage{Project: p, Image: compute.Image{Name: "i5", SourceDisk: fmt.Sprintf("projects/%s/zones/z/disks/d", p)}}, false},
-		{"bad name case", &CreateImage{Project: p, Image: compute.Image{Name: "bad!", SourceDisk: "d1"}}, true},
+		{"good disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, false},
+		{"good raw disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "source"}}}, false},
+		{"good raw disk case 2", &CreateImage{Project: testProject, Image: compute.Image{Name: "i3", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, false},
+		{"good disk url case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i4", SourceDisk: "zones/z/disks/d"}}, false},
+		{"good disk url case 2", &CreateImage{Project: testProject, Image: compute.Image{Name: "i5", SourceDisk: fmt.Sprintf("projects/%s/zones/z/disks/d", testProject)}}, false},
+		{"bad name case", &CreateImage{Project: testProject, Image: compute.Image{Name: "bad!", SourceDisk: "d1"}}, true},
 		{"bad project case", &CreateImage{Project: "bad!", Image: compute.Image{Name: "i6", SourceDisk: "d1"}}, true},
-		{"bad dupe name case", &CreateImage{Project: p, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, true},
-		{"bad missing dep on disk creator case", &CreateImage{Project: p, Image: compute.Image{Name: "i6", SourceDisk: "d3"}}, true},
-		{"bad disk deleted case", &CreateImage{Project: p, Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},
-		{"bad using disk and raw disk case", &CreateImage{Project: p, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},
+		{"bad dupe name case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, true},
+		{"bad missing dep on disk creator case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d3"}}, true},
+		{"bad disk deleted case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},
+		{"bad using disk and raw disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},
 	}
 
 	for _, tt := range tests {
