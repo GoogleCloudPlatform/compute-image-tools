@@ -28,7 +28,7 @@
       ]
     },
     "export-disk": {
-      "Timeout": "30m",
+      "Timeout": "60m",
       "IncludeWorkflow": {
         "Path": "./disk_export.wf.json",
         "Vars": {

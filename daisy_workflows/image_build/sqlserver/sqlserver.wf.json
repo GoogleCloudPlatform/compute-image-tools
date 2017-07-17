@@ -8,9 +8,8 @@
   },
   "Vars": {
     "ssms_exe": {"Description": "GCS or local path to SSMS installer for SQL 2016 installs"},
-    "source_image": {"Required": true, "Description": "GCE image to base build on"},
-    "sql_server_media": {"Required": true, "Description": "GCS or local path to Windows installer media"},
-    "sql_server_config": {"Required": true, "Description": "GCS or local path to SQLServer config ini file"},
+    "sql_server_media": {"Required": true, "Description": "GCS or local path to SQLServer installer media"},
+    "sql_server_config": {"Required": true, "Description": "GCS or local path to SQL config.ini file"},
     "install_disk": {"Value": "disk-install", "Description": "Name of the GCE disk to use for the SQL install"}
   },
   "Steps": {
@@ -57,7 +56,7 @@
     },
     "delete-inst-install": {
       "DeleteResources": {
-        "Image": "inst-install"
+        "Instances": ["inst-install"]
       }
     }
   },

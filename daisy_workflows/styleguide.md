@@ -21,7 +21,7 @@ For example:
     "CreateDisks": [
       {
         "Name": "disk-debian-build",
-        "SourceImage": "projects/bct-prod-images/global/images/family/debian-8",
+        "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
         "SizeGb": "10",
         "Type": "pd-ssd"
       }
@@ -47,12 +47,13 @@ are to be used outside of the workflow), name them whatever suits the need.
 `"Name": "image-redhat-installer"` or `"Name": "img-redhat-installer"`
 
 ## Variable naming
-Name variables with underscores and make them explicit. For example, don't name
-a variable `image` instead use an explicit name `debian_image` or `debian_base_image`.
+Name variables all lowercase with underscores and make them explicit. For example, don't name
+a variable `image` instead use an explicit name `debian_image` or `debian_base_image`. Upper case variable names
+are reserved for Daisy autovars.
 
 ```json
 "Vars": {
-  "debian_base_image": "projects/bct-prod-images/global/images/family/debian-8"
+  "debian_base_image": "projects/debian-cloud/global/images/family/debian-9"
 }
 ```
 
@@ -68,7 +69,7 @@ it is helpful to annotate the purpose of the variable for users of the workflow.
   "image_size_gb": "10",
   "image_name": {"Required": true, "Description": "The name of the resulting
   image being created."},
-  "debian_base_image": {"Value": "projects/bct-prod-images/global/images/family/debian-8",
+  "debian_base_image": {"Value": "projects/debian-cloud/global/images/family/debian-9",
                         "Description": "The Debian base image family to build
                         an image from."}
 }

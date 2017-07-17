@@ -1,13 +1,15 @@
 {
-  "Name": "${wf-name}",
+  "Name": "build-debian",
   "Vars": {
-    "bootstrap-vz-manifest": "",
-    "bootstrap-vz-version": "7af9cd9fb85d845884b2bd031fa694cc3c101d81",
-    "google-cloud-repo": "stable",
-    "image-dest": {"Required": true, "Description": "The GCS directory destination to which to copy the image."},
-    "license-id": {"Required": true, "Description": "The GCE license id."},
-    "release": {"Required": true, "Description": "The Debian release name."},
-    "wf-name": "build-debian-subwf"
+    "bootstrap_vz_manifest": {"Required": true, "Description": "The bootstrap-vz manifest to build."},
+    "bootstrap_vz_version": {
+      "Value": "334a16ee50bf95e58ff7d5c6fa48ef642786fdd8",
+      "Description": "The bootstrap-vz github commit ID to use."
+    },
+    "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."},
+    "license_id": {"Required": true, "Description": "The GCE license id."},
+    "release": {"Required": true, "Description": "The Debian release name."}
   },
   "Sources": {
     "build_files/build.py": "./build.py",
@@ -18,9 +20,9 @@
     "setup": {
       "CreateDisks": [
         {
-          "Name": "builder",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
-          "SizeGb": "10",
+          "Name": "disk-builder",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "50",
           "Type": "pd-ssd"
         }
       ]
@@ -28,16 +30,16 @@
     "run": {
       "CreateInstances": [
         {
-          "Name": "builder",
-          "Disks": [{"Source": "builder"}],
-          "MachineType": "n1-standard-8",
+          "Name": "inst-builder",
+          "Disks": [{"Source": "disk-builder"}],
+          "MachineType": "n1-standard-4",
           "Metadata": {
-            "bootstrap-vz-manifest": "${bootstrap-vz-manifest}",
-            "bootstrap-vz-version": "${bootstrap-vz-version}",
-            "build-files-gcs-dir": "${SOURCESPATH}/build_files",
-            "build-script": "build.py",
-            "google-cloud-repo": "${google-cloud-repo}",
-            "license-id": "${license-id}",
+            "bootstrap_vz_manifest": "${bootstrap_vz_manifest}",
+            "bootstrap_vz_version": "${bootstrap_vz_version}",
+            "build_files_gcs_dir": "${SOURCESPATH}/build_files",
+            "build_script": "build.py",
+            "google_cloud_repo": "${google_cloud_repo}",
+            "license_id": "${license_id}",
             "release": "${release}"
           },
           "Scopes": [
@@ -49,12 +51,12 @@
     },
     "wait": {
       "Timeout": "60m",
-      "WaitForInstancesSignal": [{"Name": "builder", "Stopped": true}]
+      "WaitForInstancesSignal": [{"Name": "inst-builder", "Stopped": true}]
     },
     "copy-to-dest": {
       "CopyGCSObjects": [
-        {"Source": "${OUTSPATH}/image.tar.gz", "Destination": "${image-dest}/${DATETIME}-${release}/image.tar.gz"},
-        {"Source": "${OUTSPATH}/synopsis.json", "Destination": "${image-dest}/${DATETIME}-${release}/synopsis.json"}
+        {"Source": "${OUTSPATH}/image.tar.gz", "Destination": "${image_dest}/${DATETIME}-${release}/root.tar.gz"},
+        {"Source": "${OUTSPATH}/synopsis.json", "Destination": "${image_dest}/${DATETIME}-${release}/synopsis.json"}
       ]
     }
   },

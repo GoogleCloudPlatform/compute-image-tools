@@ -4,7 +4,7 @@ Proper install media must be provided.
 
 Required vars:
 + `source_image` GCE image to base build on
-+ `sql_server_media` GCS or local path to Windows installer media
++ `sql_server_media` GCS or local path to SQLServer installer media
 + `sql_server_config` GCS or local path to SQLServer config ini file
 
 Optional vars:

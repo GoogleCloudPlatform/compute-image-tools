@@ -47,7 +47,7 @@
       ]
     },
     "wait-for-inst-${NAME}": {
-      "Timeout": "30m",
+      "Timeout": "60m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-${NAME}",
@@ -58,6 +58,11 @@
           }
         }
       ]
+    },
+    "delete-inst": {
+      "DeleteResources": {
+        "Instances": ["inst-${NAME}"]
+      }
     },
     "copy-image-object": {
       "Timeout": "30m",
@@ -72,6 +77,7 @@
   "Dependencies": {
     "run-${NAME}": ["setup-disks"],
     "wait-for-inst-${NAME}": ["run-${NAME}"],
+    "delete-inst": ["wait-for-inst-${NAME}"],
     "copy-image-object": ["wait-for-inst-${NAME}"]
   }
 }

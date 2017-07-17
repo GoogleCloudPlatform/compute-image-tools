@@ -1,0 +1,26 @@
+{
+  "Name": "build-debian-8",
+  "Vars": {
+    "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image."},
+    "bootstrap_vz_version": {
+      "Value": "334a16ee50bf95e58ff7d5c6fa48ef642786fdd8",
+      "Description": "The bootstrap-vz github commit ID to use."
+    }
+  },
+  "Steps": {
+    "build-debian-8": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./debian.wf.json",
+        "Vars": {
+          "bootstrap_vz_manifest": "official/gce/jessie.yml",
+          "bootstrap_vz_version": "${bootstrap_vz_version}",
+          "image_dest": "${image_dest}",
+          "license_id": "1000204",
+          "release": "jessie"
+        }
+      }
+    }
+  }
+}

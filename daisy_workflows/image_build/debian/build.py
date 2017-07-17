@@ -17,25 +17,13 @@
 
 Parameters (retrieved from instance metadata):
 
-bootstrap-vz-manifest: The version of bootstrap-vz to retrieve and use.
-bootstrap-vz-version: The version of bootstrap-vz to retrieve and use.
-google-cloud-repo: The repo to use to build Debian. Must be one of
+bootstrap_vz_manifest: The version of bootstrap-vz to retrieve and use.
+bootstrap_vz_version: The version of bootstrap-vz to retrieve and use.
+google_cloud_repo: The repo to use to build Debian. Must be one of
   ['stable' (default), 'unstable', 'staging'].
-image-dest: The Cloud Storage destination for the resultant image.
-license-id: The Compute Engine license-id for this release of Debian.
+image_dest: The Cloud Storage destination for the resultant image.
+license_id: The Compute Engine license-id for this release of Debian.
 release: The Debian release being built.
-
-
-debian-public-git-urls: The public git repositories to use to build Debian.
-debian-internal-git-urls: The internal git repositories to use to build Debian.
-custom-packages: If set, downloads all *.deb packages from Cloud Storage bucket
-                 and installs them.
-build-backports: Build image with Backports kernel
-image-dest: Cloud storage path to upload the image to.
-
-The debian-*-git-urls parameters are any bootstrap-vz tree git can clone from
-GCE, optionally followed by ";branch" to select something other than the
-repository's default.
 """
 
 import collections
@@ -65,17 +53,17 @@ REPOS = ['stable', 'unstable', 'staging']
 def main():
   # Get Parameters.
   BVZ_MANIFEST = utils.GetMetadataParam(
-      'bootstrap-vz-manifest', raise_on_not_found=True)
+      'bootstrap_vz_manifest', raise_on_not_found=True)
   bvz_version = utils.GetMetadataParam(
-      'bootstrap-vz-version', raise_on_not_found=True)
+      'bootstrap_vz_version', raise_on_not_found=True)
   build_files_gcs_dir = utils.GetMetadataParam(
-      'build-files-gcs-dir', raise_on_not_found=True)
-  repo = utils.GetMetadataParam('google-cloud-repo', raise_on_not_found=True)
+      'build_files_gcs_dir', raise_on_not_found=True)
+  repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True)
   outs_path = utils.GetMetadataParam('daisy-outs-path', raise_on_not_found=True)
-  license_id = utils.GetMetadataParam('license-id', raise_on_not_found=True)
+  license_id = utils.GetMetadataParam('license_id', raise_on_not_found=True)
   if repo not in REPOS:
     raise ValueError(
-        'Metadata "google-cloud-repo" must be one of %s.' % REPOS)
+        'Metadata "google_cloud_repo" must be one of %s.' % REPOS)
   release = utils.GetMetadataParam('release', raise_on_not_found=True)
 
   logging.info('Debian Builder')

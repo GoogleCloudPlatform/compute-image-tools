@@ -1,0 +1,23 @@
+{
+  "Name": "build-centos-7",
+  "Vars": {
+    "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image."},
+    "installer_iso": {"Required": true, "Description": "The CentOS 7 installer ISO to build from."}
+  },
+  "Steps": {
+    "build-centos-7": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./enterprise_linux.wf.json",
+        "Vars": {
+          "el_release": "centos7",
+          "google_cloud_repo": "${google_cloud_repo}",
+          "image_dest": "${image_dest}",
+          "installer_iso": "${installer_iso}",
+          "license_id": "1000207"
+        }
+      }
+    }
+  }
+}
