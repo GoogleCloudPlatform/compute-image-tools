@@ -224,7 +224,11 @@ func (w *Workflow) cleanup() {
 }
 
 func (w *Workflow) genName(n string) string {
-	prefix := fmt.Sprintf("%s-%s", n, w.Name)
+	name := w.Name
+	for parent := w.parent; parent != nil; parent = parent.parent {
+		name = parent.Name + "-" + name
+	}
+	prefix := fmt.Sprintf("%s-%s", n, name)
 	if len(prefix) > 57 {
 		prefix = prefix[0:56]
 	}
