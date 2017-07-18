@@ -16,6 +16,7 @@
 package workflow
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -136,7 +137,7 @@ type Workflow struct {
 	outsPath       string
 	username       string
 	gcsLogging     bool
-	gcsLogWriter   io.Writer
+	gcsLogWriter   *bufio.Writer
 	ComputeClient  compute.Client  `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
 	id             string
@@ -160,7 +161,6 @@ func (w *Workflow) addCleanupHook(hook func() error) {
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate(ctx context.Context) error {
-	w.gcsLogWriter = ioutil.Discard
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
 		return fmt.Errorf("error validating workflow: %v", err)
@@ -224,7 +224,11 @@ func (w *Workflow) cleanup() {
 }
 
 func (w *Workflow) genName(n string) string {
-	prefix := fmt.Sprintf("%s-%s", n, w.Name)
+	name := w.Name
+	for parent := w.parent; parent != nil; parent = parent.parent {
+		name = parent.Name + "-" + name
+	}
+	prefix := fmt.Sprintf("%s-%s", n, name)
 	if len(prefix) > 57 {
 		prefix = prefix[0:56]
 	}
@@ -361,7 +365,15 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 		flags := log.Ldate | log.Ltime
 		writers := []io.Writer{os.Stdout}
 		if w.gcsLogging {
-			w.gcsLogWriter = &gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx}
+			if w.gcsLogWriter == nil {
+				w.gcsLogWriter = bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})
+				go func() {
+					for {
+						time.Sleep(1 * time.Second)
+						w.gcsLogWriter.Flush()
+					}
+				}()
+			}
 			writers = append(writers, w.gcsLogWriter)
 		}
 		w.logger = log.New(io.MultiWriter(writers...), prefix, flags)
@@ -444,7 +456,7 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print(ctx context.Context) {
-	w.gcsLogWriter = ioutil.Discard
+	w.gcsLogging = false
 	if err := w.populate(ctx); err != nil {
 		fmt.Println("Error running populate:", err)
 	}

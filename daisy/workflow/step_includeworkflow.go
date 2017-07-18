@@ -39,16 +39,17 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 	i.w.ComputeClient = s.w.ComputeClient
 	i.w.StorageClient = s.w.StorageClient
 	i.w.GCSPath = s.w.GCSPath
-	i.w.Name = s.w.Name
+	i.w.Name = s.name
 	i.w.Project = s.w.Project
 	i.w.Zone = s.w.Zone
 	i.w.autovars = s.w.autovars
-	i.w.logger = s.w.logger
 	i.w.bucket = s.w.bucket
 	i.w.scratchPath = s.w.scratchPath
 	i.w.sourcesPath = s.w.sourcesPath
 	i.w.logsPath = s.w.logsPath
 	i.w.outsPath = s.w.outsPath
+	i.w.gcsLogWriter = s.w.gcsLogWriter
+	i.w.gcsLogging = s.w.gcsLogging
 
 	for k, v := range i.Vars {
 		i.w.AddVar(k, v)
@@ -68,6 +69,8 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
 	substitute(reflect.ValueOf(i.w).Elem(), strings.NewReplacer(replacements...))
+
+	i.w.populateLogger(ctx)
 
 	// Copy Sources up to parent resolving relative paths as we go.
 	for k, v := range i.w.Sources {

@@ -92,7 +92,7 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 
 		// Project checking.
 		if err := checkProject(s.w.ComputeClient, ci.Project); err != nil {
-			return fmt.Errorf("cannot create disk: bad project: %q, error: %v", ci.Project, err)
+			return fmt.Errorf("cannot create image: bad project: %q, error: %v", ci.Project, err)
 		}
 
 		// Source disk checking.

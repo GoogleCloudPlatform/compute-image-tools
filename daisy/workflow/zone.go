@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -28,12 +29,13 @@ var zones struct {
 func checkZone(client compute.Client, project, zone string) error {
 	zones.mu.Lock()
 	defer zones.mu.Unlock()
-	if strIn(zone, zones.valid) {
+	url := fmt.Sprintf("/project/%s/zone/%s", project, zone)
+	if strIn(url, zones.valid) {
 		return nil
 	}
 	if _, err := client.GetZone(project, zone); err != nil {
 		return err
 	}
-	zones.valid = append(zones.valid, zone)
+	zones.valid = append(zones.valid, url)
 	return nil
 }

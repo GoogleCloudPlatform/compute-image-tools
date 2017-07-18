@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -139,29 +138,14 @@ func TestCreateDisksValidate(t *testing.T) {
 	ctx := context.Background()
 	// Set up.
 	w := testWorkflow()
-	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.String() == "/p/zones/z?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == "/p?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "bad request: %+v", r)
-		}
-	}))
-	if err != nil {
-		t.Fatalf("error creating test client: %v", err)
-	}
-	w.ComputeClient = c
+
 	iCreator := &Step{name: "iCreator", w: w}
 	w.Steps["iCreator"] = iCreator
 	images[w].m = map[string]*resource{"i1": {creator: iCreator}}
 
 	expType := func(p, z, t string) string { return fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", p, z, t) }
 	n := "n"
-	p := "p"
-	z := "z"
-	ty := expType(p, z, "pd-standard")
+	ty := expType(testProject, testZone, "pd-standard")
 	tests := []struct {
 		desc      string
 		cd        *CreateDisk
@@ -169,52 +153,52 @@ func TestCreateDisksValidate(t *testing.T) {
 	}{
 		{
 			"source image case",
-			&CreateDisk{daisyName: "d1", Disk: compute.Disk{Name: n, SourceImage: "i1", Type: ty}, Project: p, Zone: z},
+			&CreateDisk{daisyName: "d1", Disk: compute.Disk{Name: n, SourceImage: "i1", Type: ty}, Project: testProject, Zone: testZone},
 			false,
 		},
 		{
 			"source image url case",
-			&CreateDisk{daisyName: "d2", Disk: compute.Disk{Name: n, SourceImage: "projects/p/global/images/i", Type: ty}, Project: p, Zone: z},
+			&CreateDisk{daisyName: "d2", Disk: compute.Disk{Name: n, SourceImage: "projects/p/global/images/i", Type: ty}, Project: testProject, Zone: testZone},
 			false,
 		},
 		{
 			"source image dne case",
-			&CreateDisk{daisyName: "d3", Disk: compute.Disk{Name: n, SourceImage: "dne", Type: ty}, Project: p, Zone: z},
+			&CreateDisk{daisyName: "d3", Disk: compute.Disk{Name: n, SourceImage: "dne", Type: ty}, Project: testProject, Zone: testZone},
 			true,
 		},
 		{
 			"blank disk case",
-			&CreateDisk{daisyName: "d3", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: p, Zone: z},
+			&CreateDisk{daisyName: "d3", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: testProject, Zone: testZone},
 			false,
 		},
 		{
 			"dupe disk case",
-			&CreateDisk{daisyName: "d1", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: p, Zone: z},
+			&CreateDisk{daisyName: "d1", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: testProject, Zone: testZone},
 			true,
 		},
 		{
 			"no size/source case",
-			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, Type: ty}, Project: p, Zone: z},
+			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, Type: ty}, Project: testProject, Zone: testZone},
 			true,
 		},
 		{
 			"bad name case",
-			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: "n!", SizeGb: 1, Type: ty}, Project: p, Zone: z},
+			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: "n!", SizeGb: 1, Type: ty}, Project: testProject, Zone: testZone},
 			true,
 		},
 		{
 			"bad project case",
-			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: "p!", Zone: z},
+			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: "p!", Zone: testZone},
 			true,
 		},
 		{
 			"bad zone case",
-			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: p, Zone: "z!"},
+			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: testProject, Zone: "z!"},
 			true,
 		},
 		{
 			"bad type case",
-			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, SizeGb: 1, Type: "t!"}, Project: p, Zone: z},
+			&CreateDisk{daisyName: "d4", Disk: compute.Disk{Name: n, SizeGb: 1, Type: "t!"}, Project: testProject, Zone: testZone},
 			true,
 		},
 	}

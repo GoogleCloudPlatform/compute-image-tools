@@ -32,12 +32,13 @@ var machineTypes struct {
 func checkMachineType(client compute.Client, project, zone, machineType string) error {
 	machineTypes.mu.Lock()
 	defer machineTypes.mu.Unlock()
-	if strIn(machineType, machineTypes.valid) {
+	url := fmt.Sprintf("/project/%s/zone/%s/machinetype/%s", project, zone, machineType)
+	if strIn(url, machineTypes.valid) {
 		return nil
 	}
 	if _, err := client.GetMachineType(project, zone, machineType); err != nil {
 		return err
 	}
-	machineTypes.valid = append(machineTypes.valid, machineType)
+	machineTypes.valid = append(machineTypes.valid, url)
 	return nil
 }
