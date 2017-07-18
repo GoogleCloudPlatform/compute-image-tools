@@ -15,10 +15,10 @@
 package workflow
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"fmt"
 )
 
 var zones struct {

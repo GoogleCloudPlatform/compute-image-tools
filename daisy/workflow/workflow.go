@@ -16,6 +16,7 @@
 package workflow
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -37,7 +38,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
-	"bufio"
 )
 
 const defaultTimeout = "10m"
@@ -365,7 +365,7 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 				w.gcsLogWriter = bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})
 				go func() {
 					for {
-						time.Sleep(1*time.Second)
+						time.Sleep(1 * time.Second)
 						w.gcsLogWriter.Flush()
 					}
 				}()

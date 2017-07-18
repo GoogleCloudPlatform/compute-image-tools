@@ -61,13 +61,13 @@ func (m *mockStep) validate(ctx context.Context, s *Step) error {
 }
 
 var (
-	testWf        = "test-wf"
-	testProject   = "test-project"
-	testZone      = "test-zone"
-	testMachineType     = "test-machine-type"
-	testGCSPath   = "gs://test-bucket"
-	testGCSObjs   []string
-	testGCSObjsMx = sync.Mutex{}
+	testWf          = "test-wf"
+	testProject     = "test-project"
+	testZone        = "test-zone"
+	testMachineType = "test-machine-type"
+	testGCSPath     = "gs://test-bucket"
+	testGCSObjs     []string
+	testGCSObjsMx   = sync.Mutex{}
 )
 
 func testWorkflow() *Workflow {
