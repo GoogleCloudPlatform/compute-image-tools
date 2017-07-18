@@ -17,6 +17,8 @@ package workflow
 import (
 	"context"
 	"sync"
+
+	compute "google.golang.org/api/compute/v1"
 )
 
 // DeleteResources deletes GCE resources.
@@ -30,25 +32,49 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) error {
 	return nil
 }
 
-func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
-	w := s.w
-	// Disk checking.
-	for _, disk := range d.Disks {
-		if err := disks[w].registerDeletion(disk, s); err != nil {
-			return err
+func (d *DeleteResources) validateInstance(i string, s *Step) error {
+	if err := instances[s.w].registerDeletion(i, s); err != nil {
+		return err
+	}
+	ir, _ := instances[s.w].get(i)
+
+	// Get the CreateInstance that created this instance, if any.
+	var attachedDisks []*compute.AttachedDisk
+	if ir.creator != nil {
+		for _, createI := range *ir.creator.CreateInstances {
+			if createI.daisyName == i {
+				attachedDisks = createI.Disks
+			}
 		}
 	}
+	for _, ad := range attachedDisks {
+		if ad.AutoDelete {
+			if err := disks[s.w].registerDeletion(ad.Source, s); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
 
+func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
 	// Instance checking.
 	for _, i := range d.Instances {
-		if err := instances[w].registerDeletion(i, s); err != nil {
+		if err := d.validateInstance(i, s); err != nil {
 			return err
 		}
 	}
 
-	// Instance checking.
+	// Disk checking.
+	for _, disk := range d.Disks {
+		if err := disks[s.w].registerDeletion(disk, s); err != nil {
+			return err
+		}
+	}
+
+	// Image checking.
 	for _, i := range d.Images {
-		if err := images[w].registerDeletion(i, s); err != nil {
+		if err := images[s.w].registerDeletion(i, s); err != nil {
 			return err
 		}
 	}
