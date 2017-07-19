@@ -380,21 +380,22 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 	}
 }
 
-// AddDependency creates a dependency of dependent on dependency. Returns an
+// AddDependency creates a dependency of dependent on each dependency. Returns an
 // error if dependent or dependency are not steps in this workflow.
-func (w *Workflow) AddDependency(dependent, dependency string) error {
+func (w *Workflow) AddDependency(dependent string, dependencies ...string) error {
 	if _, ok := w.Steps[dependent]; !ok {
 		return fmt.Errorf("can't create dependency: step %q does not exist", dependent)
 	}
-	if _, ok := w.Steps[dependency]; !ok {
-		return fmt.Errorf("can't create dependency: step %q does not exist", dependency)
+	if w.Dependencies == nil {
+		w.Dependencies = map[string][]string{}
 	}
-	deps := w.Dependencies[dependent]
-	if !strIn(dependency, deps) { // Don't add if dependency already exists.
-		if w.Dependencies == nil {
-			w.Dependencies = map[string][]string{}
+	for _, dependency := range dependencies {
+		if _, ok := w.Steps[dependency]; !ok {
+			return fmt.Errorf("can't create dependency: step %q does not exist", dependency)
 		}
-		w.Dependencies[dependent] = append(deps, dependency)
+		if !strIn(dependency, w.Dependencies[dependent]) { // Don't add if dependency already exists.
+			w.Dependencies[dependent] = append(w.Dependencies[dependent], dependency)
+		}
 	}
 	return nil
 }

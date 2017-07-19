@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -71,6 +72,10 @@ func TestParseWorkflows(t *testing.T) {
 	}
 
 	want := "dialing: cannot read service account file: open oauthpath: no such file or directory"
+	if runtime.GOOS == "windows" {
+		want = "dialing: cannot read service account file: open oauthpath: The system cannot find the file specified."
+	}
+
 	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "noplace", ""); err.Error() != want {
 		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
