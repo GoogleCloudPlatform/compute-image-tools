@@ -1,12 +1,25 @@
 {
   "Name": "build-el",
   "Vars": {
-    "el_release": {"Required": true, "Description": "The EL release name."},
-    "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
-    "image_dest": {"Required": true, "Description": "The GCS directory destination to copy the image."},
-    "installer_iso": {"Required": true, "Description": "The path to the EL installation ISO."},
-    "license_id": {"Required": true, "Description": "The GCE license id."},
-    "rhui_client_rpm": {"Description": "The RHEL rhui client RPM to use."}
+    "el_release": {
+      "Required": true,
+      "Description": "The EL release name."
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
+    },
+    "install_disk": {
+      "Required": true,
+      "Description": "Name of the disk to install onto."
+    },
+    "installer_iso": {
+      "Required": true,
+      "Description": "The path to the EL installation ISO."
+    },
+    "rhui_client_rpm": {
+      "Description": "The RHEL rhui client RPM to use."
+    }
   },
   "Sources": {
     "build_files/build_installer.py": "./build_installer.py",
@@ -14,6 +27,7 @@
     "build_files/utils.py": "../linux_common/utils.py",
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
+    "build_files/save_logs.py": "./save_logs.py",
     "installerprep_startup_script": "../linux_common/bootstrap.py",
     "build_files/google-rhui-client.rpm": "${rhui_client_rpm}"
   },
@@ -22,7 +36,7 @@
       "CreateDisks": [
         {
           "Name": "disk-installerprep",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
           "SizeGb": "50",
           "Type": "pd-ssd"
         },
@@ -32,7 +46,7 @@
           "Type": "pd-ssd"
         },
         {
-          "Name": "disk-install",
+          "Name": "${install_disk}",
           "SizeGb": "10",
           "Type": "pd-ssd"
         }
@@ -48,8 +62,7 @@
             "build_files_gcs_dir": "${SOURCESPATH}/build_files",
             "build_script": "build_installer.py",
             "el_release": "${el_release}",
-            "google_cloud_repo": "${google_cloud_repo}",
-            "rhui_client_rpm": "${SOURCESPATH}/build_files/${rhui_client_rpm}"
+            "google_cloud_repo": "${google_cloud_repo}"
           },
           "StartupScript": "installerprep_startup_script"
         }
@@ -68,20 +81,8 @@
       "CreateInstances": [
         {
           "Name": "inst-build",
-          "Disks": [{"Source": "disk-installer"}, {"Source": "disk-install"}],
-          "MachineType": "n1-standard-4",
-          "Metadata": {
-            "build-files-gcs-dir": "${SOURCESPATH}/build_files",
-            "license-id": "${license_id}",
-            "google-cloud-repo": "${google_cloud_repo}",
-            "el_release": "${el_release}",
-            "serial-port-enable": "true",
-            "upload-logs": "true"
-          },
-          "Scopes": [
-            "https://www.googleapis.com/auth/compute",
-            "https://www.googleapis.com/auth/devstorage.read_write"
-          ]
+          "Disks": [{"Source": "disk-installer"}, {"Source": "${install_disk}"}],
+          "MachineType": "n1-standard-4"
         }
       ]
     },
@@ -89,10 +90,24 @@
       "Timeout": "60m",
       "WaitForInstancesSignal": [{"Name": "inst-build", "Stopped": true}]
     },
-    "copy-to-dest": {
-      "CopyGCSObjects": [
-        {"Source": "${OUTSPATH}/image.tar.gz", "Destination": "${image_dest}/${DATETIME}-${el_release}/root.tar.gz"},
-        {"Source": "${OUTSPATH}/synopsis.json", "Destination": "${image_dest}/${DATETIME}-${el_release}/synopsis.json"}
+    "cleanup-inst-build": {
+      "DeleteResources": {
+        "Instances": ["inst-build"]
+      }
+    },
+    "save-build-logs": {
+      "CreateInstances": [
+        {
+          "Name": "inst-savelogs",
+          "Disks": [{"Source": "disk-installerprep"}, {"Source": "disk-installer"}],
+          "MachineType": "n1-standard-1",
+          "Metadata": {
+            "build_files_gcs_dir": "${SOURCESPATH}/build_files",
+            "build_script": "save_logs.py"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "StartupScript": "installerprep_startup_script"
+        }
       ]
     }
   },
@@ -102,6 +117,7 @@
     "cleanup-installer-prep": ["wait-installer-prep"],
     "run-installation": ["cleanup-installer-prep"],
     "wait-installation": ["run-installation"],
-    "copy-to-dest": ["wait-installation"]
+    "cleanup-inst-build": ["wait-installation"],
+    "save-build-logs": ["cleanup-inst-build"]
   }
 }

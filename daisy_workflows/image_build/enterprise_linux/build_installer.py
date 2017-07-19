@@ -53,11 +53,15 @@ def main():
   # copy installer ISO and ISO boot files over.
   logging.info('Writing installer disk.')
   utils.Execute(['parted', '/dev/sdb', 'mklabel', 'msdos'])
+  utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', '1MB', '100%'])
+  utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'set', '1', 'boot', 'on'])
   utils.Execute(['sync'])
   utils.Execute(['dd', 'if=/usr/lib/EXTLINUX/mbr.bin', 'of=/dev/sdb'])
+  utils.Execute(['sync'])
   utils.Execute(['mkfs.ext4', '/dev/sdb1'])
+  utils.Execute(['sync'])
   utils.Execute(['mkdir', 'iso', 'installer'])
   utils.Execute(['mount', '-o', 'ro,loop', '-t', 'iso9660', iso_file, 'iso'])
   utils.Execute(['mount', '-t', 'ext4', '/dev/sdb1', 'installer'])
@@ -65,10 +69,8 @@ def main():
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
   if release in ['rhel6', 'rhel7']:
-    logging.info('Copying RHUI client RPM from %s', rhui_client_rpm)
-    rhui_client_rpm = utils.GetMetadataParam('rhui_client_rpm',
-                                             raise_on_not_found=True)
-    utils.Execute(['gsutil', 'cp', rhui_client_rpm, 'installer/'])
+    logging.info('Copying RHUI client RPM.')
+    utils.Execute(['cp', 'google-rhui-client.rpm', 'installer/'])
 
   # Modify boot files on installer disk.
   utils.Execute(['mv', 'installer/isolinux', 'installer/extlinux'])
