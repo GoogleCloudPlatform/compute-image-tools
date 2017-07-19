@@ -72,6 +72,14 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 
 	i.w.populateLogger(ctx)
 
+	for name, st := range i.w.Steps {
+		st.name = name
+		st.w = i.w
+		if err := st.w.populateStep(ctx, st); err != nil {
+			return err
+		}
+	}
+
 	// Copy Sources up to parent resolving relative paths as we go.
 	for k, v := range i.w.Sources {
 		if v == "" {
@@ -88,14 +96,6 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 			v = filepath.Join(i.w.workflowDir, v)
 		}
 		s.w.Sources[k] = v
-	}
-
-	for name, st := range i.w.Steps {
-		st.name = name
-		st.w = i.w
-		if err := st.w.populateStep(ctx, st); err != nil {
-			return err
-		}
 	}
 
 	return nil
