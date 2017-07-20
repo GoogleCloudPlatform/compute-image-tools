@@ -8,7 +8,7 @@ Daisy is an open source workflow tool for building custom GCE images and importi
 Some basic concepts to start with
 
 *   **Virtual Disk**: Virtual disk is a file that encapsulates the content of a virtualized disk in a virtualization environment. Virtual Disks are critical components of virtual machines for holding boot media and data. Virtualization platforms (eg VMWare, Hyper-v, KVM etc) each have their own format for virtual disks.
-*   **Persistent Disk**: Compute Engine Persistent Disk is a Compute Engine resource that is equivalent to disk drives in physical computers and virtualdisks in a virtualization environment. 
+*   **Persistent Disk**: Compute Engine Persistent Disk is a Compute Engine resource that is equivalent to disk drives in physical computers and virtualdisks in a virtualization environment.
 *   **GCE Image**: Image is an immutable representation of a Persistent Disk and is used for creating multiple disks from one single templatized version.
 
 # Installation
@@ -40,7 +40,7 @@ Now inside the VM,run the workflow titled import_image.wf.json to convert the vi
 ```
 daisy -variables source_disk_file=YOUR_VIRTUAL_DISK_FILE,image_name=YOUR-IMAGE-NAME /daisy/import_image.wf.json
 ```
-Where, `YOUR_VIRTUAL_DISK_FILE` is the virtual disk file that you uploaded to GCS in the previous step. You must specify the full that of the file.
+Where, `YOUR_VIRTUAL_DISK_FILE` is the virtual disk file that you uploaded to GCS in the previous step. You must specify the full GCS path to the file.
 
 `YOUR_IMAGE_NAME` is the name of your destination image.
 
@@ -107,7 +107,7 @@ Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `s
    </td>
   </tr>
   <tr>
-   <td>Debin 9
+   <td>Debian 9
    </td>
    <td>/daisy/debian/translate_debian_9.wf.json
    </td>
@@ -162,7 +162,7 @@ Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `s
   </tr>
 </table>
 
-Following is an example 
+Following is an example
 
 ```
 $ daisy -variables source_image=projectsmy-awesome-projectglobal/images/my-server-import /daisy/ubuntu/translate_ubuntu_1604.wf.json
@@ -226,7 +226,7 @@ Or, you can run one of the following commands to install Daisy and workflow file
 sudo curl https://storage.googleapis.com/compute-image-tools/daisy_import_alpha.sh | sudo bash
 ```
 
-Or 
+Or
 
 ```
 apt-get update
@@ -254,19 +254,15 @@ In order to complete most workflows, specifically import workflows, Daisy needs 
 	*   https://www.googleapis.com/auth/devstorage.read_write
 	*   https://www.googleapis.com/auth/compute
 
-```
-gcloud compute --project "YOUR-PROJECT" instances create "test-import-vm" --scopes --scopes=compute-rw,storage-full --image-project debian-cloud --image-family debian-9
-```
+`gcloud compute --project "YOUR-PROJECT" instances create "test-import-vm" --scopes --scopes=compute-rw,storage-full --image-project debian-cloud --image-family debian-9`
 
 *   **Option B**:  In the computer where you have Daisy instance, run 'gcloud auth application-default login' and login as a user that has privileges to create and remove virtual machines in Compute Engine.
 
-```
-gcloud auth application-default login 
-```
+`gcloud auth application-default login`
 
 ### Advanced Daisy Parameters
 
-Refer to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy#running-daisy for the full list of Daisy parameters. 
+Refer to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy#running-daisy for the full list of Daisy parameters.
 
 ### Custom Daisy Workflows
 

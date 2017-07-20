@@ -62,7 +62,7 @@ def GemInstall(gem_list):
 def Gsutil(params):
   """Call gsutil."""
   env = os.environ.copy()
-  return Execute(['gsutil'] + params, capture_output=True, env=env)
+  return Execute(['gsutil', '-m'] + params, capture_output=True, env=env)
 
 
 def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):

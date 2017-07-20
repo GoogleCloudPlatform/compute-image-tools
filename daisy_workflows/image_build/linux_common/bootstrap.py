@@ -44,7 +44,7 @@ def Bootstrap():
     full_build_script = os.path.join(build_dir, build_script)
     subprocess.call(['mkdir', build_dir])
     subprocess.call(
-        ['gsutil', 'cp', '-r', os.path.join(build_gcs_dir, '*'), build_dir])
+        ['gsutil', '-m', 'cp', '-r', os.path.join(build_gcs_dir, '*'), build_dir])
     logging.info('Making build script %s executable.', full_build_script)
     subprocess.call(['chmod', '+x', build_script], cwd=build_dir)
     logging.info('Running %s.', full_build_script)

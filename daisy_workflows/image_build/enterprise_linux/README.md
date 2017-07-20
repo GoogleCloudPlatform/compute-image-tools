@@ -16,7 +16,15 @@ daisy -project my-project \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json \
       -variables \
-              image_dest=gs://bucket/images,\
-              installer_iso=co7_installer.iso \
+              installer_iso=centos7_installer.iso \
       centos_7.wf.json
+
+# RHEL 7
+daisy -project my-project \
+      -zone us-west1-a \
+      -gcs_path gs://bucket/daisyscratch \
+      -oauth creds.json \
+      -variables \
+             installer_iso=rhel7_installer.iso,rhui_client_rpm=gce_rhui.rpm \
+      rhel_7.wf.json
 ```

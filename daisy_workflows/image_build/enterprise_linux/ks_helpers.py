@@ -184,35 +184,41 @@ def BuildKsConfig(release, google_cloud_repo):
   if release == "rhel6":
     ks_options = FetchConfigPart('el6-options.cfg')
     custom_post = FetchConfigPart('el6-post.cfg')
+    cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "centos6":
     ks_options = FetchConfigPart('el6-options.cfg')
     custom_post = FetchConfigPart('co6-post.cfg')
+    cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "rhel7":
     ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('el7-post.cfg')
+    cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
     ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('co7-post.cfg')
+    cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   else:
     logging.error('Unknown Image Name: %s', release)
 
-  ks_post = BuildPost(custom_post, repo_version, google_cloud_repo)
+  ks_post = BuildPost(custom_post, cleanup, repo_version, google_cloud_repo)
 
   # This list should be in the order that you want each section to appear in the
   # Kickstart config.
   return '\n'.join([ks_options, ks_packages, ks_post])
 
 
-def BuildPost(custom_post, repo_version, google_cloud_repo):
+def BuildPost(custom_post, cleanup, repo_version, google_cloud_repo):
   """Assembles the %pre/post section of a kickstart file.
 
   Args:
     custom_post: string; a kickstart %pre/post segment containing post install
                  steps needed for a given flavor of Enterprise Linux.
+
+    cleanup: string; a kickstart %post segment for cleanup.
 
     repo_version: string; expects 'el6', or 'el7'.
 
@@ -228,19 +234,15 @@ def BuildPost(custom_post, repo_version, google_cloud_repo):
   # before the image is pushed to GCS.
   create_synopsis = FetchConfigPart('create-synopsis-post.cfg')
 
-  # This pushes the image and logs to GCS and should be the last thing in post
-  # file.
-  upload_image = FetchConfigPart('upload-image-post.cfg')
-
   # Configure repository %post section
   repo_post = BuildReposPost(repo_version, google_cloud_repo)
 
   if repo_version == 'el6':
     ks_post_list = [
-        el6_pre, repo_post, custom_post, create_synopsis, upload_image]
+        el6_pre, repo_post, custom_post, create_synopsis, cleanup]
   else:
     ks_post_list = [
-        repo_post, custom_post, create_synopsis, upload_image]
+        repo_post, custom_post, create_synopsis, cleanup]
 
   return '\n'.join(ks_post_list)
 
