@@ -210,7 +210,7 @@ func TestCreateDisksValidate(t *testing.T) {
 	// These track the expected state of the disk references and the image reference.
 	// Each good case adds a disk reference and adds a user to the image.
 	wantDisks := map[string]*resource{}
-	wantImages := &resourceMap{m: map[string]*resource{"i1": {creator: iCreator}}, urlRgx: imageURLRgx}
+	wantImages := &baseResourceMap{m: map[string]*resource{"i1": {creator: iCreator}}, urlRgx: imageURLRgx}
 
 	// These are compare helper functions. These clear up infinite recursion issues.
 	preCompare := func() {

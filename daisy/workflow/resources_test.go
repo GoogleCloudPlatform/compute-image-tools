@@ -74,8 +74,45 @@ func TestResourceCleanup(t *testing.T) {
 	}
 }
 
+func TestResourceMapDelete(t *testing.T) {
+	var deleteFnErr error
+	rm := &baseResourceMap{m: map[string]*resource{}}
+	rm.deleteFn = func(r *resource) error {
+		return deleteFnErr
+	}
+
+	rm.m["foo"] = &resource{}
+	rm.m["baz"] = &resource{}
+
+	tests := []struct {
+		desc, input string
+		deleteFnErr error
+		shouldErr   bool
+	}{
+		{"good case", "foo", nil, false},
+		{"bad redelete case", "foo", nil, true},
+		{"bad resource dne case", "bar", nil, true},
+		{"bad deleteFn error case", "baz", errors.New("error"), true},
+	}
+
+	for _, tt := range tests {
+		deleteFnErr = tt.deleteFnErr
+		err := rm.delete(tt.input)
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: should have erred but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+
+	wantM := map[string]*resource{"foo": {deleted: true}, "baz": {deleted: false}}
+	if diff := pretty.Compare(rm.m, wantM); diff != "" {
+		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diff)
+	}
+}
+
 func TestResourceMapConcurrency(t *testing.T) {
-	rm := resourceMap{usageRegistrationHook: func(name string, s *Step) error { return nil }}
+	rm := baseResourceMap{}
 
 	tests := []struct {
 		desc string
@@ -85,6 +122,7 @@ func TestResourceMapConcurrency(t *testing.T) {
 		{"registerDeletion", func() { rm.registerDeletion("foo", nil) }},
 		{"registerUsage", func() { rm.registerUsage("foo", nil) }},
 		{"get", func() { rm.get("foo") }},
+		{"delete", func() { rm.get("foo") }},
 	}
 
 	for _, tt := range tests {
@@ -113,7 +151,7 @@ func TestResourceMapConcurrency(t *testing.T) {
 func TestResourceMapGet(t *testing.T) {
 	xRes := &resource{}
 	yRes := &resource{}
-	rm := resourceMap{m: map[string]*resource{"x": xRes, "y": yRes}}
+	rm := baseResourceMap{m: map[string]*resource{"x": xRes, "y": yRes}}
 
 	tests := []struct {
 		desc, input string
@@ -132,7 +170,7 @@ func TestResourceMapGet(t *testing.T) {
 }
 
 func TestResourceMapRegisterCreation(t *testing.T) {
-	rm := &resourceMap{}
+	rm := &baseResourceMap{}
 	r := &resource{}
 	s := &Step{}
 
@@ -169,7 +207,7 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 		"badDeleter2": {"creator"},
 	}
 	r := &resource{creator: creator, users: []*Step{user}}
-	rm := &resourceMap{m: map[string]*resource{"r": r}}
+	rm := &baseResourceMap{m: map[string]*resource{"r": r}}
 
 	tests := []struct {
 		desc    string
@@ -197,7 +235,7 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 }
 
 func TestResourceMapRegisterExisting(t *testing.T) {
-	rm := &resourceMap{}
+	rm := &baseResourceMap{}
 
 	defURL := "projects/p/zones/z/disks/d"
 	tests := []struct {
@@ -247,13 +285,7 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 	}
 	r1 := &resource{creator: creator}
 	r2 := &resource{creator: creator, deleter: deleter}
-	hook := func(name string, s *Step) error {
-		if s.name == "badUser3" {
-			return errors.New("fail")
-		}
-		return nil
-	}
-	rm := &resourceMap{m: map[string]*resource{"r1": r1, "r2": r2}, usageRegistrationHook: hook}
+	rm := &baseResourceMap{m: map[string]*resource{"r1": r1, "r2": r2}}
 
 	tests := []struct {
 		desc    string
@@ -265,7 +297,6 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 		{"normal case", "r1", user, false, r1},
 		{"missing dependency on creator case", "r1", badUser, true, nil},
 		{"use deleted case", "r2", badUser2, true, nil},
-		{"hook error case", "r1", badUser3, true, nil},
 	}
 
 	for _, tt := range tests {

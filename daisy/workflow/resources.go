@@ -31,23 +31,69 @@ type resource struct {
 	users            []*Step
 }
 
-type resourceMap struct {
+type resourceMap interface {
+	cleanup() error
+	delete(name string) error
+	get(name string) (*resource, bool)
+	registerCreation(name string, r *resource, s *Step) error
+	registerDeletion(name string, s *Step) error
+	registerUsage(name string, s *Step) error
+}
+
+type baseResourceMap struct {
+	w  *Workflow
 	m  map[string]*resource
 	mx sync.Mutex
 
-	typeName              string
-	urlRgx                *regexp.Regexp
-	usageRegistrationHook func(name string, s *Step) error
+	deleteFn func(r *resource) error
+	typeName string
+	urlRgx   *regexp.Regexp
 }
 
-func (rm *resourceMap) get(name string) (*resource, bool) {
+func (rm *baseResourceMap) cleanup() {
+	var wg sync.WaitGroup
+	for name, r := range rm.m {
+		if r.noCleanup || r.deleted {
+			continue
+		}
+		wg.Add(1)
+		go func(name string) {
+			defer wg.Done()
+			if err := rm.delete(name); err != nil {
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code != 404 {
+					fmt.Println(err)
+				}
+			}
+		}(name)
+	}
+	wg.Wait()
+}
+
+func (rm *baseResourceMap) delete(name string) error {
+	rm.mx.Lock()
+	defer rm.mx.Unlock()
+	if r, ok := rm.m[name]; ok {
+		if r.deleted {
+			return fmt.Errorf("cannot delete %q; already deleted", name)
+		}
+		if err := rm.deleteFn(r); err != nil {
+			return err
+		}
+		r.deleted = true
+		return nil
+	} else {
+		return fmt.Errorf("cannot delete %q; does not exist in resource map", name)
+	}
+}
+
+func (rm *baseResourceMap) get(name string) (*resource, bool) {
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
 	r, ok := rm.m[name]
 	return r, ok
 }
 
-func (rm *resourceMap) registerCreation(name string, r *resource, s *Step) error {
+func (rm *baseResourceMap) registerCreation(name string, r *resource, s *Step) error {
 	// Create a resource reference, known by name. Check:
 	// - no duplicates known by name
 	rm.mx.Lock()
@@ -62,7 +108,7 @@ func (rm *resourceMap) registerCreation(name string, r *resource, s *Step) error
 	return nil
 }
 
-func (rm *resourceMap) registerDeletion(name string, s *Step) error {
+func (rm *baseResourceMap) registerDeletion(name string, s *Step) error {
 	// Mark a resource reference for deletion. Check:
 	// - don't dupe deletion of name.
 	// - s depends on ALL registered users and creator of name.
@@ -96,7 +142,7 @@ func (rm *resourceMap) registerDeletion(name string, s *Step) error {
 	return nil
 }
 
-func (rm *resourceMap) registerExisting(url string) (*resource, error) {
+func (rm *baseResourceMap) registerExisting(url string) (*resource, error) {
 	if !strings.HasPrefix(url, "projects/") {
 		return nil, fmt.Errorf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
@@ -111,7 +157,7 @@ func (rm *resourceMap) registerExisting(url string) (*resource, error) {
 	return r, nil
 }
 
-func (rm *resourceMap) registerUsage(name string, s *Step) (*resource, error) {
+func (rm *baseResourceMap) registerUsage(name string, s *Step) (*resource, error) {
 	// Make s a user of name. Check:
 	// - s depends on creator of name, if there is a creator.
 	// - name doesn't have a registered deleter yet, usage must occur before deletion.
@@ -135,20 +181,15 @@ func (rm *resourceMap) registerUsage(name string, s *Step) (*resource, error) {
 	if r.deleter != nil {
 		return nil, fmt.Errorf("using %s %q; step %q deletes %q and MUST transitively depend on this step", rm.typeName, name, r.deleter.name, name)
 	}
-	if rm.usageRegistrationHook != nil {
-		if err := rm.usageRegistrationHook(name, s); err != nil {
-			return nil, err
-		}
-	}
 
 	rm.m[name].users = append(rm.m[name].users, s)
 	return r, nil
 }
 
 func initWorkflowResources(w *Workflow) {
-	initDisksMap(w)
-	initImagesMap(w)
-	initInstancesMap(w)
+	initDiskMap(w)
+	initImageMap(w)
+	initInstanceMap(w)
 	w.addCleanupHook(resourceCleanupHook(w))
 }
 
@@ -160,30 +201,11 @@ func shareWorkflowResources(giver, taker *Workflow) {
 
 func resourceCleanupHook(w *Workflow) func() error {
 	return func() error {
-		resourceCleanupHelper(images[w], func(r *resource) error { return deleteImage(w, r) })
-		resourceCleanupHelper(instances[w], func(r *resource) error { return deleteInstance(w, r) })
-		resourceCleanupHelper(disks[w], func(r *resource) error { return deleteDisk(w, r) })
+		images[w].cleanup()
+		instances[w].cleanup()
+		disks[w].cleanup()
 		return nil
 	}
-}
-
-func resourceCleanupHelper(rm *resourceMap, deleteFn func(*resource) error) {
-	var wg sync.WaitGroup
-	for name, r := range rm.m {
-		if r.noCleanup || r.deleted {
-			continue
-		}
-		wg.Add(1)
-		go func(ref string, res *resource) {
-			defer wg.Done()
-			if err := deleteFn(res); err != nil {
-				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code != 404 {
-					fmt.Println(err)
-				}
-			}
-		}(name, r)
-	}
-	wg.Wait()
 }
 
 func extendPartialURL(url, project string) string {

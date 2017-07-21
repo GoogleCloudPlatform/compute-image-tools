@@ -20,18 +20,22 @@ import (
 )
 
 var (
-	instances      = map[*Workflow]*resourceMap{}
+	instances      = map[*Workflow]*instanceMap{}
 	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
 )
 
-func initInstancesMap(w *Workflow) {
-	m := &resourceMap{}
-	instances[w] = m
-	m.typeName = "instance"
-	m.urlRgx = instanceURLRgx
+type instanceMap struct {
+	baseResourceMap
 }
 
-func deleteInstance(w *Workflow, r *resource) error {
+func initInstanceMap(w *Workflow) {
+	im := &instanceMap{baseResourceMap: baseResourceMap{w: w, typeName: "instance", urlRgx: instanceURLRgx}}
+	im.baseResourceMap.deleteFn = im.deleteFn
+	instances[w] = im
+}
+
+func (im *instanceMap) deleteFn(r *resource) error {
+	w := im.w
 	if err := w.ComputeClient.DeleteInstance(w.Project, w.Zone, r.real); err != nil {
 		return err
 	}

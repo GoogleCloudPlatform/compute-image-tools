@@ -61,9 +61,6 @@ func TestDeleteResourcesRun(t *testing.T) {
 			if !c.r.deleted {
 				t.Errorf("resource %q should have been deleted", c.r.real)
 			}
-			if c.r.deleter != s {
-				t.Errorf("resource %q should have the deletion step as its deleter, but doesn't", c.r.real)
-			}
 		} else if c.r.deleted {
 			t.Errorf("resource %q should not have been deleted", c.r.real)
 		}
