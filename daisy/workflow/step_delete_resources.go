@@ -91,12 +91,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			r, _ := instances[w].get(i)
-			w.logger.Printf("DeleteResources: deleting instance %q.", r.real)
-			if err := deleteInstance(w, r); err != nil {
+			w.logger.Printf("DeleteResources: deleting instance %q.", i)
+			if err := instances[w].delete(i); err != nil {
 				e <- err
 			}
-			r.deleter = s
 		}(i)
 	}
 
@@ -104,12 +102,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			r, _ := images[w].get(i)
-			w.logger.Printf("DeleteResources: deleting image %q.", r.real)
-			if err := deleteImage(w, r); err != nil {
+			w.logger.Printf("DeleteResources: deleting image %q.", i)
+			if err := images[w].delete(i); err != nil {
 				e <- err
 			}
-			r.deleter = s
 		}(i)
 	}
 
@@ -133,12 +129,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			r, _ := disks[w].get(d)
-			w.logger.Printf("DeleteResources: deleting disk %q.", r.real)
-			if err := deleteDisk(w, r); err != nil {
+			w.logger.Printf("DeleteResources: deleting disk %q.", d)
+			if err := disks[w].delete(d); err != nil {
 				e <- err
 			}
-			r.deleter = s
 		}(d)
 	}
 

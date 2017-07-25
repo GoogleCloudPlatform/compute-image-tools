@@ -20,21 +20,39 @@ import (
 )
 
 var (
-	disks      = map[*Workflow]*resourceMap{}
+	disks      = map[*Workflow]*diskMap{}
 	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/disks/(?P<disk>%[1]s)$`, rfc1035))
 )
 
-func initDisksMap(w *Workflow) {
-	m := &resourceMap{}
-	disks[w] = m
-	m.typeName = "disk"
-	m.urlRgx = diskURLRgx
+type diskMap struct {
+	baseResourceMap
+	attachments map[*resource]map[*resource]diskAttachment
 }
 
-func deleteDisk(w *Workflow, r *resource) error {
+type diskAttachment struct {
+	mode               string
+	attacher, detacher *Step
+}
+
+func initDiskMap(w *Workflow) {
+	dm := &diskMap{baseResourceMap: baseResourceMap{w: w, typeName: "disk", urlRgx: diskURLRgx}}
+	dm.baseResourceMap.deleteFn = dm.deleteFn
+	disks[w] = dm
+}
+
+func (dm *diskMap) deleteFn(r *resource) error {
+	w := dm.w
 	if err := w.ComputeClient.DeleteDisk(w.Project, w.Zone, r.real); err != nil {
 		return err
 	}
 	r.deleted = true
+	return nil
+}
+
+func (dm *diskMap) registerAttachment(dName, iName, mode string, s *Step) error {
+	return nil
+}
+
+func (dm *diskMap) registerDetachment(dName, iName, mode string, s *Step) error {
 	return nil
 }
