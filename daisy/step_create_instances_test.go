@@ -143,7 +143,7 @@ func TestCreateInstancePopulate(t *testing.T) {
 	defP := w.Project
 	defZ := w.Zone
 	defMT := fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", defP, defZ)
-	defDM := "READ_WRITE"
+	defDM := defaultDiskMode
 	defDs := []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}}
 	defNs := []*compute.NetworkInterface{{Network: "global/networks/default", AccessConfigs: []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}}}
 	defMD := map[string]string{"daisy-sources-path": "gs://", "daisy-logs-path": "gs://", "daisy-outs-path": "gs://"}
@@ -190,17 +190,71 @@ func TestCreateInstancePopulate(t *testing.T) {
 func TestCreateInstancePopulateDisks(t *testing.T) {
 	w := testWorkflow()
 
+	iName := "foo"
+	defDT := fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", testProject, testZone, defaultDiskType)
 	tests := []struct {
 		desc       string
 		ad, wantAd []*compute.AttachedDisk
 	}{
-		{"normal case", []*compute.AttachedDisk{{Source: "d1"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}}},
-		{"multiple disks case", []*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_WRITE"}, {Boot: false, Source: "d2", Mode: "READ_WRITE"}}},
-		{"mode specified case", []*compute.AttachedDisk{{Source: "d1", Mode: "READ_ONLY"}}, []*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: "READ_ONLY"}}},
+		{
+			"normal case",
+			[]*compute.AttachedDisk{{Source: "d1"}},
+			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode}},
+		},
+		{
+			"multiple disks case",
+			[]*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}},
+			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode}, {Boot: false, Source: "d2", Mode: defaultDiskMode}},
+		},
+		{
+			"mode specified case",
+			[]*compute.AttachedDisk{{Source: "d1", Mode: diskModeRO}},
+			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: diskModeRO}},
+		},
+		{
+			"init params daisy image (and other defaults)",
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i"}}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true}},
+		},
+		{
+			"init params image short url",
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "global/images/i"}}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true}},
+		},
+		{
+			"init params image extended url",
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject)}}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true}},
+		},
+		{
+			"init params disk type short url",
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("zones/%s/diskTypes/dt", testZone)}}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true}},
+		},
+		{
+			"init params disk type extended url",
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true}},
+		},
+		{
+			"init params name suffixes",
+			[]*compute.AttachedDisk{
+				{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i"}},
+				{Source: "d"},
+				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i"}},
+				{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i"}},
+			},
+			[]*compute.AttachedDisk{
+				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true},
+				{Source: "d", Mode: defaultDiskMode},
+				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode},
+				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: fmt.Sprintf("%s-2", iName), SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode},
+			},
+		},
 	}
 
 	for _, tt := range tests {
-		ci := CreateInstance{Instance: compute.Instance{Disks: tt.ad}}
+		ci := CreateInstance{Instance: compute.Instance{Name: iName, Disks: tt.ad}, Project: testProject, Zone: testZone}
 		err := ci.populateDisks(w)
 		if err != nil {
 			t.Errorf("%s: populateDisks returned an unexpected error: %v", tt.desc, err)
@@ -379,10 +433,14 @@ func TestCreateInstancesRun(t *testing.T) {
 }
 
 func TestCreateInstanceValidateDisks(t *testing.T) {
+	// Test:
+	// - good case
+	// - no disks bad case
+	// - bad disk mode case
 	ctx := context.Background()
 	w := testWorkflow()
 	disks[w].m = map[string]*resource{"d": {link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}}
-	m := "READ_WRITE"
+	m := defaultDiskMode
 
 	tests := []struct {
 		desc      string
@@ -391,20 +449,112 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 	}{
 		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d", Mode: m}}}, Project: testProject, Zone: testZone}, false},
 		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone), Mode: m}}}, Project: testProject, Zone: testZone}, false},
-		{"no disks case", &CreateInstance{Instance: compute.Instance{Name: "foo"}}, true},
-		{"disk dne case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "dne", Mode: m}}}}, true},
-		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", testZone), Mode: m}}}, Project: testProject, Zone: testZone}, true},
-		{"bad zone case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "zones/z2/disks/d", Mode: m}}}, Project: testProject, Zone: testZone}, true},
+		{"bad no disks case", &CreateInstance{Instance: compute.Instance{Name: "foo"}}, true},
 		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d", Mode: "bad mode!"}}}, Project: testProject, Zone: testZone}, true},
 	}
 
 	for _, tt := range tests {
-		s := &Step{w: w, CreateInstances: &CreateInstances{tt.ci}}
+		s, _ := w.NewStep(tt.desc)
+		s.CreateInstances = &CreateInstances{tt.ci}
 		if err := tt.ci.validateDisks(ctx, s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		}
+	}
+}
+
+func TestCreateInstanceValidateDiskSource(t *testing.T) {
+	// Test:
+	// - good case
+	// - disk dne
+	// - disk has wrong project/zone
+	w := testWorkflow()
+	disks[w].m = map[string]*resource{"d": {link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}}
+	m := defaultDiskMode
+	p := testProject
+	z := testZone
+
+	tests := []struct {
+		desc      string
+		ads       []*compute.AttachedDisk
+		shouldErr bool
+	}{
+		{"good case", []*compute.AttachedDisk{{Source: "d", Mode: m}}, false},
+		{"disk dne case", []*compute.AttachedDisk{{Source: "dne", Mode: m}}, true},
+		{"bad project case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, true},
+		{"bad zone case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, true},
+	}
+
+	for _, tt := range tests {
+		s, _ := w.NewStep(tt.desc)
+		ci := &CreateInstance{Instance: compute.Instance{Disks: tt.ads}, Project: p, Zone: z}
+		s.CreateInstances = &CreateInstances{ci}
+		err := ci.validateDiskSource(tt.ads[0], s)
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+}
+
+func TestCreateInstanceValidateDiskInitializeParams(t *testing.T) {
+	// Test:
+	// - good case
+	// - bad disk name
+	// - duplicate disk
+	// - bad source given
+	// - bad disk types (wrong project/zone)
+	// - check that disks are created
+	w := testWorkflow()
+	images[w].m = map[string]*resource{"i": {link: "iLink"}}
+	dt := fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProject, testZone)
+
+	tests := []struct {
+		desc      string
+		p         *compute.AttachedDiskInitializeParams
+		shouldErr bool
+	}{
+		{"good case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, false},
+		{"bad disk name case", &compute.AttachedDiskInitializeParams{DiskName: "bad!", SourceImage: "i", DiskType: dt}, true},
+		{"bad dupe disk case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, true},
+		{"bad source case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: dt}, true},
+		{"bad disk type case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, true},
+		{"bad disk type case 2", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, true},
+	}
+
+	for _, tt := range tests {
+		s, _ := w.NewStep(tt.desc)
+		ci := &CreateInstance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{InitializeParams: tt.p}}}, Project: testProject, Zone: testZone}
+		s.CreateInstances = &CreateInstances{ci}
+		if err := ci.validateDiskInitializeParams(ci.Disks[0], s); err == nil {
+			if tt.shouldErr {
+				t.Errorf("%s: should have returned an error but didn't", tt.desc)
+			}
+		} else if !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+
+	// Check good disks were created.
+	wantCreator := w.Steps["good case"]
+	wantLink := fmt.Sprintf("projects/%s/zones/%s/disks/foo", testProject, testZone)
+	wantFoo := &resource{real: "foo", link: wantLink, creator: wantCreator}
+	if gotFoo, ok := disks[w].m["foo"]; !ok || !reflect.DeepEqual(gotFoo, wantFoo) {
+		t.Errorf("foo resource not added as expected: got: %+v, want: %+v", gotFoo, wantFoo)
+	}
+
+	// Check proper image user registrations.
+	wantU := w.Steps["good case"]
+	found := false
+	for _, u := range images[w].m["i"].users {
+		if u == wantU {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("good case should have been a registered user of image \"i\"")
 	}
 }
 
@@ -420,7 +570,6 @@ func TestCreateInstanceValidateMachineType(t *testing.T) {
 		shouldErr bool
 	}{
 		{"good case", fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", testProject, testZone, testMachineType), false},
-		{"good case 2", fmt.Sprintf("zones/%s/machineTypes/%s", testZone, testMachineType), false},
 		{"bad machine type case", fmt.Sprintf("projects/%s/zones/%s/machineTypes/bad-mt", testProject, testZone), true},
 		{"bad project case", fmt.Sprintf("projects/p2/zones/%s/machineTypes/%s", testZone, testMachineType), true},
 		{"bad zone case", fmt.Sprintf("projects/%s/zones/z2/machineTypes/%s", testProject, testMachineType), true},
@@ -429,7 +578,7 @@ func TestCreateInstanceValidateMachineType(t *testing.T) {
 
 	for _, tt := range tests {
 		ci := &CreateInstance{Instance: compute.Instance{MachineType: tt.mt}, Project: testProject, Zone: testZone}
-		if err := ci.validateMachineType(testProject, c); tt.shouldErr && err == nil {
+		if err := ci.validateMachineType(c); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -445,9 +594,9 @@ func TestCreateInstanceValidateNetworks(t *testing.T) {
 		nis       []*compute.NetworkInterface
 		shouldErr bool
 	}{
-		{"good case", []*compute.NetworkInterface{{Network: "global/networks/n", AccessConfigs: acs}}, false},
+		{"good case", []*compute.NetworkInterface{{Network: "projects/p/global/networks/n", AccessConfigs: acs}}, false},
 		{"good case 2", []*compute.NetworkInterface{{Network: "projects/p/global/networks/n", AccessConfigs: acs}}, false},
-		{"bad name case", []*compute.NetworkInterface{{Network: "global/networks/bad!", AccessConfigs: acs}}, true},
+		{"bad name case", []*compute.NetworkInterface{{Network: "projects/p/global/networks/bad!", AccessConfigs: acs}}, true},
 		{"bad project case", []*compute.NetworkInterface{{Network: "projects/bad-project/global/networks/n", AccessConfigs: acs}}, true},
 	}
 
@@ -484,7 +633,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 
 	p := "p"
 	z := "z"
-	ad := []*compute.AttachedDisk{{Source: "d", Mode: "READ_WRITE"}}
+	ad := []*compute.AttachedDisk{{Source: "d", Mode: defaultDiskMode}}
 	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/mt", p, z)
 	dCreator := &Step{name: "dCreator", w: w}
 	w.Steps["dCreator"] = dCreator
@@ -504,9 +653,9 @@ func TestCreateInstancesValidate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		s := &Step{name: tt.desc, w: w, CreateInstances: &CreateInstances{tt.input}}
-		w.Steps[tt.desc] = s
-		w.Dependencies[tt.desc] = []string{"dCreator"}
+		s, _ := w.NewStep(tt.desc)
+		w.AddDependency(tt.desc, "dCreator")
+		s.CreateInstances = &CreateInstances{tt.input}
 		if err := s.CreateInstances.validate(ctx, s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
