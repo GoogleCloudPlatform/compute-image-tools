@@ -26,10 +26,10 @@ var (
 
 type diskMap struct {
 	baseResourceMap
-	attachments map[*resource]map[*resource]DiskAttachment
+	attachments map[*resource]map[*resource]diskAttachment
 }
 
-type DiskAttachment struct {
+type diskAttachment struct {
 	mode               string
 	attacher, detacher *Step
 }
