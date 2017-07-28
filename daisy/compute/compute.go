@@ -40,7 +40,6 @@ type Client interface {
 	GetZone(project, zone string) (*compute.Zone, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
-	WaitForInstanceStopped(project, zone, name string, interval time.Duration) error
 }
 
 type clientImpl interface {
@@ -81,12 +80,12 @@ func (c *client) operationsWait(project, zone, name string) error {
 		if zone != "" {
 			op, err = c.raw.ZoneOperations.Get(project, zone, name).Do()
 			if err != nil {
-				return fmt.Errorf("Failed to get operation %s: %v", name, err)
+				return fmt.Errorf("failed to get operation %s: %v", name, err)
 			}
 		} else {
 			op, err = c.raw.GlobalOperations.Get(project, name).Do()
 			if err != nil {
-				return fmt.Errorf("Failed to get operation %s: %v", name, err)
+				return fmt.Errorf("failed to get operation %s: %v", name, err)
 			}
 		}
 		switch op.Status {
@@ -239,21 +238,5 @@ func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
 		return true, nil
 	default:
 		return false, fmt.Errorf("unexpected instance status %q", status)
-	}
-}
-
-// WaitForInstanceStopped waits a GCE instance to enter 'TERMINATED' state.
-func (c *client) WaitForInstanceStopped(project, zone, instance string, interval time.Duration) error {
-	for {
-		stopped, err := c.i.InstanceStopped(project, zone, instance)
-		if err != nil {
-			return err
-		}
-		switch stopped {
-		case true:
-			return nil
-		case false:
-			time.Sleep(interval)
-		}
 	}
 }

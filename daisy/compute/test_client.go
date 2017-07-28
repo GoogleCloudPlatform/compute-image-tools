@@ -18,7 +18,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"time"
 
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
@@ -46,19 +45,18 @@ func NewTestClient(handleFunc http.HandlerFunc) (*httptest.Server, *TestClient, 
 // TestClient is a Client with overrideable methods.
 type TestClient struct {
 	client
-	CreateDiskFn             func(project, zone string, d *compute.Disk) error
-	CreateImageFn            func(project string, i *compute.Image) error
-	CreateInstanceFn         func(project, zone string, i *compute.Instance) error
-	DeleteDiskFn             func(project, zone, name string) error
-	DeleteImageFn            func(project, name string) error
-	DeleteInstanceFn         func(project, zone, name string) error
-	GetMachineTypeFn         func(project, zone, machineType string) (*compute.MachineType, error)
-	GetProjectFn             func(project string) (*compute.Project, error)
-	GetSerialPortOutputFn    func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
-	GetZoneFn                func(project, zone string) (*compute.Zone, error)
-	InstanceStatusFn         func(project, zone, name string) (string, error)
-	InstanceStoppedFn        func(project, zone, name string) (bool, error)
-	WaitForInstanceStoppedFn func(project, zone, name string, interval time.Duration) error
+	CreateDiskFn          func(project, zone string, d *compute.Disk) error
+	CreateImageFn         func(project string, i *compute.Image) error
+	CreateInstanceFn      func(project, zone string, i *compute.Instance) error
+	DeleteDiskFn          func(project, zone, name string) error
+	DeleteImageFn         func(project, name string) error
+	DeleteInstanceFn      func(project, zone, name string) error
+	GetMachineTypeFn      func(project, zone, machineType string) (*compute.MachineType, error)
+	GetProjectFn          func(project string) (*compute.Project, error)
+	GetSerialPortOutputFn func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
+	GetZoneFn             func(project, zone string) (*compute.Zone, error)
+	InstanceStatusFn      func(project, zone, name string) (string, error)
+	InstanceStoppedFn     func(project, zone, name string) (bool, error)
 
 	operationsWaitFn func(project, zone, name string) error
 }
@@ -157,14 +155,6 @@ func (c *TestClient) InstanceStopped(project, zone, name string) (bool, error) {
 		return c.InstanceStoppedFn(project, zone, name)
 	}
 	return c.client.InstanceStopped(project, zone, name)
-}
-
-// WaitForInstanceStopped uses the override method WaitForInstanceStoppedFn or the real implementation.
-func (c *TestClient) WaitForInstanceStopped(project, zone, name string, interval time.Duration) error {
-	if c.WaitForInstanceStoppedFn != nil {
-		return c.WaitForInstanceStoppedFn(project, zone, name, interval)
-	}
-	return c.client.WaitForInstanceStopped(project, zone, name, interval)
 }
 
 // operationsWait uses the override method operationsWaitFn or the real implementation.

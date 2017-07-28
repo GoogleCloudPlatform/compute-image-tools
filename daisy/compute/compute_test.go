@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
@@ -271,24 +270,5 @@ func TestDeleteInstance(t *testing.T) {
 
 	if err := c.DeleteInstance(testProject, testZone, testInstance); err != nil {
 		t.Fatalf("error running DeleteInstance: %v", err)
-	}
-}
-
-func TestWaitForInstanceStopped(t *testing.T) {
-	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, testInstance) {
-			fmt.Fprint(w, `{"Status":"TERMINATED"}`)
-		} else {
-			w.WriteHeader(500)
-			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
-		}
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer svr.Close()
-
-	if err := c.WaitForInstanceStopped(testProject, testZone, testInstance, 5*time.Second); err != nil {
-		t.Fatalf("error running WaitForInstanceStopped: %v", err)
 	}
 }
