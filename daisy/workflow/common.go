@@ -51,6 +51,25 @@ var (
 	gcsAPIBase = "https://storage.cloud.google.com"
 )
 
+func namedSubexp(re *regexp.Regexp, s string) map[string]string {
+	match := re.FindStringSubmatch(s)
+	if match == nil {
+		return nil
+	}
+	result := make(map[string]string)
+	l := len(match)
+	for i, name := range re.SubexpNames() {
+		if i == 0 || name == "" {
+			continue
+		}
+		result[name] = ""
+		if i < l {
+			result[name] = match[i]
+		}
+	}
+	return result
+}
+
 // filter creates a copy of ss, excluding any instances of s.
 func filter(ss []string, s string) []string {
 	result := []string{}

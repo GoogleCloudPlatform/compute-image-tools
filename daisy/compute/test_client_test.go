@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	compute "google.golang.org/api/compute/v1"
 )
@@ -48,7 +47,6 @@ func TestTestClient(t *testing.T) {
 		{"get zone", func() { c.GetZone("a", "b") }},
 		{"instance status", func() { c.InstanceStatus("a", "b", "c") }},
 		{"instance stopped", func() { c.InstanceStopped("a", "b", "c") }},
-		{"wait instance", func() { c.WaitForInstanceStopped("a", "b", "c", time.Duration(1)) }},
 		{"operation wait", func() { c.operationsWait("a", "b", "c") }},
 	}
 
@@ -84,7 +82,6 @@ func TestTestClient(t *testing.T) {
 	c.GetMachineTypeFn = func(_, _, _ string) (*compute.MachineType, error) { fakeCalled = true; return nil, nil }
 	c.InstanceStatusFn = func(_, _, _ string) (string, error) { fakeCalled = true; return "", nil }
 	c.InstanceStoppedFn = func(_, _, _ string) (bool, error) { fakeCalled = true; return false, nil }
-	c.WaitForInstanceStoppedFn = func(_, _, _ string, i time.Duration) error { fakeCalled = true; return nil }
 	c.operationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	wantFakeCalled = true
 	wantRealCalled = false

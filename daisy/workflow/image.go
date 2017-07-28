@@ -35,8 +35,8 @@ func initImageMap(w *Workflow) {
 }
 
 func (im *imageMap) deleteFn(r *resource) error {
-	w := im.w
-	if err := w.ComputeClient.DeleteImage(w.Project, r.real); err != nil {
+	m := namedSubexp(imageURLRgx, r.link)
+	if err := im.w.ComputeClient.DeleteImage(m["project"], m["image"]); err != nil {
 		return err
 	}
 	r.deleted = true

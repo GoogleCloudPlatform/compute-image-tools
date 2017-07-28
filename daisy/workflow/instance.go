@@ -35,8 +35,8 @@ func initInstanceMap(w *Workflow) {
 }
 
 func (im *instanceMap) deleteFn(r *resource) error {
-	w := im.w
-	if err := w.ComputeClient.DeleteInstance(w.Project, w.Zone, r.real); err != nil {
+	m := namedSubexp(instanceURLRgx, r.link)
+	if err := im.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"]); err != nil {
 		return err
 	}
 	r.deleted = true

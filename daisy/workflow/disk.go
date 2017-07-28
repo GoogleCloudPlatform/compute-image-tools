@@ -41,8 +41,8 @@ func initDiskMap(w *Workflow) {
 }
 
 func (dm *diskMap) deleteFn(r *resource) error {
-	w := dm.w
-	if err := w.ComputeClient.DeleteDisk(w.Project, w.Zone, r.real); err != nil {
+	m := namedSubexp(diskURLRgx, r.link)
+	if err := dm.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"]); err != nil {
 		return err
 	}
 	r.deleted = true

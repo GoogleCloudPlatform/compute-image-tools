@@ -266,31 +266,26 @@ func (c *CreateInstance) validateDisks(ctx context.Context, s *Step) (errs []err
 
 func (c *CreateInstance) validateMachineType(project string, client daisyCompute.Client) []error {
 	var errs []error
-	match := machineTypeURLRegex.FindStringSubmatch(c.MachineType)
-	if match == nil {
+
+	m := namedSubexp(machineTypeURLRegex, c.MachineType)
+	if m == nil {
 		return append(errs, fmt.Errorf("can't create instance: bad MachineType: %q", c.MachineType))
 	}
 
-	result := make(map[string]string)
-	for i, name := range machineTypeURLRegex.SubexpNames() {
-		if i != 0 {
-			result[name] = match[i]
-		}
+	if m["project"] != "" && m["project"] != c.Project {
+		errs = append(errs, fmt.Errorf("cannot create instance in project %q with machineType in project %q: %q", c.Project, m["project"], c.MachineType))
 	}
-	if result["project"] != "" && result["project"] != c.Project {
-		errs = append(errs, fmt.Errorf("cannot create instance in project %q with machineType in project %q: %q", c.Project, result["project"], c.MachineType))
-	}
-	if result["zone"] != c.Zone {
-		errs = append(errs, fmt.Errorf("cannot create instance in zone %q with machineType in zone %q: %q", c.Zone, result["zone"], c.MachineType))
+	if m["zone"] != c.Zone {
+		errs = append(errs, fmt.Errorf("cannot create instance in zone %q with machineType in zone %q: %q", c.Zone, m["zone"], c.MachineType))
 	}
 
-	p := result["project"]
+	p := m["project"]
 	if p == "" {
 		p = project
 	}
 
-	if err := checkMachineType(client, p, result["zone"], result["machinetype"]); err != nil {
-		return append(errs, fmt.Errorf("cannot create instance, bad machineType: %q, error: %v", result["machinetype"], err))
+	if err := checkMachineType(client, p, m["zone"], m["machinetype"]); err != nil {
+		return append(errs, fmt.Errorf("cannot create instance, bad machineType: %q, error: %v", m["machinetype"], err))
 	}
 
 	return errs

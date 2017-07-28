@@ -54,7 +54,27 @@ type InstanceSignal struct {
 	SerialOutput *SerialOutput
 }
 
-func waitForSerialOutput(w *Workflow, name string, port int64, success, failure string, interval time.Duration) error {
+func waitForInstanceStopped(w *Workflow, project, zone, name string, interval time.Duration) error {
+	w.logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", name)
+	tick := time.Tick(interval)
+	for {
+		select {
+		case <-w.Cancel:
+			return nil
+		case <-tick:
+			stopped, err := w.ComputeClient.InstanceStopped(project, zone, name)
+			if err != nil {
+				return err
+			}
+			if stopped {
+				w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", name)
+				return nil
+			}
+		}
+	}
+}
+
+func waitForSerialOutput(w *Workflow, project, zone, name string, port int64, success, failure string, interval time.Duration) error {
 	msg := fmt.Sprintf("WaitForInstancesSignal: watching serial port %d", port)
 	if success != "" {
 		msg += fmt.Sprintf(", SuccessMatch: %q", success)
@@ -62,7 +82,7 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 	if failure != "" {
 		msg += fmt.Sprintf(", FailureMatch: %q", failure)
 	}
-	w.logger.Printf(msg + ".")
+	w.logger.Print(msg + ".")
 	var start int64
 	var errs int
 	tick := time.Tick(interval)
@@ -71,17 +91,27 @@ func waitForSerialOutput(w *Workflow, name string, port int64, success, failure 
 		case <-w.Cancel:
 			return nil
 		case <-tick:
-			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
-			// Retry up to 3 times in a row on a 5xx error.
+			resp, err := w.ComputeClient.GetSerialPortOutput(project, zone, name, port, start)
+			// Retry immediately up to 3 times in a row on any 5xx error.
 			if apiErr, ok := err.(*googleapi.Error); ok && errs < 3 && (apiErr.Code >= 500 && apiErr.Code <= 599) {
 				errs++
 				continue
 			}
 			if err != nil {
-				status, sErr := w.ComputeClient.InstanceStatus(w.Project, w.Zone, name)
+				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
 				if sErr == nil && (status == "TERMINATED" || status == "STOPPING" || status == "STOPPED") {
 					w.logger.Printf("WaitForInstancesSignal: instance %q stopped, not waiting for serial output.", name)
 					return nil
+				}
+				// Retry up to 3 times in a row on any error if we successfully got InstanceStatus.
+				if sErr == nil && errs < 3 {
+					errs++
+					continue
+				}
+				if sErr != nil {
+					err = fmt.Errorf("%v, error geting InstanceStatus: %v", err, sErr)
+				} else {
+					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
 				}
 				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
@@ -125,22 +155,20 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) error {
 				e <- fmt.Errorf("unresolved instance %q", is.Name)
 				return
 			}
+			m := namedSubexp(instanceURLRgx, i.link)
 			serialSig := make(chan struct{})
 			stoppedSig := make(chan struct{})
 			if is.Stopped {
 				go func() {
-					s.w.logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", i.real)
-					if err := s.w.ComputeClient.WaitForInstanceStopped(s.w.Project, s.w.Zone, i.real, is.interval); err != nil {
+					if err := waitForInstanceStopped(s.w, m["project"], m["zone"], m["instance"], is.interval); err != nil {
 						e <- err
-					} else {
-						s.w.logger.Printf("WaitForInstancesSignal: instance %q stopped.", i.real)
 					}
 					close(stoppedSig)
 				}()
 			}
 			if is.SerialOutput != nil {
 				go func() {
-					if err := waitForSerialOutput(s.w, i.real, is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
+					if err := waitForSerialOutput(s.w, m["project"], m["zone"], m["instance"], is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
 						e <- err
 					}
 					close(serialSig)
