@@ -13,7 +13,7 @@
 //  limitations under the License.
 
 // Daisy is a GCE workflow tool.
-package daisy
+package main
 
 import (
 	"context"
