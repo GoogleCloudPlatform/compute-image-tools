@@ -92,14 +92,14 @@ func parseWorkflow(ctx context.Context, path string, varMap map[string]string, p
 	}
 
 	if cEndpoint != "" {
-		w.ComputeClient, err = compute.NewClient(ctx, option.WithEndpoint(cEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+		w.ComputeClient, err = compute.NewClient(ctx, option.WithEndpoint(cEndpoint), option.WithCredentialsFile(w.OAuthPath))
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if sEndpoint != "" {
-		w.StorageClient, err = storage.NewClient(ctx, option.WithEndpoint(sEndpoint), option.WithServiceAccountFile(w.OAuthPath))
+		w.StorageClient, err = storage.NewClient(ctx, option.WithEndpoint(sEndpoint), option.WithCredentialsFile(w.OAuthPath))
 		if err != nil {
 			return nil, err
 		}

@@ -73,7 +73,7 @@ func TestParseWorkflows(t *testing.T) {
 
 	want := "dialing: cannot read credentials file: open oauthpath: no such file or directory"
 	if runtime.GOOS == "windows" {
-		want = "dialing: cannot credentials account file: open oauthpath: The system cannot find the file specified."
+		want = "dialing: cannot read credentials file: open oauthpath: The system cannot find the file specified."
 	}
 
 	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "noplace", ""); err.Error() != want {
