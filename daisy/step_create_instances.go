@@ -189,18 +189,23 @@ func (c *CreateInstance) populateMetadata(w *Workflow) *Error {
 
 func (c *CreateInstance) populateNetworks() *Error {
 	defaultAcs := []*compute.AccessConfig{{Type: defaultAccessConfigType}}
+	defaultN := "default"
+
 	if c.NetworkInterfaces == nil {
-		c.NetworkInterfaces = []*compute.NetworkInterface{{AccessConfigs: defaultAcs, Network: "global/networks/default"}}
-	} else {
-		for _, n := range c.NetworkInterfaces {
-			if n.AccessConfigs == nil {
-				n.AccessConfigs = defaultAcs
-			}
-			if !networkURLRegex.MatchString(n.Network) {
-				n.Network = path.Join("global/networks", n.Network)
-			}
+		c.NetworkInterfaces = []*compute.NetworkInterface{{}}
+	}
+	for _, n := range c.NetworkInterfaces {
+		if n.AccessConfigs == nil {
+			n.AccessConfigs = defaultAcs
+		}
+		n.Network = strOr(n.Network, defaultN)
+		if networkURLRegex.MatchString(n.Network) {
+			n.Network = extendPartialURL(n.Network, c.Project)
+		} else {
+			n.Network = fmt.Sprintf("projects/%s/global/networks/%s", c.Project, n.Network)
 		}
 	}
+
 	return nil
 }
 

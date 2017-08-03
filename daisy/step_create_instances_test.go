@@ -145,15 +145,16 @@ func TestCreateInstancePopulate(t *testing.T) {
 	defMT := fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", defP, defZ)
 	defDM := defaultDiskMode
 	defDs := []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}}
-	defNs := []*compute.NetworkInterface{{Network: "global/networks/default", AccessConfigs: []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}}}
+	defAcs := []*compute.AccessConfig{{Type: defaultAccessConfigType}}
+	defNs := []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/default", defP), AccessConfigs: defAcs}}
 	defMD := map[string]string{"daisy-sources-path": "gs://", "daisy-logs-path": "gs://", "daisy-outs-path": "gs://"}
 	defSs := []string{"https://www.googleapis.com/auth/devstorage.read_only"}
 	defSAs := []*compute.ServiceAccount{{Email: "default", Scopes: defSs}}
 
 	tests := []struct {
-		desc        string
-		input, want *CreateInstance
-		shouldErr   bool
+		desc      string
+		ci, want  *CreateInstance
+		shouldErr bool
 	}{
 		{
 			"defaults, non exact name case",
@@ -163,14 +164,27 @@ func TestCreateInstancePopulate(t *testing.T) {
 		},
 		{
 			"nondefault zone/project case",
-			&CreateInstance{Instance: compute.Instance{Name: "foo", Description: desc, Disks: []*compute.AttachedDisk{{Source: "foo"}}}, Project: "pfoo", Zone: "zfoo", ExactName: true},
-			&CreateInstance{Instance: compute.Instance{Name: "foo", Description: desc, Disks: []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}}, MachineType: "projects/pfoo/zones/zfoo/machineTypes/n1-standard-1", NetworkInterfaces: defNs, ServiceAccounts: defSAs}, Metadata: defMD, Scopes: defSs, Project: "pfoo", Zone: "zfoo", daisyName: "foo", ExactName: true},
+			&CreateInstance{
+				Instance: compute.Instance{Name: "foo", Description: desc, Disks: []*compute.AttachedDisk{{Source: "foo"}}},
+				Project:  "pfoo", Zone: "zfoo", ExactName: true,
+			},
+			&CreateInstance{
+				Instance: compute.Instance{
+					Name: "foo", Description: desc,
+					Disks:             []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}},
+					MachineType:       "projects/pfoo/zones/zfoo/machineTypes/n1-standard-1",
+					NetworkInterfaces: []*compute.NetworkInterface{{Network: "projects/pfoo/global/networks/default", AccessConfigs: defAcs}},
+					ServiceAccounts:   defSAs,
+				},
+				Metadata: defMD, Scopes: defSs, Project: "pfoo", Zone: "zfoo", daisyName: "foo", ExactName: true,
+			},
 			false,
 		},
 	}
 
 	for _, tt := range tests {
-		s := &Step{w: w, CreateInstances: &CreateInstances{tt.input}}
+		s, _ := w.NewStep(tt.desc)
+		s.CreateInstances = &CreateInstances{tt.ci}
 		err := s.CreateInstances.populate(ctx, s)
 		if tt.shouldErr {
 			if err == nil {
@@ -179,8 +193,8 @@ func TestCreateInstancePopulate(t *testing.T) {
 		} else if err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		} else {
-			tt.input.Instance.Metadata = nil // This is undeterministic, but we can check tt.input.Metadata.
-			if diff := pretty.Compare(tt.input, tt.want); diff != "" {
+			tt.ci.Instance.Metadata = nil // This is undeterministic, but we can check tt.input.Metadata.
+			if diff := pretty.Compare(tt.ci, tt.want); diff != "" {
 				t.Errorf("%s: CreateInstance not modified as expected: (-got +want)\n%s", tt.desc, diff)
 			}
 		}
@@ -349,13 +363,13 @@ func TestCreateInstancePopulateNetworks(t *testing.T) {
 		desc        string
 		input, want []*compute.NetworkInterface
 	}{
-		{"default case", nil, []*compute.NetworkInterface{{Network: "global/networks/default", AccessConfigs: defaultAcs}}},
-		{"default AccessConfig case", []*compute.NetworkInterface{{Network: "global/networks/foo"}}, []*compute.NetworkInterface{{Network: "global/networks/foo", AccessConfigs: defaultAcs}}},
-		{"network URL resolution case", []*compute.NetworkInterface{{Network: "foo", AccessConfigs: []*compute.AccessConfig{}}}, []*compute.NetworkInterface{{Network: "global/networks/foo", AccessConfigs: []*compute.AccessConfig{}}}},
+		{"default case", nil, []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/default", testProject), AccessConfigs: defaultAcs}}},
+		{"default AccessConfig case", []*compute.NetworkInterface{{Network: "global/networks/foo"}}, []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/foo", testProject), AccessConfigs: defaultAcs}}},
+		{"network URL resolution case", []*compute.NetworkInterface{{Network: "foo", AccessConfigs: []*compute.AccessConfig{}}}, []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/foo", testProject), AccessConfigs: []*compute.AccessConfig{}}}},
 	}
 
 	for _, tt := range tests {
-		ci := &CreateInstance{Instance: compute.Instance{NetworkInterfaces: tt.input}}
+		ci := &CreateInstance{Instance: compute.Instance{NetworkInterfaces: tt.input}, Project: testProject}
 		err := ci.populateNetworks()
 		if err != nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
