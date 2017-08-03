@@ -866,17 +866,14 @@ func TestWrite(t *testing.T) {
 
 func TestRunStepTimeout(t *testing.T) {
 	w := testWorkflow()
-	s := &Step{
-		name:    "test",
-		w:       w,
-		timeout: 1 * time.Microsecond,
-		testType: &mockStep{runImpl: func(ctx context.Context, s *Step) error {
-			time.Sleep(1 * time.Millisecond)
-			return nil
-		}},
-	}
+	s, _ := w.NewStep("test")
+	s.timeout = 1 * time.Microsecond
+	s.testType = &mockStep{runImpl: func(ctx context.Context, s *Step) error {
+		time.Sleep(1 * time.Millisecond)
+		return nil
+	}}
 	want := `step "test" did not stop in specified timeout of 1µs`
-	if err := w.runStep(context.Background(), s); err.Error() != want {
+	if err := w.runStep(context.Background(), s); err == nil || err.Error() != want {
 		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
 }

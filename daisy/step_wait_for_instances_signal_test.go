@@ -163,6 +163,7 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 	w := testWorkflow()
 	s, _ := w.NewStep("s")
 	iCreator, _ := w.NewStep("iCreator")
+	iCreator.CreateInstances = &CreateInstances{&CreateInstance{}}
 	w.AddDependency("s", "iCreator")
 	instances[w].registerCreation("instance1", &resource{}, iCreator)
 

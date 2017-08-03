@@ -319,9 +319,12 @@ the Instance JSON representation. Daisy uses the same representation with a few 
 
 | Field Name | Type | Description of Modification |
 | - | - | - |
-| Name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
-| Disks[].Source | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+| Name | string | If ExactName is false, the **literal** instance name will have a generated suffix for the running instance of the workflow. |
+| Disks[].Boot | bool | *Now unused.* First disk automatically has boot = true. All others are set to false. |
+| Disks[].InitializeParams.DiskType | string | *Optional.* Will prepend "projects/PROJECT/zones/ZONE/diskTypes/" as needed. This allows user to provide "pd-ssd" or "pd-standard" as the DiskType. |
+| Disks[].InitializeParams.SourceImage | string | Either image [partial URLs](#glossary-partialurl) or workflow-internal image names are valid. |
 | Disks[].Mode | string | *Now Optional.* Now defaults to "READ_WRITE". |
+| Disks[].Source | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
 | MachineType | string | *Now Optional.* Now defaults to "n1-standard-1". Either machine type [partial URLs](#glossary-partialurl) or machine type names are valid. |
 | Metadata | map[string]string | *Optional.* Instead of the GCE JSON API's more complex object structure, Daisy uses a simple key-value map. Daisy will provide metadata keys `daisy-logs-path`, `daisy-outs-path`, and `daisy-sources-path`. |
 | NetworkInterfaces[] | list | *Now Optional.* Now defaults to `[{"network": "global/networks/default", "accessConfigs": [{"type": "ONE_TO_ONE_NAT"}]}`. |

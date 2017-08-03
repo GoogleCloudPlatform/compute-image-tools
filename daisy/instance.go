@@ -17,11 +17,21 @@ package daisy
 import (
 	"fmt"
 	"regexp"
+	"strings"
+)
+
+const (
+	defaultAccessConfigType = "ONE_TO_ONE_NAT"
+	defaultDiskMode         = diskModeRW
+	defaultDiskType         = "pd-standard"
+	diskModeRO              = "READ_ONLY"
+	diskModeRW              = "READ_WRITE"
 )
 
 var (
 	instances      = map[*Workflow]*instanceMap{}
 	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
+	validDiskModes = []string{diskModeRO, diskModeRW}
 )
 
 type instanceMap struct {
@@ -41,4 +51,36 @@ func (im *instanceMap) deleteFn(r *resource) error {
 	}
 	r.deleted = true
 	return nil
+}
+
+func (im *instanceMap) registerCreation(name string, r *resource, s *Step) error {
+	// Base creation logic.
+	if err := im.baseResourceMap.registerCreation(name, r, s); err != nil {
+		return err
+	}
+
+	// Find the CreateInstance responsible for this.
+	var ci *CreateInstance
+	for _, ci = range *s.CreateInstances {
+		if ci.daisyName == name {
+			break
+		}
+	}
+	// Register attachments.
+	for _, d := range ci.Disks {
+		dName := d.Source
+		if d.InitializeParams != nil {
+			dName = d.InitializeParams.DiskName
+		}
+		if err := disks[im.w].registerAttachment(dName, ci.daisyName, d.Mode, s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func checkDiskMode(m string) bool {
+	parts := strings.Split(m, "/")
+	m = parts[len(parts)-1]
+	return strIn(m, validDiskModes)
 }
