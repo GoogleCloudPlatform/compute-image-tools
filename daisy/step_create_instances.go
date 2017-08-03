@@ -391,7 +391,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) error {
 				eChan <- err
 				return
 			}
-			go logSerialOutput(ctx, w, ci.Name, 1, 1*time.Second)
+			go logSerialOutput(ctx, w, ci.Name, 1, 5*time.Second)
 		}(ci)
 	}
 

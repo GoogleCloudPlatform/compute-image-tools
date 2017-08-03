@@ -54,7 +54,7 @@ func TestWaitForInstancesSignalPopulate(t *testing.T) {
 		t.Fatalf("error running populate: %v", err)
 	}
 
-	want := &WaitForInstancesSignal{&InstanceSignal{Name: "test", Interval: "5s", interval: 5 * time.Second}}
+	want := &WaitForInstancesSignal{&InstanceSignal{Name: "test", Interval: "10s", interval: 10 * time.Second}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got != want:\ngot:  %+v\nwant: %+v", got, want)
 	}
