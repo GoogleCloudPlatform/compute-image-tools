@@ -66,18 +66,18 @@ func (l *gcsLogger) Write(b []byte) (int, error) {
 	return n, err
 }
 
-type bufferedLogger struct {
+type syncedWriter struct {
 	buf *bufio.Writer
 	mx  sync.Mutex
 }
 
-func (l *bufferedLogger) Write(b []byte) (int, error) {
+func (l *syncedWriter) Write(b []byte) (int, error) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	return l.buf.Write(b)
 }
 
-func (l *bufferedLogger) Flush() error {
+func (l *syncedWriter) Flush() error {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	return l.buf.Flush()
@@ -154,7 +154,7 @@ type Workflow struct {
 	outsPath       string
 	username       string
 	gcsLogging     bool
-	gcsLogWriter   *bufferedLogger
+	gcsLogWriter   *syncedWriter
 	ComputeClient  compute.Client  `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
 	id             string
@@ -388,9 +388,9 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 	writers := []io.Writer{os.Stdout}
 	if w.gcsLogWriter == nil {
 		if !w.gcsLogging {
-			w.gcsLogWriter = &bufferedLogger{buf: bufio.NewWriter(ioutil.Discard)}
+			w.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(ioutil.Discard)}
 		}
-		w.gcsLogWriter = &bufferedLogger{buf: bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})}
+		w.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})}
 		go func() {
 			for {
 				time.Sleep(5 * time.Second)
