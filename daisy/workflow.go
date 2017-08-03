@@ -66,6 +66,23 @@ func (l *gcsLogger) Write(b []byte) (int, error) {
 	return n, err
 }
 
+type syncedWriter struct {
+	buf *bufio.Writer
+	mx  sync.Mutex
+}
+
+func (l *syncedWriter) Write(b []byte) (int, error) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	return l.buf.Write(b)
+}
+
+func (l *syncedWriter) Flush() error {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	return l.buf.Flush()
+}
+
 func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, error) {
 	dBkt := project + "-daisy-bkt"
 	it := client.Buckets(ctx, project)
@@ -137,7 +154,7 @@ type Workflow struct {
 	outsPath       string
 	username       string
 	gcsLogging     bool
-	gcsLogWriter   *bufio.Writer
+	gcsLogWriter   *syncedWriter
 	ComputeClient  compute.Client  `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
 	id             string
@@ -221,6 +238,9 @@ func (w *Workflow) cleanup() {
 			w.logger.Printf("Error returned from cleanup hook: %s", err)
 		}
 	}
+	if w.gcsLogWriter != nil {
+		w.gcsLogWriter.Flush()
+	}
 }
 
 func (w *Workflow) genName(n string) string {
@@ -263,14 +283,14 @@ func (w *Workflow) populateStep(ctx context.Context, s *Step) error {
 func (w *Workflow) populate(ctx context.Context) error {
 	var err error
 	if w.ComputeClient == nil {
-		w.ComputeClient, err = compute.NewClient(ctx, option.WithServiceAccountFile(w.OAuthPath))
+		w.ComputeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
 		if err != nil {
 			return err
 		}
 	}
 
 	if w.StorageClient == nil {
-		w.StorageClient, err = storage.NewClient(ctx, option.WithServiceAccountFile(w.OAuthPath))
+		w.StorageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
 		if err != nil {
 			return err
 		}
@@ -356,28 +376,30 @@ func (w *Workflow) populate(ctx context.Context) error {
 }
 
 func (w *Workflow) populateLogger(ctx context.Context) {
-	if w.logger == nil {
-		name := w.Name
-		for parent := w.parent; parent != nil; parent = parent.parent {
-			name = parent.Name + "." + name
-		}
-		prefix := fmt.Sprintf("[%s]: ", name)
-		flags := log.Ldate | log.Ltime
-		writers := []io.Writer{os.Stdout}
-		if w.gcsLogging {
-			if w.gcsLogWriter == nil {
-				w.gcsLogWriter = bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})
-				go func() {
-					for {
-						time.Sleep(1 * time.Second)
-						w.gcsLogWriter.Flush()
-					}
-				}()
-			}
-			writers = append(writers, w.gcsLogWriter)
-		}
-		w.logger = log.New(io.MultiWriter(writers...), prefix, flags)
+	if w.logger != nil {
+		return
 	}
+	name := w.Name
+	for parent := w.parent; parent != nil; parent = parent.parent {
+		name = parent.Name + "." + name
+	}
+	prefix := fmt.Sprintf("[%s]: ", name)
+	flags := log.Ldate | log.Ltime
+	writers := []io.Writer{os.Stdout}
+	if w.gcsLogWriter == nil {
+		if !w.gcsLogging {
+			w.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(ioutil.Discard)}
+		}
+		w.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})}
+		go func() {
+			for {
+				time.Sleep(5 * time.Second)
+				w.gcsLogWriter.Flush()
+			}
+		}()
+		writers = append(writers, w.gcsLogWriter)
+	}
+	w.logger = log.New(io.MultiWriter(writers...), prefix, flags)
 }
 
 // AddDependency creates a dependency of dependent on each dependency. Returns an

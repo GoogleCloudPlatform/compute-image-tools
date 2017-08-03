@@ -85,6 +85,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 		wf.logger = nil
 		wf.cleanupHooks = nil
 		wf.parent = nil
+		wf.gcsLogWriter = nil
 		for _, s := range wf.Steps {
 			s.w = nil
 		}
