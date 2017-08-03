@@ -24,7 +24,7 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-const defaultInterval = "5s"
+const defaultInterval = "10s"
 
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []*InstanceSignal
