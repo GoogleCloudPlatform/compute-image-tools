@@ -280,6 +280,16 @@ func (w *Workflow) populateStep(ctx context.Context, s *Step) error {
 	return step.populate(ctx, s)
 }
 
+func getUser() string {
+	if cu, err := user.Current(); err == nil {
+		return cu.Username
+	}
+	if hn, err := os.Hostname(); err == nil {
+		return hn
+	}
+	return "unknown"
+}
+
 func (w *Workflow) populate(ctx context.Context) error {
 	var err error
 	if w.ComputeClient == nil {
@@ -306,12 +316,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 
 	w.id = randString(5)
 	now := time.Now().UTC()
-	cu, err := user.Current()
-	if err != nil {
-		w.username = "unknown"
-	} else {
-		w.username = cu.Username
-	}
+	w.username = getUser()
 
 	cwd, _ := os.Getwd()
 

@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -490,11 +489,6 @@ func TestPopulate(t *testing.T) {
 		t.Fatalf("error creating temp file: %v", err)
 	}
 
-	cu, err := user.Current()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	called := false
 	var stepPopErr error
 	stepPop := func(ctx context.Context, s *Step) error {
@@ -555,7 +549,7 @@ func TestPopulate(t *testing.T) {
 		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
 		logsPath:    fmt.Sprintf("%s/logs", got.scratchPath),
 		outsPath:    fmt.Sprintf("%s/outs", got.scratchPath),
-		username:    cu.Username,
+		username:    got.username,
 		Steps: map[string]*Step{
 			"wf-name-step1": {
 				name:    "wf-name-step1",

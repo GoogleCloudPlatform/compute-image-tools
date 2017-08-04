@@ -70,6 +70,7 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error)
 	}
 	c := &client{hc: hc, raw: rawService}
 	c.i = c
+
 	return c, nil
 }
 
