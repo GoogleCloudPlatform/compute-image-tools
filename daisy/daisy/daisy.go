@@ -121,26 +121,20 @@ func parseWorkflow(ctx context.Context, path string, varMap map[string]string, p
 
 func addFlags(args []string) {
 	for _, arg := range args {
-		if len(arg) == 0 || arg[0] != '-' || len(arg) == 1 {
+		if arg[0] != '-' || len(arg) <= 1 {
 			continue
 		}
 
-		numMinuses := 1
-		if arg[1] == '-' {
-			numMinuses = 2
+		name := arg[1:]
+		if name[0] == '-' {
+			name = name[1:]
 		}
 
-		name := arg[numMinuses:]
-		if len(name) == 0 || name[0] == '-' || name[0] == '=' || !strings.HasPrefix(name, varFlagPrefix) {
+		if !strings.HasPrefix(name, varFlagPrefix) {
 			continue
 		}
 
-		for i, r := range name {
-			if r == '=' {
-				name = name[:i]
-				break
-			}
-		}
+		name = strings.SplitN(name, "=", 2)[0]
 
 		if flag.Lookup(name) != nil {
 			continue

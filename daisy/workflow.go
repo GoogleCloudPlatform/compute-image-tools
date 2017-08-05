@@ -25,7 +25,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/user"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -278,16 +277,6 @@ func (w *Workflow) populateStep(ctx context.Context, s *Step) error {
 		return err
 	}
 	return step.populate(ctx, s)
-}
-
-func getUser() string {
-	if cu, err := user.Current(); err == nil {
-		return cu.Username
-	}
-	if hn, err := os.Hostname(); err == nil {
-		return hn
-	}
-	return "unknown"
 }
 
 func (w *Workflow) populate(ctx context.Context) error {
