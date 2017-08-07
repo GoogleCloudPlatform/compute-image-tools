@@ -25,7 +25,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/user"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -306,12 +305,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 
 	w.id = randString(5)
 	now := time.Now().UTC()
-	cu, err := user.Current()
-	if err != nil {
-		w.username = "unknown"
-	} else {
-		w.username = cu.Username
-	}
+	w.username = getUser()
 
 	cwd, _ := os.Getwd()
 

@@ -44,18 +44,29 @@ var (
 	se        = flag.String("storage_endpoint_override", "", "API endpoint to override default")
 )
 
-func splitVariables(input string) map[string]string {
+const (
+	flgDefValue   = "flag generated for workflow variable"
+	varFlagPrefix = "var:"
+)
+
+func populateVars(input string) map[string]string {
 	varMap := map[string]string{}
-	if input == "" {
-		return varMap
-	}
-	for _, v := range strings.Split(input, ",") {
-		i := strings.Index(v, "=")
-		if i == -1 {
-			continue
+	if input != "" {
+		for _, v := range strings.Split(input, ",") {
+			i := strings.Index(v, "=")
+			if i == -1 {
+				continue
+			}
+			varMap[v[:i]] = v[i+1:]
 		}
-		varMap[v[:i]] = v[i+1:]
 	}
+
+	flag.Visit(func(flg *flag.Flag) {
+		if strings.HasPrefix(flg.Name, varFlagPrefix) {
+			varMap[strings.TrimPrefix(flg.Name, varFlagPrefix)] = flg.Value.String()
+		}
+	})
+
 	return varMap
 }
 
@@ -108,15 +119,43 @@ func parseWorkflow(ctx context.Context, path string, varMap map[string]string, p
 	return w, nil
 }
 
+func addFlags(args []string) {
+	for _, arg := range args {
+		if len(arg) <= 1 || arg[0] != '-' {
+			continue
+		}
+
+		name := arg[1:]
+		if name[0] == '-' {
+			name = name[1:]
+		}
+
+		if !strings.HasPrefix(name, varFlagPrefix) {
+			continue
+		}
+
+		name = strings.SplitN(name, "=", 2)[0]
+
+		if flag.Lookup(name) != nil {
+			continue
+		}
+
+		flag.String(name, "", flgDefValue)
+	}
+}
+
 func main() {
+	addFlags(os.Args[1:])
 	flag.Parse()
+
 	if len(flag.Args()) == 0 {
 		log.Fatal("Not enough args, first arg needs to be the path to a workflow.")
 	}
 	ctx := context.Background()
 
 	var ws []*daisy.Workflow
-	varMap := splitVariables(*variables)
+	varMap := populateVars(*variables)
+
 	for _, path := range flag.Args() {
 		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce, *se)
 		if err != nil {

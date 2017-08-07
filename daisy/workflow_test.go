@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -490,11 +489,6 @@ func TestPopulate(t *testing.T) {
 		t.Fatalf("error creating temp file: %v", err)
 	}
 
-	cu, err := user.Current()
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	called := false
 	var stepPopErr error
 	stepPop := func(ctx context.Context, s *Step) error {
@@ -555,7 +549,7 @@ func TestPopulate(t *testing.T) {
 		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
 		logsPath:    fmt.Sprintf("%s/logs", got.scratchPath),
 		outsPath:    fmt.Sprintf("%s/outs", got.scratchPath),
-		username:    cu.Username,
+		username:    got.username,
 		Steps: map[string]*Step{
 			"wf-name-step1": {
 				name:    "wf-name-step1",
@@ -867,12 +861,12 @@ func TestWrite(t *testing.T) {
 func TestRunStepTimeout(t *testing.T) {
 	w := testWorkflow()
 	s, _ := w.NewStep("test")
-	s.timeout = 1 * time.Microsecond
+	s.timeout = 1 * time.Nanosecond
 	s.testType = &mockStep{runImpl: func(ctx context.Context, s *Step) error {
-		time.Sleep(1 * time.Millisecond)
+		time.Sleep(1 * time.Second)
 		return nil
 	}}
-	want := `step "test" did not stop in specified timeout of 1µs`
+	want := `step "test" did not stop in specified timeout of 1ns`
 	if err := w.runStep(context.Background(), s); err == nil || err.Error() != want {
 		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}

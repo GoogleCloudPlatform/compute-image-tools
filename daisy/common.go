@@ -17,6 +17,8 @@ package daisy
 import (
 	"fmt"
 	"math/rand"
+	"os"
+	"os/user"
 	"path"
 	"reflect"
 	"regexp"
@@ -50,6 +52,16 @@ var (
 
 	gcsAPIBase = "https://storage.cloud.google.com"
 )
+
+func getUser() string {
+	if cu, err := user.Current(); err == nil {
+		return cu.Username
+	}
+	if hn, err := os.Hostname(); err == nil {
+		return hn
+	}
+	return "unknown"
+}
 
 func namedSubexp(re *regexp.Regexp, s string) map[string]string {
 	match := re.FindStringSubmatch(s)
