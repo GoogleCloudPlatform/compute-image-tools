@@ -121,7 +121,7 @@ func parseWorkflow(ctx context.Context, path string, varMap map[string]string, p
 
 func addFlags(args []string) {
 	for _, arg := range args {
-		if arg[0] != '-' || len(arg) <= 1 {
+		if len(arg) <= 1 || arg[0] != '-' {
 			continue
 		}
 
