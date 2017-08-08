@@ -87,11 +87,6 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, 
 				if stopped && sErr == nil {
 					return
 				}
-				// Otherwise retry 3 times on 5xx error.
-				if apiErr, ok := err.(*googleapi.Error); ok && errs < 3 && (apiErr.Code >= 500 && apiErr.Code <= 599) {
-					errs++
-					continue
-				}
 				w.logger.Printf("CreateInstances: instance %q: error getting serial port: %v", name, err)
 				return
 			}

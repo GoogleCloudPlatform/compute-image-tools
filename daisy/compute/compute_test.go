@@ -24,6 +24,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 var (
@@ -33,6 +34,26 @@ var (
 	testImage    = "test-image"
 	testInstance = "test-instance"
 )
+
+func TestShouldRetryWithWait(t *testing.T) {
+	tests := []struct {
+		desc string
+		err   error
+		want bool
+	}{
+		{"nil error", nil, false},
+		{"non googleapi.Error", errors.New("foo"), false},
+		{"400 error", &googleapi.Error{Code: 400}, false},
+		{"429 error", &googleapi.Error{Code: 429}, true},
+		{"500 error", &googleapi.Error{Code: 500}, true},
+	}
+
+		for _, tt := range tests {
+			if got := shouldRetryWithWait(nil, tt.err, 0);got != tt.want {
+				t.Errorf("%s case: shouldRetryWithWait == %t, want %t", tt.desc, got, tt.want)
+			}
+		}
+}
 
 func TestCreateDisk(t *testing.T) {
 	var getErr, insertErr, waitErr error
