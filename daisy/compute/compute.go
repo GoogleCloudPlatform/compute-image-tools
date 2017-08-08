@@ -18,10 +18,13 @@ package compute
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
+	"golang.org/x/oauth2"
 	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
 )
@@ -38,8 +41,12 @@ type Client interface {
 	GetProject(project string) (*compute.Project, error)
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZone(project, zone string) (*compute.Zone, error)
+	GetInstance(project, zone, name string) (*compute.Instance, error)
+	GetDisk(project, zone, name string) (*compute.Disk, error)
+	GetImage(project, name string) (*compute.Image, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
+	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 }
 
 type clientImpl interface {
@@ -51,6 +58,44 @@ type client struct {
 	i   clientImpl
 	hc  *http.Client
 	raw *compute.Service
+}
+
+// shouldRetryWithWait returns sleeps and returns true if the HTTP
+// response / error indicates that the request should be attempted again.
+func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) bool {
+	if err == nil {
+		return false
+	}
+	tkValid := true
+	trans, ok := tripper.(*oauth2.Transport)
+	if ok {
+		if tk, err := trans.Source.Token(); err == nil {
+			tkValid = tk.Valid()
+		}
+	}
+
+	apiErr, ok := err.(*googleapi.Error)
+	var retry bool
+	switch {
+	case !ok && tkValid:
+		// Not a googleapi.Error and the token is still valid.
+		return false
+	case apiErr.Code >= 500 && apiErr.Code <= 599:
+		retry = true
+	case apiErr.Code >= 429:
+		// Too many API requests.
+		retry = true
+	case !tkValid:
+		// This was probably a failure to get new token from metadata server.
+		retry = true
+	}
+	if !retry {
+		return false
+	}
+
+	sleep := (time.Duration(rand.Intn(1000))*time.Millisecond + 1*time.Second) * time.Duration(multiplier)
+	time.Sleep(sleep)
+	return true
 }
 
 // NewClient creates a new Google Cloud Compute client.
@@ -79,12 +124,12 @@ func (c *client) operationsWait(project, zone, name string) error {
 		var err error
 		var op *compute.Operation
 		if zone != "" {
-			op, err = c.raw.ZoneOperations.Get(project, zone, name).Do()
+			op, err = c.Retry(c.raw.ZoneOperations.Get(project, zone, name).Do)
 			if err != nil {
 				return fmt.Errorf("failed to get operation %s: %v", name, err)
 			}
 		} else {
-			op, err = c.raw.GlobalOperations.Get(project, name).Do()
+			op, err = c.Retry(c.raw.GlobalOperations.Get(project, name).Do)
 			if err != nil {
 				return fmt.Errorf("failed to get operation %s: %v", name, err)
 			}
@@ -108,19 +153,35 @@ func (c *client) operationsWait(project, zone, name string) error {
 	}
 }
 
+// Retry invokes the given function, retrying it multiple times if the HTTP
+// status response indicates the request should be attempted again or the
+// oauth Token is no longer valid.
+func (c *client) Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error) {
+	for i := 1; i < 4; i++ {
+		op, err = f(opts...)
+		if err == nil {
+			return op, nil
+		}
+		if !shouldRetryWithWait(c.hc.Transport, err, i) {
+			return nil, err
+		}
+	}
+	return
+}
+
 // CreateDisk creates a GCE persistent disk.
 func (c *client) CreateDisk(project, zone string, d *compute.Disk) error {
-	resp, err := c.raw.Disks.Insert(project, zone, d).Do()
+	op, err := c.Retry(c.raw.Disks.Insert(project, zone, d).Do)
 	if err != nil {
 		return err
 	}
 
-	if err := c.i.operationsWait(project, zone, resp.Name); err != nil {
+	if err := c.i.operationsWait(project, zone, op.Name); err != nil {
 		return err
 	}
 
 	var createdDisk *compute.Disk
-	if createdDisk, err = c.raw.Disks.Get(project, zone, d.Name).Do(); err != nil {
+	if createdDisk, err = c.i.GetDisk(project, zone, d.Name); err != nil {
 		return err
 	}
 	*d = *createdDisk
@@ -132,17 +193,17 @@ func (c *client) CreateDisk(project, zone string, d *compute.Disk) error {
 // url (full or partial) to the source disk, sourceFile is the full Google
 // Cloud Storage URL where the disk image is stored.
 func (c *client) CreateImage(project string, i *compute.Image) error {
-	resp, err := c.raw.Images.Insert(project, i).Do()
+	op, err := c.Retry(c.raw.Images.Insert(project, i).Do)
 	if err != nil {
 		return err
 	}
 
-	if err := c.i.operationsWait(project, "", resp.Name); err != nil {
+	if err := c.i.operationsWait(project, "", op.Name); err != nil {
 		return err
 	}
 
 	var createdImage *compute.Image
-	if createdImage, err = c.raw.Images.Get(project, i.Name).Do(); err != nil {
+	if createdImage, err = c.i.GetImage(project, i.Name); err != nil {
 		return err
 	}
 	*i = *createdImage
@@ -150,17 +211,17 @@ func (c *client) CreateImage(project string, i *compute.Image) error {
 }
 
 func (c *client) CreateInstance(project, zone string, i *compute.Instance) error {
-	resp, err := c.raw.Instances.Insert(project, zone, i).Do()
+	op, err := c.Retry(c.raw.Instances.Insert(project, zone, i).Do)
 	if err != nil {
 		return err
 	}
 
-	if err := c.i.operationsWait(project, zone, resp.Name); err != nil {
+	if err := c.i.operationsWait(project, zone, op.Name); err != nil {
 		return err
 	}
 
 	var createdInstance *compute.Instance
-	if createdInstance, err = c.raw.Instances.Get(project, zone, i.Name).Do(); err != nil {
+	if createdInstance, err = c.i.GetInstance(project, zone, i.Name); err != nil {
 		return err
 	}
 	*i = *createdInstance
@@ -169,61 +230,108 @@ func (c *client) CreateInstance(project, zone string, i *compute.Instance) error
 
 // DeleteImage deletes a GCE image.
 func (c *client) DeleteImage(project, name string) error {
-	resp, err := c.raw.Images.Delete(project, name).Do()
+	op, err := c.Retry(c.raw.Images.Delete(project, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.operationsWait(project, "", resp.Name)
+	return c.i.operationsWait(project, "", op.Name)
 }
 
 // DeleteDisk deletes a GCE persistent disk.
 func (c *client) DeleteDisk(project, zone, name string) error {
-	resp, err := c.raw.Disks.Delete(project, zone, name).Do()
+	op, err := c.Retry(c.raw.Disks.Delete(project, zone, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.operationsWait(project, zone, resp.Name)
+	return c.i.operationsWait(project, zone, op.Name)
 }
 
 // DeleteInstance deletes a GCE instance.
 func (c *client) DeleteInstance(project, zone, name string) error {
-	resp, err := c.raw.Instances.Delete(project, zone, name).Do()
+	op, err := c.Retry(c.raw.Instances.Delete(project, zone, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.operationsWait(project, zone, resp.Name)
+	return c.i.operationsWait(project, zone, op.Name)
 }
 
 // GetMachineType gets a GCE MachineType.
 func (c *client) GetMachineType(project, zone, machineType string) (*compute.MachineType, error) {
-	return c.raw.MachineTypes.Get(project, zone, machineType).Do()
+	mt, err := c.raw.MachineTypes.Get(project, zone, machineType).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.MachineTypes.Get(project, zone, machineType).Do()
+	}
+	return mt, err
 }
 
 // GetProject gets a GCE Project.
 func (c *client) GetProject(project string) (*compute.Project, error) {
-	return c.raw.Projects.Get(project).Do()
+	p, err := c.raw.Projects.Get(project).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Projects.Get(project).Do()
+	}
+	return p, err
 }
 
 // GetSerialPortOutput gets the serial port output of a GCE instance.
 func (c *client) GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error) {
-	return c.raw.Instances.GetSerialPortOutput(project, zone, name).Start(start).Port(port).Do()
+	sp, err := c.raw.Instances.GetSerialPortOutput(project, zone, name).Start(start).Port(port).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Instances.GetSerialPortOutput(project, zone, name).Start(start).Port(port).Do()
+	}
+	return sp, err
 }
 
 // GetZone gets a GCE Zone.
 func (c *client) GetZone(project, zone string) (*compute.Zone, error) {
-	return c.raw.Zones.Get(project, zone).Do()
+	z, err := c.raw.Zones.Get(project, zone).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Zones.Get(project, zone).Do()
+	}
+	return z, err
+}
+
+// GetInstance gets a GCE Instance.
+func (c *client) GetInstance(project, zone, name string) (*compute.Instance, error) {
+	i, err := c.raw.Instances.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Instances.Get(project, zone, name).Do()
+	}
+	return i, err
+}
+
+// GetDisk gets a GCE Disk.
+func (c *client) GetDisk(project, zone, name string) (*compute.Disk, error) {
+	d, err := c.raw.Disks.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Disks.Get(project, zone, name).Do()
+	}
+	return d, err
+}
+
+// GetImage gets a GCE Image.
+func (c *client) GetImage(project, name string) (*compute.Image, error) {
+	i, err := c.raw.Images.Get(project, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Images.Get(project, name).Do()
+	}
+	return i, err
 }
 
 // InstanceStatus returns an instances Status.
 func (c *client) InstanceStatus(project, zone, name string) (string, error) {
-	inst, err := c.raw.Instances.Get(project, zone, name).Do()
+	is, err := c.raw.Instances.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		is, err = c.raw.Instances.Get(project, zone, name).Do()
+	}
+
 	if err != nil {
 		return "", err
 	}
-	return inst.Status, nil
+	return is.Status, nil
 }
 
 // InstanceStopped checks if a GCE instance is in a 'TERMINATED' or 'STOPPED' state.

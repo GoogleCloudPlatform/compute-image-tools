@@ -20,8 +20,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"google.golang.org/api/googleapi"
 )
 
 const defaultInterval = "10s"
@@ -92,11 +90,6 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, port int64, su
 			return nil
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(project, zone, name, port, start)
-			// Retry immediately up to 3 times in a row on any 5xx error.
-			if apiErr, ok := err.(*googleapi.Error); ok && errs < 3 && (apiErr.Code >= 500 && apiErr.Code <= 599) {
-				errs++
-				continue
-			}
 			if err != nil {
 				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
 				if sErr == nil && (status == "TERMINATED" || status == "STOPPING" || status == "STOPPED") {
@@ -116,12 +109,12 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, port int64, su
 				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
+			if failure != "" && strings.Contains(resp.Contents, failure) {
+				return fmt.Errorf("WaitForInstancesSignal: FailureMatch found for instance %q", name)
+			}
 			if success != "" && strings.Contains(resp.Contents, success) {
 				w.logger.Printf("WaitForInstancesSignal: SuccessMatch found for instance %q", name)
 				return nil
-			}
-			if failure != "" && strings.Contains(resp.Contents, failure) {
-				return fmt.Errorf("WaitForInstancesSignal: FailureMatch found for instance %q", name)
 			}
 			errs = 0
 		}

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func TestTestClient(t *testing.T) {
@@ -27,7 +28,7 @@ func TestTestClient(t *testing.T) {
 	var wantFakeCalled, wantRealCalled bool
 	_, c, _ := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		realCalled = true
-		w.WriteHeader(500)
+		w.WriteHeader(400)
 		fmt.Fprintln(w, "Not Implemented")
 	}))
 
@@ -35,6 +36,9 @@ func TestTestClient(t *testing.T) {
 		desc string
 		op   func()
 	}{
+		{"retry", func() {
+			c.Retry(func(_ ...googleapi.CallOption) (*compute.Operation, error) { realCalled = true; return nil, nil })
+		}},
 		{"create disk", func() { c.CreateDisk("a", "b", &compute.Disk{}) }},
 		{"create image", func() { c.CreateImage("a", &compute.Image{}) }},
 		{"create instance", func() { c.CreateInstance("a", "b", &compute.Instance{}) }},
@@ -45,6 +49,9 @@ func TestTestClient(t *testing.T) {
 		{"get project", func() { c.GetProject("a") }},
 		{"get machine type", func() { c.GetMachineType("a", "b", "c") }},
 		{"get zone", func() { c.GetZone("a", "b") }},
+		{"get instance", func() { c.GetInstance("a", "b", "c") }},
+		{"get image", func() { c.GetImage("a", "b") }},
+		{"get disk", func() { c.GetDisk("a", "b", "c") }},
 		{"instance status", func() { c.InstanceStatus("a", "b", "c") }},
 		{"instance stopped", func() { c.InstanceStopped("a", "b", "c") }},
 		{"operation wait", func() { c.operationsWait("a", "b", "c") }},
@@ -67,6 +74,10 @@ func TestTestClient(t *testing.T) {
 	runTests()
 
 	// Test fake methods can be called.
+	c.RetryFn = func(_ func(_ ...googleapi.CallOption) (*compute.Operation, error), _ ...googleapi.CallOption) (op *compute.Operation, err error) {
+		fakeCalled = true
+		return nil, nil
+	}
 	c.CreateDiskFn = func(_, _ string, _ *compute.Disk) error { fakeCalled = true; return nil }
 	c.CreateImageFn = func(_ string, _ *compute.Image) error { fakeCalled = true; return nil }
 	c.CreateInstanceFn = func(_, _ string, _ *compute.Instance) error { fakeCalled = true; return nil }
@@ -79,6 +90,9 @@ func TestTestClient(t *testing.T) {
 	}
 	c.GetProjectFn = func(_ string) (*compute.Project, error) { fakeCalled = true; return nil, nil }
 	c.GetZoneFn = func(_, _ string) (*compute.Zone, error) { fakeCalled = true; return nil, nil }
+	c.GetInstanceFn = func(_, _, _ string) (*compute.Instance, error) { fakeCalled = true; return nil, nil }
+	c.GetDiskFn = func(_, _, _ string) (*compute.Disk, error) { fakeCalled = true; return nil, nil }
+	c.GetImageFn = func(_, _ string) (*compute.Image, error) { fakeCalled = true; return nil, nil }
 	c.GetMachineTypeFn = func(_, _, _ string) (*compute.MachineType, error) { fakeCalled = true; return nil, nil }
 	c.InstanceStatusFn = func(_, _, _ string) (string, error) { fakeCalled = true; return "", nil }
 	c.InstanceStoppedFn = func(_, _, _ string) (bool, error) { fakeCalled = true; return false, nil }

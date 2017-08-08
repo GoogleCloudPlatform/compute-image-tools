@@ -20,6 +20,7 @@ import (
 	"net/http/httptest"
 
 	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
 
@@ -55,10 +56,22 @@ type TestClient struct {
 	GetProjectFn          func(project string) (*compute.Project, error)
 	GetSerialPortOutputFn func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZoneFn             func(project, zone string) (*compute.Zone, error)
+	GetInstanceFn         func(project, zone, name string) (*compute.Instance, error)
+	GetDiskFn             func(project, zone, name string) (*compute.Disk, error)
+	GetImageFn            func(project, name string) (*compute.Image, error)
 	InstanceStatusFn      func(project, zone, name string) (string, error)
 	InstanceStoppedFn     func(project, zone, name string) (bool, error)
+	RetryFn               func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 
 	operationsWaitFn func(project, zone, name string) error
+}
+
+// CreateDisk uses the override method CreateDiskFn or the real implementation.
+func (c *TestClient) Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error) {
+	if c.RetryFn != nil {
+		return c.RetryFn(f, opts...)
+	}
+	return c.client.Retry(f, opts...)
 }
 
 // CreateDisk uses the override method CreateDiskFn or the real implementation.
@@ -131,6 +144,30 @@ func (c *TestClient) GetZone(project, zone string) (*compute.Zone, error) {
 		return c.GetZoneFn(project, zone)
 	}
 	return c.client.GetZone(project, zone)
+}
+
+// GetInstance uses the override method GetZoneFn or the real implementation.
+func (c *TestClient) GetInstance(project, zone, name string) (*compute.Instance, error) {
+	if c.GetInstanceFn != nil {
+		return c.GetInstanceFn(project, zone, name)
+	}
+	return c.client.GetInstance(project, zone, name)
+}
+
+// GetDisk uses the override method GetZoneFn or the real implementation.
+func (c *TestClient) GetDisk(project, zone, name string) (*compute.Disk, error) {
+	if c.GetDiskFn != nil {
+		return c.GetDiskFn(project, zone, name)
+	}
+	return c.client.GetDisk(project, zone, name)
+}
+
+// GetImage uses the override method GetZoneFn or the real implementation.
+func (c *TestClient) GetImage(project, name string) (*compute.Image, error) {
+	if c.GetImageFn != nil {
+		return c.GetImageFn(project, name)
+	}
+	return c.client.GetImage(project, name)
 }
 
 // GetSerialPortOutput uses the override method GetSerialPortOutputFn or the real implementation.

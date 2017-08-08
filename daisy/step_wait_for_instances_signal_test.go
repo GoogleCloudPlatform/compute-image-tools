@@ -16,20 +16,22 @@ package daisy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func TestWaitForInstanceStopped(t *testing.T) {
 	w := testWorkflow()
 
-	svr, c, err := compute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	svr, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, "foo") {
 			fmt.Fprint(w, `{"Status":"TERMINATED"}`)
 		} else {
@@ -63,36 +65,36 @@ func TestWaitForInstancesSignalPopulate(t *testing.T) {
 func TestWaitForInstancesSignalRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
-
-	svr, c, err := compute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=1") {
-			fmt.Fprintln(w, `{"Contents":"failsuccess","Start":"0"}`)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=2") {
-			fmt.Fprintln(w, `{"Contents":"successfail","Start":"0"}`)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=3") {
-			w.WriteHeader(http.StatusBadRequest)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=4") {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintln(w, "test error")
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/i1", testProject, testZone)) {
-			fmt.Fprintln(w, `{"Status":"TERMINATED","SelfLink":"link"}`)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/i2", testProject, testZone)) {
-			fmt.Fprintln(w, `{"Status":"RUNNING","SelfLink":"link"}`)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/i3", testProject, testZone)) {
-			fmt.Fprintln(w, `{"Status":"TERMINATED","SelfLink":"link"}`)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/i4", testProject, testZone)) {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintln(w, "test error")
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "bad request: %+v", r)
+	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, _ int64) (*compute.SerialPortOutput, error) {
+		ret := &compute.SerialPortOutput{Next: 20}
+		switch n {
+		case w.genName("i1"):
+			ret.Contents = "success"
+		case w.genName("i2"):
+			ret.Contents = "success fail"
+		case w.genName("i3"):
+			ret.Contents = "fail success"
+		case w.genName("i4"):
+			return nil, errors.New("fail")
+		case w.genName("i5"):
+			return nil, errors.New("fail")
+		case w.genName("i6"):
+			return nil, errors.New("fail")
 		}
-	}))
-	if err != nil {
-		t.Fatal(err)
+		return ret, nil
 	}
-	defer svr.Close()
-	w.ComputeClient = c
+	w.ComputeClient.(*daisyCompute.TestClient).InstanceStatusFn = func(_, _, n string) (string, error) {
+		if n == w.genName("i5") {
+			return "", errors.New("fail")
+		}
+		if n == w.genName("i4") {
+			return "RUNNING", nil
+		}
+		return "STOPPED", nil
+	}
+	w.ComputeClient.(*daisyCompute.TestClient).RetryFn = func(_ func(_ ...googleapi.CallOption) (*compute.Operation, error), _ ...googleapi.CallOption) (*compute.Operation, error) {
+		return nil, nil
+	}
 
 	s := &Step{w: w}
 	instances[w].m = map[string]*resource{
@@ -100,12 +102,14 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		"i2": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i2"))},
 		"i3": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i3"))},
 		"i4": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i4"))},
+		"i5": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i5"))},
+		"i6": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i6"))},
 	}
 
 	// Normal run, no error.
 	ws := &WaitForInstancesSignal{
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "success"}},
-		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{Port: 2, SuccessMatch: "success", FailureMatch: "fail"}},
+		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
+		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatch: "fail"}},
 		{Name: "i3", interval: 1 * time.Microsecond, Stopped: true},
 	}
 	if err := ws.run(ctx, s); err != nil {
@@ -114,44 +118,42 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 
 	// Failure match error.
 	ws = &WaitForInstancesSignal{
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail", SuccessMatch: "success"}},
-		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{Port: 2, FailureMatch: "fail"}},
+		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: "fail", SuccessMatch: "success"}},
+		{Name: "i3", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: "fail"}},
 	}
 	if err := ws.run(ctx, s); err == nil {
 		t.Error("expected error")
 	}
 
-	// 400 from GetSerialPortOutput but instance is terminated so no error.
+	// Error from GetSerialPortOutput but instance is running.
 	ws = &WaitForInstancesSignal{
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{Port: 3, SuccessMatch: "success"}},
+		{Name: "i4", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
+	}
+	if err := ws.run(ctx, s); err == nil {
+		t.Error("expected error")
+	}
+
+	// Error from GetSerialPortOutput, error from InstanceStatus.
+	ws = &WaitForInstancesSignal{
+		{Name: "i5", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
+	}
+	if err := ws.run(ctx, s); err == nil {
+		t.Error("expected error")
+	}
+
+	// Error from GetSerialPortOutput but instance is terminated so no error.
+	ws = &WaitForInstancesSignal{
+		{Name: "i6", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
 	}
 	if err := ws.run(ctx, s); err != nil {
 		t.Errorf("error running WaitForInstancesSignal.run(): %v", err)
 	}
 
-	// 500 from GetSerialPortOutput but instance is not terminated error.
-	ws = &WaitForInstancesSignal{
-		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{Port: 4, SuccessMatch: "success"}},
-	}
-	want := "WaitForInstancesSignal: instance \"i2-test-wf-abcdef\": error getting serial port: googleapi: got HTTP response code 500 with body: test error\n, InstanceStatus: \"RUNNING\""
-	if err := ws.run(ctx, s); err.Error() != want {
-		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
-	}
-
-	// 500 from WaitForInstanceStopped error.
-	ws = &WaitForInstancesSignal{
-		{Name: "i4", interval: 1 * time.Microsecond, Stopped: true},
-	}
-	want = "googleapi: got HTTP response code 400 with body: test error\n"
-	if err := ws.run(ctx, s); err.Error() != want {
-		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
-	}
-
 	// Unresolved instance error.
 	ws = &WaitForInstancesSignal{
-		{Name: "i5", interval: 1 * time.Microsecond, Stopped: true},
+		{Name: "i7", interval: 1 * time.Microsecond, Stopped: true},
 	}
-	want = "unresolved instance \"i5\""
+	want := "unresolved instance \"i7\""
 	if err := ws.run(ctx, s); err.Error() != want {
 		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
