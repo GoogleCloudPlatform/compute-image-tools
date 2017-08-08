@@ -50,6 +50,10 @@ type baseResourceMap struct {
 	urlRgx   *regexp.Regexp
 }
 
+func (rm *baseResourceMap) init() {
+	rm.m = map[string]*resource{}
+}
+
 func (rm *baseResourceMap) cleanup() {
 	var wg sync.WaitGroup
 	for name, r := range rm.m {
@@ -98,9 +102,7 @@ func (rm *baseResourceMap) registerCreation(name string, r *resource, s *Step) e
 	// - no duplicates known by name
 	rm.mx.Lock()
 	defer rm.mx.Unlock()
-	if rm.m == nil {
-		rm.m = map[string]*resource{}
-	} else if r, ok := rm.m[name]; ok {
+	if r, ok := rm.m[name]; ok {
 		return fmt.Errorf("cannot create %s %q; already created by step %q", rm.typeName, name, r.creator.name)
 	}
 	r.creator = s
@@ -146,9 +148,7 @@ func (rm *baseResourceMap) registerExisting(url string) (*resource, error) {
 	if !strings.HasPrefix(url, "projects/") {
 		return nil, fmt.Errorf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
-	if rm.m == nil {
-		rm.m = map[string]*resource{}
-	} else if r, ok := rm.m[url]; ok {
+	if r, ok := rm.m[url]; ok {
 		return r, nil
 	}
 	parts := strings.Split(url, "/")
