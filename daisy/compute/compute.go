@@ -60,11 +60,13 @@ type client struct {
 	raw *compute.Service
 }
 
+// shouldRetryWithWait returns sleeps and returns true if the HTTP
+// response / error indicates that the request should be attempted again.
 func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) bool {
 	if err == nil {
 		return false
 	}
-	var tkValid bool
+	tkValid := true
 	trans, ok := tripper.(*oauth2.Transport)
 	if ok {
 		if tk, err := trans.Source.Token(); err == nil {
@@ -75,15 +77,16 @@ func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) b
 	apiErr, ok := err.(*googleapi.Error)
 	var retry bool
 	switch {
-	case !ok:
+	case !ok && tkValid:
+		// Not a googleapi.Error and the token is still valid.
 		return false
 	case apiErr.Code >= 500 && apiErr.Code <= 599:
 		retry = true
 	case apiErr.Code >= 429:
 		// Too many API requests.
 		retry = true
-	case tkValid:
-		// Failure to get new token.
+	case !tkValid:
+		// This was probably a failure to get new token from metadata server.
 		retry = true
 	}
 	if !retry {

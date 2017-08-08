@@ -36,6 +36,9 @@ func TestTestClient(t *testing.T) {
 		desc string
 		op   func()
 	}{
+		{"retry", func() {
+			c.Retry(func(_ ...googleapi.CallOption) (*compute.Operation, error) { realCalled = true; return nil, nil })
+		}},
 		{"create disk", func() { c.CreateDisk("a", "b", &compute.Disk{}) }},
 		{"create image", func() { c.CreateImage("a", &compute.Image{}) }},
 		{"create instance", func() { c.CreateInstance("a", "b", &compute.Instance{}) }},
@@ -46,6 +49,9 @@ func TestTestClient(t *testing.T) {
 		{"get project", func() { c.GetProject("a") }},
 		{"get machine type", func() { c.GetMachineType("a", "b", "c") }},
 		{"get zone", func() { c.GetZone("a", "b") }},
+		{"get instance", func() { c.GetInstance("a", "b", "c") }},
+		{"get image", func() { c.GetImage("a", "b") }},
+		{"get disk", func() { c.GetDisk("a", "b", "c") }},
 		{"instance status", func() { c.InstanceStatus("a", "b", "c") }},
 		{"instance stopped", func() { c.InstanceStopped("a", "b", "c") }},
 		{"operation wait", func() { c.operationsWait("a", "b", "c") }},

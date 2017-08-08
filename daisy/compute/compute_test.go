@@ -38,7 +38,7 @@ var (
 func TestShouldRetryWithWait(t *testing.T) {
 	tests := []struct {
 		desc string
-		err   error
+		err  error
 		want bool
 	}{
 		{"nil error", nil, false},
@@ -48,11 +48,11 @@ func TestShouldRetryWithWait(t *testing.T) {
 		{"500 error", &googleapi.Error{Code: 500}, true},
 	}
 
-		for _, tt := range tests {
-			if got := shouldRetryWithWait(nil, tt.err, 0);got != tt.want {
-				t.Errorf("%s case: shouldRetryWithWait == %t, want %t", tt.desc, got, tt.want)
-			}
+	for _, tt := range tests {
+		if got := shouldRetryWithWait(nil, tt.err, 0); got != tt.want {
+			t.Errorf("%s case: shouldRetryWithWait == %t, want %t", tt.desc, got, tt.want)
 		}
+	}
 }
 
 func TestCreateDisk(t *testing.T) {

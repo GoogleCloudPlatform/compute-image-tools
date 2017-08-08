@@ -146,7 +146,7 @@ func (c *TestClient) GetZone(project, zone string) (*compute.Zone, error) {
 	return c.client.GetZone(project, zone)
 }
 
-// GetZone uses the override method GetZoneFn or the real implementation.
+// GetInstance uses the override method GetZoneFn or the real implementation.
 func (c *TestClient) GetInstance(project, zone, name string) (*compute.Instance, error) {
 	if c.GetInstanceFn != nil {
 		return c.GetInstanceFn(project, zone, name)
@@ -154,7 +154,7 @@ func (c *TestClient) GetInstance(project, zone, name string) (*compute.Instance,
 	return c.client.GetInstance(project, zone, name)
 }
 
-// GetZone uses the override method GetZoneFn or the real implementation.
+// GetDisk uses the override method GetZoneFn or the real implementation.
 func (c *TestClient) GetDisk(project, zone, name string) (*compute.Disk, error) {
 	if c.GetDiskFn != nil {
 		return c.GetDiskFn(project, zone, name)
@@ -162,7 +162,7 @@ func (c *TestClient) GetDisk(project, zone, name string) (*compute.Disk, error) 
 	return c.client.GetDisk(project, zone, name)
 }
 
-// GetZone uses the override method GetZoneFn or the real implementation.
+// GetImage uses the override method GetZoneFn or the real implementation.
 func (c *TestClient) GetImage(project, name string) (*compute.Image, error) {
 	if c.GetImageFn != nil {
 		return c.GetImageFn(project, name)
