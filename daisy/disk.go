@@ -152,6 +152,9 @@ func (dm *diskMap) registerAllDetachments(iName string, s *Step) error {
 	}
 
 	for d = range dm.attachments {
+		if dm.attachments[d][i].detacher != nil {
+			continue
+		}
 		if err := dm.detachHelper(d, i, s); err != nil {
 			errs.add(Errorf("cannot detach disk %q from instance %q: %v", d.real, iName, err))
 		}
