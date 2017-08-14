@@ -1,8 +1,9 @@
 package daisy
 
 import (
-	"github.com/kylelemons/godebug/pretty"
 	"testing"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestDiskRegisterAttachment(t *testing.T) {
