@@ -113,6 +113,7 @@ func TestResourceMapDelete(t *testing.T) {
 
 func TestResourceMapConcurrency(t *testing.T) {
 	rm := baseResourceMap{}
+	rm.init()
 
 	tests := []struct {
 		desc string
@@ -171,6 +172,7 @@ func TestResourceMapGet(t *testing.T) {
 
 func TestResourceMapRegisterCreation(t *testing.T) {
 	rm := &baseResourceMap{}
+	rm.init()
 	r := &resource{}
 	s := &Step{}
 
@@ -236,6 +238,7 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 
 func TestResourceMapRegisterExisting(t *testing.T) {
 	rm := &baseResourceMap{}
+	rm.init()
 
 	defURL := "projects/p/zones/z/disks/d"
 	tests := []struct {

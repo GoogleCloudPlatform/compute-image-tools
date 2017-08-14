@@ -41,6 +41,7 @@ type instanceMap struct {
 func initInstanceMap(w *Workflow) {
 	im := &instanceMap{baseResourceMap: baseResourceMap{w: w, typeName: "instance", urlRgx: instanceURLRgx}}
 	im.baseResourceMap.deleteFn = im.deleteFn
+	im.init()
 	instances[w] = im
 }
 
@@ -77,6 +78,13 @@ func (im *instanceMap) registerCreation(name string, r *resource, s *Step) error
 		}
 	}
 	return nil
+}
+
+func (im *instanceMap) registerDeletion(name string, s *Step) error {
+	if err := im.baseResourceMap.registerDeletion(name, s); err != nil {
+		return err
+	}
+	return disks[im.w].registerAllDetachments(name, s)
 }
 
 func checkDiskMode(m string) bool {

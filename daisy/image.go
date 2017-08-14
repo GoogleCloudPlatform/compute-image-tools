@@ -31,6 +31,7 @@ type imageMap struct {
 func initImageMap(w *Workflow) {
 	im := &imageMap{baseResourceMap: baseResourceMap{w: w, typeName: "image", urlRgx: imageURLRgx}}
 	im.baseResourceMap.deleteFn = im.deleteFn
+	im.init()
 	images[w] = im
 }
 
