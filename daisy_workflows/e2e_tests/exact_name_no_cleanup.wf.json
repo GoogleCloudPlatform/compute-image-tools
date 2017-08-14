@@ -1,0 +1,46 @@
+{
+  "Name": "exact-name-no-cleanup-test",
+  "Vars": {
+    "test-id": {"Required": true, "Description": "The ID of this test run."}
+  },
+  "Steps": {
+    "create-disk": {
+      "CreateDisks": [
+        {
+          "Name": "${test-id}-disk",
+          "Source": "projects/debian-cloud/global/images/family/debian-9",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${test-id}-image",
+          "SourceDisk": "${test-id}-disk",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    },
+    "create-instance": {
+      "CreateInstances": [
+        {
+          "Name": "${test-id}-instance",
+          "Disks": [
+            {
+              "Source": "${test-id}-disk"
+            }
+          ],
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": ["create-disk"],
+    "create-instance": ["create-image"],
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "Name": "create-disks-test",
+  "Steps": {
+    "disk-for-image": {
+      "CreateDisks": [
+        {
+          "Name": "disk-for-image",
+          "SizeGb": "10"
+        }
+      ]
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "image",
+          "SourceDisk": "disk-for-image"
+        }
+      ]
+    },
+    "create-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-from-image",
+          "SourceImage": "foo"
+        },
+        {
+          "Name": "disk-from-image-family-url",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "Type": "pd-ssd"
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-disks": ["create-image"],
+    "create-image": ["disk-to-image"],
+  }
+}
