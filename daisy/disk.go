@@ -144,14 +144,13 @@ func (dm *diskMap) registerAllDetachments(iName string, s *Step) error {
 	dm.mx.Lock()
 	defer dm.mx.Unlock()
 
-	var d, i *resource
-	var ok bool
-	var errs Errors
-	if i, ok = instances[dm.w].get(iName); !ok {
+	i, ok := instances[dm.w].get(iName)
+	if !ok {
 		return Errorf("cannot detach disks from instance %q, does not exist", iName)
 	}
 
-	for d = range dm.attachments {
+	var errs Errors
+	for d := range dm.attachments {
 		if dm.attachments[d][i].detacher != nil {
 			continue
 		}
