@@ -254,7 +254,7 @@ In order to complete most workflows, specifically import workflows, Daisy needs 
 	*   https://www.googleapis.com/auth/devstorage.read_write
 	*   https://www.googleapis.com/auth/compute
 
-`gcloud compute --project "YOUR-PROJECT" instances create "test-import-vm" --scopes --scopes=compute-rw,storage-full --image-project debian-cloud --image-family debian-9`
+`gcloud compute --project "YOUR-PROJECT" instances create "test-import-vm" --scopes=compute-rw,storage-full --image-project debian-cloud --image-family debian-9`
 
 *   **Option B**:  In the computer where you have Daisy instance, run 'gcloud auth application-default login' and login as a user that has privileges to create and remove virtual machines in Compute Engine.
 
