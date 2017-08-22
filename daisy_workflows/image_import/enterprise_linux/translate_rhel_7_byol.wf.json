@@ -32,7 +32,7 @@
     },
     "translate-disk": {
       "IncludeWorkflow": {
-        "Path": "./translate_rhel.wf.json",
+        "Path": "./translate_el.wf.json",
         "Vars": {
           "el_release": "7",
           "install_gce_packages": "${install_gce_packages}",
