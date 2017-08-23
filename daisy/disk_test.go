@@ -14,24 +14,41 @@ func TestDiskRegisterAttachment(t *testing.T) {
 	// - concurrent attachment conflict
 	// - instance/disk resource DNE
 	// - attach detached disk
+	// - attach detached disk between sibling IncludeWorkflows (detached in iwSubStep, attached in iw2SubStep)
+	// - attachment conflict between sibling IncludeWorkflows (attached in iwSubStep, attached in iw2SubStep)
 
 	w := testWorkflow()
+	iw := w.NewIncludedWorkflow()
+	iw2 := w.NewIncludedWorkflow()
+	iwStep, _ := w.NewStep("iwStep")
+	iwStep.IncludeWorkflow = &IncludeWorkflow{w: iw}
+	iwSubStep, _ := iw.NewStep("iwSubStep")
+	iw2Step, _ := w.NewStep("iw2Step")
+	iw2Step.IncludeWorkflow = &IncludeWorkflow{w: iw2}
+	iw2SubStep, _ := iw2.NewStep("iw2SubStep")
 	s, _ := w.NewStep("s")
 	s2, _ := w.NewStep("s2")
 	att, _ := w.NewStep("att")
 	det, _ := w.NewStep("det")
 	w.AddDependency("det", "att")
 	w.AddDependency("s", "det")
+	w.AddDependency("iw2Step", "iwStep")
 	d := &resource{real: "d"}
-	dPrevAtt := &resource{real: "dPrevAtt"}
-	disks[w].m = map[string]*resource{"d": d, "dPrevAtt": dPrevAtt}
+	dDetached := &resource{real: "dDetached"}
+	dIWDetached := &resource{real: "dIWDetached"}
+	dIWAttached := &resource{real: "dIWAttached"}
+	disks[w].m = map[string]*resource{"d": d, "dDetached": dDetached, "dIWDetached": dIWDetached, "dIWAttached": dIWAttached}
 	i := &resource{real: "i"}
 	i2 := &resource{real: "i2"}
 	i3 := &resource{real: "i3"}
 	iPrevAtt := &resource{real: "iPrevAtt"}
-	instances[w].m = map[string]*resource{"i": i, "i2": i2, "i3": i3, "iPrevAtt": iPrevAtt}
+	iIW := &resource{real: "iIW"}
+	iIW2 := &resource{real: "iIW2"}
+	instances[w].m = map[string]*resource{"i": i, "i2": i2, "i3": i3, "iPrevAtt": iPrevAtt, "iIW": iIW, "iIW2": iIW2}
 	disks[w].attachments = map[*resource]map[*resource]*diskAttachment{
-		dPrevAtt: {iPrevAtt: {mode: diskModeRW, attacher: att, detacher: det}},
+		dDetached:   {iPrevAtt: {mode: diskModeRW, attacher: att, detacher: det}},
+		dIWDetached: {iIW: {mode: diskModeRW, detacher: iwSubStep}},
+		dIWAttached: {iIW: {mode: diskModeRW}},
 	}
 
 	tests := []struct {
@@ -45,7 +62,9 @@ func TestDiskRegisterAttachment(t *testing.T) {
 		{"concurrent conflict case", "d", "i3", diskModeRW, s, true},
 		{"instance DNE case", "d", "dne", diskModeRO, s, true},
 		{"disk DNE case", "dne", "i", diskModeRO, s, true},
-		{"attach detached case", "dPrevAtt", "i", diskModeRW, s, false},
+		{"attach detached case", "dDetached", "i", diskModeRW, s, false},
+		{"attach detached between IncludeWorkflows case", "dIWDetached", "iIW2", diskModeRW, iw2SubStep, false},
+		{"attachment conflict between IncludeWorkflows case", "dIWAttached", "iIW2", diskModeRW, iw2SubStep, true},
 	}
 
 	for _, tt := range tests {
@@ -61,12 +80,23 @@ func TestDiskRegisterAttachment(t *testing.T) {
 	s.w = nil
 	att.w = nil
 	det.w = nil
+	iw.parent = nil
+	iw2.parent = nil
+	iwStep.w = nil
+	iw2Step.w = nil
+	iwSubStep.w = nil
+	iw2SubStep.w = nil
 
 	want := map[*resource]map[*resource]*diskAttachment{
-		dPrevAtt: {
-			iPrevAtt: disks[w].attachments[dPrevAtt][iPrevAtt],
+		dDetached: {
+			iPrevAtt: disks[w].attachments[dDetached][iPrevAtt], // no changes
 			i:        {diskModeRW, s, nil},
 		},
+		dIWDetached: {
+			iIW:  disks[w].attachments[dIWDetached][iIW], // no changes
+			iIW2: {diskModeRW, iw2SubStep, nil},
+		},
+		dIWAttached: disks[w].attachments[dIWAttached], // no changes
 		d: {
 			i:  {diskModeRO, s, nil},
 			i2: {diskModeRO, s, nil},
