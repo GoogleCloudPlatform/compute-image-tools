@@ -33,7 +33,6 @@ type IncludeWorkflow struct {
 }
 
 func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
-	i.w.parent = s.w
 	i.w.id = s.w.id
 	i.w.username = s.w.username
 	i.w.ComputeClient = s.w.ComputeClient

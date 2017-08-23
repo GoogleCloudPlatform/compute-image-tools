@@ -26,7 +26,7 @@ var (
 
 type diskMap struct {
 	baseResourceMap
-	attachments      map[*resource]map[*resource]*diskAttachment
+	attachments      map[*resource]map[*resource]*diskAttachment // map (disk, instance) -> attachment
 	testDetachHelper func(d, i *resource, s *Step) error
 }
 
@@ -73,13 +73,13 @@ func (dm *diskMap) registerAttachment(dName, iName, mode string, s *Step) error 
 	// If this is a repeat attachment (same disk and instance already attached), do nothing and return.
 	for attI, att := range dm.attachments[d] {
 		// Is this a concurrent attachment?
-		if att.detacher == nil || !s.depends(att.detacher) {
+		if att.detacher == nil || !s.nestedDepends(att.detacher) {
 			if attI == i {
 				return nil // this is a repeat attachment to the same instance -- does nothing
 			} else if strIn(diskModeRW, []string{mode, att.mode}) {
 				// Can't have concurrent attachment in RW mode.
 				return Errorf(
-					"disk attachment conflict for disk %q: attached to instances %q (%s) and %q (%s)",
+					"concurrent attachment of disk %q between instances %q (%s) and %q (%s)",
 					dName, i.real, mode, attI.real, att.mode)
 			}
 		}
@@ -109,7 +109,7 @@ func (dm *diskMap) detachHelper(d, i *resource, s *Step) error {
 	}
 	if att, ok = im[i]; !ok || att.detacher != nil {
 		return Errorf("not attached")
-	} else if !s.depends(att.attacher) {
+	} else if !s.nestedDepends(att.attacher) {
 		return Errorf("detacher %q does not depend on attacher %q", s.name, att.attacher.name)
 	}
 	att.detacher = s
@@ -150,8 +150,8 @@ func (dm *diskMap) registerAllDetachments(iName string, s *Step) error {
 	}
 
 	var errs Errors
-	for d := range dm.attachments {
-		if dm.attachments[d][i].detacher != nil {
+	for d, im := range dm.attachments {
+		if att, ok := im[i]; !ok || att.detacher != nil {
 			continue
 		}
 		if err := dm.detachHelper(d, i, s); err != nil {
