@@ -1,0 +1,122 @@
+{
+  "Name": "translate-windows",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "Image to translate"
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "drivers": {
+      "Required": true,
+      "Description": "Path containing GCE drivers"
+    },
+    "version": {
+      "Required": true,
+      "Description": "Windows OS Version to translate (https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx)"
+    }
+  },
+  "Sources": {
+    "translate.ps1": "./translate.ps1",
+    "translate_bootstrap.ps1": "./translate_bootstrap.ps1",
+    "drivers": "${drivers}",
+    "components": "./metadata_scripts/",
+    "components/GCEStartup.reg": "${task_reg}",
+    "components/GCEStartup": "${task_xml}"
+  },
+  "Steps": {
+    "setup-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-bootstrap",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-2016-core",
+          "Type": "pd-ssd"
+        },
+        {
+          "Name": "disk-translate",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "bootstrap": {
+      "CreateInstances": [
+        {
+          "Name": "inst-bootstrap",
+          "Disks": [
+            {"Source": "disk-bootstrap"},
+            {"Source": "disk-translate"}
+          ],
+          "MachineType": "n1-standard-2",
+          "Metadata": {
+            "install-gce-packages": "${install_gce_packages}",
+            "version": "${version}"
+          },
+          "StartupScript": "translate_bootstrap.ps1"
+        }
+      ]
+    },
+    "wait-for-bootstrap": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-bootstrap",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Translate bootstrap complete",
+            "FailureMatch": "Translate bootstrap failed"
+          }
+        }
+      ],
+      "Timeout": "60m"
+    },
+    "delete-bootstrap": {
+      "DeleteResources": {
+        "Instances":["inst-bootstrap"],
+        "Disks":["disk-bootstrap"]
+      }
+    },
+    "translate": {
+      "CreateInstances": [
+        {
+          "Name": "inst-translate",
+          "Disks": [
+            {"Source": "disk-translate"}
+          ],
+          "MachineType": "n1-standard-2",
+          "Metadata": {
+            "install-gce-packages": "${install_gce_packages}"
+          },
+          "StartupScript": "translate.ps1"
+        }
+      ]
+    },
+    "wait-for-translate": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-translate",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Translate complete",
+            "FailureMatch": "Translate failed"
+          }
+        }
+      ],
+      "Timeout": "60m"
+    },
+    "delete-inst-translate": {
+      "DeleteResources": {
+        "Instances":["inst-translate"]
+      }
+    }
+  },
+  "Dependencies": {
+    "bootstrap": ["setup-disk"],
+    "wait-for-bootstrap": ["bootstrap"],
+    "delete-bootstrap": ["wait-for-bootstrap"],
+    "translate": ["delete-bootstrap"],
+    "wait-for-translate": ["translate"],
+    "delete-inst-translate": ["wait-for-translate"]
+  }
+}

@@ -21,6 +21,9 @@ Imports a virtual disk file and converts it into a GCE image resource.
 Variables:
 * `source_disk_file`: A supported source virtual disk file, either local or in GCS.
 * `image_name`: The name of the imported image, will default to "imported-image-${ID}".
+* `image_name`: The size of the importer instance disk, additional disk space
+is unused for the import but a larger size increases PD write speed. See 
+[Compute Engine storage documentation](https://cloud.google.com/compute/docs/disks)
 
 Example Daisy invocation:
 ```shell
@@ -29,7 +32,7 @@ daisy -project my-project \
       -zone us-west1-a \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json \
-      -variables source_disk_file=image.vmdk \
+      -var:source_disk_file ./image.vmdk \
       import_image.wf.json
 ```
 
@@ -57,6 +60,9 @@ Variables:
 * **enterprise_linux/translate_rhel_7_licensed.wf.json**: translates a Red Hat Enterprise Linux 7 based virtual disk and converts it to use a GCE based Red Hat cloud license. If you use the resulting image you will be charged for the license.
 * **ubuntu/translate_ubuntu_1404.wf.json**: translates an Ubuntu 14.04 Trusty based virtual disk.
 * **ubuntu/translate_ubuntu_1604.wf.json**: translates an Ubuntu 16.04 Xenial based virtual disk.
+* **windows/translate_windows_2008_r2.wf.json**: translates a Windows 2008R2 based virtual disk.
+* **windows/translate_windows_2012_r2.wf.json**: translates a Windows 2012R2 based virtual disk.
+* **windows/translate_windows_2016.wf.json**: translates a Windows 2016 based virtual disk.
 
 Example Daisy invocation:
 ```shell
@@ -65,6 +71,6 @@ daisy -project my-project \
       -zone us-west1-a \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json \
-      -variables source_image=projects/my-project/global/images/ubuntu-1404-xy23f \
+      -var:source_image projects/my-project/global/images/ubuntu-1404-xy23f \
       ubuntu/translate_ubuntu_1404.wf.json
 ```
