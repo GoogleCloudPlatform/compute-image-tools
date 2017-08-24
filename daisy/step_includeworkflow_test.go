@@ -62,7 +62,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 		Zone:    w.Zone,
 		GCSPath: w.GCSPath,
 		id:      w.id,
-		Vars: map[string]vars{
+		Vars: map[string]wVar{
 			"foo": {Value: "bar"},
 		},
 		Sources: map[string]string{

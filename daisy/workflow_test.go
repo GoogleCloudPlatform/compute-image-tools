@@ -227,7 +227,7 @@ func TestNewFromFile(t *testing.T) {
 		Zone:        "us-central1-a",
 		GCSPath:     "gs://some-bucket/images",
 		OAuthPath:   filepath.Join(wd, "test_data", "somefile"),
-		Vars: map[string]vars{
+		Vars: map[string]wVar{
 			"bootstrap_instance_name": {Value: "bootstrap-${NAME}", Required: true},
 			"machine_type":            {Value: "n1-standard-1"},
 		},
@@ -502,7 +502,7 @@ func TestPopulate(t *testing.T) {
 	got.Project = "bar-project"
 	got.OAuthPath = tf
 	got.logger = log.New(ioutil.Discard, "", 0)
-	got.Vars = map[string]vars{
+	got.Vars = map[string]wVar{
 		"bucket":    {Value: "wf-bucket", Required: true},
 		"step_name": {Value: "step1"},
 		"timeout":   {Value: "60m"},
@@ -535,7 +535,7 @@ func TestPopulate(t *testing.T) {
 		id:         got.id,
 		gcsLogging: true,
 		Cancel:     got.Cancel,
-		Vars: map[string]vars{
+		Vars: map[string]wVar{
 			"bucket":    {Value: "wf-bucket", Required: true},
 			"step_name": {Value: "step1"},
 			"timeout":   {Value: "60m"},
@@ -586,6 +586,29 @@ func TestPopulate(t *testing.T) {
 	stepPopErr = errors.New("error")
 	if err := got.populate(ctx); err != stepPopErr {
 		t.Errorf("did not get proper step populate error: %v != %v", err, stepPopErr)
+	}
+}
+
+func TestRequiredVars(t *testing.T) {
+	w := testWorkflow()
+
+	tests := []struct {
+		desc      string
+		vars      map[string]wVar
+		shouldErr bool
+	}{
+		{"normal case", map[string]wVar{"foo": {Value: "foo", Required: true, Description: "foo"}}, false},
+		{"missing req case", map[string]wVar{"foo": {Value: "", Required: true, Description: "foo"}}, true},
+	}
+
+	for _, tt := range tests {
+		w.Vars = tt.vars
+		err := w.populate(context.Background())
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: should have erred, but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
 	}
 }
 
