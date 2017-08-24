@@ -21,7 +21,7 @@ Imports a virtual disk file and converts it into a GCE image resource.
 Variables:
 * `source_disk_file`: A supported source virtual disk file, either local or in GCS.
 * `image_name`: The name of the imported image, will default to "imported-image-${ID}".
-* `image_name`: The size of the importer instance disk, additional disk space
+* `importer_instance_disk_size`: The size of the importer instance disk, additional disk space
 is unused for the import but a larger size increases PD write speed. See 
 [Compute Engine storage documentation](https://cloud.google.com/compute/docs/disks)
 
