@@ -100,22 +100,25 @@ func daisyBkt(ctx context.Context, client *storage.Client, project string) (stri
 	return dBkt, nil
 }
 
-type vars struct {
+// wVar is a type with a flexible JSON representation. A wVar can be represented
+// by either a string, or by this struct definition. A wVar that is represented
+// by a string will unmarshal into the struct: {Value: <string>, Required: false, Description: ""}.
+type wVar struct {
 	Value       string
 	Required    bool
 	Description string
 }
 
-func (v *vars) UnmarshalJSON(b []byte) error {
-	var sv string
-	if err := json.Unmarshal(b, &sv); err == nil {
-		v.Value = sv
+func (v *wVar) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		v.Value = s
 		return nil
 	}
 
-	// We can't unmarshal into vars directly as it would create an infinite loop.
-	type aVars vars
-	return json.Unmarshal(b, &struct{ *aVars }{aVars: (*aVars)(v)})
+	// We can't unmarshal into wVar directly as it would create an infinite loop.
+	type aVar wVar
+	return json.Unmarshal(b, &struct{ *aVar }{aVar: (*aVar)(v)})
 }
 
 // Workflow is a single Daisy workflow workflow.
@@ -137,7 +140,7 @@ type Workflow struct {
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string `json:",omitempty"`
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars  map[string]vars `json:",omitempty"`
+	Vars  map[string]wVar `json:",omitempty"`
 	Steps map[string]*Step
 	// Map of steps to their dependencies.
 	Dependencies map[string][]string
@@ -164,9 +167,9 @@ type Workflow struct {
 
 func (w *Workflow) AddVar(k, v string) {
 	if w.Vars == nil {
-		w.Vars = map[string]vars{}
+		w.Vars = map[string]wVar{}
 	}
-	w.Vars[k] = vars{Value: v}
+	w.Vars[k] = wVar{Value: v}
 }
 
 func (w *Workflow) addCleanupHook(hook func() error) {
@@ -279,8 +282,24 @@ func (w *Workflow) populateStep(ctx context.Context, s *Step) error {
 	return step.populate(ctx, s)
 }
 
+// populate does the following:
+// - checks that all required Vars are set.
+// - instantiates API clients, if needed.
+// - sets generic autovars and do first round of var substitution.
+// - sets GCS path information.
+// - generates autovars from workflow fields (Name, Zone, etc) and run second round of var substitution.
+// - sets up logger.
+// - runs populate on each step.
 func (w *Workflow) populate(ctx context.Context) error {
 	var err error
+
+	for k, v := range w.Vars {
+		if v.Required && v.Value == "" {
+			return Errorf("cannot populate workflow, required var %q is unset", k)
+		}
+	}
+
+	// API clients instantiation.
 	if w.ComputeClient == nil {
 		w.ComputeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
 		if err != nil {
@@ -295,19 +314,11 @@ func (w *Workflow) populate(ctx context.Context) error {
 		}
 	}
 
-	if w.GCSPath == "" {
-		dBkt, err := daisyBkt(ctx, w.StorageClient, w.Project)
-		if err != nil {
-			return err
-		}
-		w.GCSPath = "gs://" + dBkt
-	}
-
+	// Set some generic autovars and run first round of var substitution.
 	w.id = randString(5)
+	cwd, _ := os.Getwd()
 	now := time.Now().UTC()
 	w.username = getUser()
-
-	cwd, _ := os.Getwd()
 
 	w.autovars = map[string]string{
 		"ID":        w.id,
@@ -329,6 +340,13 @@ func (w *Workflow) populate(ctx context.Context) error {
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
 	// Set up GCS paths.
+	if w.GCSPath == "" {
+		dBkt, err := daisyBkt(ctx, w.StorageClient, w.Project)
+		if err != nil {
+			return err
+		}
+		w.GCSPath = "gs://" + dBkt
+	}
 	bkt, p, err := splitGCSPath(w.GCSPath)
 	if err != nil {
 		return err
@@ -339,9 +357,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 	w.logsPath = path.Join(w.scratchPath, "logs")
 	w.outsPath = path.Join(w.scratchPath, "outs")
 
-	// Do replacement for autovars. Autovars pull from workflow fields,
-	// so Vars replacement must run before this to resolve the final
-	// value for those fields.
+	// Generate more autovars from workflow fields. Run second round of var substitution.
 	w.autovars["NAME"] = w.Name
 	w.autovars["ZONE"] = w.Zone
 	w.autovars["PROJECT"] = w.Project
@@ -359,6 +375,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 
 	w.populateLogger(ctx)
 
+	// Run populate on each step.
 	for name, s := range w.Steps {
 		s.name = name
 		s.w = w
@@ -590,7 +607,7 @@ func New() *Workflow {
 	w := &Workflow{Cancel: make(chan struct{})}
 	// Init nil'ed fields
 	w.Sources = map[string]string{}
-	w.Vars = map[string]vars{}
+	w.Vars = map[string]wVar{}
 	w.Steps = map[string]*Step{}
 	w.Dependencies = map[string][]string{}
 	w.autovars = map[string]string{}

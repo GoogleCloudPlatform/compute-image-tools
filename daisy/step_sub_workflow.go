@@ -37,7 +37,7 @@ func (s *SubWorkflow) populate(ctx context.Context, st *Step) error {
 	s.w.StorageClient = s.w.parent.StorageClient
 	s.w.gcsLogWriter = s.w.parent.gcsLogWriter
 	for k, v := range s.Vars {
-		s.w.Vars[k] = vars{Value: v}
+		s.w.Vars[k] = wVar{Value: v}
 	}
 	return s.w.populate(ctx)
 }

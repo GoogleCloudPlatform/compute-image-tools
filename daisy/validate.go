@@ -61,7 +61,7 @@ func (w *Workflow) validate(ctx context.Context) error {
 		return err
 	}
 
-	// Check for unsubstituted vars.
+	// Check for unsubstituted wfVar.
 	if err := w.validateVarsSubbed(); err != nil {
 		return err
 	}
