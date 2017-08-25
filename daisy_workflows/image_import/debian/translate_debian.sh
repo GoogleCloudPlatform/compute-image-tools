@@ -66,7 +66,7 @@ EOF
     google-cloud-sdk \
     google-compute-engine \
     python-google-compute-engine \
-    pythone3-google-compute-engine
+    python3-google-compute-engine
 
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: GCE package install failed."
