@@ -8,6 +8,10 @@
     "image_name": {
       "Value": "imported-image-${ID}",
       "Description": "The name of the imported image."
+    },
+    "importer_instance_disk_size": {
+      "Value": "10",
+      "Description": "size of the importer instance disk, additional disk space is unused for the import but a larger size increases PD write speed"
     }
   },
   "Sources": {
@@ -20,7 +24,7 @@
         {
           "Name": "disk-importer",
           "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "SizeGb": "10",
+          "SizeGb": "${importer_instance_disk_size}",
           "Type": "pd-ssd"
         },
         {

@@ -95,12 +95,16 @@ The basic use case for Daisy looks like:
 daisy [path to workflow config file]
 ```
 
-Many workflow config fields and variables can be overridden, for example:
+Workflow variables can be set using the  `-variables` flag or the 
+`-var:VARNAME` flag. The `-variables` flag takes a comma separated list
+of `key=value` pairs. Both of these examples set the workflow variables 
+`foo=bar` and `baz=gaz`:
 ```shell
-daisy -project my-other-project \\
-      -zone other-zone \\
-      -variables foo=bar,baz=gaz \\
-      wf.json
+daisy -variables foo=bar,baz=gaz wf.json
+```
+
+```shell
+daisy -var:foo bar -var:baz gaz wf.json
 ```
 
 For additional information about Daisy flags, use `daisy -h`.
