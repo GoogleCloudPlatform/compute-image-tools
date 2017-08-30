@@ -138,7 +138,9 @@ try {
   Write-Output 'Translate bootstrap complete'
 }
 catch {
-  Write-Output $_.Exception.Message
+  Write-Output 'Exception caught in script:'
+  Write-Output $_.InvocationInfo.PositionMessage
+  Write-Output "Message: $($_.Exception.Message)"
   Write-Output 'Translate bootstrap failed'
   exit 1
 }
