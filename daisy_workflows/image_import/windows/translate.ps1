@@ -238,7 +238,9 @@ try {
   Write-Output 'Translate complete.'
 }
 catch {
-  Write-Output $_.Exception.Message
+  Write-Output 'Exception caught in script:'
+  Write-Output $_.InvocationInfo.PositionMessage
+  Write-Output "Message: $($_.Exception.Message)"
   Write-Output 'Translate failed'
   exit 1
 }
