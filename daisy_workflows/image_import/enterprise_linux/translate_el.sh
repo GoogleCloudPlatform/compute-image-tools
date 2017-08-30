@@ -86,7 +86,7 @@ EOM
   chroot ${MNT} yum -y install google-cloud-sdk
 fi
 
-  chroot ${MNT} yum -y install google-compute-engine google-compute-engine-init google-config
+  chroot ${MNT} yum -y install google-compute-engine python-google-compute-engine
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: GCE package install failed."
     exit 1

@@ -52,7 +52,7 @@ if [[ "${INSTALL_GCE}" == "true" ]]; then
   rm -f ${MNT}/tmp/gce_key
   chroot ${MNT} cat > /etc/apt/sources.list.d/google-cloud.list <<EOF
 deb http://packages.cloud.google.com/apt cloud-sdk-${DEB_RELEASE} main
-deb http://packages.cloud.google.com/apt google-cloud-compute-${DEB_RELEASE} main
+deb http://packages.cloud.google.com/apt google-compute-engine-${DEB_RELEASE}-stable main
 deb http://packages.cloud.google.com/apt google-cloud-packages-archive-keyring-${DEB_RELEASE} main
 EOF
 
@@ -64,9 +64,9 @@ EOF
     apt-get install --assume-yes --no-install-recommends \
     google-cloud-packages-archive-keyring \
     google-cloud-sdk \
-    google-compute-engine-${DEB_RELEASE} \
-    google-compute-engine-init-${DEB_RELEASE} \
-    google-config-${DEB_RELEASE}
+    google-compute-engine \
+    python-google-compute-engine \
+    python3-google-compute-engine
 
   if [ $? -ne 0 ]; then
     echo "TranslateFailed: GCE package install failed."
