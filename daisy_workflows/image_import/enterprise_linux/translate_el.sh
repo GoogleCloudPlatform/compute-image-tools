@@ -44,7 +44,7 @@ for f in proc sys dev run; do
   mount -o bind /$f ${MNT}/$f
 done
 cp /etc/resolv.conf ${MNT}/etc/resolv.conf
-oot ${MNT} restorecon /etc/resolv.conf
+chroot ${MNT} restorecon /etc/resolv.conf
 
 if [[ "${RHEL_LIENSE}" == "true" ]]; then
   if $(grep -q "Red Hat" /etc/redhat-release); then
