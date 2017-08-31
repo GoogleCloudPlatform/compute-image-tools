@@ -74,20 +74,20 @@ func (rm *baseResourceMap) cleanup() {
 }
 
 func (rm *baseResourceMap) delete(name string) error {
-	rm.mx.Lock()
-	defer rm.mx.Unlock()
-	if r, ok := rm.m[name]; ok {
-		if r.deleted {
-			return fmt.Errorf("cannot delete %q; already deleted", name)
-		}
-		if err := rm.deleteFn(r); err != nil {
-			return err
-		}
-		r.deleted = true
-		return nil
-	} else {
+	r, ok := rm.get(name)
+	if !ok {
 		return fmt.Errorf("cannot delete %q; does not exist in resource map", name)
 	}
+	if r.deleted {
+		return fmt.Errorf("cannot delete %q; already deleted", name)
+	}
+	if err := rm.deleteFn(r); err != nil {
+		return err
+	}
+	rm.mx.Lock()
+	r.deleted = true
+	rm.mx.Unlock()
+	return nil
 }
 
 func (rm *baseResourceMap) get(name string) (*resource, bool) {
