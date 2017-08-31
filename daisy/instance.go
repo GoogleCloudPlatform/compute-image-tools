@@ -50,7 +50,6 @@ func (im *instanceMap) deleteFn(r *resource) error {
 	if err := im.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"]); err != nil {
 		return err
 	}
-	r.deleted = true
 	return nil
 }
 

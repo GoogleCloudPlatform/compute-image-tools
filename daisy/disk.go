@@ -52,7 +52,6 @@ func (dm *diskMap) deleteFn(r *resource) error {
 	if err := dm.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"]); err != nil {
 		return err
 	}
-	r.deleted = true
 	return nil
 }
 

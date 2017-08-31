@@ -40,6 +40,5 @@ func (im *imageMap) deleteFn(r *resource) error {
 	if err := im.w.ComputeClient.DeleteImage(m["project"], m["image"]); err != nil {
 		return err
 	}
-	r.deleted = true
 	return nil
 }
