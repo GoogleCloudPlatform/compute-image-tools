@@ -26,18 +26,10 @@ import (
 type resource struct {
 	real, link         string
 	noCleanup, deleted bool
+	mx                 sync.Mutex
 
 	creator, deleter *Step
 	users            []*Step
-}
-
-type resourceMap interface {
-	cleanup() error
-	delete(name string) error
-	get(name string) (*resource, bool)
-	registerCreation(name string, r *resource, s *Step) error
-	registerDeletion(name string, s *Step) error
-	registerUsage(name string, s *Step) error
 }
 
 type baseResourceMap struct {
@@ -78,6 +70,8 @@ func (rm *baseResourceMap) delete(name string) error {
 	if !ok {
 		return fmt.Errorf("cannot delete %q; does not exist in resource map", name)
 	}
+	r.mx.Lock()
+	defer r.mx.Unlock()
 	if r.deleted {
 		return fmt.Errorf("cannot delete %q; already deleted", name)
 	}
