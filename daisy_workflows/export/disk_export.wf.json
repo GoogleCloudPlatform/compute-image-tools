@@ -12,6 +12,10 @@
     "licenses": {
       "Description": "list of GCE licenses to record in the exported image"
     },
+    "export_instance_disk_image": {
+      "Value": "projects/debian-cloud/global/images/family/debian-9",
+      "Description": "image to use for the exporter instance"
+    },
     "export_instance_disk_size": {
       "Value": "200",
       "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
@@ -25,7 +29,7 @@
       "CreateDisks": [
         {
           "Name": "disk-${NAME}",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "SourceImage": "${export_instance_disk_image}",
           "SizeGb": "${export_instance_disk_size}",
           "Type": "pd-ssd"
         }
