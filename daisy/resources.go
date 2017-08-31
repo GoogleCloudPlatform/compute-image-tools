@@ -84,9 +84,7 @@ func (rm *baseResourceMap) delete(name string) error {
 	if err := rm.deleteFn(r); err != nil {
 		return err
 	}
-	rm.mx.Lock()
 	r.deleted = true
-	rm.mx.Unlock()
 	return nil
 }
 
