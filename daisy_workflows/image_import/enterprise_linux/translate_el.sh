@@ -95,10 +95,17 @@ fi
 fi
 
 if [[ ${EL_RELEASE} == "7" ]]; then
-  # Update grub config to log to console.
-  chroot ${MNT} sed -i \
-    's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#' \
-    /etc/default/grub
+  # Update grub config to log to console and disable menu
+  cat > ${MNT}/etc/default/grub <<- "EOM"
+GRUB_TIMEOUT=0
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
+GRUB_DEFAULT=saved
+GRUB_DISABLE_SUBMENU=true
+GRUB_TERMINAL="serial console"
+GRUB_SERIAL_COMMAND="serial --speed=38400"
+GRUB_CMDLINE_LINUX="crashkernel=auto console=ttyS0,38400n8"
+GRUB_DISABLE_RECOVERY="true"
+EOM
   chroot ${MNT} restorecon /etc/default/grub
   chroot ${MNT} grub2-mkconfig -o /boot/grub2/grub.cfg
   if [ $? -ne 0 ]; then
