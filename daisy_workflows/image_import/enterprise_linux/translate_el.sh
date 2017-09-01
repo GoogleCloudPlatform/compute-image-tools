@@ -43,6 +43,7 @@ fi
 for f in proc sys dev run; do
   mount -o bind /$f ${MNT}/$f
 done
+mount -o bind /dev/pts ${MNT}/dev/pts
 cp /etc/resolv.conf ${MNT}/etc/resolv.conf
 chroot ${MNT} restorecon /etc/resolv.conf
 
@@ -61,7 +62,7 @@ fi
 # Install GCE packages if requested.
 if [[ "${INSTALL_GCE}" == "true" ]]; then
   echo "Installing GCE packages."
-  cat > /etc/yum.repos.d/google-cloud.repo << EOM
+  cat > ${MNT}/etc/yum.repos.d/google-cloud.repo << EOM
 [google-cloud-compute]
 name=Google Cloud Compute
 baseurl=https://packages.cloud.google.com/yum/repos/google-cloud-compute-el${EL_RELEASE}-x86_64
@@ -73,7 +74,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
 EOM
 
   if [[ ${EL_RELEASE} == "7" ]]; then
-    cat >> /etc/yum.repos.d/google-cloud.repo << EOM
+    cat >> ${MNT}/etc/yum.repos.d/google-cloud.repo << EOM
 [google-cloud-sdk]
 name=Google Cloud SDK
 baseurl=https://packages.cloud.google.com/yum/repos/cloud-sdk-el${EL_RELEASE}-x86_64
@@ -108,7 +109,7 @@ fi
 
 # Reset network for DHCP.
 echo "Resetting network to DHCP for eth0."
-chroot ${MNT} cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
+cat > ${MNT}/etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
 BOOTPROTO=dhcp
 DEVICE=eth0
 ONBOOT=yes
@@ -128,7 +129,8 @@ chroot ${MNT} restorecon /etc/sysconfig/network-scripts/ifcfg-eth0
 echo "Removing SSH host keys."
 rm -f ${MNT}/etc/ssh/ssh_host_*
 
-for f in proc sys dev run; do
+umount -l ${MNT}/dev/pts
+for f in proc sys pts dev run; do
   umount -l ${MNT}/$f
 done
 umount -l ${MNT}
