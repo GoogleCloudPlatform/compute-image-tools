@@ -48,9 +48,9 @@ cp /etc/resolv.conf ${MNT}/etc/resolv.conf
 chroot ${MNT} restorecon /etc/resolv.conf
 
 if [[ "${RHEL_LIENSE}" == "true" ]]; then
-  if $(grep -q "Red Hat" /etc/redhat-release); then
+  if $(grep -q "Red Hat" ${MNT}/etc/redhat-release); then
     # Remove rhui packages and add the google rhui package.
-    yum install -y --downloadonly --downloaddir=${MNT}/tmp google-rhui-client-rhel${EL_RELEASE}
+    chroot yum install -y --downloadonly --downloaddir=/tmp google-rhui-client-rhel${EL_RELEASE}
     if [ $? -eq 0 ]; then
       chroot ${MNT} yum remove -y *rhui*
       echo "Adding in GCE RHUI package."
