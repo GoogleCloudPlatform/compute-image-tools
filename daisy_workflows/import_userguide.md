@@ -38,7 +38,7 @@ gcloud compute ssh daisy-control
 Now inside the VM,run the workflow titled import_image.wf.json to convert the virtual disk file in GCS to a Compute Engine Image.
 
 ```
-daisy -variables source_disk_file=YOUR_VIRTUAL_DISK_FILE,image_name=YOUR-IMAGE-NAME /daisy/import_image.wf.json
+daisy -var:source_disk_file=YOUR_VIRTUAL_DISK_FILE -var:image_name=YOUR-IMAGE-NAME /daisy/import_image.wf.json
 ```
 Where, `YOUR_VIRTUAL_DISK_FILE` is the virtual disk file that you uploaded to GCS in the previous step. You must specify the full GCS path to the file.
 
@@ -47,7 +47,7 @@ Where, `YOUR_VIRTUAL_DISK_FILE` is the virtual disk file that you uploaded to GC
 Following is an example that converts my_server.vmdk present in gs://my-awesome-bucket
 
 ```
-./daisy -variables source_disk_file=gs://my-awesome-bucket/my_Server1.vmdk,image_name=my-server-import /daisy/import_image.wf.json
+daisy -var:source_disk_file=gs://my-awesome-bucket/my_Server1.vmdk -var:image_name=my-server-import /daisy/import_image.wf.json
 
 [Daisy] Running workflow "import-image"
 [import-image]: 2017/06/29 21:51:12 Logs will be streamed to gs://my-awesome-bucket/daisy-import-image-20170629-21:51:12-sdgxl/logs/daisy.log
@@ -85,7 +85,7 @@ Following is an example that converts my_server.vmdk present in gs://my-awesome-
 After you have created a Compute Engine Image from your virtual disk, next step is to make the disk bootable. While Compute Engine can boot most disks as-is, running the following workflows will ensure the disks have the right drivers and integration software to ensure that you are able to start an instance using those disks and connect to it using SSH (or RDP in case of Windows).
 
 ```
-daisy -variables source_image=projects/<YOUR-PROJECT-NAME>/global/images/YOUR-IMPORTED-IMAGE \\
+daisy -var:source_image=projects/<YOUR-PROJECT-NAME>/global/images/YOUR-IMPORTED-IMAGE \\
 OS_SPECIFIC_WORKFLOW
 ```
 
@@ -160,12 +160,30 @@ Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `s
    <td>/daisy/ubuntu/translate_ubuntu_1604.wf.json
    </td>
   </tr>
+  <tr>
+   <td>Windows Server 2008 R2
+   </td>
+   <td>/daisy/windows/translate_windows_2008_r2.wf.json
+   </td>
+  </tr>
+  <tr>
+   <td>Windows Server 2012 R2
+   </td>
+   <td>/daisy/windows/translate_windows_2012_r2.wf.json
+   </td>
+  </tr>
+  <tr>
+   <td>Windows Server 2016
+   </td>
+   <td>/daisy/windows/translate_windows_2016.wf.json
+   </td>
+  </tr>
 </table>
 
 Following is an example
 
 ```
-$ daisy -variables source_image=projectsmy-awesome-projectglobal/images/my-server-import /daisy/ubuntu/translate_ubuntu_1604.wf.json
+$ daisy -var:source_image=projectsmy-awesome-projectglobal/images/my-server-import /daisy/ubuntu/translate_ubuntu_1604.wf.json
 
 [Daisy] Running workflow "translate-ubuntu-1604"
 [translate-ubuntu-1604]: 2017/06/29 22:51:10 Logs will be streamed to gs://my-awesome-bucket/daisy-translate-ubuntu-1604-20170629-22:51:10-2pmpp/logs/daisy.log
