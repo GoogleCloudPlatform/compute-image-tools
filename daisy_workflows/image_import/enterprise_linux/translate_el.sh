@@ -47,7 +47,7 @@ mount -o bind /dev/pts ${MNT}/dev/pts
 cp /etc/resolv.conf ${MNT}/etc/resolv.conf
 chroot ${MNT} restorecon /etc/resolv.conf
 
-if [[ "${RHEL_LIENSE}" == "true" ]]; then
+if [[ "${RHEL_LICENSE}" == "true" ]]; then
   if $(grep -q "Red Hat" ${MNT}/etc/redhat-release); then
     # Remove rhui packages and add the google rhui package.
     chroot yum install -y --downloadonly --downloaddir=/tmp google-rhui-client-rhel${EL_RELEASE}
