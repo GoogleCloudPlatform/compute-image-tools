@@ -21,22 +21,16 @@ INSTALL_GCE="$(curl -f -H Metadata-Flavor:Google ${URL}/install_gce_packages)"
 RHEL_LICENSE="$(curl -f -H Metadata-Flavor:Google ${URL}/use_rhel_gce_license)"
 MNT="/mnt/imported_disk"
 
+# Install dependencies
+DEBIAN_FRONTEND=noninteractive apt-get -y install libguestfs-tools
+
 # Mount the imported disk.
 mkdir ${MNT}
-if [ -b /dev/sdb1 ]; then
-  echo "Trying to mount /dev/sdb1"
-  mount /dev/sdb1 ${MNT}
-  if [ $? -ne 0 ]; then
-    echo "TranslateFailed: Unable to mount imported disk."
-    exit 1
-  fi
-else
-  echo "Trying to mount /dev/sdb"
-  mount /dev/sdb ${MNT}
-  if [ $? -ne 0 ]; then
-    echo "TranslateFailed: Unable to mount imported disk."
-    exit 1
-  fi
+echo "Trying to mount /dev/sdb"
+guestmount -a /dev/sdb -i ${MNT}
+if [ $? -ne 0 ]; then
+  echo "TranslateFailed: Unable to mount imported disk."
+  exit 1
 fi
 
 # Setup DNS for chroot.
@@ -133,6 +127,6 @@ umount -l ${MNT}/dev/pts
 for f in proc sys pts dev run; do
   umount -l ${MNT}/$f
 done
-umount -l ${MNT}
+guestunmount ${MNT}
 
 echo "TranslateSuccess: Translation finished."
