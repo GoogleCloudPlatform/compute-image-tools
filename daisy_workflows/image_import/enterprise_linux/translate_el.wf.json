@@ -23,7 +23,8 @@
     }
   },
   "Sources": {
-    "translate_el.sh": "./translate_el.sh"
+    "translate_el.sh": "./translate_el.sh",
+    "translate_el.py": "./translate_el.py"
   },
   "Steps": {
     "translate-disk-inst": {
