@@ -1,0 +1,15 @@
+{
+  "Name": "exact-name-no-cleanup-test-check",
+  "Vars": {
+    "test-id": {"Required": true, "Description": "The ID of this test run."}
+  },
+  "Steps": {
+    "delete-resources": {
+      "DeleteResources": {
+        "Disks": ["${test-id}-disk"],
+        "Images": ["${test-id}-image"],
+        "Instances": ["${test-id}-instance"]
+      }
+    }
+  }
+}
