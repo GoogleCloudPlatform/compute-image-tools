@@ -23,6 +23,7 @@ RUN rm -rf /var/cache/apk/*
 RUN pip uninstall -y pip
 
 WORKDIR /workdir
+ENV PYTHONPATH /workdir:$PYTHONPATH
 COPY run run
 
 ENTRYPOINT ["python", "-m", "run"]

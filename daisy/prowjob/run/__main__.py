@@ -1,4 +1,4 @@
-# Copyright 2017 Google Compute Engine Guest OS team.
+# Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,9 @@ RUN_LOG = 'run.log'
 BUCKET = 'gce-daisy-test'
 OBJ_DIR = None
 
-logging.basicConfig(filename=RUN_LOG, level=logging.INFO)
+logfile_handler = logging.FileHandler(filename=RUN_LOG)
+logfile_handler.setLevel(level=logging.INFO)
+logging.getLogger().addHandler(logfile_handler)
 
 epoch = int(time.time())
 creds, proj = google.auth.default()
