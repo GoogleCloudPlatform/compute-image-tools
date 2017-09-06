@@ -16,15 +16,13 @@ package daisy
 
 import (
 	"context"
-	"testing"
-
-	"google.golang.org/api/option"
-
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/option"
 )
 
 func TestCopyGCSObjectsPopulate(t *testing.T) {
