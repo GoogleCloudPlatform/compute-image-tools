@@ -120,6 +120,7 @@ func TestCopyGCSObjectsRun(t *testing.T) {
 	for _, ws := range []*CopyGCSObjects{
 		{{Source: "gs://bucket", Destination: ""}},
 		{{Source: "", Destination: "gs://bucket"}},
+		{{Source: "gs://bucket/object/", Destination: "gs://bucket/object/", ACLRules: []*storage.ACLRule{{Entity: "someUser", Role: "OWNER"}}}},
 	} {
 		if err := ws.run(ctx, s); err == nil {
 			t.Error("expected error")
