@@ -22,39 +22,28 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
+	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
 
 func TestCopyGCSObjectsPopulate(t *testing.T) {
-	if err := (&CopyGCSObjects{}).populate(context.Background(), &Step{}); err != nil {
-		t.Error("not implemented, err should be nil")
-	}
-}
-
-func TestCopyGCSObjectsRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
-	w.Steps = map[string]*Step{
-		"copy": {CopyGCSObjects: &CopyGCSObjects{{Source: "", Destination: ""}}},
-	}
 
 	ws := &CopyGCSObjects{
-		{Source: "gs://bucket", Destination: "gs://bucket"},
-		{Source: "gs://bucket/object", Destination: "gs://bucket/object"},
-		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allAuthenticatedUsers", Role: "writer"}}},
 	}
-	if err := ws.run(ctx, s); err != nil {
-		t.Errorf("error running CopyGCSObjects.run(): %v", err)
+	if err := ws.populate(ctx, s); err != nil {
+		t.Errorf("error running CopyGCSObjects.populate(): %v", err)
 	}
-
-	for _, ws := range []*CopyGCSObjects{
-		{{Source: "gs://bucket", Destination: ""}},
-		{{Source: "", Destination: "gs://bucket"}},
-	} {
-		if err := ws.run(ctx, s); err == nil {
-			t.Error("expected error")
-		}
+	want := &CopyGCSObjects{
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allAuthenticatedUsers", Role: "WRITER"}}},
+	}
+	if diff := pretty.Compare(ws, want); diff != "" {
+		t.Errorf("populated CopyGCSObjects does not match expectation: (-got +want)\n%s", diff)
 	}
 }
 
@@ -71,6 +60,10 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 			fmt.Fprint(w, `{}`)
 		} else if m == "DELETE" && u == "/b/bucket1/o/abcdef?alt=json" {
 			fmt.Fprint(w, `{}`)
+		} else if m == "DELETE" && u == "/b/bucket1/o/daisy-validate--abcdef?alt=json" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "PUT" && u == "/b/bucket1/o/daisy-validate--abcdef/acl/allUsers?alt=json" {
+			fmt.Fprint(w, `{}`)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "testGCSClient unknown request: %+v\n", r)
@@ -84,11 +77,11 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 	w := testWorkflow()
 	w.StorageClient = sc
 	s := &Step{w: w}
-	w.Steps = map[string]*Step{
-		"copy": {CopyGCSObjects: &CopyGCSObjects{{Source: "", Destination: ""}}},
-	}
 
-	ws := &CopyGCSObjects{{Source: "gs://bucket1", Destination: "gs://bucket1"}}
+	ws := &CopyGCSObjects{
+		{Source: "gs://bucket1", Destination: "gs://bucket1"},
+		{Source: "gs://bucket1", Destination: "gs://bucket1", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
+	}
 	if err := ws.validate(ctx, s); err != nil {
 		t.Errorf("error running CopyGCSObjects.validate(): %v", err)
 	}
@@ -99,8 +92,36 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 		{{Source: "gs://bucket2", Destination: "gs://bucket1"}},
 		{{Source: "gs://bucket1", Destination: "gs://bucket2"}},
 		{{Source: "gs://bucket1", Destination: "gs://bucket3"}},
+		{{Source: "gs://bucket1", Destination: "gs://bucket1", ACLRules: []*storage.ACLRule{{Role: "owner"}}}},
+		{{Source: "gs://bucket1", Destination: "gs://bucket1", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "owner"}}}},
+		{{Source: "gs://bucket1", Destination: "gs://bucket1", ACLRules: []*storage.ACLRule{{Entity: "someUser", Role: "OWNER"}}}},
 	} {
 		if err := ws.validate(ctx, s); err == nil {
+			t.Error("expected error")
+		}
+	}
+}
+
+func TestCopyGCSObjectsRun(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+	s := &Step{w: w}
+
+	ws := &CopyGCSObjects{
+		{Source: "gs://bucket", Destination: "gs://bucket"},
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object"},
+		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
+		{Source: "gs://bucket/object/", Destination: "gs://bucket/object/", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
+	}
+	if err := ws.run(ctx, s); err != nil {
+		t.Errorf("error running CopyGCSObjects.run(): %v", err)
+	}
+
+	for _, ws := range []*CopyGCSObjects{
+		{{Source: "gs://bucket", Destination: ""}},
+		{{Source: "", Destination: "gs://bucket"}},
+	} {
+		if err := ws.run(ctx, s); err == nil {
 			t.Error("expected error")
 		}
 	}

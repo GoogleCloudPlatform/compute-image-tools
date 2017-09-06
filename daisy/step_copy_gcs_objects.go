@@ -31,10 +31,17 @@ type CopyGCSObjects []CopyGCSObject
 // CopyGCSFile copies a GCS file from Source to Destination.
 type CopyGCSObject struct {
 	Source, Destination string
-	ACLRules            []storage.ACLRule
+	ACLRules            []*storage.ACLRule
 }
 
-func (c *CopyGCSObjects) populate(ctx context.Context, s *Step) error { return nil }
+func (c *CopyGCSObjects) populate(ctx context.Context, s *Step) error {
+	for _, co := range *c {
+		for _, acl := range co.ACLRules {
+			acl.Role = storage.ACLRole(strings.ToUpper(string(acl.Role)))
+		}
+	}
+	return nil
+}
 
 func (c *CopyGCSObjects) validate(ctx context.Context, s *Step) error {
 	for _, co := range *c {
@@ -56,33 +63,56 @@ func (c *CopyGCSObjects) validate(ctx context.Context, s *Step) error {
 		}
 
 		// Check if destination bucket exists and is readable.
-		if writableBkts.contains(dBkt) {
-			continue
-		}
+		if !writableBkts.contains(dBkt) {
+			if _, err := s.w.StorageClient.Bucket(dBkt).Attrs(ctx); err != nil {
+				return fmt.Errorf("error reading bucket %q: %v", dBkt, err)
+			}
 
-		if _, err := s.w.StorageClient.Bucket(dBkt).Attrs(ctx); err != nil {
-			return fmt.Errorf("error reading bucket %q: %v", dBkt, err)
+			// Check if destination bucket is writable.
+			tObj := s.w.StorageClient.Bucket(dBkt).Object(fmt.Sprintf("daisy-validate-%s-%s", s.name, s.w.id))
+			w := tObj.NewWriter(ctx)
+			if _, err := w.Write(nil); err != nil {
+				return err
+			}
+			if err := w.Close(); err != nil {
+				return fmt.Errorf("error writing to bucket %q: %v", dBkt, err)
+			}
+			if err := tObj.Delete(ctx); err != nil {
+				return err
+			}
+			writableBkts.add(dBkt)
 		}
+		// Check each ACLRule
+		for _, acl := range co.ACLRules {
+			if acl.Entity == "" {
+				return fmt.Errorf("ACLRule.Entity must not be empty: %+v", acl)
+			}
+			roles := []string{string(storage.RoleOwner), string(storage.RoleReader), string(storage.RoleWriter)}
+			if !strIn(string(acl.Role), roles) {
+				return fmt.Errorf("ACLRule.Role invalid: %q not one of %q", acl.Role, roles)
+			}
 
-		// Check if destination bucket is writable.
-		tObj := s.w.StorageClient.Bucket(dBkt).Object(s.w.id)
-		w := tObj.NewWriter(ctx)
-		if _, err := w.Write(nil); err != nil {
-			return err
+			// Test ACLRule.Entity.
+			tObj := s.w.StorageClient.Bucket(dBkt).Object(fmt.Sprintf("daisy-validate-%s-%s", s.name, s.w.id))
+			w := tObj.NewWriter(ctx)
+			if _, err := w.Write(nil); err != nil {
+				return err
+			}
+			if err := w.Close(); err != nil {
+				return err
+			}
+			defer tObj.Delete(ctx)
+
+			if err := tObj.ACL().Set(ctx, acl.Entity, acl.Role); err != nil {
+				return fmt.Errorf("error validating ACLRule %+v: %v", acl, err)
+			}
 		}
-		if err := w.Close(); err != nil {
-			return fmt.Errorf("error writing to bucket %q: %v", dBkt, err)
-		}
-		if err := tObj.Delete(ctx); err != nil {
-			return err
-		}
-		writableBkts.add(dBkt)
 	}
 
 	return nil
 }
 
-func recursiveGCS(ctx context.Context, w *Workflow, sBkt, sPrefix, dBkt, dPrefix string, acls []storage.ACLRule) error {
+func recursiveGCS(ctx context.Context, w *Workflow, sBkt, sPrefix, dBkt, dPrefix string, acls []*storage.ACLRule) error {
 	it := w.StorageClient.Bucket(sBkt).Objects(ctx, &storage.Query{Prefix: sPrefix})
 	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
 		if err != nil {

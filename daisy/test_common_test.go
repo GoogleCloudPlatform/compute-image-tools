@@ -180,6 +180,10 @@ func newTestGCSClient() (*storage.Client, error) {
 			fmt.Fprint(w, `{"kind": "storage#objects", "items": [{"kind": "storage#object", "name": "object", "size": "1"},{"kind": "storage#object", "name": "folder/object", "size": "1"}]}`)
 		} else if m == "PUT" && u == "/b/bucket/o/object/acl/allUsers?alt=json" {
 			fmt.Fprint(w, `{}`)
+		} else if m == "PUT" && u == "/b/bucket/o/object%2Ffolder%2Ffolder%2Fobject/acl/allUsers?alt=json" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "PUT" && u == "/b/bucket/o/object%2Ffolder%2Fobject/acl/allUsers?alt=json" {
+			fmt.Fprint(w, `{}`)
 		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&project=foo-project&projection=full" {
 			fmt.Fprint(w, `{}`)
 		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&project=bar-project&projection=full" {
