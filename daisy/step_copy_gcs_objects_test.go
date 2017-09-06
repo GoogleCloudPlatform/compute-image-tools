@@ -18,6 +18,12 @@ import (
 	"context"
 	"testing"
 
+	"google.golang.org/api/option"
+
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+
 	"cloud.google.com/go/storage"
 )
 
@@ -44,17 +50,60 @@ func TestCopyGCSObjectsRun(t *testing.T) {
 		t.Errorf("error running CopyGCSObjects.run(): %v", err)
 	}
 
-	ws = &CopyGCSObjects{
-		{Source: "gs://bucket", Destination: ""},
-		{Source: "", Destination: "gs://bucket"},
-	}
-	if err := ws.run(ctx, s); err == nil {
-		t.Error("expected error")
+	for _, ws := range []*CopyGCSObjects{
+		{{Source: "gs://bucket", Destination: ""}},
+		{{Source: "", Destination: "gs://bucket"}},
+	} {
+		if err := ws.run(ctx, s); err == nil {
+			t.Error("expected error")
+		}
 	}
 }
 
 func TestCopyGCSObjectsValidate(t *testing.T) {
-	if err := (&CopyGCSObjects{}).validate(context.Background(), &Step{}); err != nil {
-		t.Error("not implemented, err should be nil")
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := r.URL.String()
+		m := r.Method
+
+		if m == "GET" && u == "/b/bucket1?alt=json&projection=full" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "GET" && u == "/b/bucket3?alt=json&projection=full" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "POST" && u == "/b/bucket1/o?alt=json&projection=full&uploadType=multipart" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "DELETE" && u == "/b/bucket1/o/abcdef?alt=json" {
+			fmt.Fprint(w, `{}`)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "testGCSClient unknown request: %+v\n", r)
+		}
+	}))
+	sc, err := storage.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	w := testWorkflow()
+	w.StorageClient = sc
+	s := &Step{w: w}
+	w.Steps = map[string]*Step{
+		"copy": {CopyGCSObjects: &CopyGCSObjects{{Source: "", Destination: ""}}},
+	}
+
+	ws := &CopyGCSObjects{{Source: "gs://bucket1", Destination: "gs://bucket1"}}
+	if err := ws.validate(ctx, s); err != nil {
+		t.Errorf("error running CopyGCSObjects.validate(): %v", err)
+	}
+
+	for _, ws := range []*CopyGCSObjects{
+		{{Source: "gs://bucket1", Destination: ""}},
+		{{Source: "", Destination: "gs://bucket1"}},
+		{{Source: "gs://bucket2", Destination: "gs://bucket1"}},
+		{{Source: "gs://bucket1", Destination: "gs://bucket2"}},
+		{{Source: "gs://bucket1", Destination: "gs://bucket3"}},
+	} {
+		if err := ws.validate(ctx, s); err == nil {
+			t.Error("expected error")
+		}
 	}
 }

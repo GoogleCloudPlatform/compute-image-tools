@@ -36,9 +36,53 @@ type CopyGCSObject struct {
 
 func (c *CopyGCSObjects) populate(ctx context.Context, s *Step) error { return nil }
 
-func (c *CopyGCSObjects) validate(ctx context.Context, s *Step) error { return nil }
+func (c *CopyGCSObjects) validate(ctx context.Context, s *Step) error {
+	for _, co := range *c {
+		sBkt, _, err := splitGCSPath(co.Source)
+		if err != nil {
+			return err
+		}
+		dBkt, _, err := splitGCSPath(co.Destination)
+		if err != nil {
+			return err
+		}
 
-func recursiveGCS(ctx context.Context, w *Workflow, sBkt, sPrefix, dBkt, dPrefix string) error {
+		// Check if source bucket exists and is readable.
+		if !readableBkts.contains(sBkt) {
+			if _, err := s.w.StorageClient.Bucket(sBkt).Attrs(ctx); err != nil {
+				return fmt.Errorf("error reading bucket %q: %v", sBkt, err)
+			}
+			readableBkts.add(sBkt)
+		}
+
+		// Check if destination bucket exists and is readable.
+		if writableBkts.contains(dBkt) {
+			continue
+		}
+
+		if _, err := s.w.StorageClient.Bucket(dBkt).Attrs(ctx); err != nil {
+			return fmt.Errorf("error reading bucket %q: %v", dBkt, err)
+		}
+
+		// Check if destination bucket is writable.
+		tObj := s.w.StorageClient.Bucket(dBkt).Object(s.w.id)
+		w := tObj.NewWriter(ctx)
+		if _, err := w.Write(nil); err != nil {
+			return err
+		}
+		if err := w.Close(); err != nil {
+			return fmt.Errorf("error writing to bucket %q: %v", dBkt, err)
+		}
+		if err := tObj.Delete(ctx); err != nil {
+			return err
+		}
+		writableBkts.add(dBkt)
+	}
+
+	return nil
+}
+
+func recursiveGCS(ctx context.Context, w *Workflow, sBkt, sPrefix, dBkt, dPrefix string, acls []storage.ACLRule) error {
 	it := w.StorageClient.Bucket(sBkt).Objects(ctx, &storage.Query{Prefix: sPrefix})
 	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
 		if err != nil {
@@ -52,6 +96,12 @@ func recursiveGCS(ctx context.Context, w *Workflow, sBkt, sPrefix, dBkt, dPrefix
 		dstPath := w.StorageClient.Bucket(dBkt).Object(o)
 		if _, err := dstPath.CopierFrom(srcPath).Run(ctx); err != nil {
 			return err
+		}
+
+		for _, acl := range acls {
+			if err := dstPath.ACL().Set(ctx, acl.Entity, acl.Role); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -77,7 +127,7 @@ func (c *CopyGCSObjects) run(ctx context.Context, s *Step) error {
 			}
 
 			if sObj == "" || strings.HasSuffix(sObj, "/") {
-				if err := recursiveGCS(ctx, s.w, sBkt, sObj, dBkt, dObj); err != nil {
+				if err := recursiveGCS(ctx, s.w, sBkt, sObj, dBkt, dObj, co.ACLRules); err != nil {
 					e <- fmt.Errorf("error copying from %s to %s: %v", co.Source, co.Destination, err)
 					return
 				}

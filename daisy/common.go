@@ -15,42 +15,13 @@
 package daisy
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"os/user"
-	"path"
 	"reflect"
 	"regexp"
 	"strings"
 	"time"
-)
-
-var (
-	bucket = `([a-z0-9][-_.a-z0-9]*)`
-	object = `(.+)`
-	// Many of the Google Storage URLs are supported below.
-	// It is preferred that customers specify their object using
-	// its gs://<bucket>/<object> URL.
-	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/?$`, bucket))
-	gsRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/%s$`, bucket, object))
-	// Check for the Google Storage URLs:
-	// http://<bucket>.storage.googleapis.com/<object>
-	// https://<bucket>.storage.googleapis.com/<object>
-	gsHTTPRegex1 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://%s\.storage\.googleapis\.com/%s$`, bucket, object))
-	// http://storage.cloud.google.com/<bucket>/<object>
-	// https://storage.cloud.google.com/<bucket>/<object>
-	gsHTTPRegex2 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://storage\.cloud\.google\.com/%s/%s$`, bucket, object))
-	// Check for the other possible Google Storage URLs:
-	// http://storage.googleapis.com/<bucket>/<object>
-	// https://storage.googleapis.com/<bucket>/<object>
-	//
-	// The following are deprecated but checked:
-	// http://commondatastorage.googleapis.com/<bucket>/<object>
-	// https://commondatastorage.googleapis.com/<bucket>/<object>
-	gsHTTPRegex3 = regexp.MustCompile(fmt.Sprintf(`^http[s]?://(?:commondata)?storage\.googleapis\.com/%s/%s$`, bucket, object))
-
-	gcsAPIBase = "https://storage.cloud.google.com"
 )
 
 func getUser() string {
@@ -93,14 +64,6 @@ func filter(ss []string, s string) []string {
 	return result
 }
 
-func getGCSAPIPath(p string) (string, error) {
-	b, o, e := splitGCSPath(p)
-	if e != nil {
-		return "", e
-	}
-	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(b, o)), nil
-}
-
 func minInt(x int, ys ...int) int {
 	for _, y := range ys {
 		if y < x {
@@ -118,20 +81,6 @@ func randString(n int) string {
 		b[i] = letters[gen.Int63()%int64(len(letters))]
 	}
 	return string(b)
-}
-
-func splitGCSPath(p string) (string, string, error) {
-	for _, rgx := range []*regexp.Regexp{gsRegex, gsHTTPRegex1, gsHTTPRegex2, gsHTTPRegex3} {
-		matches := rgx.FindStringSubmatch(p)
-		if matches != nil {
-			return matches[1], matches[2], nil
-		}
-	}
-	matches := bucketRegex.FindStringSubmatch(p)
-	if matches != nil {
-		return matches[1], "", nil
-	}
-	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
 func strIn(s string, ss []string) bool {
