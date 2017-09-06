@@ -51,17 +51,6 @@ func TestFilter(t *testing.T) {
 	}
 }
 
-func TestGetGCSAPIPath(t *testing.T) {
-	got, err := getGCSAPIPath("gs://foo/bar")
-	want := "https://storage.cloud.google.com/foo/bar"
-	if err != nil {
-		t.Errorf("unexpected error: %s", err)
-	}
-	if got != want {
-		t.Errorf("unexpected result: got: %q, want: %q", got, want)
-	}
-}
-
 func TestMinInt(t *testing.T) {
 	tests := []struct {
 		desc string
@@ -319,39 +308,6 @@ func TestSubstitute(t *testing.T) {
 
 		if diff := pretty.Compare(tt.got, tt.want); diff != "" {
 			t.Errorf("test %d: post substitute workflow does not match expectation: (-got +want)\n%s", i, diff)
-		}
-	}
-}
-
-func TestSplitGCSPath(t *testing.T) {
-	tests := []struct {
-		input     string
-		bucket    string
-		object    string
-		shouldErr bool
-	}{
-		{"gs://foo", "foo", "", false},
-		{"gs://foo/bar", "foo", "bar", false},
-		{"http://foo.storage.googleapis.com/bar", "foo", "bar", false},
-		{"https://foo.storage.googleapis.com/bar", "foo", "bar", false},
-		{"http://storage.cloud.google.com/foo/bar", "foo", "bar", false},
-		{"https://storage.cloud.google.com/foo/bar/bar", "foo", "bar/bar", false},
-		{"http://storage.googleapis.com/foo/bar", "foo", "bar", false},
-		{"https://storage.googleapis.com/foo/bar", "foo", "bar", false},
-		{"http://commondatastorage.googleapis.com/foo/bar", "foo", "bar", false},
-		{"https://commondatastorage.googleapis.com/foo/bar", "foo", "bar", false},
-		{"/local/path", "", "", true},
-	}
-
-	for _, tt := range tests {
-		b, o, err := splitGCSPath(tt.input)
-		if tt.shouldErr && err == nil {
-			t.Errorf("splitGCSPath(%q) should have thrown an error", tt.input)
-		} else if !tt.shouldErr && err != nil {
-			t.Errorf("splitGCSPath(%q) should not have thrown an error", tt.input)
-		}
-		if b != tt.bucket || o != tt.object {
-			t.Errorf("splitGCSPath(%q) returned incorrect values -- want bucket=%q, object=%q; got bucket=%q, object=%q", tt.input, tt.bucket, tt.object, b, o)
 		}
 	}
 }
