@@ -33,6 +33,7 @@ def parse_args(arguments=None):
     args = p.parse_args(arguments)
     return args
 
+
 if __name__ == '__main__':
     ARGS = parse_args()
     return_code = main()
