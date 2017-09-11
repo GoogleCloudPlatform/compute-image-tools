@@ -13,22 +13,52 @@
 # limitations under the License.
 
 import argparse
+import glob
+import os
 import sys
 
+from run.call import call
+from run import git
 from run import logging
 
 ARGS = []
+PACKAGE_URL = 'github.com/GoogleCloud/compute-image-tools'
+PACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', PACKAGE_URL)
 
 
 def main():
     logging.info('Got --tests=%s', ARGS.tests)
+
+    logging.info('Downloading Daisy')
+    cmd = ['go', 'get', PACKAGE_URL]
+    code = call(cmd).returncode
+    if code:
+        return code
+
+    # commit = 'Something from Argo'
+    repo = git.Repo(PACKAGE_PATH)
+    repo.checkout(branch='master')
+
+    wf_dir = os.path.join(PACKAGE_PATH, 'daisy_workflows', ARGS.tests)
+    wfs = glob.glob(os.path.join(wf_dir, '*.wf.json'))
+
+    logging.info('Running tests...')
+    for wf in wfs:
+        wf = os.path.join(ARGS.tests, os.path.basename(wf))
+        logging.info('Running test %s', os.path.basename(wf))
     return 0
 
 
 def parse_args(arguments=None):
     """Parse arguments or sys.argv[1:]."""
     p = argparse.ArgumentParser()
-    p.add_argument('--tests', required=True, help="The tests to run.")
+    p.add_argument(
+            '--tests', required=True,
+            help=('The test workflows to run. The workflows are run at the '
+                  'same commit from which the image was built.'))
+    p.add_argument(
+            '--version', default='latest', choices=['latest', 'release'],
+            help='The image version to run e2e tests against.')
 
     args = p.parse_args(arguments)
     return args

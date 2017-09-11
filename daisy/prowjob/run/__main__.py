@@ -21,6 +21,7 @@ import time
 import google.auth
 import google.cloud.storage
 
+from run.call import call
 from run import logging
 
 # Nones will be set before main() is called.
@@ -45,9 +46,7 @@ def main():
     cmd = ['python', '-m', ARGS.action] + OTHER_ARGS
     cwd = os.path.dirname(os.path.realpath(__file__))
 
-    logging.info('Running "%s" in directory "%s"', ' '.join(cmd), cwd)
-    p = subprocess.Popen(
-        cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = call(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
     logging.info('Return code = %s', p.returncode)
 
@@ -67,6 +66,7 @@ def parse_args(arguments=None):
         help='The action to run: e2e_tests or unit_tests.')
     args, other_args = p.parse_known_args(arguments)
     return args, other_args
+
 
 if __name__ == '__main__':
     try:
