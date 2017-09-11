@@ -20,8 +20,7 @@ triggers:
 # Values: List of jobs to run when events occur in the repo.
 #   name:          Job name.
 #   trigger:       Regexp commenters can say to trigger the job.
-#   always_run:    Whether to run for every PR. Default is false. If this is
-#                  set then your trigger needs to match "(?m)^/test all,?(\\s+|$)".
+#   always_run:    Whether to run for every PR. Default is false.
 #   context:       GitHub status context.
 #   rerun_command: How should users trigger just this job, as a string, not a
 #                  regex. For example, if the trigger regex is "(e2e )?test",
@@ -29,13 +28,44 @@ triggers:
 #   skip_report:   If true, then do not set status or comment on GitHub.
 #   spec:          If this exists then run a kubernetes pod with this spec.
 #                  Otherwise, run a Jenkins job.
+#// Presubmit is the job-specific trigger info.
+#type Presubmit struct {
+#	// eg kubernetes-pull-build-test-e2e-gce
+#	Name string `json:"name"`
+#	// Run for every PR, or only when a comment triggers it.
+#	AlwaysRun bool `json:"always_run"`
+#	// Run if the PR modifies a file that matches this regex.
+#	RunIfChanged string `json:"run_if_changed"`
+#	// Context line for GitHub status.
+#	Context string `json:"context"`
+#	// eg @k8s-bot e2e test this
+#	Trigger string `json:"trigger"`
+#	// Valid rerun command to give users. Must match Trigger.
+#	RerunCommand string `json:"rerun_command"`
+#	// Whether or not to skip commenting and setting status on GitHub.
+#	SkipReport bool `json:"skip_report"`
+#	// Maximum number of this job running concurrently, 0 implies no limit.
+#	MaxConcurrency int `json:"max_concurrency"`
+#	// Agent that will take care of running this job.
+#	Agent string `json:"agent"`
+#	// Kubernetes pod spec.
+#	Spec *kube.PodSpec `json:"spec,omitempty"`
+#	// Run these jobs after successfully running this one.
+#	RunAfterSuccess []Presubmit `json:"run_after_success"`
+#
+#	Brancher
+#
+#	// We'll set these when we load it.
+#	re        *regexp.Regexp // from RerunCommand
+#	reChanges *regexp.Regexp // from RunIfChanged
+#}
 presubmits:
  GoogleCloudPlatform/compute-image-tools:
  - name: unit-tests
    agent: kubernetes
    always_run: true
-   trigger: "^/test( unit)?$"
-   rerun_command: "^/test( unit)?$"
+   trigger: "(?m)^/test( unit-tests)?"
+   rerun_command: "/test unit-tests"
    context: unit-tests
    spec:
     containers:
@@ -51,67 +81,6 @@ presubmits:
     - name: service
       secret:
        secretName: service-account
- - name: e2e-tests
-   agent: kubernetes
-   always_run: false
-   trigger: "^/test e2e$"
-   rerun_command: "^/test e2e$"
-   context: e2e
-   spec:
-    containers:
-    - image: gcr.io/gce-daisy-test/prowjob:latest
-      args:
-      - "--action=e2e_tests"
-      - "--tests=e2e_tests"
-      volumeMounts:
-      - name: service
-        mountPath: /etc/service-account
-        readOnly: true
-    volumes:
-    - name: service
-      secret:
-       secretName: service-account
-
-#postsubmits:
-#  GoogleCloudPlatform/compute-image-tools
-#  - name: build-latest
-#    agent: kubernetes
-#    branches:
-#    - master
-#    spec:
-#      containers:
-#      - image: gcr.io/gce-daisy-test/build:latest
-#      volumeMounts:
-#      - name: service
-#        mountPath: /etc/service-account
-#        readOnly: true
-#    volumes:
-#    - name: service
-#      secret:
-#        secretName: service-account
-#  - name: e2e
-#    agent: kubernetes
-#    branches:
-#    - master
-#    spec:
-#      containers:
-#      - image: gcr.io/gce-daisy-test/functional_tests:latest
-#        args:
-#              - "--test=e2e"
-#              - "--clean"
-#              - "--git-cache=/root/.cache/git"
-#              - "--job=$(JOB_NAME)"
-#              - "--repo=$(REPO_OWNER)/$(REPO_NAME)=master"
-#              - "--service-account=/etc/service-account/service-account.json"
-#              - "--upload=gs://gce-daisy-test/$(JOB_NAME)_$(PULL_BASE_SHA)/"
-#        volumeMounts:
-#        - name: service
-#          mountPath: /etc/service-account
-#          readOnly: true
-#      volumes:
-#        - name: service
-#          secret:
-#            secretName: service-account
 
 # // Periodic runs on a timer.
 # type Periodic struct {
