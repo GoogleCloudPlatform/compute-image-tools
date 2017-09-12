@@ -99,6 +99,9 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 		if err := ws.validate(ctx, s); err == nil {
 			t.Error("expected error")
 		}
+		// Reset.
+		readableBkts = validatedBkts{}
+		writableBkts = validatedBkts{}
 	}
 }
 

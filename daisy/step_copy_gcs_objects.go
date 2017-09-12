@@ -55,15 +55,18 @@ func (c *CopyGCSObjects) validate(ctx context.Context, s *Step) error {
 		}
 
 		// Check if source bucket exists and is readable.
-		if !readableBkts.contains(sBkt) {
+		readableBkts.mx.Lock()
+		if !strIn(sBkt, readableBkts.bkts) {
 			if _, err := s.w.StorageClient.Bucket(sBkt).Attrs(ctx); err != nil {
 				return fmt.Errorf("error reading bucket %q: %v", sBkt, err)
 			}
-			readableBkts.add(sBkt)
+			readableBkts.bkts = append(readableBkts.bkts, sBkt)
 		}
+		readableBkts.mx.Unlock()
 
 		// Check if destination bucket exists and is readable.
-		if !writableBkts.contains(dBkt) {
+		writableBkts.mx.Lock()
+		if !strIn(dBkt, writableBkts.bkts) {
 			if _, err := s.w.StorageClient.Bucket(dBkt).Attrs(ctx); err != nil {
 				return fmt.Errorf("error reading bucket %q: %v", dBkt, err)
 			}
@@ -78,10 +81,12 @@ func (c *CopyGCSObjects) validate(ctx context.Context, s *Step) error {
 				return fmt.Errorf("error writing to bucket %q: %v", dBkt, err)
 			}
 			if err := tObj.Delete(ctx); err != nil {
-				return err
+				return fmt.Errorf("error deleting file %+v after write validation: %v", tObj, err)
 			}
-			writableBkts.add(dBkt)
+			writableBkts.bkts = append(writableBkts.bkts, dBkt)
 		}
+		writableBkts.mx.Unlock()
+
 		// Check each ACLRule
 		for _, acl := range co.ACLRules {
 			if acl.Entity == "" {
