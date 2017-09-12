@@ -54,7 +54,13 @@ func TestCreateDisksPopulate(t *testing.T) {
 		{
 			"ExactName case",
 			&CreateDisk{Disk: compute.Disk{Name: "foo"}, ExactName: true},
-			&CreateDisk{Disk: compute.Disk{Name: "foo", Type: defType}, daisyName: "foo", Project: w.Project, Zone: w.Zone, ExactName: true},
+			&CreateDisk{Disk: compute.Disk{Name: "foo", Type: defType}, daisyName: "foo", Project: w.Project, Zone: w.Zone, ExactName: true, RealName: "foo"},
+			false,
+		},
+		{
+			"RealName case",
+			&CreateDisk{Disk: compute.Disk{Name: "foo"}, RealName: "foo-foo"},
+			&CreateDisk{Disk: compute.Disk{Name: "foo-foo", Type: defType}, daisyName: "foo", Project: w.Project, Zone: w.Zone, RealName: "foo-foo"},
 			false,
 		},
 		{

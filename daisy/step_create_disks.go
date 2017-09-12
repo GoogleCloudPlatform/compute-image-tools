@@ -40,12 +40,13 @@ type CreateDisk struct {
 	Project string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
-	// Should we use the user-provided reference name as the actual
-	// resource name?
-	ExactName bool
+	// If set Daisy will use this as the resource name instead generating a name.
+	RealName string `json:",omitempty"`
 
 	// The name of the disk as known internally to Daisy.
 	daisyName string
+	// Deprecated: Use RealName instead.
+	ExactName bool
 }
 
 // MarshalJSON is a hacky workaround to prevent CreateDisk from using
@@ -57,8 +58,13 @@ func (c *CreateDisk) MarshalJSON() ([]byte, error) {
 func (c *CreateDisks) populate(ctx context.Context, s *Step) error {
 	for _, cd := range *c {
 		cd.daisyName = cd.Name
-		if !cd.ExactName {
-			cd.Name = s.w.genName(cd.daisyName)
+		if cd.ExactName && cd.RealName == "" {
+			cd.RealName = cd.Name
+		}
+		if cd.RealName != "" {
+			cd.Name = cd.RealName
+		} else {
+			cd.Name = s.w.genName(cd.Name)
 		}
 		cd.Project = strOr(cd.Project, s.w.Project)
 		cd.Zone = strOr(cd.Zone, s.w.Zone)

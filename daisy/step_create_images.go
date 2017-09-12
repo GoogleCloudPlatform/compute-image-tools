@@ -37,12 +37,13 @@ type CreateImage struct {
 	Project string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
-	// Should we use the user-provided reference name as the actual
-	// resource name?
-	ExactName bool
+	// If set Daisy will use this as the resource name instead generating a name.
+	RealName string `json:",omitempty"`
 
 	// The name of the disk as known internally to Daisy.
 	daisyName string
+	// Deprecated: Use RealName instead.
+	ExactName bool
 }
 
 // MarshalJSON is a hacky workaround to prevent CreateImage from using
@@ -58,8 +59,13 @@ func (c *CreateImages) populate(ctx context.Context, s *Step) error {
 	for _, ci := range *c {
 		// Prepare field values: name, Name, RawDisk.Source, Description
 		ci.daisyName = ci.Name
-		if !ci.ExactName {
-			ci.Name = s.w.genName(ci.daisyName)
+		if ci.ExactName && ci.RealName == "" {
+			ci.RealName = ci.Name
+		}
+		if ci.RealName != "" {
+			ci.Name = ci.RealName
+		} else {
+			ci.Name = s.w.genName(ci.Name)
 		}
 		ci.Project = strOr(ci.Project, s.w.Project)
 		ci.Description = strOr(ci.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
