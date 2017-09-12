@@ -75,17 +75,5 @@ type validatedBkts struct {
 	bkts []string
 }
 
-func (v *validatedBkts) add(bkt string) {
-	v.mx.Lock()
-	defer v.mx.Unlock()
-	v.bkts = append(v.bkts, bkt)
-}
-
-func (v *validatedBkts) contains(bkt string) bool {
-	v.mx.Lock()
-	defer v.mx.Unlock()
-	return strIn(bkt, v.bkts)
-}
-
 var writableBkts validatedBkts
 var readableBkts validatedBkts
