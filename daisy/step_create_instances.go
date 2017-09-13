@@ -41,7 +41,6 @@ type CreateInstance struct {
 	// OAuth2 scopes to give the instance. If none are specified
 	// https://www.googleapis.com/auth/devstorage.read_only will be added.
 	Scopes []string `json:",omitempty"`
-
 	// StartupScript is the Sources path to a startup script to use in this step.
 	// This will be automatically mapped to the appropriate metadata key.
 	StartupScript string `json:",omitempty"`
@@ -51,11 +50,13 @@ type CreateInstance struct {
 	Zone string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool
-	// Should we use the user-provided reference name as the actual resource name?
-	ExactName bool
+	// If set Daisy will use this as the resource name instead generating a name.
+	RealName string `json:",omitempty"`
 
 	// The name of the disk as known internally to Daisy.
 	daisyName string
+	// Deprecated: Use RealName instead.
+	ExactName bool
 }
 
 // MarshalJSON is a hacky workaround to prevent CreateInstance from using
@@ -222,7 +223,12 @@ func (c *CreateInstances) populate(ctx context.Context, s *Step) error {
 	for _, ci := range *c {
 		// General fields preprocessing.
 		ci.daisyName = ci.Name
-		if !ci.ExactName {
+		if ci.ExactName && ci.RealName == "" {
+			ci.RealName = ci.Name
+		}
+		if ci.RealName != "" {
+			ci.Name = ci.RealName
+		} else {
 			ci.Name = s.w.genName(ci.Name)
 		}
 		ci.Project = strOr(ci.Project, s.w.Project)
