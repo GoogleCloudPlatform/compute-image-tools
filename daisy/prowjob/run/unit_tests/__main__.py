@@ -14,51 +14,55 @@
 
 import argparse
 import os
-import subprocess
 import sys
 
+from run.call import call
+from run import git
 from run import logging
 
 ARGS = None
 GCS_BKT = 'gce-daisy-test'
-GIT_OWNER = 'GoogleCloudPlatform'
-GIT_REPO = 'compute-image-tools'
-CLONE_DIR = 'repo'
+REPO_OWNER = 'GoogleCloudPlatform'
+REPO_NAME = 'compute-image-tools'
 
-
-def call(cmd, cwd=os.getcwd()):
-    logging.info('Running %q in directory %q.', ' '.join(cmd), cwd)
-    return subprocess.call(cmd, cwd=cwd)
+PACKAGE = 'github.com/%s/%s/daisy' % (REPO_OWNER, REPO_NAME)
+PACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', PACKAGE)
 
 
 def main():
     logging.info('Fetching Daisy.')
-    url = os.path.join('github.com/', GIT_OWNER, GIT_REPO)
-    code = call(['go', 'get', url])
+    code = call(['go', 'get', PACKAGE]).returncode
     if code:
         return code
 
     logging.info('Checking out PR #%s', ARGS.pr)
-    cwd = os.path.join(os.getenv('GOPATH'), 'src', url)
-    code = call(['git', 'checkout', '-b', 'test'], cwd)
-    if code:
-        return code
-    code = call(['git', 'pull', 'origin', 'pull/%s/head' % ARGS.pr], cwd)
+    repo = git.Repo(PACKAGE_PATH)
+    code = repo.checkout(pr=ARGS.pr)
     if code:
         return code
 
-    logging.info('Running tests.')
-    cwd = os.path.join(cwd, 'daisy')
-    code = call(['go', 'test', './...'], cwd)
-    return code
+    logging.info('Pulling dependencies.')
+    code = call(['go', 'get', '-t', './...'], cwd=PACKAGE_PATH).returncode
+    if code:
+        return code
+
+    logging.info('Running checks.')
+    code = call(['gofmt', '-l', '.'], cwd=PACKAGE_PATH).returncode
+    if code:
+        return code
+    code = call(['go', 'vet', './...'], cwd=PACKAGE_PATH).returncode
+    if code:
+        return code
+    return call(['go', 'test', '-race', './...'], cwd=PACKAGE_PATH).returncode
 
 
 def parse_args(arguments=None):
     """Parse arguments or sys.argv[1:]."""
     p = argparse.ArgumentParser()
-    p.add_argument('--pr', required=True, help="The pull request id.")
+    p.add_argument('--pr', required=True, help="The pull request #.")
     args, _ = p.parse_known_args(arguments)
     return args
+
 
 if __name__ == '__main__':
     ARGS = parse_args()
