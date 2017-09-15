@@ -13,40 +13,59 @@
 # limitations under the License.
 
 import argparse
+from Crypto import Random
 import glob
+import multiprocessing
 import os
 import sys
+import tarfile
+import time
 
-from run.call import call
+import apiclient
+from oauth2client.service_account import ServiceAccountCredentials
+
+from run import common
 from run import git
+from run import gcs
 from run import logging
 
 ARGS = []
-PACKAGE_URL = 'github.com/GoogleCloud/compute-image-tools'
-PACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', PACKAGE_URL)
+PARALLEL_TESTS = 10
+REPO_OWNER = 'GoogleCloudPlatform'
+REPO_NAME = 'compute-image-tools'
+REPO_URL = 'https://github.com/%s/%s.git' % (REPO_OWNER, REPO_NAME)
+TEST_PROJECT = 'gce-daisy-test'
+TEST_ID = str(common.utc_timestamp())
+TEST_BUCKET = gcs.BUCKET
+TEST_GCS_DIR = os.path.join('tests', TEST_ID)
+WFS_TAR = 'wfs.tar.gz'
+TEST_WFS_GCS = os.path.join(TEST_GCS_DIR, WFS_TAR)
+
+cloud_builder_client = None
 
 
 def main():
     logging.info('Got --tests=%s', ARGS.tests)
 
-    logging.info('Downloading Daisy')
-    cmd = ['go', 'get', PACKAGE_URL]
-    code = call(cmd).returncode
-    if code:
-        return code
+    logging.info('Fetching Daisy Repo.')
+    repo = git.Repo('repo', clone=REPO_URL)
+    if repo.clone_code:
+        return repo.clone_code
 
-    # commit = 'Something from Argo'
-    repo = git.Repo(PACKAGE_PATH)
-    repo.checkout(branch='master')
+    logging.info('Tar\'ing workflows to upload to GCS.')
+    wf_dir = os.path.join('repo', 'daisy_workflows', ARGS.tests)
+    with tarfile.open('wfs.tar.gz', 'w:gz') as tgz:
+        tgz.add(wf_dir, arcname=os.path.sep)
 
-    wf_dir = os.path.join(PACKAGE_PATH, 'daisy_workflows', ARGS.tests)
+    logging.info('Uploading tests to %s.', TEST_WFS_GCS)
+    gcs.upload_file('wfs.tar.gz', TEST_WFS_GCS, 'application/gzip')
+
+    logging.info('Running test workflows.')
     wfs = glob.glob(os.path.join(wf_dir, '*.wf.json'))
-
-    logging.info('Running tests...')
-    for wf in wfs:
-        wf = os.path.join(ARGS.tests, os.path.basename(wf))
-        logging.info('Running test %s', os.path.basename(wf))
-    return 0
+    wfs = [os.path.basename(wf) for wf in wfs]
+    pool = multiprocessing.Pool(PARALLEL_TESTS)
+    r = pool.map(run_wf, wfs)
+    return int(any(r))
 
 
 def parse_args(arguments=None):
@@ -64,8 +83,49 @@ def parse_args(arguments=None):
     return args
 
 
+def run_wf(wf):
+    logging.info('Running test %s', wf)
+
+    # This is called by multiple processes and pycrypto requires that each
+    # fork calls this.
+    Random.atfork()
+
+    body = {
+        'source': {
+            'storageSource': {
+                'bucket': TEST_BUCKET,
+                'object': TEST_WFS_GCS,
+            }
+        },
+        'logsBucket': os.path.join(TEST_BUCKET, TEST_GCS_DIR),
+        'steps': [{
+            'name': 'gcr.io/compute-image-tools/daisy:latest',
+            'args': [
+                wf,
+            ],
+        }]
+    }
+    client = cloud_builder_client
+    op = client.projects().builds().create(
+            projectId=TEST_PROJECT, body=body).execute()
+    op_name = op['name']
+    while 'done' not in op or not op['done']:
+        time.sleep(2)
+        op = client.operations().get(name=op_name).execute() or op
+
+    if 'error' in op:
+        logging.error('Error running test %s: %s', wf, op['error'])
+        return 1
+    return 0
+
+
 if __name__ == '__main__':
     ARGS = parse_args()
+    creds_filepath = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(
+            creds_filepath, ['https://www.googleapis.com/auth/cloud-platform'])
+    cloud_builder_client = apiclient.discovery.build(
+            'cloudbuild', 'v1', credentials=creds)
     return_code = main()
     logging.info('main() returned with code %s', return_code)
     logging.shutdown()
