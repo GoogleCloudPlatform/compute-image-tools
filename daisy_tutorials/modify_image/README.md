@@ -14,7 +14,7 @@ The overall steps of the workflow will be:
 
 ## Provisioning the instance
 
-What you use to provision the instance is open and not dependant on
+What you use to provision the instance is open and not dependent on
 Daisy. In this simple case, we are using a simple shell script to
 install Emacs. Because we are creating a CentOS image, we simply call
 `yum install`. The provisioning script is named `emacs_install.sh`.
@@ -118,8 +118,8 @@ stopped, we can capture a new image from the disk.
 Note the `NoCleanup`, Daisy automatically cleans up any resources
 created during a run. We don't want Daisy to delete our image though!
 Specifying `NoCleanup` will instruct Daisy to leave the
-image. `ExatcName` tells Daisy to use the `Name` as-is. Normally Daisy
-adds a suffix to resource names to avoid name colissions.
+image. `ExactName` tells Daisy to use the `Name` as-is. Normally Daisy
+adds a suffix to resource names to avoid name collisions.
 
 Now we will add a delete step to be explicit.
 
