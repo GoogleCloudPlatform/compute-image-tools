@@ -59,7 +59,7 @@ arbitrary.
         "create-disks": {
             "CreateDisks": [
                 {
-                    "Name": "instance-disk",
+                    "Name": "disk-install",
                     "SourceImage": "projects/centos-cloud/global/images/family/centos-7",
                     "Type": "pd-ssd"
                 }
@@ -75,8 +75,8 @@ script that we wrote to provision the instance.
             "CreateInstances": [
                 {
                     "Name": "inst-install",
-                    "Disks": [{"Source": "instance-disk"}],
-                    "MachineType": "n1-standard-4",
+                    "Disks": [{"Source": "disk-install"}],
+                    "MachineType": "n1-standard-1",
                     "StartupScript": "emacs_install.sh"
                 }
             ]
@@ -107,7 +107,7 @@ stopped, we can capture a new image from the disk.
             "CreateImages": [
                 {
                     "Name": "centos-emacs",
-                    "SourceDisk": "instance-disk",
+                    "SourceDisk": "disk-install",
                     "NoCleanup": true,
                     "ExactName": true
                 }

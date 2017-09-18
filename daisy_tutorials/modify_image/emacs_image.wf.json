@@ -7,7 +7,7 @@
         "create-disks": {
             "CreateDisks": [
                 {
-                    "Name": "instance-disk",
+                    "Name": "disk-install",
                     "SourceImage": "projects/centos-cloud/global/images/family/centos-7",
                     "Type": "pd-ssd"
                 }
@@ -17,8 +17,8 @@
             "CreateInstances": [
                 {
                     "Name": "inst-install",
-                    "Disks": [{"Source": "instance-disk"}],
-                    "MachineType": "n1-standard-4",
+                    "Disks": [{"Source": "disk-install"}],
+                    "MachineType": "n1-standard-1",
                     "StartupScript": "emacs_install.sh"
                 }
             ]
@@ -36,7 +36,7 @@
             "CreateImages": [
                 {
                     "Name": "centos-emacs",
-                    "SourceDisk": "instance-disk",
+                    "SourceDisk": "disk-install",
                     "NoCleanup": true,
                     "ExactName": true
                 }
