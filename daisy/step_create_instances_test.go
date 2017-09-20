@@ -124,17 +124,17 @@ func TestCreateInstancePopulate(t *testing.T) {
 			"nondefault zone/project case",
 			&CreateInstance{
 				Instance: compute.Instance{Name: "foo", Description: desc, Disks: []*compute.AttachedDisk{{Source: "foo"}}},
-				Project:  "pfoo", Zone: "zfoo", ExactName: true,
+				Project:  "pfoo", Zone: "zfoo", RealName: "inst-pfoo",
 			},
 			&CreateInstance{
 				Instance: compute.Instance{
-					Name: "foo", Description: desc,
+					Name: "inst-pfoo", Description: desc,
 					Disks:             []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}},
 					MachineType:       "projects/pfoo/zones/zfoo/machineTypes/n1-standard-1",
 					NetworkInterfaces: []*compute.NetworkInterface{{Network: "projects/pfoo/global/networks/default", AccessConfigs: defAcs}},
 					ServiceAccounts:   defSAs,
 				},
-				Metadata: defMD, Scopes: defSs, Project: "pfoo", Zone: "zfoo", daisyName: "foo", ExactName: true,
+				Metadata: defMD, Scopes: defSs, Project: "pfoo", Zone: "zfoo", daisyName: "foo", RealName: "inst-pfoo",
 			},
 			false,
 		},

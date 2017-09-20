@@ -22,13 +22,16 @@ import (
 	"time"
 )
 
-const defaultInterval = "10s"
+const (
+	defaultInterval = "10s"
+)
 
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []*InstanceSignal
 
 // SerialOutput describes text signal strings that will be written to the serial
 // port.
+// A StatusMatch will print out the matching line from the StatusMatch onward.
 // This step will not complete until a line in the serial output matches
 // SuccessMatch or FailureMatch. A match with FailureMatch will cause the step
 // to fail.
@@ -36,6 +39,7 @@ type SerialOutput struct {
 	Port         int64
 	SuccessMatch string
 	FailureMatch string
+	StatusMatch  string
 }
 
 // InstanceSignal waits for a signal from an instance.
@@ -72,13 +76,16 @@ func waitForInstanceStopped(w *Workflow, project, zone, name string, interval ti
 	}
 }
 
-func waitForSerialOutput(w *Workflow, project, zone, name string, port int64, success, failure string, interval time.Duration) error {
-	msg := fmt.Sprintf("WaitForInstancesSignal: watching serial port %d", port)
-	if success != "" {
-		msg += fmt.Sprintf(", SuccessMatch: %q", success)
+func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutput, interval time.Duration) error {
+	msg := fmt.Sprintf("WaitForInstancesSignal: watching serial port %d", so.Port)
+	if so.SuccessMatch != "" {
+		msg += fmt.Sprintf(", SuccessMatch: %q", so.SuccessMatch)
 	}
-	if failure != "" {
-		msg += fmt.Sprintf(", FailureMatch: %q", failure)
+	if so.FailureMatch != "" {
+		msg += fmt.Sprintf(", FailureMatch: %q", so.FailureMatch)
+	}
+	if so.StatusMatch != "" {
+		msg += fmt.Sprintf(", StatusMatch: %q", so.StatusMatch)
 	}
 	w.logger.Print(msg + ".")
 	var start int64
@@ -89,7 +96,7 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, port int64, su
 		case <-w.Cancel:
 			return nil
 		case <-tick:
-			resp, err := w.ComputeClient.GetSerialPortOutput(project, zone, name, port, start)
+			resp, err := w.ComputeClient.GetSerialPortOutput(project, zone, name, so.Port, start)
 			if err != nil {
 				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
 				if sErr == nil && (status == "TERMINATED" || status == "STOPPING" || status == "STOPPED") {
@@ -109,12 +116,23 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, port int64, su
 				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
-			if failure != "" && strings.Contains(resp.Contents, failure) {
-				return fmt.Errorf("WaitForInstancesSignal: FailureMatch found for instance %q", name)
-			}
-			if success != "" && strings.Contains(resp.Contents, success) {
-				w.logger.Printf("WaitForInstancesSignal: SuccessMatch found for instance %q", name)
-				return nil
+			for _, ln := range strings.Split(resp.Contents, "\n") {
+				if so.StatusMatch != "" {
+					if i := strings.Index(ln, so.StatusMatch); i != -1 {
+						w.logger.Printf("WaitForInstancesSignal: StatusMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+					}
+				}
+				if so.FailureMatch != "" {
+					if i := strings.Index(ln, so.FailureMatch); i != -1 {
+						return fmt.Errorf("WaitForInstancesSignal: FailureMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+					}
+				}
+				if so.SuccessMatch != "" {
+					if i := strings.Index(ln, so.SuccessMatch); i != -1 {
+						w.logger.Printf("WaitForInstancesSignal: SuccessMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+						return nil
+					}
+				}
 			}
 			errs = 0
 		}
@@ -161,7 +179,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) error {
 			}
 			if is.SerialOutput != nil {
 				go func() {
-					if err := waitForSerialOutput(s.w, m["project"], m["zone"], m["instance"], is.SerialOutput.Port, is.SerialOutput.SuccessMatch, is.SerialOutput.FailureMatch, is.interval); err != nil {
+					if err := waitForSerialOutput(s.w, m["project"], m["zone"], m["instance"], is.SerialOutput, is.interval); err != nil {
 						e <- err
 					}
 					close(serialSig)
@@ -197,6 +215,9 @@ func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) error {
 		}
 		if i.interval == 0*time.Second {
 			return fmt.Errorf("%q: cannot wait for instance signal, no interval given", i.Name)
+		}
+		if i.SerialOutput == nil && i.Stopped == false {
+			return fmt.Errorf("%q: cannot wait for instance signal, nothing to wait for", i.Name)
 		}
 		if i.SerialOutput != nil {
 			if i.SerialOutput.Port == 0 {

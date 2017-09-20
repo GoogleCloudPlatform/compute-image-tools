@@ -224,7 +224,7 @@ the Disk JSON representation. Daisy uses the same representation with a few modi
 
 | Field Name | Type | Description of Modification |
 | - | - | - |
-| Name | string | If ExactName is false, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
+| Name | string | If RealName is unset, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
 | SourceImage | string | Either image [partial URLs](#glossary-partialurl) or workflow-internal image names are valid. |
 | Type | string | *Optional.* Defaults to "pd-standard". Either disk type [partial URLs](#glossary-partialurl) or disk type names are valid. |
 
@@ -235,7 +235,7 @@ Added fields:
 | Project | string | *Optional.* Defaults to workflow's Project. The GCP project in which to create the disk. |
 | Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
-| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE disk exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+| RealName | bool | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 Example: the first is a standard PD disk created from a source image, the second
 is a blank PD SSD.
@@ -261,7 +261,7 @@ the Image JSON representation. Daisy uses the same representation with a few mod
 
 | Field Name | Type | Description of Modification |
 | - | - | - |
-| Name | string | If ExactName is false, the **literal** image name will have a generated suffix for the running instance of the workflow. |
+| Name | string | If RealName is unset, the **literal** image name will have a generated suffix for the running instance of the workflow. |
 | RawDisk.Source | string | Either a GCS Path or a key from Sources are valid. |
 | SourceDisk | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
 
@@ -271,7 +271,7 @@ Added fields:
 | - | - | - |
 | Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this image. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this image when the workflow terminates. |
-| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE image exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+| RealName | bool | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateImages example creates an image from a source disk.
 ```json
@@ -288,7 +288,7 @@ This CreateImages example creates an image from a source disk.
 This CreateImages example creates three images. `image1` is created from
 a source from the workflow's `Sources` and will not be cleaned up by
 Daisy. `image2` is created from a source from a GCS Path and will use
-the exact name, "image2". Lastly, `image3` is created from a disk from
+`my-image2` as the resource name. Lastly, `image3` is created from a disk from
 the workflow and will be created in a different project from the
 workflow's specified Project.
 ```json
@@ -306,7 +306,7 @@ workflow's specified Project.
       "RawDisk": {
         "Source": "gs://my-bucket/image.tar.gz"
       },
-      "ExactName": true
+      "RealName": "my-image2"
     },
     {
       "Name": "image3",
@@ -323,7 +323,7 @@ the Instance JSON representation. Daisy uses the same representation with a few 
 
 | Field Name | Type | Description of Modification |
 | - | - | - |
-| Name | string | If ExactName is false, the **literal** instance name will have a generated suffix for the running instance of the workflow. |
+| Name | string | If RealName is unset, the **literal** instance name will have a generated suffix for the running instance of the workflow. |
 | Disks[].Boot | bool | *Now unused.* First disk automatically has boot = true. All others are set to false. |
 | Disks[].InitializeParams.DiskType | string | *Optional.* Will prepend "projects/PROJECT/zones/ZONE/diskTypes/" as needed. This allows user to provide "pd-ssd" or "pd-standard" as the DiskType. |
 | Disks[].InitializeParams.SourceImage | string | Either image [partial URLs](#glossary-partialurl) or workflow-internal image names are valid. |
@@ -344,7 +344,7 @@ Added fields:
 | Project | string | *Optional.* Defaults to workflow's Project. The GCP project in which to create the disk. |
 | Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
-| ExactName | bool | *Optional.* Defaults to false. Set this to true if you want Daisy to name this GCE disk exactly the same as Name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+| RealName | bool | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateInstances step example creates an instance with two attached
 disks, with machine type n1-standard-4, and with metadata "key" = "value".
@@ -506,8 +506,11 @@ SerialOutput:
 | Port | int64 | The serial port number to listen to. GCE VMs have serial ports 1-4. |
 | FailureMatch | string | *Optional, but this or SuccessMatch must be provided.* An expected string in case of a failure. |
 | SuccessMatch | string | *Optional, but this or FailureMatch must be provided.* An expected string when the VM performed its task successfully. |
+| StatusMatch | string | *Optional* An informational status line to print out. |
 
-This example step waits for VM "foo" to stop and for a signal from VM "bar":
+If any serial line matches FailureMatch, SuccessMatch or StatusMatch the line
+from the match onward will be logged. This example step waits for VM "foo" to 
+stop and for a signal from VM "bar":
 ```json
 "step-name": {
     "WaitForInstancesSignal": [
@@ -519,8 +522,9 @@ This example step waits for VM "foo" to stop and for a signal from VM "bar":
             "Name": "bar",
             "SerialOutput": {
                 "Port": 1,
-                "SuccessMatch": "this means I'm done! :)",
-                "FailureMatch": "this means I failed... :("
+                "SuccessMatch": "DasiySuccess:",
+                "FailureMatch": "DasiyFailure:",
+                "StatusMatch": "DaisyStatus:"
             }
         }
     ]
