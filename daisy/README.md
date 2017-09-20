@@ -506,8 +506,11 @@ SerialOutput:
 | Port | int64 | The serial port number to listen to. GCE VMs have serial ports 1-4. |
 | FailureMatch | string | *Optional, but this or SuccessMatch must be provided.* An expected string in case of a failure. |
 | SuccessMatch | string | *Optional, but this or FailureMatch must be provided.* An expected string when the VM performed its task successfully. |
+| StatusMatch | string | *Optional* An informational status line to print out. |
 
-This example step waits for VM "foo" to stop and for a signal from VM "bar":
+If any serial line matches FailureMatch, SuccessMatch or StatusMatch the line
+from the match onward will be logged. This example step waits for VM "foo" to 
+stop and for a signal from VM "bar":
 ```json
 "step-name": {
     "WaitForInstancesSignal": [
@@ -519,8 +522,9 @@ This example step waits for VM "foo" to stop and for a signal from VM "bar":
             "Name": "bar",
             "SerialOutput": {
                 "Port": 1,
-                "SuccessMatch": "this means I'm done! :)",
-                "FailureMatch": "this means I failed... :("
+                "SuccessMatch": "DasiySuccess:",
+                "FailureMatch": "DasiyFailure:",
+                "StatusMatch": "DaisyStatus:"
             }
         }
     ]
