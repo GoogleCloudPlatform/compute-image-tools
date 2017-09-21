@@ -1,10 +1,10 @@
 {
   "Name": "create-disks-test",
   "Steps": {
-    "disk-for-image": {
+    "disk-to-image": {
       "CreateDisks": [
         {
-          "Name": "disk-for-image",
+          "Name": "disk-to-image",
           "SizeGb": "10"
         }
       ]
@@ -13,7 +13,7 @@
       "CreateImages": [
         {
           "Name": "image",
-          "SourceDisk": "disk-for-image"
+          "SourceDisk": "disk-to-image"
         }
       ]
     },
@@ -21,7 +21,7 @@
       "CreateDisks": [
         {
           "Name": "disk-from-image",
-          "SourceImage": "foo"
+          "SourceImage": "image"
         },
         {
           "Name": "disk-from-image-family-url",
