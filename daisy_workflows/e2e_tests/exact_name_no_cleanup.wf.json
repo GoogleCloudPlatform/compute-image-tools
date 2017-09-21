@@ -7,7 +7,7 @@
     "create-disk": {
       "CreateDisks": [
         {
-          "Name": "${test-id}-disk",
+          "Name": "disk-${test-id}",
           "Source": "projects/debian-cloud/global/images/family/debian-9",
           "ExactName": true,
           "NoCleanup": true
@@ -17,8 +17,8 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "${test-id}-image",
-          "SourceDisk": "${test-id}-disk",
+          "Name": "image-${test-id}",
+          "SourceDisk": "disk-${test-id}",
           "ExactName": true,
           "NoCleanup": true
         }
@@ -27,10 +27,10 @@
     "create-instance": {
       "CreateInstances": [
         {
-          "Name": "${test-id}-instance",
+          "Name": "instance-${test-id}",
           "Disks": [
             {
-              "Source": "${test-id}-disk"
+              "Source": "disk-${test-id}"
             }
           ],
           "ExactName": true,
