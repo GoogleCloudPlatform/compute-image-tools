@@ -41,6 +41,6 @@
   },
   "Dependencies": {
     "create-image": ["create-disk"],
-    "create-instance": ["create-image"],
+    "create-instance": ["create-image"]
   }
 }
