@@ -3,9 +3,6 @@ $ErrorActionPreference = 'Stop'
 $script:gce_install_dir = 'C:\Program Files\Google\Compute Engine'
 $script:hosts_file = "$env:windir\system32\drivers\etc\hosts"
 
-$script_drive = $PSCommandPath[0]
-$builder_path = "${script_drive}:\builder\components"
-
 function Run-Command {
  [CmdletBinding(SupportsShouldProcess=$true)]
   param (
@@ -46,8 +43,19 @@ function Get-MetadataValue {
   }
 }
 
+function Remove-VMWareTools {
+  Get-ChildItem HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall | Foreach-Object {
+    if ((Get-ItemProperty $_.PSPath).DisplayName -eq 'VMWare Tools') {
+      Write-Output 'Translate: Found VMWare Tools installed, removing...'
+      Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet') -Wait
+      Restart-Computer
+      exit 0
+    }
+  }
+}
+
 function Setup-NTP {
-  Write-Output 'Setting up NTP.'
+  Write-Output 'Translate: Setting up NTP.'
 
   # Set the CMOS clock to use UTC.
   $tzi_path = 'HKLM:\SYSTEM\CurrentControlSet\Control\TimeZoneInformation'
@@ -95,7 +103,10 @@ function Setup-NTP {
 }
 
 function Configure-Network {
-  Write-Output 'Configuring network.'
+  Write-Output 'Translate: Configuring network.'
+
+  # Register netkvmco.dll.
+  Run-Command rundll32 'netkvmco.dll,RegisterNetKVMNetShHelper'
 
   # Make sure metadata server is in etc/hosts file.
   Add-Content $script:hosts_file @'
@@ -104,23 +115,6 @@ function Configure-Network {
     169.254.169.254    metadata.google.internal metadata
 
 '@
-
-  Write-Output 'Changing firewall settings.'
-  # Change Windows Server firewall settings.
-  # Enable ping in Windows Server 2008.
-  Run-Command netsh advfirewall firewall add rule `
-      name='ICMP Allow incoming V4 echo request' `
-      protocol='icmpv4:8,any' dir=in action=allow
-
-  # Enable inbound communication from the metadata server.
-  Run-Command netsh advfirewall firewall add rule `
-      name='Allow incoming from GCE metadata server' `
-      protocol=ANY remoteip=169.254.169.254 dir=in action=allow
-
-  # Enable outbound communication to the metadata server.
-  Run-Command netsh advfirewall firewall add rule `
-      name='Allow outgoing to GCE metadata server' `
-      protocol=ANY remoteip=169.254.169.254 dir=out action=allow
 
   # Change KeepAliveTime to 5 minutes.
   $tcp_params = 'HKLM:\System\CurrentControlSet\Services\Tcpip\Parameters'
@@ -147,9 +141,22 @@ function Configure-Network {
 
   # Unmount default user hive.
   Run-Command reg unload 'HKLM\DefaultUser'
+
+  $netkvm = Get-WMIObject Win32_NetworkAdapter -filter "ServiceName='netkvm'"
+  $netkvm | ForEach-Object {
+    Run-Command netsh interface ipv4 set interface "$($_.NetConnectionID)" mtu=1460 | Out-Null
+  }
+  Write-Output 'MTU set to 1460.'
+
+  Run-Command route /p add 169.254.169.254 mask 255.255.255.255 0.0.0.0 if $netkvm[0].InterfaceIndex metric 1 -ErrorAction SilentlyContinue
+  Write-Output 'Added persistent route to metadata netblock via first netkvm adapter.'
 }
 
 function Configure-Power {
+  if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) {
+    return
+  }
+
   # Change power configuration to never turn off monitor.  If Windows turns
   # off its monitor, it will respond to power button pushes by turning it back
   # on instead of shutting down as GCE expects.  We fix this by switching the
@@ -164,7 +171,7 @@ function Configure-Power {
 }
 
 function Change-InstanceProperties {
-  Write-Output 'Setting instance properties.'
+  Write-Output 'Translate: Setting instance properties.'
 
   # Enable EMS.
   Run-Command bcdedit /emssettings EMSPORT:2 EMSBAUDRATE:115200
@@ -186,9 +193,6 @@ function Change-InstanceProperties {
 
   # Change time zone to Coordinated Universal Time.
   Run-Command tzutil /s 'UTC'
-
-  # Register netkvmco.dll.
-  Run-Command rundll32 'netkvmco.dll,RegisterNetKVMNetShHelper'
 }
 
 function Configure-RDPSecurity {
@@ -203,9 +207,28 @@ function Configure-RDPSecurity {
   New-ItemProperty -Path $registryPath -Name SecurityLayer -Value 2 -PropertyType DWORD -Force
 }
 
+function Enable-RemoteDesktop {
+  $ts_path = 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
+  if (-not (Test-Path $ts_path)) {
+    return
+  }
+  # Enable remote desktop in registry.
+  Set-ItemProperty -Path $ts_path -Name 'fDenyTSConnections' -Value 0 -Force
+
+  Write-Output 'Disabling Ctrl + Alt + Del.'
+  Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableCAD' -Value 1 -Force
+
+  Write-Output 'Enable RDP firewall rules.'
+  Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
+
+  Write-Output 'Translate: Restarting Terminal Service services, to enable RDP.'
+  Restart-Service UmRdpService,TermService -Force
+}
+
 function Install-Packages {
+  Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install googet
   if ($script:install_packages.ToLower() -eq 'true') {
-    Write-Output 'Installing GCE packages...'
+    Write-Output 'Translate: Installing GCE packages...'
     # Install each individually in order to catch individual errors
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-windows
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-auto-updater
@@ -216,31 +239,45 @@ function Install-Packages {
 }
 
 try {
-  Write-Output 'Beginning translate powershell script.'
+  Write-Output 'Translate: Beginning translate powershell script.'
   $script:outs_dir = Get-MetadataValue -key 'daisy-outs-path'
   $script:install_packages = Get-MetadataValue -key 'install-gce-packages'
+  $script:sysprep = Get-MetadataValue -key 'sysprep'
 
+  Remove-VMWareTools
   Change-InstanceProperties
   Configure-Network
   Configure-Power
-  Configure-RDPSecurity
   Setup-NTP
   Install-Packages
+  Configure-RDPSecurity
 
-  Write-Output 'Setting up KMS activation'
-  . 'C:\Program Files\Google\Compute Engine\sysprep\activate_instance.ps1'
-
-  if ($script:install_packages.ToLower() -ne 'true') {
-    Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-metadata-scripts
-    Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-powershell
+  # Only needed and applicable for 2008R2.
+  $netkvm = Get-WMIObject Win32_NetworkAdapter -filter "ServiceName='netkvm'"
+  $netkvm | ForEach-Object {
+    & netsh interface ipv4 set dnsservers "$($_.NetConnectionID)" dhcp | Out-Null
   }
 
-  Write-Output 'Translate complete.'
+  if ($script:sysprep.ToLower() -ne 'true') {
+    Enable-RemoteDesktop
+
+    Write-Output 'Translate: Setting up KMS activation'
+    . 'C:\Program Files\Google\Compute Engine\sysprep\activate_instance.ps1' | Out-Null
+
+    if ($script:install_packages.ToLower() -ne 'true') {
+      Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-metadata-scripts
+      Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-powershell
+    }
+    Write-Output 'Translate complete.'
+    exit 0
+  }
+
+  Write-Output 'Translate: Launching sysprep.'
+  & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat'
 }
 catch {
   Write-Output 'Exception caught in script:'
   Write-Output $_.InvocationInfo.PositionMessage
-  Write-Output "Message: $($_.Exception.Message)"
-  Write-Output 'Translate failed'
+  Write-Output "TranslateFailed: $($_.Exception.Message)"
   exit 1
 }

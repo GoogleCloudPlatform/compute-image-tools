@@ -47,6 +47,7 @@ Variables:
 * `source_image`: The source GCE image to translate.
 * `install_gce_packages`: True by default, if set to false, will not attempt to install packages for GCE.
 * `image_name`: The name of the translated image, will default to "$DISTRO-$VER-${ID}".
+* *WINDOWS ONLY* `sysprep`: False by default, whether to run sysprep before capturing the image.".
 
 ### Workflows
 

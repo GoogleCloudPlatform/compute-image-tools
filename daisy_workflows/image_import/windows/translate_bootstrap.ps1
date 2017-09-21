@@ -46,7 +46,7 @@ function Get-MetadataValue {
 function Setup-ScriptRunner {
   $metadata_scripts = "${script:os_drive}\Program Files\Google\Compute Engine\metadata_scripts"
   New-Item "${metadata_scripts}\" -ItemType Directory | Out-Null
-  Copy-Item "${script:components_dir}\GCEMetadataScripts.exe" "${metadata_scripts}\GCEMetadataScripts.exe" -Verbose
+  Copy-Item "C:\Program Files\Google\Compute Engine\metadata_scripts\GCEMetadataScripts.exe" "${metadata_scripts}\GCEMetadataScripts.exe" -Verbose
   Copy-Item "${script:components_dir}\run_startup_scripts.cmd" "${metadata_scripts}\run_startup_scripts.cmd" -Verbose
   # This file must be unicode with no trailing new line and exactly match the source.
   (Get-Content "${script:components_dir}\GCEStartup" | Out-String).TrimEnd() | Out-File -Encoding Unicode -NoNewline "${script:os_drive}\Windows\System32\Tasks\GCEStartup"
@@ -75,7 +75,7 @@ function Setup-ScriptRunner {
 }
 
 try {
-  Write-Output 'Beginning translation bootstrap process.'
+  Write-Output 'TranslateBootstrap: Beginning translation bootstrap powershell script.'
 
   $bcd_drive = ''
   Get-Disk 1 | Get-Partition | ForEach-Object {
@@ -108,18 +108,18 @@ try {
 
   $daisy_sources = Get-MetadataValue -key 'daisy-sources-path'
 
-  Write-Output 'Pulling components.'
+  Write-Output 'TranslateBootstrap: Pulling components.'
   & 'gsutil' -m cp -r "${daisy_sources}/components/*" $script:components_dir
 
-  Write-Output 'Pulling drivers.'
+  Write-Output 'TranslateBootstrap: Pulling drivers.'
   & 'gsutil' -m cp -r "${daisy_sources}/drivers/*" $driver_dir
 
   Copy-Item "${driver_dir}\netkvmco.dll" "${script:os_drive}\Windows\System32\netkvmco.dll" -Verbose
 
-  Write-Output 'Slipstreaming drivers.'
+  Write-Output 'TranslateBootstrap: Slipstreaming drivers.'
   Add-WindowsDriver -Path "${script:os_drive}\" -Driver $driver_dir -Recurse -Verbose
 
-  Write-Output 'Setting up script runner.'
+  Write-Output 'TranslateBootstrap: Setting up script runner.'
   Setup-ScriptRunner
 
   Write-Output 'Setting up cloud repo.'
@@ -140,7 +140,6 @@ try {
 catch {
   Write-Output 'Exception caught in script:'
   Write-Output $_.InvocationInfo.PositionMessage
-  Write-Output "Message: $($_.Exception.Message)"
-  Write-Output 'Translate bootstrap failed'
+  Write-Output "TranslateFailed: $($_.Exception.Message)"
   exit 1
 }
