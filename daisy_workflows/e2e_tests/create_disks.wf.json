@@ -33,6 +33,6 @@
   },
   "Dependencies": {
     "create-disks": ["create-image"],
-    "create-image": ["disk-to-image"],
+    "create-image": ["disk-to-image"]
   }
 }
