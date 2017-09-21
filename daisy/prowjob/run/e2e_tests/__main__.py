@@ -101,8 +101,8 @@ def run_wf(wf):
         'steps': [{
             'name': 'gcr.io/compute-image-tools/daisy:latest',
             'args': [
-                wf,
                 '-var:test-id=%s' % TEST_ID,
+                wf,
             ],
         }]
     }
