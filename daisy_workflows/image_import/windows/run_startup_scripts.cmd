@@ -13,9 +13,22 @@ REM WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 REM See the License for the specific language governing permissions and
 REM limitations under the License.
 
+REM Give the network time to initialize.
+ping 127.0.0.1 -n 60
+
+REM Enable inbound communication from the metadata server.
+netsh advfirewall firewall add rule name="Allow incoming from GCE metadata server" protocol=ANY remoteip=169.254.169.254 dir=in action=allow
+
+REM Enable outbound communication to the metadata server.
+netsh advfirewall firewall add rule name="Allow outgoing to GCE metadata server" protocol=ANY remoteip=169.254.169.254 dir=out action=allow
+
 REM This is needed for 2008R2 networking to work, this will fail on post 2008R2 but that's fine.
 for /f "tokens=2 delims=:" %%a in (
   'ipconfig ^| find "Gateway"'
-) do netsh interface ipv4 set dnsservers "Local Area Connection" static address=%%a primary
+) do (
+  netsh interface ipv4 set dnsservers "Local Area Connection" static address=%%a primary
+  netsh interface ipv4 set dnsservers "Local Area Connection 2" static address=%%a primary
+  netsh interface ipv4 set dnsservers "Local Area Connection 3" static address=%%a primary
+)
 
 start "" "C:\Program Files\Google\Compute Engine\metadata_scripts\GCEMetadataScripts.exe" "startup"

@@ -74,7 +74,7 @@
           }
         }
       ],
-      "Timeout": "30m"
+      "Timeout": "20m"
     },
     "delete-bootstrap": {
       "DeleteResources": {

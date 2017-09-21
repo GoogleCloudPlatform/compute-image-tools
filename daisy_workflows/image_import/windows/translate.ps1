@@ -3,9 +3,6 @@ $ErrorActionPreference = 'Stop'
 $script:gce_install_dir = 'C:\Program Files\Google\Compute Engine'
 $script:hosts_file = "$env:windir\system32\drivers\etc\hosts"
 
-$script_drive = $PSCommandPath[0]
-$builder_path = "${script_drive}:\builder\components"
-
 function Run-Command {
  [CmdletBinding(SupportsShouldProcess=$true)]
   param (
@@ -51,6 +48,8 @@ function Remove-VMWareTools {
     if ((Get-ItemProperty $_.PSPath).DisplayName -eq 'VMWare Tools') {
       Write-Output 'Translate: Found VMWare Tools installed, removing...'
       Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet') -Wait
+      Restart-Computer
+      exit 0
     }
   }
 }
@@ -117,23 +116,6 @@ function Configure-Network {
 
 '@
 
-  Write-Output 'Changing firewall settings.'
-  # Change Windows Server firewall settings.
-  # Enable ping in Windows Server 2008.
-  Run-Command netsh advfirewall firewall add rule `
-      name='ICMP Allow incoming V4 echo request' `
-      protocol='icmpv4:8,any' dir=in action=allow
-
-  # Enable inbound communication from the metadata server.
-  Run-Command netsh advfirewall firewall add rule `
-      name='Allow incoming from GCE metadata server' `
-      protocol=ANY remoteip=169.254.169.254 dir=in action=allow
-
-  # Enable outbound communication to the metadata server.
-  Run-Command netsh advfirewall firewall add rule `
-      name='Allow outgoing to GCE metadata server' `
-      protocol=ANY remoteip=169.254.169.254 dir=out action=allow
-
   # Change KeepAliveTime to 5 minutes.
   $tcp_params = 'HKLM:\System\CurrentControlSet\Services\Tcpip\Parameters'
   New-ItemProperty -Path $tcp_params -Name 'KeepAliveTime' -Value 300000 -PropertyType DWord -Force
@@ -160,13 +142,9 @@ function Configure-Network {
   # Unmount default user hive.
   Run-Command reg unload 'HKLM\DefaultUser'
 
-  Write-Output 'Setting all network adapters to get IP from DHCP.'
-  $nics = Get-CimInstance Win32_NetworkAdapterConfiguration -Filter "IPEnabled=True"
-  $nics | Invoke-CimMethod -Name EnableDHCP
-
-  $netkvm = Get-CimInstance Win32_NetworkAdapter -filter "ServiceName='netkvm'"
+  $netkvm = Get-WMIObject Win32_NetworkAdapter -filter "ServiceName='netkvm'"
   $netkvm | ForEach-Object {
-    Run-Command netsh interface ipv4 set interface $_.NetConnectionID mtu=1460 | Out-Null
+    Run-Command netsh interface ipv4 set interface "$($_.NetConnectionID)" mtu=1460 | Out-Null
   }
   Write-Output 'MTU set to 1460.'
 
@@ -175,6 +153,10 @@ function Configure-Network {
 }
 
 function Configure-Power {
+  if (-not (Get-Command Get-CimInstance -ErrorAction SilentlyContinue)) {
+    return
+  }
+
   # Change power configuration to never turn off monitor.  If Windows turns
   # off its monitor, it will respond to power button pushes by turning it back
   # on instead of shutting down as GCE expects.  We fix this by switching the
@@ -271,7 +253,10 @@ try {
   Configure-RDPSecurity
 
   # Only needed and applicable for 2008R2.
-  & netsh interface ipv4 set dnsservers 'Local Area Connection' source=dhcp | Out-Null
+  $netkvm = Get-WMIObject Win32_NetworkAdapter -filter "ServiceName='netkvm'"
+  $netkvm | ForEach-Object {
+    & netsh interface ipv4 set dnsservers "$($_.NetConnectionID)" dhcp | Out-Null
+  }
 
   if ($script:sysprep.ToLower() -ne 'true') {
     Enable-RemoteDesktop
