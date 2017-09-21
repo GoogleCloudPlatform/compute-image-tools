@@ -58,7 +58,8 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "ImportSuccess:",
-            "FailureMatch": "ImportFailed:"
+            "FailureMatch": "ImportFailed:",
+            "StatusMatch": "Import:"
           }
         }
       ],

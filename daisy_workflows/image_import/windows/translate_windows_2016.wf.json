@@ -9,6 +9,10 @@
       "Value": "true",
       "Description": "Whether to install GCE packages."
     },
+    "sysprep": {
+      "Value": "false",
+      "Description": "Whether to run sysprep before capturing the image."
+    },
     "image_name": {
       "Value": "windows-server-2016-${ID}",
       "Description": "The name of the translated Server 2016 image."
@@ -22,6 +26,7 @@
         "Vars": {
           "source_image": "${source_image}",
           "install_gce_packages": "${install_gce_packages}",
+          "sysprep": "${sysprep}",
           "imported_disk": "${disk_name}",
           "drivers": "gs://gce-windows-drivers-public/release/win6.3/",
           "version": "10.0",

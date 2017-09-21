@@ -396,7 +396,6 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 	}
 	prefix := fmt.Sprintf("[%s]: ", name)
 	flags := log.Ldate | log.Ltime
-	writers := []io.Writer{os.Stdout}
 	if w.gcsLogWriter == nil {
 		if !w.gcsLogging {
 			w.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(ioutil.Discard)}
@@ -408,9 +407,8 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 				w.gcsLogWriter.Flush()
 			}
 		}()
-		writers = append(writers, w.gcsLogWriter)
 	}
-	w.logger = log.New(io.MultiWriter(writers...), prefix, flags)
+	w.logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
 }
 
 // AddDependency creates a dependency of dependent on each dependency. Returns an

@@ -9,6 +9,10 @@
       "Value": "true",
       "Description": "Whether to install GCE packages."
     },
+    "sysprep": {
+      "Value": "false",
+      "Description": "Whether to run sysprep before capturing the image."
+    },
     "drivers": {
       "Required": true,
       "Description": "Path containing GCE drivers"
@@ -22,7 +26,7 @@
     "translate.ps1": "./translate.ps1",
     "translate_bootstrap.ps1": "./translate_bootstrap.ps1",
     "drivers": "${drivers}",
-    "components": "./metadata_scripts/",
+    "components/run_startup_scripts.cmd": "./run_startup_scripts.cmd",
     "components/GCEStartup.reg": "${task_reg}",
     "components/GCEStartup": "${task_xml}"
   },
@@ -65,11 +69,12 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Translate bootstrap complete",
-            "FailureMatch": "Translate bootstrap failed"
+            "FailureMatch": "TranslateFailed:",
+            "StatusMatch": "TranslateBootstrap:"
           }
         }
       ],
-      "Timeout": "60m"
+      "Timeout": "30m"
     },
     "delete-bootstrap": {
       "DeleteResources": {
@@ -86,7 +91,8 @@
           ],
           "MachineType": "n1-standard-2",
           "Metadata": {
-            "install-gce-packages": "${install_gce_packages}"
+            "install-gce-packages": "${install_gce_packages}",
+            "sysprep": "${sysprep}"
           },
           "StartupScript": "translate.ps1"
         }
@@ -96,14 +102,16 @@
       "WaitForInstancesSignal": [
         {
           "Name": "inst-translate",
+          "Stopped": true,
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Translate complete",
-            "FailureMatch": "Translate failed"
+            "FailureMatch": "TranslateFailed:",
+            "StatusMatch": "Translate:"
           }
         }
       ],
-      "Timeout": "60m"
+      "Timeout": "30m"
     },
     "delete-inst-translate": {
       "DeleteResources": {

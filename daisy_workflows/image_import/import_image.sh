@@ -24,25 +24,26 @@ ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
 ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
 
 # Print info.
-echo "#################"
-echo "# Configuration #"
-echo "#################"
-echo "SOURCEURL: ${SOURCEURL}"
-echo "SOURCEBUCKET: ${SOURCEBUCKET}"
-echo "SOURCEPATH: ${SOURCEPATH}"
-echo "DISKNAME: ${DISKNAME}"
-echo "ME: ${ME}"
-echo "ZONE: ${ZONE}"
+echo "#################" 2> /dev/null
+echo "# Configuration #" 2> /dev/null
+echo "#################" 2> /dev/null
+echo "SOURCEURL: ${SOURCEURL}" 2> /dev/null
+echo "SOURCEBUCKET: ${SOURCEBUCKET}" 2> /dev/null
+echo "SOURCEPATH: ${SOURCEPATH}" 2> /dev/null
+echo "DISKNAME: ${DISKNAME}" 2> /dev/null
+echo "ME: ${ME}" 2> /dev/null
+echo "ZONE: ${ZONE}" 2> /dev/null
 
 # Set up GCS fuse repo.
 export GCSFUSE_REPO="gcsfuse-`lsb_release -c -s`"
 echo "deb http://packages.cloud.google.com/apt $GCSFUSE_REPO main" | tee /etc/apt/sources.list.d/gcsfuse.list
 
 # Install tools.
+echo "Import: Installing import tools" 2> /dev/null
 apt-get update
 apt-get -q -y install qemu-utils gcsfuse
 if [ $? -ne 0 ]; then
-  echo "ImportFailed: Unable to install gcsfuse or qemu-utils."
+  echo "ImportFailed: Unable to install gcsfuse or qemu-utils." 2> /dev/null
 fi
 
 # Mount GCS bucket containing the disk image.
@@ -54,28 +55,28 @@ SIZE_BYTES=$(qemu-img info --output "json" /gcs/${SOURCEPATH} | grep -m1 "virtua
  # Round up to the next GB.
 SIZE_GB=$(awk "BEGIN {print int((${SIZE_BYTES}/1000000000)+ 1)}")
 
-echo "Importing ${SOURCEPATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}."
+echo "Import: Importing ${SOURCEPATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
 
 # Resize the disk if its bigger than 10GB and attach it.
 if [[ ${SIZE_GB} -gt 10 ]]; then
   gcloud -q compute disks resize ${DISKNAME} --size=${SIZE_GB}GB --zone=${ZONE}
   if [ $? -ne 0 ]; then
-    echo "ImportFailed: Failed to resize ${DISKNAME} to ${SIZE_GB}GB in ${ZONE}"
+    echo "ImportFailed: Failed to resize ${DISKNAME} to ${SIZE_GB}GB in ${ZONE}" 2> /dev/null
   fi
 fi
 
 gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE}
 if [ $? -ne 0 ]; then
-  echo "ImportFailed: Failed to attach ${DISKNAME} to ${ME}"
+  echo "ImportFailed: Failed to attach ${DISKNAME} to ${ME}" 2> /dev/null
 fi
 
 # Write imported disk to GCE disk.
 qemu-img convert /gcs/${SOURCEPATH} -p -O raw -S 512b /dev/sdb
 if [ $? -ne 0 ]; then
-  echo "ImportFailed: Failed to convert source to raw."
+  echo "ImportFailed: Failed to convert source to raw." 2> /dev/null
 fi
 
 sync
 gcloud -q compute instances detach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE}
 
-echo "ImportSuccess: Finished import."
+echo "ImportSuccess: Finished import." 2> /dev/null

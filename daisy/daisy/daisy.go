@@ -169,7 +169,7 @@ func main() {
 	for _, w := range ws {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt)
-		go func() {
+		go func(w *daisy.Workflow) {
 			select {
 			case <-c:
 				fmt.Printf("\nCtrl-C caught, sending cancel signal to %q...\n", w.Name)
@@ -177,7 +177,7 @@ func main() {
 				errors <- fmt.Errorf("workflow %q was canceled", w.Name)
 			case <-w.Cancel:
 			}
-		}()
+		}(w)
 		if *print {
 			fmt.Printf("[Daisy] Printing workflow %q\n", w.Name)
 			w.Print(ctx)
@@ -191,14 +191,14 @@ func main() {
 			continue
 		}
 		wg.Add(1)
-		go func(wf *daisy.Workflow) {
+		go func(w *daisy.Workflow) {
 			defer wg.Done()
-			fmt.Printf("[Daisy] Running workflow %q\n", wf.Name)
-			if err := wf.Run(ctx); err != nil {
-				errors <- fmt.Errorf("%s: %v", wf.Name, err)
+			fmt.Printf("[Daisy] Running workflow %q\n", w.Name)
+			if err := w.Run(ctx); err != nil {
+				errors <- fmt.Errorf("%s: %v", w.Name, err)
 				return
 			}
-			fmt.Printf("[Daisy] Workflow %q finished\n", wf.Name)
+			fmt.Printf("[Daisy] Workflow %q finished\n", w.Name)
 		}(w)
 	}
 	wg.Wait()
