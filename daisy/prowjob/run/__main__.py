@@ -14,14 +14,11 @@
 
 import argparse
 import os
-import subprocess
 import sys
-import time
-
-import google.auth
-import google.cloud.storage
 
 from run.call import call
+from run import common
+from run import gcs
 from run import logging
 
 # Nones will be set before main() is called.
@@ -29,32 +26,31 @@ ARGS = None
 OTHER_ARGS = None
 RUN_ID = None
 RUN_LOG = 'run.log'
-BUCKET = 'gce-daisy-test'
+ACTION_OUT = 'action.stdout'
+ACTION_ERR = 'action.stderr'
 OBJ_DIR = None
 
 logfile_handler = logging.FileHandler(filename=RUN_LOG)
 logfile_handler.setLevel(level=logging.INFO)
 logging.getLogger().addHandler(logfile_handler)
 
-epoch = int(time.time())
-creds, proj = google.auth.default()
-gcs = google.cloud.storage.Client(proj, creds)
-bucket = gcs.bucket('gce-daisy-test')
+epoch = common.utc_timestamp()
 
 
 def main():
     cmd = ['python', '-m', ARGS.action] + OTHER_ARGS
     cwd = os.path.dirname(os.path.realpath(__file__))
 
-    p = call(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = p.communicate()
+    with open(ACTION_OUT, 'w') as out:
+        with open(ACTION_ERR, 'w') as err:
+            p = call(cmd, cwd=cwd, stdout=out, stderr=err)
     logging.info('Return code = %s', p.returncode)
 
-    logging.info('Uploading logs to gs://%s/%s/', BUCKET, OBJ_DIR)
-    obj = bucket.blob(os.path.join(OBJ_DIR, 'action_stdout'))
-    obj.upload_from_string(out)
-    obj = bucket.blob(os.path.join(OBJ_DIR, 'action_stderr'))
-    obj.upload_from_string(err)
+    logging.info('Uploading logs to gs://%s/%s/', gcs.BUCKET, OBJ_DIR)
+    gcs_action_out = os.path.join(OBJ_DIR, ACTION_OUT)
+    gcs_action_err = os.path.join(OBJ_DIR, ACTION_ERR)
+    gcs.upload_file(ACTION_OUT, gcs_action_out, 'text/plain')
+    gcs.upload_file(ACTION_ERR, gcs_action_err, 'text/plain')
     return p.returncode
 
 
@@ -76,5 +72,4 @@ if __name__ == '__main__':
         sys.exit(main())
     finally:
         logging.shutdown()
-        obj = bucket.blob(os.path.join(OBJ_DIR, 'run.log'))
-        obj.upload_from_filename(RUN_LOG, 'text/plain')
+        gcs.upload_file(RUN_LOG, os.path.join(OBJ_DIR, 'run.log'), 'text/plain')

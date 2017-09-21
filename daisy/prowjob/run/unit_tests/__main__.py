@@ -21,7 +21,6 @@ from run import git
 from run import logging
 
 ARGS = None
-GCS_BKT = 'gce-daisy-test'
 REPO_OWNER = 'GoogleCloudPlatform'
 REPO_NAME = 'compute-image-tools'
 

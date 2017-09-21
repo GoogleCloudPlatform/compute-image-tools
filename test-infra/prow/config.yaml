@@ -98,7 +98,7 @@ presubmits:
 # 	interval time.Duration
 # }
 periodics:
- - interval: 2h
+ - interval: 6h
    agent: kubernetes
    name: ci-e2e-image-import-tests
    spec:
@@ -106,7 +106,7 @@ periodics:
     - image: gcr.io/gce-daisy-test/prowjob:latest
       args:
       - "--action=e2e_tests"
-      - "--tests=image_import"
+      - "--tests=e2e_tests"
       volumeMounts:
       - name: service
         mountPath: /etc/service-account

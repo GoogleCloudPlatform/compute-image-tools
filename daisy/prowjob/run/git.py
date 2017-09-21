@@ -24,7 +24,7 @@ class Repo(object):
         self.clone_code = None
         if clone:
             cmd = ['git', 'clone', clone, self._root]
-            self.clone_code = call(cmd, cwd=self._root).returncode
+            self.clone_code = call(cmd).returncode
 
     @property
     def root(self):
