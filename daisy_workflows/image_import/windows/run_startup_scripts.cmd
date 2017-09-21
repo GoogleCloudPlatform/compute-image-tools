@@ -13,4 +13,9 @@ REM WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 REM See the License for the specific language governing permissions and
 REM limitations under the License.
 
+REM This is needed for 2008R2 networking to work, this will fail on post 2008R2 but that's fine.
+for /f "tokens=2 delims=:" %%a in (
+  'ipconfig ^| find "Gateway"'
+) do netsh interface ipv4 set dnsservers "Local Area Connection" static address=%%a primary
+
 start "" "C:\Program Files\Google\Compute Engine\metadata_scripts\GCEMetadataScripts.exe" "startup"

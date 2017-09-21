@@ -270,6 +270,9 @@ try {
   Install-Packages
   Configure-RDPSecurity
 
+  # Only needed and applicable for 2008R2.
+  & netsh interface ipv4 set dnsservers 'Local Area Connection' source=dhcp | Out-Null
+
   if ($script:sysprep.ToLower() -ne 'true') {
     Enable-RemoteDesktop
 
