@@ -22,7 +22,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-var machineTypeURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/machineTypes/(?P<machinetype>%[2]s)$`, rfc1035Proj, rfc1035))
+var machineTypeURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/machineTypes/(?P<machinetype>%[2]s)$`, projectRgxStr, rfc1035))
 
 var machineTypes struct {
 	valid []string

@@ -21,7 +21,7 @@ import (
 
 var (
 	disks      = map[*Workflow]*diskMap{}
-	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)$`, rfc1035Proj, rfc1035))
+	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 type diskMap struct {

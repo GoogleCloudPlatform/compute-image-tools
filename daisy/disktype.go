@@ -19,4 +19,4 @@ import (
 	"regexp"
 )
 
-var diskTypeURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/diskTypes/(?P<disktype>%[2]s)$`, rfc1035Proj, rfc1035))
+var diskTypeURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/diskTypes/(?P<disktype>%[2]s)$`, projectRgxStr, rfc1035))
