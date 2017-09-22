@@ -30,7 +30,7 @@ const (
 
 var (
 	instances      = map[*Workflow]*instanceMap{}
-	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[1]s)/instances/(?P<instance>%[1]s)$`, rfc1035))
+	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/instances/(?P<instance>%[2]s)$`, rfc1035Proj, rfc1035))
 	validDiskModes = []string{diskModeRO, diskModeRW}
 )
 

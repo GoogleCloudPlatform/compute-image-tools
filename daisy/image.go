@@ -21,7 +21,7 @@ import (
 
 var (
 	images      = map[*Workflow]*imageMap{}
-	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images/(?P<image>%[1]s)|family/(?P<family>%[1]s)$`, rfc1035))
+	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images/(?P<image>%[2]s)|family/(?P<family>%[2]s)$`, rfc1035Proj, rfc1035))
 )
 
 type imageMap struct {

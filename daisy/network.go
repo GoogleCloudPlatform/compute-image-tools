@@ -19,4 +19,4 @@ import (
 	"regexp"
 )
 
-var networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[1]s)$`, rfc1035))
+var networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[2]s)$`,rfc1035Proj, rfc1035))
