@@ -76,7 +76,7 @@ func TestResourceCleanup(t *testing.T) {
 
 func TestResourceMapDelete(t *testing.T) {
 	var deleteFnErr error
-	rm := &baseResourceMap{m: map[string]*resource{}}
+	rm := &baseResourceRegistry{m: map[string]*resource{}}
 	rm.deleteFn = func(r *resource) error {
 		return deleteFnErr
 	}
@@ -112,7 +112,7 @@ func TestResourceMapDelete(t *testing.T) {
 }
 
 func TestResourceMapConcurrency(t *testing.T) {
-	rm := baseResourceMap{}
+	rm := baseResourceRegistry{}
 	rm.init()
 
 	tests := []struct {
@@ -152,7 +152,7 @@ func TestResourceMapConcurrency(t *testing.T) {
 func TestResourceMapGet(t *testing.T) {
 	xRes := &resource{}
 	yRes := &resource{}
-	rm := baseResourceMap{m: map[string]*resource{"x": xRes, "y": yRes}}
+	rm := baseResourceRegistry{m: map[string]*resource{"x": xRes, "y": yRes}}
 
 	tests := []struct {
 		desc, input string
@@ -171,7 +171,7 @@ func TestResourceMapGet(t *testing.T) {
 }
 
 func TestResourceMapRegisterCreation(t *testing.T) {
-	rm := &baseResourceMap{}
+	rm := &baseResourceRegistry{}
 	rm.init()
 	r := &resource{}
 	s := &Step{}
@@ -209,7 +209,7 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 		"badDeleter2": {"creator"},
 	}
 	r := &resource{creator: creator, users: []*Step{user}}
-	rm := &baseResourceMap{m: map[string]*resource{"r": r}}
+	rm := &baseResourceRegistry{m: map[string]*resource{"r": r}}
 
 	tests := []struct {
 		desc    string
@@ -237,7 +237,7 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 }
 
 func TestResourceMapRegisterExisting(t *testing.T) {
-	rm := &baseResourceMap{}
+	rm := &baseResourceRegistry{}
 	rm.init()
 
 	defURL := "projects/p/zones/z/disks/d"
@@ -288,7 +288,7 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 	}
 	r1 := &resource{creator: creator}
 	r2 := &resource{creator: creator, deleter: deleter}
-	rm := &baseResourceMap{m: map[string]*resource{"r1": r1, "r2": r2}}
+	rm := &baseResourceRegistry{m: map[string]*resource{"r1": r1, "r2": r2}}
 
 	tests := []struct {
 		desc    string

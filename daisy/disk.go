@@ -20,12 +20,12 @@ import (
 )
 
 var (
-	disks      = map[*Workflow]*diskMap{}
+	disks      = map[*Workflow]*diskRegistry{}
 	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-type diskMap struct {
-	baseResourceMap
+type diskRegistry struct {
+	baseResourceRegistry
 	attachments      map[*resource]map[*resource]*diskAttachment // map (disk, instance) -> attachment
 	testDetachHelper func(d, i *resource, s *Step) error
 }
@@ -35,42 +35,42 @@ type diskAttachment struct {
 	attacher, detacher *Step
 }
 
-func initDiskMap(w *Workflow) {
-	dm := &diskMap{baseResourceMap: baseResourceMap{w: w, typeName: "disk", urlRgx: diskURLRgx}}
-	dm.baseResourceMap.deleteFn = dm.deleteFn
-	dm.init()
-	disks[w] = dm
+func initDiskRegistry(w *Workflow) {
+	dr := &diskRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "disk", urlRgx: diskURLRgx}}
+	dr.baseResourceRegistry.deleteFn = dr.deleteFn
+	dr.init()
+	disks[w] = dr
 }
 
-func (dm *diskMap) init() {
-	dm.baseResourceMap.init()
-	dm.attachments = map[*resource]map[*resource]*diskAttachment{}
+func (dr *diskRegistry) init() {
+	dr.baseResourceRegistry.init()
+	dr.attachments = map[*resource]map[*resource]*diskAttachment{}
 }
 
-func (dm *diskMap) deleteFn(r *resource) error {
-	m := namedSubexp(diskURLRgx, r.link)
-	if err := dm.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"]); err != nil {
+func (dr *diskRegistry) deleteFn(res *resource) error {
+	m := namedSubexp(diskURLRgx, res.link)
+	if err := dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"]); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (dm *diskMap) registerAttachment(dName, iName, mode string, s *Step) error {
-	dm.mx.Lock()
-	defer dm.mx.Unlock()
+func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) error {
+	dr.mx.Lock()
+	defer dr.mx.Unlock()
 	var d, i *resource
 	var ok bool
-	if d, ok = dm.m[dName]; !ok {
+	if d, ok = dr.m[dName]; !ok {
 		return Errorf("cannot attach disk %q, does not exist", dName)
 	}
-	if i, ok = instances[dm.w].get(iName); !ok {
+	if i, ok = instances[dr.w].get(iName); !ok {
 		return Errorf("cannot attach disk to instance %q, does not exist", iName)
 	}
 	// Iterate over disk's attachments. Check for concurrent conflicts.
 	// Step s is concurrent with other attachments if the attachment detacher == nil
 	// or s does not depend on the detacher.
 	// If this is a repeat attachment (same disk and instance already attached), do nothing and return.
-	for attI, att := range dm.attachments[d] {
+	for attI, att := range dr.attachments[d] {
 		// Is this a concurrent attachment?
 		if att.detacher == nil || !s.nestedDepends(att.detacher) {
 			if attI == i {
@@ -85,9 +85,9 @@ func (dm *diskMap) registerAttachment(dName, iName, mode string, s *Step) error 
 	}
 
 	var im map[*resource]*diskAttachment
-	if im, ok = dm.attachments[d]; !ok {
+	if im, ok = dr.attachments[d]; !ok {
 		im = map[*resource]*diskAttachment{}
-		dm.attachments[d] = im
+		dr.attachments[d] = im
 	}
 	im[i] = &diskAttachment{mode: mode, attacher: s}
 	return nil
@@ -96,14 +96,14 @@ func (dm *diskMap) registerAttachment(dName, iName, mode string, s *Step) error 
 // detachHelper marks s as the detacher between d and i.
 // Returns an error if d and i aren't attached
 // or if the detacher doesn't depend on the attacher.
-func (dm *diskMap) detachHelper(d, i *resource, s *Step) error {
-	if dm.testDetachHelper != nil {
-		return dm.testDetachHelper(d, i, s)
+func (dr *diskRegistry) detachHelper(d, i *resource, s *Step) error {
+	if dr.testDetachHelper != nil {
+		return dr.testDetachHelper(d, i, s)
 	}
 	var att *diskAttachment
 	var im map[*resource]*diskAttachment
 	var ok bool
-	if im, ok = dm.attachments[d]; !ok {
+	if im, ok = dr.attachments[d]; !ok {
 		return Errorf("not attached")
 	}
 	if att, ok = im[i]; !ok || att.detacher != nil {
@@ -118,19 +118,19 @@ func (dm *diskMap) detachHelper(d, i *resource, s *Step) error {
 // registerDetachment marks s as the detacher for the dName disk and iName instance.
 // Returns an error if dName or iName don't exist
 // or if detachHelper returns an error.
-func (dm *diskMap) registerDetachment(dName, iName string, s *Step) error {
-	dm.mx.Lock()
-	defer dm.mx.Unlock()
+func (dr *diskRegistry) registerDetachment(dName, iName string, s *Step) error {
+	dr.mx.Lock()
+	defer dr.mx.Unlock()
 	var d, i *resource
 	var ok bool
-	if d, ok = dm.m[dName]; !ok {
+	if d, ok = dr.m[dName]; !ok {
 		return Errorf("cannot detach disk %q, does not exist", dName)
 	}
-	if i, ok = instances[dm.w].get(iName); !ok {
+	if i, ok = instances[dr.w].get(iName); !ok {
 		return Errorf("cannot detach disk from instance %q, does not exist", iName)
 	}
 
-	if err := dm.detachHelper(d, i, s); err != nil {
+	if err := dr.detachHelper(d, i, s); err != nil {
 		return Errorf("cannot detach disk %q from instance %q: %v", dName, iName, err)
 	}
 	return nil
@@ -139,21 +139,21 @@ func (dm *diskMap) registerDetachment(dName, iName string, s *Step) error {
 // registerAllDetachments marks s as the detacher for all disks attached to the iName instance.
 // Returns an error if iName does not exist
 // or if detachHelper returns an error.
-func (dm *diskMap) registerAllDetachments(iName string, s *Step) error {
-	dm.mx.Lock()
-	defer dm.mx.Unlock()
+func (dr *diskRegistry) registerAllDetachments(iName string, s *Step) error {
+	dr.mx.Lock()
+	defer dr.mx.Unlock()
 
-	i, ok := instances[dm.w].get(iName)
+	i, ok := instances[dr.w].get(iName)
 	if !ok {
 		return Errorf("cannot detach disks from instance %q, does not exist", iName)
 	}
 
 	var errs Errors
-	for d, im := range dm.attachments {
+	for d, im := range dr.attachments {
 		if att, ok := im[i]; !ok || att.detacher != nil {
 			continue
 		}
-		if err := dm.detachHelper(d, i, s); err != nil {
+		if err := dr.detachHelper(d, i, s); err != nil {
 			errs.add(Errorf("cannot detach disk %q from instance %q: %v", d.real, iName, err))
 		}
 	}

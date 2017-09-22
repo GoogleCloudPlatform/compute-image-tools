@@ -20,24 +20,24 @@ import (
 )
 
 var (
-	images      = map[*Workflow]*imageMap{}
+	images      = map[*Workflow]*imageRegistry{}
 	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images/(?P<image>%[2]s)|family/(?P<family>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-type imageMap struct {
-	baseResourceMap
+type imageRegistry struct {
+	baseResourceRegistry
 }
 
-func initImageMap(w *Workflow) {
-	im := &imageMap{baseResourceMap: baseResourceMap{w: w, typeName: "image", urlRgx: imageURLRgx}}
-	im.baseResourceMap.deleteFn = im.deleteFn
-	im.init()
-	images[w] = im
+func initImageRegistry(w *Workflow) {
+	ir := &imageRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "image", urlRgx: imageURLRgx}}
+	ir.baseResourceRegistry.deleteFn = ir.deleteFn
+	ir.init()
+	images[w] = ir
 }
 
-func (im *imageMap) deleteFn(r *resource) error {
-	m := namedSubexp(imageURLRgx, r.link)
-	if err := im.w.ComputeClient.DeleteImage(m["project"], m["image"]); err != nil {
+func (ir *imageRegistry) deleteFn(res *resource) error {
+	m := namedSubexp(imageURLRgx, res.link)
+	if err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"]); err != nil {
 		return err
 	}
 	return nil
