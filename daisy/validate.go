@@ -24,8 +24,9 @@ import (
 )
 
 var (
-	rfc1035    = "[a-z]([-a-z0-9]*[a-z0-9])?"
-	rfc1035Rgx = regexp.MustCompile(fmt.Sprintf("^%s$", rfc1035))
+	rfc1035       = "[a-z]([-a-z0-9]*[a-z0-9])?"
+	projectRgxStr = "[a-z]([-.:a-z0-9]*[a-z0-9])?"
+	rfc1035Rgx    = regexp.MustCompile(fmt.Sprintf("^%s$", rfc1035))
 )
 
 func checkName(s string) bool {

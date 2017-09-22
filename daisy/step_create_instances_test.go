@@ -589,6 +589,12 @@ func TestCreateInstancesValidate(t *testing.T) {
 	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" && r.URL.String() == "/p/zones/z?alt=json" {
 			fmt.Fprintln(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == "/p.com%3Asomething?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == "/p.com%3Asomething/zones/z?alt=json" {
+			fmt.Fprintln(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == "/p.com%3Asomething/zones/z/machineTypes/mt?alt=json" {
+			fmt.Fprintln(w, `{}`)
 		} else if r.Method == "GET" && r.URL.String() == "/p/zones/z/machineTypes/mt?alt=json" {
 			fmt.Fprintln(w, `{}`)
 		} else if r.Method == "GET" && r.URL.String() == "/p?alt=json" {
@@ -606,10 +612,12 @@ func TestCreateInstancesValidate(t *testing.T) {
 	p := "p"
 	z := "z"
 	ad := []*compute.AttachedDisk{{Source: "d", Mode: defaultDiskMode}}
+	ad2 := []*compute.AttachedDisk{{Source: "d2", Mode: defaultDiskMode}}
 	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/mt", p, z)
 	dCreator := &Step{name: "dCreator", w: w}
 	w.Steps["dCreator"] = dCreator
 	disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", p, z)}, dCreator)
+	disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/p.com:something/zones/%s/disks/d", z)}, dCreator)
 
 	tests := []struct {
 		desc      string
@@ -617,6 +625,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 		shouldErr bool
 	}{
 		{"normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: p, Zone: z}, false},
+		{"normal case2", &CreateInstance{daisyName: "foo2", Instance: compute.Instance{Name: "foo2", Disks: ad2, MachineType: fmt.Sprintf("projects/p.com:something/zones/%s/machineTypes/mt", z)}, Project: "p.com:something", Zone: z}, false},
 		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: p, Zone: z}, true},
 		{"bad name case", &CreateInstance{Instance: compute.Instance{Name: "bad!", Disks: ad, MachineType: mt}, Project: p, Zone: z}, true},
 		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "bar", Disks: ad, MachineType: mt}, Project: "bad!", Zone: z}, true},
