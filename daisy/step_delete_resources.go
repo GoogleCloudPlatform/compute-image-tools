@@ -29,6 +29,21 @@ type DeleteResources struct {
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) error {
+	for i, disk := range d.Disks {
+		if diskURLRgx.MatchString(disk) {
+			d.Disks[i] = extendPartialURL(disk, s.w.Project)
+		}
+	}
+	for i, image := range d.Images {
+		if imageURLRgx.MatchString(image) {
+			d.Images[i] = extendPartialURL(image, s.w.Project)
+		}
+	}
+	for i, instance := range d.Instances {
+		if instanceURLRgx.MatchString(instance) {
+			d.Instances[i] = extendPartialURL(instance, s.w.Project)
+		}
+	}
 	return nil
 }
 

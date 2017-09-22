@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -23,8 +24,25 @@ import (
 )
 
 func TestDeleteResourcesPopulate(t *testing.T) {
-	if err := (&DeleteResources{}).populate(context.Background(), &Step{}); err != nil {
-		t.Error("not implemented, err should be nil")
+	w := testWorkflow()
+	s, _ := w.NewStep("s")
+	s.DeleteResources = &DeleteResources{
+		Disks:     []string{"d", "zones/z/disks/d"},
+		Images:    []string{"i", "global/images/i"},
+		Instances: []string{"i", "zones/z/instances/i"},
+	}
+
+	if err := (s.DeleteResources).populate(context.Background(), s); err != nil {
+		t.Error("err should be nil")
+	}
+
+	want := &DeleteResources{
+		Disks:     []string{"d", fmt.Sprintf("projects/%s/zones/z/disks/d", w.Project)},
+		Images:    []string{"i", fmt.Sprintf("projects/%s/global/images/i", w.Project)},
+		Instances: []string{"i", fmt.Sprintf("projects/%s/zones/z/instances/i", w.Project)},
+	}
+	if diff := pretty.Compare(s.DeleteResources, want); diff != "" {
+		t.Errorf("DeleteResources not populated as expected: (-got,+want)\n%s", diff)
 	}
 }
 
@@ -32,7 +50,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 
-	s := &Step{w: w}
+	s, _ := w.NewStep("s")
 	ins := []*resource{{real: "in0", link: "link"}, {real: "in1", link: "link"}}
 	ims := []*resource{{real: "im0", link: "link"}, {real: "im1", link: "link"}}
 	ds := []*resource{{real: "d0", link: "link"}, {real: "d1", link: "link"}}
