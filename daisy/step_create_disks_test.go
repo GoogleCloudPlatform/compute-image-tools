@@ -30,7 +30,7 @@ func TestCreateDisksPopulate(t *testing.T) {
 	w := testWorkflow()
 	w.ComputeClient = nil
 	w.StorageClient = nil
-	s := &Step{w: w}
+	s, _ := w.NewStep("s")
 
 	genFoo := w.genName("foo")
 	defType := fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-standard", w.Project, w.Zone)

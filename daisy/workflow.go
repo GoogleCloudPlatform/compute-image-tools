@@ -234,7 +234,7 @@ func (w *Workflow) String() string {
 }
 
 func (w *Workflow) cleanup() {
-	w.logger.Printf("Workflow %q cleaning up (this may take up to 2 minutes.", w.Name)
+	w.logger.Printf("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
 			w.logger.Printf("Error returned from cleanup hook: %s", err)

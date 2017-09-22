@@ -25,6 +25,102 @@ import (
 	compute "google.golang.org/api/compute/v1"
 )
 
+func TestCreateImagePopulate(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+	w.ComputeClient = nil
+	w.StorageClient = nil
+	w.Sources = map[string]string{"d": "d"}
+	s, _ := w.NewStep("s")
+
+	genFoo := w.genName("foo")
+	gcsAPIPath, _ := getGCSAPIPath("gs://bucket/d")
+	tests := []struct {
+		desc        string
+		input, want *CreateImage
+		wantErr     bool
+	}{
+		{
+			"defaults case",
+			&CreateImage{Image: compute.Image{Name: "foo"}},
+			&CreateImage{Image: compute.Image{Name: genFoo}, daisyName: "foo", Project: w.Project},
+			false,
+		},
+		{
+			"nondefaults case",
+			&CreateImage{Image: compute.Image{Name: "foo"}, Project: "pfoo"},
+			&CreateImage{Image: compute.Image{Name: genFoo}, daisyName: "foo", Project: "pfoo"},
+			false,
+		},
+		{
+			"ExactName case",
+			&CreateImage{Image: compute.Image{Name: "foo"}, ExactName: true},
+			&CreateImage{Image: compute.Image{Name: "foo"}, daisyName: "foo", Project: w.Project, ExactName: true, RealName: "foo"},
+			false,
+		},
+		{
+			"RealName case",
+			&CreateImage{Image: compute.Image{Name: "foo"}, RealName: "foo-foo"},
+			&CreateImage{Image: compute.Image{Name: "foo-foo"}, daisyName: "foo", Project: w.Project, RealName: "foo-foo"},
+			false,
+		},
+		{
+			"SourceDisk case",
+			&CreateImage{Image: compute.Image{Name: "foo", SourceDisk: "d"}},
+			&CreateImage{Image: compute.Image{Name: genFoo, SourceDisk: "d"}, daisyName: "foo", Project: w.Project},
+			false,
+		},
+		{
+			"SourceDisk URL case",
+			&CreateImage{Image: compute.Image{Name: "foo", SourceDisk: "projects/p/zones/z/disks/d"}},
+			&CreateImage{Image: compute.Image{Name: genFoo, SourceDisk: "projects/p/zones/z/disks/d"}, daisyName: "foo", Project: w.Project},
+			false,
+		},
+		{
+			"extend SourceDisk URL case",
+			&CreateImage{Image: compute.Image{Name: "foo", SourceDisk: "zones/z/disks/d"}, Project: "p"},
+			&CreateImage{Image: compute.Image{Name: genFoo, SourceDisk: "projects/p/zones/z/disks/d"}, daisyName: "foo", Project: "p"},
+			false,
+		},
+		{
+			"RawDisk.Source from Sources case",
+			&CreateImage{Image: compute.Image{Name: "foo", RawDisk: &compute.ImageRawDisk{Source: "d"}}},
+			&CreateImage{Image: compute.Image{Name: genFoo, RawDisk: &compute.ImageRawDisk{Source: w.getSourceGCSAPIPath("d")}}, daisyName: "foo", Project: w.Project},
+			false,
+		},
+		{
+			"RawDisk.Source GCS URL case",
+			&CreateImage{Image: compute.Image{Name: "foo", RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/d"}}},
+			&CreateImage{Image: compute.Image{Name: genFoo, RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath}}, daisyName: "foo", Project: w.Project},
+			false,
+		},
+		{
+			"Bad RawDisk.Source case",
+			&CreateImage{Image: compute.Image{Name: "foo", RawDisk: &compute.ImageRawDisk{Source: "blah"}}},
+			nil,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		cis := &CreateImages{tt.input}
+		err := cis.populate(ctx, s)
+		// Short circuit the description field -- difficult to test, and unimportant.
+		if tt.want != nil {
+			tt.want.Description = tt.input.Description
+		}
+		if tt.wantErr {
+			if err == nil {
+				t.Errorf("%s: should have returned an error but didn't", tt.desc)
+			}
+		} else if err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		} else if diff := pretty.Compare(tt.input, tt.want); diff != "" {
+			t.Errorf("%s: populated CreateImage does not match expectation: (-got,+want)\n%s", tt.desc, diff)
+		}
+	}
+}
+
 func TestCreateImagesRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
@@ -93,19 +189,19 @@ func TestCreateImagesValidate(t *testing.T) {
 	disks[w].registerCreation("d3", &resource{}, d3Creator)
 	w.Sources = map[string]string{"source": "gs://some/file"}
 
+	n := "n"
 	tests := []struct {
 		desc      string
 		ci        *CreateImage
 		shouldErr bool
 	}{
-		{"good disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, false},
-		{"good raw disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i2", RawDisk: &compute.ImageRawDisk{Source: "source"}}}, false},
-		{"good raw disk case 2", &CreateImage{Project: testProject, Image: compute.Image{Name: "i3", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, false},
-		{"good disk url case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i4", SourceDisk: "zones/z/disks/d"}}, false},
-		{"good disk url case 2", &CreateImage{Project: testProject, Image: compute.Image{Name: "i5", SourceDisk: fmt.Sprintf("projects/%s/zones/z/disks/d", testProject)}}, false},
+		{"good disk case", &CreateImage{daisyName: "i1", Project: testProject, Image: compute.Image{Name: n, SourceDisk: "d1"}}, false},
+		{"good raw disk case", &CreateImage{daisyName: "i2", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "source"}}}, false},
+		{"good raw disk case 2", &CreateImage{daisyName: "i3", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, false},
+		{"good disk url case ", &CreateImage{daisyName: "i5", Project: testProject, Image: compute.Image{Name: n, SourceDisk: fmt.Sprintf("projects/%s/zones/z/disks/d", testProject)}}, false},
 		{"bad name case", &CreateImage{Project: testProject, Image: compute.Image{Name: "bad!", SourceDisk: "d1"}}, true},
 		{"bad project case", &CreateImage{Project: "bad!", Image: compute.Image{Name: "i6", SourceDisk: "d1"}}, true},
-		{"bad dupe name case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, true},
+		{"bad dupe name case", &CreateImage{daisyName: "i1", Project: testProject, Image: compute.Image{Name: n, SourceDisk: "d1"}}, true},
 		{"bad missing dep on disk creator case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d3"}}, true},
 		{"bad disk deleted case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},
 		{"bad using disk and raw disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},
