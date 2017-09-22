@@ -53,7 +53,7 @@ type CreateInstance struct {
 	// If set Daisy will use this as the resource name instead generating a name.
 	RealName string `json:",omitempty"`
 
-	// The name of the disk as known internally to Daisy.
+	// The name of the disk as known to the Daisy user.
 	daisyName string
 	// Deprecated: Use RealName instead.
 	ExactName bool

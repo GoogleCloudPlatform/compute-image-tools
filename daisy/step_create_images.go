@@ -40,7 +40,7 @@ type CreateImage struct {
 	// If set Daisy will use this as the resource name instead generating a name.
 	RealName string `json:",omitempty"`
 
-	// The name of the disk as known internally to Daisy.
+	// The name of the disk as known to the Daisy user.
 	daisyName string
 	// Deprecated: Use RealName instead.
 	ExactName bool
@@ -88,9 +88,6 @@ func (c *CreateImages) populate(ctx context.Context, s *Step) error {
 }
 
 func (c *CreateImages) validate(ctx context.Context, s *Step) error {
-	if err := c.populate(ctx, s); err != nil {
-		return err
-	}
 	for _, ci := range *c {
 		if !checkName(ci.Name) {
 			return fmt.Errorf("can't create image: bad name: %q", ci.Name)
