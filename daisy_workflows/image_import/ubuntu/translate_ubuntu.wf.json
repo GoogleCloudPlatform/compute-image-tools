@@ -15,7 +15,8 @@
     }
   },
   "Sources": {
-    "translate_ubuntu.sh": "./translate_ubuntu.sh"
+    "translate_ubuntu.sh": "./translate_ubuntu.sh",
+    "translate_ubuntu.py": "./translate_ubuntu.py"
   },
   "Steps": {
     "setup-disk": {
