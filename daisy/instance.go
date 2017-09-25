@@ -29,33 +29,33 @@ const (
 )
 
 var (
-	instances      = map[*Workflow]*instanceMap{}
+	instances      = map[*Workflow]*instanceRegistry{}
 	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/instances/(?P<instance>%[2]s)$`, projectRgxStr, rfc1035))
 	validDiskModes = []string{diskModeRO, diskModeRW}
 )
 
-type instanceMap struct {
-	baseResourceMap
+type instanceRegistry struct {
+	baseResourceRegistry
 }
 
-func initInstanceMap(w *Workflow) {
-	im := &instanceMap{baseResourceMap: baseResourceMap{w: w, typeName: "instance", urlRgx: instanceURLRgx}}
-	im.baseResourceMap.deleteFn = im.deleteFn
-	im.init()
-	instances[w] = im
+func initInstanceRegistry(w *Workflow) {
+	ir := &instanceRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "instance", urlRgx: instanceURLRgx}}
+	ir.baseResourceRegistry.deleteFn = ir.deleteFn
+	ir.init()
+	instances[w] = ir
 }
 
-func (im *instanceMap) deleteFn(r *resource) error {
-	m := namedSubexp(instanceURLRgx, r.link)
-	if err := im.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"]); err != nil {
+func (ir *instanceRegistry) deleteFn(res *resource) error {
+	m := namedSubexp(instanceURLRgx, res.link)
+	if err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"]); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (im *instanceMap) registerCreation(name string, r *resource, s *Step) error {
+func (ir *instanceRegistry) registerCreation(name string, res *resource, s *Step) error {
 	// Base creation logic.
-	if err := im.baseResourceMap.registerCreation(name, r, s); err != nil {
+	if err := ir.baseResourceRegistry.registerCreation(name, res, s); err != nil {
 		return err
 	}
 
@@ -72,18 +72,18 @@ func (im *instanceMap) registerCreation(name string, r *resource, s *Step) error
 		if d.InitializeParams != nil {
 			dName = d.InitializeParams.DiskName
 		}
-		if err := disks[im.w].registerAttachment(dName, ci.daisyName, d.Mode, s); err != nil {
+		if err := disks[ir.w].registerAttachment(dName, ci.daisyName, d.Mode, s); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (im *instanceMap) registerDeletion(name string, s *Step) error {
-	if err := im.baseResourceMap.registerDeletion(name, s); err != nil {
+func (ir *instanceRegistry) registerDeletion(name string, s *Step) error {
+	if err := ir.baseResourceRegistry.registerDeletion(name, s); err != nil {
 		return err
 	}
-	return disks[im.w].registerAllDetachments(name, s)
+	return disks[ir.w].registerAllDetachments(name, s)
 }
 
 func checkDiskMode(m string) bool {

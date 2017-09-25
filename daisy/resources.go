@@ -32,30 +32,30 @@ type resource struct {
 	users            []*Step
 }
 
-type baseResourceMap struct {
+type baseResourceRegistry struct {
 	w  *Workflow
 	m  map[string]*resource
 	mx sync.Mutex
 
-	deleteFn func(r *resource) error
+	deleteFn func(res *resource) error
 	typeName string
 	urlRgx   *regexp.Regexp
 }
 
-func (rm *baseResourceMap) init() {
-	rm.m = map[string]*resource{}
+func (r *baseResourceRegistry) init() {
+	r.m = map[string]*resource{}
 }
 
-func (rm *baseResourceMap) cleanup() {
+func (r *baseResourceRegistry) cleanup() {
 	var wg sync.WaitGroup
-	for name, r := range rm.m {
-		if r.noCleanup || r.deleted {
+	for name, res := range r.m {
+		if res.noCleanup || res.deleted {
 			continue
 		}
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			if err := rm.delete(name); err != nil {
+			if err := r.delete(name); err != nil {
 				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code != 404 {
 					fmt.Println(err)
 				}
@@ -65,123 +65,123 @@ func (rm *baseResourceMap) cleanup() {
 	wg.Wait()
 }
 
-func (rm *baseResourceMap) delete(name string) error {
-	r, ok := rm.get(name)
+func (r *baseResourceRegistry) delete(name string) error {
+	res, ok := r.get(name)
 	if !ok {
 		return fmt.Errorf("cannot delete %q; does not exist in resource map", name)
 	}
-	r.mx.Lock()
-	defer r.mx.Unlock()
-	if r.deleted {
+	res.mx.Lock()
+	defer res.mx.Unlock()
+	if res.deleted {
 		return fmt.Errorf("cannot delete %q; already deleted", name)
 	}
-	if err := rm.deleteFn(r); err != nil {
+	if err := r.deleteFn(res); err != nil {
 		return err
 	}
-	r.deleted = true
+	res.deleted = true
 	return nil
 }
 
-func (rm *baseResourceMap) get(name string) (*resource, bool) {
-	rm.mx.Lock()
-	defer rm.mx.Unlock()
-	r, ok := rm.m[name]
-	return r, ok
+func (r *baseResourceRegistry) get(name string) (*resource, bool) {
+	r.mx.Lock()
+	defer r.mx.Unlock()
+	res, ok := r.m[name]
+	return res, ok
 }
 
-func (rm *baseResourceMap) registerCreation(name string, r *resource, s *Step) error {
+func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *Step) error {
 	// Create a resource reference, known by name. Check:
 	// - no duplicates known by name
-	rm.mx.Lock()
-	defer rm.mx.Unlock()
-	if r, ok := rm.m[name]; ok {
-		return fmt.Errorf("cannot create %s %q; already created by step %q", rm.typeName, name, r.creator.name)
+	r.mx.Lock()
+	defer r.mx.Unlock()
+	if res, ok := r.m[name]; ok {
+		return fmt.Errorf("cannot create %s %q; already created by step %q", r.typeName, name, res.creator.name)
 	}
-	r.creator = s
-	rm.m[name] = r
+	res.creator = s
+	r.m[name] = res
 	return nil
 }
 
-func (rm *baseResourceMap) registerDeletion(name string, s *Step) error {
+func (r *baseResourceRegistry) registerDeletion(name string, s *Step) error {
 	// Mark a resource reference for deletion. Check:
 	// - don't dupe deletion of name.
 	// - s depends on ALL registered users and creator of name.
-	rm.mx.Lock()
-	defer rm.mx.Unlock()
+	r.mx.Lock()
+	defer r.mx.Unlock()
 	var ok bool
-	var r *resource
-	if rm.urlRgx != nil && rm.urlRgx.MatchString(name) {
+	var res *resource
+	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
 		var err error
-		r, err = rm.registerExisting(name)
+		res, err = r.registerExisting(name)
 		if err != nil {
 			return err
 		}
-	} else if r, ok = rm.m[name]; !ok {
-		return fmt.Errorf("missing reference for %s %q", rm.typeName, name)
+	} else if res, ok = r.m[name]; !ok {
+		return fmt.Errorf("missing reference for %s %q", r.typeName, name)
 	}
 
-	if r.deleter != nil {
-		return fmt.Errorf("cannot delete %s %q: already deleted by step %q", rm.typeName, name, r.deleter.name)
+	if res.deleter != nil {
+		return fmt.Errorf("cannot delete %s %q: already deleted by step %q", r.typeName, name, res.deleter.name)
 	}
-	us := r.users
-	if r.creator != nil {
-		us = append(us, r.creator)
+	us := res.users
+	if res.creator != nil {
+		us = append(us, res.creator)
 	}
 	for _, u := range us {
 		if !s.nestedDepends(u) {
-			return fmt.Errorf("deleting %s %q MUST transitively depend on step %q which references %q", rm.typeName, name, u.name, name)
+			return fmt.Errorf("deleting %s %q MUST transitively depend on step %q which references %q", r.typeName, name, u.name, name)
 		}
 	}
-	r.deleter = s
+	res.deleter = s
 	return nil
 }
 
-func (rm *baseResourceMap) registerExisting(url string) (*resource, error) {
+func (r *baseResourceRegistry) registerExisting(url string) (*resource, error) {
 	if !strings.HasPrefix(url, "projects/") {
 		return nil, fmt.Errorf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
-	if r, ok := rm.m[url]; ok {
+	if r, ok := r.m[url]; ok {
 		return r, nil
 	}
 	parts := strings.Split(url, "/")
-	r := &resource{real: parts[len(parts)-1], link: url, noCleanup: true}
-	rm.m[url] = r
-	return r, nil
+	res := &resource{real: parts[len(parts)-1], link: url, noCleanup: true}
+	r.m[url] = res
+	return res, nil
 }
 
-func (rm *baseResourceMap) registerUsage(name string, s *Step) (*resource, error) {
+func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*resource, error) {
 	// Make s a user of name. Check:
 	// - s depends on creator of name, if there is a creator.
 	// - name doesn't have a registered deleter yet, usage must occur before deletion.
-	rm.mx.Lock()
-	defer rm.mx.Unlock()
+	r.mx.Lock()
+	defer r.mx.Unlock()
 	var ok bool
-	var r *resource
-	if rm.urlRgx != nil && rm.urlRgx.MatchString(name) {
+	var res *resource
+	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
 		var err error
-		r, err = rm.registerExisting(name)
+		res, err = r.registerExisting(name)
 		if err != nil {
 			return nil, err
 		}
-	} else if r, ok = rm.m[name]; !ok {
-		return nil, fmt.Errorf("missing reference for %s %q", rm.typeName, name)
+	} else if res, ok = r.m[name]; !ok {
+		return nil, fmt.Errorf("missing reference for %s %q", r.typeName, name)
 	}
 
-	if r.creator != nil && !s.nestedDepends(r.creator) {
-		return nil, fmt.Errorf("using %s %q MUST transitively depend on step %q which creates %q", rm.typeName, name, r.creator.name, name)
+	if res.creator != nil && !s.nestedDepends(res.creator) {
+		return nil, fmt.Errorf("using %s %q MUST transitively depend on step %q which creates %q", r.typeName, name, res.creator.name, name)
 	}
-	if r.deleter != nil {
-		return nil, fmt.Errorf("using %s %q; step %q deletes %q and MUST transitively depend on this step", rm.typeName, name, r.deleter.name, name)
+	if res.deleter != nil {
+		return nil, fmt.Errorf("using %s %q; step %q deletes %q and MUST transitively depend on this step", r.typeName, name, res.deleter.name, name)
 	}
 
-	rm.m[name].users = append(rm.m[name].users, s)
-	return r, nil
+	r.m[name].users = append(r.m[name].users, s)
+	return res, nil
 }
 
 func initWorkflowResources(w *Workflow) {
-	initDiskMap(w)
-	initImageMap(w)
-	initInstanceMap(w)
+	initDiskRegistry(w)
+	initImageRegistry(w)
+	initInstanceRegistry(w)
 	w.addCleanupHook(resourceCleanupHook(w))
 }
 
