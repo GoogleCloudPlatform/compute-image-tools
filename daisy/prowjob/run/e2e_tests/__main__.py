@@ -13,21 +13,22 @@
 # limitations under the License.
 
 import argparse
-from Crypto import Random
 import glob
 import multiprocessing
 import os
+import requests
 import sys
 import tarfile
 import time
 
-import apiclient
-from oauth2client.service_account import ServiceAccountCredentials
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
 
 from run import common
 from run import git
 from run import gcs
 from run import logging
+
 
 ARGS = []
 PARALLEL_TESTS = 10
@@ -37,11 +38,12 @@ REPO_URL = 'https://github.com/%s/%s.git' % (REPO_OWNER, REPO_NAME)
 TEST_PROJECT = 'gce-daisy-test'
 TEST_ID = str(common.utc_timestamp())
 TEST_BUCKET = gcs.BUCKET
-TEST_GCS_DIR = os.path.join('tests', TEST_ID)
+TEST_GCS_DIR = common.urljoin('tests', TEST_ID)
 WFS_TAR = 'wfs.tar.gz'
-TEST_WFS_GCS = os.path.join(TEST_GCS_DIR, WFS_TAR)
+TEST_WFS_GCS = common.urljoin(TEST_GCS_DIR, WFS_TAR)
 
-cloud_builder_client = None
+BUILD_API_URL = 'https://cloudbuild.googleapis.com/v1'
+session = None
 
 
 def main():
@@ -86,10 +88,6 @@ def parse_args(arguments=None):
 def run_wf(wf):
     logging.info('Running test %s', wf)
 
-    # This is called by multiple processes and pycrypto requires that each
-    # fork calls this.
-    Random.atfork()
-
     body = {
         'source': {
             'storageSource': {
@@ -97,7 +95,7 @@ def run_wf(wf):
                 'object': TEST_WFS_GCS,
             }
         },
-        'logsBucket': os.path.join(TEST_BUCKET, TEST_GCS_DIR),
+        'logsBucket': common.urljoin(TEST_BUCKET, TEST_GCS_DIR),
         'steps': [{
             'name': 'gcr.io/compute-image-tools/daisy:latest',
             'args': [
@@ -106,27 +104,44 @@ def run_wf(wf):
             ],
         }]
     }
-    client = cloud_builder_client
-    op = client.projects().builds().create(
-            projectId=TEST_PROJECT, body=body).execute()
-    op_name = op['name']
-    while 'done' not in op or not op['done']:
-        time.sleep(2)
-        op = client.operations().get(name=op_name).execute() or op
-
-    if 'error' in op:
-        logging.error('Error running test %s: %s', wf, op['error'])
+    method = common.urljoin('projects', TEST_PROJECT, 'builds')
+    resp = session.post(common.urljoin(BUILD_API_URL, method), json=body)
+    try:
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        logging.error('Error creating test build %s: %s', wf, e)
         return 1
-    return 0
+
+    op_name = resp.json()['name']
+    data = {}
+    while not data.get('done', False):
+        time.sleep(5)
+        resp = session.get(common.urljoin(BUILD_API_URL, op_name))
+        try:
+            resp.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            logging.error('Error getting test %s status: %s', wf, e)
+            return 1
+        data = resp.json()
+
+    if 'error' in data:
+        logging.error('Test %s failed: %s', wf, data['error'])
+        return 1
+    else:
+        logging.info('Test %s finished successfully.', wf)
+        return 0
+
+
+def setup_session():
+    scopes = ['https://www.googleapis.com/auth/cloud-platform']
+    creds, _ = google.auth.default(scopes)
+    return AuthorizedSession(creds)
 
 
 if __name__ == '__main__':
     ARGS = parse_args()
-    creds_filepath = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
-    creds = ServiceAccountCredentials.from_json_keyfile_name(
-            creds_filepath, ['https://www.googleapis.com/auth/cloud-platform'])
-    cloud_builder_client = apiclient.discovery.build(
-            'cloudbuild', 'v1', credentials=creds)
+    session = setup_session()
+
     return_code = main()
     logging.info('main() returned with code %s', return_code)
     logging.shutdown()
