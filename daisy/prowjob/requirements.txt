@@ -1,4 +1,7 @@
 google-api-python-client
 google-auth
 google-cloud-storage
-pycrypto
+ndg-httpsclient
+pyasn1
+pyopenssl
+requests

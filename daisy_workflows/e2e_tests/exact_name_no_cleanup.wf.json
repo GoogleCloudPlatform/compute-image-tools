@@ -8,7 +8,7 @@
       "CreateDisks": [
         {
           "Name": "disk-${test-id}",
-          "Source": "projects/debian-cloud/global/images/family/debian-9",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
           "ExactName": true,
           "NoCleanup": true
         }
