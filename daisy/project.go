@@ -22,15 +22,15 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-var projectResource struct {
+var projectCache struct {
 	exists []string
 	mu     sync.Mutex
 }
 
 func projectExists(client compute.Client, project string) (bool, error) {
-	projectResource.mu.Lock()
-	defer projectResource.mu.Unlock()
-	if strIn(project, projectResource.exists) {
+	projectCache.mu.Lock()
+	defer projectCache.mu.Unlock()
+	if strIn(project, projectCache.exists) {
 		return true, nil
 	}
 	if _, err := client.GetProject(project); err != nil {
@@ -40,6 +40,6 @@ func projectExists(client compute.Client, project string) (bool, error) {
 			return false, err
 		}
 	}
-	projectResource.exists = append(projectResource.exists, project)
+	projectCache.exists = append(projectCache.exists, project)
 	return true, nil
 }
