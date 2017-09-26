@@ -17,9 +17,9 @@ package daisy
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
-	"fmt"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"

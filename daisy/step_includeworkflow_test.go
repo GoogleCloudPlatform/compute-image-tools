@@ -16,10 +16,10 @@ package daisy
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
-	"fmt"
 	"github.com/kylelemons/godebug/pretty"
 )
 

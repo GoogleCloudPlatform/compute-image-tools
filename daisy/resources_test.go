@@ -16,12 +16,11 @@ package daisy
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
-
-	"fmt"
 
 	"github.com/kylelemons/godebug/pretty"
 )
