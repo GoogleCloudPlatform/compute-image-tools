@@ -53,12 +53,18 @@ type TestClient struct {
 	DeleteImageFn         func(project, name string) error
 	DeleteInstanceFn      func(project, zone, name string) error
 	GetMachineTypeFn      func(project, zone, machineType string) (*compute.MachineType, error)
+	ListMachineTypesFn    func(project, zone string) (*compute.MachineTypeList, error)
 	GetProjectFn          func(project string) (*compute.Project, error)
 	GetSerialPortOutputFn func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZoneFn             func(project, zone string) (*compute.Zone, error)
+	ListZonesFn           func(project string) (*compute.ZoneList, error)
 	GetInstanceFn         func(project, zone, name string) (*compute.Instance, error)
+	ListInstancesFn       func(project, zone string) (*compute.InstanceList, error)
 	GetDiskFn             func(project, zone, name string) (*compute.Disk, error)
+	ListDisksFn           func(project, zone string) (*compute.DiskList, error)
 	GetImageFn            func(project, name string) (*compute.Image, error)
+	GetImageFromFamilyFn  func(project, family string) (*compute.Image, error)
+	ListImagesFn          func(project string) (*compute.ImageList, error)
 	InstanceStatusFn      func(project, zone, name string) (string, error)
 	InstanceStoppedFn     func(project, zone, name string) (bool, error)
 	RetryFn               func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -132,10 +138,18 @@ func (c *TestClient) GetProject(project string) (*compute.Project, error) {
 
 // GetMachineType uses the override method GetMachineTypeFn or the real implementation.
 func (c *TestClient) GetMachineType(project, zone, machineType string) (*compute.MachineType, error) {
-	if c.GetZoneFn != nil {
+	if c.GetMachineTypeFn != nil {
 		return c.GetMachineTypeFn(project, zone, machineType)
 	}
 	return c.client.GetMachineType(project, zone, machineType)
+}
+
+// ListMachineTypes uses the override method ListMachineTypesFn or the real implementation.
+func (c *TestClient) ListMachineTypes(project, zone string) (*compute.MachineTypeList, error) {
+	if c.ListMachineTypesFn != nil {
+		return c.ListMachineTypesFn(project, zone)
+	}
+	return c.client.ListMachineTypes(project, zone)
 }
 
 // GetZone uses the override method GetZoneFn or the real implementation.
@@ -146,12 +160,28 @@ func (c *TestClient) GetZone(project, zone string) (*compute.Zone, error) {
 	return c.client.GetZone(project, zone)
 }
 
+// ListZones uses the override method ListZonesFn or the real implementation.
+func (c *TestClient) ListZones(project string) (*compute.ZoneList, error) {
+	if c.ListZonesFn != nil {
+		return c.ListZonesFn(project)
+	}
+	return c.client.ListZones(project)
+}
+
 // GetInstance uses the override method GetZoneFn or the real implementation.
 func (c *TestClient) GetInstance(project, zone, name string) (*compute.Instance, error) {
 	if c.GetInstanceFn != nil {
 		return c.GetInstanceFn(project, zone, name)
 	}
 	return c.client.GetInstance(project, zone, name)
+}
+
+// ListInstances uses the override method ListInstancesFn or the real implementation.
+func (c *TestClient) ListInstances(project, zone string) (*compute.InstanceList, error) {
+	if c.ListInstancesFn != nil {
+		return c.ListInstancesFn(project, zone)
+	}
+	return c.client.ListInstances(project, zone)
 }
 
 // GetDisk uses the override method GetZoneFn or the real implementation.
@@ -162,12 +192,36 @@ func (c *TestClient) GetDisk(project, zone, name string) (*compute.Disk, error) 
 	return c.client.GetDisk(project, zone, name)
 }
 
-// GetImage uses the override method GetZoneFn or the real implementation.
+// ListDisks uses the override method ListDisksFn or the real implementation.
+func (c *TestClient) ListDisks(project, zone string) (*compute.DiskList, error) {
+	if c.ListDisksFn != nil {
+		return c.ListDisksFn(project, zone)
+	}
+	return c.client.ListDisks(project, zone)
+}
+
+// GetImage uses the override method GetImageFn or the real implementation.
 func (c *TestClient) GetImage(project, name string) (*compute.Image, error) {
 	if c.GetImageFn != nil {
 		return c.GetImageFn(project, name)
 	}
 	return c.client.GetImage(project, name)
+}
+
+// GetImageFromFamily uses the override method GetImageFromFamilyFn or the real implementation.
+func (c *TestClient) GetImageFromFamily(project, family string) (*compute.Image, error) {
+	if c.GetImageFromFamilyFn != nil {
+		return c.GetImageFromFamilyFn(project, family)
+	}
+	return c.client.GetImageFromFamily(project, family)
+}
+
+// ListImages uses the override method ListImagesFn or the real implementation.
+func (c *TestClient) ListImages(project string) (*compute.ImageList, error) {
+	if c.ListImagesFn != nil {
+		return c.ListImagesFn(project)
+	}
+	return c.client.ListImages(project)
 }
 
 // GetSerialPortOutput uses the override method GetSerialPortOutputFn or the real implementation.

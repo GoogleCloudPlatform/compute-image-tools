@@ -18,6 +18,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 const (
@@ -90,4 +93,32 @@ func checkDiskMode(m string) bool {
 	parts := strings.Split(m, "/")
 	m = parts[len(parts)-1]
 	return strIn(m, validDiskModes)
+}
+
+var instanceCache struct {
+	exists map[string]map[string][]string
+	mu     sync.Mutex
+}
+
+func instanceExists(client compute.Client, project, zone, instance string) (bool, error) {
+	instanceCache.mu.Lock()
+	defer instanceCache.mu.Unlock()
+	if instanceCache.exists == nil {
+		instanceCache.exists = map[string]map[string][]string{}
+	}
+	if _, ok := instanceCache.exists[project]; !ok {
+		instanceCache.exists[project] = map[string][]string{}
+	}
+	if _, ok := instanceCache.exists[project][zone]; !ok {
+		il, err := client.ListInstances(project, zone)
+		if err != nil {
+			return false, fmt.Errorf("error listing instances for project %q: %v", project, err)
+		}
+		var instances []string
+		for _, i := range il.Items {
+			instances = append(instances, i.Name)
+		}
+		instanceCache.exists[project][zone] = instances
+	}
+	return strIn(instance, instanceCache.exists[project][zone]), nil
 }

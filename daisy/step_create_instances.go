@@ -323,8 +323,10 @@ func (c *CreateInstance) validateMachineType(client daisyCompute.Client) (errs E
 		errs.add(Errorf("cannot create instance in zone %q with MachineType in zone %q: %q", c.Zone, result["zone"], c.MachineType))
 	}
 
-	if err := checkMachineType(client, result["project"], result["zone"], result["machinetype"]); err != nil {
-		errs.add(Errorf("cannot create instance, bad machineType: %q, error: %v", result["machinetype"], err))
+	if exists, err := machineTypeExists(client, result["project"], result["zone"], result["machinetype"]); err != nil {
+		errs.add(Errorf("cannot create instance, bad machineType lookup: %q, error: %v", result["machinetype"], err))
+	} else if !exists {
+		errs.add(Errorf("cannot create instance, machineType does not exist: %q", result["machinetype"]))
 	}
 	return
 }
@@ -350,11 +352,17 @@ func (c *CreateInstances) validate(ctx context.Context, s *Step) error {
 		if !checkName(ci.Name) {
 			errs.add(Errorf("cannot create instance %q: bad name", ci.Name))
 		}
-		if err := checkProject(s.w.ComputeClient, ci.Project); err != nil {
-			return fmt.Errorf("cannot create disk: bad project: %q, error: %v", ci.Project, err)
+
+		if exists, err := projectExists(s.w.ComputeClient, ci.Project); err != nil {
+			return fmt.Errorf("cannot create instance: bad project lookup: %q, error: %v", ci.Project, err)
+		} else if !exists {
+			return fmt.Errorf("cannot create instance: project does not exist: %q", ci.Project)
 		}
-		if err := checkZone(s.w.ComputeClient, ci.Project, ci.Zone); err != nil {
-			return fmt.Errorf("cannot create instance: bad zone: %q, error: %v", ci.Zone, err)
+
+		if exists, err := zoneExists(s.w.ComputeClient, ci.Project, ci.Zone); err != nil {
+			return fmt.Errorf("cannot create instance: bad zone lookup: %q, error: %v", ci.Zone, err)
+		} else if !exists {
+			return fmt.Errorf("cannot create instance: zone does not exist: %q", ci.Zone)
 		}
 
 		errs.add(ci.validateDisks(ctx, s)...)

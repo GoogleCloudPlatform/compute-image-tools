@@ -144,6 +144,19 @@ func TestCreateDisksValidate(t *testing.T) {
 	ctx := context.Background()
 	// Set up.
 	w := testWorkflow()
+	listZonesFn := func(_ string) (*compute.ZoneList, error) {
+		return &compute.ZoneList{Items: []*compute.Zone{{Name: testZone}}}, nil
+	}
+	getProjectFn := func(p string) (*compute.Project, error) {
+		if p == testProject {
+			return nil, nil
+		}
+		return nil, errors.New("bad project")
+	}
+	w.ComputeClient = &daisyCompute.TestClient{
+		ListZonesFn:  listZonesFn,
+		GetProjectFn: getProjectFn,
+	}
 
 	iCreator := &Step{name: "iCreator", w: w}
 	w.Steps["iCreator"] = iCreator

@@ -38,12 +38,18 @@ type Client interface {
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
+	ListMachineTypes(project, zone string) (*compute.MachineTypeList, error)
 	GetProject(project string) (*compute.Project, error)
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZone(project, zone string) (*compute.Zone, error)
+	ListZones(project string) (*compute.ZoneList, error)
 	GetInstance(project, zone, name string) (*compute.Instance, error)
+	ListInstances(project, zone string) (*compute.InstanceList, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
+	ListDisks(project, zone string) (*compute.DiskList, error)
 	GetImage(project, name string) (*compute.Image, error)
+	GetImageFromFamily(project, family string) (*compute.Image, error)
+	ListImages(project string) (*compute.ImageList, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -267,6 +273,15 @@ func (c *client) GetMachineType(project, zone, machineType string) (*compute.Mac
 	return mt, err
 }
 
+// ListMachineTypes gets a list of GCE MachineTypes.
+func (c *client) ListMachineTypes(project, zone string) (*compute.MachineTypeList, error) {
+	mt, err := c.raw.MachineTypes.List(project, zone).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.MachineTypes.List(project, zone).Do()
+	}
+	return mt, err
+}
+
 // GetProject gets a GCE Project.
 func (c *client) GetProject(project string) (*compute.Project, error) {
 	p, err := c.raw.Projects.Get(project).Do()
@@ -294,11 +309,29 @@ func (c *client) GetZone(project, zone string) (*compute.Zone, error) {
 	return z, err
 }
 
+// ListZones gets a list GCE Zones.
+func (c *client) ListZones(project string) (*compute.ZoneList, error) {
+	z, err := c.raw.Zones.List(project).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Zones.List(project).Do()
+	}
+	return z, err
+}
+
 // GetInstance gets a GCE Instance.
 func (c *client) GetInstance(project, zone, name string) (*compute.Instance, error) {
 	i, err := c.raw.Instances.Get(project, zone, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
 		return c.raw.Instances.Get(project, zone, name).Do()
+	}
+	return i, err
+}
+
+// ListInstances gets a list of GCE Instances.
+func (c *client) ListInstances(project, zone string) (*compute.InstanceList, error) {
+	i, err := c.raw.Instances.List(project, zone).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Instances.List(project, zone).Do()
 	}
 	return i, err
 }
@@ -312,11 +345,38 @@ func (c *client) GetDisk(project, zone, name string) (*compute.Disk, error) {
 	return d, err
 }
 
+// ListDisks gets a list of GCE Disks.
+func (c *client) ListDisks(project, zone string) (*compute.DiskList, error) {
+	d, err := c.raw.Disks.List(project, zone).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Disks.List(project, zone).Do()
+	}
+	return d, err
+}
+
 // GetImage gets a GCE Image.
 func (c *client) GetImage(project, name string) (*compute.Image, error) {
 	i, err := c.raw.Images.Get(project, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
 		return c.raw.Images.Get(project, name).Do()
+	}
+	return i, err
+}
+
+// GetImageFromFamily gets a GCE Image from an image family.
+func (c *client) GetImageFromFamily(project, family string) (*compute.Image, error) {
+	i, err := c.raw.Images.GetFromFamily(project, family).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Images.GetFromFamily(project, family).Do()
+	}
+	return i, err
+}
+
+// ListImages gets a list of GCE Images.
+func (c *client) ListImages(project string) (*compute.ImageList, error) {
+	i, err := c.raw.Images.List(project).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Images.List(project).Do()
 	}
 	return i, err
 }

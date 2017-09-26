@@ -24,21 +24,38 @@ import (
 
 var machineTypeURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/machineTypes/(?P<machinetype>%[2]s)$`, projectRgxStr, rfc1035))
 
-var machineTypes struct {
-	valid []string
-	mu    sync.Mutex
+var machineTypeCache struct {
+	exists map[string]map[string][]string
+	mu     sync.Mutex
 }
 
-func checkMachineType(client compute.Client, project, zone, machineType string) error {
-	machineTypes.mu.Lock()
-	defer machineTypes.mu.Unlock()
-	url := fmt.Sprintf("/project/%s/zone/%s/machinetype/%s", project, zone, machineType)
-	if strIn(url, machineTypes.valid) {
-		return nil
+func machineTypeExists(client compute.Client, project, zone, machineType string) (bool, error) {
+	machineTypeCache.mu.Lock()
+	defer machineTypeCache.mu.Unlock()
+	if machineTypeCache.exists == nil {
+		machineTypeCache.exists = map[string]map[string][]string{}
 	}
+	if _, ok := machineTypeCache.exists[project]; !ok {
+		machineTypeCache.exists[project] = map[string][]string{}
+	}
+	if _, ok := machineTypeCache.exists[project][zone]; !ok {
+		mtl, err := client.ListMachineTypes(project, zone)
+		if err != nil {
+			return false, fmt.Errorf("error listing machine types for project %q: %v", project, err)
+		}
+		var mts []string
+		for _, mt := range mtl.Items {
+			mts = append(mts, mt.Name)
+		}
+		machineTypeCache.exists[project][zone] = mts
+	}
+	if strIn(machineType, machineTypeCache.exists[project][zone]) {
+		return true, nil
+	}
+	// Check for custom machine types.
 	if _, err := client.GetMachineType(project, zone, machineType); err != nil {
-		return err
+		return false, err
 	}
-	machineTypes.valid = append(machineTypes.valid, url)
-	return nil
+	machineTypeCache.exists[project][zone] = append(machineTypeCache.exists[project][zone], machineType)
+	return true, nil
 }

@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/googleapi"
 )
 
@@ -89,6 +90,27 @@ func (r *baseResourceRegistry) get(name string) (*resource, bool) {
 	return res, ok
 }
 
+func resourceExists(client compute.Client, url string) (bool, error) {
+	if !strings.HasPrefix(url, "projects/") {
+		return false, fmt.Errorf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
+	}
+	switch {
+	case machineTypeURLRegex.MatchString(url):
+		result := namedSubexp(machineTypeURLRegex, url)
+		return machineTypeExists(client, result["project"], result["zone"], result["machinetype"])
+	case instanceURLRgx.MatchString(url):
+		result := namedSubexp(instanceURLRgx, url)
+		return instanceExists(client, result["project"], result["zone"], result["instance"])
+	case diskURLRgx.MatchString(url):
+		result := namedSubexp(diskURLRgx, url)
+		return diskExists(client, result["project"], result["zone"], result["disk"])
+	case imageURLRgx.MatchString(url):
+		result := namedSubexp(imageURLRgx, url)
+		return imageExists(client, result["project"], result["family"], result["image"])
+	}
+	return false, fmt.Errorf("unknown resource type: %q", url)
+}
+
 func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *Step) error {
 	// Create a resource reference, known by name. Check:
 	// - no duplicates known by name
@@ -97,6 +119,13 @@ func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *S
 	if res, ok := r.m[name]; ok {
 		return fmt.Errorf("cannot create %s %q; already created by step %q", r.typeName, name, res.creator.name)
 	}
+
+	if exists, err := resourceExists(r.w.ComputeClient, res.link); err != nil {
+		return fmt.Errorf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
+	} else if exists {
+		return fmt.Errorf("cannot create %s %q; resource already exists", r.typeName, name)
+	}
+
 	res.creator = s
 	r.m[name] = res
 	return nil
@@ -143,6 +172,12 @@ func (r *baseResourceRegistry) registerExisting(url string) (*resource, error) {
 	if r, ok := r.m[url]; ok {
 		return r, nil
 	}
+	if exists, err := resourceExists(r.w.ComputeClient, url); err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, fmt.Errorf("%s does not exist", url)
+	}
+
 	parts := strings.Split(url, "/")
 	res := &resource{real: parts[len(parts)-1], link: url, noCleanup: true}
 	r.m[url] = res

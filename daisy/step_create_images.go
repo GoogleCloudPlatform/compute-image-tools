@@ -94,8 +94,10 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		}
 
 		// Project checking.
-		if err := checkProject(s.w.ComputeClient, ci.Project); err != nil {
-			return fmt.Errorf("cannot create image: bad project: %q, error: %v", ci.Project, err)
+		if exists, err := projectExists(s.w.ComputeClient, ci.Project); err != nil {
+			return fmt.Errorf("cannot create image: bad project lookup: %q, error: %v", ci.Project, err)
+		} else if !exists {
+			return fmt.Errorf("cannot create image: project does not exist: %q", ci.Project)
 		}
 
 		// Source disk checking.
