@@ -16,6 +16,7 @@ import argparse
 import glob
 import multiprocessing
 import os
+import re
 import requests
 import sys
 import tarfile
@@ -44,6 +45,24 @@ TEST_WFS_GCS = common.urljoin(TEST_GCS_DIR, WFS_TAR)
 
 BUILD_API_URL = 'https://cloudbuild.googleapis.com/v1'
 session = None
+suite_rgx = re.compile(r'(?P<suite>.*[^\d])(?P<test_num>\d*)\.wf\.json$')
+
+
+def build_wf_suites(wfs):
+    suites = {}
+    for wf in wfs:
+        match = suite_rgx.match(wf)
+        if not match:
+            continue
+        suite = match.group('suite')
+        test_num = match.group('test_num')
+        test_num = int(test_num) if test_num else 0
+        suites[suite] = suites.get(suite, []) + [(test_num, wf)]
+
+    for suite in suites:
+        suites[suite] = sorted(suites[suite])
+
+    return suites
 
 
 def main():
@@ -65,8 +84,9 @@ def main():
     logging.info('Running test workflows.')
     wfs = glob.glob(os.path.join(wf_dir, '*.wf.json'))
     wfs = [os.path.basename(wf) for wf in wfs]
+    suites = build_wf_suites(wfs)
     pool = multiprocessing.Pool(PARALLEL_TESTS)
-    r = pool.map(run_wf, wfs)
+    r = pool.map(run_suite, suites.values())
     return int(any(r))
 
 
@@ -85,51 +105,52 @@ def parse_args(arguments=None):
     return args
 
 
-def run_wf(wf):
-    logging.info('Running test %s', wf)
+def run_suite(suite):
+    for _, wf in suite:
+        logging.info('Running test %s', wf)
 
-    body = {
-        'source': {
-            'storageSource': {
-                'bucket': TEST_BUCKET,
-                'object': TEST_WFS_GCS,
-            }
-        },
-        'logsBucket': common.urljoin(TEST_BUCKET, TEST_GCS_DIR),
-        'steps': [{
-            'name': 'gcr.io/compute-image-tools/daisy:latest',
-            'args': [
-                '-var:test-id=%s' % TEST_ID,
-                wf,
-            ],
-        }]
-    }
-    method = common.urljoin('projects', TEST_PROJECT, 'builds')
-    resp = session.post(common.urljoin(BUILD_API_URL, method), json=body)
-    try:
-        resp.raise_for_status()
-    except requests.exceptions.HTTPError as e:
-        logging.error('Error creating test build %s: %s', wf, e)
-        return 1
-
-    op_name = resp.json()['name']
-    data = {}
-    while not data.get('done', False):
-        time.sleep(5)
-        resp = session.get(common.urljoin(BUILD_API_URL, op_name))
+        body = {
+            'source': {
+                'storageSource': {
+                    'bucket': TEST_BUCKET,
+                    'object': TEST_WFS_GCS,
+                }
+            },
+            'logsBucket': common.urljoin(TEST_BUCKET, TEST_GCS_DIR),
+            'steps': [{
+                'name': 'gcr.io/compute-image-tools/daisy:latest',
+                'args': [
+                    '-var:test-id=%s' % TEST_ID,
+                    wf,
+                ],
+            }]
+        }
+        method = common.urljoin('projects', TEST_PROJECT, 'builds')
+        resp = session.post(common.urljoin(BUILD_API_URL, method), json=body)
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            logging.error('Error getting test %s status: %s', wf, e)
+            logging.error('Error creating test build %s: %s', wf, e)
             return 1
-        data = resp.json()
 
-    if 'error' in data:
-        logging.error('Test %s failed: %s', wf, data['error'])
-        return 1
-    else:
-        logging.info('Test %s finished successfully.', wf)
-        return 0
+        op_name = resp.json()['name']
+        data = {}
+        while not data.get('done', False):
+            time.sleep(5)
+            resp = session.get(common.urljoin(BUILD_API_URL, op_name))
+            try:
+                resp.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                logging.error('Error getting test %s status: %s', wf, e)
+                return 1
+            data = resp.json()
+
+        if 'error' in data:
+            logging.error('Test %s failed: %s', wf, data['error'])
+            return 1
+        else:
+            logging.info('Test %s finished successfully.', wf)
+    return 0
 
 
 def setup_session():
