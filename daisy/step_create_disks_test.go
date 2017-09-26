@@ -144,19 +144,6 @@ func TestCreateDisksValidate(t *testing.T) {
 	ctx := context.Background()
 	// Set up.
 	w := testWorkflow()
-	listZonesFn := func(_ string) (*compute.ZoneList, error) {
-		return &compute.ZoneList{Items: []*compute.Zone{{Name: testZone}}}, nil
-	}
-	getProjectFn := func(p string) (*compute.Project, error) {
-		if p == testProject {
-			return nil, nil
-		}
-		return nil, errors.New("bad project")
-	}
-	w.ComputeClient = &daisyCompute.TestClient{
-		ListZonesFn:  listZonesFn,
-		GetProjectFn: getProjectFn,
-	}
 
 	iCreator := &Step{name: "iCreator", w: w}
 	w.Steps["iCreator"] = iCreator
@@ -177,7 +164,7 @@ func TestCreateDisksValidate(t *testing.T) {
 		},
 		{
 			"source image url case",
-			&CreateDisk{daisyName: "d2", Disk: compute.Disk{Name: n, SourceImage: "projects/p/global/images/i", Type: ty}, Project: testProject, Zone: testZone},
+			&CreateDisk{daisyName: "d2", Disk: compute.Disk{Name: n, SourceImage: fmt.Sprintf("projects/%s/global/images/%s", testProject, testImage), Type: ty}, Project: testProject, Zone: testZone},
 			false,
 		},
 		{
@@ -229,7 +216,7 @@ func TestCreateDisksValidate(t *testing.T) {
 	// These track the expected state of the disk references and the image reference.
 	// Each good case adds a disk reference and adds a user to the image.
 	wantDisks := map[string]*resource{}
-	wantImages := &baseResourceRegistry{m: map[string]*resource{"i1": {creator: iCreator}}, urlRgx: imageURLRgx}
+	wantImages := &baseResourceRegistry{w: w, m: map[string]*resource{"i1": {creator: iCreator}}, urlRgx: imageURLRgx}
 
 	// These are compare helper functions. These clear up infinite recursion issues.
 	preCompare := func() {

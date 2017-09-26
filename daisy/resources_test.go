@@ -21,6 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"fmt"
+
 	"github.com/kylelemons/godebug/pretty"
 )
 
@@ -112,7 +114,7 @@ func TestResourceMapDelete(t *testing.T) {
 }
 
 func TestResourceMapConcurrency(t *testing.T) {
-	rm := baseResourceRegistry{}
+	rm := baseResourceRegistry{w: testWorkflow()}
 	rm.init()
 
 	tests := []struct {
@@ -171,14 +173,14 @@ func TestResourceMapGet(t *testing.T) {
 }
 
 func TestResourceMapRegisterCreation(t *testing.T) {
-	rm := &baseResourceRegistry{}
+	rm := &baseResourceRegistry{w: testWorkflow()}
 	rm.init()
-	r := &resource{}
+	r := &resource{link: "projects/foo/global/images/bar"}
 	s := &Step{}
 
 	// Normal create.
 	if err := rm.registerCreation("foo", r, s); err != nil {
-		t.Error("unexpected error registering creation of foo")
+		t.Fatalf("unexpected error registering creation of foo: %v", err)
 	}
 	if r.creator != s {
 		t.Error("foo does not have the correct creator")
@@ -188,7 +190,7 @@ func TestResourceMapRegisterCreation(t *testing.T) {
 	}
 
 	// Test duplication create.
-	if err := rm.registerCreation("foo", nil, nil); err == nil {
+	if err := rm.registerCreation("foo", r, nil); err == nil {
 		t.Error("should have returned an error, but didn't")
 	}
 }
@@ -237,17 +239,17 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 }
 
 func TestResourceMapRegisterExisting(t *testing.T) {
-	rm := &baseResourceRegistry{}
+	rm := &baseResourceRegistry{w: testWorkflow()}
 	rm.init()
 
-	defURL := "projects/p/zones/z/disks/d"
+	defURL := fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)
 	tests := []struct {
 		desc, url string
 		wantR     *resource
 		shouldErr bool
 	}{
-		{"normal case", defURL, &resource{real: "d", link: defURL, noCleanup: true}, false},
-		{"dupe case", defURL, &resource{real: "d", link: defURL, noCleanup: true}, false},
+		{"normal case", defURL, &resource{real: testDisk, link: defURL, noCleanup: true}, false},
+		{"dupe case", defURL, &resource{real: testDisk, link: defURL, noCleanup: true}, false},
 		{"incomplete partial URL case", "zones/z/disks/bad", nil, true},
 	}
 
@@ -266,7 +268,7 @@ func TestResourceMapRegisterExisting(t *testing.T) {
 		}
 	}
 
-	if diff := pretty.Compare(rm.m, map[string]*resource{defURL: {real: "d", link: defURL, noCleanup: true}}); diff != "" {
+	if diff := pretty.Compare(rm.m, map[string]*resource{defURL: {real: testDisk, link: defURL, noCleanup: true}}); diff != "" {
 		t.Errorf("resource map doesn't match expectation (-got +want)\n%s", diff)
 	}
 }

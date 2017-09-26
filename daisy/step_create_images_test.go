@@ -17,9 +17,9 @@ package daisy
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
+	"fmt"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
@@ -173,10 +173,6 @@ func TestCreateImagesValidate(t *testing.T) {
 	ctx := context.Background()
 
 	w := testWorkflow()
-	_, err := newTestGCEClient()
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	d1Creator := &Step{name: "d1Creator", w: w}
 	w.Steps["d1Creator"] = d1Creator
@@ -187,10 +183,18 @@ func TestCreateImagesValidate(t *testing.T) {
 	w.Dependencies["d2Deleter"] = []string{"d2Creator"}
 	d3Creator := &Step{name: "d3Creator", w: w}
 	w.Steps["d3Creator"] = d3Creator
-	disks[w].registerCreation("d1", &resource{}, d1Creator)
-	disks[w].registerCreation("d2", &resource{}, d2Creator)
-	disks[w].registerDeletion("d2", d2Deleter)
-	disks[w].registerCreation("d3", &resource{}, d3Creator)
+	if err := disks[w].registerCreation("d1", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d1", testProject, testZone)}, d1Creator); err != nil {
+		t.Fatal(err)
+	}
+	if err := disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", testProject, testZone)}, d2Creator); err != nil {
+		t.Fatal(err)
+	}
+	if err := disks[w].registerDeletion("d2", d2Deleter); err != nil {
+		t.Fatal(err)
+	}
+	if err := disks[w].registerCreation("d3", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d3", testProject, testZone)}, d3Creator); err != nil {
+		t.Fatal(err)
+	}
 	w.Sources = map[string]string{"source": "gs://some/file"}
 
 	n := "n"

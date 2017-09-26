@@ -410,7 +410,7 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 	// - bad disk mode case
 	ctx := context.Background()
 	w := testWorkflow()
-	disks[w].m = map[string]*resource{"d": {link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}}
+	disks[w].m = map[string]*resource{testDisk: {link: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}
 	m := defaultDiskMode
 
 	tests := []struct {
@@ -418,10 +418,10 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 		ci        *CreateInstance
 		shouldErr bool
 	}{
-		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d", Mode: m}}}, Project: testProject, Zone: testZone}, false},
-		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone), Mode: m}}}, Project: testProject, Zone: testZone}, false},
+		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: m}}}, Project: testProject, Zone: testZone}, false},
+		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk), Mode: m}}}, Project: testProject, Zone: testZone}, false},
 		{"bad no disks case", &CreateInstance{Instance: compute.Instance{Name: "foo"}}, true},
-		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d", Mode: "bad mode!"}}}, Project: testProject, Zone: testZone}, true},
+		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: "bad mode!"}}}, Project: testProject, Zone: testZone}, true},
 	}
 
 	for _, tt := range tests {
@@ -595,13 +595,18 @@ func TestCreateInstancesValidate(t *testing.T) {
 	// Set up.
 	w := testWorkflow()
 
-	getProjectFn := func(p string) (*compute.Project, error) {
+	c, err := newTestGCEClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c.GetProjectFn = func(p string) (*compute.Project, error) {
 		if p == testProject || p == "p.com:something" {
 			return nil, nil
 		}
 		return nil, errors.New("bad project: " + p)
 	}
-	listMachineTypesFn := func(p, z string) (*compute.MachineTypeList, error) {
+	c.ListMachineTypesFn = func(p, z string) (*compute.MachineTypeList, error) {
 		if p != testProject && p != "p.com:something" {
 			return nil, errors.New("bad project: " + p)
 		}
@@ -610,22 +615,31 @@ func TestCreateInstancesValidate(t *testing.T) {
 		}
 		return &compute.MachineTypeList{Items: []*compute.MachineType{{Name: testMachineType}}}, nil
 	}
-	c, err := newTestGCEClient()
-	if err != nil {
-		t.Fatal(err)
+	c.ListDisksFn = func(p, z string) (*compute.DiskList, error) {
+		if p != testProject && p != "p.com:something" {
+			return nil, errors.New("bad project: " + p)
+		}
+		if z != testZone {
+			return nil, errors.New("bad zone: " + z)
+		}
+		return &compute.DiskList{Items: []*compute.Disk{{Name: testDisk}}}, nil
 	}
 
-	c.GetProjectFn = getProjectFn
-	c.ListMachineTypesFn = listMachineTypesFn
 	w.ComputeClient = c
 
-	ad := []*compute.AttachedDisk{{Source: "d", Mode: defaultDiskMode}}
-	ad2 := []*compute.AttachedDisk{{Source: "d2", Mode: defaultDiskMode}}
 	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", testProject, testZone, testMachineType)
 	dCreator := &Step{name: "dCreator", w: w}
 	w.Steps["dCreator"] = dCreator
-	disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator)
-	disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/p.com:something/zones/%s/disks/d", testZone)}, dCreator)
+	if err := disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator); err != nil {
+		t.Fatal(err)
+	}
+	ad := []*compute.AttachedDisk{{Source: "d", Mode: defaultDiskMode}}
+
+	p2 := "p.com:something"
+	if err := disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", p2, testZone)}, dCreator); err != nil {
+		t.Fatal(err)
+	}
+	ad2 := []*compute.AttachedDisk{{Source: "d2", Mode: defaultDiskMode}}
 
 	tests := []struct {
 		desc      string
@@ -633,7 +647,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 		shouldErr bool
 	}{
 		{"normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: testProject, Zone: testZone}, false},
-		{"normal case2", &CreateInstance{daisyName: "foo2", Instance: compute.Instance{Name: "foo2", Disks: ad2, MachineType: fmt.Sprintf("projects/p.com:something/zones/%s/machineTypes/%s", testZone, testMachineType)}, Project: "p.com:something", Zone: testZone}, false},
+		{"normal case2", &CreateInstance{daisyName: "foo2", Instance: compute.Instance{Name: "foo2", Disks: ad2, MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", p2, testZone, testMachineType)}, Project: p2, Zone: testZone}, false},
 		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: testProject, Zone: testZone}, true},
 		{"bad name case", &CreateInstance{Instance: compute.Instance{Name: "bad!", Disks: ad, MachineType: mt}, Project: testProject, Zone: testZone}, true},
 		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "bar", Disks: ad, MachineType: mt}, Project: "bad!", Zone: testZone}, true},

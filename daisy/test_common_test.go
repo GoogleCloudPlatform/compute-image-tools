@@ -65,7 +65,7 @@ var (
 	testProject     = "test-project"
 	testZone        = "test-zone"
 	testDisk        = "test-disk"
-	testImage        = "test-image"
+	testImage       = "test-image"
 	testMachineType = "test-machine-type"
 	testGCSPath     = "gs://test-bucket"
 	testGCSObjs     []string
@@ -123,10 +123,10 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 	}
 	c.ListMachineTypesFn = func(p, z string) (*compute.MachineTypeList, error) {
 		if p != testProject {
-			return nil, errors.New("bad project")
+			return nil, errors.New("bad project: " + p)
 		}
 		if z != testZone {
-			return nil, errors.New("bad zone")
+			return nil, errors.New("bad zone: " + z)
 		}
 		return &compute.MachineTypeList{Items: []*compute.MachineType{{Name: testMachineType}}}, nil
 	}
@@ -138,10 +138,10 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 	}
 	c.ListDisksFn = func(p, z string) (*compute.DiskList, error) {
 		if p != testProject {
-			return nil, errors.New("bad project")
+			return nil, errors.New("bad project: " + p)
 		}
 		if z != testZone {
-			return nil, errors.New("bad zone")
+			return nil, errors.New("bad zone: " + z)
 		}
 		return &compute.DiskList{Items: []*compute.Disk{{Name: testDisk}}}, nil
 	}
