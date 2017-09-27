@@ -100,12 +100,12 @@ presubmits:
 periodics:
  - interval: 6h
    agent: kubernetes
-   name: ci-e2e-image-import-tests
+   name: ci-e2e
    spec:
     containers:
     - image: gcr.io/gce-daisy-test/prowjob:latest
       args:
-      - "--action=e2e_tests"
+      - "--action=ci_tests"
       - "--tests=e2e_tests"
       volumeMounts:
       - name: service
