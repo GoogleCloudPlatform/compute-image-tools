@@ -74,7 +74,7 @@ def main():
         return repo.clone_code
 
     logging.info('Tar\'ing workflows to upload to GCS.')
-    wf_dir = os.path.join('repo', 'daisy_workflows', ARGS.tests)
+    wf_dir = os.path.join('repo', 'daisy_workflows')
     with tarfile.open('wfs.tar.gz', 'w:gz') as tgz:
         tgz.add(wf_dir, arcname=os.path.sep)
 
@@ -82,8 +82,8 @@ def main():
     gcs.upload_file('wfs.tar.gz', TEST_WFS_GCS, 'application/gzip')
 
     logging.info('Running test workflows.')
-    wfs = glob.glob(os.path.join(wf_dir, '*.wf.json'))
-    wfs = [os.path.basename(wf) for wf in wfs]
+    wfs = glob.glob(os.path.join(wf_dir, ARGS.tests, '*.wf.json'))
+    wfs = [os.path.join(ARGS.tests, os.path.basename(wf)) for wf in wfs]
     suites = build_wf_suites(wfs)
     pool = multiprocessing.Pool(PARALLEL_TESTS)
     r = pool.map(run_suite, suites.values())
