@@ -61,18 +61,86 @@ triggers:
 #}
 presubmits:
  GoogleCloudPlatform/compute-image-tools:
- - name: unit-tests
+ - name: presubmit-daisy-go-fmt
    agent: kubernetes
    always_run: true
-   trigger: "(?m)^/test( unit-tests)?"
-   rerun_command: "/test unit-tests"
-   context: unit-tests
+   run_if_changed: "^daisy/.*\\.go$"
+   trigger: "(?m)^/go ?fmt"
+   rerun_command: "/gofmt"
+   context: prow/presubmit/daisy-go-fmt
    spec:
     containers:
     - image: gcr.io/gce-daisy-test/prowjob:latest
       args:
-      - "--action=unit_tests"
+      - "--action=presubmit"
       - "--pr=$(PULL_NUMBER)"
+      - "--gofmt"
+      volumeMounts:
+      - name: service
+        mountPath: /etc/service-account
+        readOnly: true
+    volumes:
+    - name: service
+      secret:
+       secretName: service-account
+ - name: presubmit-daisy-go-vet
+   agent: kubernetes
+   always_run: true
+   run_if_changed: "^daisy/.*\\.go$"
+   trigger: "(?m)^/go vet"
+   rerun_command: "/go vet"
+   context: prow/presubmit/daisy-go-vet
+   spec:
+    containers:
+    - image: gcr.io/gce-daisy-test/prowjob:latest
+      args:
+      - "--action=presubmit"
+      - "--pr=$(PULL_NUMBER)"
+      - "--govet"
+      volumeMounts:
+      - name: service
+        mountPath: /etc/service-account
+        readOnly: true
+    volumes:
+    - name: service
+      secret:
+       secretName: service-account
+ - name: presubmit-daisy-golint
+   agent: kubernetes
+   always_run: true
+   run_if_changed: "^daisy/.*\\.go$"
+   trigger: "(?m)^/golint"
+   rerun_command: "/golint"
+   context: prow/presubmit/daisy-golint
+   spec:
+    containers:
+    - image: gcr.io/gce-daisy-test/prowjob:latest
+      args:
+      - "--action=presubmit"
+      - "--pr=$(PULL_NUMBER)"
+      - "--golint"
+      volumeMounts:
+      - name: service
+        mountPath: /etc/service-account
+        readOnly: true
+    volumes:
+    - name: service
+      secret:
+       secretName: service-account
+ - name: presubmit-daisy-unit-tests
+   agent: kubernetes
+   always_run: true
+   run_if_changed: "^daisy/.*\\.go$"
+   trigger: "(?m)^/go test"
+   rerun_command: "/go test"
+   context: prow/presubmit/daisy-unit-tests
+   spec:
+    containers:
+    - image: gcr.io/gce-daisy-test/prowjob:latest
+      args:
+      - "--action=presubmit"
+      - "--pr=$(PULL_NUMBER)"
+      - "--gotest"
       volumeMounts:
       - name: service
         mountPath: /etc/service-account
@@ -100,12 +168,12 @@ presubmits:
 periodics:
  - interval: 6h
    agent: kubernetes
-   name: ci-e2e
+   name: ci-daisy-e2e
    spec:
     containers:
     - image: gcr.io/gce-daisy-test/prowjob:latest
       args:
-      - "--action=ci_tests"
+      - "--action=ci"
       - "--tests=e2e_tests"
       volumeMounts:
       - name: service
