@@ -127,10 +127,6 @@ def translate():
     except RuntimeError as msg:
       print '%s (ignored)' % msg
 
-  # Setup DNS for chroot.
-  g.rm('/etc/resolv.conf')
-  g.upload('/etc/resolv.conf', '/etc/resolv.conf')
-
   if rhel_license == 'true':
     if 'Red Hat' in g.cat('/etc/redhat-release'):
       g.command([

@@ -101,10 +101,6 @@ def translate():
     except RuntimeError as msg:
       print '%s (ignored)' % msg
 
-  # Setup DNS for chroot.
-  g.rm('/etc/resolv.conf')
-  g.upload('/etc/resolv.conf', '/etc/resolv.conf')
-
   if install_gce == 'true':
     g.command(['apt-get', 'update'])
     print 'Installing cloud-init.'
