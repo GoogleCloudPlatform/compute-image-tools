@@ -183,10 +183,18 @@ func TestCreateImagesValidate(t *testing.T) {
 	w.Dependencies["d2Deleter"] = []string{"d2Creator"}
 	d3Creator := &Step{name: "d3Creator", w: w}
 	w.Steps["d3Creator"] = d3Creator
-	disks[w].registerCreation("d1", &resource{}, d1Creator)
-	disks[w].registerCreation("d2", &resource{}, d2Creator)
-	disks[w].registerDeletion("d2", d2Deleter)
-	disks[w].registerCreation("d3", &resource{}, d3Creator)
+	if err := disks[w].registerCreation("d1", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d1", testProject, testZone)}, d1Creator); err != nil {
+		t.Fatal(err)
+	}
+	if err := disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", testProject, testZone)}, d2Creator); err != nil {
+		t.Fatal(err)
+	}
+	if err := disks[w].registerDeletion("d2", d2Deleter); err != nil {
+		t.Fatal(err)
+	}
+	if err := disks[w].registerCreation("d3", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d3", testProject, testZone)}, d3Creator); err != nil {
+		t.Fatal(err)
+	}
 	w.Sources = map[string]string{"source": "gs://some/file"}
 
 	n := "n"
@@ -198,10 +206,11 @@ func TestCreateImagesValidate(t *testing.T) {
 		{"good disk case", &CreateImage{daisyName: "i1", Project: testProject, Image: compute.Image{Name: n, SourceDisk: "d1"}}, false},
 		{"good raw disk case", &CreateImage{daisyName: "i2", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "source"}}}, false},
 		{"good raw disk case 2", &CreateImage{daisyName: "i3", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, false},
-		{"good disk url case ", &CreateImage{daisyName: "i5", Project: testProject, Image: compute.Image{Name: n, SourceDisk: fmt.Sprintf("projects/%s/zones/z/disks/d", testProject)}}, false},
+		{"good disk url case ", &CreateImage{daisyName: "i5", Project: testProject, Image: compute.Image{Name: n, SourceDisk: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, false},
 		{"bad name case", &CreateImage{Project: testProject, Image: compute.Image{Name: "bad!", SourceDisk: "d1"}}, true},
 		{"bad project case", &CreateImage{Project: "bad!", Image: compute.Image{Name: "i6", SourceDisk: "d1"}}, true},
 		{"bad dupe name case", &CreateImage{daisyName: "i1", Project: testProject, Image: compute.Image{Name: n, SourceDisk: "d1"}}, true},
+		{"bad dupe image name case", &CreateImage{Project: testProject, Image: compute.Image{Name: testImage, SourceDisk: "d1"}}, true},
 		{"bad missing dep on disk creator case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d3"}}, true},
 		{"bad disk deleted case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},
 		{"bad using disk and raw disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},

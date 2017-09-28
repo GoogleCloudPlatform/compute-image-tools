@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -112,7 +113,9 @@ func TestIncludeWorkflowValidate(t *testing.T) {
 	w.AddDependency("incStep", "dCreator")
 	dDeleter, _ := iw.NewStep("dDeleter")
 	dDeleter.DeleteResources = &DeleteResources{Disks: []string{"d"}}
-	disks[w].registerCreation("d", &resource{}, dCreator)
+	if err := disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := w.populate(ctx); err != nil {
 		t.Fatal(err)

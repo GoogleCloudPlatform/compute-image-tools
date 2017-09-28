@@ -17,6 +17,9 @@ package daisy
 import (
 	"fmt"
 	"regexp"
+	"sync"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 var (
@@ -158,4 +161,34 @@ func (dr *diskRegistry) registerAllDetachments(iName string, s *Step) error {
 		}
 	}
 	return errs.cast()
+}
+
+var diskCache struct {
+	exists map[string]map[string][]string
+	mu     sync.Mutex
+}
+
+// diskExists should only be used during validation for existing GCE disks
+// and should not be relied or populated for daisy created resources.
+func diskExists(client compute.Client, project, zone, disk string) (bool, error) {
+	diskCache.mu.Lock()
+	defer diskCache.mu.Unlock()
+	if diskCache.exists == nil {
+		diskCache.exists = map[string]map[string][]string{}
+	}
+	if _, ok := diskCache.exists[project]; !ok {
+		diskCache.exists[project] = map[string][]string{}
+	}
+	if _, ok := diskCache.exists[project][zone]; !ok {
+		dl, err := client.ListDisks(project, zone)
+		if err != nil {
+			return false, fmt.Errorf("error listing disks for project %q: %v", project, err)
+		}
+		var disks []string
+		for _, d := range dl.Items {
+			disks = append(disks, d.Name)
+		}
+		diskCache.exists[project][zone] = disks
+	}
+	return strIn(disk, diskCache.exists[project][zone]), nil
 }

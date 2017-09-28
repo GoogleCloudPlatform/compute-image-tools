@@ -15,25 +15,31 @@
 package daisy
 
 import (
+	"net/http"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/googleapi"
 )
 
-var projects struct {
-	valid []string
-	mu    sync.Mutex
+var projectCache struct {
+	exists []string
+	mu     sync.Mutex
 }
 
-func checkProject(client compute.Client, project string) error {
-	projects.mu.Lock()
-	defer projects.mu.Unlock()
-	if strIn(project, projects.valid) {
-		return nil
+func projectExists(client compute.Client, project string) (bool, error) {
+	projectCache.mu.Lock()
+	defer projectCache.mu.Unlock()
+	if strIn(project, projectCache.exists) {
+		return true, nil
 	}
 	if _, err := client.GetProject(project); err != nil {
-		return err
+		if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
+			return false, nil
+		} else {
+			return false, err
+		}
 	}
-	projects.valid = append(projects.valid, project)
-	return nil
+	projectCache.exists = append(projectCache.exists, project)
+	return true, nil
 }

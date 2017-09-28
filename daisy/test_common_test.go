@@ -64,6 +64,8 @@ var (
 	testWf          = "test-wf"
 	testProject     = "test-project"
 	testZone        = "test-zone"
+	testDisk        = "test-disk"
+	testImage       = "test-image"
 	testMachineType = "test-machine-type"
 	testGCSPath     = "gs://test-bucket"
 	testGCSObjs     []string
@@ -96,10 +98,6 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			fmt.Fprintln(w, `{"Contents":"failsuccess","Start":"0"}`)
 		} else if r.Method == "GET" && strings.Contains(r.URL.String(), "serialPort?alt=json&port=2") {
 			fmt.Fprintln(w, `{"Contents":"successfail","Start":"0"}`)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/instances/", testProject, testZone)) {
-			fmt.Fprintln(w, `{"Status":"TERMINATED","SelfLink":"link"}`)
-		} else if r.Method == "GET" && strings.Contains(r.URL.String(), fmt.Sprintf("/%s/zones/%s/machineTypes", testProject, testZone)) {
-			fmt.Fprintln(w, `{"Items":[{"Name": "foo-type"}]}`)
 		} else {
 			fmt.Fprintln(w, `{"Status":"DONE","SelfLink":"link"}`)
 		}
@@ -122,6 +120,30 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, nil
 		}
 		return nil, errors.New("bad machinetype")
+	}
+	c.ListMachineTypesFn = func(p, z string) (*compute.MachineTypeList, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		if z != testZone {
+			return nil, errors.New("bad zone: " + z)
+		}
+		return &compute.MachineTypeList{Items: []*compute.MachineType{{Name: testMachineType}}}, nil
+	}
+	c.ListZonesFn = func(_ string) (*compute.ZoneList, error) {
+		return &compute.ZoneList{Items: []*compute.Zone{{Name: testZone}}}, nil
+	}
+	c.ListImagesFn = func(_ string) (*compute.ImageList, error) {
+		return &compute.ImageList{Items: []*compute.Image{{Name: testImage}}}, nil
+	}
+	c.ListDisksFn = func(p, z string) (*compute.DiskList, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		if z != testZone {
+			return nil, errors.New("bad zone: " + z)
+		}
+		return &compute.DiskList{Items: []*compute.Disk{{Name: testDisk}}}, nil
 	}
 
 	return c, err

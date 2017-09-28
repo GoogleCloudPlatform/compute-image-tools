@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"path"
 	"reflect"
 	"sort"
@@ -411,7 +410,7 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 	// - bad disk mode case
 	ctx := context.Background()
 	w := testWorkflow()
-	disks[w].m = map[string]*resource{"d": {link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}}
+	disks[w].m = map[string]*resource{testDisk: {link: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}
 	m := defaultDiskMode
 
 	tests := []struct {
@@ -419,10 +418,10 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 		ci        *CreateInstance
 		shouldErr bool
 	}{
-		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d", Mode: m}}}, Project: testProject, Zone: testZone}, false},
-		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone), Mode: m}}}, Project: testProject, Zone: testZone}, false},
+		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: m}}}, Project: testProject, Zone: testZone}, false},
+		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk), Mode: m}}}, Project: testProject, Zone: testZone}, false},
 		{"bad no disks case", &CreateInstance{Instance: compute.Instance{Name: "foo"}}, true},
-		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: "d", Mode: "bad mode!"}}}, Project: testProject, Zone: testZone}, true},
+		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: "bad mode!"}}}, Project: testProject, Zone: testZone}, true},
 	}
 
 	for _, tt := range tests {
@@ -533,8 +532,16 @@ func TestCreateInstanceValidateDiskInitializeParams(t *testing.T) {
 func TestCreateInstanceValidateMachineType(t *testing.T) {
 	c, err := newTestGCEClient()
 	if err != nil {
-		t.Fatalf("error creating test client: %v", err)
+		t.Fatal(err)
 	}
+	getMachineTypeFn := func(_, _, mt string) (*compute.MachineType, error) {
+		if mt != "custom" {
+			return nil, errors.New("bad machine type")
+		}
+		return nil, nil
+	}
+
+	c.GetMachineTypeFn = getMachineTypeFn
 
 	tests := []struct {
 		desc      string
@@ -542,6 +549,7 @@ func TestCreateInstanceValidateMachineType(t *testing.T) {
 		shouldErr bool
 	}{
 		{"good case", fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", testProject, testZone, testMachineType), false},
+		{"custom case", fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", testProject, testZone, "custom"), false},
 		{"bad machine type case", fmt.Sprintf("projects/%s/zones/%s/machineTypes/bad-mt", testProject, testZone), true},
 		{"bad project case", fmt.Sprintf("projects/p2/zones/%s/machineTypes/%s", testZone, testMachineType), true},
 		{"bad zone case", fmt.Sprintf("projects/%s/zones/z2/machineTypes/%s", testProject, testMachineType), true},
@@ -584,53 +592,67 @@ func TestCreateInstanceValidateNetworks(t *testing.T) {
 
 func TestCreateInstancesValidate(t *testing.T) {
 	ctx := context.Background()
+	// Set up.
 	w := testWorkflow()
 
-	_, c, err := daisyCompute.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.String() == "/p/zones/z?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == "/p.com%3Asomething?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == "/p.com%3Asomething/zones/z?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == "/p.com%3Asomething/zones/z/machineTypes/mt?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == "/p/zones/z/machineTypes/mt?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == "/p?alt=json" {
-			fmt.Fprintln(w, `{}`)
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "bad request: %+v", r)
-		}
-	}))
+	c, err := newTestGCEClient()
 	if err != nil {
-		t.Fatalf("error creating test client: %v", err)
+		t.Fatal(err)
 	}
+
+	c.GetProjectFn = func(p string) (*compute.Project, error) {
+		if p == testProject || p == "p.com:something" {
+			return nil, nil
+		}
+		return nil, errors.New("bad project: " + p)
+	}
+	c.ListMachineTypesFn = func(p, z string) (*compute.MachineTypeList, error) {
+		if p != testProject && p != "p.com:something" {
+			return nil, errors.New("bad project: " + p)
+		}
+		if z != testZone {
+			return nil, errors.New("bad zone: " + z)
+		}
+		return &compute.MachineTypeList{Items: []*compute.MachineType{{Name: testMachineType}}}, nil
+	}
+	c.ListDisksFn = func(p, z string) (*compute.DiskList, error) {
+		if p != testProject && p != "p.com:something" {
+			return nil, errors.New("bad project: " + p)
+		}
+		if z != testZone {
+			return nil, errors.New("bad zone: " + z)
+		}
+		return &compute.DiskList{Items: []*compute.Disk{{Name: testDisk}}}, nil
+	}
+
 	w.ComputeClient = c
 
-	p := "p"
-	z := "z"
-	ad := []*compute.AttachedDisk{{Source: "d", Mode: defaultDiskMode}}
-	ad2 := []*compute.AttachedDisk{{Source: "d2", Mode: defaultDiskMode}}
-	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/mt", p, z)
+	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", testProject, testZone, testMachineType)
 	dCreator := &Step{name: "dCreator", w: w}
 	w.Steps["dCreator"] = dCreator
-	disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", p, z)}, dCreator)
-	disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/p.com:something/zones/%s/disks/d", z)}, dCreator)
+	if err := disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator); err != nil {
+		t.Fatal(err)
+	}
+	ad := []*compute.AttachedDisk{{Source: "d", Mode: defaultDiskMode}}
+
+	p2 := "p.com:something"
+	if err := disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", p2, testZone)}, dCreator); err != nil {
+		t.Fatal(err)
+	}
+	ad2 := []*compute.AttachedDisk{{Source: "d2", Mode: defaultDiskMode}}
 
 	tests := []struct {
 		desc      string
 		input     *CreateInstance
 		shouldErr bool
 	}{
-		{"normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: p, Zone: z}, false},
-		{"normal case2", &CreateInstance{daisyName: "foo2", Instance: compute.Instance{Name: "foo2", Disks: ad2, MachineType: fmt.Sprintf("projects/p.com:something/zones/%s/machineTypes/mt", z)}, Project: "p.com:something", Zone: z}, false},
-		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: p, Zone: z}, true},
-		{"bad name case", &CreateInstance{Instance: compute.Instance{Name: "bad!", Disks: ad, MachineType: mt}, Project: p, Zone: z}, true},
-		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "bar", Disks: ad, MachineType: mt}, Project: "bad!", Zone: z}, true},
-		{"bad zone case", &CreateInstance{Instance: compute.Instance{Name: "baz", Disks: ad, MachineType: mt}, Project: p, Zone: "bad!"}, true},
-		{"machine type validation fails case", &CreateInstance{Instance: compute.Instance{Name: "gaz", Disks: ad, MachineType: "bad machine type!"}, Project: p, Zone: z, daisyName: "gaz"}, true},
+		{"normal case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: testProject, Zone: testZone}, false},
+		{"normal case2", &CreateInstance{daisyName: "foo2", Instance: compute.Instance{Name: "foo2", Disks: ad2, MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", p2, testZone, testMachineType)}, Project: p2, Zone: testZone}, false},
+		{"bad dupe case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: ad, MachineType: mt}, Project: testProject, Zone: testZone}, true},
+		{"bad name case", &CreateInstance{Instance: compute.Instance{Name: "bad!", Disks: ad, MachineType: mt}, Project: testProject, Zone: testZone}, true},
+		{"bad project case", &CreateInstance{Instance: compute.Instance{Name: "bar", Disks: ad, MachineType: mt}, Project: "bad!", Zone: testZone}, true},
+		{"bad zone case", &CreateInstance{Instance: compute.Instance{Name: "baz", Disks: ad, MachineType: mt}, Project: testProject, Zone: "bad!"}, true},
+		{"machine type validation fails case", &CreateInstance{Instance: compute.Instance{Name: "gaz", Disks: ad, MachineType: "bad machine type!"}, Project: testProject, Zone: testZone, daisyName: "gaz"}, true},
 	}
 
 	for _, tt := range tests {

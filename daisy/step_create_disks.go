@@ -95,12 +95,18 @@ func (c *CreateDisks) validate(ctx context.Context, s *Step) error {
 		if !checkName(cd.Name) {
 			return fmt.Errorf("cannot create disk: bad name: %q", cd.Name)
 		}
-		if err := checkProject(s.w.ComputeClient, cd.Project); err != nil {
-			return fmt.Errorf("cannot create disk: bad project: %q, error: %v", cd.Project, err)
+		if exists, err := projectExists(s.w.ComputeClient, cd.Project); err != nil {
+			return fmt.Errorf("cannot create disk: bad project lookup: %q, error: %v", cd.Project, err)
+		} else if !exists {
+			return fmt.Errorf("cannot create disk: project does not exist: %q", cd.Project)
 		}
-		if err := checkZone(s.w.ComputeClient, cd.Project, cd.Zone); err != nil {
-			return fmt.Errorf("cannot create disk: bad zone: %q, error: %v", cd.Zone, err)
+
+		if exists, err := zoneExists(s.w.ComputeClient, cd.Project, cd.Zone); err != nil {
+			return fmt.Errorf("cannot create disk: bad zone lookup: %q, error: %v", cd.Zone, err)
+		} else if !exists {
+			return fmt.Errorf("cannot create disk: zone does not exist: %q", cd.Zone)
 		}
+
 		if !diskTypeURLRgx.MatchString(cd.Type) {
 			return fmt.Errorf("cannot create disk: bad disk type: %q", cd.Type)
 		}
