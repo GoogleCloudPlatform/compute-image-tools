@@ -58,8 +58,8 @@ def parse_args(arguments=None):
     """Parse arguments or sys.argv[1:]."""
     p = argparse.ArgumentParser()
     p.add_argument(
-        '--action', required=True, choices=['ci_tests', 'unit_tests'],
-        help='The action to run: ci_tests or unit_tests.')
+        '--action', required=True, choices=['ci', 'presubmit'],
+        help='The action to run: `ci` or `presubmit`.')
     args, other_args = p.parse_known_args(arguments)
     return args, other_args
 

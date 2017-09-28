@@ -32,6 +32,7 @@ from run import logging
 
 
 ARGS = []
+OTHER_ARGS = []
 PARALLEL_TESTS = 10
 REPO_OWNER = 'GoogleCloudPlatform'
 REPO_NAME = 'compute-image-tools'
@@ -95,19 +96,20 @@ def parse_args(arguments=None):
     p = argparse.ArgumentParser()
     p.add_argument(
             '--tests', required=True,
-            help=('The test workflows to run. The workflows are run at the '
-                  'same commit from which the image was built.'))
+            help=('The test workflows to run. The workflows are run at repo '
+                  'HEAD.'))
     p.add_argument(
             '--version', default='latest', choices=['latest', 'release'],
-            help='The image version to run e2e tests against.')
+            help='The image version to run tests against.')
 
-    args = p.parse_args(arguments)
-    return args
+    args, other_args = p.parse_known_args(arguments)
+    return args, other_args
 
 
 def run_suite(suite):
     for _, wf in suite:
-        logging.info('Running test %s', wf)
+        args = OTHER_ARGS + ['-var:test-id=%s' % TEST_ID, wf]
+        logging.info('Running test %s with args %s', wf, args)
 
         body = {
             'source': {
@@ -118,11 +120,8 @@ def run_suite(suite):
             },
             'logsBucket': common.urljoin(TEST_BUCKET, TEST_GCS_DIR),
             'steps': [{
-                'name': 'gcr.io/compute-image-tools/daisy:latest',
-                'args': [
-                    '-var:test-id=%s' % TEST_ID,
-                    wf,
-                ],
+                'name': 'gcr.io/compute-image-tools/daisy:%s' % ARGS.version,
+                'args': args,
             }]
         }
         method = common.urljoin('projects', TEST_PROJECT, 'builds')
@@ -160,7 +159,7 @@ def setup_session():
 
 
 if __name__ == '__main__':
-    ARGS = parse_args()
+    ARGS, OTHER_ARGS = parse_args()
     session = setup_session()
 
     return_code = main()

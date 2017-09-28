@@ -24,15 +24,23 @@ ARGS = None
 REPO_OWNER = 'GoogleCloudPlatform'
 REPO_NAME = 'compute-image-tools'
 
+GOLINT_PACKAGE = 'github.com/golang/lint/golint'
+
 PACKAGE = 'github.com/%s/%s/daisy' % (REPO_OWNER, REPO_NAME)
 PACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', PACKAGE)
 
 
 def main():
-    logging.info('Fetching Daisy.')
+    logging.info('Downloading Daisy repo.')
     code = call(['go', 'get', PACKAGE]).returncode
     if code:
         return code
+
+    if ARGS.golint:
+        logging.info('Downloading golint.')
+        code = call(['go', 'get', GOLINT_PACKAGE]).returncode
+        if code:
+            return code
 
     logging.info('Checking out PR #%s', ARGS.pr)
     repo = git.Repo(PACKAGE_PATH)
@@ -46,20 +54,42 @@ def main():
         return code
 
     logging.info('Running checks.')
-    code = call(['gofmt', '-l', '.'], cwd=PACKAGE_PATH).returncode
-    if code:
-        return code
-    code = call(['go', 'vet', './...'], cwd=PACKAGE_PATH).returncode
-    if code:
-        return code
-    return call(['go', 'test', '-race', './...'], cwd=PACKAGE_PATH).returncode
+    if ARGS.gofmt:
+        code = call(['gofmt', '-l', '.'], cwd=PACKAGE_PATH).returncode
+        if code:
+            return code
+    if ARGS.govet:
+        code = call(['go', 'vet', './...'], cwd=PACKAGE_PATH).returncode
+        if code:
+            return code
+    if ARGS.golint:
+        cmd = ['golint', '-set_exit_status', './...']
+        code = call(cmd, cwd=PACKAGE_PATH).returncode
+        if code:
+            return code
+    if ARGS.gotest:
+        cmd = ['go', 'test', '-race', './...']
+        code = call(cmd, cwd=PACKAGE_PATH).returncode
+        if code:
+            return code
+    return 0
 
 
 def parse_args(arguments=None):
     """Parse arguments or sys.argv[1:]."""
     p = argparse.ArgumentParser()
-    p.add_argument('--pr', required=True, help="The pull request #.")
+    p.add_argument('--pr', required=True, help='The pull request #.')
+    g = p.add_argument_group('Checks')
+    g.add_argument('--gofmt', action='store_true', help='Run `gofmt -l .`.')
+    g.add_argument('--govet', action='store_true', help='Run `go vet ./...`.')
+    g.add_argument('--golint', action='store_true', help='Run `golint ./...`.')
+    g.add_argument(
+            '--gotest', action='store_true',
+            help='Run `go test -race ./...`.')
     args, _ = p.parse_known_args(arguments)
+    if not any([args.gofmt, args.govet, args.golint, args.gotest]):
+        msg = 'One or more of {--gofmt, --govet, --golint, --gotest} required.'
+        p.error(msg)
     return args
 
 
