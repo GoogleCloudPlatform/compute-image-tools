@@ -19,7 +19,7 @@
       "CreateDisks": [
         {
           "Name": "disk-translator",
-          "SourceImage": "projects/rhel-cloud/global/images/family/rhel-7",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
           "SizeGb": "10",
           "Type": "pd-ssd"
         },
