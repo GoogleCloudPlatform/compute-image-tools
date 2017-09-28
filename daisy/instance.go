@@ -100,6 +100,8 @@ var instanceCache struct {
 	mu     sync.Mutex
 }
 
+// instanceExists should only be used during validation for existing GCE instances
+// and should not be relied or populated for daisy created resources.
 func instanceExists(client compute.Client, project, zone, instance string) (bool, error) {
 	instanceCache.mu.Lock()
 	defer instanceCache.mu.Unlock()

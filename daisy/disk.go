@@ -168,6 +168,8 @@ var diskCache struct {
 	mu     sync.Mutex
 }
 
+// diskExists should only be used during validation for existing GCE disks
+// and should not be relied or populated for daisy created resources.
 func diskExists(client compute.Client, project, zone, disk string) (bool, error) {
 	diskCache.mu.Lock()
 	defer diskCache.mu.Unlock()

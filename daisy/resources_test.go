@@ -77,13 +77,13 @@ func TestResourceCleanup(t *testing.T) {
 
 func TestResourceMapDelete(t *testing.T) {
 	var deleteFnErr error
-	rm := &baseResourceRegistry{m: map[string]*resource{}}
-	rm.deleteFn = func(r *resource) error {
+	rr := &baseResourceRegistry{m: map[string]*resource{}}
+	rr.deleteFn = func(r *resource) error {
 		return deleteFnErr
 	}
 
-	rm.m["foo"] = &resource{}
-	rm.m["baz"] = &resource{}
+	rr.m["foo"] = &resource{}
+	rr.m["baz"] = &resource{}
 
 	tests := []struct {
 		desc, input string
@@ -98,7 +98,7 @@ func TestResourceMapDelete(t *testing.T) {
 
 	for _, tt := range tests {
 		deleteFnErr = tt.deleteFnErr
-		err := rm.delete(tt.input)
+		err := rr.delete(tt.input)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have erred but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -107,24 +107,24 @@ func TestResourceMapDelete(t *testing.T) {
 	}
 
 	wantM := map[string]*resource{"foo": {deleted: true}, "baz": {deleted: false}}
-	if diff := pretty.Compare(rm.m, wantM); diff != "" {
+	if diff := pretty.Compare(rr.m, wantM); diff != "" {
 		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diff)
 	}
 }
 
 func TestResourceMapConcurrency(t *testing.T) {
-	rm := baseResourceRegistry{w: testWorkflow()}
-	rm.init()
+	rr := baseResourceRegistry{w: testWorkflow()}
+	rr.init()
 
 	tests := []struct {
 		desc string
 		f    func()
 	}{
-		{"registerCreation", func() { rm.registerCreation("foo", &resource{}, nil) }},
-		{"registerDeletion", func() { rm.registerDeletion("foo", nil) }},
-		{"registerUsage", func() { rm.registerUsage("foo", nil) }},
-		{"get", func() { rm.get("foo") }},
-		{"delete", func() { rm.get("foo") }},
+		{"registerCreation", func() { rr.registerCreation("foo", &resource{}, nil) }},
+		{"registerDeletion", func() { rr.registerDeletion("foo", nil) }},
+		{"registerUsage", func() { rr.registerUsage("foo", nil) }},
+		{"get", func() { rr.get("foo") }},
+		{"delete", func() { rr.get("foo") }},
 	}
 
 	for _, tt := range tests {
@@ -135,8 +135,8 @@ func TestResourceMapConcurrency(t *testing.T) {
 		gunshot := sync.Mutex{}
 		gunshot.Lock() // Wait for the goroutine to say we can go ahead.
 		go func() {
-			rm.mx.Lock()
-			defer rm.mx.Unlock()
+			rr.mx.Lock()
+			defer rr.mx.Unlock()
 			gunshot.Unlock()
 			time.Sleep(1 * time.Millisecond)
 			order = append(order, releaseStr)
@@ -153,7 +153,7 @@ func TestResourceMapConcurrency(t *testing.T) {
 func TestResourceMapGet(t *testing.T) {
 	xRes := &resource{}
 	yRes := &resource{}
-	rm := baseResourceRegistry{m: map[string]*resource{"x": xRes, "y": yRes}}
+	rr := baseResourceRegistry{m: map[string]*resource{"x": xRes, "y": yRes}}
 
 	tests := []struct {
 		desc, input string
@@ -165,31 +165,31 @@ func TestResourceMapGet(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if gotR, gotOk := rm.get(tt.input); !(gotOk == tt.wantOk && gotR == tt.wantR) {
+		if gotR, gotOk := rr.get(tt.input); !(gotOk == tt.wantOk && gotR == tt.wantR) {
 			t.Errorf("%q case failed, want: (%v, %t); got: (%v, %t)", tt.desc, tt.wantR, tt.wantOk, gotR, gotOk)
 		}
 	}
 }
 
 func TestResourceMapRegisterCreation(t *testing.T) {
-	rm := &baseResourceRegistry{w: testWorkflow()}
-	rm.init()
+	rr := &baseResourceRegistry{w: testWorkflow()}
+	rr.init()
 	r := &resource{link: "projects/foo/global/images/bar"}
 	s := &Step{}
 
 	// Normal create.
-	if err := rm.registerCreation("foo", r, s); err != nil {
+	if err := rr.registerCreation("foo", r, s); err != nil {
 		t.Fatalf("unexpected error registering creation of foo: %v", err)
 	}
 	if r.creator != s {
 		t.Error("foo does not have the correct creator")
 	}
-	if diff := pretty.Compare(rm.m, map[string]*resource{"foo": r}); diff != "" {
+	if diff := pretty.Compare(rr.m, map[string]*resource{"foo": r}); diff != "" {
 		t.Errorf("resource map does not match expectation: (-got +want)\n%s", diff)
 	}
 
 	// Test duplication create.
-	if err := rm.registerCreation("foo", r, nil); err == nil {
+	if err := rr.registerCreation("foo", r, nil); err == nil {
 		t.Error("should have returned an error, but didn't")
 	}
 }
@@ -210,7 +210,7 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 		"badDeleter2": {"creator"},
 	}
 	r := &resource{creator: creator, users: []*Step{user}}
-	rm := &baseResourceRegistry{m: map[string]*resource{"r": r}}
+	rr := &baseResourceRegistry{m: map[string]*resource{"r": r}}
 
 	tests := []struct {
 		desc    string
@@ -226,7 +226,7 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := rm.registerDeletion(tt.name, tt.step)
+		err := rr.registerDeletion(tt.name, tt.step)
 		if tt.wantErr {
 			if err == nil {
 				t.Errorf("%s: did not return an error as expected", tt.desc)
@@ -238,8 +238,8 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 }
 
 func TestResourceMapRegisterExisting(t *testing.T) {
-	rm := &baseResourceRegistry{w: testWorkflow()}
-	rm.init()
+	rr := &baseResourceRegistry{w: testWorkflow()}
+	rr.init()
 
 	defURL := fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)
 	tests := []struct {
@@ -253,13 +253,13 @@ func TestResourceMapRegisterExisting(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		r, err := rm.registerExisting(tt.url)
+		r, err := rr.registerExisting(tt.url)
 		if !tt.shouldErr {
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", tt.desc, err)
 			} else if diff := pretty.Compare(r, tt.wantR); diff != "" {
 				t.Errorf("%s: generated resource doesn't match expectation (-got +want)\n%s", tt.desc, diff)
-			} else if rm.m[tt.url] != r {
+			} else if rr.m[tt.url] != r {
 				t.Errorf("%s: resource was not added to the resource map", tt.desc)
 			}
 		} else if err == nil {
@@ -267,7 +267,7 @@ func TestResourceMapRegisterExisting(t *testing.T) {
 		}
 	}
 
-	if diff := pretty.Compare(rm.m, map[string]*resource{defURL: {real: testDisk, link: defURL, noCleanup: true}}); diff != "" {
+	if diff := pretty.Compare(rr.m, map[string]*resource{defURL: {real: testDisk, link: defURL, noCleanup: true}}); diff != "" {
 		t.Errorf("resource map doesn't match expectation (-got +want)\n%s", diff)
 	}
 }
@@ -289,7 +289,7 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 	}
 	r1 := &resource{creator: creator}
 	r2 := &resource{creator: creator, deleter: deleter}
-	rm := &baseResourceRegistry{m: map[string]*resource{"r1": r1, "r2": r2}}
+	rr := &baseResourceRegistry{m: map[string]*resource{"r1": r1, "r2": r2}}
 
 	tests := []struct {
 		desc    string
@@ -304,7 +304,7 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		r, err := rm.registerUsage(tt.name, tt.step)
+		r, err := rr.registerUsage(tt.name, tt.step)
 		if tt.wantErr {
 			if err == nil {
 				t.Errorf("%s: did not return an error as expected", tt.desc)

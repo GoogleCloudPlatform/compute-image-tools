@@ -54,16 +54,37 @@ var imagesCache struct {
 	mu     sync.Mutex
 }
 
+var familiesCache struct {
+	exists map[string][]string
+	mu     sync.Mutex
+}
+
+// imageExists should only be used during validation for existing GCE images
+// and should not be relied or populated for daisy created resources.
 func imageExists(client compute.Client, project, family, name string) (bool, error) {
 	if family != "" {
+		familiesCache.mu.Lock()
+		defer familiesCache.mu.Unlock()
+		if familiesCache.exists == nil {
+			familiesCache.exists = map[string][]string{}
+		}
+		if _, ok := familiesCache.exists[project]; !ok {
+			familiesCache.exists[project] = []string{}
+		}
+		if strIn(name, familiesCache.exists[project]) {
+			return true, nil
+		}
+
 		if _, err := client.GetImageFromFamily(project, family); err != nil {
 			if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
 				return false, nil
 			}
 			return false, err
 		}
+		familiesCache.exists[project] = append(familiesCache.exists[project], name)
 		return true, nil
 	}
+
 	if name == "" {
 		return false, errors.New("must provide either family or name")
 	}
