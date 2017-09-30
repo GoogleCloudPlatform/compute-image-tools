@@ -2,6 +2,7 @@
 # Keys: Full repo name: "org/repo".
 # Values: List of plugins to run against the repo.
 ---
-GoogleCloudPlatform/compute-image-tools:
-- size
-- trigger
+plugins:
+  GoogleCloudPlatform/compute-image-tools:
+  - size
+  - trigger

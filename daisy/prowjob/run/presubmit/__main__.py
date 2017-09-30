@@ -49,27 +49,27 @@ def main():
         return code
 
     logging.info('Pulling dependencies.')
-    code = call(['go', 'get', '-t', './...'], cwd=PACKAGE_PATH).returncode
+    code = call(['go', 'get', '-t', './...'], cwd=repo.root).returncode
     if code:
         return code
 
     logging.info('Running checks.')
     if ARGS.gofmt:
-        code = call(['gofmt', '-l', '.'], cwd=PACKAGE_PATH).returncode
+        code = call(['gofmt', '-l', '.'], cwd=repo.root).returncode
         if code:
             return code
     if ARGS.govet:
-        code = call(['go', 'vet', './...'], cwd=PACKAGE_PATH).returncode
+        code = call(['go', 'vet', './...'], cwd=repo.root).returncode
         if code:
             return code
     if ARGS.golint:
         cmd = ['golint', '-set_exit_status', './...']
-        code = call(cmd, cwd=PACKAGE_PATH).returncode
+        code = call(cmd, cwd=repo.root).returncode
         if code:
             return code
     if ARGS.gotest:
-        cmd = ['go', 'test', '-race', './...']
-        code = call(cmd, cwd=PACKAGE_PATH).returncode
+        cmd = ['./unit_tests.sh', PACKAGE, repo.commit, ARGS.pr]
+        code = call(cmd).returncode
         if code:
             return code
     return 0
