@@ -59,7 +59,7 @@ MTU=1460
 PERSISTENT_DHCLIENT="y"
 '''
 
-grub_cfg = '''
+grub2_cfg = '''
 GRUB_TIMEOUT=0
 GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
 GRUB_DEFAULT=saved
@@ -68,6 +68,13 @@ GRUB_TERMINAL="serial console"
 GRUB_SERIAL_COMMAND="serial --speed=38400"
 GRUB_CMDLINE_LINUX="crashkernel=auto console=ttyS0,38400n8"
 GRUB_DISABLE_RECOVERY="true"
+'''
+
+grub_cfg = '''
+default=0
+timeout=0
+serial --unit=0 --speed=38400
+terminal --timeout=0 serial console
 '''
 
 def translate():
@@ -151,11 +158,30 @@ def translate():
 
   print 'Updating initramfs'
   for kver in g.ls('/lib/modules'):
-    g.command(['dracut', '-v', '-f', '--kver', kver])
+    if el_release == '6':
+      # Version 6 doesn't have option --kver
+      g.command(['dracut', '-v', '-f', kver])
+    else:
+      g.command(['dracut', '-v', '-f', '--kver', kver])
 
   print 'Update grub configuration'
-  g.write('/etc/default/grub', grub_cfg)
-  g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
+  if el_release == '6':
+    # Version 6 doesn't have grub2, file grub.conf needs to be updated by hand
+    g.write('/tmp/grub_gce_generated', grub_cfg)
+    g.sh(
+        r'grep -P "^[\t ]*initrd|^[\t ]*root|^[\t ]*kernel|^[\t ]*title" '
+            r'/boot/grub/grub.conf >> /tmp/grub_gce_generated;'
+        r'sed -i "s/console=ttyS0[^ ]*//g" /tmp/grub_gce_generated;'
+        r'sed -i "/^[\t ]*kernel/s/$/ console=ttyS0,38400n8/" '
+            r'/tmp/grub_gce_generated;'
+        r'mv /tmp/grub_gce_generated /boot/grub/grub.conf')
+  else:
+    g.write('/etc/default/grub', grub2_cfg)
+    g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
+
+
+  # Remove udev file to force it to be re-generated
+  g.rm_f('/etc/udev/rules.d/70-persistent-net.rules')
 
   # Reset network for DHCP.
   print 'Resetting network to DHCP for eth0.'
