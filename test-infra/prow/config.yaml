@@ -76,11 +76,11 @@ presubmits:
       - "--pr=$(PULL_NUMBER)"
       - "--gofmt"
       volumeMounts:
-      - name: service
+      - name: service-account
         mountPath: /etc/service-account
         readOnly: true
     volumes:
-    - name: service
+    - name: service-account
       secret:
        secretName: service-account
  - name: presubmit-daisy-go-vet
@@ -98,11 +98,11 @@ presubmits:
       - "--pr=$(PULL_NUMBER)"
       - "--govet"
       volumeMounts:
-      - name: service
+      - name: service-account
         mountPath: /etc/service-account
         readOnly: true
     volumes:
-    - name: service
+    - name: service-account
       secret:
        secretName: service-account
  - name: presubmit-daisy-golint
@@ -120,11 +120,11 @@ presubmits:
       - "--pr=$(PULL_NUMBER)"
       - "--golint"
       volumeMounts:
-      - name: service
+      - name: service-account
         mountPath: /etc/service-account
         readOnly: true
     volumes:
-    - name: service
+    - name: service-account
       secret:
        secretName: service-account
  - name: presubmit-daisy-unit-tests
@@ -142,13 +142,19 @@ presubmits:
       - "--pr=$(PULL_NUMBER)"
       - "--gotest"
       volumeMounts:
-      - name: service
+      - name: service-account
         mountPath: /etc/service-account
         readOnly: true
+      - name: codecov
+        mountPath: /etc/codecov
+        readOnly: true
     volumes:
-    - name: service
+    - name: service-account
       secret:
        secretName: service-account
+    - name: codecov
+      secret:
+       secretName: codecov
 
 # // Periodic runs on a timer.
 # type Periodic struct {

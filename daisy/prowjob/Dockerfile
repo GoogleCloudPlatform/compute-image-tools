@@ -3,6 +3,7 @@ FROM debian:stretch-slim
 RUN apt-get update
 RUN apt-get install -y git libffi-dev libssl-dev python python-pip wget
 
+ENV CODECOV_TOKEN /etc/codecov/token
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/service-account/service-account.json
 ENV GOPATH /go
 ENV GOROOT /usr/local/go

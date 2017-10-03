@@ -27,6 +27,12 @@ class Repo(object):
             self.clone_code = call(cmd).returncode
 
     @property
+    def commit(self):
+        p = call(['git', 'rev-parse', 'HEAD'], cwd=self._root)
+        out, _ = p.communicate()
+        return out
+
+    @property
     def root(self):
         return self._root
 
