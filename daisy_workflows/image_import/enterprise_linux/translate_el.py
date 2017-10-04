@@ -136,14 +136,11 @@ def translate():
 
   if rhel_license == 'true':
     if 'Red Hat' in g.cat('/etc/redhat-release'):
-      g.command([
-          'yum', 'install', '-y', '--downloadonly', '--downloaddir=/tmp',
-          'google-rhui-client-rhel%s' % el_release])
       g.command(['yum', 'remove', '-y', '*rhui*'])
       print 'Adding in GCE RHUI package.'
-      g.command([
-          'yum', 'install', '-y',
-          '/tmp/google-rhui-client-rhel%s*.rpm' % el_release])
+      g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
+      g.command(
+          ['yum', 'install', '-y', 'google-rhui-client-rhel%s' % el_release])
 
   if install_gce == 'true':
     print 'Installing GCE packages.'
