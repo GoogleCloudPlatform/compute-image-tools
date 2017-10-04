@@ -72,7 +72,8 @@ type TestClient struct {
 	InstanceStoppedFn     func(project, zone, name string) (bool, error)
 	RetryFn               func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 
-	operationsWaitFn func(project, zone, name string) error
+	shouldRetryWithWaitFn func(tripper http.RoundTripper, err error, multiplier int) bool
+	operationsWaitFn      func(project, zone, name string) error
 }
 
 // CreateDisk uses the override method CreateDiskFn or the real implementation.

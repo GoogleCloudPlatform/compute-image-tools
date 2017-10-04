@@ -26,11 +26,18 @@ import (
 func TestTestClient(t *testing.T) {
 	var fakeCalled, realCalled bool
 	var wantFakeCalled, wantRealCalled bool
+	var header = 400
 	_, c, _ := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		realCalled = true
-		w.WriteHeader(400)
+		if header == 400 {
+			realCalled = true
+		}
+		w.WriteHeader(header)
 		fmt.Fprintln(w, "Not Implemented")
 	}))
+
+	// Yes this isn't the 'real' one but this doesn't call the API and we
+	// do want to test the 'fake' one and other code paths.
+	c.shouldRetryWithWaitFn = func(_ http.RoundTripper, _ error, _ int) bool { realCalled = true; return false }
 
 	tests := []struct {
 		desc string
