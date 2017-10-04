@@ -30,5 +30,5 @@ for d in $(go list $package/... | grep -v vendor); do
     fi
 done
 
-unset -e
+set +e
 bash <(curl -s https://codecov.io/bash) -v -f coverage.txt -t $token -B $branch -C $commit -P $pr

@@ -16,6 +16,8 @@ import subprocess
 
 from run import logging
 
+PIPE = subprocess.PIPE
+
 
 def call(cmd, **kwargs):
     cwd = kwargs['cwd'] if 'cwd' in kwargs else os.getcwd()

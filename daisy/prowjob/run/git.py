@@ -13,7 +13,7 @@
 # limitations under the License.
 import os
 
-from run.call import call
+from run.call import call, PIPE
 
 
 class Repo(object):
@@ -28,9 +28,9 @@ class Repo(object):
 
     @property
     def commit(self):
-        p = call(['git', 'rev-parse', 'HEAD'], cwd=self._root)
+        p = call(['git', 'rev-parse', 'HEAD'], cwd=self._root, stdout=PIPE)
         out, _ = p.communicate()
-        return out
+        return out.strip()
 
     @property
     def root(self):
@@ -46,5 +46,5 @@ class Repo(object):
             p = call(cmd, cwd=self._root)
             if p.returncode:
                 return p.returncode
-            cmd = ['git', 'checkout', '%s' % pr]
+            cmd = ['git', 'checkout', str(pr)]
         return call(cmd, cwd=self._root).returncode
