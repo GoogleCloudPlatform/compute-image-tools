@@ -50,6 +50,9 @@ type Client interface {
 	GetImage(project, name string) (*compute.Image, error)
 	GetImageFromFamily(project, family string) (*compute.Image, error)
 	ListImages(project string) (*compute.ImageList, error)
+	GetLicense(project, name string) (*compute.License, error)
+	GetNetwork(project, name string) (*compute.Network, error)
+	ListNetworks(project string) (*compute.NetworkList, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -66,8 +69,8 @@ type client struct {
 	raw *compute.Service
 }
 
-// shouldRetryWithWait returns sleeps and returns true if the HTTP
-// response / error indicates that the request should be attempted again.
+// shouldRetryWithWait returns true if the HTTP response / error indicates
+// that the request should be attempted again.
 func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) bool {
 	if err == nil {
 		return false
@@ -379,6 +382,33 @@ func (c *client) ListImages(project string) (*compute.ImageList, error) {
 		return c.raw.Images.List(project).Do()
 	}
 	return i, err
+}
+
+// GetNetwork gets a GCE Network.
+func (c *client) GetNetwork(project, name string) (*compute.Network, error) {
+	n, err := c.raw.Networks.Get(project, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Networks.Get(project, name).Do()
+	}
+	return n, err
+}
+
+// ListNetworks gets a list of GCE Networks.
+func (c *client) ListNetworks(project string) (*compute.NetworkList, error) {
+	n, err := c.raw.Networks.List(project).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Networks.List(project).Do()
+	}
+	return n, err
+}
+
+// GetLicense gets a GCE License.
+func (c *client) GetLicense(project, name string) (*compute.License, error) {
+	l, err := c.raw.Licenses.Get(project, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Licenses.Get(project, name).Do()
+	}
+	return l, err
 }
 
 // InstanceStatus returns an instances Status.

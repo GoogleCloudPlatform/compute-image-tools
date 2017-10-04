@@ -67,6 +67,8 @@ var (
 	testDisk        = "test-disk"
 	testImage       = "test-image"
 	testMachineType = "test-machine-type"
+	testLicense     = "test-license"
+	testNetwork     = "test-network"
 	testGCSPath     = "gs://test-bucket"
 	testGCSObjs     []string
 	testGCSObjsMx   = sync.Mutex{}
@@ -144,6 +146,21 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, errors.New("bad zone: " + z)
 		}
 		return &compute.DiskList{Items: []*compute.Disk{{Name: testDisk}}}, nil
+	}
+	c.GetLicenseFn = func(p, l string) (*compute.License, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		if l != testLicense {
+			return nil, errors.New("bad license: " + l)
+		}
+		return nil, nil
+	}
+	c.ListNetworksFn = func(p string) (*compute.NetworkList, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		return &compute.NetworkList{Items: []*compute.Network{{Name: testNetwork}}}, nil
 	}
 
 	return c, err

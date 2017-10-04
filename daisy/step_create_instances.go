@@ -245,7 +245,7 @@ func (c *CreateInstances) populate(ctx context.Context, s *Step) error {
 	return errs.cast()
 }
 
-func (c *CreateInstance) validateDisks(ctx context.Context, s *Step) (errs Errors) {
+func (c *CreateInstance) validateDisks(s *Step) (errs Errors) {
 	if len(c.Disks) == 0 {
 		errs.add(Errorf("cannot create instance: no disks provided"))
 	}
@@ -331,17 +331,20 @@ func (c *CreateInstance) validateMachineType(client daisyCompute.Client) (errs E
 	return
 }
 
-func (c *CreateInstance) validateNetworks() (errs Errors) {
+func (c *CreateInstance) validateNetworks(s *Step) (errs Errors) {
 	for _, n := range c.NetworkInterfaces {
-		match := networkURLRegex.FindStringSubmatch(n.Network)
-		if match == nil {
-			errs.add(Errorf("can't create instance: bad value for NetworkInterface.Network: %q", n.Network))
-		} else {
-			result := namedSubexp(networkURLRegex, n.Network)
-			if result["project"] != c.Project {
-				errs.add(Errorf("cannot create instance in project %q with Network in project %q: %q", c.Project, result["project"], n.Network))
-			}
+		nr, err := networks[s.w].registerUsage(n.Network, s)
+		if err != nil {
+			errs.add(Errorf(err.Error()))
+			return
 		}
+
+		// Ensure network is in the same project.
+		result := namedSubexp(networkURLRegex, nr.link)
+		if result["project"] != c.Project {
+			errs.add(Errorf("cannot create instance in project %q with Network in project %q: %q", c.Project, result["project"], n.Network))
+		}
+
 	}
 	return
 }
@@ -365,9 +368,9 @@ func (c *CreateInstances) validate(ctx context.Context, s *Step) error {
 			return fmt.Errorf("cannot create instance: zone does not exist: %q", ci.Zone)
 		}
 
-		errs.add(ci.validateDisks(ctx, s)...)
+		errs.add(ci.validateDisks(s)...)
 		errs.add(ci.validateMachineType(s.w.ComputeClient)...)
-		errs.add(ci.validateNetworks()...)
+		errs.add(ci.validateNetworks(s)...)
 
 		// Register creation.
 		link := fmt.Sprintf("projects/%s/zones/%s/instances/%s", ci.Project, ci.Zone, ci.Name)

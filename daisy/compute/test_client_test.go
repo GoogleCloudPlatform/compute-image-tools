@@ -26,11 +26,18 @@ import (
 func TestTestClient(t *testing.T) {
 	var fakeCalled, realCalled bool
 	var wantFakeCalled, wantRealCalled bool
+	var header = 400
 	_, c, _ := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		realCalled = true
-		w.WriteHeader(400)
+		if header == 400 {
+			realCalled = true
+		}
+		w.WriteHeader(header)
 		fmt.Fprintln(w, "Not Implemented")
 	}))
+
+	// Yes this isn't the 'real' one but this doesn't call the API and we
+	// do want to test the 'fake' one and other code paths.
+	c.shouldRetryWithWaitFn = func(_ http.RoundTripper, _ error, _ int) bool { realCalled = true; return false }
 
 	tests := []struct {
 		desc string
@@ -56,6 +63,9 @@ func TestTestClient(t *testing.T) {
 		{"get image from family", func() { c.GetImageFromFamily("a", "b") }},
 		{"get image", func() { c.GetImage("a", "b") }},
 		{"list images", func() { c.ListImages("a") }},
+		{"get license", func() { c.GetLicense("a", "b") }},
+		{"get network", func() { c.GetNetwork("a", "b") }},
+		{"list networks", func() { c.ListNetworks("a") }},
 		{"get disk", func() { c.GetDisk("a", "b", "c") }},
 		{"list disks", func() { c.ListDisks("a", "b") }},
 		{"instance status", func() { c.InstanceStatus("a", "b", "c") }},
@@ -104,6 +114,9 @@ func TestTestClient(t *testing.T) {
 	c.GetImageFromFamilyFn = func(_, _ string) (*compute.Image, error) { fakeCalled = true; return nil, nil }
 	c.GetImageFn = func(_, _ string) (*compute.Image, error) { fakeCalled = true; return nil, nil }
 	c.ListImagesFn = func(_ string) (*compute.ImageList, error) { fakeCalled = true; return nil, nil }
+	c.GetLicenseFn = func(_, _ string) (*compute.License, error) { fakeCalled = true; return nil, nil }
+	c.GetNetworkFn = func(_, _ string) (*compute.Network, error) { fakeCalled = true; return nil, nil }
+	c.ListNetworksFn = func(_ string) (*compute.NetworkList, error) { fakeCalled = true; return nil, nil }
 	c.GetMachineTypeFn = func(_, _, _ string) (*compute.MachineType, error) { fakeCalled = true; return nil, nil }
 	c.ListMachineTypesFn = func(_, _ string) (*compute.MachineTypeList, error) { fakeCalled = true; return nil, nil }
 	c.InstanceStatusFn = func(_, _, _ string) (string, error) { fakeCalled = true; return "", nil }
