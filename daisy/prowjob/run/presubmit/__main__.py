@@ -31,6 +31,7 @@ PACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', PACKAGE)
 
 
 def main():
+    logging.info(os.getcwd())
     logging.info('Downloading Daisy repo.')
     code = call(['go', 'get', PACKAGE]).returncode
     if code:
@@ -68,8 +69,9 @@ def main():
         if code:
             return code
     if ARGS.gotest:
-        cmd = ['./unit_tests.sh', PACKAGE, repo.commit, ARGS.pr]
-        code = call(cmd).returncode
+        cmd = ['./unit_tests.sh', PACKAGE, repo.commit, str(ARGS.pr)]
+        cwd = os.path.dirname(os.path.realpath(__file__))
+        code = call(cmd, cwd=cwd).returncode
         if code:
             return code
     return 0
