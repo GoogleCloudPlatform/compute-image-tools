@@ -50,10 +50,7 @@ func initInstanceRegistry(w *Workflow) {
 
 func (ir *instanceRegistry) deleteFn(res *resource) error {
 	m := namedSubexp(instanceURLRgx, res.link)
-	if err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"]); err != nil {
-		return err
-	}
-	return nil
+	return ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
 }
 
 func (ir *instanceRegistry) registerCreation(name string, res *resource, s *Step) error {

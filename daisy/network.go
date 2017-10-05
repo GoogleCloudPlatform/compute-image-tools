@@ -40,10 +40,7 @@ func initNetworkRegistry(w *Workflow) {
 
 func (ir *networkRegistry) deleteFn(res *resource) error {
 	m := namedSubexp(networkURLRegex, res.link)
-	if err := ir.w.ComputeClient.DeleteImage(m["project"], m["network"]); err != nil {
-		return err
-	}
-	return nil
+	return ir.w.ComputeClient.DeleteImage(m["project"], m["network"])
 }
 
 var networkCache struct {

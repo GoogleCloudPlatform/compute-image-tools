@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package workflow describes a daisy workflow.
+// Package daisy describes a daisy workflow.
 package daisy
 
 import (
@@ -165,6 +165,7 @@ type Workflow struct {
 	cleanupHooksMx sync.Mutex
 }
 
+// AddVar adds a variable set to the Workflow.
 func (w *Workflow) AddVar(k, v string) {
 	if w.Vars == nil {
 		w.Vars = map[string]wVar{}
@@ -295,7 +296,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 
 	for k, v := range w.Vars {
 		if v.Required && v.Value == "" {
-			return Errorf("cannot populate workflow, required var %q is unset", k)
+			return errorf("cannot populate workflow, required var %q is unset", k)
 		}
 	}
 

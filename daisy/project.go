@@ -36,9 +36,8 @@ func projectExists(client compute.Client, project string) (bool, error) {
 	if _, err := client.GetProject(project); err != nil {
 		if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
 			return false, nil
-		} else {
-			return false, err
 		}
+		return false, err
 	}
 	projectCache.exists = append(projectCache.exists, project)
 	return true, nil

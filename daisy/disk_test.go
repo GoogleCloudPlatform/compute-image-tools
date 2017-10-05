@@ -195,7 +195,7 @@ func TestDiskRegisterDetachment(t *testing.T) {
 	}
 
 	errDetachHelper := func(d, i *resource, s *Step) error {
-		return Errorf("error")
+		return errorf("error")
 	}
 
 	tests := []struct {
@@ -253,7 +253,7 @@ func TestDiskRegisterAllDetachments(t *testing.T) {
 	disks[w].attachments[d2] = map[*resource]*diskAttachment{i: {attacher: att}}
 
 	errDetachHelper := func(d, i *resource, s *Step) error {
-		return Errorf("error")
+		return errorf("error")
 	}
 
 	tests := []struct {
