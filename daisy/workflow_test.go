@@ -799,7 +799,7 @@ func testValidateErrors(w *Workflow, want string) error {
 }
 
 func TestValidateErrors(t *testing.T) {
-	// dError from validateRequiredFields().
+	// Error from validateRequiredFields().
 	w := testWorkflow()
 	w.Name = "1"
 	want := "error validating workflow: workflow field 'Name' must start with a letter and only contain letters, numbers, and hyphens"
@@ -807,7 +807,7 @@ func TestValidateErrors(t *testing.T) {
 		t.Error(err)
 	}
 
-	// dError from populate().
+	// Error from populate().
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {Timeout: "10", testType: &mockStep{}}}
 	want = "error populating workflow: time: missing unit in duration 10"
@@ -815,7 +815,7 @@ func TestValidateErrors(t *testing.T) {
 		t.Error(err)
 	}
 
-	// dError from validate().
+	// Error from validate().
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {testType: &mockStep{}}}
 	w.Project = "${var}"

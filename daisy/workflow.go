@@ -193,7 +193,7 @@ func (w *Workflow) Validate(ctx context.Context) error {
 
 	w.logger.Print("Validating workflow")
 	if err := w.validate(ctx); err != nil {
-		w.logger.Printf("dError validating workflow: %v", err)
+		w.logger.Printf("Error validating workflow: %v", err)
 		close(w.Cancel)
 		return err
 	}
@@ -212,13 +212,13 @@ func (w *Workflow) Run(ctx context.Context) error {
 
 	w.logger.Print("Uploading sources")
 	if err := w.uploadSources(ctx); err != nil {
-		w.logger.Printf("dError uploading sources: %v", err)
+		w.logger.Printf("Error uploading sources: %v", err)
 		close(w.Cancel)
 		return err
 	}
 	w.logger.Print("Running workflow")
 	if err := w.run(ctx); err != nil {
-		w.logger.Printf("dError running workflow: %v", err)
+		w.logger.Printf("Error running workflow: %v", err)
 		select {
 		case <-w.Cancel:
 		default:
@@ -238,7 +238,7 @@ func (w *Workflow) cleanup() {
 	w.logger.Printf("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
-			w.logger.Printf("dError returned from cleanup hook: %s", err)
+			w.logger.Printf("Error returned from cleanup hook: %s", err)
 		}
 	}
 	if w.gcsLogWriter != nil {
@@ -491,12 +491,12 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 func (w *Workflow) Print(ctx context.Context) {
 	w.gcsLogging = false
 	if err := w.populate(ctx); err != nil {
-		fmt.Println("dError running populate:", err)
+		fmt.Println("Error running populate:", err)
 	}
 
 	b, err := json.MarshalIndent(w, "", "  ")
 	if err != nil {
-		fmt.Println("dError marshalling workflow for printing:", err)
+		fmt.Println("Error marshalling workflow for printing:", err)
 	}
 	fmt.Println(string(b))
 }
