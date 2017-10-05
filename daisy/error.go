@@ -51,16 +51,16 @@ func typedErrorf(errType, format string, a ...interface{}) *dError {
 	return err
 }
 
-type Errors []*dError
+type dErrors []*dError
 
-func (e *Errors) cast() error {
+func (e *dErrors) cast() error {
 	if e == nil || *e == nil {
 		return nil
 	}
 	return e
 }
 
-func (e *Errors) add(errs ...*dError) {
+func (e *dErrors) add(errs ...*dError) {
 	for _, err := range errs {
 		if err != nil {
 			*e = append(*e, err)
@@ -68,10 +68,10 @@ func (e *Errors) add(errs ...*dError) {
 	}
 }
 
-func (e *Errors) Error() string {
+func (e *dErrors) Error() string {
 	var errStrs []string
 	for _, err := range *e {
 		errStrs = append(errStrs, fmt.Sprintf("  * %s", err))
 	}
-	return fmt.Sprintf("Errors:\n%s", strings.Join(errStrs, "\n"))
+	return fmt.Sprintf("dErrors:\n%s", strings.Join(errStrs, "\n"))
 }

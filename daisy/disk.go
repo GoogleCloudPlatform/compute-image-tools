@@ -148,7 +148,7 @@ func (dr *diskRegistry) registerAllDetachments(iName string, s *Step) error {
 		return errorf("cannot detach disks from instance %q, does not exist", iName)
 	}
 
-	var errs Errors
+	var errs dErrors
 	for d, im := range dr.attachments {
 		if att, ok := im[i]; !ok || att.detacher != nil {
 			continue

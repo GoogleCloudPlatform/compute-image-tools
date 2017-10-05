@@ -69,7 +69,7 @@ func TestErrorTypedErrorf(t *testing.T) {
 }
 
 func TestErrorsAdd(t *testing.T) {
-	var errs Errors
+	var errs dErrors
 
 	errs.add(nil)
 	if errs != nil {
@@ -78,13 +78,13 @@ func TestErrorsAdd(t *testing.T) {
 
 	err := &dError{Msg: "error"}
 	errs.add(err)
-	if diff := pretty.Compare(errs, Errors{err}); diff != "" {
+	if diff := pretty.Compare(errs, dErrors{err}); diff != "" {
 		t.Errorf("errs not modified as expected: (-got,+want)\n%s", diff)
 	}
 }
 
 func TestErrorsCast(t *testing.T) {
-	var errs Errors
+	var errs dErrors
 
 	if errs.cast() != nil {
 		t.Error("should have returned a nil error")
@@ -96,10 +96,10 @@ func TestErrorsCast(t *testing.T) {
 }
 
 func TestErrorsError(t *testing.T) {
-	var errs Errors
+	var errs dErrors
 
 	errs.add(errorf("hey!"))
-	want := "Errors:\n  * hey!"
+	want := "dErrors:\n  * hey!"
 	got := errs.Error()
 	if got != want {
 		t.Errorf("dError did not print as expected: got %q, want %q", got, want)

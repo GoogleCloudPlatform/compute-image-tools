@@ -205,7 +205,7 @@ func main() {
 
 	select {
 	case err := <-errors:
-		fmt.Fprintln(os.Stderr, "\n[Daisy] Errors in one or more workflows:")
+		fmt.Fprintln(os.Stderr, "\n[Daisy] dErrors in one or more workflows:")
 		fmt.Fprintln(os.Stderr, " ", err)
 		for {
 			select {

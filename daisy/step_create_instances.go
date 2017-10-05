@@ -219,7 +219,7 @@ func (c *CreateInstance) populateScopes() *dError {
 // - sets defaults
 // - extends short partial URLs to include "projects/<project>"
 func (c *CreateInstances) populate(ctx context.Context, s *Step) error {
-	var errs Errors
+	var errs dErrors
 	for _, ci := range *c {
 		// General fields preprocessing.
 		ci.daisyName = ci.Name
@@ -245,7 +245,7 @@ func (c *CreateInstances) populate(ctx context.Context, s *Step) error {
 	return errs.cast()
 }
 
-func (c *CreateInstance) validateDisks(s *Step) (errs Errors) {
+func (c *CreateInstance) validateDisks(s *Step) (errs dErrors) {
 	if len(c.Disks) == 0 {
 		errs.add(errorf("cannot create instance: no disks provided"))
 	}
@@ -266,7 +266,7 @@ func (c *CreateInstance) validateDisks(s *Step) (errs Errors) {
 	return
 }
 
-func (c *CreateInstance) validateDiskSource(d *compute.AttachedDisk, s *Step) (errs Errors) {
+func (c *CreateInstance) validateDiskSource(d *compute.AttachedDisk, s *Step) (errs dErrors) {
 	dr, err := disks[s.w].registerUsage(d.Source, s)
 	if err != nil {
 		errs.add(errorf(err.Error()))
@@ -284,7 +284,7 @@ func (c *CreateInstance) validateDiskSource(d *compute.AttachedDisk, s *Step) (e
 	return
 }
 
-func (c *CreateInstance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step) (errs Errors) {
+func (c *CreateInstance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step) (errs dErrors) {
 	p := d.InitializeParams
 	if !rfc1035Rgx.MatchString(p.DiskName) {
 		errs.add(errorf("cannot create instance: bad InitializeParams.DiskName: %q", p.DiskName))
@@ -309,7 +309,7 @@ func (c *CreateInstance) validateDiskInitializeParams(d *compute.AttachedDisk, s
 	return
 }
 
-func (c *CreateInstance) validateMachineType(client daisyCompute.Client) (errs Errors) {
+func (c *CreateInstance) validateMachineType(client daisyCompute.Client) (errs dErrors) {
 	if !machineTypeURLRegex.MatchString(c.MachineType) {
 		errs.add(errorf("can't create instance: bad MachineType: %q", c.MachineType))
 		return
@@ -331,7 +331,7 @@ func (c *CreateInstance) validateMachineType(client daisyCompute.Client) (errs E
 	return
 }
 
-func (c *CreateInstance) validateNetworks(s *Step) (errs Errors) {
+func (c *CreateInstance) validateNetworks(s *Step) (errs dErrors) {
 	for _, n := range c.NetworkInterfaces {
 		nr, err := networks[s.w].registerUsage(n.Network, s)
 		if err != nil {
@@ -350,7 +350,7 @@ func (c *CreateInstance) validateNetworks(s *Step) (errs Errors) {
 }
 
 func (c *CreateInstances) validate(ctx context.Context, s *Step) error {
-	var errs Errors
+	var errs dErrors
 	for _, ci := range *c {
 		if !checkName(ci.Name) {
 			errs.add(errorf("cannot create instance %q: bad name", ci.Name))
