@@ -73,5 +73,5 @@ func (e *dErrors) Error() string {
 	for _, err := range *e {
 		errStrs = append(errStrs, fmt.Sprintf("  * %s", err))
 	}
-	return fmt.Sprintf("dErrors:\n%s", strings.Join(errStrs, "\n"))
+	return fmt.Sprintf("Errors:\n%s", strings.Join(errStrs, "\n"))
 }

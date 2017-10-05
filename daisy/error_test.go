@@ -56,7 +56,7 @@ func TestErrorErrorf(t *testing.T) {
 
 	want := dError{Msg: "hello world"}
 	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("dError not created as expected: (-got,+want)\n%s", diff)
+		t.Errorf("Error not created as expected: (-got,+want)\n%s", diff)
 	}
 }
 
@@ -64,7 +64,7 @@ func TestErrorTypedErrorf(t *testing.T) {
 	got := typedErrorf("MYERROR", "%s %s", "hello", "world")
 	want := dError{Msg: "hello world", ErrType: "MYERROR"}
 	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("dError not created as expected: (-got,+want)\n%s", diff)
+		t.Errorf("Error not created as expected: (-got,+want)\n%s", diff)
 	}
 }
 
@@ -99,9 +99,9 @@ func TestErrorsError(t *testing.T) {
 	var errs dErrors
 
 	errs.add(errorf("hey!"))
-	want := "dErrors:\n  * hey!"
+	want := "Errors:\n  * hey!"
 	got := errs.Error()
 	if got != want {
-		t.Errorf("dError did not print as expected: got %q, want %q", got, want)
+		t.Errorf("Error did not print as expected: got %q, want %q", got, want)
 	}
 }
