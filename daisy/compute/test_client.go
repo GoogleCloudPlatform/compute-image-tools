@@ -65,6 +65,9 @@ type TestClient struct {
 	GetImageFn            func(project, name string) (*compute.Image, error)
 	GetImageFromFamilyFn  func(project, family string) (*compute.Image, error)
 	ListImagesFn          func(project string) (*compute.ImageList, error)
+	GetLicenseFn          func(project, name string) (*compute.License, error)
+	GetNetworkFn          func(project, name string) (*compute.Network, error)
+	ListNetworksFn        func(project string) (*compute.NetworkList, error)
 	InstanceStatusFn      func(project, zone, name string) (string, error)
 	InstanceStoppedFn     func(project, zone, name string) (bool, error)
 	RetryFn               func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -222,6 +225,30 @@ func (c *TestClient) ListImages(project string) (*compute.ImageList, error) {
 		return c.ListImagesFn(project)
 	}
 	return c.client.ListImages(project)
+}
+
+// GetLicense uses the override method GetLicenseFn or the real implementation.
+func (c *TestClient) GetLicense(project, name string) (*compute.License, error) {
+	if c.GetLicenseFn != nil {
+		return c.GetLicenseFn(project, name)
+	}
+	return c.client.GetLicense(project, name)
+}
+
+// GetNetwork uses the override method GetNetworkFn or the real implementation.
+func (c *TestClient) GetNetwork(project, name string) (*compute.Network, error) {
+	if c.GetNetworkFn != nil {
+		return c.GetNetworkFn(project, name)
+	}
+	return c.client.GetNetwork(project, name)
+}
+
+// ListNetworks uses the override method ListNetworksFn or the real implementation.
+func (c *TestClient) ListNetworks(project string) (*compute.NetworkList, error) {
+	if c.ListNetworksFn != nil {
+		return c.ListNetworksFn(project)
+	}
+	return c.client.ListNetworks(project)
 }
 
 // GetSerialPortOutput uses the override method GetSerialPortOutputFn or the real implementation.

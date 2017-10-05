@@ -408,7 +408,6 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 	// - good case
 	// - no disks bad case
 	// - bad disk mode case
-	ctx := context.Background()
 	w := testWorkflow()
 	disks[w].m = map[string]*resource{testDisk: {link: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}
 	m := defaultDiskMode
@@ -418,8 +417,8 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 		ci        *CreateInstance
 		shouldErr bool
 	}{
-		{"good case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: m}}}, Project: testProject, Zone: testZone}, false},
-		{"good case 2", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk), Mode: m}}}, Project: testProject, Zone: testZone}, false},
+		{"good case reference", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: m}}}, Project: testProject, Zone: testZone}, false},
+		{"good case url", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk), Mode: m}}}, Project: testProject, Zone: testZone}, false},
 		{"bad no disks case", &CreateInstance{Instance: compute.Instance{Name: "foo"}}, true},
 		{"bad disk mode case", &CreateInstance{Instance: compute.Instance{Name: "foo", Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: "bad mode!"}}}, Project: testProject, Zone: testZone}, true},
 	}
@@ -427,7 +426,7 @@ func TestCreateInstanceValidateDisks(t *testing.T) {
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
 		s.CreateInstances = &CreateInstances{tt.ci}
-		if err := tt.ci.validateDisks(ctx, s); tt.shouldErr && err == nil {
+		if err := tt.ci.validateDisks(s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -567,22 +566,25 @@ func TestCreateInstanceValidateMachineType(t *testing.T) {
 }
 
 func TestCreateInstanceValidateNetworks(t *testing.T) {
+	w := testWorkflow()
 	acs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
+	networks[w].m = map[string]*resource{testNetwork: {link: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork)}}
 
 	tests := []struct {
 		desc      string
-		nis       []*compute.NetworkInterface
+		ci        *CreateInstance
 		shouldErr bool
 	}{
-		{"good case", []*compute.NetworkInterface{{Network: "projects/p/global/networks/n", AccessConfigs: acs}}, false},
-		{"good case 2", []*compute.NetworkInterface{{Network: "projects/p/global/networks/n", AccessConfigs: acs}}, false},
-		{"bad name case", []*compute.NetworkInterface{{Network: "projects/p/global/networks/bad!", AccessConfigs: acs}}, true},
-		{"bad project case", []*compute.NetworkInterface{{Network: "projects/bad-project/global/networks/n", AccessConfigs: acs}}, true},
+		{"good case reference", &CreateInstance{Project: testProject, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: testNetwork, AccessConfigs: acs}}}}, false},
+		{"good case url", &CreateInstance{Project: testProject, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acs}}}}, false},
+		{"bad name case", &CreateInstance{Project: testProject, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acs}}}}, true},
+		{"bad project case", &CreateInstance{Project: testProject, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acs}}}}, true},
 	}
 
 	for _, tt := range tests {
-		ci := &CreateInstance{Instance: compute.Instance{NetworkInterfaces: tt.nis}, Project: "p"}
-		if err := ci.validateNetworks(); tt.shouldErr && err == nil {
+		s, _ := w.NewStep(tt.desc)
+		s.CreateInstances = &CreateInstances{tt.ci}
+		if err := tt.ci.validateNetworks(s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)

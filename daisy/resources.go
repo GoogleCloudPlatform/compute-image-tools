@@ -107,6 +107,9 @@ func resourceExists(client compute.Client, url string) (bool, error) {
 	case imageURLRgx.MatchString(url):
 		result := namedSubexp(imageURLRgx, url)
 		return imageExists(client, result["project"], result["family"], result["image"])
+	case networkURLRegex.MatchString(url):
+		result := namedSubexp(networkURLRegex, url)
+		return networkExists(client, result["project"], result["network"])
 	}
 	return false, fmt.Errorf("unknown resource type: %q", url)
 }
@@ -217,6 +220,7 @@ func initWorkflowResources(w *Workflow) {
 	initDiskRegistry(w)
 	initImageRegistry(w)
 	initInstanceRegistry(w)
+	initNetworkRegistry(w)
 	w.addCleanupHook(resourceCleanupHook(w))
 }
 

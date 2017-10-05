@@ -114,6 +114,16 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 			}
 		}
 
+		// License checking.
+		for _, l := range ci.Licenses {
+			result := namedSubexp(licenseURLRegex, l)
+			if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
+				return fmt.Errorf("cannot create image: bad license lookup: %q, error: %v", l, err)
+			} else if !exists {
+				return fmt.Errorf("cannot create image: license does not exist: %q", l)
+			}
+		}
+
 		// Register image creation.
 		link := fmt.Sprintf("projects/%s/global/images/%s", ci.Project, ci.Name)
 		r := &resource{real: ci.Name, link: link, noCleanup: ci.NoCleanup}
