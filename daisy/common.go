@@ -124,7 +124,7 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 // For example, f will be run on bool, int, string, etc.
 // Slices, maps, and structs will not have f called on them, but will
 // traverse their subelements.
-// dErrors returned from f will be returned by traverseDataStructure.
+// Errors returned from f will be returned by traverseDataStructure.
 func traverseData(v reflect.Value, f func(reflect.Value) error) error {
 	if !v.CanSet() {
 		// Don't run on private fields.
