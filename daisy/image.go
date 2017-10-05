@@ -43,10 +43,7 @@ func initImageRegistry(w *Workflow) {
 
 func (ir *imageRegistry) deleteFn(res *resource) error {
 	m := namedSubexp(imageURLRgx, res.link)
-	if err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"]); err != nil {
-		return err
-	}
-	return nil
+	return ir.w.ComputeClient.DeleteImage(m["project"], m["image"])
 }
 
 var imagesCache struct {

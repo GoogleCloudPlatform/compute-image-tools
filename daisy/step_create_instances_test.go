@@ -62,12 +62,12 @@ func TestLogSerialOutput(t *testing.T) {
 		test, want, name string
 	}{
 		{
-			"Error but instance stopped",
+			"dError but instance stopped",
 			"CreateInstances: streaming instance \"i1\" serial port 0 output to gs://test-bucket/i1-serial-port0.log\n",
 			"i1",
 		},
 		{
-			"Error but instance running",
+			"dError but instance running",
 			"CreateInstances: streaming instance \"i2\" serial port 0 output to gs://test-bucket/i2-serial-port0.log\nCreateInstances: instance \"i2\": error getting serial port: fail\n",
 			"i2",
 		},
@@ -77,7 +77,7 @@ func TestLogSerialOutput(t *testing.T) {
 			"i3",
 		},
 		{
-			"Error but instance deleted",
+			"dError but instance deleted",
 			"CreateInstances: streaming instance \"i4\" serial port 0 output to gs://test-bucket/i4-serial-port0.log\n",
 			"i4",
 		},

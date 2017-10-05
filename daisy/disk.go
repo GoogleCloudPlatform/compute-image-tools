@@ -52,10 +52,7 @@ func (dr *diskRegistry) init() {
 
 func (dr *diskRegistry) deleteFn(res *resource) error {
 	m := namedSubexp(diskURLRgx, res.link)
-	if err := dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"]); err != nil {
-		return err
-	}
-	return nil
+	return dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"])
 }
 
 func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) error {
@@ -64,10 +61,10 @@ func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) e
 	var d, i *resource
 	var ok bool
 	if d, ok = dr.m[dName]; !ok {
-		return Errorf("cannot attach disk %q, does not exist", dName)
+		return errorf("cannot attach disk %q, does not exist", dName)
 	}
 	if i, ok = instances[dr.w].get(iName); !ok {
-		return Errorf("cannot attach disk to instance %q, does not exist", iName)
+		return errorf("cannot attach disk to instance %q, does not exist", iName)
 	}
 	// Iterate over disk's attachments. Check for concurrent conflicts.
 	// Step s is concurrent with other attachments if the attachment detacher == nil
@@ -80,7 +77,7 @@ func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) e
 				return nil // this is a repeat attachment to the same instance -- does nothing
 			} else if strIn(diskModeRW, []string{mode, att.mode}) {
 				// Can't have concurrent attachment in RW mode.
-				return Errorf(
+				return errorf(
 					"concurrent attachment of disk %q between instances %q (%s) and %q (%s)",
 					dName, i.real, mode, attI.real, att.mode)
 			}
@@ -107,12 +104,12 @@ func (dr *diskRegistry) detachHelper(d, i *resource, s *Step) error {
 	var im map[*resource]*diskAttachment
 	var ok bool
 	if im, ok = dr.attachments[d]; !ok {
-		return Errorf("not attached")
+		return errorf("not attached")
 	}
 	if att, ok = im[i]; !ok || att.detacher != nil {
-		return Errorf("not attached")
+		return errorf("not attached")
 	} else if !s.nestedDepends(att.attacher) {
-		return Errorf("detacher %q does not depend on attacher %q", s.name, att.attacher.name)
+		return errorf("detacher %q does not depend on attacher %q", s.name, att.attacher.name)
 	}
 	att.detacher = s
 	return nil
@@ -127,14 +124,14 @@ func (dr *diskRegistry) registerDetachment(dName, iName string, s *Step) error {
 	var d, i *resource
 	var ok bool
 	if d, ok = dr.m[dName]; !ok {
-		return Errorf("cannot detach disk %q, does not exist", dName)
+		return errorf("cannot detach disk %q, does not exist", dName)
 	}
 	if i, ok = instances[dr.w].get(iName); !ok {
-		return Errorf("cannot detach disk from instance %q, does not exist", iName)
+		return errorf("cannot detach disk from instance %q, does not exist", iName)
 	}
 
 	if err := dr.detachHelper(d, i, s); err != nil {
-		return Errorf("cannot detach disk %q from instance %q: %v", dName, iName, err)
+		return errorf("cannot detach disk %q from instance %q: %v", dName, iName, err)
 	}
 	return nil
 }
@@ -148,7 +145,7 @@ func (dr *diskRegistry) registerAllDetachments(iName string, s *Step) error {
 
 	i, ok := instances[dr.w].get(iName)
 	if !ok {
-		return Errorf("cannot detach disks from instance %q, does not exist", iName)
+		return errorf("cannot detach disks from instance %q, does not exist", iName)
 	}
 
 	var errs Errors
@@ -157,7 +154,7 @@ func (dr *diskRegistry) registerAllDetachments(iName string, s *Step) error {
 			continue
 		}
 		if err := dr.detachHelper(d, i, s); err != nil {
-			errs.add(Errorf("cannot detach disk %q from instance %q: %v", d.real, iName, err))
+			errs.add(errorf("cannot detach disk %q from instance %q: %v", d.real, iName, err))
 		}
 	}
 	return errs.cast()

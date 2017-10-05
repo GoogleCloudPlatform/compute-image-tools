@@ -125,7 +125,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		t.Error("expected error")
 	}
 
-	// Error from GetSerialPortOutput but instance is running.
+	// dError from GetSerialPortOutput but instance is running.
 	ws = &WaitForInstancesSignal{
 		{Name: "i4", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
 	}
@@ -133,7 +133,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		t.Error("expected error")
 	}
 
-	// Error from GetSerialPortOutput, error from InstanceStatus.
+	// dError from GetSerialPortOutput, error from InstanceStatus.
 	ws = &WaitForInstancesSignal{
 		{Name: "i5", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
 	}
@@ -141,7 +141,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		t.Error("expected error")
 	}
 
-	// Error from GetSerialPortOutput but instance is terminated so no error.
+	// dError from GetSerialPortOutput but instance is terminated so no error.
 	ws = &WaitForInstancesSignal{
 		{Name: "i6", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
 	}

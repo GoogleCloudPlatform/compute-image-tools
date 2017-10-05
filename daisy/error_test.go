@@ -21,12 +21,12 @@ import (
 )
 
 func TestErrorCast(t *testing.T) {
-	var err *Error
+	var err *dError
 
 	if err.cast() != nil {
 		t.Error("should have returned a nil error")
 	}
-	err = Errorf("hey!")
+	err = errorf("hey!")
 	if err.cast() == nil {
 		t.Error("should have returned an error")
 	}
@@ -38,12 +38,12 @@ func TestErrorError(t *testing.T) {
 		desc, errType string
 		want          string
 	}{
-		{"no error type case", ERRNOTYPE, msg},
+		{"no error type case", errnotype, msg},
 		{"error type case", "MYERROR", fmt.Sprintf("MYERROR: %s", msg)},
 	}
 
 	for _, tt := range tests {
-		e := Error{Msg: msg, ErrType: tt.errType}
+		e := dError{Msg: msg, ErrType: tt.errType}
 		got := e.Error()
 		if got != tt.want {
 			t.Errorf("%s: got %q, want %q", tt.desc, got, tt.want)
@@ -52,19 +52,19 @@ func TestErrorError(t *testing.T) {
 }
 
 func TestErrorErrorf(t *testing.T) {
-	got := Errorf("%s %s", "hello", "world")
+	got := errorf("%s %s", "hello", "world")
 
-	want := Error{Msg: "hello world"}
+	want := dError{Msg: "hello world"}
 	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("Error not created as expected: (-got,+want)\n%s", diff)
+		t.Errorf("dError not created as expected: (-got,+want)\n%s", diff)
 	}
 }
 
 func TestErrorTypedErrorf(t *testing.T) {
-	got := TypedErrorf("MYERROR", "%s %s", "hello", "world")
-	want := Error{Msg: "hello world", ErrType: "MYERROR"}
+	got := typedErrorf("MYERROR", "%s %s", "hello", "world")
+	want := dError{Msg: "hello world", ErrType: "MYERROR"}
 	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("Error not created as expected: (-got,+want)\n%s", diff)
+		t.Errorf("dError not created as expected: (-got,+want)\n%s", diff)
 	}
 }
 
@@ -76,7 +76,7 @@ func TestErrorsAdd(t *testing.T) {
 		t.Errorf("errs should be nil")
 	}
 
-	err := &Error{Msg: "error"}
+	err := &dError{Msg: "error"}
 	errs.add(err)
 	if diff := pretty.Compare(errs, Errors{err}); diff != "" {
 		t.Errorf("errs not modified as expected: (-got,+want)\n%s", diff)
@@ -89,7 +89,7 @@ func TestErrorsCast(t *testing.T) {
 	if errs.cast() != nil {
 		t.Error("should have returned a nil error")
 	}
-	errs.add(Errorf("hey!"))
+	errs.add(errorf("hey!"))
 	if errs.cast() == nil {
 		t.Error("should have returned an error")
 	}
@@ -98,10 +98,10 @@ func TestErrorsCast(t *testing.T) {
 func TestErrorsError(t *testing.T) {
 	var errs Errors
 
-	errs.add(Errorf("hey!"))
+	errs.add(errorf("hey!"))
 	want := "Errors:\n  * hey!"
 	got := errs.Error()
 	if got != want {
-		t.Errorf("Error did not print as expected: got %q, want %q", got, want)
+		t.Errorf("dError did not print as expected: got %q, want %q", got, want)
 	}
 }

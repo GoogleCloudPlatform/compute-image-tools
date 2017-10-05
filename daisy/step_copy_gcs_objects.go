@@ -25,10 +25,10 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-// CopyGCSFiles is a Daisy CopyGCSFiles workflow step.
+// CopyGCSObjects is a Daisy CopyGCSObject workflow step.
 type CopyGCSObjects []CopyGCSObject
 
-// CopyGCSFile copies a GCS file from Source to Destination.
+// CopyGCSObject copies a GCS object from Source to Destination.
 type CopyGCSObject struct {
 	Source, Destination string
 	ACLRules            []*storage.ACLRule

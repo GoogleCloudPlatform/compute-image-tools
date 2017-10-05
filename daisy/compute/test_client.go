@@ -75,7 +75,7 @@ type TestClient struct {
 	operationsWaitFn func(project, zone, name string) error
 }
 
-// CreateDisk uses the override method CreateDiskFn or the real implementation.
+// Retry uses the override method RetryFn or the real implementation.
 func (c *TestClient) Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error) {
 	if c.RetryFn != nil {
 		return c.RetryFn(f, opts...)

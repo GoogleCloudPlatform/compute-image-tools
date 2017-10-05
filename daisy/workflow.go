@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package workflow describes a daisy workflow.
+// Package daisy describes a daisy workflow.
 package daisy
 
 import (
@@ -165,6 +165,7 @@ type Workflow struct {
 	cleanupHooksMx sync.Mutex
 }
 
+// AddVar adds a variable set to the Workflow.
 func (w *Workflow) AddVar(k, v string) {
 	if w.Vars == nil {
 		w.Vars = map[string]wVar{}
@@ -192,7 +193,7 @@ func (w *Workflow) Validate(ctx context.Context) error {
 
 	w.logger.Print("Validating workflow")
 	if err := w.validate(ctx); err != nil {
-		w.logger.Printf("Error validating workflow: %v", err)
+		w.logger.Printf("dError validating workflow: %v", err)
 		close(w.Cancel)
 		return err
 	}
@@ -211,13 +212,13 @@ func (w *Workflow) Run(ctx context.Context) error {
 
 	w.logger.Print("Uploading sources")
 	if err := w.uploadSources(ctx); err != nil {
-		w.logger.Printf("Error uploading sources: %v", err)
+		w.logger.Printf("dError uploading sources: %v", err)
 		close(w.Cancel)
 		return err
 	}
 	w.logger.Print("Running workflow")
 	if err := w.run(ctx); err != nil {
-		w.logger.Printf("Error running workflow: %v", err)
+		w.logger.Printf("dError running workflow: %v", err)
 		select {
 		case <-w.Cancel:
 		default:
@@ -237,7 +238,7 @@ func (w *Workflow) cleanup() {
 	w.logger.Printf("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
-			w.logger.Printf("Error returned from cleanup hook: %s", err)
+			w.logger.Printf("dError returned from cleanup hook: %s", err)
 		}
 	}
 	if w.gcsLogWriter != nil {
@@ -295,7 +296,7 @@ func (w *Workflow) populate(ctx context.Context) error {
 
 	for k, v := range w.Vars {
 		if v.Required && v.Value == "" {
-			return Errorf("cannot populate workflow, required var %q is unset", k)
+			return errorf("cannot populate workflow, required var %q is unset", k)
 		}
 	}
 
@@ -490,12 +491,12 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 func (w *Workflow) Print(ctx context.Context) {
 	w.gcsLogging = false
 	if err := w.populate(ctx); err != nil {
-		fmt.Println("Error running populate:", err)
+		fmt.Println("dError running populate:", err)
 	}
 
 	b, err := json.MarshalIndent(w, "", "  ")
 	if err != nil {
-		fmt.Println("Error marshalling workflow for printing:", err)
+		fmt.Println("dError marshalling workflow for printing:", err)
 	}
 	fmt.Println(string(b))
 }
