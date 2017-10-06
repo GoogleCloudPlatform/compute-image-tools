@@ -243,8 +243,6 @@ function Install-Packages {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install googet
   # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-sysprep
-  # There's an issue
-  Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install -reinstall google-compute-engine-metadata-scripts
   if ($script:install_packages.ToLower() -eq 'true') {
     Write-Output 'Translate: Installing GCE packages...'
     # Install each individually in order to catch individual errors

@@ -13,9 +13,7 @@
       "Value": "10",
       "Description": "size of the importer instance disk, additional disk space is unused for the import but a larger size increases PD write speed"
     },
-    "import_disk_name": {
-      "Value": "disk-import-${ID}"
-    }
+    "import_disk_name": "disk-import-${ID}"
   },
   "Sources": {
     "import_image.sh": "./import_image.sh",
