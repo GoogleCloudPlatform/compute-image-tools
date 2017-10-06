@@ -34,6 +34,7 @@ def main():
   repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True)
   release = utils.GetMetadataParam('el_release', raise_on_not_found=True)
   byol = utils.GetMetadataParam('rhel_byol', raise_on_not_found=False)
+  byol = True if byol == 'true' else False
   rhel_point_release = utils.GetMetadataParam('rhel_point_release',
                                               raise_on_not_found=False)
 
