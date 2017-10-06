@@ -1,0 +1,28 @@
+{
+  "Name": "image-import-test",
+  "Vars": {
+    "image_name": "image-import-test-${ID}",
+    "source_disk_file": "gs://gce-image-import-test/xenial-server-cloudimg-amd64-disk1.vmdk"
+  },
+  "Steps": {
+    "import-image": {
+      "Timeout": "30m",
+      "IncludeWorkflow": {
+        "Path": "../image_import/import_image.wf.json",
+        "Vars": {
+          "source_disk_file": "${source_disk_file}",
+          "image_name": "${image_name}",
+          "importer_instance_disk_size": "200"
+        }
+      }
+    },
+    "delete-image": {
+      "DeleteResources": {
+        "Images": ["${image_name}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "delete-image": ["import-image"]
+  }
+}

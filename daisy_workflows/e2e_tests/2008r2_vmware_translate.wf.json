@@ -1,0 +1,65 @@
+{
+  "Name": "windows-2008-r2-translate-test",
+  "Vars": {
+    "source_image": "projects/gce-daisy-test/global/images/windows-2008-r2-vmware-import",
+    "image_name": "windows-2008-r2-translate-test-${ID}"
+  },
+  "Sources": {
+    "post_translate_test.ps1": "./scripts/post_translate_test.ps1"
+  },
+  "Steps": {
+    "translate-2008r2": {
+      "Timeout": "30m",
+      "IncludeWorkflow": {
+        "Path": "../image_import/windows/translate_windows_2008_r2.wf.json",
+        "Vars": {
+          "source_image": "${source_image}",
+          "image_name": "${image_name}"
+        }
+      }
+    },
+    "create-test-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-import-test",
+          "SourceImage": "${image_name}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-test-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-import-test",
+          "Disks": [{"Source": "disk-import-test"}],
+          "MachineType": "n1-standard-2",
+          "StartupScript": "post_translate_test.ps1"
+        }
+      ]
+    },
+    "wait-for-test-instance": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-import-test",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "All Tests Passed",
+            "FailureMatch": "Test Failed:",
+            "StatusMatch": "Test:"
+          }
+        }
+      ]
+    },
+    "delete-image": {
+      "DeleteResources": {
+        "Images": ["${image_name}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "create-test-disk": ["translate-2008r2"],
+    "delete-image": ["create-test-disk"],
+    "create-test-instance": ["create-test-disk"],
+    "wait-for-test-instance": ["create-test-instance"]
+  }
+}
