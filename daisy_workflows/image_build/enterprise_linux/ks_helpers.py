@@ -158,13 +158,13 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo):
+def BuildKsConfig(release, google_cloud_repo, byol):
   """Builds kickstart config from shards.
 
   Args:
     release: string; image from metadata.
-
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
+    byol: string; true if using a BYOL RHEL license.
 
   Returns:
     string; a valid kickstart config.
@@ -180,10 +180,16 @@ def BuildKsConfig(release, google_cloud_repo):
 
   # Common
   ks_packages = FetchConfigPart('common-packages.cfg')
+  # For BYOL RHEL, don't remove subscription-manager.
+  if byol == 'true':
+    ks_packages.replace('-subscription-manager', 'subscription-manager')
+    rhel_byol_post = FetchConfigPart('rhel-byol-post.cfg')
 
-  if release == "rhel6":
+  if release == 'rhel6':
     ks_options = FetchConfigPart('el6-options.cfg')
     custom_post = FetchConfigPart('el6-post.cfg')
+    if byol == 'true':
+      custom_post = '\n'.join([custom_post, rhel_byol_post])
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "centos6":
@@ -194,6 +200,8 @@ def BuildKsConfig(release, google_cloud_repo):
   elif release == "rhel7":
     ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('el7-post.cfg')
+    if byol == 'true':
+      custom_post = '\n'.join([custom_post, rhel_byol_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":

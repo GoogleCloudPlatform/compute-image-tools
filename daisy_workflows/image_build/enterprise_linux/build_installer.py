@@ -18,6 +18,7 @@
 Parameters (retrieved from instance metadata):
 google_cloud_repo: The package repo to use. Can be stable (default), staging, or unstable.
 el_release: rhel6, rhel7, centos6, or centos7
+byol: true if building a RHEL BYOL image.
 """
 import difflib
 import logging
@@ -32,6 +33,9 @@ def main():
   # Get Parameters
   repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True)
   release = utils.GetMetadataParam('el_release', raise_on_not_found=True)
+  byol = utils.GetMetadataParam('rhel_byol', raise_on_not_found=False)
+  rhel_point_release = utils.GetMetadataParam('rhel_point_release',
+                                              raise_on_not_found=False)
 
   logging.info('EL Installer Builder')
   logging.info('==============')
@@ -45,7 +49,7 @@ def main():
   utils.AptGetInstall(['extlinux', 'rsync'])
 
   # Build the kickstart file.
-  ks_content = ks_helpers.BuildKsConfig(release, repo)
+  ks_content = ks_helpers.BuildKsConfig(release, repo, byol)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 
@@ -68,9 +72,6 @@ def main():
   utils.Execute(['rsync', '-Pav', 'iso/images', 'iso/isolinux', 'installer/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
-  if release in ['rhel6', 'rhel7']:
-    logging.info('Copying RHUI client RPM.')
-    utils.Execute(['cp', 'google-rhui-client.rpm', 'installer/'])
 
   # Modify boot files on installer disk.
   utils.Execute(['mv', 'installer/isolinux', 'installer/extlinux'])
@@ -95,7 +96,12 @@ def main():
     # example. The following command will give you the string:
     # isoinfo -d -i rhel-server.iso | grep "Volume id:"
     if release == 'rhel7':
-      cfg = re.sub(r'LABEL=RHEL-7.3\\x20Server\.x86_64', '/dev/sda1', cfg)
+      if rhel_point_release:
+        label = r'LABEL=RHEL-%s\\x20Server\.x86_64' % rhel_point_release
+      else:
+        # Default to 7.3.
+        label = r'LABEL=RHEL-7.3\\x20Server\.x86_64'
+      cfg = re.sub(label, '/dev/sda1', cfg)
     elif release == 'centos7':
       cfg = re.sub(r'LABEL=CentOS\\x207\\x20x86_64', '/dev/sda1', cfg)
 

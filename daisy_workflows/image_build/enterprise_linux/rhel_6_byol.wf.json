@@ -1,5 +1,5 @@
 {
-  "Name": "build-rhel-6",
+  "Name": "build-rhel-6-byol",
   "Vars": {
     "google_cloud_repo": {
       "Value": "stable",
@@ -35,7 +35,8 @@
           "el_release": "rhel6",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
-          "installer_iso": "${installer_iso}"
+          "installer_iso": "${installer_iso}",
+          "rhel_byol": "true"
         }
       }
     },
@@ -44,8 +45,8 @@
       "IncludeWorkflow": {
         "Path": "../../export/disk_export.wf.json",
         "Vars": {
-          "destination": "${export_gcs_path}/rhel-6-v${build_date}/root.tar.gz",
-          "licenses": "1000002",
+          "destination": "${export_gcs_path}/rhel-6-byol-v${build_date}/root.tar.gz",
+          "licenses": "2862452038400965874",
           "source_disk": "${install_disk}"
         }
       }
@@ -53,10 +54,10 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-6-v${build_date}",
+          "Name": "rhel-6-byol-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
-            "projects/rhel-cloud/global/licenses/rhel-6-server"
+            "projects/rhel-cloud/global/licenses/rhel-6-byol"
           ],
           "Description": "Red Hat, Red Hat Enterprise Linux, 6, x86_64 built on ${build_date}",
           "Family": "rhel-6",
