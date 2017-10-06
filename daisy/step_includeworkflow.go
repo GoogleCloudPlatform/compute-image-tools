@@ -64,6 +64,7 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 		}
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
+	substitute(reflect.ValueOf(i.w).Elem(), strings.NewReplacer(replacements...))
 	for k, v := range i.w.Vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}

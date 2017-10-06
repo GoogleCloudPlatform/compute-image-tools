@@ -1,3 +1,17 @@
+#  Copyright 2017 Google Inc. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 $ErrorActionPreference = 'Stop'
 
 $script:gce_install_dir = 'C:\Program Files\Google\Compute Engine'
@@ -227,6 +241,8 @@ function Enable-RemoteDesktop {
 
 function Install-Packages {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install googet
+  # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
+  Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-sysprep
   if ($script:install_packages.ToLower() -eq 'true') {
     Write-Output 'Translate: Installing GCE packages...'
     # Install each individually in order to catch individual errors
@@ -234,8 +250,6 @@ function Install-Packages {
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-auto-updater
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss
   }
-  # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
-  Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-sysprep
 }
 
 try {
@@ -265,10 +279,11 @@ try {
     . 'C:\Program Files\Google\Compute Engine\sysprep\activate_instance.ps1' | Out-Null
 
     if ($script:install_packages.ToLower() -ne 'true') {
-      Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-metadata-scripts
+      Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-engine-metadata-scripts
       Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-powershell
     }
     Write-Output 'Translate complete.'
+    Stop-Computer
     exit 0
   }
 

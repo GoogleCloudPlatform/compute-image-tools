@@ -12,7 +12,8 @@
     "importer_instance_disk_size": {
       "Value": "10",
       "Description": "size of the importer instance disk, additional disk space is unused for the import but a larger size increases PD write speed"
-    }
+    },
+    "import_disk_name": "disk-import-${ID}"
   },
   "Sources": {
     "import_image.sh": "./import_image.sh",
@@ -30,7 +31,8 @@
         {
           "Name": "disk-import",
           "SizeGb": "10",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+          "RealName": "${import_disk_name}"
         }
       ]
     },
@@ -41,7 +43,7 @@
           "Disks": [{"Source": "disk-importer"}],
           "MachineType": "n1-standard-4",
           "Metadata": {
-            "disk_name": "disk-import-${NAME}-${ID}"
+            "disk_name": "${import_disk_name}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write",
