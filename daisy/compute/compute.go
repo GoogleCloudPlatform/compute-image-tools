@@ -294,7 +294,6 @@ func (c *client) ListMachineTypes(project, zone string) ([]*compute.MachineType,
 		}
 		pt = mtl.NextPageToken
 	}
-	return mts, nil
 }
 
 // GetProject gets a GCE Project.
@@ -342,7 +341,6 @@ func (c *client) ListZones(project string) ([]*compute.Zone, error) {
 		}
 		pt = zl.NextPageToken
 	}
-	return zs, nil
 }
 
 // GetInstance gets a GCE Instance.
@@ -372,7 +370,6 @@ func (c *client) ListInstances(project, zone string) ([]*compute.Instance, error
 		}
 		pt = il.NextPageToken
 	}
-	return is, nil
 }
 
 // GetDisk gets a GCE Disk.
@@ -402,7 +399,6 @@ func (c *client) ListDisks(project, zone string) ([]*compute.Disk, error) {
 		}
 		pt = d.NextPageToken
 	}
-	return dl, nil
 }
 
 // GetImage gets a GCE Image.
@@ -441,7 +437,6 @@ func (c *client) ListImages(project string) ([]*compute.Image, error) {
 		}
 		pt = il.NextPageToken
 	}
-	return is, nil
 }
 
 // GetNetwork gets a GCE Network.
@@ -471,7 +466,6 @@ func (c *client) ListNetworks(project string) ([]*compute.Network, error) {
 		}
 		pt = n.NextPageToken
 	}
-	return nl, nil
 }
 
 // GetLicense gets a GCE License.
