@@ -99,20 +99,26 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutp
 			resp, err := w.ComputeClient.GetSerialPortOutput(project, zone, name, so.Port, start)
 			if err != nil {
 				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
-				if sErr == nil && (status == "TERMINATED" || status == "STOPPING" || status == "STOPPED") {
-					w.logger.Printf("WaitForInstancesSignal: instance %q stopped, not waiting for serial output.", name)
-					return nil
-				}
-				// Retry up to 3 times in a row on any error if we successfully got InstanceStatus.
-				if sErr == nil && errs < 3 {
-					errs++
-					continue
-				}
 				if sErr != nil {
 					err = fmt.Errorf("%v, error geting InstanceStatus: %v", err, sErr)
 				} else {
 					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
 				}
+
+				if status == "TERMINATED" || status == "STOPPED" {
+					w.logger.Printf("WaitForInstancesSignal: instance %q stopped, not waiting for serial output.", name)
+					return nil
+				}
+				// Keep retrying until the instance is STOPPED.
+				if status == "STOPPING" {
+					continue
+				}
+				// Retry up to 3 times in a row on any error if we successfully got InstanceStatus.
+				if errs < 3 {
+					errs++
+					continue
+				}
+
 				return fmt.Errorf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
