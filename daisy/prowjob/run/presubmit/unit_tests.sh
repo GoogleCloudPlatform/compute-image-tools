@@ -21,6 +21,7 @@ package=$1
 branch="master"
 commit=$2
 pr=$3
+root=$GOPATH/src/$package
 
 for d in $(go list $package/... | grep -v vendor); do
     go test -race -coverprofile=profile.out -covermode=atomic $d
@@ -29,7 +30,6 @@ for d in $(go list $package/... | grep -v vendor); do
         rm profile.out
     fi
 done
-cat coverage.txt
 
 set +e
-bash <(curl -s https://codecov.io/bash) -v -f coverage.txt -t $token -B $branch -C $commit -P $pr
+bash <(curl -s https://codecov.io/bash) -v -f coverage.txt -t $token -B $branch -C $commit -P $pr -R $root
