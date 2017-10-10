@@ -29,6 +29,7 @@ for d in $(go list $package/... | grep -v vendor); do
         rm profile.out
     fi
 done
+cat coverage.txt
 
 set +e
 bash <(curl -s https://codecov.io/bash) -v -f coverage.txt -t $token -B $branch -C $commit -P $pr
