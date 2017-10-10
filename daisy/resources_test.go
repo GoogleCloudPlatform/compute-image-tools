@@ -120,7 +120,7 @@ func TestResourceMapConcurrency(t *testing.T) {
 		desc string
 		f    func()
 	}{
-		{"registerCreation", func() { rr.registerCreation("foo", &resource{}, nil) }},
+		{"registerCreation", func() { rr.registerCreation("foo", &resource{}, nil, false) }},
 		{"registerDeletion", func() { rr.registerDeletion("foo", nil) }},
 		{"registerUsage", func() { rr.registerUsage("foo", nil) }},
 		{"get", func() { rr.get("foo") }},
@@ -178,7 +178,7 @@ func TestResourceMapRegisterCreation(t *testing.T) {
 	s := &Step{}
 
 	// Normal create.
-	if err := rr.registerCreation("foo", r, s); err != nil {
+	if err := rr.registerCreation("foo", r, s, false); err != nil {
 		t.Fatalf("unexpected error registering creation of foo: %v", err)
 	}
 	if r.creator != s {
@@ -189,7 +189,7 @@ func TestResourceMapRegisterCreation(t *testing.T) {
 	}
 
 	// Test duplication create.
-	if err := rr.registerCreation("foo", r, nil); err == nil {
+	if err := rr.registerCreation("foo", r, nil, false); err == nil {
 		t.Error("should have returned an error, but didn't")
 	}
 }

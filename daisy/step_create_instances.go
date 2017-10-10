@@ -303,7 +303,7 @@ func (c *CreateInstance) validateDiskInitializeParams(d *compute.AttachedDisk, s
 	link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", c.Project, c.Zone, p.DiskName)
 	// Set cleanup if not being autodeleted.
 	r := &resource{real: p.DiskName, link: link, noCleanup: d.AutoDelete}
-	if err := disks[s.w].registerCreation(p.DiskName, r, s); err != nil {
+	if err := disks[s.w].registerCreation(p.DiskName, r, s, false); err != nil {
 		errs.add(errorf(err.Error()))
 	}
 	return

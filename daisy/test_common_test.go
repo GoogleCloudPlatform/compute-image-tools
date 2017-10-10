@@ -123,29 +123,29 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil, errors.New("bad machinetype")
 	}
-	c.ListMachineTypesFn = func(p, z string) (*compute.MachineTypeList, error) {
+	c.ListMachineTypesFn = func(p, z string) ([]*compute.MachineType, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
 		if z != testZone {
 			return nil, errors.New("bad zone: " + z)
 		}
-		return &compute.MachineTypeList{Items: []*compute.MachineType{{Name: testMachineType}}}, nil
+		return []*compute.MachineType{{Name: testMachineType}}, nil
 	}
-	c.ListZonesFn = func(_ string) (*compute.ZoneList, error) {
-		return &compute.ZoneList{Items: []*compute.Zone{{Name: testZone}}}, nil
+	c.ListZonesFn = func(_ string) ([]*compute.Zone, error) {
+		return []*compute.Zone{{Name: testZone}}, nil
 	}
-	c.ListImagesFn = func(_ string) (*compute.ImageList, error) {
-		return &compute.ImageList{Items: []*compute.Image{{Name: testImage}}}, nil
+	c.ListImagesFn = func(_ string) ([]*compute.Image, error) {
+		return []*compute.Image{{Name: testImage}}, nil
 	}
-	c.ListDisksFn = func(p, z string) (*compute.DiskList, error) {
+	c.ListDisksFn = func(p, z string) ([]*compute.Disk, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
 		if z != testZone {
 			return nil, errors.New("bad zone: " + z)
 		}
-		return &compute.DiskList{Items: []*compute.Disk{{Name: testDisk}}}, nil
+		return []*compute.Disk{{Name: testDisk}}, nil
 	}
 	c.GetLicenseFn = func(p, l string) (*compute.License, error) {
 		if p != testProject {
@@ -156,11 +156,11 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil, nil
 	}
-	c.ListNetworksFn = func(p string) (*compute.NetworkList, error) {
+	c.ListNetworksFn = func(p string) ([]*compute.Network, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
-		return &compute.NetworkList{Items: []*compute.Network{{Name: testNetwork}}}, nil
+		return []*compute.Network{{Name: testNetwork}}, nil
 	}
 
 	return c, err

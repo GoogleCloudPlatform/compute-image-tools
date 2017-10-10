@@ -183,16 +183,16 @@ func TestCreateImagesValidate(t *testing.T) {
 	w.Dependencies["d2Deleter"] = []string{"d2Creator"}
 	d3Creator := &Step{name: "d3Creator", w: w}
 	w.Steps["d3Creator"] = d3Creator
-	if err := disks[w].registerCreation("d1", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d1", testProject, testZone)}, d1Creator); err != nil {
+	if err := disks[w].registerCreation("d1", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d1", testProject, testZone)}, d1Creator, false); err != nil {
 		t.Fatal(err)
 	}
-	if err := disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", testProject, testZone)}, d2Creator); err != nil {
+	if err := disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", testProject, testZone)}, d2Creator, false); err != nil {
 		t.Fatal(err)
 	}
 	if err := disks[w].registerDeletion("d2", d2Deleter); err != nil {
 		t.Fatal(err)
 	}
-	if err := disks[w].registerCreation("d3", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d3", testProject, testZone)}, d3Creator); err != nil {
+	if err := disks[w].registerCreation("d3", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d3", testProject, testZone)}, d3Creator, false); err != nil {
 		t.Fatal(err)
 	}
 	w.Sources = map[string]string{"source": "gs://some/file"}

@@ -37,7 +37,7 @@ func zoneExists(client compute.Client, project, zone string) (bool, error) {
 			return false, err
 		}
 		var zones []string
-		for _, z := range zl.Items {
+		for _, z := range zl {
 			zones = append(zones, z.Name)
 		}
 		zonesCache.exists[project] = zones

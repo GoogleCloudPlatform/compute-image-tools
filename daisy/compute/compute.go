@@ -38,21 +38,21 @@ type Client interface {
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
-	ListMachineTypes(project, zone string) (*compute.MachineTypeList, error)
+	ListMachineTypes(project, zone string) ([]*compute.MachineType, error)
 	GetProject(project string) (*compute.Project, error)
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZone(project, zone string) (*compute.Zone, error)
-	ListZones(project string) (*compute.ZoneList, error)
+	ListZones(project string) ([]*compute.Zone, error)
 	GetInstance(project, zone, name string) (*compute.Instance, error)
-	ListInstances(project, zone string) (*compute.InstanceList, error)
+	ListInstances(project, zone string) ([]*compute.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
-	ListDisks(project, zone string) (*compute.DiskList, error)
+	ListDisks(project, zone string) ([]*compute.Disk, error)
 	GetImage(project, name string) (*compute.Image, error)
 	GetImageFromFamily(project, family string) (*compute.Image, error)
-	ListImages(project string) (*compute.ImageList, error)
+	ListImages(project string) ([]*compute.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
 	GetNetwork(project, name string) (*compute.Network, error)
-	ListNetworks(project string) (*compute.NetworkList, error)
+	ListNetworks(project string) ([]*compute.Network, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -277,12 +277,24 @@ func (c *client) GetMachineType(project, zone, machineType string) (*compute.Mac
 }
 
 // ListMachineTypes gets a list of GCE MachineTypes.
-func (c *client) ListMachineTypes(project, zone string) (*compute.MachineTypeList, error) {
-	mt, err := c.raw.MachineTypes.List(project, zone).Do()
-	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.raw.MachineTypes.List(project, zone).Do()
+func (c *client) ListMachineTypes(project, zone string) ([]*compute.MachineType, error) {
+	var mts []*compute.MachineType
+	var pt string
+	for mtl, err := c.raw.MachineTypes.List(project, zone).PageToken(pt).Do(); ; mtl, err = c.raw.MachineTypes.List(project, zone).PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			mtl, err = c.raw.MachineTypes.List(project, zone).PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		mts = append(mts, mtl.Items...)
+
+		if mtl.NextPageToken == "" {
+			return mts, nil
+		}
+		pt = mtl.NextPageToken
 	}
-	return mt, err
+	return mts, nil
 }
 
 // GetProject gets a GCE Project.
@@ -313,12 +325,24 @@ func (c *client) GetZone(project, zone string) (*compute.Zone, error) {
 }
 
 // ListZones gets a list GCE Zones.
-func (c *client) ListZones(project string) (*compute.ZoneList, error) {
-	z, err := c.raw.Zones.List(project).Do()
-	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.raw.Zones.List(project).Do()
+func (c *client) ListZones(project string) ([]*compute.Zone, error) {
+	var zs []*compute.Zone
+	var pt string
+	for zl, err := c.raw.Zones.List(project).PageToken(pt).Do(); ; zl, err = c.raw.Zones.List(project).PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			zl, err = c.raw.Zones.List(project).PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		zs = append(zs, zl.Items...)
+
+		if zl.NextPageToken == "" {
+			return zs, nil
+		}
+		pt = zl.NextPageToken
 	}
-	return z, err
+	return zs, nil
 }
 
 // GetInstance gets a GCE Instance.
@@ -331,12 +355,24 @@ func (c *client) GetInstance(project, zone, name string) (*compute.Instance, err
 }
 
 // ListInstances gets a list of GCE Instances.
-func (c *client) ListInstances(project, zone string) (*compute.InstanceList, error) {
-	i, err := c.raw.Instances.List(project, zone).Do()
-	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.raw.Instances.List(project, zone).Do()
+func (c *client) ListInstances(project, zone string) ([]*compute.Instance, error) {
+	var is []*compute.Instance
+	var pt string
+	for il, err := c.raw.Instances.List(project, zone).PageToken(pt).Do(); ; il, err = c.raw.Instances.List(project, zone).PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			il, err = c.raw.Instances.List(project, zone).PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		is = append(is, il.Items...)
+
+		if il.NextPageToken == "" {
+			return is, nil
+		}
+		pt = il.NextPageToken
 	}
-	return i, err
+	return is, nil
 }
 
 // GetDisk gets a GCE Disk.
@@ -349,12 +385,24 @@ func (c *client) GetDisk(project, zone, name string) (*compute.Disk, error) {
 }
 
 // ListDisks gets a list of GCE Disks.
-func (c *client) ListDisks(project, zone string) (*compute.DiskList, error) {
-	d, err := c.raw.Disks.List(project, zone).Do()
-	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.raw.Disks.List(project, zone).Do()
+func (c *client) ListDisks(project, zone string) ([]*compute.Disk, error) {
+	var dl []*compute.Disk
+	var pt string
+	for d, err := c.raw.Disks.List(project, zone).PageToken(pt).Do(); ; d, err = c.raw.Disks.List(project, zone).PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			d, err = c.raw.Disks.List(project, zone).PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		dl = append(dl, d.Items...)
+
+		if d.NextPageToken == "" {
+			return dl, nil
+		}
+		pt = d.NextPageToken
 	}
-	return d, err
+	return dl, nil
 }
 
 // GetImage gets a GCE Image.
@@ -376,12 +424,24 @@ func (c *client) GetImageFromFamily(project, family string) (*compute.Image, err
 }
 
 // ListImages gets a list of GCE Images.
-func (c *client) ListImages(project string) (*compute.ImageList, error) {
-	i, err := c.raw.Images.List(project).Do()
-	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.raw.Images.List(project).Do()
+func (c *client) ListImages(project string) ([]*compute.Image, error) {
+	var is []*compute.Image
+	var pt string
+	for il, err := c.raw.Images.List(project).PageToken(pt).Do(); ; il, err = c.raw.Images.List(project).PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			il, err = c.raw.Images.List(project).PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		is = append(is, il.Items...)
+
+		if il.NextPageToken == "" {
+			return is, nil
+		}
+		pt = il.NextPageToken
 	}
-	return i, err
+	return is, nil
 }
 
 // GetNetwork gets a GCE Network.
@@ -394,12 +454,24 @@ func (c *client) GetNetwork(project, name string) (*compute.Network, error) {
 }
 
 // ListNetworks gets a list of GCE Networks.
-func (c *client) ListNetworks(project string) (*compute.NetworkList, error) {
-	n, err := c.raw.Networks.List(project).Do()
-	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.raw.Networks.List(project).Do()
+func (c *client) ListNetworks(project string) ([]*compute.Network, error) {
+	var nl []*compute.Network
+	var pt string
+	for n, err := c.raw.Networks.List(project).PageToken(pt).Do(); ; n, err = c.raw.Networks.List(project).PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			n, err = c.raw.Networks.List(project).PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		nl = append(nl, n.Items...)
+
+		if n.NextPageToken == "" {
+			return nl, nil
+		}
+		pt = n.NextPageToken
 	}
-	return n, err
+	return nl, nil
 }
 
 // GetLicense gets a GCE License.

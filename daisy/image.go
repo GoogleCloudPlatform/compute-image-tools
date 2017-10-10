@@ -96,7 +96,7 @@ func imageExists(client compute.Client, project, family, name string) (bool, err
 			return false, fmt.Errorf("error listing images for project %q: %v", project, err)
 		}
 		var images []string
-		for _, i := range il.Items {
+		for _, i := range il {
 			images = append(images, i.Name)
 		}
 		imagesCache.exists[project] = images

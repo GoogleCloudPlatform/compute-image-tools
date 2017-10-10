@@ -44,7 +44,7 @@ func machineTypeExists(client compute.Client, project, zone, machineType string)
 			return false, fmt.Errorf("error listing machine types for project %q: %v", project, err)
 		}
 		var mts []string
-		for _, mt := range mtl.Items {
+		for _, mt := range mtl {
 			mts = append(mts, mt.Name)
 		}
 		machineTypeCache.exists[project][zone] = mts
