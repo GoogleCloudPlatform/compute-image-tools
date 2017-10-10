@@ -122,7 +122,8 @@ def run_suite(suite):
             'steps': [{
                 'name': 'gcr.io/compute-image-tools/daisy:%s' % ARGS.version,
                 'args': args,
-            }]
+            }],
+            'timeout': '36000s',
         }
         method = common.urljoin('projects', TEST_PROJECT, 'builds')
         resp = session.post(common.urljoin(BUILD_API_URL, method), json=body)
