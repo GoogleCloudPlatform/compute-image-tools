@@ -17,7 +17,7 @@ for the user running Daisy.
 * Dependencies: the step `run` waited for `setup` to complete and the step
   `wait` waited for `run` to complete.
 * Sources: the created VM used the `startup` Source file. Note how `startup`
-  references `simple_vm_startup.sh`, a local file. These local filepaths are
+  references `simple_vm_startup.sh`, a local file. These local file paths are
   relative.
 * Automatic cleanup: Daisy automatically deleted the disk and VM after the
   workflow terminated. (auto cleanup can be turned off for any resource)

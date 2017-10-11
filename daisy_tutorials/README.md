@@ -16,7 +16,7 @@ Create a VM with a startup script.
 
 ### [Sub-Workflows](subworkflow)
 
-Wrap other workdflows.
+Wrap other workflows.
 
 ### [Variables](variables)
 
