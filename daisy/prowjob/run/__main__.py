@@ -16,10 +16,11 @@ import argparse
 import os
 import sys
 
-from run.call import call
 from run import common
+from run import constants
 from run import gcs
 from run import logging
+from run.call import call
 
 # Nones will be set before main() is called.
 ARGS = None
@@ -46,7 +47,7 @@ def main():
             p = call(cmd, cwd=cwd, stdout=out, stderr=err)
     logging.info('Return code = %s', p.returncode)
 
-    logging.info('Uploading logs to gs://%s/%s/', gcs.BUCKET, OBJ_DIR)
+    logging.info('Uploading logs to gs://%s/%s/', constants.BUCKET, OBJ_DIR)
     gcs_action_out = os.path.join(OBJ_DIR, ACTION_OUT)
     gcs_action_err = os.path.join(OBJ_DIR, ACTION_ERR)
     gcs.upload_file(ACTION_OUT, gcs_action_out, 'text/plain')

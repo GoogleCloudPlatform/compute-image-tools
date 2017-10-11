@@ -12,22 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import google.auth
-import google.cloud.storage
+import os
 
-from run import constants
-
-creds, proj = google.auth.default()
-gcs = google.cloud.storage.Client(proj, creds)
-
-_b = gcs.bucket(constants.BUCKET)
-
-
-def upload_file(local_path, gcs_path, content_type=None):
-    obj = _b.blob(gcs_path)
-    obj.upload_from_filename(local_path, content_type)
-
-
-def upload_string(s, gcs_path, content_type=None):
-    obj = _b.blob(gcs_path)
-    obj.upload_from_string(s, content_type)
+BUCKET = 'gce-daisy-test'
+BUILD_NUM = os.environ['BUILD_NUMBER']
+JOB_NAME = os.environ['JOB_NAME']
+PULL_REFS = os.environ['PULL_REFS']
+REPO_OWNER = 'GoogleCloudPlatform'
+REPO_NAME = 'compute-image-tools'
+GOPACKAGE = 'github.com/%s/%s/daisy' % (REPO_OWNER, REPO_NAME)
+GOPACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', GOPACKAGE)

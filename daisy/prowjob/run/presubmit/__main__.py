@@ -13,27 +13,27 @@
 # limitations under the License.
 
 import argparse
+import glob
 import os
 import sys
 
-from run.call import call
+from run import constants
 from run import git
 from run import logging
+from run import result
+from run.call import call
 
 ARGS = None
-REPO_OWNER = 'GoogleCloudPlatform'
-REPO_NAME = 'compute-image-tools'
 
 GOLINT_PACKAGE = 'github.com/golang/lint/golint'
-
-PACKAGE = 'github.com/%s/%s/daisy' % (REPO_OWNER, REPO_NAME)
-PACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', PACKAGE)
+GOJUNIT_PACKAGE = 'github.com/jstemmer/go-junit-report'
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def main():
     logging.info(os.getcwd())
     logging.info('Downloading Daisy repo.')
-    code = call(['go', 'get', PACKAGE]).returncode
+    code = call(['go', 'get', constants.GOPACKAGE]).returncode
     if code:
         return code
 
@@ -43,8 +43,14 @@ def main():
         if code:
             return code
 
+    if ARGS.gotest:
+        logging.info('Downloading go-junit-report.')
+        code = call(['go', 'get', GOJUNIT_PACKAGE]).returncode
+        if code:
+            return code
+
     logging.info('Checking out PR #%s', ARGS.pr)
-    repo = git.Repo(PACKAGE_PATH)
+    repo = git.Repo(constants.GOPACKAGE_PATH)
     code = repo.checkout(pr=ARGS.pr)
     if code:
         return code
@@ -69,11 +75,23 @@ def main():
         if code:
             return code
     if ARGS.gotest:
-        cmd = ['./unit_tests.sh', PACKAGE, repo.commit, str(ARGS.pr)]
-        cwd = os.path.dirname(os.path.realpath(__file__))
-        code = call(cmd, cwd=cwd).returncode
+        commit = repo.commit
+        package = constants.GOPACKAGE
+        res = result.PR(ARGS.pr, commit)
+        res.started()
+        cmd = ['./unit_tests.sh', package, commit, str(ARGS.pr)]
+        code = call(cmd, cwd=THIS_DIR).returncode
         if code:
+            res.finished('FAILURE')
             return code
+        res.finished('SUCCESS')
+
+        for path in glob.glob(os.path.join(THIS_DIR, '*.xml')):
+            name = os.path.basename(path)
+            with open(path) as f:
+                data = f.read()
+            res.artifact(data, 'junit_%s' % name, content_type='application/xml')
+
     return 0
 
 
