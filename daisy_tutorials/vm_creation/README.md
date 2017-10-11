@@ -21,23 +21,3 @@ Take aways from this example:
   workflow terminated. (auto cleanup can be turned off for any resource)
 * VM Serial Port streaming: the serial port was streamed to a subdirectory
   within `GCSPath`. Make sure to take a look.
-
-## SubWorkflows: subworkflow.wf.json and simple_vm* files.
-This is a wrapper around the VM creation script. The parent workflow, 
-`subworkflow.wf.json` uses `simple_vm.wf.json` as a SubWorkflow.
-
-Take aways:
-* The SubWorkflow step field `Path` is the relative local path to the workflow
-  file being used. In this case, `simple_vm.wf.json`
-
-## Variables: vars.wf.json and simple_vm* files.
-This is the same as `simple_vm.wf.json`, but the VM name has been changed from
-`foo-instance` to `${vm-name}`. The `Vars` workflow field has also been created
-with the variable `vm-name` set to `myvar`.
-
-Take aways:
-* The VM Name field evaluated`${vm-name}` as `myvar`.
-* We also had to change the `wait` step's WaitForInstancesSignal VM Name field
-  to `${vm-name}`
-* Running Daisy with `-variables vm-name=differentvar` would override the
-  hardcoded `myvar`.
