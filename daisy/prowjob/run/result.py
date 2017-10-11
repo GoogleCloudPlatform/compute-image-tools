@@ -23,9 +23,9 @@ class _Result(object):
     _path = None
     _version = None
 
-    def artifact(self, data, filename):
+    def artifact(self, data, filename, content_type=None):
         path = common.urljoin(self._path, 'artifacts', filename)
-        gcs.upload_string(data, path)
+        gcs.upload_string(data, path, content_type=content_type)
 
     def build_log(self, data):
         path = common.urljoin(self._path, 'build-log.txt')
@@ -64,7 +64,7 @@ class PR(_Result):
     def __init__(self, pr, version):
         build_num = constants.BUILD_NUM
         job_name = constants.JOB_NAME
-        org_repo = '%s_%s' % (constants.REPO_OWNER, constants.REPO_NAME)
+        org_repo = '_'.join([constants.REPO_OWNER, constants.REPO_NAME])
         self._path = os.path.join(
                 'pr-logs', 'pull', org_repo, str(pr), job_name, build_num)
         self._version = version

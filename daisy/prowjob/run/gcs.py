@@ -15,7 +15,7 @@
 import google.auth
 import google.cloud.storage
 
-import constants
+from run import constants
 
 creds, proj = google.auth.default()
 gcs = google.cloud.storage.Client(proj, creds)

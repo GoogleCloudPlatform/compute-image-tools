@@ -16,11 +16,11 @@ import argparse
 import os
 import sys
 
-import constants
-from run.call import call
 from run import common
+from run import constants
 from run import gcs
 from run import logging
+from run.call import call
 
 # Nones will be set before main() is called.
 ARGS = None
