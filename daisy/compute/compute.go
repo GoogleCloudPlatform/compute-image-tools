@@ -383,21 +383,21 @@ func (c *client) GetDisk(project, zone, name string) (*compute.Disk, error) {
 
 // ListDisks gets a list of GCE Disks.
 func (c *client) ListDisks(project, zone string) ([]*compute.Disk, error) {
-	var dl []*compute.Disk
+	var ds []*compute.Disk
 	var pt string
-	for d, err := c.raw.Disks.List(project, zone).PageToken(pt).Do(); ; d, err = c.raw.Disks.List(project, zone).PageToken(pt).Do() {
+	for dl, err := c.raw.Disks.List(project, zone).PageToken(pt).Do(); ; dl, err = c.raw.Disks.List(project, zone).PageToken(pt).Do() {
 		if shouldRetryWithWait(c.hc.Transport, err, 2) {
-			d, err = c.raw.Disks.List(project, zone).PageToken(pt).Do()
+			dl, err = c.raw.Disks.List(project, zone).PageToken(pt).Do()
 		}
 		if err != nil {
 			return nil, err
 		}
-		dl = append(dl, d.Items...)
+		ds = append(ds, dl.Items...)
 
-		if d.NextPageToken == "" {
-			return dl, nil
+		if dl.NextPageToken == "" {
+			return ds, nil
 		}
-		pt = d.NextPageToken
+		pt = dl.NextPageToken
 	}
 }
 
@@ -450,21 +450,21 @@ func (c *client) GetNetwork(project, name string) (*compute.Network, error) {
 
 // ListNetworks gets a list of GCE Networks.
 func (c *client) ListNetworks(project string) ([]*compute.Network, error) {
-	var nl []*compute.Network
+	var ns []*compute.Network
 	var pt string
-	for n, err := c.raw.Networks.List(project).PageToken(pt).Do(); ; n, err = c.raw.Networks.List(project).PageToken(pt).Do() {
+	for nl, err := c.raw.Networks.List(project).PageToken(pt).Do(); ; nl, err = c.raw.Networks.List(project).PageToken(pt).Do() {
 		if shouldRetryWithWait(c.hc.Transport, err, 2) {
-			n, err = c.raw.Networks.List(project).PageToken(pt).Do()
+			nl, err = c.raw.Networks.List(project).PageToken(pt).Do()
 		}
 		if err != nil {
 			return nil, err
 		}
-		nl = append(nl, n.Items...)
+		ns = append(ns, nl.Items...)
 
-		if n.NextPageToken == "" {
-			return nl, nil
+		if nl.NextPageToken == "" {
+			return ns, nil
 		}
-		pt = n.NextPageToken
+		pt = nl.NextPageToken
 	}
 }
 
