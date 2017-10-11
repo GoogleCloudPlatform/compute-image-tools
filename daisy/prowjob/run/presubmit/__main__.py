@@ -16,24 +16,21 @@ import argparse
 import os
 import sys
 
-from run.call import call
+from run import constants
 from run import git
 from run import logging
+from run.call import call
 
 ARGS = None
-REPO_OWNER = 'GoogleCloudPlatform'
-REPO_NAME = 'compute-image-tools'
 
 GOLINT_PACKAGE = 'github.com/golang/lint/golint'
 
-PACKAGE = 'github.com/%s/%s/daisy' % (REPO_OWNER, REPO_NAME)
-PACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', PACKAGE)
 
 
 def main():
     logging.info(os.getcwd())
     logging.info('Downloading Daisy repo.')
-    code = call(['go', 'get', PACKAGE]).returncode
+    code = call(['go', 'get', constants.GOPACKAGE]).returncode
     if code:
         return code
 
@@ -44,7 +41,7 @@ def main():
             return code
 
     logging.info('Checking out PR #%s', ARGS.pr)
-    repo = git.Repo(PACKAGE_PATH)
+    repo = git.Repo(constants.GOPACKAGE_PATH)
     code = repo.checkout(pr=ARGS.pr)
     if code:
         return code
@@ -69,7 +66,8 @@ def main():
         if code:
             return code
     if ARGS.gotest:
-        cmd = ['./unit_tests.sh', PACKAGE, repo.commit, str(ARGS.pr)]
+        package = constants.GOPACKAGE
+        cmd = ['./unit_tests.sh', package, repo.commit, str(ARGS.pr)]
         cwd = os.path.dirname(os.path.realpath(__file__))
         code = call(cmd, cwd=cwd).returncode
         if code:
