@@ -25,7 +25,7 @@
       "CreateInstances": [
         {
           "Name": "${vm-name}",
-          "Disks": ["foo-disk"],
+          "Disks": [{"Source": "foo-disk"}],
           "MachineType": "n1-standard-1",
           "StartupScript": "startup"
         }
