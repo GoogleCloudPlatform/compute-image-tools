@@ -5,7 +5,7 @@
   "GCSPath": "gs://YOUR/GCS/PATH",
   "OAuthPath": "YOUR/CREDS.json",
   "Sources": {
-    "startup": "simple_vm_startup.sh"
+    "startup": "../vm_creation/simple_vm_startup.sh"
   },
   "Vars": {
     "vm-name": "myvar"

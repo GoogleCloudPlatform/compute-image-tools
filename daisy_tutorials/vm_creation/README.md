@@ -1,18 +1,20 @@
-# Daisy Examples
-This is a collection of Daisy workflow examples. To run any of these examples,
-you need to replace some values in the workflow configs. In particular, you
-must at least change the workflow `Project`, `GCSPath`, and `OAuthPath` fields
-(or override them using their respective flags). For `OAuthPath`, you may
-remove it entirely if you wish to use the [application-default credentials](#https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login)
-for the user running Daisy.
+# VM Creation
 
-## Simple example - VM creation: simple_vm* files
 This is an example of creating a VM with a startup script. The script simply
 prints "Hello, World!" then shuts down. The workflow has a wait step that waits
 for the VM to stop.
 
-Take aways from this example:
-* Dependencies: the step `run` waited for `setup` to complete and the step 
+To run this example, you need to replace some values in the workflow configs. In
+particular, you must at least change the workflow `Project`, `GCSPath`, and
+`OAuthPath` fields (or override them using their respective flags). For
+`OAuthPath`, you may remove it entirely if you wish to use the
+[application-default
+credentials](#https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login)
+for the user running Daisy.
+
+### Take aways from this example:
+
+* Dependencies: the step `run` waited for `setup` to complete and the step
   `wait` waited for `run` to complete.
 * Sources: the created VM used the `startup` Source file. Note how `startup`
   references `simple_vm_startup.sh`, a local file. These local filepaths are
