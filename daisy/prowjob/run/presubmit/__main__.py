@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+from cStringIO import StringIO
 import glob
 import os
 import sys
@@ -28,6 +29,11 @@ ARGS = None
 GOLINT_PACKAGE = 'github.com/golang/lint/golint'
 GOJUNIT_PACKAGE = 'github.com/jstemmer/go-junit-report'
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+
+build_log = StringIO()
+build_log_handler = logging.StreamHandler(build_log)
+build_log_handler.setLevel(logging.INFO)
+logging.getLogger().addHandler(build_log_handler)
 
 
 def main():
@@ -83,6 +89,7 @@ def main():
         code = call(cmd, cwd=THIS_DIR).returncode
         if code:
             res.finished('FAILURE')
+            res.build_log(build_log.read())
             return code
         res.finished('SUCCESS')
 
@@ -90,7 +97,9 @@ def main():
             name = os.path.basename(path)
             with open(path) as f:
                 data = f.read()
-            res.artifact(data, 'junit_%s' % name, content_type='application/xml')
+            res.artifact('junit_%s' % name, data=data, content_type='application/xml')
+
+        res.build_log(build_log.getvalue())
 
     return 0
 
