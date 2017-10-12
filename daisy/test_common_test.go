@@ -69,6 +69,7 @@ var (
 	testMachineType = "test-machine-type"
 	testLicense     = "test-license"
 	testNetwork     = "test-network"
+	testFamily      = "test-family"
 	testGCSPath     = "gs://test-bucket"
 	testGCSObjs     []string
 	testGCSObjsMx   = sync.Mutex{}
@@ -161,6 +162,18 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, errors.New("bad project: " + p)
 		}
 		return []*compute.Network{{Name: testNetwork}}, nil
+	}
+	c.CreateImageFn = func(p string, i *compute.Image) error {
+		if p != testProject {
+			return errors.New("bad project: " + p)
+		}
+		if i.Name != testImage {
+			return errors.New("bad image name: " + i.Name)
+		}
+		if i.SourceDisk != "" && i.SourceDisk != testDisk {
+			return errors.New("bad source disk: " + i.SourceDisk)
+		}
+		return nil
 	}
 
 	return c, err
