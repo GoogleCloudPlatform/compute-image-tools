@@ -32,12 +32,13 @@
         {
           "Name": "inst-import-test",
           "Disks": [{"Source": "disk-import-test"}],
-          "MachineType": "n1-standard-2",
+          "MachineType": "n1-standard-4",
           "StartupScript": "post_translate_test.ps1"
         }
       ]
     },
     "wait-for-test-instance": {
+      "Timeout": "30m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-import-test",
