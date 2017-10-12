@@ -55,7 +55,7 @@ func (ir *instanceRegistry) deleteFn(res *resource) error {
 
 func (ir *instanceRegistry) registerCreation(name string, res *resource, s *Step) error {
 	// Base creation logic.
-	if err := ir.baseResourceRegistry.registerCreation(name, res, s); err != nil {
+	if err := ir.baseResourceRegistry.registerCreation(name, res, s, false); err != nil {
 		return err
 	}
 
@@ -114,7 +114,7 @@ func instanceExists(client compute.Client, project, zone, instance string) (bool
 			return false, fmt.Errorf("error listing instances for project %q: %v", project, err)
 		}
 		var instances []string
-		for _, i := range il.Items {
+		for _, i := range il {
 			instances = append(instances, i.Name)
 		}
 		instanceCache.exists[project][zone] = instances

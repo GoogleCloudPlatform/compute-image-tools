@@ -122,7 +122,7 @@ func (c *CreateDisks) validate(ctx context.Context, s *Step) error {
 		// Register creation.
 		link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", cd.Project, cd.Zone, cd.Name)
 		r := &resource{real: cd.Name, link: link, noCleanup: cd.NoCleanup}
-		if err := disks[s.w].registerCreation(cd.daisyName, r, s); err != nil {
+		if err := disks[s.w].registerCreation(cd.daisyName, r, s, false); err != nil {
 			return fmt.Errorf("error creating disk: %s", err)
 		}
 	}

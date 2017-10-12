@@ -53,21 +53,21 @@ type TestClient struct {
 	DeleteImageFn         func(project, name string) error
 	DeleteInstanceFn      func(project, zone, name string) error
 	GetMachineTypeFn      func(project, zone, machineType string) (*compute.MachineType, error)
-	ListMachineTypesFn    func(project, zone string) (*compute.MachineTypeList, error)
+	ListMachineTypesFn    func(project, zone string) ([]*compute.MachineType, error)
 	GetProjectFn          func(project string) (*compute.Project, error)
 	GetSerialPortOutputFn func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZoneFn             func(project, zone string) (*compute.Zone, error)
-	ListZonesFn           func(project string) (*compute.ZoneList, error)
+	ListZonesFn           func(project string) ([]*compute.Zone, error)
 	GetInstanceFn         func(project, zone, name string) (*compute.Instance, error)
-	ListInstancesFn       func(project, zone string) (*compute.InstanceList, error)
+	ListInstancesFn       func(project, zone string) ([]*compute.Instance, error)
 	GetDiskFn             func(project, zone, name string) (*compute.Disk, error)
-	ListDisksFn           func(project, zone string) (*compute.DiskList, error)
+	ListDisksFn           func(project, zone string) ([]*compute.Disk, error)
 	GetImageFn            func(project, name string) (*compute.Image, error)
 	GetImageFromFamilyFn  func(project, family string) (*compute.Image, error)
-	ListImagesFn          func(project string) (*compute.ImageList, error)
+	ListImagesFn          func(project string) ([]*compute.Image, error)
 	GetLicenseFn          func(project, name string) (*compute.License, error)
 	GetNetworkFn          func(project, name string) (*compute.Network, error)
-	ListNetworksFn        func(project string) (*compute.NetworkList, error)
+	ListNetworksFn        func(project string) ([]*compute.Network, error)
 	InstanceStatusFn      func(project, zone, name string) (string, error)
 	InstanceStoppedFn     func(project, zone, name string) (bool, error)
 	RetryFn               func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -148,7 +148,7 @@ func (c *TestClient) GetMachineType(project, zone, machineType string) (*compute
 }
 
 // ListMachineTypes uses the override method ListMachineTypesFn or the real implementation.
-func (c *TestClient) ListMachineTypes(project, zone string) (*compute.MachineTypeList, error) {
+func (c *TestClient) ListMachineTypes(project, zone string) ([]*compute.MachineType, error) {
 	if c.ListMachineTypesFn != nil {
 		return c.ListMachineTypesFn(project, zone)
 	}
@@ -164,7 +164,7 @@ func (c *TestClient) GetZone(project, zone string) (*compute.Zone, error) {
 }
 
 // ListZones uses the override method ListZonesFn or the real implementation.
-func (c *TestClient) ListZones(project string) (*compute.ZoneList, error) {
+func (c *TestClient) ListZones(project string) ([]*compute.Zone, error) {
 	if c.ListZonesFn != nil {
 		return c.ListZonesFn(project)
 	}
@@ -180,7 +180,7 @@ func (c *TestClient) GetInstance(project, zone, name string) (*compute.Instance,
 }
 
 // ListInstances uses the override method ListInstancesFn or the real implementation.
-func (c *TestClient) ListInstances(project, zone string) (*compute.InstanceList, error) {
+func (c *TestClient) ListInstances(project, zone string) ([]*compute.Instance, error) {
 	if c.ListInstancesFn != nil {
 		return c.ListInstancesFn(project, zone)
 	}
@@ -196,7 +196,7 @@ func (c *TestClient) GetDisk(project, zone, name string) (*compute.Disk, error) 
 }
 
 // ListDisks uses the override method ListDisksFn or the real implementation.
-func (c *TestClient) ListDisks(project, zone string) (*compute.DiskList, error) {
+func (c *TestClient) ListDisks(project, zone string) ([]*compute.Disk, error) {
 	if c.ListDisksFn != nil {
 		return c.ListDisksFn(project, zone)
 	}
@@ -220,7 +220,7 @@ func (c *TestClient) GetImageFromFamily(project, family string) (*compute.Image,
 }
 
 // ListImages uses the override method ListImagesFn or the real implementation.
-func (c *TestClient) ListImages(project string) (*compute.ImageList, error) {
+func (c *TestClient) ListImages(project string) ([]*compute.Image, error) {
 	if c.ListImagesFn != nil {
 		return c.ListImagesFn(project)
 	}
@@ -244,7 +244,7 @@ func (c *TestClient) GetNetwork(project, name string) (*compute.Network, error) 
 }
 
 // ListNetworks uses the override method ListNetworksFn or the real implementation.
-func (c *TestClient) ListNetworks(project string) (*compute.NetworkList, error) {
+func (c *TestClient) ListNetworks(project string) ([]*compute.Network, error) {
 	if c.ListNetworksFn != nil {
 		return c.ListNetworksFn(project)
 	}
