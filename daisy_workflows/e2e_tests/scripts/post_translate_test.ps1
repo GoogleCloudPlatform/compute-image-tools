@@ -31,13 +31,16 @@ function Check-MetadataAccessibility {
 }
 
 function Check-Activation  {
+  # Force activation as this is on a timer.
+  & cscript c:\windows\system32\slmgr.vbs /ato
+
   $out = & cscript C:\Windows\system32\slmgr.vbs /dli
   Write-Output $out
   if ($out -notcontains 'License Status: Licensed') {
     throw 'Windows is not activated'
   }
 
-  if ($out -notcontains 'Registered KMS machine name: kms.windows.googlecloud.com:1688') {
+  if ($out -notcontains '    Registered KMS machine name: kms.windows.googlecloud.com:1688') {
     throw 'Windows is not activated against GCE kms server'
   }
 }

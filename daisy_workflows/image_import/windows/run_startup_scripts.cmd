@@ -16,6 +16,8 @@ REM limitations under the License.
 REM Give the network time to initialize.
 ping 127.0.0.1 -n 60
 
+echo "Translate: Starting image translate..." > COM1:
+
 REM Enable inbound communication from the metadata server.
 netsh advfirewall firewall add rule name="Allow incoming from GCE metadata server" protocol=ANY remoteip=169.254.169.254 dir=in action=allow
 
@@ -31,4 +33,7 @@ for /f "tokens=2 delims=:" %%a in (
   netsh interface ipv4 set dnsservers "Local Area Connection 3" static address=%%a primary
 )
 
-start "" "C:\Program Files\Google\Compute Engine\metadata_scripts\GCEMetadataScripts.exe" "startup"
+C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install googet > COM1:
+REM Install google-compute-engine-metadata-scripts and then run the task.
+REM This needs to be on one line as this file will get overwritten.
+start cmd /c "C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install google-compute-engine-metadata-scripts > COM1: && schtasks /run /tn GCEStartup > COM1:"
