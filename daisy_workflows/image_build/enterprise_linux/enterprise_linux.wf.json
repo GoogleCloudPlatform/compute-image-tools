@@ -17,8 +17,12 @@
       "Required": true,
       "Description": "The path to the EL installation ISO."
     },
-    "rhui_client_rpm": {
-      "Description": "The RHEL rhui client RPM to use."
+    "rhel_byol": {
+      "Value": "false",
+      "Description": "Create a BYOL RHEL image."
+    },
+    "rhel_point_release" :{
+      "Description": "The RHEL point release to match the ISO with for RHEL 7."
     }
   },
   "Sources": {
@@ -28,8 +32,7 @@
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
     "build_files/save_logs.py": "./save_logs.py",
-    "installerprep_startup_script": "../linux_common/bootstrap.py",
-    "build_files/google-rhui-client.rpm": "${rhui_client_rpm}"
+    "installerprep_startup_script": "../linux_common/bootstrap.py"
   },
   "Steps": {
     "setup-disks": {
@@ -62,7 +65,9 @@
             "build_files_gcs_dir": "${SOURCESPATH}/build_files",
             "build_script": "build_installer.py",
             "el_release": "${el_release}",
-            "google_cloud_repo": "${google_cloud_repo}"
+            "google_cloud_repo": "${google_cloud_repo}",
+            "rhel_byol": "${rhel_byol}",
+            "rhel_point_release": "${rhel_point_release}"
           },
           "StartupScript": "installerprep_startup_script"
         }
