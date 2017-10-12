@@ -192,6 +192,11 @@ func TestResourceMapRegisterCreation(t *testing.T) {
 	if err := rr.registerCreation("foo", r, nil, false); err == nil {
 		t.Error("should have returned an error, but didn't")
 	}
+
+	// Test overwrite create should not error on dupe.
+	if err := rr.registerCreation("foo", r, nil, true); err == nil {
+		t.Fatalf("unexpected error registering creation of foo: %v", err)
+	}
 }
 
 func TestResourceMapRegisterDeletion(t *testing.T) {
@@ -250,6 +255,7 @@ func TestResourceMapRegisterExisting(t *testing.T) {
 		{"normal case", defURL, &resource{real: testDisk, link: defURL, noCleanup: true}, false},
 		{"dupe case", defURL, &resource{real: testDisk, link: defURL, noCleanup: true}, false},
 		{"incomplete partial URL case", "zones/z/disks/bad", nil, true},
+		{"already exists", fmt.Sprintf("projects/%s/global/images/my-image", testProject), nil, true},
 	}
 
 	for _, tt := range tests {
