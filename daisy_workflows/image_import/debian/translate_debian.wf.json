@@ -15,7 +15,8 @@
     }
   },
   "Sources": {
-    "translate_debian.sh": "./translate_debian.sh"
+    "translate_debian.sh": "./translate_debian.sh",
+    "translate_debian.py": "./translate_debian.py"
   },
   "Steps": {
     "setup-disk": {
