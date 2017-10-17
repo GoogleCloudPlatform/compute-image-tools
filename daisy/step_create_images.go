@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 // CreateImages is a Daisy CreateImages workflow step.
@@ -39,6 +40,9 @@ type CreateImage struct {
 	NoCleanup bool
 	// If set Daisy will use this as the resource name instead generating a name.
 	RealName string `json:",omitempty"`
+	// Should an existing image of the same name be deleted, defaults to false
+	// which will fail validation.
+	OverWrite bool
 
 	// The name of the disk as known to the Daisy user.
 	daisyName string
@@ -127,7 +131,7 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		// Register image creation.
 		link := fmt.Sprintf("projects/%s/global/images/%s", ci.Project, ci.Name)
 		r := &resource{real: ci.Name, link: link, noCleanup: ci.NoCleanup}
-		if err := images[s.w].registerCreation(ci.daisyName, r, s); err != nil {
+		if err := images[s.w].registerCreation(ci.daisyName, r, s, ci.OverWrite); err != nil {
 			return fmt.Errorf("error creating image: %s", err)
 		}
 	}
@@ -143,17 +147,24 @@ func (c *CreateImages) run(ctx context.Context, s *Step) error {
 		wg.Add(1)
 		go func(ci *CreateImage) {
 			defer wg.Done()
-
-			project := strOr(ci.Project, w.Project)
-
 			// Get source disk link if SourceDisk is a daisy reference to a disk.
 			if d, ok := disks[w].get(ci.SourceDisk); ok {
 				ci.SourceDisk = d.link
 			}
 
+			// Delete existing if OverWrite is true.
+			if ci.OverWrite {
+				// Just try to delete it, a 404 here indicates the image doesn't exist.
+				if err := w.ComputeClient.DeleteImage(ci.Project, ci.Name); err != nil {
+					if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
+						e <- fmt.Errorf("error deleting existing image: %v", err)
+						return
+					}
+				}
+			}
+
 			w.logger.Printf("CreateImages: creating image %q.", ci.Name)
-			err := w.ComputeClient.CreateImage(project, &ci.Image)
-			if err != nil {
+			if err := w.ComputeClient.CreateImage(ci.Project, &ci.Image); err != nil {
 				e <- err
 				return
 			}
@@ -169,7 +180,7 @@ func (c *CreateImages) run(ctx context.Context, s *Step) error {
 	case err := <-e:
 		return err
 	case <-w.Cancel:
-		// Wait so images being created now will complete.
+		// Wait so images being created now will complete before we try to clean them up.
 		wg.Wait()
 		return nil
 	}

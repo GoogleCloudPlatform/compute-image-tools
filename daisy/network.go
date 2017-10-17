@@ -60,7 +60,7 @@ func networkExists(client compute.Client, project, name string) (bool, error) {
 			return false, fmt.Errorf("error listing networks for project %q: %v", project, err)
 		}
 		var networks []string
-		for _, n := range nl.Items {
+		for _, n := range nl {
 			networks = append(networks, n.Name)
 		}
 		networkCache.exists[project] = networks

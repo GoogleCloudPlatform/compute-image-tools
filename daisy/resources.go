@@ -114,7 +114,7 @@ func resourceExists(client compute.Client, url string) (bool, error) {
 	return false, fmt.Errorf("unknown resource type: %q", url)
 }
 
-func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *Step) error {
+func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *Step, overWrite bool) error {
 	// Create a resource reference, known by name. Check:
 	// - no duplicates known by name
 	r.mx.Lock()
@@ -123,10 +123,12 @@ func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *S
 		return fmt.Errorf("cannot create %s %q; already created by step %q", r.typeName, name, res.creator.name)
 	}
 
-	if exists, err := resourceExists(r.w.ComputeClient, res.link); err != nil {
-		return fmt.Errorf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
-	} else if exists {
-		return fmt.Errorf("cannot create %s %q; resource already exists", r.typeName, name)
+	if !overWrite {
+		if exists, err := resourceExists(r.w.ComputeClient, res.link); err != nil {
+			return fmt.Errorf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
+		} else if exists {
+			return fmt.Errorf("cannot create %s %q; resource already exists", r.typeName, name)
+		}
 	}
 
 	res.creator = s

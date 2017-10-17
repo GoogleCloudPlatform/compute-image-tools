@@ -207,6 +207,8 @@ function Change-InstanceProperties {
 
   # Change time zone to Coordinated Universal Time.
   Run-Command tzutil /s 'UTC'
+
+  Run-Command powercfg /hibernate off
 }
 
 function Configure-RDPSecurity {
@@ -242,6 +244,7 @@ function Enable-RemoteDesktop {
 function Install-Packages {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install googet
   # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
+  # if install_packages is set to false.
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-sysprep
   if ($script:install_packages.ToLower() -eq 'true') {
     Write-Output 'Translate: Installing GCE packages...'

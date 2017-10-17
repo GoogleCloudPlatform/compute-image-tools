@@ -13,18 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -x
 set -e
 echo "" > coverage.txt
 
-token=$(cat $CODECOV_TOKEN)
+token=$(cat ${CODECOV_TOKEN})
 package=$1
 branch="master"
 commit=$2
 pr=$3
-root=$GOPATH/src/$package
+root=${GOPATH}/src/${package}
 
-for d in $(go list $package/... | grep -v vendor); do
-    go test -race -coverprofile=profile.out -covermode=atomic $d
+for d in $(go list ${package}/... | grep -v vendor); do
+    report=${d#$(dirname ${package})/}.xml
+    report=${report//\//.}
+    go test ${d} -race -coverprofile=profile.out -covermode=atomic -v 2>&1 | go-junit-report > ${report}
     if [ -f profile.out ]; then
         cat profile.out >> coverage.txt
         rm profile.out
@@ -32,4 +35,10 @@ for d in $(go list $package/... | grep -v vendor); do
 done
 
 set +e
-bash <(curl -s https://codecov.io/bash) -v -f coverage.txt -t $token -B $branch -C $commit -P $pr -R $root
+set +x
+bash <(curl -s https://codecov.io/bash) -v -f coverage.txt \
+    -t ${token} \
+    -B ${branch} \
+    -C ${commit} \
+    -P ${pr} \
+    -R ${root}

@@ -182,7 +182,7 @@ func diskExists(client compute.Client, project, zone, disk string) (bool, error)
 			return false, fmt.Errorf("error listing disks for project %q: %v", project, err)
 		}
 		var disks []string
-		for _, d := range dl.Items {
+		for _, d := range dl {
 			disks = append(disks, d.Name)
 		}
 		diskCache.exists[project][zone] = disks

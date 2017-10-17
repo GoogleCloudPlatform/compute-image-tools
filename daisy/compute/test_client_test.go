@@ -99,19 +99,19 @@ func TestTestClient(t *testing.T) {
 	}
 	c.GetProjectFn = func(_ string) (*compute.Project, error) { fakeCalled = true; return nil, nil }
 	c.GetZoneFn = func(_, _ string) (*compute.Zone, error) { fakeCalled = true; return nil, nil }
-	c.ListZonesFn = func(_ string) (*compute.ZoneList, error) { fakeCalled = true; return nil, nil }
+	c.ListZonesFn = func(_ string) ([]*compute.Zone, error) { fakeCalled = true; return nil, nil }
 	c.GetInstanceFn = func(_, _, _ string) (*compute.Instance, error) { fakeCalled = true; return nil, nil }
-	c.ListInstancesFn = func(_, _ string) (*compute.InstanceList, error) { fakeCalled = true; return nil, nil }
+	c.ListInstancesFn = func(_, _ string) ([]*compute.Instance, error) { fakeCalled = true; return nil, nil }
 	c.GetDiskFn = func(_, _, _ string) (*compute.Disk, error) { fakeCalled = true; return nil, nil }
-	c.ListDisksFn = func(_, _ string) (*compute.DiskList, error) { fakeCalled = true; return nil, nil }
+	c.ListDisksFn = func(_, _ string) ([]*compute.Disk, error) { fakeCalled = true; return nil, nil }
 	c.GetImageFromFamilyFn = func(_, _ string) (*compute.Image, error) { fakeCalled = true; return nil, nil }
 	c.GetImageFn = func(_, _ string) (*compute.Image, error) { fakeCalled = true; return nil, nil }
-	c.ListImagesFn = func(_ string) (*compute.ImageList, error) { fakeCalled = true; return nil, nil }
+	c.ListImagesFn = func(_ string) ([]*compute.Image, error) { fakeCalled = true; return nil, nil }
 	c.GetLicenseFn = func(_, _ string) (*compute.License, error) { fakeCalled = true; return nil, nil }
 	c.GetNetworkFn = func(_, _ string) (*compute.Network, error) { fakeCalled = true; return nil, nil }
-	c.ListNetworksFn = func(_ string) (*compute.NetworkList, error) { fakeCalled = true; return nil, nil }
+	c.ListNetworksFn = func(_ string) ([]*compute.Network, error) { fakeCalled = true; return nil, nil }
 	c.GetMachineTypeFn = func(_, _, _ string) (*compute.MachineType, error) { fakeCalled = true; return nil, nil }
-	c.ListMachineTypesFn = func(_, _ string) (*compute.MachineTypeList, error) { fakeCalled = true; return nil, nil }
+	c.ListMachineTypesFn = func(_, _ string) ([]*compute.MachineType, error) { fakeCalled = true; return nil, nil }
 	c.InstanceStatusFn = func(_, _, _ string) (string, error) { fakeCalled = true; return "", nil }
 	c.InstanceStoppedFn = func(_, _, _ string) (bool, error) { fakeCalled = true; return false, nil }
 	c.operationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }

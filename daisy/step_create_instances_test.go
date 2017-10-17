@@ -608,23 +608,23 @@ func TestCreateInstancesValidate(t *testing.T) {
 		}
 		return nil, errors.New("bad project: " + p)
 	}
-	c.ListMachineTypesFn = func(p, z string) (*compute.MachineTypeList, error) {
+	c.ListMachineTypesFn = func(p, z string) ([]*compute.MachineType, error) {
 		if p != testProject && p != "p.com:something" {
 			return nil, errors.New("bad project: " + p)
 		}
 		if z != testZone {
 			return nil, errors.New("bad zone: " + z)
 		}
-		return &compute.MachineTypeList{Items: []*compute.MachineType{{Name: testMachineType}}}, nil
+		return []*compute.MachineType{{Name: testMachineType}}, nil
 	}
-	c.ListDisksFn = func(p, z string) (*compute.DiskList, error) {
+	c.ListDisksFn = func(p, z string) ([]*compute.Disk, error) {
 		if p != testProject && p != "p.com:something" {
 			return nil, errors.New("bad project: " + p)
 		}
 		if z != testZone {
 			return nil, errors.New("bad zone: " + z)
 		}
-		return &compute.DiskList{Items: []*compute.Disk{{Name: testDisk}}}, nil
+		return []*compute.Disk{{Name: testDisk}}, nil
 	}
 
 	w.ComputeClient = c
@@ -632,13 +632,13 @@ func TestCreateInstancesValidate(t *testing.T) {
 	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", testProject, testZone, testMachineType)
 	dCreator := &Step{name: "dCreator", w: w}
 	w.Steps["dCreator"] = dCreator
-	if err := disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator); err != nil {
+	if err := disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator, false); err != nil {
 		t.Fatal(err)
 	}
 	ad := []*compute.AttachedDisk{{Source: "d", Mode: defaultDiskMode}}
 
 	p2 := "p.com:something"
-	if err := disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", p2, testZone)}, dCreator); err != nil {
+	if err := disks[w].registerCreation("d2", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", p2, testZone)}, dCreator, false); err != nil {
 		t.Fatal(err)
 	}
 	ad2 := []*compute.AttachedDisk{{Source: "d2", Mode: defaultDiskMode}}
