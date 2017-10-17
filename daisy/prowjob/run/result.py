@@ -23,13 +23,23 @@ class _Result(object):
     _path = None
     _version = None
 
-    def artifact(self, data, filename, content_type=None):
-        path = common.urljoin(self._path, 'artifacts', filename)
-        gcs.upload_string(data, path, content_type=content_type)
+    @property
+    def base_path(self):
+        return self._path
+
+    def artifact(self, name, data=None, path=None, content_type=None):
+        artifact_path = common.urljoin(self._path, 'artifacts', name)
+        if data:
+            gcs.upload_string(data, artifact_path, content_type)
+        elif path:
+            gcs.upload_file(path, artifact_path, content_type)
+        else:
+            raise ValueError('Must provide `data` or `path`.')
+        return artifact_path
 
     def build_log(self, data):
         path = common.urljoin(self._path, 'build-log.txt')
-        gcs.upload_string(data, path, 'plain/text')
+        gcs.upload_string(data, path, 'text/plain')
 
     def finished(self, result, metadata=None):
         path = common.urljoin(self._path, 'finished.json')
