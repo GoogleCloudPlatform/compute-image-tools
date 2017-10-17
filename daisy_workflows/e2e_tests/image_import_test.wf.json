@@ -2,7 +2,7 @@
   "Name": "image-import-test",
   "Vars": {
     "image_name": "image-import-test-${ID}",
-    "source_disk_file": "gs://gce-image-import-test/xenial-server-cloudimg-amd64-disk1.vmdk"
+    "source_disk_file": "gs://gce-daisy-test-resources/xenial-server-cloudimg-amd64-disk1.vmdk"
   },
   "Steps": {
     "import-image": {
