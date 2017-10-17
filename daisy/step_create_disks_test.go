@@ -173,6 +173,11 @@ func TestCreateDisksValidate(t *testing.T) {
 			true,
 		},
 		{
+			"image from family case",
+			&CreateDisk{daisyName: "d5", Disk: compute.Disk{Name: "foo", SourceImage: fmt.Sprintf("projects/%s/global/images/family/%s", testProject, testFamily), Type: ty}, Project: testProject, Zone: testZone},
+			false,
+		},
+		{
 			"blank disk case",
 			&CreateDisk{daisyName: "d3", Disk: compute.Disk{Name: n, SizeGb: 1, Type: ty}, Project: testProject, Zone: testZone},
 			false,
