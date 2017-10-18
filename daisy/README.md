@@ -183,7 +183,7 @@ respectively.
 
 ### Steps
 Step types are defined here:
-https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy/workflow#Step
+https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy#Step
 
 The `Steps` field is a named set of executable steps. It is a map of
 a step's name to the step's type and configuration. Step names must begin with
@@ -568,12 +568,20 @@ step3 complete.
 Vars are a user-provided set of key-value pairs. Vars are used in string
 substitutions in the rest of the workflow config using the syntax `${key}`.
 Vars can be hardcoded into the workflow config or passed via the commandline.
-Vars passed via the commandline will override the hardcoded Vars.
+Vars passed via the commandline will override Vars hardcoded into the Daisy
+config.
 
 Vars can be either a simple key:value pairing or with the following fields:
 + Value: (string) value of the variable
 + Description: (string) description of the variable
 + Required: (bool) whether this variable is required to be non empty
+
+A few restrictions on Vars:
+* It is best practice to keep vars as lowercase to differentiate them
+from [Autovars](#autovars). Furthermore, var key collisions with autovar keys
+will cause unexpected results.
+* Vars cannot be used to set other vars' keys or values. Attempting to do so
+will cause unexpected results.
 
 In this example `var1` is an optional variable with an empty string as the 
 default value, `var2` is an example of an optional variable with a default 

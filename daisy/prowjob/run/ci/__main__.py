@@ -22,6 +22,7 @@ import requests
 import sys
 import tarfile
 import time
+import xml.etree.ElementTree
 
 import google.auth
 from google.auth.transport.requests import AuthorizedSession
@@ -103,9 +104,8 @@ def main():
         test_cases.extend(r[1])
     res.finished('FAILURE' if code else 'SUCCESS')
     ts = TestSuite(ARGS.tests, test_cases)
-    res.artifact(
-            'junit_0.xml', data=TestSuite.to_xml_string([ts]),
-            content_type='application/xml')
+    ts_data = xml.etree.ElementTree.tostring(ts.build_xml_doc())
+    res.artifact('junit_0.xml', data=ts_data, content_type='application/xml')
     res.build_log(build_log.getvalue())
     return code
 
@@ -130,11 +130,17 @@ def run_subsuite(suite):
     test_cases = []
     for _, wf in suite:
         start = time.time()
-        wf_return_code = run_wf(wf)
+        wf_return_code, build_id = run_wf(wf)
         end = time.time()
-        tc = TestCase(ARGS.tests, wf, end - start)
+        log_url = None
+        if build_id:
+            log_url = common.urljoin(
+                    constants.GCS_API_BASE, constants.BUCKET, res.base_path,
+                    'artifacts', 'log-%s.txt' % build_id)
+        tc = TestCase(wf, ARGS.tests, end - start, log=log_url)
         if wf_return_code:
             tc.add_failure_info('Failed with code %s' % wf_return_code)
+        test_cases.append(tc)
         code = code or wf_return_code
     return code, test_cases
 
@@ -143,16 +149,15 @@ def run_wf(wf):
     args = OTHER_ARGS + ['-var:test-id=%s' % TEST_ID, wf]
     logging.info('Running test %s with args %s', wf, args)
 
+    artifacts_path = common.urljoin(res.base_path, 'artifacts')
     body = {
         'source': {
             'storageSource': {
                 'bucket': constants.BUCKET,
-                'object': common.urljoin(
-                    res.base_path, 'artifacts', TGZ_NAME),
+                'object': common.urljoin(artifacts_path, TGZ_NAME),
             }
         },
-        'logsBucket': common.urljoin(
-            constants.BUCKET, res.base_path, 'artifacts'),
+        'logsBucket': common.urljoin(constants.BUCKET, artifacts_path),
         'steps': [{
             'name': 'gcr.io/compute-image-tools/daisy:%s' % ARGS.version,
             'args': args,
@@ -165,25 +170,27 @@ def run_wf(wf):
         resp.raise_for_status()
     except requests.exceptions.HTTPError as e:
         logging.error('Error creating test build %s: %s', wf, e)
-        return 1
+        return 1, None
 
-    op_name = resp.json()['name']
+    op_data = resp.json()
+    build_id = op_data['metadata']['build']['id']
     data = {}
     while not data.get('done', False):
         time.sleep(5)
-        resp = session.get(common.urljoin(BUILD_API_URL, op_name))
+        resp = session.get(common.urljoin(BUILD_API_URL, op_data['name']))
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             logging.error('Error getting test %s status: %s', wf, e)
-            return 1
+            return 1, build_id
         data = resp.json()
 
     if 'error' in data:
         logging.error('Test %s failed: %s', wf, data['error'])
-        return 1
+        return 1, build_id
     else:
         logging.info('Test %s finished successfully.', wf)
+        return 0, build_id
 
 
 def setup_result(commit):
