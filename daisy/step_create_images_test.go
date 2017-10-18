@@ -16,11 +16,9 @@ package daisy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/kylelemons/godebug/pretty"
 	compute "google.golang.org/api/compute/v1"
 )
@@ -125,47 +123,27 @@ func TestCreateImagesRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
-	p := "project"
-	disks[w].m = map[string]*resource{"d": {real: w.genName("d"), link: "dLink"}}
+	disks[w].m = map[string]*resource{testDisk: {real: w.genName(testDisk), link: testDisk}}
 	w.Sources = map[string]string{"file": "gs://some/path"}
 
-	testClient := &daisyCompute.TestClient{}
-	w.ComputeClient = testClient
 	tests := []struct {
 		desc      string
 		ci        *CreateImage
-		clientErr error
 		shouldErr bool
 	}{
-		{"source disk case", &CreateImage{Image: compute.Image{SourceDisk: "d"}, Project: p}, nil, false},
-		{"raw image case", &CreateImage{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}, Project: p}, nil, false},
-		{"client err case", &CreateImage{Image: compute.Image{SourceDisk: "d"}, Project: p}, errors.New("error"), true},
+		{"source disk with overwrite case", &CreateImage{Image: compute.Image{Name: testImage, SourceDisk: testDisk}, Project: testProject, OverWrite: true}, false},
+		{"raw image case", &CreateImage{Image: compute.Image{Name: testImage, RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}, Project: testProject}, false},
+		{"bad disk case", &CreateImage{Image: compute.Image{Name: testImage, SourceDisk: "bad"}, Project: testProject}, true},
+		{"bad overwrite case", &CreateImage{Image: compute.Image{Name: "bad", SourceDisk: testDisk}, Project: testProject, OverWrite: true}, true},
 	}
 
-	type call struct {
-		p string
-		i *compute.Image
-	}
-	calls := []call{}
 	for _, tt := range tests {
-		testClient.CreateImageFn = func(p string, i *compute.Image) error {
-			calls = append(calls, call{p, i})
-			return tt.clientErr
-		}
 		cis := &CreateImages{tt.ci}
 		if err := cis.run(ctx, s); err == nil && tt.shouldErr {
 			t.Errorf("%s: should have returned an error, but didn't", tt.desc)
 		} else if err != nil && !tt.shouldErr {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		}
-	}
-	wantCalls := []call{
-		{p, &compute.Image{SourceDisk: "dLink"}},
-		{p, &compute.Image{RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}},
-		{p, &compute.Image{SourceDisk: "dLink"}},
-	}
-	if diff := pretty.Compare(calls, wantCalls); diff != "" {
-		t.Errorf("client was not called as expected:  (-got +want)\n%s", diff)
 	}
 }
 

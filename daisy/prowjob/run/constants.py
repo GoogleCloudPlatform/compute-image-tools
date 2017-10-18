@@ -17,8 +17,10 @@ import os
 BUCKET = 'gce-daisy-test'
 BUILD_NUM = os.environ['BUILD_NUMBER']
 JOB_NAME = os.environ['JOB_NAME']
-PULL_REFS = os.environ['PULL_REFS']
+PULL_REFS = os.getenv('PULL_REFS')
 REPO_OWNER = 'GoogleCloudPlatform'
 REPO_NAME = 'compute-image-tools'
+TEST_PROJECT = 'gce-daisy-test'
+
 GOPACKAGE = 'github.com/%s/%s/daisy' % (REPO_OWNER, REPO_NAME)
 GOPACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', GOPACKAGE)

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+from cStringIO import StringIO
 import glob
 import multiprocessing
 import os
@@ -24,32 +25,38 @@ import time
 
 import google.auth
 from google.auth.transport.requests import AuthorizedSession
+from junit_xml import TestCase, TestSuite
 
 from run import common
+from run import constants
 from run import git
-from run import gcs
 from run import logging
+from run import result
 
 
 ARGS = []
 OTHER_ARGS = []
 PARALLEL_TESTS = 10
-REPO_OWNER = 'GoogleCloudPlatform'
-REPO_NAME = 'compute-image-tools'
-REPO_URL = 'https://github.com/%s/%s.git' % (REPO_OWNER, REPO_NAME)
-TEST_PROJECT = 'gce-daisy-test'
+REPO_URL = 'https://github.com/%s/%s.git' % (
+        constants.REPO_OWNER, constants.REPO_NAME)
 TEST_ID = str(common.utc_timestamp())
-TEST_BUCKET = gcs.BUCKET
-TEST_GCS_DIR = common.urljoin('tests', TEST_ID)
 WFS_TAR = 'wfs.tar.gz'
-TEST_WFS_GCS = common.urljoin(TEST_GCS_DIR, WFS_TAR)
 
 BUILD_API_URL = 'https://cloudbuild.googleapis.com/v1'
 session = None
 suite_rgx = re.compile(r'(?P<suite>.*[^\d])(?P<test_num>\d*)\.wf\.json$')
 
+TGZ_NAME = 'wfs.tar.gz'
 
-def build_wf_suites(wfs):
+build_log = StringIO()
+build_log_handler = logging.StreamHandler(build_log)
+build_log_handler.setLevel(logging.INFO)
+logging.getLogger().addHandler(build_log_handler)
+
+res = None
+
+
+def build_subsuites(wfs):
     suites = {}
     for wf in wfs:
         match = suite_rgx.match(wf)
@@ -74,21 +81,33 @@ def main():
     if repo.clone_code:
         return repo.clone_code
 
-    logging.info('Tar\'ing workflows to upload to GCS.')
-    wf_dir = os.path.join('repo', 'daisy_workflows')
-    with tarfile.open('wfs.tar.gz', 'w:gz') as tgz:
-        tgz.add(wf_dir, arcname=os.path.sep)
+    setup_result(repo.commit)
 
-    logging.info('Uploading tests to %s.', TEST_WFS_GCS)
-    gcs.upload_file('wfs.tar.gz', TEST_WFS_GCS, 'application/gzip')
+    logging.info('Tar\'ing workflows to upload to GCS.')
+    wf_dir = os.path.join(repo.root, 'daisy_workflows')
+    with tarfile.open(TGZ_NAME, 'w:gz') as tgz:
+        tgz.add(wf_dir, arcname=os.path.sep)
+    res.artifact(TGZ_NAME, path=TGZ_NAME, content_type='application/gzip')
 
     logging.info('Running test workflows.')
     wfs = glob.glob(os.path.join(wf_dir, ARGS.tests, '*.wf.json'))
     wfs = [os.path.join(ARGS.tests, os.path.basename(wf)) for wf in wfs]
-    suites = build_wf_suites(wfs)
+    subsuites = build_subsuites(wfs)
     pool = multiprocessing.Pool(PARALLEL_TESTS)
-    r = pool.map(run_suite, suites.values())
-    return int(any(r))
+    res.started()
+    test_results = pool.map(run_subsuite, subsuites.values())
+    code = 0
+    test_cases = []
+    for r in test_results:
+        code = code or r[0]
+        test_cases.extend(r[1])
+    res.finished('FAILURE' if code else 'SUCCESS')
+    ts = TestSuite(ARGS.tests, test_cases)
+    res.artifact(
+            'junit_0.xml', data=TestSuite.to_xml_string([ts]),
+            content_type='application/xml')
+    res.build_log(build_log.getvalue())
+    return code
 
 
 def parse_args(arguments=None):
@@ -106,51 +125,70 @@ def parse_args(arguments=None):
     return args, other_args
 
 
-def run_suite(suite):
+def run_subsuite(suite):
+    code = 0
+    test_cases = []
     for _, wf in suite:
-        args = OTHER_ARGS + ['-var:test-id=%s' % TEST_ID, wf]
-        logging.info('Running test %s with args %s', wf, args)
+        start = time.time()
+        wf_return_code = run_wf(wf)
+        end = time.time()
+        tc = TestCase(ARGS.tests, wf, end - start)
+        if wf_return_code:
+            tc.add_failure_info('Failed with code %s' % wf_return_code)
+        code = code or wf_return_code
+    return code, test_cases
 
-        body = {
-            'source': {
-                'storageSource': {
-                    'bucket': TEST_BUCKET,
-                    'object': TEST_WFS_GCS,
-                }
-            },
-            'logsBucket': common.urljoin(TEST_BUCKET, TEST_GCS_DIR),
-            'steps': [{
-                'name': 'gcr.io/compute-image-tools/daisy:%s' % ARGS.version,
-                'args': args,
-            }],
-            'timeout': '36000s',
-        }
-        method = common.urljoin('projects', TEST_PROJECT, 'builds')
-        resp = session.post(common.urljoin(BUILD_API_URL, method), json=body)
+
+def run_wf(wf):
+    args = OTHER_ARGS + ['-var:test-id=%s' % TEST_ID, wf]
+    logging.info('Running test %s with args %s', wf, args)
+
+    body = {
+        'source': {
+            'storageSource': {
+                'bucket': constants.BUCKET,
+                'object': common.urljoin(
+                    res.base_path, 'artifacts', TGZ_NAME),
+            }
+        },
+        'logsBucket': common.urljoin(
+            constants.BUCKET, res.base_path, 'artifacts'),
+        'steps': [{
+            'name': 'gcr.io/compute-image-tools/daisy:%s' % ARGS.version,
+            'args': args,
+        }],
+        'timeout': '36000s',
+    }
+    method = common.urljoin('projects', constants.TEST_PROJECT, 'builds')
+    resp = session.post(common.urljoin(BUILD_API_URL, method), json=body)
+    try:
+        resp.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        logging.error('Error creating test build %s: %s', wf, e)
+        return 1
+
+    op_name = resp.json()['name']
+    data = {}
+    while not data.get('done', False):
+        time.sleep(5)
+        resp = session.get(common.urljoin(BUILD_API_URL, op_name))
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            logging.error('Error creating test build %s: %s', wf, e)
+            logging.error('Error getting test %s status: %s', wf, e)
             return 1
+        data = resp.json()
 
-        op_name = resp.json()['name']
-        data = {}
-        while not data.get('done', False):
-            time.sleep(5)
-            resp = session.get(common.urljoin(BUILD_API_URL, op_name))
-            try:
-                resp.raise_for_status()
-            except requests.exceptions.HTTPError as e:
-                logging.error('Error getting test %s status: %s', wf, e)
-                return 1
-            data = resp.json()
+    if 'error' in data:
+        logging.error('Test %s failed: %s', wf, data['error'])
+        return 1
+    else:
+        logging.info('Test %s finished successfully.', wf)
 
-        if 'error' in data:
-            logging.error('Test %s failed: %s', wf, data['error'])
-            return 1
-        else:
-            logging.info('Test %s finished successfully.', wf)
-    return 0
+
+def setup_result(commit):
+    global res
+    res = result.Periodic(commit)
 
 
 def setup_session():

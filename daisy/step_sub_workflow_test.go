@@ -58,6 +58,25 @@ func TestSubWorkflowPopulate(t *testing.T) {
 	}
 }
 
-func TestSubWorkflowRun(t *testing.T) {}
+func TestSubWorkflowRun(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+	w.populate(ctx)
+	sw := &Workflow{parent: w}
+	s := &Step{
+		name: "sw-step",
+		w:    w,
+		SubWorkflow: &SubWorkflow{
+			w:    sw,
+		},
+	}
+	if err := s.SubWorkflow.populate(ctx, s); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if err := s.SubWorkflow.run(ctx, s); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
 
 func TestSubWorkflowValidate(t *testing.T) {}
