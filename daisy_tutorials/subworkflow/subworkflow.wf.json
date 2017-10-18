@@ -7,7 +7,7 @@
   "Steps": {
     "sub": {
       "SubWorkflow": {
-        "Path": "simple_vm.wf.json"
+        "Path": "../vm_creation/simple_vm.wf.json"
       }
     }
   }
