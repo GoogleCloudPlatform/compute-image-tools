@@ -1,0 +1,66 @@
+{
+  "Name": "ubuntu-1404-ova-translate-test",
+  "Vars": {
+    "source_image": "projects/gce-daisy-test/global/images/ubuntu-1404-ova-import",
+    "image_name": "ubuntu-1404-translate-test-${ID}"
+  },
+  "Sources": {
+    "post_translate_test.sh": "./scripts/post_translate_test.sh"
+  },
+  "Steps": {
+    "translate-image": {
+      "Timeout": "30m",
+      "IncludeWorkflow": {
+        "Path": "../image_import/ubuntu/translate_ubuntu_1404.wf.json",
+        "Vars": {
+          "source_image": "${source_image}",
+          "image_name": "${image_name}"
+        }
+      }
+    },
+    "create-test-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-import-test",
+          "SourceImage": "${image_name}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-test-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-import-test",
+          "Disks": [{"Source": "disk-import-test"}],
+          "MachineType": "n1-standard-4",
+          "StartupScript": "post_translate_test.sh"
+        }
+      ]
+    },
+    "wait-for-test-instance": {
+      "Timeout": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-import-test",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "PASSED:",
+            "FailureMatch": "FAILED:",
+            "StatusMatch": "STATUS:"
+          }
+        }
+      ]
+    },
+    "delete-image": {
+      "DeleteResources": {
+        "Images": ["${image_name}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "create-test-disk": ["translate-image"],
+    "delete-image": ["create-test-disk"],
+    "create-test-instance": ["create-test-disk"],
+    "wait-for-test-instance": ["create-test-instance"]
+  }
+}

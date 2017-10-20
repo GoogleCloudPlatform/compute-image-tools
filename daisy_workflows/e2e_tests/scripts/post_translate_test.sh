@@ -1,0 +1,149 @@
+#!/bin/bash
+# Copyright 2017 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Basic image tests to validate if Linux image translation was successful.
+
+FAIL=0
+FAILURES=""
+
+function status {
+  local message="${1}"
+  echo "STATUS: ${message}"
+}
+
+function fail {
+  local message="${1}"
+  FAIL=$((FAIL+1))
+  FAILURES+="TestFailed: $message"$'\n'
+}
+
+# Check network connectivity.
+function check_connectivity {
+  status "Checking metadata connection."
+  ping -q -c 2 metadata.google.internal
+  if [[ $? -ne 0 ]]; then
+    fail "Failed to connect to metadata.google.internal."
+  fi
+
+  status "Checking external connectivity."
+  ping -q -c 2 google.com
+  if [[ $? -ne 0 ]]; then
+    fail "Failed to ping google.com."
+  fi
+}
+
+# Check Google services.
+function check_google_services {
+  status "Checking if instance setup ran."
+  if [[ ! -f /etc/default/instance_configs.cfg ]]; then
+    fail "Instance setup failed."
+  fi
+
+  status "Checking google-accounts-daemon."
+  service google-accounts-daemon status
+  if [[ $? -ne 0 ]]; then
+    fail "Google accounts daemon not running."
+  fi
+
+  status "Checking google-ip-forwarding-daemon."
+  service google-ip-forwarding-daemon status
+  if [[ $? -ne 0 ]]; then
+    fail "Google IP Forwarding daemon not running."
+  fi
+
+  status "Checking google-clock-skew-daemon."
+  service google-clock-skew-daemon status
+  if [[ $? -ne 0 ]]; then
+    fail "Google Clock Skew daemon not running."
+  fi
+}
+
+# Check Google Cloud SDK.
+function check_google_cloud_sdk {
+  status "Checking for gcloud."
+  gcloud version
+  if [[ $? -ne 0 ]]; then
+    fail "gcloud is not installed."
+  fi
+
+  status "Checking for gsutil."
+  gsutil -v
+  if [[ $? -ne 0 ]]; then
+    fail "gsutil is not installed."
+  fi
+}
+
+# Check cloud-init if it exists.
+function check_cloud_init {
+  if [[ -x /usr/bin/cloud-init ]]; then
+    status "Checking if cloud-init runs."
+    cloud-init init
+    if [[ $? -ne 0 ]]; then
+      fail "cloud-init failed to run."
+    fi
+  fi
+}
+
+# Check package installs.
+function check_package_install {
+  # Apt
+  if [[ -d /etc/apt ]]; then
+    status "Checking if apt can update cache."
+    apt-get update
+    if [[ $? -ne 0 ]]; then
+      fail "apt-get update failed."
+    fi
+
+    status "Checking if apt can install a package."
+    apt-get install --reinstall make
+    if [[ $? -ne 0 ]]; then
+      fail "apt-get cannot install make."
+    fi
+  fi
+
+  # Yum
+  if [[ -d /etc/yum ]]; then
+    status "Checking if yum can install a package."
+    yum -y reinstall make
+    if [[ $? -ne 0 ]]; then
+      fail "yum cannot install make."
+    fi
+  fi
+
+  # Zypper
+  if [[ -d /etc/zypp ]]; then
+    status "Checking if zypper can install a package."
+    zypper install -f -y make
+    if [[ $? -ne 0 ]]; then
+      fail "zypper cannot install make."
+    fi
+  fi
+}
+
+# Run tests.
+check_connectivity
+check_google_services
+check_google_cloud_sdk
+check_cloud_init
+check_package_install
+
+# Return results.
+if [[ ${FAIL} -eq 0 ]]; then
+  echo "PASSED: All tests passed!"
+else
+  echo "${FAIL} tests failed."
+  echo "${FAILURES}"
+  echo "FAILED: $0 failed."
+fi
