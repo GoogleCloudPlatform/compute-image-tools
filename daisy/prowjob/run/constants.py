@@ -16,6 +16,7 @@ import os
 
 BUCKET = 'gce-daisy-test'
 BUILD_NUM = os.environ['BUILD_NUMBER']
+GCS_API_BASE = 'https://storage.googleapis.com'
 JOB_NAME = os.environ['JOB_NAME']
 PULL_REFS = os.getenv('PULL_REFS')
 REPO_OWNER = 'GoogleCloudPlatform'
