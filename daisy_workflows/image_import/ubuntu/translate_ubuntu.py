@@ -87,7 +87,7 @@ def translate():
   # Ask libguestfs to inspect for operating systems.
   roots = g.inspect_os()
   if len(roots) == 0:
-    raise(Error('inspect_vm: no operating systems found'))
+    raise Exception('inspect_vm: no operating systems found')
 
   # Sort keys by length, shortest first, so that we end up
   # mounting the filesystems in the correct order.
