@@ -65,7 +65,7 @@ def build_subsuites(wfs):
             continue
         suite = match.group('suite')
         test_num = match.group('test_num')
-        test_num = int(test_num) if test_num else 0
+        test_num = int(test_num) if test_num else -1
         suites[suite] = suites.get(suite, []) + [(test_num, wf)]
 
     for suite in suites:

@@ -36,12 +36,12 @@ Other use-case examples:
       * [CopyGCSObjects](#type-copygcsobjects)
       * [DeleteResources](#type-deleteresources)
       * [IncludeWorkflow](#type-includeworkflow)
-      * [RunTests](#type-runtests)
       * [SubWorkflow](#type-subworkflow)
       * [WaitForInstancesSignal](#type-waitforinstancessignal)
     * [Dependencies](#dependencies)
     * [Vars](#vars)
       * [Autovars](#autovars)
+  * [Testing](#testing)
   * [Glossary of Terms](#glossary-of-terms)
     * [GCE](#glossary-gce)
     * [GCP](#glossary-gcp)
@@ -452,9 +452,6 @@ This IncludeWorkflow step example uses a local workflow file and passes a var,
 }
 ```
 
-#### Type: RunTests
-Not implemented yet.
-
 #### Type: SubWorkflow
 Runs a Daisy workflow as a step. The subworkflow will have some fields
 overwritten. For example, the subworkflow may specify a GCP Project "foo",
@@ -622,6 +619,26 @@ out of convenience. Here is the exhaustive list of autovars:
 | LOGSPATH | Equivalent to ${SCRATCHPATH}/logs. |
 | OUTSPATH | Equivalent to ${SCRATCHPATH}/outs. |
 | USERNAME | Username of the user running the workflow. |
+
+## Testing
+Infrastructure has been set up to perform presubmit testing on PRs and
+periodic continuous integration tests against HEAD.
+
+Presubmit checks unit tests, `golint`, `go fmt`, and `go vet` against PRs
+with changes to Daisy source code. Unit test coverage is reported to
+codecov.io, which posts coverage reports on the PR. Presubmit tests are
+gated by repo owners. Repo owners have the following commands available on
+a PR:
+* `/go test`: runs unit tests and reports coverage.
+* `/golint`: runs `golint`.
+* `/go fmt`: runs `go fmt`.
+* `/go vet`: runs `go vet`.
+* `/ok-to-test`: gives Prow the go-ahead to run the entire suite automatically.
+* `/retest`: reruns failed tests, only available after Prow reports failures.
+
+Periodic tests run every 6 hours. Currently, periodic tests include the e2e
+tests here: [../daisy_workflows/e2e_tests](../daisy_workflows/e2e_tests). You
+can see the test results for the e2e tests in testgrid: [https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#daisy-e2e].
 
 ## Glossary of Terms
 Definitions:
