@@ -104,7 +104,8 @@ def main():
         test_cases.extend(r[1])
     res.finished('FAILURE' if code else 'SUCCESS')
     ts = TestSuite(ARGS.tests, test_cases)
-    ts_data = xml.etree.ElementTree.tostring(ts.build_xml_doc())
+    ts_xml = xml_add_testcase_ids(ts.build_xml_doc(), ts)
+    ts_data = xml.etree.ElementTree.tostring(ts_xml)
     res.artifact('junit_0.xml', data=ts_data, content_type='application/xml')
     res.build_log(build_log.getvalue())
     return code
@@ -130,14 +131,14 @@ def run_subsuite(suite):
     test_cases = []
     for _, wf in suite:
         start = time.time()
-        wf_return_code, build_id = run_wf(wf)
+        wf_return_code, testcase_id = run_wf(wf)
         end = time.time()
-        log_url = None
-        if build_id:
-            log_url = common.urljoin(
+        tc = TestCase(wf, ARGS.tests, end - start)
+        if testcase_id:
+            tc.id = testcase_id
+            tc.log_url = common.urljoin(
                     constants.GCS_API_BASE, constants.BUCKET, res.base_path,
-                    'artifacts', 'log-%s.txt' % build_id)
-        tc = TestCase(wf, ARGS.tests, end - start, log=log_url)
+                    'artifacts', 'log-%s.txt' % testcase_id)
         if wf_return_code:
             tc.add_failure_info('Failed with code %s' % wf_return_code)
         test_cases.append(tc)
@@ -173,7 +174,7 @@ def run_wf(wf):
         return 1, None
 
     op_data = resp.json()
-    build_id = op_data['metadata']['build']['id']
+    testcase_id = op_data['metadata']['build']['id']
     data = {}
     while not data.get('done', False):
         time.sleep(5)
@@ -182,15 +183,15 @@ def run_wf(wf):
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:
             logging.error('Error getting test %s status: %s', wf, e)
-            return 1, build_id
+            return 1, testcase_id
         data = resp.json()
 
     if 'error' in data:
         logging.error('Test %s failed: %s', wf, data['error'])
-        return 1, build_id
+        return 1, testcase_id
     else:
         logging.info('Test %s finished successfully.', wf)
-        return 0, build_id
+        return 0, testcase_id
 
 
 def setup_result(commit):
@@ -202,6 +203,12 @@ def setup_session():
     scopes = ['https://www.googleapis.com/auth/cloud-platform']
     creds, _ = google.auth.default(scopes)
     return AuthorizedSession(creds)
+
+
+def xml_add_testcase_ids(ts_xml, ts):
+    for tc_xml, tc in zip(ts_xml, ts.test_cases):
+        tc_xml.attrib['id'] = tc.id
+    return ts_xml
 
 
 if __name__ == '__main__':
