@@ -89,6 +89,8 @@ def MountDisk(disk):
   # to receive Python dicts for methods in the API that return
   # hashtables.
   g = guestfs.GuestFS(python_return_dict=True)
+  # Set the product name as cloud-init checks it to confirm this is a VM in GCE
+  g.config('-smbios', 'type=1,product=Google Compute Engine')
   g.set_verbose(1)
   g.set_trace(1)
 

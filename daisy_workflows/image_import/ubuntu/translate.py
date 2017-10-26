@@ -13,14 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Translate the Ubuntu image on a GCE VM.
+
+Parameters (retrieved from instance metadata):
+
+ubuntu_release: The version of the distro
+install_gce_packages: True if GCE agent and SDK should be installed
+"""
+
+import logging
+
+import utils
+
+utils.AptGetInstall(['python-guestfs', 'tinyproxy'])
+
 import guestfs
-import pycurl
-import sys
-import trace
-from StringIO import StringIO
 
 
-disk = '/dev/sdb'
+tinyproxy_cfg = '''
+User tinyproxy
+Group tinyproxy
+Port 8888
+Timeout 600
+LogLevel Info
+PidFile "/run/tinyproxy/tinyproxy.pid"
+MaxClients 100
+MinSpareServers 5
+MaxSpareServers 20
+StartServers 10
+MaxRequestsPerChild 0
+Allow 127.0.0.1
+ViaProxyName "tinyproxy"
+ConnectPort 443
+ConnectPort 563
+'''
 
 partner_list = '''
 # Enabled for Google Cloud SDK
@@ -47,63 +73,14 @@ system_info:
          security: http://ports.ubuntu.com/ubuntu-ports
 '''
 
-def translate():
-  s = StringIO()
-  c = pycurl.Curl()
-  c.setopt(pycurl.HTTPHEADER, ['Metadata-Flavor:Google'])
-  c.setopt(c.WRITEFUNCTION, s.write)
-  url='http://metadata/computeMetadata/v1/instance/attributes'
 
-  c.setopt(pycurl.URL, url + '/ubuntu_release')
-  c.perform()
-  ubu_release = s.getvalue()
-  s.truncate(0)
-
-  c.setopt(pycurl.URL, url + '/install_gce_packages')
-  c.perform()
-  install_gce = s.getvalue()
-
-  c.close()
-
-  # All new Python code should pass python_return_dict=True
-  # to the constructor.  It indicates that your program wants
-  # to receive Python dicts for methods in the API that return
-  # hashtables.
-  g = guestfs.GuestFS(python_return_dict=True)
-  # Set the product name as cloud-init checks it to confirm this is a VM in GCE
-  g.config('-smbios', 'type=1,product=Google Compute Engine')
-  g.set_verbose(1)
-  g.set_trace(1)
-
-  # Enable network
-  g.set_network(True)
-
-  # Attach the disk image to libguestfs.
-  g.add_drive_opts(disk)
-
-  # Run the libguestfs back-end.
-  g.launch()
-
-  # Ask libguestfs to inspect for operating systems.
-  roots = g.inspect_os()
-  if len(roots) == 0:
-    raise Exception('inspect_vm: no operating systems found')
-
-  # Sort keys by length, shortest first, so that we end up
-  # mounting the filesystems in the correct order.
-  mps = g.inspect_get_mountpoints(roots[0])
-  def compare(a, b):
-    return len(a) - len(b)
-
-  for device in sorted(mps.keys(), compare):
-    try:
-      g.mount(mps[device], device)
-    except RuntimeError as msg:
-      print '%s (ignored)' % msg
+def DistroSpecific(g):
+  ubu_release = utils.GetMetadataParam('ubuntu_release')
+  install_gce = utils.GetMetadataParam('install_gce_packages')
 
   if install_gce == 'true':
     g.command(['apt-get', 'update'])
-    print 'Installing cloud-init.'
+    logging.info('Installing cloud-init.')
     g.sh(
         'DEBIAN_FRONTEND=noninteractive apt-get install -y'
         ' --no-install-recommends cloud-init')
@@ -119,8 +96,8 @@ def translate():
     try:
       g.command(['apt-get', 'remove', '-y', '-f', 'waagent', 'walinuxagent'])
     except Exception as e:
-      print str(e)
-      print 'Could not uninstall Azure agent. Continuing anyway.'
+      logging.debug(str(e))
+      logging.warn('Could not uninstall Azure agent. Continuing anyway.')
 
     g.write(
         '/etc/apt/sources.list.d/partner.list',
@@ -129,10 +106,14 @@ def translate():
     g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', gce_system)
 
     # Use host machine as http proxy so cloud-init can access GCE API
+    with open('/etc/tinyproxy/tinyproxy.conf', 'w') as cfg:
+        cfg.write(tinyproxy_cfg)
+    utils.Execute(['/etc/init.d/tinyproxy', 'restart'])
     default_gw = g.sh("ip route | awk '/default/ { printf $3 }'")
-    print g.sh('http_proxy="http://%s:8888" cloud-init -d init' % default_gw)
+    logging.debug(
+        g.sh('http_proxy="http://%s:8888" cloud-init -d init' % default_gw))
 
-    print 'Installing GCE packages.'
+    logging.info('Installing GCE packages.')
     g.command(['apt-get', 'update'])
     g.sh(
         'DEBIAN_FRONTEND=noninteractive apt-get install -y'
@@ -146,25 +127,12 @@ def translate():
 
   g.command(['update-grub2'])
 
-  # Remove SSH host keys.
-  print 'Removing SSH host keys.'
-  g.sh('rm -f /etc/ssh/ssh_host_*')
-
-  try:
-    g.umount_all()
-  except Exception as e:
-    print str(e)
-    print 'Unmount failed. Continuing anyway.'
 
 def main():
-  try:
-    translate()
-    print 'TranslateSuccess: Translation finished.'
-  except Exception as e:
-    print 'TranslateFailed: error: '
-    print str(e)
+  g = utils.MountDisk('/dev/sdb')
+  DistroSpecific(g)
+  utils.CommonRoutines(g)
+  utils.UnmountDisk(g)
 
 if __name__=='__main__':
-  tracer = trace.Trace(
-      ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
-  tracer.run('main()')
+  utils.RunTranslate(main) 
