@@ -23,8 +23,9 @@
     }
   },
   "Sources": {
-    "translate_el.sh": "./translate_el.sh",
-    "translate_el.py": "./translate_el.py"
+    "import_files/translate.py": "./translate.py",
+    "import_files/utils.py": "../linux_common/utils.py",
+    "startup_script": "../linux_common/bootstrap.py"
   },
   "Steps": {
     "translate-disk-inst": {
@@ -37,11 +38,13 @@
           ],
           "MachineType": "n1-standard-2",
           "Metadata": {
+            "import_files_gcs_dir": "${SOURCESPATH}/import_files",
+            "import_script": "translate.py",
             "el_release": "${el_release}",
             "install_gce_packages": "${install_gce_packages}",
             "use_rhel_gce_license": "${use_rhel_gce_license}"
           },
-          "StartupScript": "translate_el.sh"
+          "StartupScript": "startup_script"
         }
       ]
     },
