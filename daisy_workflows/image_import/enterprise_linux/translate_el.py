@@ -188,7 +188,12 @@ def translate():
   print "Removing SSH host keys."
   g.sh("rm -f /etc/ssh/ssh_host_*")
 
-  g.umount_all()
+  try:
+    g.umount_all()
+  except Exception as e:
+    print str(e)
+    print 'Unmount failed. Continuing anyway.'
+
 
 def main():
   try:
