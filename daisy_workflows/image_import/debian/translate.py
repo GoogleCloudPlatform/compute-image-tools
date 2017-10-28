@@ -13,14 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Translate the EL image on a GCE VM.
+
+Parameters (retrieved from instance metadata):
+
+debian_release: The version of the distro (stretch)
+install_gce_packages: True if GCE agent and SDK should be installed
+"""
+
+import logging
+
+import utils
+
+utils.AptGetInstall(['python-guestfs'])
+
 import guestfs
-import pycurl
-import sys
-import trace
-from StringIO import StringIO
 
-
-disk = '/dev/sdb'
 
 google_cloud = '''
 deb http://packages.cloud.google.com/apt cloud-sdk-{deb_release} main
@@ -36,57 +44,9 @@ auto eth0
 iface eth0 inet dhcp
 '''
 
-def translate():
-  s = StringIO()
-  c = pycurl.Curl()
-  c.setopt(pycurl.HTTPHEADER, ['Metadata-Flavor:Google'])
-  c.setopt(c.WRITEFUNCTION, s.write)
-  url='http://metadata/computeMetadata/v1/instance/attributes'
-
-  c.setopt(pycurl.URL, url + '/debian_release')
-  c.perform()
-  deb_release = s.getvalue()
-  s.truncate(0)
-
-  c.setopt(pycurl.URL, url + '/install_gce_packages')
-  c.perform()
-  install_gce = s.getvalue()
-
-  c.close()
-
-  # All new Python code should pass python_return_dict=True
-  # to the constructor.  It indicates that your program wants
-  # to receive Python dicts for methods in the API that return
-  # hashtables.
-  g = guestfs.GuestFS(python_return_dict=True)
-  g.set_verbose(1)
-  g.set_trace(1)
-
-  # Enable network
-  g.set_network(True)
-
-  # Attach the disk image to libguestfs.
-  g.add_drive_opts(disk)
-
-  # Run the libguestfs back-end.
-  g.launch()
-
-  # Ask libguestfs to inspect for operating systems.
-  roots = g.inspect_os()
-  if len(roots) == 0:
-    raise Exception('inspect_vm: no operating systems found')
-
-  # Sort keys by length, shortest first, so that we end up
-  # mounting the filesystems in the correct order.
-  mps = g.inspect_get_mountpoints(roots[0])
-  def compare(a, b):
-    return len(a) - len(b)
-
-  for device in sorted(mps.keys(), compare):
-    try:
-      g.mount(mps[device], device)
-    except RuntimeError as msg:
-      print '%s (ignored)' % msg
+def DistroSpecific(g):
+  install_gce = utils.GetMetadataParam('install_gce_packages')
+  deb_release = utils.GetMetadataParam('debian_release')
 
   if install_gce == 'true':
     print 'Installing GCE packages.'
@@ -99,7 +59,12 @@ def translate():
         '/etc/apt/sources.list.d/google-cloud.list',
         google_cloud.format(deb_release=deb_release))
     # Remove Azure agent.
-    g.command(['apt-get', 'remove', '-y', '-f', 'waagent', 'walinuxagent'])
+    try:
+      g.command(['apt-get', 'remove', '-y', '-f', 'waagent', 'walinuxagent'])
+    except Exception as e:
+      logging.debug(str(e))
+      logging.warn('Could not uninstall Azure agent. Continuing anyway.')
+
     g.command(['apt-get', 'update'])
     g.sh(
         'DEBIAN_FRONTEND=noninteractive '
@@ -136,21 +101,12 @@ def translate():
   print 'Resetting network to DHCP for eth0.'
   g.write('/etc/network/interfaces', interfaces)
 
-  # Remove SSH host keys.
-  print 'Removing SSH host keys.'
-  g.sh('rm -f /etc/ssh/ssh_host_*')
-
-  g.umount_all()
 
 def main():
-  try:
-    translate()
-    print 'TranslateSuccess: Translation finished.'
-  except Exception as e:
-    print 'TranslateFailed: error: '
-    print str(e)
+  g = utils.MountDisk('/dev/sdb')
+  DistroSpecific(g)
+  utils.CommonRoutines(g)
+  utils.UnmountDisk(g)
 
 if __name__=='__main__':
-  tracer = trace.Trace(
-      ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
-  tracer.run('main()')
+  utils.RunTranslate(main) 
