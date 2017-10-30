@@ -15,8 +15,9 @@
     }
   },
   "Sources": {
-    "translate_ubuntu.sh": "./translate_ubuntu.sh",
-    "translate_ubuntu.py": "./translate_ubuntu.py"
+    "import_files/translate.py": "./translate.py",
+    "import_files/utils.py": "../linux_common/utils.py",
+    "startup_script": "../linux_common/bootstrap.py"
   },
   "Steps": {
     "setup-disk": {
@@ -39,10 +40,12 @@
           ],
           "MachineType": "n1-standard-2",
           "Metadata": {
+            "import_files_gcs_dir": "${SOURCESPATH}/import_files",
+            "import_script": "translate.py",
             "ubuntu_release": "${ubuntu_release}",
             "install_gce_packages": "${install_gce_packages}"
           },
-          "StartupScript": "translate_ubuntu.sh"
+          "StartupScript": "startup_script"
         }
       ]
     },
