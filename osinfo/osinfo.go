@@ -15,7 +15,6 @@ limitations under the License.
 // Linux.
 package osinfo
 
-
 type DistributionInfo struct {
 	LongName, ShortName, Version, Kernel string
 }
