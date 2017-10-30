@@ -17,6 +17,7 @@ import (
 	"github.com/StackExchange/wmi"
 )
 
+// GetDistributionInfo reports DistributionInfo.
 func GetDistributionInfo() (*DistributionInfo, error) {
 	oi, err := osInfo()
 	if err != nil {

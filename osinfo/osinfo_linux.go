@@ -94,6 +94,7 @@ func parseEnterpriseRelease(path string) (*DistributionInfo, error) {
 	}, nil
 }
 
+// GetDistributionInfo reports DistributionInfo.
 func GetDistributionInfo() (*DistributionInfo, error) {
 	var di *DistributionInfo
 	var err error
