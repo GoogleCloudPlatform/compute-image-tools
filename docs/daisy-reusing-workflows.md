@@ -8,7 +8,8 @@ workflow they specify, but how Daisy does this is different:
 ### IncludeWorkflow
 
 `IncludeWorkflow` will run the steps of the included workflow in parallel with
-the parent workflow's steps. A workflow included with `IncludeWorkflow` will
+the parent workflow's steps, according to the dependency rules of both the
+parent and included workflows. A workflow included with `IncludeWorkflow` will
 behave largely as if the included workflow had been copy-pasted into the parent
 workflow. The parent workflow will continue in parallel to the included
 workflow, if permitted by both of their dependencies. Note that if the
@@ -18,7 +19,8 @@ before those steps it depends on have completed.
 A parent workflow has access to its child workflow's resources, and vice versa.
 Disks, instances, steps, etc. present in either workflow can be referenced by
 name from either workflow. Two children with a common parent can access each
-other's resources.
+other's resources. It is up to you to ensure there are no naming collisions
+amongst included workflows and their parents.
 
 See also the
 [documentation](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy#type-includeworkflow)
@@ -27,10 +29,11 @@ for IncludeWorkflow.
 ### SubWorkflow
 
 `SubWorkflow` runs the subworkflow specified as one step. Subworkflows do not
-have access to their parent's resources. Additionally, the subworkflow inherits
-its parent's `Project`, `Zone`, `GCSPath`, and `OAuthPath` fields. Even if these
-values are set in the subworkflow, they will be overwritten by the parent's
-values.
+have access to their parent's resources. This means that any workflow can be
+used as a subworkflow without fear of resource name collisions. Additionally,
+the subworkflow inherits its parent's `Project`, `Zone`, `GCSPath`, and
+`OAuthPath` fields. Even if these fields are set in the subworkflow, they will
+be overwritten with the parent's values.
 
 Unlike `IncludeWorkflow`, which is considered complete as soon as the included
 workflow has been read and its steps scheduled, `SubWorkflow` treats the entire
