@@ -7,23 +7,32 @@ workflow they specify, but how Daisy does this is different:
 
 ### IncludeWorkflow
 
+The parent workflow of a workflow included using `IncludeWorkflow` has access to
+the child workflow's resources, and vice versa. Disks, instances, steps, etc.
+present in either workflow can be referenced by name from either workflow. Two
+children with a common parent can also access each other's resources. It is up
+to you to ensure there are no naming collisions amongst included workflows and
+their parents.
+
 `IncludeWorkflow` will run the steps of the included workflow in parallel with
 the parent workflow's steps, according to the dependency rules of both the
 parent and included workflows. A workflow included with `IncludeWorkflow` will
 behave largely as if the included workflow had been copy-pasted into the parent
-workflow. The parent workflow will continue in parallel to the included
-workflow, if permitted by both of their dependencies. Note that if the
-`IncludeWorkflow` step depends on other steps, the workflow will not be included
-before those steps it depends on have completed.
+workflow.
 
-A parent workflow has access to its child workflow's resources, and vice versa.
-Disks, instances, steps, etc. present in either workflow can be referenced by
-name from either workflow. Two children with a common parent can access each
-other's resources. It is up to you to ensure there are no naming collisions
-amongst included workflows and their parents.
+An `IncludeWorkflow` step is considered "done" (for the purposes of
+dependencies) as soon as the child workflow has been read. A step which only
+depends on an `IncludeWorkflow` step is likely to run before all of the steps in
+the included workflow have completed. Steps of the parent workflow which should
+depend on a step in the child workflow must depend on *that step* within the
+child workflow, and not on the `IncludeWorkflow` step of the parent. Note that
+if the `IncludeWorkflow` step depends on other steps (that is, it is not run at
+the very beginning of the parent workflow), the child workflow will not be
+included before those steps it depends on have completed, so any task which
+makes reference to the child workflow's resources should depend on the
+`IncludeWorkflow` task which includes that child.
 
-See also the
-[documentation](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy#type-includeworkflow)
+See also the [documentation](daisy-workflow-config-spec.md#type-includeworkflow)
 for IncludeWorkflow.
 
 ### SubWorkflow
@@ -43,6 +52,9 @@ step which depends on an `IncludeWorkflow` step will run in parallel to that
 included workflow (if not otherwise restricted by other dependencies) while a
 step which depends on a `SubWorkflow` step will not run until that subworkflow
 has completed.
+
+See also the [documentation](daisy-workflow-config-spec.md#type-subworkflow) for
+SubWorkflow.
 
 ## Using Vars
 

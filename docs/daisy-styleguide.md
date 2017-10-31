@@ -47,9 +47,10 @@ are to be used outside of the workflow), name them whatever suits the need.
 `"Name": "image-redhat-installer"` or `"Name": "img-redhat-installer"`
 
 ## Variable naming
-Name variables all lowercase with underscores and make them explicit. For example, don't name
-a variable `image` instead use an explicit name `debian_image` or `debian_base_image`. Upper case variable names
-are reserved for Daisy autovars.
+Name variables all lowercase with underscores and make them explicit. For
+example, don't name a variable `image` instead use an explicit name
+`debian_image` or `debian_base_image`. Upper case variable names are reserved
+for Daisy autovars.
 
 ```json
 "Vars": {
