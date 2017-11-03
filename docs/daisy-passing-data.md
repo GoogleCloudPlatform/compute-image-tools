@@ -9,9 +9,10 @@ the CreateInstances step:
 
 ## Retrieving Metatdata
 
-Metadata can be though of as "Cloud environment variables". Metadata is a simple
-mapping between a key string and a value string. You can supply metadata to your
-instace using the `Metadata` field of the `CreateInstances` step, like so:
+Metadata can be thought of as "Cloud environment variables". Metadata is a
+simple mapping between a key string and a value string. You can supply metadata
+to your instace using the `Metadata` field of the `CreateInstances` step, like
+so:
 
     {
       ...
@@ -43,7 +44,7 @@ for documentation on working with metadata.
 The "Sources" field in your Daisy workflow can contain links to local files, or
 files in a Google Cloud Storage bucket using the URL scheme
 `gs://bucket-name/file-name`. Everything listed in Sources is copied to a
-special bucket created by Daisy. Daisy sets the special metadata key
+scratch bucket created by Daisy. Daisy sets the special metadata key
 `daisy-sources-path` to a `gs://` path to the Sources bucket.
 
 
