@@ -34,8 +34,8 @@ var (
 
 // GetPackageUpdates gets available package updates GooGet as well as any
 // available updates from Windows Update Agent.
-func GetPackageUpdates() (map[string][]pkgInfo, []string) {
-	pkgs := map[string][]pkgInfo{}
+func GetPackageUpdates() (map[string][]PkgInfo, []string) {
+	pkgs := map[string][]PkgInfo{}
 	var errs []string
 
 	if exists(googet) {
@@ -57,7 +57,7 @@ func GetPackageUpdates() (map[string][]pkgInfo, []string) {
 	return pkgs, errs
 }
 
-func googetUpdates() ([]pkgInfo, error) {
+func googetUpdates() ([]PkgInfo, error) {
 	out, err := run(exec.Command(googet, "update"))
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func googetUpdates() ([]pkgInfo, error) {
 	*/
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 
-	var pkgs []pkgInfo
+	var pkgs []PkgInfo
 	for _, ln := range lines[1:] {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 6 {
@@ -89,7 +89,7 @@ func googetUpdates() ([]pkgInfo, error) {
 }
 
 // wuaUpdates queries the Windows Update Agent API searcher with the provided query.
-func wuaUpdates(query string) ([]pkgInfo, error) {
+func wuaUpdates(query string) ([]PkgInfo, error) {
 	connection := &ole.Connection{nil}
 	if err := connection.Initialize(); err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func wuaUpdates(query string) ([]pkgInfo, error) {
 	}
 	defer enum.Release()
 
-	var updates []pkgInfo
+	var updates []PkgInfo
 	for updtRaw, length, err := enum.Next(1); length > 0; updtRaw, length, err = enum.Next(1) {
 		if err != nil {
 			return nil, err
@@ -178,8 +178,8 @@ func wuaUpdates(query string) ([]pkgInfo, error) {
 
 // GetInstalledPackages gets all installed GooGet packages and Windows updates.
 // Windows updates are read from Windows Update Agent and Win32_QuickFixEngineering.
-func GetInstalledPackages() (map[string][]pkgInfo, []string) {
-	pkgs := map[string][]pkgInfo{}
+func GetInstalledPackages() (map[string][]PkgInfo, []string) {
+	pkgs := map[string][]PkgInfo{}
 	var errs []string
 
 	if exists(googet) {
@@ -211,7 +211,7 @@ func GetInstalledPackages() (map[string][]pkgInfo, []string) {
 	return pkgs, errs
 }
 
-func installedGooGetPackages() ([]pkgInfo, error) {
+func installedGooGetPackages() ([]PkgInfo, error) {
 	out, err := run(exec.Command(googet, "installed"))
 	if err != nil {
 		return nil, err
@@ -230,7 +230,7 @@ func installedGooGetPackages() ([]pkgInfo, error) {
 		return nil, nil
 	}
 
-	var pkgs []pkgInfo
+	var pkgs []PkgInfo
 	for _, ln := range lines[1:] {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 2 {
@@ -254,13 +254,13 @@ type win32_QuickFixEngineering struct {
 }
 
 // quickFixEngineering queries the wmi object win32_QuickFixEngineering for a list of installed updates.
-func quickFixEngineering() ([]pkgInfo, error) {
+func quickFixEngineering() ([]PkgInfo, error) {
 	var updts []win32_QuickFixEngineering
 	logger.Info("Querying WMI for installed QuickFixEngineering updates.")
 	if err := wmi.Query(wmi.CreateQuery(&updts, ""), &updts); err != nil {
 		return nil, err
 	}
-	var qfe []pkgInfo
+	var qfe []PkgInfo
 	for _, update := range updts {
 		qfe = append(qfe, PkgInfo{Name: update.HotFixID, Arch: architecture(runtime.GOARCH), Version: update.HotFixID})
 	}

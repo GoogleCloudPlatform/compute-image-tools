@@ -25,7 +25,7 @@ func GetDistributionInfo() (*DistributionInfo, error) {
 	}
 
 	// TODO(ajackura): Get kernel version from ntoskrnl.exe.
-	return &DistributionInfo{ShortName: "windows", LongName: oi.Caption, Version: oi.Version, kernel: oi.Version}, nil
+	return &DistributionInfo{ShortName: "windows", LongName: oi.Caption, Version: oi.Version, Kernel: oi.Version}, nil
 }
 
 type win32_OperatingSystem struct {
