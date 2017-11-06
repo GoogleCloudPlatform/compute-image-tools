@@ -1,4 +1,4 @@
-# Migrating Image Creation Workflows to Daisy
+# Automating Image Creation with Daisy
 
 This page describes how to use Daisy to automate creation of custom GCE images.
 These images are usually based on an existing base image (often a fresh install
@@ -6,7 +6,7 @@ of your OS of choice), with some extra software you have chosen to install. This
 page assumes you have an existing workflow for creating such an image, and
 describes how to use Daisy to automate this task.
 
-To begin using Daisy for your existing workflows, follow these steps:
+To begin using Daisy for your image creation workflows, follow these steps:
 
   1. Choose a base image to start with.
   2. Enumerate all the steps you currently follow to prepare your image.
@@ -52,7 +52,7 @@ step, or anywhere else that Daisy accepts partial URLs. By using an image
 family, you ensure that you will always run your workflow on the most up-to-date
 base image available.
 
-## Translating your Current Workflow
+## Automating your Workflow
 
 We recommend that you write down every step you perform to prepare your image,
 in the order they are performed. This will be different for every image, but it
@@ -98,8 +98,8 @@ The typical Daisy image creation workflow has five steps:
 
 Each step should depend on the step before it. Use the `Dependencies` field of
 your Daisy workflow to specify dependencies. If no dependencies are specified,
-then Daisy will try to run all the steps in parallel, and will produce an error
-if a step tries to use a resource from another step it does not depend on.
+then Daisy will try to run all the steps in parallel. Daisy will produce an
+error if a step tries to use a resource from another step it does not depend on.
 
 For an example of a typical Daisy image creation workflow, please see the [SQL
 Server example workflow](../daisy_workflows/image_build/sqlserver).
