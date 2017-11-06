@@ -1,0 +1,50 @@
+{
+  "Project": "gce-daisy-test",
+  "Zone": "us-west1-c",
+  "Name": "wait-for-instance-signal",
+  "Vars": {
+    "about-this-test": { "Description": "This test creates two instances, and then waits for two different kinds of signals from them: Stopped, and SerialOutput." }
+  },
+  "Sources": {
+    "stop.sh": "./scripts/stop.sh",
+    "output-and-stop.sh": "./scripts/output-and-stop.sh"
+  },
+  "Steps": {
+    "create-instances": {
+      "CreateInstances": [ {
+        "Name": "stopper",
+        "Disks": [ {
+          "InitializeParams": {
+            "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+            "Type": "pd-ssd"
+          }
+        } ],
+        "StartupScript": "stop.sh"
+      }, {
+        "Name": "serial-outputter",
+        "Disks": [ {
+          "InitializeParams": {
+            "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+            "Type": "pd-ssd"
+          }
+        } ],
+        "StartupScript": "output-and-stop.sh"
+      } ]
+    },
+    "wait": {
+      "WaitForInstancesSignal": [ {
+        "Name": "stopper",
+        "Stopped": true
+      }, {
+        "Name": "serial-outputter",
+        "SerialOutput": {
+          "Port": 1,
+          "SuccessMatch": "SUCCESS ovqTO8AgH65shhPMLoot"
+        }
+      } ]
+    }
+  },
+  "Dependencies": {
+    "wait": [ "create-instances" ]
+  }
+}
