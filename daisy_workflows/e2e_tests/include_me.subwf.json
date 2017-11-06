@@ -1,19 +1,19 @@
 {
-	"Name": "include-me",
-	"Vars": {
-		"about-this-test": { "Description": "this workflow is included by the include_workflow.wf.json test" }
-	},
-	"Steps": {
-		"create-child-disk": {
-			"CreateDisks": [ {
-				"Name": "child-disk",
-				"SizeGb": "1"
-			} ]
-		},
-		"delete-parent-disk": {
-			"DeleteResources": {
-				"Disks": [ "parent-disk" ]
-			}
-		}
-	}
+  "Name": "include-me",
+  "Vars": {
+    "about-this-test": { "Description": "this workflow is included by the include_workflow.wf.json test" }
+  },
+  "Steps": {
+    "create-child-disk": {
+      "CreateDisks": [ {
+        "Name": "child-disk",
+        "SizeGb": "1"
+      } ]
+    },
+    "delete-parent-disk": {
+      "DeleteResources": {
+        "Disks": [ "parent-disk" ]
+      }
+    }
+  }
 }
