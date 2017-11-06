@@ -102,7 +102,8 @@ then Daisy will try to run all the steps in parallel. Daisy will produce an
 error if a step tries to use a resource from another step it does not depend on.
 
 For an example of a typical Daisy image creation workflow, please see the [SQL
-Server example workflow](../daisy_workflows/image_build/sqlserver).
+Server example
+workflow](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy_workflows/image_build/sqlserver).
 
 ## Making Multiple Images
 
@@ -111,5 +112,6 @@ LTS and Ubuntu 16.04 LTS, with the same extra software installed), you can put
 the shared parts of the workflow in one common workflow file, and then create a
 small(er) workflow file for each variant image you need to create. For an
 example of this, see the [Debian example
-workflows](../daisy_workflows/image_build/debian). Documentation on using
-multiple workflow files can be found [here](daisy-reusing-workflows.md).
+workflows](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy_workflows/image_build/debian).
+Documentation on using multiple workflow files can be found
+[here](daisy-reusing-workflows.md).
