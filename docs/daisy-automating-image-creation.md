@@ -81,20 +81,20 @@ All Windows image creation startup scripts should end with a call to
 
 The typical Daisy image creation workflow has five steps:
 
-    1. A CreateDisks step which creates at least one disk. The SourceImage for
-       one of these disks should be your base image.
-    2. A CreateInstances step which creates an instance out of the disks the
-       previous step created. The first disk in this step's `Disks` field must
-       be bootable. This step also specifies the StartupScript.
-    3. A WaitForInstancesSignal step which waits for the startup script to
-       complete. WaitForInstancesSignal has a field called `Stopped` to listen
-       for the instance shutting down. It can also be made to listen for
-       specific output on the serial port.
-    4. A CreateImages step which actually creates an image from the disk once
-       the instance has shut down. Make sure you specify `NoCleanup` on this
-       step, or your image will be deleted when the workflow ends!
-    5. A DeleteResources step that deletes the instance you created in the
-       CreateInstances step.
+1. A CreateDisks step which creates at least one disk. The SourceImage for one
+   of these disks should be your base image.
+2. A CreateInstances step which creates an instance out of the disks the
+   previous step created. The first disk in this step's `Disks` field must be
+   bootable. This step also specifies the StartupScript.
+3. A WaitForInstancesSignal step which waits for the startup script to complete.
+   WaitForInstancesSignal has a field called `Stopped` to listen for the
+   instance shutting down. It can also be made to listen for specific output on
+   the serial port.
+4. A CreateImages step which actually creates an image from the disk once the
+   instance has shut down. Make sure you specify `NoCleanup` on this step, or
+   your image will be deleted when the workflow ends!
+5. A DeleteResources step that deletes the instance you created in the
+   CreateInstances step.
 
 Each step should depend on the step before it. Use the `Dependencies` field of
 your Daisy workflow to specify dependencies. If no dependencies are specified,
