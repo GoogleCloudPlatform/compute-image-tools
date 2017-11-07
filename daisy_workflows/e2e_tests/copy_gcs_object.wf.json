@@ -1,7 +1,10 @@
 {
+  "Project": "gce-daisy-test",
+  "Zone": "us-west1-c",
   "Name": "copy-gcs-object",
   "Vars": {
-    "about-this-test": { "Description": "This workflow acts as a producer, copying a file from the Daisy resources bucket into the sandbox bucket. It spins up a consumer, who downloads and then deletes the file from the sandbox, reporting success or failure." },
+    "about-this-test": { "Description": "This workflow acts as a producer, copying a file from the Daisy resources bucket into the sandbox bucket. It spins up a consumer, who downloads and then deletes the file from the sandbox, reporting success or failure." }
+  },
   "Sources": {
     "retrieve-files-from-gcs.sh": "./scripts/retrieve-files-from-gcs.sh"
   },
