@@ -19,6 +19,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
 	"github.com/google/logger"
 )
 
@@ -54,7 +55,7 @@ var (
 	pipListArgs     = []string{"list", "--format=legacy"}
 	pipOutdatedArgs = append(pipListArgs, "--outdated")
 
-	noarch = architecture("noarch")
+	noarch = osinfo.Architecture("noarch")
 )
 
 // GetPackageUpdates gets all available package updates from any known
@@ -159,7 +160,7 @@ func aptUpdates() ([]PkgInfo, error) {
 		}
 		ver := strings.Trim(pkg[3], "(")
 		arch := strings.Trim(pkg[5], "[])")
-		pkgs = append(pkgs, PkgInfo{Name: pkg[1], Arch: architecture(arch), Version: ver})
+		pkgs = append(pkgs, PkgInfo{Name: pkg[1], Arch: osinfo.Architecture(arch), Version: ver})
 	}
 	return pkgs, nil
 }
@@ -204,7 +205,7 @@ func yumUpdates() ([]PkgInfo, error) {
 			continue
 		}
 		name := strings.Split(pkg[0], ".")
-		pkgs = append(pkgs, PkgInfo{Name: name[0], Arch: architecture(name[1]), Version: pkg[1]})
+		pkgs = append(pkgs, PkgInfo{Name: name[0], Arch: osinfo.Architecture(name[1]), Version: pkg[1]})
 	}
 	return pkgs, nil
 }
@@ -236,7 +237,7 @@ func zypperUpdates() ([]PkgInfo, error) {
 			logger.Errorf("%s does not represent a zypper update", ln)
 			continue
 		}
-		pkgs = append(pkgs, PkgInfo{Name: pkg[4], Arch: architecture(pkg[10]), Version: pkg[8]})
+		pkgs = append(pkgs, PkgInfo{Name: pkg[4], Arch: osinfo.Architecture(pkg[10]), Version: pkg[8]})
 	}
 	return pkgs, nil
 }
@@ -372,7 +373,7 @@ func installedDEB() ([]PkgInfo, error) {
 			continue
 		}
 
-		pkgs = append(pkgs, PkgInfo{Name: pkg[0], Arch: architecture(pkg[1]), Version: pkg[2]})
+		pkgs = append(pkgs, PkgInfo{Name: pkg[0], Arch: osinfo.Architecture(pkg[1]), Version: pkg[2]})
 	}
 	return pkgs, nil
 }
@@ -403,7 +404,7 @@ func installedRPM() ([]PkgInfo, error) {
 			continue
 		}
 
-		pkgs = append(pkgs, PkgInfo{Name: pkg[0], Arch: architecture(pkg[1]), Version: pkg[2]})
+		pkgs = append(pkgs, PkgInfo{Name: pkg[0], Arch: osinfo.Architecture(pkg[1]), Version: pkg[2]})
 	}
 	return pkgs, nil
 }

@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -118,5 +119,8 @@ func GetDistributionInfo() (*DistributionInfo, error) {
 		return nil, err
 	}
 	di.Kernel = strings.TrimSpace(string(out))
+	// No need to get fancy here, assume the binary architecture
+	// is the same as the system.
+	di.Architecture = Architecture(runtime.GOARCH)
 	return di, nil
 }
