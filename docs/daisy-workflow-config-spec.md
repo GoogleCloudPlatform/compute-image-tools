@@ -346,7 +346,7 @@ disks.
 Includes another Daisy workflow JSON file into this workflow. The included
 workflow's steps will run as if they were part of the parent workflow, but
 follow the IncludeWorkflow step's dependency map (all steps from an included
-workflow depend on the IncludeWorkflow step's dependencies).
+workflow also depend on the IncludeWorkflow step's dependencies).
 
 Included workflows have access to all of their parent workflows resources and
 vice versa. For example the disk `disk1` created in a previous step will be
