@@ -47,6 +47,12 @@ Example workflow config:
 
 ## Table of contents
 
+  * [Glossary](#glossary)
+    * [GCE](#glossary-gce)
+    * [GCP](#glossary-gcp)
+    * [GCS](#glossary-gcs)
+    * [Partial URL](#glossary-partialurl)
+    * [Workflow](#glossary-workflow)
   * [Sources](#sources)
   * [Steps](#steps)
     * [AttachDisks](#type-attachdisks)
@@ -62,6 +68,16 @@ Example workflow config:
   * [Vars](#vars)
     * [Autovars](#autovars)
 
+## Glossary
+Definitions:
+* <a id="glossary-gce"></a>GCE: Google Compute Engine
+* <a id="glossary-gcp"></a>GCP: Google Cloud Platform
+* <a id="glossary-gcs"></a>GCS: Google Cloud Storage
+* <a id="glossary-partialurl"></a>Partial URL: a URL for a GCE resource. Has the
+  form "projects/PROJECT/zone/ZONE/RESOURCETYPE/RESOURCENAME".
+* <a id="glossary-workflow"></a>Workflow: a graph of executable, blocking steps
+  and their dependency relationships.
+
 ### Sources
 
 Daisy will upload any workflow sources to the sources directory in GCS
@@ -69,7 +85,7 @@ prior to running the workflow. The `Sources` field in a workflow
 JSON file is a map of 'destination' to 'source' file. Sources can be a local
 or GCS file or directory. Directories will be recursively copied into
 destination. The GCS path for the sources directory is available via the
-[autovar](#autovars) `${SOURCESPATH}`.
+[Autovar](#autovars) `${SOURCESPATH}`.
 
 In this example the local file `./path/to/startup.sh` will be copied to
 `startup.sh` in the sources directory. Similarly the GCS file
@@ -89,8 +105,6 @@ respectively.
 ```
 
 ### Steps
-Step types are defined here:
-https://godoc.org/github.com/GoogleCloudPlatform/compute-image-tools/daisy#Step
 
 The `Steps` field is a named set of executable steps. It is a map of
 a step's name to the step's type and configuration. Step names must begin with
@@ -171,6 +185,10 @@ the Image JSON representation. Daisy uses the same representation with a few mod
 | Name | string | If RealName is unset, the **literal** image name will have a generated suffix for the running instance of the workflow. |
 | RawDisk.Source | string | Either a GCS Path or a key from Sources are valid. |
 | SourceDisk | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+
+Both `RawDisk.Source` and `SourceDisk` set the image's disk. For this reason,
+they are mutually exclusive; only one should be present in a `CreateImages`
+step.
 
 Added fields:
 
@@ -327,8 +345,8 @@ disks.
 #### Type: IncludeWorkflow
 Includes another Daisy workflow JSON file into this workflow. The included
 workflow's steps will run as if they were part of the parent workflow, but
-follow the IncludeWorkflow steps dependency map (all steps from a included
-workflow depend on steps the IncludeWorkflow depends on).
+follow the IncludeWorkflow step's dependency map (all steps from an included
+workflow depend on the IncludeWorkflow step's dependencies).
 
 Included workflows have access to all of their parent workflows resources and
 vice versa. For example the disk `disk1` created in a previous step will be
@@ -338,6 +356,9 @@ Sources are similarly merged with the parent workflow and share the same scratch
 directory. The included workflow will not have access to the parent workflows
 variables however, all variable substitutions will come from the `Var` field
 in the IncludeWorkflow step or from the included workflow's JSON file.
+
+For more information on using IncludeWorkflow, see [Reusing Workflow
+Files](daisy-reusing-workflows.md).
 
 IncludeWorkflow step type fields:
 
@@ -365,11 +386,16 @@ overwritten. For example, the subworkflow may specify a GCP Project "foo",
 but the parent workflow is working in Project "bar". The subworkflow's Project
 will be overwritten so that subworkflow is also running in "bar", the same as
 the parent. The fields that get modified by the parent:
+
 * Project (copied from parent)
 * Zone (copied from parent)
 * GCSPath (changed to a subdirectory in parent's GCSPath)
 * OAuthPath (not used, parent workflow's credentials will be used)
 * Vars (Vars can be passed in via the SubWorkflow step type Vars field)
+
+The SubWorkflow step type works similarly to the IncludeWorkflow step type,
+except that resources (disks, instances, and images) are not shared between the
+parent workflow and the subworkflow.
 
 SubWorkflow step type fields:
 
@@ -434,6 +460,11 @@ stop and for a signal from VM "bar":
     ]
 }
 ```
+
+To output to the serial port from a startup script (launched using the
+`StartupScript` field of the `CreateInstances` step type), it is sufficient to
+write output to "standard out": On Unix systems this might be using `echo` or
+`print`, on Windows `Write-Host` or `Write-Console`.
 
 ### Dependencies
 
@@ -527,4 +558,4 @@ out of convenience. Here is the exhaustive list of autovars:
 | OUTSPATH | Equivalent to ${SCRATCHPATH}/outs. |
 | USERNAME | Username of the user running the workflow. |
 
-#
+

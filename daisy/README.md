@@ -27,12 +27,7 @@ Other use-case examples:
     * [Build from source](#build-from-source)
   * [Running Daisy](#running-daisy)
   * [Testing](#testing)
-  * [Glossary of Terms](#glossary-of-terms)
-    * [GCE](#glossary-gce)
-    * [GCP](#glossary-gcp)
-    * [GCS](#glossary-gcs)
-    * [Partial URL](#glossary-partialurl)
-    * [Workflow](#glossary-workflow)
+  * [Documentation](#documentation)
 
 ## Setup
 ### Prebuilt binaries
@@ -95,7 +90,8 @@ daisy -var:foo bar -var:baz gaz wf.json
 For additional information about Daisy flags, use `daisy -h`.
 
 For information about writing Daisy config files, see the [workflow
-configuration file specification](../docs/daisy-workflow-config-spec.md).
+configuration file
+specification](https://googlecloudplatform.github.io/compute-image-tools/daisy-workflow-config-spec.html).
 
 # Testing
 Infrastructure has been set up to perform presubmit testing on PRs and
@@ -117,11 +113,8 @@ Periodic tests run every 6 hours. Currently, periodic tests include the e2e
 tests here: [../daisy_workflows/e2e_tests](../daisy_workflows/e2e_tests). You
 can see the test results for the e2e tests in testgrid: [https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#daisy-e2e].
 
-## Glossary of Terms
-Definitions:
-* <a id="glossary-gce"></a>GCE: Google Compute Engine
-* <a id="glossary-gcp"></a>GCP: Google Cloud Platform
-* <a id="glossary-gcs"></a>GCS: Google Cloud Storage
-* <a id="glossary-partialurl"></a>Partial URL: a URL for a GCE resource. Has the
-form of "projects/PROJECT/zone/ZONE/RESOURCETYPE/RESOURCENAME"
-* <a id="glossary-workflow"></a>Workflow: a graph of executable, blocking steps and their dependency relationships.
+# Documentation
+
+Daisy documentation can be found
+[here](https://googlecloudplatform.github.io/compute-image-tools/daisy.html).
+
