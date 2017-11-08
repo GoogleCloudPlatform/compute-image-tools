@@ -23,6 +23,7 @@ import (
 	"github.com/google/logger"
 )
 
+// PkgInfo describes a package.
 type PkgInfo struct {
 	Name, Arch, Version string
 }
@@ -34,18 +35,6 @@ func run(cmd *exec.Cmd) ([]byte, error) {
 		return nil, fmt.Errorf("error running %q with args %q: %v, stdout: %s", cmd.Path, cmd.Args, err, out)
 	}
 	return out, nil
-}
-
-func architecture(arch string) string {
-	switch arch {
-	case "amd64", "64-bit":
-		arch = "x86_64"
-	case "i386", "i686", "32-bit":
-		arch = "x86_32"
-	case "noarch":
-		arch = "all"
-	}
-	return arch
 }
 
 func exists(name string) bool {

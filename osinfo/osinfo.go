@@ -15,6 +15,20 @@ limitations under the License.
 // Linux.
 package osinfo
 
+// DistributionInfo describes an OS distribution.
 type DistributionInfo struct {
-	LongName, ShortName, Version, Kernel string
+	LongName, ShortName, Version, Kernel, Architecture string
+}
+
+// Architecture attempts to standardize architecture naming.
+func Architecture(arch string) string {
+	switch arch {
+	case "amd64", "64-bit":
+		arch = "x86_64"
+	case "i386", "i686", "32-bit":
+		arch = "x86_32"
+	case "noarch":
+		arch = "all"
+	}
+	return arch
 }
