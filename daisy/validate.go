@@ -43,8 +43,18 @@ func (w *Workflow) validateRequiredFields() error {
 	if w.Project == "" {
 		return errors.New("must provide workflow field 'Project'")
 	}
+	if exists, err := projectExists(w.ComputeClient, w.Project); err != nil {
+		return fmt.Errorf("bad project lookup: %q, error: %v", w.Project, err)
+	} else if !exists {
+		return fmt.Errorf("project does not exist: %q", w.Project)
+	}
 	if w.Zone == "" {
 		return errors.New("must provide workflow field 'Zone'")
+	}
+	if exists, err := zoneExists(w.ComputeClient, w.Project, w.Zone); err != nil {
+		return fmt.Errorf("bad zone lookup: %q, error: %v", w.Zone, err)
+	} else if !exists {
+		return fmt.Errorf("zone does not exist: %q", w.Zone)
 	}
 	if len(w.Steps) == 0 {
 		return errors.New("must provide at least one step in workflow field 'Steps'")
@@ -58,10 +68,6 @@ func (w *Workflow) validateRequiredFields() error {
 }
 
 func (w *Workflow) validate(ctx context.Context) error {
-	if err := w.validateRequiredFields(); err != nil {
-		return err
-	}
-
 	// Check for unsubstituted wfVar.
 	if err := w.validateVarsSubbed(); err != nil {
 		return err

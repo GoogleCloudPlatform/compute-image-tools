@@ -818,8 +818,8 @@ func TestValidateErrors(t *testing.T) {
 	// Error from validate().
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {testType: &mockStep{}}}
-	w.Project = "${var}"
-	want = "Unresolved var \"${var}\" found in \"${var}\""
+	w.Project = "foo"
+	want = "error validating workflow: bad project lookup: \"foo\", error: bad project"
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
 	}
