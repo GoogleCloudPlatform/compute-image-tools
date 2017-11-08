@@ -9,6 +9,7 @@ guide](daisy-styleguide.md).
 Other pages:
 
 - [Automating Image Creation](daisy-automating-image-creation.md)
+- [Importing Virtual Disks into GCE](daisy-import-userguide.md)
 - [Passing Data to Instances](daisy-passing-data.md)
 - [Reusing Workflow Files](daisy-reusing-workflows.md)
 
