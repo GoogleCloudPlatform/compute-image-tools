@@ -2,8 +2,12 @@
 [![codecov](https://codecov.io/gh/GoogleCloudPlatform/compute-image-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/GoogleCloudPlatform/compute-image-tools)
 
 This repository contains various tools for managing disk images on Google
-Compute Engine. A description of each tool and directory is below. Documentation
-can be found [here](https://googlecloudplatform.github.io/compute-image-tools/).
+Compute Engine.
+
+## Docs
+
+The main documentation for the tools in this repository can be found on our
+[GitHub.io](https://googlecloudplatform.github.io/compute-image-tools/) page.
 
 ## [Daisy](daisy)
 
