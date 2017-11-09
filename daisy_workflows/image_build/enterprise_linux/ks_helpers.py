@@ -213,6 +213,16 @@ def BuildKsConfig(release, google_cloud_repo, byol):
     custom_post = FetchConfigPart('co7-post.cfg')
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
+  elif release == "oraclelinux6":
+    ks_options = FetchConfigPart('el6-options.cfg')
+    custom_post = FetchConfigPart('ol6-post.cfg')
+    cleanup = FetchConfigPart('el6-cleanup.cfg')
+    repo_version = 'el6'
+  elif release == "oraclelinux7":
+    ks_options = FetchConfigPart('el7-options.cfg')
+    custom_post = FetchConfigPart('ol7-post.cfg')
+    cleanup = FetchConfigPart('el7-cleanup.cfg')
+    repo_version = 'el7'
   else:
     logging.error('Unknown Image Name: %s', release)
 

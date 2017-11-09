@@ -1,0 +1,29 @@
+{
+  "Name":    "build-oraclelinux7",
+  "Vars": {
+    "installer_iso":   { "Required": true },
+    "version_major":   { "Required": true },
+    "version_minor":   { "Required": true },
+    "build_date":      "${DATE}",
+    "export_gcs_path": "${OUTSPATH}",
+    "publish_project": "${PROJECT}",
+    "suffix":          ""
+  },
+  "Steps": {
+    "build-oraclelinux7": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./oraclelinux.wf.json",
+        "Vars": {
+          "image_suffix":     "${suffix}",
+          "installer_iso":    "${installer_iso}",
+          "el_version_major": "${version_major}",
+          "el_version_minor": "${version_minor}",
+          "build_date":       "${build_date}",
+          "export_gcs_path":  "${export_gcs_path}",
+          "publish_project":  "${publish_project}"
+        }
+      }
+    }
+  }
+}
