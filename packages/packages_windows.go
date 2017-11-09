@@ -21,6 +21,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
 	"github.com/StackExchange/wmi"
 	ole "github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -170,7 +171,7 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 				ver = name[start+1 : start+end]
 			}
 		}
-		updates = append(updates, PkgInfo{Name: name, Arch: architecture(runtime.GOARCH), Version: ver})
+		updates = append(updates, PkgInfo{Name: name, Arch: osinfo.Architecture(runtime.GOARCH), Version: ver})
 	}
 
 	return updates, nil
@@ -262,7 +263,7 @@ func quickFixEngineering() ([]PkgInfo, error) {
 	}
 	var qfe []PkgInfo
 	for _, update := range updts {
-		qfe = append(qfe, PkgInfo{Name: update.HotFixID, Arch: architecture(runtime.GOARCH), Version: update.HotFixID})
+		qfe = append(qfe, PkgInfo{Name: update.HotFixID, Arch: osinfo.Architecture(runtime.GOARCH), Version: update.HotFixID})
 	}
 	return qfe, nil
 }
