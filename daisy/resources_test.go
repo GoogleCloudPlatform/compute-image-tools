@@ -322,7 +322,7 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 		}
 	}
 
-	// Clear s.w -- unimportant and causes pretty.Compare stack overflow otherwise.
+	// Clear s.Workflow -- unimportant and causes pretty.Compare stack overflow otherwise.
 	ss := []*Step{creator, deleter, user, badUser, badUser2, badUser3}
 	for _, s := range ss {
 		s.w = nil

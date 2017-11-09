@@ -71,9 +71,9 @@ func TestGetChain(t *testing.T) {
 	b := &Workflow{parent: a}
 	c := &Workflow{parent: b}
 	a1 := &Step{w: a}
-	a2 := &Step{w: a, IncludeWorkflow: &IncludeWorkflow{w: b}}
+	a2 := &Step{w: a, IncludeWorkflow: &IncludeWorkflow{Workflow: b}}
 	b1 := &Step{w: b}
-	b2 := &Step{w: b, SubWorkflow: &SubWorkflow{w: c}}
+	b2 := &Step{w: b, SubWorkflow: &SubWorkflow{Workflow: c}}
 	c1 := &Step{w: c}
 	orphan := &Step{}
 	a.Steps = map[string]*Step{"a1": a1, "a2": a2}
@@ -113,9 +113,9 @@ func TestNestedDepends(t *testing.T) {
 	d := &Workflow{parent: b}
 	e := &Workflow{}
 	a1 := &Step{name: "a1", w: a}
-	a2 := &Step{name: "a2", w: a, IncludeWorkflow: &IncludeWorkflow{w: b}}
-	b1 := &Step{name: "b1", w: b, SubWorkflow: &SubWorkflow{w: c}}
-	b2 := &Step{name: "b2", w: b, SubWorkflow: &SubWorkflow{w: d}}
+	a2 := &Step{name: "a2", w: a, IncludeWorkflow: &IncludeWorkflow{Workflow: b}}
+	b1 := &Step{name: "b1", w: b, SubWorkflow: &SubWorkflow{Workflow: c}}
+	b2 := &Step{name: "b2", w: b, SubWorkflow: &SubWorkflow{Workflow: d}}
 	b3 := &Step{name: "b3", w: b}
 	c1 := &Step{name: "c1", w: c}
 	d1 := &Step{name: "d1", w: d}

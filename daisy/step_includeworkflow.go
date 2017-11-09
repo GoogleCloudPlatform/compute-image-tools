@@ -27,61 +27,72 @@ import (
 // a Subworkflow the included workflow will exist in the same namespace
 // as the parent and have access to all its resources.
 type IncludeWorkflow struct {
-	Path string
-	Vars map[string]string `json:",omitempty"`
-	w    *Workflow
+	Path     string
+	Vars     map[string]string `json:",omitempty"`
+	Workflow *Workflow
 }
 
 func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
-	i.w.id = s.w.id
-	i.w.username = s.w.username
-	i.w.ComputeClient = s.w.ComputeClient
-	i.w.StorageClient = s.w.StorageClient
-	i.w.GCSPath = s.w.GCSPath
-	i.w.Name = s.name
-	i.w.Project = s.w.Project
-	i.w.Zone = s.w.Zone
-	i.w.autovars = s.w.autovars
-	i.w.bucket = s.w.bucket
-	i.w.scratchPath = s.w.scratchPath
-	i.w.sourcesPath = s.w.sourcesPath
-	i.w.logsPath = s.w.logsPath
-	i.w.outsPath = s.w.outsPath
-	i.w.gcsLogWriter = s.w.gcsLogWriter
-	i.w.gcsLogging = s.w.gcsLogging
+	if i.Path != "" {
+		var err error
+		if i.Workflow, err = s.w.NewIncludedWorkflowFromFile(i.Path); err != nil {
+			return err
+		}
+	}
+
+	if i.Workflow == nil {
+		return fmt.Errorf("IncludeWorkflow %q does not have a workflow", s.name)
+	}
+
+	i.Workflow.id = s.w.id
+	i.Workflow.username = s.w.username
+	i.Workflow.ComputeClient = s.w.ComputeClient
+	i.Workflow.StorageClient = s.w.StorageClient
+	i.Workflow.GCSPath = s.w.GCSPath
+	i.Workflow.Name = s.name
+	i.Workflow.Project = s.w.Project
+	i.Workflow.Zone = s.w.Zone
+	i.Workflow.autovars = s.w.autovars
+	i.Workflow.bucket = s.w.bucket
+	i.Workflow.scratchPath = s.w.scratchPath
+	i.Workflow.sourcesPath = s.w.sourcesPath
+	i.Workflow.logsPath = s.w.logsPath
+	i.Workflow.outsPath = s.w.outsPath
+	i.Workflow.gcsLogWriter = s.w.gcsLogWriter
+	i.Workflow.gcsLogging = s.w.gcsLogging
 
 	for k, v := range i.Vars {
-		i.w.AddVar(k, v)
+		i.Workflow.AddVar(k, v)
 	}
 
 	var replacements []string
-	for k, v := range i.w.autovars {
+	for k, v := range i.Workflow.autovars {
 		if k == "NAME" {
 			v = s.name
 		}
 		if k == "WFDIR" {
-			v = i.w.workflowDir
+			v = i.Workflow.workflowDir
 		}
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	substitute(reflect.ValueOf(i.w).Elem(), strings.NewReplacer(replacements...))
-	for k, v := range i.w.Vars {
+	substitute(reflect.ValueOf(i.Workflow).Elem(), strings.NewReplacer(replacements...))
+	for k, v := range i.Workflow.Vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
-	substitute(reflect.ValueOf(i.w).Elem(), strings.NewReplacer(replacements...))
+	substitute(reflect.ValueOf(i.Workflow).Elem(), strings.NewReplacer(replacements...))
 
-	i.w.populateLogger(ctx)
+	i.Workflow.populateLogger(ctx)
 
-	for name, st := range i.w.Steps {
+	for name, st := range i.Workflow.Steps {
 		st.name = name
-		st.w = i.w
+		st.w = i.Workflow
 		if err := st.w.populateStep(ctx, st); err != nil {
 			return err
 		}
 	}
 
 	// Copy Sources up to parent resolving relative paths as we go.
-	for k, v := range i.w.Sources {
+	for k, v := range i.Workflow.Sources {
 		if v == "" {
 			continue
 		}
@@ -93,7 +104,7 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 		}
 
 		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
-			v = filepath.Join(i.w.workflowDir, v)
+			v = filepath.Join(i.Workflow.workflowDir, v)
 		}
 		s.w.Sources[k] = v
 	}
@@ -102,9 +113,9 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 }
 
 func (i *IncludeWorkflow) validate(ctx context.Context, s *Step) error {
-	return i.w.validate(ctx)
+	return i.Workflow.validate(ctx)
 }
 
 func (i *IncludeWorkflow) run(ctx context.Context, s *Step) error {
-	return i.w.run(ctx)
+	return i.Workflow.run(ctx)
 }

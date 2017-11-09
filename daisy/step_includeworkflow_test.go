@@ -47,8 +47,8 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 		name: "step-name",
 		w:    w,
 		IncludeWorkflow: &IncludeWorkflow{
-			Vars: map[string]string{"foo": "bar"},
-			w:    got,
+			Vars:     map[string]string{"foo": "bar"},
+			Workflow: got,
 		},
 	}
 
@@ -109,7 +109,7 @@ func TestIncludeWorkflowValidate(t *testing.T) {
 	dCreator, _ := w.NewStep("dCreator")
 	dCreator.CreateImages = &CreateImages{}
 	incStep, _ := w.NewStep("incStep")
-	incStep.IncludeWorkflow = &IncludeWorkflow{w: iw}
+	incStep.IncludeWorkflow = &IncludeWorkflow{Workflow: iw}
 	w.AddDependency("incStep", "dCreator")
 	dDeleter, _ := iw.NewStep("dDeleter")
 	dDeleter.DeleteResources = &DeleteResources{Disks: []string{"d"}}

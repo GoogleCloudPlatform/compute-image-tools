@@ -60,9 +60,9 @@ func TestValidateVarsSubbed(t *testing.T) {
 		t.Errorf("workflow with unsubbed var bad error, want: %q got: %q", want, err.Error())
 	}
 
-	//w.RequiredVars = []string{"unsubbed"}
+	//Workflow.RequiredVars = []string{"unsubbed"}
 	//want = `Unresolved required var "${unsubbed}" found in "workflow-${unsubbed}"`
-	//if err := w.validateVarsSubbed(); err.Error() != want {
+	//if err := Workflow.validateVarsSubbed(); err.Error() != want {
 	//	t.Errorf("workflow with unsubbed required var bad error, want: %q got: %q", want, err.Error())
 	//}
 }
