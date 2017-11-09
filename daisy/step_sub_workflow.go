@@ -21,45 +21,56 @@ import (
 
 // SubWorkflow defines a Daisy sub workflow.
 type SubWorkflow struct {
-	Path string
-	Vars map[string]string `json:",omitempty"`
-	w    *Workflow
+	Path     string
+	Vars     map[string]string `json:",omitempty"`
+	Workflow *Workflow
 }
 
 func (s *SubWorkflow) populate(ctx context.Context, st *Step) error {
-	s.w.parent = st.w
-	s.w.GCSPath = fmt.Sprintf("gs://%s/%s", s.w.parent.bucket, s.w.parent.scratchPath)
-	s.w.Name = st.name
-	s.w.Project = s.w.parent.Project
-	s.w.Zone = s.w.parent.Zone
-	s.w.OAuthPath = s.w.parent.OAuthPath
-	s.w.ComputeClient = s.w.parent.ComputeClient
-	s.w.StorageClient = s.w.parent.StorageClient
-	s.w.gcsLogWriter = s.w.parent.gcsLogWriter
-	for k, v := range s.Vars {
-		s.w.Vars[k] = wVar{Value: v}
+	if s.Path != "" {
+		var err error
+		if s.Workflow, err = st.w.NewSubWorkflowFromFile(s.Path); err != nil {
+			return err
+		}
 	}
-	return s.w.populate(ctx)
+
+	if s.Workflow == nil {
+		return fmt.Errorf("SubWorkflow %q does not have a workflow", st.name)
+	}
+
+	s.Workflow.parent = st.w
+	s.Workflow.GCSPath = fmt.Sprintf("gs://%s/%s", s.Workflow.parent.bucket, s.Workflow.parent.scratchPath)
+	s.Workflow.Name = st.name
+	s.Workflow.Project = s.Workflow.parent.Project
+	s.Workflow.Zone = s.Workflow.parent.Zone
+	s.Workflow.OAuthPath = s.Workflow.parent.OAuthPath
+	s.Workflow.ComputeClient = s.Workflow.parent.ComputeClient
+	s.Workflow.StorageClient = s.Workflow.parent.StorageClient
+	s.Workflow.gcsLogWriter = s.Workflow.parent.gcsLogWriter
+	for k, v := range s.Vars {
+		s.Workflow.Vars[k] = wVar{Value: v}
+	}
+	return s.Workflow.populate(ctx)
 }
 
 func (s *SubWorkflow) validate(ctx context.Context, st *Step) error {
-	return s.w.validate(ctx)
+	return s.Workflow.validate(ctx)
 }
 
 func (s *SubWorkflow) run(ctx context.Context, st *Step) error {
 	// Prerun work has already been done. Just run(), not Run().
-	defer s.w.cleanup()
+	defer s.Workflow.cleanup()
 	// If the workflow fails before the subworkflow completes, the previous
 	// "defer" cleanup won't happen. Add a failsafe here, have the workflow
 	// also call this subworkflow's cleanup.
 	st.w.addCleanupHook(func() error {
-		s.w.cleanup()
+		s.Workflow.cleanup()
 		return nil
 	})
 
-	st.w.logger.Printf("Running subworkflow %q", s.w.Name)
-	if err := s.w.run(ctx); err != nil {
-		s.w.logger.Printf("Error running subworkflow %q: %v", s.w.Name, err)
+	st.w.logger.Printf("Running subworkflow %q", s.Workflow.Name)
+	if err := s.Workflow.run(ctx); err != nil {
+		s.Workflow.logger.Printf("Error running subworkflow %q: %v", s.Workflow.Name, err)
 		close(st.w.Cancel)
 		return err
 	}

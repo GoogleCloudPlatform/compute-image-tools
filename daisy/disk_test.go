@@ -21,10 +21,10 @@ func TestDiskRegisterAttachment(t *testing.T) {
 	iw := w.NewIncludedWorkflow()
 	iw2 := w.NewIncludedWorkflow()
 	iwStep, _ := w.NewStep("iwStep")
-	iwStep.IncludeWorkflow = &IncludeWorkflow{w: iw}
+	iwStep.IncludeWorkflow = &IncludeWorkflow{Workflow: iw}
 	iwSubStep, _ := iw.NewStep("iwSubStep")
 	iw2Step, _ := w.NewStep("iw2Step")
-	iw2Step.IncludeWorkflow = &IncludeWorkflow{w: iw2}
+	iw2Step.IncludeWorkflow = &IncludeWorkflow{Workflow: iw2}
 	iw2SubStep, _ := iw2.NewStep("iw2SubStep")
 	s, _ := w.NewStep("s")
 	s2, _ := w.NewStep("s2")

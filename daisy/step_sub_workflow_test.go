@@ -31,8 +31,8 @@ func TestSubWorkflowPopulate(t *testing.T) {
 		name: "sw-step",
 		w:    w,
 		SubWorkflow: &SubWorkflow{
-			Vars: map[string]string{"foo": "bar2", "hello": "world"},
-			w:    sw,
+			Vars:     map[string]string{"foo": "bar2", "hello": "world"},
+			Workflow: sw,
 		},
 	}
 	if err := s.SubWorkflow.populate(ctx, s); err != nil {
@@ -67,7 +67,7 @@ func TestSubWorkflowRun(t *testing.T) {
 		name: "sw-step",
 		w:    w,
 		SubWorkflow: &SubWorkflow{
-			w:    sw,
+			Workflow: sw,
 		},
 	}
 	if err := s.SubWorkflow.populate(ctx, s); err != nil {

@@ -669,19 +669,6 @@ func readWorkflow(file string, w *Workflow) error {
 	for name, s := range w.Steps {
 		s.name = name
 		s.w = w
-		var err error
-
-		if s.SubWorkflow != nil {
-			if s.SubWorkflow.w, err = w.NewSubWorkflowFromFile(s.SubWorkflow.Path); err != nil {
-				return err
-			}
-		}
-
-		if s.IncludeWorkflow != nil {
-			if s.IncludeWorkflow.w, err = w.NewIncludedWorkflowFromFile(s.IncludeWorkflow.Path); err != nil {
-				return err
-			}
-		}
 	}
 
 	return nil

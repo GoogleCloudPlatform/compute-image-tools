@@ -169,10 +169,10 @@ func (s *Step) getChain() []*Step {
 		return []*Step{s}
 	}
 	for _, st := range s.w.parent.Steps {
-		if st.IncludeWorkflow != nil && st.IncludeWorkflow.w == s.w {
+		if st.IncludeWorkflow != nil && st.IncludeWorkflow.Workflow == s.w {
 			return append(st.getChain(), s)
 		}
-		if st.SubWorkflow != nil && st.SubWorkflow.w == s.w {
+		if st.SubWorkflow != nil && st.SubWorkflow.Workflow == s.w {
 			return append(st.getChain(), s)
 		}
 	}

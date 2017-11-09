@@ -123,7 +123,7 @@ func (w *Workflow) uploadSources(ctx context.Context) error {
 	}
 	for _, step := range w.Steps {
 		if step.SubWorkflow != nil {
-			if err := step.SubWorkflow.w.uploadSources(ctx); err != nil {
+			if err := step.SubWorkflow.Workflow.uploadSources(ctx); err != nil {
 				return err
 			}
 		}

@@ -222,26 +222,6 @@ func TestSubstitute(t *testing.T) {
 							},
 						},
 					},
-					"step3": {
-						SubWorkflow: &SubWorkflow{
-							Path: "key3",
-							w: &Workflow{
-								Name: "key1",
-								Steps: map[string]*Step{
-									"key1": {
-										Timeout: "key3",
-										CreateImages: &CreateImages{
-											{
-												Image: compute.Image{
-													Name: "key1",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
 					"typed slice step": {
 						WaitForInstancesSignal: &WaitForInstancesSignal{
 							{Name: "key1"}, {Name: "foo-instance"}, {Name: "key2"},
@@ -269,26 +249,6 @@ func TestSubstitute(t *testing.T) {
 									Disks: []*compute.AttachedDisk{{Source: "value1"}},
 								},
 								Metadata: map[string]string{"test_metadata": "value3"},
-							},
-						},
-					},
-					"step3": {
-						SubWorkflow: &SubWorkflow{
-							Path: "value3",
-							w: &Workflow{
-								Name: "key1", // substitution should not recurse into subworkflows
-								Steps: map[string]*Step{
-									"key1": { // substitution should not recurse into subworkflows
-										Timeout: "key3", // substitution should not recurse into subworkflows
-										CreateImages: &CreateImages{
-											{
-												Image: compute.Image{
-													Name: "key1", // substitution should not recurse into subworkflows
-												},
-											},
-										},
-									},
-								},
 							},
 						},
 					},

@@ -27,7 +27,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -161,10 +160,6 @@ func TestNewFromFileError(t *testing.T) {
 	defer os.RemoveAll(td)
 	tf := filepath.Join(td, "test.wf.json")
 
-	localDNEErr := "open %s/sub.workflow: no such file or directory"
-	if runtime.GOOS == "windows" {
-		localDNEErr = "open %s\\sub.workflow: The system cannot find the file specified."
-	}
 	tests := []struct{ data, error string }{
 		{
 			`{"test":["1", "2",]}`,
@@ -186,19 +181,15 @@ func TestNewFromFileError(t *testing.T) {
 			"{\n\"test\":[\"1\", \"2\",],\n\"test2\":[\"1\", \"2\"]\n}",
 			tf + ": JSON syntax error in line 2: invalid character ']' looking for beginning of value \n\"test\":[\"1\", \"2\",],\n                 ^",
 		},
-		{
-			`{"steps": {"somename": {"subWorkflow": {"path": "sub.workflow"}}}}`,
-			fmt.Sprintf(localDNEErr, td),
-		},
 	}
 
-	for _, tt := range tests {
+	for i, tt := range tests {
 		if err := ioutil.WriteFile(tf, []byte(tt.data), 0600); err != nil {
 			t.Fatalf("error creating json file: %v", err)
 		}
 
 		if _, err := NewFromFile(tf); err == nil {
-			t.Error("expected error, got nil")
+			t.Errorf("expected error, got nil for test %d", i+1)
 		} else if err.Error() != tt.error {
 			t.Errorf("did not get expected error from NewFromFile():\ngot: %q\nwant: %q", err.Error(), tt.error)
 		}
@@ -215,9 +206,6 @@ func TestNewFromFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	subGot := got.Steps["sub-workflow"].SubWorkflow.w
-	includeGot := got.Steps["include-workflow"].IncludeWorkflow.w
 
 	want := &Workflow{
 		id:          got.id,
@@ -300,54 +288,6 @@ func TestNewFromFile(t *testing.T) {
 						"key": "value",
 					},
 					Path: "./test_sub.wf.json",
-					w: &Workflow{
-						id:          subGot.id,
-						workflowDir: filepath.Join(wd, "test_data"),
-						Steps: map[string]*Step{
-							"create-disks": {
-								name: "create-disks",
-								CreateDisks: &CreateDisks{
-									{
-										Disk: compute.Disk{
-											Name:        "bootstrap",
-											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-										},
-										SizeGb: "50",
-									},
-								},
-							},
-							"bootstrap": {
-								name: "bootstrap",
-								CreateInstances: &CreateInstances{
-									{
-										Instance: compute.Instance{
-											Name:        "bootstrap",
-											Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}},
-											MachineType: "n1-standard-1",
-										},
-										StartupScript: "shutdown /h",
-										Metadata:      map[string]string{"test_metadata": "${key}"},
-									},
-								},
-							},
-							"bootstrap-stopped": {
-								name:    "bootstrap-stopped",
-								Timeout: "1h",
-								WaitForInstancesSignal: &WaitForInstancesSignal{
-									{
-										Name: "bootstrap",
-										SerialOutput: &SerialOutput{
-											Port: 1, SuccessMatch: "complete", FailureMatch: "fail",
-										},
-									},
-								},
-							},
-						},
-						Dependencies: map[string][]string{
-							"bootstrap":         {"create-disks"},
-							"bootstrap-stopped": {"bootstrap"},
-						},
-					},
 				},
 			},
 			"sub-workflow": {
@@ -357,54 +297,6 @@ func TestNewFromFile(t *testing.T) {
 						"key": "value",
 					},
 					Path: "./test_sub.wf.json",
-					w: &Workflow{
-						id:          subGot.id,
-						workflowDir: filepath.Join(wd, "test_data"),
-						Steps: map[string]*Step{
-							"create-disks": {
-								name: "create-disks",
-								CreateDisks: &CreateDisks{
-									{
-										Disk: compute.Disk{
-											Name:        "bootstrap",
-											SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-										},
-										SizeGb: "50",
-									},
-								},
-							},
-							"bootstrap": {
-								name: "bootstrap",
-								CreateInstances: &CreateInstances{
-									{
-										Instance: compute.Instance{
-											Name:        "bootstrap",
-											Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}},
-											MachineType: "n1-standard-1",
-										},
-										StartupScript: "shutdown /h",
-										Metadata:      map[string]string{"test_metadata": "${key}"},
-									},
-								},
-							},
-							"bootstrap-stopped": {
-								name:    "bootstrap-stopped",
-								Timeout: "1h",
-								WaitForInstancesSignal: &WaitForInstancesSignal{
-									{
-										Name: "bootstrap",
-										SerialOutput: &SerialOutput{
-											Port: 1, SuccessMatch: "complete", FailureMatch: "fail",
-										},
-									},
-								},
-							},
-						},
-						Dependencies: map[string][]string{
-							"bootstrap":         {"create-disks"},
-							"bootstrap-stopped": {"bootstrap"},
-						},
-					},
 				},
 			},
 		},
@@ -420,32 +312,14 @@ func TestNewFromFile(t *testing.T) {
 		},
 	}
 
-	// Check that subworkflow has workflow as parent.
-	if subGot.parent != got {
-		t.Error("subworkflow does not point to parent workflow")
-	}
-
 	// Fix pretty.Compare recursion freak outs.
 	got.Cancel = nil
 	for _, s := range got.Steps {
 		s.w = nil
 	}
-	subGot.Cancel = nil
-	subGot.parent = nil
-	for _, s := range subGot.Steps {
-		s.w = nil
-	}
-
-	includeGot.Cancel = nil
-	includeGot.parent = nil
-	for _, s := range includeGot.Steps {
-		s.w = nil
-	}
 
 	// Cleanup hooks are impossible to check right now.
 	got.cleanupHooks = nil
-	subGot.cleanupHooks = nil
-	includeGot.cleanupHooks = nil
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
@@ -563,7 +437,7 @@ func TestPopulate(t *testing.T) {
 	}
 
 	// Some things to override before checking equivalence:
-	// - recursive stuff that breaks pretty.Compare (ComputeClient, StorageClient, Step.w)
+	// - recursive stuff that breaks pretty.Compare (ComputeClient, StorageClient, Step.Workflow)
 	// - stuff that is irrelevant and difficult to check (cleanupHooks and logger)
 	for _, wf := range []*Workflow{got, want} {
 		wf.ComputeClient = nil
