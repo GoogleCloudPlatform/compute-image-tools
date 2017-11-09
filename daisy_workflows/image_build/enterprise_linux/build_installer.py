@@ -35,8 +35,6 @@ def main():
   release = utils.GetMetadataParam('el_release', raise_on_not_found=True)
   byol = utils.GetMetadataParam('rhel_byol', raise_on_not_found=False)
   byol = byol == 'true'
-  rhel_point_release = utils.GetMetadataParam('rhel_point_release',
-                                              raise_on_not_found=False)
 
   logging.info('EL Installer Builder')
   logging.info('==============')
@@ -93,9 +91,6 @@ def main():
     cfg = re.sub(r'append initrd=initrd\.img.*', r'\g<0> %s' % args, cfg)
 
     # Change labels to explicit partitions.
-    # Note that RHEL ISO's are keyed off of the release ID, RHEL-7.3 for
-    # example. The following command will give you the string:
-    # isoinfo -d -i rhel-server.iso | grep "Volume id:"
     if release in ['centos7', 'rhel7', 'oraclelinux7']:
       cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 

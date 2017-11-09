@@ -20,9 +20,6 @@
     "rhel_byol": {
       "Value": "false",
       "Description": "Create a BYOL RHEL image."
-    },
-    "rhel_point_release" :{
-      "Description": "The RHEL point release to match the ISO with for RHEL 7."
     }
   },
   "Sources": {
@@ -66,8 +63,7 @@
             "build_script": "build_installer.py",
             "el_release": "${el_release}",
             "google_cloud_repo": "${google_cloud_repo}",
-            "rhel_byol": "${rhel_byol}",
-            "rhel_point_release": "${rhel_point_release}"
+            "rhel_byol": "${rhel_byol}"
           },
           "StartupScript": "installerprep_startup_script"
         }
