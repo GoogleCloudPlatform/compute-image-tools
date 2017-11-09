@@ -95,7 +95,7 @@ func TestValidateWorkflow(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if err := tt.wf.validate(ctx); err == nil {
+		if err := tt.wf.Validate(ctx); err == nil {
 			t.Errorf("validation should have failed on %s because of %q", tt.wf, tt.desc)
 		}
 	}

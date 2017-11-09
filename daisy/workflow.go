@@ -181,6 +181,22 @@ func (w *Workflow) addCleanupHook(hook func() error) {
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate(ctx context.Context) error {
+	// API clients instantiation.
+	var err error
+	if w.ComputeClient == nil {
+		w.ComputeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
+		if err != nil {
+			return err
+		}
+	}
+
+	if w.StorageClient == nil {
+		w.StorageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
+		if err != nil {
+			return err
+		}
+	}
+
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
 		return fmt.Errorf("error validating workflow: %v", err)
@@ -297,21 +313,6 @@ func (w *Workflow) populate(ctx context.Context) error {
 	for k, v := range w.Vars {
 		if v.Required && v.Value == "" {
 			return errorf("cannot populate workflow, required var %q is unset", k)
-		}
-	}
-
-	// API clients instantiation.
-	if w.ComputeClient == nil {
-		w.ComputeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
-		if err != nil {
-			return err
-		}
-	}
-
-	if w.StorageClient == nil {
-		w.StorageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
-		if err != nil {
-			return err
 		}
 	}
 
