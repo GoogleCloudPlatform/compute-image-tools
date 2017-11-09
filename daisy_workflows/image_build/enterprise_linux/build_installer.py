@@ -17,7 +17,7 @@
 
 Parameters (retrieved from instance metadata):
 google_cloud_repo: The package repo to use. Can be stable (default), staging, or unstable.
-el_release: rhel6, rhel7, centos6, or centos7
+el_release: rhel6, rhel7, centos6, centos7, oraclelinux6, or oraclelinux7
 byol: true if building a RHEL BYOL image.
 """
 import difflib
@@ -65,7 +65,7 @@ def main():
   utils.Execute(['sync'])
   utils.Execute(['dd', 'if=/usr/lib/EXTLINUX/mbr.bin', 'of=/dev/sdb'])
   utils.Execute(['sync'])
-  utils.Execute(['mkfs.ext4', '/dev/sdb1'])
+  utils.Execute(['mkfs.ext4', '-L', 'INSTALLER', '/dev/sdb1'])
   utils.Execute(['sync'])
   utils.Execute(['mkdir', 'iso', 'installer'])
   utils.Execute(['mount', '-o', 'ro,loop', '-t', 'iso9660', iso_file, 'iso'])
@@ -96,15 +96,8 @@ def main():
     # Note that RHEL ISO's are keyed off of the release ID, RHEL-7.3 for
     # example. The following command will give you the string:
     # isoinfo -d -i rhel-server.iso | grep "Volume id:"
-    if release == 'rhel7':
-      if rhel_point_release:
-        label = r'LABEL=RHEL-%s\\x20Server\.x86_64' % rhel_point_release
-      else:
-        # Default to 7.3.
-        label = r'LABEL=RHEL-7.3\\x20Server\.x86_64'
-      cfg = re.sub(label, '/dev/sda1', cfg)
-    elif release == 'centos7':
-      cfg = re.sub(r'LABEL=CentOS\\x207\\x20x86_64', '/dev/sda1', cfg)
+    if release in ['centos7', 'rhel7', 'oraclelinux7']:
+      cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.
     diff = difflib.Differ().compare(oldcfg.splitlines(1), cfg.splitlines(1))
