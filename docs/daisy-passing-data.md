@@ -35,8 +35,8 @@ Information passed to instances using the `Metadata` field can be retrieved by
 querying (i.e. sending an HTTP GET request with something like `wget` or `curl`
 to)
 `http://metadata.google.internal/computeMetadata/v1/instance/attributes/{key}`
-from the instance. You must use the special header `Metadata-Flavor: Google`;
-see [here](https://cloud.google.com/compute/docs/storing-retrieving-metadata)
+from the instance. You must use the special header `Metadata-Flavor: Google`.
+See [here](https://cloud.google.com/compute/docs/storing-retrieving-metadata)
 for documentation on working with metadata.
 
 ## Working with Sources

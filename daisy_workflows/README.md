@@ -4,10 +4,14 @@ with building images as well as workflows used to actually build GCE base
 images. There are also example workflows.
 
 # Import Userguide
-The [import userguide](import_userguide.md) provides examples for running import
-workflows using Google Compute Engine tools and VM's.
+The [import
+userguide](https://googlecloudplatform.github.io/compute-image-tools/daisy-import-userguide.html)
+provides examples for running import workflows using Google Compute Engine tools
+and VM's.
 
 # Styleguide
-The [styleguide](styleguide.md) provides guidance for workflow symantics. When
-writing, modifying, or using workflows following commong practices will make
-your life much easier.
+The
+[styleguide](https://googlecloudplatform.github.io/compute-image-tools/daisy-styleguide.html)
+provides guidance for workflow symantics. When writing, modifying, or using
+workflows following commong practices will make your life much easier.
+
