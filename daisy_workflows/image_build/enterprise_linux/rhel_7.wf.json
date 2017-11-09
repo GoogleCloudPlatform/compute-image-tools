@@ -24,10 +24,6 @@
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to. Defaults to PROJET."
-    },
-    "rhel_point_release" :{
-      "Value": "7.3",
-      "Description": "The RHEL point release to match the ISO with."
     }
   },
   "Steps": {
@@ -39,8 +35,7 @@
           "el_release": "rhel7",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
-          "installer_iso": "${installer_iso}",
-          "rhel_point_release": "${rhel_point_release}"
+          "installer_iso": "${installer_iso}"
         }
       }
     },
