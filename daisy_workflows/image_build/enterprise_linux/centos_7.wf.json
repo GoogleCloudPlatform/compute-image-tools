@@ -19,7 +19,7 @@
     },
     "publish_project": {
       "Value": "${PROJECT}",
-      "Description": "A project to publish the resulting image to. Defaults to PROJET."
+      "Description": "A project to publish the resulting image to."
     }
   },
   "Steps": {
