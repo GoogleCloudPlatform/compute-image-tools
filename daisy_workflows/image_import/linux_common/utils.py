@@ -94,6 +94,8 @@ def MountDisk(disk):
   g.set_verbose(1)
   g.set_trace(1)
 
+  g.set_memsize(4096)
+
   # Enable network
   g.set_network(True)
 
