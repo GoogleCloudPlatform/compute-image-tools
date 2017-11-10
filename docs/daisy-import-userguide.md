@@ -227,8 +227,6 @@ $ daisy -var:source_image=projectsmy-awesome-projectglobal/images/my-server-impo
 
 # Limitations and Known Issues
 
-*   Importing virtual disks with the example workflows that use LVM partitions are not supported.
-*   Virtual disks must be partitioned such that first partition is the primary partition containing the root filesystem and the boot loader. At this time, the example workflows cannot figure out if the bootloader is on a differnet partition.
 *   Only virtual disks that use Grub as the default boot loader are supported.
 *   Networking: Import workflow sets the interface to DHCP. If that fails, or if there are other interfaces set with firewalls, special routing, VPN's, or other non-standard configurations, networking may fail and while the resulting instance may boot, you may not be able to access it.
 
