@@ -18,7 +18,8 @@
 Parameters (retrieved from instance metadata):
 google_cloud_repo: The package repo to use. Can be stable (default), staging, or unstable.
 el_release: rhel6, rhel7, centos6, centos7, oraclelinux6, or oraclelinux7
-byol: true if building a RHEL BYOL image.
+el_savelogs: true to ask Anaconda to save logs (for debugging).
+rhel_byol: true if building a RHEL BYOL image.
 """
 import difflib
 import logging
@@ -33,6 +34,8 @@ def main():
   # Get Parameters
   repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True)
   release = utils.GetMetadataParam('el_release', raise_on_not_found=True)
+  savelogs = utils.GetMetadataParam('el_savelogs', raise_on_not_found=False)
+  savelogs = savelogs == 'true'
   byol = utils.GetMetadataParam('rhel_byol', raise_on_not_found=False)
   byol = byol == 'true'
 
@@ -88,6 +91,10 @@ def main():
         'text', 'ks=hd:/dev/sda1:/%s' % ks_cfg,
         'console=ttyS0,38400n8', 'sshd=1', 'loglevel=debug'
     ])
+    # Tell Anaconda not to store its logs in the installed image,
+    # unless requested to keep them for debugging.
+    if not savelogs:
+      args += ' inst.nosave=all'
     cfg = re.sub(r'append initrd=initrd\.img.*', r'\g<0> %s' % args, cfg)
 
     # Change labels to explicit partitions.
