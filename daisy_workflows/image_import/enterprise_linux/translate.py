@@ -26,7 +26,7 @@ import logging
 
 import utils
 
-utils.AptGetInstall(['python-guestfs'])
+utils.AptGetInstall(['python-guestfs', 'libguestfs-tools'])
 
 import guestfs
 
@@ -140,10 +140,12 @@ def DistroSpecific(g):
 
 
 def main():
-  g = utils.MountDisk('/dev/sdb')
+  disk = '/dev/sdb'
+  g = utils.MountDisk(disk)
   DistroSpecific(g)
   utils.CommonRoutines(g)
   utils.UnmountDisk(g)
+  utils.Execute(['virt-customize', '-a', disk, '--selinux-relabel'])
 
 if __name__=='__main__':
   utils.RunTranslate(main) 
