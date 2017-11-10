@@ -10,20 +10,16 @@
       "Description": "The RHEL 7 installer ISO to build from."
     },
     "build_date": {
-      "Value": "${DATE}",
+      "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
     "install_disk": {
       "Value": "disk-rhel-7",
       "Description": "Name of the disk to install onto."
     },
-    "export_gcs_path": {
-      "Value": "${OUTSPATH}",
-      "Description": "A GCS path to export the image tar file to. Defaults to OUTSPATH."
-    },
     "publish_project": {
       "Value": "${PROJECT}",
-      "Description": "A project to publish the resulting image to. Defaults to PROJET."
+      "Description": "A project to publish the resulting image to."
     }
   },
   "Steps": {
@@ -36,17 +32,6 @@
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}"
-        }
-      }
-    },
-    "export-image": {
-      "Timeout": "60m",
-      "IncludeWorkflow": {
-        "Path": "../../export/disk_export.wf.json",
-        "Vars": {
-          "destination": "${export_gcs_path}/rhel-7-v${build_date}/root.tar.gz",
-          "licenses": "1000006",
-          "source_disk": "${install_disk}"
         }
       }
     },
@@ -68,7 +53,6 @@
     }
   },
   "Dependencies": {
-    "export-image": ["build-rhel"],
-    "create-image": ["export-image"]
+    "create-image": ["build-rhel"]
   }
 }
