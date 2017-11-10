@@ -10,16 +10,12 @@
       "Description": "The RHEL 6 installer ISO to build from."
     },
     "build_date": {
-      "Value": "${DATE}",
+      "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
     "install_disk": {
       "Value": "disk-rhel-6",
       "Description": "Name of the disk to install onto."
-    },
-    "export_gcs_path": {
-      "Value": "${OUTSPATH}",
-      "Description": "A GCS path to export the image tar file to. Defaults to OUTSPATH."
     },
     "publish_project": {
       "Value": "${PROJECT}",
@@ -37,17 +33,6 @@
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",
           "rhel_byol": "true"
-        }
-      }
-    },
-    "export-image": {
-      "Timeout": "60m",
-      "IncludeWorkflow": {
-        "Path": "../../export/disk_export.wf.json",
-        "Vars": {
-          "destination": "${export_gcs_path}/rhel-6-byol-v${build_date}/root.tar.gz",
-          "licenses": "2862452038400965874",
-          "source_disk": "${install_disk}"
         }
       }
     },
@@ -69,7 +54,6 @@
     }
   },
   "Dependencies": {
-    "export-image": ["build-rhel"],
-    "create-image": ["export-image"]
+    "create-image": ["build-rhel"]
   }
 }

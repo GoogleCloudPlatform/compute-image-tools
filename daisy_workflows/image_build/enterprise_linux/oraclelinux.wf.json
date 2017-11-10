@@ -18,16 +18,12 @@
       "Description": "The Oracle Linux installer ISO to build from."
     },
     "build_date": {
-      "Value": "${DATE}",
+      "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
     "install_disk_prefix": {
       "Value": "disk-oraclelinux",
       "Description": "Prefix of the disk name to install onto."
-    },
-    "export_gcs_path": {
-      "Value": "${OUTSPATH}",
-      "Description": "A GCS path to export the image tar file to. Defaults to OUTSPATH."
     },
     "image_suffix": {
       "Value": "",
@@ -51,16 +47,6 @@
         }
       }
     },
-    "export-image": {
-      "Timeout": "60m",
-      "IncludeWorkflow": {
-        "Path": "../../export/disk_export.wf.json",
-        "Vars": {
-          "destination": "${export_gcs_path}/oraclelinux-${el_version_major}-v${build_date}/root.tar.gz",
-          "source_disk": "${install_disk_prefix}-${el_version_major}${el_version_minor}"
-        }
-      }
-    },
     "create-image": {
       "CreateImages": [
         {
@@ -78,7 +64,6 @@
     }
   },
   "Dependencies": {
-    "export-image": ["build-oraclelinux"],
-    "create-image": ["export-image"]
+    "create-image": ["build-oraclelinux"]
   }
 }
