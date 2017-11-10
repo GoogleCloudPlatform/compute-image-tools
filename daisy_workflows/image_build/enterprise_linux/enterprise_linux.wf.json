@@ -5,6 +5,10 @@
       "Required": true,
       "Description": "The EL release name."
     },
+    "el_savelogs": {
+      "Value": "false",
+      "Description": "Save anaconda logs to the image (useful for debugging)."
+    },
     "google_cloud_repo": {
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
@@ -62,6 +66,7 @@
             "build_files_gcs_dir": "${SOURCESPATH}/build_files",
             "build_script": "build_installer.py",
             "el_release": "${el_release}",
+            "el_savelogs": "${el_savelogs}",
             "google_cloud_repo": "${google_cloud_repo}",
             "rhel_byol": "${rhel_byol}"
           },
