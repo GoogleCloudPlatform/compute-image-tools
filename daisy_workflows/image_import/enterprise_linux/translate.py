@@ -103,7 +103,7 @@ def DistroSpecific(g):
   if install_gce == 'true':
     logging.info('Installing GCE packages.')
     g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
-    if el_release == 7:
+    if el_release == '7':
       g.write_append(
           '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
       g.command(['yum', '-y', 'install', 'google-cloud-sdk'])
