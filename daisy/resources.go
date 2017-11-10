@@ -227,9 +227,18 @@ func initWorkflowResources(w *Workflow) {
 }
 
 func shareWorkflowResources(giver, taker *Workflow) {
+	disksMu.Lock()
 	disks[taker] = disks[giver]
+	disksMu.Unlock()
+	imagesMu.Lock()
 	images[taker] = images[giver]
+	imagesMu.Unlock()
+	instancesMu.Lock()
 	instances[taker] = instances[giver]
+	instancesMu.Unlock()
+	networksMu.Lock()
+	networks[taker] = networks[giver]
+	networksMu.Unlock()
 }
 
 func resourceCleanupHook(w *Workflow) func() error {
