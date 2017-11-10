@@ -51,22 +51,40 @@ function check_google_services {
     fail "Instance setup failed."
   fi
 
-  status "Checking google-accounts-daemon."
-  service google-accounts-daemon status
-  if [[ $? -ne 0 ]]; then
-    fail "Google accounts daemon not running."
-  fi
+  # Upstart
+  if [[ -d /etc/init ]]; then
+    status "Checking google-accounts-daemon."
+    if initctl status google-accounts-daemon | grep -qv 'running'; then
+      fail "Google accounts daemon not running."
+    fi
 
-  status "Checking google-ip-forwarding-daemon."
-  service google-ip-forwarding-daemon status
-  if [[ $? -ne 0 ]]; then
-    fail "Google IP Forwarding daemon not running."
-  fi
+    status "Checking google-ip-forwarding-daemon."
+    if initctl status google-ip-forwarding-daemon | grep -qv 'running'; then
+      fail "Google IP Forwarding daemon not running."
+    fi
 
-  status "Checking google-clock-skew-daemon."
-  service google-clock-skew-daemon status
-  if [[ $? -ne 0 ]]; then
-    fail "Google Clock Skew daemon not running."
+    status "Checking google-clock-skew-daemon."
+    if initctl status google-clock-skew-daemon | grep -qv 'running'; then
+      fail "Google Clock Skew daemon not running."
+    fi
+  else
+    status "Checking google-accounts-daemon."
+    service google-accounts-daemon status
+    if [[ $? -ne 0 ]]; then
+      fail "Google accounts daemon not running."
+    fi
+
+    status "Checking google-ip-forwarding-daemon."
+    service google-ip-forwarding-daemon status
+    if [[ $? -ne 0 ]]; then
+      fail "Google IP Forwarding daemon not running."
+    fi
+
+    status "Checking google-clock-skew-daemon."
+    service google-clock-skew-daemon status
+    if [[ $? -ne 0 ]]; then
+      fail "Google Clock Skew daemon not running."
+    fi
   fi
 }
 
