@@ -219,7 +219,7 @@ function Install-SqlServer {
 
 function Install-SSMS {
   $sql_server_config = Get-MetadataValue -key 'sql-server-config'
-  if ($sql_server_config -notlike '*2016*' -or $sql_server_config -like '*core*') {
+  if ($sql_server_config -notlike '*2016*' -and $sql_server_config -notlike '*2017*' -or $sql_server_config -like '*core*') {
     Write-Host "Not installing SSMS for config ${sql_server_config}"
     return
   }
@@ -249,6 +249,10 @@ try {
     Write-Host 'Reboot required.'
     Restart-Computer
     exit
+  }
+
+  if (-not (Test-Path 'C:\Program Files\Microsoft SQL Server')) {
+    throw 'SQL Server is not installed.'
   }
 
   Write-Host 'Launching sysprep.'
