@@ -27,6 +27,7 @@ import (
 
 var (
 	images      = map[*Workflow]*imageRegistry{}
+	imagesMu    sync.Mutex
 	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
 )
 
@@ -38,7 +39,9 @@ func initImageRegistry(w *Workflow) {
 	ir := &imageRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "image", urlRgx: imageURLRgx}}
 	ir.baseResourceRegistry.deleteFn = ir.deleteFn
 	ir.init()
+	imagesMu.Lock()
 	images[w] = ir
+	imagesMu.Unlock()
 }
 
 func (ir *imageRegistry) deleteFn(res *resource) error {

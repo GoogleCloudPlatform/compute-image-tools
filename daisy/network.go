@@ -24,6 +24,7 @@ import (
 
 var (
 	networks        = map[*Workflow]*networkRegistry{}
+	networksMu      sync.Mutex
 	networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
@@ -35,7 +36,9 @@ func initNetworkRegistry(w *Workflow) {
 	nr := &networkRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "network", urlRgx: networkURLRegex}}
 	nr.baseResourceRegistry.deleteFn = nr.deleteFn
 	nr.init()
+	networksMu.Lock()
 	networks[w] = nr
+	networksMu.Unlock()
 }
 
 func (ir *networkRegistry) deleteFn(res *resource) error {

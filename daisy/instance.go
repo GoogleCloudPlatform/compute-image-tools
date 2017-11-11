@@ -33,6 +33,7 @@ const (
 
 var (
 	instances      = map[*Workflow]*instanceRegistry{}
+	instancesMu    sync.Mutex
 	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/instances/(?P<instance>%[2]s)$`, projectRgxStr, rfc1035))
 	validDiskModes = []string{diskModeRO, diskModeRW}
 )
@@ -45,7 +46,9 @@ func initInstanceRegistry(w *Workflow) {
 	ir := &instanceRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "instance", urlRgx: instanceURLRgx}}
 	ir.baseResourceRegistry.deleteFn = ir.deleteFn
 	ir.init()
+	instancesMu.Lock()
 	instances[w] = ir
+	instancesMu.Unlock()
 }
 
 func (ir *instanceRegistry) deleteFn(res *resource) error {

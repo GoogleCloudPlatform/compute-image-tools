@@ -24,6 +24,7 @@ import (
 
 var (
 	disks      = map[*Workflow]*diskRegistry{}
+	disksMu    sync.Mutex
 	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
@@ -42,7 +43,9 @@ func initDiskRegistry(w *Workflow) {
 	dr := &diskRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "disk", urlRgx: diskURLRgx}}
 	dr.baseResourceRegistry.deleteFn = dr.deleteFn
 	dr.init()
+	disksMu.Lock()
 	disks[w] = dr
+	disksMu.Unlock()
 }
 
 func (dr *diskRegistry) init() {
