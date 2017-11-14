@@ -50,7 +50,7 @@
           "Stopped": true,
           "SerialOutput": {
             "Port": 1,
-            "FailureMatch": "windows-startup-script-url exit status 1"
+            "FailureMatch": "SQL build failed:"
           }
         }
       ]

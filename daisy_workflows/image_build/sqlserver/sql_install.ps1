@@ -24,7 +24,6 @@ function Format-ScratchDisk {
   Initialize-Disk -Number 1 -PartitionStyle MBR
   New-Partition -DiskNumber 1 -UseMaximumSize -DriveLetter D -IsActive |
     Format-Volume -FileSystem 'NTFS' -Confirm:$false
-  New-Item $log_path -Type Directory
   Write-Host 'Formatting scratch disk complete.'
 }
 
@@ -259,7 +258,8 @@ try {
   & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat' > "${log_path}\sysprep.txt" 2>&1
 }
 catch {
-  Write-Host $_.Exception.Message
-  Write-Host 'SQL image build failed'
+  Write-Host 'Exception caught in script:'
+  Write-Host $_.InvocationInfo.PositionMessage
+  Write-Host "SQL build failed: $($_.Exception.Message)"
   exit 1
 }

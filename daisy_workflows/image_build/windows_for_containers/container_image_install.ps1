@@ -72,7 +72,8 @@ try {
   }
 }
 catch {
-  Write-Log $_.Exception.Message
-  Write-Log 'Windows build failed'
+  Write-Host 'Exception caught in script:'
+  Write-Host $_.InvocationInfo.PositionMessage
+  Write-Host "Windows build failed: $($_.Exception.Message)"
   exit 1
 }

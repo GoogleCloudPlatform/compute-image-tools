@@ -37,7 +37,13 @@
     "wait-for-install": {
       "Timeout": "30m",
       "WaitForInstancesSignal": [
-        {"Name": "inst-install", "Stopped": true}
+        {"Name": "inst-install",
+          "Stopped": true,
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "Windows build failed:"
+          }
+        }
       ]
     },
     "del-instance": {
