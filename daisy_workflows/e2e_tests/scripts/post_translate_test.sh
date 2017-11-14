@@ -151,17 +151,15 @@ function check_package_install {
 }
 
 # Run tests.
-check_connectivity
 check_google_services
 check_google_cloud_sdk
 check_cloud_init
 check_package_install
+check_connectivity
 
 # Return results.
 if [[ ${FAIL} -eq 0 ]]; then
   echo "PASSED: All tests passed!"
 else
-  echo "${FAIL} tests failed."
-  echo "${FAILURES}"
-  echo "FAILED: $0 failed."
+  echo "FAILED: ${FAIL} tests failed. ${FAILURES}"
 fi
