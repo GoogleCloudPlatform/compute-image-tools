@@ -14,7 +14,7 @@
       "IncludeWorkflow": {
         "Path": "./sqlserver.wf.json",
         "Vars": {
-          "sql_server_config": "./configs/sql_server_2016ini",
+          "sql_server_config": "./configs/sql_server_2016.ini",
           "sql_server_media": "${sql_server_media}",
           "source_image": "projects/${source_image_project}/global/images/family/windows-2016",
           "install_disk": "${install_disk}",
