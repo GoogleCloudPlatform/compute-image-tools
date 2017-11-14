@@ -5,10 +5,6 @@
       "Required": true,
       "Description": "Oracle Linux major version number to build."
     },
-    "el_version_minor": {
-      "Required": true,
-      "Description": "Oracle Linux minor version number to build."
-    },
     "google_cloud_repo": {
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
@@ -42,7 +38,7 @@
         "Vars": {
           "el_release": "oraclelinux${el_version_major}",
           "google_cloud_repo": "${google_cloud_repo}",
-          "install_disk": "${install_disk_prefix}-${el_version_major}${el_version_minor}",
+          "install_disk": "${install_disk_prefix}-${el_version_major}",
           "installer_iso": "${installer_iso}"
         }
       }
@@ -51,7 +47,7 @@
       "CreateImages": [
         {
           "Name": "oraclelinux-${el_version_major}${image_suffix}-v${build_date}",
-          "SourceDisk": "${install_disk_prefix}-${el_version_major}${el_version_minor}",
+          "SourceDisk": "${install_disk_prefix}-${el_version_major}",
           "Licenses": [],
           "Description": "Oracle Linux, Oracle Linux, ${el_version_major}${image_suffix}, x86_64 built on ${build_date}",
           "GuestOsFeatures": [{"type": "VIRTIO_SCSI_MULTIQUEUE"}],

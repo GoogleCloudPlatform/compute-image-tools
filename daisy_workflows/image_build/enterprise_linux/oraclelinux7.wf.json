@@ -3,7 +3,6 @@
   "Vars": {
     "installer_iso":   { "Required": true },
     "version_major":   { "Required": true },
-    "version_minor":   { "Required": true },
     "build_date":      "${TIMESTAMP}",
     "publish_project": "${PROJECT}",
     "suffix":          ""
@@ -17,7 +16,6 @@
           "image_suffix":     "${suffix}",
           "installer_iso":    "${installer_iso}",
           "el_version_major": "${version_major}",
-          "el_version_minor": "${version_minor}",
           "build_date":       "${build_date}",
           "publish_project":  "${publish_project}"
         }

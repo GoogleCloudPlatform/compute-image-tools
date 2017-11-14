@@ -40,6 +40,5 @@ daisy -project my-project \
       -oauth creds.json \
       -var:installer_iso=OracleLinux-R7-U4-Server-x86_64-dvd.iso \
       -var:version_major=7 \
-      -var:version_minor=4 \
       oraclelinux7.wf.json
 ```
