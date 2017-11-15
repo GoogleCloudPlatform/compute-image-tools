@@ -1,5 +1,5 @@
 {
-  "Name": "sql-2016-web-windows-2016-dc-image-build",
+  "Name": "sql-2016-web-windows-2012-r2-dc-image-build",
   "Vars": {
     "build_date": "${TIMESTAMP}",
     "install_disk": "disk-install",
@@ -25,14 +25,14 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "sql-2016-web-windows-2016-dc-v${build_date}",
+          "Name": "sql-2016-web-windows-2012-r2-dc-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
             "projects/windows-sql-cloud/global/licenses/sql-server-2016-web"
           ],
           "Description": "Microsoft, SQL Server 2016 Web, on Windows Server 2016, x64 built on ${build_date}",
           "GuestOsFeatures": [{"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}, {"Type":"MULTI_IP_SUBNET"}],
-          "Family": "sql-web-2016-win-2016",
+          "Family": "sql-web-2016-win-2012-r2",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true
