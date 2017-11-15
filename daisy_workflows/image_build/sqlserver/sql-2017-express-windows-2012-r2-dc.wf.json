@@ -25,7 +25,7 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "sql-2016-enterprise-windows-2012-r2-dc-v${build_date}",
+          "Name": "sql-2017-express-windows-2012-r2-dc-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
             "projects/windows-sql-cloud/global/licenses/sql-server-2017-express"
