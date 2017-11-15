@@ -77,21 +77,21 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
 	// Instance checking.
 	for _, i := range d.Instances {
 		if err := d.validateInstance(i, s); err != nil {
-			s.w.logger.Print("DeleteResources WARNING: Error validating deletion of instance %q, dropping from step %q: %v", i, s.name, err)
+			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of instance %q, dropping from step %q: %v", i, s.name, err)
 		}
 	}
 
 	// Disk checking.
 	for _, disk := range d.Disks {
 		if err := disks[s.w].registerDeletion(disk, s); err != nil {
-			s.w.logger.Print("DeleteResources WARNING: Error validating deletion of disk %q, dropping from step %q: %v", disk, s.name, err)
+			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of disk %q, dropping from step %q: %v", disk, s.name, err)
 		}
 	}
 
 	// Image checking.
 	for _, i := range d.Images {
 		if err := images[s.w].registerDeletion(i, s); err != nil {
-			s.w.logger.Print("DeleteResources WARNING: Error validating deletion of image %q, dropping from step %q: %v", i, s.name, err)
+			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of image %q, dropping from step %q: %v", i, s.name, err)
 		}
 	}
 
@@ -110,7 +110,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 			w.logger.Printf("DeleteResources: deleting instance %q.", i)
 			if err := instances[w].delete(i); err != nil {
 				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
-					s.w.logger.Print("DeleteResources WARNING: Error deleting instance %q: %v", i, err)
+					s.w.logger.Printf("DeleteResources WARNING: Error deleting instance %q: %v", i, err)
 					return
 				}
 				e <- err
@@ -125,7 +125,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 			w.logger.Printf("DeleteResources: deleting image %q.", i)
 			if err := images[w].delete(i); err != nil {
 				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
-					s.w.logger.Print("DeleteResources WARNING: Error deleting image %q: %v", i, err)
+					s.w.logger.Printf("DeleteResources WARNING: Error deleting image %q: %v", i, err)
 					return
 				}
 				e <- err
@@ -156,7 +156,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 			w.logger.Printf("DeleteResources: deleting disk %q.", d)
 			if err := disks[w].delete(d); err != nil {
 				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
-					s.w.logger.Print("DeleteResources WARNING: Error deleting disk %q: %v", d, err)
+					s.w.logger.Printf("DeleteResources WARNING: Error deleting disk %q: %v", d, err)
 					return
 				}
 				e <- err
