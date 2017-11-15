@@ -90,6 +90,14 @@ function check_google_services {
 
 # Check Google Cloud SDK.
 function check_google_cloud_sdk {
+  # Skip for EL6
+  if [ -f /etc/redhat-release ]; then
+    grep -q "release 6" /etc/redhat-release
+    if [ $? -eq 0 ]; then
+      return
+    fi
+  fi
+
   status "Checking for gcloud."
   gcloud version
   if [[ $? -ne 0 ]]; then
