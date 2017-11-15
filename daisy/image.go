@@ -75,11 +75,17 @@ func imageExists(client compute.Client, project, family, name string) (bool, err
 			return true, nil
 		}
 
-		if _, err := client.GetImageFromFamily(project, family); err != nil {
+		img, err := client.GetImageFromFamily(project, family)
+		if err != nil {
 			if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
 				return false, nil
 			}
 			return false, err
+		}
+		if img.Deprecated != nil {
+			if img.Deprecated.State == "OBSOLETE" || img.Deprecated.State == "DELETED" {
+				return false, nil
+			}
 		}
 		familiesCache.exists[project] = append(familiesCache.exists[project], name)
 		return true, nil
@@ -100,6 +106,11 @@ func imageExists(client compute.Client, project, family, name string) (bool, err
 		}
 		var images []string
 		for _, i := range il {
+			if i.Deprecated != nil {
+				if i.Deprecated.State == "OBSOLETE" || i.Deprecated.State == "DELETED" {
+					continue
+				}
+			}
 			images = append(images, i.Name)
 		}
 		imagesCache.exists[project] = images
