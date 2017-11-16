@@ -2,11 +2,14 @@
 
 This page contains links to all documentation available for Daisy.
 
-We recommend you start by reading the [workflow configuration file
-specification](daisy-workflow-config-spec.md) and the [style
-guide](daisy-styleguide.md).
+### Getting Started
 
-Other pages:
+We recommend you start by reading the following:
+
+- [Workflow Configuration File Specification](daisy-workflow-config-spec.md)
+- [Style Guide](daisy-styleguide.md)
+
+### Further Reading
 
 - [Automating Image Creation](daisy-automating-image-creation.md)
 - [Importing Virtual Disks into GCE](daisy-import-userguide.md)
