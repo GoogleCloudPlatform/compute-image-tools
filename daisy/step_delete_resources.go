@@ -20,6 +20,8 @@ import (
 
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+	"log"
+	"fmt"
 )
 
 // DeleteResources deletes GCE resources.
@@ -73,25 +75,34 @@ func (d *DeleteResources) validateInstance(i string, s *Step) error {
 	return nil
 }
 
+func (d *DeleteResources) checkError(err error, logger *log.Logger) error {
+	fmt.Println("here")
+	if dErr, ok := err.(*dError); ok && dErr.ErrType == resourceDNEError {
+		logger.Printf("DeleteResources WARNING: Error validating deletion: %v", err)
+		return nil
+	}
+	return err
+}
+
 func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
 	// Instance checking.
 	for _, i := range d.Instances {
-		if err := d.validateInstance(i, s); err != nil {
-			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of instance %q: %v", i, err)
+		if err := d.validateInstance(i, s); d.checkError(err, s.w.logger) != nil {
+			return err
 		}
 	}
 
 	// Disk checking.
 	for _, disk := range d.Disks {
-		if err := disks[s.w].registerDeletion(disk, s); err != nil {
-			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of disk %q: %v", disk, err)
+		if err := disks[s.w].registerDeletion(disk, s); d.checkError(err, s.w.logger) != nil {
+			return err
 		}
 	}
 
 	// Image checking.
 	for _, i := range d.Images {
-		if err := images[s.w].registerDeletion(i, s); err != nil {
-			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of image %q: %v", i, err)
+		if err := images[s.w].registerDeletion(i, s); d.checkError(err, s.w.logger) != nil {
+			return err
 		}
 	}
 
