@@ -77,21 +77,21 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
 	// Instance checking.
 	for _, i := range d.Instances {
 		if err := d.validateInstance(i, s); err != nil {
-			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of instance %q, dropping from step %q: %v", i, s.name, err)
+			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of instance %q: %v", i, err)
 		}
 	}
 
 	// Disk checking.
 	for _, disk := range d.Disks {
 		if err := disks[s.w].registerDeletion(disk, s); err != nil {
-			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of disk %q, dropping from step %q: %v", disk, s.name, err)
+			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of disk %q: %v", disk, err)
 		}
 	}
 
 	// Image checking.
 	for _, i := range d.Images {
 		if err := images[s.w].registerDeletion(i, s); err != nil {
-			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of image %q, dropping from step %q: %v", i, s.name, err)
+			s.w.logger.Printf("DeleteResources WARNING: Error validating deletion of image %q: %v", i, err)
 		}
 	}
 
