@@ -20,78 +20,10 @@ Other use-case examples:
 * GCE environment deployment.
 * Ad hoc GCE testing environment deployment and test running.
 
-## Table of contents
-  * [Setup](#setup)
-    * [Prebuilt binaries](#prebuilt-binaries)
-    * [Daisy container](#daisy-container)
-    * [Build from source](#build-from-source)
-  * [Running Daisy](#running-daisy)
-  * [Testing](#testing)
-  * [Documentation](#documentation)
+# [Documentation](https://googlecloudplatform.github.io/compute-image-tools/daisy.html)
 
-## Setup
-### Prebuilt binaries
-Prebuilt Daisy binaries are available for Windows, macOS, and Linux distros.
-Two versions are available, one built with the v1 (stable) Compute api, and the
-other with the beta Compute API.
-
-Built from the latest GitHub release (all 64bit):
-+ [Windows](https://storage.googleapis.com/compute-image-tools/release/windows/daisy.exe)
-+ [Windows beta](https://storage.googleapis.com/compute-image-tools/release/windows/daisy_beta.exe)
-+ [macOS](https://storage.googleapis.com/compute-image-tools/release/darwin/daisy)
-+ [macOS beta](https://storage.googleapis.com/compute-image-tools/release/darwin/daisy_beta)
-+ [Linux](https://storage.googleapis.com/compute-image-tools/release/linux/daisy)
-+ [Linux beta](https://storage.googleapis.com/compute-image-tools/release/linux/daisy_beta)
-
-Built from the latest commit to the master branch (all 64bit):
-+ [Windows](https://storage.googleapis.com/compute-image-tools/latest/windows/daisy.exe)
-+ [Windows beta](https://storage.googleapis.com/compute-image-tools/latest/windows/daisy_beta.exe)
-+ [macOS](https://storage.googleapis.com/compute-image-tools/latest/darwin/daisy)
-+ [macOS beta](https://storage.googleapis.com/compute-image-tools/latest/darwin/daisy_beta)
-+ [Linux](https://storage.googleapis.com/compute-image-tools/latest/linux/daisy)
-+ [Linux beta](https://storage.googleapis.com/compute-image-tools/latest/linux/daisy_beta)
-
-### Daisy container
-Daisy containers are available at gcr.io/compute-image-tools/daisy. All the
-workflows in `compute-image-tools/daisy_workflows` are put in the `workflows`
-directory at the root of the container.
-+ Built from the latest GitHub release: gcr.io/compute-image-tools/daisy:release
-+ Built from the latest commit to the master branch: gcr.io/compute-image-tools/daisy:latest
-
-Daisy containers built with the beta Compute api
-+ Built from the latest GitHub release: gcr.io/compute-image-tools/daisy_beta:release
-+ Built from the latest commit to the master branch: gcr.io/compute-image-tools/daisy_beta:latest
-
-### Build from source
-Daisy can be easily built from source with the [Golang SDK](https://golang.org)
-```shell
-go get github.com/GoogleCloudPlatform/compute-image-tools/daisy/daisy
-```
-This will place the Daisy binary in $GOPATH/bin.
-
-## Running Daisy
-The basic use case for Daisy looks like:
-```shell
-daisy [path to workflow config file]
-```
-
-Workflow variables can be set using the  `-variables` flag or the
-`-var:VARNAME` flag. The `-variables` flag takes a comma separated list
-of `key=value` pairs. Both of these examples set the workflow variables
-`foo=bar` and `baz=gaz`:
-```shell
-daisy -variables foo=bar,baz=gaz wf.json
-```
-
-```shell
-daisy -var:foo bar -var:baz gaz wf.json
-```
-
-For additional information about Daisy flags, use `daisy -h`.
-
-For information about writing Daisy config files, see the [workflow
-configuration file
-specification](https://googlecloudplatform.github.io/compute-image-tools/daisy-workflow-config-spec.html).
+Daisy documentation can be found
+[here](https://googlecloudplatform.github.io/compute-image-tools/daisy.html).
 
 # Testing
 Infrastructure has been set up to perform presubmit testing on PRs and
@@ -112,9 +44,4 @@ a PR:
 Periodic tests run every 6 hours. Currently, periodic tests include the e2e
 tests here: [../daisy_workflows/e2e_tests](../daisy_workflows/e2e_tests). You
 can see the test results for the e2e tests in testgrid: [https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#daisy-e2e].
-
-# Documentation
-
-Daisy documentation can be found
-[here](https://googlecloudplatform.github.io/compute-image-tools/daisy.html).
 
