@@ -18,10 +18,10 @@ import (
 	"context"
 	"sync"
 
+	"log"
+
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
-	"log"
-	"fmt"
 )
 
 // DeleteResources deletes GCE resources.
@@ -76,7 +76,6 @@ func (d *DeleteResources) validateInstance(i string, s *Step) error {
 }
 
 func (d *DeleteResources) checkError(err error, logger *log.Logger) error {
-	fmt.Println("here")
 	if dErr, ok := err.(*dError); ok && dErr.ErrType == resourceDNEError {
 		logger.Printf("DeleteResources WARNING: Error validating deletion: %v", err)
 		return nil
