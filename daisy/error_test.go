@@ -16,8 +16,9 @@ package daisy
 
 import (
 	"fmt"
-	"github.com/kylelemons/godebug/pretty"
 	"testing"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestErrorCast(t *testing.T) {
@@ -38,7 +39,7 @@ func TestErrorError(t *testing.T) {
 		desc, errType string
 		want          string
 	}{
-		{"no error type case", errnotype, msg},
+		{"no error type case", untypedError, msg},
 		{"error type case", "MYERROR", fmt.Sprintf("MYERROR: %s", msg)},
 	}
 

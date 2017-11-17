@@ -18,7 +18,10 @@ import (
 	"context"
 	"sync"
 
+	"log"
+
 	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 // DeleteResources deletes GCE resources.
@@ -72,24 +75,32 @@ func (d *DeleteResources) validateInstance(i string, s *Step) error {
 	return nil
 }
 
+func (d *DeleteResources) checkError(err error, logger *log.Logger) error {
+	if dErr, ok := err.(*dError); ok && dErr.ErrType == resourceDNEError {
+		logger.Printf("DeleteResources WARNING: Error validating deletion: %v", err)
+		return nil
+	}
+	return err
+}
+
 func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
 	// Instance checking.
 	for _, i := range d.Instances {
-		if err := d.validateInstance(i, s); err != nil {
+		if err := d.validateInstance(i, s); d.checkError(err, s.w.logger) != nil {
 			return err
 		}
 	}
 
 	// Disk checking.
 	for _, disk := range d.Disks {
-		if err := disks[s.w].registerDeletion(disk, s); err != nil {
+		if err := disks[s.w].registerDeletion(disk, s); d.checkError(err, s.w.logger) != nil {
 			return err
 		}
 	}
 
 	// Image checking.
 	for _, i := range d.Images {
-		if err := images[s.w].registerDeletion(i, s); err != nil {
+		if err := images[s.w].registerDeletion(i, s); d.checkError(err, s.w.logger) != nil {
 			return err
 		}
 	}
@@ -108,6 +119,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 			defer wg.Done()
 			w.logger.Printf("DeleteResources: deleting instance %q.", i)
 			if err := instances[w].delete(i); err != nil {
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+					s.w.logger.Printf("DeleteResources WARNING: Error deleting instance %q: %v", i, err)
+					return
+				}
 				e <- err
 			}
 		}(i)
@@ -119,6 +134,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 			defer wg.Done()
 			w.logger.Printf("DeleteResources: deleting image %q.", i)
 			if err := images[w].delete(i); err != nil {
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+					s.w.logger.Printf("DeleteResources WARNING: Error deleting image %q: %v", i, err)
+					return
+				}
 				e <- err
 			}
 		}(i)
@@ -146,6 +165,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 			defer wg.Done()
 			w.logger.Printf("DeleteResources: deleting disk %q.", d)
 			if err := disks[w].delete(d); err != nil {
+				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+					s.w.logger.Printf("DeleteResources WARNING: Error deleting disk %q: %v", d, err)
+					return
+				}
 				e <- err
 			}
 		}(d)

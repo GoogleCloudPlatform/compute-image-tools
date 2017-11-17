@@ -131,8 +131,8 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	want[1].deleter = s
 	want[2].deleter = s
 	want[4].deleter = s
-	CompareResources(got, want)
 
+	CompareResources(got, want)
 	// Bad cases. Test:
 	// - deleting an already deleted disk/image/instance (d1 is already deleted from other tests)
 	// - deleting a disk that DNE
@@ -149,6 +149,9 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	}
 	if err := (&DeleteResources{Disks: []string{"dne"}}).validate(ctx, s); err == nil {
 		t.Error("DeleteResources should have returned an error when deleting an already deleted disk")
+	}
+	if err := (&DeleteResources{Instances: []string{fmt.Sprintf("projects/%s/zones/%s/instances/dne", testProject, testZone)}}).validate(ctx, s); err != nil {
+		t.Errorf("validation should not have failed: %v", err)
 	}
 
 	want[3].deleter = otherDeleter
