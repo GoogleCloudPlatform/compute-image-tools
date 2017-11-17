@@ -180,7 +180,7 @@ func (r *baseResourceRegistry) registerExisting(url string) (*resource, error) {
 	if exists, err := resourceExists(r.w.ComputeClient, url); err != nil {
 		return nil, err
 	} else if !exists {
-		return nil, fmt.Errorf("%s does not exist", url)
+		return nil, typedErrorf(resourceDNEError, "%s does not exist", url)
 	}
 
 	parts := strings.Split(url, "/")

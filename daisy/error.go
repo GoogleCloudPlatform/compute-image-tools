@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	errnotype = ""
+	untypedError     = ""
+	resourceDNEError = "ResourceDoesNotExist"
 )
 
 type dError struct {
@@ -35,7 +36,7 @@ func (e *dError) cast() error {
 }
 
 func (e *dError) Error() string {
-	if e.ErrType != errnotype {
+	if e.ErrType != untypedError {
 		return fmt.Sprintf("%s: %s", e.ErrType, e.Msg)
 	}
 	return e.Msg

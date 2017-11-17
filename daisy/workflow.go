@@ -83,7 +83,7 @@ func (l *syncedWriter) Flush() error {
 }
 
 func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, error) {
-	dBkt := project + "-daisy-bkt"
+	dBkt := strings.Replace(project, ":", "-", -1) + "-daisy-bkt"
 	it := client.Buckets(ctx, project)
 	for bucketAttrs, err := it.Next(); err != iterator.Done; bucketAttrs, err = it.Next() {
 		if err != nil {
