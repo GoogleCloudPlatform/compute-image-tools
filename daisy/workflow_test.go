@@ -96,16 +96,16 @@ func TestDaisyBkt(t *testing.T) {
 func TestCleanup(t *testing.T) {
 	cleanedup1 := false
 	cleanedup2 := false
-	cleanup1 := func() error {
+	cleanup1 := func() dErr {
 		cleanedup1 = true
 		return nil
 	}
-	cleanup2 := func() error {
+	cleanup2 := func() dErr {
 		cleanedup2 = true
 		return nil
 	}
-	cleanupFail := func() error {
-		return errors.New("failed cleanup")
+	cleanupFail := func() dErr {
+		return errf("failed cleanup")
 	}
 
 	w := testWorkflow()
@@ -364,8 +364,8 @@ func TestPopulate(t *testing.T) {
 	}
 
 	called := false
-	var stepPopErr error
-	stepPop := func(ctx context.Context, s *Step) error {
+	var stepPopErr dErr
+	stepPop := func(ctx context.Context, s *Step) dErr {
 		called = true
 		return stepPopErr
 	}
@@ -457,7 +457,7 @@ func TestPopulate(t *testing.T) {
 		t.Error("did not call step's populate")
 	}
 
-	stepPopErr = errors.New("error")
+	stepPopErr = errf("error")
 	if err := got.populate(ctx); err != stepPopErr {
 		t.Errorf("did not get proper step populate error: %v != %v", err, stepPopErr)
 	}
@@ -486,7 +486,7 @@ func TestRequiredVars(t *testing.T) {
 	}
 }
 
-func testTraverseWorkflow(mockRun func(i int) func(context.Context, *Step) error) *Workflow {
+func testTraverseWorkflow(mockRun func(i int) func(context.Context, *Step) dErr) *Workflow {
 	// s0---->s1---->s3
 	//   \         /
 	//    --->s2---
@@ -510,10 +510,10 @@ func testTraverseWorkflow(mockRun func(i int) func(context.Context, *Step) error
 func TestTraverseDAG(t *testing.T) {
 	ctx := context.Background()
 	var callOrder []int
-	errs := make([]error, 5)
+	errs := make([]dErr, 5)
 	var rw sync.Mutex
-	mockRun := func(i int) func(context.Context, *Step) error {
-		return func(_ context.Context, _ *Step) error {
+	mockRun := func(i int) func(context.Context, *Step) dErr {
+		return func(_ context.Context, _ *Step) dErr {
 			rw.Lock()
 			defer rw.Unlock()
 			callOrder = append(callOrder, i)
@@ -559,11 +559,11 @@ func TestTraverseDAG(t *testing.T) {
 	}
 
 	callOrder = []int{}
-	errs = make([]error, 5)
+	errs = make([]dErr, 5)
 
 	// s2 failure.
 	w = testTraverseWorkflow(mockRun)
-	errs[2] = errors.New("failure")
+	errs[2] = errf("failure")
 	want := w.Steps["s2"].wrapRunError(errs[2])
 	if err := w.Run(ctx); err.Error() != want.Error() {
 		t.Errorf("unexpected error: %s != %s", err, want)
@@ -693,7 +693,7 @@ func TestValidateErrors(t *testing.T) {
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {testType: &mockStep{}}}
 	w.Project = "foo"
-	want = "error validating workflow: bad project lookup: \"foo\", error: bad project"
+	want = "error validating workflow: bad project lookup: \"foo\", error: APIError: bad project"
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
 	}
@@ -759,7 +759,7 @@ func TestRunStepTimeout(t *testing.T) {
 	w := testWorkflow()
 	s, _ := w.NewStep("test")
 	s.timeout = 1 * time.Nanosecond
-	s.testType = &mockStep{runImpl: func(ctx context.Context, s *Step) error {
+	s.testType = &mockStep{runImpl: func(ctx context.Context, s *Step) dErr {
 		time.Sleep(1 * time.Second)
 		return nil
 	}}

@@ -16,10 +16,12 @@ package daisy
 
 import (
 	"fmt"
+	"net/http"
 	"regexp"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/googleapi"
 )
 
 var (
@@ -41,9 +43,13 @@ func initNetworkRegistry(w *Workflow) {
 	networksMu.Unlock()
 }
 
-func (ir *networkRegistry) deleteFn(res *resource) error {
+func (ir *networkRegistry) deleteFn(res *resource) dErr {
 	m := namedSubexp(networkURLRegex, res.link)
-	return ir.w.ComputeClient.DeleteImage(m["project"], m["network"])
+	err := ir.w.ComputeClient.DeleteImage(m["project"], m["network"])
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+		return typedErr(resourceDNEError, err)
+	}
+	return newErr(err)
 }
 
 var networkCache struct {
@@ -51,7 +57,7 @@ var networkCache struct {
 	mu     sync.Mutex
 }
 
-func networkExists(client compute.Client, project, name string) (bool, error) {
+func networkExists(client compute.Client, project, name string) (bool, dErr) {
 	networkCache.mu.Lock()
 	defer networkCache.mu.Unlock()
 	if networkCache.exists == nil {
@@ -60,7 +66,7 @@ func networkExists(client compute.Client, project, name string) (bool, error) {
 	if _, ok := networkCache.exists[project]; !ok {
 		nl, err := client.ListNetworks(project)
 		if err != nil {
-			return false, fmt.Errorf("error listing networks for project %q: %v", project, err)
+			return false, errf("error listing networks for project %q: %v", project, err)
 		}
 		var networks []string
 		for _, n := range nl {

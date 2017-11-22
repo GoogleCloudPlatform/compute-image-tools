@@ -26,16 +26,16 @@ type SubWorkflow struct {
 	Workflow *Workflow
 }
 
-func (s *SubWorkflow) populate(ctx context.Context, st *Step) error {
+func (s *SubWorkflow) populate(ctx context.Context, st *Step) dErr {
 	if s.Path != "" {
 		var err error
 		if s.Workflow, err = st.w.NewSubWorkflowFromFile(s.Path); err != nil {
-			return err
+			return newErr(err)
 		}
 	}
 
 	if s.Workflow == nil {
-		return fmt.Errorf("SubWorkflow %q does not have a workflow", st.name)
+		return errf("SubWorkflow %q does not have a workflow", st.name)
 	}
 
 	s.Workflow.parent = st.w
@@ -53,17 +53,17 @@ func (s *SubWorkflow) populate(ctx context.Context, st *Step) error {
 	return s.Workflow.populate(ctx)
 }
 
-func (s *SubWorkflow) validate(ctx context.Context, st *Step) error {
+func (s *SubWorkflow) validate(ctx context.Context, st *Step) dErr {
 	return s.Workflow.validate(ctx)
 }
 
-func (s *SubWorkflow) run(ctx context.Context, st *Step) error {
+func (s *SubWorkflow) run(ctx context.Context, st *Step) dErr {
 	// Prerun work has already been done. Just run(), not Run().
 	defer s.Workflow.cleanup()
 	// If the workflow fails before the subworkflow completes, the previous
 	// "defer" cleanup won't happen. Add a failsafe here, have the workflow
 	// also call this subworkflow's cleanup.
-	st.w.addCleanupHook(func() error {
+	st.w.addCleanupHook(func() dErr {
 		s.Workflow.cleanup()
 		return nil
 	})

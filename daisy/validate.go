@@ -16,7 +16,6 @@ package daisy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -33,41 +32,41 @@ func checkName(s string) bool {
 	return len(s) < 64 && rfc1035Rgx.MatchString(s)
 }
 
-func (w *Workflow) validateRequiredFields() error {
+func (w *Workflow) validateRequiredFields() dErr {
 	if w.Name == "" {
-		return errors.New("must provide workflow field 'Name'")
+		return errf("must provide workflow field 'Name'")
 	}
 	if !rfc1035Rgx.MatchString(strings.ToLower(w.Name)) {
-		return errors.New("workflow field 'Name' must start with a letter and only contain letters, numbers, and hyphens")
+		return errf("workflow field 'Name' must start with a letter and only contain letters, numbers, and hyphens")
 	}
 	if w.Project == "" {
-		return errors.New("must provide workflow field 'Project'")
+		return errf("must provide workflow field 'Project'")
 	}
 	if exists, err := projectExists(w.ComputeClient, w.Project); err != nil {
-		return fmt.Errorf("bad project lookup: %q, error: %v", w.Project, err)
+		return errf("bad project lookup: %q, error: %v", w.Project, err)
 	} else if !exists {
-		return fmt.Errorf("project does not exist: %q", w.Project)
+		return errf("project does not exist: %q", w.Project)
 	}
 	if w.Zone == "" {
-		return errors.New("must provide workflow field 'Zone'")
+		return errf("must provide workflow field 'Zone'")
 	}
 	if exists, err := zoneExists(w.ComputeClient, w.Project, w.Zone); err != nil {
-		return fmt.Errorf("bad zone lookup: %q, error: %v", w.Zone, err)
+		return errf("bad zone lookup: %q, error: %v", w.Zone, err)
 	} else if !exists {
-		return fmt.Errorf("zone does not exist: %q", w.Zone)
+		return errf("zone does not exist: %q", w.Zone)
 	}
 	if len(w.Steps) == 0 {
-		return errors.New("must provide at least one step in workflow field 'Steps'")
+		return errf("must provide at least one step in workflow field 'Steps'")
 	}
 	for name := range w.Steps {
 		if name == "" {
-			return fmt.Errorf("no name defined for Step %q", name)
+			return errf("no name defined for Step %q", name)
 		}
 	}
 	return nil
 }
 
-func (w *Workflow) validate(ctx context.Context) error {
+func (w *Workflow) validate(ctx context.Context) dErr {
 	// Check for unsubstituted wfVar.
 	if err := w.validateVarsSubbed(); err != nil {
 		return err
@@ -77,19 +76,19 @@ func (w *Workflow) validate(ctx context.Context) error {
 }
 
 // Step through the step DAG, calling each step's validate().
-func (w *Workflow) validateDAG(ctx context.Context) error {
+func (w *Workflow) validateDAG(ctx context.Context) dErr {
 	// Sanitation.
 	for s, deps := range w.Dependencies {
 		// Check for missing steps.
 		if _, ok := w.Steps[s]; !ok {
-			return fmt.Errorf("Dependencies reference non existent step %q: %q:%q", s, s, deps)
+			return errf("Dependencies reference non existent step %q: %q:%q", s, s, deps)
 		}
 		seen := map[string]bool{}
 		var clean []string
 		for _, dep := range deps {
 			// Check for missing dependencies.
 			if _, ok := w.Steps[dep]; !ok {
-				return fmt.Errorf("Dependencies reference non existent step %q: %q:%q", dep, s, deps)
+				return errf("Dependencies reference non existent step %q: %q:%q", dep, s, deps)
 			}
 			// Remove duplicate dependencies.
 			if !seen[dep] {
@@ -103,19 +102,19 @@ func (w *Workflow) validateDAG(ctx context.Context) error {
 	// Check for cycles.
 	for _, s := range w.Steps {
 		if s.depends(s) {
-			return fmt.Errorf("cyclic dependency on step %v", s)
+			return errf("cyclic dependency on step %v", s)
 		}
 	}
-	return w.traverseDAG(func(s *Step) error { return s.validate(ctx) })
+	return w.traverseDAG(func(s *Step) dErr { return s.validate(ctx) })
 }
 
-func (w *Workflow) validateVarsSubbed() error {
+func (w *Workflow) validateVarsSubbed() dErr {
 	unsubbedVarRgx := regexp.MustCompile(`\$\{([^}]+)}`)
-	return traverseData(reflect.ValueOf(w).Elem(), func(v reflect.Value) error {
+	return traverseData(reflect.ValueOf(w).Elem(), func(v reflect.Value) dErr {
 		switch v.Interface().(type) {
 		case string:
 			if match := unsubbedVarRgx.FindStringSubmatch(v.String()); match != nil {
-				return fmt.Errorf("Unresolved var %q found in %q", match[0], v.String())
+				return errf("Unresolved var %q found in %q", match[0], v.String())
 			}
 		}
 		return nil

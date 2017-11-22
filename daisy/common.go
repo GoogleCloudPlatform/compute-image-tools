@@ -109,7 +109,7 @@ func strOr(s string, ss ...string) string {
 // substitute runs replacer on string elements within a complex data structure
 // (except those contained in private data structure fields).
 func substitute(v reflect.Value, replacer *strings.Replacer) {
-	traverseData(v, func(val reflect.Value) error {
+	traverseData(v, func(val reflect.Value) dErr {
 		switch val.Interface().(type) {
 		case string:
 			val.SetString(replacer.Replace(val.String()))
@@ -125,7 +125,7 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 // Slices, maps, and structs will not have f called on them, but will
 // traverse their subelements.
 // Errors returned from f will be returned by traverseDataStructure.
-func traverseData(v reflect.Value, f func(reflect.Value) error) error {
+func traverseData(v reflect.Value, f func(reflect.Value) dErr) dErr {
 	if !v.CanSet() {
 		// Don't run on private fields.
 		return nil

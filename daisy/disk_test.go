@@ -194,14 +194,14 @@ func TestDiskRegisterDetachment(t *testing.T) {
 		},
 	}
 
-	errDetachHelper := func(d, i *resource, s *Step) error {
-		return errorf("error")
+	errDetachHelper := func(d, i *resource, s *Step) dErr {
+		return errf("error")
 	}
 
 	tests := []struct {
 		desc, d, i   string
 		s            *Step
-		detachHelper func(d, i *resource, s *Step) error
+		detachHelper func(d, i *resource, s *Step) dErr
 		shouldErr    bool
 	}{
 		{"normal case", "d", "i", s, nil, false},
@@ -252,14 +252,14 @@ func TestDiskRegisterAllDetachments(t *testing.T) {
 	disks[w].attachments[d] = map[*resource]*diskAttachment{i: {attacher: att}}
 	disks[w].attachments[d2] = map[*resource]*diskAttachment{i: {attacher: att}}
 
-	errDetachHelper := func(d, i *resource, s *Step) error {
-		return errorf("error")
+	errDetachHelper := func(d, i *resource, s *Step) dErr {
+		return errf("error")
 	}
 
 	tests := []struct {
 		desc, iName  string
 		s            *Step
-		detachHelper func(d, i *resource, s *Step) error
+		detachHelper func(d, i *resource, s *Step) dErr
 		shouldErr    bool
 	}{
 		{"detachHelper error case", "i", s, errDetachHelper, true},

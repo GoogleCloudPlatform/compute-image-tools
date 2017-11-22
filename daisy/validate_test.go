@@ -16,7 +16,6 @@ package daisy
 
 import (
 	"context"
-	"errors"
 	"io/ioutil"
 	"log"
 	"reflect"
@@ -104,10 +103,10 @@ func TestValidateWorkflow(t *testing.T) {
 func TestValidateDAG(t *testing.T) {
 	ctx := context.Background()
 	calls := make([]int, 5)
-	errs := make([]error, 5)
+	errs := make([]dErr, 5)
 	var rw sync.Mutex
-	mockValidate := func(i int) func(ctx context.Context, s *Step) error {
-		return func(ctx context.Context, s *Step) error {
+	mockValidate := func(i int) func(ctx context.Context, s *Step) dErr {
+		return func(ctx context.Context, s *Step) dErr {
 			rw.Lock()
 			defer rw.Unlock()
 			calls[i] = calls[i] + 1
@@ -118,7 +117,7 @@ func TestValidateDAG(t *testing.T) {
 		rw.Lock()
 		defer rw.Unlock()
 		calls = make([]int, 5)
-		errs = make([]error, 5)
+		errs = make([]dErr, 5)
 	}
 
 	// s0---->s1---->s3
@@ -159,7 +158,7 @@ func TestValidateDAG(t *testing.T) {
 	reset()
 
 	// Failed step 2.
-	errs[2] = errors.New("fail")
+	errs[2] = errf("fail")
 	if err := w.validateDAG(ctx); err == nil {
 		t.Error("step 2 should have failed validation")
 	}

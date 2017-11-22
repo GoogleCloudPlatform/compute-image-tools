@@ -32,16 +32,16 @@ type IncludeWorkflow struct {
 	Workflow *Workflow
 }
 
-func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
+func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 	if i.Path != "" {
 		var err error
 		if i.Workflow, err = s.w.NewIncludedWorkflowFromFile(i.Path); err != nil {
-			return err
+			return newErr(err)
 		}
 	}
 
 	if i.Workflow == nil {
-		return fmt.Errorf("IncludeWorkflow %q does not have a workflow", s.name)
+		return errf("IncludeWorkflow %q does not have a workflow", s.name)
 	}
 
 	i.Workflow.id = s.w.id
@@ -97,7 +97,7 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 			continue
 		}
 		if _, ok := s.w.Sources[k]; ok {
-			return fmt.Errorf("source %q already exists in workflow", k)
+			return errf("source %q already exists in workflow", k)
 		}
 		if s.w.Sources == nil {
 			s.w.Sources = map[string]string{}
@@ -112,10 +112,10 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) error {
 	return nil
 }
 
-func (i *IncludeWorkflow) validate(ctx context.Context, s *Step) error {
+func (i *IncludeWorkflow) validate(ctx context.Context, s *Step) dErr {
 	return i.Workflow.validate(ctx)
 }
 
-func (i *IncludeWorkflow) run(ctx context.Context, s *Step) error {
+func (i *IncludeWorkflow) run(ctx context.Context, s *Step) dErr {
 	return i.Workflow.run(ctx)
 }

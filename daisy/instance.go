@@ -16,11 +16,13 @@ package daisy
 
 import (
 	"fmt"
+	"net/http"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/googleapi"
 )
 
 const (
@@ -51,12 +53,16 @@ func initInstanceRegistry(w *Workflow) {
 	instancesMu.Unlock()
 }
 
-func (ir *instanceRegistry) deleteFn(res *resource) error {
+func (ir *instanceRegistry) deleteFn(res *resource) dErr {
 	m := namedSubexp(instanceURLRgx, res.link)
-	return ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
+	err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+		return typedErr(resourceDNEError, err)
+	}
+	return newErr(err)
 }
 
-func (ir *instanceRegistry) registerCreation(name string, res *resource, s *Step) error {
+func (ir *instanceRegistry) registerCreation(name string, res *resource, s *Step) dErr {
 	// Base creation logic.
 	if err := ir.baseResourceRegistry.registerCreation(name, res, s, false); err != nil {
 		return err
@@ -82,7 +88,7 @@ func (ir *instanceRegistry) registerCreation(name string, res *resource, s *Step
 	return nil
 }
 
-func (ir *instanceRegistry) registerDeletion(name string, s *Step) error {
+func (ir *instanceRegistry) registerDeletion(name string, s *Step) dErr {
 	if err := ir.baseResourceRegistry.registerDeletion(name, s); err != nil {
 		return err
 	}
@@ -102,7 +108,7 @@ var instanceCache struct {
 
 // instanceExists should only be used during validation for existing GCE instances
 // and should not be relied or populated for daisy created resources.
-func instanceExists(client compute.Client, project, zone, instance string) (bool, error) {
+func instanceExists(client compute.Client, project, zone, instance string) (bool, dErr) {
 	instanceCache.mu.Lock()
 	defer instanceCache.mu.Unlock()
 	if instanceCache.exists == nil {
@@ -114,7 +120,7 @@ func instanceExists(client compute.Client, project, zone, instance string) (bool
 	if _, ok := instanceCache.exists[project][zone]; !ok {
 		il, err := client.ListInstances(project, zone)
 		if err != nil {
-			return false, fmt.Errorf("error listing instances for project %q: %v", project, err)
+			return false, errf("error listing instances for project %q: %v", project, err)
 		}
 		var instances []string
 		for _, i := range il {

@@ -16,10 +16,12 @@ package daisy
 
 import (
 	"fmt"
+	"net/http"
 	"regexp"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/googleapi"
 )
 
 var (
@@ -31,7 +33,7 @@ var (
 type diskRegistry struct {
 	baseResourceRegistry
 	attachments      map[*resource]map[*resource]*diskAttachment // map (disk, instance) -> attachment
-	testDetachHelper func(d, i *resource, s *Step) error
+	testDetachHelper func(d, i *resource, s *Step) dErr
 }
 
 type diskAttachment struct {
@@ -53,21 +55,25 @@ func (dr *diskRegistry) init() {
 	dr.attachments = map[*resource]map[*resource]*diskAttachment{}
 }
 
-func (dr *diskRegistry) deleteFn(res *resource) error {
+func (dr *diskRegistry) deleteFn(res *resource) dErr {
 	m := namedSubexp(diskURLRgx, res.link)
-	return dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"])
+	err := dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"])
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+		return typedErr(resourceDNEError, err)
+	}
+	return newErr(err)
 }
 
-func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) error {
+func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 	var d, i *resource
 	var ok bool
 	if d, ok = dr.m[dName]; !ok {
-		return errorf("cannot attach disk %q, does not exist", dName)
+		return errf("cannot attach disk %q, does not exist", dName)
 	}
 	if i, ok = instances[dr.w].get(iName); !ok {
-		return errorf("cannot attach disk to instance %q, does not exist", iName)
+		return errf("cannot attach disk to instance %q, does not exist", iName)
 	}
 	// Iterate over disk's attachments. Check for concurrent conflicts.
 	// Step s is concurrent with other attachments if the attachment detacher == nil
@@ -80,7 +86,7 @@ func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) e
 				return nil // this is a repeat attachment to the same instance -- does nothing
 			} else if strIn(diskModeRW, []string{mode, att.mode}) {
 				// Can't have concurrent attachment in RW mode.
-				return errorf(
+				return errf(
 					"concurrent attachment of disk %q between instances %q (%s) and %q (%s)",
 					dName, i.real, mode, attI.real, att.mode)
 			}
@@ -99,7 +105,7 @@ func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) e
 // detachHelper marks s as the detacher between d and i.
 // Returns an error if d and i aren't attached
 // or if the detacher doesn't depend on the attacher.
-func (dr *diskRegistry) detachHelper(d, i *resource, s *Step) error {
+func (dr *diskRegistry) detachHelper(d, i *resource, s *Step) dErr {
 	if dr.testDetachHelper != nil {
 		return dr.testDetachHelper(d, i, s)
 	}
@@ -107,12 +113,12 @@ func (dr *diskRegistry) detachHelper(d, i *resource, s *Step) error {
 	var im map[*resource]*diskAttachment
 	var ok bool
 	if im, ok = dr.attachments[d]; !ok {
-		return errorf("not attached")
+		return errf("not attached")
 	}
 	if att, ok = im[i]; !ok || att.detacher != nil {
-		return errorf("not attached")
+		return errf("not attached")
 	} else if !s.nestedDepends(att.attacher) {
-		return errorf("detacher %q does not depend on attacher %q", s.name, att.attacher.name)
+		return errf("detacher %q does not depend on attacher %q", s.name, att.attacher.name)
 	}
 	att.detacher = s
 	return nil
@@ -121,20 +127,20 @@ func (dr *diskRegistry) detachHelper(d, i *resource, s *Step) error {
 // registerDetachment marks s as the detacher for the dName disk and iName instance.
 // Returns an error if dName or iName don't exist
 // or if detachHelper returns an error.
-func (dr *diskRegistry) registerDetachment(dName, iName string, s *Step) error {
+func (dr *diskRegistry) registerDetachment(dName, iName string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 	var d, i *resource
 	var ok bool
 	if d, ok = dr.m[dName]; !ok {
-		return errorf("cannot detach disk %q, does not exist", dName)
+		return errf("cannot detach disk %q, does not exist", dName)
 	}
 	if i, ok = instances[dr.w].get(iName); !ok {
-		return errorf("cannot detach disk from instance %q, does not exist", iName)
+		return errf("cannot detach disk from instance %q, does not exist", iName)
 	}
 
 	if err := dr.detachHelper(d, i, s); err != nil {
-		return errorf("cannot detach disk %q from instance %q: %v", dName, iName, err)
+		return errf("cannot detach disk %q from instance %q: %v", dName, iName, err)
 	}
 	return nil
 }
@@ -142,25 +148,25 @@ func (dr *diskRegistry) registerDetachment(dName, iName string, s *Step) error {
 // registerAllDetachments marks s as the detacher for all disks attached to the iName instance.
 // Returns an error if iName does not exist
 // or if detachHelper returns an error.
-func (dr *diskRegistry) registerAllDetachments(iName string, s *Step) error {
+func (dr *diskRegistry) registerAllDetachments(iName string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 
 	i, ok := instances[dr.w].get(iName)
 	if !ok {
-		return errorf("cannot detach disks from instance %q, does not exist", iName)
+		return errf("cannot detach disks from instance %q, does not exist", iName)
 	}
 
-	var errs dErrors
+	var errs dErr
 	for d, im := range dr.attachments {
 		if att, ok := im[i]; !ok || att.detacher != nil {
 			continue
 		}
 		if err := dr.detachHelper(d, i, s); err != nil {
-			errs.add(errorf("cannot detach disk %q from instance %q: %v", d.real, iName, err))
+			errs = addErrs(errs, errf("cannot detach disk %q from instance %q: %v", d.real, iName, err))
 		}
 	}
-	return errs.cast()
+	return errs
 }
 
 var diskCache struct {
@@ -170,7 +176,7 @@ var diskCache struct {
 
 // diskExists should only be used during validation for existing GCE disks
 // and should not be relied or populated for daisy created resources.
-func diskExists(client compute.Client, project, zone, disk string) (bool, error) {
+func diskExists(client compute.Client, project, zone, disk string) (bool, dErr) {
 	diskCache.mu.Lock()
 	defer diskCache.mu.Unlock()
 	if diskCache.exists == nil {
@@ -182,7 +188,7 @@ func diskExists(client compute.Client, project, zone, disk string) (bool, error)
 	if _, ok := diskCache.exists[project][zone]; !ok {
 		dl, err := client.ListDisks(project, zone)
 		if err != nil {
-			return false, fmt.Errorf("error listing disks for project %q: %v", project, err)
+			return false, errf("error listing disks for project %q: %v", project, err)
 		}
 		var disks []string
 		for _, d := range dl {

@@ -15,7 +15,6 @@
 package daisy
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -76,9 +75,9 @@ func TestResourceCleanup(t *testing.T) {
 }
 
 func TestResourceMapDelete(t *testing.T) {
-	var deleteFnErr error
+	var deleteFnErr dErr
 	rr := &baseResourceRegistry{m: map[string]*resource{}}
-	rr.deleteFn = func(r *resource) error {
+	rr.deleteFn = func(r *resource) dErr {
 		return deleteFnErr
 	}
 
@@ -87,13 +86,13 @@ func TestResourceMapDelete(t *testing.T) {
 
 	tests := []struct {
 		desc, input string
-		deleteFnErr error
+		deleteFnErr dErr
 		shouldErr   bool
 	}{
 		{"good case", "foo", nil, false},
 		{"bad redelete case", "foo", nil, true},
 		{"bad resource dne case", "bar", nil, true},
-		{"bad deleteFn error case", "baz", errors.New("error"), true},
+		{"bad deleteFn error case", "baz", errf("error"), true},
 	}
 
 	for _, tt := range tests {

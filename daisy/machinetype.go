@@ -29,7 +29,7 @@ var machineTypeCache struct {
 	mu     sync.Mutex
 }
 
-func machineTypeExists(client compute.Client, project, zone, machineType string) (bool, error) {
+func machineTypeExists(client compute.Client, project, zone, machineType string) (bool, dErr) {
 	machineTypeCache.mu.Lock()
 	defer machineTypeCache.mu.Unlock()
 	if machineTypeCache.exists == nil {
@@ -41,7 +41,7 @@ func machineTypeExists(client compute.Client, project, zone, machineType string)
 	if _, ok := machineTypeCache.exists[project][zone]; !ok {
 		mtl, err := client.ListMachineTypes(project, zone)
 		if err != nil {
-			return false, fmt.Errorf("error listing machine types for project %q: %v", project, err)
+			return false, errf("error listing machine types for project %q: %v", project, err)
 		}
 		var mts []string
 		for _, mt := range mtl {
@@ -54,7 +54,7 @@ func machineTypeExists(client compute.Client, project, zone, machineType string)
 	}
 	// Check for custom machine types.
 	if _, err := client.GetMachineType(project, zone, machineType); err != nil {
-		return false, err
+		return false, typedErr(apiError, err)
 	}
 	machineTypeCache.exists[project][zone] = append(machineTypeCache.exists[project][zone], machineType)
 	return true, nil

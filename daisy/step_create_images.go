@@ -17,7 +17,6 @@ package daisy
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -59,7 +58,7 @@ func (c *CreateImage) MarshalJSON() ([]byte, error) {
 // populate preprocesses fields: Name, Project, Description, SourceDisk, RawDisk, and daisyName.
 // - sets defaults
 // - extends short partial URLs to include "projects/<project>"
-func (c *CreateImages) populate(ctx context.Context, s *Step) error {
+func (c *CreateImages) populate(ctx context.Context, s *Step) dErr {
 	for _, ci := range *c {
 		// Prepare field values: name, Name, RawDisk.Source, Description
 		ci.daisyName = ci.Name
@@ -84,37 +83,37 @@ func (c *CreateImages) populate(ctx context.Context, s *Step) error {
 			} else if p, err := getGCSAPIPath(ci.RawDisk.Source); err == nil {
 				ci.RawDisk.Source = p
 			} else {
-				return fmt.Errorf("bad value for RawDisk.Source: %q", ci.RawDisk.Source)
+				return errf("bad value for RawDisk.Source: %q", ci.RawDisk.Source)
 			}
 		}
 	}
 	return nil
 }
 
-func (c *CreateImages) validate(ctx context.Context, s *Step) error {
+func (c *CreateImages) validate(ctx context.Context, s *Step) dErr {
 	for _, ci := range *c {
 		if !checkName(ci.Name) {
-			return fmt.Errorf("can't create image: bad name: %q", ci.Name)
+			return errf("can't create image: bad name: %q", ci.Name)
 		}
 
 		// Project checking.
 		if exists, err := projectExists(s.w.ComputeClient, ci.Project); err != nil {
-			return fmt.Errorf("cannot create image: bad project lookup: %q, error: %v", ci.Project, err)
+			return errf("cannot create image: bad project lookup: %q, error: %v", ci.Project, err)
 		} else if !exists {
-			return fmt.Errorf("cannot create image: project does not exist: %q", ci.Project)
+			return errf("cannot create image: project does not exist: %q", ci.Project)
 		}
 
 		// Source disk checking.
 		if !xor(ci.SourceDisk == "", ci.RawDisk == nil) {
-			return errors.New("must provide either SourceDisk or RawDisk, exclusively")
+			return errf("must provide either SourceDisk or RawDisk, exclusively")
 		}
 
 		if ci.SourceDisk != "" {
 			if ci.RawDisk != nil {
-				return errors.New("must provide either SourceDisk or RawDisk, exclusively")
+				return errf("must provide either SourceDisk or RawDisk, exclusively")
 			}
 			if _, err := disks[s.w].registerUsage(ci.SourceDisk, s); err != nil {
-				return err
+				return newErr(err)
 			}
 		}
 
@@ -122,9 +121,9 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		for _, l := range ci.Licenses {
 			result := namedSubexp(licenseURLRegex, l)
 			if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
-				return fmt.Errorf("cannot create image: bad license lookup: %q, error: %v", l, err)
+				return errf("cannot create image: bad license lookup: %q, error: %v", l, err)
 			} else if !exists {
-				return fmt.Errorf("cannot create image: license does not exist: %q", l)
+				return errf("cannot create image: license does not exist: %q", l)
 			}
 		}
 
@@ -132,17 +131,17 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) error {
 		link := fmt.Sprintf("projects/%s/global/images/%s", ci.Project, ci.Name)
 		r := &resource{real: ci.Name, link: link, noCleanup: ci.NoCleanup}
 		if err := images[s.w].registerCreation(ci.daisyName, r, s, ci.OverWrite); err != nil {
-			return fmt.Errorf("error creating image: %s", err)
+			return errf("error creating image: %s", err)
 		}
 	}
 
 	return nil
 }
 
-func (c *CreateImages) run(ctx context.Context, s *Step) error {
+func (c *CreateImages) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan error)
+	e := make(chan dErr)
 	for _, ci := range *c {
 		wg.Add(1)
 		go func(ci *CreateImage) {
@@ -157,7 +156,7 @@ func (c *CreateImages) run(ctx context.Context, s *Step) error {
 				// Just try to delete it, a 404 here indicates the image doesn't exist.
 				if err := w.ComputeClient.DeleteImage(ci.Project, ci.Name); err != nil {
 					if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
-						e <- fmt.Errorf("error deleting existing image: %v", err)
+						e <- errf("error deleting existing image: %v", err)
 						return
 					}
 				}
@@ -165,7 +164,7 @@ func (c *CreateImages) run(ctx context.Context, s *Step) error {
 
 			w.logger.Printf("CreateImages: creating image %q.", ci.Name)
 			if err := w.ComputeClient.CreateImage(ci.Project, &ci.Image); err != nil {
-				e <- err
+				e <- newErr(err)
 				return
 			}
 		}(ci)
