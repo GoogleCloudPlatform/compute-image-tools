@@ -25,7 +25,7 @@ var zonesCache struct {
 	mu     sync.Mutex
 }
 
-func zoneExists(client compute.Client, project, zone string) (bool, error) {
+func zoneExists(client compute.Client, project, zone string) (bool, dErr) {
 	zonesCache.mu.Lock()
 	defer zonesCache.mu.Unlock()
 	if zonesCache.exists == nil {
@@ -34,7 +34,7 @@ func zoneExists(client compute.Client, project, zone string) (bool, error) {
 	if _, ok := zonesCache.exists[project]; !ok {
 		zl, err := client.ListZones(project)
 		if err != nil {
-			return false, err
+			return false, typedErr(apiError, err)
 		}
 		var zones []string
 		for _, z := range zl {

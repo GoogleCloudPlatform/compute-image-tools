@@ -15,7 +15,6 @@
 package daisy
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -44,9 +43,13 @@ func initImageRegistry(w *Workflow) {
 	imagesMu.Unlock()
 }
 
-func (ir *imageRegistry) deleteFn(res *resource) error {
+func (ir *imageRegistry) deleteFn(res *resource) dErr {
 	m := namedSubexp(imageURLRgx, res.link)
-	return ir.w.ComputeClient.DeleteImage(m["project"], m["image"])
+	err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"])
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+		return typedErr(resourceDNEError, err)
+	}
+	return newErr(err)
 }
 
 var imagesCache struct {
@@ -61,7 +64,7 @@ var familiesCache struct {
 
 // imageExists should only be used during validation for existing GCE images
 // and should not be relied or populated for daisy created resources.
-func imageExists(client compute.Client, project, family, name string) (bool, error) {
+func imageExists(client compute.Client, project, family, name string) (bool, dErr) {
 	if family != "" {
 		familiesCache.mu.Lock()
 		defer familiesCache.mu.Unlock()
@@ -80,7 +83,7 @@ func imageExists(client compute.Client, project, family, name string) (bool, err
 			if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
 				return false, nil
 			}
-			return false, err
+			return false, typedErr(apiError, err)
 		}
 		if img.Deprecated != nil {
 			if img.Deprecated.State == "OBSOLETE" || img.Deprecated.State == "DELETED" {
@@ -92,7 +95,7 @@ func imageExists(client compute.Client, project, family, name string) (bool, err
 	}
 
 	if name == "" {
-		return false, errors.New("must provide either family or name")
+		return false, errf("must provide either family or name")
 	}
 	imagesCache.mu.Lock()
 	defer imagesCache.mu.Unlock()
@@ -102,7 +105,7 @@ func imageExists(client compute.Client, project, family, name string) (bool, err
 	if _, ok := imagesCache.exists[project]; !ok {
 		il, err := client.ListImages(project)
 		if err != nil {
-			return false, fmt.Errorf("error listing images for project %q: %v", project, err)
+			return false, errf("error listing images for project %q: %v", project, err)
 		}
 		var images []string
 		for _, i := range il {

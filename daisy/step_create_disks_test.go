@@ -16,7 +16,6 @@ package daisy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -114,13 +113,13 @@ func TestCreateDisksRun(t *testing.T) {
 	s := &Step{w: w}
 	images[w].m = map[string]*resource{"i1": {real: "i1", link: "i1link"}}
 
-	e := errors.New("error")
+	e := errf("error")
 	tests := []struct {
 		desc      string
 		d         compute.Disk
 		wantD     compute.Disk
 		clientErr error
-		wantErr   error
+		wantErr   dErr
 	}{
 		{"blank case", compute.Disk{}, compute.Disk{}, nil, nil},
 		{"resolve source image case", compute.Disk{SourceImage: "i1"}, compute.Disk{SourceImage: "i1link"}, nil, nil},

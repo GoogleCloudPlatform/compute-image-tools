@@ -21,7 +21,6 @@ import (
 	"log"
 
 	compute "google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 // DeleteResources deletes GCE resources.
@@ -31,7 +30,7 @@ type DeleteResources struct {
 	Instances []string `json:",omitempty"`
 }
 
-func (d *DeleteResources) populate(ctx context.Context, s *Step) error {
+func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
 	for i, disk := range d.Disks {
 		if diskURLRgx.MatchString(disk) {
 			d.Disks[i] = extendPartialURL(disk, s.w.Project)
@@ -50,7 +49,7 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) error {
 	return nil
 }
 
-func (d *DeleteResources) validateInstance(i string, s *Step) error {
+func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
 	if err := instances[s.w].registerDeletion(i, s); err != nil {
 		return err
 	}
@@ -75,15 +74,15 @@ func (d *DeleteResources) validateInstance(i string, s *Step) error {
 	return nil
 }
 
-func (d *DeleteResources) checkError(err error, logger *log.Logger) error {
-	if dErr, ok := err.(*dError); ok && dErr.ErrType == resourceDNEError {
+func (d *DeleteResources) checkError(err dErr, logger *log.Logger) dErr {
+	if err == nil || err.Type() == resourceDNEError {
 		logger.Printf("DeleteResources WARNING: Error validating deletion: %v", err)
 		return nil
 	}
 	return err
 }
 
-func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
+func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 	// Instance checking.
 	for _, i := range d.Instances {
 		if err := d.validateInstance(i, s); d.checkError(err, s.w.logger) != nil {
@@ -108,10 +107,10 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) error {
 	return nil
 }
 
-func (d *DeleteResources) run(ctx context.Context, s *Step) error {
+func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan error)
+	e := make(chan dErr)
 
 	for _, i := range d.Instances {
 		wg.Add(1)
@@ -119,7 +118,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 			defer wg.Done()
 			w.logger.Printf("DeleteResources: deleting instance %q.", i)
 			if err := instances[w].delete(i); err != nil {
-				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+				if err.Type() == resourceDNEError {
 					s.w.logger.Printf("DeleteResources WARNING: Error deleting instance %q: %v", i, err)
 					return
 				}
@@ -134,7 +133,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 			defer wg.Done()
 			w.logger.Printf("DeleteResources: deleting image %q.", i)
 			if err := images[w].delete(i); err != nil {
-				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+				if err.Type() == resourceDNEError {
 					s.w.logger.Printf("DeleteResources WARNING: Error deleting image %q: %v", i, err)
 					return
 				}
@@ -158,14 +157,14 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) error {
 	}
 
 	// Delete disks only after instances have been deleted.
-	e = make(chan error)
+	e = make(chan dErr)
 	for _, d := range d.Disks {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
 			w.logger.Printf("DeleteResources: deleting disk %q.", d)
 			if err := disks[w].delete(d); err != nil {
-				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
+				if err.Type() == resourceDNEError {
 					s.w.logger.Printf("DeleteResources WARNING: Error deleting disk %q: %v", d, err)
 					return
 				}

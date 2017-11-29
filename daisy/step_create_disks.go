@@ -17,7 +17,6 @@ package daisy
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -55,7 +54,7 @@ func (c *CreateDisk) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*c)
 }
 
-func (c *CreateDisks) populate(ctx context.Context, s *Step) error {
+func (c *CreateDisks) populate(ctx context.Context, s *Step) dErr {
 	for _, cd := range *c {
 		cd.daisyName = cd.Name
 		if cd.ExactName && cd.RealName == "" {
@@ -72,7 +71,7 @@ func (c *CreateDisks) populate(ctx context.Context, s *Step) error {
 		if cd.SizeGb != "" {
 			size, err := strconv.ParseInt(cd.SizeGb, 10, 64)
 			if err != nil {
-				return fmt.Errorf("cannot parse SizeGb: %s, err: %v", cd.SizeGb, err)
+				return errf("cannot parse SizeGb: %s, err: %v", cd.SizeGb, err)
 			}
 			cd.Disk.SizeGb = size
 		}
@@ -90,49 +89,49 @@ func (c *CreateDisks) populate(ctx context.Context, s *Step) error {
 	return nil
 }
 
-func (c *CreateDisks) validate(ctx context.Context, s *Step) error {
+func (c *CreateDisks) validate(ctx context.Context, s *Step) dErr {
 	for _, cd := range *c {
 		if !checkName(cd.Name) {
-			return fmt.Errorf("cannot create disk: bad name: %q", cd.Name)
+			return errf("cannot create disk: bad name: %q", cd.Name)
 		}
 		if exists, err := projectExists(s.w.ComputeClient, cd.Project); err != nil {
-			return fmt.Errorf("cannot create disk: bad project lookup: %q, error: %v", cd.Project, err)
+			return errf("cannot create disk: bad project lookup: %q, error: %v", cd.Project, err)
 		} else if !exists {
-			return fmt.Errorf("cannot create disk: project does not exist: %q", cd.Project)
+			return errf("cannot create disk: project does not exist: %q", cd.Project)
 		}
 
 		if exists, err := zoneExists(s.w.ComputeClient, cd.Project, cd.Zone); err != nil {
-			return fmt.Errorf("cannot create disk: bad zone lookup: %q, error: %v", cd.Zone, err)
+			return errf("cannot create disk: bad zone lookup: %q, error: %v", cd.Zone, err)
 		} else if !exists {
-			return fmt.Errorf("cannot create disk: zone does not exist: %q", cd.Zone)
+			return errf("cannot create disk: zone does not exist: %q", cd.Zone)
 		}
 
 		if !diskTypeURLRgx.MatchString(cd.Type) {
-			return fmt.Errorf("cannot create disk: bad disk type: %q", cd.Type)
+			return errf("cannot create disk: bad disk type: %q", cd.Type)
 		}
 
 		if cd.SourceImage != "" {
 			if _, err := images[s.w].registerUsage(cd.SourceImage, s); err != nil {
-				return fmt.Errorf("cannot create disk: can't use image %q: %v", cd.SourceImage, err)
+				return errf("cannot create disk: can't use image %q: %v", cd.SourceImage, err)
 			}
 		} else if cd.Disk.SizeGb == 0 {
-			return errors.New("cannot create disk: SizeGb and SourceImage not set")
+			return errf("cannot create disk: SizeGb and SourceImage not set")
 		}
 
 		// Register creation.
 		link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", cd.Project, cd.Zone, cd.Name)
 		r := &resource{real: cd.Name, link: link, noCleanup: cd.NoCleanup}
 		if err := disks[s.w].registerCreation(cd.daisyName, r, s, false); err != nil {
-			return fmt.Errorf("error creating disk: %s", err)
+			return errf("error creating disk: %s", err)
 		}
 	}
 	return nil
 }
 
-func (c *CreateDisks) run(ctx context.Context, s *Step) error {
+func (c *CreateDisks) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan error)
+	e := make(chan dErr)
 	for _, cd := range *c {
 		wg.Add(1)
 		go func(cd *CreateDisk) {
@@ -146,7 +145,7 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) error {
 
 			w.logger.Printf("CreateDisks: creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
-				e <- err
+				e <- newErr(err)
 				return
 			}
 		}(cd)

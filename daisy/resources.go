@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/googleapi"
 )
 
 type resource struct {
@@ -38,7 +37,7 @@ type baseResourceRegistry struct {
 	m  map[string]*resource
 	mx sync.Mutex
 
-	deleteFn func(res *resource) error
+	deleteFn func(res *resource) dErr
 	typeName string
 	urlRgx   *regexp.Regexp
 }
@@ -56,25 +55,23 @@ func (r *baseResourceRegistry) cleanup() {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			if err := r.delete(name); err != nil {
-				if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code != 404 {
-					fmt.Println(err)
-				}
+			if err := r.delete(name); err != nil && err.Type() != resourceDNEError {
+				fmt.Println(err)
 			}
 		}(name)
 	}
 	wg.Wait()
 }
 
-func (r *baseResourceRegistry) delete(name string) error {
+func (r *baseResourceRegistry) delete(name string) dErr {
 	res, ok := r.get(name)
 	if !ok {
-		return fmt.Errorf("cannot delete %q; does not exist in resource map", name)
+		return errf("cannot delete %q; does not exist in resource map", name)
 	}
 	res.mx.Lock()
 	defer res.mx.Unlock()
 	if res.deleted {
-		return fmt.Errorf("cannot delete %q; already deleted", name)
+		return errf("cannot delete %q; already deleted", name)
 	}
 	if err := r.deleteFn(res); err != nil {
 		return err
@@ -90,9 +87,9 @@ func (r *baseResourceRegistry) get(name string) (*resource, bool) {
 	return res, ok
 }
 
-func resourceExists(client compute.Client, url string) (bool, error) {
+func resourceExists(client compute.Client, url string) (bool, dErr) {
 	if !strings.HasPrefix(url, "projects/") {
-		return false, fmt.Errorf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
+		return false, errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
 	switch {
 	case machineTypeURLRegex.MatchString(url):
@@ -111,23 +108,23 @@ func resourceExists(client compute.Client, url string) (bool, error) {
 		result := namedSubexp(networkURLRegex, url)
 		return networkExists(client, result["project"], result["network"])
 	}
-	return false, fmt.Errorf("unknown resource type: %q", url)
+	return false, errf("unknown resource type: %q", url)
 }
 
-func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *Step, overWrite bool) error {
+func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *Step, overWrite bool) dErr {
 	// Create a resource reference, known by name. Check:
 	// - no duplicates known by name
 	r.mx.Lock()
 	defer r.mx.Unlock()
 	if res, ok := r.m[name]; ok {
-		return fmt.Errorf("cannot create %s %q; already created by step %q", r.typeName, name, res.creator.name)
+		return errf("cannot create %s %q; already created by step %q", r.typeName, name, res.creator.name)
 	}
 
 	if !overWrite {
 		if exists, err := resourceExists(r.w.ComputeClient, res.link); err != nil {
-			return fmt.Errorf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
+			return errf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
 		} else if exists {
-			return fmt.Errorf("cannot create %s %q; resource already exists", r.typeName, name)
+			return errf("cannot create %s %q; resource already exists", r.typeName, name)
 		}
 	}
 
@@ -136,7 +133,7 @@ func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *S
 	return nil
 }
 
-func (r *baseResourceRegistry) registerDeletion(name string, s *Step) error {
+func (r *baseResourceRegistry) registerDeletion(name string, s *Step) dErr {
 	// Mark a resource reference for deletion. Check:
 	// - don't dupe deletion of name.
 	// - s depends on ALL registered users and creator of name.
@@ -145,17 +142,17 @@ func (r *baseResourceRegistry) registerDeletion(name string, s *Step) error {
 	var ok bool
 	var res *resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
-		var err error
+		var err dErr
 		res, err = r.registerExisting(name)
 		if err != nil {
 			return err
 		}
 	} else if res, ok = r.m[name]; !ok {
-		return fmt.Errorf("missing reference for %s %q", r.typeName, name)
+		return errf("missing reference for %s %q", r.typeName, name)
 	}
 
 	if res.deleter != nil {
-		return fmt.Errorf("cannot delete %s %q: already deleted by step %q", r.typeName, name, res.deleter.name)
+		return errf("cannot delete %s %q: already deleted by step %q", r.typeName, name, res.deleter.name)
 	}
 	us := res.users
 	if res.creator != nil {
@@ -163,16 +160,16 @@ func (r *baseResourceRegistry) registerDeletion(name string, s *Step) error {
 	}
 	for _, u := range us {
 		if !s.nestedDepends(u) {
-			return fmt.Errorf("deleting %s %q MUST transitively depend on step %q which references %q", r.typeName, name, u.name, name)
+			return errf("deleting %s %q MUST transitively depend on step %q which references %q", r.typeName, name, u.name, name)
 		}
 	}
 	res.deleter = s
 	return nil
 }
 
-func (r *baseResourceRegistry) registerExisting(url string) (*resource, error) {
+func (r *baseResourceRegistry) registerExisting(url string) (*resource, dErr) {
 	if !strings.HasPrefix(url, "projects/") {
-		return nil, fmt.Errorf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
+		return nil, errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
 	if r, ok := r.m[url]; ok {
 		return r, nil
@@ -180,7 +177,7 @@ func (r *baseResourceRegistry) registerExisting(url string) (*resource, error) {
 	if exists, err := resourceExists(r.w.ComputeClient, url); err != nil {
 		return nil, err
 	} else if !exists {
-		return nil, typedErrorf(resourceDNEError, "%s does not exist", url)
+		return nil, typedErrf(resourceDNEError, "%s does not exist", url)
 	}
 
 	parts := strings.Split(url, "/")
@@ -189,7 +186,7 @@ func (r *baseResourceRegistry) registerExisting(url string) (*resource, error) {
 	return res, nil
 }
 
-func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*resource, error) {
+func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*resource, dErr) {
 	// Make s a user of name. Check:
 	// - s depends on creator of name, if there is a creator.
 	// - name doesn't have a registered deleter yet, usage must occur before deletion.
@@ -198,20 +195,20 @@ func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*resource, e
 	var ok bool
 	var res *resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
-		var err error
+		var err dErr
 		res, err = r.registerExisting(name)
 		if err != nil {
 			return nil, err
 		}
 	} else if res, ok = r.m[name]; !ok {
-		return nil, fmt.Errorf("missing reference for %s %q", r.typeName, name)
+		return nil, errf("missing reference for %s %q", r.typeName, name)
 	}
 
 	if res.creator != nil && !s.nestedDepends(res.creator) {
-		return nil, fmt.Errorf("using %s %q MUST transitively depend on step %q which creates %q", r.typeName, name, res.creator.name, name)
+		return nil, errf("using %s %q MUST transitively depend on step %q which creates %q", r.typeName, name, res.creator.name, name)
 	}
 	if res.deleter != nil {
-		return nil, fmt.Errorf("using %s %q; step %q deletes %q and MUST transitively depend on this step", r.typeName, name, res.deleter.name, name)
+		return nil, errf("using %s %q; step %q deletes %q and MUST transitively depend on this step", r.typeName, name, res.deleter.name, name)
 	}
 
 	r.m[name].users = append(r.m[name].users, s)
@@ -241,8 +238,8 @@ func shareWorkflowResources(giver, taker *Workflow) {
 	networksMu.Unlock()
 }
 
-func resourceCleanupHook(w *Workflow) func() error {
-	return func() error {
+func resourceCleanupHook(w *Workflow) func() dErr {
+	return func() dErr {
 		images[w].cleanup()
 		instances[w].cleanup()
 		disks[w].cleanup()

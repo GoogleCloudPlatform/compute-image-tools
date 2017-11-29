@@ -16,8 +16,6 @@ package daisy
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -29,9 +27,9 @@ type stepImpl interface {
 	// URLs (partial URLs including the "projects/<project>" prefix), etc.
 	// This should not perform value validation.
 	// Returns any parsing errors.
-	populate(ctx context.Context, s *Step) error
-	validate(ctx context.Context, s *Step) error
-	run(ctx context.Context, s *Step) error
+	populate(ctx context.Context, s *Step) dErr
+	validate(ctx context.Context, s *Step) dErr
+	run(ctx context.Context, s *Step) dErr
 }
 
 // Step is a single daisy workflow step.
@@ -56,7 +54,7 @@ type Step struct {
 	testType stepImpl
 }
 
-func (s *Step) stepImpl() (stepImpl, error) {
+func (s *Step) stepImpl() (stepImpl, dErr) {
 	var result stepImpl
 	matchCount := 0
 	if s.CreateDisks != nil {
@@ -97,10 +95,10 @@ func (s *Step) stepImpl() (stepImpl, error) {
 	}
 
 	if matchCount == 0 {
-		return nil, errors.New("no step type defined")
+		return nil, errf("no step type defined")
 	}
 	if matchCount > 1 {
-		return nil, errors.New("multiple step types defined")
+		return nil, errf("multiple step types defined")
 	}
 	return result, nil
 }
@@ -180,7 +178,7 @@ func (s *Step) getChain() []*Step {
 	return nil
 }
 
-func (s *Step) run(ctx context.Context) error {
+func (s *Step) run(ctx context.Context) dErr {
 	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapRunError(err)
@@ -203,10 +201,10 @@ func (s *Step) run(ctx context.Context) error {
 	return nil
 }
 
-func (s *Step) validate(ctx context.Context) error {
+func (s *Step) validate(ctx context.Context) dErr {
 	s.w.logger.Printf("Validating step %q", s.name)
 	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
-		return s.wrapValidateError(errors.New("step name must start with a letter and only contain letters, numbers, and hyphens"))
+		return s.wrapValidateError(errf("step name must start with a letter and only contain letters, numbers, and hyphens"))
 	}
 	impl, err := s.stepImpl()
 	if err != nil {
@@ -218,14 +216,14 @@ func (s *Step) validate(ctx context.Context) error {
 	return nil
 }
 
-func (s *Step) wrapPopulateError(e error) error {
-	return fmt.Errorf("step %q populate error: %s", s.name, e)
+func (s *Step) wrapPopulateError(e dErr) dErr {
+	return errf("step %q populate error: %s", s.name, e)
 }
 
-func (s *Step) wrapRunError(e error) error {
-	return fmt.Errorf("step %q run error: %s", s.name, e)
+func (s *Step) wrapRunError(e dErr) dErr {
+	return errf("step %q run error: %s", s.name, e)
 }
 
-func (s *Step) wrapValidateError(e error) error {
-	return fmt.Errorf("step %q validation error: %s", s.name, e)
+func (s *Step) wrapValidateError(e dErr) dErr {
+	return errf("step %q validation error: %s", s.name, e)
 }

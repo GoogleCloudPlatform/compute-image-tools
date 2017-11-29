@@ -366,7 +366,7 @@ func TestCreateInstancePopulateScopes(t *testing.T) {
 
 func TestCreateInstancesRun(t *testing.T) {
 	ctx := context.Background()
-	var createErr error
+	var createErr dErr
 	w := testWorkflow()
 	w.ComputeClient.(*daisyCompute.TestClient).CreateInstanceFn = func(p, z string, i *compute.Instance) error {
 		i.SelfLink = "insertedLink"
@@ -394,7 +394,7 @@ func TestCreateInstancesRun(t *testing.T) {
 
 	// Bad case: compute client CreateInstance error. Check instance ref map doesn't update.
 	instances[w].m = map[string]*resource{}
-	createErr = errors.New("client error")
+	createErr = errf("client error")
 	ci = &CreateInstances{
 		{daisyName: "i0", Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},
 	}

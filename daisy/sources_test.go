@@ -20,7 +20,6 @@ import (
 	"log"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"testing"
 )
@@ -50,36 +49,37 @@ func TestUploadSources(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	localDNEErr := "stat this/file/dne: no such file or directory"
-	if runtime.GOOS == "windows" {
-		localDNEErr = "GetFileAttributesEx this\\file\\dne: The system cannot find the path specified."
-	}
+	const NOERR = "NOERR"
 	tests := []struct {
-		desc    string
-		sources map[string]string
-		err     string
-		gcs     []string
+		desc        string
+		sources     map[string]string
+		wantErrType string
+		gcs         []string
 	}{
-		{"normal local file to GCS", map[string]string{"local": testPath}, "", []string{w.sourcesPath + "/local"}},
-		{"normal local folder to GCS", map[string]string{"local": dir}, "", []string{w.sourcesPath + "/local/test"}},
-		{"normal GCS obj to GCS", map[string]string{"gcs": "gs://gcs/file"}, "", []string{w.sourcesPath + "/gcs"}},
-		{"normal GCS bkt to GCS", map[string]string{"gcs": "gs://gcs/folder/"}, "", []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
-		{"dne local path", map[string]string{"local": "./this/file/dne"}, localDNEErr, nil},
-		{"dne GCS path", map[string]string{"gcs": "gs://gcs/path/dne"}, `error copying from file gs://gcs/path/dne: googleapi: got HTTP response code 404 with body: storage: object doesn't exist`, nil},
-		{"GCS path, no object", map[string]string{"gcs": "gs://folder"}, "", []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
+		{"normal local file to GCS", map[string]string{"local": testPath}, NOERR, []string{w.sourcesPath + "/local"}},
+		{"normal local folder to GCS", map[string]string{"local": dir}, NOERR, []string{w.sourcesPath + "/local/test"}},
+		{"normal GCS obj to GCS", map[string]string{"gcs": "gs://gcs/file"}, NOERR, []string{w.sourcesPath + "/gcs"}},
+		{"normal GCS bkt to GCS", map[string]string{"gcs": "gs://gcs/folder/"}, NOERR, []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
+		{"dne local path", map[string]string{"local": "./this/file/dne"}, fileIOError, nil},
+		{"dne GCS path", map[string]string{"gcs": "gs://gcs/path/dne"}, resourceDNEError, nil},
+		{"GCS path, no object", map[string]string{"gcs": "gs://folder"}, NOERR, []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
 	}
 
 	for _, tt := range tests {
 		w.Sources = tt.sources
 		testGCSObjs = nil
-		err = w.uploadSources(ctx)
-		if tt.err != "" && err == nil {
-			t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
-		} else if tt.err != "" && err != nil && err.Error() != tt.err {
-			t.Errorf("unexpected error, test case: %q; input: %s; want error: %s, got error: %s", tt.desc, tt.sources, tt.err, err)
-		} else if tt.err == "" && err != nil {
-			t.Errorf("unexpected error, test case: %q; input: %s; error result: %s", tt.desc, tt.sources, err)
+		derr := w.uploadSources(ctx)
+
+		if tt.wantErrType == NOERR && derr != nil {
+			t.Errorf("unexpected error, test case: %q; input: %s; error result: %s", tt.desc, tt.sources, derr)
+		} else if tt.wantErrType != NOERR {
+			if derr == nil {
+				t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
+			} else if derr.Type() != tt.wantErrType {
+				t.Errorf("unexpected error, test case: %q; input: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.Type())
+			}
 		}
+
 		if !reflect.DeepEqual(tt.gcs, testGCSObjs) {
 			t.Errorf("expected GCS objects list does not match, test case: %q; input: %s; want: %q, got: %q", tt.desc, tt.sources, tt.gcs, testGCSObjs)
 		}
@@ -90,14 +90,18 @@ func TestUploadSources(t *testing.T) {
 	for _, tt := range tests {
 		sw.Sources = tt.sources
 		testGCSObjs = nil
-		err = w.uploadSources(ctx)
-		if tt.err != "" && err == nil {
-			t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
-		} else if tt.err != "" && err != nil && err.Error() != tt.err {
-			t.Errorf("unexpected error, test case: %q; input: %s; want error: %s, got error: %s", tt.desc, tt.sources, tt.err, err)
-		} else if tt.err == "" && err != nil {
-			t.Errorf("unexpected error, test case: %q; input: %s; error result: %s", tt.desc, tt.sources, err)
+
+		derr := w.uploadSources(ctx)
+		if tt.wantErrType == NOERR && derr != nil {
+			t.Errorf("unexpected error, test case: %q; input: %s; error result: %s", tt.desc, tt.sources, derr)
+		} else if tt.wantErrType != NOERR {
+			if derr == nil {
+				t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
+			} else if derr.Type() != tt.wantErrType {
+				t.Errorf("unexpected error, test case: %q; input: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.Type())
+			}
 		}
+
 		// Test cases were built for the parent workflow, not the subworkflow.
 		// Modify the expected GCS paths to match the subworkflow.
 		for i, s := range tt.gcs {

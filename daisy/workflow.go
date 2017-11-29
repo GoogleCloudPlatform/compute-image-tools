@@ -82,12 +82,12 @@ func (l *syncedWriter) Flush() error {
 	return l.buf.Flush()
 }
 
-func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, error) {
+func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, dErr) {
 	dBkt := strings.Replace(project, ":", "-", -1) + "-daisy-bkt"
 	it := client.Buckets(ctx, project)
 	for bucketAttrs, err := it.Next(); err != iterator.Done; bucketAttrs, err = it.Next() {
 		if err != nil {
-			return "", err
+			return "", typedErr(apiError, err)
 		}
 		if bucketAttrs.Name == dBkt {
 			return dBkt, nil
@@ -95,7 +95,7 @@ func daisyBkt(ctx context.Context, client *storage.Client, project string) (stri
 	}
 
 	if err := client.Bucket(dBkt).Create(ctx, project, nil); err != nil {
-		return "", err
+		return "", typedErr(apiError, err)
 	}
 	return dBkt, nil
 }
@@ -161,7 +161,7 @@ type Workflow struct {
 	StorageClient  *storage.Client `json:"-"`
 	id             string
 	logger         *log.Logger
-	cleanupHooks   []func() error
+	cleanupHooks   []func() dErr
 	cleanupHooksMx sync.Mutex
 }
 
@@ -173,7 +173,7 @@ func (w *Workflow) AddVar(k, v string) {
 	w.Vars[k] = wVar{Value: v}
 }
 
-func (w *Workflow) addCleanupHook(hook func() error) {
+func (w *Workflow) addCleanupHook(hook func() dErr) {
 	w.cleanupHooksMx.Lock()
 	w.cleanupHooks = append(w.cleanupHooks, hook)
 	w.cleanupHooksMx.Unlock()
@@ -186,7 +186,7 @@ func (w *Workflow) Validate(ctx context.Context) error {
 	if w.ComputeClient == nil {
 		w.ComputeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
 		if err != nil {
-			return err
+			return typedErr(apiError, err)
 		}
 	}
 
@@ -199,12 +199,12 @@ func (w *Workflow) Validate(ctx context.Context) error {
 
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
-		return fmt.Errorf("error validating workflow: %v", err)
+		return errf("error validating workflow: %v", err)
 	}
 
 	if err := w.populate(ctx); err != nil {
 		close(w.Cancel)
-		return fmt.Errorf("error populating workflow: %v", err)
+		return errf("error populating workflow: %v", err)
 	}
 
 	w.logger.Print("Validating workflow")
@@ -282,19 +282,20 @@ func (w *Workflow) getSourceGCSAPIPath(s string) string {
 	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(w.bucket, w.sourcesPath, s))
 }
 
-func (w *Workflow) populateStep(ctx context.Context, s *Step) error {
+func (w *Workflow) populateStep(ctx context.Context, s *Step) dErr {
 	if s.Timeout == "" {
 		s.Timeout = defaultTimeout
 	}
 	timeout, err := time.ParseDuration(s.Timeout)
 	if err != nil {
-		return err
+		return newErr(err)
 	}
 	s.timeout = timeout
 
+	var derr dErr
 	var step stepImpl
-	if step, err = s.stepImpl(); err != nil {
-		return err
+	if step, derr = s.stepImpl(); derr != nil {
+		return derr
 	}
 	return step.populate(ctx, s)
 }
@@ -307,12 +308,10 @@ func (w *Workflow) populateStep(ctx context.Context, s *Step) error {
 // - generates autovars from workflow fields (Name, Zone, etc) and run second round of var substitution.
 // - sets up logger.
 // - runs populate on each step.
-func (w *Workflow) populate(ctx context.Context) error {
-	var err error
-
+func (w *Workflow) populate(ctx context.Context) dErr {
 	for k, v := range w.Vars {
 		if v.Required && v.Value == "" {
-			return errorf("cannot populate workflow, required var %q is unset", k)
+			return errf("cannot populate workflow, required var %q is unset", k)
 		}
 	}
 
@@ -502,20 +501,20 @@ func (w *Workflow) Print(ctx context.Context) {
 	fmt.Println(string(b))
 }
 
-func (w *Workflow) run(ctx context.Context) error {
-	return w.traverseDAG(func(s *Step) error {
+func (w *Workflow) run(ctx context.Context) dErr {
+	return w.traverseDAG(func(s *Step) dErr {
 		return w.runStep(ctx, s)
 	})
 }
 
-func (w *Workflow) runStep(ctx context.Context, s *Step) error {
+func (w *Workflow) runStep(ctx context.Context, s *Step) dErr {
 	timeout := make(chan struct{})
 	go func() {
 		time.Sleep(s.timeout)
 		close(timeout)
 	}()
 
-	e := make(chan error)
+	e := make(chan dErr)
 	go func() {
 		e <- s.run(ctx)
 	}()
@@ -524,27 +523,27 @@ func (w *Workflow) runStep(ctx context.Context, s *Step) error {
 	case err := <-e:
 		return err
 	case <-timeout:
-		return fmt.Errorf("step %q did not stop in specified timeout of %s", s.name, s.timeout)
+		return errf("step %q did not stop in specified timeout of %s", s.name, s.timeout)
 	}
 }
 
 // Concurrently traverse the DAG, running func f on each step.
 // Return an error if f returns an error on any step.
-func (w *Workflow) traverseDAG(f func(*Step) error) error {
+func (w *Workflow) traverseDAG(f func(*Step) dErr) dErr {
 	// waiting = steps and the dependencies they are waiting for.
 	// running = the currently running steps.
 	// start = map of steps' start channels/semaphores.
 	// done = map of steps' done channels for signaling step completion.
 	waiting := map[string][]string{}
 	var running []string
-	start := map[string]chan error{}
-	done := map[string]chan error{}
+	start := map[string]chan dErr{}
+	done := map[string]chan dErr{}
 
 	// Setup: channels, copy dependencies.
 	for name := range w.Steps {
 		waiting[name] = w.Dependencies[name]
-		start[name] = make(chan error)
-		done[name] = make(chan error)
+		start[name] = make(chan dErr)
+		done[name] = make(chan dErr)
 	}
 	// Setup: goroutine for each step. Each waits to be notified to start.
 	for name, s := range w.Steps {
@@ -675,7 +674,7 @@ func readWorkflow(file string, w *Workflow) error {
 }
 
 // stepsListen returns the first step that finishes/errs.
-func stepsListen(names []string, chans map[string]chan error) (string, error) {
+func stepsListen(names []string, chans map[string]chan dErr) (string, dErr) {
 	cases := make([]reflect.SelectCase, len(names))
 	for i, name := range names {
 		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(chans[name])}
@@ -684,7 +683,7 @@ func stepsListen(names []string, chans map[string]chan error) (string, error) {
 	name := names[caseIndex]
 	if recvOk {
 		// recvOk -> a step failed, return the error.
-		return name, value.Interface().(error)
+		return name, value.Interface().(dErr)
 	}
 	return name, nil
 }

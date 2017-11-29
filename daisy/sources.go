@@ -16,22 +16,23 @@ package daisy
 
 import (
 	"context"
-	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"cloud.google.com/go/storage"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
 
-func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) error {
+func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) dErr {
 	it := w.StorageClient.Bucket(bkt).Objects(ctx, &storage.Query{Prefix: prefix})
 	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
 		if err != nil {
-			return err
+			return typedErr(apiError, err)
 		}
 		if objAttr.Size == 0 {
 			continue
@@ -40,7 +41,7 @@ func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) er
 		o := path.Join(w.sourcesPath, dst, strings.TrimPrefix(objAttr.Name, prefix))
 		dstPath := w.StorageClient.Bucket(w.bucket).Object(o)
 		if _, err := dstPath.CopierFrom(srcPath).Run(ctx); err != nil {
-			return err
+			return typedErr(apiError, err)
 		}
 	}
 	return nil
@@ -51,21 +52,21 @@ func (w *Workflow) sourceExists(s string) bool {
 	return ok
 }
 
-func (w *Workflow) uploadFile(ctx context.Context, src, obj string) error {
+func (w *Workflow) uploadFile(ctx context.Context, src, obj string) dErr {
 	obj = filepath.ToSlash(obj)
 	dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, obj))
 	gcs := dstPath.NewWriter(ctx)
 	f, err := os.Open(src)
 	if err != nil {
-		return err
+		return newErr(err)
 	}
 	if _, err := io.Copy(gcs, f); err != nil {
-		return err
+		return newErr(err)
 	}
-	return gcs.Close()
+	return newErr(gcs.Close())
 }
 
-func (w *Workflow) uploadSources(ctx context.Context) error {
+func (w *Workflow) uploadSources(ctx context.Context) dErr {
 	for dst, origPath := range w.Sources {
 		if origPath == "" {
 			continue
@@ -74,14 +75,17 @@ func (w *Workflow) uploadSources(ctx context.Context) error {
 		if bkt, objPath, err := splitGCSPath(origPath); err == nil {
 			if objPath == "" || strings.HasSuffix(objPath, "/") {
 				if err := w.recursiveGCS(ctx, bkt, objPath, dst); err != nil {
-					return fmt.Errorf("error copying from bucket %s: %v", origPath, err)
+					return errf("error copying from bucket %s: %v", origPath, err)
 				}
 				continue
 			}
 			src := w.StorageClient.Bucket(bkt).Object(objPath)
 			dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, dst))
 			if _, err := dstPath.CopierFrom(src).Run(ctx); err != nil {
-				return fmt.Errorf("error copying from file %s: %v", origPath, err)
+				if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+					return typedErrf(resourceDNEError, "error copying from file %s: %v", origPath, err)
+				}
+				return errf("error copying from file %s: %v", origPath, err)
 			}
 
 			continue
@@ -93,7 +97,7 @@ func (w *Workflow) uploadSources(ctx context.Context) error {
 		}
 		fi, err := os.Stat(origPath)
 		if err != nil {
-			return err
+			return typedErr(fileIOError, err)
 		}
 		if fi.IsDir() {
 			var files []string
@@ -107,7 +111,7 @@ func (w *Workflow) uploadSources(ctx context.Context) error {
 				files = append(files, path)
 				return nil
 			}); err != nil {
-				return err
+				return typedErr(fileIOError, err)
 			}
 			for _, file := range files {
 				obj := path.Join(dst, strings.TrimPrefix(file, filepath.Clean(origPath)))

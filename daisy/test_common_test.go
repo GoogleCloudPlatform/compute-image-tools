@@ -34,26 +34,26 @@ import (
 )
 
 type mockStep struct {
-	populateImpl func(context.Context, *Step) error
-	runImpl      func(context.Context, *Step) error
-	validateImpl func(context.Context, *Step) error
+	populateImpl func(context.Context, *Step) dErr
+	runImpl      func(context.Context, *Step) dErr
+	validateImpl func(context.Context, *Step) dErr
 }
 
-func (m *mockStep) populate(ctx context.Context, s *Step) error {
+func (m *mockStep) populate(ctx context.Context, s *Step) dErr {
 	if m.populateImpl != nil {
 		return m.populateImpl(ctx, s)
 	}
 	return nil
 }
 
-func (m *mockStep) run(ctx context.Context, s *Step) error {
+func (m *mockStep) run(ctx context.Context, s *Step) dErr {
 	if m.runImpl != nil {
 		return m.runImpl(ctx, s)
 	}
 	return nil
 }
 
-func (m *mockStep) validate(ctx context.Context, s *Step) error {
+func (m *mockStep) validate(ctx context.Context, s *Step) dErr {
 	if m.validateImpl != nil {
 		return m.validateImpl(ctx, s)
 	}
