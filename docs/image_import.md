@@ -6,7 +6,7 @@ machine images to GCE.
 
 Tools:
 * [Daisy](daisy.md)
-* [Import Precheck](../import_precheck/README.md)
+* [Import Precheck](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/import_precheck/)
 
 ## Image Import Process
 The image import process, also known as translation, imports virtual disks to
@@ -36,7 +36,8 @@ import. Below is a list of known compatibility issues and requirements:
 ## Image Import Precheck
 Image import has a long runtime, can fail due to incompatibilities, and can
 cause unexpected behavior post-import. As such, you may find it useful to run
-our [precheck tool](../import_precheck/README.md) to check for the known issues
-listed above. See [Incompatibilities](#incompatibilities) above.
+our [precheck tool](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/import_precheck/)
+to check for the known issues listed above. See
+[Incompatibilities](#incompatibilities) above.
 
 There are binaries available for Windows and Linux.
