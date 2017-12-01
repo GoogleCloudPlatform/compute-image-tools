@@ -8,7 +8,7 @@ GitHub repository.
 
 Daisy is a solution for running complex, multi-step workflows on GCE.
 
-## [Image Import](image_import.md)
+## [Image Import](image-import.md)
 
 Instructions and tooling documentation for importing virtual machine images
 into GCE.
