@@ -35,7 +35,6 @@ We recommend you start by reading the following:
 ## Further Reading
 
 - [Automating Image Creation](daisy-automating-image-creation.md)
-- [Importing Virtual Disks into GCE](daisy-import-userguide.md)
+- [Importing Virtual Disks into GCE](image-import.md)
 - [Passing Data to Instances](daisy-passing-data.md)
 - [Reusing Workflow Files](daisy-reusing-workflows.md)
-

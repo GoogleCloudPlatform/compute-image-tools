@@ -3,9 +3,9 @@
 
 # Introduction
 
-Daisy is an open source workflow tool for building custom GCE images and importing/exporting to/from virtual disks.  This document provides instructions for using Daisy to import VMware VMDK and other Virtual Disks.
+This document provides instructions for using Daisy to import VMWare VMDKs and other virtual disks.
 
-Some basic concepts to start with
+Some basic concepts to start with:
 
 *   **Virtual Disk**: Virtual disk is a file that encapsulates the content of a virtualized disk in a virtualization environment. Virtual Disks are critical components of virtual machines for holding boot media and data. Virtualization platforms (eg VMWare, Hyper-v, KVM etc) each have their own format for virtual disks.
 *   **Persistent Disk**: Compute Engine Persistent Disk is a Compute Engine resource that is equivalent to disk drives in physical computers and virtualdisks in a virtualization environment.
@@ -225,10 +225,34 @@ $ daisy -var:source_image=projectsmy-awesome-projectglobal/images/my-server-impo
 [Daisy] All workflows completed successfully.
 ```
 
-# Limitations and Known Issues
+# Compatibility and Known Limitations
 
-*   Only virtual disks that use Grub as the default boot loader are supported.
 *   Networking: Import workflow sets the interface to DHCP. If that fails, or if there are other interfaces set with firewalls, special routing, VPN's, or other non-standard configurations, networking may fail and while the resulting instance may boot, you may not be able to access it.
+
+Not every VM image will be importable to GCE. Some VMs will have issues after
+import. Below is a list of known compatibility requirements and issues:
+
+### Windows
+| Name | Severity | Description |
+|-|-|-|
+| OS Version | Required | We support the following OS versions: Windows Server 2008 R2, 2012 R2, or 2016. |
+| OS Disk | Required | The disk containing the OS must be bootable and must be MBR. |
+| Multiple Disks | Warning  | Image import cannot directly handle multiple disk scenarios. Additional disks must be imported and attached separately. |
+| Powershell (Windows) | Warning | Warn if Powershell Version < 3. Powershell versions older than 3.0 can cause issues with GCE startup and shutdown scripts. |
+
+### Linux
+| Name | Severity | Description |
+|-|-|-|    
+| OS Version | Required | We support the following OS versions: RHEL/CentOS/OEL 6 or 7; Debian 8 or 9; Ubuntu 14.04 or 16.04. |
+| OS Disk | Required | The disk containing the OS must be bootable. The disk must be MBR and have GRUB installed. |
+| Multiple Disks | Warning  | Image import cannot directly handle multiple disk scenarios. Additional disks must be imported and attached separately. |
+| SSH | Warning | Warn if SSH is not running on port 22. GCE provides SSH clients via the Cloud Console and the gcloud CLI. These clients connect on port 22 and will not work if you have a different SSH configuration. |
+
+### Compatibility Precheck Tool
+Image import has a long runtime, can fail due to incompatibilities, and can
+cause unexpected behavior post-import. As such, you may find it useful to run
+our [precheck tool](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/import_precheck/)
+to check for the known issues listed above.
 
 # Advanced Topics
 
