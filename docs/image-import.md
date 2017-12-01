@@ -235,9 +235,9 @@ import. Below is a list of known compatibility requirements and issues:
 ### Windows
 | Name | Severity | Description |
 |-|-|-|
-| OS Version | Required | We support the following OS versions: Windows Server 2008 R2, 2012 R2, or 2016; RHEL/CentOS/OEL 6 or 7; Debian 8 or 9; Ubuntu 14.04 or 16.04 |
+| OS Version | Required | We support the following OS versions: Windows Server 2008 R2, 2012 R2, or 2016. |
 | OS Disk | Required | The disk containing the OS must be bootable and must be MBR. |
-| Multiple Disks | Warning  | Image import cannot handle multiple disk scenarios. Additional disks must be imported and attached separately. |
+| Multiple Disks | Warning  | Image import cannot directly handle multiple disk scenarios. Additional disks must be imported and attached separately. |
 | Powershell (Windows) | Warning | Warn if Powershell Version < 3. Powershell versions older than 3.0 can cause issues with GCE startup and shutdown scripts. |
 
 ### Linux
@@ -245,17 +245,14 @@ import. Below is a list of known compatibility requirements and issues:
 |-|-|-|    
 | OS Version | Required | We support the following OS versions: RHEL/CentOS/OEL 6 or 7; Debian 8 or 9; Ubuntu 14.04 or 16.04. |
 | OS Disk | Required | The disk containing the OS must be bootable. The disk must be MBR and have GRUB installed. |
-| Multiple Disks | Warning  | Image import cannot handle multiple disk scenarios. Additional disks must be imported and attached separately. |
+| Multiple Disks | Warning  | Image import cannot directly handle multiple disk scenarios. Additional disks must be imported and attached separately. |
 | SSH | Warning | Warn if SSH is not running on port 22. GCE provides SSH clients via the Cloud Console and the gcloud CLI. These clients connect on port 22 and will not work if you have a different SSH configuration. |
 
 ### Compatibility Precheck Tool
 Image import has a long runtime, can fail due to incompatibilities, and can
 cause unexpected behavior post-import. As such, you may find it useful to run
 our [precheck tool](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/import_precheck/)
-to check for the known issues listed above. See
-[Incompatibilities](#incompatibilities) above.
-
-There are binaries available for Windows and Linux.
+to check for the known issues listed above.
 
 # Advanced Topics
 

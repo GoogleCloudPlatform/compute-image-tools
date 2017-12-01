@@ -5,12 +5,12 @@ will either cause import to fail or will cause potentially unexpected behavior
 post-import. See our [image import documentation](https://googlecloudplatform.github.io/compute-image-tools/image-import.md)
 for more information.
 
-Precheck must be run as root/admin.
+Precheck must be run as root or Administrator on the running system you want to import.
 
 ## Binaries
-Windows: https://storage.googleapis.com/compute-image-tools/release/windows/import_precheck_d03684b55aa87913fc7608694279a189379322ab.exe
+Windows: https://storage.googleapis.com/compute-image-tools/release/windows/import_precheck_release.exe
 
-Linux: https://storage.googleapis.com/compute-image-tools/release/linux/import_precheck_d03684b55aa87913fc7608694279a189379322ab
+Linux: https://storage.googleapis.com/compute-image-tools/release/linux/import_precheck_release
 
 ## Building from Source
 `go get -u github.com/GoogleCloudPlatform/compute-image-tools/import_precheck`
