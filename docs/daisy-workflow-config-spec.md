@@ -264,7 +264,7 @@ Added fields:
 
 | Field Name | Type | Description |
 | - | - | - |
-| Scopes | list(string) | *Optional.* Defaults to `["https://www.googleapis.com/auth/devstorage.read_only"]`. Only used if serviceAccounts is not used. Sets default service account scopes by setting serviceAccounts to `[{"email": "default", "scopes": <value of Scopes>}]`.|
+| Scopes | list(string) | *Optional.* Defaults to `["https://www.googleapis.com/auth/devstorage.read_only"]`. Only used if serviceAccounts is not used. Sets default service account scopes by setting serviceAccounts to `[{"email": "default", "scopes": <value of Scopes>}]`. For example, if you wanted to give the default service account read-write access to GCS (see https://cloud.google.com/storage/docs/authentication#oauth-scopes), you'd use `["https://www.googleapis.com/auth/devstorage.read_write"]`. |
 | StartupScript | string | *Optional.* A source file from Sources. If provided, metadata will be set for `startup-script-url` and `windows-startup-script-url`.|
 | Project | string | *Optional.* Defaults to workflow's Project. The GCP project in which to create the disk. |
 | Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
@@ -306,7 +306,7 @@ An ACLRule has two fields:
 + Role - Access level to grant, one of OWNER, READER, or WRITER
 
 This CopyGCSObjects step example copies image.tar.gz from the Daisy OUTSPATH to
-gs://project2/my-image.tar.gz and gives the special user "allUsers" read 
+gs://project2/my-image.tar.gz and gives the special user "allUsers" read
 permissions.
 ```json
 "step-name": {
@@ -557,5 +557,3 @@ out of convenience. Here is the exhaustive list of autovars:
 | LOGSPATH | Equivalent to ${SCRATCHPATH}/logs. |
 | OUTSPATH | Equivalent to ${SCRATCHPATH}/outs. |
 | USERNAME | Username of the user running the workflow. |
-
-
