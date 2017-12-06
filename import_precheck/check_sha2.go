@@ -13,19 +13,19 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"runtime"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/packages"
-	"strings"
-	"fmt"
 )
 
 const SHA2WINDOWS2008R2KB = "KB3033929"
 const WINDOWS2008R2ROLLUPKB = "KB3125574"
 
-type SHA2DriverSigningCheck struct {}
+type SHA2DriverSigningCheck struct{}
 
-func(s *SHA2DriverSigningCheck) GetName() string {
+func (s *SHA2DriverSigningCheck) GetName() string {
 	return "SHA2 Driver Signing Check"
 }
 
@@ -42,24 +42,12 @@ func (s *SHA2DriverSigningCheck) Run() (*Report, error) {
 		return nil, fmt.Errorf("GetInstalledPackages errors:\n* %s", strings.Join(errs, "\n* "))
 	}
 
-	var pkgInfo *packages.PkgInfo
-	var kb string
 	for _, pkg := range append(pkgs["qfe"], pkgs["wua"]...) {
-		if pkg.Version == SHA2WINDOWS2008R2KB {
-			kb = SHA2WINDOWS2008R2KB
-		} else if pkg.Version == WINDOWS2008R2ROLLUPKB {
-			kb = WINDOWS2008R2ROLLUPKB
-		}
-		if kb != "" {
-			pkgInfo = &pkg
-			break
+		if pkg.Version == SHA2WINDOWS2008R2KB || pkg.Version == WINDOWS2008R2ROLLUPKB {
+			r.Info(fmt.Sprintf("Windows Update containing SHA2 driver signing support found: %v", pkg))
+			return r, nil
 		}
 	}
-	if pkgInfo != nil {
-		r.Info(fmt.Sprintf("Windows Update %s containing SHA2 driver signing support found: %v", kb, pkgInfo))
-	} else {
-		r.Fatal("SHA2 driver signing support not found.")
-	}
-
+	r.Fatal("SHA2 driver signing support not found.")
 	return r, nil
 }
