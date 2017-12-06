@@ -13,6 +13,8 @@ Some basic concepts to start with:
 
 # Installation
 
+**NOTE:** before attempting a virtual disk import, take a look at the [known compatibility issues](#compatibility-and-known-limitations) and our [compatibility precheck tool](#compatibility-precheck-tool) below.
+
 It is recommended that you run Daisy in a GCE VM instance that is configured with required API scopes and workflow files pre installed. Executing the following command will create a new VM instance and install required files.
 
 ```

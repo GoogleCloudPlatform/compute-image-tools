@@ -35,6 +35,7 @@ func getChecks() []Check {
 		&DisksCheck{},
 		&SSHCheck{},
 		&PowershellCheck{},
+		&SHA2DriverSigningCheck{},
 	}
 }
 
@@ -54,6 +55,9 @@ func main() {
 	}
 
 	osInfo, err = osinfo.GetDistributionInfo()
+	if err != nil {
+		logger.Fatal(err)
+	}
 
 	checks := getChecks()
 	wg := sync.WaitGroup{}
