@@ -6,7 +6,7 @@ GitHub repository.
 
 ## [Daisy](daisy.md)
 
-Daisy is a solution for running complex, multi-step workflows on GCE.
+Daisy is a solution for running multi-step workflows on GCE.
 
 ## [Image Import](image-import.md)
 

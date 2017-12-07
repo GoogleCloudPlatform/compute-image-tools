@@ -11,7 +11,7 @@ The main documentation for the tools in this repository can be found on our
 
 ## [Daisy](daisy)
 
-Daisy is a solution for running complex, multi-step workflows on GCE.
+Daisy is a solution for running multi-step workflows on GCE.
 
 ### [Daisy Workflows](daisy_workflows)
 

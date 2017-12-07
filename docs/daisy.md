@@ -3,7 +3,7 @@
 This page contains documentation for Daisy.
 
 ## What is Daisy?
-Daisy is a solution for running complex, multi-step workflows on GCE.
+Daisy is a solution for running multi-step workflows on GCE.
 
 Workflows are broken down into steps. Daisy's current set of steps includes
 support for creating/deleting GCE resources, waiting for signals from GCE VMs,
