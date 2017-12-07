@@ -28,7 +28,7 @@ tar -C /usr/local -xzf go1.8.3.linux-amd64.tar.gz || exit_error
 export PATH=$PATH:/usr/local/go/bin
 export GOPATH=~/go
 export PATH=$PATH:~/go/bin
-go get -t -v github.com/GoogleCloudPlatform/compute-image-tools/gce_export || exit_error
+go get -t -v github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export || exit_error
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
