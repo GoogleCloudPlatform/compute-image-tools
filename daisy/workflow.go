@@ -381,7 +381,7 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 		s.name = name
 		s.w = w
 		if err := w.populateStep(ctx, s); err != nil {
-			return err
+			return errf("error populating step %q: %v", name, err)
 		}
 	}
 	return nil

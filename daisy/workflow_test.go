@@ -458,8 +458,9 @@ func TestPopulate(t *testing.T) {
 	}
 
 	stepPopErr = errf("error")
-	if err := got.populate(ctx); err != stepPopErr {
-		t.Errorf("did not get proper step populate error: %v != %v", err, stepPopErr)
+	wantErr := errf("error populating step \"wf-name-step1\": %v", stepPopErr)
+	if err := got.populate(ctx); err.Error() != wantErr.Error() {
+		t.Errorf("did not get proper step populate error: %v != %v", err, wantErr)
 	}
 }
 
@@ -684,7 +685,7 @@ func TestValidateErrors(t *testing.T) {
 	// Error from populate().
 	w = testWorkflow()
 	w.Steps = map[string]*Step{"s0": {Timeout: "10", testType: &mockStep{}}}
-	want = "error populating workflow: time: missing unit in duration 10"
+	want = "error populating workflow: error populating step \"s0\": time: missing unit in duration 10"
 	if err := testValidateErrors(w, want); err != nil {
 		t.Error(err)
 	}
