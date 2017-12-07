@@ -253,7 +253,7 @@ import. Below is a list of known compatibility requirements and issues:
 ### Compatibility Precheck Tool
 Image import has a long runtime, can fail due to incompatibilities, and can
 cause unexpected behavior post-import. As such, you may find it useful to run
-our [precheck tool](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/import_precheck/)
+our [precheck tool](https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/cli_tools/import_precheck/)
 to check for the known issues listed above.
 
 # Advanced Topics

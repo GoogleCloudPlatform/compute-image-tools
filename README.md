@@ -23,10 +23,10 @@ also provided here.
 
 Basic workflow examples and tutorials for getting started with Daisy.
 
-## [GCE Export tool](gce_export)
+## [GCE Export tool](cli_tools/gce_export)
 
-The gce_export tool streams a local disk to a Google Compute Engine image file
-in a Google Cloud Storage bucket.
+The cli_tools/gce_export tool streams a local disk to a Google Compute Engine
+image file in a Google Cloud Storage bucket.
 
 ## Contributing
 
