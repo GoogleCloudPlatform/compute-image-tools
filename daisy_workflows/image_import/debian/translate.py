@@ -69,18 +69,9 @@ def DistroSpecific(g):
     g.sh(
         'DEBIAN_FRONTEND=noninteractive '
         'apt-get install --assume-yes --no-install-recommends '
-        'google-cloud-packages-archive-keyring')
-    g.sh(
-        'DEBIAN_FRONTEND=noninteractive '
-        'apt-get install --assume-yes --no-install-recommends '
+        'google-cloud-packages-archive-keyring google-cloud-sdk '
         'google-compute-engine python-google-compute-engine '
         'python3-google-compute-engine')
-    # TODO: install google-cloud-sdk using apt when post install scripts are fixed
-    print g.sh(r'apt-get download google-cloud-sdk;'
-        r'dpkg --unpack google-cloud-sdk*.deb;'
-        r'rm /var/lib/dpkg/info/google-cloud-sdk.postinst -f;'
-        r'dpkg --configure google-cloud-sdk;'
-        r'apt-get install -yf')
 
   # Update grub config to log to console.
   g.command(
