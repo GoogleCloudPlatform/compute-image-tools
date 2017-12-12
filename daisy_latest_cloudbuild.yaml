@@ -4,8 +4,10 @@ steps:
   args: ['mkdir', '-p', './src/github.com/GoogleCloudPlatform/compute-image-tools']
 - name: 'alpine'
   args: ['mv', './daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy']
+- name: 'alpine'
+  args: ['mv', './cli_tools/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy/...']
+  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/...']
   env: ['GOPATH=./']
 
 ### Daisy builds with V1 API ###
