@@ -75,7 +75,7 @@ func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
 }
 
 func (d *DeleteResources) checkError(err dErr, logger *log.Logger) dErr {
-	if err == nil || err.Type() == resourceDNEError {
+	if err != nil && err.Type() == resourceDNEError {
 		logger.Printf("DeleteResources WARNING: Error validating deletion: %v", err)
 		return nil
 	}
