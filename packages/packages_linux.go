@@ -139,7 +139,7 @@ func aptUpdates() ([]PkgInfo, error) {
 	     google-cloud-sdk libdns-export162 libisc-export160
 	   3 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
 	   Inst google-cloud-sdk [168.0.0-0] (171.0.0-0 cloud-sdk-stretch:cloud-sdk-stretch [all])
-	   Inst libisc-export160 [1:9.10.3.dfsg.P4-12.3+deb9u2] (1:9.10.3.dfsg.P4-12.3+deb9u3 Debian:stable-updates [amd64])
+	   Inst python2.7 [2.7.13-2] (2.7.13-2+deb9u2 Debian:9.3/stable [amd64]) []
 	   Inst libdns-export162 [1:9.10.3.dfsg.P4-12.3+deb9u2] (1:9.10.3.dfsg.P4-12.3+deb9u3 Debian:stable-updates [amd64])
 	   Conf google-cloud-sdk (171.0.0-0 cloud-sdk-stretch:cloud-sdk-stretch [all])
 	   Conf libisc-export160 (1:9.10.3.dfsg.P4-12.3+deb9u3 Debian:stable-updates [amd64])
@@ -154,7 +154,7 @@ func aptUpdates() ([]PkgInfo, error) {
 		if pkg[0] != "Inst" {
 			continue
 		}
-		if len(pkg) != 6 {
+		if len(pkg) < 6 {
 			logger.Errorf("%q does not represent an apt update", ln)
 			continue
 		}
