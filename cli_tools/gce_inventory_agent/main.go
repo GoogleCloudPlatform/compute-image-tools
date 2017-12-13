@@ -113,43 +113,9 @@ func writeInventory(state *instanceInventory, url string) {
 			}
 		}
 	}
-
-	/*
-			if err := postAttribute(url+"/hostname", strings.NewReader(state.Hostname)); err != nil {
-				state.Errors = append(state.Errors, err.Error())
-				logger.Error(err)
-			}
-
-			if err := postAttribute(url+"/longName", strings.NewReader(state.LongName)); err != nil {
-				state.Errors = append(state.Errors, err.Error())
-				logger.Error(err)
-			}
-
-			if err := postAttribute(url+"/shortName", strings.NewReader(state.ShortName)); err != nil {
-				state.Errors = append(state.Errors, err.Error())
-				logger.Error(err)
-			}
-
-			if err := postAttribute(url+"/version", strings.NewReader(state.Version)); err != nil {
-				state.Errors = append(state.Errors, err.Error())
-				logger.Error(err)
-			}
-
-			if err := postAttribute(url+"/kernelVersion", strings.NewReader(state.KernelVersion)); err != nil {
-				state.Errors = append(state.Errors, err.Error())
-				logger.Error(err)
-			}
-
-		if err := postAttributeCompressed(url+"/installedPackages", state.InstalledPackages); err != nil {
-			state.Errors = append(state.Errors, err.Error())
-			logger.Error(err)
-		}
-
-		if err := postAttributeCompressed(url+"/packageUpdates", state.PackageUpdates); err != nil {
-			state.Errors = append(state.Errors, err.Error())
-			logger.Error(err)
-		}
-	*/
+	if err := postAttribute(url+"/Errors", strings.NewReader(fmt.Sprintf("%q", state.Errors))); err != nil {
+		logger.Error(err)
+	}
 }
 
 func main() {
