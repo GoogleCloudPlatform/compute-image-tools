@@ -30,7 +30,7 @@ class Repo(object):
     def commit(self):
         p = call(['git', 'rev-parse', 'HEAD'], cwd=self._root, stdout=PIPE)
         out, _ = p.communicate()
-        return out.strip()
+        return out.decode('utf-8').strip()
 
     @property
     def root(self):

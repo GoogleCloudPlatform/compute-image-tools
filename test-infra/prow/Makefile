@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# These are the usual variables.
-PROJECT        ?= gce-daisy-test
-BUILD_PROJECT  ?= gce-daisy-test
-ZONE           ?= us-west1-a
-CLUSTER        ?= prow
+# Variable defaults.
+PROJECT       ?= compute-image-tools-test
+BUILD_PROJECT ?= compute-image-tools-test
+ZONE          ?= us-west1-b
+CLUSTER       ?= prow
 
 # Build and push specific variables.
 REGISTRY ?= gcr.io
@@ -69,4 +68,7 @@ horologium-deployment: get-cluster-credentials
 plank-deployment: get-cluster-credentials
 	kubectl apply -f cluster/plank_deployment.yaml
 
-.PHONY: hook-deployment hook-service sinker-deployment deck-deployment deck-service splice-deployment tot-service tot-deployment horologium-deployment plank-deployment
+tide-deployment: get-cluster-credentials
+	kubectl apply -f cluster/tide_deployment.yaml
+
+.PHONY: hook-deployment hook-service sinker-deployment deck-deployment deck-service splice-deployment tot-service tot-deployment horologium-deployment plank-deployment tide-deployment

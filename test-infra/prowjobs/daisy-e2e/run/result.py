@@ -14,9 +14,9 @@
 import json
 import os
 
-import constants
-import common
-import gcs
+from run.constants import *
+from run import common
+from run import gcs
 
 
 class _Result(object):
@@ -44,7 +44,7 @@ class _Result(object):
     def finished(self, result, metadata=None):
         path = common.urljoin(self._path, 'finished.json')
         data = json.dumps({
-            'timestamp': common.utc_timestamp(),
+            'timestamp': common.unix_time(),
             'result': result,
             'version': self._version,
             'metadata': metadata or {},
@@ -54,27 +54,27 @@ class _Result(object):
     def started(self):
         path = common.urljoin(self._path, 'started.json')
         data = {
-            'timestamp': common.utc_timestamp(),
+            'timestamp': common.unix_time(),
             'version': self._version,
         }
-        if constants.PULL_REFS:
-            data['pull'] = constants.PULL_REFS
+        if PULL_REFS:
+            data['pull'] = PULL_REFS
         gcs.upload_string(json.dumps(data), path, 'application/json')
 
 
 class Periodic(_Result):
     def __init__(self, version):
-        build_num = constants.BUILD_NUM
-        job_name = constants.JOB_NAME
+        build_num = BUILD_NUM
+        job_name = JOB_NAME
         self._path = os.path.join('logs', job_name, build_num)
         self._version = version
 
 
 class PR(_Result):
     def __init__(self, pr, version):
-        build_num = constants.BUILD_NUM
-        job_name = constants.JOB_NAME
-        org_repo = '_'.join([constants.REPO_OWNER, constants.REPO_NAME])
+        build_num = BUILD_NUM
+        job_name = JOB_NAME
+        org_repo = '_'.join([REPO_OWNER, REPO_NAME])
         self._path = os.path.join(
                 'pr-logs', 'pull', org_repo, str(pr), job_name, build_num)
         self._version = version

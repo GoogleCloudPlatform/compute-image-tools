@@ -6,5 +6,5 @@ def urljoin(*args):
     return '/'.join(args)
 
 
-def utc_timestamp():
+def unix_time():
     return calendar.timegm(datetime.datetime.utcnow().utctimetuple())

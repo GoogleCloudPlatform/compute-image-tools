@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import argparse
-from cStringIO import StringIO
 import glob
+from io import StringIO
 import multiprocessing
 import os
 import re
@@ -22,6 +22,7 @@ import requests
 import sys
 import tarfile
 import time
+from typing import Dict, List, Optional, Tuple
 import xml.etree.ElementTree
 
 import google.auth
@@ -29,35 +30,30 @@ from google.auth.transport.requests import AuthorizedSession
 from junit_xml import TestCase, TestSuite
 
 from run import common
-from run import constants
+from run.constants import *
 from run import git
 from run import logging
 from run import result
 
+ARGS: argparse.Namespace = None
+OTHER_ARGS: List[str] = None
 
-ARGS = []
-OTHER_ARGS = []
-PARALLEL_TESTS = 10
-REPO_URL = 'https://github.com/%s/%s.git' % (
-        constants.REPO_OWNER, constants.REPO_NAME)
-TEST_ID = str(common.utc_timestamp())
-WFS_TAR = 'wfs.tar.gz'
-
-BUILD_API_URL = 'https://cloudbuild.googleapis.com/v1'
-session = None
+session: AuthorizedSession = None
 suite_rgx = re.compile(r'(?P<suite>.*[^\d])(?P<test_num>\d*)\.wf\.json$')
-
-TGZ_NAME = 'wfs.tar.gz'
 
 build_log = StringIO()
 build_log_handler = logging.StreamHandler(build_log)
 build_log_handler.setLevel(logging.INFO)
 logging.getLogger().addHandler(build_log_handler)
 
-res = None
 
+def build_subsuites(wfs) -> Dict[str, List[Tuple[int, str]]]:
+    """Separate and order tests into groups sharing the same prefixes.
 
-def build_subsuites(wfs):
+    For example, foo0.wf.json and foo1.wf.json will be in the same subsuite,
+    and bar0.wf.json and bar1.wf.json will be in another. foo0 will be before
+    foo1 and bar0 before bar1.
+    """
     suites = {}
     for wf in wfs:
         match = suite_rgx.match(wf)
@@ -82,21 +78,26 @@ def main():
     if repo.clone_code:
         return repo.clone_code
 
-    setup_result(repo.commit)
+    res = result.Periodic(repo.commit)
 
+    # Push all workflows to GCS for the test runner to pick up.
     logging.info('Tar\'ing workflows to upload to GCS.')
     wf_dir = os.path.join(repo.root, 'daisy_workflows')
-    with tarfile.open(TGZ_NAME, 'w:gz') as tgz:
+    tgz_name = 'wfs.tgz'
+    with tarfile.open(tgz_name, 'w:gz') as tgz:
         tgz.add(wf_dir, arcname=os.path.sep)
-    res.artifact(TGZ_NAME, path=TGZ_NAME, content_type='application/gzip')
+    res.artifact(tgz_name, path=tgz_name, content_type='application/gzip')
 
+    # Run test workflow subsuites in parallel.
     logging.info('Running test workflows.')
     wfs = glob.glob(os.path.join(wf_dir, ARGS.tests, '*.wf.json'))
     wfs = [os.path.join(ARGS.tests, os.path.basename(wf)) for wf in wfs]
     subsuites = build_subsuites(wfs)
     pool = multiprocessing.Pool(PARALLEL_TESTS)
     res.started()
-    test_results = pool.map(run_subsuite, subsuites.values())
+
+    pool_args = [(subsuite, tgz_name, res) for subsuite in subsuites.values()]
+    test_results = pool.starmap(run_subsuite, pool_args)
     code = 0
     test_cases = []
     for r in test_results:
@@ -111,7 +112,7 @@ def main():
     return code
 
 
-def parse_args(arguments=None):
+def parse_args(arguments=None) -> Tuple[argparse.Namespace, List[str]]:
     """Parse arguments or sys.argv[1:]."""
     p = argparse.ArgumentParser()
     p.add_argument(
@@ -126,18 +127,18 @@ def parse_args(arguments=None):
     return args, other_args
 
 
-def run_subsuite(suite):
+def run_subsuite(suite, wfs_tgz_name: str, res: result.Periodic) -> Tuple[int, List[TestCase]]:
     code = 0
     test_cases = []
     for _, wf in suite:
         start = time.time()
-        wf_return_code, testcase_id = run_wf(wf)
+        wf_return_code, testcase_id = run_wf(wf, wfs_tgz_name, res)
         end = time.time()
         tc = TestCase(wf, ARGS.tests, end - start)
         if testcase_id:
             tc.id = testcase_id
             tc.log_url = common.urljoin(
-                    constants.GCS_API_BASE, constants.BUCKET, res.base_path,
+                    GCS_API_BASE, BUCKET, res.base_path,
                     'artifacts', 'log-%s.txt' % testcase_id)
         if wf_return_code:
             tc.add_failure_info('Failed with code %s' % wf_return_code)
@@ -146,7 +147,8 @@ def run_subsuite(suite):
     return code, test_cases
 
 
-def run_wf(wf):
+def run_wf(wf: str, wfs_tgz_name: str, res: result.Periodic) -> Tuple[int, Optional[str]]:
+    """Runs a single workflow."""
     args = OTHER_ARGS + ['-var:test-id=%s' % TEST_ID, wf]
     logging.info('Running test %s with args %s', wf, args)
 
@@ -154,18 +156,18 @@ def run_wf(wf):
     body = {
         'source': {
             'storageSource': {
-                'bucket': constants.BUCKET,
-                'object': common.urljoin(artifacts_path, TGZ_NAME),
+                'bucket': BUCKET,
+                'object': common.urljoin(artifacts_path, wfs_tgz_name),
             }
         },
-        'logsBucket': common.urljoin(constants.BUCKET, artifacts_path),
+        'logsBucket': common.urljoin(BUCKET, artifacts_path),
         'steps': [{
             'name': 'gcr.io/compute-image-tools/daisy:%s' % ARGS.version,
             'args': args,
         }],
         'timeout': '36000s',
     }
-    method = common.urljoin('projects', constants.TEST_PROJECT, 'builds')
+    method = common.urljoin('projects', TEST_PROJECT, 'builds')
     resp = session.post(common.urljoin(BUILD_API_URL, method), json=body)
     try:
         resp.raise_for_status()
@@ -194,18 +196,13 @@ def run_wf(wf):
         return 0, testcase_id
 
 
-def setup_result(commit):
-    global res
-    res = result.Periodic(commit)
-
-
-def setup_session():
+def setup_session() -> AuthorizedSession:
     scopes = ['https://www.googleapis.com/auth/cloud-platform']
     creds, _ = google.auth.default(scopes)
     return AuthorizedSession(creds)
 
 
-def xml_add_testcase_ids(ts_xml, ts):
+def xml_add_testcase_ids(ts_xml, ts: TestSuite):
     for tc_xml, tc in zip(ts_xml, ts.test_cases):
         tc_xml.attrib['id'] = tc.id
     return ts_xml
