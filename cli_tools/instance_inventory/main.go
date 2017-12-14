@@ -72,7 +72,6 @@ func main() {
 
 	ats := []string{"Timestamp", "Hostname", "LongName", "ShortName", "Version", "KernelVersion", "InstalledPackages", "PackageUpdates", "Errors"}
 
-	//ii := map[string]string{}
 	var ii sync.Map
 	var wg sync.WaitGroup
 	for _, at := range ats {
