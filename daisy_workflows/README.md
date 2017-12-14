@@ -5,7 +5,7 @@ images. There are also example workflows.
 
 # Import Userguide
 The [import
-userguide](https://googlecloudplatform.github.io/compute-image-tools/daisy-import-userguide.html)
+userguide](https://googlecloudplatform.github.io/compute-image-tools/image-import.html)
 provides examples for running import workflows using Google Compute Engine tools
 and VM's.
 
