@@ -77,7 +77,7 @@ func main() {
 	var wg sync.WaitGroup
 	for _, at := range ats {
 		wg.Add(1)
-		go func(at string, eg *sync.WaitGroup) {
+		go func(at string, wg *sync.WaitGroup) {
 			defer wg.Done()
 			value, err := getAttribute(service, *project, *zone, *instance, at)
 			if err != nil {

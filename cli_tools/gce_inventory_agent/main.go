@@ -62,7 +62,7 @@ func postAttribute(url string, value io.Reader) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(`recieved status code %q for request "%s %s"`, resp.Status, req.Method, req.URL.String())
+		return fmt.Errorf(`received status code %q for request "%s %s"`, resp.Status, req.Method, req.URL.String())
 	}
 	return nil
 }
