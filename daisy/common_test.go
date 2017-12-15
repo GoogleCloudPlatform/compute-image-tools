@@ -264,7 +264,7 @@ func TestSubstitute(t *testing.T) {
 
 	for i, tt := range tests {
 		s := reflect.ValueOf(&tt.got).Elem()
-		substitute(s, tt.replacer)
+		Substitute(s, tt.replacer)
 
 		if diff := pretty.Compare(tt.got, tt.want); diff != "" {
 			t.Errorf("test %d: post substitute workflow does not match expectation: (-got +want)\n%s", i, diff)

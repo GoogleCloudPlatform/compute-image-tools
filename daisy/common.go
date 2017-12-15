@@ -106,9 +106,9 @@ func strOr(s string, ss ...string) string {
 	return ""
 }
 
-// substitute runs replacer on string elements within a complex data structure
+// Substitute runs replacer on string elements within a complex data structure
 // (except those contained in private data structure fields).
-func substitute(v reflect.Value, replacer *strings.Replacer) {
+func Substitute(v reflect.Value, replacer *strings.Replacer) {
 	traverseData(v, func(val reflect.Value) dErr {
 		switch val.Interface().(type) {
 		case string:
