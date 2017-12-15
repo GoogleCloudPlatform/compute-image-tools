@@ -75,11 +75,11 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 		}
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	Substitute(reflect.ValueOf(i.Workflow).Elem(), strings.NewReplacer(replacements...))
+	substitute(reflect.ValueOf(i.Workflow).Elem(), strings.NewReplacer(replacements...))
 	for k, v := range i.Workflow.Vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
-	Substitute(reflect.ValueOf(i.Workflow).Elem(), strings.NewReplacer(replacements...))
+	substitute(reflect.ValueOf(i.Workflow).Elem(), strings.NewReplacer(replacements...))
 
 	i.Workflow.populateLogger(ctx)
 

@@ -346,7 +346,7 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 	for k, v := range w.Vars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v.Value)
 	}
-	Substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
+	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
 	// Set up GCS paths.
 	if w.GCSPath == "" {
@@ -380,7 +380,7 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 	for k, v := range w.autovars {
 		replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
 	}
-	Substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
+	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
 	w.populateLogger(ctx)
 
