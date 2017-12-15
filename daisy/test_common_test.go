@@ -29,7 +29,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
 
@@ -81,11 +81,10 @@ func testWorkflow() *Workflow {
 	w.Name = testWf
 	w.GCSPath = testGCSPath
 	w.Project = testProject
-	w.Zone = testZone
 	w.ComputeClient, _ = newTestGCEClient()
 	w.StorageClient, _ = newTestGCSClient()
 	w.Cancel = make(chan struct{})
-	w.logger = log.New(ioutil.Discard, "", 0)
+	w.Logger = log.New(ioutil.Discard, "", 0)
 	return w
 }
 

@@ -56,7 +56,7 @@ func TestLogSerialOutput(t *testing.T) {
 	w.bucket = "test-bucket"
 
 	var buf bytes.Buffer
-	w.logger = log.New(&buf, "", 0)
+	w.Logger = log.New(&buf, "", 0)
 
 	tests := []struct {
 		test, want, name string

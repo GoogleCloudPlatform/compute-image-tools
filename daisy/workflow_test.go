@@ -375,7 +375,7 @@ func TestPopulate(t *testing.T) {
 	got.Zone = "wf-zone"
 	got.Project = "bar-project"
 	got.OAuthPath = tf
-	got.logger = log.New(ioutil.Discard, "", 0)
+	got.Logger = log.New(ioutil.Discard, "", 0)
 	got.Vars = map[string]wVar{
 		"bucket":    {Value: "wf-bucket", Required: true},
 		"step_name": {Value: "step1"},
@@ -442,7 +442,7 @@ func TestPopulate(t *testing.T) {
 	for _, wf := range []*Workflow{got, want} {
 		wf.ComputeClient = nil
 		wf.StorageClient = nil
-		wf.logger = nil
+		wf.Logger = nil
 		wf.cleanupHooks = nil
 		for _, s := range wf.Steps {
 			s.w = nil

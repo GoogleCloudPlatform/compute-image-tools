@@ -47,13 +47,12 @@ func (w *Workflow) validateRequiredFields() dErr {
 	} else if !exists {
 		return errf("project does not exist: %q", w.Project)
 	}
-	if w.Zone == "" {
-		return errf("must provide workflow field 'Zone'")
-	}
-	if exists, err := zoneExists(w.ComputeClient, w.Project, w.Zone); err != nil {
-		return errf("bad zone lookup: %q, error: %v", w.Zone, err)
-	} else if !exists {
-		return errf("zone does not exist: %q", w.Zone)
+	if w.Zone != "" {
+		if exists, err := zoneExists(w.ComputeClient, w.Project, w.Zone); err != nil {
+			return errf("bad zone lookup: %q, error: %v", w.Zone, err)
+		} else if !exists {
+			return errf("zone does not exist: %q", w.Zone)
+		}
 	}
 	if len(w.Steps) == 0 {
 		return errf("must provide at least one step in workflow field 'Steps'")

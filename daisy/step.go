@@ -189,20 +189,20 @@ func (s *Step) run(ctx context.Context) dErr {
 	} else {
 		st = t.Name()
 	}
-	s.w.logger.Printf("Running step %q (%s)", s.name, st)
+	s.w.Logger.Printf("Running step %q (%s)", s.name, st)
 	if err = impl.run(ctx, s); err != nil {
 		return s.wrapRunError(err)
 	}
 	select {
 	case <-s.w.Cancel:
 	default:
-		s.w.logger.Printf("Step %q (%s) successfully finished.", s.name, st)
+		s.w.Logger.Printf("Step %q (%s) successfully finished.", s.name, st)
 	}
 	return nil
 }
 
 func (s *Step) validate(ctx context.Context) dErr {
-	s.w.logger.Printf("Validating step %q", s.name)
+	s.w.Logger.Printf("Validating step %q", s.name)
 	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
 		return s.wrapValidateError(errf("step name must start with a letter and only contain letters, numbers, and hyphens"))
 	}

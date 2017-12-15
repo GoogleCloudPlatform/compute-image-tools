@@ -24,7 +24,7 @@ import (
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -67,7 +67,7 @@ func (c *CreateInstance) MarshalJSON() ([]byte, error) {
 
 func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, interval time.Duration) {
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
-	w.logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s", name, port, w.bucket, logsObj)
+	w.Logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s", name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
 	var errs int
@@ -88,7 +88,7 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, 
 				if stopped && sErr == nil {
 					return
 				}
-				w.logger.Printf("CreateInstances: instance %q: error getting serial port: %v", name, err)
+				w.Logger.Printf("CreateInstances: instance %q: error getting serial port: %v", name, err)
 				return
 			}
 			start = resp.Next
@@ -96,7 +96,7 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, 
 			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil {
-				w.logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
+				w.Logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
 				return
 			}
 			if err := wc.Close(); err != nil {
@@ -104,7 +104,7 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, 
 					errs++
 					continue
 				}
-				w.logger.Printf("CreateInstances: instance %q: error saving log to GCS: %v", name, err)
+				w.Logger.Printf("CreateInstances: instance %q: error saving log to GCS: %v", name, err)
 				return
 			}
 			errs = 0
@@ -355,15 +355,18 @@ func (c *CreateInstances) validate(ctx context.Context, s *Step) dErr {
 		}
 
 		if exists, err := projectExists(s.w.ComputeClient, ci.Project); err != nil {
-			return errf("cannot create instance: bad project lookup: %q, error: %v", ci.Project, err)
+			return errf("cannot create instance %q: bad project lookup: %q, error: %v", ci.daisyName, ci.Project, err)
 		} else if !exists {
-			return errf("cannot create instance: project does not exist: %q", ci.Project)
+			return errf("cannot create instance %q: project does not exist: %q", ci.daisyName, ci.Project)
 		}
 
+		if ci.Zone == "" {
+			return errf("cannot create instance %q: no zone provided in step or workflow", ci.daisyName)
+		}
 		if exists, err := zoneExists(s.w.ComputeClient, ci.Project, ci.Zone); err != nil {
-			return errf("cannot create instance: bad zone lookup: %q, error: %v", ci.Zone, err)
+			return errf("cannot create instance %q: bad zone lookup: %q, error: %v", ci.daisyName, ci.Zone, err)
 		} else if !exists {
-			return errf("cannot create instance: zone does not exist: %q", ci.Zone)
+			return errf("cannot create instance %q: zone does not exist: %q", ci.daisyName, ci.Zone)
 		}
 
 		errs = addErrs(errs, ci.validateDisks(s))
@@ -394,7 +397,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 				}
 			}
 
-			w.logger.Printf("CreateInstances: creating instance %q.", ci.Name)
+			w.Logger.Printf("CreateInstances: creating instance %q.", ci.Name)
 			if err := w.ComputeClient.CreateInstance(ci.Project, ci.Zone, &ci.Instance); err != nil {
 				eChan <- newErr(err)
 				return
