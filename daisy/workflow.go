@@ -160,7 +160,7 @@ type Workflow struct {
 	ComputeClient  compute.Client  `json:"-"`
 	StorageClient  *storage.Client `json:"-"`
 	id             string
-	logger         *log.Logger
+	Logger         *log.Logger `json:"-"`
 	cleanupHooks   []func() dErr
 	cleanupHooksMx sync.Mutex
 }
@@ -181,20 +181,9 @@ func (w *Workflow) addCleanupHook(hook func() dErr) {
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate(ctx context.Context) error {
-	// API clients instantiation.
-	var err error
-	if w.ComputeClient == nil {
-		w.ComputeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
-		if err != nil {
-			return typedErr(apiError, err)
-		}
-	}
-
-	if w.StorageClient == nil {
-		w.StorageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
-		if err != nil {
-			return err
-		}
+	if err := w.populateClients(ctx); err != nil {
+		close(w.Cancel)
+		return errf("error populating workflow: %v", err)
 	}
 
 	if err := w.validateRequiredFields(); err != nil {
@@ -207,13 +196,13 @@ func (w *Workflow) Validate(ctx context.Context) error {
 		return errf("error populating workflow: %v", err)
 	}
 
-	w.logger.Print("Validating workflow")
+	w.Logger.Print("Validating workflow")
 	if err := w.validate(ctx); err != nil {
-		w.logger.Printf("Error validating workflow: %v", err)
+		w.Logger.Printf("Error validating workflow: %v", err)
 		close(w.Cancel)
 		return err
 	}
-	w.logger.Print("Validation Complete")
+	w.Logger.Print("Validation Complete")
 	return nil
 }
 
@@ -224,17 +213,17 @@ func (w *Workflow) Run(ctx context.Context) error {
 		return err
 	}
 	defer w.cleanup()
-	w.logger.Println("Using the GCS path", "gs://"+path.Join(w.bucket, w.scratchPath))
+	w.Logger.Println("Using the GCS path", "gs://"+path.Join(w.bucket, w.scratchPath))
 
-	w.logger.Print("Uploading sources")
+	w.Logger.Print("Uploading sources")
 	if err := w.uploadSources(ctx); err != nil {
-		w.logger.Printf("Error uploading sources: %v", err)
+		w.Logger.Printf("Error uploading sources: %v", err)
 		close(w.Cancel)
 		return err
 	}
-	w.logger.Print("Running workflow")
+	w.Logger.Print("Running workflow")
 	if err := w.run(ctx); err != nil {
-		w.logger.Printf("Error running workflow: %v", err)
+		w.Logger.Printf("Error running workflow: %v", err)
 		select {
 		case <-w.Cancel:
 		default:
@@ -251,10 +240,10 @@ func (w *Workflow) String() string {
 }
 
 func (w *Workflow) cleanup() {
-	w.logger.Printf("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
+	w.Logger.Printf("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
-			w.logger.Printf("Error returned from cleanup hook: %s", err)
+			w.Logger.Printf("Error returned from cleanup hook: %s", err)
 		}
 	}
 	if w.gcsLogWriter != nil {
@@ -280,6 +269,25 @@ func (w *Workflow) genName(n string) string {
 
 func (w *Workflow) getSourceGCSAPIPath(s string) string {
 	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(w.bucket, w.sourcesPath, s))
+}
+
+func (w *Workflow) populateClients(ctx context.Context) error {
+	// API clients instantiation.
+	var err error
+	if w.ComputeClient == nil {
+		w.ComputeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
+		if err != nil {
+			return typedErr(apiError, err)
+		}
+	}
+
+	if w.StorageClient == nil {
+		w.StorageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (w *Workflow) populateStep(ctx context.Context, s *Step) dErr {
@@ -388,7 +396,7 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 }
 
 func (w *Workflow) populateLogger(ctx context.Context) {
-	if w.logger != nil {
+	if w.Logger != nil {
 		return
 	}
 	name := w.Name
@@ -409,7 +417,7 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 			}
 		}()
 	}
-	w.logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
+	w.Logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
 }
 
 // AddDependency creates a dependency of dependent on each dependency. Returns an
@@ -490,6 +498,9 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print(ctx context.Context) {
 	w.gcsLogging = false
+	if err := w.populateClients(ctx); err != nil {
+		fmt.Println("Error running populateClients:", err)
+	}
 	if err := w.populate(ctx); err != nil {
 		fmt.Println("Error running populate:", err)
 	}
@@ -624,6 +635,34 @@ func NewFromFile(file string) (*Workflow, error) {
 	return w, nil
 }
 
+// JSONError turns an error from json.Unmarshal and returns a more user
+// friendly error.
+func JSONError(file string, data []byte, err error) error {
+	// If this is a syntax error return a useful error.
+	sErr, ok := err.(*json.SyntaxError)
+	if !ok {
+		return err
+	}
+
+	// Byte number where the error line starts.
+	start := bytes.LastIndex(data[:sErr.Offset], []byte("\n")) + 1
+	// Assume end byte of error line is EOF unless this isn't the last line.
+	end := len(data)
+	if i := bytes.Index(data[start:], []byte("\n")); i >= 0 {
+		end = start + i
+	}
+
+	// Line number of error.
+	line := bytes.Count(data[:start], []byte("\n")) + 1
+	// Position of error in line (where to place the '^').
+	pos := int(sErr.Offset) - start
+	if pos != 0 {
+		pos = pos - 1
+	}
+
+	return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
+}
+
 func readWorkflow(file string, w *Workflow) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -636,29 +675,7 @@ func readWorkflow(file string, w *Workflow) error {
 	}
 
 	if err := json.Unmarshal(data, &w); err != nil {
-		// If this is a syntax error return a useful error.
-		sErr, ok := err.(*json.SyntaxError)
-		if !ok {
-			return err
-		}
-
-		// Byte number where the error line starts.
-		start := bytes.LastIndex(data[:sErr.Offset], []byte("\n")) + 1
-		// Assume end byte of error line is EOF unless this isn't the last line.
-		end := len(data)
-		if i := bytes.Index(data[start:], []byte("\n")); i >= 0 {
-			end = start + i
-		}
-
-		// Line number of error.
-		line := bytes.Count(data[:start], []byte("\n")) + 1
-		// Position of error in line (where to place the '^').
-		pos := int(sErr.Offset) - start
-		if pos != 0 {
-			pos = pos - 1
-		}
-
-		return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
+		return JSONError(file, data, err)
 	}
 
 	if w.OAuthPath != "" && !filepath.IsAbs(w.OAuthPath) {

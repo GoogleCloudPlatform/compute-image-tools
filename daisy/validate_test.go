@@ -85,15 +85,16 @@ func TestValidateWorkflow(t *testing.T) {
 		desc string
 		wf   *Workflow
 	}{
-		{"no name", &Workflow{Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, logger: logger}},
-		{"no project", &Workflow{Name: "n", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, logger: logger}},
-		{"no zone", &Workflow{Name: "n", Project: "p", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, logger: logger}},
-		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", logger: logger}},
-		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, logger: logger}},
-		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout, w: w}}, logger: logger}},
+		{"no name", &Workflow{Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Logger: logger}},
+		{"no project", &Workflow{Name: "n", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Logger: logger}},
+		{"no zone", &Workflow{Name: "n", Project: "p", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": s}, Logger: logger}},
+		{"no steps", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Logger: logger}},
+		{"no step name", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"": s}, Logger: logger}},
+		{"no step type", &Workflow{Name: "n", Project: "p", Zone: "z", GCSPath: "b", OAuthPath: "o", Steps: map[string]*Step{"s": {Timeout: defaultTimeout, w: w}}, Logger: logger}},
 	}
 
 	for _, tt := range tests {
+		tt.wf.Cancel = make(chan struct{})
 		if err := tt.wf.Validate(ctx); err == nil {
 			t.Errorf("validation should have failed on %s because of %q", tt.wf, tt.desc)
 		}

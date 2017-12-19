@@ -85,21 +85,21 @@ func (d *DeleteResources) checkError(err dErr, logger *log.Logger) dErr {
 func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 	// Instance checking.
 	for _, i := range d.Instances {
-		if err := d.validateInstance(i, s); d.checkError(err, s.w.logger) != nil {
+		if err := d.validateInstance(i, s); d.checkError(err, s.w.Logger) != nil {
 			return err
 		}
 	}
 
 	// Disk checking.
 	for _, disk := range d.Disks {
-		if err := disks[s.w].registerDeletion(disk, s); d.checkError(err, s.w.logger) != nil {
+		if err := disks[s.w].registerDeletion(disk, s); d.checkError(err, s.w.Logger) != nil {
 			return err
 		}
 	}
 
 	// Image checking.
 	for _, i := range d.Images {
-		if err := images[s.w].registerDeletion(i, s); d.checkError(err, s.w.logger) != nil {
+		if err := images[s.w].registerDeletion(i, s); d.checkError(err, s.w.Logger) != nil {
 			return err
 		}
 	}
@@ -116,10 +116,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			w.logger.Printf("DeleteResources: deleting instance %q.", i)
+			w.Logger.Printf("DeleteResources: deleting instance %q.", i)
 			if err := instances[w].delete(i); err != nil {
 				if err.Type() == resourceDNEError {
-					s.w.logger.Printf("DeleteResources WARNING: Error deleting instance %q: %v", i, err)
+					s.w.Logger.Printf("DeleteResources WARNING: Error deleting instance %q: %v", i, err)
 					return
 				}
 				e <- err
@@ -131,10 +131,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			w.logger.Printf("DeleteResources: deleting image %q.", i)
+			w.Logger.Printf("DeleteResources: deleting image %q.", i)
 			if err := images[w].delete(i); err != nil {
 				if err.Type() == resourceDNEError {
-					s.w.logger.Printf("DeleteResources WARNING: Error deleting image %q: %v", i, err)
+					s.w.Logger.Printf("DeleteResources WARNING: Error deleting image %q: %v", i, err)
 					return
 				}
 				e <- err
@@ -162,10 +162,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			w.logger.Printf("DeleteResources: deleting disk %q.", d)
+			w.Logger.Printf("DeleteResources: deleting disk %q.", d)
 			if err := disks[w].delete(d); err != nil {
 				if err.Type() == resourceDNEError {
-					s.w.logger.Printf("DeleteResources WARNING: Error deleting disk %q: %v", d, err)
+					s.w.Logger.Printf("DeleteResources WARNING: Error deleting disk %q: %v", d, err)
 					return
 				}
 				e <- err

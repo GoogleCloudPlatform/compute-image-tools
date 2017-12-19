@@ -41,7 +41,7 @@ func TestUploadSources(t *testing.T) {
 	w := testWorkflow()
 	sw := w.NewSubWorkflow()
 	sw.Name = "test-sw"
-	sw.logger = log.New(ioutil.Discard, "", 0)
+	sw.Logger = log.New(ioutil.Discard, "", 0)
 	w.Steps = map[string]*Step{
 		"sub": {w: w, SubWorkflow: &SubWorkflow{Workflow: sw}},
 	}

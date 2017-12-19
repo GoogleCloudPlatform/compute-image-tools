@@ -83,7 +83,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 	for _, wf := range []*Workflow{got, want} {
 		wf.ComputeClient = nil
 		wf.StorageClient = nil
-		wf.logger = nil
+		wf.Logger = nil
 		wf.cleanupHooks = nil
 		wf.parent = nil
 		wf.gcsLogWriter = nil

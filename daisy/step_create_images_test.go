@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestCreateImagePopulate(t *testing.T) {
@@ -161,6 +161,8 @@ func TestCreateImagesValidate(t *testing.T) {
 	w.Dependencies["d2Deleter"] = []string{"d2Creator"}
 	d3Creator := &Step{name: "d3Creator", w: w}
 	w.Steps["d3Creator"] = d3Creator
+	si1Creator := &Step{name: "si1Creator", w: w}
+	w.Steps["si1Creator"] = si1Creator
 	if err := disks[w].registerCreation("d1", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d1", testProject, testZone)}, d1Creator, false); err != nil {
 		t.Fatal(err)
 	}
@@ -173,6 +175,9 @@ func TestCreateImagesValidate(t *testing.T) {
 	if err := disks[w].registerCreation("d3", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d3", testProject, testZone)}, d3Creator, false); err != nil {
 		t.Fatal(err)
 	}
+	if err := images[w].registerCreation("si1", &resource{link: fmt.Sprintf("projects/%s/global/images/si3", testProject)}, si1Creator, false); err != nil {
+		t.Fatal(err)
+	}
 	w.Sources = map[string]string{"source": "gs://some/file"}
 
 	n := "n"
@@ -182,6 +187,7 @@ func TestCreateImagesValidate(t *testing.T) {
 		shouldErr bool
 	}{
 		{"good disk case", &CreateImage{daisyName: "i1", Project: testProject, Image: compute.Image{Name: n, SourceDisk: "d1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/%s", testProject, testLicense)}}}, false},
+		{"good image case", &CreateImage{daisyName: "i6", Project: testProject, Image: compute.Image{Name: n, SourceImage: "si1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/%s", testProject, testLicense)}}}, false},
 		{"good raw disk case", &CreateImage{daisyName: "i2", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "source"}}}, false},
 		{"good raw disk case 2", &CreateImage{daisyName: "i3", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, false},
 		{"good disk url case ", &CreateImage{daisyName: "i5", Project: testProject, Image: compute.Image{Name: n, SourceDisk: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, false},
@@ -193,12 +199,13 @@ func TestCreateImagesValidate(t *testing.T) {
 		{"bad missing dep on disk creator case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d3"}}, true},
 		{"bad disk deleted case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},
 		{"bad using disk and raw disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},
+		{"bad using disk and raw disk and image case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},
 	}
 
 	for _, tt := range tests {
 		s := &Step{name: tt.desc, w: w, CreateImages: &CreateImages{tt.ci}}
 		w.Steps[tt.desc] = s
-		w.Dependencies[tt.desc] = []string{"d1Creator", "d2Deleter"}
+		w.Dependencies[tt.desc] = []string{"d1Creator", "d2Deleter", "si1Creator"}
 		if err := s.CreateImages.validate(ctx, s); err == nil {
 			if tt.shouldErr {
 				t.Errorf("%s: should have returned an error but didn't", tt.desc)

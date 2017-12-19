@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -77,6 +77,10 @@ func (c *CreateImages) populate(ctx context.Context, s *Step) dErr {
 			ci.SourceDisk = extendPartialURL(ci.SourceDisk, ci.Project)
 		}
 
+		if imageURLRgx.MatchString(ci.SourceImage) {
+			ci.SourceImage = extendPartialURL(ci.SourceImage, ci.Project)
+		}
+
 		if ci.RawDisk != nil {
 			if s.w.sourceExists(ci.RawDisk.Source) {
 				ci.RawDisk.Source = s.w.getSourceGCSAPIPath(ci.RawDisk.Source)
@@ -98,21 +102,25 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) dErr {
 
 		// Project checking.
 		if exists, err := projectExists(s.w.ComputeClient, ci.Project); err != nil {
-			return errf("cannot create image: bad project lookup: %q, error: %v", ci.Project, err)
+			return errf("cannot create image %q: bad project lookup: %q, error: %v", ci.daisyName, ci.Project, err)
 		} else if !exists {
-			return errf("cannot create image: project does not exist: %q", ci.Project)
+			return errf("cannot create image %q: project does not exist: %q", ci.daisyName, ci.Project)
+		}
+
+		if !xor(!xor(ci.SourceDisk == "", ci.SourceImage == ""), ci.RawDisk == nil) {
+			return errf("cannot create image %q: must provide either SourceImage, SourceDisk or RawDisk, exclusively", ci.daisyName)
 		}
 
 		// Source disk checking.
-		if !xor(ci.SourceDisk == "", ci.RawDisk == nil) {
-			return errf("must provide either SourceDisk or RawDisk, exclusively")
+		if ci.SourceDisk != "" {
+			if _, err := disks[s.w].registerUsage(ci.SourceDisk, s); err != nil {
+				return newErr(err)
+			}
 		}
 
-		if ci.SourceDisk != "" {
-			if ci.RawDisk != nil {
-				return errf("must provide either SourceDisk or RawDisk, exclusively")
-			}
-			if _, err := disks[s.w].registerUsage(ci.SourceDisk, s); err != nil {
+		// Source image checking.
+		if ci.SourceImage != "" {
+			if _, err := images[s.w].registerUsage(ci.SourceImage, s); err != nil {
 				return newErr(err)
 			}
 		}
@@ -121,9 +129,9 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) dErr {
 		for _, l := range ci.Licenses {
 			result := namedSubexp(licenseURLRegex, l)
 			if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
-				return errf("cannot create image: bad license lookup: %q, error: %v", l, err)
+				return errf("cannot create image %q: bad license lookup: %q, error: %v", ci.daisyName, l, err)
 			} else if !exists {
-				return errf("cannot create image: license does not exist: %q", l)
+				return errf("cannot create image %q: license does not exist: %q", ci.daisyName, l)
 			}
 		}
 
@@ -131,7 +139,7 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) dErr {
 		link := fmt.Sprintf("projects/%s/global/images/%s", ci.Project, ci.Name)
 		r := &resource{real: ci.Name, link: link, noCleanup: ci.NoCleanup}
 		if err := images[s.w].registerCreation(ci.daisyName, r, s, ci.OverWrite); err != nil {
-			return errf("error creating image: %s", err)
+			return err
 		}
 	}
 
@@ -162,7 +170,7 @@ func (c *CreateImages) run(ctx context.Context, s *Step) dErr {
 				}
 			}
 
-			w.logger.Printf("CreateImages: creating image %q.", ci.Name)
+			w.Logger.Printf("CreateImages: creating image %q.", ci.Name)
 			if err := w.ComputeClient.CreateImage(ci.Project, &ci.Image); err != nil {
 				e <- newErr(err)
 				return

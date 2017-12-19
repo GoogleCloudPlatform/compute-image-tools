@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"sync"
 
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 // CreateDisks is a Daisy CreateDisks workflow step.
@@ -95,34 +95,37 @@ func (c *CreateDisks) validate(ctx context.Context, s *Step) dErr {
 			return errf("cannot create disk: bad name: %q", cd.Name)
 		}
 		if exists, err := projectExists(s.w.ComputeClient, cd.Project); err != nil {
-			return errf("cannot create disk: bad project lookup: %q, error: %v", cd.Project, err)
+			return errf("cannot create disk %q: bad project lookup: %q, error: %v", cd.daisyName, cd.Project, err)
 		} else if !exists {
-			return errf("cannot create disk: project does not exist: %q", cd.Project)
+			return errf("cannot create disk %q: project does not exist: %q", cd.daisyName, cd.Project)
 		}
 
+		if cd.Zone == "" {
+			return errf("cannot create disk %q: no zone provided in step or workflow", cd.daisyName)
+		}
 		if exists, err := zoneExists(s.w.ComputeClient, cd.Project, cd.Zone); err != nil {
-			return errf("cannot create disk: bad zone lookup: %q, error: %v", cd.Zone, err)
+			return errf("cannot create disk %q: bad zone lookup: %q, error: %v", cd.daisyName, cd.Zone, err)
 		} else if !exists {
-			return errf("cannot create disk: zone does not exist: %q", cd.Zone)
+			return errf("cannot create disk %q: zone does not exist: %q", cd.daisyName, cd.Zone)
 		}
 
 		if !diskTypeURLRgx.MatchString(cd.Type) {
-			return errf("cannot create disk: bad disk type: %q", cd.Type)
+			return errf("cannot create disk %q: bad disk type: %q", cd.daisyName, cd.Type)
 		}
 
 		if cd.SourceImage != "" {
 			if _, err := images[s.w].registerUsage(cd.SourceImage, s); err != nil {
-				return errf("cannot create disk: can't use image %q: %v", cd.SourceImage, err)
+				return errf("cannot create disk %q: can't use image %q: %v", cd.daisyName, cd.SourceImage, err)
 			}
 		} else if cd.Disk.SizeGb == 0 {
-			return errf("cannot create disk: SizeGb and SourceImage not set")
+			return errf("cannot create disk %q: SizeGb and SourceImage not set", cd.daisyName)
 		}
 
 		// Register creation.
 		link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", cd.Project, cd.Zone, cd.Name)
 		r := &resource{real: cd.Name, link: link, noCleanup: cd.NoCleanup}
 		if err := disks[s.w].registerCreation(cd.daisyName, r, s, false); err != nil {
-			return errf("error creating disk: %s", err)
+			return err
 		}
 	}
 	return nil
@@ -143,7 +146,7 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) dErr {
 				cd.SourceImage = image.link
 			}
 
-			w.logger.Printf("CreateDisks: creating disk %q.", cd.Name)
+			w.Logger.Printf("CreateDisks: creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
 				e <- newErr(err)
 				return
