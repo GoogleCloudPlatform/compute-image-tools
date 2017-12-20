@@ -125,6 +125,17 @@ func (c *CreateImages) validate(ctx context.Context, s *Step) dErr {
 			}
 		}
 
+		// RawDisk.Source checking.
+		if ci.RawDisk != nil {
+			sBkt, sObj, err := splitGCSPath(ci.RawDisk.Source)
+			if err != nil {
+				return err
+			}
+			if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).Attrs(ctx); err != nil {
+				return errf("error reading object %s/%s: %v", sBkt, sObj, err)
+			}
+		}
+
 		// License checking.
 		for _, l := range ci.Licenses {
 			result := namedSubexp(licenseURLRegex, l)

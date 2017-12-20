@@ -81,6 +81,24 @@ func TestCreateImagePopulate(t *testing.T) {
 			false,
 		},
 		{
+			"SourceImage case",
+			&CreateImage{Image: compute.Image{Name: "foo", SourceImage: "i"}},
+			&CreateImage{Image: compute.Image{Name: genFoo, SourceImage: "i"}, daisyName: "foo", Project: w.Project},
+			false,
+		},
+		{
+			"SourceImage URL case",
+			&CreateImage{Image: compute.Image{Name: "foo", SourceImage: "projects/p/global/images/i"}},
+			&CreateImage{Image: compute.Image{Name: genFoo, SourceImage: "projects/p/global/images/i"}, daisyName: "foo", Project: w.Project},
+			false,
+		},
+		{
+			"extend SourceImage URL case",
+			&CreateImage{Image: compute.Image{Name: "foo", SourceImage: "global/images/i"}, Project: "p"},
+			&CreateImage{Image: compute.Image{Name: genFoo, SourceImage: "projects/p/global/images/i"}, daisyName: "foo", Project: "p"},
+			false,
+		},
+		{
 			"RawDisk.Source from Sources case",
 			&CreateImage{Image: compute.Image{Name: "foo", RawDisk: &compute.ImageRawDisk{Source: "d"}}},
 			&CreateImage{Image: compute.Image{Name: genFoo, RawDisk: &compute.ImageRawDisk{Source: w.getSourceGCSAPIPath("d")}}, daisyName: "foo", Project: w.Project},
@@ -149,7 +167,6 @@ func TestCreateImagesRun(t *testing.T) {
 
 func TestCreateImagesValidate(t *testing.T) {
 	ctx := context.Background()
-
 	w := testWorkflow()
 
 	d1Creator := &Step{name: "d1Creator", w: w}
@@ -188,8 +205,7 @@ func TestCreateImagesValidate(t *testing.T) {
 	}{
 		{"good disk case", &CreateImage{daisyName: "i1", Project: testProject, Image: compute.Image{Name: n, SourceDisk: "d1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/%s", testProject, testLicense)}}}, false},
 		{"good image case", &CreateImage{daisyName: "i6", Project: testProject, Image: compute.Image{Name: n, SourceImage: "si1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/%s", testProject, testLicense)}}}, false},
-		{"good raw disk case", &CreateImage{daisyName: "i2", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "source"}}}, false},
-		{"good raw disk case 2", &CreateImage{daisyName: "i3", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, false},
+		{"good raw disk case", &CreateImage{daisyName: "i2", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, false},
 		{"good disk url case ", &CreateImage{daisyName: "i5", Project: testProject, Image: compute.Image{Name: n, SourceDisk: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, false},
 		{"bad license case", &CreateImage{daisyName: "i6", Project: testProject, Image: compute.Image{Name: n, SourceDisk: "d1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/bad", testProject)}}}, true},
 		{"bad name case", &CreateImage{Project: testProject, Image: compute.Image{Name: "bad!", SourceDisk: "d1"}}, true},
@@ -198,8 +214,11 @@ func TestCreateImagesValidate(t *testing.T) {
 		{"bad dupe image name case", &CreateImage{Project: testProject, Image: compute.Image{Name: testImage, SourceDisk: "d1"}}, true},
 		{"bad missing dep on disk creator case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d3"}}, true},
 		{"bad disk deleted case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},
-		{"bad using disk and raw disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},
-		{"bad using disk and raw disk and image case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "gs://some/path"}}}, true},
+		{"bad image case", &CreateImage{daisyName: "i6", Project: testProject, Image: compute.Image{Name: n, SourceImage: "si2", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/%s", testProject, testLicense)}}}, true},
+		{"bad raw disk case", &CreateImage{daisyName: "i3", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/dne"}}}, true},
+		{"bad raw disk case", &CreateImage{daisyName: "i3", Project: testProject, Image: compute.Image{Name: n, RawDisk: &compute.ImageRawDisk{Source: "not/a/gcs/url"}}}, true},
+		{"bad using disk and raw disk case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, true},
+		{"bad using disk and raw disk and image case", &CreateImage{Project: testProject, Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, true},
 	}
 
 	for _, tt := range tests {
