@@ -52,6 +52,7 @@ type TestClient struct {
 	DeleteDiskFn          func(project, zone, name string) error
 	DeleteImageFn         func(project, name string) error
 	DeleteInstanceFn      func(project, zone, name string) error
+	DeprecateImageFn      func(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineTypeFn      func(project, zone, machineType string) (*compute.MachineType, error)
 	ListMachineTypesFn    func(project, zone string) ([]*compute.MachineType, error)
 	GetProjectFn          func(project string) (*compute.Project, error)
@@ -129,6 +130,14 @@ func (c *TestClient) DeleteInstance(project, zone, name string) error {
 		return c.DeleteInstanceFn(project, zone, name)
 	}
 	return c.client.DeleteInstance(project, zone, name)
+}
+
+// DeprecateImage uses the override method DeprecateImageFn or the real implementation.
+func (c *TestClient) DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error {
+	if c.DeprecateImageFn != nil {
+		return c.DeprecateImageFn(project, name, deprecationstatus)
+	}
+	return c.client.DeprecateImage(project, name, deprecationstatus)
 }
 
 // GetProject uses the override method GetProjectFn or the real implementation.

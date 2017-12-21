@@ -37,6 +37,7 @@ type Client interface {
 	DeleteDisk(project, zone, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
+	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
 	ListMachineTypes(project, zone string) ([]*compute.MachineType, error)
 	GetProject(project string) (*compute.Project, error)
@@ -265,6 +266,16 @@ func (c *client) DeleteInstance(project, zone, name string) error {
 	}
 
 	return c.i.operationsWait(project, zone, op.Name)
+}
+
+// DeprecateImage sets deprecation status on a GCE image.
+func (c *client) DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error {
+	op, err := c.Retry(c.raw.Images.Deprecate(project, name, deprecationstatus).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.operationsWait(project, "", op.Name)
 }
 
 // GetMachineType gets a GCE MachineType.

@@ -30,9 +30,9 @@ func TestDiskRegisterAttachment(t *testing.T) {
 	s2, _ := w.NewStep("s2")
 	att, _ := w.NewStep("att")
 	det, _ := w.NewStep("det")
-	w.AddDependency("det", "att")
-	w.AddDependency("s", "det")
-	w.AddDependency("iw2Step", "iwStep")
+	w.AddDependency(det, att)
+	w.AddDependency(s, det)
+	w.AddDependency(iw2Step, iwStep)
 	d := &resource{real: "d"}
 	dDetached := &resource{real: "dDetached"}
 	dIWDetached := &resource{real: "dIWDetached"}
@@ -118,8 +118,8 @@ func TestDiskDetachHelper(t *testing.T) {
 	bad, _ := w.NewStep("bad")
 	att, _ := w.NewStep("att")
 	det, _ := w.NewStep("det")
-	w.AddDependency("s", "att")
-	w.AddDependency("det", "att")
+	w.AddDependency(s, att)
+	w.AddDependency(det, att)
 	d := &resource{real: "d"}
 	i := &resource{real: "i"}
 	i2 := &resource{real: "i2"}
@@ -181,7 +181,7 @@ func TestDiskRegisterDetachment(t *testing.T) {
 	w := testWorkflow()
 	s, _ := w.NewStep("s")
 	att, _ := w.NewStep("att")
-	w.AddDependency("s", "att")
+	w.AddDependency(s, att)
 	d := &resource{real: "d"}
 	i := &resource{real: "i"}
 	i2 := &resource{real: "i2"}
@@ -244,7 +244,7 @@ func TestDiskRegisterAllDetachments(t *testing.T) {
 	w := testWorkflow()
 	s, _ := w.NewStep("s")
 	att, _ := w.NewStep("att")
-	w.AddDependency("s", "att")
+	w.AddDependency(s, att)
 	d := &resource{real: "d"}
 	d2 := &resource{real: "d2"}
 	i := &resource{real: "i"}
