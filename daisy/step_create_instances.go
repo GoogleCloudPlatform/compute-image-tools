@@ -117,10 +117,10 @@ func (c *CreateInstance) populateDisks(w *Workflow) dErr {
 	for i, d := range c.Disks {
 		d.Boot = i == 0 // TODO(crunkleton) should we do this?
 		d.Mode = strOr(d.Mode, defaultDiskMode)
-		p := d.InitializeParams
 		if diskURLRgx.MatchString(d.Source) {
 			d.Source = extendPartialURL(d.Source, c.Project)
 		}
+		p := d.InitializeParams
 		if p != nil {
 			// If name isn't set, set name to "instance-name", "instance-name-2", etc.
 			if p.DiskName == "" {
@@ -129,6 +129,9 @@ func (c *CreateInstance) populateDisks(w *Workflow) dErr {
 					p.DiskName = fmt.Sprintf("%s-%d", c.Name, autonameIdx)
 				}
 				autonameIdx++
+			}
+			if d.DeviceName == "" {
+				d.DeviceName = p.DiskName
 			}
 
 			// Extend SourceImage if short URL.
@@ -143,6 +146,8 @@ func (c *CreateInstance) populateDisks(w *Workflow) dErr {
 			} else {
 				p.DiskType = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", c.Project, c.Zone, p.DiskType)
 			}
+		} else if d.DeviceName == "" {
+			d.DeviceName = path.Base(d.Source)
 		}
 	}
 	return nil
