@@ -97,7 +97,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	imC, _ := w.NewStep("imCreator")
 	inC, _ := w.NewStep("inCreator")
 	s, _ := w.NewStep("s")
-	w.AddDependency("s", "dCreator", "imCreator", "inCreator")
+	w.AddDependency(s, dC, imC, inC)
 	otherDeleter, _ := w.NewStep("otherDeleter")
 	ds := []*resource{{real: "d0", link: "link", creator: dC}, {real: "d1", link: "link", creator: dC}}
 	ims := []*resource{{real: "im0", link: "link", creator: imC}, {real: "im1", link: "link", creator: imC}}

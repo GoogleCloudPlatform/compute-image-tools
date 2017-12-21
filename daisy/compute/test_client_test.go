@@ -45,6 +45,7 @@ func TestTestClient(t *testing.T) {
 		{"delete disk", func() { c.DeleteDisk("a", "b", "c") }},
 		{"delete image", func() { c.DeleteImage("a", "b") }},
 		{"delete instance", func() { c.DeleteInstance("a", "b", "c") }},
+		{"deprecate image", func() { c.DeprecateImage("a", "b", &compute.DeprecationStatus{}) }},
 		{"get serial port", func() { c.GetSerialPortOutput("a", "b", "c", 1, 2) }},
 		{"get project", func() { c.GetProject("a") }},
 		{"get machine type", func() { c.GetMachineType("a", "b", "c") }},
@@ -93,6 +94,7 @@ func TestTestClient(t *testing.T) {
 	c.DeleteDiskFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeleteImageFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.DeleteInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
+	c.DeprecateImageFn = func(_, _ string, _ *compute.DeprecationStatus) error { fakeCalled = true; return nil }
 	c.GetSerialPortOutputFn = func(_, _, _ string, _, _ int64) (*compute.SerialPortOutput, error) {
 		fakeCalled = true
 		return nil, nil

@@ -273,6 +273,27 @@ func TestDeleteImage(t *testing.T) {
 	}
 }
 
+func TestDeprecateImage(t *testing.T) {
+	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/images/%s/deprecate?alt=json", testProject, testImage) {
+			fmt.Fprint(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/global/operations/?alt=json", testProject) {
+			fmt.Fprint(w, `{"Status":"DONE"}`)
+		} else {
+			w.WriteHeader(500)
+			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
+		}
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svr.Close()
+
+	if err := c.DeprecateImage(testProject, testImage, &compute.DeprecationStatus{}); err != nil {
+		t.Fatalf("error running DeprecateImage: %v", err)
+	}
+}
+
 func TestDeleteInstance(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "DELETE" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, testInstance) {

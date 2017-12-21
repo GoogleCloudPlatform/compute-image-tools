@@ -110,7 +110,7 @@ func TestIncludeWorkflowValidate(t *testing.T) {
 	dCreator.CreateImages = &CreateImages{}
 	incStep, _ := w.NewStep("incStep")
 	incStep.IncludeWorkflow = &IncludeWorkflow{Workflow: iw}
-	w.AddDependency("incStep", "dCreator")
+	w.AddDependency(incStep, dCreator)
 	dDeleter, _ := iw.NewStep("dDeleter")
 	dDeleter.DeleteResources = &DeleteResources{Disks: []string{"d"}}
 	if err := disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator, false); err != nil {

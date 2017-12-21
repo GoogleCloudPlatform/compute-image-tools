@@ -40,17 +40,22 @@ import (
 )
 
 func TestAddDependency(t *testing.T) {
-	w := &Workflow{Steps: map[string]*Step{"a": nil, "b": nil}}
+	w := &Workflow{}
+	a, _ := w.NewStep("a")
+	b, _ := w.NewStep("b")
+
+	otherW := &Workflow{}
+	c, _ := otherW.NewStep("c")
 
 	tests := []struct {
 		desc      string
-		in1, in2  string
+		in1, in2  *Step
 		shouldErr bool
 	}{
-		{"good case", "a", "b", false},
-		{"idempotent good case", "a", "b", false},
-		{"bad case 1", "a", "c", true},
-		{"bad case 2", "c", "b", true},
+		{"good case", a, b, false},
+		{"idempotent good case", a, b, false},
+		{"bad case 1", a, c, true},
+		{"bad case 2", c, b, true},
 	}
 
 	for _, tt := range tests {

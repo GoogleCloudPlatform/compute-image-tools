@@ -659,7 +659,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
-		w.AddDependency(tt.desc, "dCreator")
+		w.AddDependency(s, dCreator)
 		s.CreateInstances = &CreateInstances{tt.input}
 		if err := s.CreateInstances.validate(ctx, s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
