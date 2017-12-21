@@ -32,7 +32,7 @@ func TestDeprecateImagesPopulate(t *testing.T) {
 			Image: testImage,
 		},
 		&DeprecateImage{
-			Image: "global/images/test-image",
+			Image: "test-image",
 			DeprecationStatus: compute.DeprecationStatus{
 				State: "DEPRECATED",
 			},
@@ -53,7 +53,7 @@ func TestDeprecateImagesPopulate(t *testing.T) {
 			Project: testProject,
 		},
 		&DeprecateImage{
-			Image: "projects/foo/global/images/test-image",
+			Image: "test-image",
 			DeprecationStatus: compute.DeprecationStatus{
 				State: "DEPRECATED",
 			},
@@ -81,6 +81,11 @@ func TestDeprecateImagesValidate(t *testing.T) {
 		{
 			"DEPRECATED case",
 			&DeprecateImage{Image: "i1", Project: testProject, DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED"}},
+			false,
+		},
+		{
+			"DEPRECATED case not in workflow",
+			&DeprecateImage{Image: testImage, Project: testProject, DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED"}},
 			false,
 		},
 		{
