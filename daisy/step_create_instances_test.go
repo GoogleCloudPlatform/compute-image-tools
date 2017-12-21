@@ -101,7 +101,7 @@ func TestCreateInstancePopulate(t *testing.T) {
 	defZ := w.Zone
 	defMT := fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", defP, defZ)
 	defDM := defaultDiskMode
-	defDs := []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}}
+	defDs := []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM, DeviceName: "foo"}}
 	defAcs := []*compute.AccessConfig{{Type: defaultAccessConfigType}}
 	defNs := []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/default", defP), AccessConfigs: defAcs}}
 	defMD := map[string]string{"daisy-sources-path": "gs://", "daisy-logs-path": "gs://", "daisy-outs-path": "gs://"}
@@ -128,7 +128,7 @@ func TestCreateInstancePopulate(t *testing.T) {
 			&CreateInstance{
 				Instance: compute.Instance{
 					Name: "inst-pfoo", Description: desc,
-					Disks:             []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM}},
+					Disks:             []*compute.AttachedDisk{{Boot: true, Source: "foo", Mode: defDM, DeviceName: "foo"}},
 					MachineType:       "projects/pfoo/zones/zfoo/machineTypes/n1-standard-1",
 					NetworkInterfaces: []*compute.NetworkInterface{{Network: "projects/pfoo/global/networks/default", AccessConfigs: defAcs}},
 					ServiceAccounts:   defSAs,
@@ -170,42 +170,42 @@ func TestCreateInstancePopulateDisks(t *testing.T) {
 		{
 			"normal case",
 			[]*compute.AttachedDisk{{Source: "d1"}},
-			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode}},
+			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}},
 		},
 		{
 			"multiple disks case",
 			[]*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}},
-			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode}, {Boot: false, Source: "d2", Mode: defaultDiskMode}},
+			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}, {Boot: false, Source: "d2", Mode: defaultDiskMode, DeviceName: "d2"}},
 		},
 		{
 			"mode specified case",
 			[]*compute.AttachedDisk{{Source: "d1", Mode: diskModeRO}},
-			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: diskModeRO}},
+			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: diskModeRO, DeviceName: "d1"}},
 		},
 		{
 			"init params daisy image (and other defaults)",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i"}}},
-			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params image short url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "global/images/i"}}},
-			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params image extended url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject)}}},
-			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params disk type short url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("zones/%s/diskTypes/dt", testZone)}}},
-			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params disk type extended url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}}},
-			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true}},
+			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params name suffixes",
@@ -216,10 +216,10 @@ func TestCreateInstancePopulateDisks(t *testing.T) {
 				{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i"}},
 			},
 			[]*compute.AttachedDisk{
-				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true},
-				{Source: "d", Mode: defaultDiskMode},
-				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode},
-				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: fmt.Sprintf("%s-2", iName), SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode},
+				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName},
+				{Source: "d", Mode: defaultDiskMode, DeviceName: "d"},
+				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: "foo"},
+				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: fmt.Sprintf("%s-2", iName), SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: fmt.Sprintf("%s-2", iName)},
 			},
 		},
 	}
