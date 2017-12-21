@@ -80,22 +80,27 @@ func TestDeprecateImagesValidate(t *testing.T) {
 	}{
 		{
 			"DEPRECATED case",
-			&DeprecateImage{Image: "i1", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED"}},
+			&DeprecateImage{Image: "i1", Project: testProject, DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED"}},
 			false,
 		},
 		{
 			"unDEPRECATED case",
-			&DeprecateImage{Image: "i1", DeprecationStatus: compute.DeprecationStatus{State: "", ForceSendFields: []string{"State"}}},
+			&DeprecateImage{Image: "i1", Project: testProject, DeprecationStatus: compute.DeprecationStatus{State: "", ForceSendFields: []string{"State"}}},
 			false,
 		},
 		{
 			"bad state case",
-			&DeprecateImage{DeprecationStatus: compute.DeprecationStatus{State: "BAD"}},
+			&DeprecateImage{Image: "i1", Project: testProject, DeprecationStatus: compute.DeprecationStatus{State: "BAD"}},
 			true,
 		},
 		{
 			"bad image case",
-			&DeprecateImage{Image: "bad"},
+			&DeprecateImage{Image: "bad", Project: testProject},
+			true,
+		},
+		{
+			"bad project case",
+			&DeprecateImage{Image: "i1", Project: "bad"},
 			true,
 		},
 	}

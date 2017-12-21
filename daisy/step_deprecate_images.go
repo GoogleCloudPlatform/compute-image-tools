@@ -52,8 +52,14 @@ func (d *DeprecateImages) populate(ctx context.Context, s *Step) dErr {
 func (d *DeprecateImages) validate(ctx context.Context, s *Step) dErr {
 	deprecationStates := []string{"", "DEPRECATED", "OBSOLETE", "DELETED"}
 	for _, di := range *d {
+		if exists, err := projectExists(s.w.ComputeClient, di.Project); err != nil {
+			return errf("cannot deprecate image %q: bad project lookup: %q, error: %v", di.Image, di.Project, err)
+		} else if !exists {
+			return errf("cannot deprecate image %q: project does not exist: %q", di.Image, di.Project)
+		}
+
 		if !strIn(di.DeprecationStatus.State, deprecationStates) {
-			errf("DeprecationStatus.State of %q not in %q", di.DeprecationStatus.State, deprecationStates)
+			return errf("DeprecationStatus.State of %q not in %q", di.DeprecationStatus.State, deprecationStates)
 		}
 
 		if _, err := images[s.w].registerUsage(di.Image, s); err != nil {
