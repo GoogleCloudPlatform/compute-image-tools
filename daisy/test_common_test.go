@@ -123,7 +123,7 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil, errors.New("bad machinetype")
 	}
-	c.ListMachineTypesFn = func(p, z string) ([]*compute.MachineType, error) {
+	c.ListMachineTypesFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.MachineType, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
@@ -132,13 +132,13 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return []*compute.MachineType{{Name: testMachineType}}, nil
 	}
-	c.ListZonesFn = func(_ string) ([]*compute.Zone, error) {
+	c.ListZonesFn = func(_ string, _ ...daisyCompute.ListCallOption) ([]*compute.Zone, error) {
 		return []*compute.Zone{{Name: testZone}}, nil
 	}
-	c.ListImagesFn = func(_ string) ([]*compute.Image, error) {
+	c.ListImagesFn = func(_ string, _ ...daisyCompute.ListCallOption) ([]*compute.Image, error) {
 		return []*compute.Image{{Name: testImage}}, nil
 	}
-	c.ListDisksFn = func(p, z string) ([]*compute.Disk, error) {
+	c.ListDisksFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.Disk, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
@@ -156,7 +156,7 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil, nil
 	}
-	c.ListNetworksFn = func(p string) ([]*compute.Network, error) {
+	c.ListNetworksFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Network, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
