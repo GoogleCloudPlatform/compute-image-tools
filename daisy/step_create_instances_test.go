@@ -608,7 +608,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 		}
 		return nil, errors.New("bad project: " + p)
 	}
-	c.ListMachineTypesFn = func(p, z string) ([]*compute.MachineType, error) {
+	c.ListMachineTypesFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.MachineType, error) {
 		if p != testProject && p != "p.com:something" {
 			return nil, errors.New("bad project: " + p)
 		}
@@ -617,7 +617,7 @@ func TestCreateInstancesValidate(t *testing.T) {
 		}
 		return []*compute.MachineType{{Name: testMachineType}}, nil
 	}
-	c.ListDisksFn = func(p, z string) ([]*compute.Disk, error) {
+	c.ListDisksFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.Disk, error) {
 		if p != testProject && p != "p.com:something" {
 			return nil, errors.New("bad project: " + p)
 		}

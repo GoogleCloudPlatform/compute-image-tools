@@ -54,21 +54,21 @@ type TestClient struct {
 	DeleteInstanceFn      func(project, zone, name string) error
 	DeprecateImageFn      func(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineTypeFn      func(project, zone, machineType string) (*compute.MachineType, error)
-	ListMachineTypesFn    func(project, zone string) ([]*compute.MachineType, error)
+	ListMachineTypesFn    func(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
 	GetProjectFn          func(project string) (*compute.Project, error)
 	GetSerialPortOutputFn func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZoneFn             func(project, zone string) (*compute.Zone, error)
-	ListZonesFn           func(project string) ([]*compute.Zone, error)
+	ListZonesFn           func(project string, opts ...ListCallOption) ([]*compute.Zone, error)
 	GetInstanceFn         func(project, zone, name string) (*compute.Instance, error)
-	ListInstancesFn       func(project, zone string) ([]*compute.Instance, error)
+	ListInstancesFn       func(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
 	GetDiskFn             func(project, zone, name string) (*compute.Disk, error)
-	ListDisksFn           func(project, zone string) ([]*compute.Disk, error)
+	ListDisksFn           func(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	GetImageFn            func(project, name string) (*compute.Image, error)
 	GetImageFromFamilyFn  func(project, family string) (*compute.Image, error)
-	ListImagesFn          func(project string) ([]*compute.Image, error)
+	ListImagesFn          func(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	GetLicenseFn          func(project, name string) (*compute.License, error)
 	GetNetworkFn          func(project, name string) (*compute.Network, error)
-	ListNetworksFn        func(project string) ([]*compute.Network, error)
+	ListNetworksFn        func(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	InstanceStatusFn      func(project, zone, name string) (string, error)
 	InstanceStoppedFn     func(project, zone, name string) (bool, error)
 	RetryFn               func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -157,11 +157,11 @@ func (c *TestClient) GetMachineType(project, zone, machineType string) (*compute
 }
 
 // ListMachineTypes uses the override method ListMachineTypesFn or the real implementation.
-func (c *TestClient) ListMachineTypes(project, zone string) ([]*compute.MachineType, error) {
+func (c *TestClient) ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error) {
 	if c.ListMachineTypesFn != nil {
-		return c.ListMachineTypesFn(project, zone)
+		return c.ListMachineTypesFn(project, zone, opts...)
 	}
-	return c.client.ListMachineTypes(project, zone)
+	return c.client.ListMachineTypes(project, zone, opts...)
 }
 
 // GetZone uses the override method GetZoneFn or the real implementation.
@@ -173,11 +173,11 @@ func (c *TestClient) GetZone(project, zone string) (*compute.Zone, error) {
 }
 
 // ListZones uses the override method ListZonesFn or the real implementation.
-func (c *TestClient) ListZones(project string) ([]*compute.Zone, error) {
+func (c *TestClient) ListZones(project string, opts ...ListCallOption) ([]*compute.Zone, error) {
 	if c.ListZonesFn != nil {
-		return c.ListZonesFn(project)
+		return c.ListZonesFn(project, opts...)
 	}
-	return c.client.ListZones(project)
+	return c.client.ListZones(project, opts...)
 }
 
 // GetInstance uses the override method GetZoneFn or the real implementation.
@@ -189,11 +189,11 @@ func (c *TestClient) GetInstance(project, zone, name string) (*compute.Instance,
 }
 
 // ListInstances uses the override method ListInstancesFn or the real implementation.
-func (c *TestClient) ListInstances(project, zone string) ([]*compute.Instance, error) {
+func (c *TestClient) ListInstances(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error) {
 	if c.ListInstancesFn != nil {
-		return c.ListInstancesFn(project, zone)
+		return c.ListInstancesFn(project, zone, opts...)
 	}
-	return c.client.ListInstances(project, zone)
+	return c.client.ListInstances(project, zone, opts...)
 }
 
 // GetDisk uses the override method GetZoneFn or the real implementation.
@@ -205,11 +205,11 @@ func (c *TestClient) GetDisk(project, zone, name string) (*compute.Disk, error) 
 }
 
 // ListDisks uses the override method ListDisksFn or the real implementation.
-func (c *TestClient) ListDisks(project, zone string) ([]*compute.Disk, error) {
+func (c *TestClient) ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error) {
 	if c.ListDisksFn != nil {
-		return c.ListDisksFn(project, zone)
+		return c.ListDisksFn(project, zone, opts...)
 	}
-	return c.client.ListDisks(project, zone)
+	return c.client.ListDisks(project, zone, opts...)
 }
 
 // GetImage uses the override method GetImageFn or the real implementation.
@@ -229,11 +229,11 @@ func (c *TestClient) GetImageFromFamily(project, family string) (*compute.Image,
 }
 
 // ListImages uses the override method ListImagesFn or the real implementation.
-func (c *TestClient) ListImages(project string) ([]*compute.Image, error) {
+func (c *TestClient) ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error) {
 	if c.ListImagesFn != nil {
-		return c.ListImagesFn(project)
+		return c.ListImagesFn(project, opts...)
 	}
-	return c.client.ListImages(project)
+	return c.client.ListImages(project, opts...)
 }
 
 // GetLicense uses the override method GetLicenseFn or the real implementation.
@@ -253,11 +253,11 @@ func (c *TestClient) GetNetwork(project, name string) (*compute.Network, error) 
 }
 
 // ListNetworks uses the override method ListNetworksFn or the real implementation.
-func (c *TestClient) ListNetworks(project string) ([]*compute.Network, error) {
+func (c *TestClient) ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error) {
 	if c.ListNetworksFn != nil {
-		return c.ListNetworksFn(project)
+		return c.ListNetworksFn(project, opts...)
 	}
-	return c.client.ListNetworks(project)
+	return c.client.ListNetworks(project, opts...)
 }
 
 // GetSerialPortOutput uses the override method GetSerialPortOutputFn or the real implementation.
