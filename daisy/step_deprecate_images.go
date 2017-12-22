@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"google.golang.org/api/compute/v1"
@@ -41,10 +42,6 @@ func (d *DeprecateImages) populate(ctx context.Context, s *Step) dErr {
 		if di.DeprecationStatus.State == "" && di.DeprecationStatus.ForceSendFields == nil {
 			di.DeprecationStatus.ForceSendFields = []string{"Status"}
 		}
-
-		if imageURLRgx.MatchString(di.Image) {
-			di.Image = extendPartialURL(di.Image, di.Project)
-		}
 	}
 	return nil
 }
@@ -62,7 +59,12 @@ func (d *DeprecateImages) validate(ctx context.Context, s *Step) dErr {
 			return errf("DeprecationStatus.State of %q not in %q", di.DeprecationStatus.State, deprecationStates)
 		}
 
-		if _, err := images[s.w].registerUsage(di.Image, s); err != nil {
+		// registerUsage needs the partal url of a non daisy resource.
+		lookup := di.Image
+		if _, ok := images[s.w].get(di.Image); !ok {
+			lookup = fmt.Sprintf("projects/%s/global/images/%s", di.Project, di.Image)
+		}
+		if _, err := images[s.w].registerUsage(lookup, s); err != nil {
 			return newErr(err)
 		}
 	}
@@ -78,10 +80,6 @@ func (d *DeprecateImages) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(di *DeprecateImage) {
 			defer wg.Done()
-
-			// Get the image link.
-			image, _ := images[w].get(di.Image)
-			di.Image = image.link
 
 			s.w.Logger.Printf("DeprecateImages: %q --> %q.", di.Image, di.DeprecationStatus.State)
 			if err := w.ComputeClient.DeprecateImage(di.Project, di.Image, &di.DeprecationStatus); err != nil {
