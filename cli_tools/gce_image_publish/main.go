@@ -36,9 +36,8 @@ import (
 const gcsImageObj = "root.tar.gz"
 
 var (
-	now            = time.Now().UTC()
 	oauth          = flag.String("oauth", "", "path to oauth json file")
-	sourceVersion  = flag.String("source_version", now.Format("20060102"), "version on source image")
+	sourceVersion  = flag.String("source_version", time.Now().UTC().Format("20060102"), "version on source image")
 	publishVersion = flag.String("publish_version", *sourceVersion, "version for published image if different from source")
 	skipDup        = flag.Bool("skip_duplicates", false, "skip publishing an image that already exists")
 	rollback       = flag.Bool("rollback", false, "rollback image publish")
