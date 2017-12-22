@@ -46,23 +46,40 @@ var (
 )
 
 type publish struct {
-	Name            string
-	WorkProject     string
-	SourceProject   string
-	SourceGCSPath   string
-	PublishProject  string
+	// Name for this publish template.
+	Name string
+	// Project to perform the work in.
+	WorkProject string
+	// Project to source images from, should not be used with SourceGCSPath.
+	SourceProject string
+	// GCS path to source images from, should not be used with SourceProject.
+	SourceGCSPath string
+	// Project to publish images to.
+	PublishProject string
+	// Optional compute endpoint override
 	ComputeEndpoint string
-	Images          []image
+	// Images to publish.
+	Images []image
 
+	// Populated from the source_version flag, added to the image prefix to
+	// lookup source image.
+	sourceVersion string
+	// Populated from the publish_version flag, added to the image prefix to
+	// create the publish name.
 	publishVersion string
-	sourceVersion  string
 }
 
 type image struct {
-	Prefix          string
-	Family          string
-	Description     string
-	Licenses        []string
+	// Prefix for the image, image naming format is '${ImagePrefix}-v${ImageVersion}'.
+	// This prefix is used for source image lookup and publish image name.
+	Prefix string
+	// Image family to set for the image.
+	Family string
+	// Image description to set for the image.
+	Description string
+	// Licenses to add to the image.
+	Licenses []string
+	// GuestOsFeatures to add to the image.
 	GuestOsFeatures []string
 }
 
