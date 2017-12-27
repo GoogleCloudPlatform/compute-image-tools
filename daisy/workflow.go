@@ -100,24 +100,25 @@ func daisyBkt(ctx context.Context, client *storage.Client, project string) (stri
 	return dBkt, nil
 }
 
-// wVar is a type with a flexible JSON representation. A wVar can be represented
-// by either a string, or by this struct definition. A wVar that is represented
+// Var is a type with a flexible JSON representation. A Var can be represented
+// by either a string, or by this struct definition. A Var that is represented
 // by a string will unmarshal into the struct: {Value: <string>, Required: false, Description: ""}.
-type wVar struct {
+type Var struct {
 	Value       string
 	Required    bool
 	Description string
 }
 
-func (v *wVar) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals a Var.
+func (v *Var) UnmarshalJSON(b []byte) error {
 	var s string
 	if err := json.Unmarshal(b, &s); err == nil {
 		v.Value = s
 		return nil
 	}
 
-	// We can't unmarshal into wVar directly as it would create an infinite loop.
-	type aVar wVar
+	// We can't unmarshal into Var directly as it would create an infinite loop.
+	type aVar Var
 	return json.Unmarshal(b, &struct{ *aVar }{aVar: (*aVar)(v)})
 }
 
@@ -140,7 +141,7 @@ type Workflow struct {
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string `json:",omitempty"`
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars  map[string]wVar `json:",omitempty"`
+	Vars  map[string]Var `json:",omitempty"`
 	Steps map[string]*Step
 	// Map of steps to their dependencies.
 	Dependencies map[string][]string
@@ -168,9 +169,9 @@ type Workflow struct {
 // AddVar adds a variable set to the Workflow.
 func (w *Workflow) AddVar(k, v string) {
 	if w.Vars == nil {
-		w.Vars = map[string]wVar{}
+		w.Vars = map[string]Var{}
 	}
-	w.Vars[k] = wVar{Value: v}
+	w.Vars[k] = Var{Value: v}
 }
 
 func (w *Workflow) addCleanupHook(hook func() dErr) {
@@ -617,7 +618,7 @@ func New() *Workflow {
 	w := &Workflow{Cancel: make(chan struct{})}
 	// Init nil'ed fields
 	w.Sources = map[string]string{}
-	w.Vars = map[string]wVar{}
+	w.Vars = map[string]Var{}
 	w.Steps = map[string]*Step{}
 	w.Dependencies = map[string][]string{}
 	w.autovars = map[string]string{}

@@ -220,7 +220,7 @@ func TestNewFromFile(t *testing.T) {
 		Zone:        "us-central1-a",
 		GCSPath:     "gs://some-bucket/images",
 		OAuthPath:   filepath.Join(wd, "test_data", "somefile"),
-		Vars: map[string]wVar{
+		Vars: map[string]Var{
 			"bootstrap_instance_name": {Value: "bootstrap-${NAME}", Required: true},
 			"machine_type":            {Value: "n1-standard-1"},
 		},
@@ -381,7 +381,7 @@ func TestPopulate(t *testing.T) {
 	got.Project = "bar-project"
 	got.OAuthPath = tf
 	got.Logger = log.New(ioutil.Discard, "", 0)
-	got.Vars = map[string]wVar{
+	got.Vars = map[string]Var{
 		"bucket":    {Value: "wf-bucket", Required: true},
 		"step_name": {Value: "step1"},
 		"timeout":   {Value: "60m"},
@@ -414,7 +414,7 @@ func TestPopulate(t *testing.T) {
 		id:         got.id,
 		gcsLogging: true,
 		Cancel:     got.Cancel,
-		Vars: map[string]wVar{
+		Vars: map[string]Var{
 			"bucket":    {Value: "wf-bucket", Required: true},
 			"step_name": {Value: "step1"},
 			"timeout":   {Value: "60m"},
@@ -474,11 +474,11 @@ func TestRequiredVars(t *testing.T) {
 
 	tests := []struct {
 		desc      string
-		vars      map[string]wVar
+		vars      map[string]Var
 		shouldErr bool
 	}{
-		{"normal case", map[string]wVar{"foo": {Value: "foo", Required: true, Description: "foo"}}, false},
-		{"missing req case", map[string]wVar{"foo": {Value: "", Required: true, Description: "foo"}}, true},
+		{"normal case", map[string]Var{"foo": {Value: "foo", Required: true, Description: "foo"}}, false},
+		{"missing req case", map[string]Var{"foo": {Value: "", Required: true, Description: "foo"}}, true},
 	}
 
 	for _, tt := range tests {

@@ -37,11 +37,11 @@ const gcsImageObj = "root.tar.gz"
 
 var (
 	oauth          = flag.String("oauth", "", "path to oauth json file")
-	sourceVersion  = flag.String("source_version", time.Now().UTC().Format("20060102"), "version on source image")
+	sourceVersion  = flag.String("source_version", "v"+time.Now().UTC().Format("20060102"), "version on source image")
 	publishVersion = flag.String("publish_version", *sourceVersion, "version for published image if different from source")
 	skipDup        = flag.Bool("skip_duplicates", false, "skip publishing an image that already exists")
 	rollback       = flag.Bool("rollback", false, "rollback image publish")
-	noConfirm      = flag.Bool("noConfirm", false, "don't ask for confirmation")
+	noConfirm      = flag.Bool("skip_confirmation", false, "don't ask for confirmation")
 )
 
 type publish struct {
@@ -58,7 +58,7 @@ type publish struct {
 	// Optional compute endpoint override
 	ComputeEndpoint string
 	// Images to publish.
-	Images []image
+	Images []*image
 
 	// Populated from the source_version flag, added to the image prefix to
 	// lookup source image.
@@ -82,9 +82,9 @@ type image struct {
 	GuestOsFeatures []string
 }
 
-func publishImage(p *publish, img image, pubImgs []*compute.Image) (*daisy.CreateImages, *daisy.DeprecateImages, error) {
-	publishName := fmt.Sprintf("%s-v%s", img.Prefix, p.publishVersion)
-	sourceName := fmt.Sprintf("%s-v%s", img.Prefix, p.sourceVersion)
+func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicates bool) (*daisy.CreateImages, *daisy.DeprecateImages, error) {
+	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
+	sourceName := fmt.Sprintf("%s-%s", img.Prefix, p.sourceVersion)
 	var gosf []*compute.GuestOsFeature
 	for _, f := range img.GuestOsFeatures {
 		gosf = append(gosf, &compute.GuestOsFeature{Type: f})
@@ -124,7 +124,7 @@ func publishImage(p *publish, img image, pubImgs []*compute.Image) (*daisy.Creat
 	for _, pubImg := range pubImgs {
 		if pubImg.Name == publishName {
 			msg := fmt.Sprintf("image %q already exists in project %q", publishName, p.PublishProject)
-			if !*skipDup {
+			if !skipDuplicates {
 				return nil, nil, errors.New(msg)
 			}
 			log.Printf("%s, skipping image creation", msg)
@@ -151,8 +151,8 @@ func publishImage(p *publish, img image, pubImgs []*compute.Image) (*daisy.Creat
 	return cis, dis, nil
 }
 
-func rollbackImage(p *publish, img image, pubImgs []*compute.Image) (*daisy.DeleteResources, *daisy.DeprecateImages, error) {
-	publishName := fmt.Sprintf("%s-v%s", img.Prefix, p.publishVersion)
+func rollbackImage(p *publish, img *image, pubImgs []*compute.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
+	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	dr := &daisy.DeleteResources{}
 	dis := &daisy.DeprecateImages{}
 	for _, pubImg := range pubImgs {
@@ -164,7 +164,7 @@ func rollbackImage(p *publish, img image, pubImgs []*compute.Image) (*daisy.Dele
 
 	if len(dr.Images) == 0 {
 		log.Printf("%q does not exist in %q, not rolling back", publishName, p.PublishProject)
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	for _, pubImg := range pubImgs {
@@ -173,15 +173,16 @@ func rollbackImage(p *publish, img image, pubImgs []*compute.Image) (*daisy.Dele
 			*dis = append(*dis, &daisy.DeprecateImage{
 				Image:   pubImg.Name,
 				Project: p.PublishProject,
-				DeprecationStatus: compute.DeprecationStatus{
-					// Setting a blank State un-deprecates the image.
-					State: "",
-				},
+				// Not setting a DeprecationStatus (leaving it blank) un-deprecates the image.
+				//DeprecationStatus: compute.DeprecationStatus{
+				//ForceSendFields: []string{"State"},
+				//	State: "",
+				//},
 			})
 			break
 		}
 	}
-	return dr, dis, nil
+	return dr, dis
 }
 
 func printList(list []string) {
@@ -277,7 +278,7 @@ func deprecatePrintOut(deprecateImages *daisy.DeprecateImages) ([]string, []stri
 	return toDeprecate, toObsolete, toUndeprecate
 }
 
-func populateWorkflow(ctx context.Context, w *daisy.Workflow, p *publish, rb bool) error {
+func populateWorkflow(ctx context.Context, w *daisy.Workflow, p *publish, pubImgs []*compute.Image, rb, sd bool) error {
 	var err error
 
 	w.Name = p.Name
@@ -285,34 +286,20 @@ func populateWorkflow(ctx context.Context, w *daisy.Workflow, p *publish, rb boo
 	w.AddVar("source_version", p.sourceVersion)
 	w.AddVar("publish_version", p.publishVersion)
 
-	if p.ComputeEndpoint != "" {
-		w.ComputeClient, err = daisyCompute.NewClient(ctx, option.WithEndpoint(p.ComputeEndpoint))
-		if err != nil {
-			return err
-		}
-	}
-
 	var toCreate []string
 	var toDelete []string
 	var toDeprecate []string
 	var toObsolete []string
 	var toUndeprecate []string
 
-	pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
-	if err != nil {
-		return err
-	}
 	for _, img := range p.Images {
 		var createImages *daisy.CreateImages
 		var deprecateImages *daisy.DeprecateImages
 		var deleteResources *daisy.DeleteResources
 		if rb {
-			deleteResources, deprecateImages, err = rollbackImage(p, img, pubImgs)
-			if err != nil {
-				return err
-			}
+			deleteResources, deprecateImages = rollbackImage(p, img, pubImgs)
 		} else {
-			createImages, deprecateImages, err = publishImage(p, img, pubImgs)
+			createImages, deprecateImages, err = publishImage(p, img, pubImgs, sd)
 			if err != nil {
 				return err
 			}
@@ -380,7 +367,17 @@ func main() {
 	p.publishVersion = *publishVersion
 
 	w := daisy.New()
-	if err := populateWorkflow(ctx, w, &p, *rollback); err != nil {
+	if p.ComputeEndpoint != "" {
+		w.ComputeClient, err = daisyCompute.NewClient(ctx, option.WithEndpoint(p.ComputeEndpoint))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := populateWorkflow(ctx, w, &p, pubImgs, *rollback, *skipDup); err != nil {
 		log.Fatal(err)
 	}
 
