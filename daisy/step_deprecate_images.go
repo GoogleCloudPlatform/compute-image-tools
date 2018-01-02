@@ -38,10 +38,6 @@ type DeprecateImage struct {
 func (d *DeprecateImages) populate(ctx context.Context, s *Step) dErr {
 	for _, di := range *d {
 		di.Project = strOr(di.Project, s.w.Project)
-
-		if di.DeprecationStatus.State == "" && di.DeprecationStatus.ForceSendFields == nil {
-			di.DeprecationStatus.ForceSendFields = []string{"Status"}
-		}
 	}
 	return nil
 }

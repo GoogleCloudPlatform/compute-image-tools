@@ -27,7 +27,6 @@ func TestDeprecateImagesPopulate(t *testing.T) {
 	w := testWorkflow()
 	s, _ := w.NewStep("s")
 	s.DeprecateImages = &DeprecateImages{
-		// Not setting DeprecationStatus.State should populate ForceSendFields.
 		&DeprecateImage{
 			Image: testImage,
 		},
@@ -46,10 +45,7 @@ func TestDeprecateImagesPopulate(t *testing.T) {
 
 	want := &DeprecateImages{
 		&DeprecateImage{
-			Image: testImage,
-			DeprecationStatus: compute.DeprecationStatus{
-				ForceSendFields: []string{"Status"},
-			},
+			Image:   testImage,
 			Project: testProject,
 		},
 		&DeprecateImage{
