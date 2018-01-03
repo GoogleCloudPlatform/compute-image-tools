@@ -1,19 +1,19 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: sinker
+  name: splice
   labels:
-    app: sinker
+    app: splice
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: sinker
+        app: splice
     spec:
       containers:
-      - name: sinker
-        image: gcr.io/k8s-prow/sinker:0.26
+      - name: splice
+        image: gcr.io/k8s-prow/splice:0.34
         volumeMounts:
         - name: config
           mountPath: /etc/config

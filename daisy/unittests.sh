@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,16 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+set -x
+set -e
 
-BUCKET = 'gce-daisy-test'
-BUILD_NUM = os.environ['BUILD_NUMBER']
-GCS_API_BASE = 'https://storage.googleapis.com'
-JOB_NAME = os.environ['JOB_NAME']
-PULL_REFS = os.getenv('PULL_REFS')
-REPO_OWNER = 'GoogleCloudPlatform'
-REPO_NAME = 'compute-image-tools'
-TEST_PROJECT = 'gce-daisy-test'
-
-GOPACKAGE = 'github.com/%s/%s/daisy' % (REPO_OWNER, REPO_NAME)
-GOPACKAGE_PATH = os.path.join(os.environ['GOPATH'], 'src', GOPACKAGE)
+go get -t ./...
+for D in $(go list ./... | grep -v vendor); do
+  go test $D -race -coverprofile=profile.out -covermode=atomic -v 2>&1
+  if [ -f profile.out ]; then
+    cat profile.out >> $GOCOVPATH
+    rm profile.out
+  fi
+done
