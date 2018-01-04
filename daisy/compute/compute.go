@@ -34,9 +34,11 @@ type Client interface {
 	CreateDisk(project, zone string, d *compute.Disk) error
 	CreateImage(project string, i *compute.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
+	CreateNetwork(project string, n *compute.Network) error
 	DeleteDisk(project, zone, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
+	DeleteNetwork(project, name string) error
 	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
 	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
@@ -289,6 +291,24 @@ func (c *client) CreateInstance(project, zone string, i *compute.Instance) error
 	return nil
 }
 
+func (c *client) CreateNetwork(project string, n *compute.Network) error {
+	op, err := c.Retry(c.raw.Networks.Insert(project, n).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.operationsWait(project, "", op.Name); err != nil {
+		return err
+	}
+
+	var createdNetwork *compute.Network
+	if createdNetwork, err = c.i.GetNetwork(project, n.Name); err != nil {
+		return err
+	}
+	*n = *createdNetwork
+	return nil
+}
+
 // DeleteImage deletes a GCE image.
 func (c *client) DeleteImage(project, name string) error {
 	op, err := c.Retry(c.raw.Images.Delete(project, name).Do)
@@ -317,6 +337,16 @@ func (c *client) DeleteInstance(project, zone, name string) error {
 	}
 
 	return c.i.operationsWait(project, zone, op.Name)
+}
+
+// DeleteNetwork deletes a GCE network.
+func (c *client) DeleteNetwork(project, name string) error {
+	op, err := c.Retry(c.raw.Networks.Delete(project, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.operationsWait(project, "", op.Name)
 }
 
 // DeprecateImage sets deprecation status on a GCE image.
