@@ -37,7 +37,6 @@ spec:
         imagePullPolicy: Always
         args:
         - --dry-run=false
-        - --plugin-config=/etc/plugins/plugins.yaml
         ports:
           - name: http
             containerPort: 8888

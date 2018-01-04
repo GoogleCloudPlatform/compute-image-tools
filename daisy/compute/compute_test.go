@@ -62,7 +62,8 @@ func TestCreates(t *testing.T) {
 	var getErr, insertErr, waitErr error
 	var getResp interface{}
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.String() == *insertURL {
+		url := r.URL.String()
+		if r.Method == "POST" && url == *insertURL {
 			if insertErr != nil {
 				w.WriteHeader(400)
 				fmt.Fprintln(w, insertErr)
@@ -73,7 +74,7 @@ func TestCreates(t *testing.T) {
 				t.Fatal(err)
 			}
 			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == *getURL {
+		} else if r.Method == "GET" && url == *getURL {
 			if getErr != nil {
 				w.WriteHeader(400)
 				fmt.Fprintln(w, getErr)
@@ -83,7 +84,7 @@ func TestCreates(t *testing.T) {
 			fmt.Fprintln(w, string(body))
 		} else {
 			w.WriteHeader(500)
-			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
+			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, url)
 		}
 	}))
 	if err != nil {
@@ -116,32 +117,32 @@ func TestCreates(t *testing.T) {
 		{
 			"disks",
 			func() error { return c.CreateDisk(testProject, testZone, d) },
-			fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone),
 			fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json", testProject, testZone, testDisk),
+			fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone),
 			&compute.Disk{Name: testDisk, SelfLink: "foo"},
 			d,
 		},
 		{
 			"images",
 			func() error { return c.CreateImage(testProject, im) },
-			fmt.Sprintf("/%s/global/images?alt=json", testProject),
 			fmt.Sprintf("/%s/global/images/%s?alt=json", testProject, testImage),
+			fmt.Sprintf("/%s/global/images?alt=json", testProject),
 			&compute.Image{Name: testImage, SelfLink: "foo"},
 			im,
 		},
 		{
 			"instances",
 			func() error { return c.CreateInstance(testProject, testZone, in) },
-			fmt.Sprintf("/%s/zones/%s/instances?alt=json", testProject, testZone),
 			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, testInstance),
-			&compute.Image{Name: testImage, SelfLink: "foo"},
+			fmt.Sprintf("/%s/zones/%s/instances?alt=json", testProject, testZone),
+			&compute.Instance{Name: testImage, SelfLink: "foo"},
 			in,
 		},
 		{
 			"networks",
 			func() error { return c.CreateNetwork(testProject, n) },
-			fmt.Sprintf("/%s/global/networks?alt=json", testProject),
 			fmt.Sprintf("/%s/global/networks/%s?alt=json", testProject, testNetwork),
+			fmt.Sprintf("/%s/global/networks?alt=json", testProject),
 			&compute.Network{Name: testNetwork, SelfLink: "foo"},
 			n,
 		},
@@ -162,7 +163,7 @@ func TestCreates(t *testing.T) {
 			if err != nil && !tt.shouldErr {
 				t.Errorf("%s: got unexpected error: %s", tt.desc, err)
 			} else if diff := pretty.Compare(create.resource, getResp); err == nil && diff != "" {
-				t.Errorf("%s: Disk does not match expectation: (-got +want)\n%s", tt.desc, diff)
+				t.Errorf("%s: Resource does not match expectation: (-got +want)\n%s", tt.desc, diff)
 			}
 		}
 	}
