@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
 
@@ -42,8 +41,8 @@ func TestCopyGCSObjectsPopulate(t *testing.T) {
 		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
 		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allAuthenticatedUsers", Role: "WRITER"}}},
 	}
-	if diff := pretty.Compare(ws, want); diff != "" {
-		t.Errorf("populated CopyGCSObjects does not match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(ws, want); diffRes != "" {
+		t.Errorf("populated CopyGCSObjects does not match expectation: (-got +want)\n%s", diffRes)
 	}
 }
 

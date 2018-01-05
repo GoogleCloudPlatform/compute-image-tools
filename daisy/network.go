@@ -25,8 +25,6 @@ import (
 )
 
 var (
-	networks        = map[*Workflow]*networkRegistry{}
-	networksMu      sync.Mutex
 	networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
@@ -34,16 +32,14 @@ type networkRegistry struct {
 	baseResourceRegistry
 }
 
-func initNetworkRegistry(w *Workflow) {
+func newNetworkRegistry(w *Workflow) *networkRegistry {
 	nr := &networkRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "network", urlRgx: networkURLRegex}}
 	nr.baseResourceRegistry.deleteFn = nr.deleteFn
 	nr.init()
-	networksMu.Lock()
-	networks[w] = nr
-	networksMu.Unlock()
+	return nr
 }
 
-func (ir *networkRegistry) deleteFn(res *resource) dErr {
+func (ir *networkRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(networkURLRegex, res.link)
 	err := ir.w.ComputeClient.DeleteImage(m["project"], m["network"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {

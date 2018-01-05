@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestIncludeWorkflowPopulate(t *testing.T) {
@@ -66,6 +64,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 		Vars: map[string]Var{
 			"foo": {Value: "bar"},
 		},
+		autovars: map[string]string{},
 		Sources: map[string]string{
 			"file": "path",
 		},
@@ -92,11 +91,11 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 		}
 	}
 
-	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("populated IncludeWorkflow does not match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(got, want); diffRes != "" {
+		t.Errorf("populated IncludeWorkflow does not match expectation: (-got +want)\n%s", diffRes)
 	}
-	if diff := pretty.Compare(w.Sources, got.Sources); diff != "" {
-		t.Errorf("parent workflow sources don't match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(w.Sources, got.Sources); diffRes != "" {
+		t.Errorf("parent workflow sources don't match expectation: (-got +want)\n%s", diffRes)
 	}
 }
 
@@ -113,7 +112,7 @@ func TestIncludeWorkflowValidate(t *testing.T) {
 	w.AddDependency(incStep, dCreator)
 	dDeleter, _ := iw.NewStep("dDeleter")
 	dDeleter.DeleteResources = &DeleteResources{Disks: []string{"d"}}
-	if err := disks[w].registerCreation("d", &resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator, false); err != nil {
+	if err := disks[w].registerCreation("d", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, dCreator, false); err != nil {
 		t.Fatal(err)
 	}
 

@@ -446,7 +446,7 @@ func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw := New()
 	iw.Cancel = w.Cancel
 	iw.parent = w
-	shareWorkflowResources(w, iw)
+	shareWorkflowResourceRegistries(w, iw)
 	return iw
 }
 
@@ -622,7 +622,7 @@ func New() *Workflow {
 	w.Steps = map[string]*Step{}
 	w.Dependencies = map[string][]string{}
 	w.autovars = map[string]string{}
-	initWorkflowResources(w)
+	initWorkflowResourceRegistries(w)
 	return w
 }
 

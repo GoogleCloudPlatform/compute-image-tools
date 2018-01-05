@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -56,8 +55,8 @@ func TestDeprecateImagesPopulate(t *testing.T) {
 			Project: "foo",
 		},
 	}
-	if diff := pretty.Compare(s.DeprecateImages, want); diff != "" {
-		t.Errorf("DeprecateImages not populated as expected: (-got,+want)\n%s", diff)
+	if diffRes := diff(s.DeprecateImages, want); diffRes != "" {
+		t.Errorf("DeprecateImages not populated as expected: (-got,+want)\n%s", diffRes)
 	}
 }
 
@@ -67,7 +66,7 @@ func TestDeprecateImagesValidate(t *testing.T) {
 
 	iCreator := &Step{name: "iCreator", w: w}
 	w.Steps["iCreator"] = iCreator
-	images[w].m = map[string]*resource{"i1": {creator: iCreator}}
+	images[w].m = map[string]*Resource{"i1": {creator: iCreator}}
 
 	tests := []struct {
 		desc      string
@@ -126,7 +125,7 @@ func TestDeprecateImagesRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
-	images[w].m = map[string]*resource{"i1": {real: "i1", link: "i1link"}}
+	images[w].m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
 
 	e := errf("error")
 	tests := []struct {

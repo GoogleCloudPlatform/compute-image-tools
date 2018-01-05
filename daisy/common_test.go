@@ -19,8 +19,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestFilter(t *testing.T) {
@@ -266,8 +265,8 @@ func TestSubstitute(t *testing.T) {
 		s := reflect.ValueOf(&tt.got).Elem()
 		substitute(s, tt.replacer)
 
-		if diff := pretty.Compare(tt.got, tt.want); diff != "" {
-			t.Errorf("test %d: post substitute workflow does not match expectation: (-got +want)\n%s", i, diff)
+		if diffRes := diff(tt.got, tt.want); diffRes != "" {
+			t.Errorf("test %d: post substitute workflow does not match expectation: (-got +want)\n%s", i, diffRes)
 		}
 	}
 }

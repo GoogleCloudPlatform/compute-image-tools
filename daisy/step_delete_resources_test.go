@@ -19,8 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestDeleteResourcesPopulate(t *testing.T) {
@@ -41,8 +40,8 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 		Images:    []string{"i", fmt.Sprintf("projects/%s/global/images/i", w.Project)},
 		Instances: []string{"i", fmt.Sprintf("projects/%s/zones/z/instances/i", w.Project)},
 	}
-	if diff := pretty.Compare(s.DeleteResources, want); diff != "" {
-		t.Errorf("DeleteResources not populated as expected: (-got,+want)\n%s", diff)
+	if diffRes := diff(s.DeleteResources, want); diffRes != "" {
+		t.Errorf("DeleteResources not populated as expected: (-got,+want)\n%s", diffRes)
 	}
 }
 
@@ -51,12 +50,12 @@ func TestDeleteResourcesRun(t *testing.T) {
 	w := testWorkflow()
 
 	s, _ := w.NewStep("s")
-	ins := []*resource{{real: "in0", link: "link"}, {real: "in1", link: "link"}}
-	ims := []*resource{{real: "im0", link: "link"}, {real: "im1", link: "link"}}
-	ds := []*resource{{real: "d0", link: "link"}, {real: "d1", link: "link"}}
-	instances[w].m = map[string]*resource{"in0": ins[0], "in1": ins[1]}
-	images[w].m = map[string]*resource{"im0": ims[0], "im1": ims[1]}
-	disks[w].m = map[string]*resource{"d0": ds[0], "d1": ds[1]}
+	ins := []*Resource{{RealName: "in0", link: "link"}, {RealName: "in1", link: "link"}}
+	ims := []*Resource{{RealName: "im0", link: "link"}, {RealName: "im1", link: "link"}}
+	ds := []*Resource{{RealName: "d0", link: "link"}, {RealName: "d1", link: "link"}}
+	instances[w].m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
+	images[w].m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
+	disks[w].m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 
 	dr := &DeleteResources{Instances: []string{"in0"}, Images: []string{"im0"}, Disks: []string{"d0"}}
 	if err := dr.run(ctx, s); err != nil {
@@ -64,7 +63,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 	}
 
 	deletedChecks := []struct {
-		r               *resource
+		r               *Resource
 		shouldBeDeleted bool
 	}{
 		{ins[0], true},
@@ -77,10 +76,10 @@ func TestDeleteResourcesRun(t *testing.T) {
 	for _, c := range deletedChecks {
 		if c.shouldBeDeleted {
 			if !c.r.deleted {
-				t.Errorf("resource %q should have been deleted", c.r.real)
+				t.Errorf("resource %q should have been deleted", c.r.RealName)
 			}
 		} else if c.r.deleted {
-			t.Errorf("resource %q should not have been deleted", c.r.real)
+			t.Errorf("resource %q should not have been deleted", c.r.RealName)
 		}
 	}
 }
@@ -99,21 +98,21 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	s, _ := w.NewStep("s")
 	w.AddDependency(s, dC, imC, inC)
 	otherDeleter, _ := w.NewStep("otherDeleter")
-	ds := []*resource{{real: "d0", link: "link", creator: dC}, {real: "d1", link: "link", creator: dC}}
-	ims := []*resource{{real: "im0", link: "link", creator: imC}, {real: "im1", link: "link", creator: imC}}
-	ins := []*resource{{real: "in0", link: "link", creator: inC}, {real: "in1", link: "link", creator: inC}}
-	instances[w].m = map[string]*resource{"in0": ins[0], "in1": ins[1]}
-	images[w].m = map[string]*resource{"im0": ims[0], "im1": ims[1]}
-	disks[w].m = map[string]*resource{"d0": ds[0], "d1": ds[1]}
+	ds := []*Resource{{RealName: "d0", link: "link", creator: dC}, {RealName: "d1", link: "link", creator: dC}}
+	ims := []*Resource{{RealName: "im0", link: "link", creator: imC}, {RealName: "im1", link: "link", creator: imC}}
+	ins := []*Resource{{RealName: "in0", link: "link", creator: inC}, {RealName: "in1", link: "link", creator: inC}}
+	instances[w].m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
+	images[w].m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
+	disks[w].m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 	ads := []*compute.AttachedDisk{{Source: "d1"}}
-	inC.CreateInstances = &CreateInstances{{daisyName: "in0", Instance: compute.Instance{Disks: ads}}}
+	inC.CreateInstances = &CreateInstances{{Resource: Resource{daisyName: "in0"}, Instance: compute.Instance{Disks: ads}}}
 
-	CompareResources := func(got, want []*resource) {
+	CompareResources := func(got, want []*Resource) {
 		for _, s := range []*Step{dC, imC, inC, s, otherDeleter} {
 			s.w = nil
 		}
-		if diff := pretty.Compare(got, want); diff != "" {
-			t.Errorf("resources weren't registered for deletion as expected: (-got,+want)\n%s", diff)
+		if diffRes := diff(got, want); diffRes != "" {
+			t.Errorf("resources weren't registered for deletion as expected: (-got,+want)\n%s", diffRes)
 		}
 		for _, s := range []*Step{dC, imC, inC, s, otherDeleter} {
 			s.w = w
@@ -125,8 +124,8 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	if err := dr.validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
 	}
-	got := []*resource{ds[0], ds[1], ims[0], ims[1], ins[0], ins[1]}
-	want := []*resource{&(*ds[0]), &(*ds[1]), &(*ims[0]), &(*ims[1]), &(*ins[0]), &(*ins[1])}
+	got := []*Resource{ds[0], ds[1], ims[0], ims[1], ins[0], ins[1]}
+	want := []*Resource{&(*ds[0]), &(*ds[1]), &(*ims[0]), &(*ims[1]), &(*ins[0]), &(*ins[1])}
 	want[0].deleter = s
 	want[1].deleter = s
 	want[2].deleter = s

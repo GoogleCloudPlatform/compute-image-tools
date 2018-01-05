@@ -55,7 +55,7 @@ func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
 	}
 	ir, _ := instances[s.w].get(i)
 
-	// Get the CreateInstance that created this instance, if any.
+	// Get the Instance that created this instance, if any.
 	var attachedDisks []*compute.AttachedDisk
 	if ir.creator != nil {
 		for _, createI := range *ir.creator.CreateInstances {

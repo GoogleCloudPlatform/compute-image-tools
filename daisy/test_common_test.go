@@ -29,9 +29,14 @@ import (
 
 	"cloud.google.com/go/storage"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/davecgh/go-spew/spew"
+	godebugDiff "github.com/kylelemons/godebug/diff"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 )
+
+const DNE = "DNE!"
 
 type mockStep struct {
 	populateImpl func(context.Context, *Step) dErr
@@ -73,6 +78,15 @@ var (
 	testGCSPath     = "gs://test-bucket"
 	testGCSObjs     []string
 	testGCSObjsMx   = sync.Mutex{}
+
+	spewCfg = spew.ConfigState{
+		Indent:                  "  ",
+		DisableCapacities:       true,
+		DisableMethods:          true,
+		DisablePointerAddresses: true,
+		SortKeys:                true,
+		SpewKeys:                true,
+	}
 )
 
 func testWorkflow() *Workflow {
@@ -81,6 +95,7 @@ func testWorkflow() *Workflow {
 	w.Name = testWf
 	w.GCSPath = testGCSPath
 	w.Project = testProject
+	w.Zone = testZone
 	w.ComputeClient, _ = newTestGCEClient()
 	w.StorageClient, _ = newTestGCSClient()
 	w.Cancel = make(chan struct{})
@@ -92,6 +107,10 @@ func addGCSObj(o string) {
 	testGCSObjsMx.Lock()
 	defer testGCSObjsMx.Unlock()
 	testGCSObjs = append(testGCSObjs, o)
+}
+
+func diff(x, y interface{}) string {
+	return godebugDiff.Diff(spewCfg.Sdump(x), spewCfg.Sdump(y))
 }
 
 func newTestGCEClient() (*daisyCompute.TestClient, error) {
@@ -106,12 +125,18 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 	}))
 
 	c.GetProjectFn = func(project string) (*compute.Project, error) {
+		if project == DNE {
+			return nil, &googleapi.Error{Code: http.StatusNotFound}
+		}
 		if project == testProject {
 			return nil, nil
 		}
 		return nil, errors.New("bad project")
 	}
 	c.GetZoneFn = func(_, zone string) (*compute.Zone, error) {
+		if zone == DNE {
+			return nil, &googleapi.Error{Code: http.StatusNotFound}
+		}
 		if zone == testZone {
 			return nil, nil
 		}
