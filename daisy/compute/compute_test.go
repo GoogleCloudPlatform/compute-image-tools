@@ -20,10 +20,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -33,6 +34,7 @@ var (
 	testDisk     = "test-disk"
 	testImage    = "test-image"
 	testInstance = "test-instance"
+	testNetwork  = "test-network"
 )
 
 func TestShouldRetryWithWait(t *testing.T) {
@@ -55,11 +57,13 @@ func TestShouldRetryWithWait(t *testing.T) {
 	}
 }
 
-func TestCreateDisk(t *testing.T) {
+func TestCreates(t *testing.T) {
+	var getURL, insertURL *string
 	var getErr, insertErr, waitErr error
-	var getResp *compute.Disk
+	var getResp interface{}
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone) {
+		url := r.URL.String()
+		if r.Method == "POST" && url == *insertURL {
 			if insertErr != nil {
 				w.WriteHeader(400)
 				fmt.Fprintln(w, insertErr)
@@ -70,7 +74,7 @@ func TestCreateDisk(t *testing.T) {
 				t.Fatal(err)
 			}
 			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json", testProject, testZone, testDisk) {
+		} else if r.Method == "GET" && url == *getURL {
 			if getErr != nil {
 				w.WriteHeader(400)
 				fmt.Fprintln(w, getErr)
@@ -80,7 +84,7 @@ func TestCreateDisk(t *testing.T) {
 			fmt.Fprintln(w, string(body))
 		} else {
 			w.WriteHeader(500)
-			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
+			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, url)
 		}
 	}))
 	if err != nil {
@@ -100,142 +104,77 @@ func TestCreateDisk(t *testing.T) {
 		{"wait err case", nil, nil, errors.New("wait err"), true},
 	}
 
-	for _, tt := range tests {
-		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
-		d := &compute.Disk{Name: testDisk}
-		getResp = &compute.Disk{Name: testDisk, SelfLink: "foo"}
-		err := c.CreateDisk(testProject, testZone, d)
-		getResp.ServerResponse = d.ServerResponse // We have to fudge this part in order to check that d == getResp
-		if err != nil && !tt.shouldErr {
-			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
-		} else if diff := pretty.Compare(d, getResp); err == nil && diff != "" {
-			t.Errorf("%s: Disk does not match expectation: (-got +want)\n%s", tt.desc, diff)
+	d := &compute.Disk{Name: testDisk}
+	im := &compute.Image{Name: testImage}
+	in := &compute.Instance{Name: testInstance}
+	n := &compute.Network{Name: testNetwork}
+	creates := []struct {
+		name              string
+		do                func() error
+		getURL, insertURL string
+		getResp, resource interface{}
+	}{
+		{
+			"disks",
+			func() error { return c.CreateDisk(testProject, testZone, d) },
+			fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json", testProject, testZone, testDisk),
+			fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone),
+			&compute.Disk{Name: testDisk, SelfLink: "foo"},
+			d,
+		},
+		{
+			"images",
+			func() error { return c.CreateImage(testProject, im) },
+			fmt.Sprintf("/%s/global/images/%s?alt=json", testProject, testImage),
+			fmt.Sprintf("/%s/global/images?alt=json", testProject),
+			&compute.Image{Name: testImage, SelfLink: "foo"},
+			im,
+		},
+		{
+			"instances",
+			func() error { return c.CreateInstance(testProject, testZone, in) },
+			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, testInstance),
+			fmt.Sprintf("/%s/zones/%s/instances?alt=json", testProject, testZone),
+			&compute.Instance{Name: testImage, SelfLink: "foo"},
+			in,
+		},
+		{
+			"networks",
+			func() error { return c.CreateNetwork(testProject, n) },
+			fmt.Sprintf("/%s/global/networks/%s?alt=json", testProject, testNetwork),
+			fmt.Sprintf("/%s/global/networks?alt=json", testProject),
+			&compute.Network{Name: testNetwork, SelfLink: "foo"},
+			n,
+		},
+	}
+
+	for _, create := range creates {
+		getURL = &create.getURL
+		insertURL = &create.insertURL
+		getResp = create.getResp
+		for _, tt := range tests {
+			getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
+			create.do()
+
+			// We have to fudge this part in order to check that the returned resource == getResp.
+			f := reflect.ValueOf(create.resource).Elem().FieldByName("ServerResponse")
+			f.Set(reflect.Zero(f.Type()))
+
+			if err != nil && !tt.shouldErr {
+				t.Errorf("%s: got unexpected error: %s", tt.desc, err)
+			} else if diff := pretty.Compare(create.resource, getResp); err == nil && diff != "" {
+				t.Errorf("%s: Resource does not match expectation: (-got +want)\n%s", tt.desc, diff)
+			}
 		}
 	}
 }
 
-func TestCreateImage(t *testing.T) {
-	var getErr, insertErr, waitErr error
-	var getResp *compute.Image
+func TestDeletes(t *testing.T) {
+	var deleteURL, opGetURL *string
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/images?alt=json", testProject) {
-			if insertErr != nil {
-				w.WriteHeader(400)
-				fmt.Fprintln(w, insertErr)
-				return
-			}
-			buf := new(bytes.Buffer)
-			if _, err := buf.ReadFrom(r.Body); err != nil {
-				t.Fatal(err)
-			}
+		if r.Method == "DELETE" && r.URL.String() == *deleteURL {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/global/images/%s?alt=json", testProject, testImage) {
-			if getErr != nil {
-				w.WriteHeader(400)
-				fmt.Fprintln(w, getErr)
-				return
-			}
-			body, _ := json.Marshal(getResp)
-			fmt.Fprintln(w, string(body))
-		} else {
-			w.WriteHeader(500)
-			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
-		}
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer svr.Close()
-	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
-
-	tests := []struct {
-		desc                       string
-		getErr, insertErr, waitErr error
-		shouldErr                  bool
-	}{
-		{"normal case", nil, nil, nil, false},
-		{"get err case", errors.New("get err"), nil, nil, true},
-		{"insert err case", nil, errors.New("insert err"), nil, true},
-		{"wait err case", nil, nil, errors.New("wait err"), true},
-	}
-
-	for _, tt := range tests {
-		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
-		i := &compute.Image{Name: testImage}
-		getResp = &compute.Image{Name: testImage, SelfLink: "foo"}
-		err := c.CreateImage(testProject, i)
-		getResp.ServerResponse = i.ServerResponse // We have to fudge this part in order to check that i == getResp
-		if err != nil && !tt.shouldErr {
-			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
-		} else if diff := pretty.Compare(i, getResp); err == nil && diff != "" {
-			t.Errorf("%s: Image does not match expectation: (-got +want)\n%s", tt.desc, diff)
-		}
-	}
-}
-
-func TestCreateInstance(t *testing.T) {
-	var getErr, insertErr, waitErr error
-	var getResp *compute.Instance
-	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances?alt=json", testProject, testZone) {
-			if insertErr != nil {
-				w.WriteHeader(400)
-				return
-			}
-			buf := new(bytes.Buffer)
-			if _, err := buf.ReadFrom(r.Body); err != nil {
-				t.Fatal(err)
-			}
-			fmt.Fprintln(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, testInstance) {
-			if getErr != nil {
-				w.WriteHeader(400)
-				fmt.Fprintln(w, getErr)
-				return
-			}
-			body, _ := json.Marshal(getResp)
-			fmt.Fprintln(w, string(body))
-		} else {
-			w.WriteHeader(500)
-			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
-		}
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer svr.Close()
-	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
-
-	tests := []struct {
-		desc                       string
-		getErr, insertErr, waitErr error
-		shouldErr                  bool
-	}{
-		{"normal case", nil, nil, nil, false},
-		{"get err case", errors.New("get err"), nil, nil, true},
-		{"insert err case", nil, errors.New("insert err"), nil, true},
-		{"wait err case", nil, nil, errors.New("wait err"), true},
-	}
-
-	for _, tt := range tests {
-		getErr, insertErr, waitErr = tt.getErr, tt.insertErr, tt.waitErr
-		i := &compute.Instance{Name: testInstance}
-		getResp = &compute.Instance{Name: testInstance, SelfLink: "foo"}
-		err := c.CreateInstance(testProject, testZone, i)
-		getResp.ServerResponse = i.ServerResponse // We have to fudge this part in order to check that i == getResp
-		if err != nil && !tt.shouldErr {
-			t.Errorf("%s: got unexpected error: %s", tt.desc, err)
-		} else if diff := pretty.Compare(i, getResp); err == nil && diff != "" {
-			t.Errorf("%s: Instance does not match expectation: (-got +want)\n%s", tt.desc, diff)
-		}
-	}
-}
-
-func TestDeleteDisk(t *testing.T) {
-	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "DELETE" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json", testProject, testZone, testDisk) {
-			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone) {
+		} else if r.Method == "GET" && r.URL.String() == *opGetURL {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -247,29 +186,43 @@ func TestDeleteDisk(t *testing.T) {
 	}
 	defer svr.Close()
 
-	if err := c.DeleteDisk(testProject, testZone, testDisk); err != nil {
-		t.Fatalf("error running DeleteDisk: %v", err)
+	deletes := []struct {
+		name                string
+		do                  func() error
+		deleteURL, opGetURL string
+	}{
+		{
+			"disks",
+			func() error { return c.DeleteDisk(testProject, testZone, testDisk) },
+			fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json", testProject, testZone, testDisk),
+			fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone),
+		},
+		{
+			"images",
+			func() error { return c.DeleteImage(testProject, testImage) },
+			fmt.Sprintf("/%s/global/images/%s?alt=json", testProject, testImage),
+			fmt.Sprintf("/%s/global/operations/?alt=json", testProject),
+		},
+		{
+			"instances",
+			func() error { return c.DeleteInstance(testProject, testZone, testInstance) },
+			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, testInstance),
+			fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone),
+		},
+		{
+			"networks",
+			func() error { return c.DeleteNetwork(testProject, testNetwork) },
+			fmt.Sprintf("/%s/global/networks/%s?alt=json", testProject, testNetwork),
+			fmt.Sprintf("/%s/global/operations/?alt=json", testProject),
+		},
 	}
-}
 
-func TestDeleteImage(t *testing.T) {
-	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "DELETE" && r.URL.String() == fmt.Sprintf("/%s/global/images/%s?alt=json", testProject, testImage) {
-			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/global/operations/?alt=json", testProject) {
-			fmt.Fprint(w, `{"Status":"DONE"}`)
-		} else {
-			w.WriteHeader(500)
-			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
+	for _, d := range deletes {
+		deleteURL = &d.deleteURL
+		opGetURL = &d.opGetURL
+		if err := d.do(); err != nil {
+			t.Errorf("%s: error running Delete: %v", d.name, err)
 		}
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer svr.Close()
-
-	if err := c.DeleteImage(testProject, testImage); err != nil {
-		t.Fatalf("error running DeleteImage: %v", err)
 	}
 }
 
@@ -291,26 +244,5 @@ func TestDeprecateImage(t *testing.T) {
 
 	if err := c.DeprecateImage(testProject, testImage, &compute.DeprecationStatus{}); err != nil {
 		t.Fatalf("error running DeprecateImage: %v", err)
-	}
-}
-
-func TestDeleteInstance(t *testing.T) {
-	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "DELETE" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json", testProject, testZone, testInstance) {
-			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone) {
-			fmt.Fprint(w, `{"Status":"DONE"}`)
-		} else {
-			w.WriteHeader(500)
-			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
-		}
-	}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer svr.Close()
-
-	if err := c.DeleteInstance(testProject, testZone, testInstance); err != nil {
-		t.Fatalf("error running DeleteInstance: %v", err)
 	}
 }

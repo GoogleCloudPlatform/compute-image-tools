@@ -46,9 +46,11 @@ func TestTestClient(t *testing.T) {
 		{"create disk", func() { c.CreateDisk("a", "b", &compute.Disk{}) }, "/a/zones/b/disks?alt=json"},
 		{"create image", func() { c.CreateImage("a", &compute.Image{}) }, "/a/global/images?alt=json"},
 		{"create instance", func() { c.CreateInstance("a", "b", &compute.Instance{}) }, "/a/zones/b/instances?alt=json"},
+		{"create network", func() { c.CreateNetwork("a", &compute.Network{}) }, "/a/global/networks?alt=json"},
 		{"delete disk", func() { c.DeleteDisk("a", "b", "c") }, "/a/zones/b/disks/c?alt=json"},
 		{"delete image", func() { c.DeleteImage("a", "b") }, "/a/global/images/b?alt=json"},
 		{"delete instance", func() { c.DeleteInstance("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
+		{"delete network", func() { c.DeleteNetwork("a", "b") }, "/a/global/networks/b?alt=json"},
 		{"deprecate image", func() { c.DeprecateImage("a", "b", &compute.DeprecationStatus{}) }, "/a/global/images/b/deprecate?alt=json"},
 		{"get serial port", func() { c.GetSerialPortOutput("a", "b", "c", 1, 2) }, "/a/zones/b/instances/c/serialPort?alt=json&port=1&start=2"},
 		{"get project", func() { c.GetProject("a") }, "/a?alt=json"},
@@ -101,9 +103,11 @@ func TestTestClient(t *testing.T) {
 	c.CreateDiskFn = func(_, _ string, _ *compute.Disk) error { fakeCalled = true; return nil }
 	c.CreateImageFn = func(_ string, _ *compute.Image) error { fakeCalled = true; return nil }
 	c.CreateInstanceFn = func(_, _ string, _ *compute.Instance) error { fakeCalled = true; return nil }
+	c.CreateNetworkFn = func(_ string, _ *compute.Network) error { fakeCalled = true; return nil }
 	c.DeleteDiskFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeleteImageFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.DeleteInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
+	c.DeleteNetworkFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.DeprecateImageFn = func(_, _ string, _ *compute.DeprecationStatus) error { fakeCalled = true; return nil }
 	c.GetSerialPortOutputFn = func(_, _, _ string, _, _ int64) (*compute.SerialPortOutput, error) {
 		fakeCalled = true

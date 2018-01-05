@@ -49,9 +49,11 @@ type TestClient struct {
 	CreateDiskFn          func(project, zone string, d *compute.Disk) error
 	CreateImageFn         func(project string, i *compute.Image) error
 	CreateInstanceFn      func(project, zone string, i *compute.Instance) error
+	CreateNetworkFn       func(project string, i *compute.Network) error
 	DeleteDiskFn          func(project, zone, name string) error
 	DeleteImageFn         func(project, name string) error
 	DeleteInstanceFn      func(project, zone, name string) error
+	DeleteNetworkFn       func(project, name string) error
 	DeprecateImageFn      func(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineTypeFn      func(project, zone, machineType string) (*compute.MachineType, error)
 	ListMachineTypesFn    func(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
@@ -108,6 +110,14 @@ func (c *TestClient) CreateInstance(project, zone string, i *compute.Instance) e
 	return c.client.CreateInstance(project, zone, i)
 }
 
+// CreateNetwork uses the override method CreateNetworkFn or the real implementation.
+func (c *TestClient) CreateNetwork(project string, n *compute.Network) error {
+	if c.CreateNetworkFn != nil {
+		return c.CreateNetworkFn(project, n)
+	}
+	return c.client.CreateNetwork(project, n)
+}
+
 // DeleteDisk uses the override method DeleteDiskFn or the real implementation.
 func (c *TestClient) DeleteDisk(project, zone, name string) error {
 	if c.DeleteDiskFn != nil {
@@ -130,6 +140,14 @@ func (c *TestClient) DeleteInstance(project, zone, name string) error {
 		return c.DeleteInstanceFn(project, zone, name)
 	}
 	return c.client.DeleteInstance(project, zone, name)
+}
+
+// DeleteNetwork uses the override method DeleteNetworkFn or the real implementation.
+func (c *TestClient) DeleteNetwork(project, name string) error {
+	if c.DeleteNetworkFn != nil {
+		return c.DeleteNetworkFn(project, name)
+	}
+	return c.client.DeleteNetwork(project, name)
 }
 
 // DeprecateImage uses the override method DeprecateImageFn or the real implementation.
