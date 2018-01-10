@@ -49,7 +49,7 @@ steps:
   args: ['build', '-o=windows/gce_export.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export']
   env: ['GOOS=windows']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=windows/import_precheck.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck]
+  args: ['build', '-o=windows/import_precheck.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck']
   env: ['GOOS=windows']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './windows/*', 'gs://compute-image-tools/release/windows/']
