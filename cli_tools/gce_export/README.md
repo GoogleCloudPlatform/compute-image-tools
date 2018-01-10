@@ -45,6 +45,6 @@ This will stream `\\.\PhysicalDrive1` to the GCS path
 gs://some-bucket/path/windows.tar.gz
 
 ```
-gce_export.exe -disk \\.\PhysicalDrive1 gs://some-bucket/windows.tar.gz
+gce_export.exe -disk \\.\PhysicalDrive1 -gcs_path gs://some-bucket/windows.tar.gz
 ```
 
