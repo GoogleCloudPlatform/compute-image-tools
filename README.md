@@ -25,8 +25,21 @@ Basic workflow examples and tutorials for getting started with Daisy.
 
 ## [GCE Export tool](cli_tools/gce_export)
 
-The cli_tools/gce_export tool streams a local disk to a Google Compute Engine
+The gce_export tool streams a local disk to a Google Compute Engine
 image file in a Google Cloud Storage bucket.
+
+### Prebuilt binaries
+Prebuilt binaries are available for Windows, and Linux.
+
+Built from the latest GitHub release (all 64bit):
+
++ [Windows](https://storage.googleapis.com/compute-image-tools/release/windows/gce_image_publish.exe)
++ [Linux](https://storage.googleapis.com/compute-image-tools/release/linux/gce_image_publish)
+
+Built from the latest commit to the master branch (all 64bit):
+
++ [Windows](https://storage.googleapis.com/compute-image-tools/latest/windows/gce_image_publish.exe)
++ [Linux](https://storage.googleapis.com/compute-image-tools/latest/linux/gce_image_publish)
 
 ## Contributing
 

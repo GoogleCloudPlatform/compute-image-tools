@@ -1,26 +1,18 @@
 # Installation
 ## Prebuilt binaries
 Prebuilt Daisy binaries are available for Windows, macOS, and Linux distros.
-Two versions are available, one built with the v1 (stable) Compute api, and the
-other with the beta Compute API.
 
 Built from the latest GitHub release (all 64bit):
 
 + [Windows](https://storage.googleapis.com/compute-image-tools/release/windows/daisy.exe)
-+ [Windows beta](https://storage.googleapis.com/compute-image-tools/release/windows/daisy_beta.exe)
 + [macOS](https://storage.googleapis.com/compute-image-tools/release/darwin/daisy)
-+ [macOS beta](https://storage.googleapis.com/compute-image-tools/release/darwin/daisy_beta)
 + [Linux](https://storage.googleapis.com/compute-image-tools/release/linux/daisy)
-+ [Linux beta](https://storage.googleapis.com/compute-image-tools/release/linux/daisy_beta)
 
 Built from the latest commit to the master branch (all 64bit):
 
 + [Windows](https://storage.googleapis.com/compute-image-tools/latest/windows/daisy.exe)
-+ [Windows beta](https://storage.googleapis.com/compute-image-tools/latest/windows/daisy_beta.exe)
 + [macOS](https://storage.googleapis.com/compute-image-tools/latest/darwin/daisy)
-+ [macOS beta](https://storage.googleapis.com/compute-image-tools/latest/darwin/daisy_beta)
 + [Linux](https://storage.googleapis.com/compute-image-tools/latest/linux/daisy)
-+ [Linux beta](https://storage.googleapis.com/compute-image-tools/latest/linux/daisy_beta)
 
 ## Daisy container
 Daisy containers are available at gcr.io/compute-image-tools/daisy. All the

@@ -5,79 +5,68 @@ steps:
 - name: 'alpine'
   args: ['mv', './daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy']
 - name: 'alpine'
-  args: ['ls', './cli_tools/daisy']
-- name: 'alpine'
   args: ['mv', './cli_tools', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools']
+- name: 'alpine'
+  args: ['mv', './packages', './src/github.com/GoogleCloudPlatform/compute-image-tools/packages']
+- name: 'alpine'
+  args: ['mv', './osinfo', './src/github.com/GoogleCloudPlatform/compute-image-tools/osinfo']
 - name: 'gcr.io/cloud-builders/go'
   args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/...']
   env: ['GOPATH=./']
 
-### Daisy builds with V1 API ###
-# Build Linux binary + container.
+# Build Linux binaries.
 - name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=linux/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
   env: ['CGO_ENABLED=0']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/gce_image_publish', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/main.go']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/gce_export', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export/main.go']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/import_precheck', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck/main.go']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './linux/*', 'gs://compute-image-tools/latest/linux/']
+# Build Linux containers.
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy:latest', '--tag=gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA', '--file=Dockerfile.daisy', '.']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', './linux/daisy', 'gs://compute-image-tools/latest/linux/daisy']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/latest/linux/daisy']
-
-# Build Windows binary.
-- name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=windows/daisy.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
-  env: ['GOOS=windows']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', './windows/daisy.exe', 'gs://compute-image-tools/latest/windows/daisy.exe']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/latest/windows/daisy.exe']
-
-# Build OSX binary.
-- name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=darwin/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
-  env: ['GOOS=darwin']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', './darwin/daisy', 'gs://compute-image-tools/latest/darwin/daisy']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/latest/darwin/daisy']
-
-### Daisy builds with Beta API ###
-# Rewrite v1 import to beta
-- name: 'golang:alpine'
-  args: ['gofmt', '-w', '-r', '"google.golang.org/api/compute/v1" -> "google.golang.org/api/compute/v0.beta"', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy']
-
-# Build Linux binary + container.
-- name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=linux/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
-  env: ['CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy_beta:latest', '--tag=gcr.io/$PROJECT_ID/daisy_beta:$COMMIT_SHA', '--file=Dockerfile.daisy', '.']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', './linux/daisy', 'gs://compute-image-tools/latest/linux/daisy_beta']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/latest/linux/daisy_beta']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_image_publish:latest', '--tag=gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA', '--file=Dockerfile.gce_image_publish', '.']
 
-# Build Windows binary.
+# Build Windows binaries.
 - name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=windows/daisy.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
   env: ['GOOS=windows']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=windows/gce_image_publish.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/main.go']
+  env: ['GOOS=windows']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=windows/gce_export.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export/main.go']
+  env: ['GOOS=windows']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=windows/import_precheck.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck/main.go']
+  env: ['GOOS=windows']
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', './windows/daisy.exe', 'gs://compute-image-tools/latest/windows/daisy_beta.exe']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/latest/windows/daisy_beta.exe']
+  args: ['cp', './windows/*', 'gs://compute-image-tools/latest/windows/']
 
-# Build OSX binary.
+# Build OSX binaries.
 - name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=darwin/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
   env: ['GOOS=darwin']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=darwin/gce_image_publish', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/main.go']
+  env: ['GOOS=darwin']
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', './darwin/daisy', 'gs://compute-image-tools/latest/darwin/daisy_beta']
+  args: ['cp', './darwin/*', 'gs://compute-image-tools/latest/darwin/']
+
+# Make binaries world-readable.
 - name: 'gcr.io/cloud-builders/gsutil'
-  args: ['acl', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/latest/darwin/daisy_beta']
+  args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/latest/*']
 
 images:
   - 'gcr.io/$PROJECT_ID/daisy:latest'
   - 'gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/daisy_beta:latest'
-  - 'gcr.io/$PROJECT_ID/daisy_beta:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_image_publish:latest'
+  - 'gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA'
