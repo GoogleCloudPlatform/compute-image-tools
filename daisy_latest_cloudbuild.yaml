@@ -16,16 +16,16 @@ steps:
 
 # Build Linux binaries.
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=linux/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
+  args: ['build', '-o=linux/daisy', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=linux/gce_image_publish', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/main.go']
+  args: ['build', '-o=linux/gce_image_publish', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=linux/gce_export', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export/main.go']
+  args: ['build', '-o=linux/gce_export', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=linux/import_precheck', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck/main.go']
+  args: ['build', '-o=linux/import_precheck', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './linux/*', 'gs://compute-image-tools/latest/linux/']
@@ -37,26 +37,26 @@ steps:
 
 # Build Windows binaries.
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=windows/daisy.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
+  args: ['build', '-o=windows/daisy.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy']
   env: ['GOOS=windows']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=windows/gce_image_publish.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/main.go']
+  args: ['build', '-o=windows/gce_image_publish.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish']
   env: ['GOOS=windows']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=windows/gce_export.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export/main.go']
+  args: ['build', '-o=windows/gce_export.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export']
   env: ['GOOS=windows']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=windows/import_precheck.exe', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck/main.go']
+  args: ['build', '-o=windows/import_precheck.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck']
   env: ['GOOS=windows']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './windows/*', 'gs://compute-image-tools/latest/windows/']
 
 # Build OSX binaries.
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=darwin/daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/main.go']
+  args: ['build', '-o=darwin/daisy', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy']
   env: ['GOOS=darwin']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['build', '-o=darwin/gce_image_publish', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish/main.go']
+  args: ['build', '-o=darwin/gce_image_publish', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish']
   env: ['GOOS=darwin']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './darwin/*', 'gs://compute-image-tools/latest/darwin/']
