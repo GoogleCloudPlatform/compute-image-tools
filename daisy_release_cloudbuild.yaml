@@ -11,7 +11,7 @@ steps:
 - name: 'alpine'
   args: ['mv', './osinfo', './src/github.com/GoogleCloudPlatform/compute-image-tools/osinfo']
 - name: 'gcr.io/cloud-builders/go'
-  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy/...']
+  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/...']
   env: ['GOPATH=./']
 
 # Build Linux binaries.
