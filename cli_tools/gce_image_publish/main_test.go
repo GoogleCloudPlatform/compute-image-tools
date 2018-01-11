@@ -247,21 +247,21 @@ func TestPopulateWorkflow(t *testing.T) {
 	//populateWorkflow(ctx context.Context, w *daisy.Workflow, p *publish, pubImgs []*compute.Image, rb, sd bool) error
 
 	got := daisy.New()
-	err := populateWorkflow(
-		context.Background(),
-		got,
-		&publish{
-			SourceProject:  "foo-project",
-			PublishProject: "foo-project",
-			publishVersion: "pv",
-			sourceVersion:  "sv",
-			Images: []*image{
-				{
-					Prefix: "test",
-					Family: "test-family",
-				},
+	p := &publish{
+		SourceProject:  "foo-project",
+		PublishProject: "foo-project",
+		publishVersion: "pv",
+		sourceVersion:  "sv",
+		Images: []*image{
+			{
+				Prefix: "test",
+				Family: "test-family",
 			},
 		},
+	}
+	err := p.populateWorkflow(
+		context.Background(),
+		got,
 		[]*compute.Image{
 			{Name: "test-old", Family: "test-family"},
 		},
@@ -313,9 +313,10 @@ func TestCreatePrintOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotToCreate := createPrintOut(tt.args)
-			if !reflect.DeepEqual(gotToCreate, tt.want) {
-				t.Errorf("createPrintOut() got = %v, want %v", gotToCreate, tt.want)
+			p := &publish{}
+			p.createPrintOut(tt.args)
+			if !reflect.DeepEqual(p.toCreate, tt.want) {
+				t.Errorf("createPrintOut() got = %v, want %v", p.toCreate, tt.want)
 			}
 		})
 	}
@@ -334,9 +335,10 @@ func TestDeletePrintOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotToDelete := deletePrintOut(tt.args)
-			if !reflect.DeepEqual(gotToDelete, tt.want) {
-				t.Errorf("deletePrintOut() got = %v, want %v", gotToDelete, tt.want)
+			p := &publish{}
+			p.deletePrintOut(tt.args)
+			if !reflect.DeepEqual(p.toDelete, tt.want) {
+				t.Errorf("deletePrintOut() got = %v, want %v", p.toDelete, tt.want)
 			}
 		})
 	}
@@ -364,15 +366,16 @@ func TestDeprecatePrintOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotToDeprecate, gotToObsolete, gotToUndeprecate := deprecatePrintOut(tt.args)
-			if !reflect.DeepEqual(gotToDeprecate, tt.toDeprecate) {
-				t.Errorf("deprecatePrintOut() got = %v, want %v", gotToDeprecate, tt.toDeprecate)
+			p := &publish{}
+			p.deprecatePrintOut(tt.args)
+			if !reflect.DeepEqual(p.toDeprecate, tt.toDeprecate) {
+				t.Errorf("deprecatePrintOut() got = %v, want %v", p.toDeprecate, tt.toDeprecate)
 			}
-			if !reflect.DeepEqual(gotToObsolete, tt.toObsolete) {
-				t.Errorf("deprecatePrintOut() got1 = %v, want %v", gotToObsolete, tt.toObsolete)
+			if !reflect.DeepEqual(p.toObsolete, tt.toObsolete) {
+				t.Errorf("deprecatePrintOut() got1 = %v, want %v", p.toObsolete, tt.toObsolete)
 			}
-			if !reflect.DeepEqual(gotToUndeprecate, tt.toUndeprecate) {
-				t.Errorf("deprecatePrintOut() got2 = %v, want %v", gotToUndeprecate, tt.toUndeprecate)
+			if !reflect.DeepEqual(p.toUndeprecate, tt.toUndeprecate) {
+				t.Errorf("deprecatePrintOut() got2 = %v, want %v", p.toUndeprecate, tt.toUndeprecate)
 			}
 		})
 	}
