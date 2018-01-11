@@ -31,6 +31,7 @@ func TestPublishImage(t *testing.T) {
 		img     *image
 		pubImgs []*compute.Image
 		skipDup bool
+		replace bool
 		wantCI  *daisy.CreateImages
 		wantDI  *daisy.DeprecateImages
 		wantErr bool
@@ -45,6 +46,7 @@ func TestPublishImage(t *testing.T) {
 				{Name: "foo-1", Family: "foo-family", Deprecated: &compute.DeprecationStatus{State: "DEPRECATED"}},
 				{Name: "bar-1", Family: "bar-family", Deprecated: &compute.DeprecationStatus{State: "DEPRECATED"}},
 			},
+			false,
 			false,
 			&daisy.CreateImages{{Project: "foo-project", NoCleanup: true, RealName: "foo-3", Image: compute.Image{
 				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3", GuestOsFeatures: []*compute.GuestOsFeature{{Type: "foo-feature"}, {Type: "bar-feature"}}, Description: "3 3"},
@@ -63,6 +65,7 @@ func TestPublishImage(t *testing.T) {
 				{Name: "bar-1", Family: "bar-family"},
 			},
 			false,
+			false,
 			&daisy.CreateImages{{Project: "foo-project", NoCleanup: true, RealName: "foo-3", Image: compute.Image{Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}}},
 			&daisy.DeprecateImages{
 				{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}},
@@ -76,6 +79,7 @@ func TestPublishImage(t *testing.T) {
 			&image{Prefix: "foo", Family: "foo-family"},
 			[]*compute.Image{},
 			false,
+			false,
 			&daisy.CreateImages{
 				{Project: "foo-project", NoCleanup: true, RealName: "foo-3", Image: compute.Image{Name: "foo-3", Family: "foo-family", RawDisk: &compute.ImageRawDisk{Source: "gs://bar-project-path/foo-3/root.tar.gz"}}},
 			},
@@ -88,6 +92,7 @@ func TestPublishImage(t *testing.T) {
 			&image{},
 			nil,
 			false,
+			false,
 			nil,
 			nil,
 			true,
@@ -98,6 +103,7 @@ func TestPublishImage(t *testing.T) {
 			&image{},
 			nil,
 			false,
+			false,
 			nil,
 			nil,
 			true,
@@ -107,6 +113,7 @@ func TestPublishImage(t *testing.T) {
 			&publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
 			&image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature"}},
 			[]*compute.Image{{Name: "foo-3", Family: "foo-family"}},
+			false,
 			false,
 			nil,
 			nil,
@@ -121,13 +128,28 @@ func TestPublishImage(t *testing.T) {
 				{Name: "foo-2", Family: "foo-family"},
 			},
 			true,
+			false,
 			nil,
+			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
+			false,
+		},
+		{
+			"image already exists, replace set",
+			&publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&image{Prefix: "foo", Family: "foo-family"},
+			[]*compute.Image{
+				{Name: "foo-3", Family: "bar-family"},
+				{Name: "foo-2", Family: "foo-family"},
+			},
+			false,
+			true,
+			&daisy.CreateImages{{Project: "foo-project", OverWrite: true, NoCleanup: true, RealName: "foo-3", Image: compute.Image{Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}}},
 			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
 			false,
 		},
 	}
 	for _, tt := range tests {
-		dr, di, err := publishImage(tt.p, tt.img, tt.pubImgs, tt.skipDup)
+		dr, di, err := publishImage(tt.p, tt.img, tt.pubImgs, tt.skipDup, tt.replace)
 		if tt.wantErr && err != nil {
 			continue
 		}
@@ -265,6 +287,7 @@ func TestPopulateWorkflow(t *testing.T) {
 		[]*compute.Image{
 			{Name: "test-old", Family: "test-family"},
 		},
+		false,
 		false,
 		false,
 	)

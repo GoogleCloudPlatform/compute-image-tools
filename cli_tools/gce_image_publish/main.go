@@ -40,16 +40,19 @@ const gcsImageObj = "root.tar.gz"
 
 var (
 	oauth          = flag.String("oauth", "", "path to oauth json file")
-	workProject    = flag.String("work_project", "", "project to perform the work in, passed to Daisy as workflow project.")
+	workProject    = flag.String("work_project", "", "project to perform the work in, passed to Daisy as workflow project, will override WorkProject in template")
 	sourceVersion  = flag.String("source_version", "v"+time.Now().UTC().Format("20060102"), "version on source image")
+	sourceGCS      = flag.String("source_gcs_path", "", "GCS path to source images from, should not be used with source_project, will override SourceGCSPath in template")
+	sourceProject  = flag.String("source_project", "", "project to source images from, should not be used with source_gcs_path, will override SourceProject in template")
 	publishVersion = flag.String("publish_version", "", "version for published image if different from source")
-	publishProject = flag.String("publish_project", "", "project to publish images to")
-	skipDup        = flag.Bool("skip_duplicates", false, "skip publishing an image that already exists")
+	publishProject = flag.String("publish_project", "", "project to publish images to, will override PublishProject in template")
+	skipDup        = flag.Bool("skip_duplicates", false, "skip publishing any images that already exist, should not be used along with -replace")
+	replace        = flag.Bool("replace", false, "replace any images that already exist, should not be used along with -skip_duplicates")
 	rollback       = flag.Bool("rollback", false, "rollback image publish")
 	print          = flag.Bool("print", false, "print out the parsed workflow for debugging")
 	validate       = flag.Bool("validate", false, "validate the workflow and exit")
 	noConfirm      = flag.Bool("skip_confirmation", false, "don't ask for confirmation")
-	ce             = flag.String("compute_endpoint_override", "", "API endpoint to override default")
+	ce             = flag.String("compute_endpoint_override", "", "API endpoint to override default, will override ComputeEndpoint in template")
 )
 
 type publish struct {
@@ -96,7 +99,10 @@ type image struct {
 	GuestOsFeatures []string
 }
 
-func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicates bool) (*daisy.CreateImages, *daisy.DeprecateImages, error) {
+func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicates, rep bool) (*daisy.CreateImages, *daisy.DeprecateImages, error) {
+	if skipDuplicates && rep {
+		return nil, nil, errors.New("cannot set both skipDuplicates and replace")
+	}
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	sourceName := fmt.Sprintf("%s-%s", img.Prefix, p.sourceVersion)
 	var gosf []*compute.GuestOsFeature
@@ -138,12 +144,16 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 	for _, pubImg := range pubImgs {
 		if pubImg.Name == publishName {
 			msg := fmt.Sprintf("Image %q already exists in project %q", publishName, p.PublishProject)
-			if !skipDuplicates {
-				return nil, nil, errors.New(msg)
+			if skipDuplicates {
+				fmt.Printf("   %s, skipping image creation\n", msg)
+				cis = nil
+				continue
+			} else if rep {
+				fmt.Printf("   %s, replacing\n", msg)
+				(*cis)[0].OverWrite = true
+				continue
 			}
-			fmt.Printf("   %s, skipping image creation\n", msg)
-			cis = nil
-			continue
+			return nil, nil, errors.New(msg)
 		}
 
 		// Deprecate all images in the same family.
@@ -280,7 +290,7 @@ func (p *publish) deprecatePrintOut(deprecateImages *daisy.DeprecateImages) {
 	}
 }
 
-func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*compute.Image, rb, sd bool) error {
+func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*compute.Image, rb, sd, rep bool) error {
 	var err error
 
 	w.Name = p.Name
@@ -295,7 +305,7 @@ func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 		if rb {
 			deleteResources, deprecateImages = rollbackImage(p, img, pubImgs)
 		} else {
-			createImages, deprecateImages, err = publishImage(p, img, pubImgs, sd)
+			createImages, deprecateImages, err = publishImage(p, img, pubImgs, sd, rep)
 			if err != nil {
 				return err
 			}
@@ -336,6 +346,12 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 	if *publishProject != "" {
 		p.PublishProject = *publishProject
 	}
+	if *sourceGCS != "" {
+		p.SourceGCSPath = *sourceGCS
+	}
+	if *sourceProject != "" {
+		p.SourceProject = *sourceProject
+	}
 	if *ce != "" {
 		p.ComputeEndpoint = *ce
 	}
@@ -362,12 +378,11 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 			return nil, err
 		}
 	}
-
 	pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 	if err != nil {
 		return nil, err
 	}
-	if err := p.populateWorkflow(ctx, w, pubImgs, *rollback, *skipDup); err != nil {
+	if err := p.populateWorkflow(ctx, w, pubImgs, *rollback, *skipDup, *replace); err != nil {
 		return nil, err
 	}
 
@@ -406,6 +421,11 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 
 func main() {
 	flag.Parse()
+
+	if *skipDup && *replace {
+		fmt.Println("Cannot set both -skip_duplicates and -replace")
+		os.Exit(1)
+	}
 
 	if len(flag.Args()) == 0 {
 		fmt.Println("Not enough args, first arg needs to be the path to a publish template.")
