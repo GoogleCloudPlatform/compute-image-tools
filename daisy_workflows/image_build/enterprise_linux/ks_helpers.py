@@ -209,12 +209,11 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
       custom_post = '\n'.join([custom_post, rhel_byol_post])
     elif sap_hana:
       logging.info('Building RHEL 7 for SAP Hana')
-      rhel7_sap_hana_post = FetchConfigPart('rhel7-sap-hana-post.cfg')
-      custom_post = '\n'.join([custom_post, rhel7_sap_hana_post])
+      custom_post = FetchConfigPart('rhel7-sap-hana-post.cfg')
     elif sap_apps:
       logging.info('Building RHEL 7 for SAP Apps')
       rhel7_sap_apps_post = FetchConfigPart('rhel7-sap-apps-post.cfg')
-      custom_post = '\n'.join([custom_post, rhel7_sap_apps_post])
+      custom_post = FetchConfigPart('rhel7-sap-apps-post.cfg')
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
