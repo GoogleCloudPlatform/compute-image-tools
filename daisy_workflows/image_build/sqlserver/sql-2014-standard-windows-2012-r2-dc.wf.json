@@ -28,7 +28,7 @@
           "Licenses": [
             "projects/windows-sql-cloud/global/licenses/sql-server-2014-standard"
           ],
-          "Description": "Microsoft, SQL Server 2014 standard, on Windows Server 2012 R2, x64 built on ${build_date}",
+          "Description": "Microsoft, SQL Server 2014 Standard, on Windows Server 2012 R2, x64 built on ${build_date}",
           "GuestOsFeatures": [{"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}, {"Type":"MULTI_IP_SUBNET"}],
           "Family": "sql-std-2014-win-2012-r2",
           "Project": "${publish_project}",
