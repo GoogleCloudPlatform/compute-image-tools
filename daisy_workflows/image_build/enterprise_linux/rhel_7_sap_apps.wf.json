@@ -42,6 +42,7 @@
           "Name": "rhel-7-sap-apps-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
+            "projects/rhel-cloud/global/licenses/rhel-7-server",
             "projects/rhel-sap-cloud/global/licenses/rhel-7-sap-apps"
           ],
           "Description": "Red Hat, Red Hat Enterprise Linux for SAP Applications, 7, x86_64 built on ${build_date}",
