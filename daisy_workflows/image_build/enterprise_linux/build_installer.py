@@ -38,6 +38,10 @@ def main():
   savelogs = savelogs == 'true'
   byol = utils.GetMetadataParam('rhel_byol', raise_on_not_found=False)
   byol = byol == 'true'
+  sap_hana = utils.GetMetadataParam('rhel_sap_hana', raise_on_not_found=False)
+  sap_hana = sap_hana == 'true'
+  sap_apps = utils.GetMetadataParam('rhel_sap_apps', raise_on_not_found=False)
+  sap_apps = sap_apps == 'true'
 
   logging.info('EL Installer Builder')
   logging.info('==============')
@@ -51,7 +55,7 @@ def main():
   utils.AptGetInstall(['extlinux', 'rsync'])
 
   # Build the kickstart file.
-  ks_content = ks_helpers.BuildKsConfig(release, repo, byol)
+  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap_hana, sap_apps)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 

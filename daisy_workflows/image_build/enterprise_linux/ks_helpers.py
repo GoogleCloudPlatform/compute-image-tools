@@ -158,13 +158,15 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo, byol):
+def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
   """Builds kickstart config from shards.
 
   Args:
     release: string; image from metadata.
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
     byol: bool; true if using a BYOL RHEL license.
+    sap_hana: bool; true if building RHEL for SAP HANA
+    sap_apps: bool; true is building RHEL for SAP Apps
 
   Returns:
     string; a valid kickstart config.
@@ -205,6 +207,12 @@ def BuildKsConfig(release, google_cloud_repo, byol):
     custom_post = FetchConfigPart('el7-post.cfg')
     if byol:
       custom_post = '\n'.join([custom_post, rhel_byol_post])
+    elif sap_hana:
+      logging.info('Building RHEL 7 for SAP Hana')
+      custom_post = FetchConfigPart('rhel7-sap-hana-post.cfg')
+    elif sap_apps:
+      logging.info('Building RHEL 7 for SAP Apps')
+      custom_post = FetchConfigPart('rhel7-sap-apps-post.cfg')
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
