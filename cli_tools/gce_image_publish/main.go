@@ -22,11 +22,14 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
+	"os"
+	"os/signal"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -37,17 +40,22 @@ const gcsImageObj = "root.tar.gz"
 
 var (
 	oauth          = flag.String("oauth", "", "path to oauth json file")
+	workProject    = flag.String("work_project", "", "project to perform the work in, passed to Daisy as workflow project.")
 	sourceVersion  = flag.String("source_version", "v"+time.Now().UTC().Format("20060102"), "version on source image")
-	publishVersion = flag.String("publish_version", *sourceVersion, "version for published image if different from source")
+	publishVersion = flag.String("publish_version", "", "version for published image if different from source")
+	publishProject = flag.String("publish_project", "", "project to publish images to")
 	skipDup        = flag.Bool("skip_duplicates", false, "skip publishing an image that already exists")
 	rollback       = flag.Bool("rollback", false, "rollback image publish")
+	print          = flag.Bool("print", false, "print out the parsed workflow for debugging")
+	validate       = flag.Bool("validate", false, "validate the workflow and exit")
 	noConfirm      = flag.Bool("skip_confirmation", false, "don't ask for confirmation")
+	ce             = flag.String("compute_endpoint_override", "", "API endpoint to override default")
 )
 
 type publish struct {
-	// Name for this publish template.
+	// Name for this publish workflow, passed to Daisy as workflow name.
 	Name string
-	// Project to perform the work in.
+	// Project to perform the work in, passed to Daisy as workflow project.
 	WorkProject string
 	// Project to source images from, should not be used with SourceGCSPath.
 	SourceProject string
@@ -66,6 +74,12 @@ type publish struct {
 	// Populated from the publish_version flag, added to the image prefix to
 	// create the publish name.
 	publishVersion string
+
+	toCreate      []string
+	toDelete      []string
+	toDeprecate   []string
+	toObsolete    []string
+	toUndeprecate []string
 }
 
 type image struct {
@@ -123,11 +137,11 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 	dis := &daisy.DeprecateImages{}
 	for _, pubImg := range pubImgs {
 		if pubImg.Name == publishName {
-			msg := fmt.Sprintf("image %q already exists in project %q", publishName, p.PublishProject)
+			msg := fmt.Sprintf("Image %q already exists in project %q", publishName, p.PublishProject)
 			if !skipDuplicates {
 				return nil, nil, errors.New(msg)
 			}
-			log.Printf("%s, skipping image creation", msg)
+			fmt.Printf("   %s, skipping image creation\n", msg)
 			cis = nil
 			continue
 		}
@@ -163,7 +177,7 @@ func rollbackImage(p *publish, img *image, pubImgs []*compute.Image) (*daisy.Del
 	}
 
 	if len(dr.Images) == 0 {
-		log.Printf("%q does not exist in %q, not rolling back", publishName, p.PublishProject)
+		fmt.Printf("   %q does not exist in %q, not rolling back\n", publishName, p.PublishProject)
 		return nil, nil
 	}
 
@@ -173,11 +187,6 @@ func rollbackImage(p *publish, img *image, pubImgs []*compute.Image) (*daisy.Del
 			*dis = append(*dis, &daisy.DeprecateImage{
 				Image:   pubImg.Name,
 				Project: p.PublishProject,
-				// Not setting a DeprecationStatus (leaving it blank) un-deprecates the image.
-				//DeprecationStatus: compute.DeprecationStatus{
-				//ForceSendFields: []string{"State"},
-				//	State: "",
-				//},
 			})
 			break
 		}
@@ -187,7 +196,7 @@ func rollbackImage(p *publish, img *image, pubImgs []*compute.Image) (*daisy.Del
 
 func printList(list []string) {
 	for _, i := range list {
-		fmt.Printf(" - [ %s ]\n", i)
+		fmt.Printf("     - [ %s ]\n", i)
 	}
 }
 
@@ -233,64 +242,51 @@ func populateSteps(w *daisy.Workflow, prefix string, createImages *daisy.CreateI
 	return nil
 }
 
-func createPrintOut(createImages *daisy.CreateImages) []string {
+func (p *publish) createPrintOut(createImages *daisy.CreateImages) {
 	if createImages == nil {
-		return nil
+		return
 	}
-	var toCreate []string
 	for _, ci := range *createImages {
-		toCreate = append(toCreate, fmt.Sprintf("%s: (%s)", ci.Name, ci.Description))
+		p.toCreate = append(p.toCreate, fmt.Sprintf("%s: (%s)", ci.Name, ci.Description))
 	}
-	return toCreate
+	return
 }
 
-func deletePrintOut(deleteResources *daisy.DeleteResources) []string {
+func (p *publish) deletePrintOut(deleteResources *daisy.DeleteResources) {
 	if deleteResources == nil {
-		return nil
+		return
 	}
 
-	var toDelete []string
 	for _, img := range deleteResources.Images {
-		toDelete = append(toDelete, path.Base(img))
+		p.toDelete = append(p.toDelete, path.Base(img))
 	}
-	return toDelete
 }
 
-func deprecatePrintOut(deprecateImages *daisy.DeprecateImages) ([]string, []string, []string) {
+func (p *publish) deprecatePrintOut(deprecateImages *daisy.DeprecateImages) {
 	if deprecateImages == nil {
-		return nil, nil, nil
+		return
 	}
 
-	var toDeprecate []string
-	var toObsolete []string
-	var toUndeprecate []string
 	for _, di := range *deprecateImages {
 		image := path.Base(di.Image)
 		switch di.DeprecationStatus.State {
 		case "DEPRECATED":
-			toDeprecate = append(toDeprecate, image)
+			p.toDeprecate = append(p.toDeprecate, image)
 		case "OBSOLETE":
-			toObsolete = append(toObsolete, image)
+			p.toObsolete = append(p.toObsolete, image)
 		case "":
-			toUndeprecate = append(toUndeprecate, image)
+			p.toUndeprecate = append(p.toUndeprecate, image)
 		}
 	}
-	return toDeprecate, toObsolete, toUndeprecate
 }
 
-func populateWorkflow(ctx context.Context, w *daisy.Workflow, p *publish, pubImgs []*compute.Image, rb, sd bool) error {
+func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*compute.Image, rb, sd bool) error {
 	var err error
 
 	w.Name = p.Name
 	w.Project = p.WorkProject
 	w.AddVar("source_version", p.sourceVersion)
 	w.AddVar("publish_version", p.publishVersion)
-
-	var toCreate []string
-	var toDelete []string
-	var toDeprecate []string
-	var toObsolete []string
-	var toUndeprecate []string
 
 	for _, img := range p.Images {
 		var createImages *daisy.CreateImages
@@ -309,82 +305,140 @@ func populateWorkflow(ctx context.Context, w *daisy.Workflow, p *publish, pubImg
 			return err
 		}
 
-		toCreate = append(toCreate, createPrintOut(createImages)...)
-		toDelete = append(toDelete, deletePrintOut(deleteResources)...)
-		td, to, tu := deprecatePrintOut(deprecateImages)
-		toDeprecate = append(toDeprecate, td...)
-		toObsolete = append(toObsolete, to...)
-		toUndeprecate = append(toUndeprecate, tu...)
-	}
-
-	if len(toCreate) > 0 {
-		fmt.Printf("The following images will be created in %q:\n", p.PublishProject)
-		printList(toCreate)
-	}
-
-	if len(toDeprecate) > 0 {
-		fmt.Printf("\nThe following images will be deprecated in %q:\n", p.PublishProject)
-		printList(toDeprecate)
-	}
-
-	if len(toObsolete) > 0 {
-		fmt.Printf("\nThe following images will be obsoleted in %q:\n", p.PublishProject)
-		printList(toObsolete)
-	}
-
-	if len(toUndeprecate) > 0 {
-		fmt.Printf("\nThe following images will be un-deprecated in %q:\n", p.PublishProject)
-		printList(toUndeprecate)
-	}
-
-	if len(toDelete) > 0 {
-		fmt.Printf("The following images will be deleted in %q:\n", p.PublishProject)
-		printList(toDelete)
+		p.createPrintOut(createImages)
+		p.deletePrintOut(deleteResources)
+		p.deprecatePrintOut(deprecateImages)
 	}
 
 	return nil
+}
+
+func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var p publish
+	if err := json.Unmarshal(data, &p); err != nil {
+		return nil, daisy.JSONError(path, data, err)
+	}
+	fmt.Printf("- Publish workflow %q\n", p.Name)
+
+	p.sourceVersion = *sourceVersion
+	p.publishVersion = *publishVersion
+	if *publishVersion == "" {
+		p.publishVersion = *sourceVersion
+	}
+	if *workProject != "" {
+		p.WorkProject = *workProject
+	}
+	if *publishProject != "" {
+		p.PublishProject = *publishProject
+	}
+	if *ce != "" {
+		p.ComputeEndpoint = *ce
+	}
+
+	w := daisy.New()
+	if p.WorkProject == "" {
+		if metadata.OnGCE() {
+			p.WorkProject, err = metadata.ProjectID()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, errors.New("WorkProject unspecified")
+		}
+	}
+
+	if *oauth != "" {
+		w.OAuthPath = *oauth
+	}
+
+	if p.ComputeEndpoint != "" {
+		w.ComputeClient, err = daisyCompute.NewClient(ctx, option.WithEndpoint(p.ComputeEndpoint))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
+	if err != nil {
+		return nil, err
+	}
+	if err := p.populateWorkflow(ctx, w, pubImgs, *rollback, *skipDup); err != nil {
+		return nil, err
+	}
+
+	if len(w.Steps) == 0 {
+		fmt.Println("   Nothing to do.")
+		return nil, nil
+	}
+
+	if len(p.toCreate) > 0 {
+		fmt.Printf("   The following images will be created in %q:\n", p.PublishProject)
+		printList(p.toCreate)
+	}
+
+	if len(p.toDeprecate) > 0 {
+		fmt.Printf("   The following images will be deprecated in %q:\n", p.PublishProject)
+		printList(p.toDeprecate)
+	}
+
+	if len(p.toObsolete) > 0 {
+		fmt.Printf("   The following images will be obsoleted in %q:\n", p.PublishProject)
+		printList(p.toObsolete)
+	}
+
+	if len(p.toUndeprecate) > 0 {
+		fmt.Printf("   The following images will be un-deprecated in %q:\n", p.PublishProject)
+		printList(p.toUndeprecate)
+	}
+
+	if len(p.toDelete) > 0 {
+		fmt.Printf("   The following images will be deleted in %q:\n", p.PublishProject)
+		printList(p.toDelete)
+	}
+
+	return w, nil
 }
 
 func main() {
 	flag.Parse()
 
 	if len(flag.Args()) == 0 {
-		log.Fatal("Not enough args, first arg needs to be the path to a publish template.")
+		fmt.Println("Not enough args, first arg needs to be the path to a publish template.")
+		os.Exit(1)
 	}
 	ctx := context.Background()
 
-	f := flag.Arg(0)
-	data, err := ioutil.ReadFile(f)
-	if err != nil {
-		log.Fatal(err)
-	}
+	fmt.Println("[Publish] Preparing publish workflows...")
 
-	var p publish
-	if err := json.Unmarshal(data, &p); err != nil {
-		log.Fatal(daisy.JSONError(f, data, err))
-	}
-	p.sourceVersion = *sourceVersion
-	p.publishVersion = *publishVersion
-
-	w := daisy.New()
-	if p.ComputeEndpoint != "" {
-		w.ComputeClient, err = daisyCompute.NewClient(ctx, option.WithEndpoint(p.ComputeEndpoint))
+	errors := make(chan error, len(flag.Args()))
+	var ws []*daisy.Workflow
+	for _, path := range flag.Args() {
+		w, err := createWorkflow(ctx, path)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("   Error:", err)
+			errors <- err
+			continue
+		}
+		if w != nil {
+			ws = append(ws, w)
 		}
 	}
-	pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := populateWorkflow(ctx, w, &p, pubImgs, *rollback, *skipDup); err != nil {
-		log.Fatal(err)
+
+	if len(ws) == 0 {
+		fmt.Println("[Publish] Nothing to do")
+		select {
+		case <-errors:
+			os.Exit(1)
+		default:
+			return
+		}
 	}
 
-	if len(w.Steps) == 0 {
-		fmt.Println("Nothing to do.")
-		return
-	}
 	if !*noConfirm {
 		var c string
 		fmt.Print("\nContinue with publish? (y/N): ")
@@ -395,7 +449,60 @@ func main() {
 		}
 	}
 
-	if err := w.Run(ctx); err != nil {
-		log.Fatal(err)
+	var wg sync.WaitGroup
+	for _, w := range ws {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		go func(w *daisy.Workflow) {
+			select {
+			case <-c:
+				fmt.Printf("\nCtrl-C caught, sending cancel signal to %q...\n", w.Name)
+				close(w.Cancel)
+				errors <- fmt.Errorf("workflow %q was canceled", w.Name)
+			case <-w.Cancel:
+			}
+		}(w)
+		if *print {
+			fmt.Printf("[Publish] Printing workflow %q\n", w.Name)
+			w.Print(ctx)
+			continue
+		}
+		if *validate {
+			fmt.Printf("[Publish] Validating workflow %q\n", w.Name)
+			if err := w.Validate(ctx); err != nil {
+				fmt.Fprintln(os.Stderr, "[Publish] Error validating workflow:", err)
+			}
+			continue
+		}
+		wg.Add(1)
+		go func(w *daisy.Workflow) {
+			defer wg.Done()
+			fmt.Printf("[Publish] Running workflow %q\n", w.Name)
+			if err := w.Run(ctx); err != nil {
+				errors <- fmt.Errorf("%s: %v", w.Name, err)
+				return
+			}
+			fmt.Printf("[Publish] Workflow %q finished\n", w.Name)
+		}(w)
+	}
+	wg.Wait()
+
+	select {
+	case err := <-errors:
+		fmt.Fprintln(os.Stderr, "\n[Publish] Errors in one or more workflows:")
+		fmt.Fprintln(os.Stderr, " ", err)
+		for {
+			select {
+			case err := <-errors:
+				fmt.Fprintln(os.Stderr, " ", err)
+				continue
+			default:
+				os.Exit(1)
+			}
+		}
+	default:
+		if !*print && !*validate {
+			fmt.Println("[Publish] Workflows completed successfully.")
+		}
 	}
 }
