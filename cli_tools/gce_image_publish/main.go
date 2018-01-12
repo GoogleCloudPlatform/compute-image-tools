@@ -222,6 +222,9 @@ func populateSteps(w *daisy.Workflow, prefix string, createImages *daisy.CreateI
 			return err
 		}
 		createStep.CreateImages = createImages
+		// The default of 10m is a bit low, 1h is excessive for most use cases.
+		// TODO(ajackura): Maybe add a timout field override to the template?
+		createStep.Timeout = "1h"
 	}
 
 	if deprecateImages != nil {
