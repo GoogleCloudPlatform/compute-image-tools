@@ -26,10 +26,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/compute/metadata"
-	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/option"
 )
 
 var (
@@ -41,7 +38,6 @@ var (
 	print     = flag.Bool("print", false, "print out the parsed workflow for debugging")
 	validate  = flag.Bool("validate", false, "validate the workflow and exit")
 	ce        = flag.String("compute_endpoint_override", "", "API endpoint to override default")
-	se        = flag.String("storage_endpoint_override", "", "API endpoint to override default")
 )
 
 const (
@@ -70,7 +66,7 @@ func populateVars(input string) map[string]string {
 	return varMap
 }
 
-func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint, sEndpoint string) (*daisy.Workflow, error) {
+func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint string) (*daisy.Workflow, error) {
 	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
@@ -103,17 +99,7 @@ func parseWorkflow(ctx context.Context, path string, varMap map[string]string, p
 	}
 
 	if cEndpoint != "" {
-		w.ComputeClient, err = compute.NewClient(ctx, option.WithEndpoint(cEndpoint), option.WithCredentialsFile(w.OAuthPath))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if sEndpoint != "" {
-		w.StorageClient, err = storage.NewClient(ctx, option.WithEndpoint(sEndpoint), option.WithCredentialsFile(w.OAuthPath))
-		if err != nil {
-			return nil, err
-		}
+		w.ComputeEndpoint = cEndpoint
 	}
 
 	return w, nil
@@ -157,7 +143,7 @@ func main() {
 	varMap := populateVars(*variables)
 
 	for _, path := range flag.Args() {
-		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce, *se)
+		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce)
 		if err != nil {
 			log.Fatalf("error parsing workflow %q: %v", path, err)
 		}

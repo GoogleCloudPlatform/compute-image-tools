@@ -19,7 +19,6 @@ import (
 	"flag"
 	"fmt"
 	"reflect"
-	"runtime"
 	"testing"
 )
 
@@ -74,13 +73,13 @@ func TestAddFlags(t *testing.T) {
 }
 
 func TestParseWorkflows(t *testing.T) {
-	path := "../test_data/test.wf.json"
+	path := "../../daisy/test_data/test.wf.json"
 	varMap := map[string]string{"key1": "var1", "key2": "var2"}
 	project := "project"
 	zone := "zone"
 	gcsPath := "gcspath"
 	oauth := "oauthpath"
-	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", "")
+	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,18 +101,5 @@ func TestParseWorkflows(t *testing.T) {
 
 	if reflect.DeepEqual(w.Vars, varMap) {
 		t.Errorf("unexpected vars, want: %s, got: %v", varMap, w.Vars)
-	}
-
-	want := "dialing: cannot read credentials file: open oauthpath: no such file or directory"
-	if runtime.GOOS == "windows" {
-		want = "dialing: cannot read credentials file: open oauthpath: The system cannot find the file specified."
-	}
-
-	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "noplace", ""); err.Error() != want {
-		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
-	}
-
-	if _, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", "noplace"); err.Error() != want {
-		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
 }

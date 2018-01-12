@@ -622,7 +622,8 @@ func TestPrint(t *testing.T) {
       }
     }
   },
-  "Dependencies": {}
+  "Dependencies": {},
+  "ComputeEndpoint": ""
 }
 `
 

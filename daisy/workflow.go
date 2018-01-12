@@ -147,23 +147,25 @@ type Workflow struct {
 	Dependencies map[string][]string
 
 	// Working fields.
-	autovars       map[string]string
-	workflowDir    string
-	parent         *Workflow
-	bucket         string
-	scratchPath    string
-	sourcesPath    string
-	logsPath       string
-	outsPath       string
-	username       string
-	gcsLogging     bool
-	gcsLogWriter   *syncedWriter
-	ComputeClient  compute.Client  `json:"-"`
-	StorageClient  *storage.Client `json:"-"`
-	id             string
-	Logger         *log.Logger `json:"-"`
-	cleanupHooks   []func() dErr
-	cleanupHooksMx sync.Mutex
+	autovars     map[string]string
+	workflowDir  string
+	parent       *Workflow
+	bucket       string
+	scratchPath  string
+	sourcesPath  string
+	logsPath     string
+	outsPath     string
+	username     string
+	gcsLogging   bool
+	gcsLogWriter *syncedWriter
+	// Optional compute endpoint override.
+	ComputeEndpoint string
+	ComputeClient   compute.Client  `json:"-"`
+	StorageClient   *storage.Client `json:"-"`
+	id              string
+	Logger          *log.Logger `json:"-"`
+	cleanupHooks    []func() dErr
+	cleanupHooksMx  sync.Mutex
 }
 
 // AddVar adds a variable set to the Workflow.
@@ -275,15 +277,22 @@ func (w *Workflow) getSourceGCSAPIPath(s string) string {
 func (w *Workflow) populateClients(ctx context.Context) error {
 	// API clients instantiation.
 	var err error
+
+	computeOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
+	if w.ComputeEndpoint != "" {
+		computeOptions = append(computeOptions, option.WithEndpoint(w.ComputeEndpoint))
+	}
+
 	if w.ComputeClient == nil {
-		w.ComputeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
+		w.ComputeClient, err = compute.NewClient(ctx, computeOptions...)
 		if err != nil {
 			return typedErr(apiError, err)
 		}
 	}
 
+	storageOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
 	if w.StorageClient == nil {
-		w.StorageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(w.OAuthPath))
+		w.StorageClient, err = storage.NewClient(ctx, storageOptions...)
 		if err != nil {
 			return err
 		}
