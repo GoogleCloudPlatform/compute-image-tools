@@ -33,7 +33,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/option"
 )
 
 const gcsImageObj = "root.tar.gz"
@@ -120,9 +119,11 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 			GuestOsFeatures: gosf,
 			Family:          img.Family,
 		},
-		NoCleanup: true,
-		Project:   p.PublishProject,
-		RealName:  publishName,
+		Resource: daisy.Resource{
+			NoCleanup: true,
+			Project:   p.PublishProject,
+			RealName:  publishName,
+		},
 	}
 
 	var source string
@@ -373,10 +374,7 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 	}
 
 	if p.ComputeEndpoint != "" {
-		w.ComputeClient, err = daisyCompute.NewClient(ctx, option.WithEndpoint(p.ComputeEndpoint))
-		if err != nil {
-			return nil, err
-		}
+		w.ComputeEndpoint = p.ComputeEndpoint
 	}
 	pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 	if err != nil {

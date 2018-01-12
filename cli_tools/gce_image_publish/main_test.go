@@ -48,7 +48,7 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			false,
-			&daisy.CreateImages{{Project: "foo-project", NoCleanup: true, RealName: "foo-3", Image: compute.Image{
+			&daisy.CreateImages{{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, Image: compute.Image{
 				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3", GuestOsFeatures: []*compute.GuestOsFeature{{Type: "foo-feature"}, {Type: "bar-feature"}}, Description: "3 3"},
 			}},
 			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
@@ -66,7 +66,7 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			false,
-			&daisy.CreateImages{{Project: "foo-project", NoCleanup: true, RealName: "foo-3", Image: compute.Image{Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}}},
+			&daisy.CreateImages{{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, Image: compute.Image{Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}}},
 			&daisy.DeprecateImages{
 				{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}},
 				{Image: "foo-1", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}},
@@ -81,7 +81,7 @@ func TestPublishImage(t *testing.T) {
 			false,
 			false,
 			&daisy.CreateImages{
-				{Project: "foo-project", NoCleanup: true, RealName: "foo-3", Image: compute.Image{Name: "foo-3", Family: "foo-family", RawDisk: &compute.ImageRawDisk{Source: "gs://bar-project-path/foo-3/root.tar.gz"}}},
+				{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, Image: compute.Image{Name: "foo-3", Family: "foo-family", RawDisk: &compute.ImageRawDisk{Source: "gs://bar-project-path/foo-3/root.tar.gz"}}},
 			},
 			nil,
 			false,
@@ -143,7 +143,7 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			true,
-			&daisy.CreateImages{{Project: "foo-project", OverWrite: true, NoCleanup: true, RealName: "foo-3", Image: compute.Image{Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}}},
+			&daisy.CreateImages{{OverWrite: true, Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, Image: compute.Image{Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}}},
 			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
 			false,
 		},
@@ -303,7 +303,7 @@ func TestPopulateWorkflow(t *testing.T) {
 		},
 		Steps: map[string]*daisy.Step{
 			"publish-test": {CreateImages: &daisy.CreateImages{
-				{Project: "foo-project", NoCleanup: true, RealName: "test-pv", Image: compute.Image{Name: "test-pv", Family: "test-family", SourceImage: "projects/foo-project/global/images/test-sv"}}},
+				{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "test-pv"}, Image: compute.Image{Name: "test-pv", Family: "test-family", SourceImage: "projects/foo-project/global/images/test-sv"}}},
 			},
 			"deprecate-test": {DeprecateImages: &daisy.DeprecateImages{
 				{Project: "foo-project", Image: "test-old", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/test-pv"}}},
