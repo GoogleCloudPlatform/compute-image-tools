@@ -183,6 +183,18 @@ func (s *Step) getChain() []*Step {
 	return nil
 }
 
+func (s *Step) populate(ctx context.Context) dErr {
+	s.w.Logger.Printf("Populating step %q", s.name)
+	impl, err := s.stepImpl()
+	if err != nil {
+		return s.wrapPopulateError(err)
+	}
+	if err = impl.populate(ctx, s); err != nil {
+		err = s.wrapPopulateError(err)
+	}
+	return err
+}
+
 func (s *Step) run(ctx context.Context) dErr {
 	impl, err := s.stepImpl()
 	if err != nil {

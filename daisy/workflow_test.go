@@ -33,9 +33,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/kylelemons/godebug/diff"
-	"github.com/kylelemons/godebug/pretty"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
 
@@ -67,8 +65,8 @@ func TestAddDependency(t *testing.T) {
 	}
 
 	wantDeps := map[string][]string{"a": {"b"}}
-	if diff := pretty.Compare(w.Dependencies, wantDeps); diff != "" {
-		t.Errorf("incorrect dependencies: (-got,+want)\n%s", diff)
+	if diffRes := diff(w.Dependencies, wantDeps); diffRes != "" {
+		t.Errorf("incorrect dependencies: (-got,+want)\n%s", diffRes)
 	}
 }
 
@@ -139,10 +137,10 @@ func TestGenName(t *testing.T) {
 		w.Name = tt.wfName
 		result := w.genName(tt.name)
 		if result != tt.want {
-			t.Errorf("bad result, input: name=%s wfName=%s wfId=%s; got: %s; want: %s", tt.name, tt.wfName, tt.wfID, result, tt.want)
+			t.Errorf("bad result, i: name=%s wfName=%s wfId=%s; got: %s; want: %s", tt.name, tt.wfName, tt.wfID, result, tt.want)
 		}
 		if len(result) > 64 {
-			t.Errorf("result > 64 characters, input: name=%s wfName=%s wfId=%s; got: %s", tt.name, tt.wfName, tt.wfID, result)
+			t.Errorf("result > 64 characters, i: name=%s wfName=%s wfId=%s; got: %s", tt.name, tt.wfName, tt.wfID, result)
 		}
 	}
 }
@@ -213,13 +211,19 @@ func TestNewFromFile(t *testing.T) {
 	}
 
 	want := &Workflow{
-		id:          got.id,
+		// These are nondeterministic, so we cheat.
+		id:           got.id,
+		Cancel:       got.Cancel,
+		cleanupHooks: got.cleanupHooks,
+
 		workflowDir: filepath.Join(wd, "test_data"),
 		Name:        "some-name",
 		Project:     "some-project",
 		Zone:        "us-central1-a",
 		GCSPath:     "gs://some-bucket/images",
 		OAuthPath:   filepath.Join(wd, "test_data", "somefile"),
+		Sources:     map[string]string{},
+		autovars:    map[string]string{},
 		Vars: map[string]Var{
 			"bootstrap_instance_name": {Value: "bootstrap-${NAME}", Required: true},
 			"machine_type":            {Value: "n1-standard-1"},
@@ -317,17 +321,12 @@ func TestNewFromFile(t *testing.T) {
 		},
 	}
 
-	// Fix pretty.Compare recursion freak outs.
-	got.Cancel = nil
-	for _, s := range got.Steps {
-		s.w = nil
+	for _, s := range want.Steps {
+		s.w = want
 	}
 
-	// Cleanup hooks are impossible to check right now.
-	got.cleanupHooks = nil
-
-	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(got, want); diffRes != "" {
+		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diffRes)
 	}
 }
 
@@ -406,14 +405,20 @@ func TestPopulate(t *testing.T) {
 	}
 
 	want := &Workflow{
+		// These are nondeterministic, so we cheat.
+		id:            got.id,
+		Cancel:        got.Cancel,
+		cleanupHooks:  got.cleanupHooks,
+		StorageClient: got.StorageClient,
+		Logger:        got.Logger,
+
 		Name:       "wf-name",
 		GCSPath:    "gs://bar-project-daisy-bkt",
 		Zone:       "wf-zone",
 		Project:    "bar-project",
 		OAuthPath:  tf,
-		id:         got.id,
 		gcsLogging: true,
-		Cancel:     got.Cancel,
+		Sources:    map[string]string{},
 		Vars: map[string]Var{
 			"bucket":    {Value: "wf-bucket", Required: true},
 			"step_name": {Value: "step1"},
@@ -439,23 +444,15 @@ func TestPopulate(t *testing.T) {
 				},
 			},
 		},
+		Dependencies: map[string][]string{},
 	}
 
-	// Some things to override before checking equivalence:
-	// - recursive stuff that breaks pretty.Compare (ComputeClient, StorageClient, Step.Workflow)
-	// - stuff that is irrelevant and difficult to check (cleanupHooks and logger)
-	for _, wf := range []*Workflow{got, want} {
-		wf.ComputeClient = nil
-		wf.StorageClient = nil
-		wf.Logger = nil
-		wf.cleanupHooks = nil
-		for _, s := range wf.Steps {
-			s.w = nil
-		}
+	for _, s := range want.Steps {
+		s.w = want
 	}
 
-	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(got, want); diffRes != "" {
+		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diffRes)
 	}
 
 	if !called {
@@ -659,8 +656,8 @@ func TestPrint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if diff := diff.Diff(buf.String(), want); diff != "" {
-		t.Errorf("printed workflow does not match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(buf.String(), want); diffRes != "" {
+		t.Errorf("printed workflow does not match expectation: (-got +want)\n%s", diffRes)
 	}
 }
 

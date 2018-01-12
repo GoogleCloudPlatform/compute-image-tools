@@ -71,17 +71,17 @@ func TestUploadSources(t *testing.T) {
 		derr := w.uploadSources(ctx)
 
 		if tt.wantErrType == NOERR && derr != nil {
-			t.Errorf("unexpected error, test case: %q; input: %s; error result: %s", tt.desc, tt.sources, derr)
+			t.Errorf("unexpected error, test case: %q; i: %s; error result: %s", tt.desc, tt.sources, derr)
 		} else if tt.wantErrType != NOERR {
 			if derr == nil {
-				t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
+				t.Errorf("should have returned error, test case: %q; i: %s", tt.desc, tt.sources)
 			} else if derr.Type() != tt.wantErrType {
-				t.Errorf("unexpected error, test case: %q; input: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.Type())
+				t.Errorf("unexpected error, test case: %q; i: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.Type())
 			}
 		}
 
 		if !reflect.DeepEqual(tt.gcs, testGCSObjs) {
-			t.Errorf("expected GCS objects list does not match, test case: %q; input: %s; want: %q, got: %q", tt.desc, tt.sources, tt.gcs, testGCSObjs)
+			t.Errorf("expected GCS objects list does not match, test case: %q; i: %s; want: %q, got: %q", tt.desc, tt.sources, tt.gcs, testGCSObjs)
 		}
 	}
 
@@ -93,12 +93,12 @@ func TestUploadSources(t *testing.T) {
 
 		derr := w.uploadSources(ctx)
 		if tt.wantErrType == NOERR && derr != nil {
-			t.Errorf("unexpected error, test case: %q; input: %s; error result: %s", tt.desc, tt.sources, derr)
+			t.Errorf("unexpected error, test case: %q; i: %s; error result: %s", tt.desc, tt.sources, derr)
 		} else if tt.wantErrType != NOERR {
 			if derr == nil {
-				t.Errorf("should have returned error, test case: %q; input: %s", tt.desc, tt.sources)
+				t.Errorf("should have returned error, test case: %q; i: %s", tt.desc, tt.sources)
 			} else if derr.Type() != tt.wantErrType {
-				t.Errorf("unexpected error, test case: %q; input: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.Type())
+				t.Errorf("unexpected error, test case: %q; i: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.Type())
 			}
 		}
 
@@ -109,7 +109,7 @@ func TestUploadSources(t *testing.T) {
 			tt.gcs[i] = sw.sourcesPath + tt.gcs[i]
 		}
 		if !reflect.DeepEqual(tt.gcs, testGCSObjs) {
-			t.Errorf("expected GCS objects list does not match, test case: %q; input: %s; want: %q, got: %q", tt.desc, tt.sources, tt.gcs, testGCSObjs)
+			t.Errorf("expected GCS objects list does not match, test case: %q; i: %s; want: %q, got: %q", tt.desc, tt.sources, tt.gcs, testGCSObjs)
 		}
 	}
 }

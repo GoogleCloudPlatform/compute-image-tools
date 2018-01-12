@@ -17,8 +17,6 @@ package daisy
 import (
 	"errors"
 	"testing"
-
-	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestAddErrs(t *testing.T) {
@@ -36,11 +34,11 @@ func TestAddErrs(t *testing.T) {
 
 	for _, tt := range tests {
 		got := addErrs(tt.base, tt.errs...)
-		if diff := pretty.Compare(got, tt.want); diff != "" {
-			t.Errorf("%s: (-got,+want)\n%s", tt.desc, diff)
+		if diffRes := diff(got, tt.want); diffRes != "" {
+			t.Errorf("%s: (-got,+want)\n%s", tt.desc, diffRes)
 		}
-		if diff := pretty.Compare(tt.base, tt.want); tt.base != nil && diff != "" {
-			t.Errorf("%s: base dErr not modified as expected: (-got,+want)\n%s", tt.desc, diff)
+		if diffRes := diff(tt.base, tt.want); tt.base != nil && diffRes != "" {
+			t.Errorf("%s: base dErr not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 	}
 }
@@ -72,16 +70,16 @@ func TestErrf(t *testing.T) {
 	got := errf("%s %s", "hello", "world")
 
 	want := &dErrImpl{errs: []error{errors.New("hello world")}}
-	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("Error not created as expected: (-got,+want)\n%s", diff)
+	if diffRes := diff(got, want); diffRes != "" {
+		t.Errorf("Error not created as expected: (-got,+want)\n%s", diffRes)
 	}
 }
 
 func TestTypedErrf(t *testing.T) {
 	got := typedErrf("FOO", "%s %s", "hello", "world")
 	want := &dErrImpl{errs: []error{errors.New("hello world")}, errType: "FOO"}
-	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("Error not created as expected: (-got,+want)\n%s", diff)
+	if diffRes := diff(got, want); diffRes != "" {
+		t.Errorf("Error not created as expected: (-got,+want)\n%s", diffRes)
 	}
 }
 
@@ -113,8 +111,8 @@ func TestDErrImplAdd(t *testing.T) {
 
 	for _, tt := range tests {
 		tt.base.add(tt.add)
-		if diff := pretty.Compare(tt.base, tt.want); diff != "" {
-			t.Errorf("%s: base dErrImpl not modified as expected: (-got,+want)\n%s", tt.desc, diff)
+		if diffRes := diff(tt.base, tt.want); diffRes != "" {
+			t.Errorf("%s: base dErrImpl not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 	}
 }

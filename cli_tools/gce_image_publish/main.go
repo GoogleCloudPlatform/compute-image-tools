@@ -112,7 +112,7 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 
 	// Replace text in Description for the print out, let daisy replace other fields.
 	replacer := strings.NewReplacer("${source_version}", p.sourceVersion, "${publish_version}", p.publishVersion)
-	ci := daisy.CreateImage{
+	ci := daisy.Image{
 		Image: compute.Image{
 			Name:            publishName,
 			Description:     replacer.Replace(img.Description),

@@ -19,37 +19,82 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-type resource struct {
-	real, link         string
-	noCleanup, deleted bool
-	mx                 sync.Mutex
+var (
+	disks       = map[*Workflow]*diskRegistry{}
+	disksMu     sync.Mutex
+	images      = map[*Workflow]*imageRegistry{}
+	imagesMu    sync.Mutex
+	instances   = map[*Workflow]*instanceRegistry{}
+	instancesMu sync.Mutex
+	networks    = map[*Workflow]*networkRegistry{}
+	networksMu  sync.Mutex
+)
 
-	creator, deleter *Step
-	users            []*Step
+func initWorkflowResourceRegistries(w *Workflow) {
+	disksMu.Lock()
+	disks[w] = newDiskRegistry(w)
+	disksMu.Unlock()
+
+	imagesMu.Lock()
+	images[w] = newImageRegistry(w)
+	imagesMu.Unlock()
+
+	instancesMu.Lock()
+	instances[w] = newInstanceRegistry(w)
+	instancesMu.Unlock()
+
+	networksMu.Lock()
+	networks[w] = newNetworkRegistry(w)
+	networksMu.Unlock()
+
+	w.addCleanupHook(resourceRegistryCleanupHook(w))
+}
+
+func resourceRegistryCleanupHook(w *Workflow) func() dErr {
+	return func() dErr {
+		images[w].cleanup()
+		instances[w].cleanup()
+		disks[w].cleanup()
+		networks[w].cleanup()
+		return nil
+	}
+}
+
+func shareWorkflowResourceRegistries(giver, taker *Workflow) {
+	disksMu.Lock()
+	disks[taker] = disks[giver]
+	disksMu.Unlock()
+	imagesMu.Lock()
+	images[taker] = images[giver]
+	imagesMu.Unlock()
+	instancesMu.Lock()
+	instances[taker] = instances[giver]
+	instancesMu.Unlock()
+	networksMu.Lock()
+	networks[taker] = networks[giver]
+	networksMu.Unlock()
 }
 
 type baseResourceRegistry struct {
 	w  *Workflow
-	m  map[string]*resource
+	m  map[string]*Resource
 	mx sync.Mutex
 
-	deleteFn func(res *resource) dErr
+	deleteFn func(res *Resource) dErr
 	typeName string
 	urlRgx   *regexp.Regexp
 }
 
 func (r *baseResourceRegistry) init() {
-	r.m = map[string]*resource{}
+	r.m = map[string]*Resource{}
 }
 
 func (r *baseResourceRegistry) cleanup() {
 	var wg sync.WaitGroup
 	for name, res := range r.m {
-		if res.noCleanup || res.deleted {
+		if res.NoCleanup || res.deleted {
 			continue
 		}
 		wg.Add(1)
@@ -66,10 +111,19 @@ func (r *baseResourceRegistry) cleanup() {
 func (r *baseResourceRegistry) delete(name string) dErr {
 	res, ok := r.get(name)
 	if !ok {
-		return errf("cannot delete %q; does not exist in resource map", name)
+		return errf("cannot delete %s %q; does not exist in registry", r.typeName, name)
 	}
-	res.mx.Lock()
-	defer res.mx.Unlock()
+
+	// TODO: find a better way for resource delete locking.
+	// - move deleteMx out of Resource, it probably belongs in the registry.
+	r.mx.Lock()
+	if res.deleteMx == nil {
+		res.deleteMx = &sync.Mutex{}
+	}
+	r.mx.Unlock()
+
+	res.deleteMx.Lock()
+	defer res.deleteMx.Unlock()
 	if res.deleted {
 		return errf("cannot delete %q; already deleted", name)
 	}
@@ -80,38 +134,14 @@ func (r *baseResourceRegistry) delete(name string) dErr {
 	return nil
 }
 
-func (r *baseResourceRegistry) get(name string) (*resource, bool) {
+func (r *baseResourceRegistry) get(name string) (*Resource, bool) {
 	r.mx.Lock()
 	defer r.mx.Unlock()
 	res, ok := r.m[name]
 	return res, ok
 }
 
-func resourceExists(client compute.Client, url string) (bool, dErr) {
-	if !strings.HasPrefix(url, "projects/") {
-		return false, errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
-	}
-	switch {
-	case machineTypeURLRegex.MatchString(url):
-		result := namedSubexp(machineTypeURLRegex, url)
-		return machineTypeExists(client, result["project"], result["zone"], result["machinetype"])
-	case instanceURLRgx.MatchString(url):
-		result := namedSubexp(instanceURLRgx, url)
-		return instanceExists(client, result["project"], result["zone"], result["instance"])
-	case diskURLRgx.MatchString(url):
-		result := namedSubexp(diskURLRgx, url)
-		return diskExists(client, result["project"], result["zone"], result["disk"])
-	case imageURLRgx.MatchString(url):
-		result := namedSubexp(imageURLRgx, url)
-		return imageExists(client, result["project"], result["family"], result["image"])
-	case networkURLRegex.MatchString(url):
-		result := namedSubexp(networkURLRegex, url)
-		return networkExists(client, result["project"], result["network"])
-	}
-	return false, errf("unknown resource type: %q", url)
-}
-
-func (r *baseResourceRegistry) registerCreation(name string, res *resource, s *Step, overWrite bool) dErr {
+func (r *baseResourceRegistry) registerCreation(name string, res *Resource, s *Step, overWrite bool) dErr {
 	// Create a resource reference, known by name. Check:
 	// - no duplicates known by name
 	r.mx.Lock()
@@ -140,7 +170,7 @@ func (r *baseResourceRegistry) registerDeletion(name string, s *Step) dErr {
 	r.mx.Lock()
 	defer r.mx.Unlock()
 	var ok bool
-	var res *resource
+	var res *Resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
 		var err dErr
 		res, err = r.registerExisting(name)
@@ -167,7 +197,7 @@ func (r *baseResourceRegistry) registerDeletion(name string, s *Step) dErr {
 	return nil
 }
 
-func (r *baseResourceRegistry) registerExisting(url string) (*resource, dErr) {
+func (r *baseResourceRegistry) registerExisting(url string) (*Resource, dErr) {
 	if !strings.HasPrefix(url, "projects/") {
 		return nil, errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
@@ -181,19 +211,19 @@ func (r *baseResourceRegistry) registerExisting(url string) (*resource, dErr) {
 	}
 
 	parts := strings.Split(url, "/")
-	res := &resource{real: parts[len(parts)-1], link: url, noCleanup: true}
+	res := &Resource{RealName: parts[len(parts)-1], link: url, NoCleanup: true}
 	r.m[url] = res
 	return res, nil
 }
 
-func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*resource, dErr) {
+func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*Resource, dErr) {
 	// Make s a user of name. Check:
 	// - s depends on creator of name, if there is a creator.
 	// - name doesn't have a registered deleter yet, usage must occur before deletion.
 	r.mx.Lock()
 	defer r.mx.Unlock()
 	var ok bool
-	var res *resource
+	var res *Resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
 		var err dErr
 		res, err = r.registerExisting(name)
@@ -213,50 +243,4 @@ func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*resource, d
 
 	r.m[name].users = append(r.m[name].users, s)
 	return res, nil
-}
-
-func initWorkflowResources(w *Workflow) {
-	initDiskRegistry(w)
-	initImageRegistry(w)
-	initInstanceRegistry(w)
-	initNetworkRegistry(w)
-	w.addCleanupHook(resourceCleanupHook(w))
-}
-
-func shareWorkflowResources(giver, taker *Workflow) {
-	disksMu.Lock()
-	disks[taker] = disks[giver]
-	disksMu.Unlock()
-	imagesMu.Lock()
-	images[taker] = images[giver]
-	imagesMu.Unlock()
-	instancesMu.Lock()
-	instances[taker] = instances[giver]
-	instancesMu.Unlock()
-	networksMu.Lock()
-	networks[taker] = networks[giver]
-	networksMu.Unlock()
-}
-
-func resourceCleanupHook(w *Workflow) func() dErr {
-	return func() dErr {
-		images[w].cleanup()
-		instances[w].cleanup()
-		disks[w].cleanup()
-		return nil
-	}
-}
-
-func extendPartialURL(url, project string) string {
-	if strings.HasPrefix(url, "projects") {
-		return url
-	}
-	return fmt.Sprintf("projects/%s/%s", project, url)
-}
-
-func resourceNameHelper(name string, w *Workflow, exactName bool) string {
-	if !exactName {
-		name = w.genName(name)
-	}
-	return name
 }

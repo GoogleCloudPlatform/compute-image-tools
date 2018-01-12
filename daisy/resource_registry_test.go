@@ -20,98 +20,33 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/kylelemons/godebug/pretty"
 )
 
-func TestExtendPartialURL(t *testing.T) {
-	want := "projects/foo/zones/bar/disks/baz"
-	if s := extendPartialURL("zones/bar/disks/baz", "foo"); s != want {
-		t.Errorf("got: %q, want: %q", s, want)
-	}
-
-	if s := extendPartialURL("projects/foo/zones/bar/disks/baz", "gaz"); s != want {
-		t.Errorf("got: %q, want %q", s, want)
-	}
-}
-
-func TestResourceNameHelper(t *testing.T) {
-	w := testWorkflow()
-	want := w.genName("foo")
-	got := resourceNameHelper("foo", w, false)
-	if got != want {
-		t.Errorf("%q != %q", got, want)
-	}
-
-	want = "foo"
-	got = resourceNameHelper("foo", w, true)
-	if got != want {
-		t.Errorf("%q != %q", got, want)
-	}
-}
-
-func TestResourceCleanup(t *testing.T) {
+func TestResourceRegistryCleanup(t *testing.T) {
 	w := testWorkflow()
 
-	d1 := &resource{real: "d1", link: "link", noCleanup: false}
-	d2 := &resource{real: "d2", link: "link", noCleanup: true}
-	im1 := &resource{real: "im1", link: "link", noCleanup: false}
-	im2 := &resource{real: "im2", link: "link", noCleanup: true}
-	in1 := &resource{real: "in1", link: "link", noCleanup: false}
-	in2 := &resource{real: "in2", link: "link", noCleanup: true}
-	disks[w].m = map[string]*resource{"d1": d1, "d2": d2}
-	images[w].m = map[string]*resource{"im1": im1, "im2": im2}
-	instances[w].m = map[string]*resource{"in1": in1, "in2": in2}
+	d1 := &Resource{RealName: "d1", link: "link", NoCleanup: false}
+	d2 := &Resource{RealName: "d2", link: "link", NoCleanup: true}
+	im1 := &Resource{RealName: "im1", link: "link", NoCleanup: false}
+	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true}
+	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false}
+	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true}
+	disks[w].m = map[string]*Resource{"d1": d1, "d2": d2}
+	images[w].m = map[string]*Resource{"im1": im1, "im2": im2}
+	instances[w].m = map[string]*Resource{"in1": in1, "in2": in2}
 
 	w.cleanup()
 
-	for _, r := range []*resource{d1, d2, im1, im2, in1, in2} {
-		if r.noCleanup && r.deleted {
-			t.Errorf("cleanup deleted %q which was marked for noCleanup", r.real)
-		} else if !r.noCleanup && !r.deleted {
-			t.Errorf("cleanup didn't delete %q", r.real)
+	for _, r := range []*Resource{d1, d2, im1, im2, in1, in2} {
+		if r.NoCleanup && r.deleted {
+			t.Errorf("cleanup deleted %q which was marked for NoCleanup", r.RealName)
+		} else if !r.NoCleanup && !r.deleted {
+			t.Errorf("cleanup didn't delete %q", r.RealName)
 		}
 	}
 }
 
-func TestResourceMapDelete(t *testing.T) {
-	var deleteFnErr dErr
-	rr := &baseResourceRegistry{m: map[string]*resource{}}
-	rr.deleteFn = func(r *resource) dErr {
-		return deleteFnErr
-	}
-
-	rr.m["foo"] = &resource{}
-	rr.m["baz"] = &resource{}
-
-	tests := []struct {
-		desc, input string
-		deleteFnErr dErr
-		shouldErr   bool
-	}{
-		{"good case", "foo", nil, false},
-		{"bad redelete case", "foo", nil, true},
-		{"bad resource dne case", "bar", nil, true},
-		{"bad deleteFn error case", "baz", errf("error"), true},
-	}
-
-	for _, tt := range tests {
-		deleteFnErr = tt.deleteFnErr
-		err := rr.delete(tt.input)
-		if tt.shouldErr && err == nil {
-			t.Errorf("%s: should have erred but didn't", tt.desc)
-		} else if !tt.shouldErr && err != nil {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-		}
-	}
-
-	wantM := map[string]*resource{"foo": {deleted: true}, "baz": {deleted: false}}
-	if diff := pretty.Compare(rr.m, wantM); diff != "" {
-		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diff)
-	}
-}
-
-func TestResourceMapConcurrency(t *testing.T) {
+func TestResourceRegistryConcurrency(t *testing.T) {
 	rr := baseResourceRegistry{w: testWorkflow()}
 	rr.init()
 
@@ -119,7 +54,7 @@ func TestResourceMapConcurrency(t *testing.T) {
 		desc string
 		f    func()
 	}{
-		{"registerCreation", func() { rr.registerCreation("foo", &resource{}, nil, false) }},
+		{"registerCreation", func() { rr.registerCreation("foo", &Resource{}, nil, false) }},
 		{"registerDeletion", func() { rr.registerDeletion("foo", nil) }},
 		{"registerUsage", func() { rr.registerUsage("foo", nil) }},
 		{"get", func() { rr.get("foo") }},
@@ -149,14 +84,54 @@ func TestResourceMapConcurrency(t *testing.T) {
 	}
 }
 
-func TestResourceMapGet(t *testing.T) {
-	xRes := &resource{}
-	yRes := &resource{}
-	rr := baseResourceRegistry{m: map[string]*resource{"x": xRes, "y": yRes}}
+func TestResourceRegistryDelete(t *testing.T) {
+	var deleteFnErr dErr
+	r := &baseResourceRegistry{m: map[string]*Resource{}}
+	r.deleteFn = func(r *Resource) dErr {
+		return deleteFnErr
+	}
+
+	r.m["foo"] = &Resource{}
+	r.m["baz"] = &Resource{}
 
 	tests := []struct {
 		desc, input string
-		wantR       *resource
+		deleteFnErr dErr
+		shouldErr   bool
+	}{
+		{"good case", "foo", nil, false},
+		{"bad redelete case", "foo", nil, true},
+		{"bad resource dne case", "bar", nil, true},
+		{"bad deleteFn error case", "baz", errf("error"), true},
+	}
+
+	for _, tt := range tests {
+		deleteFnErr = tt.deleteFnErr
+		err := r.delete(tt.input)
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: should have erred but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+
+	wantM := map[string]*Resource{
+		"foo": {deleted: true, deleteMx: r.m["foo"].deleteMx},
+		"baz": {deleted: false, deleteMx: r.m["baz"].deleteMx},
+	}
+	if diffRes := diff(r.m, wantM); diffRes != "" {
+		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diffRes)
+	}
+}
+
+func TestResourceRegistryGet(t *testing.T) {
+	xRes := &Resource{}
+	yRes := &Resource{}
+	rr := baseResourceRegistry{m: map[string]*Resource{"x": xRes, "y": yRes}}
+
+	tests := []struct {
+		desc, input string
+		wantR       *Resource
 		wantOk      bool
 	}{
 		{"normal get", "y", yRes, true},
@@ -170,10 +145,10 @@ func TestResourceMapGet(t *testing.T) {
 	}
 }
 
-func TestResourceMapRegisterCreation(t *testing.T) {
+func TestResourceRegistryRegisterCreation(t *testing.T) {
 	rr := &baseResourceRegistry{w: testWorkflow()}
 	rr.init()
-	r := &resource{link: "projects/foo/global/images/bar"}
+	r := &Resource{link: "projects/foo/global/images/bar"}
 	s := &Step{}
 
 	// Normal create.
@@ -183,8 +158,8 @@ func TestResourceMapRegisterCreation(t *testing.T) {
 	if r.creator != s {
 		t.Error("foo does not have the correct creator")
 	}
-	if diff := pretty.Compare(rr.m, map[string]*resource{"foo": r}); diff != "" {
-		t.Errorf("resource map does not match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(rr.m, map[string]*Resource{"foo": r}); diffRes != "" {
+		t.Errorf("resource registry does not match expectation: (-got +want)\n%s", diffRes)
 	}
 
 	// Test duplication create.
@@ -198,7 +173,7 @@ func TestResourceMapRegisterCreation(t *testing.T) {
 	}
 }
 
-func TestResourceMapRegisterDeletion(t *testing.T) {
+func TestResourceRegistryRegisterDeletion(t *testing.T) {
 	w := testWorkflow()
 	creator := &Step{name: "creator", w: w}
 	user := &Step{name: "user", w: w}
@@ -213,8 +188,8 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 		"dupeDeleter": {"user"},
 		"badDeleter2": {"creator"},
 	}
-	r := &resource{creator: creator, users: []*Step{user}}
-	rr := &baseResourceRegistry{m: map[string]*resource{"r": r}}
+	r := &Resource{creator: creator, users: []*Step{user}}
+	rr := &baseResourceRegistry{m: map[string]*Resource{"r": r}}
 
 	tests := []struct {
 		desc    string
@@ -241,18 +216,18 @@ func TestResourceMapRegisterDeletion(t *testing.T) {
 	}
 }
 
-func TestResourceMapRegisterExisting(t *testing.T) {
+func TestResourceRegistryRegisterExisting(t *testing.T) {
 	rr := &baseResourceRegistry{w: testWorkflow()}
 	rr.init()
 
 	defURL := fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)
 	tests := []struct {
 		desc, url string
-		wantR     *resource
+		wantR     *Resource
 		shouldErr bool
 	}{
-		{"normal case", defURL, &resource{real: testDisk, link: defURL, noCleanup: true}, false},
-		{"dupe case", defURL, &resource{real: testDisk, link: defURL, noCleanup: true}, false},
+		{"normal case", defURL, &Resource{RealName: testDisk, link: defURL, NoCleanup: true}, false},
+		{"dupe case", defURL, &Resource{RealName: testDisk, link: defURL, NoCleanup: true}, false},
 		{"incomplete partial URL case", "zones/z/disks/bad", nil, true},
 		{"already exists", fmt.Sprintf("projects/%s/global/images/my-image", testProject), nil, true},
 	}
@@ -262,8 +237,8 @@ func TestResourceMapRegisterExisting(t *testing.T) {
 		if !tt.shouldErr {
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", tt.desc, err)
-			} else if diff := pretty.Compare(r, tt.wantR); diff != "" {
-				t.Errorf("%s: generated resource doesn't match expectation (-got +want)\n%s", tt.desc, diff)
+			} else if diffRes := diff(r, tt.wantR); diffRes != "" {
+				t.Errorf("%s: generated resource doesn't match expectation (-got +want)\n%s", tt.desc, diffRes)
 			} else if rr.m[tt.url] != r {
 				t.Errorf("%s: resource was not added to the resource map", tt.desc)
 			}
@@ -272,12 +247,12 @@ func TestResourceMapRegisterExisting(t *testing.T) {
 		}
 	}
 
-	if diff := pretty.Compare(rr.m, map[string]*resource{defURL: {real: testDisk, link: defURL, noCleanup: true}}); diff != "" {
-		t.Errorf("resource map doesn't match expectation (-got +want)\n%s", diff)
+	if diffRes := diff(rr.m, map[string]*Resource{defURL: {RealName: testDisk, link: defURL, NoCleanup: true}}); diffRes != "" {
+		t.Errorf("resource registry doesn't match expectation (-got +want)\n%s", diffRes)
 	}
 }
 
-func TestResourceMapRegisterUsage(t *testing.T) {
+func TestResourceRegistryRegisterUsage(t *testing.T) {
 	w := testWorkflow()
 	creator := &Step{name: "creator", w: w}
 	deleter := &Step{name: "deleter", w: w}
@@ -292,16 +267,16 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 		"badUser3": {"creator"},
 		"deleter":  {"user", "badUser3"},
 	}
-	r1 := &resource{creator: creator}
-	r2 := &resource{creator: creator, deleter: deleter}
-	rr := &baseResourceRegistry{m: map[string]*resource{"r1": r1, "r2": r2}}
+	r1 := &Resource{creator: creator}
+	r2 := &Resource{creator: creator, deleter: deleter}
+	rr := &baseResourceRegistry{m: map[string]*Resource{"r1": r1, "r2": r2}}
 
 	tests := []struct {
 		desc    string
 		name    string
 		step    *Step
 		wantErr bool
-		wantRes *resource
+		wantRes *Resource
 	}{
 		{"normal case", "r1", user, false, r1},
 		{"missing dependency on creator case", "r1", badUser, true, nil},
@@ -326,11 +301,11 @@ func TestResourceMapRegisterUsage(t *testing.T) {
 	for _, s := range ss {
 		s.w = nil
 	}
-	if diff := pretty.Compare(r1.users, []*Step{user}); diff != "" {
-		t.Errorf("r1 users list does not match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(r1.users, []*Step{user}); diffRes != "" {
+		t.Errorf("r1 users list does not match expectation: (-got +want)\n%s", diffRes)
 	}
-	if diff := pretty.Compare(r2.users, []*Step{}); diff != "" {
-		t.Errorf("r2 users list does not match expectation: (-got +want)\n%s", diff)
+	if diffRes := diff(r2.users, []*Step(nil)); diffRes != "" {
+		t.Errorf("r2 users list does not match expectation: (-got +want)\n%s", diffRes)
 	}
 
 }

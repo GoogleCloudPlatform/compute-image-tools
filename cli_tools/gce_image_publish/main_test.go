@@ -327,10 +327,10 @@ func TestCreatePrintOut(t *testing.T) {
 		want []string
 	}{
 		{"empty", nil, nil},
-		{"one image", &daisy.CreateImages{&daisy.CreateImage{Image: compute.Image{Name: "foo", Description: "bar"}}}, []string{"foo: (bar)"}},
+		{"one image", &daisy.CreateImages{&daisy.Image{Image: compute.Image{Name: "foo", Description: "bar"}}}, []string{"foo: (bar)"}},
 		{"two images", &daisy.CreateImages{
-			&daisy.CreateImage{Image: compute.Image{Name: "foo1", Description: "bar1"}},
-			&daisy.CreateImage{Image: compute.Image{Name: "foo2", Description: "bar2"}}},
+			&daisy.Image{Image: compute.Image{Name: "foo1", Description: "bar1"}},
+			&daisy.Image{Image: compute.Image{Name: "foo2", Description: "bar2"}}},
 			[]string{"foo1: (bar1)", "foo2: (bar2)"},
 		},
 	}
