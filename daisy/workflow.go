@@ -184,7 +184,7 @@ func (w *Workflow) addCleanupHook(hook func() dErr) {
 
 // Validate runs validation on the workflow.
 func (w *Workflow) Validate(ctx context.Context) error {
-	if err := w.populateClients(ctx); err != nil {
+	if err := w.PopulateClients(ctx); err != nil {
 		close(w.Cancel)
 		return errf("error populating workflow: %v", err)
 	}
@@ -274,7 +274,8 @@ func (w *Workflow) getSourceGCSAPIPath(s string) string {
 	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(w.bucket, w.sourcesPath, s))
 }
 
-func (w *Workflow) populateClients(ctx context.Context) error {
+// PopulateClients populates the compute and storage clients for the workflow.
+func (w *Workflow) PopulateClients(ctx context.Context) error {
 	// API clients instantiation.
 	var err error
 
@@ -508,8 +509,8 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print(ctx context.Context) {
 	w.gcsLogging = false
-	if err := w.populateClients(ctx); err != nil {
-		fmt.Println("Error running populateClients:", err)
+	if err := w.PopulateClients(ctx); err != nil {
+		fmt.Println("Error running PopulateClients:", err)
 	}
 	if err := w.populate(ctx); err != nil {
 		fmt.Println("Error running populate:", err)
