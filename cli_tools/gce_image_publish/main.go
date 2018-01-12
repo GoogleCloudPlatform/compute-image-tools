@@ -383,7 +383,8 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 		return nil, err
 	}
 
-	pubImgs, ok := imagesCache[p.PublishProject]
+	cacheKey := w.ComputeClient.BasePath() + p.PublishProject
+	pubImgs, ok := imagesCache[cacheKey]
 	if !ok {
 		pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 		if err != nil {
@@ -392,7 +393,7 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 		if imagesCache == nil {
 			imagesCache = map[string][]*compute.Image{}
 		}
-		imagesCache[p.PublishProject] = pubImgs
+		imagesCache[cacheKey] = pubImgs
 	}
 
 	if err := p.populateWorkflow(ctx, w, pubImgs, *rollback, *skipDup, *replace); err != nil {
