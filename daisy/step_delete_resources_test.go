@@ -29,6 +29,7 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 		Disks:     []string{"d", "zones/z/disks/d"},
 		Images:    []string{"i", "global/images/i"},
 		Instances: []string{"i", "zones/z/instances/i"},
+		Networks:  []string{"n", "global/networks/n"},
 	}
 
 	if err := (s.DeleteResources).populate(context.Background(), s); err != nil {
@@ -39,6 +40,7 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 		Disks:     []string{"d", fmt.Sprintf("projects/%s/zones/z/disks/d", w.Project)},
 		Images:    []string{"i", fmt.Sprintf("projects/%s/global/images/i", w.Project)},
 		Instances: []string{"i", fmt.Sprintf("projects/%s/zones/z/instances/i", w.Project)},
+		Networks:  []string{"n", fmt.Sprintf("projects/%s/global/networks/n", w.Project)},
 	}
 	if diffRes := diff(s.DeleteResources, want, 0); diffRes != "" {
 		t.Errorf("DeleteResources not populated as expected: (-got,+want)\n%s", diffRes)
@@ -53,11 +55,13 @@ func TestDeleteResourcesRun(t *testing.T) {
 	ins := []*Resource{{RealName: "in0", link: "link"}, {RealName: "in1", link: "link"}}
 	ims := []*Resource{{RealName: "im0", link: "link"}, {RealName: "im1", link: "link"}}
 	ds := []*Resource{{RealName: "d0", link: "link"}, {RealName: "d1", link: "link"}}
+	ns := []*Resource{{RealName: "n0", link: "link"}, {RealName: "n1", link: "link"}}
 	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
 	w.images.m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
 	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
+	w.networks.m = map[string]*Resource{"n0": ns[0], "n1": ns[1]}
 
-	dr := &DeleteResources{Instances: []string{"in0"}, Images: []string{"im0"}, Disks: []string{"d0"}}
+	dr := &DeleteResources{Instances: []string{"in0"}, Images: []string{"im0"}, Disks: []string{"d0"}, Networks: []string{"n0"}}
 	if err := dr.run(ctx, s); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
 	}
@@ -72,6 +76,8 @@ func TestDeleteResourcesRun(t *testing.T) {
 		{ims[1], false},
 		{ds[0], true},
 		{ds[1], false},
+		{ns[0], true},
+		{ns[1], false},
 	}
 	for _, c := range deletedChecks {
 		if c.shouldBeDeleted {
@@ -95,15 +101,18 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	dC, _ := w.NewStep("dCreator")
 	imC, _ := w.NewStep("imCreator")
 	inC, _ := w.NewStep("inCreator")
+	nC, _ := w.NewStep("nCreator")
 	s, _ := w.NewStep("s")
-	w.AddDependency(s, dC, imC, inC)
+	w.AddDependency(s, dC, imC, inC, nC)
 	otherDeleter, _ := w.NewStep("otherDeleter")
-	ds := []*Resource{{RealName: "d0", link: "link", creator: dC}, {RealName: "d1", link: "link", creator: dC}}
+	ds := []*Resource{{RealName: "d0", link: "link", creator: dC}, {RealName: "d1", link: "link", creator: dC}, {RealName: "d2", link: "link", creator: dC}}
 	ims := []*Resource{{RealName: "im0", link: "link", creator: imC}, {RealName: "im1", link: "link", creator: imC}}
 	ins := []*Resource{{RealName: "in0", link: "link", creator: inC}, {RealName: "in1", link: "link", creator: inC}}
+	ns := []*Resource{{RealName: "n0", link: "link", creator: nC}, {RealName: "n1", link: "link", creator: nC}, {RealName: "n2", link: "link", creator: nC}}
 	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
 	w.images.m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
 	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
+	w.networks.m = map[string]*Resource{"n0": ns[0], "n1": ns[1]}
 	ads := []*compute.AttachedDisk{{Source: "d1"}}
 	inC.CreateInstances = &CreateInstances{{Resource: Resource{daisyName: "in0"}, Instance: compute.Instance{Disks: ads}}}
 
@@ -120,16 +129,17 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	}
 
 	// Good case.
-	dr := DeleteResources{Disks: []string{"d0"}, Images: []string{"im0", "projects/foo/global/images/" + testImage, "projects/foo/global/images/family/foo"}, Instances: []string{"in0"}}
+	dr := DeleteResources{Disks: []string{"d0"}, Images: []string{"im0", "projects/foo/global/images/" + testImage, "projects/foo/global/images/family/foo"}, Instances: []string{"in0"}, Networks: []string{"n0"}}
 	if err := dr.validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
 	}
-	got := []*Resource{ds[0], ds[1], ims[0], ims[1], ins[0], ins[1]}
-	want := []*Resource{&(*ds[0]), &(*ds[1]), &(*ims[0]), &(*ims[1]), &(*ins[0]), &(*ins[1])}
+	got := []*Resource{ds[0], ds[1], ims[0], ims[1], ins[0], ins[1], ns[0], ns[1]}
+	want := []*Resource{&(*ds[0]), &(*ds[1]), &(*ims[0]), &(*ims[1]), &(*ins[0]), &(*ins[1]), &(*ns[0]), &(*ns[1])}
 	want[0].deleter = s
 	want[1].deleter = s
 	want[2].deleter = s
 	want[4].deleter = s
+	want[6].deleter = s
 
 	CompareResources(got, want)
 	// Bad cases. Test:
@@ -147,7 +157,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 		t.Error("DeleteResources should have returned an error when deleting an already deleted instance")
 	}
 	if err := (&DeleteResources{Disks: []string{"dne"}}).validate(ctx, s); err == nil {
-		t.Error("DeleteResources should have returned an error when deleting an already deleted disk")
+		t.Error("DeleteResources should have returned an error when deleting an disk that DNE")
 	}
 	if err := (&DeleteResources{Instances: []string{fmt.Sprintf("projects/%s/zones/%s/instances/dne", testProject, testZone)}}).validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)

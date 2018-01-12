@@ -173,10 +173,11 @@ func (i *Image) populateGuestOSFeatures(w *Workflow) {
 }
 
 func (i *Image) validate(ctx context.Context, s *Step) dErr {
-	errs := i.Resource.validate(ctx, s)
+	pre := fmt.Sprintf("cannot create image %q", i.daisyName)
+	errs := i.Resource.validate(ctx, s, pre)
 
 	if !xor(!xor(i.SourceDisk == "", i.SourceImage == ""), i.RawDisk == nil) {
-		errs = addErrs(errs, errf("cannot create image %q: must provide either SourceImage, SourceDisk or RawDisk, exclusively", i.daisyName))
+		errs = addErrs(errs, errf("%s: must provide either SourceImage, SourceDisk or RawDisk, exclusively", pre))
 	}
 
 	// Source disk checking.
@@ -205,9 +206,9 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	for _, l := range i.Licenses {
 		result := namedSubexp(licenseURLRegex, l)
 		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
-			errs = addErrs(errs, errf("cannot create image %q: bad license lookup: %q, error: %v", i.daisyName, l, err))
+			errs = addErrs(errs, errf("%s: bad license lookup: %q, error: %v", pre, l, err))
 		} else if !exists {
-			errs = addErrs(errs, errf("cannot create image %q: license does not exist: %q", i.daisyName, l))
+			errs = addErrs(errs, errf("%s: license does not exist: %q", pre, l))
 		}
 	}
 

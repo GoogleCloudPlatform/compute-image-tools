@@ -49,8 +49,6 @@ func TestUnmarshalJSON(t *testing.T) {
 func TestImagePopulate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
-	w.ComputeClient = nil
-	w.StorageClient = nil
 	w.Sources = map[string]string{"d": "d"}
 	s, _ := w.NewStep("s")
 

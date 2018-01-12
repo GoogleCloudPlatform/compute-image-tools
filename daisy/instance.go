@@ -220,31 +220,14 @@ func (i *Instance) populateScopes() dErr {
 }
 
 func (i *Instance) validate(ctx context.Context, s *Step) dErr {
-	errs := i.Resource.validateWithZone(ctx, s, i.Zone)
+	pre := fmt.Sprintf("cannot create instance %q", i.daisyName)
+	errs := i.Resource.validateWithZone(ctx, s, i.Zone, pre)
 	errs = addErrs(errs, i.validateDisks(s))
 	errs = addErrs(errs, i.validateMachineType(s.w.ComputeClient))
 	errs = addErrs(errs, i.validateNetworks(s))
 
 	// Register creation.
 	errs = addErrs(errs, s.w.instances.regCreate(i.daisyName, &i.Resource, s))
-	return errs
-}
-
-func (i *Instance) validateDiskSource(d *compute.AttachedDisk, s *Step) dErr {
-	dr, errs := s.w.disks.regUse(d.Source, s)
-	if dr == nil {
-		// Return now, the rest of this function can't be run without dr.
-		return addErrs(errs, errf("cannot create instance: disk %q not found in registry", d.Source))
-	}
-
-	// Ensure disk is in the same project and zone.
-	result := namedSubexp(diskURLRgx, dr.link)
-	if result["project"] != i.Project {
-		errs = addErrs(errs, errf("cannot create instance in project %q with disk in project %q: %q", i.Project, result["project"], d.Source))
-	}
-	if result["zone"] != i.Zone {
-		errs = addErrs(errs, errf("cannot create instance in project %q with disk in zone %q: %q", i.Zone, result["zone"], d.Source))
-	}
 	return errs
 }
 
@@ -290,6 +273,24 @@ func (i *Instance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step
 	r := &Resource{RealName: p.DiskName, link: link, NoCleanup: d.AutoDelete}
 	errs = addErrs(errs, s.w.disks.regCreate(p.DiskName, r, s, false))
 	return
+}
+
+func (i *Instance) validateDiskSource(d *compute.AttachedDisk, s *Step) dErr {
+	dr, errs := s.w.disks.regUse(d.Source, s)
+	if dr == nil {
+		// Return now, the rest of this function can't be run without dr.
+		return addErrs(errs, errf("cannot create instance: disk %q not found in registry", d.Source))
+	}
+
+	// Ensure disk is in the same project and zone.
+	result := namedSubexp(diskURLRgx, dr.link)
+	if result["project"] != i.Project {
+		errs = addErrs(errs, errf("cannot create instance in project %q with disk in project %q: %q", i.Project, result["project"], d.Source))
+	}
+	if result["zone"] != i.Zone {
+		errs = addErrs(errs, errf("cannot create instance in project %q with disk in zone %q: %q", i.Zone, result["zone"], d.Source))
+	}
+	return errs
 }
 
 func (i *Instance) validateMachineType(client daisyCompute.Client) (errs dErr) {
@@ -354,33 +355,34 @@ func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
 
 func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) dErr {
 	// Base creation logic.
-	if err := ir.baseResourceRegistry.regCreate(name, res, s, false); err != nil {
-		return err
-	}
+	errs := ir.baseResourceRegistry.regCreate(name, res, s, false)
 
 	// Find the Instance responsible for this.
 	var i *Instance
 	for _, i = range *s.CreateInstances {
-		if i.daisyName == name {
+		if &i.Resource == res {
 			break
 		}
 	}
-	// Register attachments.
+	// Register disk attachments.
 	for _, d := range i.Disks {
 		dName := d.Source
 		if d.InitializeParams != nil {
 			dName = d.InitializeParams.DiskName
 		}
-		if err := ir.w.disks.regAttach(dName, i.daisyName, d.Mode, s); err != nil {
-			return err
-		}
+		errs = addErrs(errs, ir.w.disks.regAttach(dName, i.daisyName, d.Mode, s))
 	}
-	return nil
+
+	// Register network connections.
+	for _, n := range i.NetworkInterfaces {
+		nName := n.Network
+		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
+	}
+	return errs
 }
 
 func (ir *instanceRegistry) regDelete(name string, s *Step) dErr {
-	if err := ir.baseResourceRegistry.regDelete(name, s); err != nil {
-		return err
-	}
-	return ir.w.disks.regDetachAll(name, s)
+	errs := ir.baseResourceRegistry.regDelete(name, s)
+	errs = addErrs(errs, ir.w.disks.regDetachAll(name, s))
+	return addErrs(errs, ir.w.networks.regDisconnectAll(name, s))
 }
