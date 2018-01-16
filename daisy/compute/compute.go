@@ -59,6 +59,7 @@ type Client interface {
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
+	BasePath() string
 }
 
 // A ListCallOption is an option for a Google Compute API *ListCall.
@@ -180,6 +181,11 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error)
 	c.i = c
 
 	return c, nil
+}
+
+// BasePath returns the base path for this client.
+func (c *client) BasePath() string {
+	return c.raw.BasePath
 }
 
 func (c *client) operationsWait(project, zone, name string) error {

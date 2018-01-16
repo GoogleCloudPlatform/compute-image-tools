@@ -222,6 +222,9 @@ func populateSteps(w *daisy.Workflow, prefix string, createImages *daisy.CreateI
 			return err
 		}
 		createStep.CreateImages = createImages
+		// The default of 10m is a bit low, 1h is excessive for most use cases.
+		// TODO(ajackura): Maybe add a timout field override to the template?
+		createStep.Timeout = "1h"
 	}
 
 	if deprecateImages != nil {
@@ -324,6 +327,8 @@ func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	return nil
 }
 
+var imagesCache map[string][]*compute.Image
+
 func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -376,10 +381,24 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 	if p.ComputeEndpoint != "" {
 		w.ComputeEndpoint = p.ComputeEndpoint
 	}
-	pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
-	if err != nil {
+
+	if err := w.PopulateClients(ctx); err != nil {
 		return nil, err
 	}
+
+	cacheKey := w.ComputeClient.BasePath() + p.PublishProject
+	pubImgs, ok := imagesCache[cacheKey]
+	if !ok {
+		pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
+		if err != nil {
+			return nil, err
+		}
+		if imagesCache == nil {
+			imagesCache = map[string][]*compute.Image{}
+		}
+		imagesCache[cacheKey] = pubImgs
+	}
+
 	if err := p.populateWorkflow(ctx, w, pubImgs, *rollback, *skipDup, *replace); err != nil {
 		return nil, err
 	}
