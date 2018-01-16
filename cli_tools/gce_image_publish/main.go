@@ -16,17 +16,18 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
@@ -329,15 +330,20 @@ func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 
 var imagesCache map[string][]*compute.Image
 
-func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
-	data, err := ioutil.ReadFile(path)
+func createWorkflow(ctx context.Context, path string, varMap map[string]string) (*daisy.Workflow, error) {
+	tmpl, err := template.ParseFiles(path)
 	if err != nil {
 		return nil, err
 	}
 
+	var buf bytes.Buffer
+	if err := tmpl.Option("missingkey=zero").Execute(&buf, varMap); err != nil {
+		return nil, err
+	}
+
 	var p publish
-	if err := json.Unmarshal(data, &p); err != nil {
-		return nil, daisy.JSONError(path, data, err)
+	if err := json.Unmarshal(buf.Bytes(), &p); err != nil {
+		return nil, daisy.JSONError(path, buf.Bytes(), err)
 	}
 	fmt.Printf("- Publish workflow %q\n", p.Name)
 
@@ -389,7 +395,7 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 	cacheKey := w.ComputeClient.BasePath() + p.PublishProject
 	pubImgs, ok := imagesCache[cacheKey]
 	if !ok {
-		pubImgs, err := w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
+		pubImgs, err = w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 		if err != nil {
 			return nil, err
 		}
@@ -436,8 +442,46 @@ func createWorkflow(ctx context.Context, path string) (*daisy.Workflow, error) {
 	return w, nil
 }
 
+const (
+	flgDefValue   = "flag generated for workflow variable"
+	varFlagPrefix = "var:"
+)
+
+func addFlags(args []string) {
+	for _, arg := range args {
+		if len(arg) <= 1 || arg[0] != '-' {
+			continue
+		}
+
+		name := arg[1:]
+		if name[0] == '-' {
+			name = name[1:]
+		}
+
+		if !strings.HasPrefix(name, varFlagPrefix) {
+			continue
+		}
+
+		name = strings.SplitN(name, "=", 2)[0]
+
+		if flag.Lookup(name) != nil {
+			continue
+		}
+
+		flag.String(name, "", flgDefValue)
+	}
+}
+
 func main() {
+	addFlags(os.Args[1:])
 	flag.Parse()
+
+	varMap := map[string]string{}
+	flag.Visit(func(flg *flag.Flag) {
+		if strings.HasPrefix(flg.Name, varFlagPrefix) {
+			varMap[strings.TrimPrefix(flg.Name, varFlagPrefix)] = flg.Value.String()
+		}
+	})
 
 	if *skipDup && *replace {
 		fmt.Println("Cannot set both -skip_duplicates and -replace")
@@ -455,7 +499,7 @@ func main() {
 	errors := make(chan error, len(flag.Args()))
 	var ws []*daisy.Workflow
 	for _, path := range flag.Args() {
-		w, err := createWorkflow(ctx, path)
+		w, err := createWorkflow(ctx, path, varMap)
 		if err != nil {
 			fmt.Println("   Error:", err)
 			errors <- err
