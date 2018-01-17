@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -68,6 +69,17 @@ type publish struct {
 	PublishProject string
 	// Optional compute endpoint override
 	ComputeEndpoint string
+	// Optional period of time to keep images, any images with an create time
+	// older than this period will be deleted.
+	// Format consists of 2 sections, the first must parsable by
+	// https://golang.org/pkg/time/#ParseDuration, the second is a multiplier
+	// separated by '*'.
+	// 24h = 1 day
+	// 24h*7 = 1 week
+	// 24h*7*4 = ~1 month
+	// 24h*365 = ~1 year
+	DeleteAfter  string
+	deleteBefore *time.Time
 	// Images to publish.
 	Images []*image
 
@@ -99,9 +111,9 @@ type image struct {
 	GuestOsFeatures []string
 }
 
-func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicates, rep bool) (*daisy.CreateImages, *daisy.DeprecateImages, error) {
+func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicates, rep bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
 	if skipDuplicates && rep {
-		return nil, nil, errors.New("cannot set both skipDuplicates and replace")
+		return nil, nil, nil, errors.New("cannot set both skipDuplicates and replace")
 	}
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	sourceName := fmt.Sprintf("%s-%s", img.Prefix, p.sourceVersion)
@@ -129,7 +141,7 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 
 	var source string
 	if p.SourceProject != "" && p.SourceGCSPath != "" {
-		return nil, nil, errors.New("only one of SourceProject or SourceGCSPath should be set")
+		return nil, nil, nil, errors.New("only one of SourceProject or SourceGCSPath should be set")
 	}
 	if p.SourceProject != "" {
 		source = fmt.Sprintf("projects/%s/global/images/%s", p.SourceProject, sourceName)
@@ -138,11 +150,12 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 		source = fmt.Sprintf("%s/%s/%s", p.SourceGCSPath, sourceName, gcsImageObj)
 		ci.Image.RawDisk = &compute.ImageRawDisk{Source: source}
 	} else {
-		return nil, nil, errors.New("neither SourceProject or SourceGCSPath was set")
+		return nil, nil, nil, errors.New("neither SourceProject or SourceGCSPath was set")
 	}
 	cis := &daisy.CreateImages{&ci}
 
 	dis := &daisy.DeprecateImages{}
+	drs := &daisy.DeleteResources{}
 	for _, pubImg := range pubImgs {
 		if pubImg.Name == publishName {
 			msg := fmt.Sprintf("Image %q already exists in project %q", publishName, p.PublishProject)
@@ -155,11 +168,27 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 				(*cis)[0].OverWrite = true
 				continue
 			}
-			return nil, nil, errors.New(msg)
+			return nil, nil, nil, errors.New(msg)
+		}
+
+		if pubImg.Family != img.Family {
+			continue
+		}
+
+		// Delete all images in the same family with insert date older than p.deleteBefore.
+		if p.deleteBefore != nil {
+			createTime, err := time.Parse(time.RFC3339, pubImg.CreationTimestamp)
+			if err != nil {
+				continue
+			}
+			if createTime.Before(*p.deleteBefore) {
+				drs.Images = append(drs.Images, pubImg.Name)
+				continue
+			}
 		}
 
 		// Deprecate all images in the same family.
-		if pubImg.Family == img.Family && (pubImg.Deprecated == nil || pubImg.Deprecated.State == "") {
+		if pubImg.Deprecated == nil || pubImg.Deprecated.State == "" {
 			*dis = append(*dis, &daisy.DeprecateImage{
 				Image:   pubImg.Name,
 				Project: p.PublishProject,
@@ -173,8 +202,11 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 	if len(*dis) == 0 {
 		dis = nil
 	}
+	if len(drs.Images) == 0 {
+		drs = nil
+	}
 
-	return cis, dis, nil
+	return cis, dis, drs, nil
 }
 
 func rollbackImage(p *publish, img *image, pubImgs []*compute.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
@@ -310,7 +342,7 @@ func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 		if rb {
 			deleteResources, deprecateImages = rollbackImage(p, img, pubImgs)
 		} else {
-			createImages, deprecateImages, err = publishImage(p, img, pubImgs, sd, rep)
+			createImages, deprecateImages, deleteResources, err = publishImage(p, img, pubImgs, sd, rep)
 			if err != nil {
 				return err
 			}
@@ -326,6 +358,32 @@ func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	}
 
 	return nil
+}
+
+func parseDeleteBefore(deleteAfter string) (*time.Time, error) {
+	if deleteAfter == "" {
+		return nil, nil
+	}
+	split := strings.Split(deleteAfter, "*")
+	base, err := time.ParseDuration(split[0])
+	if err != nil {
+		return nil, err
+	}
+	m := 1
+	for i, s := range split {
+		if i == 0 {
+			continue
+		}
+		nm, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, err
+		}
+		m = m * nm
+	}
+	deleteTime := base * time.Duration(m)
+	deleteBefore := time.Now().UTC().Add(-deleteTime)
+
+	return &deleteBefore, nil
 }
 
 var imagesCache map[string][]*compute.Image
@@ -344,6 +402,10 @@ func createWorkflow(ctx context.Context, path string, varMap map[string]string) 
 	var p publish
 	if err := json.Unmarshal(buf.Bytes(), &p); err != nil {
 		return nil, daisy.JSONError(path, buf.Bytes(), err)
+	}
+	p.deleteBefore, err = parseDeleteBefore(p.DeleteAfter)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing DeleteAfter: %v", err)
 	}
 	fmt.Printf("- Publish workflow %q\n", p.Name)
 

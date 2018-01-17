@@ -149,7 +149,7 @@ func TestPublishImage(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		dr, di, err := publishImage(tt.p, tt.img, tt.pubImgs, tt.skipDup, tt.replace)
+		dr, di, _, err := publishImage(tt.p, tt.img, tt.pubImgs, tt.skipDup, tt.replace)
 		if tt.wantErr && err != nil {
 			continue
 		}
@@ -251,7 +251,7 @@ func TestPopulateSteps(t *testing.T) {
 		Steps: map[string]*daisy.Step{
 			"delete-foo":    {DeleteResources: &daisy.DeleteResources{Images: []string{"delete-image"}}},
 			"deprecate-foo": {DeprecateImages: &daisy.DeprecateImages{{Image: "deprecate-image"}}},
-			"publish-foo":   {CreateImages: &daisy.CreateImages{{Image: compute.Image{Name: "create-image"}}}},
+			"publish-foo":   {Timeout: "1h", CreateImages: &daisy.CreateImages{{Image: compute.Image{Name: "create-image"}}}},
 		},
 		Dependencies: map[string][]string{
 			"delete-foo":    {"deprecate-foo"},
@@ -302,7 +302,7 @@ func TestPopulateWorkflow(t *testing.T) {
 			"source_version":  {Value: "sv"},
 		},
 		Steps: map[string]*daisy.Step{
-			"publish-test": {CreateImages: &daisy.CreateImages{
+			"publish-test": {Timeout: "1h", CreateImages: &daisy.CreateImages{
 				{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "test-pv"}, Image: compute.Image{Name: "test-pv", Family: "test-family", SourceImage: "projects/foo-project/global/images/test-sv"}}},
 			},
 			"deprecate-test": {DeprecateImages: &daisy.DeprecateImages{
