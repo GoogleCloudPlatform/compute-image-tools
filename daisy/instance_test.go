@@ -128,7 +128,7 @@ func TestInstancePopulateDisks(t *testing.T) {
 		err := i.populateDisks(w)
 		if err != nil {
 			t.Errorf("%s: populateDisks returned an unexpected error: %v", tt.desc, err)
-		} else if diffRes := diff(tt.ad, tt.wantAd); diffRes != "" {
+		} else if diffRes := diff(tt.ad, tt.wantAd, 0); diffRes != "" {
 			t.Errorf("%s: AttachedDisks not modified as expected: (-got +want)\n%s", tt.desc, diffRes)
 		}
 	}
@@ -203,7 +203,7 @@ func TestInstancePopulateMetadata(t *testing.T) {
 				}
 				sort.Slice(i.Instance.Metadata.Items, compFactory(i.Instance.Metadata.Items))
 				sort.Slice(tt.wantMd.Items, compFactory(tt.wantMd.Items))
-				if diffRes := diff(i.Instance.Metadata, tt.wantMd); diffRes != "" {
+				if diffRes := diff(i.Instance.Metadata, tt.wantMd, 0); diffRes != "" {
 					t.Errorf("%s: Metadata not modified as expected: (-got +want)\n%s", tt.desc, diffRes)
 				}
 			}
@@ -229,7 +229,7 @@ func TestInstancePopulateNetworks(t *testing.T) {
 		err := i.populateNetworks()
 		if err != nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
-		} else if diffRes := diff(i.NetworkInterfaces, tt.want); diffRes != "" {
+		} else if diffRes := diff(i.NetworkInterfaces, tt.want, 0); diffRes != "" {
 			t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc, diffRes)
 		}
 	}
@@ -254,7 +254,7 @@ func TestInstancePopulateScopes(t *testing.T) {
 		if err == nil {
 			if tt.shouldErr {
 				t.Errorf("%s: should have returned an error", tt.desc)
-			} else if diffRes := diff(i.ServiceAccounts, tt.want); diffRes != "" {
+			} else if diffRes := diff(i.ServiceAccounts, tt.want, 0); diffRes != "" {
 				t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc, diffRes)
 			}
 		} else if !tt.shouldErr {
@@ -309,7 +309,7 @@ func TestInstanceValidateDisks(t *testing.T) {
 	// - no disks bad case
 	// - bad disk mode case
 	w := testWorkflow()
-	disks[w].m = map[string]*Resource{
+	w.disks.m = map[string]*Resource{
 		testDisk: {link: fmt.Sprintf("projects/%s/zones/%s/disks/%s", w.Project, w.Zone, testDisk)},
 	}
 	m := defaultDiskMode
@@ -347,7 +347,7 @@ func TestInstanceValidateDiskSource(t *testing.T) {
 	// - disk dne
 	// - disk has wrong project/zone
 	w := testWorkflow()
-	disks[w].m = map[string]*Resource{"d": {link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}}
+	w.disks.m = map[string]*Resource{"d": {link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}}
 	m := defaultDiskMode
 	p := testProject
 	z := testZone
@@ -384,7 +384,7 @@ func TestInstanceValidateDiskInitializeParams(t *testing.T) {
 	// - bad disk types (wrong project/zone)
 	// - check that disks are created
 	w := testWorkflow()
-	images[w].m = map[string]*Resource{"i": {link: "iLink"}}
+	w.images.m = map[string]*Resource{"i": {link: "iLink"}}
 	dt := fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProject, testZone)
 
 	tests := []struct {
@@ -417,14 +417,14 @@ func TestInstanceValidateDiskInitializeParams(t *testing.T) {
 	wantCreator := w.Steps["good case"]
 	wantLink := fmt.Sprintf("projects/%s/zones/%s/disks/foo", testProject, testZone)
 	wantFoo := &Resource{RealName: "foo", link: wantLink, creator: wantCreator}
-	if gotFoo, ok := disks[w].m["foo"]; !ok || !reflect.DeepEqual(gotFoo, wantFoo) {
+	if gotFoo, ok := w.disks.m["foo"]; !ok || !reflect.DeepEqual(gotFoo, wantFoo) {
 		t.Errorf("foo resource not added as expected: got: %+v, want: %+v", gotFoo, wantFoo)
 	}
 
 	// Check proper image user registrations.
 	wantU := w.Steps["good case"]
 	found := false
-	for _, u := range images[w].m["i"].users {
+	for _, u := range w.images.m["i"].users {
 		if u == wantU {
 			found = true
 		}
@@ -474,7 +474,7 @@ func TestInstanceValidateMachineType(t *testing.T) {
 func TestInstanceValidateNetworks(t *testing.T) {
 	w := testWorkflow()
 	acs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
-	networks[w].m = map[string]*Resource{testNetwork: {link: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork)}}
+	w.networks.m = map[string]*Resource{testNetwork: {link: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork)}}
 
 	r := Resource{Project: testProject}
 	tests := []struct {

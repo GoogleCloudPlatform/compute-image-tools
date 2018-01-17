@@ -65,7 +65,7 @@ func TestAddDependency(t *testing.T) {
 	}
 
 	wantDeps := map[string][]string{"a": {"b"}}
-	if diffRes := diff(w.Dependencies, wantDeps); diffRes != "" {
+	if diffRes := diff(w.Dependencies, wantDeps, 0); diffRes != "" {
 		t.Errorf("incorrect dependencies: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -210,122 +210,125 @@ func TestNewFromFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := &Workflow{
-		// These are nondeterministic, so we cheat.
-		id:           got.id,
-		Cancel:       got.Cancel,
-		cleanupHooks: got.cleanupHooks,
+	want := New()
+	// These are difficult to validate and irrelevant, so we cheat.
+	want.id = got.id
+	want.Cancel = got.Cancel
+	want.cleanupHooks = got.cleanupHooks
+	want.disks = newDiskRegistry(want)
+	want.images = newImageRegistry(want)
+	want.instances = newInstanceRegistry(want)
+	want.networks = newNetworkRegistry(want)
 
-		workflowDir: filepath.Join(wd, "test_data"),
-		Name:        "some-name",
-		Project:     "some-project",
-		Zone:        "us-central1-a",
-		GCSPath:     "gs://some-bucket/images",
-		OAuthPath:   filepath.Join(wd, "test_data", "somefile"),
-		Sources:     map[string]string{},
-		autovars:    map[string]string{},
-		Vars: map[string]Var{
-			"bootstrap_instance_name": {Value: "bootstrap-${NAME}", Required: true},
-			"machine_type":            {Value: "n1-standard-1"},
-		},
-		Steps: map[string]*Step{
-			"create-disks": {
-				name: "create-disks",
-				CreateDisks: &CreateDisks{
-					{
-						Disk: compute.Disk{
-							Name:        "bootstrap",
-							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-							Type:        "pd-ssd",
-						},
-						SizeGb: "50",
+	want.workflowDir = filepath.Join(wd, "test_data")
+	want.Name = "some-name"
+	want.Project = "some-project"
+	want.Zone = "us-central1-a"
+	want.GCSPath = "gs://some-bucket/images"
+	want.OAuthPath = filepath.Join(wd, "test_data", "somefile")
+	want.Sources = map[string]string{}
+	want.autovars = map[string]string{}
+	want.Vars = map[string]Var{
+		"bootstrap_instance_name": {Value: "bootstrap-${NAME}", Required: true},
+		"machine_type":            {Value: "n1-standard-1"},
+	}
+	want.Steps = map[string]*Step{
+		"create-disks": {
+			name: "create-disks",
+			CreateDisks: &CreateDisks{
+				{
+					Disk: compute.Disk{
+						Name:        "bootstrap",
+						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+						Type:        "pd-ssd",
 					},
-					{
-						Disk: compute.Disk{
-							Name:        "image",
-							SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
-							Type:        "pd-standard",
-						},
-						SizeGb: "50",
-					},
+					SizeGb: "50",
 				},
-			},
-			"${bootstrap_instance_name}": {
-				name: "${bootstrap_instance_name}",
-				CreateInstances: &CreateInstances{
-					{
-						Instance: compute.Instance{
-							Name:        "${bootstrap_instance_name}",
-							Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
-							MachineType: "${machine_type}",
-						},
-						StartupScript: "shutdown /h",
-						Metadata:      map[string]string{"test_metadata": "this was a test"},
+				{
+					Disk: compute.Disk{
+						Name:        "image",
+						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+						Type:        "pd-standard",
 					},
-				},
-			},
-			"${bootstrap_instance_name}-stopped": {
-				name:                   "${bootstrap_instance_name}-stopped",
-				Timeout:                "1h",
-				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true, Interval: "1s"}},
-			},
-			"postinstall": {
-				name: "postinstall",
-				CreateInstances: &CreateInstances{
-					{
-						Instance: compute.Instance{
-							Name:        "postinstall",
-							Disks:       []*compute.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
-							MachineType: "${machine_type}",
-						},
-						StartupScript: "shutdown /h",
-					},
-				},
-			},
-			"postinstall-stopped": {
-				name: "postinstall-stopped",
-				WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "postinstall", Stopped: true}},
-			},
-			"create-image": {
-				name:         "create-image",
-				CreateImages: &CreateImages{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}},
-			},
-			"include-workflow": {
-				name: "include-workflow",
-				IncludeWorkflow: &IncludeWorkflow{
-					Vars: map[string]string{
-						"key": "value",
-					},
-					Path: "./test_sub.wf.json",
-				},
-			},
-			"sub-workflow": {
-				name: "sub-workflow",
-				SubWorkflow: &SubWorkflow{
-					Vars: map[string]string{
-						"key": "value",
-					},
-					Path: "./test_sub.wf.json",
+					SizeGb: "50",
 				},
 			},
 		},
-		Dependencies: map[string][]string{
-			"create-disks":        {},
-			"bootstrap":           {"create-disks"},
-			"bootstrap-stopped":   {"bootstrap"},
-			"postinstall":         {"bootstrap-stopped"},
-			"postinstall-stopped": {"postinstall"},
-			"create-image":        {"postinstall-stopped"},
-			"include-workflow":    {"create-image"},
-			"sub-workflow":        {"create-image"},
+		"${bootstrap_instance_name}": {
+			name: "${bootstrap_instance_name}",
+			CreateInstances: &CreateInstances{
+				{
+					Instance: compute.Instance{
+						Name:        "${bootstrap_instance_name}",
+						Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
+						MachineType: "${machine_type}",
+					},
+					StartupScript: "shutdown /h",
+					Metadata:      map[string]string{"test_metadata": "this was a test"},
+				},
+			},
 		},
+		"${bootstrap_instance_name}-stopped": {
+			name:                   "${bootstrap_instance_name}-stopped",
+			Timeout:                "1h",
+			WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true, Interval: "1s"}},
+		},
+		"postinstall": {
+			name: "postinstall",
+			CreateInstances: &CreateInstances{
+				{
+					Instance: compute.Instance{
+						Name:        "postinstall",
+						Disks:       []*compute.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
+						MachineType: "${machine_type}",
+					},
+					StartupScript: "shutdown /h",
+				},
+			},
+		},
+		"postinstall-stopped": {
+			name: "postinstall-stopped",
+			WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "postinstall", Stopped: true}},
+		},
+		"create-image": {
+			name:         "create-image",
+			CreateImages: &CreateImages{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}},
+		},
+		"include-workflow": {
+			name: "include-workflow",
+			IncludeWorkflow: &IncludeWorkflow{
+				Vars: map[string]string{
+					"key": "value",
+				},
+				Path: "./test_sub.wf.json",
+			},
+		},
+		"sub-workflow": {
+			name: "sub-workflow",
+			SubWorkflow: &SubWorkflow{
+				Vars: map[string]string{
+					"key": "value",
+				},
+				Path: "./test_sub.wf.json",
+			},
+		},
+	}
+	want.Dependencies = map[string][]string{
+		"create-disks":        {},
+		"bootstrap":           {"create-disks"},
+		"bootstrap-stopped":   {"bootstrap"},
+		"postinstall":         {"bootstrap-stopped"},
+		"postinstall-stopped": {"postinstall"},
+		"create-image":        {"postinstall-stopped"},
+		"include-workflow":    {"create-image"},
+		"sub-workflow":        {"create-image"},
 	}
 
 	for _, s := range want.Steps {
 		s.w = want
 	}
 
-	if diffRes := diff(got, want); diffRes != "" {
+	if diffRes := diff(got, want, 0); diffRes != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diffRes)
 	}
 }
@@ -404,54 +407,57 @@ func TestPopulate(t *testing.T) {
 		t.Fatalf("error populating workflow: %v", err)
 	}
 
-	want := &Workflow{
-		// These are nondeterministic, so we cheat.
-		id:            got.id,
-		Cancel:        got.Cancel,
-		cleanupHooks:  got.cleanupHooks,
-		StorageClient: got.StorageClient,
-		Logger:        got.Logger,
+	want := New()
+	// These are difficult to validate and irrelevant, so we cheat.
+	want.id = got.id
+	want.Cancel = got.Cancel
+	want.cleanupHooks = got.cleanupHooks
+	want.StorageClient = got.StorageClient
+	want.Logger = got.Logger
+	want.disks = newDiskRegistry(want)
+	want.images = newImageRegistry(want)
+	want.instances = newInstanceRegistry(want)
+	want.networks = newNetworkRegistry(want)
 
-		Name:       "wf-name",
-		GCSPath:    "gs://bar-project-daisy-bkt",
-		Zone:       "wf-zone",
-		Project:    "bar-project",
-		OAuthPath:  tf,
-		gcsLogging: true,
-		Sources:    map[string]string{},
-		Vars: map[string]Var{
-			"bucket":    {Value: "wf-bucket", Required: true},
-			"step_name": {Value: "step1"},
-			"timeout":   {Value: "60m"},
-			"path":      {Value: "./test_sub.wf.json"},
-			"wf_name":   {Value: "wf-name"},
-			"test-var":  {Value: "wf-zone-this-should-populate-wf-name"},
-		},
-		autovars:    got.autovars,
-		bucket:      "bar-project-daisy-bkt",
-		scratchPath: got.scratchPath,
-		sourcesPath: fmt.Sprintf("%s/sources", got.scratchPath),
-		logsPath:    fmt.Sprintf("%s/logs", got.scratchPath),
-		outsPath:    fmt.Sprintf("%s/outs", got.scratchPath),
-		username:    got.username,
-		Steps: map[string]*Step{
-			"wf-name-step1": {
-				name:    "wf-name-step1",
-				Timeout: "60m",
-				timeout: time.Duration(60 * time.Minute),
-				testType: &mockStep{
-					populateImpl: stepPop,
-				},
+	want.Name = "wf-name"
+	want.GCSPath = "gs://bar-project-daisy-bkt"
+	want.Zone = "wf-zone"
+	want.Project = "bar-project"
+	want.OAuthPath = tf
+	want.gcsLogging = true
+	want.Sources = map[string]string{}
+	want.Vars = map[string]Var{
+		"bucket":    {Value: "wf-bucket", Required: true},
+		"step_name": {Value: "step1"},
+		"timeout":   {Value: "60m"},
+		"path":      {Value: "./test_sub.wf.json"},
+		"wf_name":   {Value: "wf-name"},
+		"test-var":  {Value: "wf-zone-this-should-populate-wf-name"},
+	}
+	want.autovars = got.autovars
+	want.bucket = "bar-project-daisy-bkt"
+	want.scratchPath = got.scratchPath
+	want.sourcesPath = fmt.Sprintf("%s/sources", got.scratchPath)
+	want.logsPath = fmt.Sprintf("%s/logs", got.scratchPath)
+	want.outsPath = fmt.Sprintf("%s/outs", got.scratchPath)
+	want.username = got.username
+	want.Steps = map[string]*Step{
+		"wf-name-step1": {
+			name:    "wf-name-step1",
+			Timeout: "60m",
+			timeout: time.Duration(60 * time.Minute),
+			testType: &mockStep{
+				populateImpl: stepPop,
 			},
 		},
-		Dependencies: map[string][]string{},
 	}
+	want.Dependencies = map[string][]string{}
 
 	for _, s := range want.Steps {
 		s.w = want
 	}
 
-	if diffRes := diff(got, want); diffRes != "" {
+	if diffRes := diff(got, want, 0); diffRes != "" {
 		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diffRes)
 	}
 
@@ -657,7 +663,7 @@ func TestPrint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if diffRes := diff(buf.String(), want); diffRes != "" {
+	if diffRes := diff(buf.String(), want, 0); diffRes != "" {
 		t.Errorf("printed workflow does not match expectation: (-got +want)\n%s", diffRes)
 	}
 }

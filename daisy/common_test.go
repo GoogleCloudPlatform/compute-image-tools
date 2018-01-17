@@ -265,7 +265,7 @@ func TestSubstitute(t *testing.T) {
 		s := reflect.ValueOf(&tt.got).Elem()
 		substitute(s, tt.replacer)
 
-		if diffRes := diff(tt.got, tt.want); diffRes != "" {
+		if diffRes := diff(tt.got, tt.want, 0); diffRes != "" {
 			t.Errorf("test %d: post substitute workflow does not match expectation: (-got +want)\n%s", i, diffRes)
 		}
 	}

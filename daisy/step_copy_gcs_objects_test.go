@@ -41,7 +41,7 @@ func TestCopyGCSObjectsPopulate(t *testing.T) {
 		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
 		{Source: "gs://bucket/object", Destination: "gs://bucket/object", ACLRules: []*storage.ACLRule{{Entity: "allAuthenticatedUsers", Role: "WRITER"}}},
 	}
-	if diffRes := diff(ws, want); diffRes != "" {
+	if diffRes := diff(ws, want, 0); diffRes != "" {
 		t.Errorf("populated CopyGCSObjects does not match expectation: (-got +want)\n%s", diffRes)
 	}
 }

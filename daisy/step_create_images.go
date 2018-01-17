@@ -52,7 +52,7 @@ func (c *CreateImages) run(ctx context.Context, s *Step) dErr {
 		go func(ci *Image) {
 			defer wg.Done()
 			// Get source disk link if SourceDisk is a daisy reference to a disk.
-			if d, ok := disks[w].get(ci.SourceDisk); ok {
+			if d, ok := w.disks.get(ci.SourceDisk); ok {
 				ci.SourceDisk = d.link
 			}
 

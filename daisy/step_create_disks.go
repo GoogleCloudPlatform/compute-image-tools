@@ -49,7 +49,7 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) dErr {
 
 			// Get the source image link if using a source image.
 			if cd.SourceImage != "" {
-				image, _ := images[w].get(cd.SourceImage)
+				image, _ := w.images.get(cd.SourceImage)
 				cd.SourceImage = image.link
 			}
 

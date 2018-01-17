@@ -80,9 +80,8 @@ var (
 	testGCSObjsMx   = sync.Mutex{}
 
 	spewCfg = spew.ConfigState{
-		Indent:                  "  ",
+		Indent:                  "\t",
 		DisableCapacities:       true,
-		DisableMethods:          true,
 		DisablePointerAddresses: true,
 		SortKeys:                true,
 		SpewKeys:                true,
@@ -109,8 +108,10 @@ func addGCSObj(o string) {
 	testGCSObjs = append(testGCSObjs, o)
 }
 
-func diff(x, y interface{}) string {
-	return godebugDiff.Diff(spewCfg.Sdump(x), spewCfg.Sdump(y))
+func diff(x, y interface{}, depth int) string {
+	cfg := spewCfg
+	cfg.MaxDepth = depth
+	return godebugDiff.Diff(cfg.Sdump(x), cfg.Sdump(y))
 }
 
 func newTestGCEClient() (*daisyCompute.TestClient, error) {

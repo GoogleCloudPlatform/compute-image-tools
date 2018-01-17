@@ -25,7 +25,7 @@ func TestCreateImagesRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
-	disks[w].m = map[string]*Resource{testDisk: {RealName: w.genName(testDisk), link: testDisk}}
+	w.disks.m = map[string]*Resource{testDisk: {RealName: w.genName(testDisk), link: testDisk}}
 	w.Sources = map[string]string{"file": "gs://some/path"}
 
 	tests := []struct {

@@ -34,10 +34,10 @@ func TestAddErrs(t *testing.T) {
 
 	for _, tt := range tests {
 		got := addErrs(tt.base, tt.errs...)
-		if diffRes := diff(got, tt.want); diffRes != "" {
+		if diffRes := diff(got, tt.want, 0); diffRes != "" {
 			t.Errorf("%s: (-got,+want)\n%s", tt.desc, diffRes)
 		}
-		if diffRes := diff(tt.base, tt.want); tt.base != nil && diffRes != "" {
+		if diffRes := diff(tt.base, tt.want, 0); tt.base != nil && diffRes != "" {
 			t.Errorf("%s: base dErr not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 	}
@@ -70,7 +70,7 @@ func TestErrf(t *testing.T) {
 	got := errf("%s %s", "hello", "world")
 
 	want := &dErrImpl{errs: []error{errors.New("hello world")}}
-	if diffRes := diff(got, want); diffRes != "" {
+	if diffRes := diff(got, want, 0); diffRes != "" {
 		t.Errorf("Error not created as expected: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -78,7 +78,7 @@ func TestErrf(t *testing.T) {
 func TestTypedErrf(t *testing.T) {
 	got := typedErrf("FOO", "%s %s", "hello", "world")
 	want := &dErrImpl{errs: []error{errors.New("hello world")}, errType: "FOO"}
-	if diffRes := diff(got, want); diffRes != "" {
+	if diffRes := diff(got, want, 0); diffRes != "" {
 		t.Errorf("Error not created as expected: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -111,7 +111,7 @@ func TestDErrImplAdd(t *testing.T) {
 
 	for _, tt := range tests {
 		tt.base.add(tt.add)
-		if diffRes := diff(tt.base, tt.want); diffRes != "" {
+		if diffRes := diff(tt.base, tt.want, 0); diffRes != "" {
 			t.Errorf("%s: base dErrImpl not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 	}

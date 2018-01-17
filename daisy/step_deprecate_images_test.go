@@ -55,7 +55,7 @@ func TestDeprecateImagesPopulate(t *testing.T) {
 			Project: "foo",
 		},
 	}
-	if diffRes := diff(s.DeprecateImages, want); diffRes != "" {
+	if diffRes := diff(s.DeprecateImages, want, 0); diffRes != "" {
 		t.Errorf("DeprecateImages not populated as expected: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -66,7 +66,7 @@ func TestDeprecateImagesValidate(t *testing.T) {
 
 	iCreator := &Step{name: "iCreator", w: w}
 	w.Steps["iCreator"] = iCreator
-	images[w].m = map[string]*Resource{"i1": {creator: iCreator}}
+	w.images.m = map[string]*Resource{"i1": {creator: iCreator}}
 
 	tests := []struct {
 		desc      string
@@ -125,7 +125,7 @@ func TestDeprecateImagesRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
-	images[w].m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
+	w.images.m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
 
 	e := errf("error")
 	tests := []struct {
