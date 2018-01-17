@@ -280,6 +280,10 @@ func populateSteps(w *daisy.Workflow, prefix string, createImages *daisy.CreateI
 	if deprecateStep != nil && createStep != nil {
 		w.AddDependency(deprecateStep, createStep)
 	}
+	// Create before delete on publish.
+	if deleteStep != nil && createStep != nil {
+		w.AddDependency(deleteStep, createStep)
+	}
 
 	// Un-deprecate before delete on rollback.
 	if deleteStep != nil && deprecateStep != nil {
