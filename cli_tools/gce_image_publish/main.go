@@ -369,6 +369,9 @@ func createWorkflow(ctx context.Context, path string, varMap map[string]string) 
 	}
 
 	w := daisy.New()
+	for k, v := range varMap {
+		w.AddVar(k, v)
+	}
 	if p.WorkProject == "" {
 		if metadata.OnGCE() {
 			p.WorkProject, err = metadata.ProjectID()
