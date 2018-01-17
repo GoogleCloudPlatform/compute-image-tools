@@ -254,7 +254,7 @@ func TestPopulateSteps(t *testing.T) {
 			"publish-foo":   {Timeout: "1h", CreateImages: &daisy.CreateImages{{Image: compute.Image{Name: "create-image"}}}},
 		},
 		Dependencies: map[string][]string{
-			"delete-foo":    {"deprecate-foo"},
+			"delete-foo":    {"publish-foo", "deprecate-foo"},
 			"deprecate-foo": {"publish-foo"},
 		},
 	}

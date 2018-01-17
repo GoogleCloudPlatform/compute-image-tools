@@ -78,8 +78,8 @@ type publish struct {
 	// 24h*7 = 1 week
 	// 24h*7*4 = ~1 month
 	// 24h*365 = ~1 year
-	DeleteAfter  string
-	deleteBefore *time.Time
+	DeleteAfter string
+	expiryDate  *time.Time
 	// Images to publish.
 	Images []*image
 
@@ -175,13 +175,13 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 			continue
 		}
 
-		// Delete all images in the same family with insert date older than p.deleteBefore.
-		if p.deleteBefore != nil {
+		// Delete all images in the same family with insert date older than p.expiryDate.
+		if p.expiryDate != nil {
 			createTime, err := time.Parse(time.RFC3339, pubImg.CreationTimestamp)
 			if err != nil {
 				continue
 			}
-			if createTime.Before(*p.deleteBefore) {
+			if createTime.Before(*p.expiryDate) {
 				drs.Images = append(drs.Images, fmt.Sprintf("projects/%s/global/images/%s", p.PublishProject, pubImg.Name))
 				continue
 			}
@@ -280,6 +280,7 @@ func populateSteps(w *daisy.Workflow, prefix string, createImages *daisy.CreateI
 	if deprecateStep != nil && createStep != nil {
 		w.AddDependency(deprecateStep, createStep)
 	}
+
 	// Create before delete on publish.
 	if deleteStep != nil && createStep != nil {
 		w.AddDependency(deleteStep, createStep)
@@ -364,7 +365,7 @@ func (p *publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	return nil
 }
 
-func parseDeleteBefore(deleteAfter string) (*time.Time, error) {
+func calculateExpiryDate(deleteAfter string) (*time.Time, error) {
 	if deleteAfter == "" {
 		return nil, nil
 	}
@@ -385,9 +386,9 @@ func parseDeleteBefore(deleteAfter string) (*time.Time, error) {
 		m = m * nm
 	}
 	deleteTime := base * time.Duration(m)
-	deleteBefore := time.Now().UTC().Add(-deleteTime)
+	expiryDate := time.Now().UTC().Add(-deleteTime)
 
-	return &deleteBefore, nil
+	return &expiryDate, nil
 }
 
 var imagesCache map[string][]*compute.Image
@@ -407,7 +408,7 @@ func createWorkflow(ctx context.Context, path string, varMap map[string]string) 
 	if err := json.Unmarshal(buf.Bytes(), &p); err != nil {
 		return nil, daisy.JSONError(path, buf.Bytes(), err)
 	}
-	p.deleteBefore, err = parseDeleteBefore(p.DeleteAfter)
+	p.expiryDate, err = calculateExpiryDate(p.DeleteAfter)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing DeleteAfter: %v", err)
 	}
