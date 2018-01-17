@@ -182,7 +182,7 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 				continue
 			}
 			if createTime.Before(*p.deleteBefore) {
-				drs.Images = append(drs.Images, pubImg.Name)
+				drs.Images = append(drs.Images, fmt.Sprintf("projects/%s/global/images/%s", p.PublishProject, pubImg.Name))
 				continue
 			}
 		}
