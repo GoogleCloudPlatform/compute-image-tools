@@ -16,9 +16,8 @@ package daisy
 
 import (
 	"context"
-	"sync"
-
 	"log"
+	"sync"
 
 	compute "google.golang.org/api/compute/v1"
 )
@@ -77,6 +76,8 @@ func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
 func (d *DeleteResources) checkError(err dErr, logger *log.Logger) dErr {
 	if err != nil && err.Type() == resourceDNEError {
 		logger.Printf("DeleteResources WARNING: Error validating deletion: %v", err)
+		return nil
+	} else if err != nil && err.Type() == imageObsoleteDeletedError {
 		return nil
 	}
 	return err
