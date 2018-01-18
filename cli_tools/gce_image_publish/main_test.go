@@ -287,6 +287,7 @@ func TestPopulateWorkflow(t *testing.T) {
 		[]*compute.Image{
 			{Name: "test-old", Family: "test-family"},
 		},
+		p.Images[0],
 		false,
 		false,
 		false,
@@ -297,10 +298,6 @@ func TestPopulateWorkflow(t *testing.T) {
 	got.Cancel = nil
 
 	want := &daisy.Workflow{
-		Vars: map[string]daisy.Var{
-			"publish_version": {Value: "pv"},
-			"source_version":  {Value: "sv"},
-		},
 		Steps: map[string]*daisy.Step{
 			"publish-test": {Timeout: "1h", CreateImages: &daisy.CreateImages{
 				{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "test-pv"}, Image: compute.Image{Name: "test-pv", Family: "test-family", SourceImage: "projects/foo-project/global/images/test-sv"}}},
