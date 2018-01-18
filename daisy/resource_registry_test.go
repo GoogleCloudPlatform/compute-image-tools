@@ -31,9 +31,9 @@ func TestResourceRegistryCleanup(t *testing.T) {
 	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true}
 	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false}
 	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true}
-	disks[w].m = map[string]*Resource{"d1": d1, "d2": d2}
-	images[w].m = map[string]*Resource{"im1": im1, "im2": im2}
-	instances[w].m = map[string]*Resource{"in1": in1, "in2": in2}
+	w.disks.m = map[string]*Resource{"d1": d1, "d2": d2}
+	w.images.m = map[string]*Resource{"im1": im1, "im2": im2}
+	w.instances.m = map[string]*Resource{"in1": in1, "in2": in2}
 
 	w.cleanup()
 
@@ -119,7 +119,7 @@ func TestResourceRegistryDelete(t *testing.T) {
 		"foo": {deleted: true, deleteMx: r.m["foo"].deleteMx},
 		"baz": {deleted: false, deleteMx: r.m["baz"].deleteMx},
 	}
-	if diffRes := diff(r.m, wantM); diffRes != "" {
+	if diffRes := diff(r.m, wantM, 0); diffRes != "" {
 		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -158,7 +158,7 @@ func TestResourceRegistryRegisterCreation(t *testing.T) {
 	if r.creator != s {
 		t.Error("foo does not have the correct creator")
 	}
-	if diffRes := diff(rr.m, map[string]*Resource{"foo": r}); diffRes != "" {
+	if diffRes := diff(rr.m, map[string]*Resource{"foo": r}, 0); diffRes != "" {
 		t.Errorf("resource registry does not match expectation: (-got +want)\n%s", diffRes)
 	}
 
@@ -237,7 +237,7 @@ func TestResourceRegistryRegisterExisting(t *testing.T) {
 		if !tt.shouldErr {
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", tt.desc, err)
-			} else if diffRes := diff(r, tt.wantR); diffRes != "" {
+			} else if diffRes := diff(r, tt.wantR, 0); diffRes != "" {
 				t.Errorf("%s: generated resource doesn't match expectation (-got +want)\n%s", tt.desc, diffRes)
 			} else if rr.m[tt.url] != r {
 				t.Errorf("%s: resource was not added to the resource map", tt.desc)
@@ -247,7 +247,7 @@ func TestResourceRegistryRegisterExisting(t *testing.T) {
 		}
 	}
 
-	if diffRes := diff(rr.m, map[string]*Resource{defURL: {RealName: testDisk, link: defURL, NoCleanup: true}}); diffRes != "" {
+	if diffRes := diff(rr.m, map[string]*Resource{defURL: {RealName: testDisk, link: defURL, NoCleanup: true}}, 0); diffRes != "" {
 		t.Errorf("resource registry doesn't match expectation (-got +want)\n%s", diffRes)
 	}
 }
@@ -301,10 +301,10 @@ func TestResourceRegistryRegisterUsage(t *testing.T) {
 	for _, s := range ss {
 		s.w = nil
 	}
-	if diffRes := diff(r1.users, []*Step{user}); diffRes != "" {
+	if diffRes := diff(r1.users, []*Step{user}, 0); diffRes != "" {
 		t.Errorf("r1 users list does not match expectation: (-got +want)\n%s", diffRes)
 	}
-	if diffRes := diff(r2.users, []*Step(nil)); diffRes != "" {
+	if diffRes := diff(r2.users, []*Step(nil), 0); diffRes != "" {
 		t.Errorf("r2 users list does not match expectation: (-got +want)\n%s", diffRes)
 	}
 

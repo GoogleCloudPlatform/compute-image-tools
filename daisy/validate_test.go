@@ -96,7 +96,7 @@ func TestValidateWorkflow(t *testing.T) {
 	for _, tt := range tests {
 		tt.wf.Cancel = make(chan struct{})
 		if err := tt.wf.Validate(ctx); err == nil {
-			t.Errorf("validation should have failed on %s because of %q", tt.wf, tt.desc)
+			t.Errorf("validation should have failed on %v because of %q", tt.wf, tt.desc)
 		}
 	}
 }

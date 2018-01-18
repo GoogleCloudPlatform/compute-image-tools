@@ -57,10 +57,10 @@ func (d *DeprecateImages) validate(ctx context.Context, s *Step) dErr {
 
 		// registerUsage needs the partal url of a non daisy resource.
 		lookup := di.Image
-		if _, ok := images[s.w].get(di.Image); !ok {
+		if _, ok := s.w.images.get(di.Image); !ok {
 			lookup = fmt.Sprintf("projects/%s/global/images/%s", di.Project, di.Image)
 		}
-		if _, err := images[s.w].registerUsage(lookup, s); err != nil {
+		if _, err := s.w.images.registerUsage(lookup, s); err != nil {
 			return newErr(err)
 		}
 	}

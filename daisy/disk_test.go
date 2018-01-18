@@ -77,7 +77,7 @@ func TestDiskPopulate(t *testing.T) {
 			}
 		} else if err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-		} else if diffRes := diff(tt.input, tt.want); diffRes != "" {
+		} else if diffRes := diff(tt.input, tt.want, 0); diffRes != "" {
 			t.Errorf("%s: populated Disk does not match expectation: (-got +want)\n%s", tt.desc, diffRes)
 		}
 	}
@@ -121,26 +121,16 @@ func TestDiskRegisterAttachment(t *testing.T) {
 	e9 := w.AddDependency(det, att)
 	e10 := w.AddDependency(s, det)
 	e11 := w.AddDependency(iw2Step, iwStep)
-	d := &Resource{RealName: "d"}
-	dDetached := &Resource{RealName: "dDetached"}
-	dIWDetached := &Resource{RealName: "dIWDetached"}
-	dIWAttached := &Resource{RealName: "dIWAttached"}
-	disks[w].m = map[string]*Resource{"d": d, "dDetached": dDetached, "dIWDetached": dIWDetached, "dIWAttached": dIWAttached}
-	i := &Resource{RealName: "i"}
-	i2 := &Resource{RealName: "i2"}
-	i3 := &Resource{RealName: "i3"}
-	iPrevAtt := &Resource{RealName: "iPrevAtt"}
-	iIW := &Resource{RealName: "iIW"}
-	iIW2 := &Resource{RealName: "iIW2"}
-	instances[w].m = map[string]*Resource{"i": i, "i2": i2, "i3": i3, "iPrevAtt": iPrevAtt, "iIW": iIW, "iIW2": iIW2}
-	disks[w].attachments = map[*Resource]map[*Resource]*diskAttachment{
-		dDetached:   {iPrevAtt: {mode: diskModeRW, attacher: att, detacher: det}},
-		dIWDetached: {iIW: {mode: diskModeRW, detacher: iwSubStep}},
-		dIWAttached: {iIW: {mode: diskModeRW}},
+	w.disks.m = map[string]*Resource{"d": nil, "dDetached": nil, "dIWDetached": nil, "dIWAttached": nil}
+	w.instances.m = map[string]*Resource{"i": nil, "i2": nil, "i3": nil, "iPrevAtt": nil, "iIW": nil, "iIW2": nil}
+	w.disks.attachments = map[string]map[string]*diskAttachment{
+		"dDetached":   {"iPrevAtt": {mode: diskModeRW, attacher: att, detacher: det}},
+		"dIWDetached": {"iIW": {mode: diskModeRW, detacher: iwSubStep}},
+		"dIWAttached": {"iIW": {mode: diskModeRW}},
 	}
 
 	if errs := addErrs(nil, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11); errs != nil {
-		t.Fatalf("test set error: %v", errs)
+		t.Fatalf("test set up error: %v", errs)
 	}
 
 	tests := []struct {
@@ -160,7 +150,7 @@ func TestDiskRegisterAttachment(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := disks[w].registerAttachment(tt.d, tt.i, tt.mode, tt.s)
+		err := w.disks.registerAttachment(tt.d, tt.i, tt.mode, tt.s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have err'ed but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -168,22 +158,22 @@ func TestDiskRegisterAttachment(t *testing.T) {
 		}
 	}
 
-	want := map[*Resource]map[*Resource]*diskAttachment{
-		dDetached: {
-			iPrevAtt: disks[w].attachments[dDetached][iPrevAtt], // no changes
-			i:        {diskModeRW, s, nil},
+	want := map[string]map[string]*diskAttachment{
+		"dDetached": {
+			"iPrevAtt": w.disks.attachments["dDetached"]["iPrevAtt"], // no changes
+			"i":        {diskModeRW, s, nil},
 		},
-		dIWDetached: {
-			iIW:  disks[w].attachments[dIWDetached][iIW], // no changes
-			iIW2: {diskModeRW, iw2SubStep, nil},
+		"dIWDetached": {
+			"iIW":  w.disks.attachments["dIWDetached"]["iIW"], // no changes
+			"iIW2": {diskModeRW, iw2SubStep, nil},
 		},
-		dIWAttached: disks[w].attachments[dIWAttached], // no changes
-		d: {
-			i:  {diskModeRO, s, nil},
-			i2: {diskModeRO, s, nil},
+		"dIWAttached": w.disks.attachments["dIWAttached"], // no changes
+		"d": {
+			"i":  {diskModeRO, s, nil},
+			"i2": {diskModeRO, s, nil},
 		},
 	}
-	if diffRes := diff(disks[w].attachments, want); diffRes != "" {
+	if diffRes := diff(w.disks.attachments, want, 7); diffRes != "" {
 		t.Errorf("attachments not modified as expected: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -201,33 +191,28 @@ func TestDiskDetachHelper(t *testing.T) {
 	det, _ := w.NewStep("det")
 	w.AddDependency(s, att)
 	w.AddDependency(det, att)
-	d := &Resource{RealName: "d"}
-	i := &Resource{RealName: "i"}
-	i2 := &Resource{RealName: "i2"}
-	i3 := &Resource{RealName: "i3"}
+	w.disks.m = map[string]*Resource{"d": nil}
+	w.instances.m = map[string]*Resource{"i": nil, "i2": nil, "i3": nil}
 
-	if err := disks[w].detachHelper(d, i, s); err == nil {
+	if err := w.disks.detachHelper("d", "i", s); err == nil {
 		t.Error("detaching i from d (which has no attachments) should have failed")
 	}
-	disks[w].attachments[d] = map[*Resource]*diskAttachment{
-		i:  {attacher: att},
-		i2: {attacher: att, detacher: det},
-	}
+	w.disks.attachments["d"] = map[string]*diskAttachment{"i": {attacher: att}, "i2": {attacher: att, detacher: det}}
 
 	tests := []struct {
 		desc      string
-		d, i      *Resource
+		d, i      string
 		s         *Step
 		shouldErr bool
 	}{
-		{"not attached case", d, i3, s, true},
-		{"not attached (already detached) case", d, i2, s, true},
-		{"detacher doesn't depend on attacher case", d, i, bad, true},
-		{"normal detach", d, i, s, false},
+		{"not attached case", "d", "i3", s, true},
+		{"not attached (already detached) case", "d", "i2", s, true},
+		{"detacher doesn't depend on attacher case", "d", "i", bad, true},
+		{"normal detach", "d", "i", s, false},
 	}
 
 	for _, tt := range tests {
-		err := disks[w].detachHelper(tt.d, tt.i, tt.s)
+		err := w.disks.detachHelper(tt.d, tt.i, tt.s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have erred but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -236,14 +221,11 @@ func TestDiskDetachHelper(t *testing.T) {
 	}
 
 	// Check state.
-	want := map[*Resource]map[*Resource]*diskAttachment{
-		d: {
-			i:  {attacher: att, detacher: s},
-			i2: disks[w].attachments[d][i2],
-		},
+	want := map[string]map[string]*diskAttachment{
+		"d": {"i": {attacher: att, detacher: s}, "i2": w.disks.attachments["d"]["i2"]},
 	}
-	if diffRess := diff(disks[w].attachments, want); diffRess != "" {
-		t.Errorf("attachments not modified as expected: (-got,+want)\n%s", diffRess)
+	if diffRes := diff(w.disks.attachments, want, 7); diffRes != "" {
+		t.Errorf("attachments not modified as expected: (-got,+want)\n%s", diffRes)
 	}
 }
 
@@ -257,26 +239,23 @@ func TestDiskRegisterDetachment(t *testing.T) {
 	s, _ := w.NewStep("s")
 	att, _ := w.NewStep("att")
 	w.AddDependency(s, att)
-	d := &Resource{RealName: "d"}
-	i := &Resource{RealName: "i"}
-	i2 := &Resource{RealName: "i2"}
-	disks[w].m = map[string]*Resource{"d": d}
-	instances[w].m = map[string]*Resource{"i": i, "i2": i2}
-	disks[w].attachments = map[*Resource]map[*Resource]*diskAttachment{
-		disks[w].m["d"]: {
-			instances[w].m["i"]:  {diskModeRW, att, nil},
-			instances[w].m["i2"]: {diskModeRW, att, nil},
+	w.disks.m = map[string]*Resource{"d": nil}
+	w.instances.m = map[string]*Resource{"i": nil, "i2": nil}
+	w.disks.attachments = map[string]map[string]*diskAttachment{
+		"d": {
+			"i":  {diskModeRW, att, nil},
+			"i2": {diskModeRW, att, nil},
 		},
 	}
 
-	errDetachHelper := func(d, i *Resource, s *Step) dErr {
+	errDetachHelper := func(dName, iName string, s *Step) dErr {
 		return errf("error")
 	}
 
 	tests := []struct {
 		desc, d, i   string
 		s            *Step
-		detachHelper func(d, i *Resource, s *Step) dErr
+		detachHelper func(dName, iName string, s *Step) dErr
 		shouldErr    bool
 	}{
 		{"normal case", "d", "i", s, nil, false},
@@ -286,8 +265,8 @@ func TestDiskRegisterDetachment(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		disks[w].testDetachHelper = tt.detachHelper
-		err := disks[w].registerDetachment(tt.d, tt.i, tt.s)
+		w.disks.testDetachHelper = tt.detachHelper
+		err := w.disks.registerDetachment(tt.d, tt.i, tt.s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have err'ed but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -296,13 +275,13 @@ func TestDiskRegisterDetachment(t *testing.T) {
 	}
 
 	// Check state.
-	want := map[*Resource]map[*Resource]*diskAttachment{
-		d: {
-			i:  &diskAttachment{diskModeRW, att, s},
-			i2: disks[w].attachments[d][i2], // Not modified.
+	want := map[string]map[string]*diskAttachment{
+		"d": {
+			"i":  {diskModeRW, att, s},
+			"i2": w.disks.attachments["d"]["i2"], // Not modified.
 		},
 	}
-	if diffRes := diff(disks[w].attachments, want); diffRes != "" {
+	if diffRes := diff(w.disks.attachments, want, 7); diffRes != "" {
 		t.Errorf("attachments not modified as expected: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -316,21 +295,18 @@ func TestDiskRegisterAllDetachments(t *testing.T) {
 	s, _ := w.NewStep("s")
 	att, _ := w.NewStep("att")
 	w.AddDependency(s, att)
-	d := &Resource{RealName: "d"}
-	d2 := &Resource{RealName: "d2"}
-	i := &Resource{RealName: "i"}
-	instances[w].m["i"] = i
-	disks[w].attachments[d] = map[*Resource]*diskAttachment{i: {attacher: att}}
-	disks[w].attachments[d2] = map[*Resource]*diskAttachment{i: {attacher: att}}
+	w.disks.m = map[string]*Resource{"d": nil, "d2": nil}
+	w.instances.m = map[string]*Resource{"i": nil}
+	w.disks.attachments = map[string]map[string]*diskAttachment{"d": {"i": {attacher: att}}, "d2": {"i": {attacher: att}}}
 
-	errDetachHelper := func(d, i *Resource, s *Step) dErr {
+	errDetachHelper := func(dName, iName string, s *Step) dErr {
 		return errf("error")
 	}
 
 	tests := []struct {
 		desc, iName  string
 		s            *Step
-		detachHelper func(d, i *Resource, s *Step) dErr
+		detachHelper func(dName, iName string, s *Step) dErr
 		shouldErr    bool
 	}{
 		{"detachHelper error case", "i", s, errDetachHelper, true},
@@ -338,8 +314,8 @@ func TestDiskRegisterAllDetachments(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		disks[w].testDetachHelper = tt.detachHelper
-		err := disks[w].registerAllDetachments(tt.iName, tt.s)
+		w.disks.testDetachHelper = tt.detachHelper
+		err := w.disks.registerAllDetachments(tt.iName, tt.s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have erred but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -348,11 +324,11 @@ func TestDiskRegisterAllDetachments(t *testing.T) {
 	}
 
 	// Check state.
-	want := map[*Resource]map[*Resource]*diskAttachment{
-		d:  {i: {attacher: att, detacher: s}},
-		d2: {i: {attacher: att, detacher: s}},
+	want := map[string]map[string]*diskAttachment{
+		"d":  {"i": {attacher: att, detacher: s}},
+		"d2": {"i": {attacher: att, detacher: s}},
 	}
-	if diffRes := diff(disks[w].attachments, want); diffRes != "" {
+	if diffRes := diff(w.disks.attachments, want, 7); diffRes != "" {
 		t.Errorf("attachments not modified as expected: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -365,7 +341,7 @@ func TestDiskValidate(t *testing.T) {
 	if errs := addErrs(nil, e1, e2, e3); errs != nil {
 		t.Fatalf("test set up error: %v", errs)
 	}
-	images[w].m = map[string]*Resource{"i1": {creator: iCreator}} // "i1" resource
+	w.images.m = map[string]*Resource{"i1": {creator: iCreator}} // "i1" resource
 
 	ty := fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", w.Project, w.Zone, "pd-standard")
 	tests := []struct {
@@ -429,7 +405,7 @@ func TestDiskValidate(t *testing.T) {
 			if tt.shouldErr {
 				t.Errorf("%s: did not return an error as expected", tt.desc)
 			}
-			if res, _ := disks[w].get(tt.d.Name); res != &tt.d.Resource {
+			if res, _ := w.disks.get(tt.d.Name); res != &tt.d.Resource {
 				t.Errorf("%s: %q not in disk registry as expected: got=%v want=%v", tt.desc, tt.d.Name, &tt.d.Resource, res)
 			}
 		} else if !tt.shouldErr {

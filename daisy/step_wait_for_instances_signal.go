@@ -167,7 +167,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(is *InstanceSignal) {
 			defer wg.Done()
-			i, ok := instances[s.w].get(is.Name)
+			i, ok := s.w.instances.get(is.Name)
 			if !ok {
 				e <- errf("unresolved instance %q", is.Name)
 				return
@@ -216,7 +216,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) dErr {
 func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) dErr {
 	// Instance checking.
 	for _, i := range *w {
-		if _, err := instances[s.w].registerUsage(i.Name, s); err != nil {
+		if _, err := s.w.instances.registerUsage(i.Name, s); err != nil {
 			return err
 		}
 		if i.interval == 0*time.Second {

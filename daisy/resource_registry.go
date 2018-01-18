@@ -21,62 +21,6 @@ import (
 	"sync"
 )
 
-var (
-	disks       = map[*Workflow]*diskRegistry{}
-	disksMu     sync.Mutex
-	images      = map[*Workflow]*imageRegistry{}
-	imagesMu    sync.Mutex
-	instances   = map[*Workflow]*instanceRegistry{}
-	instancesMu sync.Mutex
-	networks    = map[*Workflow]*networkRegistry{}
-	networksMu  sync.Mutex
-)
-
-func initWorkflowResourceRegistries(w *Workflow) {
-	disksMu.Lock()
-	disks[w] = newDiskRegistry(w)
-	disksMu.Unlock()
-
-	imagesMu.Lock()
-	images[w] = newImageRegistry(w)
-	imagesMu.Unlock()
-
-	instancesMu.Lock()
-	instances[w] = newInstanceRegistry(w)
-	instancesMu.Unlock()
-
-	networksMu.Lock()
-	networks[w] = newNetworkRegistry(w)
-	networksMu.Unlock()
-
-	w.addCleanupHook(resourceRegistryCleanupHook(w))
-}
-
-func resourceRegistryCleanupHook(w *Workflow) func() dErr {
-	return func() dErr {
-		images[w].cleanup()
-		instances[w].cleanup()
-		disks[w].cleanup()
-		networks[w].cleanup()
-		return nil
-	}
-}
-
-func shareWorkflowResourceRegistries(giver, taker *Workflow) {
-	disksMu.Lock()
-	disks[taker] = disks[giver]
-	disksMu.Unlock()
-	imagesMu.Lock()
-	images[taker] = images[giver]
-	imagesMu.Unlock()
-	instancesMu.Lock()
-	instances[taker] = instances[giver]
-	instancesMu.Unlock()
-	networksMu.Lock()
-	networks[taker] = networks[giver]
-	networksMu.Unlock()
-}
-
 type baseResourceRegistry struct {
 	w  *Workflow
 	m  map[string]*Resource

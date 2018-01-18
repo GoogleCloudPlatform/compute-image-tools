@@ -56,7 +56,7 @@ func TestResourcePopulate(t *testing.T) {
 		} else if !tt.wantErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		} else if err == nil {
-			if diffRes := diff(tt.r, tt.wantR); diffRes != "" {
+			if diffRes := diff(tt.r, tt.wantR, 0); diffRes != "" {
 				t.Errorf("%s: populated Resource does not match expectation: (-got +want)\n%s", tt.desc, diffRes)
 			}
 			if gotName != tt.wantName {

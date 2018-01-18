@@ -150,14 +150,14 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 
 	// Source disk checking.
 	if i.SourceDisk != "" {
-		if _, err := disks[s.w].registerUsage(i.SourceDisk, s); err != nil {
+		if _, err := s.w.disks.registerUsage(i.SourceDisk, s); err != nil {
 			errs = addErrs(errs, newErr(err))
 		}
 	}
 
 	// Source image checking.
 	if i.SourceImage != "" {
-		_, err := images[s.w].registerUsage(i.SourceImage, s)
+		_, err := s.w.images.registerUsage(i.SourceImage, s)
 		errs = addErrs(errs, err)
 	}
 
@@ -181,7 +181,7 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	}
 
 	// Register image creation.
-	errs = addErrs(errs, images[s.w].registerCreation(i.daisyName, &i.Resource, s, i.OverWrite))
+	errs = addErrs(errs, s.w.images.registerCreation(i.daisyName, &i.Resource, s, i.OverWrite))
 	return errs
 }
 

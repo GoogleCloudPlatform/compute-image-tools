@@ -26,7 +26,7 @@ func TestCreateDisksRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
-	images[w].m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
+	w.images.m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
 
 	e := errf("error")
 	tests := []struct {
@@ -48,7 +48,7 @@ func TestCreateDisksRun(t *testing.T) {
 		if err := cds.run(ctx, s); err != tt.wantErr {
 			t.Errorf("%s: unexpected error returned, got: %v, want: %v", tt.desc, err, tt.wantErr)
 		}
-		if diffRes := diff(gotD, tt.wantD); diffRes != "" {
+		if diffRes := diff(gotD, tt.wantD, 0); diffRes != "" {
 			t.Errorf("%s: client got incorrect disk, got: %v, want: %v", tt.desc, gotD, tt.wantD)
 		}
 	}

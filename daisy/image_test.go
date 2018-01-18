@@ -109,7 +109,7 @@ func TestImagePopulate(t *testing.T) {
 			}
 		} else if err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-		} else if diffRes := diff(tt.input, tt.want); diffRes != "" {
+		} else if diffRes := diff(tt.input, tt.want, 0); diffRes != "" {
 			t.Errorf("%s: populated Image does not match expectation: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 	}
@@ -127,12 +127,12 @@ func TestImageValidate(t *testing.T) {
 	e6 := w.AddDependency(d2Deleter, d2Creator)
 
 	// Set up some test resources
-	e7 := disks[w].registerCreation("d1", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d1", w.Project, w.Zone)}, d1Creator, false)
-	e8 := disks[w].registerCreation("d2", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", w.Project, w.Zone)}, d2Creator, false)
-	e9 := disks[w].registerDeletion("d2", d2Deleter)
-	e10 := disks[w].registerCreation("d3", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d3", w.Project, w.Zone)}, d3Creator, false)
+	e7 := w.disks.registerCreation("d1", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d1", w.Project, w.Zone)}, d1Creator, false)
+	e8 := w.disks.registerCreation("d2", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d2", w.Project, w.Zone)}, d2Creator, false)
+	e9 := w.disks.registerDeletion("d2", d2Deleter)
+	e10 := w.disks.registerCreation("d3", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d3", w.Project, w.Zone)}, d3Creator, false)
 	si1 := &Resource{link: fmt.Sprintf("projects/%s/global/images/si1", w.Project)}
-	e11 := images[w].registerCreation("si1", si1, si1Creator, false)
+	e11 := w.images.registerCreation("si1", si1, si1Creator, false)
 	if errs := addErrs(nil, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11); errs != nil {
 		t.Fatalf("test set up error: %v", errs)
 	}

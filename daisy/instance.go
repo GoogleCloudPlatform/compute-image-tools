@@ -226,12 +226,12 @@ func (i *Instance) validate(ctx context.Context, s *Step) dErr {
 	errs = addErrs(errs, i.validateNetworks(s))
 
 	// Register creation.
-	errs = addErrs(errs, instances[s.w].registerCreation(i.daisyName, &i.Resource, s))
+	errs = addErrs(errs, s.w.instances.registerCreation(i.daisyName, &i.Resource, s))
 	return errs
 }
 
 func (i *Instance) validateDiskSource(d *compute.AttachedDisk, s *Step) dErr {
-	dr, errs := disks[s.w].registerUsage(d.Source, s)
+	dr, errs := s.w.disks.registerUsage(d.Source, s)
 	if dr == nil {
 		// Return now, the rest of this function can't be run without dr.
 		return addErrs(errs, errf("cannot create instance: disk %q not found in registry", d.Source))
@@ -274,7 +274,7 @@ func (i *Instance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step
 	if !rfc1035Rgx.MatchString(p.DiskName) {
 		errs = addErrs(errs, errf("cannot create instance: bad InitializeParams.DiskName: %q", p.DiskName))
 	}
-	if _, err := images[s.w].registerUsage(p.SourceImage, s); err != nil {
+	if _, err := s.w.images.registerUsage(p.SourceImage, s); err != nil {
 		errs = addErrs(errs, errf("cannot create instance: can't use InitializeParams.SourceImage %q: %v", p.SourceImage, err))
 	}
 	parts := namedSubexp(diskTypeURLRgx, p.DiskType)
@@ -288,7 +288,7 @@ func (i *Instance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step
 	link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", i.Project, i.Zone, p.DiskName)
 	// Set cleanup if not being autodeleted.
 	r := &Resource{RealName: p.DiskName, link: link, NoCleanup: d.AutoDelete}
-	errs = addErrs(errs, disks[s.w].registerCreation(p.DiskName, r, s, false))
+	errs = addErrs(errs, s.w.disks.registerCreation(p.DiskName, r, s, false))
 	return
 }
 
@@ -316,7 +316,7 @@ func (i *Instance) validateMachineType(client daisyCompute.Client) (errs dErr) {
 
 func (i *Instance) validateNetworks(s *Step) (errs dErr) {
 	for _, n := range i.NetworkInterfaces {
-		nr, err := networks[s.w].registerUsage(n.Network, s)
+		nr, err := s.w.networks.registerUsage(n.Network, s)
 		if err != nil {
 			errs = addErrs(errs, err)
 			return
@@ -371,7 +371,7 @@ func (ir *instanceRegistry) registerCreation(name string, res *Resource, s *Step
 		if d.InitializeParams != nil {
 			dName = d.InitializeParams.DiskName
 		}
-		if err := disks[ir.w].registerAttachment(dName, i.daisyName, d.Mode, s); err != nil {
+		if err := ir.w.disks.registerAttachment(dName, i.daisyName, d.Mode, s); err != nil {
 			return err
 		}
 	}
@@ -382,5 +382,5 @@ func (ir *instanceRegistry) registerDeletion(name string, s *Step) dErr {
 	if err := ir.baseResourceRegistry.registerDeletion(name, s); err != nil {
 		return err
 	}
-	return disks[ir.w].registerAllDetachments(name, s)
+	return ir.w.disks.registerAllDetachments(name, s)
 }

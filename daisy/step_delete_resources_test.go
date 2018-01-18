@@ -40,7 +40,7 @@ func TestDeleteResourcesPopulate(t *testing.T) {
 		Images:    []string{"i", fmt.Sprintf("projects/%s/global/images/i", w.Project)},
 		Instances: []string{"i", fmt.Sprintf("projects/%s/zones/z/instances/i", w.Project)},
 	}
-	if diffRes := diff(s.DeleteResources, want); diffRes != "" {
+	if diffRes := diff(s.DeleteResources, want, 0); diffRes != "" {
 		t.Errorf("DeleteResources not populated as expected: (-got,+want)\n%s", diffRes)
 	}
 }
@@ -53,9 +53,9 @@ func TestDeleteResourcesRun(t *testing.T) {
 	ins := []*Resource{{RealName: "in0", link: "link"}, {RealName: "in1", link: "link"}}
 	ims := []*Resource{{RealName: "im0", link: "link"}, {RealName: "im1", link: "link"}}
 	ds := []*Resource{{RealName: "d0", link: "link"}, {RealName: "d1", link: "link"}}
-	instances[w].m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
-	images[w].m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
-	disks[w].m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
+	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
+	w.images.m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
+	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 
 	dr := &DeleteResources{Instances: []string{"in0"}, Images: []string{"im0"}, Disks: []string{"d0"}}
 	if err := dr.run(ctx, s); err != nil {
@@ -101,9 +101,9 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	ds := []*Resource{{RealName: "d0", link: "link", creator: dC}, {RealName: "d1", link: "link", creator: dC}}
 	ims := []*Resource{{RealName: "im0", link: "link", creator: imC}, {RealName: "im1", link: "link", creator: imC}}
 	ins := []*Resource{{RealName: "in0", link: "link", creator: inC}, {RealName: "in1", link: "link", creator: inC}}
-	instances[w].m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
-	images[w].m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
-	disks[w].m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
+	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
+	w.images.m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
+	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 	ads := []*compute.AttachedDisk{{Source: "d1"}}
 	inC.CreateInstances = &CreateInstances{{Resource: Resource{daisyName: "in0"}, Instance: compute.Instance{Disks: ads}}}
 
@@ -111,7 +111,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 		for _, s := range []*Step{dC, imC, inC, s, otherDeleter} {
 			s.w = nil
 		}
-		if diffRes := diff(got, want); diffRes != "" {
+		if diffRes := diff(got, want, 0); diffRes != "" {
 			t.Errorf("resources weren't registered for deletion as expected: (-got,+want)\n%s", diffRes)
 		}
 		for _, s := range []*Step{dC, imC, inC, s, otherDeleter} {

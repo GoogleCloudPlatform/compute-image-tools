@@ -166,6 +166,12 @@ type Workflow struct {
 	Logger          *log.Logger `json:"-"`
 	cleanupHooks    []func() dErr
 	cleanupHooksMx  sync.Mutex
+
+	// Resource registries.
+	disks     *diskRegistry
+	images    *imageRegistry
+	instances *instanceRegistry
+	networks  *networkRegistry
 }
 
 // AddVar adds a variable set to the Workflow.
@@ -235,11 +241,6 @@ func (w *Workflow) Run(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-func (w *Workflow) String() string {
-	f := "{Name:%q Project:%q Zone:%q Bucket:%q OAuthPath:%q Sources:%s Vars:%s Steps:%s Dependencies:%s id:%q}"
-	return fmt.Sprintf(f, w.Name, w.Project, w.Zone, w.bucket, w.OAuthPath, w.Sources, w.Vars, w.Steps, w.Dependencies, w.id)
 }
 
 func (w *Workflow) cleanup() {
@@ -435,14 +436,14 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 // error if dependent or dependency are not steps in this workflow.
 func (w *Workflow) AddDependency(dependent *Step, dependencies ...*Step) error {
 	if _, ok := w.Steps[dependent.name]; !ok {
-		return fmt.Errorf("can't create dependency: step %q does not exist", dependent)
+		return fmt.Errorf("can't create dependency: step %q does not exist", dependent.name)
 	}
 	if w.Dependencies == nil {
 		w.Dependencies = map[string][]string{}
 	}
 	for _, dependency := range dependencies {
 		if _, ok := w.Steps[dependency.name]; !ok {
-			return fmt.Errorf("can't create dependency: step %q does not exist", dependency)
+			return fmt.Errorf("can't create dependency: step %q does not exist", dependency.name)
 		}
 		if !strIn(dependency.name, w.Dependencies[dependent.name]) { // Don't add if dependency already exists.
 			w.Dependencies[dependent.name] = append(w.Dependencies[dependent.name], dependency.name)
@@ -456,7 +457,10 @@ func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw := New()
 	iw.Cancel = w.Cancel
 	iw.parent = w
-	shareWorkflowResourceRegistries(w, iw)
+	iw.disks = w.disks
+	iw.images = w.images
+	iw.instances = w.instances
+	iw.networks = w.networks
 	return iw
 }
 
@@ -632,7 +636,19 @@ func New() *Workflow {
 	w.Steps = map[string]*Step{}
 	w.Dependencies = map[string][]string{}
 	w.autovars = map[string]string{}
-	initWorkflowResourceRegistries(w)
+
+	// Resource registries and cleanup.
+	w.disks = newDiskRegistry(w)
+	w.images = newImageRegistry(w)
+	w.instances = newInstanceRegistry(w)
+	w.networks = newNetworkRegistry(w)
+	w.addCleanupHook(func() dErr {
+		w.disks.cleanup()
+		w.images.cleanup()
+		w.instances.cleanup()
+		w.networks.cleanup()
+		return nil
+	})
 	return w
 }
 

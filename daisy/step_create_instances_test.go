@@ -29,7 +29,7 @@ import (
 func TestLogSerialOutput(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
-	instances[w].m = map[string]*Resource{
+	w.instances.m = map[string]*Resource{
 		"i1": {RealName: w.genName("i1"), link: "link"},
 		"i2": {RealName: w.genName("i2"), link: "link"},
 		"i3": {RealName: w.genName("i3"), link: "link"},
@@ -97,7 +97,7 @@ func TestCreateInstancesRun(t *testing.T) {
 	}
 	s := &Step{w: w}
 	w.Sources = map[string]string{"file": "gs://some/file"}
-	disks[w].m = map[string]*Resource{
+	w.disks.m = map[string]*Resource{
 		"d0": {RealName: w.genName("d0"), link: "diskLink0"},
 	}
 
@@ -108,15 +108,15 @@ func TestCreateInstancesRun(t *testing.T) {
 	if err := ci.run(ctx, s); err != nil {
 		t.Errorf("unexpected error running CreateInstances.run(): %v", err)
 	}
-	if i0.Disks[0].Source != disks[w].m["d0"].link {
-		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", disks[w].m["d0"].link, i0.Disks[0].Source)
+	if i0.Disks[0].Source != w.disks.m["d0"].link {
+		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", w.disks.m["d0"].link, i0.Disks[0].Source)
 	}
 	if i1.Disks[0].Source != "other" {
 		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", "other", i1.Disks[0].Source)
 	}
 
 	// Bad case: compute client Instance error. Check instance ref map doesn't update.
-	instances[w].m = map[string]*Resource{}
+	w.instances.m = map[string]*Resource{}
 	createErr = errf("client error")
 	ci = &CreateInstances{
 		{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},

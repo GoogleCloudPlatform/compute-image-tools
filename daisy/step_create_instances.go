@@ -43,7 +43,7 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, 
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
 			if err != nil {
 				// Instance was deleted by this workflow.
-				if _, ok := instances[w].get(name); !ok {
+				if _, ok := w.instances.get(name); !ok {
 					return
 				}
 				// Instance is stopped.
@@ -104,7 +104,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 			defer wg.Done()
 
 			for _, d := range ci.Disks {
-				if diskRes, ok := disks[w].get(d.Source); ok {
+				if diskRes, ok := w.disks.get(d.Source); ok {
 					d.Source = diskRes.link
 				}
 			}

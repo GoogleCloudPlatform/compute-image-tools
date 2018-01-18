@@ -97,7 +97,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 	}
 
 	s := &Step{w: w}
-	instances[w].m = map[string]*Resource{
+	w.instances.m = map[string]*Resource{
 		"i1": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i1"))},
 		"i2": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i2"))},
 		"i3": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i3"))},
@@ -167,7 +167,7 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 	iCreator, _ := w.NewStep("iCreator")
 	iCreator.CreateInstances = &CreateInstances{&Instance{}}
 	w.AddDependency(s, iCreator)
-	if err := instances[w].registerCreation("instance1", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, iCreator); err != nil {
+	if err := w.instances.registerCreation("instance1", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, iCreator); err != nil {
 		t.Fatal(err)
 	}
 
