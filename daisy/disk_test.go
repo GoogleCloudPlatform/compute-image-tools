@@ -150,7 +150,7 @@ func TestDiskRegisterAttachment(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := w.disks.registerAttachment(tt.d, tt.i, tt.mode, tt.s)
+		err := w.disks.regAttach(tt.d, tt.i, tt.mode, tt.s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have err'ed but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -266,7 +266,7 @@ func TestDiskRegisterDetachment(t *testing.T) {
 
 	for _, tt := range tests {
 		w.disks.testDetachHelper = tt.detachHelper
-		err := w.disks.registerDetachment(tt.d, tt.i, tt.s)
+		err := w.disks.regDetach(tt.d, tt.i, tt.s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have err'ed but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -315,7 +315,7 @@ func TestDiskRegisterAllDetachments(t *testing.T) {
 
 	for _, tt := range tests {
 		w.disks.testDetachHelper = tt.detachHelper
-		err := w.disks.registerAllDetachments(tt.iName, tt.s)
+		err := w.disks.regDetachAll(tt.iName, tt.s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have erred but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {

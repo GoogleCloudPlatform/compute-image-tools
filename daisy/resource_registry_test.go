@@ -54,9 +54,9 @@ func TestResourceRegistryConcurrency(t *testing.T) {
 		desc string
 		f    func()
 	}{
-		{"registerCreation", func() { rr.registerCreation("foo", &Resource{}, nil, false) }},
-		{"registerDeletion", func() { rr.registerDeletion("foo", nil) }},
-		{"registerUsage", func() { rr.registerUsage("foo", nil) }},
+		{"regCreate", func() { rr.regCreate("foo", &Resource{}, nil, false) }},
+		{"regDelete", func() { rr.regDelete("foo", nil) }},
+		{"regUse", func() { rr.regUse("foo", nil) }},
 		{"get", func() { rr.get("foo") }},
 		{"delete", func() { rr.get("foo") }},
 	}
@@ -145,14 +145,14 @@ func TestResourceRegistryGet(t *testing.T) {
 	}
 }
 
-func TestResourceRegistryRegisterCreation(t *testing.T) {
+func TestResourceRegistryRegCreate(t *testing.T) {
 	rr := &baseResourceRegistry{w: testWorkflow()}
 	rr.init()
 	r := &Resource{link: "projects/foo/global/images/bar"}
 	s := &Step{}
 
 	// Normal create.
-	if err := rr.registerCreation("foo", r, s, false); err != nil {
+	if err := rr.regCreate("foo", r, s, false); err != nil {
 		t.Fatalf("unexpected error registering creation of foo: %v", err)
 	}
 	if r.creator != s {
@@ -163,17 +163,17 @@ func TestResourceRegistryRegisterCreation(t *testing.T) {
 	}
 
 	// Test duplication create.
-	if err := rr.registerCreation("foo", r, nil, false); err == nil {
+	if err := rr.regCreate("foo", r, nil, false); err == nil {
 		t.Error("should have returned an error, but didn't")
 	}
 
 	// Test overwrite create should not error on dupe.
-	if err := rr.registerCreation("foo", r, nil, true); err == nil {
+	if err := rr.regCreate("foo", r, nil, true); err == nil {
 		t.Fatalf("unexpected error registering creation of foo: %v", err)
 	}
 }
 
-func TestResourceRegistryRegisterDeletion(t *testing.T) {
+func TestResourceRegistryRegDelete(t *testing.T) {
 	w := testWorkflow()
 	creator := &Step{name: "creator", w: w}
 	user := &Step{name: "user", w: w}
@@ -205,7 +205,7 @@ func TestResourceRegistryRegisterDeletion(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := rr.registerDeletion(tt.name, tt.step)
+		err := rr.regDelete(tt.name, tt.step)
 		if tt.wantErr {
 			if err == nil {
 				t.Errorf("%s: did not return an error as expected", tt.desc)
@@ -216,7 +216,7 @@ func TestResourceRegistryRegisterDeletion(t *testing.T) {
 	}
 }
 
-func TestResourceRegistryRegisterExisting(t *testing.T) {
+func TestResourceRegistryRegURL(t *testing.T) {
 	rr := &baseResourceRegistry{w: testWorkflow()}
 	rr.init()
 
@@ -233,7 +233,7 @@ func TestResourceRegistryRegisterExisting(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		r, err := rr.registerExisting(tt.url)
+		r, err := rr.regURL(tt.url)
 		if !tt.shouldErr {
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -252,7 +252,7 @@ func TestResourceRegistryRegisterExisting(t *testing.T) {
 	}
 }
 
-func TestResourceRegistryRegisterUsage(t *testing.T) {
+func TestResourceRegistryRegUse(t *testing.T) {
 	w := testWorkflow()
 	creator := &Step{name: "creator", w: w}
 	deleter := &Step{name: "deleter", w: w}
@@ -284,7 +284,7 @@ func TestResourceRegistryRegisterUsage(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		r, err := rr.registerUsage(tt.name, tt.step)
+		r, err := rr.regUse(tt.name, tt.step)
 		if tt.wantErr {
 			if err == nil {
 				t.Errorf("%s: did not return an error as expected", tt.desc)

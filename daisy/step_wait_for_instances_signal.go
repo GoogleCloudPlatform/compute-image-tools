@@ -216,7 +216,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) dErr {
 func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) dErr {
 	// Instance checking.
 	for _, i := range *w {
-		if _, err := s.w.instances.registerUsage(i.Name, s); err != nil {
+		if _, err := s.w.instances.regUse(i.Name, s); err != nil {
 			return err
 		}
 		if i.interval == 0*time.Second {

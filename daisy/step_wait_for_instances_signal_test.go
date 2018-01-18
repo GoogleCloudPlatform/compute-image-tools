@@ -167,7 +167,7 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 	iCreator, _ := w.NewStep("iCreator")
 	iCreator.CreateInstances = &CreateInstances{&Instance{}}
 	w.AddDependency(s, iCreator)
-	if err := w.instances.registerCreation("instance1", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, iCreator); err != nil {
+	if err := w.instances.regCreate("instance1", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, iCreator); err != nil {
 		t.Fatal(err)
 	}
 

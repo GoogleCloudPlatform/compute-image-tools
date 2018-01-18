@@ -109,7 +109,7 @@ func (d *Disk) validate(ctx context.Context, s *Step) dErr {
 	}
 
 	if d.SourceImage != "" {
-		if _, err := s.w.images.registerUsage(d.SourceImage, s); err != nil {
+		if _, err := s.w.images.regUse(d.SourceImage, s); err != nil {
 			errs = addErrs(errs, errf("cannot create disk %q: can't use image %q: %v", d.daisyName, d.SourceImage, err))
 		}
 	} else if d.Disk.SizeGb == 0 {
@@ -117,7 +117,7 @@ func (d *Disk) validate(ctx context.Context, s *Step) dErr {
 	}
 
 	// Register creation.
-	errs = addErrs(errs, s.w.disks.registerCreation(d.daisyName, &d.Resource, s, false))
+	errs = addErrs(errs, s.w.disks.regCreate(d.daisyName, &d.Resource, s, false))
 	return errs
 }
 
@@ -153,7 +153,7 @@ func (dr *diskRegistry) deleteFn(res *Resource) dErr {
 	return newErr(err)
 }
 
-func (dr *diskRegistry) registerAttachment(dName, iName, mode string, s *Step) dErr {
+func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 	pre := fmt.Sprintf("step %q cannot attach disk %q to instance %q", s.name, dName, iName)
@@ -222,20 +222,20 @@ func (dr *diskRegistry) detachHelper(dName, iName string, s *Step) dErr {
 	return nil
 }
 
-// registerDetachment marks s as the detacher for the dName disk and iName instance.
+// regDetach marks s as the detacher for the dName disk and iName instance.
 // Returns an error if dName or iName don't exist
 // or if detachHelper returns an error.
-func (dr *diskRegistry) registerDetachment(dName, iName string, s *Step) dErr {
+func (dr *diskRegistry) regDetach(dName, iName string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 
 	return dr.detachHelper(dName, iName, s)
 }
 
-// registerAllDetachments marks s as the detacher for all disks attached to the iName instance.
+// regDetachAll marks s as the detacher for all disks attached to the iName instance.
 // Returns an error if iName does not exist
 // or if detachHelper returns an error.
-func (dr *diskRegistry) registerAllDetachments(iName string, s *Step) dErr {
+func (dr *diskRegistry) regDetachAll(iName string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 

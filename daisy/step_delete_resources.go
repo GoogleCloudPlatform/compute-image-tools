@@ -49,7 +49,7 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
 }
 
 func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
-	if err := s.w.instances.registerDeletion(i, s); err != nil {
+	if err := s.w.instances.regDelete(i, s); err != nil {
 		return err
 	}
 	ir, _ := s.w.instances.get(i)
@@ -65,7 +65,7 @@ func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
 	}
 	for _, ad := range attachedDisks {
 		if ad.AutoDelete {
-			if err := s.w.disks.registerDeletion(ad.Source, s); err != nil {
+			if err := s.w.disks.regDelete(ad.Source, s); err != nil {
 				return err
 			}
 		}
@@ -93,14 +93,14 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 
 	// Disk checking.
 	for _, disk := range d.Disks {
-		if err := s.w.disks.registerDeletion(disk, s); d.checkError(err, s.w.Logger) != nil {
+		if err := s.w.disks.regDelete(disk, s); d.checkError(err, s.w.Logger) != nil {
 			return err
 		}
 	}
 
 	// Image checking.
 	for _, i := range d.Images {
-		if err := s.w.images.registerDeletion(i, s); d.checkError(err, s.w.Logger) != nil {
+		if err := s.w.images.regDelete(i, s); d.checkError(err, s.w.Logger) != nil {
 			return err
 		}
 	}
