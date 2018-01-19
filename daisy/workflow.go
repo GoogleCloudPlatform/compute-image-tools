@@ -643,9 +643,9 @@ func New() *Workflow {
 	w.instances = newInstanceRegistry(w)
 	w.networks = newNetworkRegistry(w)
 	w.addCleanupHook(func() dErr {
+		w.instances.cleanup() // instances need to be done before disks/networks
 		w.disks.cleanup()
 		w.images.cleanup()
-		w.instances.cleanup()
 		w.networks.cleanup()
 		return nil
 	})
