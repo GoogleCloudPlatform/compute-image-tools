@@ -2,18 +2,14 @@
   "Name": "build-debian",
   "Vars": {
     "bootstrap_vz_manifest": {"Required": true, "Description": "The bootstrap-vz manifest to build."},
-    "bootstrap_vz_version": {
-      "Value": "334a16ee50bf95e58ff7d5c6fa48ef642786fdd8",
-      "Description": "The bootstrap-vz github commit ID to use."
-    },
-    "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."},
-    "license_id": {"Required": true, "Description": "The GCE license id."},
-    "release": {"Required": true, "Description": "The Debian release name."}
+    "bootstrap_vz_version": {"Required": true, "Description": "The bootstrap-vz github commit ID to use."},
+    "google_cloud_repo": {"Required": true, "Description": "The Google Cloud Repo branch to use."},
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."}
   },
   "Sources": {
     "build_files/build.py": "./build.py",
     "build_files/utils.py": "../linux_common/utils.py",
+    "build_files/google_cloud_test_repos": "./google_cloud_test_repos/",
     "startup_script": "../linux_common/bootstrap.py"
   },
   "Steps": {
@@ -39,8 +35,7 @@
             "build_files_gcs_dir": "${SOURCESPATH}/build_files",
             "build_script": "build.py",
             "google_cloud_repo": "${google_cloud_repo}",
-            "license_id": "${license_id}",
-            "release": "${release}"
+            "image_dest": "${image_dest}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
@@ -53,16 +48,15 @@
       "Timeout": "60m",
       "WaitForInstancesSignal": [{"Name": "inst-builder", "Stopped": true}]
     },
-    "copy-to-dest": {
-      "CopyGCSObjects": [
-        {"Source": "${OUTSPATH}/image.tar.gz", "Destination": "${image_dest}/${DATETIME}-${release}/root.tar.gz"},
-        {"Source": "${OUTSPATH}/synopsis.json", "Destination": "${image_dest}/${DATETIME}-${release}/synopsis.json"}
-      ]
+    "cleanup": {
+      "DeleteResources": {
+        "Instances": ["inst-builder"]
+      }
     }
   },
   "Dependencies": {
     "run": ["setup"],
     "wait": ["run"],
-    "copy-to-dest": ["wait"]
+    "cleanup": ["wait"]
   }
 }

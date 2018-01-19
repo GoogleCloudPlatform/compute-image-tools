@@ -22,17 +22,13 @@ bootstrap_vz_version: The version of bootstrap-vz to retrieve and use.
 google_cloud_repo: The repo to use to build Debian. Must be one of
   ['stable' (default), 'unstable', 'staging'].
 image_dest: The Cloud Storage destination for the resultant image.
-license_id: The Compute Engine license-id for this release of Debian.
-release: The Debian release being built.
 """
 
 import collections
-import glob
 import json
 import logging
 import os
 import shutil
-import tarfile
 import urllib
 import zipfile
 
@@ -46,32 +42,27 @@ utils.PipInstall(['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32'])
 import yaml
 
 BVZ_DIR = '/bvz'
-BVZ_MANIFEST = ''  # Populated at runtime.
 REPOS = ['stable', 'unstable', 'staging']
 
 
 def main():
   # Get Parameters.
-  BVZ_MANIFEST = utils.GetMetadataParam(
+  bvz_manifest = utils.GetMetadataParam(
       'bootstrap_vz_manifest', raise_on_not_found=True)
   bvz_version = utils.GetMetadataParam(
       'bootstrap_vz_version', raise_on_not_found=True)
-  build_files_gcs_dir = utils.GetMetadataParam(
-      'build_files_gcs_dir', raise_on_not_found=True)
   repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True)
+  image_dest = utils.GetMetadataParam('image_dest', raise_on_not_found=True)
   outs_path = utils.GetMetadataParam('daisy-outs-path', raise_on_not_found=True)
-  license_id = utils.GetMetadataParam('license_id', raise_on_not_found=True)
   if repo not in REPOS:
     raise ValueError(
         'Metadata "google_cloud_repo" must be one of %s.' % REPOS)
-  release = utils.GetMetadataParam('release', raise_on_not_found=True)
 
   logging.info('Debian Builder')
   logging.info('==============')
-  logging.info('Bootstrap_vz manifest: %s', BVZ_MANIFEST)
+  logging.info('Bootstrap_vz manifest: %s', bvz_manifest)
   logging.info('Bootstrap_vz version: %s', bvz_version)
   logging.info('Google Cloud repo: %s', repo)
-  logging.info('Debian Builder Sources: %s', build_files_gcs_dir)
 
   # Download and setup bootstrap_vz.
   bvz_url = 'https://github.com/andsens/bootstrap-vz/archive/%s.zip'
@@ -89,42 +80,34 @@ def main():
   bvz_bin = os.path.join(BVZ_DIR, 'bootstrap-vz')
   utils.MakeExecutable(bvz_bin)
   logging.info('Made %s executable.', bvz_bin)
+  bvz_manifest_file = os.path.join(BVZ_DIR, 'manifests', bvz_manifest)
+
+  # Inject Google Cloud test repo plugin if using staging or unstable repos.
+  # This is used to test new package releases in images.
+  if repo is not 'stable':
+    logging.info('Adding Google Cloud test repos plugin for bootstrapvz.')
+    repo_plugin_dir = '/build_files/google_cloud_test_repos'
+    bvz_plugins = os.path.join(BVZ_DIR, 'bootstrapvz', 'plugins')
+    shutil.move(repo_plugin_dir, bvz_plugins)
+
+    with open(bvz_manifest_file, 'r+') as manifest_file:
+      manifest_data = yaml.load(manifest_file)
+      manifest_plugins = manifest_data['plugins']
+      manifest_plugins['google_cloud_test_repos'] = {repo: True}
+      manifest_yaml = yaml.dump(manifest_data, default_flow_style=False)
+      manifest_file.write(manifest_yaml)
 
   # Run bootstrap_vz build.
-  cmd = [bvz_bin, '--debug', os.path.join(BVZ_DIR, 'manifests', BVZ_MANIFEST)]
+  cmd = [bvz_bin, '--debug', bvz_manifest_file]
   logging.info('Starting build in %s with params: %s', BVZ_DIR, str(cmd))
   utils.Execute(cmd, cwd=BVZ_DIR)
 
-  # Setup tmpfs.
-  tmpfs = '/mnt/tmpfs'
-  os.makedirs(tmpfs)
-  utils.Execute(['mount', '-t', 'tmpfs', '-o', 'size=20g', 'tmpfs', tmpfs])
-
-  # Create license manifest.
-  license_manifest = os.path.join(tmpfs, 'manifest.json')
-  logging.info('Creating license manifest for %s', license_id)
-  manifest = '{"licenses": ["%s"]}' % license_id
-  with open(license_manifest, 'w') as manifest_file:
-    manifest_file.write(manifest)
-
-  # Extract raw image.
-  image = '/target/disk.tar.gz'
-  logging.info('Creating licensed tar for %s', image)
-  with tarfile.open(image, 'r:gz') as tar:
-    tar.extractall(tmpfs)
-
-  # Create tar with license manifest included.
-  image_tar_gz = os.path.join(tmpfs, os.path.basename(image))
-  with tarfile.open(image_tar_gz, 'w:gz') as tar:
-    tar_info = tarfile.TarInfo(name='disk.raw')
-    tar_info.type = tarfile.GNUTYPE_SPARSE
-    tar.add(license_manifest, arcname='manifest.json')
-    tar.add(os.path.join(tmpfs, 'disk.raw'), arcname='disk.raw')
-
   # Upload tar.
-  image_tar_gz_dest = os.path.join(outs_path, 'image.tar.gz')
-  logging.info('Saving %s to %s', image_tar_gz, image_tar_gz_dest)
-  utils.Gsutil(['cp', image_tar_gz, image_tar_gz_dest])
+  image_tar_gz = '/target/disk.tar.gz'
+  if os.path.exists(image_tar_gz):
+    image_tar_gz_dest = os.path.join(image_dest, 'root.tar.gz')
+    logging.info('Saving %s to %s', image_tar_gz, image_tar_gz_dest)
+    utils.Gsutil(['cp', image_tar_gz, image_tar_gz_dest])
 
   # Create and upload the synopsis of the image.
   logging.info('Creating image synopsis.')
