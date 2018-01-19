@@ -148,16 +148,18 @@ func (r *baseResourceRegistry) registerExisting(url string) (*Resource, dErr) {
 	if r, ok := r.m[url]; ok {
 		return r, nil
 	}
-	if exists, err := resourceExists(r.w.ComputeClient, url); err != nil {
-		return nil, err
-	} else if !exists {
+	exists, err := resourceExists(r.w.ComputeClient, url)
+	if !exists {
+		if err != nil {
+			return nil, err
+		}
 		return nil, typedErrf(resourceDNEError, "%s does not exist", url)
 	}
 
 	parts := strings.Split(url, "/")
 	res := &Resource{RealName: parts[len(parts)-1], link: url, NoCleanup: true}
 	r.m[url] = res
-	return res, nil
+	return res, err
 }
 
 func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*Resource, dErr) {

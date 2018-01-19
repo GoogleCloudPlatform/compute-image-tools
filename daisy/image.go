@@ -29,7 +29,7 @@ import (
 
 var (
 	imageCache struct {
-		exists map[string][]string
+		exists map[string][]*compute.Image
 		mu     sync.Mutex
 	}
 	imageFamilyCache struct {
@@ -64,7 +64,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 		}
 		if img.Deprecated != nil {
 			if img.Deprecated.State == "OBSOLETE" || img.Deprecated.State == "DELETED" {
-				return false, nil
+				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", img.Name, img.Deprecated.State)
 			}
 		}
 		imageFamilyCache.exists[project] = append(imageFamilyCache.exists[project], name)
@@ -77,25 +77,26 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	imageCache.mu.Lock()
 	defer imageCache.mu.Unlock()
 	if imageCache.exists == nil {
-		imageCache.exists = map[string][]string{}
+		imageCache.exists = map[string][]*compute.Image{}
 	}
 	if _, ok := imageCache.exists[project]; !ok {
 		il, err := client.ListImages(project)
 		if err != nil {
 			return false, errf("error listing images for project %q: %v", project, err)
 		}
-		var images []string
-		for _, i := range il {
-			if i.Deprecated != nil {
-				if i.Deprecated.State == "OBSOLETE" || i.Deprecated.State == "DELETED" {
-					continue
-				}
-			}
-			images = append(images, i.Name)
-		}
-		imageCache.exists[project] = images
+		imageCache.exists[project] = il
 	}
-	return strIn(name, imageCache.exists[project]), nil
+
+	for _, i := range imageCache.exists[project] {
+		if name == i.Name {
+			if i.Deprecated != nil && (i.Deprecated.State == "OBSOLETE" || i.Deprecated.State == "DELETED") {
+				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", name, i.Deprecated.State)
+			}
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // Image is used to create a GCE image.

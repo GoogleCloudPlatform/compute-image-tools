@@ -20,10 +20,11 @@ import (
 )
 
 const (
-	untypedError     = ""
-	multiError       = "MultiError"
-	fileIOError      = "FileIOError"
-	resourceDNEError = "ResourceDoesNotExist"
+	untypedError              = ""
+	multiError                = "MultiError"
+	fileIOError               = "FileIOError"
+	resourceDNEError          = "ResourceDoesNotExist"
+	imageObsoleteDeletedError = "ImageObsoleteOrDeleted"
 
 	apiError    = "APIError"
 	apiError404 = "APIError404"
