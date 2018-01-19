@@ -105,6 +105,8 @@ type Image struct {
 	compute.Image
 	Resource
 
+	// GuestOsFeatures to set for the image.
+	GuestOsFeatures guestOsFeatures `json:"guestOsFeatures,omitempty"`
 	// Should an existing image of the same name be deleted, defaults to false
 	// which will fail validation.
 	OverWrite bool
@@ -113,6 +115,23 @@ type Image struct {
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
 func (i *Image) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*i)
+}
+
+type guestOsFeatures []string
+
+// UnmarshalJSON unmarshals GuestOsFeatures.
+func (g *guestOsFeatures) UnmarshalJSON(b []byte) error {
+	// Support GCE API struct.
+	var cg []compute.GuestOsFeature
+	if err := json.Unmarshal(b, &cg); err == nil {
+		for _, f := range cg {
+			*g = append(*g, f.Type)
+		}
+		return nil
+	}
+
+	type dg guestOsFeatures
+	return json.Unmarshal(b, (*dg)(g))
 }
 
 func (i *Image) populate(ctx context.Context, s *Step) dErr {
@@ -139,7 +158,18 @@ func (i *Image) populate(ctx context.Context, s *Step) dErr {
 		}
 	}
 	i.link = fmt.Sprintf("projects/%s/global/images/%s", i.Project, i.Name)
+	i.populateGuestOSFeatures(s.w)
 	return errs
+}
+
+func (i *Image) populateGuestOSFeatures(w *Workflow) {
+	if i.GuestOsFeatures == nil {
+		return
+	}
+	for _, f := range i.GuestOsFeatures {
+		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: f})
+	}
+	return
 }
 
 func (i *Image) validate(ctx context.Context, s *Step) dErr {

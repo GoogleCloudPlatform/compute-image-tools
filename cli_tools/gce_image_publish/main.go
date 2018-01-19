@@ -119,21 +119,17 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 	}
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	sourceName := fmt.Sprintf("%s-%s", img.Prefix, p.sourceVersion)
-	var gosf []*compute.GuestOsFeature
-	for _, f := range img.GuestOsFeatures {
-		gosf = append(gosf, &compute.GuestOsFeature{Type: f})
-	}
 
 	// Replace text in Description for the print out, let daisy replace other fields.
 	replacer := strings.NewReplacer("${source_version}", p.sourceVersion, "${publish_version}", p.publishVersion)
 	ci := daisy.Image{
 		Image: compute.Image{
-			Name:            publishName,
-			Description:     replacer.Replace(img.Description),
-			Licenses:        img.Licenses,
-			GuestOsFeatures: gosf,
-			Family:          img.Family,
+			Name:        publishName,
+			Description: replacer.Replace(img.Description),
+			Licenses:    img.Licenses,
+			Family:      img.Family,
 		},
+		GuestOsFeatures: img.GuestOsFeatures,
 		Resource: daisy.Resource{
 			NoCleanup: true,
 			Project:   p.PublishProject,

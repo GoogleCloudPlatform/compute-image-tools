@@ -31,7 +31,7 @@
             "projects/windows-sql-cloud/global/licenses/sql-server-2016-web"
           ],
           "Description": "Microsoft, SQL Server 2016 Web, on Windows Server 2016, x64 built on ${build_date}",
-          "GuestOsFeatures": [{"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}, {"Type":"MULTI_IP_SUBNET"}],
+          "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"],
           "Family": "sql-web-2016-win-2016",
           "Project": "${publish_project}",
           "NoCleanup": true,

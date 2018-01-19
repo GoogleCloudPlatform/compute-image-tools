@@ -31,7 +31,7 @@
             "projects/windows-sql-cloud/global/licenses/sql-server-2017-express"
           ],
           "Description": "Microsoft, SQL Server 2017 Express, on Windows Server 2012 R2, x64 built on ${build_date}",
-          "GuestOsFeatures": [{"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}, {"Type":"MULTI_IP_SUBNET"}],
+          "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"],
           "Family": "sql-exp-2017-win-2012-r2",
           "Project": "${publish_project}",
           "NoCleanup": true,

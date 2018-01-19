@@ -185,16 +185,18 @@ the Image JSON representation. Daisy uses the same representation with a few mod
 | Name | string | If RealName is unset, the **literal** image name will have a generated suffix for the running instance of the workflow. |
 | RawDisk.Source | string | Either a GCS Path or a key from Sources are valid. |
 | SourceDisk | string | Either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+| SourceImage | string | Either image [partial URLs](#glossary-partialurl) or workflow-internal image names are valid. |
 
-Both `RawDisk.Source` and `SourceDisk` set the image's disk. For this reason,
-they are mutually exclusive; only one should be present in a `CreateImages`
-step.
+Both `RawDisk.Source`, `SourceDisk` and `SourceImage` set the image's source. 
+For this reason, they are mutually exclusive; only one should be present in a
+`CreateImages` step.
 
 Added fields:
 
 | Field Name | Type | Description |
 | - | - | - |
 | Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this image. |
+| GuestOsFeatures | []string] | *Optional.* Along with the GCE JSON API's more complex object structure, Daisy allows the use of a simple list. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this image when the workflow terminates. |
 | RealName | bool | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
@@ -204,7 +206,8 @@ This CreateImages example creates an image from a source disk.
   "CreateImages": [
     {
       "Name": "image1",
-      "SourceDisk": "disk2"
+      "SourceDisk": "disk2",
+      "GuestOsFeatures": ["Feature1", "Feature2"]
     }
   ]
 }

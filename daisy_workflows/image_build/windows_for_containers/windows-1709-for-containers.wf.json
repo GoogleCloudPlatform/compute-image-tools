@@ -58,7 +58,7 @@
           "SourceDisk": "${install_disk}",
           "Licenses": ["projects/windows-cloud/global/licenses/windows-for-containers"],
           "Description": "Microsoft, Windows Server, version 1709 Core for Containers (Beta), Server Core, x64 built on ${build_date}",
-          "GuestOsFeatures": [{"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}, {"Type":"MULTI_IP_SUBNET"}],
+          "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"],
           "Family": "windows-1709-core-for-containers",
           "Project": "${publish_project}",
           "NoCleanup": true,
