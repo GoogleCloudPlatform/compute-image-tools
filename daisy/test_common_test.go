@@ -161,8 +161,11 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 	c.ListZonesFn = func(_ string, _ ...daisyCompute.ListCallOption) ([]*compute.Zone, error) {
 		return []*compute.Zone{{Name: testZone}}, nil
 	}
-	c.ListImagesFn = func(_ string, _ ...daisyCompute.ListCallOption) ([]*compute.Image, error) {
-		return []*compute.Image{{Name: testImage}}, nil
+	c.ListImagesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Image, error) {
+		if p == testProject {
+			return []*compute.Image{{Name: testImage}}, nil
+		}
+		return []*compute.Image{{Name: testImage, Deprecated: &compute.DeprecationStatus{State: "OBSOLETE"}}}, nil
 	}
 	c.ListDisksFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.Disk, error) {
 		if p != testProject {
@@ -199,6 +202,12 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return errors.New("bad source disk: " + i.SourceDisk)
 		}
 		return nil
+	}
+	c.GetImageFromFamilyFn = func(_, f string) (*compute.Image, error) {
+		if f == testFamily {
+			return &compute.Image{Name: testImage}, nil
+		}
+		return &compute.Image{Name: testImage, Deprecated: &compute.DeprecationStatus{State: "OBSOLETE"}}, nil
 	}
 
 	return c, err

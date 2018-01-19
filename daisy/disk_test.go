@@ -370,6 +370,11 @@ func TestDiskValidate(t *testing.T) {
 			false,
 		},
 		{
+			"image OBSOLETE case",
+			&Disk{Disk: compute.Disk{Name: "d1", SourceImage: fmt.Sprintf("projects/foo/global/images/%s", testImage), Type: ty}},
+			true,
+		},
+		{
 			"source image dne case",
 			&Disk{Disk: compute.Disk{Name: "d5", SourceImage: "dne", Type: ty}},
 			true,

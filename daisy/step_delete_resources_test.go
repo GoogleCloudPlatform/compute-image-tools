@@ -120,7 +120,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	}
 
 	// Good case.
-	dr := DeleteResources{Disks: []string{"d0"}, Images: []string{"im0"}, Instances: []string{"in0"}}
+	dr := DeleteResources{Disks: []string{"d0"}, Images: []string{"im0", "projects/foo/global/images/" + testImage, "projects/foo/global/images/family/foo"}, Instances: []string{"in0"}}
 	if err := dr.validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
 	}
