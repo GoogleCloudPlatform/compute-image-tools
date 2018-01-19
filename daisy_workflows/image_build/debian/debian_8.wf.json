@@ -16,11 +16,11 @@
         "Vars": {
           "bootstrap_vz_manifest": "official/gce/jessie.yml",
           "bootstrap_vz_version": "${bootstrap_vz_version}",
-          "image_dest": "${image_dest}",
-          "license_id": "1000204",
-          "release": "jessie"
+          "google_cloud_repo": "${google_cloud_repo}",
+          "image_dest": "${image_dest}"
         }
       }
     }
-  }
+  },
+  "Dependencies": {}
 }
