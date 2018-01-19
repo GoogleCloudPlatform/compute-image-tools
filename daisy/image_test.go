@@ -17,11 +17,34 @@ package daisy
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strconv"
 	"testing"
 
 	"google.golang.org/api/compute/v1"
 )
+
+func TestUnmarshalJSON(t *testing.T) {
+
+	tests := []struct {
+		input string
+		want  guestOsFeatures
+	}{
+		{"[]", nil},
+		{`["foo","bar"]`, guestOsFeatures{"foo", "bar"}},
+		{`[{"Type":"foo"},{"Type":"bar"}]`, guestOsFeatures{"foo", "bar"}},
+	}
+
+	for _, tt := range tests {
+		var got guestOsFeatures
+		if err := got.UnmarshalJSON([]byte(tt.input)); err != nil {
+			t.Error(err)
+		}
+		if !reflect.DeepEqual(tt.want, got) {
+			t.Errorf("want: %q, got: %q", tt.want, got)
+		}
+	}
+}
 
 func TestImagePopulate(t *testing.T) {
 	ctx := context.Background()
@@ -83,6 +106,12 @@ func TestImagePopulate(t *testing.T) {
 			"RawDisk.Source GCS URL case",
 			&Image{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/d"}}},
 			&Image{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath}}},
+			false,
+		},
+		{
+			"GuestOsFeatures",
+			&Image{Image: compute.Image{SourceImage: "i"}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			&Image{Image: compute.Image{SourceImage: "i", GuestOsFeatures: []*compute.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
 			false,
 		},
 		{
