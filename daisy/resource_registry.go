@@ -85,8 +85,9 @@ func (r *baseResourceRegistry) get(name string) (*Resource, bool) {
 	return res, ok
 }
 
-func (r *baseResourceRegistry) registerCreation(name string, res *Resource, s *Step, overWrite bool) dErr {
-	// Create a resource reference, known by name. Check:
+// regCreate registers a Step s as the creator of a resource, res, and identifies the resource by name.
+func (r *baseResourceRegistry) regCreate(name string, res *Resource, s *Step, overWrite bool) dErr {
+	// Check:
 	// - no duplicates known by name
 	r.mx.Lock()
 	defer r.mx.Unlock()
@@ -107,8 +108,10 @@ func (r *baseResourceRegistry) registerCreation(name string, res *Resource, s *S
 	return nil
 }
 
-func (r *baseResourceRegistry) registerDeletion(name string, s *Step) dErr {
-	// Mark a resource reference for deletion. Check:
+// regDelete registers a Step s as the deleter of a resource.
+// The name argument can be a Daisy internal name, or a fully qualified resource URL, e.g. projects/p/global/images/i.
+func (r *baseResourceRegistry) regDelete(name string, s *Step) dErr {
+	// Check:
 	// - don't dupe deletion of name.
 	// - s depends on ALL registered users and creator of name.
 	r.mx.Lock()
@@ -117,7 +120,7 @@ func (r *baseResourceRegistry) registerDeletion(name string, s *Step) dErr {
 	var res *Resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
 		var err dErr
-		res, err = r.registerExisting(name)
+		res, err = r.regURL(name)
 		if err != nil {
 			return err
 		}
@@ -141,7 +144,11 @@ func (r *baseResourceRegistry) registerDeletion(name string, s *Step) dErr {
 	return nil
 }
 
-func (r *baseResourceRegistry) registerExisting(url string) (*Resource, dErr) {
+// regURL creates a placeholder registry entry for a resource identified by a fully qualified resource URL, e.g.
+// projects/p/global/images/i.
+// A placeholder resource will be created in the registry. The resource will have no creator and will not auto-cleanup.
+// The placeholder resource will be identified within the registry by its fully qualified resource URL.
+func (r *baseResourceRegistry) regURL(url string) (*Resource, dErr) {
 	if !strings.HasPrefix(url, "projects/") {
 		return nil, errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
@@ -162,8 +169,10 @@ func (r *baseResourceRegistry) registerExisting(url string) (*Resource, dErr) {
 	return res, err
 }
 
-func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*Resource, dErr) {
-	// Make s a user of name. Check:
+// regUse registers a Step s as a user of a resource.
+// The name argument can be a Daisy internal name, or a fully qualified resource URL, e.g. projects/p/global/images/i.
+func (r *baseResourceRegistry) regUse(name string, s *Step) (*Resource, dErr) {
+	// Check:
 	// - s depends on creator of name, if there is a creator.
 	// - name doesn't have a registered deleter yet, usage must occur before deletion.
 	r.mx.Lock()
@@ -172,7 +181,7 @@ func (r *baseResourceRegistry) registerUsage(name string, s *Step) (*Resource, d
 	var res *Resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
 		var err dErr
-		res, err = r.registerExisting(name)
+		res, err = r.regURL(name)
 		if err != nil {
 			return nil, err
 		}

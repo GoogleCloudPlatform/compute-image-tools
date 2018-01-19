@@ -55,12 +55,12 @@ func (d *DeprecateImages) validate(ctx context.Context, s *Step) dErr {
 			return errf("DeprecationStatus.State of %q not in %q", di.DeprecationStatus.State, deprecationStates)
 		}
 
-		// registerUsage needs the partal url of a non daisy resource.
+		// regUse needs the partal url of a non daisy resource.
 		lookup := di.Image
 		if _, ok := s.w.images.get(di.Image); !ok {
 			lookup = fmt.Sprintf("projects/%s/global/images/%s", di.Project, di.Image)
 		}
-		if _, err := s.w.images.registerUsage(lookup, s); err != nil {
+		if _, err := s.w.images.regUse(lookup, s); err != nil {
 			return newErr(err)
 		}
 	}
