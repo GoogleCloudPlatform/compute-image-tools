@@ -47,10 +47,16 @@
     "wait": {
       "Timeout": "60m",
       "WaitForInstancesSignal": [{"Name": "inst-builder", "Stopped": true}]
+    },
+    "cleanup": {
+      "DeleteResources": {
+        "Instances": ["inst-builder"]
+      }
     }
   },
   "Dependencies": {
     "run": ["setup"],
-    "wait": ["run"]
+    "wait": ["run"],
+    "cleanup": ["wait"]
   }
 }
