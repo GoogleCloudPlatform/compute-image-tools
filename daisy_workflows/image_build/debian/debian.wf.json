@@ -45,18 +45,21 @@
       ]
     },
     "wait": {
-      "Timeout": "60m",
-      "WaitForInstancesSignal": [{"Name": "inst-builder", "Stopped": true}]
-    },
-    "cleanup": {
-      "DeleteResources": {
-        "Instances": ["inst-builder"]
-      }
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-builder",
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "BuildFailed:",
+            "SuccessMatch": "BuildSuccess:",
+            "StatusMatch": "BuildStatus:"
+          }
+        }
+      ]
     }
   },
   "Dependencies": {
     "run": ["setup"],
-    "wait": ["run"],
-    "cleanup": ["wait"]
+    "wait": ["run"]
   }
 }

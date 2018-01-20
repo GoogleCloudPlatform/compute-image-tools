@@ -26,7 +26,6 @@ image_dest: The Cloud Storage destination for the resultant image.
 
 import collections
 import json
-import logging
 import os
 import shutil
 import urllib
@@ -58,34 +57,32 @@ def main():
     raise ValueError(
         'Metadata "google_cloud_repo" must be one of %s.' % REPOS)
 
-  logging.info('Debian Builder')
-  logging.info('==============')
-  logging.info('Bootstrap_vz manifest: %s', bvz_manifest)
-  logging.info('Bootstrap_vz version: %s', bvz_version)
-  logging.info('Google Cloud repo: %s', repo)
+  utils.Status('Bootstrap_vz manifest: %s' % bvz_manifest)
+  utils.Status('Bootstrap_vz version: %s' % bvz_version)
+  utils.Status('Google Cloud repo: %s' % repo)
 
   # Download and setup bootstrap_vz.
   bvz_url = 'https://github.com/andsens/bootstrap-vz/archive/%s.zip'
   bvz_url %= bvz_version
   bvz_zip_dir = 'bvz_zip'
-  logging.info('Downloading bootstrap-vz')
+  utils.Status('Downloading bootstrap-vz at commit %s' % bvz_version)
   urllib.urlretrieve(bvz_url, 'bvz.zip')
   with zipfile.ZipFile('bvz.zip', 'r') as z:
     z.extractall(bvz_zip_dir)
-  logging.info('Downloaded and extracted %s to %s', bvz_url, 'bvz_zip')
+  utils.Status('Downloaded and extracted %s to bvz.zip.' % bvz_url)
   bvz_zip_contents = [d for d in os.listdir(bvz_zip_dir)]
   bvz_zip_subdir = os.path.join(bvz_zip_dir, bvz_zip_contents[0])
   utils.Execute(['mv', bvz_zip_subdir, BVZ_DIR])
-  logging.info('Moved bootstrap_vz from %s to %s.', bvz_zip_subdir, BVZ_DIR)
+  utils.Status('Moved bootstrap_vz from %s to %s.' % (bvz_zip_subdir, BVZ_DIR))
   bvz_bin = os.path.join(BVZ_DIR, 'bootstrap-vz')
   utils.MakeExecutable(bvz_bin)
-  logging.info('Made %s executable.', bvz_bin)
+  utils.Status('Made %s executable.' % bvz_bin)
   bvz_manifest_file = os.path.join(BVZ_DIR, 'manifests', bvz_manifest)
 
   # Inject Google Cloud test repo plugin if using staging or unstable repos.
   # This is used to test new package releases in images.
   if repo is not 'stable':
-    logging.info('Adding Google Cloud test repos plugin for bootstrapvz.')
+    utils.Status('Adding Google Cloud test repos plugin for bootstrapvz.')
     repo_plugin_dir = '/build_files/google_cloud_test_repos'
     bvz_plugins = os.path.join(BVZ_DIR, 'bootstrapvz', 'plugins')
     shutil.move(repo_plugin_dir, bvz_plugins)
@@ -99,18 +96,18 @@ def main():
 
   # Run bootstrap_vz build.
   cmd = [bvz_bin, '--debug', bvz_manifest_file]
-  logging.info('Starting build in %s with params: %s', BVZ_DIR, str(cmd))
+  utils.Status('Starting build in %s with params: %s' % (BVZ_DIR, str(cmd)))
   utils.Execute(cmd, cwd=BVZ_DIR)
 
   # Upload tar.
   image_tar_gz = '/target/disk.tar.gz'
   if os.path.exists(image_tar_gz):
     image_tar_gz_dest = os.path.join(image_dest, 'root.tar.gz')
-    logging.info('Saving %s to %s', image_tar_gz, image_tar_gz_dest)
+    utils.Status('Saving %s to %s' % (image_tar_gz, image_tar_gz_dest))
     utils.Gsutil(['cp', image_tar_gz, image_tar_gz_dest])
 
   # Create and upload the synopsis of the image.
-  logging.info('Creating image synopsis.')
+  utils.Status('Creating image synopsis.')
   synopsis = {}
   packages = collections.OrderedDict()
   _, output, _ = utils.Execute(['dpkg-query', '-W'], capture_output=True)
@@ -120,14 +117,13 @@ def main():
   synopsis['installed_packages'] = packages
   with open('/tmp/synopsis.json', 'w') as f:
     f.write(json.dumps(synopsis))
-  logging.info('Uploading image synopsis.')
+  utils.Status('Uploading image synopsis.')
   synopsis_dest = os.path.join(outs_path, 'synopsis.json')
   utils.Gsutil(['cp', '/tmp/synopsis.json', synopsis_dest])
 
 if __name__ == '__main__':
   try:
-    utils.RunScript(main)
-    logging.info('STARTUP SCRIPT COMPLETED')
+    main()
+    utils.Success('Debian build was successful!')
   except:
-    logging.info('STARTUP SCRIPT FAILED')
-    raise
+    utils.Fail('Debian build failed!')

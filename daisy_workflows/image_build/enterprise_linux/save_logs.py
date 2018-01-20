@@ -15,7 +15,6 @@
 
 """Saves the build logs and synopsis files to GCS from an EL install."""
 
-import logging
 import os
 
 import utils
@@ -28,8 +27,8 @@ def main():
   # Mount the installer disk.
   utils.Execute(['mount', '-t', 'ext4', '/dev/sdb1', '/mnt'])
 
-  logging.info('Installer root: %s', os.listdir('/mnt'))
-  logging.info('Build logs: %s', os.listdir('/mnt/build-logs'))
+  utils.Status('Installer root: %s' % os.listdir('/mnt'))
+  utils.Status('Build logs: %s' % os.listdir('/mnt/build-logs'))
 
   # For some reason we need to remove the gsutil credentials.
   utils.Execute(['rm', '-Rf', '/root/.gsutil'])
@@ -41,4 +40,8 @@ def main():
 
 
 if __name__ == '__main__':
-  utils.RunScript(main)
+  try:
+    main()
+    utils.Success('Build logs successfully saved.')
+  except:
+    utils.Fail('Failed to save build logs.')
