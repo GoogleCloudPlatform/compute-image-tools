@@ -21,8 +21,8 @@ el_release: rhel6, rhel7, centos6, centos7, oraclelinux6, or oraclelinux7
 el_savelogs: true to ask Anaconda to save logs (for debugging).
 rhel_byol: true if building a RHEL BYOL image.
 """
+
 import difflib
-import logging
 import os
 import re
 
@@ -43,11 +43,9 @@ def main():
   sap_apps = utils.GetMetadataParam('rhel_sap_apps', raise_on_not_found=False)
   sap_apps = sap_apps == 'true'
 
-  logging.info('EL Installer Builder')
-  logging.info('==============')
-  logging.info('Release: %s', release)
-  logging.info('Google Cloud repo: %s', repo)
-  logging.info('Build working directory: %s', os.getcwd())
+  utils.Status('EL Release: %s' % release)
+  utils.Status('Google Cloud repo: %s' % repo)
+  utils.Status('Build working directory: %s' % os.getcwd())
 
   iso_file = 'installer.iso'
 
@@ -61,7 +59,7 @@ def main():
 
   # Write the installer disk. Write extlinux MBR, create partition,
   # copy installer ISO and ISO boot files over.
-  logging.info('Writing installer disk.')
+  utils.Status('Writing installer disk.')
   utils.Execute(['parted', '/dev/sdb', 'mklabel', 'msdos'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', '1MB', '100%'])
@@ -107,7 +105,7 @@ def main():
 
     # Print out a the modifications.
     diff = difflib.Differ().compare(oldcfg.splitlines(1), cfg.splitlines(1))
-    logging.info('Modified extlinux.conf:\n%s', '\n'.join(diff))
+    utils.Status('Modified extlinux.conf:\n%s' % '\n'.join(diff))
 
     f.seek(0)
     f.write(cfg)
@@ -118,4 +116,8 @@ def main():
 
 
 if __name__ == '__main__':
-  utils.RunScript(main)
+  try:
+    main()
+    utils.Success('EL Installer build successful!')
+  except:
+    utils.Fail('EL Installer build failed!')

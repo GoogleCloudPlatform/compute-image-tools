@@ -19,39 +19,60 @@ Args:
 build-files-gcs-dir: The Cloud Storage location containing the build files.
   This dir of build files must contain a build.py containing the build logic.
 """
-import base64
 import logging
 import os
 import subprocess
+import sys
 import urllib2
-import zipfile
+
+
+BUILD_DIR = '/build_files'
 
 
 def GetMetadataAttribute(attribute):
-  url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % attribute
+  url = 'http://metadata.google.internal/computeMetadata/v1/instance/attributes/%s' % attribute
   request = urllib2.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   return urllib2.urlopen(request).read()
 
 
+def ExecuteScript(script):
+  """Runs a script and logs the output."""
+  process = subprocess.Popen(script, shell=True, executable='/bin/bash',
+                             cwd=BUILD_DIR, stderr=subprocess.STDOUT,
+                             stdout=subprocess.PIPE)
+  while True:
+    for line in iter(process.stdout.readline, b''):
+      message = line.decode('utf-8', 'replace').rstrip('\n')
+      if message:
+        logging.info(message)
+    if process.poll() is not None:
+      break
+  logging.info('BuildStatus: %s: return code %s', script, process.returncode)
+
+
 def Bootstrap():
   """Get build files, run build, poweroff."""
   try:
-    logging.info('Starting bootstrap.py.')
+    logging.info('BuildStatus: Starting bootstrap.py.')
     build_gcs_dir = GetMetadataAttribute('build_files_gcs_dir')
     build_script = GetMetadataAttribute('build_script')
-    build_dir = '/build_files'
-    full_build_script = os.path.join(build_dir, build_script)
-    subprocess.call(['mkdir', build_dir])
+    full_build_script = os.path.join(BUILD_DIR, build_script)
+    subprocess.call(['mkdir', BUILD_DIR])
     subprocess.call(
-        ['gsutil', '-m', 'cp', '-r', os.path.join(build_gcs_dir, '*'), build_dir])
-    logging.info('Making build script %s executable.', full_build_script)
-    subprocess.call(['chmod', '+x', build_script], cwd=build_dir)
-    logging.info('Running %s.', full_build_script)
-    subprocess.call([full_build_script], cwd=build_dir)
-  finally:
-    os.system('sync')
-    os.system('shutdown now -h')
+        ['gsutil', '-m', 'cp', '-r', os.path.join(build_gcs_dir, '*'), BUILD_DIR])
+    logging.info('BuildStatus: Making build script %s executable.', full_build_script)
+    subprocess.call(['chmod', '+x', build_script], cwd=BUILD_DIR)
+    logging.info('BuildStatus: Running %s.', full_build_script)
+    ExecuteScript(full_build_script)
+  except:
+    logging.error('BuildFailed: Cannot run %s.', full_build_script)
+
 
 if __name__ == '__main__':
+  logger = logging.getLogger()
+  logger.setLevel(logging.DEBUG)
+  stdout = logging.StreamHandler(sys.stdout)
+  stdout.setLevel(logging.DEBUG)
+  logger.addHandler(stdout)
   Bootstrap()
