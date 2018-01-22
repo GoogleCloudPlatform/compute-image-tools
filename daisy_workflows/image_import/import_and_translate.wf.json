@@ -25,7 +25,7 @@
       }
     },
     "translate": {
-      "IncludeWorkflow": {
+      "SubWorkflow": {
         "Path": "${translate_workflow}",
         "Vars": {
           "source_image": "global/images/${image_name}",
