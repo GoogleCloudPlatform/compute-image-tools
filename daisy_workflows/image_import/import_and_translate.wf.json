@@ -1,0 +1,40 @@
+{
+  "Name": "import-and-translate",
+  "Vars": {
+    "source_disk_file": {
+      "Required": true,
+      "Description": "The local path or GCS path to the virtual disk to import."
+    },
+    "image_name": {
+      "Required": true,
+      "Description": "The name of the imported image."
+    },
+    "translate_workflow": {
+      "Required": true,
+      "Description": "The path to the translation workflow to run."
+    }
+  },
+  "Steps": {
+    "import": {
+      "SubWorkflow": {
+        "Path": "import_image.wf.json",
+        "Vars": {
+          "source_disk_file": "${source_disk_file}",
+          "image_name": "${image_name}"
+        }
+      }
+    },
+    "translate": {
+      "IncludeWorkflow": {
+        "Path": "${translate_workflow}",
+        "Vars": {
+          "source_image": "global/images/${image_name}",
+          "image_name": "${image_name}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "translate": ["import"]
+  }
+}
