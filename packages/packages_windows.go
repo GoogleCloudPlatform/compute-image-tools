@@ -166,9 +166,14 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 		}
 		name := titleRaw.ToString()
 		ver := "unknown"
+		// Match (KB4052623) or just KB4052623 for Defender patches.
 		if start := strings.Index(name, "(KB"); start != -1 {
 			if end := strings.Index(name[start:], ")"); end != -1 {
 				ver = name[start+1 : start+end]
+			}
+		} else if start := strings.Index(name, "KB"); start != -1 {
+			if end := strings.Index(name[start:], " "); end != -1 {
+				ver = name[start : start+end]
 			}
 		}
 		updates = append(updates, PkgInfo{Name: name, Arch: osinfo.Architecture(runtime.GOARCH), Version: ver})
