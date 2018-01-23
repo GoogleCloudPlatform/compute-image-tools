@@ -1,9 +1,9 @@
 {
   "Name": "import-and-translate",
   "Vars": {
-    "source_disk_file": {
+    "source_disk_uri": {
       "Required": true,
-      "Description": "The local path or GCS path to the virtual disk to import."
+      "Description": "The GCS path to the virtual disk to import."
     },
     "image_name": {
       "Required": true,
@@ -19,7 +19,7 @@
       "SubWorkflow": {
         "Path": "import_image.wf.json",
         "Vars": {
-          "source_disk_file": "${source_disk_file}",
+          "source_disk_file": "${source_disk_uri}",
           "image_name": "${image_name}"
         }
       }
