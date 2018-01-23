@@ -173,7 +173,7 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 			}
 		} else if start := strings.Index(name, "KB"); start != -1 {
 			if end := strings.Index(name[start:], " "); end != -1 {
-				ver = name[start+1 : start+end]
+				ver = name[start : start+end]
 			}
 		}
 		updates = append(updates, PkgInfo{Name: name, Arch: osinfo.Architecture(runtime.GOARCH), Version: ver})
