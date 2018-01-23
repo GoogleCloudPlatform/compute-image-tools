@@ -3,7 +3,7 @@
   "Vars": {
     "source_disk_file": {
       "Required": true,
-      "Description": "The local path or GCS path to the virtual disk to import."
+      "Description": "The GCS path to the virtual disk to import."
     },
     "image_name": {
       "Value": "imported-image-${ID}",
