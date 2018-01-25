@@ -97,25 +97,27 @@ func TestCreateInstancesRun(t *testing.T) {
 	}
 	s := &Step{w: w}
 	w.Sources = map[string]string{"file": "gs://some/file"}
-	w.disks.m = map[string]*Resource{
-		"d0": {RealName: w.genName("d0"), link: "diskLink0"},
-	}
+	w.disks.m = map[string]*Resource{"d": {link: "dLink"}}
+	w.networks.m = map[string]*Resource{"n": {link: "nLink"}}
 
-	// Good case: check disk link gets resolved. Check instance reference map updates.
-	i0 := &Instance{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}}
+	// Good case: check disk and network links get resolved.
+	i0 := &Instance{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Network: "n"}}}}
 	i1 := &Instance{Resource: Resource{daisyName: "i1", Project: "foo"}, Instance: compute.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "other"}}, Zone: "bar"}}
 	ci := &CreateInstances{i0, i1}
 	if err := ci.run(ctx, s); err != nil {
 		t.Errorf("unexpected error running CreateInstances.run(): %v", err)
 	}
-	if i0.Disks[0].Source != w.disks.m["d0"].link {
+	if i0.Disks[0].Source != w.disks.m["d"].link {
 		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", w.disks.m["d0"].link, i0.Disks[0].Source)
+	}
+	if i0.NetworkInterfaces[0].Network != w.networks.m["n"].link {
+		t.Errorf("instance network link did not resolve properly: want: %q, got: %q", w.networks.m["n"].link, i0.NetworkInterfaces[0].Network)
 	}
 	if i1.Disks[0].Source != "other" {
 		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", "other", i1.Disks[0].Source)
 	}
 
-	// Bad case: compute client Instance error. Check instance ref map doesn't update.
+	// Bad case: compute client Instance error.
 	w.instances.m = map[string]*Resource{}
 	createErr = errf("client error")
 	ci = &CreateInstances{

@@ -8,7 +8,8 @@
       "DeleteResources": {
         "Disks": ["zones/${ZONE}/disks/disk-${test-id}"],
         "Images": ["global/images/image-${test-id}"],
-        "Instances": ["zones/${ZONE}/instances/instance-${test-id}"]
+        "Instances": ["zones/${ZONE}/instances/instance-${test-id}"],
+        "Networks": ["global/networks/network-${test-id}"]
       }
     }
   }

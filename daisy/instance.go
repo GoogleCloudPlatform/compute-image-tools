@@ -189,7 +189,6 @@ func (i *Instance) populateMetadata(w *Workflow) dErr {
 
 func (i *Instance) populateNetworks() dErr {
 	defaultAcs := []*compute.AccessConfig{{Type: defaultAccessConfigType}}
-	defaultN := "default"
 
 	if i.NetworkInterfaces == nil {
 		i.NetworkInterfaces = []*compute.NetworkInterface{{}}
@@ -198,11 +197,9 @@ func (i *Instance) populateNetworks() dErr {
 		if n.AccessConfigs == nil {
 			n.AccessConfigs = defaultAcs
 		}
-		n.Network = strOr(n.Network, defaultN)
+		n.Network = strOr(n.Network, "global/networks/default")
 		if networkURLRegex.MatchString(n.Network) {
 			n.Network = extendPartialURL(n.Network, i.Project)
-		} else {
-			n.Network = fmt.Sprintf("projects/%s/global/networks/%s", i.Project, n.Network)
 		}
 	}
 
@@ -320,7 +317,7 @@ func (i *Instance) validateNetworks(s *Step) (errs dErr) {
 		nr, err := s.w.networks.regUse(n.Network, s)
 		if err != nil {
 			errs = addErrs(errs, err)
-			return
+			continue
 		}
 
 		// Ensure network is in the same project.
@@ -328,7 +325,6 @@ func (i *Instance) validateNetworks(s *Step) (errs dErr) {
 		if result["project"] != i.Project {
 			errs = addErrs(errs, errf("cannot create instance in project %q with Network in project %q: %q", i.Project, result["project"], n.Network))
 		}
-
 	}
 	return
 }
@@ -370,7 +366,7 @@ func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) dErr 
 		if d.InitializeParams != nil {
 			dName = d.InitializeParams.DiskName
 		}
-		errs = addErrs(errs, ir.w.disks.regAttach(dName, i.daisyName, d.Mode, s))
+		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))
 	}
 
 	// Register network connections.

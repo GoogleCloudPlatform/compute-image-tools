@@ -27,7 +27,7 @@ func (c *CreateNetworks) populate(ctx context.Context, s *Step) dErr {
 	for _, n := range *c {
 		errs = addErrs(errs, n.populate(ctx, s))
 	}
-	return nil
+	return errs
 }
 
 func (c *CreateNetworks) validate(ctx context.Context, s *Step) dErr {
@@ -35,7 +35,7 @@ func (c *CreateNetworks) validate(ctx context.Context, s *Step) dErr {
 	for _, n := range *c {
 		errs = addErrs(errs, n.validate(ctx, s))
 	}
-	return nil
+	return errs
 }
 
 func (c *CreateNetworks) run(ctx context.Context, s *Step) dErr {
@@ -64,7 +64,7 @@ func (c *CreateNetworks) run(ctx context.Context, s *Step) dErr {
 	case err := <-e:
 		return err
 	case <-w.Cancel:
-		// Wait so disks being created now can be deleted.
+		// Wait so networks being created now can be deleted.
 		wg.Wait()
 		return nil
 	}

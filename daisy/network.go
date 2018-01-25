@@ -92,9 +92,7 @@ func (n *Network) validate(ctx context.Context, s *Step) dErr {
 	}
 
 	// Register creation.
-	if err := s.w.networks.regCreate(n.daisyName, &n.Resource, s, false); err != nil {
-		errs = addErrs(errs, err)
-	}
+	errs = addErrs(errs, s.w.networks.regCreate(n.daisyName, &n.Resource, s, false))
 	return errs
 }
 
@@ -111,13 +109,14 @@ type networkRegistry struct {
 func newNetworkRegistry(w *Workflow) *networkRegistry {
 	nr := &networkRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "network", urlRgx: networkURLRegex}}
 	nr.baseResourceRegistry.deleteFn = nr.deleteFn
+	nr.connections = map[string]map[string]*networkConnection{}
 	nr.init()
 	return nr
 }
 
 func (nr *networkRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(networkURLRegex, res.link)
-	err := nr.w.ComputeClient.DeleteImage(m["project"], m["network"])
+	err := nr.w.ComputeClient.DeleteNetwork(m["project"], m["network"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, err)
 	}
@@ -173,13 +172,11 @@ func (nr *networkRegistry) regDisconnectAll(iName string, s *Step) dErr {
 	defer nr.mx.Unlock()
 
 	var errs dErr
-	// For every network.
+	// For every network, if connected, disconnect.
 	for nName, im := range nr.connections {
-		if conn, _ := im[iName]; conn == nil || conn.disconnector != nil {
-			continue
+		if conn, _ := im[iName]; conn != nil && conn.disconnector == nil {
+			errs = addErrs(nr.disconnectHelper(nName, iName, s))
 		}
-		// If yes, disconnect.
-		errs = addErrs(nr.disconnectHelper(nName, iName, s))
 	}
 
 	return errs

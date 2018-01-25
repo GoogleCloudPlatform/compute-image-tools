@@ -142,8 +142,6 @@ func TestDiskRegAttach(t *testing.T) {
 		{"repeat attachment case", "d", "i", diskModeRW, s2, false},
 		{"concurrent RO case", "d", "i2", diskModeRO, s, false},
 		{"concurrent conflict case", "d", "i3", diskModeRW, s, true},
-		{"instance DNE case", "d", "dne", diskModeRO, s, true},
-		{"disk DNE case", "dne", "i", diskModeRO, s, true},
 		{"attach detached case", "dDetached", "i", diskModeRW, s, false},
 		{"attach detached between IncludeWorkflows case", "dIWDetached", "iIW2", diskModeRW, iw2SubStep, false},
 		{"attachment conflict between IncludeWorkflows case", "dIWAttached", "iIW2", diskModeRW, iw2SubStep, true},

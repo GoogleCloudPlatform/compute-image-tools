@@ -221,7 +221,6 @@ func TestInstancePopulateNetworks(t *testing.T) {
 	}{
 		{"default case", nil, []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/default", testProject), AccessConfigs: defaultAcs}}},
 		{"default AccessConfig case", []*compute.NetworkInterface{{Network: "global/networks/foo"}}, []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/foo", testProject), AccessConfigs: defaultAcs}}},
-		{"network URL resolution case", []*compute.NetworkInterface{{Network: "foo", AccessConfigs: []*compute.AccessConfig{}}}, []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/foo", testProject), AccessConfigs: []*compute.AccessConfig{}}}},
 	}
 
 	for _, tt := range tests {
