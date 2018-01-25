@@ -43,7 +43,7 @@
         "ExactName": true,
         "NoCleanup": true
       }]
-    },
+    }
   },
   "Dependencies": {
     "create-image": ["create-disk"],
