@@ -77,11 +77,10 @@ func main() {
 	var ii sync.Map
 	var wg sync.WaitGroup
 	for _, at := range ats {
-		at = fmt.Sprintf("%s/%s", prefix, at)
 		wg.Add(1)
 		go func(at string, wg *sync.WaitGroup) {
 			defer wg.Done()
-			value, err := getAttribute(service, *project, *zone, *instance, at)
+			value, err := getAttribute(service, *project, *zone, *instance, fmt.Sprintf("%s/%s", prefix, at))
 			if err != nil {
 				log.Printf("error getting attribute %q: %v", at, err)
 				return
