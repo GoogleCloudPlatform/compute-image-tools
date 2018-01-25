@@ -39,6 +39,8 @@ var (
 	instance = flag.String("instance", "", "GCE Instance")
 )
 
+const prefix = "guestInventory"
+
 func getAttribute(service *compute.Service, p, z, i, at string) (string, error) {
 	ga, err := service.Instances.GetGuestAttributes(p, z, i).VariableKey(at).Do()
 	if err != nil {
@@ -75,6 +77,7 @@ func main() {
 	var ii sync.Map
 	var wg sync.WaitGroup
 	for _, at := range ats {
+		at = fmt.Sprintf("%s/%s", prefix, at)
 		wg.Add(1)
 		go func(at string, wg *sync.WaitGroup) {
 			defer wg.Done()
