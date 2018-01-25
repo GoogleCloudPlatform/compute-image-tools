@@ -4,43 +4,49 @@
     "test-id": {"Required": true, "Description": "The ID of this test run."}
   },
   "Steps": {
+    "create-network": {
+      "CreateNetworks": [{
+        "Name": "network-${test-id}",
+        "ExactName": true,
+        "NoCleanup": true
+      }]
+    },
     "create-disk": {
-      "CreateDisks": [
-        {
-          "Name": "disk-${test-id}",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "ExactName": true,
-          "NoCleanup": true
-        }
-      ]
+      "CreateDisks": [{
+        "Name": "disk-${test-id}",
+        "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+        "ExactName": true,
+        "NoCleanup": true
+      }]
     },
     "create-image": {
-      "CreateImages": [
-        {
-          "Name": "image-${test-id}",
-          "SourceDisk": "disk-${test-id}",
-          "ExactName": true,
-          "NoCleanup": true
-        }
-      ]
+      "CreateImages": [{
+        "Name": "image-${test-id}",
+        "SourceDisk": "disk-${test-id}",
+        "ExactName": true,
+        "NoCleanup": true
+      }]
     },
     "create-instance": {
-      "CreateInstances": [
-        {
-          "Name": "instance-${test-id}",
-          "Disks": [
-            {
-              "Source": "disk-${test-id}"
-            }
-          ],
-          "ExactName": true,
-          "NoCleanup": true
-        }
-      ]
-    }
+      "CreateInstances": [{
+        "Name": "instance-${test-id}",
+        "Disks": [
+          {
+            "Source": "disk-${test-id}"
+          }
+        ],
+        "NetworkInterfaces": [
+          {
+            "Network": "network-${test-id}"
+          }
+        ],
+        "ExactName": true,
+        "NoCleanup": true
+      }]
+    },
   },
   "Dependencies": {
     "create-image": ["create-disk"],
-    "create-instance": ["create-image"]
+    "create-instance": ["create-image", "create-network"]
   }
 }

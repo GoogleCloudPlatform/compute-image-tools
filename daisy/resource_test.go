@@ -100,7 +100,7 @@ func TestResourceValidate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := tt.r.validate(context.Background(), s)
+		err := tt.r.validate(context.Background(), s, "prefix")
 		if tt.wantErr && err == nil {
 			t.Errorf("%s: should have returned an error but didn't", tt.desc)
 		} else if !tt.wantErr && err != nil {
@@ -124,7 +124,7 @@ func TestResourceValidateWithZone(t *testing.T) {
 
 	for _, tt := range tests {
 		r := Resource{RealName: "goodname", Project: w.Project}
-		err := r.validateWithZone(context.Background(), s, tt.zone)
+		err := r.validateWithZone(context.Background(), s, tt.zone, "prefix")
 		if tt.wantErr && err == nil {
 			t.Errorf("%s: should have returned an error but didn't", tt.desc)
 		} else if !tt.wantErr && err != nil {

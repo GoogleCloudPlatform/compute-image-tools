@@ -19,7 +19,7 @@ import (
 	"log"
 	"sync"
 
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 // DeleteResources deletes GCE resources.
@@ -27,6 +27,7 @@ type DeleteResources struct {
 	Disks     []string `json:",omitempty"`
 	Images    []string `json:",omitempty"`
 	Instances []string `json:",omitempty"`
+	Networks  []string `json:",omitempty"`
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
@@ -43,6 +44,11 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
 	for i, instance := range d.Instances {
 		if instanceURLRgx.MatchString(instance) {
 			d.Instances[i] = extendPartialURL(instance, s.w.Project)
+		}
+	}
+	for i, network := range d.Networks {
+		if networkURLRegex.MatchString(network) {
+			d.Networks[i] = extendPartialURL(network, s.w.Project)
 		}
 	}
 	return nil
@@ -101,6 +107,13 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 	// Image checking.
 	for _, i := range d.Images {
 		if err := s.w.images.regDelete(i, s); d.checkError(err, s.w.Logger) != nil {
+			return err
+		}
+	}
+
+	// Network checking.
+	for _, n := range d.Networks {
+		if err := s.w.networks.regDelete(n, s); d.checkError(err, s.w.Logger) != nil {
 			return err
 		}
 	}
@@ -172,6 +185,21 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 				e <- err
 			}
 		}(d)
+	}
+
+	// Delete disks after instances.
+	for _, n := range d.Networks {
+		wg.Add(1)
+		go func(n string) {
+			defer wg.Done()
+			w.Logger.Printf("DeleteResources: deleting network %q.", n)
+			if err := w.networks.delete(n); err != nil {
+				if err.Type() == resourceDNEError {
+					s.w.Logger.Printf("DeleteResources WARNING: Error deleting network %q: %v", n, err)
+				}
+				e <- err
+			}
+		}(n)
 	}
 
 	go func() {

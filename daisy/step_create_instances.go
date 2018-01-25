@@ -100,21 +100,27 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 	eChan := make(chan dErr)
 	for _, ci := range *c {
 		wg.Add(1)
-		go func(ci *Instance) {
+		go func(i *Instance) {
 			defer wg.Done()
 
-			for _, d := range ci.Disks {
+			for _, d := range i.Disks {
 				if diskRes, ok := w.disks.get(d.Source); ok {
 					d.Source = diskRes.link
 				}
 			}
 
-			w.Logger.Printf("CreateInstances: creating instance %q.", ci.Name)
-			if err := w.ComputeClient.CreateInstance(ci.Project, ci.Zone, &ci.Instance); err != nil {
+			for _, n := range i.NetworkInterfaces {
+				if netRes, ok := w.networks.get(n.Network); ok {
+					n.Network = netRes.link
+				}
+			}
+
+			w.Logger.Printf("CreateInstances: creating instance %q.", i.Name)
+			if err := w.ComputeClient.CreateInstance(i.Project, i.Zone, &i.Instance); err != nil {
 				eChan <- newErr(err)
 				return
 			}
-			go logSerialOutput(ctx, w, ci.Name, 1, 3*time.Second)
+			go logSerialOutput(ctx, w, i.Name, 1, 3*time.Second)
 		}(ci)
 	}
 

@@ -1,0 +1,33 @@
+{
+  "Name": "create-networks-test",
+  "Vars": {
+    "about-this-test": { "Description": "This test creates and uses a network." }
+  },
+  "Steps": {
+    "create-network": {
+      "CreateNetworks": [{
+        "Name": "network",
+        "IPv4Range": "192.168.0.0/16"
+      }]
+    },
+    "create-instance": {
+      "CreateInstances": [{
+        "Name": "instance",
+        "Disks": [{
+          "InitializeParams": {
+            "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+            "DiskType": "pd-ssd"
+          }
+        }],
+        "NetworkInterfaces": [
+          {
+            "Network": "network"
+          }
+        ]
+      }]
+    }
+  },
+  "Dependencies": {
+    "create-instance": ["create-network"]
+  }
+}

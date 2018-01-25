@@ -61,32 +61,43 @@ func (r *Resource) populate(ctx context.Context, s *Step, name, zone string) (st
 	return r.RealName, strOr(zone, s.w.Zone), errs
 }
 
-func (r *Resource) validate(ctx context.Context, s *Step) dErr {
+func (r *Resource) validate(ctx context.Context, s *Step, errPrefix string) dErr {
 	var errs dErr
 
 	if !checkName(r.RealName) {
-		return errf("cannot create disk: bad name: %q", r.RealName)
+		return errf("%s: bad name: %q", errPrefix, r.RealName)
 	}
 
 	if exists, err := projectExists(s.w.ComputeClient, r.Project); err != nil {
-		errs = addErrs(errs, errf("cannot create instance %q: bad project lookup: %q, error: %v", r.daisyName, r.Project, err))
+		errs = addErrs(errs, errf("%s: bad project lookup: %q, error: %v", errPrefix, r.Project, err))
 	} else if !exists {
-		errs = addErrs(errs, errf("cannot create instance %q: project does not exist: %q", r.daisyName, r.Project))
+		errs = addErrs(errs, errf("%s: project does not exist: %q", errPrefix, r.Project))
 	}
 	return errs
 }
 
-func (r *Resource) validateWithZone(ctx context.Context, s *Step, z string) dErr {
-	errs := r.validate(ctx, s)
+func (r *Resource) validateWithZone(ctx context.Context, s *Step, z, errPrefix string) dErr {
+	errs := r.validate(ctx, s, errPrefix)
 	if z == "" {
-		errs = addErrs(errs, errf("cannot create instance %q: no zone provided in step or workflow", r.daisyName))
+		errs = addErrs(errs, errf("%s: no zone provided in step or workflow", errPrefix))
 	}
 	if exists, err := zoneExists(s.w.ComputeClient, r.Project, z); err != nil {
-		errs = addErrs(errs, errf("cannot create instance %q: bad zone lookup: %q, error: %v", r.daisyName, z, err))
+		errs = addErrs(errs, errf("%s: bad zone lookup: %q, error: %v", errPrefix, z, err))
 	} else if !exists {
-		errs = addErrs(errs, errf("cannot create instance %q: zone does not exist: %q", r.daisyName, z))
+		errs = addErrs(errs, errf("%s: zone does not exist: %q", errPrefix, z))
 	}
 	return errs
+}
+
+func defaultDescription(resourceTypeName, wfName, user string) string {
+	return fmt.Sprintf("%s created by Daisy in workflow %q on behalf of %s.", resourceTypeName, wfName, user)
+}
+
+func extendPartialURL(url, project string) string {
+	if strings.HasPrefix(url, "projects") {
+		return url
+	}
+	return fmt.Sprintf("projects/%s/%s", project, url)
 }
 
 func resourceExists(client compute.Client, url string) (bool, dErr) {
@@ -111,13 +122,6 @@ func resourceExists(client compute.Client, url string) (bool, dErr) {
 		return networkExists(client, result["project"], result["network"])
 	}
 	return false, errf("unknown resource type: %q", url)
-}
-
-func extendPartialURL(url, project string) string {
-	if strings.HasPrefix(url, "projects") {
-		return url
-	}
-	return fmt.Sprintf("projects/%s/%s", project, url)
 }
 
 func resourceNameHelper(name string, w *Workflow, exactName bool) string {

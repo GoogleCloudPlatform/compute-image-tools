@@ -175,6 +175,10 @@ func TestStepImpl(t *testing.T) {
 			reflect.TypeOf(&CreateInstances{}),
 		},
 		{
+			Step{CreateNetworks: &CreateNetworks{}},
+			reflect.TypeOf(&CreateNetworks{}),
+		},
+		{
 			Step{CopyGCSObjects: &CopyGCSObjects{}},
 			reflect.TypeOf(&CopyGCSObjects{}),
 		},
