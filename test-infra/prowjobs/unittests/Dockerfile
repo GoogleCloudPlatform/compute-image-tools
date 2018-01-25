@@ -14,7 +14,7 @@
 FROM debian:stretch-slim
 
 ENV CODECOV_TOKEN /etc/codecov/token
-ENV GOVERSION 1.9.2
+ENV GOVERSION 1.9.3
 ENV GOROOT /goroot
 ENV GOPATH /gopath
 ENV PATH ${GOROOT}/bin:${GOPATH}/bin:${PATH}

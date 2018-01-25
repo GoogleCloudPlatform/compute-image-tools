@@ -57,6 +57,11 @@ periodics:
     - image: gcr.io/compute-image-tools-test/daisy-e2e:latest
       args:
       - "--tests=e2e_tests"
+      env:
+      - name: REPO_OWNER
+        value: GoogleCloudPlatform
+      - name: REPO_NAME
+        value: compute-image-tools
       volumeMounts:
       - name: compute-image-tools-test-service-account
         mountPath: /etc/compute-image-tools-test-service-account

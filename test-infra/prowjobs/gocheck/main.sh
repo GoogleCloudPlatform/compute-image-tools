@@ -16,13 +16,13 @@
 set -e
 set -x
 
-git clone https://github.com/$REPO_OWNER/$REPO_NAME /repo
+git clone https://github.com/${REPO_OWNER}/${REPO_NAME} /repo
 cd /repo
 
 # Pull PR if this is a PR.
-if [ ! -z "$PULL_NUMBER" ]; then
-  git fetch origin pull/$PULL_NUMBER/head:$PULL_NUMBER
-  git checkout $PULL_NUMBER
+if [ ! -z "${PULL_NUMBER}" ]; then
+  git fetch origin pull/${PULL_NUMBER}/head:${PULL_NUMBER}
+  git checkout ${PULL_NUMBER}
 fi
 
 set +e
@@ -30,7 +30,7 @@ set +e
 golint -set_exit_status ./...
 GOLINT_RET=$?
 GOFMT_OUT=$(gofmt -l $(find . -type f -name "*.go") 2>&1)
-if [ -z "$GOFMT_OUT" ]; then
+if [ -z "${GOFMT_OUT}" ]; then
   GOFMT_RET=0
 else
   GOFMT_RET=1
@@ -44,16 +44,16 @@ set +x
 sync
 
 # Print results and return.
-if [ $GOLINT_RET != 0 ]; then
-  echo "'golint ./...' returned $GOLINT_RET"
+if [ ${GOLINT_RET} != 0 ]; then
+  echo "'golint ./...' returned ${GOLINT_RET}"
 fi
-if [ $GOFMT_RET != 0 ]; then
-  echo "'gofmt -l' returned $GOFMT_RET"
+if [ ${GOFMT_RET} != 0 ]; then
+  echo "'gofmt -l' returned ${GOFMT_RET}"
 fi
-if [ $GOVET_RET != 0 ]; then
-  echo "'go vet ./...' returned $GOVET_RET"
+if [ ${GOVET_RET} != 0 ]; then
+  echo "'go vet ./...' returned ${GOVET_RET}"
 fi
-if [ $GOLINT_RET != 0 ] || [ $GOFMT_RET != 0 ] || [ $GOVET_RET != 0 ]; then
+if [ ${GOLINT_RET} != 0 ] || [ ${GOFMT_RET} != 0 ] || [ ${GOVET_RET} != 0 ]; then
   exit 1
 fi
 exit 0
