@@ -58,7 +58,8 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "export success",
-            "FailureMatch": "export failed"
+            "FailureMatch": "ExportFailed:",
+            "StatusMatch": "GCEExport:"
           }
         }
       ]

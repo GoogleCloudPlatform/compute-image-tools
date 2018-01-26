@@ -118,11 +118,11 @@ func main() {
 	tw := tar.NewWriter(io.MultiWriter(&rp, gw))
 
 	ls := splitLicenses(*licenses)
-	fmt.Printf("Disk %s is %s, compressed size will most likely be much smaller.\n", *disk, humanize.IBytes(uint64(size)))
+	fmt.Printf("GCEExport: Disk %s is %s, compressed size will most likely be much smaller.\n", *disk, humanize.IBytes(uint64(size)))
 	if ls != nil {
-		fmt.Printf("Exporting disk with licenses %q to gs://%s/%s.\n", ls, bkt, obj)
+		fmt.Printf("GCEExport: Exporting disk with licenses %q to gs://%s/%s.\n", ls, bkt, obj)
 	} else {
-		fmt.Printf("Exporting disk to gs://%s/%s.\n", bkt, obj)
+		fmt.Printf("GCEExport: Exporting disk to gs://%s/%s.\n", bkt, obj)
 	}
 
 	if !*noconfirm {
@@ -136,7 +136,7 @@ func main() {
 		}
 	}
 
-	fmt.Println("Beginning copy...")
+	fmt.Println("GCEExport: Beginning copy...")
 	start := time.Now()
 
 	if ls != nil {
@@ -179,7 +179,7 @@ func main() {
 			upldSpd := humanize.IBytes(uint64((up.total - oldUpload) / (since - oldSince)))
 			uploadTotal := humanize.IBytes(uint64(up.total))
 			readTotal := humanize.IBytes(uint64(rp.total))
-			fmt.Printf("Read %s of %s (%s/sec),", readTotal, totalSize, diskSpd)
+			fmt.Printf("GCEExport: Read %s of %s (%s/sec),", readTotal, totalSize, diskSpd)
 			fmt.Printf(" total uploaded size: %s (%s/sec)\n", uploadTotal, upldSpd)
 			oldUpload = up.total
 			oldRead = rp.total
@@ -204,5 +204,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Finished export in", time.Since(start))
+	fmt.Println("GCEExport: Finished export in", time.Since(start))
 }
