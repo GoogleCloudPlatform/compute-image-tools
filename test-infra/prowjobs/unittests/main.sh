@@ -20,13 +20,15 @@ export GOCOVPATH=/gocov.txt
 export PYCOVPATH=/pycov.txt
 
 # Check this out in GOPATH since go package handling requires it to be here.
-git clone https://github.com/$REPO_OWNER/$REPO_NAME $GOPATH/src/github.com/$REPO_OWNER/$REPO_NAME
-cd $GOPATH/src/github.com/$REPO_OWNER/$REPO_NAME
+REPO_PATH=${GOPATH}/src/github.com/${REPO_OWNER}/${REPO_NAME}
+mkdir -p ${REPO_PATH}
+git clone https://github.com/${REPO_OWNER}/${REPO_NAME} ${REPO_PATH}
+cd ${REPO_PATH}
 
 # Pull PR if this is a PR.
-if [ ! -z "$PULL_NUMBER" ]; then
-  git fetch origin pull/$PULL_NUMBER/head:$PULL_NUMBER
-  git checkout $PULL_NUMBER
+if [ ! -z "${PULL_NUMBER}" ]; then
+  git fetch origin pull/${PULL_NUMBER}/head:${PULL_NUMBER}
+  git checkout ${PULL_NUMBER}
 fi
 
 set +e
@@ -36,12 +38,12 @@ set +e
 RET=0
 find . -type f -name "unittests.sh" | while read script; do
   # Change to the containing directory and run script.
-  cd $(dirname $script)
-  ./$(basename $script)
+  cd $(dirname ${script})
+  ./$(basename ${script})
 
   UNITTEST_RET=$?
-  if [ $RET == 0 ]; then
-    RET=$UNITTEST_RET
+  if [ ${RET} == 0 ]; then
+    RET=${UNITTEST_RET}
   fi
 
   popd
@@ -49,15 +51,19 @@ done
 
 set +x
 
+if [ ${RET} != 0 ]; then
+    exit ${RET}
+fi
+
 # Upload coverage results to Codecov.
-CODEV_COV_ARGS="-v -t $(cat $CODECOV_TOKEN) -B master -C $(git rev-parse HEAD)"
-if [ ! -z "$PULL_NUMBER" ]; then
-  CODEV_COV_ARGS="$CODEV_COV_ARGS -P $PULL_NUMBER"
+CODEV_COV_ARGS="-v -t $(cat ${CODECOV_TOKEN}) -B master -C $(git rev-parse HEAD)"
+if [ ! -z "${PULL_NUMBER}" ]; then
+  CODEV_COV_ARGS="${CODEV_COV_ARGS} -P ${PULL_NUMBER}"
 fi
-if [ -e $GOCOVPATH ]; then
-  bash <(curl -s https://codecov.io/bash) -f $GOCOVPATH -F go_unittests $CODEV_COV_ARGS
+if [ -e ${GOCOVPATH} ]; then
+  bash <(curl -s https://codecov.io/bash) -f ${GOCOVPATH} -F go_unittests ${CODEV_COV_ARGS}
 fi
-if [ -e $PYCOVPATH ]; then
-  bash <(curl -s https://codecov.io/bash) -f $PYCOVPATH -F py_unittests $CODEV_COV_ARGS
+if [ -e ${PYCOVPATH} ]; then
+  bash <(curl -s https://codecov.io/bash) -f ${PYCOVPATH} -F py_unittests ${CODEV_COV_ARGS}
 fi
-exit $RET
+exit ${RET}
