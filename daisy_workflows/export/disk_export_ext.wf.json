@@ -1,5 +1,5 @@
 {
-  "Name": "disk-export",
+  "Name": "disk-export-ext",
   "Vars": {
     "source_disk": {
       "Required": true,
@@ -9,8 +9,9 @@
       "Required": true,
       "Description": "GCS path to export image to"
     },
-    "licenses": {
-      "Description": "list of GCE licenses to record in the exported image"
+    "format": {
+      "Required": true,
+      "Description": "Format to export disk as"
     },
     "export_instance_disk_image": {
       "Value": "projects/debian-cloud/global/images/family/debian-9",
@@ -22,7 +23,7 @@
     }
   },
   "Sources": {
-    "${NAME}_export_disk.sh": "./export_disk.sh"
+    "${NAME}_export_disk_ext.sh": "./export_disk_ext.sh"
   },
   "Steps": {
     "setup-disks": {
@@ -42,11 +43,11 @@
           "Disks": [{"Source": "disk-${NAME}"}, {"Source": "${source_disk}", "Mode": "READ_ONLY"}],
           "MachineType": "n1-highcpu-4",
           "Metadata": {
-            "gcs-path": "${OUTSPATH}/${NAME}.tar.gz",
-            "licenses": "${licenses}"
+            "gcs-path": "${OUTSPATH}/${NAME}",
+            "format": "${format}"
           },
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
-          "StartupScript": "${NAME}_export_disk.sh"
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control"],
+          "StartupScript": "${NAME}_export_disk_ext.sh"
         }
       ]
     },
@@ -73,7 +74,7 @@
       "Timeout": "30m",
       "CopyGCSObjects": [
         {
-          "Source": "${OUTSPATH}/${NAME}.tar.gz",
+          "Source": "${OUTSPATH}/${NAME}",
           "Destination": "${destination}"
         }
       ]

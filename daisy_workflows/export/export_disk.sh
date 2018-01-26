@@ -13,13 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function exit_error
-{
-  echo "export failed"
-  exit 1
-}
-
-wget --quiet https://storage.googleapis.com/compute-image-tools/release/linux/gce_export || exit_error
+wget --quiet https://storage.googleapis.com/compute-image-tools/release/linux/gce_export
+if [ $? -ne 0 ]; then
+  echo "ExportFailed: Unable to download gce_export."
+fi
 chmod +x ./gce_export
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
@@ -31,6 +28,9 @@ if [[ -n $LICENSES ]]; then
   ./gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y || exit_error
 else
   ./gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y || exit_error
+fi
+if [ $? -ne 0 ]; then
+  echo "ExportFailed: Unable to install gcsfuse or qemu-utils."
 fi
 
 echo "export success"

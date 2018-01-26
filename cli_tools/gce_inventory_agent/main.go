@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	reportURL = "http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes"
+	reportURL = "http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/guestInventory"
 )
 
 type instanceInventory struct {

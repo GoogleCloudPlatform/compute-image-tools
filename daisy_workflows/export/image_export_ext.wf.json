@@ -1,0 +1,52 @@
+{
+  "Name": "image-export-ext",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "URL of the image to export"
+    },
+    "destination": {
+      "Required": true,
+      "Description": "GCS path to export image to"
+    },
+    "format": {
+      "Required": true,
+      "Description": "Format to export image as"
+    },
+    "export_instance_disk_image": {
+      "Value": "projects/debian-cloud/global/images/family/debian-9",
+      "Description": "image to use for the exporter instance"
+    },
+    "export_instance_disk_size": {
+      "Value": "200",
+      "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
+    }
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-${NAME}",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "export-disk": {
+      "Timeout": "90m",
+      "IncludeWorkflow": {
+        "Path": "./disk_export_ext.wf.json",
+        "Vars": {
+          "source_disk": "disk-${NAME}",
+          "destination": "${destination}",
+          "format": "${format}",
+          "export_instance_disk_image": "${export_instance_disk_image}",
+          "export_instance_disk_size": "${export_instance_disk_size}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "export-disk": ["setup-disks"]
+  }
+}
