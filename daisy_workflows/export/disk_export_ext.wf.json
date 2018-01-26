@@ -1,0 +1,89 @@
+{
+  "Name": "disk-export-ext",
+  "Vars": {
+    "source_disk": {
+      "Required": true,
+      "Description": "disk to export"
+    },
+    "destination": {
+      "Required": true,
+      "Description": "GCS path to export image to"
+    },
+    "format": {
+      "Required": true,
+      "Description": "Format to export disk as"
+    },
+    "export_instance_disk_image": {
+      "Value": "projects/debian-cloud/global/images/family/debian-9",
+      "Description": "image to use for the exporter instance"
+    },
+    "export_instance_disk_size": {
+      "Value": "200",
+      "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
+    }
+  },
+  "Sources": {
+    "${NAME}_export_disk_ext.sh": "./export_disk_ext.sh"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "disk-${NAME}",
+          "SourceImage": "${export_instance_disk_image}",
+          "SizeGb": "${export_instance_disk_size}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run-${NAME}": {
+      "CreateInstances": [
+        {
+          "Name": "inst-${NAME}",
+          "Disks": [{"Source": "disk-${NAME}"}, {"Source": "${source_disk}", "Mode": "READ_ONLY"}],
+          "MachineType": "n1-highcpu-4",
+          "Metadata": {
+            "gcs-path": "${OUTSPATH}/${NAME}",
+            "format": "${format}"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control"],
+          "StartupScript": "${NAME}_export_disk_ext.sh"
+        }
+      ]
+    },
+    "wait-for-inst-${NAME}": {
+      "Timeout": "60m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-${NAME}",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "export success",
+            "FailureMatch": "ExportFailed:",
+            "StatusMatch": "GCEExport:"
+          }
+        }
+      ]
+    },
+    "delete-inst": {
+      "DeleteResources": {
+        "Instances": ["inst-${NAME}"]
+      }
+    },
+    "copy-image-object": {
+      "Timeout": "30m",
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/${NAME}",
+          "Destination": "${destination}"
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "run-${NAME}": ["setup-disks"],
+    "wait-for-inst-${NAME}": ["run-${NAME}"],
+    "delete-inst": ["wait-for-inst-${NAME}"],
+    "copy-image-object": ["wait-for-inst-${NAME}"]
+  }
+}
