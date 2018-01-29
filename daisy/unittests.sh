@@ -14,13 +14,18 @@
 # limitations under the License.
 
 set -x
-set -e
 
+RET=0
 go get -t ./...
 for D in $(go list ./... | grep -v vendor); do
   go test $D -race -coverprofile=profile.out -covermode=atomic -v 2>&1
+  PARTRET=$?
+  if [ ${RET} == 0 ]; then
+    RET=${PARTRET}
+  fi
   if [ -f profile.out ]; then
     cat profile.out >> $GOCOVPATH
     rm profile.out
   fi
 done
+exit $RET

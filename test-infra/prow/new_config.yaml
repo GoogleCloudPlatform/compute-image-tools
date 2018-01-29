@@ -23,8 +23,8 @@ presubmits:
  - name: presubmit-unittests
    agent: kubernetes
    always_run: true
-   trigger: "(?m)^/unit(tests)?$"
-   rerun_command: "/unit"
+   trigger: "(?m)^/unittests$"
+   rerun_command: "/unittests"
    context: prow/presubmit/unittests
    spec:
     containers:
@@ -41,12 +41,12 @@ presubmits:
    agent: kubernetes
    always_run: true
    run_if_changed: ".*\\.go$"
-   trigger: "(?m)/gocheck$"
+   trigger: "(?m)^/gocheck$"
    rerun_command: "/gocheck"
    context: prow/presubmit/gocheck
    spec:
     containers:
-    - image: gcr.io/compute-image-tools/test/gocheck:latest
+    - image: gcr.io/compute-image-tools-test/gocheck:latest
 
 periodics:
  - interval: 6h
