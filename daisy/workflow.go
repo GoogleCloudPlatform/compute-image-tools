@@ -394,7 +394,7 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
-	// We do this here, and not in validate, as embeded startup scripts could
+	// We do this here, and not in validate, as embedded startup scripts could
 	// have what we think are daisy variables.
 	if err := w.validateVarsSubbed(); err != nil {
 		return err
