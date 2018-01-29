@@ -17,16 +17,20 @@ package daisy
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
+
+var sourceVarRgx = regexp.MustCompile(`\$\{SOURCE:([^}]+)}`)
 
 func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) dErr {
 	it := w.StorageClient.Bucket(bkt).Objects(ctx, &storage.Query{Prefix: prefix})
@@ -50,6 +54,18 @@ func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) dE
 func (w *Workflow) sourceExists(s string) bool {
 	_, ok := w.Sources[s]
 	return ok
+}
+
+func (w *Workflow) sourceContent(s string) (string, error) {
+	src, ok := w.Sources[s]
+	if !ok {
+		return "", errf("source not found: %s", s)
+	}
+	d, err := ioutil.ReadFile(src)
+	if err != nil {
+		return "", newErr(err)
+	}
+	return string(d), nil
 }
 
 func (w *Workflow) uploadFile(ctx context.Context, src, obj string) dErr {

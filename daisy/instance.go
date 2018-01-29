@@ -181,6 +181,19 @@ func (i *Instance) populateMetadata(w *Workflow) dErr {
 		i.Metadata["windows-startup-script-url"] = i.StartupScript
 	}
 	for k, v := range i.Metadata {
+		if match := sourceVarRgx.FindStringSubmatch(v); match != nil {
+			if len(match) < 1 || !w.sourceExists(match[1]) {
+				return errf("bad value for Metadata key %s, source not found for expansion: %s", k, match[0])
+			}
+			var err error
+			v, err = w.sourceContent(match[1])
+			if err != nil {
+				return errf("error reading source content for %s: %v", match[1], err)
+			}
+			// Set the original metadata entry so printing the workflow makes
+			// sense.
+			i.Metadata[k] = v
+		}
 		vCopy := v
 		i.Instance.Metadata.Items = append(i.Instance.Metadata.Items, &compute.MetadataItems{Key: k, Value: &vCopy})
 	}

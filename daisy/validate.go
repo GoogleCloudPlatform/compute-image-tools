@@ -66,11 +66,6 @@ func (w *Workflow) validateRequiredFields() dErr {
 }
 
 func (w *Workflow) validate(ctx context.Context) dErr {
-	// Check for unsubstituted wfVar.
-	if err := w.validateVarsSubbed(); err != nil {
-		return err
-	}
-
 	return w.validateDAG(ctx)
 }
 
@@ -113,7 +108,9 @@ func (w *Workflow) validateVarsSubbed() dErr {
 		switch v.Interface().(type) {
 		case string:
 			if match := unsubbedVarRgx.FindStringSubmatch(v.String()); match != nil {
-				return errf("Unresolved var %q found in %q", match[0], v.String())
+				if !sourceVarRgx.MatchString(v.String()) {
+					return errf("Unresolved var %q found in %q", match[0], v.String())
+				}
 			}
 		}
 		return nil
