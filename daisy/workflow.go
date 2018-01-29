@@ -399,6 +399,11 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 	if err := w.validateVarsSubbed(); err != nil {
 		return err
 	}
+
+	if err := w.substituteSourceVars(reflect.ValueOf(w).Elem()); err != nil {
+		return err
+	}
+
 	w.populateLogger(ctx)
 
 	// Run populate on each step.

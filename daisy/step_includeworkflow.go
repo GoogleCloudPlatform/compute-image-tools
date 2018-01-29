@@ -87,6 +87,10 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 		return err
 	}
 
+	if err := i.Workflow.substituteSourceVars(reflect.ValueOf(i.Workflow).Elem()); err != nil {
+		return err
+	}
+
 	i.Workflow.populateLogger(ctx)
 
 	for name, st := range i.Workflow.Steps {
