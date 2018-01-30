@@ -15,18 +15,23 @@
 package daisy
 
 import (
+	"bytes"
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
+
+var sourceVarRgx = regexp.MustCompile(`\$\{SOURCE:([^}]+)}`)
 
 func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) dErr {
 	it := w.StorageClient.Bucket(bkt).Objects(ctx, &storage.Query{Prefix: prefix})
@@ -50,6 +55,43 @@ func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) dE
 func (w *Workflow) sourceExists(s string) bool {
 	_, ok := w.Sources[s]
 	return ok
+}
+
+func (w *Workflow) sourceContent(ctx context.Context, s string) (string, error) {
+	src, ok := w.Sources[s]
+	if !ok {
+		return "", errf("source not found: %s", s)
+	}
+	// Try GCS file first.
+	if bkt, objPath, err := splitGCSPath(src); err == nil {
+		if objPath == "" || strings.HasSuffix(objPath, "/") {
+			return "", errf("source %s appears to be a GCS 'bucket'", src)
+
+		}
+		src := w.StorageClient.Bucket(bkt).Object(objPath)
+		r, err := src.NewReader(ctx)
+		if err != nil {
+			return "", errf("error reading from file %s: %v", src, err)
+		}
+		defer r.Close()
+
+		if r.Size() > 1024 {
+			return "", errf("file size is too large %s: %d", src, r.Size())
+		}
+
+		var buf bytes.Buffer
+		if _, err := io.Copy(&buf, r); err != nil {
+			return "", errf("error reading from file %s: %v", src, err)
+		}
+
+		return buf.String(), nil
+	}
+	// Fall back to local read.
+	d, err := ioutil.ReadFile(src)
+	if err != nil {
+		return "", newErr(err)
+	}
+	return string(d), nil
 }
 
 func (w *Workflow) uploadFile(ctx context.Context, src, obj string) dErr {
