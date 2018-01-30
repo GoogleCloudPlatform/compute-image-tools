@@ -598,3 +598,26 @@ out of convenience. Here is the exhaustive list of autovars:
 | LOGSPATH | Equivalent to ${SCRATCHPATH}/logs. |
 | OUTSPATH | Equivalent to ${SCRATCHPATH}/outs. |
 | USERNAME | Username of the user running the workflow. |
+
+
+#### Source Vars
+Any fles set in sources can have their contents injected into a workflow by
+using the `SOURCE:my_source` variable. This is useful for embedding a script
+or configuration into instance metadata.
+```json
+{
+  "Sources": {
+    "my_source.sh": "./path/to/my/source.sh"
+  },
+  "Steps":  
+    "step1": {
+      "CreateInstances": [
+        {
+          "Name": "instance1",
+          ...
+          "Metadata": {"my-script": "${SOURCE:my_source.sh}"}
+        }
+      ]
+    }
+  }
+}

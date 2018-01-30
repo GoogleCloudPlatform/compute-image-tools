@@ -15,6 +15,7 @@
 package daisy
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/ioutil"
@@ -56,11 +57,36 @@ func (w *Workflow) sourceExists(s string) bool {
 	return ok
 }
 
-func (w *Workflow) sourceContent(s string) (string, error) {
+func (w *Workflow) sourceContent(ctx context.Context, s string) (string, error) {
 	src, ok := w.Sources[s]
 	if !ok {
 		return "", errf("source not found: %s", s)
 	}
+	// Try GCS file first.
+	if bkt, objPath, err := splitGCSPath(src); err == nil {
+		if objPath == "" || strings.HasSuffix(objPath, "/") {
+			return "", errf("source %s appears to be a GCS 'bucket'", src)
+
+		}
+		src := w.StorageClient.Bucket(bkt).Object(objPath)
+		r, err := src.NewReader(ctx)
+		if err != nil {
+			return "", errf("error reading from file %s: %v", src, err)
+		}
+		defer r.Close()
+
+		if r.Size() > 1024 {
+			return "", errf("file size is too large %s: %d", src, r.Size())
+		}
+
+		var buf bytes.Buffer
+		if _, err := io.Copy(&buf, r); err != nil {
+			return "", errf("error reading from file %s: %v", src, err)
+		}
+
+		return buf.String(), nil
+	}
+	// Fall back to local read.
 	d, err := ioutil.ReadFile(src)
 	if err != nil {
 		return "", newErr(err)

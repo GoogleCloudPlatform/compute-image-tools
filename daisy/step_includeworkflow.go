@@ -87,7 +87,7 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 		return err
 	}
 
-	if err := i.Workflow.substituteSourceVars(reflect.ValueOf(i.Workflow).Elem()); err != nil {
+	if err := i.Workflow.substituteSourceVars(ctx, reflect.ValueOf(i.Workflow).Elem()); err != nil {
 		return err
 	}
 

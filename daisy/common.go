@@ -15,6 +15,7 @@
 package daisy
 
 import (
+	"context"
 	"math/rand"
 	"os"
 	"os/user"
@@ -120,7 +121,7 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 
 // substituteSourceVars replaces source vars (${SOURCE:xxxx}) with the sources
 // content.
-func (w *Workflow) substituteSourceVars(v reflect.Value) dErr {
+func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) dErr {
 	traverseData(v, func(val reflect.Value) dErr {
 		switch val.Interface().(type) {
 		case string:
@@ -128,7 +129,7 @@ func (w *Workflow) substituteSourceVars(v reflect.Value) dErr {
 				if len(match) < 1 || !w.sourceExists(match[1]) {
 					return errf("source not found for expansion: %s", match[0])
 				}
-				sv, err := w.sourceContent(match[1])
+				sv, err := w.sourceContent(ctx, match[1])
 				if err != nil {
 					return errf("error reading source content for %s: %v", match[1], err)
 				}

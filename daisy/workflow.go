@@ -400,7 +400,7 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 		return err
 	}
 
-	if err := w.substituteSourceVars(reflect.ValueOf(w).Elem()); err != nil {
+	if err := w.substituteSourceVars(ctx, reflect.ValueOf(w).Elem()); err != nil {
 		return err
 	}
 
