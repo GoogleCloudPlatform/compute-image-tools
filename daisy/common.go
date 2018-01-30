@@ -122,7 +122,7 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 // substituteSourceVars replaces source vars (${SOURCE:xxxx}) with the sources
 // content.
 func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) dErr {
-	traverseData(v, func(val reflect.Value) dErr {
+	return traverseData(v, func(val reflect.Value) dErr {
 		switch val.Interface().(type) {
 		case string:
 			if match := sourceVarRgx.FindStringSubmatch(val.String()); match != nil {
@@ -138,7 +138,6 @@ func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) dE
 		}
 		return nil
 	})
-	return nil
 }
 
 // traverseData traverses complex data structures and runs

@@ -15,6 +15,7 @@
 package daisy
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -124,6 +125,55 @@ func TestStrOr(t *testing.T) {
 		result := strOr(tt.s, tt.ss...)
 		if result != tt.expected {
 			t.Errorf("%s: wanted %q, got %q", tt.desc, tt.expected, result)
+		}
+	}
+}
+
+func TestSubstituteSourceVars(t *testing.T) {
+	type test struct {
+		String string
+	}
+
+	tests := []struct {
+		got, want test
+		wantErr   bool
+	}{
+		{ // 0
+			test{String: "${SOURCE:foo}"},
+			test{String: "this is a test"},
+			false,
+		},
+		{ // 1
+			test{String: "${BADSOURCE:foo}"},
+			test{String: "${BADSOURCE:foo}"},
+			false,
+		},
+		{ // 2
+			test{String: "${SOURCE:bar}"},
+			test{String: "${SOURCE:bar}"},
+			true,
+		},
+		{ // 2
+			test{String: "${SOURCE:baz}"},
+			test{String: "${SOURCE:baz}"},
+			true,
+		},
+	}
+
+	ctx := context.Background()
+	w := testWorkflow()
+	w.Sources = map[string]string{"foo": "./test_data/test.txt", "bar": "./test_data/notexist.txt"}
+	for i, tt := range tests {
+		s := reflect.ValueOf(&tt.got).Elem()
+		err := w.substituteSourceVars(ctx, s)
+		if !tt.wantErr && err != nil {
+			t.Fatalf("test %d: %v", i, err)
+		} else if tt.wantErr && err == nil {
+			t.Fatalf("test %d: expected error", i)
+		}
+
+		if diffRes := diff(tt.got, tt.want, 0); diffRes != "" {
+			t.Errorf("test %d: post substituteSourceVars workflow does not match expectation: (-got +want)\n%s", i, diffRes)
 		}
 	}
 }
