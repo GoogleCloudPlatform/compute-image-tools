@@ -1,7 +1,7 @@
 {
   "Name": "centos-7-qcow2-translate-test",
   "Vars": {
-    "source_image": "projects/gce-daisy-test/global/images/centos-7-qcow2-import",
+    "source_image": "projects/compute-image-tools-test/global/images/centos-7-qcow2-import",
     "image_name": "centos-7-translate-test-${ID}"
   },
   "Sources": {
