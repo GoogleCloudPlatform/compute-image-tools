@@ -1,0 +1,44 @@
+{
+  "Name": "img-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Steps": {
+    "test-boot-f1-micro": {
+      "SubWorkflow": {
+        "Path": "./boot.wf.json",
+        "Vars": {
+            "machine_type": "f1-micro",
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-boot-g1-small": {
+      "SubWorkflow": {
+        "Path": "./boot.wf.json",
+        "Vars": {
+            "machine_type": "g1-small",
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-boot-n1-highcpu-64": {
+      "SubWorkflow": {
+        "Path": "./boot.wf.json",
+        "Vars": {
+            "machine_type": "n1-highmem-64",
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-boot-n1-highcpu-64": {
+      "SubWorkflow": {
+        "Path": "./boot.wf.json",
+        "Vars": {
+            "machine_type": "n1-highcpu-64",
+            "source_image": "${source_image}"
+        }
+      }
+    }
+  }
+}
