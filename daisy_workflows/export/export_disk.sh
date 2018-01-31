@@ -13,24 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-wget --quiet https://storage.googleapis.com/compute-image-tools/release/linux/gce_export
-if [ $? -ne 0 ]; then
-  echo "ExportFailed: Unable to download gce_export."
-fi
-chmod +x ./gce_export
-
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
 
-echo "Uploading image."
+echo "GCEExport: Uploading image." > /dev/ttyS0
 if [[ -n $LICENSES ]]; then
-  ./gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y || exit_error
+  docker run --privileged -d --name export gcr.io/compute-image-tools/gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
 else
-  ./gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y || exit_error
+  docker run --privileged -d --name export gcr.io/compute-image-tools/gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y 
 fi
 if [ $? -ne 0 ]; then
-  echo "ExportFailed: Unable to install gcsfuse or qemu-utils."
+  echo "ExportFailed: Failed to export disk source to ${GCS_PATH}." > /dev/ttyS0
+  exit 1
 fi
 
-echo "export success"
+docker logs -f export > /dev/ttyS0
+
+CODE=$(docker inspect export --format='{{.State.ExitCode}}')
+if [ CODE -ne 0 ]; then
+  echo "ExportFailed: Failed to export disk source to ${GCS_PATH}." > /dev/ttyS0
+  exit 1
+fi
+
+echo "export success" > /dev/ttyS0
+sync
