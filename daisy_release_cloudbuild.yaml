@@ -37,6 +37,8 @@ steps:
   args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy:release', '--tag=gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA', '--file=Dockerfile.daisy', '.']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_image_publish:release', '--tag=gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA', '--file=Dockerfile.gce_image_publish', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_export:latest', '--tag=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA', '--file=Dockerfile.gce_export', '.']
 
 # Build Windows binaries.
 - name: 'gcr.io/cloud-builders/go'
@@ -73,3 +75,5 @@ images:
   - 'gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/gce_image_publish:release'
   - 'gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_export:latest'
+  - 'gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA'

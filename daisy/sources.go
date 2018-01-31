@@ -87,6 +87,13 @@ func (w *Workflow) sourceContent(ctx context.Context, s string) (string, error) 
 		return buf.String(), nil
 	}
 	// Fall back to local read.
+	if !filepath.IsAbs(src) {
+		src = filepath.Join(w.workflowDir, src)
+	}
+	if _, err := os.Stat(src); err != nil {
+		return "", typedErr(fileIOError, err)
+	}
+
 	d, err := ioutil.ReadFile(src)
 	if err != nil {
 		return "", newErr(err)
