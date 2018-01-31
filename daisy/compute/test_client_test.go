@@ -43,6 +43,7 @@ func TestTestClient(t *testing.T) {
 		{"retry", func() {
 			c.Retry(func(_ ...googleapi.CallOption) (*compute.Operation, error) { realCalled = true; return nil, nil })
 		}, ""},
+		{"attach disk", func() { c.AttachDisk("a", "b", "c", &compute.AttachedDisk{}) }, "/a/zones/b/instances/c/attachDisk?alt=json"},
 		{"create disk", func() { c.CreateDisk("a", "b", &compute.Disk{}) }, "/a/zones/b/disks?alt=json"},
 		{"create image", func() { c.CreateImage("a", &compute.Image{}) }, "/a/global/images?alt=json"},
 		{"create instance", func() { c.CreateInstance("a", "b", &compute.Instance{}) }, "/a/zones/b/instances?alt=json"},
@@ -100,6 +101,7 @@ func TestTestClient(t *testing.T) {
 		fakeCalled = true
 		return nil, nil
 	}
+	c.AttachDiskFn = func(_, _, _ string, _ *compute.AttachedDisk) error { fakeCalled = true; return nil }
 	c.CreateDiskFn = func(_, _ string, _ *compute.Disk) error { fakeCalled = true; return nil }
 	c.CreateImageFn = func(_ string, _ *compute.Image) error { fakeCalled = true; return nil }
 	c.CreateInstanceFn = func(_, _ string, _ *compute.Instance) error { fakeCalled = true; return nil }

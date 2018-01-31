@@ -31,6 +31,7 @@ import (
 
 // Client is a client for interacting with Google Cloud Compute.
 type Client interface {
+	AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error
 	CreateDisk(project, zone string, d *compute.Disk) error
 	CreateImage(project string, i *compute.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
@@ -236,6 +237,16 @@ func (c *client) Retry(f func(opts ...googleapi.CallOption) (*compute.Operation,
 		}
 	}
 	return
+}
+
+// AttachDisk attaches a GCE persistent disk to an instance.
+func (c *client) AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error {
+	op, err := c.Retry(c.raw.Instances.AttachDisk(project, zone, instance, d).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.operationsWait(project, zone, op.Name)
 }
 
 // CreateDisk creates a GCE persistent disk.
