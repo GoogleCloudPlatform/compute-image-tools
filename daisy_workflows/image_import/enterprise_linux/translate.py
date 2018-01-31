@@ -23,6 +23,7 @@ use_rhel_gce_license: True if GCE RHUI package should be installed
 """
 
 import logging
+import os
 
 import utils
 
@@ -107,6 +108,48 @@ def DistroSpecific(g):
       g.write_append(
           '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
       g.command(['yum', '-y', 'install', 'google-cloud-sdk'])
+    if el_release == '6':
+      if 'CentOS' in g.cat('/etc/redhat-release'):
+        logging.info('Installing CentOS SCL.')
+        g.command(['rm', '-f', '/etc/yum.repos.d/CentOS-SCL.repo'])
+        g.command(['yum', '-y', 'install', 'centos-release-scl'])
+      # Install Google Cloud SDK from the upstream tar and create links for the
+      # python27 SCL environment.
+      logging.info('Installing python27 from SCL.')
+      g.command(['yum', '-y', 'install', 'python27'])
+      g.command(['scl', 'enable', 'python27',
+                 'pip2.7 install --upgrade google_compute_engine'])
+
+      logging.info('Installing Google Cloud SDK from tar.')
+      sdk_base_url = 'https://dl.google.com/dl/cloudsdk/channels/rapid'
+      sdk_base_tar = '%s/google-cloud-sdk.tar.gz' % sdk_base_url
+      tar = utils.HttpGet(sdk_base_tar)
+      g.write('/tmp/google-cloud-sdk.tar.gz', tar)
+      g.command(['tar', 'xzf', '/tmp/google-cloud-sdk.tar.gz', '-C', '/tmp'])
+      sdk_version = g.cat('/tmp/google-cloud-sdk/VERSION').strip()
+
+      logging.info('Getting Cloud SDK Version %s', sdk_version)
+      sdk_version_tar = 'google-cloud-sdk-%s-linux-x86_64.tar.gz' % sdk_version
+      sdk_version_tar_url = '%s/downloads/%s' % (sdk_base_url, sdk_version_tar)
+      logging.info('Getting versioned Cloud SDK tar file from %s', sdk_version_tar_url)
+      tar = utils.HttpGet(sdk_version_tar_url)
+      sdk_version_tar_file = os.path.join('/tmp', sdk_version_tar)
+      g.write(sdk_version_tar_file, tar)
+      g.mkdir_p('/usr/local/share/google')
+      g.command(['tar', 'xzf', sdk_version_tar_file, '-C',
+                 '/usr/local/share/google', '--no-same-owner'])
+
+      logging.info('Creating CloudSDK SCL symlinks.')
+      sdk_bin_path = '/usr/local/share/google/google-cloud-sdk/bin'
+      g.ln_s(os.path.join(sdk_bin_path, 'git-credential-gcloud.sh'),
+             os.path.join('/usr/bin', 'git-credential-gcloud.sh'))
+      for binary in ['bq', 'gcloud', 'gsutil']:
+        binary_path = os.path.join(sdk_bin_path, binary)
+        new_bin_path = os.path.join('/usr/bin', binary)
+        bin_str = '#!/bin/bash\nsource /opt/rh/python27/enable\n%s $@' % binary_path
+        g.write(new_bin_path, bin_str)
+        g.chmod(0755, new_bin_path)
+
     g.command([
         'yum', '-y', 'install', 'google-compute-engine',
         'python-google-compute-engine'])

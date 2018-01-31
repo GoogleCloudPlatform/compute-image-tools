@@ -1,7 +1,7 @@
 {
   "Name": "windows-2008-r2-translate-test",
   "Vars": {
-    "source_image": "projects/gce-daisy-test/global/images/windows-2008-r2-vmware-import",
+    "source_image": "projects/compute-image-tools-test/global/images/windows-2008-r2-vmware-import",
     "image_name": "windows-2008-r2-translate-test-${ID}"
   },
   "Sources": {

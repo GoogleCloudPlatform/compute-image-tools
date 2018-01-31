@@ -22,8 +22,8 @@
     },
     "produce": {
       "CopyGCSObjects": [ {
-        "Source": "gs://gce-daisy-test-resources/test.txt",
-        "Destination": "gs://gce-daisy-test-sandbox/copy-gcs-object-test.txt"
+        "Source": "gs://compute-image-tools-test-resources/test.txt",
+        "Destination": "gs://compute-image-tools-test-sandbox/copy-gcs-object-test.txt"
       } ]
     },
     "consume": {

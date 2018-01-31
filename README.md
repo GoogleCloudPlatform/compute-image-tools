@@ -33,13 +33,13 @@ Prebuilt binaries are available for Windows, and Linux.
 
 Built from the latest GitHub release (all 64bit):
 
-+ [Windows](https://storage.googleapis.com/compute-image-tools/release/windows/gce_image_publish.exe)
-+ [Linux](https://storage.googleapis.com/compute-image-tools/release/linux/gce_image_publish)
++ [Windows](https://storage.googleapis.com/compute-image-tools/release/windows/gce_export.exe)
++ [Linux](https://storage.googleapis.com/compute-image-tools/release/linux/gce_export)
 
 Built from the latest commit to the master branch (all 64bit):
 
-+ [Windows](https://storage.googleapis.com/compute-image-tools/latest/windows/gce_image_publish.exe)
-+ [Linux](https://storage.googleapis.com/compute-image-tools/latest/linux/gce_image_publish)
++ [Windows](https://storage.googleapis.com/compute-image-tools/latest/windows/gce_export.exe)
++ [Linux](https://storage.googleapis.com/compute-image-tools/latest/linux/gce_export)
 
 ## Contributing
 

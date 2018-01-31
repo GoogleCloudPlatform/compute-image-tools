@@ -81,6 +81,16 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 	}
 	substitute(reflect.ValueOf(i.Workflow).Elem(), strings.NewReplacer(replacements...))
 
+	// We do this here, and not in validate, as embedded startup scripts could
+	// have what we think are daisy variables.
+	if err := i.Workflow.validateVarsSubbed(); err != nil {
+		return err
+	}
+
+	if err := i.Workflow.substituteSourceVars(ctx, reflect.ValueOf(i.Workflow).Elem()); err != nil {
+		return err
+	}
+
 	i.Workflow.populateLogger(ctx)
 
 	for name, st := range i.Workflow.Steps {
