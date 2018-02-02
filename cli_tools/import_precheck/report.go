@@ -16,39 +16,39 @@ import (
 	"strings"
 )
 
-type Report struct {
-	Name    string
-	Skipped bool
+type report struct {
+	name    string
+	skipped bool
 	failed  bool
 	logs    []string
 }
 
-func (r *Report) Failed() bool {
+func (r *report) Failed() bool {
 	return r.failed
 }
 
-func (r *Report) Fatal(s string) {
+func (r *report) Fatal(s string) {
 	r.failed = true
 	r.logs = append(r.logs, "FATAL: "+s)
 }
 
-func (r *Report) Info(s string) {
+func (r *report) Info(s string) {
 	r.logs = append(r.logs, "INFO: "+s)
 }
 
-func (r *Report) Warn(s string) {
+func (r *report) Warn(s string) {
 	r.logs = append(r.logs, "WARN: "+s)
 }
 
-func (r *Report) String() string {
+func (r *report) String() string {
 	status := "PASSED"
-	if r.Skipped {
+	if r.skipped {
 		status = "SKIPPED"
 	} else if r.failed {
 		status = "FAILED"
 	}
 
-	title := strings.Join([]string{r.Name, status}, " -- ")
+	title := strings.Join([]string{r.name, status}, " -- ")
 	border := strings.Repeat("#", len(title)+4)
 
 	lines := []string{border, "# " + title + " #", border}

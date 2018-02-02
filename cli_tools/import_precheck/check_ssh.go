@@ -24,16 +24,16 @@ var sshVersions = [][]byte{
 	[]byte("OpenSSH"),
 }
 
-type SSHCheck struct{}
+type sshCheck struct{}
 
-func (c *SSHCheck) GetName() string {
+func (c *sshCheck) getName() string {
 	return "SSH Check"
 }
 
-func (c *SSHCheck) Run() (*Report, error) {
-	r := &Report{Name: c.GetName()}
+func (c *sshCheck) run() (*report, error) {
+	r := &report{name: c.getName()}
 	if runtime.GOOS == "windows" {
-		r.Skipped = true
+		r.skipped = true
 		r.Info("Not applicable on Windows systems.")
 		return r, nil
 	}

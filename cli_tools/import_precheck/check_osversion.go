@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-var OSVERSIONS = map[string][]string{
+var osVersions = map[string][]string{
 	"centos":  {"6", "7"},
 	"debian":  {"8", "9"},
 	"ol":      {"6", "7"},
@@ -26,19 +26,19 @@ var OSVERSIONS = map[string][]string{
 	"windows": {"6.1", "6.3", "10.0"},
 }
 
-type OSVersionCheck struct{}
+type osVersionCheck struct{}
 
-func (c *OSVersionCheck) GetName() string {
+func (c *osVersionCheck) getName() string {
 	return "OS Version Check"
 }
 
-func (c *OSVersionCheck) Run() (*Report, error) {
-	r := &Report{Name: c.GetName()}
+func (c *osVersionCheck) run() (*report, error) {
+	r := &report{name: c.getName()}
 	var versions []string
 	var ok bool
 	r.Info(fmt.Sprintf("OSInfo: %+v", osInfo))
 
-	if versions, ok = OSVERSIONS[osInfo.ShortName]; !ok {
+	if versions, ok = osVersions[osInfo.ShortName]; !ok {
 		r.Fatal(osInfo.ShortName)
 		return r, nil
 	}

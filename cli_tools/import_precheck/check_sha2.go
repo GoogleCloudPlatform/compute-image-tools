@@ -20,19 +20,19 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/packages"
 )
 
-const SHA2WINDOWS2008R2KB = "KB3033929"
-const WINDOWS2008R2ROLLUPKB = "KB3125574"
+const sha2Windows2008R2KB = "KB3033929"
+const windows2008R2RollupKB = "KB3125574"
 
-type SHA2DriverSigningCheck struct{}
+type sha2DriverSigningCheck struct{}
 
-func (s *SHA2DriverSigningCheck) GetName() string {
+func (s *sha2DriverSigningCheck) getName() string {
 	return "SHA2 Driver Signing Check"
 }
 
-func (s *SHA2DriverSigningCheck) Run() (*Report, error) {
-	r := &Report{Name: s.GetName()}
+func (s *sha2DriverSigningCheck) run() (*report, error) {
+	r := &report{name: s.getName()}
 	if runtime.GOOS != "windows" || !strings.Contains(osInfo.Version, "6.1") {
-		r.Skipped = true
+		r.skipped = true
 		r.Info("Only applicable on Windows 2008 systems.")
 		return r, nil
 	}
@@ -43,7 +43,7 @@ func (s *SHA2DriverSigningCheck) Run() (*Report, error) {
 	}
 
 	for _, pkg := range append(pkgs["qfe"], pkgs["wua"]...) {
-		if pkg.Version == SHA2WINDOWS2008R2KB || pkg.Version == WINDOWS2008R2ROLLUPKB {
+		if pkg.Version == sha2Windows2008R2KB || pkg.Version == windows2008R2RollupKB {
 			r.Info(fmt.Sprintf("Windows Update containing SHA2 driver signing support found: %v", pkg))
 			return r, nil
 		}

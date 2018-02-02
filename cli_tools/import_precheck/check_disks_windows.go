@@ -21,14 +21,14 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-type DisksCheck struct{}
+type disksCheck struct{}
 
-func (c *DisksCheck) GetName() string {
+func (c *disksCheck) getName() string {
 	return "Disks Check"
 }
 
-func (c *DisksCheck) Run() (*Report, error) {
-	r := &Report{Name: c.GetName()}
+func (c *disksCheck) run() (*report, error) {
+	r := &report{name: c.GetName()}
 
 	sysRoot := os.Getenv("SYSTEMROOT")
 	rootDrive := sysRoot[:2]
