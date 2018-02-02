@@ -176,7 +176,7 @@ func (dr *diskRegistry) detachHelper(dName, iName string, s *Step) dErr {
 	return nil
 }
 
-// registerAttachment is called by Instance.regCreate and marks a disk as attached to an instance by Step s.
+// registerAttachment is called by Instance.regCreate and AttachDisks.validate and marks a disk as attached to an instance by Step s.
 func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()

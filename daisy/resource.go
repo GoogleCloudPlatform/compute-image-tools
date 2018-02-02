@@ -26,8 +26,7 @@ import (
 // Resource is the base struct for Daisy representation structs for GCE resources.
 // This base struct defines some common user-definable fields, as well as some Daisy bookkeeping fields.
 type Resource struct {
-	// Project to import image into. If this is unset Workflow.Project is
-	// used.
+	// If this is unset Workflow.Project is used.
 	Project string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
 	NoCleanup bool

@@ -46,6 +46,7 @@ func NewTestClient(handleFunc http.HandlerFunc) (*httptest.Server, *TestClient, 
 // TestClient is a Client with overrideable methods.
 type TestClient struct {
 	client
+	AttachDiskFn          func(project, zone, instance string, d *compute.AttachedDisk) error
 	CreateDiskFn          func(project, zone string, d *compute.Disk) error
 	CreateImageFn         func(project string, i *compute.Image) error
 	CreateInstanceFn      func(project, zone string, i *compute.Instance) error
@@ -84,6 +85,14 @@ func (c *TestClient) Retry(f func(opts ...googleapi.CallOption) (*compute.Operat
 		return c.RetryFn(f, opts...)
 	}
 	return c.client.Retry(f, opts...)
+}
+
+// AttachDisk uses the override method AttachDiskFn or the real implementation.
+func (c *TestClient) AttachDisk(project, zone, instance string, ad *compute.AttachedDisk) error {
+	if c.AttachDiskFn != nil {
+		return c.AttachDiskFn(project, zone, instance, ad)
+	}
+	return c.client.AttachDisk(project, zone, instance, ad)
 }
 
 // CreateDisk uses the override method CreateDiskFn or the real implementation.
