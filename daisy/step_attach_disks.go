@@ -57,9 +57,10 @@ func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs dErr) {
 		}
 
 		ir, err := s.w.instances.regUse(ad.Instance, s)
-		if err != nil {
+		addErrs(errs, err)
+		if ir == nil {
 			// Return now, the rest of this function can't be run without ir.
-			return addErrs(errs, err, errf("cannot attach disk: instance %q not found in registry", ad.Instance))
+			return addErrs(errs, errf("cannot attach disk: instance %q not found in registry", ad.Instance))
 		}
 
 		if diskURLRgx.MatchString(ad.Source) {
@@ -67,9 +68,10 @@ func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs dErr) {
 		}
 
 		dr, err := s.w.disks.regUse(ad.Source, s)
-		if err != nil {
+		addErrs(errs, err)
+		if dr == nil {
 			// Return now, the rest of this function can't be run without dr.
-			return addErrs(errs, err, errf("cannot attach disk: disk %q not found in registry", ad.Source))
+			return addErrs(errs, errf("cannot attach disk: disk %q not found in registry", ad.Source))
 		}
 
 		// Ensure disk is in the same project and zone.
