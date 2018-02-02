@@ -16,14 +16,14 @@ periodically against HEAD.
    finally `foo014.wf.json`.
 
 ## Test Environment Details
-* Tests run in the GCP project `gce-daisy-test` and have permissions:
+* Tests run in the GCP project `compute-image-tools-test` and have permissions:
   * GCE read/write
-  * GCS read on the `gce-daisy-test-resources` bucket.
-  * GCS read/write on the `gce-daisy-test-sandbox` bucket.
-* Test logs are written to the `gce-daisy-test` GCS bucket for Gubenator and 
+  * GCS read on the `compute-image-tools-test-resources` bucket.
+  * GCS read/write on the `compute-image-tools-test-sandbox` bucket.
+* Test logs are written to the `compute-image-tools-test` GCS bucket for Gubenator and
   testgrid to pick up.
 * Defaults are provided for workflow `Project` and `Zone` fields.
-  * `Project` is `gce-daisy-test`
+  * `Project` is `compute-image-tools-test`
   * `Zone` is variable.
 * The following args are passed to the test workflows:
   * `test-id`: The ID of this test run. Useful for sharing resources between

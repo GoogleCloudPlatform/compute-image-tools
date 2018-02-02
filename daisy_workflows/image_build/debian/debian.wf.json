@@ -3,6 +3,10 @@
   "Vars": {
     "bootstrap_vz_manifest": {"Required": true, "Description": "The bootstrap-vz manifest to build."},
     "bootstrap_vz_version": {"Required": true, "Description": "The bootstrap-vz github commit ID to use."},
+    "builder_source_image": {
+      "Value": "projects/debian-cloud/global/images/family/debian-9",
+      "Description": "The image used to run bootstrap-vz."
+    },
     "google_cloud_repo": {"Required": true, "Description": "The Google Cloud Repo branch to use."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."}
   },
@@ -17,7 +21,7 @@
       "CreateDisks": [
         {
           "Name": "disk-builder",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SourceImage": "${builder_source_image}",
           "SizeGb": "50",
           "Type": "pd-ssd"
         }
