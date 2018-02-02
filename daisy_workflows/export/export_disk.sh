@@ -13,28 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Sleep to let services start
+sleep 5
+
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
 
-echo "GCEExport: Uploading image." > /dev/ttyS0
+echo "GCEExport: Running export tool." > /dev/ttyS0
 if [[ -n $LICENSES ]]; then
-  docker run --privileged -d --name export gcr.io/compute-image-tools/gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
+  docker run -t --privileged gcr.io/compute-image-tools/gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y > /dev/ttyS0 2>&1
 else
-  docker run --privileged -d --name export gcr.io/compute-image-tools/gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y 
+  docker run -t --privileged gcr.io/compute-image-tools/gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y > /dev/ttyS0 2>&1
 fi
 if [ $? -ne 0 ]; then
   echo "ExportFailed: Failed to export disk source to ${GCS_PATH}." > /dev/ttyS0
   exit 1
 fi
 
-docker logs -f export > /dev/ttyS0
-
-CODE=$(docker inspect export --format='{{.State.ExitCode}}')
-if [ CODE -ne 0 ]; then
-  echo "ExportFailed: Failed to export disk source to ${GCS_PATH}." > /dev/ttyS0
-  exit 1
-fi
-
-echo "export success" > /dev/ttyS0
+echo "ExportSuccess" > /dev/ttyS0
 sync
