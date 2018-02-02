@@ -11,8 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+FROM gcr.io/compute-image-tools-test/wrapper:latest
+
 FROM debian:stretch-slim
 
+ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 ENV CODECOV_TOKEN /etc/codecov/token
 ENV GOVERSION 1.9.3
 ENV GOROOT /goroot
@@ -23,12 +26,12 @@ RUN apt-get update && apt-get -y install bash ca-certificates curl git libssl-de
     rm -rf /var/cache/apt/archives
 
 # Install Go.
-RUN wget http://redirector.gvt1.com/edgedl/go/go${GOVERSION}.linux-amd64.tar.gz -O go.tgz && \
+RUN wget https://dl.google.com/go/go${GOVERSION}.linux-amd64.tar.gz -O go.tgz && \
     mkdir ${GOROOT} ${GOPATH} && \
     tar xf go.tgz && \
     mv go/* ${GOROOT}/ && \
     rm -rf go.tgz go
 
-WORKDIR /
-COPY main.sh /main.sh
-ENTRYPOINT /main.sh
+COPY --from=0 /wrapper wrapper
+COPY main.sh main.sh
+ENTRYPOINT ["./wrapper", "./main.sh"]
