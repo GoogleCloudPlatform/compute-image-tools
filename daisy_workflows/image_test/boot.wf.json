@@ -1,0 +1,61 @@
+{
+  "Name": "img-boot-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "machine_type": {"Required": true, "Description": "MachineType to test the image"}
+  },
+  "Sources": {
+    "boot.sh": "./scripts/boot.sh"
+  },
+  "Steps": {
+    "create-test-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-test-img",
+          "SourceImage": "${source_image}",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-test-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-boot-test",
+          "Disks": [{"Source": "disk-test-img"}],
+          "MachineType": "${machine_type}",
+          "StartupScript": "boot.sh"
+        }
+      ]
+    },
+    "wait-for-boot-instance": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-boot-test",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-reboot-instance": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-boot-test",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "REBOOTED"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-test-instance": ["create-test-disk"],
+    "wait-for-boot-instance": ["create-test-instance"],
+    "wait-for-reboot-instance": ["wait-for-boot-instance"]
+  }
+}
