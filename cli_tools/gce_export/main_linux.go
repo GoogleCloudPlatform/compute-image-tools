@@ -20,11 +20,11 @@ import (
 	"unsafe"
 )
 
-const BLKGETSIZE64 = 0x80081272
+const blkGetSize64 = 0x80081272
 
 func diskLength(file *os.File) (int64, error) {
 	var size int64
-	if _, _, err := syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), BLKGETSIZE64, uintptr(unsafe.Pointer(&size))); err != 0 {
+	if _, _, err := syscall.Syscall(syscall.SYS_IOCTL, file.Fd(), blkGetSize64, uintptr(unsafe.Pointer(&size))); err != 0 {
 		return 0, err
 	}
 	return size, nil

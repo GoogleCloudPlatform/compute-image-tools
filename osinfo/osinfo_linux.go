@@ -67,9 +67,9 @@ func parseOsRelease(path string) (*DistributionInfo, error) {
 			break
 		}
 	}
-	
+
 	if di.ShortName == "" {
-		di.ShortName= "linux"
+		di.ShortName = "linux"
 	}
 
 	return di, nil

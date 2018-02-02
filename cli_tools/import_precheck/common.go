@@ -12,4 +12,4 @@ limitations under the License.
 */
 package main
 
-const MBRSIZE = 512
+const mbrSize = 512

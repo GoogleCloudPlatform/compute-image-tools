@@ -14,66 +14,66 @@
 package main
 
 import (
-	"fmt"
 	"context"
 	"encoding/json"
-	"path/filepath"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"cloud.google.com/go/storage"
 )
 
-const BUCKET  = "compute-image-tools-test"
+const bucketName = "compute-image-tools-test"
 
 var (
-	BASE       = getBase()
-	BKT        *storage.BucketHandle
-	BUILDID    = os.Getenv("BUILD_ID")
-	JOBNAME    = os.Getenv("JOB_NAME")
-	JOBTYPE    = os.Getenv("JOB_TYPE")
-	PULLNUM    = os.Getenv("PULL_NUMBER")
-	PULLREFS   = os.Getenv("PULL_REFS")
-	PULLSHA    = os.Getenv("PULL_PULL_SHA")
-	REPONAME   = os.Getenv("REPO_NAME")
-	REPOOWNER  = os.Getenv("REPO_OWNER")
+	gcsURLBase = getBase()
+	gcsBucket  *storage.BucketHandle
+	buildID    = os.Getenv("BUILD_ID")
+	jobName    = os.Getenv("JOB_NAME")
+	jobType    = os.Getenv("JOB_TYPE")
+	pullNum    = os.Getenv("PULL_NUMBER")
+	pullRefs   = os.Getenv("PULL_REFS")
+	pullSHA    = os.Getenv("PULL_PULL_SHA")
+	repoName   = os.Getenv("REPO_NAME")
+	repoOwner  = os.Getenv("REPO_OWNER")
 
-	LOG *log.Logger
+	buildLog *log.Logger
 )
 
 func main() {
 	ctx := context.Background()
 	gcs, _ := storage.NewClient(ctx)
-	BKT = gcs.Bucket(BUCKET)
+	gcsBucket = gcs.Bucket(bucketName)
 	logfile, err := ioutil.TempFile("/tmp", "build-log")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Couldn't create build log.", err)
 	}
-	LOG = log.New(io.MultiWriter(logfile, os.Stdout), "", 0)
+	buildLog = log.New(io.MultiWriter(logfile, os.Stdout), "", 0)
 
 	// Write started.json
-	LOG.Println("Writing started.json to GCS.")
-	logIfErr(gcsWrite("started.json", started(), nil, "application/json", ctx))
+	buildLog.Println("Writing started.json to GCS.")
+	logIfErr(gcsWrite(ctx, "started.json", started(), nil, "application/json"))
 
 	// Run the main process.
-	LOG.Println("Running wrapped logic.")
+	buildLog.Println("Running wrapped logic.")
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 	out, err := cmd.Output()
-	LOG.Println(string(out))
+	buildLog.Println(string(out))
 	logIfErr(err)
-	LOG.Println("Main logic finished.")
+	buildLog.Println("Main logic finished.")
 	result := "SUCCESS"
 	if err != nil {
 		result = "FAILURE"
 	}
 
 	// Copy artifacts.
-	LOG.Println("Writing artifacts to GCS.")
-	filepath.Walk("artifacts", func (p string, info os.FileInfo, err error) error {
+	buildLog.Println("Writing artifacts to GCS.")
+	filepath.Walk("artifacts", func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			logIfErr(err)
 			return nil
@@ -81,37 +81,37 @@ func main() {
 		if info.IsDir() {
 			return nil
 		}
-		LOG.Printf("Writing artifact %s to GCS.", p)
+		buildLog.Printf("Writing artifact %s to GCS.", p)
 		if f, err := os.Open(p); err != nil {
 			logIfErr(err)
 		} else {
-			logIfErr(gcsWrite(p, nil, f, "", ctx))
+			logIfErr(gcsWrite(ctx, p, nil, f, ""))
 		}
 		return nil
 	})
 
 	// Write finished.json
-	LOG.Println("Writing finished.json to GCS.")
-	logIfErr(gcsWrite("finished.json", finished(result), nil, "application/json", ctx))
+	buildLog.Println("Writing finished.json to GCS.")
+	logIfErr(gcsWrite(ctx, "finished.json", finished(result), nil, "application/json"))
 
 	// Close and write build-log.txt.
-	LOG.Println("Closing and writing build-log.txt to GCS.")
+	buildLog.Println("Closing and writing build-log.txt to GCS.")
 	logfile.Seek(0, 0)
-	gcsWrite("build-log.txt", nil, logfile, "text/plain", ctx)
+	gcsWrite(ctx, "build-log.txt", nil, logfile, "text/plain")
 	logfile.Close()
 }
 
 func finished(result string) []byte {
 	data, _ := json.Marshal(map[string]interface{}{
 		"timestamp": time.Now().Unix(),
-		"result": result,
+		"result":    result,
 	})
 	return data
 }
 
-func gcsWrite(p string, data []byte, dataR io.Reader, ct string, ctx context.Context) error {
+func gcsWrite(ctx context.Context, p string, data []byte, dataR io.Reader, ct string) error {
 	var err error
-	o := BKT.Object(BASE + p)
+	o := gcsBucket.Object(gcsURLBase + p)
 	w := o.NewWriter(ctx)
 	w.ObjectAttrs.ContentType = ct
 	if len(data) > 0 {
@@ -126,15 +126,15 @@ func gcsWrite(p string, data []byte, dataR io.Reader, ct string, ctx context.Con
 }
 
 func getBase() string {
-	switch JOBTYPE {
+	switch jobType {
 	case "batch":
-		return fmt.Sprintf("pr-logs/pull/batch/%s/%s/", JOBNAME, BUILDID)
+		return fmt.Sprintf("pr-logs/pull/batch/%s/%s/", jobName, buildId)
 	case "periodic":
-		return fmt.Sprintf("logs/%s/%s/", JOBNAME, BUILDID)
+		return fmt.Sprintf("logs/%s/%s/", jobName, buildId)
 	case "postsumbit":
-		return fmt.Sprintf("logs/%s/%s/", JOBNAME, BUILDID)
+		return fmt.Sprintf("logs/%s/%s/", jobName, buildId)
 	case "presubmit":
-		return fmt.Sprintf("pr-logs/pull/%s_%s/%s/%s/%s/", REPOOWNER, REPONAME, PULLNUM, JOBNAME, BUILDID)
+		return fmt.Sprintf("pr-logs/pull/%s_%s/%s/%s/%s/", repoOwner, repoName, pullNum, jobName, buildId)
 	}
 	return ""
 }
@@ -143,31 +143,31 @@ func logIfErr(err error) {
 	if err == nil {
 		return
 	}
-	LOG.Println("ERROR: ", err)
+	buildLog.Println("ERROR: ", err)
 }
 
 func started() []byte {
 	var s map[string]interface{}
-	switch JOBTYPE {
+	switch jobType {
 	case "batch":
-		s = map[string]interface{} {
+		s = map[string]interface{}{
 			"timestamp": time.Now().Unix(),
-			"pull": PULLREFS,
+			"pull":      pullRefs,
 		}
 	case "periodic":
-		s = map[string]interface{} {
+		s = map[string]interface{}{
 			"timestamp": time.Now().Unix(),
 		}
 	case "postsubmit":
-		s = map[string]interface{} {
+		s = map[string]interface{}{
 			"timestamp": time.Now().Unix(),
-			"pull": PULLREFS,
+			"pull":      pullRefs,
 		}
 	case "presubmit":
-		s = map[string]interface{} {
+		s = map[string]interface{}{
 			"timestamp": time.Now().Unix(),
-			"repos": map[string]string{fmt.Sprintf("%s/%s", REPOOWNER, REPONAME): PULLSHA},
-			"pull": PULLREFS,
+			"repos":     map[string]string{fmt.Sprintf("%s/%s", repoOwner, repoName): pullSHA},
+			"pull":      pullRefs,
 		}
 	}
 	data, _ := json.Marshal(s)

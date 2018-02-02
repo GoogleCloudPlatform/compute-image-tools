@@ -21,16 +21,16 @@ import (
 
 var powershellVersions = []byte{'3', '4', '5'}
 
-type PowershellCheck struct{}
+type powershellCheck struct{}
 
-func (c *PowershellCheck) GetName() string {
+func (c *powershellCheck) getName() string {
 	return "Powershell Check"
 }
 
-func (c *PowershellCheck) Run() (*Report, error) {
-	r := &Report{Name: c.GetName()}
+func (c *powershellCheck) run() (*report, error) {
+	r := &report{name: c.getName()}
 	if runtime.GOOS != "windows" {
-		r.Skipped = true
+		r.skipped = true
 		r.Info("Not applicable on non-Windows systems.")
 		return r, nil
 	}

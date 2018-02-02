@@ -29,13 +29,13 @@ var (
 	osInfo *osinfo.DistributionInfo
 )
 
-func getChecks() []Check {
-	return []Check{
-		&OSVersionCheck{},
-		&DisksCheck{},
-		&SSHCheck{},
-		&PowershellCheck{},
-		&SHA2DriverSigningCheck{},
+func getChecks() []check {
+	return []check{
+		&osVersionCheck{},
+		&disksCheck{},
+		&sshCheck{},
+		&powershellCheck{},
+		&sha2DriverSigningCheck{},
 	}
 }
 
@@ -63,11 +63,11 @@ func main() {
 	wg := sync.WaitGroup{}
 	for _, check := range checks {
 		wg.Add(1)
-		go func(c Check) {
+		go func(c check) {
 			defer wg.Done()
-			report, err := c.Run()
+			report, err := c.run()
 			if err != nil {
-				log.Errorf("%s error: %v", c.GetName(), err)
+				log.Errorf("%s error: %v", c.getName(), err)
 			} else {
 				fmt.Println(report.String())
 			}
