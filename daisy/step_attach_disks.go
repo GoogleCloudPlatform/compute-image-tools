@@ -41,6 +41,9 @@ func (a *AttachDisks) populate(ctx context.Context, s *Step) dErr {
 		if ad.DeviceName == "" {
 			ad.DeviceName = path.Base(ad.Source)
 		}
+		if diskURLRgx.MatchString(ad.Source) {
+			ad.Source = extendPartialURL(ad.Source, s.w.Project)
+		}
 	}
 
 	return nil
@@ -57,22 +60,18 @@ func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs dErr) {
 		}
 
 		ir, err := s.w.instances.regUse(ad.Instance, s)
-		addErrs(errs, err)
 		if ir == nil {
 			// Return now, the rest of this function can't be run without ir.
-			return addErrs(errs, errf("cannot attach disk: instance %q not found in registry", ad.Instance))
+			return addErrs(errs, errf("cannot attach disk: %v", err))
 		}
-
-		if diskURLRgx.MatchString(ad.Source) {
-			ad.Source = extendPartialURL(ad.Source, ir.Project)
-		}
+		addErrs(errs, err)
 
 		dr, err := s.w.disks.regUse(ad.Source, s)
-		addErrs(errs, err)
 		if dr == nil {
 			// Return now, the rest of this function can't be run without dr.
-			return addErrs(errs, errf("cannot attach disk: disk %q not found in registry", ad.Source))
+			return addErrs(errs, errf("cannot attach disk: %v", err))
 		}
+		addErrs(errs, err)
 
 		// Ensure disk is in the same project and zone.
 		disk := namedSubexp(diskURLRgx, dr.link)
