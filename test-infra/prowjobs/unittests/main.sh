@@ -37,6 +37,7 @@ set +e
 # Each script should APPEND coverage data to GOCOVPATH or PYCOVPATH.
 RET=0
 find . -type f -name "unittests.sh" | while read script; do
+  echo "Running ${script}."
   # Change to the containing directory and run script.
   cd $(dirname ${script})
   ./$(basename ${script})
@@ -46,7 +47,11 @@ find . -type f -name "unittests.sh" | while read script; do
     RET=${UNITTEST_RET}
   fi
 
-  popd
+  mkdir -p ${ARTIFACTS}/$(dirname ${script})
+  cp -R artifacts/* ${ARTIFACTS}/$(dirname ${script})/
+
+  # Return to repo base dir.
+  cd ${REPO_PATH}
 done
 
 set +x
