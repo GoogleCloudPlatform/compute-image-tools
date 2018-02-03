@@ -31,16 +31,17 @@ import (
 const bucketName = "compute-image-tools-test"
 
 var (
-	gcsURLBase = getBase()
-	gcsBucket  *storage.BucketHandle
-	buildID    = os.Getenv("BUILD_ID")
-	jobName    = os.Getenv("JOB_NAME")
-	jobType    = os.Getenv("JOB_TYPE")
-	pullNum    = os.Getenv("PULL_NUMBER")
-	pullRefs   = os.Getenv("PULL_REFS")
-	pullSHA    = os.Getenv("PULL_PULL_SHA")
-	repoName   = os.Getenv("REPO_NAME")
-	repoOwner  = os.Getenv("REPO_OWNER")
+	artifactsDir = os.Getenv("ARTIFACTS")
+	gcsURLBase   = getBase()
+	gcsBucket    *storage.BucketHandle
+	buildID      = os.Getenv("BUILD_ID")
+	jobName      = os.Getenv("JOB_NAME")
+	jobType      = os.Getenv("JOB_TYPE")
+	pullNum      = os.Getenv("PULL_NUMBER")
+	pullRefs     = os.Getenv("PULL_REFS")
+	pullSHA      = os.Getenv("PULL_PULL_SHA")
+	repoName     = os.Getenv("REPO_NAME")
+	repoOwner    = os.Getenv("REPO_OWNER")
 
 	buildLog *log.Logger
 )
@@ -85,7 +86,8 @@ func main() {
 		if f, err := os.Open(p); err != nil {
 			logIfErr(err)
 		} else {
-			logIfErr(gcsWrite(ctx, p, nil, f, ""))
+			gcsP := "artifacts/" + p[len(artifactsDir):] // remove ARTIFACTS dir, and slash, prefix from p.
+			logIfErr(gcsWrite(ctx, gcsP, nil, f, ""))
 		}
 		return nil
 	})
@@ -99,6 +101,10 @@ func main() {
 	logfile.Seek(0, 0)
 	gcsWrite(ctx, "build-log.txt", nil, logfile, "text/plain")
 	logfile.Close()
+
+	if result != "SUCCESS" {
+		os.Exit(1)
+	}
 }
 
 func finished(result string) []byte {
@@ -128,13 +134,13 @@ func gcsWrite(ctx context.Context, p string, data []byte, dataR io.Reader, ct st
 func getBase() string {
 	switch jobType {
 	case "batch":
-		return fmt.Sprintf("pr-logs/pull/batch/%s/%s/", jobName, buildId)
+		return fmt.Sprintf("pr-logs/pull/batch/%s/%s/", jobName, buildID)
 	case "periodic":
-		return fmt.Sprintf("logs/%s/%s/", jobName, buildId)
+		return fmt.Sprintf("logs/%s/%s/", jobName, buildID)
 	case "postsumbit":
-		return fmt.Sprintf("logs/%s/%s/", jobName, buildId)
+		return fmt.Sprintf("logs/%s/%s/", jobName, buildID)
 	case "presubmit":
-		return fmt.Sprintf("pr-logs/pull/%s_%s/%s/%s/%s/", repoOwner, repoName, pullNum, jobName, buildId)
+		return fmt.Sprintf("pr-logs/pull/%s_%s/%s/%s/%s/", repoOwner, repoName, pullNum, jobName, buildID)
 	}
 	return ""
 }
