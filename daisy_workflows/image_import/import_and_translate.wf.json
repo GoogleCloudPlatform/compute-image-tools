@@ -1,7 +1,7 @@
 {
   "Name": "import-and-translate",
   "Vars": {
-    "source_disk_uri": {
+    "source_disk_file": {
       "Required": true,
       "Description": "The GCS path to the virtual disk to import."
     },
@@ -16,25 +16,39 @@
   },
   "Steps": {
     "import": {
-      "SubWorkflow": {
-        "Path": "import_image.wf.json",
+      "IncludeWorkflow": {
+        "Path": "import_disk.wf.json",
         "Vars": {
-          "source_disk_file": "${source_disk_uri}",
+          "source_disk_file": "${source_disk_file}",
+          "import_disk_name": "temp-translation-disk-${ID}"
+        }
+      }
+    },
+    "take-image-of-untranslated-disk": {
+      "CreateImages": [{
+        "Name": "${image_name}-untranslated",
+        "SourceDisk": "temp-translation-disk-${ID}"
+      }]
+    },
+    "translate": {
+      "IncludeWorkflow": {
+        "Path": "${translate_workflow}",
+        "Vars": {
+          "source_disk": "temp-translation-disk-${ID}",
           "image_name": "${image_name}"
         }
       }
     },
-    "translate": {
-      "SubWorkflow": {
-        "Path": "${translate_workflow}",
-        "Vars": {
-          "source_image": "global/images/${image_name}",
-          "image_name": "${image_name}"
-        }
+    "cleanup": {
+      "DeleteResources": {
+        "Disks": ["temp-translation-disk-${ID}"],
+        "Images": ["${image_name}-untranslated"]
       }
     }
   },
   "Dependencies": {
-    "translate": ["import"]
+    "take-image-of-untranslated-disk": ["import"],
+    "translate": ["take-image-of-untranslated-disk"],
+    "cleanup": ["translate"]
   }
 }

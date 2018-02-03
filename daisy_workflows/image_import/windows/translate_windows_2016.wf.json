@@ -1,9 +1,9 @@
 {
   "Name": "translate-windows-2016",
   "Vars": {
-    "source_image": {
+    "source_disk": {
       "Required": true,
-      "Description": "The Windows 2016 GCE image to translate."
+      "Description": "The Windows 2016 GCE disk to translate."
     },
     "install_gce_packages": {
       "Value": "true",
@@ -24,7 +24,7 @@
       "IncludeWorkflow": {
         "Path": "./translate_windows_wf.json",
         "Vars": {
-          "source_image": "${source_image}",
+          "source_disk": "${source_disk}",
           "install_gce_packages": "${install_gce_packages}",
           "sysprep": "${sysprep}",
           "imported_disk": "${disk_name}",

@@ -1,9 +1,9 @@
 {
   "Name": "translate-windows",
   "Vars": {
-    "source_image": {
+    "source_disk": {
       "Required": true,
-      "Description": "Image to translate"
+      "Description": "Disk to translate"
     },
     "install_gce_packages": {
       "Value": "true",
@@ -20,6 +20,12 @@
     "version": {
       "Required": true,
       "Description": "Windows OS Version to translate (https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx)"
+    },
+    "task_reg": {
+      "Required": true
+    },
+    "task_xml": {
+      "Required": true
     }
   },
   "Sources": {
@@ -37,11 +43,6 @@
           "Name": "disk-bootstrap",
           "SourceImage": "projects/windows-cloud/global/images/family/windows-2016-core",
           "Type": "pd-ssd"
-        },
-        {
-          "Name": "disk-translate",
-          "SourceImage": "${source_image}",
-          "Type": "pd-ssd"
         }
       ]
     },
@@ -51,7 +52,7 @@
           "Name": "inst-bootstrap",
           "Disks": [
             {"Source": "disk-bootstrap"},
-            {"Source": "disk-translate"}
+            {"Source": "${source_disk}"}
           ],
           "MachineType": "n1-standard-2",
           "Metadata": {
@@ -87,7 +88,7 @@
         {
           "Name": "inst-translate",
           "Disks": [
-            {"Source": "disk-translate"}
+            {"Source": "${source_disk}"}
           ],
           "MachineType": "n1-standard-2",
           "Metadata": {

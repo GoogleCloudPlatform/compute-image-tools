@@ -8,12 +8,21 @@
     "post_translate_test.ps1": "./scripts/post_translate_test.ps1"
   },
   "Steps": {
+    "create-disk-from-image": {
+      "CreateDisks": [
+        {
+          "Name": "translate-me",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
     "translate-2008r2": {
       "Timeout": "30m",
       "IncludeWorkflow": {
         "Path": "../image_import/windows/translate_windows_2008_r2.wf.json",
         "Vars": {
-          "source_image": "${source_image}",
+          "source_disk": "translate-me",
           "image_name": "${image_name}"
         }
       }
@@ -57,6 +66,7 @@
     }
   },
   "Dependencies": {
+    "translate-2008r2": ["create-disk-from-image"],
     "create-test-disk": ["translate-2008r2"],
     "delete-image": ["create-test-disk"],
     "create-test-instance": ["create-test-disk"],
