@@ -1,7 +1,7 @@
 {
   "Name": "translate-rhel-6-licensed",
   "Vars": {
-    "source_image": {
+    "source_disk": {
       "Required": true,
       "Description": "The RHEL 6 GCE image to translate."
     },
@@ -22,11 +22,6 @@
           "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
           "SizeGb": "10",
           "Type": "pd-ssd"
-        },
-        {
-          "Name": "disk-rhel-6-import",
-          "SourceImage": "${source_image}",
-          "Type": "pd-ssd"
         }
       ]
     },
@@ -37,7 +32,7 @@
           "el_release": "6",
           "install_gce_packages": "${install_gce_packages}",
           "translator_disk": "disk-translator",
-          "imported_disk": "disk-rhel-6-import",
+          "imported_disk": "${source_disk}",
           "use_rhel_gce_license": "true"
         }
       },
@@ -47,7 +42,7 @@
       "CreateImages": [
         {
           "Name": "${image_name}",
-          "SourceDisk": "disk-rhel-6-import",
+          "SourceDisk": "${source_disk}",
           "ExactName": true,
           "NoCleanup": true
 

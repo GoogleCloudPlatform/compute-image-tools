@@ -8,12 +8,20 @@
     "post_translate_test.sh": "./scripts/post_translate_test.sh"
   },
   "Steps": {
-    "translate-image": {
+    "create-disk-from-image": {
+      "CreateDisks": [
+        {
+          "Name": "translate-me",
+          "SourceImage": "${source_image}"
+        }
+      ]
+    },
+    "translate-disk": {
       "Timeout": "30m",
       "IncludeWorkflow": {
         "Path": "../image_import/enterprise_linux/translate_centos_6.wf.json",
         "Vars": {
-          "source_image": "${source_image}",
+          "source_disk": "translate-me",
           "image_name": "${image_name}"
         }
       }
@@ -58,7 +66,8 @@
     }
   },
   "Dependencies": {
-    "create-test-disk": ["translate-image"],
+    "translate-disk": ["create-disk-from-image"],
+    "create-test-disk": ["translate-disk"],
     "delete-image": ["create-test-disk"],
     "create-test-instance": ["create-test-disk"],
     "wait-for-test-instance": ["create-test-instance"]
