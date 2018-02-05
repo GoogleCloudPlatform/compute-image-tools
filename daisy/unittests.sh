@@ -18,13 +18,19 @@ set -x
 RET=0
 go get -t ./...
 for d in $(go list ./... | grep -v vendor); do
-  echo "Running tests on ${d}"
+  echo "Running tests on ${d}."
   mkdir -p artifacts
-  go test ${d} -race -coverprofile=profile.out -covermode=atomic -v 2>&1 | go-junit-report > artifacts/${d//\//_}_report.xml
+  go test ${d} -race -coverprofile=profile.out -covermode=atomic -v 2>&1 > test.out
   PARTRET=$?
-  if [ ${RET} == 0 ]; then
+  echo "${d} test returned ${PARTRET}."
+  if [ ${PARTRET} -ne 0 ]; then
     RET=${PARTRET}
   fi
+
+  # Output test report.
+  cat test.out | go-junit-report > artifacts/${d//\//_}_report.xml
+
+  # Output coverage data.
   if [ -f profile.out ]; then
     cat profile.out >> $GOCOVPATH
     rm profile.out
