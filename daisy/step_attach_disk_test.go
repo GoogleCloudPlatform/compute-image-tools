@@ -58,7 +58,7 @@ func TestAttachDisksValidate(t *testing.T) {
 		{"bad instance case", &AttachDisks{{Instance: "bad", AttachedDisk: compute.AttachedDisk{Mode: diskModeRW, Source: testDisk}}}, true},
 		{"bad project case", &AttachDisks{{Instance: testInstance, AttachedDisk: compute.AttachedDisk{Mode: diskModeRW, Source: fmt.Sprintf("projects/bad/zones/%s/disks/bad", testZone)}}}, true},
 		{"bad zone case", &AttachDisks{{Instance: testInstance, AttachedDisk: compute.AttachedDisk{Mode: diskModeRW, Source: fmt.Sprintf("projects/%s/zones/bad/disks/bad", testProject)}}}, true},
-		{"partial url case", &AttachDisks{{Instance: testInstance, AttachedDisk: compute.AttachedDisk{Mode: diskModeRW, Source: fmt.Sprintf("zones/%s/disks/%s", testZone, testDisk)}}}, false},
+		{"url case", &AttachDisks{{Instance: testInstance, AttachedDisk: compute.AttachedDisk{Mode: diskModeRW, Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}}, false},
 		{"resolve instance and disk case", &AttachDisks{{Instance: testInstance, AttachedDisk: compute.AttachedDisk{Mode: diskModeRW, Source: testDisk}}}, false},
 	}
 	for _, tt := range tests {
