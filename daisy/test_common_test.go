@@ -71,6 +71,7 @@ var (
 	testZone        = "test-zone"
 	testDisk        = "test-disk"
 	testImage       = "test-image"
+	testInstance    = "test-instance"
 	testMachineType = "test-machine-type"
 	testLicense     = "test-license"
 	testNetwork     = "test-network"
@@ -208,6 +209,12 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return &compute.Image{Name: testImage}, nil
 		}
 		return &compute.Image{Name: testImage, Deprecated: &compute.DeprecationStatus{State: "OBSOLETE"}}, nil
+	}
+	c.AttachDiskFn = func(p, z, i string, _ *compute.AttachedDisk) error {
+		if i == "bad" {
+			return errors.New("bad instance")
+		}
+		return nil
 	}
 
 	return c, err

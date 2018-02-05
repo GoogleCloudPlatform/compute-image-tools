@@ -1,6 +1,4 @@
 {
-  "Project": "gce-daisy-test",
-  "Zone": "us-west1-c",
   "Name": "wait-for-instance-signal",
   "Vars": {
     "about-this-test": { "Description": "This test creates two instances, and then waits for two different kinds of signals from them: Stopped, and SerialOutput." }

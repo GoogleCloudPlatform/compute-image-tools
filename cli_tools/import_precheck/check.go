@@ -12,7 +12,7 @@ limitations under the License.
 */
 package main
 
-type Check interface {
-	GetName() string
-	Run() (*Report, error)
+type check interface {
+	getName() string
+	run() (*report, error)
 }

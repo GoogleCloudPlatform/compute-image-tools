@@ -22,23 +22,23 @@ import (
 	"unicode"
 )
 
-// DisksCheck performs disk configuration checking:
+// disksCheck performs disk configuration checking:
 // - finding the root filesystem partition
 // - checking if the device is MBR
 // - check for GRUB
 // - warning for any mount points from partitions from other devices
-type DisksCheck struct {
+type disksCheck struct {
 	getMBROverride func(devName string) ([]byte, error)
 	lsblkOverride  func() (string, error)
 }
 
-func (c *DisksCheck) getMBR(devName string) ([]byte, error) {
+func (c *disksCheck) getMBR(devName string) ([]byte, error) {
 	devPath := filepath.Join("/dev", devName)
 	f, err := os.Open(devPath)
 	if err != nil {
 		return nil, err
 	}
-	data := make([]byte, MBRSIZE)
+	data := make([]byte, mbrSize)
 	_, err = f.Read(data)
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s: %v", devPath, err)
@@ -46,7 +46,7 @@ func (c *DisksCheck) getMBR(devName string) ([]byte, error) {
 	return data, nil
 }
 
-func (c *DisksCheck) lsblk() (string, error) {
+func (c *disksCheck) lsblk() (string, error) {
 	cmd := exec.Command("lsblk", "-i")
 	out, err := cmd.Output()
 	if err != nil {
@@ -56,12 +56,12 @@ func (c *DisksCheck) lsblk() (string, error) {
 	return string(out), nil
 }
 
-func (c *DisksCheck) GetName() string {
+func (c *disksCheck) getName() string {
 	return "Disks Check"
 }
 
-func (c *DisksCheck) Run() (*Report, error) {
-	r := &Report{Name: c.GetName()}
+func (c *disksCheck) run() (*report, error) {
+	r := &report{name: c.getName()}
 	var out string
 	var err error
 	if c.lsblkOverride != nil {
@@ -83,9 +83,8 @@ func (c *DisksCheck) Run() (*Report, error) {
 	if l.rootDev == "" {
 		r.Fatal("root filesystem partition not found on any block devices.")
 		return r, nil
-	} else {
-		r.Info(fmt.Sprintf("root filesystem on device %q partition %q", l.rootDev, l.rootPart))
 	}
+	r.Info(fmt.Sprintf("root filesystem on device %q partition %q", l.rootDev, l.rootPart))
 
 	for dev, rows := range l.devRows {
 		for _, row := range rows {

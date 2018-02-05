@@ -246,3 +246,24 @@ func TestDeprecateImage(t *testing.T) {
 		t.Fatalf("error running DeprecateImage: %v", err)
 	}
 }
+
+func TestAttachDisk(t *testing.T) {
+	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s/attachDisk?alt=json", testProject, testZone, testInstance) {
+			fmt.Fprint(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone) {
+			fmt.Fprint(w, `{"Status":"DONE"}`)
+		} else {
+			w.WriteHeader(500)
+			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
+		}
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svr.Close()
+
+	if err := c.AttachDisk(testProject, testZone, testInstance, &compute.AttachedDisk{}); err != nil {
+		t.Fatalf("error running AttachDisk: %v", err)
+	}
+}

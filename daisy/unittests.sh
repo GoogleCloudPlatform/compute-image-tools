@@ -17,8 +17,10 @@ set -x
 
 RET=0
 go get -t ./...
-for D in $(go list ./... | grep -v vendor); do
-  go test $D -race -coverprofile=profile.out -covermode=atomic -v 2>&1
+for d in $(go list ./... | grep -v vendor); do
+  echo "Running tests on ${d}"
+  mkdir -p artifacts
+  go test ${d} -race -coverprofile=profile.out -covermode=atomic -v 2>&1 | go-junit-report > artifacts/${d//\//_}_report.xml
   PARTRET=$?
   if [ ${RET} == 0 ]; then
     RET=${PARTRET}

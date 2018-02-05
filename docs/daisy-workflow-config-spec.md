@@ -140,7 +140,19 @@ of "<STEP 1 TYPE>" and a timeout of 2 hours. "step2" has a type of
 ```
 
 #### Type: AttachDisks
-Not implemented yet.
+Attaches a GCE disk to an instance. See 
+https://cloud.google.com/compute/docs/reference/latest/instances/attachDisk,
+daisy uses the same representation with a few modifications:
+
+| Field Name | Type | Description |
+| - | - | - |
+| DeviceName | string | The name of the disk to attach, either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+
+Added fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Instance | string | The name of the instance to attach this disk to, either instance [partial URLs](#glossary-partialurl) or workflow-internal instance names are valid. |
 
 #### Type: CreateDisks
 Creates GCE disks. A list of GCE Disk resources. See https://cloud.google.com/compute/docs/reference/latest/disks for

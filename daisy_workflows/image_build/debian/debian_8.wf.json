@@ -16,6 +16,7 @@
         "Vars": {
           "bootstrap_vz_manifest": "official/gce/jessie.yml",
           "bootstrap_vz_version": "${bootstrap_vz_version}",
+          "builder_source_image": "projects/debian-cloud/global/images/family/debian-8",
           "google_cloud_repo": "${google_cloud_repo}",
           "image_dest": "${image_dest}"
         }
