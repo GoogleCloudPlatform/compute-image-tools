@@ -35,30 +35,29 @@ set +e
 
 # Execute all unittests.sh scripts in their directories.
 # Each script should APPEND coverage data to GOCOVPATH or PYCOVPATH.
-RET=0
+echo 0 > runnerret
 find . -type f -name "unittests.sh" | while read script; do
   echo "Running ${script}."
   # Change to the containing directory and run script.
   cd $(dirname ${script})
   ./$(basename ${script})
-
-  UNITTEST_RET=$?
-  if [ ${RET} == 0 ]; then
-    RET=${UNITTEST_RET}
-  fi
+  UNITTESTRET=$?
+  echo "${script} returned ${UNITTESTRET}."
 
   mkdir -p ${ARTIFACTS}/$(dirname ${script})
   cp -R artifacts/* ${ARTIFACTS}/$(dirname ${script})/
 
   # Return to repo base dir.
   cd ${REPO_PATH}
+
+  # Set the return value if tests failed.
+  if [ ${UNITTESTRET} -ne 0 ]; then
+    echo "Unit test runner return code set to ${UNITTESTRET}."
+    echo ${UNITTESTRET} > runnerret
+  fi
 done
 
 set +x
-
-if [ ${RET} != 0 ]; then
-    exit ${RET}
-fi
 
 # Upload coverage results to Codecov.
 CODEV_COV_ARGS="-v -t $(cat ${CODECOV_TOKEN}) -B master -C $(git rev-parse HEAD)"
@@ -71,4 +70,5 @@ fi
 if [ -e ${PYCOVPATH} ]; then
   bash <(curl -s https://codecov.io/bash) -f ${PYCOVPATH} -F py_unittests ${CODEV_COV_ARGS}
 fi
-exit ${RET}
+echo "Unit test runner returning $(cat runnerret)."
+exit $(cat runnerret)
