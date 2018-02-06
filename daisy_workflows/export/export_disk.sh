@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sleep to let services start
-sleep 5
+# Make sure docker is running
+systemctl start docker
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
