@@ -106,7 +106,13 @@ func (a *AttachDisks) run(ctx context.Context, s *Step) dErr {
 				ad.Source = diskRes.link
 			}
 
-			w.Logger.Printf("AttachDisks: attaching disk %q to instance %q.", ad.AttachedDisk.Source, ad.Instance)
+			inst := ad.Instance
+			if instRes, ok := w.instances.get(ad.Instance); ok {
+				inst = instRes.link
+				ad.Instance = instRes.RealName
+			}
+
+			w.Logger.Printf("AttachDisks: attaching disk %q to instance %q.", ad.AttachedDisk.Source, inst)
 			if err := w.ComputeClient.AttachDisk(ad.project, ad.zone, ad.Instance, &ad.AttachedDisk); err != nil {
 				e <- newErr(err)
 				return
