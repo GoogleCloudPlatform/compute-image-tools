@@ -28,7 +28,7 @@ func (c *disksCheck) getName() string {
 }
 
 func (c *disksCheck) run() (*report, error) {
-	r := &report{name: c.GetName()}
+	r := &report{name: c.getName()}
 
 	sysRoot := os.Getenv("SYSTEMROOT")
 	rootDrive := sysRoot[:2]

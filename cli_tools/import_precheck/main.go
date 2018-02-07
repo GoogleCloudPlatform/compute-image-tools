@@ -61,7 +61,7 @@ func main() {
 
 	checks := getChecks()
 	wg := sync.WaitGroup{}
-	for _, check := range checks {
+	for _, c := range checks {
 		wg.Add(1)
 		go func(c check) {
 			defer wg.Done()
@@ -71,7 +71,7 @@ func main() {
 			} else {
 				fmt.Println(report.String())
 			}
-		}(check)
+		}(c)
 	}
 	wg.Wait()
 }
