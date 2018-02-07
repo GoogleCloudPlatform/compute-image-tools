@@ -146,13 +146,32 @@ daisy uses the same representation with a few modifications:
 
 | Field Name | Type | Description |
 | - | - | - |
-| DeviceName | string | The name of the disk to attach, either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+| Source | string | The name of the disk to attach, either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
 
 Added fields:
 
 | Field Name | Type | Description |
 | - | - | - |
 | Instance | string | The name of the instance to attach this disk to, either instance [partial URLs](#glossary-partialurl) or workflow-internal instance names are valid. |
+
+Example: the first is an example of attaching a disk referenced by its daisy 
+name to an instance also referenced by it's daisy name. This requires that 
+both are created as part of the curent workflow. The second is an example of
+using partial URLs for both the disk as well as the instance.
+```json
+"step-name": {
+  "AttachDisks": [
+    {
+      "Source": "my-disk",
+      "Instance": "my-instance"
+    },
+    {
+      "Source": "projects/MYPROJECT/zones/MYZONE/disks/my-disk",
+      "Instance": "projects/MYPROJECT/zones/MYZONE/instances/my-instance"
+    }
+  ]
+}
+```
 
 #### Type: CreateDisks
 Creates GCE disks. A list of GCE Disk resources. See https://cloud.google.com/compute/docs/reference/latest/disks for
@@ -171,7 +190,7 @@ Added fields:
 | Project | string | *Optional.* Defaults to workflow's Project. The GCP project in which to create the disk. |
 | Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
-| RealName | bool | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+| RealName | string | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 Example: the first is a standard PD disk created from a source image, the second
 is a blank PD SSD.
@@ -213,7 +232,7 @@ Added fields:
 | Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this image. |
 | GuestOsFeatures | []string] | *Optional.* Along with the GCE JSON API's more complex object structure, Daisy allows the use of a simple list. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this image when the workflow terminates. |
-| RealName | bool | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+| RealName | string | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateImages example creates an image from a source disk.
 ```json
@@ -287,7 +306,7 @@ Added fields:
 | Project | string | *Optional.* Defaults to workflow's Project. The GCP project in which to create the disk. |
 | Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
-| RealName | bool | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+| RealName | string | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateInstances step example creates an instance with two attached
 disks, with machine type n1-standard-4, and with metadata "key" = "value".
@@ -324,7 +343,7 @@ Added fields:
 | - | - | - |
 | Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this network. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this network when the workflow terminates. |
-| RealName | bool | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+| RealName | string | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
 This CreateNetworks example creates a network in the project, `my-other-project`,
 with the real name `my-network1`. The network will not be automatically cleaned
