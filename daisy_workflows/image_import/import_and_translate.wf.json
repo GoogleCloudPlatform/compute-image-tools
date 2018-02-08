@@ -22,9 +22,9 @@
         "Vars": {
           "source_disk_file": "${source_disk_file}",
           "disk_name": "${translation-disk-name}"
-        },
-        "Timeout": "1h"
-      }
+        }
+      },
+      "Timeout": "1h"
     },
     "take-image-of-untranslated-disk": {
       "CreateImages": [{
