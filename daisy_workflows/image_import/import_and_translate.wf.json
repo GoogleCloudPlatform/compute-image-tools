@@ -12,7 +12,8 @@
     "translate_workflow": {
       "Required": true,
       "Description": "The path to the translation workflow to run."
-    }
+    },
+    "translation-disk-name": "temp-translation-disk-${ID}"
   },
   "Steps": {
     "import": {
@@ -20,28 +21,30 @@
         "Path": "import_disk.wf.json",
         "Vars": {
           "source_disk_file": "${source_disk_file}",
-          "import_disk_name": "temp-translation-disk-${ID}"
-        }
+          "disk_name": "${translation-disk-name}"
+        },
+        "Timeout": "1h"
       }
     },
     "take-image-of-untranslated-disk": {
       "CreateImages": [{
         "Name": "${image_name}-untranslated",
-        "SourceDisk": "temp-translation-disk-${ID}"
+        "SourceDisk": "${translation-disk-name}"
       }]
     },
     "translate": {
       "IncludeWorkflow": {
         "Path": "${translate_workflow}",
         "Vars": {
-          "source_disk": "temp-translation-disk-${ID}",
+          "source_disk": "${translation-disk-name}",
           "image_name": "${image_name}"
         }
-      }
+      },
+      "Timeout": "1h"
     },
     "cleanup": {
       "DeleteResources": {
-        "Disks": ["temp-translation-disk-${ID}"],
+        "Disks": ["${translation-disk-name}"],
         "Images": ["${image_name}-untranslated"]
       }
     }
