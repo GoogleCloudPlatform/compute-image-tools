@@ -1,0 +1,28 @@
+{
+  "Name": "image-import-and-translate-test",
+  "Vars": {
+    "image_name": "image-import-and-translate-test-${ID}",
+    "source_disk_file": "gs://gce-daisy-test-resources/xenial-server-cloudimg-amd64-disk1.vmdk"
+  },
+  "Steps": {
+    "import-and-translate-image": {
+      "Timeout": "45m",
+      "IncludeWorkflow": {
+        "Path": "../image_import/import_and_translate.wf.json",
+        "Vars": {
+          "image_name": "${image_name}",
+          "source_disk_file": "${source_disk_file}",
+          "translate_workflow": "ubuntu/translate_ubuntu_1604.wf.json"
+        }
+      }
+    },
+    "delete-image": {
+      "DeleteResources": {
+        "Images": ["${image_name}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "delete-image": ["import-and-translate-image"]
+  }
+}

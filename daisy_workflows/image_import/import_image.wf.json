@@ -24,7 +24,8 @@
           "importer_instance_disk_size": "${importer_instance_disk_size}",
           "disk_name": "${import_disk_name}"
         }
-      }
+      },
+      "Timeout": "1h"
     },
     "create-image": {
       "CreateImages": [
