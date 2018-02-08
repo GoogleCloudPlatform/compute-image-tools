@@ -61,8 +61,19 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 	i.Workflow.gcsLogWriter = s.w.gcsLogWriter
 	i.Workflow.gcsLogging = s.w.gcsLogging
 
+	var errs dErr
+Loop:
 	for k, v := range i.Vars {
-		i.Workflow.AddVar(k, v)
+		for wv := range i.Workflow.Vars {
+			if k == wv {
+				i.Workflow.AddVar(k, v)
+				continue Loop
+			}
+		}
+		errs = addErrs(errs, errf("unknown workflow Var %q passed to IncludeWorkflow %q", k, s.name))
+	}
+	if errs != nil {
+		return errs
 	}
 
 	var replacements []string

@@ -35,6 +35,9 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 		Sources: map[string]string{
 			"file": "path",
 		},
+		Vars: map[string]Var{
+			"foo": {Value: "baz"},
+		},
 		Steps: map[string]*Step{
 			"${foo}": {
 				testType: &mockStep{},

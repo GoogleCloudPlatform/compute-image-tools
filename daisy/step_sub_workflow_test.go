@@ -31,7 +31,7 @@ func TestSubWorkflowPopulate(t *testing.T) {
 		name: "sw-step",
 		w:    w,
 		SubWorkflow: &SubWorkflow{
-			Vars:     map[string]string{"foo": "bar2", "hello": "world"},
+			Vars:     map[string]string{"foo": "bar2"},
 			Workflow: sw,
 		},
 	}
@@ -52,7 +52,7 @@ func TestSubWorkflowPopulate(t *testing.T) {
 	if sw.GCSPath != wantGCSPath {
 		t.Errorf("unexpected subworkflow GCSPath: %q != %q", sw.GCSPath, wantGCSPath)
 	}
-	wantVars := map[string]Var{"foo": {Value: "bar2"}, "baz": {Value: "gaz"}, "hello": {Value: "world"}}
+	wantVars := map[string]Var{"foo": {Value: "bar2"}, "baz": {Value: "gaz"}}
 	if !reflect.DeepEqual(sw.Vars, wantVars) {
 		t.Errorf("unexpected subworkflow Vars: %v != %v", sw.Vars, wantVars)
 	}

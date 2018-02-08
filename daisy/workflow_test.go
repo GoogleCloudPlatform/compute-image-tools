@@ -231,6 +231,8 @@ func TestNewFromFile(t *testing.T) {
 	want.Vars = map[string]Var{
 		"bootstrap_instance_name": {Value: "bootstrap-${NAME}", Required: true},
 		"machine_type":            {Value: "n1-standard-1"},
+		"key1":                    {Value: "var1"},
+		"key2":                    {Value: "var2"},
 	}
 	want.Steps = map[string]*Step{
 		"create-disks": {
