@@ -47,9 +47,22 @@ func (s *SubWorkflow) populate(ctx context.Context, st *Step) dErr {
 	s.Workflow.ComputeClient = s.Workflow.parent.ComputeClient
 	s.Workflow.StorageClient = s.Workflow.parent.StorageClient
 	s.Workflow.gcsLogWriter = s.Workflow.parent.gcsLogWriter
+
+	var errs dErr
+Loop:
 	for k, v := range s.Vars {
-		s.Workflow.Vars[k] = Var{Value: v}
+		for wv := range s.Workflow.Vars {
+			if k == wv {
+				s.Workflow.AddVar(k, v)
+				continue Loop
+			}
+		}
+		errs = addErrs(errs, errf("unknown workflow Var %q passed to SubWorkflow %q", k, st.name))
 	}
+	if errs != nil {
+		return errs
+	}
+
 	return s.Workflow.populate(ctx)
 }
 

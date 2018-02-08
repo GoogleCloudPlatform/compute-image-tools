@@ -71,8 +71,15 @@ func parseWorkflow(ctx context.Context, path string, varMap map[string]string, p
 	if err != nil {
 		return nil, err
 	}
+Loop:
 	for k, v := range varMap {
-		w.AddVar(k, v)
+		for wv := range w.Vars {
+			if k == wv {
+				w.AddVar(k, v)
+				continue Loop
+			}
+		}
+		return nil, fmt.Errorf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
 	}
 
 	if project != "" {
@@ -172,7 +179,7 @@ func main() {
 		if *validate {
 			fmt.Printf("[Daisy] Validating workflow %q\n", w.Name)
 			if err := w.Validate(ctx); err != nil {
-				fmt.Fprintln(os.Stderr, "[Daisy] Error validating workflow:", err)
+				fmt.Fprintf(os.Stderr, "[Daisy] Error validating workflow %q: %v\n", w.Name, err)
 			}
 			continue
 		}
