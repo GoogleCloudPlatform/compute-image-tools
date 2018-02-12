@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for device in "/dev/sdb" "/dev/sdc" "/dev/sdd"; do 
+for device in "/dev/sdb" "/dev/sdc"; do 
   if [[ ! -b $device ]]; then
     echo "FAILURE JO2Pd99h4qRK5HIpc5NP: '${device}'' does not exist"
   fi
