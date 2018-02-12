@@ -2,7 +2,8 @@
     "Name": "image-export-test",
     "Vars": {
       "about-this-test": { "Description": "This test checks that the export_image|disk workflows actualy work." },
-      "gcs_export": "gs://compute-image-tools-test-resources/created-by-export-test.tar.gz"
+      "gcs_export": "gs://compute-image-tools-test-resources/created-by-export-test.tar.gz",
+      "test-id": {"Description": "The ID of this test run."}
     },
     "Steps": {
       "image-export": {

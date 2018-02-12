@@ -1,7 +1,8 @@
 {
   "Name": "include-me",
   "Vars": {
-    "about-this-test": { "Description": "this workflow is included by the include_workflow.wf.json test" }
+    "about-this-test": { "Description": "this workflow is included by the include_workflow.wf.json test" },
+    "test-id": {"Description": "The ID of this test run."}
   },
   "Steps": {
     "create-child-disk": {

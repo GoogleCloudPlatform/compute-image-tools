@@ -2,7 +2,8 @@
   "Name": "image-import-and-translate-test",
   "Vars": {
     "image_name": "image-import-and-translate-test-${ID}",
-    "source_disk_file": "gs://gce-daisy-test-resources/xenial-server-cloudimg-amd64-disk1.vmdk"
+    "source_disk_file": "gs://gce-daisy-test-resources/xenial-server-cloudimg-amd64-disk1.vmdk",
+    "test-id": {"Description": "The ID of this test run."}
   },
   "Steps": {
     "import-and-translate-image": {

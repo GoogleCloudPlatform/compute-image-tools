@@ -1,5 +1,9 @@
 {
   "Name": "create-images-test",
+  "Vars": {
+    "about-this-test": { "Description": "This test creates an instance and checks that it was created OK, and also creates multiple instances and checks that they are also OK." },
+    "test-id": {"Description": "The ID of this test run."}
+  },
   "Steps": {
     "disk-for-image": {
       "CreateDisks": [
