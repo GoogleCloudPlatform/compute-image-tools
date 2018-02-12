@@ -1,7 +1,8 @@
 {
   "Name": "can-retrieve-sources",
   "Vars": {
-    "about-this-test": { "Description": "This test checks that Daisy correctly uploads files from 'Sources' to the right place, that this works both locally and from GCS, and that sources are accessible to a Linux instance." }
+    "about-this-test": { "Description": "This test checks that Daisy correctly uploads files from 'Sources' to the right place, that this works both locally and from GCS, and that sources are accessible to a Linux instance." },
+    "test-id": {"Description": "The ID of this test run."}
   },
   "Sources": {
     "local_file.txt": "./data/test.txt",

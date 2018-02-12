@@ -1,7 +1,8 @@
 {
   "Name": "attach-disks-test",
   "Vars": {
-    "about-this-test": { "Description": "This test creates an instance and then attaches two disks to that instance." }
+    "about-this-test": { "Description": "This test creates an instance and then attaches two disks to that instance." },
+    "test-id": {"Description": "The ID of this test run."}
   },
   "Sources": {
     "test_devices.sh": "./scripts/test_devices.sh"

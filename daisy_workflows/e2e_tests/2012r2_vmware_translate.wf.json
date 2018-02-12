@@ -2,7 +2,8 @@
   "Name": "windows-2012-r2-translate-test",
   "Vars": {
     "source_image": "projects/compute-image-tools-test/global/images/windows-2012-r2-vmware-import",
-    "image_name": "windows-2012-r2-translate-test-${ID}"
+    "image_name": "windows-2012-r2-translate-test-${ID}",
+    "test-id": {"Description": "The ID of this test run."}
   },
   "Sources": {
     "post_translate_test.ps1": "./scripts/post_translate_test.ps1"
