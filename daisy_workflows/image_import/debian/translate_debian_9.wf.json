@@ -38,7 +38,6 @@
     }
   },
   "Dependencies": {
-    "translate-disk": ["setup-disk"],
     "create-image": ["translate-disk"]
   }
 }
