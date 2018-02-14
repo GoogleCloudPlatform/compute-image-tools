@@ -260,7 +260,10 @@ func (w *Workflow) genName(n string) string {
 	for parent := w.parent; parent != nil; parent = parent.parent {
 		name = parent.Name + "-" + name
 	}
-	prefix := fmt.Sprintf("%s-%s", n, name)
+	prefix := name
+	if n != "" {
+		prefix = fmt.Sprintf("%s-%s", n, name)
+	}
 	if len(prefix) > 57 {
 		prefix = prefix[0:56]
 	}
@@ -380,6 +383,7 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 
 	// Generate more autovars from workflow fields. Run second round of var substitution.
 	w.autovars["NAME"] = w.Name
+	w.autovars["FULLNAME"] = w.genName("")
 	w.autovars["ZONE"] = w.Zone
 	w.autovars["PROJECT"] = w.Project
 	w.autovars["GCSPATH"] = w.GCSPath
