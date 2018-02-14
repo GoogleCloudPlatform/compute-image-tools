@@ -38,7 +38,7 @@
           "metadata": {
             "test_files_gcs_dir": "${SOURCESPATH}/test_files",
             "test_script": "test.py",
-            "testee": "inst-metadata-ssh-testee-${NAME}-${ID}",
+            "testee": "inst-metadata-ssh-testee-${FULLNAME}",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },
