@@ -15,6 +15,7 @@
 
 # Make sure docker is running
 systemctl start docker
+sleep 5
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
