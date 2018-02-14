@@ -1,0 +1,95 @@
+{
+  "Name": "img-metadata-ssh-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Sources": {
+    "test_files/test.py": "./metadata-ssh-tester.py",
+    "test_files/utils.py": "./linux_common/utils.py",
+    "startup_tester": "./linux_common/bootstrap.py"
+  },
+  "Steps": {
+    "create-disk-tester": {
+      "CreateDisks": [
+        {
+          "Name": "disk-tester",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-disk-testee": {
+      "CreateDisks": [
+        {
+          "Name": "disk-testee",
+          "SourceImage": "${source_image}",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-instance-tester": {
+      "CreateInstances": [
+        {
+          "Name": "inst-metadata-ssh-tester",
+          "Disks": [{"Source": "disk-tester"}],
+          "StartupScript": "startup_tester",
+          "metadata": {
+            "test_files_gcs_dir": "${SOURCESPATH}/test_files",
+            "test_script": "test.py",
+            "testee": "inst-metadata-ssh-testee-${NAME}-${ID}",
+            "zone": "${ZONE}",
+            "project": "${PROJECT}"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_only",
+            "https://www.googleapis.com/auth/compute"
+          ]
+        }
+      ]
+    },
+    "create-instance-testee": {
+      "CreateInstances": [
+        {
+          "Name": "inst-metadata-ssh-testee",
+          "Disks": [{"Source": "disk-testee"}],
+          "metadata": {
+            "startup-script": "echo BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-boot-testee": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-metadata-ssh-testee",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-tester": {
+      "Timeout": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-metadata-ssh-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "TestSuccess",
+            "FailureMatch": "TestFailed"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-instance-testee": ["create-disk-testee"],
+    "wait-for-boot-testee": ["create-instance-testee"],
+    "create-instance-tester": ["create-disk-tester", "wait-for-boot-testee"],
+    "wait-for-tester": ["create-instance-tester"]
+  }
+}
