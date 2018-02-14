@@ -94,8 +94,7 @@ def RunTest(test_func):
     tracer.runfunc(test_func)
     print('TestSuccess: Test finished.')
   except Exception as e:
-    print('TestFailed: error: ')
-    print(str(e))
+    print('TestFailed: error: ' + str(e))
     traceback.print_exc()
 
 

@@ -50,8 +50,7 @@ def Bootstrap():
     logging.info('Running %s.', full_test_script)
     subprocess.check_call([full_test_script], cwd=test_dir)
   except Exception as e:
-    print('TestFailed: error: ')
-    print(str(e))
+    print('TestFailed: error: ' + str(e))
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)
