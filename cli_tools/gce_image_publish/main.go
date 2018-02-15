@@ -22,6 +22,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path"
@@ -56,6 +57,13 @@ var (
 	noConfirm      = flag.Bool("skip_confirmation", false, "don't ask for confirmation")
 	ce             = flag.String("compute_endpoint_override", "", "API endpoint to override default, will override ComputeEndpoint in template")
 	filter         = flag.String("filter", "", "regular expression to filter images to publish by prefixes")
+
+	funcMap = template.FuncMap{
+		"trim":       strings.Trim,
+		"trimPrefix": strings.TrimPrefix,
+		"trimSuffix": strings.TrimSuffix,
+	}
+	publishTemplate = template.New("publishTemplate").Option("missingkey=zero").Funcs(funcMap)
 )
 
 type publish struct {
@@ -120,12 +128,10 @@ func publishImage(p *publish, img *image, pubImgs []*compute.Image, skipDuplicat
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	sourceName := fmt.Sprintf("%s-%s", img.Prefix, p.sourceVersion)
 
-	// Replace text in Description for the print out, let daisy replace other fields.
-	replacer := strings.NewReplacer("${source_version}", p.sourceVersion, "${publish_version}", p.publishVersion)
 	ci := daisy.Image{
 		Image: compute.Image{
 			Name:        publishName,
-			Description: replacer.Replace(img.Description),
+			Description: img.Description,
 			Licenses:    img.Licenses,
 			Family:      img.Family,
 		},
@@ -254,7 +260,7 @@ func populateSteps(w *daisy.Workflow, prefix string, createImages *daisy.CreateI
 		}
 		createStep.CreateImages = createImages
 		// The default of 10m is a bit low, 1h is excessive for most use cases.
-		// TODO(ajackura): Maybe add a timout field override to the template?
+		// TODO(ajackura): Maybe add a timeout field override to the template?
 		createStep.Timeout = "1h"
 	}
 
@@ -409,8 +415,6 @@ func (p *publish) createWorkflow(ctx context.Context, img *image, varMap map[str
 
 	w.Name = img.Prefix
 	w.Project = p.WorkProject
-	w.AddVar("source_version", p.sourceVersion)
-	w.AddVar("publish_version", p.publishVersion)
 
 	cacheKey := w.ComputeClient.BasePath() + p.PublishProject
 	pubImgs, ok := imagesCache[cacheKey]
@@ -436,17 +440,30 @@ func (p *publish) createWorkflow(ctx context.Context, img *image, varMap map[str
 }
 
 func createWorkflows(ctx context.Context, path string, varMap map[string]string, regex *regexp.Regexp) ([]*daisy.Workflow, error) {
-	tmpl, err := template.ParseFiles(path)
+	var p publish
+	p.sourceVersion = *sourceVersion
+	p.publishVersion = *publishVersion
+	if p.publishVersion == "" {
+		p.publishVersion = *sourceVersion
+	}
+	varMap["source_version"] = p.sourceVersion
+	varMap["publish_version"] = p.publishVersion
+
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %v", path, err)
+	}
+
+	tmpl, err := publishTemplate.Parse(string(b))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %v", path, err)
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Option("missingkey=zero").Execute(&buf, varMap); err != nil {
+	if err := tmpl.Execute(&buf, varMap); err != nil {
 		return nil, fmt.Errorf("%s: %v", path, err)
 	}
 
-	var p publish
 	if err := json.Unmarshal(buf.Bytes(), &p); err != nil {
 		return nil, daisy.JSONError(path, buf.Bytes(), err)
 	}
@@ -455,11 +472,6 @@ func createWorkflows(ctx context.Context, path string, varMap map[string]string,
 		return nil, fmt.Errorf("%s: error parsing DeleteAfter: %v", path, err)
 	}
 
-	p.sourceVersion = *sourceVersion
-	p.publishVersion = *publishVersion
-	if *publishVersion == "" {
-		p.publishVersion = *sourceVersion
-	}
 	if *workProject != "" {
 		p.WorkProject = *workProject
 	}
