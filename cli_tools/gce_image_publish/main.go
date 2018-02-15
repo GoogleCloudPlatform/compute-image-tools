@@ -495,8 +495,7 @@ func createWorkflows(ctx context.Context, path string, varMap map[string]string,
 		}
 		w, err := p.createWorkflow(ctx, img, varMap, *rollback, *skipDup, *replace)
 		if err != nil {
-			fmt.Printf("    Workflow creation error: %v\n", err)
-			continue
+			return nil, err
 		}
 		if w == nil {
 			continue
@@ -619,13 +618,14 @@ func main() {
 
 	ctx := context.Background()
 
-	var errorSeen bool
+	var errs []error
 	var ws []*daisy.Workflow
 	for _, path := range flag.Args() {
 		w, err := createWorkflows(ctx, path, varMap, regex)
 		if err != nil {
-			fmt.Println("   Error:", err)
-			errorSeen = true
+			msg := fmt.Sprintln("Workflow creation error:", err)
+			fmt.Printf("   %s", msg)
+			errs = append(errs, fmt.Errorf("%q: %s", path, msg))
 			continue
 		}
 		if w != nil {
@@ -633,11 +633,13 @@ func main() {
 		}
 	}
 
+	errors := make(chan error, len(ws)+len(errs))
+	for _, err := range errs {
+		errors <- err
+	}
 	if len(ws) == 0 {
+		checkError(errors)
 		fmt.Println("[Publish] Nothing to do")
-		if errorSeen {
-			os.Exit(1)
-		}
 		return
 	}
 
@@ -646,10 +648,10 @@ func main() {
 			fmt.Printf("[Publish] Printing workflow %q\n", w.Name)
 			w.Print(ctx)
 		}
+		checkError(errors)
 		return
 	}
 
-	errors := make(chan error, len(ws))
 	if *validate {
 		for _, w := range ws {
 			fmt.Printf("[Publish] Validating workflow %q\n", w.Name)
