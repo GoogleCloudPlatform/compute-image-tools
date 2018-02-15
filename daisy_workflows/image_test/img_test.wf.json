@@ -39,6 +39,14 @@
             "source_image": "${source_image}"
         }
       }
+    },
+    "test-metadata-ssh": {
+      "SubWorkflow": {
+        "Path": "./metadata-ssh.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
     }
   }
 }
