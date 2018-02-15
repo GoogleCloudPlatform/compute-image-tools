@@ -580,9 +580,7 @@ func checkError(errors chan error) {
 			}
 		}
 	default:
-		if !*print && !*validate {
-			fmt.Println("[Publish] Workflows completed successfully.")
-		}
+		return
 	}
 }
 
@@ -701,4 +699,5 @@ func main() {
 	wg.Wait()
 
 	checkError(errors)
+	fmt.Println("[Publish] Workflows completed successfully.")
 }
