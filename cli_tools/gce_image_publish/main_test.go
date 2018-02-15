@@ -39,7 +39,7 @@ func TestPublishImage(t *testing.T) {
 		{
 			"normal case",
 			&publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature", "bar-feature"}, Description: "${publish_version} ${source_version}"},
+			&image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
 			[]*compute.Image{
 				{Name: "bar-2", Family: "bar-family"},
 				{Name: "foo-2", Family: "foo-family"},
@@ -49,7 +49,7 @@ func TestPublishImage(t *testing.T) {
 			false,
 			false,
 			&daisy.CreateImages{{GuestOsFeatures: []string{"foo-feature", "bar-feature"}, Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, Image: compute.Image{
-				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3", Description: "3 3"},
+				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"},
 			}},
 			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
 			false,
