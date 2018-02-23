@@ -16,9 +16,11 @@
 set -x
 
 URL="http://metadata/computeMetadata/v1/instance"
-SOURCEURL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)/source_disk_file"
+DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)"
+SOURCEURL="${DAISY_SOURCE_URL}/source_disk_file"
 SOURCEBUCKET="$(echo ${SOURCEURL} | awk -F/ '{print $3}')"
 SOURCEPATH="${SOURCEURL#"gs://"}"
+SOURCE_DISK_FILE="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/source_disk_file)"
 DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk_name)"
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
 ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
@@ -49,6 +51,16 @@ fi
 # Mount GCS bucket containing the disk image.
 mkdir -p /gcs/${SOURCEBUCKET}
 gcsfuse --implicit-dirs ${SOURCEBUCKET} /gcs/${SOURCEBUCKET}
+
+# Atrocious OVA hack.
+SOURCEFILE_TYPE="$(echo ${SOURCE_DISK_FILE} | awk -F. '{print $NF}' | grep -o '[a-z,A-Z]\+')"
+if [[ "${SOURCEFILE_TYPE}" == "ova" ]]; then
+  echo "Import: Unpacking VMDK files from ova."
+  VMDK="$(tar --list -f /gcs/${SOURCEPATH} | grep -m1 vmdk)"
+  tar -C /gcs/${DAISY_SOURCE_URL#"gs://"} -xf /gcs/${SOURCEPATH} ${VMDK}
+  SOURCEPATH="${DAISY_SOURCE_URL#"gs://"}/${VMDK}"
+  echo "Import: New source file is ${VMDK}"
+fi
 
 # Disk image size info.
 SIZE_BYTES=$(qemu-img info --output "json" /gcs/${SOURCEPATH} | grep -m1 "virtual-size" | grep -o '[0-9]\+')
