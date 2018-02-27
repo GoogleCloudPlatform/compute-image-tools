@@ -2,6 +2,33 @@
 These are workflows used by the GCE team to automate integration tests
 with Linux images and GCE
 
+# Setup
+
+To allow testing of OS Login SSH test cases, create two service accounts with
+the following roles:
+
+-   `daisy-oslogin`:
+     roles/compute.osLogin
+     roles/iam.serviceAccountUser
+     roles/storage.objectViewer
+
+-   `daisy-osadminlogin`:
+     roles/compute.osAdminLogin
+     roles/iam.serviceAccountUser
+     roles/storage.objectViewer
+
+You can use the following commands
+
+    gcloud iam service-accounts create daisy-oslogin
+    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/compute.osLogin'
+    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/iam.serviceAccountUser'
+    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/storage.objectViewer'
+
+    gcloud iam service-accounts create daisy-osadminlogin
+    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/compute.osAdminLogin'
+    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/iam.serviceAccountUser'
+    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/storage.objectViewer'
+
 # Test Cases
 
 Boot

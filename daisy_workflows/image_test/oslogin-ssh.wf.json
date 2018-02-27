@@ -1,0 +1,189 @@
+{
+  "Name": "img-oslogin-ssh-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "osadminlogin_service_account": {
+      "Value": "daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com",
+      "Required": true,
+      "Description": "Service account with roles/compute.osAdminLogin"
+    },
+    "oslogin_service_account": {
+      "Value": "daisy-oslogin@${PROJECT}.iam.gserviceaccount.com",
+      "Required": true,
+      "Description": "Service account with roles/compute.osLogin"
+    }
+  },
+  "Sources": {
+    "test_files/test.py": "./oslogin-ssh-master-tester.py",
+    "test_files/utils.py": "./linux_common/utils.py",
+    "startup_master_tester": "./linux_common/bootstrap.py",
+    "test_files/slave_tester.sh": "./scripts/oslogin_slave_tester.sh",
+    "startup_slave_tester": "./scripts/oslogin_slave_tester_startup.sh"
+  },
+  "Steps": {
+    "create-disk-master-tester": {
+      "CreateDisks": [
+        {
+          "Name": "disk-master-tester",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-disk-oslogin-ssh-tester": {
+      "CreateDisks": [
+        {
+          "Name": "disk-oslogin-ssh-tester",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-disk-osadminlogin-ssh-tester": {
+      "CreateDisks": [
+        {
+          "Name": "disk-osadminlogin-ssh-tester",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-disk-testee": {
+      "CreateDisks": [
+        {
+          "Name": "disk-testee",
+          "SourceImage": "${source_image}",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-instance-master-tester": {
+      "CreateInstances": [
+        {
+          "Name": "inst-master-tester",
+          "Disks": [{"Source": "disk-master-tester"}],
+          "StartupScript": "startup_master_tester",
+          "metadata": {
+            "test_files_gcs_dir": "${SOURCESPATH}/test_files",
+            "test_script": "test.py",
+            "testee": "inst-oslogin-ssh-testee-${FULLNAME}",
+            "osLoginTester": "inst-oslogin-ssh-tester-${FULLNAME}",
+            "osAdminLoginTester": "inst-osadminlogin-ssh-tester-${FULLNAME}",
+            "zone": "${ZONE}",
+            "project": "${PROJECT}"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_only",
+            "https://www.googleapis.com/auth/compute"
+          ]
+        }
+      ]
+    },
+    "create-instance-oslogin-ssh-tester": {
+      "CreateInstances": [
+        {
+          "Name": "inst-oslogin-ssh-tester",
+          "Disks": [{"Source": "disk-oslogin-ssh-tester"}],
+          "StartupScript": "startup_slave_tester",
+          "ServiceAccounts": [{
+            "Email": "${oslogin_service_account}",
+            "Scopes": [
+              "https://www.googleapis.com/auth/devstorage.read_only",
+              "https://www.googleapis.com/auth/compute"
+            ]
+          }]
+        }
+      ]
+    },
+    "create-instance-osadminlogin-ssh-tester": {
+      "CreateInstances": [
+        {
+          "Name": "inst-osadminlogin-ssh-tester",
+          "Disks": [{"Source": "disk-osadminlogin-ssh-tester"}],
+          "StartupScript": "startup_slave_tester",
+          "ServiceAccounts": [{
+            "Email": "${osadminlogin_service_account}",
+            "Scopes": [
+              "https://www.googleapis.com/auth/devstorage.read_only",
+              "https://www.googleapis.com/auth/compute"
+            ]
+          }]
+        }
+      ]
+    },
+    "create-instance-testee": {
+      "CreateInstances": [
+        {
+          "Name": "inst-oslogin-ssh-testee",
+          "Disks": [{"Source": "disk-testee"}],
+          "metadata": {
+            "startup-script": "echo BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-boot-oslogin-ssh-tester": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-oslogin-ssh-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-boot-osadminlogin-ssh-tester": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-osadminlogin-ssh-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-boot-testee": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-oslogin-ssh-testee",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-master-tester": {
+      "Timeout": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-master-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "TestSuccess",
+            "FailureMatch": "TestFailed"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-instance-oslogin-ssh-tester": ["create-disk-oslogin-ssh-tester"],
+    "create-instance-osadminlogin-ssh-tester": ["create-disk-osadminlogin-ssh-tester"],
+    "create-instance-testee": ["create-disk-testee"],
+    "wait-for-boot-oslogin-ssh-tester": ["create-instance-oslogin-ssh-tester"],
+    "wait-for-boot-osadminlogin-ssh-tester": ["create-instance-osadminlogin-ssh-tester"],
+    "wait-for-boot-testee": ["create-instance-testee"],
+    "create-instance-master-tester": ["create-disk-master-tester", "wait-for-boot-oslogin-ssh-tester", "wait-for-boot-osadminlogin-ssh-tester", "create-instance-testee"],
+    "wait-for-master-tester": ["create-instance-master-tester"]
+  }
+}
