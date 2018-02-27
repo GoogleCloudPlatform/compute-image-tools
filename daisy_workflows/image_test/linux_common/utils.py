@@ -17,12 +17,14 @@
 
 import logging
 import os
+import re
 import subprocess
 import sys
 import time
 import trace
 import traceback
 import urllib2
+import uuid
 
 
 def AptGetInstall(package_list):
@@ -70,15 +72,37 @@ def HttpGet(url, headers=None):
   return urllib2.urlopen(request).read()
 
 
-def GetMetadataParam(name, default_value=None, raise_on_not_found=False):
-  try:
-    url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % name
-    return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
-  except urllib2.HTTPError:
-    if raise_on_not_found:
-      raise ValueError('Metadata key "%s" not found' % name)
+def GenSshKey(user):
+  key_name = 'daisy-test-key-' + str(uuid.uuid4())
+  Execute(
+      ['ssh-keygen', '-t', 'rsa', '-N', '', '-f', key_name, '-C', key_name])
+  with open(key_name + '.pub', 'r') as original:
+    data = original.read()
+  return "%s:%s" % (user, data), key_name
+
+
+def _ExecuteInSsh(key, user, machine, cmds, raise_errors, capture_output):
+  ssh_command = [
+      'ssh', '-i', key, '-o', 'IdentitiesOnly=yes',
+      '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
+      '%s@%s' % (user, machine)
+  ]
+  return Execute(
+      ssh_command + cmds, raise_errors=raise_errors,
+      capture_output=capture_output)
+
+
+def ExecuteInSsh(key, user, machine, cmds, ntries=1, expectFail=False, capture_output=False):
+  for tryAgain in range(ntries):
+    ret, out = _ExecuteInSsh(key, user, machine, cmds, False, capture_output)
+    if expectFail and ret == 0:
+      error = 'SSH command succeeded when expected to fail'
+    elif not expectFail and ret != 0:
+      error = 'SSH command failed when expected to succeed'
     else:
-      return default_value
+      return ret, out
+    time.sleep(5)
+  raise ValueError(error)
 
 
 def GetCompute(discovery, GoogleCredentials):
@@ -106,3 +130,110 @@ def SetupLogging():
   logging.getLogger().addHandler(console)
 
 SetupLogging()
+
+
+class MetadataManager:
+  SSH_KEYS = 'ssh-keys'
+  SSHKEYS_LEGACY = 'sshKeys'
+  INSTANCE_LEVEL = 1
+  PROJECT_LEVEL = 2
+
+  def __init__(self, compute, instance, ssh_user='tester'):
+    self.zone = self.GetDefault('zone')
+    self.project = self.GetDefault('project')
+    self.compute = compute
+    self.instance = instance
+    self.md_obj = None
+    self.level = None
+    self.last_fingerprint = None
+    self.ssh_user = ssh_user
+
+  def Get(self, level):
+    self.level = level
+    if level == self.PROJECT_LEVEL:
+      request = self.compute.projects().get(project=self.project)
+      md_id = 'commonInstanceMetadata'
+    else:
+      request = self.compute.instances().get(
+          project=self.project, zone=self.zone, instance=self.instance)
+      md_id = 'metadata'
+
+    for tryAgain in range(3):
+      response = request.execute()
+      self.md_obj = response[md_id]
+      if self.md_obj['fingerprint'] != self.last_fingerprint:
+        self.last_fingerprint = self.md_obj['fingerprint']
+        return
+      time.sleep(5)
+
+  def Set(self):
+    if self.level == self.PROJECT_LEVEL:
+      request = self.compute.projects().setCommonInstanceMetadata(
+          project=self.project, body=self.md_obj)
+    else:
+      request = self.compute.instances().setMetadata(
+          project=self.project, zone=self.zone, instance=self.instance,
+          body=self.md_obj)
+    request.execute()
+    self.md_obj = None
+    self.level = None
+
+  def ExtractKeyItem(self, md_key):
+    try:
+      md_item = (
+          md for md in self.md_obj['items'] if md['key'] == md_key).next()
+    except StopIteration:
+      md_item = None
+    return md_item
+
+  def DefineSingle(self, md_key, md_value, level):
+    self.Get(level)
+    md_item = self.ExtractKeyItem(md_key)
+    if md_item and md_value is None:
+      self.md_obj['items'].remove(md_item)
+    elif not md_item:
+      md_item = {'key': md_key, 'value': md_value}
+      self.md_obj['items'].append(md_item)
+    else:
+      md_item['value'] = md_value
+    self.Set()
+
+  def AddSshKey(self, md_key):
+    key, key_name = GenSshKey(self.ssh_user)
+    md_item = self.ExtractKeyItem(md_key)
+    if not md_item:
+      md_item = {'key': md_key, 'value': key}
+      self.md_obj['items'].append(md_item)
+    else:
+      md_item['value'] = '\n'.join([md_item['value'], key])
+    return key_name
+
+  def RmSshKey(self, md_key, key):
+    md_item = self.ExtractKeyItem(md_key)
+    md_item['value'] = re.sub('.*%s.*\n?' % key, '', md_item['value'])
+    if not md_item['value']:
+      self.md_obj['items'].remove(md_item)
+
+  def AddSshKeySingle(self, md_key, level):
+    self.Get(level)
+    key = self.AddSshKey(md_key)
+    self.Set()
+    return key
+
+  def RmSshKeySingle(self, key, md_key, level):
+    self.Get(level)
+    self.RmSshKey(md_key, key)
+    self.Set()
+
+  def TestSshLogin(self, key, expectFail=False):
+    ExecuteInSsh(
+        key, self.ssh_user, self.instance, ['echo', 'Logged'], ntries=3,
+        expectFail=expectFail)
+
+  @classmethod
+  def GetDefault(cls, name):
+    try:
+      url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % name
+      return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
+    except urllib2.HTTPError:
+      raise ValueError('Metadata key "%s" not found' % name)
