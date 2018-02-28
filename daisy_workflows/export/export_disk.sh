@@ -14,7 +14,14 @@
 # limitations under the License.
 
 # Wait for GCR to be available.
-until eval curl -o /dev/null -s https://gcr.io/ ; do sleep 1; done
+while true; do
+  echo "GCEExport: Waiting for GCR." > /dev/ttyS0
+  curl -o /dev/null -s https://gcr.io/
+  if [ $? -eq 0 ]; then
+    break
+  fi
+  sleep 1
+done
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
