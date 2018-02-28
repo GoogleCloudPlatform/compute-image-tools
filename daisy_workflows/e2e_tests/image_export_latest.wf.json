@@ -1,7 +1,7 @@
 {
   "Name": "image-export-test",
   "Vars": {
-    "about-this-test": { "Description": "This test checks that the export_image|disk workflows actualy work." },
+    "about-this-test": { "Description": "This test checks that the export_image|disk workflows actualy work using 'gce_export:latest'." },
     "gcs_export": "gs://compute-image-tools-test-resources/created-by-export-test.tar.gz",
     "test-id": {"Description": "The ID of this test run."}
   },
@@ -11,7 +11,8 @@
         "Path": "../export/image_export.wf.json",
         "Vars": {
           "source_image": "projects/debian-cloud/global/images/family/debian-9",
-          "destination": "${gcs_export}"
+          "destination": "${gcs_export}",
+          "export_image": "gcr.io/compute-image-tools/gce_export:latest"
         }
       }
     },

@@ -24,6 +24,9 @@ IMAGE=$(curl -f -H Metadata-Flavor:Google ${URL}/image)
 
 echo "GCEExport: Pulling export tool." > /dev/ttyS0
 docker pull $IMAGE > /dev/ttyS0 2>&1
+if [ $? -ne 0 ]; then
+  echo "GCEExport: 'docker pull' of ${IMAGE} failed, 'docker run' will attempt to pull image once more..." > /dev/ttyS0
+fi
 
 echo "GCEExport: Running export tool." > /dev/ttyS0
 if [[ -n $LICENSES ]]; then
