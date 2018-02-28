@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Make sure docker is running
-systemctl start docker
-sleep 5
+# Wait for GCR to be available.
+until eval curl -o /dev/null -s https://gcr.io/ ; do sleep 1; done
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
