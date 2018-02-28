@@ -15,6 +15,16 @@
         }
       }
     },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "from-export",
+          "RawDisk": {
+            "Source": "${gcs_export}"
+          }
+        }
+      ]
+    },
     "create-tester": {
       "CreateInstances": [
         {
@@ -45,21 +55,11 @@
           }
         }
       ]
-    },
-    "create-image": {
-      "CreateImages": [
-        {
-          "Name": "from-export",
-          "RawDisk": {
-            "Source": "${gcs_export}"
-          }
-        }
-      ]
     }
   },
   "Dependencies": {
-    "create-tester": ["image-export"],
-    "verify-output": ["create-tester"],
-    "create-image": ["verify-output"]
+    "create-image": ["image-export"],
+    "create-tester": ["create-image"],
+    "verify-output": ["create-tester"]
   }
 }
