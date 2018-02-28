@@ -1,55 +1,66 @@
 {
-    "Name": "image-export-test",
-    "Vars": {
-      "about-this-test": { "Description": "This test checks that the export_image|disk workflows actualy work." },
-      "gcs_export": "gs://compute-image-tools-test-resources/created-by-export-test.tar.gz",
-      "test-id": {"Description": "The ID of this test run."}
-    },
-    "Steps": {
-      "image-export": {
-        "IncludeWorkflow": {
-          "Path": "../export/image_export.wf.json",
-          "Vars": {
-            "source_image": "projects/debian-cloud/global/images/family/debian-9",
-            "destination": "${gcs_export}"
-          }
+  "Name": "image-export-test",
+  "Vars": {
+    "about-this-test": { "Description": "This test checks that the export_image|disk workflows actualy work." },
+    "gcs_export": "gs://compute-image-tools-test-resources/created-by-export-test.tar.gz",
+    "test-id": {"Description": "The ID of this test run."}
+  },
+  "Steps": {
+    "image-export": {
+      "IncludeWorkflow": {
+        "Path": "../export/image_export.wf.json",
+        "Vars": {
+          "source_image": "projects/debian-cloud/global/images/family/debian-9",
+          "destination": "${gcs_export}"
         }
-      },
-      "create-tester": {
-        "CreateInstances": [ 
-          {
-            "Name": "tester",
-            "Disks": [ 
-              {
-                "InitializeParams": {
-                  "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-                  "Type": "pd-ssd"
-                }
-              } 
-            ],
-            "Metadata": {
-              "startup-script": "gsutil cp ${gcs_export} . && gsutil rm ${gcs_export} && echo 'SUCCESS wVnWw3a41CVe3mBVvTMn' || echo 'FAILURE wVnWw3a41CVe3mBVvTMn'"
-            },
-            "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
-          } 
-        ]
-      },
-      "verify-output": {
-        "WaitForInstancesSignal": [ 
-          {
-            "Name": "tester",
-            "SerialOutput": {
-              "Port": 1,
-              "SuccessMatch": "SUCCESS wVnWw3a41CVe3mBVvTMn",
-              "FailureMatch": "FAILURE wVnWw3a41CVe3mBVvTMn"
-            }
-          } 
-        ]
       }
     },
-    "Dependencies": {
-      "create-tester": ["image-export"],
-      "verify-output": ["create-tester"]
+    "create-tester": {
+      "CreateInstances": [
+        {
+          "Name": "tester",
+          "Disks": [
+            {
+              "InitializeParams": {
+                "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+                "Type": "pd-ssd"
+              }
+            }
+          ],
+          "Metadata": {
+            "startup-script": "gsutil cp ${gcs_export} . && gsutil rm ${gcs_export} && echo 'SUCCESS wVnWw3a41CVe3mBVvTMn' || echo 'FAILURE wVnWw3a41CVe3mBVvTMn'"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+        }
+      ]
+    },
+    "verify-output": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SUCCESS wVnWw3a41CVe3mBVvTMn",
+            "FailureMatch": "FAILURE wVnWw3a41CVe3mBVvTMn"
+          }
+        }
+      ]
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "from-export",
+          "RawDisk": {
+            "Source": "${gcs_export}"
+          }
+        }
+      ]
     }
+  },
+  "Dependencies": {
+    "create-tester": ["image-export"],
+    "verify-output": ["create-tester"],
+    "create-image": ["verify-output"]
   }
-  
+}
+
