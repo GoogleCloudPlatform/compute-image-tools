@@ -149,8 +149,10 @@ func main() {
 		}
 
 		if err := tw.WriteHeader(&tar.Header{
-			Name: "manifest.json",
-			Size: int64(len(body)),
+			Name:   "manifest.json",
+			Mode:   0600,
+			Size:   int64(len(body)),
+			Format: tar.FormatGNU,
 		}); err != nil {
 			log.Fatal(err)
 		}
@@ -160,8 +162,10 @@ func main() {
 	}
 
 	if err := tw.WriteHeader(&tar.Header{
-		Name: "disk.raw",
-		Size: size,
+		Name:   "disk.raw",
+		Mode:   0600,
+		Size:   size,
+		Format: tar.FormatGNU,
 	}); err != nil {
 		log.Fatal(err)
 	}
