@@ -19,6 +19,10 @@
     "export_instance_disk_size": {
       "Value": "200",
       "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
+    },
+    "export_image": {
+      "Value": "gcr.io/compute-image-tools/gce_export:release",
+      "Description": "Docker image to use for the gce_export_tool"
     }
   },
   "Sources": {
@@ -44,6 +48,7 @@
           "Metadata": {
             "gcs-path": "${OUTSPATH}/${NAME}.tar.gz",
             "licenses": "${licenses}", 
+            "image": "${export_image}",
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}"
           },
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
