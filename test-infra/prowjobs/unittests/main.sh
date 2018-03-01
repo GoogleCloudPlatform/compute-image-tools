@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-set -x
-
 export GOCOVPATH=/gocov.txt
 export PYCOVPATH=/pycov.txt
 
@@ -30,8 +27,6 @@ if [ ! -z "${PULL_NUMBER}" ]; then
   git fetch origin pull/${PULL_NUMBER}/head:${PULL_NUMBER}
   git checkout ${PULL_NUMBER}
 fi
-
-set +e
 
 # Execute all unittests.sh scripts in their directories.
 # Each script should APPEND coverage data to GOCOVPATH or PYCOVPATH.
@@ -56,8 +51,6 @@ find . -type f -name "unittests.sh" | while read script; do
     echo ${UNITTESTRET} > runnerret
   fi
 done
-
-set +x
 
 # Upload coverage results to Codecov.
 CODEV_COV_ARGS="-v -t $(cat ${CODECOV_TOKEN}) -B master -C $(git rev-parse HEAD)"
