@@ -13,7 +13,7 @@
 # limitations under the License.
 FROM gcr.io/compute-image-tools-test/wrapper:latest
 
-FROM python:3.6.4-alpine3.7
+FROM python:alpine
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 

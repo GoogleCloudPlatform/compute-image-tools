@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,12 +12,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM golang:alpine
 
-RUN apk add --no-cache git
+set -e
+set -x
 
-WORKDIR /tmp
-COPY main.go main.go
-RUN go get -d ./...
-RUN CGO_ENABLED=0 go build -o /wrapper .
-RUN chmod +x /wrapper
+git clone https://github.com/${REPO_OWNER}/${REPO_NAME} /repo
+cd /repo
+
+# Pull PR if this is a PR.
+if [ ! -z "${PULL_NUMBER}" ]; then
+  git fetch origin pull/${PULL_NUMBER}/head:${PULL_NUMBER}
+  git checkout ${PULL_NUMBER}
+fi
+
+set +e
+
+flake8 --ignore E111,E114,E121,E125,E128,E129 --import-order-style=google
+RET=$?
+
+# Print results and return.
+if [ ${RET} != 0 ]; then
+  echo "flake8 returned ${RET}"
+  exit 1
+fi
+exit 0

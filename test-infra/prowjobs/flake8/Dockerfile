@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM golang:alpine
+FROM gcr.io/compute-image-tools-test/wrapper:latest
 
-RUN apk add --no-cache git
+FROM python
 
-WORKDIR /tmp
-COPY main.go main.go
-RUN go get -d ./...
-RUN CGO_ENABLED=0 go build -o /wrapper .
-RUN chmod +x /wrapper
+ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
+
+RUN pip install flake8 flake8-import-order
+
+COPY --from=0 /wrapper wrapper
+COPY main.sh main.sh
+ENTRYPOINT ["./wrapper", "./main.sh"]
