@@ -13,26 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Wait for GCR to be available.
-while true; do
-  echo "GCEExport: Waiting for GCR." > /dev/ttyS0
-  curl -o /dev/null -s https://gcr.io/
-  if [ $? -eq 0 ]; then
-    break
-  fi
-  sleep 1
-done
-
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
 IMAGE=$(curl -f -H Metadata-Flavor:Google ${URL}/image)
 
-echo "GCEExport: Pulling export tool." > /dev/ttyS0
-docker pull $IMAGE > /dev/ttyS0 2>&1
-if [ $? -ne 0 ]; then
-  echo "GCEExport: 'docker pull' of ${IMAGE} failed, 'docker run' will attempt to pull image once more..." > /dev/ttyS0
-fi
+# Pull the docker image.
+while true; do
+  echo "GCEExport: Pulling export tool." > /dev/ttyS0
+  docker pull $IMAGE > /dev/ttyS0 2>&1
+  if [ $? -eq 0 ]; then
+    break
+  fi
+  sleep 1
+done
 
 echo "GCEExport: Running export tool." > /dev/ttyS0
 if [[ -n $LICENSES ]]; then
