@@ -13,12 +13,13 @@
 # limitations under the License.
 FROM gcr.io/compute-image-tools-test/wrapper:latest
 
-FROM python
+FROM python:alpine
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 
 RUN pip install flake8 flake8-import-order
 
+WORKDIR /
 COPY --from=0 /wrapper wrapper
 COPY main.sh main.sh
 ENTRYPOINT ["./wrapper", "./main.sh"]
