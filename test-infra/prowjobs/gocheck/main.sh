@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-set -x
-
 git clone https://github.com/${REPO_OWNER}/${REPO_NAME} /repo
 cd /repo
 
@@ -25,23 +22,20 @@ if [ ! -z "${PULL_NUMBER}" ]; then
   git checkout ${PULL_NUMBER}
 fi
 
-set +e
+go get -d -t ./...
 
 golint -set_exit_status ./...
 GOLINT_RET=$?
+
 GOFMT_OUT=$(gofmt -l $(find . -type f -name "*.go") 2>&1)
 if [ -z "${GOFMT_OUT}" ]; then
   GOFMT_RET=0
 else
   GOFMT_RET=1
 fi
+
 go vet ./...
 GOVET_RET=$?
-
-set +x
-
-# Flush set -x output.
-sync
 
 # Print results and return.
 if [ ${GOLINT_RET} != 0 ]; then
