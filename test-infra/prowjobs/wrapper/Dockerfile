@@ -20,3 +20,7 @@ COPY main.go main.go
 RUN go get -d ./...
 RUN CGO_ENABLED=0 go build -o /wrapper .
 RUN chmod +x /wrapper
+
+FROM scratch
+
+COPY --from=0 wrapper wrapper

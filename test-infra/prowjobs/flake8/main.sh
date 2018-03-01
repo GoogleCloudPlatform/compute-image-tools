@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-set -x
-
 git clone https://github.com/${REPO_OWNER}/${REPO_NAME} /repo
 cd /repo
 
@@ -25,7 +22,6 @@ if [ ! -z "${PULL_NUMBER}" ]; then
   git checkout ${PULL_NUMBER}
 fi
 
-set +e
 
 flake8 --ignore E111,E114,E121,E125,E128,E129 --import-order-style=google
 RET=$?
