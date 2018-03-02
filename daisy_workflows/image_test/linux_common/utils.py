@@ -74,6 +74,14 @@ def HttpGet(url, headers=None):
 
 
 def GenSshKey(user):
+  """Generate ssh key for user.
+
+  Args:
+    user: string, the user to create the ssh key for.
+
+  Returns:
+    ret, out if capture_output=True.
+  """
   key_name = 'daisy-test-key-' + str(uuid.uuid4())
   Execute(
       ['ssh-keygen', '-t', 'rsa', '-N', '', '-f', key_name, '-C', key_name])
@@ -83,7 +91,7 @@ def GenSshKey(user):
 
 
 def RetryOnFailure(func):
-  """Function decorator to retry on a exception."""
+  """Function decorator to retry on an exception."""
 
   @functools.wraps(func)
   def Wrapper(*args, **kwargs):
@@ -100,6 +108,20 @@ def RetryOnFailure(func):
 
 
 def ExecuteInSsh(key, user, machine, cmds, expectFail=False, capture_output=False):
+  """Execute commands through ssh.
+
+  Args:
+    key: string, the path of the private key to use in the ssh connection.
+    user: string, the user used to connect through ssh.
+    machine: string, the hostname of the machine to connect.
+    cmds: list[string], the commands to be execute in the ssh session
+    expectFail: bool, indicates if the failure in the execution is expected
+    capture_output: bool, indicates if the output of the command should be
+        captured
+
+  Returns:
+    ret, out if capture_output=True.
+  """
   ssh_command = [
       'ssh', '-i', key, '-o', 'IdentitiesOnly=yes',
       '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
@@ -116,12 +138,26 @@ def ExecuteInSsh(key, user, machine, cmds, expectFail=False, capture_output=Fals
 
 
 def GetCompute(discovery, GoogleCredentials):
+  """Get google compute api cli object.
+
+  Args:
+    discovery: object, from googleapiclient.
+    GoogleCredentials: object, from oauth2client.client.
+
+  Returns:
+    compute: object, the google compute api object.
+  """
   credentials = GoogleCredentials.get_application_default()
   compute = discovery.build('compute', 'v1', credentials=credentials)
   return compute
 
 
 def RunTest(test_func):
+  """Run main test function and print TestSuccess or TestFailed.
+
+  Args:
+    test_func: function, the function to be tested.
+  """
   try:
     tracer = trace.Trace(
         ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
@@ -133,6 +169,7 @@ def RunTest(test_func):
 
 
 def SetupLogging():
+  """Configure Loggin system."""
   logging_level = logging.DEBUG
   logging.basicConfig(level=logging_level)
   console = logging.StreamHandler()
@@ -143,12 +180,21 @@ SetupLogging()
 
 
 class MetadataManager:
+  """Utilities to manage metadata."""
+
   SSH_KEYS = 'ssh-keys'
   SSHKEYS_LEGACY = 'sshKeys'
   INSTANCE_LEVEL = 1
   PROJECT_LEVEL = 2
 
   def __init__(self, compute, instance, ssh_user='tester'):
+    """Constructor.
+
+    Args:
+      compute: object, from GetCompute.
+      instance: string, the instance to manage the metadata.
+      user: string, the user to create ssh keys and perform ssh tests.
+    """
     self.zone = self.FetchMetadataDefault('zone')
     self.project = self.FetchMetadataDefault('project')
     self.compute = compute
@@ -159,6 +205,12 @@ class MetadataManager:
     self.ssh_user = ssh_user
 
   def FetchMetadata(self, level):
+    """Fetch metadata from the server. This also fetches the fingerprint
+    required for StoreMetadata.
+
+    Args:
+      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
+    """
     self.level = level
     if level == self.PROJECT_LEVEL:
       request = self.compute.projects().get(project=self.project)
@@ -179,6 +231,7 @@ class MetadataManager:
     _FetchMetadata()
 
   def StoreMetadata(self):
+    """Store Metadata previously fetched with FetchMetadata."""
     if self.level == self.PROJECT_LEVEL:
       request = self.compute.projects().setCommonInstanceMetadata(
           project=self.project, body=self.md_obj)
@@ -191,6 +244,16 @@ class MetadataManager:
     self.level = None
 
   def ExtractKeyItem(self, md_key):
+    """Extract a given key value from the metadata previously fetched
+    with FetchMetadata.
+
+    Args:
+      md_key: string, the key of the metadata value to be searched.
+
+    Returns:
+      md_item: dict, in the format {'key', md_key, 'value', md_value}.
+      None: if md_key was not found.
+    """
     try:
       md_item = (
           md for md in self.md_obj['items'] if md['key'] == md_key).next()
@@ -199,6 +262,13 @@ class MetadataManager:
     return md_item
 
   def DefineSingle(self, md_key, md_value, level):
+    """Add or update a metadata key with a new value in a given level.
+    This function already performs FetchMetadata and StoreMetadata.
+
+    Args:
+      md_key: string, the key of the metadata value to be added or updated.
+      md_key: string, the key of the metadata value to be added or updated.
+    """
     self.FetchMetadata(level)
     md_item = self.ExtractKeyItem(md_key)
     if md_item and md_value is None:
@@ -211,6 +281,15 @@ class MetadataManager:
     self.StoreMetadata()
 
   def AddSshKey(self, md_key):
+    """Generate and add an ssh key to the metadata previously fetched
+        with FetchMetadata.
+
+    Args:
+      md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
+
+    Returns:
+      key_name: string, the name of the file with the generated private key.
+    """
     key, key_name = GenSshKey(self.ssh_user)
     md_item = self.ExtractKeyItem(md_key)
     if not md_item:
@@ -221,30 +300,70 @@ class MetadataManager:
     return key_name
 
   def RemoveSshKey(self, md_key, key):
+    """Remove an ssh key to the metadata previously fetched
+        with FetchMetadata.
+
+    Args:
+      md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
+      key: string, the key to be removed.
+    """
     md_item = self.ExtractKeyItem(md_key)
     md_item['value'] = re.sub('.*%s.*\n?' % key, '', md_item['value'])
     if not md_item['value']:
       self.md_obj['items'].remove(md_item)
 
   def AddSshKeySingle(self, md_key, level):
+    """Same as AddSshKey but wrapped between FetchMetadata and StoreMetadata.
+
+    Args:
+      md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
+      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
+
+    Returns:
+      key_name: string, the name of the file with the generated private key.
+    """
     self.FetchMetadata(level)
     key = self.AddSshKey(md_key)
     self.StoreMetadata()
     return key
 
   def RemoveSshKeySingle(self, key, md_key, level):
+    """Same as RemoveSshKey but wrapped between FetchMetadata and
+        StoreMetadata.
+
+    Args:
+      key: string, the key to be removed.
+      md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
+      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
+
+    Returns:
+      key_name: string, the name of the file with the generated private key.
+    """
     self.FetchMetadata(level)
     self.RemoveSshKey(md_key, key)
     self.StoreMetadata()
 
   @RetryOnFailure
   def TestSshLogin(self, key, expectFail=False):
+    """Try to login to self.instance using key.
+
+    Args:
+      key: string, the private key to be used in the ssh connection.
+    """
     ExecuteInSsh(
         key, self.ssh_user, self.instance, ['echo', 'Logged'],
         expectFail=expectFail)
 
   @classmethod
   def FetchMetadataDefault(cls, name):
+    """Fetch Metadata from default metadata server (local machine).
+
+    Args:
+      name: string, the metadata key to be fetched.
+
+    Returns:
+      value: the metadata value.
+    """
     try:
       url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % name
       return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
