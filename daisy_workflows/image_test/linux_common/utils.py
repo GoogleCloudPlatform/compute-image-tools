@@ -77,7 +77,7 @@ def GenSshKey(user):
   Execute(
       ['ssh-keygen', '-t', 'rsa', '-N', '', '-f', key_name, '-C', key_name])
   with open(key_name + '.pub', 'r') as original:
-    data = original.read()
+    data = original.read().strip()
   return "%s:%s" % (user, data), key_name
 
 
