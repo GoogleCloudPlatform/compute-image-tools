@@ -24,6 +24,8 @@ fi
 
 go get -d -t ./...
 
+# We dont run golint on Windows only code as style often matches win32 api 
+# style, not golang style
 golint -set_exit_status ./...
 GOLINT_RET=$?
 
@@ -36,6 +38,11 @@ fi
 
 go vet ./...
 GOVET_RET=$?
+GOOS=windows go vet ./...
+RET=$?
+if [ $RET != 0 ]; then
+  GOVET_RET=$RET
+fi
 
 # Print results and return.
 if [ ${GOLINT_RET} != 0 ]; then

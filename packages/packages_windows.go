@@ -91,7 +91,7 @@ func googetUpdates() ([]PkgInfo, error) {
 
 // wuaUpdates queries the Windows Update Agent API searcher with the provided query.
 func wuaUpdates(query string) ([]PkgInfo, error) {
-	connection := &ole.Connection{nil}
+	connection := &ole.Connection{Object: nil}
 	if err := connection.Initialize(); err != nil {
 		return nil, err
 	}

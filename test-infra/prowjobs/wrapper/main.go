@@ -134,7 +134,7 @@ func main() {
 	// Run the main process.
 	buildLog.Println("Running wrapped logic.")
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	buildLog.Println(string(out))
 	if err != nil {
 		buildLog.Println("ERROR: ", err)
@@ -149,6 +149,10 @@ func main() {
 	buildLog.Println("Writing artifacts to GCS.")
 	filepath.Walk("artifacts", func(p string, info os.FileInfo, err error) error {
 		if err != nil {
+			if p == "artifacts" {
+				buildLog.Println("No artifacts to write")
+				return nil
+			}
 			buildLog.Println("ERROR: ", err)
 			return nil
 		}
