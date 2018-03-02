@@ -15,6 +15,7 @@
 
 """Utility functions for all VM scripts."""
 
+import functools
 import logging
 import os
 import re
@@ -81,28 +82,37 @@ def GenSshKey(user):
   return "%s:%s" % (user, data), key_name
 
 
-def _ExecuteInSsh(key, user, machine, cmds, raise_errors, capture_output):
+def RetryOnFailure(func):
+  """Function decorator to retry on a exception."""
+
+  @functools.wraps(func)
+  def Wrapper(*args, **kwargs):
+    ntries = kwargs['ntries'] if 'ntries' in kwargs else 3
+    for tryAgain in range(ntries):
+      try:
+        response = func(*args, **kwargs)
+      except Exception:
+        time.sleep(5)
+      else:
+        return response
+    raise
+  return Wrapper
+
+
+def ExecuteInSsh(key, user, machine, cmds, expectFail=False, capture_output=False):
   ssh_command = [
       'ssh', '-i', key, '-o', 'IdentitiesOnly=yes',
       '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
       '%s@%s' % (user, machine)
   ]
-  return Execute(
-      ssh_command + cmds, raise_errors=raise_errors,
-      capture_output=capture_output)
-
-
-def ExecuteInSsh(key, user, machine, cmds, ntries=1, expectFail=False, capture_output=False):
-  for tryAgain in range(ntries):
-    ret, out = _ExecuteInSsh(key, user, machine, cmds, False, capture_output)
-    if expectFail and ret == 0:
-      error = 'SSH command succeeded when expected to fail'
-    elif not expectFail and ret != 0:
-      error = 'SSH command failed when expected to succeed'
-    else:
-      return ret, out
-    time.sleep(5)
-  raise ValueError(error)
+  ret, out = Execute(
+      ssh_command + cmds, raise_errors=False, capture_output=capture_output)
+  if expectFail and ret == 0:
+    raise ValueError('SSH command succeeded when expected to fail')
+  elif not expectFail and ret != 0:
+    raise ValueError('SSH command failed when expected to succeed')
+  else:
+    return ret, out
 
 
 def GetCompute(discovery, GoogleCredentials):
@@ -158,13 +168,15 @@ class MetadataManager:
           project=self.project, zone=self.zone, instance=self.instance)
       md_id = 'metadata'
 
-    for tryAgain in range(3):
+    @RetryOnFailure
+    def _Get():
       response = request.execute()
       self.md_obj = response[md_id]
       if self.md_obj['fingerprint'] != self.last_fingerprint:
         self.last_fingerprint = self.md_obj['fingerprint']
-        return
-      time.sleep(5)
+      else:
+        raise ValueError('Get retrieved same fingerprint')
+    _Get()
 
   def Set(self):
     if self.level == self.PROJECT_LEVEL:
@@ -225,9 +237,10 @@ class MetadataManager:
     self.RmSshKey(md_key, key)
     self.Set()
 
+  @RetryOnFailure
   def TestSshLogin(self, key, expectFail=False):
     ExecuteInSsh(
-        key, self.ssh_user, self.instance, ['echo', 'Logged'], ntries=3,
+        key, self.ssh_user, self.instance, ['echo', 'Logged'],
         expectFail=expectFail)
 
   @classmethod

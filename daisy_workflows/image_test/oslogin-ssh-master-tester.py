@@ -32,12 +32,17 @@ TESTEE = None
 TESTER_SH = 'slave_tester.sh'
 
 
-def MasterExecuteInSsh(machine, commands, ntries=1, expectFail=False):
+def MasterExecuteInSsh(machine, commands, expectFail=False):
   ret, output = utils.ExecuteInSsh(
-      MASTER_KEY, MD.ssh_user, machine, commands, ntries, expectFail,
+      MASTER_KEY, MD.ssh_user, machine, commands, expectFail,
       capture_output=True)
   output = output.strip() if output else None
   return ret, output
+
+
+@utils.RetryOnFailure
+def MasterExecuteInSshRetry(machine, commands, expectFail=False):
+  return MasterExecuteInSsh(machine, commands, expectFail)
 
 
 def InstallOsloginKeys():
@@ -65,48 +70,44 @@ def GetServiceAccountUsername(machine):
   return username
 
 
+@utils.RetryOnFailure
 def CheckAuthorizedKeys(user, key, expectEmpty=False):
-  for tryAgain in range(3):
-    _, authKeys = MasterExecuteInSsh(TESTEE, ['google_authorized_keys', user])
-    authKeys = authKeys if authKeys else ''
-    if expectEmpty and key in authKeys:
-      error = 'OsLogin key DETECTED in google_authorized_keys when NOT expected'
-    elif not expectEmpty and not key in authKeys:
-      error = 'OsLogin key NOT DETECTED in google_authorized_keys when expected'
-    else:
-      return
-    time.sleep(5)
-  raise ValueError(error)
+  _, authKeys = MasterExecuteInSsh(TESTEE, ['google_authorized_keys', user])
+  authKeys = authKeys if authKeys else ''
+  if expectEmpty and key in authKeys:
+    raise ValueError(
+        'OsLogin key DETECTED in google_authorized_keys when NOT expected')
+  elif not expectEmpty and not key in authKeys:
+    raise ValueError(
+        'OsLogin key NOT DETECTED in google_authorized_keys when expected')
 
 
+@utils.RetryOnFailure
 def CheckNss(userOsLogin, userOsAdminLogin, expectEmpty=False):
-  for tryAgain in range(3):
-    _, users = MasterExecuteInSsh(TESTEE, ['getent', 'passwd'])
-    if expectEmpty and (userOsLogin in users or userOsAdminLogin in users):
-      error = 'OsLogin usernames DETECTED in getend passwd (nss) when NOT expected'
-    elif not expectEmpty and (not userOsLogin in users or not userOsAdminLogin in users):
-      error = 'OsLogin usernames NOT DETECTED in getend passwd (nss) when expected'
-    else:
-      return
-    time.sleep(5)
-  raise ValueError(error)
+  _, users = MasterExecuteInSsh(TESTEE, ['getent', 'passwd'])
+  if expectEmpty and (userOsLogin in users or userOsAdminLogin in users):
+    raise ValueError(
+        'OsLogin usernames DETECTED in getend passwd (nss) when NOT expected')
+  elif not expectEmpty and (not userOsLogin in users or not userOsAdminLogin in users):
+    raise ValueError(
+        'OsLogin usernames NOT DETECTED in getend passwd (nss) when expected')
 
 
 def TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=False):
   hostOsLogin = '%s@%s' % (userOsLogin, TESTEE)
   hostOsAdminLogin = '%s@%s' % (userOsAdminLogin, TESTEE)
-  MasterExecuteInSsh(
-      OSLOGIN_TESTER, [TESTER_SH, 'test_login', hostOsLogin], ntries=3,
+  MasterExecuteInSshRetry(
+      OSLOGIN_TESTER, [TESTER_SH, 'test_login', hostOsLogin],
       expectFail=expectFail)
-  MasterExecuteInSsh(
+  MasterExecuteInSshRetry(
       OSADMINLOGIN_TESTER, [TESTER_SH, 'test_login', hostOsAdminLogin],
-      ntries=3, expectFail=expectFail)
-  MasterExecuteInSsh(
-      OSLOGIN_TESTER, [TESTER_SH, 'test_login_sudo', hostOsLogin], ntries=3,
+      expectFail=expectFail)
+  MasterExecuteInSshRetry(
+      OSLOGIN_TESTER, [TESTER_SH, 'test_login_sudo', hostOsLogin],
       expectFail=True)
-  MasterExecuteInSsh(
+  MasterExecuteInSshRetry(
       OSADMINLOGIN_TESTER, [TESTER_SH, 'test_login_sudo', hostOsAdminLogin],
-      ntries=3, expectFail=expectFail)
+      expectFail=expectFail)
 
 
 def TestOsLogin(level):
