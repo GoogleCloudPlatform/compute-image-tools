@@ -149,8 +149,8 @@ class MetadataManager:
   PROJECT_LEVEL = 2
 
   def __init__(self, compute, instance, ssh_user='tester'):
-    self.zone = self.GetDefault('zone')
-    self.project = self.GetDefault('project')
+    self.zone = self.FetchMetadataDefault('zone')
+    self.project = self.FetchMetadataDefault('project')
     self.compute = compute
     self.instance = instance
     self.md_obj = None
@@ -158,7 +158,7 @@ class MetadataManager:
     self.last_fingerprint = None
     self.ssh_user = ssh_user
 
-  def Get(self, level):
+  def FetchMetadata(self, level):
     self.level = level
     if level == self.PROJECT_LEVEL:
       request = self.compute.projects().get(project=self.project)
@@ -169,16 +169,16 @@ class MetadataManager:
       md_id = 'metadata'
 
     @RetryOnFailure
-    def _Get():
+    def _FetchMetadata():
       response = request.execute()
       self.md_obj = response[md_id]
       if self.md_obj['fingerprint'] != self.last_fingerprint:
         self.last_fingerprint = self.md_obj['fingerprint']
       else:
-        raise ValueError('Get retrieved same fingerprint')
-    _Get()
+        raise ValueError('FetchMetadata retrieved same fingerprint')
+    _FetchMetadata()
 
-  def Set(self):
+  def StoreMetadata(self):
     if self.level == self.PROJECT_LEVEL:
       request = self.compute.projects().setCommonInstanceMetadata(
           project=self.project, body=self.md_obj)
@@ -199,7 +199,7 @@ class MetadataManager:
     return md_item
 
   def DefineSingle(self, md_key, md_value, level):
-    self.Get(level)
+    self.FetchMetadata(level)
     md_item = self.ExtractKeyItem(md_key)
     if md_item and md_value is None:
       self.md_obj['items'].remove(md_item)
@@ -208,7 +208,7 @@ class MetadataManager:
       self.md_obj['items'].append(md_item)
     else:
       md_item['value'] = md_value
-    self.Set()
+    self.StoreMetadata()
 
   def AddSshKey(self, md_key):
     key, key_name = GenSshKey(self.ssh_user)
@@ -220,22 +220,22 @@ class MetadataManager:
       md_item['value'] = '\n'.join([md_item['value'], key])
     return key_name
 
-  def RmSshKey(self, md_key, key):
+  def RemoveSshKey(self, md_key, key):
     md_item = self.ExtractKeyItem(md_key)
     md_item['value'] = re.sub('.*%s.*\n?' % key, '', md_item['value'])
     if not md_item['value']:
       self.md_obj['items'].remove(md_item)
 
   def AddSshKeySingle(self, md_key, level):
-    self.Get(level)
+    self.FetchMetadata(level)
     key = self.AddSshKey(md_key)
-    self.Set()
+    self.StoreMetadata()
     return key
 
-  def RmSshKeySingle(self, key, md_key, level):
-    self.Get(level)
-    self.RmSshKey(md_key, key)
-    self.Set()
+  def RemoveSshKeySingle(self, key, md_key, level):
+    self.FetchMetadata(level)
+    self.RemoveSshKey(md_key, key)
+    self.StoreMetadata()
 
   @RetryOnFailure
   def TestSshLogin(self, key, expectFail=False):
@@ -244,7 +244,7 @@ class MetadataManager:
         expectFail=expectFail)
 
   @classmethod
-  def GetDefault(cls, name):
+  def FetchMetadataDefault(cls, name):
     try:
       url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % name
       return HttpGet(url, headers={'Metadata-Flavor': 'Google'})

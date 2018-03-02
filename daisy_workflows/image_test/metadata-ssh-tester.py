@@ -33,21 +33,21 @@ def SetBlockProjectSshKeys(state):
 def TestLoginSshKeys(level):
   key = MD.AddSshKeySingle(MM.SSH_KEYS, level)
   MD.TestSshLogin(key)
-  MD.RmSshKeySingle(key, MM.SSH_KEYS, level)
+  MD.RemoveSshKeySingle(key, MM.SSH_KEYS, level)
   MD.TestSshLogin(key, expectFail=True)
 
 
 def TestSshKeysWithSshKeys(level):
-  MD.Get(level)
+  MD.FetchMetadata(level)
   ssh_keysKey = MD.AddSshKey(MM.SSH_KEYS)
   sshKeysLegacyKey = MD.AddSshKey(MM.SSHKEYS_LEGACY)
-  MD.Set()
+  MD.StoreMetadata()
   MD.TestSshLogin(ssh_keysKey)
   MD.TestSshLogin(sshKeysLegacyKey)
-  MD.Get(level)
-  MD.RmSshKey(MM.SSH_KEYS, ssh_keysKey)
-  MD.RmSshKey(MM.SSHKEYS_LEGACY, sshKeysLegacyKey)
-  MD.Set()
+  MD.FetchMetadata(level)
+  MD.RemoveSshKey(MM.SSH_KEYS, ssh_keysKey)
+  MD.RemoveSshKey(MM.SSHKEYS_LEGACY, sshKeysLegacyKey)
+  MD.StoreMetadata()
   MD.TestSshLogin(ssh_keysKey, expectFail=True)
   MD.TestSshLogin(sshKeysLegacyKey, expectFail=True)
 
@@ -57,8 +57,8 @@ def TestSshKeysMixedProjectInstanceLevel():
   pKey = MD.AddSshKeySingle(MM.SSH_KEYS, MM.PROJECT_LEVEL)
   MD.TestSshLogin(pKey)
   MD.TestSshLogin(iKey)
-  MD.RmSshKeySingle(iKey, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
-  MD.RmSshKeySingle(pKey, MM.SSH_KEYS, MM.PROJECT_LEVEL)
+  MD.RemoveSshKeySingle(iKey, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
+  MD.RemoveSshKeySingle(pKey, MM.SSH_KEYS, MM.PROJECT_LEVEL)
   MD.TestSshLogin(pKey, expectFail=True)
   MD.TestSshLogin(iKey, expectFail=True)
 
@@ -68,10 +68,10 @@ def TestSshKeysIgnoresProjectLevelKeys():
   sshKeysLegacyKey = MD.AddSshKeySingle(MM.SSHKEYS_LEGACY, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(ssh_keysKey, expectFail=True)
   MD.TestSshLogin(sshKeysLegacyKey)
-  MD.RmSshKeySingle(sshKeysLegacyKey, MM.SSHKEYS_LEGACY, MM.INSTANCE_LEVEL)
+  MD.RemoveSshKeySingle(sshKeysLegacyKey, MM.SSHKEYS_LEGACY, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(sshKeysLegacyKey, expectFail=True)
   MD.TestSshLogin(ssh_keysKey)
-  MD.RmSshKeySingle(ssh_keysKey, MM.SSH_KEYS, MM.PROJECT_LEVEL)
+  MD.RemoveSshKeySingle(ssh_keysKey, MM.SSH_KEYS, MM.PROJECT_LEVEL)
   MD.TestSshLogin(ssh_keysKey, expectFail=True)
 
 
@@ -84,8 +84,8 @@ def TestBlockProjectSshKeysIgnoresProjectLevelKeys():
   SetBlockProjectSshKeys(False)
   MD.TestSshLogin(pKey)
   MD.TestSshLogin(iKey)
-  MD.RmSshKeySingle(iKey, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
-  MD.RmSshKeySingle(pKey, MM.SSH_KEYS, MM.PROJECT_LEVEL)
+  MD.RemoveSshKeySingle(iKey, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
+  MD.RemoveSshKeySingle(pKey, MM.SSH_KEYS, MM.PROJECT_LEVEL)
   MD.TestSshLogin(pKey, expectFail=True)
   MD.TestSshLogin(iKey, expectFail=True)
 
@@ -94,7 +94,7 @@ def main():
   global MD
 
   compute = utils.GetCompute(discovery, GoogleCredentials)
-  testee = MM.GetDefault('testee')
+  testee = MM.FetchMetadataDefault('testee')
   MD = MM(compute, testee)
   MD.DefineSingle('enable-oslogin', False, MM.PROJECT_LEVEL)
   SetBlockProjectSshKeys(False)

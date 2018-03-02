@@ -138,7 +138,7 @@ def TestMetadataWithOsLogin(level):
   MD.TestSshLogin(tester_key, expectFail=True)
   SetEnableOslogin(None, level)
   MD.TestSshLogin(tester_key)
-  MD.RmSshKeySingle(tester_key, MM.SSH_KEYS, level)
+  MD.RemoveSshKeySingle(tester_key, MM.SSH_KEYS, level)
   MD.TestSshLogin(tester_key, expectFail=True)
 
 
@@ -153,7 +153,7 @@ def TestOsLoginFalseInInstance():
   MD.TestSshLogin(tester_key, expectFail=True)
   SetEnableOslogin(None, MM.PROJECT_LEVEL)
   MD.TestSshLogin(tester_key)
-  MD.RmSshKeySingle(tester_key, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
+  MD.RemoveSshKeySingle(tester_key, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key, expectFail=True)
 
 
@@ -184,9 +184,9 @@ def main():
   global OSADMINLOGIN_TESTER
   global TESTEE
 
-  TESTEE = MM.GetDefault('testee')
-  OSLOGIN_TESTER = MM.GetDefault('osLoginTester')
-  OSADMINLOGIN_TESTER = MM.GetDefault('osAdminLoginTester')
+  TESTEE = MM.FetchMetadataDefault('testee')
+  OSLOGIN_TESTER = MM.FetchMetadataDefault('osLoginTester')
+  OSADMINLOGIN_TESTER = MM.FetchMetadataDefault('osAdminLoginTester')
   username = GetCurrentUsername()
   compute = utils.GetCompute(discovery, GoogleCredentials)
   MD = MM(compute, TESTEE, username)
@@ -211,7 +211,7 @@ def main():
   TestOsLoginFalseInInstance()
 
   # Clean keys
-  MD.RmSshKeySingle(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
+  MD.RemoveSshKeySingle(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
   RemoveKeyOslogin(MASTER_KEY + '.pub')
 
 
