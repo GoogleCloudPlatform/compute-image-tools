@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,8 +22,7 @@ if [ ! -z "${PULL_NUMBER}" ]; then
   git checkout ${PULL_NUMBER}
 fi
 
-
-flake8 --ignore E111,E114,E121,E125,E128,E129 --import-order-style=google
+flake8 --ignore E111,E114,E121,E125,E128,E129 --import-order-style=google /repo
 RET=$?
 
 # Print results and return.

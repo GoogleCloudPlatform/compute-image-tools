@@ -17,6 +17,7 @@ FROM python:alpine
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 
+RUN apk add --no-cache git
 RUN pip install flake8 flake8-import-order
 
 WORKDIR /
