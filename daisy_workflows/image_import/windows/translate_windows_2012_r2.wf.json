@@ -15,7 +15,7 @@
     },
     "image_name": {
       "Value": "windows-server-2012-r2-${ID}",
-      "Description": "The name of the translated Server 2016 image."
+      "Description": "The name of the translated Server 2012 R2 image."
     }
   },
   "Steps": {

@@ -41,7 +41,7 @@
       "CreateDisks": [
         {
           "Name": "disk-bootstrap",
-          "SourceImage": "projects/windows-cloud/global/images/family/windows-2016-core",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-1709-core",
           "Type": "pd-ssd"
         }
       ]
