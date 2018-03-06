@@ -18,6 +18,7 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -118,39 +120,104 @@ func writeInventory(state *instanceInventory, url string) {
 	}
 }
 
-func main() {
-	logger.Init("inventory", true, false, ioutil.Discard)
+// disabled checks if the inventory agent is disabled in either instance or
+// project metadata.
+// Instance metadata takes precedence.
+func disabled(md *metadataJSON) bool {
+	disabled, err := strconv.ParseBool(md.Instance.Attributes.DisableInventoryAgent)
+	if err == nil {
+		return disabled
+	}
+	disabled, err = strconv.ParseBool(md.Project.Attributes.DisableInventoryAgent)
+	if err == nil {
+		return disabled
+	}
+	return false
+}
+
+func run(ctx context.Context) {
 	logger.Info("Gathering instance inventory.")
 
-	hn, err := os.Hostname()
-	if err != nil {
+	agentDisabled := false
+
+	for {
+		md, err := getMetadata(ctx)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+
+		if disabled(md) {
+			if !agentDisabled {
+				logger.Info("GCE inventory agent disabled by metadata")
+			}
+			agentDisabled = true
+			continue
+		}
+
+		agentDisabled = false
+
+		hn, err := os.Hostname()
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+
+		di, err := osinfo.GetDistributionInfo()
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+
+		hs := &instanceInventory{
+			Hostname:      hn,
+			LongName:      di.LongName,
+			ShortName:     di.ShortName,
+			Version:       di.Version,
+			KernelVersion: di.Kernel,
+			Architecture:  di.Architecture,
+		}
+
+		var errs []string
+		hs.InstalledPackages, errs = packages.GetInstalledPackages()
+		if len(errs) != 0 {
+			hs.Errors = append(hs.Errors, errs...)
+		}
+
+		hs.PackageUpdates, errs = packages.GetPackageUpdates()
+		if len(errs) != 0 {
+			hs.Errors = append(hs.Errors, errs...)
+		}
+
+		writeInventory(hs, reportURL)
+
+		ticker := time.NewTicker(30 * time.Minute)
+		select {
+		case <-ticker.C:
+			ticker.Stop()
+			continue
+		case <-ctx.Done():
+			return
+		default:
+		}
+	}
+}
+
+func main() {
+	logger.Init("gce_inventory_agent", true, false, ioutil.Discard)
+	ctx := context.Background()
+
+	var action string
+	if len(os.Args) < 2 {
+		action = "run"
+	} else {
+		action = os.Args[1]
+	}
+	if action == "noservice" {
+		run(ctx)
+		os.Exit(0)
+	}
+	if err := register(ctx, "gce_inventory_agent", "GCE Inventory Agent", "", run, action); err != nil {
 		logger.Fatal(err)
 	}
-
-	di, err := osinfo.GetDistributionInfo()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	hs := &instanceInventory{
-		Hostname:      hn,
-		LongName:      di.LongName,
-		ShortName:     di.ShortName,
-		Version:       di.Version,
-		KernelVersion: di.Kernel,
-		Architecture:  di.Architecture,
-	}
-
-	var errs []string
-	hs.InstalledPackages, errs = packages.GetInstalledPackages()
-	if len(errs) != 0 {
-		hs.Errors = append(hs.Errors, errs...)
-	}
-
-	hs.PackageUpdates, errs = packages.GetPackageUpdates()
-	if len(errs) != 0 {
-		hs.Errors = append(hs.Errors, errs...)
-	}
-
-	writeInventory(hs, reportURL)
 }
