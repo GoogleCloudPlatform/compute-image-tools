@@ -47,8 +47,7 @@
             "https://www.googleapis.com/auth/devstorage.read_write",
             "https://www.googleapis.com/auth/compute"
           ],
-          "StartupScript": "import_image.sh",
-          "NoCleanup": true
+          "StartupScript": "import_image.sh"
         }
       ]
     },
