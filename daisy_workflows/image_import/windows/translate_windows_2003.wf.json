@@ -1,0 +1,84 @@
+{
+  "Name": "translate-windows-2003",
+  "Vars": {
+    "source_disk": {
+      "Required": true,
+      "Description": "The Windows 2003 GCE disk to translate."
+    },
+    "image_name": {
+      "Value": "windows-server-2003-${ID}",
+      "Description": "The name of the translated Server 2003 image."
+    }
+  },
+  "Sources": {
+    "bootstrap.ps1": "./bootstrap_2003.ps1",
+    "drivers": "gs://gce-windows-drivers-public/win2k3driver/",
+    "components/": "./windows_2003/"    
+  },
+  "Steps": {
+    "setup-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-bootstrap",
+          "SourceImage": "projects/windows-cloud/global/images/family/windows-1709-core",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "bootstrap": {
+      "CreateInstances": [
+        {
+          "Name": "inst-bootstrap",
+          "Disks": [
+            {"Source": "disk-bootstrap"},
+            {"Source": "${source_disk}"}
+          ],
+          "MachineType": "n1-standard-2",
+          "Metadata": {
+            "version": "5.2"
+          },
+          "StartupScript": "bootstrap.ps1"
+        }
+      ]
+    },
+    "wait-for-bootstrap": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-bootstrap",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Translate bootstrap complete",
+            "FailureMatch": "TranslateFailed:",
+            "StatusMatch": "TranslateBootstrap:"
+          }
+        }
+      ],
+      "Timeout": "20m"
+    },
+    "delete-bootstrap": {
+      "DeleteResources": {
+        "Instances":["inst-bootstrap"],
+        "Disks":["disk-bootstrap"]
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "${source_disk}",
+          "Licenses": ["projects/windows-cloud/global/licenses/windows-server-2003"],
+          "GuestOsFeatures": [{"Type":"WINDOWS"}],
+          "Family": "windows-2003",
+          "NoCleanup": true,
+          "ExactName": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "bootstrap": ["setup-disk"],
+    "wait-for-bootstrap": ["bootstrap"],
+    "delete-bootstrap": ["wait-for-bootstrap"],
+    "create-image": ["delete-bootstrap"]
+  }
+}
