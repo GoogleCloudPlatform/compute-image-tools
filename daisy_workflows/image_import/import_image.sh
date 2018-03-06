@@ -53,7 +53,7 @@ mkdir -p /gcs/${SOURCEBUCKET}
 gcsfuse --implicit-dirs ${SOURCEBUCKET} /gcs/${SOURCEBUCKET}
 
 # Atrocious OVA hack.
-SOURCEFILE_TYPE="$(echo ${SOURCE_DISK_FILE} | awk -F. '{print $NF}' | grep -o '[a-z,A-Z]\+')"
+SOURCEFILE_TYPE="${$SOURCE_DISK_FILE##*.}"
 if [[ "${SOURCEFILE_TYPE}" == "ova" ]]; then
   echo "Import: Unpacking VMDK files from ova."
   VMDK="$(tar --list -f /gcs/${SOURCEPATH} | grep -m1 vmdk)"
