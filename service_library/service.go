@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+package service
 
 import (
 	"context"
@@ -32,6 +32,7 @@ type program struct {
 	timeout time.Duration
 }
 
+// Start starts the service.
 func (p *program) Start(s service.Service) error {
 	go func() {
 		p.run(p.ctx)
@@ -40,6 +41,7 @@ func (p *program) Start(s service.Service) error {
 	return nil
 }
 
+// Stop stops the service.
 func (p *program) Stop(s service.Service) error {
 	p.cancel()
 	select {
@@ -59,7 +61,9 @@ func usage(name string) {
 			"  %[1]s stop: stop the %[2]s service\n", filepath.Base(os.Args[0]), name)
 }
 
-func register(ctx context.Context, name, displayName, desc string, run func(context.Context), action string) error {
+// Register "registers" the service and performs the specified action.
+// Allowed actions are: "run", "install", "start", "stop", "help".
+func Register(ctx context.Context, name, displayName, desc string, run func(context.Context), action string) error {
 	svcConfig := &service.Config{
 		Name:        name,
 		DisplayName: displayName,

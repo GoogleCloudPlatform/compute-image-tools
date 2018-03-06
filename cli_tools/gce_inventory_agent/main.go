@@ -32,7 +32,8 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
-	"github.com/GoogleCloudPlatform/compute-image-tools/packages"
+	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
+	"github.com/GoogleCloudPlatform/compute-image-tools/service_library"
 	"github.com/google/logger"
 )
 
@@ -217,7 +218,7 @@ func main() {
 		run(ctx)
 		os.Exit(0)
 	}
-	if err := register(ctx, "gce_inventory_agent", "GCE Inventory Agent", "", run, action); err != nil {
+	if err := service.Register(ctx, "gce_inventory_agent", "GCE Inventory Agent", "", run, action); err != nil {
 		logger.Fatal(err)
 	}
 }
