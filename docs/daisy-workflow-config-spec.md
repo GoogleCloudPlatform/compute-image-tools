@@ -641,7 +641,7 @@ or configuration into instance metadata.
   "Sources": {
     "my_source.sh": "./path/to/my/source.sh"
   },
-  "Steps":  
+  "Steps":
     "step1": {
       "CreateInstances": [
         {
@@ -653,3 +653,4 @@ or configuration into instance metadata.
     }
   }
 }
+```
