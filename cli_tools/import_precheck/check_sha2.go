@@ -17,7 +17,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/packages"
+	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
 const sha2Windows2008R2KB = "KB3033929"
