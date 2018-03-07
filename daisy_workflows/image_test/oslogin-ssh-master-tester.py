@@ -14,7 +14,6 @@
 # limitations under the License.
 
 
-import time
 import utils
 
 utils.AptGetInstall(['python-pip'])
@@ -23,6 +22,7 @@ utils.Execute(['pip', 'install', '--upgrade', 'google-api-python-client'])
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
 from utils import MetadataManager as MM
+
 
 MD = None
 MASTER_KEY = None
@@ -46,7 +46,8 @@ def MasterExecuteInSshRetry(machine, commands, expectFail=False):
 
 
 def InstallOsloginKeys():
-  _, keyOsLogin = MasterExecuteInSsh(OSLOGIN_TESTER, [TESTER_SH, 'install_key'])
+  _, keyOsLogin = MasterExecuteInSsh(
+      OSLOGIN_TESTER, [TESTER_SH, 'install_key'])
   _, keyOsAdminLogin = MasterExecuteInSsh(
       OSADMINLOGIN_TESTER, [TESTER_SH, 'install_key'])
   return keyOsLogin, keyOsAdminLogin
@@ -77,7 +78,7 @@ def CheckAuthorizedKeys(user, key, expectEmpty=False):
   if expectEmpty and key in authKeys:
     raise ValueError(
         'OsLogin key DETECTED in google_authorized_keys when NOT expected')
-  elif not expectEmpty and not key in authKeys:
+  elif not expectEmpty and key not in authKeys:
     raise ValueError(
         'OsLogin key NOT DETECTED in google_authorized_keys when expected')
 
@@ -88,7 +89,8 @@ def CheckNss(userOsLogin, userOsAdminLogin, expectEmpty=False):
   if expectEmpty and (userOsLogin in users or userOsAdminLogin in users):
     raise ValueError(
         'OsLogin usernames DETECTED in getend passwd (nss) when NOT expected')
-  elif not expectEmpty and (not userOsLogin in users or not userOsAdminLogin in users):
+  elif not expectEmpty and (userOsLogin not in users or
+      userOsAdminLogin not in users):
     raise ValueError(
         'OsLogin usernames NOT DETECTED in getend passwd (nss) when expected')
 
@@ -174,7 +176,8 @@ def InstallKeyOslogin(key):
 def RemoveKeyOslogin(key):
   # TODO: replace gcloud usage by python CLI
   utils.Execute(
-      ['gcloud', 'compute', 'os-login', 'ssh-keys', 'remove', '--key-file', key])
+      ['gcloud', 'compute', 'os-login', 'ssh-keys', 'remove', '--key-file',
+      key])
 
 
 def main():
@@ -215,5 +218,5 @@ def main():
   RemoveKeyOslogin(MASTER_KEY + '.pub')
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
   utils.RunTest(main)

@@ -19,7 +19,6 @@ Args:
 test-files-gcs-dir: The Cloud Storage location containing the test files.
   This dir of test files must contain a test.py containing the test logic.
 """
-import base64
 import logging
 import os
 import subprocess
@@ -43,7 +42,7 @@ def Bootstrap():
     full_test_script = os.path.join(test_dir, test_script)
     subprocess.check_call(['mkdir', test_dir])
     subprocess.check_call(
-        ['gsutil', '-m', 'cp', '-r', os.path.join(test_gcs_dir, '*'), 
+        ['gsutil', '-m', 'cp', '-r', os.path.join(test_gcs_dir, '*'),
         test_dir])
     logging.info('Making test script %s executable.', full_test_script)
     subprocess.check_call(['chmod', '+x', test_script], cwd=test_dir)
@@ -51,6 +50,7 @@ def Bootstrap():
     subprocess.check_call([full_test_script], cwd=test_dir)
   except Exception as e:
     print('TestFailed: error: ' + str(e))
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)

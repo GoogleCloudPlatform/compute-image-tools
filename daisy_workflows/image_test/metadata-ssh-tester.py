@@ -108,5 +108,5 @@ def main():
   TestBlockProjectSshKeysIgnoresProjectLevelKeys()
 
 
-if __name__=='__main__':
-  utils.RunTest(main) 
+if __name__ == '__main__':
+  utils.RunTest(main)

@@ -40,6 +40,8 @@ def AptGetInstall(package_list):
   env = os.environ.copy()
   env['DEBIAN_FRONTEND'] = 'noninteractive'
   return Execute(['apt-get', '-q', '-y', 'install'] + package_list, env=env)
+
+
 AptGetInstall.first_run = True
 
 
@@ -107,7 +109,8 @@ def RetryOnFailure(func):
   return Wrapper
 
 
-def ExecuteInSsh(key, user, machine, cmds, expectFail=False, capture_output=False):
+def ExecuteInSsh(
+    key, user, machine, cmds, expectFail=False, capture_output=False):
   """Execute commands through ssh.
 
   Args:
@@ -175,6 +178,7 @@ def SetupLogging():
   console = logging.StreamHandler()
   console.setLevel(logging_level)
   logging.getLogger().addHandler(console)
+
 
 SetupLogging()
 
