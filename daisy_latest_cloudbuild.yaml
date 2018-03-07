@@ -8,7 +8,9 @@ steps:
 - name: 'alpine'
   args: ['mv', './cli_tools', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools']
 - name: 'alpine'
-  args: ['mv', './packages', './src/github.com/GoogleCloudPlatform/compute-image-tools/packages']
+  args: ['mv', './package_library', './src/github.com/GoogleCloudPlatform/compute-image-tools/package_library']
+- name: 'alpine'
+  args: ['mv', './service_library', './src/github.com/GoogleCloudPlatform/compute-image-tools/service_library']
 - name: 'alpine'
   args: ['mv', './osinfo', './src/github.com/GoogleCloudPlatform/compute-image-tools/osinfo']
 - name: 'gcr.io/cloud-builders/go'
