@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cd "${GOPATH}/src"
-mkdir -p "github.com/${REPO_OWNER}"
-cd "github.com/${REPO_OWNER}"
-git clone https://github.com/${REPO_OWNER}/compute-image-tools
-cd compute-image-tools
+# Check this out in GOPATH since go package handling requires it to be here.
+REPO_PATH=${GOPATH}/src/github.com/${REPO_OWNER}/${REPO_NAME}
+mkdir -p ${REPO_PATH}
+git clone https://github.com/${REPO_OWNER}/${REPO_NAME} ${REPO_PATH}
+cd ${REPO_PATH}
 
 # Pull PR if this is a PR.
 if [ ! -z "${PULL_NUMBER}" ]; then
@@ -32,12 +32,12 @@ GOOS=windows go get -d ./...
 GOBUILD_OUT=0
 cd /
 
-TARGETS=("github.com/${REPO_OWNER}/compute-image-tools/cli_tools/daisy"
-         "github.com/${REPO_OWNER}/compute-image-tools/cli_tools/gce_export"
-         "github.com/${REPO_OWNER}/compute-image-tools/cli_tools/gce_image_publish" 
-         "github.com/${REPO_OWNER}/compute-image-tools/cli_tools/gce_inventory_agent" 
-         "github.com/${REPO_OWNER}/compute-image-tools/cli_tools/import_precheck"
-         "github.com/${REPO_OWNER}/compute-image-tools/cli_tools/instance_inventory")
+TARGETS=("github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/daisy"
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_export"
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_image_publish" 
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_inventory_agent" 
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/import_precheck"
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/instance_inventory")
 for TARGET in "${TARGETS[@]}"; do
   echo "Building ${TARGET} for Linux"
   go build $TARGET

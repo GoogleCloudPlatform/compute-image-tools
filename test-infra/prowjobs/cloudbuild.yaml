@@ -1,16 +1,16 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/wrapper:latest', '--tag=gcr.io/$PROJECT_ID/wrapper:$COMMIT_SHA', './wrapper']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/wrapper:latest', '--tag=gcr.io/$PROJECT_ID/wrapper:$COMMIT_SHA', './test-infra/prowjobs/wrapper']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/gocheck:latest', '--tag=gcr.io/$PROJECT_ID/gocheck:$COMMIT_SHA', './gocheck']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gocheck:latest', '--tag=gcr.io/$PROJECT_ID/gocheck:$COMMIT_SHA', './test-infra/prowjobs/gocheck']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/gobuild:latest', '--tag=gcr.io/$PROJECT_ID/gobuild:$COMMIT_SHA', './gobuild']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gobuild:latest', '--tag=gcr.io/$PROJECT_ID/gobuild:$COMMIT_SHA', './test-infra/prowjobs/gobuild']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/flake8:latest', '--tag=gcr.io/$PROJECT_ID/flake8:$COMMIT_SHA', './flake8']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/flake8:latest', '--tag=gcr.io/$PROJECT_ID/flake8:$COMMIT_SHA', './test-infra/prowjobs/flake8']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/unittests:latest', '--tag=gcr.io/$PROJECT_ID/unittests:$COMMIT_SHA', './unittests']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/unittests:latest', '--tag=gcr.io/$PROJECT_ID/unittests:$COMMIT_SHA', './test-infra/prowjobs/unittests']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy-e2e:latest', '--tag=gcr.io/$PROJECT_ID/daisy-e2e:$COMMIT_SHA', './daisy-e2e']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy-e2e:latest', '--tag=gcr.io/$PROJECT_ID/daisy-e2e:$COMMIT_SHA', './test-infra/prowjobs/daisy-e2e']
 
 images:
   - 'gcr.io/$PROJECT_ID/wrapper:latest'
