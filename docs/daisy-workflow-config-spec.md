@@ -524,8 +524,8 @@ stop and for a signal from VM "bar":
             "Name": "bar",
             "SerialOutput": {
                 "Port": 1,
-                "SuccessMatch": "DasiySuccess:",
-                "FailureMatch": "DasiyFailure:",
+                "SuccessMatch": "DaisySuccess:",
+                "FailureMatch": "DaisyFailure:",
                 "StatusMatch": "DaisyStatus:"
             }
         }
