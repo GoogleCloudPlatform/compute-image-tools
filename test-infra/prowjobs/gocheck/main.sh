@@ -13,8 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-git clone https://github.com/${REPO_OWNER}/${REPO_NAME} /repo
-cd /repo
+# Check this out in GOPATH since go package handling requires it to be here.
+REPO_PATH=${GOPATH}/src/github.com/${REPO_OWNER}/${REPO_NAME}
+mkdir -p ${REPO_PATH}
+git clone https://github.com/${REPO_OWNER}/${REPO_NAME} ${REPO_PATH}
+cd ${REPO_PATH}
 
 # Pull PR if this is a PR.
 if [ ! -z "${PULL_NUMBER}" ]; then
@@ -22,7 +25,9 @@ if [ ! -z "${PULL_NUMBER}" ]; then
   git checkout ${PULL_NUMBER}
 fi
 
+echo 'Pulling imports...'
 go get -d -t ./...
+GOOS=windows go get -d -t ./...
 
 # We dont run golint on Windows only code as style often matches win32 api 
 # style, not golang style
