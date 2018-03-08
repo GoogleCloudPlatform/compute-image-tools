@@ -22,7 +22,7 @@ import utils
 class RepoString(object):
   """Creates a yum.conf repository section statement for a kickstart file.
 
-  See the yum.conf man pages for more information about fomatting
+  See the yum.conf man pages for more information about formatting
   requirements.
 
   The attributes listed are the minimun data set for a repo section.
