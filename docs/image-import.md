@@ -15,7 +15,7 @@ Some basic concepts to start with:
 
 **NOTE:** before attempting a virtual disk import, take a look at the [known compatibility issues](#compatibility-and-known-limitations) and our [compatibility precheck tool](#compatibility-precheck-tool) below.
 
-It is recommended that you run Daisy in a GCE VM instance that is configured with required API scopes and workflow files pre installed. Executing the following command will create a new VM instance and install required files.
+It is recommended that you run Daisy in a GCE VM instance that is configured with required API scopes and workflow files pre-installed. Executing the following command will create a new VM instance and install required files.
 
 ```
 gcloud compute instances create daisy-control --image-project debian-cloud --image-family debian-9 --scopes=compute-rw,storage-full --metadata startup-script-url=gs://compute-image-tools/daisy_import_alpha.sh
