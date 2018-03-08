@@ -89,7 +89,7 @@ func (c *disksCheck) run() (*report, error) {
 	for dev, rows := range l.devRows {
 		for _, row := range rows {
 			if row["MOUNTPOINT"] != "" && dev != l.rootDev {
-				format := "partition %s (%s) is not on the root device %s and will OMITTED from translation."
+				format := "partition %s (%s) is not on the root device %s and will be OMITTED from translation."
 				r.Warn(fmt.Sprintf(format, row["NAME"], row["MOUNTPOINT"], l.rootDev))
 			}
 		}
