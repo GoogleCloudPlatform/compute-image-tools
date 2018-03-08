@@ -37,7 +37,7 @@ gcloud compute ssh daisy-control
 
 ### Step 3: Convert Virtual Disk to Compute Engine Image
 
-Now inside the VM, run the workflow titled import_image.wf.json to convert the virtual disk file in GCS to a Compute Engine Image.
+Now inside the VM, run the workflow titled `import_image.wf.json` to convert the virtual disk file in GCS to a Compute Engine Image.
 
 ```
 daisy -var:source_disk_file=YOUR_VIRTUAL_DISK_FILE -var:image_name=YOUR-IMAGE-NAME /daisy/import_image.wf.json
