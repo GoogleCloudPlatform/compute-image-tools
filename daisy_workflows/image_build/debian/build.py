@@ -50,7 +50,7 @@ def main():
       'bootstrap_vz_manifest', raise_on_not_found=True)
   bvz_version = utils.GetMetadataParam(
       'bootstrap_vz_version', raise_on_not_found=True)
-  repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True)
+  repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True).strip()
   image_dest = utils.GetMetadataParam('image_dest', raise_on_not_found=True)
   outs_path = utils.GetMetadataParam('daisy-outs-path', raise_on_not_found=True)
   if repo not in REPOS:
