@@ -182,7 +182,7 @@ func TestDiskDetachHelper(t *testing.T) {
 	// - detacher doesn't depend on attacher
 	// - already detached
 	// - not attached
-	// - diskk DNE
+	// - disk DNE
 
 	w := testWorkflow()
 	s, _ := w.NewStep("s")
