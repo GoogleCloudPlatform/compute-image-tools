@@ -46,7 +46,7 @@ Where, `YOUR_VIRTUAL_DISK_FILE` is the virtual disk file that you uploaded to GC
 
 `YOUR_IMAGE_NAME` is the name of your destination image.
 
-Following is an example that converts my_server.vmdk present in gs://my-awesome-bucket
+Following is an example that converts `my_server.vmdk` present in gs://my-awesome-bucket
 
 ```
 daisy -var:source_disk_file=gs://my-awesome-bucket/my_Server1.vmdk -var:image_name=my-server-import /daisy/import_image.wf.json
