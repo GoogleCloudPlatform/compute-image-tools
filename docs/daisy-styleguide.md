@@ -34,7 +34,7 @@ For example:
 Name resources with a prefix denoting the resource type. This will make it much
 easier to reference these resources. Use dashes instead of camel case or
 underscores for resource names. Short hand is acceptable as long as you are
-consistent throughout. Obviously, if the resources are not ephermeral (if they
+consistent throughout. Obviously, if the resources are not ephemeral (if they
 are to be used outside of the workflow), name them whatever suits the need.
 
 * Disks:
