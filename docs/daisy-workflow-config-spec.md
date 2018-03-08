@@ -633,7 +633,7 @@ out of convenience. Here is the exhaustive list of autovars:
 
 
 #### Source Vars
-Any fles set in sources can have their contents injected into a workflow by
+Any files set in sources can have their contents injected into a workflow by
 using the `SOURCE:my_source` variable. This is useful for embedding a script
 or configuration into instance metadata.
 ```json
