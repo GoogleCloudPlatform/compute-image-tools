@@ -7,7 +7,7 @@ This document provides instructions for using Daisy to import VMWare VMDKs and o
 
 Some basic concepts to start with:
 
-*   **Virtual Disk**: Virtual disk is a file that encapsulates the content of a virtualized disk in a virtualization environment. Virtual Disks are critical components of virtual machines for holding boot media and data. Virtualization platforms (eg VMWare, Hyper-v, KVM etc) each have their own format for virtual disks.
+*   **Virtual Disk**: Virtual disk is a file that encapsulates the content of a virtualized disk in a virtualization environment. Virtual Disks are critical components of virtual machines for holding boot media and data. Virtualization platforms (e.g. VMWare, Hyper-v, KVM, etc.) each have their own format for virtual disks.
 *   **Persistent Disk**: Compute Engine Persistent Disk is a Compute Engine resource that is equivalent to disk drives in physical computers and virtualdisks in a virtualization environment.
 *   **GCE Image**: Image is an immutable representation of a Persistent Disk and is used for creating multiple disks from one single templatized version.
 
@@ -15,7 +15,7 @@ Some basic concepts to start with:
 
 **NOTE:** before attempting a virtual disk import, take a look at the [known compatibility issues](#compatibility-and-known-limitations) and our [compatibility precheck tool](#compatibility-precheck-tool) below.
 
-It is recommended that you run Daisy in a GCE VM instance that is configured with required API scopes and workflow files pre installed. Executing the following command will create a new VM instance and install required files.
+It is recommended that you run Daisy in a GCE VM instance that is configured with required API scopes and workflow files pre-installed. Executing the following command will create a new VM instance and install required files.
 
 ```
 gcloud compute instances create daisy-control --image-project debian-cloud --image-family debian-9 --scopes=compute-rw,storage-full --metadata startup-script-url=gs://compute-image-tools/daisy_import_alpha.sh
@@ -37,7 +37,7 @@ gcloud compute ssh daisy-control
 
 ### Step 3: Convert Virtual Disk to Compute Engine Image
 
-Now inside the VM,run the workflow titled import_image.wf.json to convert the virtual disk file in GCS to a Compute Engine Image.
+Now inside the VM, run the workflow titled `import_image.wf.json` to convert the virtual disk file in GCS to a Compute Engine Image.
 
 ```
 daisy -var:source_disk_file=YOUR_VIRTUAL_DISK_FILE -var:image_name=YOUR-IMAGE-NAME /daisy/import_image.wf.json
@@ -46,7 +46,7 @@ Where, `YOUR_VIRTUAL_DISK_FILE` is the virtual disk file that you uploaded to GC
 
 `YOUR_IMAGE_NAME` is the name of your destination image.
 
-Following is an example that converts my_server.vmdk present in gs://my-awesome-bucket
+Following is an example that converts `my_server.vmdk` present in gs://my-awesome-bucket
 
 ```
 daisy -var:source_disk_file=gs://my-awesome-bucket/my_Server1.vmdk -var:image_name=my-server-import /daisy/import_image.wf.json
