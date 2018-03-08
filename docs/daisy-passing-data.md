@@ -7,7 +7,7 @@ the CreateInstances step:
 2. A single script can be run using the `StartupScript` field.
 3. Files can be retrieved from the workflow's `Sources` field.
 
-## Retrieving Metatdata
+## Retrieving Metadata
 
 Metadata can be thought of as "Cloud environment variables". Metadata is a
 simple mapping between a key string and a value string. You can supply metadata
