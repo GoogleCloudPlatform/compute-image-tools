@@ -113,9 +113,9 @@ def test_login(key, expect_fail=False):
         'UserKnownHostsFile=/dev/null', 'tester@' + TESTEE, 'echo', 'Logged'],
         raise_errors=False)
     if expect_fail and ret == 0:
-      error = 'SSH Loging succeeded when expected to fail'
+      error = 'SSH Logging succeeded when expected to fail'
     elif not expect_fail and ret != 0:
-      error = 'SSH Loging failed when expected to succeed'
+      error = 'SSH Logging failed when expected to succeed'
     else:
       return
     time.sleep(5)
