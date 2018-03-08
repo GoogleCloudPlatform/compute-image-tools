@@ -80,7 +80,7 @@ def GetMetadataParam(name, default_value=None, raise_on_not_found=False):
 
 
 def MountDisk(disk):
-  # Note: guestfs is not imported in the begining of the file as it might not be
+  # Note: guestfs is not imported in the beginning of the file as it might not be
   # installed when this module is loaded
   import guestfs
 
