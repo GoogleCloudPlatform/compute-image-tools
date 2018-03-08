@@ -13,5 +13,5 @@ and VM's.
 The
 [styleguide](https://googlecloudplatform.github.io/compute-image-tools/daisy-styleguide.html)
 provides guidance for workflow symantics. When writing, modifying, or using
-workflows following commong practices will make your life much easier.
+workflows following common practices will make your life much easier.
 
