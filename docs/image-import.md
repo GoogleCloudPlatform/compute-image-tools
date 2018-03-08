@@ -7,7 +7,7 @@ This document provides instructions for using Daisy to import VMWare VMDKs and o
 
 Some basic concepts to start with:
 
-*   **Virtual Disk**: Virtual disk is a file that encapsulates the content of a virtualized disk in a virtualization environment. Virtual Disks are critical components of virtual machines for holding boot media and data. Virtualization platforms (eg VMWare, Hyper-v, KVM etc) each have their own format for virtual disks.
+*   **Virtual Disk**: Virtual disk is a file that encapsulates the content of a virtualized disk in a virtualization environment. Virtual Disks are critical components of virtual machines for holding boot media and data. Virtualization platforms (e.g. VMWare, Hyper-v, KVM, etc.) each have their own format for virtual disks.
 *   **Persistent Disk**: Compute Engine Persistent Disk is a Compute Engine resource that is equivalent to disk drives in physical computers and virtualdisks in a virtualization environment.
 *   **GCE Image**: Image is an immutable representation of a Persistent Disk and is used for creating multiple disks from one single templatized version.
 
