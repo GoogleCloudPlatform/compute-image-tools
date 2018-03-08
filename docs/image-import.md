@@ -310,4 +310,4 @@ Refer to https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/
 
 ### Custom Daisy Workflows
 
-Daisy documenation (https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy#workflow-config-overview) provides an overview of how to create and modify Daisy workflows. You can also refer to sample image import workflows at https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy_workflows/image_import
+Daisy documentation (https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy#workflow-config-overview) provides an overview of how to create and modify Daisy workflows. You can also refer to sample image import workflows at https://github.com/GoogleCloudPlatform/compute-image-tools/tree/master/daisy_workflows/image_import
