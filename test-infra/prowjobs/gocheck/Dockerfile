@@ -13,7 +13,7 @@
 # limitations under the License.
 FROM gcr.io/compute-image-tools-test/wrapper:latest
 
-FROM golang:1.9.3-alpine3.7
+FROM golang:alpine
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 

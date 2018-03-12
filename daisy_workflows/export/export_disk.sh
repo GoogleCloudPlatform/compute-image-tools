@@ -13,19 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Make sure docker is running
-systemctl start docker
-sleep 5
-
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
+IMAGE=$(curl -f -H Metadata-Flavor:Google ${URL}/image)
+
+# Pull the docker image.
+while true; do
+  echo "GCEExport: Pulling export tool." > /dev/ttyS0
+  docker pull $IMAGE > /dev/ttyS0 2>&1
+  if [ $? -eq 0 ]; then
+    break
+  fi
+  sleep 1
+done
 
 echo "GCEExport: Running export tool." > /dev/ttyS0
 if [[ -n $LICENSES ]]; then
-  docker run -t --privileged gcr.io/compute-image-tools/gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y > /dev/ttyS0 2>&1
+  docker run -t --privileged $IMAGE -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y > /dev/ttyS0 2>&1
 else
-  docker run -t --privileged gcr.io/compute-image-tools/gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y > /dev/ttyS0 2>&1
+  docker run -t --privileged $IMAGE -gcs_path "$GCS_PATH" -disk /dev/sdb -y > /dev/ttyS0 2>&1
 fi
 if [ $? -ne 0 ]; then
   echo "ExportFailed: Failed to export disk source to ${GCS_PATH}." > /dev/ttyS0

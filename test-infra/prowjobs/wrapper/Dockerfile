@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM golang:1.9.3-alpine3.7
+FROM golang:alpine
 
 RUN apk add --no-cache git
 
@@ -20,3 +20,7 @@ COPY main.go main.go
 RUN go get -d ./...
 RUN CGO_ENABLED=0 go build -o /wrapper .
 RUN chmod +x /wrapper
+
+FROM scratch
+
+COPY --from=0 wrapper wrapper

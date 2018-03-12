@@ -13,13 +13,13 @@
 # limitations under the License.
 FROM gcr.io/compute-image-tools-test/wrapper:latest
 
-FROM debian:stretch-slim
+FROM debian:stable-slim
 
 ENV ARTIFACTS /artifacts
 RUN mkdir -p ${ARTIFACTS}
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 ENV CODECOV_TOKEN /etc/codecov/token
-ENV GOVERSION 1.9.3
+ENV GOVERSION 1.10
 ENV GOROOT /goroot
 ENV GOPATH /gopath
 ENV PATH ${GOROOT}/bin:${GOPATH}/bin:${PATH}

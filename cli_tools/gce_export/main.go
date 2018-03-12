@@ -38,7 +38,7 @@ var (
 	disk      = flag.String("disk", "", "disk to copy, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive0'")
 	gcsPath   = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
 	oauth     = flag.String("oauth", "", "path to oauth json file")
-	licenses  = flag.String("licenses", "", "comma deliminated list of licenses to add to the image")
+	licenses  = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
 	noconfirm = flag.Bool("y", false, "skip confirmation")
 	level     = flag.Int("level", 3, "level of compression from 1-9, 1 being best speed, 9 being best compression")
 
@@ -149,8 +149,10 @@ func main() {
 		}
 
 		if err := tw.WriteHeader(&tar.Header{
-			Name: "manifest.json",
-			Size: int64(len(body)),
+			Name:   "manifest.json",
+			Mode:   0600,
+			Size:   int64(len(body)),
+			Format: tar.FormatGNU,
 		}); err != nil {
 			log.Fatal(err)
 		}
@@ -160,8 +162,10 @@ func main() {
 	}
 
 	if err := tw.WriteHeader(&tar.Header{
-		Name: "disk.raw",
-		Size: size,
+		Name:   "disk.raw",
+		Mode:   0600,
+		Size:   size,
+		Format: tar.FormatGNU,
 	}); err != nil {
 		log.Fatal(err)
 	}

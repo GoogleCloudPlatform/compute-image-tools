@@ -46,67 +46,6 @@ var (
 	buildLog *log.Logger
 )
 
-func main() {
-	ctx := context.Background()
-	gcs, _ := storage.NewClient(ctx)
-	gcsBucket = gcs.Bucket(bucketName)
-	logfile, err := ioutil.TempFile("/tmp", "build-log")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Couldn't create build log.", err)
-	}
-	buildLog = log.New(io.MultiWriter(logfile, os.Stdout), "", 0)
-
-	// Write started.json
-	buildLog.Println("Writing started.json to GCS.")
-	logIfErr(gcsWrite(ctx, "started.json", started(), nil, "application/json"))
-
-	// Run the main process.
-	buildLog.Println("Running wrapped logic.")
-	cmd := exec.Command(os.Args[1], os.Args[2:]...)
-	out, err := cmd.Output()
-	buildLog.Println(string(out))
-	logIfErr(err)
-	buildLog.Println("Main logic finished.")
-	result := "SUCCESS"
-	if err != nil {
-		result = "FAILURE"
-	}
-
-	// Copy artifacts.
-	buildLog.Println("Writing artifacts to GCS.")
-	filepath.Walk("artifacts", func(p string, info os.FileInfo, err error) error {
-		if err != nil {
-			logIfErr(err)
-			return nil
-		}
-		if info.IsDir() {
-			return nil
-		}
-		buildLog.Printf("Writing artifact %s to GCS.", p)
-		if f, err := os.Open(p); err != nil {
-			logIfErr(err)
-		} else {
-			gcsP := "artifacts/" + p[len(artifactsDir):] // remove ARTIFACTS dir, and slash, prefix from p.
-			logIfErr(gcsWrite(ctx, gcsP, nil, f, ""))
-		}
-		return nil
-	})
-
-	// Write finished.json
-	buildLog.Println("Writing finished.json to GCS.")
-	logIfErr(gcsWrite(ctx, "finished.json", finished(result), nil, "application/json"))
-
-	// Close and write build-log.txt.
-	buildLog.Println("Closing and writing build-log.txt to GCS.")
-	logfile.Seek(0, 0)
-	gcsWrite(ctx, "build-log.txt", nil, logfile, "text/plain")
-	logfile.Close()
-
-	if result != "SUCCESS" {
-		os.Exit(1)
-	}
-}
-
 func finished(result string) []byte {
 	data, _ := json.Marshal(map[string]interface{}{
 		"timestamp": time.Now().Unix(),
@@ -145,13 +84,6 @@ func getBase() string {
 	return ""
 }
 
-func logIfErr(err error) {
-	if err == nil {
-		return
-	}
-	buildLog.Println("ERROR: ", err)
-}
-
 func started() []byte {
 	var s map[string]interface{}
 	switch jobType {
@@ -178,4 +110,80 @@ func started() []byte {
 	}
 	data, _ := json.Marshal(s)
 	return data
+}
+
+func main() {
+	ctx := context.Background()
+	gcs, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	gcsBucket = gcs.Bucket(bucketName)
+	logfile, err := ioutil.TempFile("/tmp", "build-log")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Couldn't create build log.", err)
+	}
+	buildLog = log.New(io.MultiWriter(logfile, os.Stdout), "", 0)
+
+	// Write started.json
+	buildLog.Println("Writing started.json to GCS.")
+	if err := gcsWrite(ctx, "started.json", started(), nil, "application/json"); err != nil {
+		buildLog.Println("ERROR: ", err)
+	}
+
+	// Run the main process.
+	buildLog.Println("Running wrapped logic.")
+	cmd := exec.Command(os.Args[1], os.Args[2:]...)
+	out, err := cmd.CombinedOutput()
+	buildLog.Println(string(out))
+	if err != nil {
+		buildLog.Println("ERROR: ", err)
+	}
+	buildLog.Println("Main logic finished.")
+	result := "SUCCESS"
+	if err != nil {
+		result = "FAILURE"
+	}
+
+	// Copy artifacts.
+	buildLog.Println("Writing artifacts to GCS.")
+	filepath.Walk("artifacts", func(p string, info os.FileInfo, err error) error {
+		if err != nil {
+			if p == "artifacts" {
+				buildLog.Println("No artifacts to write")
+				return nil
+			}
+			buildLog.Println("ERROR: ", err)
+			return nil
+		}
+		if info.IsDir() {
+			return nil
+		}
+		buildLog.Printf("Writing artifact %s to GCS.", p)
+		if f, err := os.Open(p); err != nil {
+			buildLog.Println("ERROR: ", err)
+		} else {
+			gcsP := "artifacts/" + p[len(artifactsDir):] // remove ARTIFACTS dir, and slash, prefix from p.
+			if err := gcsWrite(ctx, gcsP, nil, f, ""); err != nil {
+				buildLog.Println("ERROR: ", err)
+			}
+		}
+		return nil
+	})
+
+	// Write finished.json
+	buildLog.Println("Writing finished.json to GCS.")
+	if err := gcsWrite(ctx, "finished.json", finished(result), nil, "application/json"); err != nil {
+		buildLog.Println("ERROR: ", err)
+	}
+
+	// Close and write build-log.txt.
+	buildLog.Println("Closing and writing build-log.txt to GCS.")
+	logfile.Seek(0, 0)
+	gcsWrite(ctx, "build-log.txt", nil, logfile, "text/plain")
+	logfile.Close()
+
+	if result != "SUCCESS" {
+		os.Exit(1)
+	}
 }

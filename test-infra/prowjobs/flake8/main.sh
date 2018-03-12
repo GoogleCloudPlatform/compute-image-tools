@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,27 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -x
+git clone https://github.com/${REPO_OWNER}/${REPO_NAME} /repo
+cd /repo
 
-RET=0
-go get -t ./...
-for d in $(go list ./... | grep -v vendor); do
-  echo "Running tests on ${d}."
-  mkdir -p artifacts
-  go test ${d} -race -coverprofile=profile.out -covermode=atomic -v 2>&1 > test.out
-  PARTRET=$?
-  echo "${d} test returned ${PARTRET}."
-  if [ ${PARTRET} -ne 0 ]; then
-    RET=${PARTRET}
-  fi
+# Pull PR if this is a PR.
+if [ ! -z "${PULL_NUMBER}" ]; then
+  git fetch origin pull/${PULL_NUMBER}/head:${PULL_NUMBER}
+  git checkout ${PULL_NUMBER}
+fi
 
-  # Output test report.
-  cat test.out | go-junit-report > artifacts/${d//\//_}_report.xml
+flake8 --ignore E111,E114,E121,E125,E128,E129 --import-order-style=google /repo
+RET=$?
 
-  # Output coverage data.
-  if [ -f profile.out ]; then
-    cat profile.out >> $GOCOVPATH
-    rm profile.out
-  fi
-done
-exit $RET
+# Print results and return.
+if [ ${RET} != 0 ]; then
+  echo "flake8 returned ${RET}"
+  exit 1
+fi
+exit 0

@@ -58,6 +58,42 @@ presubmits:
     - name: compute-image-tools-test-service-account
       secret:
        secretName: compute-image-tools-test-service-account
+ - name: presubmit-flake8
+   agent: kubernetes
+   always_run: true
+   run_if_changed: ".*\\.py$"
+   trigger: "(?m)^/flake8$"
+   rerun_command: "/flake8"
+   context: prow/presubmit/flake8
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/flake8:latest
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
+ - name: presubmit-gobuild
+   agent: kubernetes
+   always_run: true
+   run_if_changed: ".*\\.go$"
+   trigger: "(?m)^/gobuild$"
+   rerun_command: "/gobuild"
+   context: prow/presubmit/gobuild
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/gobuild:latest
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
 
 periodics:
  - interval: 6h

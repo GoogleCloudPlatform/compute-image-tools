@@ -1,0 +1,20 @@
+{
+  "Name": "image-export-test",
+  "Vars": {
+    "about-this-test": { "Description": "This test checks that the export_image|disk workflows actually work using 'gce_export:release'." },
+    "gcs_export": "gs://compute-image-tools-test-resources/created-by-export-test-release.tar.gz",
+    "test-id": {"Description": "The ID of this test run."}
+  },
+  "Steps": {
+    "image-export": {
+      "IncludeWorkflow": {
+        "Path": "../export/image_export.wf.json",
+        "Vars": {
+          "source_image": "projects/debian-cloud/global/images/family/debian-9",
+          "destination": "${gcs_export}",
+          "export_image": "gcr.io/compute-image-tools/gce_export:release"
+        }
+      }
+    }
+  }
+}

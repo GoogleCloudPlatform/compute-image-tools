@@ -17,16 +17,10 @@ FROM python:alpine
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 
-RUN apk add --no-cache gcc git libffi-dev musl-dev openssl-dev
+RUN apk add --no-cache git
+RUN pip install flake8 flake8-import-order
 
-# Set up Python packages.
-COPY requirements.txt requirements.txt
-RUN pip3 install -U pip --no-cache-dir
-RUN pip3 install -r requirements.txt --no-cache-dir
-
-# Set up test runner working directory.
 WORKDIR /
 COPY --from=0 /wrapper wrapper
-ENV PYTHONPATH /:$PYTHONPATH
-COPY run run
-ENTRYPOINT ["./wrapper", "python3", "-m", "run"]
+COPY main.sh main.sh
+ENTRYPOINT ["./wrapper", "./main.sh"]

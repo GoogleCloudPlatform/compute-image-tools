@@ -73,10 +73,43 @@ system_info:
          security: http://ports.ubuntu.com/ubuntu-ports
 '''
 
+trusty_network = '''
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto eth0
+iface eth0 inet dhcp
+
+source /etc/network/interfaces.d/*.cfg
+'''
+
+xenial_network = '''
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+# The primary network interface
+auto ens4
+iface ens4 inet dhcp
+
+source /etc/network/interfaces.d/*.cfg
+'''
 
 def DistroSpecific(g):
   ubu_release = utils.GetMetadataParam('ubuntu_release')
   install_gce = utils.GetMetadataParam('install_gce_packages')
+
+  # Remove any hard coded DNS settings in resolvconf.
+  logging.info('Resetting resolvconf base.')
+  g.sh('echo "" > /etc/resolvconf/resolv.conf.d/base')
+
+  # Try to reset the network to DHCP.
+  if ubu_release == 'trusty':
+    g.write('/etc/network/interfaces', trusty_network)
+  elif ubu_release == 'xenial':
+    g.write('/etc/network/interfaces', xenial_network)
 
   if install_gce == 'true':
     g.command(['apt-get', 'update'])

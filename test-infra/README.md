@@ -26,6 +26,7 @@ https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#ci-daisy-e2e
 | `prowjobs/` | Prow job containers. |
 | `prowjobs/daisy-e2e/` | Runs workflows in `daisy_workflows` against the latest (master:HEAD) Daisy binary. |
 | `prowjobs/gocheck/` | Runs `go fmt`, `golint`, `go vet` against Go code in the repo. |
+| `prowjobs/flake8/` | Runs `flake8` against python code in the repo. |
 | `prowjobs/unittests/` | Runs all scripts within the repo with the filename `unittests.sh`. Each script is run within its own directory. Publishes code coverage results to Codecov. |
 | `prowjobs/wrapper/` | Imported by other Prow jobs. Contains a wrapper binary that manages test log/artifact uploads. |
 
@@ -55,6 +56,10 @@ for an example.
 ## Prow job: gocheck
 Runs `go fmt`, `go vet`, and `golint`, checking for proper Go style and
 formatting of ALL Go code within the repo.
+
+## Prow job: flake8
+Runs `flake8` checking for proper python style of ALL python code within the 
+repo.
 
 ## Prow job: unittests
 The unittests Prow job runs all scripts with the name `unittests.sh` in the

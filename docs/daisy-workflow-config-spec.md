@@ -524,8 +524,8 @@ stop and for a signal from VM "bar":
             "Name": "bar",
             "SerialOutput": {
                 "Port": 1,
-                "SuccessMatch": "DasiySuccess:",
-                "FailureMatch": "DasiyFailure:",
+                "SuccessMatch": "DaisySuccess:",
+                "FailureMatch": "DaisyFailure:",
                 "StatusMatch": "DaisyStatus:"
             }
         }
@@ -633,7 +633,7 @@ out of convenience. Here is the exhaustive list of autovars:
 
 
 #### Source Vars
-Any fles set in sources can have their contents injected into a workflow by
+Any files set in sources can have their contents injected into a workflow by
 using the `SOURCE:my_source` variable. This is useful for embedding a script
 or configuration into instance metadata.
 ```json
@@ -641,7 +641,7 @@ or configuration into instance metadata.
   "Sources": {
     "my_source.sh": "./path/to/my/source.sh"
   },
-  "Steps":  
+  "Steps":
     "step1": {
       "CreateInstances": [
         {
@@ -653,3 +653,4 @@ or configuration into instance metadata.
     }
   }
 }
+```

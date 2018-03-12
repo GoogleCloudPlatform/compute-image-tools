@@ -26,40 +26,35 @@ if [ ! -z "${PULL_NUMBER}" ]; then
 fi
 
 echo 'Pulling imports...'
-go get -d -t ./...
-GOOS=windows go get -d -t ./...
+go get -d ./...
+GOOS=windows go get -d ./...
 
-# We dont run golint on Windows only code as style often matches win32 api 
-# style, not golang style
-golint -set_exit_status ./...
-GOLINT_RET=$?
+GOBUILD_OUT=0
+cd /
 
-GOFMT_OUT=$(gofmt -l $(find . -type f -name "*.go") 2>&1)
-if [ -z "${GOFMT_OUT}" ]; then
-  GOFMT_RET=0
-else
-  GOFMT_RET=1
-fi
+TARGETS=("github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/daisy"
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_export"
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_image_publish" 
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_inventory_agent" 
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/import_precheck"
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/instance_inventory")
+for TARGET in "${TARGETS[@]}"; do
+  echo "Building ${TARGET} for Linux"
+  go build $TARGET
+  RET=$?
+  if [ $RET != 0 ]; then
+    GOBUILD_OUT=$RET
+    echo "'go build' exited with ${GOBUILD_OUT}"
+  fi
+  echo "Building ${TARGET} for Windows"
+  GOOS=windows go build $TARGET
+  RET=$?
+  if [ $RET != 0 ]; then
+    GOBUILD_OUT=$RET
+    echo "'GOOS=windows go build' exited with ${GOBUILD_OUT}"
+  fi
+done
 
-go vet ./...
-GOVET_RET=$?
-GOOS=windows go vet ./...
-RET=$?
-if [ $RET != 0 ]; then
-  GOVET_RET=$RET
-fi
+sync
+exit $GOBUILD_OUT
 
-# Print results and return.
-if [ ${GOLINT_RET} != 0 ]; then
-  echo "'golint ./...' returned ${GOLINT_RET}"
-fi
-if [ ${GOFMT_RET} != 0 ]; then
-  echo "'gofmt -l' returned ${GOFMT_RET}"
-fi
-if [ ${GOVET_RET} != 0 ]; then
-  echo "'go vet ./...' returned ${GOVET_RET}"
-fi
-if [ ${GOLINT_RET} != 0 ] || [ ${GOFMT_RET} != 0 ] || [ ${GOVET_RET} != 0 ]; then
-  exit 1
-fi
-exit 0
