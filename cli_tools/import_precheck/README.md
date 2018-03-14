@@ -8,9 +8,9 @@ for more information.
 Precheck must be run as root or Administrator on the running system you want to import.
 
 ## Binaries
-Windows: https://storage.googleapis.com/compute-image-tools/release/windows/import_precheck_release.exe
+Windows: https://storage.googleapis.com/compute-image-tools/release/windows/import_precheck.exe
 
-Linux: https://storage.googleapis.com/compute-image-tools/release/linux/import_precheck_release
+Linux: https://storage.googleapis.com/compute-image-tools/release/linux/import_precheck
 
 ## Building from Source
 `go get -u github.com/GoogleCloudPlatform/compute-image-tools/import_precheck`
