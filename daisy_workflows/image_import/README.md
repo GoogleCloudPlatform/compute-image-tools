@@ -1,7 +1,5 @@
 # Disk and Image Imports
 
-**Proof of concept only! Highly experimental!**
-
 We use [qemu-img](http://www.qemu.org/documentation) to convert formats to a GCE compatible disk. Valid input formats are:
 
 * raw
