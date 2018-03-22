@@ -27,7 +27,7 @@ echo "Executing $0 $@"
 KEY=daisy-key
 
 case $1 in
-  install_key)
+  add_key)
     if [ ! -f ${KEY}.pub ]; then
       ssh-keygen -t rsa -N '' -f daisy-key -C "$(uname -n)"
     fi

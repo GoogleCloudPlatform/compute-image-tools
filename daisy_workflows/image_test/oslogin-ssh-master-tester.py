@@ -45,11 +45,11 @@ def MasterExecuteInSshRetry(machine, commands, expectFail=False):
   return MasterExecuteInSsh(machine, commands, expectFail)
 
 
-def InstallOsLoginKeys():
+def AddOsLoginKeys():
   _, keyOsLogin = MasterExecuteInSsh(
-      OSLOGIN_TESTER, [TESTER_SH, 'install_key'])
+      OSLOGIN_TESTER, [TESTER_SH, 'add_key'])
   _, keyOsAdminLogin = MasterExecuteInSsh(
-      OSADMINLOGIN_TESTER, [TESTER_SH, 'install_key'])
+      OSADMINLOGIN_TESTER, [TESTER_SH, 'add_key'])
   return keyOsLogin, keyOsAdminLogin
 
 
@@ -113,7 +113,7 @@ def TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=False):
 
 
 def TestOsLogin(level):
-  keyOsLogin, keyOsAdminLogin = InstallOsLoginKeys()
+  keyOsLogin, keyOsAdminLogin = AddOsLoginKeys()
   userOsLogin = GetServiceAccountUsername(OSLOGIN_TESTER)
   userOsAdminLogin = GetServiceAccountUsername(OSADMINLOGIN_TESTER)
   SetEnableOsLogin(True, level)
@@ -123,7 +123,7 @@ def TestOsLogin(level):
   TestLoginFromSlaves(userOsLogin, userOsAdminLogin)
   RemoveOsLoginKeys()
   TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=True)
-  keyOsLogin, keyOsAdminLogin = InstallOsLoginKeys()
+  keyOsLogin, keyOsAdminLogin = AddOsLoginKeys()
   TestLoginFromSlaves(userOsLogin, userOsAdminLogin)
   SetEnableOsLogin(None, level)
   TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=True)
@@ -167,7 +167,7 @@ def GetCurrentUsername():
   return username.strip()
 
 
-def InstallKeyOsLogin(key):
+def AddKeyOsLogin(key):
   # TODO: replace gcloud usage by python CLI
   utils.Execute(
       ['gcloud', 'compute', 'os-login', 'ssh-keys', 'add', '--key-file', key])
@@ -202,9 +202,9 @@ def main():
   md = MM(compute, OSADMINLOGIN_TESTER, username)
   SetEnableOsLogin(True, MM.INSTANCE_LEVEL, md)
 
-  # Install key in Metadata and in OsLogin to allow access peers in both modes
+  # Add key in Metadata and in OsLogin to allow access peers in both modes
   MASTER_KEY = MD.AddSshKeySingle(MM.SSH_KEYS, MM.PROJECT_LEVEL)
-  InstallKeyOsLogin(MASTER_KEY + '.pub')
+  AddKeyOsLogin(MASTER_KEY + '.pub')
 
   # Execute tests
   TestOsLogin(MM.INSTANCE_LEVEL)
