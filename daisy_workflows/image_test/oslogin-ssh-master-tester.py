@@ -45,7 +45,7 @@ def MasterExecuteInSshRetry(machine, commands, expectFail=False):
   return MasterExecuteInSsh(machine, commands, expectFail)
 
 
-def InstallOsloginKeys():
+def InstallOsLoginKeys():
   _, keyOsLogin = MasterExecuteInSsh(
       OSLOGIN_TESTER, [TESTER_SH, 'install_key'])
   _, keyOsAdminLogin = MasterExecuteInSsh(
@@ -53,12 +53,12 @@ def InstallOsloginKeys():
   return keyOsLogin, keyOsAdminLogin
 
 
-def RemoveOsloginKeys():
+def RemoveOsLoginKeys():
   MasterExecuteInSsh(OSLOGIN_TESTER, [TESTER_SH, 'remove_key'])
   MasterExecuteInSsh(OSADMINLOGIN_TESTER, [TESTER_SH, 'remove_key'])
 
 
-def SetEnableOslogin(state, level, md=None):
+def SetEnableOsLogin(state, level, md=None):
   md = md if md else MD
   md.DefineSingle('enable-oslogin', state, level)
 
@@ -113,32 +113,32 @@ def TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=False):
 
 
 def TestOsLogin(level):
-  keyOsLogin, keyOsAdminLogin = InstallOsloginKeys()
+  keyOsLogin, keyOsAdminLogin = InstallOsLoginKeys()
   userOsLogin = GetServiceAccountUsername(OSLOGIN_TESTER)
   userOsAdminLogin = GetServiceAccountUsername(OSADMINLOGIN_TESTER)
-  SetEnableOslogin(True, level)
+  SetEnableOsLogin(True, level)
   CheckNss(userOsLogin, userOsAdminLogin)
   CheckAuthorizedKeys(userOsLogin, keyOsLogin)
   CheckAuthorizedKeys(userOsAdminLogin, keyOsAdminLogin)
   TestLoginFromSlaves(userOsLogin, userOsAdminLogin)
-  RemoveOsloginKeys()
+  RemoveOsLoginKeys()
   TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=True)
-  keyOsLogin, keyOsAdminLogin = InstallOsloginKeys()
+  keyOsLogin, keyOsAdminLogin = InstallOsLoginKeys()
   TestLoginFromSlaves(userOsLogin, userOsAdminLogin)
-  SetEnableOslogin(None, level)
+  SetEnableOsLogin(None, level)
   TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=True)
   CheckNss(userOsLogin, userOsAdminLogin, expectEmpty=True)
   CheckAuthorizedKeys(userOsLogin, keyOsLogin, expectEmpty=True)
   CheckAuthorizedKeys(userOsAdminLogin, keyOsAdminLogin, expectEmpty=True)
-  RemoveOsloginKeys()
+  RemoveOsLoginKeys()
 
 
 def TestMetadataWithOsLogin(level):
   tester_key = MD.AddSshKeySingle(MM.SSH_KEYS, level)
   MD.TestSshLogin(tester_key)
-  SetEnableOslogin(True, level)
+  SetEnableOsLogin(True, level)
   MD.TestSshLogin(tester_key, expectFail=True)
-  SetEnableOslogin(None, level)
+  SetEnableOsLogin(None, level)
   MD.TestSshLogin(tester_key)
   MD.RemoveSshKeySingle(tester_key, MM.SSH_KEYS, level)
   MD.TestSshLogin(tester_key, expectFail=True)
@@ -147,13 +147,13 @@ def TestMetadataWithOsLogin(level):
 def TestOsLoginFalseInInstance():
   tester_key = MD.AddSshKeySingle(MM.SSH_KEYS, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key)
-  SetEnableOslogin(True, MM.PROJECT_LEVEL)
+  SetEnableOsLogin(True, MM.PROJECT_LEVEL)
   MD.TestSshLogin(tester_key, expectFail=True)
-  SetEnableOslogin(False, MM.INSTANCE_LEVEL)
+  SetEnableOsLogin(False, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key)
-  SetEnableOslogin(None, MM.INSTANCE_LEVEL)
+  SetEnableOsLogin(None, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key, expectFail=True)
-  SetEnableOslogin(None, MM.PROJECT_LEVEL)
+  SetEnableOsLogin(None, MM.PROJECT_LEVEL)
   MD.TestSshLogin(tester_key)
   MD.RemoveSshKeySingle(tester_key, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key, expectFail=True)
@@ -167,13 +167,13 @@ def GetCurrentUsername():
   return username.strip()
 
 
-def InstallKeyOslogin(key):
+def InstallKeyOsLogin(key):
   # TODO: replace gcloud usage by python CLI
   utils.Execute(
       ['gcloud', 'compute', 'os-login', 'ssh-keys', 'add', '--key-file', key])
 
 
-def RemoveKeyOslogin(key):
+def RemoveKeyOsLogin(key):
   # TODO: replace gcloud usage by python CLI
   utils.Execute(
       ['gcloud', 'compute', 'os-login', 'ssh-keys', 'remove', '--key-file',
@@ -193,18 +193,18 @@ def main():
   username = GetCurrentUsername()
   compute = utils.GetCompute(discovery, GoogleCredentials)
   MD = MM(compute, TESTEE, username)
-  SetEnableOslogin(None, MM.PROJECT_LEVEL)
-  SetEnableOslogin(None, MM.INSTANCE_LEVEL)
+  SetEnableOsLogin(None, MM.PROJECT_LEVEL)
+  SetEnableOsLogin(None, MM.INSTANCE_LEVEL)
 
-  # Enable Oslogin in slaves
+  # Enable OsLogin in slaves
   md = MM(compute, OSLOGIN_TESTER, username)
-  SetEnableOslogin(True, MM.INSTANCE_LEVEL, md)
+  SetEnableOsLogin(True, MM.INSTANCE_LEVEL, md)
   md = MM(compute, OSADMINLOGIN_TESTER, username)
-  SetEnableOslogin(True, MM.INSTANCE_LEVEL, md)
+  SetEnableOsLogin(True, MM.INSTANCE_LEVEL, md)
 
   # Install key in Metadata and in OsLogin to allow access peers in both modes
   MASTER_KEY = MD.AddSshKeySingle(MM.SSH_KEYS, MM.PROJECT_LEVEL)
-  InstallKeyOslogin(MASTER_KEY + '.pub')
+  InstallKeyOsLogin(MASTER_KEY + '.pub')
 
   # Execute tests
   TestOsLogin(MM.INSTANCE_LEVEL)
@@ -215,7 +215,7 @@ def main():
 
   # Clean keys
   MD.RemoveSshKeySingle(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
-  RemoveKeyOslogin(MASTER_KEY + '.pub')
+  RemoveKeyOsLogin(MASTER_KEY + '.pub')
 
 
 if __name__ == '__main__':
