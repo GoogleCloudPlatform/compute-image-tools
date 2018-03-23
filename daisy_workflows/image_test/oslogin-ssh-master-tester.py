@@ -60,7 +60,7 @@ def RemoveOsLoginKeys():
 
 def SetEnableOsLogin(state, level, md=None):
   md = md if md else MD
-  md.DefineSingle('enable-oslogin', state, level)
+  md.Define('enable-oslogin', state, level)
 
 
 def GetServiceAccountUsername(machine):
@@ -134,18 +134,18 @@ def TestOsLogin(level):
 
 
 def TestMetadataWithOsLogin(level):
-  tester_key = MD.AddSshKeySingle(MM.SSH_KEYS, level)
+  tester_key = MD.AddSshKey(MM.SSH_KEYS, level)
   MD.TestSshLogin(tester_key)
   SetEnableOsLogin(True, level)
   MD.TestSshLogin(tester_key, expectFail=True)
   SetEnableOsLogin(None, level)
   MD.TestSshLogin(tester_key)
-  MD.RemoveSshKeySingle(tester_key, MM.SSH_KEYS, level)
+  MD.RemoveSshKey(tester_key, MM.SSH_KEYS, level)
   MD.TestSshLogin(tester_key, expectFail=True)
 
 
 def TestOsLoginFalseInInstance():
-  tester_key = MD.AddSshKeySingle(MM.SSH_KEYS, MM.INSTANCE_LEVEL)
+  tester_key = MD.AddSshKey(MM.SSH_KEYS, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key)
   SetEnableOsLogin(True, MM.PROJECT_LEVEL)
   MD.TestSshLogin(tester_key, expectFail=True)
@@ -155,7 +155,7 @@ def TestOsLoginFalseInInstance():
   MD.TestSshLogin(tester_key, expectFail=True)
   SetEnableOsLogin(None, MM.PROJECT_LEVEL)
   MD.TestSshLogin(tester_key)
-  MD.RemoveSshKeySingle(tester_key, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
+  MD.RemoveSshKey(tester_key, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key, expectFail=True)
 
 
@@ -203,7 +203,7 @@ def main():
   SetEnableOsLogin(True, MM.INSTANCE_LEVEL, md)
 
   # Add key in Metadata and in OsLogin to allow access peers in both modes
-  MASTER_KEY = MD.AddSshKeySingle(MM.SSH_KEYS, MM.PROJECT_LEVEL)
+  MASTER_KEY = MD.AddSshKey(MM.SSH_KEYS, MM.PROJECT_LEVEL)
   AddKeyOsLogin(MASTER_KEY + '.pub')
 
   # Execute tests
@@ -214,7 +214,7 @@ def main():
   TestOsLoginFalseInInstance()
 
   # Clean keys
-  MD.RemoveSshKeySingle(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
+  MD.RemoveSshKey(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
   RemoveKeyOsLogin(MASTER_KEY + '.pub')
 
 

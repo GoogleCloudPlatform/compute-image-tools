@@ -278,15 +278,17 @@ class MetadataManager:
       md_item = None
     return md_item
 
-  def DefineSingle(self, md_key, md_value, level):
+  def Define(self, md_key, md_value, level, store=True):
     """Add or update a metadata key with a new value in a given level.
-    This function already performs FetchMetadata and StoreMetadata.
 
     Args:
       md_key: string, the key of the metadata value to be added or updated.
       md_key: string, the key of the metadata value to be added or updated.
+      store: bool, If true, this function already performs FetchMetadata and
+          StoreMetadata.
     """
-    self.FetchMetadata(level)
+    if store:
+        self.FetchMetadata(level)
     md_item = self.ExtractKeyItem(md_key)
     if md_item and md_value is None:
       self.md_obj['items'].remove(md_item)
@@ -295,18 +297,23 @@ class MetadataManager:
       self.md_obj['items'].append(md_item)
     else:
       md_item['value'] = md_value
-    self.StoreMetadata()
+    if store:
+        self.StoreMetadata()
 
-  def AddSshKey(self, md_key):
+  def AddSshKey(self, md_key, level=None, store=True):
     """Generate and add an ssh key to the metadata previously fetched
         with FetchMetadata.
 
     Args:
       md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
+      store: bool, If true, this function already performs FetchMetadata and
+          StoreMetadata.
 
     Returns:
       key_name: string, the name of the file with the generated private key.
     """
+    if store:
+        self.FetchMetadata(level)
     key, key_name = GenSshKey(self.ssh_user)
     md_item = self.ExtractKeyItem(md_key)
     if not md_item:
@@ -314,51 +321,28 @@ class MetadataManager:
       self.md_obj['items'].append(md_item)
     else:
       md_item['value'] = '\n'.join([md_item['value'], key])
+    if store:
+        self.StoreMetadata()
     return key_name
 
-  def RemoveSshKey(self, md_key, key):
+  def RemoveSshKey(self, key, md_key, level=None, store=True):
     """Remove an ssh key to the metadata previously fetched
         with FetchMetadata.
 
     Args:
-      md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
       key: string, the key to be removed.
+      md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
+      store: bool, If true, this function already performs FetchMetadata and
+          StoreMetadata.
     """
+    if store:
+        self.FetchMetadata(level)
     md_item = self.ExtractKeyItem(md_key)
     md_item['value'] = re.sub('.*%s.*\n?' % key, '', md_item['value'])
     if not md_item['value']:
       self.md_obj['items'].remove(md_item)
-
-  def AddSshKeySingle(self, md_key, level):
-    """Same as AddSshKey but wrapped between FetchMetadata and StoreMetadata.
-
-    Args:
-      md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
-      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
-
-    Returns:
-      key_name: string, the name of the file with the generated private key.
-    """
-    self.FetchMetadata(level)
-    key = self.AddSshKey(md_key)
-    self.StoreMetadata()
-    return key
-
-  def RemoveSshKeySingle(self, key, md_key, level):
-    """Same as RemoveSshKey but wrapped between FetchMetadata and
-        StoreMetadata.
-
-    Args:
-      key: string, the key to be removed.
-      md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
-      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
-
-    Returns:
-      key_name: string, the name of the file with the generated private key.
-    """
-    self.FetchMetadata(level)
-    self.RemoveSshKey(md_key, key)
-    self.StoreMetadata()
+    if store:
+        self.StoreMetadata()
 
   @RetryOnFailure
   def TestSshLogin(self, key, expectFail=False):
