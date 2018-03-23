@@ -139,7 +139,7 @@ def ExecuteInSsh(
     ret, out if capture_output=True.
   """
   ssh_command = [
-      'ssh', '-i', key, '-o', 'IdentitiesOnly=yes',
+      'ssh', '-i', key, '-o', 'IdentitiesOnly=yes', '-o', 'ConnectTimeout=10',
       '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
       '%s@%s' % (user, machine)
   ]

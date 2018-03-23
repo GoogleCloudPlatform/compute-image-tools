@@ -39,10 +39,10 @@ case $1 in
     ;;
   test_login)
     HOST=$2
-    ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $HOST echo Logged
+    ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 $HOST echo Logged
     ;;
   test_login_sudo)
     HOST=$2
-    ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $HOST sudo echo Logged
+    ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 $HOST sudo echo Logged
     ;;
 esac
