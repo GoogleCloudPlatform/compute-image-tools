@@ -230,7 +230,7 @@ Added fields:
 | Field Name | Type | Description |
 | - | - | - |
 | Project | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this image. |
-| GuestOsFeatures | []string] | *Optional.* Along with the GCE JSON API's more complex object structure, Daisy allows the use of a simple list. |
+| GuestOsFeatures | []string | *Optional.* Along with the GCE JSON API's more complex object structure, Daisy allows the use of a simple list. |
 | NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this image when the workflow terminates. |
 | RealName | string | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
 
@@ -633,7 +633,7 @@ out of convenience. Here is the exhaustive list of autovars:
 
 
 #### Source Vars
-Any fles set in sources can have their contents injected into a workflow by
+Any files set in sources can have their contents injected into a workflow by
 using the `SOURCE:my_source` variable. This is useful for embedding a script
 or configuration into instance metadata.
 ```json

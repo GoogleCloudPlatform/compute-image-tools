@@ -107,9 +107,9 @@ def DistroSpecific(g):
 
   # Try to reset the network to DHCP.
   if ubu_release == 'trusty':
-    g.write('/etc/network/intefaces', trusty_network)
+    g.write('/etc/network/interfaces', trusty_network)
   elif ubu_release == 'xenial':
-    g.write('/etc/network/intefaces', xenial_network)
+    g.write('/etc/network/interfaces', xenial_network)
 
   if install_gce == 'true':
     g.command(['apt-get', 'update'])
