@@ -19,10 +19,9 @@
     "create-disk": {
       "CreateDisks": [{
         "Name": "${disk_name}",
-        "SizeGb": "10",
         "Type": "pd-ssd",
         "ExactName": true,
-        "NoCleanup": true
+        "SourceImage": "${source_image}"
       }]
     },
     "translate-disk": {
@@ -34,15 +33,9 @@
         }
       },
       "Timeout": "1h"
-    },
-    "cleanup": {
-      "DeleteResources": {
-        "Disks": ["${disk_name}"]
-      }
     }
   },
   "Dependencies": {
-    "translate-disk": ["create-disk"],
-    "cleanup": ["translate-disk"]
+    "translate-disk": ["create-disk"]
   }
 }
