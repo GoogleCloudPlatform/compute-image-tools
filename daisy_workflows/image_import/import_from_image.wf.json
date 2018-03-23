@@ -1,0 +1,48 @@
+{
+  "Name": "import-from-image",
+  "Vars": {
+    "source_image": {
+      "Required": true,
+      "Description": "The GCE image to translate."
+    },
+    "image_name": {
+      "Required": true,
+      "Description": "The name of the imported image."
+    },
+    "translate_workflow": {
+      "Required": true,
+      "Description": "The path to the translation workflow to run."
+    },
+    "disk_name": "imported-disk-${ID}"
+  },
+  "Steps": {
+    "create-disk": {
+      "CreateDisks": [{
+        "Name": "${disk_name}",
+        "SizeGb": "10",
+        "Type": "pd-ssd",
+        "ExactName": true,
+        "NoCleanup": true
+      }]
+    },
+    "translate-disk": {
+      "IncludeWorkflow": {
+        "Path": "${translate_workflow}",
+        "Vars": {
+          "source_disk": "${disk_name}",
+          "image_name": "${image_name}"
+        }
+      },
+      "Timeout": "1h"
+    },
+    "cleanup": {
+      "DeleteResources": {
+        "Disks": ["${disk_name}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "translate-disk": ["create-disk"],
+    "cleanup": ["translate-disk"]
+  }
+}
