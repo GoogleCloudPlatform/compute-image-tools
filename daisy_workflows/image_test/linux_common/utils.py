@@ -130,10 +130,10 @@ def ExecuteInSsh(
     key: string, the path of the private key to use in the ssh connection.
     user: string, the user used to connect through ssh.
     machine: string, the hostname of the machine to connect.
-    cmds: list[string], the commands to be execute in the ssh session
-    expectFail: bool, indicates if the failure in the execution is expected
+    cmds: list[string], the commands to be execute in the ssh session.
+    expectFail: bool, indicates if the failure in the execution is expected.
     capture_output: bool, indicates if the output of the command should be
-        captured
+        captured.
 
   Returns:
     ret, out if capture_output=True.
@@ -185,7 +185,7 @@ def RunTest(test_func):
 
 
 def SetupLogging():
-  """Configure Loggin system."""
+  """Configure Logging system."""
   logging_level = logging.DEBUG
   logging.basicConfig(level=logging_level)
   console = logging.StreamHandler()
@@ -222,8 +222,9 @@ class MetadataManager:
     self.ssh_user = ssh_user
 
   def FetchMetadata(self, level):
-    """Fetch metadata from the server. This also fetches the fingerprint
-    required for StoreMetadata.
+    """Fetch metadata from the server.
+
+    This also fetches the fingerprint required for StoreMetadata.
 
     Args:
       level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
@@ -261,8 +262,7 @@ class MetadataManager:
     self.level = None
 
   def ExtractKeyItem(self, md_key):
-    """Extract a given key value from the metadata previously fetched
-    with FetchMetadata.
+    """Extract a given key value from the metadata.
 
     Args:
       md_key: string, the key of the metadata value to be searched.
@@ -279,10 +279,9 @@ class MetadataManager:
     """Add or update a metadata key with a new value in a given level.
 
     Args:
-      md_key: string, the key of the metadata value to be added or updated.
-      md_key: string, the key of the metadata value to be added or updated.
-      store: bool, If true, this function already performs FetchMetadata and
-          StoreMetadata.
+      md_key: string, the key of the metadata.
+      md_value: string, value to be added or updated.
+      store: bool, if True, saves metadata to GCE server.
     """
     if store:
         self.FetchMetadata(level)
@@ -298,13 +297,11 @@ class MetadataManager:
         self.StoreMetadata()
 
   def AddSshKey(self, md_key, level=None, store=True):
-    """Generate and add an ssh key to the metadata previously fetched
-        with FetchMetadata.
+    """Generate and add an ssh key to the metadata
 
     Args:
       md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
-      store: bool, If true, this function already performs FetchMetadata and
-          StoreMetadata.
+      store: bool, if True, saves metadata to GCE server.
 
     Returns:
       key_name: string, the name of the file with the generated private key.
@@ -323,14 +320,12 @@ class MetadataManager:
     return key_name
 
   def RemoveSshKey(self, key, md_key, level=None, store=True):
-    """Remove an ssh key to the metadata previously fetched
-        with FetchMetadata.
+    """Remove an ssh key to the metadata
 
     Args:
       key: string, the key to be removed.
       md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
-      store: bool, If true, this function already performs FetchMetadata and
-          StoreMetadata.
+      store: bool, if True, saves metadata to GCE server.
     """
     if store:
         self.FetchMetadata(level)
