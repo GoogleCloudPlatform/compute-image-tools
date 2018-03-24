@@ -31,25 +31,25 @@ TESTEE = None
 TESTER_SH = 'slave_tester.sh'
 
 
-def MasterExecuteInSsh(machine, commands, expectFail=False):
+def MasterExecuteInSsh(machine, commands, expect_fail=False):
   ret, output = utils.ExecuteInSsh(
-      MASTER_KEY, MD.ssh_user, machine, commands, expectFail,
+      MASTER_KEY, MD.ssh_user, machine, commands, expect_fail,
       capture_output=True)
   output = output.strip() if output else None
   return ret, output
 
 
 @utils.RetryOnFailure
-def MasterExecuteInSshRetry(machine, commands, expectFail=False):
-  return MasterExecuteInSsh(machine, commands, expectFail)
+def MasterExecuteInSshRetry(machine, commands, expect_fail=False):
+  return MasterExecuteInSsh(machine, commands, expect_fail)
 
 
 def AddOsLoginKeys():
-  _, keyOsLogin = MasterExecuteInSsh(
+  _, key_oslogin = MasterExecuteInSsh(
       OSLOGIN_TESTER, [TESTER_SH, 'add_key'])
-  _, keyOsAdminLogin = MasterExecuteInSsh(
+  _, key_osadminlogin = MasterExecuteInSsh(
       OSADMINLOGIN_TESTER, [TESTER_SH, 'add_key'])
-  return keyOsLogin, keyOsAdminLogin
+  return key_oslogin, key_osadminlogin
 
 
 def RemoveOsLoginKeys():
@@ -71,64 +71,64 @@ def GetServiceAccountUsername(machine):
 
 
 @utils.RetryOnFailure
-def CheckAuthorizedKeys(user, key, expectEmpty=False):
-  _, authKeys = MasterExecuteInSsh(TESTEE, ['google_authorized_keys', user])
-  authKeys = authKeys if authKeys else ''
-  if expectEmpty and key in authKeys:
+def CheckAuthorizedKeys(user, key, expect_empty=False):
+  _, auth_keys = MasterExecuteInSsh(TESTEE, ['google_authorized_keys', user])
+  auth_keys = auth_keys if auth_keys else ''
+  if expect_empty and key in auth_keys:
     raise ValueError(
         'Os Login key DETECTED in google_authorized_keys when NOT expected')
-  elif not expectEmpty and key not in authKeys:
+  elif not expect_empty and key not in auth_keys:
     raise ValueError(
         'Os Login key NOT DETECTED in google_authorized_keys when expected')
 
 
 @utils.RetryOnFailure
-def CheckNss(userOsLogin, userOsAdminLogin, expectEmpty=False):
+def CheckNss(user_oslogin, user_osadminlogin, expect_empty=False):
   _, users = MasterExecuteInSsh(TESTEE, ['getent', 'passwd'])
-  if expectEmpty and (userOsLogin in users or userOsAdminLogin in users):
+  if expect_empty and (user_oslogin in users or user_osadminlogin in users):
     raise ValueError(
         'Os Login usernames DETECTED in getend passwd (nss) when NOT expected')
-  elif not expectEmpty and (userOsLogin not in users or
-      userOsAdminLogin not in users):
+  elif not expect_empty and (user_oslogin not in users or
+      user_osadminlogin not in users):
     raise ValueError(
         'Os Login usernames NOT DETECTED in getend passwd (nss) when expected')
 
 
-def TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=False):
-  hostOsLogin = '%s@%s' % (userOsLogin, TESTEE)
-  hostOsAdminLogin = '%s@%s' % (userOsAdminLogin, TESTEE)
+def TestLoginFromSlaves(user_oslogin, user_osadminlogin, expect_fail=False):
+  host_oslogin = '%s@%s' % (user_oslogin, TESTEE)
+  host_osadminlogin = '%s@%s' % (user_osadminlogin, TESTEE)
   MasterExecuteInSshRetry(
-      OSLOGIN_TESTER, [TESTER_SH, 'test_login', hostOsLogin],
-      expectFail=expectFail)
+      OSLOGIN_TESTER, [TESTER_SH, 'test_login', host_oslogin],
+      expect_fail=expect_fail)
   MasterExecuteInSshRetry(
-      OSADMINLOGIN_TESTER, [TESTER_SH, 'test_login', hostOsAdminLogin],
-      expectFail=expectFail)
+      OSADMINLOGIN_TESTER, [TESTER_SH, 'test_login', host_osadminlogin],
+      expect_fail=expect_fail)
   MasterExecuteInSshRetry(
-      OSLOGIN_TESTER, [TESTER_SH, 'test_login_sudo', hostOsLogin],
-      expectFail=True)
+      OSLOGIN_TESTER, [TESTER_SH, 'test_login_sudo', host_oslogin],
+      expect_fail=True)
   MasterExecuteInSshRetry(
-      OSADMINLOGIN_TESTER, [TESTER_SH, 'test_login_sudo', hostOsAdminLogin],
-      expectFail=expectFail)
+      OSADMINLOGIN_TESTER, [TESTER_SH, 'test_login_sudo', host_osadminlogin],
+      expect_fail=expect_fail)
 
 
 def TestOsLogin(level):
-  keyOsLogin, keyOsAdminLogin = AddOsLoginKeys()
-  userOsLogin = GetServiceAccountUsername(OSLOGIN_TESTER)
-  userOsAdminLogin = GetServiceAccountUsername(OSADMINLOGIN_TESTER)
+  key_oslogin, key_osadminlogin = AddOsLoginKeys()
+  user_oslogin = GetServiceAccountUsername(OSLOGIN_TESTER)
+  user_osadminlogin = GetServiceAccountUsername(OSADMINLOGIN_TESTER)
   SetEnableOsLogin(True, level)
-  CheckNss(userOsLogin, userOsAdminLogin)
-  CheckAuthorizedKeys(userOsLogin, keyOsLogin)
-  CheckAuthorizedKeys(userOsAdminLogin, keyOsAdminLogin)
-  TestLoginFromSlaves(userOsLogin, userOsAdminLogin)
+  CheckNss(user_oslogin, user_osadminlogin)
+  CheckAuthorizedKeys(user_oslogin, key_oslogin)
+  CheckAuthorizedKeys(user_osadminlogin, key_osadminlogin)
+  TestLoginFromSlaves(user_oslogin, user_osadminlogin)
   RemoveOsLoginKeys()
-  TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=True)
-  keyOsLogin, keyOsAdminLogin = AddOsLoginKeys()
-  TestLoginFromSlaves(userOsLogin, userOsAdminLogin)
+  TestLoginFromSlaves(user_oslogin, user_osadminlogin, expect_fail=True)
+  key_oslogin, key_osadminlogin = AddOsLoginKeys()
+  TestLoginFromSlaves(user_oslogin, user_osadminlogin)
   SetEnableOsLogin(None, level)
-  TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=True)
-  CheckNss(userOsLogin, userOsAdminLogin, expectEmpty=True)
-  CheckAuthorizedKeys(userOsLogin, keyOsLogin, expectEmpty=True)
-  CheckAuthorizedKeys(userOsAdminLogin, keyOsAdminLogin, expectEmpty=True)
+  TestLoginFromSlaves(user_oslogin, user_osadminlogin, expect_fail=True)
+  CheckNss(user_oslogin, user_osadminlogin, expect_empty=True)
+  CheckAuthorizedKeys(user_oslogin, key_oslogin, expect_empty=True)
+  CheckAuthorizedKeys(user_osadminlogin, key_osadminlogin, expect_empty=True)
   RemoveOsLoginKeys()
 
 
@@ -136,26 +136,26 @@ def TestMetadataWithOsLogin(level):
   tester_key = MD.AddSshKey(MM.SSH_KEYS, level)
   MD.TestSshLogin(tester_key)
   SetEnableOsLogin(True, level)
-  MD.TestSshLogin(tester_key, expectFail=True)
+  MD.TestSshLogin(tester_key, expect_fail=True)
   SetEnableOsLogin(None, level)
   MD.TestSshLogin(tester_key)
   MD.RemoveSshKey(tester_key, MM.SSH_KEYS, level)
-  MD.TestSshLogin(tester_key, expectFail=True)
+  MD.TestSshLogin(tester_key, expect_fail=True)
 
 
 def TestOsLoginFalseInInstance():
   tester_key = MD.AddSshKey(MM.SSH_KEYS, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key)
   SetEnableOsLogin(True, MM.PROJECT_LEVEL)
-  MD.TestSshLogin(tester_key, expectFail=True)
+  MD.TestSshLogin(tester_key, expect_fail=True)
   SetEnableOsLogin(False, MM.INSTANCE_LEVEL)
   MD.TestSshLogin(tester_key)
   SetEnableOsLogin(None, MM.INSTANCE_LEVEL)
-  MD.TestSshLogin(tester_key, expectFail=True)
+  MD.TestSshLogin(tester_key, expect_fail=True)
   SetEnableOsLogin(None, MM.PROJECT_LEVEL)
   MD.TestSshLogin(tester_key)
   MD.RemoveSshKey(tester_key, MM.SSH_KEYS, MM.INSTANCE_LEVEL)
-  MD.TestSshLogin(tester_key, expectFail=True)
+  MD.TestSshLogin(tester_key, expect_fail=True)
 
 
 def GetCurrentUsername():

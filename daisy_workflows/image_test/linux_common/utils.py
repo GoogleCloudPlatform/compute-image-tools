@@ -123,7 +123,7 @@ def RetryOnFailure(func):
 
 
 def ExecuteInSsh(
-    key, user, machine, cmds, expectFail=False, capture_output=False):
+    key, user, machine, cmds, expect_fail=False, capture_output=False):
   """Execute commands through ssh.
 
   Args:
@@ -131,7 +131,7 @@ def ExecuteInSsh(
     user: string, the user used to connect through ssh.
     machine: string, the hostname of the machine to connect.
     cmds: list[string], the commands to be execute in the ssh session.
-    expectFail: bool, indicates if the failure in the execution is expected.
+    expect_fail: bool, indicates if the failure in the execution is expected.
     capture_output: bool, indicates if the output of the command should be
         captured.
 
@@ -145,9 +145,9 @@ def ExecuteInSsh(
   ]
   ret, out = Execute(
       ssh_command + cmds, raise_errors=False, capture_output=capture_output)
-  if expectFail and ret == 0:
+  if expect_fail and ret == 0:
     raise ValueError('SSH command succeeded when expected to fail')
-  elif not expectFail and ret != 0:
+  elif not expect_fail and ret != 0:
     raise ValueError('SSH command failed when expected to succeed')
   else:
     return ret, out
@@ -337,7 +337,7 @@ class MetadataManager:
         self.StoreMetadata()
 
   @RetryOnFailure
-  def TestSshLogin(self, key, expectFail=False):
+  def TestSshLogin(self, key, expect_fail=False):
     """Try to login to self.instance using key.
 
     Args:
@@ -345,7 +345,7 @@ class MetadataManager:
     """
     ExecuteInSsh(
         key, self.ssh_user, self.instance, ['echo', 'Logged'],
-        expectFail=expectFail)
+        expect_fail=expect_fail)
 
   @classmethod
   def FetchMetadataDefault(cls, name):
