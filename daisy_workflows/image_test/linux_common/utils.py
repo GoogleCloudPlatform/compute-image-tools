@@ -271,12 +271,9 @@ class MetadataManager:
       md_item: dict, in the format {'key', md_key, 'value', md_value}.
       None: if md_key was not found.
     """
-    try:
-      md_item = (
-          md for md in self.md_obj['items'] if md['key'] == md_key).next()
-    except StopIteration:
-      md_item = None
-    return md_item
+    for md_item in self.md_obj['items']:
+        if md_item['key'] == md_key:
+            return md_item
 
   def Define(self, md_key, md_value, level, store=True):
     """Add or update a metadata key with a new value in a given level.
