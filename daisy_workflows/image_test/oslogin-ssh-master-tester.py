@@ -76,10 +76,10 @@ def CheckAuthorizedKeys(user, key, expectEmpty=False):
   authKeys = authKeys if authKeys else ''
   if expectEmpty and key in authKeys:
     raise ValueError(
-        'OsLogin key DETECTED in google_authorized_keys when NOT expected')
+        'Os Login key DETECTED in google_authorized_keys when NOT expected')
   elif not expectEmpty and key not in authKeys:
     raise ValueError(
-        'OsLogin key NOT DETECTED in google_authorized_keys when expected')
+        'Os Login key NOT DETECTED in google_authorized_keys when expected')
 
 
 @utils.RetryOnFailure
@@ -87,11 +87,11 @@ def CheckNss(userOsLogin, userOsAdminLogin, expectEmpty=False):
   _, users = MasterExecuteInSsh(TESTEE, ['getent', 'passwd'])
   if expectEmpty and (userOsLogin in users or userOsAdminLogin in users):
     raise ValueError(
-        'OsLogin usernames DETECTED in getend passwd (nss) when NOT expected')
+        'Os Login usernames DETECTED in getend passwd (nss) when NOT expected')
   elif not expectEmpty and (userOsLogin not in users or
       userOsAdminLogin not in users):
     raise ValueError(
-        'OsLogin usernames NOT DETECTED in getend passwd (nss) when expected')
+        'Os Login usernames NOT DETECTED in getend passwd (nss) when expected')
 
 
 def TestLoginFromSlaves(userOsLogin, userOsAdminLogin, expectFail=False):
