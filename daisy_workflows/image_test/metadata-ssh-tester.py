@@ -20,9 +20,9 @@ utils.AptGetInstall(['python-pip'])
 utils.Execute(['pip', 'install', '--upgrade', 'google-api-python-client'])
 
 from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
-from utils import MetadataManager as MM
+import oauth2client.client
 
+MM = utils.MetadataManager
 MD = None
 
 
@@ -93,7 +93,7 @@ def TestBlockProjectSshKeysIgnoresProjectLevelKeys():
 def main():
   global MD
 
-  compute = utils.GetCompute(discovery, GoogleCredentials)
+  compute = utils.GetCompute(discovery, oauth2client.client.GoogleCredentials)
   testee = MM.FetchMetadataDefault('testee')
   MD = MM(compute, testee)
   MD.Define('enable-oslogin', False, MM.PROJECT_LEVEL)
