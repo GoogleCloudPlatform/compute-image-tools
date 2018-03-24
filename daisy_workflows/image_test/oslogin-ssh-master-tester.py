@@ -20,10 +20,9 @@ utils.AptGetInstall(['python-pip'])
 utils.Execute(['pip', 'install', '--upgrade', 'google-api-python-client'])
 
 from googleapiclient import discovery
-from oauth2client.client import GoogleCredentials
-from utils import MetadataManager as MM
+import oauth2client.client
 
-
+MM = utils.MetadataManager
 MD = None
 MASTER_KEY = None
 OSLOGIN_TESTER = None
@@ -191,7 +190,7 @@ def main():
   OSLOGIN_TESTER = MM.FetchMetadataDefault('osLoginTester')
   OSADMINLOGIN_TESTER = MM.FetchMetadataDefault('osAdminLoginTester')
   username = GetCurrentUsername()
-  compute = utils.GetCompute(discovery, GoogleCredentials)
+  compute = utils.GetCompute(discovery, oauth2client.client.GoogleCredentials)
   MD = MM(compute, TESTEE, username)
   SetEnableOsLogin(None, MM.PROJECT_LEVEL)
   SetEnableOsLogin(None, MM.INSTANCE_LEVEL)
