@@ -271,6 +271,9 @@ class MetadataManager:
       md_item: dict, in the format {'key', md_key, 'value', md_value}.
       None: if md_key was not found.
     """
+    if 'items' not in self.md_obj:
+        self.md_obj['items'] = []
+        return
     for md_item in self.md_obj['items']:
         if md_item['key'] == md_key:
             return md_item
