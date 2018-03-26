@@ -121,7 +121,7 @@
           "Name": "inst-oslogin-ssh-testee",
           "Disks": [{"Source": "disk-testee"}],
           "metadata": {
-            "startup-script": "echo BOOTED"
+            "startup-script": "echo BOOTED > /dev/console"
           }
         }
       ]

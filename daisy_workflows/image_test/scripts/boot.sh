@@ -16,7 +16,7 @@
 if [[ -f ~/reboot.txt ]]; then
   cat ~/reboot.txt
 else
-  echo "BOOTED"
+  echo "BOOTED" > /dev/console
   echo "REBOOTED" > ~/reboot.txt
   shutdown -r now
 fi
