@@ -29,6 +29,7 @@
     "take-image-of-untranslated-disk": {
       "CreateImages": [{
         "Name": "${image_name}-untranslated",
+        "Description": "Imported (untranslated) image from ${source_disk_file}",
         "SourceDisk": "${translation-disk-name}"
       }]
     },
