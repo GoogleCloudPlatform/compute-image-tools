@@ -38,16 +38,12 @@ def TestLoginSshKeys(level):
 
 
 def TestSshKeysWithSshKeys(level):
-  MD.FetchMetadata(level)
   ssh_key = MD.AddSshKey(MM.SSH_KEYS, store=False)
-  ssh_key_legacy = MD.AddSshKey(MM.SSHKEYS_LEGACY, store=False)
-  MD.StoreMetadata()
+  ssh_key_legacy = MD.AddSshKey(MM.SSHKEYS_LEGACY)
   MD.TestSshLogin(ssh_key)
   MD.TestSshLogin(ssh_key_legacy)
-  MD.FetchMetadata(level)
   MD.RemoveSshKey(ssh_key, MM.SSH_KEYS, store=False)
-  MD.RemoveSshKey(ssh_key_legacy, MM.SSHKEYS_LEGACY, store=False)
-  MD.StoreMetadata()
+  MD.RemoveSshKey(ssh_key_legacy, MM.SSHKEYS_LEGACY)
   MD.TestSshLogin(ssh_key, expect_fail=True)
   MD.TestSshLogin(ssh_key_legacy, expect_fail=True)
 

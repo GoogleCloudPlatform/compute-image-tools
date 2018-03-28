@@ -216,20 +216,22 @@ class MetadataManager:
     self.project = self.FetchMetadataDefault('project')
     self.compute = compute
     self.instance = instance
-    self.md_obj = None
-    self.level = None
     self.last_fingerprint = None
     self.ssh_user = ssh_user
+    self.md_items = {}
+    md_obj = self._FetchMetadata(self.INSTANCE_LEVEL)
+    self.md_items[self.INSTANCE_LEVEL] = \
+        md_obj['items'] if 'items' in md_obj else []
+    md_obj = self._FetchMetadata(self.PROJECT_LEVEL)
+    self.md_items[self.PROJECT_LEVEL] = \
+        md_obj['items'] if 'items' in md_obj else []
 
-  def FetchMetadata(self, level):
+  def _FetchMetadata(self, level):
     """Fetch metadata from the server.
-
-    This also fetches the fingerprint required for StoreMetadata.
 
     Args:
       level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
     """
-    self.level = level
     if level == self.PROJECT_LEVEL:
       request = self.compute.projects().get(project=self.project)
       md_id = 'commonInstanceMetadata'
@@ -237,44 +239,39 @@ class MetadataManager:
       request = self.compute.instances().get(
           project=self.project, zone=self.zone, instance=self.instance)
       md_id = 'metadata'
+    response = request.execute()
+    return response[md_id]
 
-    @RetryOnFailure
-    def _FetchMetadata():
-      response = request.execute()
-      self.md_obj = response[md_id]
-      if self.md_obj['fingerprint'] != self.last_fingerprint:
-        self.last_fingerprint = self.md_obj['fingerprint']
-      else:
-        raise ValueError('FetchMetadata retrieved same fingerprint')
-    _FetchMetadata()
+  @RetryOnFailure
+  def StoreMetadata(self, level):
+    """Store Metadata.
 
-  def StoreMetadata(self):
-    """Store Metadata previously fetched with FetchMetadata."""
-    if self.level == self.PROJECT_LEVEL:
+    Args:
+      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to store the metadata.
+    """
+    md_obj = self._FetchMetadata(level)
+    md_obj['items'] = self.md_items[level]
+    if level == self.PROJECT_LEVEL:
       request = self.compute.projects().setCommonInstanceMetadata(
-          project=self.project, body=self.md_obj)
+          project=self.project, body=md_obj)
     else:
       request = self.compute.instances().setMetadata(
           project=self.project, zone=self.zone, instance=self.instance,
-          body=self.md_obj)
+          body=md_obj)
     request.execute()
-    self.md_obj = None
-    self.level = None
 
-  def ExtractKeyItem(self, md_key):
+  def ExtractKeyItem(self, md_key, level):
     """Extract a given key value from the metadata.
 
     Args:
       md_key: string, the key of the metadata value to be searched.
+      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
 
     Returns:
       md_item: dict, in the format {'key', md_key, 'value', md_value}.
       None: if md_key was not found.
     """
-    if 'items' not in self.md_obj:
-        self.md_obj['items'] = []
-        return
-    for md_item in self.md_obj['items']:
+    for md_item in self.md_items[level]:
         if md_item['key'] == md_key:
             return md_item
 
@@ -284,42 +281,45 @@ class MetadataManager:
     Args:
       md_key: string, the key of the metadata.
       md_value: string, value to be added or updated.
+      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
       store: bool, if True, saves metadata to GCE server.
     """
-    if store:
-        self.FetchMetadata(level)
-    md_item = self.ExtractKeyItem(md_key)
+    if not level:
+        level = self.INSTANCE_LEVEL
+    md_item = self.ExtractKeyItem(md_key, level)
     if md_item and md_value is None:
-      self.md_obj['items'].remove(md_item)
+      self.md_items[level].remove(md_item)
     elif not md_item:
       md_item = {'key': md_key, 'value': md_value}
-      self.md_obj['items'].append(md_item)
+      self.md_items[level].append(md_item)
     else:
       md_item['value'] = md_value
     if store:
-        self.StoreMetadata()
+        self.StoreMetadata(level)
 
   def AddSshKey(self, md_key, level=None, store=True):
     """Generate and add an ssh key to the metadata
 
     Args:
       md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
+      level: enum, INSTANCE_LEVEL (default) or PROJECT_LEVEL to fetch the
+          metadata.
       store: bool, if True, saves metadata to GCE server.
 
     Returns:
       key_name: string, the name of the file with the generated private key.
     """
-    if store:
-        self.FetchMetadata(level)
+    if not level:
+        level = self.INSTANCE_LEVEL
     key, key_name = GenSshKey(self.ssh_user)
-    md_item = self.ExtractKeyItem(md_key)
+    md_item = self.ExtractKeyItem(md_key, level)
     if not md_item:
       md_item = {'key': md_key, 'value': key}
-      self.md_obj['items'].append(md_item)
+      self.md_items[level].append(md_item)
     else:
       md_item['value'] = '\n'.join([md_item['value'], key])
     if store:
-        self.StoreMetadata()
+        self.StoreMetadata(level)
     return key_name
 
   def RemoveSshKey(self, key, md_key, level=None, store=True):
@@ -328,16 +328,18 @@ class MetadataManager:
     Args:
       key: string, the key to be removed.
       md_key: string, SSH_KEYS or SSHKEYS_LEGACY, defines where to add the key.
+      level: enum, INSTANCE_LEVEL (default) or PROJECT_LEVEL to fetch the
+          metadata.
       store: bool, if True, saves metadata to GCE server.
     """
-    if store:
-        self.FetchMetadata(level)
-    md_item = self.ExtractKeyItem(md_key)
+    if not level:
+        level = self.INSTANCE_LEVEL
+    md_item = self.ExtractKeyItem(md_key, level)
     md_item['value'] = re.sub('.*%s.*\n?' % key, '', md_item['value'])
     if not md_item['value']:
-      self.md_obj['items'].remove(md_item)
+      self.md_items[level].remove(md_item)
     if store:
-        self.StoreMetadata()
+        self.StoreMetadata(level)
 
   @RetryOnFailure
   def TestSshLogin(self, key, expect_fail=False):
