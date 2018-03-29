@@ -55,7 +55,7 @@
           "Name": "inst-metadata-ssh-testee",
           "Disks": [{"Source": "disk-testee"}],
           "metadata": {
-            "startup-script": "echo BOOTED > /dev/console"
+            "startup-script": "service sshguard stop; echo BOOTED > /dev/console"
           }
         }
       ]
