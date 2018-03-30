@@ -88,8 +88,8 @@ def CheckNss(user_oslogin, user_osadminlogin, expect_empty=False):
   if expect_empty and (user_oslogin in users or user_osadminlogin in users):
     raise ValueError(
         'Os Login usernames DETECTED in getend passwd (nss) when NOT expected')
-  elif not expect_empty and (user_oslogin not in users or
-      user_osadminlogin not in users):
+  elif not expect_empty and (
+      user_oslogin not in users or user_osadminlogin not in users):
     raise ValueError(
         'Os Login usernames NOT DETECTED in getend passwd (nss) when expected')
 
@@ -162,7 +162,7 @@ def GetCurrentUsername():
   # TODO: replace gcloud usage by python CLI
   _, username = utils.Execute(
       ['gcloud', 'compute', 'os-login', 'describe-profile',
-      '--format', 'value(posixAccounts.username)'], capture_output=True)
+       '--format', 'value(posixAccounts.username)'], capture_output=True)
   return username.strip()
 
 
@@ -176,7 +176,7 @@ def RemoveKeyOsLogin(key):
   # TODO: replace gcloud usage by python CLI
   utils.Execute(
       ['gcloud', 'compute', 'os-login', 'ssh-keys', 'remove', '--key-file',
-      key])
+       key])
 
 
 def main():
