@@ -275,13 +275,14 @@ class MetadataManager:
         if md_item['key'] == md_key:
             return md_item
 
-  def SetMetadata(self, md_key, md_value, level, store=True):
+  def SetMetadata(self, md_key, md_value, level=None, store=True):
     """Add or update a metadata key with a new value in a given level.
 
     Args:
       md_key: string, the key of the metadata.
       md_value: string, value to be added or updated.
-      level: enum, INSTANCE_LEVEL or PROJECT_LEVEL to fetch the metadata.
+      level: enum, INSTANCE_LEVEL (default) or PROJECT_LEVEL to fetch the
+          metadata.
       store: bool, if True, saves metadata to GCE server.
     """
     if not level:
