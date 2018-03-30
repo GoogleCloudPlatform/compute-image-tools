@@ -47,6 +47,17 @@
             "source_image": "${source_image}"
         }
       }
+    },
+    "test-oslogin-ssh": {
+      "SubWorkflow": {
+        "Path": "./oslogin-ssh.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
     }
+  },
+  "Dependencies": {
+    "test-oslogin-ssh": ["test-metadata-ssh"]
   }
 }
