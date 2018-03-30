@@ -141,7 +141,7 @@ def ExecuteInSsh(
   ssh_command = [
       'ssh', '-i', key, '-o', 'IdentitiesOnly=yes', '-o', 'ConnectTimeout=10',
       '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
-      '%s@%s' % (user, machine)
+      '%s@%s' % (user, machine),
   ]
   ret, out = Execute(
       ssh_command + cmds, raise_errors=False, capture_output=capture_output)
@@ -220,11 +220,11 @@ class MetadataManager:
     self.ssh_user = ssh_user
     self.md_items = {}
     md_obj = self._FetchMetadata(self.INSTANCE_LEVEL)
-    self.md_items[self.INSTANCE_LEVEL] = \
-        md_obj['items'] if 'items' in md_obj else []
+    self.md_items[self.INSTANCE_LEVEL] = (
+        md_obj['items'] if 'items' in md_obj else [])
     md_obj = self._FetchMetadata(self.PROJECT_LEVEL)
-    self.md_items[self.PROJECT_LEVEL] = \
-        md_obj['items'] if 'items' in md_obj else []
+    self.md_items[self.PROJECT_LEVEL] = (
+        md_obj['items'] if 'items' in md_obj else [])
 
   def _FetchMetadata(self, level):
     """Fetch metadata from the server.
