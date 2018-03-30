@@ -272,8 +272,8 @@ class MetadataManager:
       None: if md_key was not found.
     """
     for md_item in self.md_items[level]:
-        if md_item['key'] == md_key:
-            return md_item
+      if md_item['key'] == md_key:
+        return md_item
 
   def SetMetadata(self, md_key, md_value, level=None, store=True):
     """Add or update a metadata key with a new value in a given level.
@@ -286,7 +286,7 @@ class MetadataManager:
       store: bool, if True, saves metadata to GCE server.
     """
     if not level:
-        level = self.INSTANCE_LEVEL
+      level = self.INSTANCE_LEVEL
     md_item = self.ExtractKeyItem(md_key, level)
     if md_item and md_value is None:
       self.md_items[level].remove(md_item)
@@ -296,7 +296,7 @@ class MetadataManager:
     else:
       md_item['value'] = md_value
     if store:
-        self.StoreMetadata(level)
+      self.StoreMetadata(level)
 
   def AddSshKey(self, md_key, level=None, store=True):
     """Generate and add an ssh key to the metadata
@@ -311,7 +311,7 @@ class MetadataManager:
       key_name: string, the name of the file with the generated private key.
     """
     if not level:
-        level = self.INSTANCE_LEVEL
+      level = self.INSTANCE_LEVEL
     key, key_name = GenSshKey(self.ssh_user)
     md_item = self.ExtractKeyItem(md_key, level)
     if not md_item:
@@ -320,7 +320,7 @@ class MetadataManager:
     else:
       md_item['value'] = '\n'.join([md_item['value'], key])
     if store:
-        self.StoreMetadata(level)
+      self.StoreMetadata(level)
     return key_name
 
   def RemoveSshKey(self, key, md_key, level=None, store=True):
@@ -334,13 +334,13 @@ class MetadataManager:
       store: bool, if True, saves metadata to GCE server.
     """
     if not level:
-        level = self.INSTANCE_LEVEL
+      level = self.INSTANCE_LEVEL
     md_item = self.ExtractKeyItem(md_key, level)
     md_item['value'] = re.sub('.*%s.*\n?' % key, '', md_item['value'])
     if not md_item['value']:
       self.md_items[level].remove(md_item)
     if store:
-        self.StoreMetadata(level)
+      self.StoreMetadata(level)
 
   @RetryOnFailure
   def TestSshLogin(self, key, expect_fail=False):
