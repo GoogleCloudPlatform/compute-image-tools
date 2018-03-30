@@ -275,7 +275,7 @@ class MetadataManager:
         if md_item['key'] == md_key:
             return md_item
 
-  def Define(self, md_key, md_value, level, store=True):
+  def SetMetadata(self, md_key, md_value, level, store=True):
     """Add or update a metadata key with a new value in a given level.
 
     Args:

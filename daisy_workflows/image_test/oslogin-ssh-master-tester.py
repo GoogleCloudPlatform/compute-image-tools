@@ -59,7 +59,7 @@ def RemoveOsLoginKeys():
 
 def SetEnableOsLogin(state, level, md=None):
   md = md if md else MD
-  md.Define('enable-oslogin', state, level)
+  md.SetMetadata('enable-oslogin', state, level)
 
 
 def GetServiceAccountUsername(machine):

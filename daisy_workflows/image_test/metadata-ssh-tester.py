@@ -27,7 +27,7 @@ MD = None
 
 
 def SetBlockProjectSshKeys(state):
-  MD.Define('block-project-ssh-keys', state, MM.INSTANCE_LEVEL)
+  MD.SetMetadata('block-project-ssh-keys', state, MM.INSTANCE_LEVEL)
 
 
 def TestLoginSshKeys(level):
@@ -92,7 +92,7 @@ def main():
   compute = utils.GetCompute(discovery, oauth2client.client.GoogleCredentials)
   testee = MM.FetchMetadataDefault('testee')
   MD = MM(compute, testee)
-  MD.Define('enable-oslogin', False, MM.PROJECT_LEVEL)
+  MD.SetMetadata('enable-oslogin', False, MM.PROJECT_LEVEL)
   SetBlockProjectSshKeys(False)
 
   TestLoginSshKeys(MM.INSTANCE_LEVEL)
