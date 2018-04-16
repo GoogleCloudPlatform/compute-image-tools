@@ -30,7 +30,7 @@
   * <a id="glossary-gcp"></a>GCP: Google Cloud Platform
   * <a id="glossary-gcs"></a>GCS: Google Cloud Storage
   * <a id="glossary-partialurl"></a>Partial URL: a URL for a GCE resource. Has the
-    form "projects/PROJECT/zone/ZONE/RESOURCETYPE/RESOURCENAME".
+    form "projects/PROJECT/zones/ZONE/RESOURCETYPE/RESOURCENAME".
   * <a id="glossary-workflow"></a>Workflow: a graph of executable, blocking steps
     and their dependency relationships.
 
