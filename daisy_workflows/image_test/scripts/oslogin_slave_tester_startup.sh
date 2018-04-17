@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ -f ~/reboot.txt ]]; then
-  cat ~/reboot.txt
-else
-  echo "BOOTED" > /dev/console
-  echo "REBOOTED" > ~/reboot.txt
-  shutdown -r now
-fi
+SH=slave_tester.sh
+URL="http://metadata/computeMetadata/v1/instance"
+SOURCEURL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)"
+gsutil cp ${SOURCEURL}/test_files/${SH} /bin/${SH}
+chmod a+x /bin/${SH}
+# Allow writting to serial port
+sudo chmod a+w /dev/ttyS0
+echo "BOOTED"

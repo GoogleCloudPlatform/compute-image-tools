@@ -81,7 +81,7 @@ def main():
 
   # Inject Google Cloud test repo plugin if using staging or unstable repos.
   # This is used to test new package releases in images.
-  if repo is not 'stable':
+  if repo != 'stable':
     utils.Status('Adding Google Cloud test repos plugin for bootstrapvz.')
     repo_plugin_dir = '/build_files/google_cloud_test_repos'
     bvz_plugins = os.path.join(BVZ_DIR, 'bootstrapvz', 'plugins')
@@ -102,9 +102,8 @@ def main():
   # Upload tar.
   image_tar_gz = '/target/disk.tar.gz'
   if os.path.exists(image_tar_gz):
-    image_tar_gz_dest = os.path.join(image_dest, 'root.tar.gz')
-    utils.Status('Saving %s to %s' % (image_tar_gz, image_tar_gz_dest))
-    utils.Gsutil(['cp', image_tar_gz, image_tar_gz_dest])
+    utils.Status('Saving %s to %s' % (image_tar_gz, image_dest))
+    utils.Gsutil(['cp', image_tar_gz, image_dest])
 
   # Create and upload the synopsis of the image.
   utils.Status('Creating image synopsis.')

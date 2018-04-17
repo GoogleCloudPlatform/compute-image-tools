@@ -32,6 +32,7 @@
         {
           "Name": "${image_name}",
           "SourceDisk": "${import_disk_name}",
+          "Description": "Imported image from ${source_disk_file}",
           "ExactName": true,
           "NoCleanup": true
         }
