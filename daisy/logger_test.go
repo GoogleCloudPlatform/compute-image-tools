@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"sync"
 	"testing"
 	"time"
 
@@ -27,33 +28,44 @@ import (
 )
 
 type MockLogger struct {
-	entries []*logEntry
+	entries []*LogEntry
+	mx      sync.Mutex
 }
 
 // StepInfo logs information for the workflow step.
 func (l *MockLogger) StepInfo(w *Workflow, stepName string, format string, a ...interface{}) {
-	entry := &logEntry{
+	entry := &LogEntry{
 		LocalTimestamp: time.Now(),
 		WorkflowName:   getAbsoluteName(w),
 		StepName:       stepName,
 		Message:        fmt.Sprintf(format, a...),
 	}
+	l.mx.Lock()
+	defer l.mx.Unlock()
 	l.entries = append(l.entries, entry)
 }
 
 // WorkflowInfo logs information for the workflow.
 func (l *MockLogger) WorkflowInfo(w *Workflow, format string, a ...interface{}) {
-	entry := &logEntry{
+	entry := &LogEntry{
 		LocalTimestamp: time.Now(),
 		WorkflowName:   getAbsoluteName(w),
 		Message:        fmt.Sprintf(format, a...),
 	}
+	l.mx.Lock()
+	defer l.mx.Unlock()
 	l.entries = append(l.entries, entry)
 }
 
 // FlushAll flushes all loggers.
 func (l *MockLogger) FlushAll() {
 	// nop
+}
+
+func (l *MockLogger) GetEntries() []*LogEntry {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	return l.entries[:]
 }
 
 func TestCreateLogger(t *testing.T) {

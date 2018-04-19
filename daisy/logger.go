@@ -34,16 +34,17 @@ type Logger interface {
 	FlushAll()
 }
 
-type logger struct {
+// Log wraps the different logging mechanisms that can be used.
+type Log struct {
 	gcsLogWriter  *syncedWriter
 	cloudLogger   *logging.Logger
 	stdoutLogging bool
 }
 
 // CreateLogger builds a Logger.
-func CreateLogger(ctx context.Context, w *Workflow, cloudLogging bool, gcsLogging bool, stdoutLogging bool) *logger {
+func CreateLogger(ctx context.Context, w *Workflow, cloudLogging bool, gcsLogging bool, stdoutLogging bool) *Log {
 
-	logger := &logger{
+	logger := &Log{
 		stdoutLogging: stdoutLogging,
 	}
 
@@ -65,8 +66,8 @@ func CreateLogger(ctx context.Context, w *Workflow, cloudLogging bool, gcsLoggin
 }
 
 // StepInfo logs information for the workflow step.
-func (l *logger) StepInfo(w *Workflow, stepName string, format string, a ...interface{}) {
-	entry := &logEntry{
+func (l *Log) StepInfo(w *Workflow, stepName string, format string, a ...interface{}) {
+	entry := &LogEntry{
 		LocalTimestamp: time.Now(),
 		WorkflowName:   getAbsoluteName(w),
 		StepName:       stepName,
@@ -76,8 +77,8 @@ func (l *logger) StepInfo(w *Workflow, stepName string, format string, a ...inte
 }
 
 // WorkflowInfo logs information for the workflow.
-func (l *logger) WorkflowInfo(w *Workflow, format string, a ...interface{}) {
-	entry := &logEntry{
+func (l *Log) WorkflowInfo(w *Workflow, format string, a ...interface{}) {
+	entry := &LogEntry{
 		LocalTimestamp: time.Now(),
 		WorkflowName:   getAbsoluteName(w),
 		Message:        fmt.Sprintf(format, a...),
@@ -86,7 +87,7 @@ func (l *logger) WorkflowInfo(w *Workflow, format string, a ...interface{}) {
 }
 
 // FlushAll flushes all loggers.
-func (l *logger) FlushAll() {
+func (l *Log) FlushAll() {
 	if l.gcsLogWriter != nil {
 		l.gcsLogWriter.Flush()
 	}
@@ -96,14 +97,15 @@ func (l *logger) FlushAll() {
 	}
 }
 
-type logEntry struct {
+// LogEntry encapsulates a single log entry.
+type LogEntry struct {
 	LocalTimestamp time.Time `json:"localTimestamp"`
 	WorkflowName   string    `json:"workflow"`
 	StepName       string    `json:"step,omitempty"`
 	Message        string    `json:"message"`
 }
 
-func (l *logger) writeLogEntry(e *logEntry) {
+func (l *Log) writeLogEntry(e *LogEntry) {
 	if l.cloudLogger != nil {
 		l.cloudLogger.Log(logging.Entry{Payload: e})
 	}
@@ -175,7 +177,7 @@ func getAbsoluteName(w *Workflow) string {
 	return name
 }
 
-func (e *logEntry) String() string {
+func (e *LogEntry) String() string {
 	var msg string
 	if e.StepName != "" {
 		msg = fmt.Sprintf("%s: %s", e.StepName, e.Message)
