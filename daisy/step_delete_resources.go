@@ -16,7 +16,6 @@ package daisy
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	"google.golang.org/api/compute/v1"
@@ -79,9 +78,9 @@ func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
 	return nil
 }
 
-func (d *DeleteResources) checkError(err dErr, logger *log.Logger) dErr {
+func (d *DeleteResources) checkError(err dErr, s *Step) dErr {
 	if err != nil && err.Type() == resourceDNEError {
-		logger.Printf("DeleteResources WARNING: Error validating deletion: %v", err)
+		s.w.Logger.StepInfo(s.w, "DeleteResources", "WARNING: Error validating deletion: %v", err)
 		return nil
 	} else if err != nil && err.Type() == imageObsoleteDeletedError {
 		return nil
@@ -92,28 +91,28 @@ func (d *DeleteResources) checkError(err dErr, logger *log.Logger) dErr {
 func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 	// Instance checking.
 	for _, i := range d.Instances {
-		if err := d.validateInstance(i, s); d.checkError(err, s.w.Logger) != nil {
+		if err := d.validateInstance(i, s); d.checkError(err, s) != nil {
 			return err
 		}
 	}
 
 	// Disk checking.
 	for _, disk := range d.Disks {
-		if err := s.w.disks.regDelete(disk, s); d.checkError(err, s.w.Logger) != nil {
+		if err := s.w.disks.regDelete(disk, s); d.checkError(err, s) != nil {
 			return err
 		}
 	}
 
 	// Image checking.
 	for _, i := range d.Images {
-		if err := s.w.images.regDelete(i, s); d.checkError(err, s.w.Logger) != nil {
+		if err := s.w.images.regDelete(i, s); d.checkError(err, s) != nil {
 			return err
 		}
 	}
 
 	// Network checking.
 	for _, n := range d.Networks {
-		if err := s.w.networks.regDelete(n, s); d.checkError(err, s.w.Logger) != nil {
+		if err := s.w.networks.regDelete(n, s); d.checkError(err, s) != nil {
 			return err
 		}
 	}
@@ -130,10 +129,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			w.Logger.Printf("DeleteResources: deleting instance %q.", i)
+			w.Logger.StepInfo(w, "DeleteResources", "deleting instance %q.", i)
 			if err := w.instances.delete(i); err != nil {
 				if err.Type() == resourceDNEError {
-					s.w.Logger.Printf("DeleteResources WARNING: Error deleting instance %q: %v", i, err)
+					w.Logger.StepInfo(w, "DeleteResources", "WARNING: Error deleting instance %q: %v", i, err)
 					return
 				}
 				e <- err
@@ -145,10 +144,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			w.Logger.Printf("DeleteResources: deleting image %q.", i)
+			w.Logger.StepInfo(w, "DeleteResources", "deleting image %q.", i)
 			if err := w.images.delete(i); err != nil {
 				if err.Type() == resourceDNEError {
-					s.w.Logger.Printf("DeleteResources WARNING: Error deleting image %q: %v", i, err)
+					w.Logger.StepInfo(w, "DeleteResources", "WARNING: Error deleting image %q: %v", i, err)
 					return
 				}
 				e <- err
@@ -176,10 +175,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			w.Logger.Printf("DeleteResources: deleting disk %q.", d)
+			w.Logger.StepInfo(w, "DeleteResources", "deleting disk %q.", d)
 			if err := w.disks.delete(d); err != nil {
 				if err.Type() == resourceDNEError {
-					s.w.Logger.Printf("DeleteResources WARNING: Error deleting disk %q: %v", d, err)
+					w.Logger.StepInfo(w, "DeleteResources", "WARNING: Error deleting disk %q: %v", d, err)
 					return
 				}
 				e <- err
@@ -192,10 +191,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(n string) {
 			defer wg.Done()
-			w.Logger.Printf("DeleteResources: deleting network %q.", n)
+			w.Logger.StepInfo(w, "DeleteResources", "deleting network %q.", n)
 			if err := w.networks.delete(n); err != nil {
 				if err.Type() == resourceDNEError {
-					s.w.Logger.Printf("DeleteResources WARNING: Error deleting network %q: %v", n, err)
+					w.Logger.StepInfo(w, "DeleteResources", "WARNING: Error deleting network %q: %v", n, err)
 				}
 				e <- err
 			}

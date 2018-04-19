@@ -44,22 +44,8 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 		return errf("IncludeWorkflow %q does not have a workflow", s.name)
 	}
 
-	i.Workflow.id = s.w.id
-	i.Workflow.username = s.w.username
-	i.Workflow.ComputeClient = s.w.ComputeClient
-	i.Workflow.StorageClient = s.w.StorageClient
-	i.Workflow.GCSPath = s.w.GCSPath
+	s.w.copySettings(i.Workflow)
 	i.Workflow.Name = s.name
-	i.Workflow.Project = s.w.Project
-	i.Workflow.Zone = s.w.Zone
-	i.Workflow.autovars = s.w.autovars
-	i.Workflow.bucket = s.w.bucket
-	i.Workflow.scratchPath = s.w.scratchPath
-	i.Workflow.sourcesPath = s.w.sourcesPath
-	i.Workflow.logsPath = s.w.logsPath
-	i.Workflow.outsPath = s.w.outsPath
-	i.Workflow.gcsLogWriter = s.w.gcsLogWriter
-	i.Workflow.gcsLogging = s.w.gcsLogging
 
 	var errs dErr
 Loop:

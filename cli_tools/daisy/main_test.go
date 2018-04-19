@@ -79,18 +79,21 @@ func TestParseWorkflows(t *testing.T) {
 	zone := "zone"
 	gcsPath := "gcspath"
 	oauth := "oauthpath"
-	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "")
+	gcsLogging := false
+	stdoutLogging := false
+	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", gcsLogging, stdoutLogging)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	tests := []struct {
-		want, got string
+		want, got interface{}
 	}{
 		{w.Project, project},
 		{w.Zone, zone},
 		{w.GCSPath, gcsPath},
-		{w.OAuthPath, oauth},
+		{w.GcsLogging, gcsLogging},
+		{w.StdoutLogging, stdoutLogging},
 	}
 
 	for _, tt := range tests {

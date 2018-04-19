@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -384,7 +383,7 @@ func TestPopulate(t *testing.T) {
 	got.Zone = "wf-zone"
 	got.Project = "bar-project"
 	got.OAuthPath = tf
-	got.Logger = log.New(ioutil.Discard, "", 0)
+	got.Logger = &MockLogger{}
 	got.Vars = map[string]Var{
 		"bucket":    {Value: "wf-bucket", Required: true},
 		"step_name": {Value: "step1"},
@@ -403,7 +402,7 @@ func TestPopulate(t *testing.T) {
 		},
 	}
 	got.StorageClient = client
-	got.gcsLogging = true
+	got.externalLogging = true
 
 	if err := got.populate(ctx); err != nil {
 		t.Fatalf("error populating workflow: %v", err)
@@ -426,7 +425,7 @@ func TestPopulate(t *testing.T) {
 	want.Zone = "wf-zone"
 	want.Project = "bar-project"
 	want.OAuthPath = tf
-	want.gcsLogging = true
+	want.externalLogging = true
 	want.Sources = map[string]string{}
 	want.Vars = map[string]Var{
 		"bucket":    {Value: "wf-bucket", Required: true},
@@ -631,6 +630,8 @@ func TestPrint(t *testing.T) {
     }
   },
   "Dependencies": {},
+  "GcsLogging": false,
+  "StdoutLogging": false,
   "ComputeEndpoint": ""
 }
 `

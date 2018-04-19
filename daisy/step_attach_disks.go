@@ -16,7 +16,6 @@ package daisy
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"sync"
 
@@ -52,7 +51,6 @@ func (a *AttachDisks) populate(ctx context.Context, s *Step) dErr {
 func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs dErr) {
 	for _, ad := range *a {
 		if !checkDiskMode(ad.Mode) {
-			fmt.Println("adding err")
 			errs = addErrs(errs, errf("cannot attach disk: bad disk mode: %q", ad.Mode))
 		}
 		if ad.Source == "" {
@@ -112,7 +110,7 @@ func (a *AttachDisks) run(ctx context.Context, s *Step) dErr {
 				ad.Instance = instRes.RealName
 			}
 
-			w.Logger.Printf("AttachDisks: attaching disk %q to instance %q.", ad.AttachedDisk.Source, inst)
+			w.Logger.StepInfo(s.w, "AttachDisks", "attaching disk %q to instance %q.", ad.AttachedDisk.Source, inst)
 			if err := w.ComputeClient.AttachDisk(ad.project, ad.zone, ad.Instance, &ad.AttachedDisk); err != nil {
 				e <- newErr(err)
 				return

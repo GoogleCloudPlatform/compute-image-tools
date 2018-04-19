@@ -30,7 +30,7 @@ type CreateInstances []*Instance
 
 func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, interval time.Duration) {
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
-	w.Logger.Printf("CreateInstances: streaming instance %q serial port %d output to gs://%s/%s", name, port, w.bucket, logsObj)
+	w.Logger.StepInfo(w, "CreateInstances", "streaming instance %q serial port %d output to gs://%s/%s", name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
 	var errs int
@@ -51,7 +51,7 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, 
 				if stopped && sErr == nil {
 					return
 				}
-				w.Logger.Printf("CreateInstances: instance %q: error getting serial port: %v", name, err)
+				w.Logger.StepInfo(w, "CreateInstances", "instance %q: error getting serial port: %v", name, err)
 				return
 			}
 			start = resp.Next
@@ -59,7 +59,7 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, 
 			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil {
-				w.Logger.Printf("CreateInstances: instance %q: error writing log to GCS: %v", name, err)
+				w.Logger.StepInfo(w, "CreateInstances", "instance %q: error writing log to GCS: %v", name, err)
 				return
 			}
 			if err := wc.Close(); err != nil {
@@ -67,7 +67,7 @@ func logSerialOutput(ctx context.Context, w *Workflow, name string, port int64, 
 					errs++
 					continue
 				}
-				w.Logger.Printf("CreateInstances: instance %q: error saving log to GCS: %v", name, err)
+				w.Logger.StepInfo(w, "CreateInstances", "instance %q: error saving log to GCS: %v", name, err)
 				return
 			}
 			errs = 0
@@ -115,7 +115,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 				}
 			}
 
-			w.Logger.Printf("CreateInstances: creating instance %q.", i.Name)
+			w.Logger.StepInfo(w, "CreateInstances", "creating instance %q.", i.Name)
 			if err := w.ComputeClient.CreateInstance(i.Project, i.Zone, &i.Instance); err != nil {
 				eChan <- newErr(err)
 				return

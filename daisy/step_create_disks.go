@@ -53,7 +53,7 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) dErr {
 				cd.SourceImage = image.link
 			}
 
-			w.Logger.Printf("CreateDisks: creating disk %q.", cd.Name)
+			w.Logger.StepInfo(s.w, "CreateDisks", "creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
 				e <- newErr(err)
 				return
