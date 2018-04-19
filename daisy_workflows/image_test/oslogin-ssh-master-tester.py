@@ -66,7 +66,7 @@ def GetServiceAccountUsername(machine):
   _, username = MasterExecuteInSsh(
       machine,
       ['gcloud', 'compute', 'os-login', 'describe-profile',
-      '--format="value(posixAccounts.username)"'])
+       '--format="value(posixAccounts.username)"'])
   return username
 
 

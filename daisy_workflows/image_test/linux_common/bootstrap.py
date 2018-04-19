@@ -43,7 +43,7 @@ def Bootstrap():
     subprocess.check_call(['mkdir', test_dir])
     subprocess.check_call(
         ['gsutil', '-m', 'cp', '-r', os.path.join(test_gcs_dir, '*'),
-        test_dir])
+         test_dir])
     logging.info('Making test script %s executable.', full_test_script)
     subprocess.check_call(['chmod', '+x', test_script], cwd=test_dir)
     logging.info('Running %s.', full_test_script)
