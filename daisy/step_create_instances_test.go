@@ -15,10 +15,8 @@
 package daisy
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"log"
 	"testing"
 	"time"
 
@@ -50,39 +48,57 @@ func TestLogSerialOutput(t *testing.T) {
 
 	w.bucket = "test-bucket"
 
-	var buf bytes.Buffer
-	w.Logger = log.New(&buf, "", 0)
-
 	tests := []struct {
-		test, want, name string
+		test, wantStep, wantMessage1, wantMessage2, name string
 	}{
 		{
 			"Error but instance stopped",
-			"CreateInstances: streaming instance \"i1\" serial port 0 output to gs://test-bucket/i1-serial-port0.log\n",
+			"CreateInstances",
+			"streaming instance \"i1\" serial port 0 output to gs://test-bucket/i1-serial-port0.log",
+			"",
 			"i1",
 		},
 		{
 			"Error but instance running",
-			"CreateInstances: streaming instance \"i2\" serial port 0 output to gs://test-bucket/i2-serial-port0.log\nCreateInstances: instance \"i2\": error getting serial port: fail\n",
+			"CreateInstances",
+			"streaming instance \"i2\" serial port 0 output to gs://test-bucket/i2-serial-port0.log",
+			"instance \"i2\": error getting serial port: fail",
 			"i2",
 		},
 		{
 			"Normal flow",
-			"CreateInstances: streaming instance \"i3\" serial port 0 output to gs://test-bucket/i3-serial-port0.log\n",
+			"CreateInstances",
+			"streaming instance \"i3\" serial port 0 output to gs://test-bucket/i3-serial-port0.log",
+			"",
 			"i3",
 		},
 		{
 			"Error but instance deleted",
-			"CreateInstances: streaming instance \"i4\" serial port 0 output to gs://test-bucket/i4-serial-port0.log\n",
+			"CreateInstances",
+			"streaming instance \"i4\" serial port 0 output to gs://test-bucket/i4-serial-port0.log",
+			"",
 			"i4",
 		},
 	}
 
 	for _, tt := range tests {
-		buf.Reset()
+		mockLogger := &MockLogger{}
+		w.Logger = mockLogger
 		logSerialOutput(ctx, w, tt.name, 0, 1*time.Microsecond)
-		if buf.String() != tt.want {
-			t.Errorf("%s: got: %q, want: %q", tt.test, buf.String(), tt.want)
+		logEntries := mockLogger.GetEntries()
+		gotStep := logEntries[0].StepName
+		if gotStep != tt.wantStep {
+			t.Errorf("%s: got: %q, want: %q", tt.test, gotStep, tt.wantStep)
+		}
+		gotMessage := logEntries[0].Message
+		if gotMessage != tt.wantMessage1 {
+			t.Errorf("%s: got: %q, want: %q", tt.test, gotMessage, tt.wantMessage1)
+		}
+		if tt.wantMessage2 != "" {
+			gotMessage := logEntries[1].Message
+			if gotMessage != tt.wantMessage2 {
+				t.Errorf("%s: got: %q, want: %q", tt.test, gotMessage, tt.wantMessage2)
+			}
 		}
 	}
 }

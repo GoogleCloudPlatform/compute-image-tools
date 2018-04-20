@@ -57,7 +57,7 @@ type InstanceSignal struct {
 }
 
 func waitForInstanceStopped(w *Workflow, project, zone, name string, interval time.Duration) dErr {
-	w.Logger.Printf("WaitForInstancesSignal: waiting for instance %q to stop.", name)
+	w.Logger.StepInfo(w, "WaitForInstancesSignal", "waiting for instance %q to stop.", name)
 	tick := time.Tick(interval)
 	for {
 		select {
@@ -69,7 +69,7 @@ func waitForInstanceStopped(w *Workflow, project, zone, name string, interval ti
 				return typedErr(apiError, err)
 			}
 			if stopped {
-				w.Logger.Printf("WaitForInstancesSignal: instance %q stopped.", name)
+				w.Logger.StepInfo(w, "WaitForInstancesSignal", "instance %q stopped.", name)
 				return nil
 			}
 		}
@@ -87,7 +87,7 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutp
 	if so.StatusMatch != "" {
 		msg += fmt.Sprintf(", StatusMatch: %q", so.StatusMatch)
 	}
-	w.Logger.Print(msg + ".")
+	w.Logger.WorkflowInfo(w, msg+".")
 	var start int64
 	var errs int
 	tick := time.Tick(interval)
@@ -106,7 +106,7 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutp
 				}
 
 				if status == "TERMINATED" || status == "STOPPED" {
-					w.Logger.Printf("WaitForInstancesSignal: instance %q stopped, not waiting for serial output.", name)
+					w.Logger.StepInfo(w, "WaitForInstancesSignal", "instance %q stopped, not waiting for serial output.", name)
 					return nil
 				}
 				// Keep retrying until the instance is STOPPED.
@@ -125,7 +125,7 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutp
 			for _, ln := range strings.Split(resp.Contents, "\n") {
 				if so.StatusMatch != "" {
 					if i := strings.Index(ln, so.StatusMatch); i != -1 {
-						w.Logger.Printf("WaitForInstancesSignal: StatusMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+						w.Logger.StepInfo(w, "WaitForInstancesSignal", "StatusMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
 					}
 				}
 				if so.FailureMatch != "" {
@@ -135,7 +135,7 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutp
 				}
 				if so.SuccessMatch != "" {
 					if i := strings.Index(ln, so.SuccessMatch); i != -1 {
-						w.Logger.Printf("WaitForInstancesSignal: SuccessMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+						w.Logger.StepInfo(w, "WaitForInstancesSignal", "SuccessMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
 						return nil
 					}
 				}

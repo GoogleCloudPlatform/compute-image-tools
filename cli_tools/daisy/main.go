@@ -30,14 +30,16 @@ import (
 )
 
 var (
-	oauth     = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
-	project   = flag.String("project", "", "project to run in, overrides what is set in workflow")
-	gcsPath   = flag.String("gcs_path", "", "GCS bucket to use, overrides what is set in workflow")
-	zone      = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
-	variables = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
-	print     = flag.Bool("print", false, "print out the parsed workflow for debugging")
-	validate  = flag.Bool("validate", false, "validate the workflow and exit")
-	ce        = flag.String("compute_endpoint_override", "", "API endpoint to override default")
+	oauth         = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
+	project       = flag.String("project", "", "project to run in, overrides what is set in workflow")
+	gcsPath       = flag.String("gcs_path", "", "GCS bucket to use, overrides what is set in workflow")
+	zone          = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
+	variables     = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
+	print         = flag.Bool("print", false, "print out the parsed workflow for debugging")
+	validate      = flag.Bool("validate", false, "validate the workflow and exit")
+	ce            = flag.String("compute_endpoint_override", "", "API endpoint to override default")
+	gcsLogging    = flag.Bool("log-gcs", false, "logs will be streamed to GCS when enabled")
+	stdoutLogging = flag.Bool("log-stream", false, "logs will be streamed to stdout when enabled")
 )
 
 const (
@@ -66,7 +68,7 @@ func populateVars(input string) map[string]string {
 	return varMap
 }
 
-func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint string) (*daisy.Workflow, error) {
+func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint string, gcsLogging, stdoutLogging bool) (*daisy.Workflow, error) {
 	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
@@ -109,6 +111,9 @@ Loop:
 		w.ComputeEndpoint = cEndpoint
 	}
 
+	w.GcsLogging = gcsLogging
+	w.StdoutLogging = stdoutLogging
+
 	return w, nil
 }
 
@@ -150,7 +155,7 @@ func main() {
 	varMap := populateVars(*variables)
 
 	for _, path := range flag.Args() {
-		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce)
+		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce, *gcsLogging, *stdoutLogging)
 		if err != nil {
 			log.Fatalf("error parsing workflow %q: %v", path, err)
 		}
@@ -186,7 +191,7 @@ func main() {
 		wg.Add(1)
 		go func(w *daisy.Workflow) {
 			defer wg.Done()
-			fmt.Printf("[Daisy] Running workflow %q\n", w.Name)
+			fmt.Printf("[Daisy] Running workflow %q (id=%s)\n", w.Name, w.ID())
 			if err := w.Run(ctx); err != nil {
 				errors <- fmt.Errorf("%s: %v", w.Name, err)
 				return

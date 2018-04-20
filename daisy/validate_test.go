@@ -16,8 +16,6 @@ package daisy
 
 import (
 	"context"
-	"io/ioutil"
-	"log"
 	"reflect"
 	"sync"
 	"testing"
@@ -79,7 +77,7 @@ func TestValidateWorkflow(t *testing.T) {
 		t.Errorf("unexpected error: %s", err)
 	}
 
-	logger := log.New(ioutil.Discard, "", 0)
+	logger := &MockLogger{}
 	// Bad test cases.
 	tests := []struct {
 		desc string

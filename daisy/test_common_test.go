@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -99,7 +98,7 @@ func testWorkflow() *Workflow {
 	w.ComputeClient, _ = newTestGCEClient()
 	w.StorageClient, _ = newTestGCSClient()
 	w.Cancel = make(chan struct{})
-	w.Logger = log.New(ioutil.Discard, "", 0)
+	w.Logger = &MockLogger{}
 	return w
 }
 

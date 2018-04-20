@@ -17,7 +17,6 @@ package daisy
 import (
 	"context"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -41,7 +40,7 @@ func TestUploadSources(t *testing.T) {
 	w := testWorkflow()
 	sw := w.NewSubWorkflow()
 	sw.Name = "test-sw"
-	sw.Logger = log.New(ioutil.Discard, "", 0)
+	sw.Logger = &MockLogger{}
 	w.Steps = map[string]*Step{
 		"sub": {w: w, SubWorkflow: &SubWorkflow{Workflow: sw}},
 	}

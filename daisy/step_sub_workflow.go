@@ -46,7 +46,7 @@ func (s *SubWorkflow) populate(ctx context.Context, st *Step) dErr {
 	s.Workflow.OAuthPath = s.Workflow.parent.OAuthPath
 	s.Workflow.ComputeClient = s.Workflow.parent.ComputeClient
 	s.Workflow.StorageClient = s.Workflow.parent.StorageClient
-	s.Workflow.gcsLogWriter = s.Workflow.parent.gcsLogWriter
+	s.Workflow.Logger = s.Workflow.parent.Logger
 
 	var errs dErr
 Loop:
@@ -81,9 +81,9 @@ func (s *SubWorkflow) run(ctx context.Context, st *Step) dErr {
 		return nil
 	})
 
-	st.w.Logger.Printf("Running subworkflow %q", s.Workflow.Name)
+	st.w.Logger.WorkflowInfo(st.w, "Running subworkflow %q", s.Workflow.Name)
 	if err := s.Workflow.run(ctx); err != nil {
-		s.Workflow.Logger.Printf("Error running subworkflow %q: %v", s.Workflow.Name, err)
+		s.Workflow.Logger.WorkflowInfo(s.Workflow, "Error running subworkflow %q: %v", s.Workflow.Name, err)
 		close(st.w.Cancel)
 		return err
 	}

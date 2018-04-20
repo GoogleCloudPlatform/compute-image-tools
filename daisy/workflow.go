@@ -16,14 +16,11 @@
 package daisy
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -33,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"cloud.google.com/go/logging"
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/iterator"
@@ -40,47 +38,6 @@ import (
 )
 
 const defaultTimeout = "10m"
-
-type gcsLogger struct {
-	client         *storage.Client
-	bucket, object string
-	buf            *bytes.Buffer
-	ctx            context.Context
-}
-
-func (l *gcsLogger) Write(b []byte) (int, error) {
-	if l.buf == nil {
-		l.buf = new(bytes.Buffer)
-	}
-	l.buf.Write(b)
-	wc := l.client.Bucket(l.bucket).Object(l.object).NewWriter(l.ctx)
-	wc.ContentType = "text/plain"
-	n, err := wc.Write(l.buf.Bytes())
-	if err != nil {
-		return 0, err
-	}
-	if err := wc.Close(); err != nil {
-		return 0, err
-	}
-	return n, err
-}
-
-type syncedWriter struct {
-	buf *bufio.Writer
-	mx  sync.Mutex
-}
-
-func (l *syncedWriter) Write(b []byte) (int, error) {
-	l.mx.Lock()
-	defer l.mx.Unlock()
-	return l.buf.Write(b)
-}
-
-func (l *syncedWriter) Flush() error {
-	l.mx.Lock()
-	defer l.mx.Unlock()
-	return l.buf.Flush()
-}
 
 func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, dErr) {
 	dBkt := strings.Replace(project, ":", "-", -1) + "-daisy-bkt"
@@ -147,23 +104,26 @@ type Workflow struct {
 	Dependencies map[string][]string
 
 	// Working fields.
-	autovars     map[string]string
-	workflowDir  string
-	parent       *Workflow
-	bucket       string
-	scratchPath  string
-	sourcesPath  string
-	logsPath     string
-	outsPath     string
-	username     string
-	gcsLogging   bool
-	gcsLogWriter *syncedWriter
+	autovars           map[string]string
+	workflowDir        string
+	parent             *Workflow
+	bucket             string
+	scratchPath        string
+	sourcesPath        string
+	logsPath           string
+	outsPath           string
+	username           string
+	externalLogging    bool
+	GcsLogging         bool
+	StdoutLogging      bool
+	cloudLoggingClient *logging.Client
+
 	// Optional compute endpoint override.
 	ComputeEndpoint string
 	ComputeClient   compute.Client  `json:"-"`
 	StorageClient   *storage.Client `json:"-"`
 	id              string
-	Logger          *log.Logger `json:"-"`
+	Logger          Logger `json:"-"`
 	cleanupHooks    []func() dErr
 	cleanupHooksMx  sync.Mutex
 
@@ -205,34 +165,34 @@ func (w *Workflow) Validate(ctx context.Context) error {
 		return errf("error populating workflow: %v", err)
 	}
 
-	w.Logger.Print("Validating workflow")
+	w.Logger.WorkflowInfo(w, "Validating workflow")
 	if err := w.validate(ctx); err != nil {
-		w.Logger.Printf("Error validating workflow: %v", err)
+		w.Logger.WorkflowInfo(w, "Error validating workflow: %v", err)
 		close(w.Cancel)
 		return err
 	}
-	w.Logger.Print("Validation Complete")
+	w.Logger.WorkflowInfo(w, "Validation Complete")
 	return nil
 }
 
 // Run runs a workflow.
 func (w *Workflow) Run(ctx context.Context) error {
-	w.gcsLogging = true
+	w.externalLogging = true
 	if err := w.Validate(ctx); err != nil {
 		return err
 	}
 	defer w.cleanup()
-	w.Logger.Println("Using the GCS path", "gs://"+path.Join(w.bucket, w.scratchPath))
+	w.Logger.WorkflowInfo(w, "Using the GCS path", "gs://"+path.Join(w.bucket, w.scratchPath))
 
-	w.Logger.Print("Uploading sources")
+	w.Logger.WorkflowInfo(w, "Uploading sources")
 	if err := w.uploadSources(ctx); err != nil {
-		w.Logger.Printf("Error uploading sources: %v", err)
+		w.Logger.WorkflowInfo(w, "Error uploading sources: %v", err)
 		close(w.Cancel)
 		return err
 	}
-	w.Logger.Print("Running workflow")
+	w.Logger.WorkflowInfo(w, "Running workflow")
 	if err := w.run(ctx); err != nil {
-		w.Logger.Printf("Error running workflow: %v", err)
+		w.Logger.WorkflowInfo(w, "Error running workflow: %v", err)
 		select {
 		case <-w.Cancel:
 		default:
@@ -244,14 +204,21 @@ func (w *Workflow) Run(ctx context.Context) error {
 }
 
 func (w *Workflow) cleanup() {
-	w.Logger.Printf("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
+	w.Logger.WorkflowInfo(w, "Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
-			w.Logger.Printf("Error returned from cleanup hook: %s", err)
+			w.Logger.WorkflowInfo(w, "Error returned from cleanup hook: %s", err)
 		}
 	}
-	if w.gcsLogWriter != nil {
-		w.gcsLogWriter.Flush()
+
+	if w.Logger != nil {
+		w.Logger.FlushAll()
+	}
+
+	if w.cloudLoggingClient != nil {
+		if err := w.cloudLoggingClient.Close(); err != nil {
+			fmt.Printf("Error returned when closing Cloud Logger client: %s", err)
+		}
 	}
 }
 
@@ -302,6 +269,14 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 			return err
 		}
 	}
+
+	if w.externalLogging {
+		loggingOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
+		w.cloudLoggingClient, err = logging.NewClient(ctx, w.Project, loggingOptions...)
+		if err != nil {
+			fmt.Printf("Unable to create Cloud Logging client. Defaulting to GCS. %v\n", err)
+		}
+	}
 	return nil
 }
 
@@ -339,7 +314,6 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 	}
 
 	// Set some generic autovars and run first round of var substitution.
-	w.id = randString(5)
 	cwd, _ := os.Getwd()
 	now := time.Now().UTC()
 	w.username = getUser()
@@ -425,25 +399,9 @@ func (w *Workflow) populateLogger(ctx context.Context) {
 	if w.Logger != nil {
 		return
 	}
-	name := w.Name
-	for parent := w.parent; parent != nil; parent = parent.parent {
-		name = parent.Name + "." + name
-	}
-	prefix := fmt.Sprintf("[%s]: ", name)
-	flags := log.Ldate | log.Ltime
-	if w.gcsLogWriter == nil {
-		if !w.gcsLogging {
-			w.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(ioutil.Discard)}
-		}
-		w.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})}
-		go func() {
-			for {
-				time.Sleep(5 * time.Second)
-				w.gcsLogWriter.Flush()
-			}
-		}()
-	}
-	w.Logger = log.New(io.MultiWriter(os.Stdout, w.gcsLogWriter), prefix, flags)
+
+	cloudLogging := true // enabled cloud logging by default
+	w.Logger = CreateLogger(ctx, w, cloudLogging, w.GcsLogging, w.StdoutLogging)
 }
 
 // AddDependency creates a dependency of dependent on each dependency. Returns an
@@ -476,6 +434,11 @@ func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw.instances = w.instances
 	iw.networks = w.networks
 	return iw
+}
+
+// ID is the unique identifyier for this Workflow.
+func (w *Workflow) ID() string {
+	return w.id
 }
 
 // NewIncludedWorkflowFromFile reads and unmarshals a workflow with the same resources as the parent.
@@ -526,7 +489,7 @@ func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 
 // Print populates then pretty prints the workflow.
 func (w *Workflow) Print(ctx context.Context) {
-	w.gcsLogging = false
+	w.externalLogging = false
 	if err := w.PopulateClients(ctx); err != nil {
 		fmt.Println("Error running PopulateClients:", err)
 	}
@@ -663,6 +626,8 @@ func New() *Workflow {
 		w.networks.cleanup()
 		return nil
 	})
+
+	w.id = randString(5)
 	return w
 }
 
@@ -702,6 +667,28 @@ func JSONError(file string, data []byte, err error) error {
 	}
 
 	return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
+}
+
+// Copy settings from one workflow to another. This is useful for setting
+// up included workflows.
+func (w *Workflow) copySettings(target *Workflow) {
+	target.id = w.id
+	target.username = w.username
+	target.ComputeClient = w.ComputeClient
+	target.StorageClient = w.StorageClient
+	target.cloudLoggingClient = w.cloudLoggingClient
+	target.GCSPath = w.GCSPath
+	target.Name = w.Name
+	target.Project = w.Project
+	target.Zone = w.Zone
+	target.autovars = w.autovars
+	target.bucket = w.bucket
+	target.scratchPath = w.scratchPath
+	target.sourcesPath = w.sourcesPath
+	target.logsPath = w.logsPath
+	target.outsPath = w.outsPath
+	target.externalLogging = w.externalLogging
+	target.Logger = w.Logger
 }
 
 func readWorkflow(file string, w *Workflow) error {
