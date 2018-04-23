@@ -114,8 +114,8 @@ type Workflow struct {
 	outsPath           string
 	username           string
 	externalLogging    bool
-	GcsLogging         bool  `json:"-"`
-	StdoutLogging      bool  `json:"-"`
+	GcsLogging         bool `json:"-"`
+	StdoutLogging      bool `json:"-"`
 	cloudLoggingClient *logging.Client
 
 	// Optional compute endpoint override.
