@@ -54,6 +54,16 @@ daisy -var:foo bar -var:baz gaz wf.json
 
 For additional information about Daisy flags, use `daisy -h`.
 
+# Logging
+
+Daisy will send logs to [Cloud Logging](https://cloud.google.com/logging/). If
+the API is disabled or the account Daisy is running is under does not have
+permission to write log entries (the `logging.logEntries.create` permission),
+Daisy will send the logs to GCS.
+
+- To always send logs to GCS, call Daisy with the flag `-gcsLogging`
+- To send logs to the console, call Daisy with the flag `-stdoutLogging`
+
 # What Next?
 
 For information on how to write Daisy workflow files, see the [workflow config

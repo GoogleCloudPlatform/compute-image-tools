@@ -631,8 +631,6 @@ func TestPrint(t *testing.T) {
     }
   },
   "Dependencies": {},
-  "GcsLogging": false,
-  "StdoutLogging": false,
   "ComputeEndpoint": ""
 }
 `
