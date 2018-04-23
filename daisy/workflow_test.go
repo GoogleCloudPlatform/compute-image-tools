@@ -211,7 +211,7 @@ func TestNewFromFile(t *testing.T) {
 
 	want := New()
 	// These are difficult to validate and irrelevant, so we cheat.
-	want.id = got.id
+	want.id = got.ID()
 	want.Cancel = got.Cancel
 	want.cleanupHooks = got.cleanupHooks
 	want.disks = newDiskRegistry(want)
@@ -414,6 +414,7 @@ func TestPopulate(t *testing.T) {
 	want.Cancel = got.Cancel
 	want.cleanupHooks = got.cleanupHooks
 	want.StorageClient = got.StorageClient
+	want.cloudLoggingClient = got.cloudLoggingClient
 	want.Logger = got.Logger
 	want.disks = newDiskRegistry(want)
 	want.images = newImageRegistry(want)
@@ -630,8 +631,6 @@ func TestPrint(t *testing.T) {
     }
   },
   "Dependencies": {},
-  "GcsLogging": false,
-  "StdoutLogging": false,
   "ComputeEndpoint": ""
 }
 `
@@ -779,5 +778,53 @@ func TestRunStepTimeout(t *testing.T) {
 	want := `step "test" did not stop in specified timeout of 1ns`
 	if err := w.runStep(context.Background(), s); err == nil || err.Error() != want {
 		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
+	}
+}
+
+func TestPopulateClients(t *testing.T) {
+	w := testWorkflow()
+
+	initialComputeClient := w.ComputeClient
+	w.PopulateClients(context.Background())
+	if w.ComputeClient != initialComputeClient {
+		t.Errorf("Should not repopulate compute client.")
+	}
+
+	w.ComputeClient = nil
+	w.PopulateClients(context.Background())
+	if w.ComputeClient == nil {
+		t.Errorf("Did not populate compute client.")
+	}
+
+	initialStorageClient := w.StorageClient
+	w.PopulateClients(context.Background())
+	if w.StorageClient != initialStorageClient {
+		t.Errorf("Should not repopulate storage client.")
+	}
+
+	w.StorageClient = nil
+	w.PopulateClients(context.Background())
+	if w.StorageClient == nil {
+		t.Errorf("Did not populate storage client.")
+	}
+
+	initialCloudLoggingClient := w.cloudLoggingClient
+	w.PopulateClients(context.Background())
+	if w.cloudLoggingClient != initialCloudLoggingClient {
+		t.Errorf("Should not repopulate logging client.")
+	}
+
+	w.cloudLoggingClient = nil
+	w.externalLogging = false
+	w.PopulateClients(context.Background())
+	if w.cloudLoggingClient != nil {
+		t.Errorf("Did should not populate Cloud Logging client.")
+	}
+
+	w.cloudLoggingClient = nil
+	w.externalLogging = true
+	w.PopulateClients(context.Background())
+	if w.cloudLoggingClient != nil {
+		t.Errorf("Did should not populate Cloud Logging client.")
 	}
 }
