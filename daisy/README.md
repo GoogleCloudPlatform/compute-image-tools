@@ -25,6 +25,15 @@ Other use-case examples:
 Daisy documentation can be found
 [here](https://googlecloudplatform.github.io/compute-image-tools/daisy.html).
 
+# Logging
+
+Daisy will send logs to Cloud Logging. If the API is disabled or the
+account Daisy is running is under does not have permission to write log entries
+(the `logging.logEntries.create` permission), Daisy will send the logs to GCS.
+
+- To always send logs to GCS, call Daisy with the flag `-gcsLogging`
+- To send logs to the console, call Daisy with the flag `-stdoutLogging`
+
 # Testing
 Infrastructure has been set up to perform presubmit testing on PRs and
 periodic continuous integration tests against HEAD.

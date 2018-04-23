@@ -270,11 +270,18 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 		}
 	}
 
-	if w.externalLogging {
+	if w.externalLogging && w.cloudLoggingClient == nil {
 		loggingOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
 		w.cloudLoggingClient, err = logging.NewClient(ctx, w.Project, loggingOptions...)
 		if err != nil {
-			fmt.Printf("Unable to create Cloud Logging client. Defaulting to GCS. %v\n", err)
+			fmt.Printf("Unable to create the Cloud Logging client. Logs will be sent to GCS.\n%v\n", err)
+		}
+
+		// Verify we can communicate with the log service.
+		err = w.cloudLoggingClient.Ping(ctx)
+		if err != nil {
+			fmt.Printf("Unable to send logs to the Cloud Logging service. Logs will be sent to GCS.\n%v\n", err)
+			w.cloudLoggingClient = nil
 		}
 	}
 	return nil
