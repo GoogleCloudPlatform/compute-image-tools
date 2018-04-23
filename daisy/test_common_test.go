@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -26,13 +27,17 @@ import (
 	"strings"
 	"sync"
 
+	"cloud.google.com/go/logging"
 	"cloud.google.com/go/storage"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/davecgh/go-spew/spew"
+	emptypb "github.com/golang/protobuf/ptypes/empty"
 	godebugDiff "github.com/kylelemons/godebug/diff"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
+	logpb "google.golang.org/genproto/googleapis/logging/v2"
+	"google.golang.org/grpc"
 )
 
 const DNE = "DNE!"
@@ -97,6 +102,7 @@ func testWorkflow() *Workflow {
 	w.Zone = testZone
 	w.ComputeClient, _ = newTestGCEClient()
 	w.StorageClient, _ = newTestGCSClient()
+	w.cloudLoggingClient, _ = newTestLoggingClient()
 	w.Cancel = make(chan struct{})
 	w.Logger = &MockLogger{}
 	return w
@@ -289,4 +295,53 @@ func newTestGCSClient() (*storage.Client, error) {
 	}))
 
 	return storage.NewClient(context.Background(), option.WithEndpoint(ts.URL), option.WithHTTPClient(http.DefaultClient))
+}
+
+func newTestLoggingClient() (*logging.Client, error) {
+	addr, err := newFakeLoggingServer()
+	if err != nil {
+		return nil, err
+	}
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	c, err := logging.NewClient(context.Background(), "test-project", option.WithGRPCConn(conn))
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func newFakeLoggingServer() (string, error) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return "", err
+	}
+
+	addr := l.Addr().String()
+	gsrv := grpc.NewServer()
+
+	logpb.RegisterLoggingServiceV2Server(gsrv, &loggingHandler{})
+	go gsrv.Serve(l)
+	return addr, nil
+}
+
+type loggingHandler struct {
+	logpb.LoggingServiceV2Server
+}
+
+func (h *loggingHandler) WriteLogEntries(_ context.Context, _ *logpb.WriteLogEntriesRequest) (*logpb.WriteLogEntriesResponse, error) {
+	return &logpb.WriteLogEntriesResponse{}, nil
+}
+
+func (h *loggingHandler) DeleteLog(_ context.Context, _ *logpb.DeleteLogRequest) (*emptypb.Empty, error) {
+	return &emptypb.Empty{}, nil
+}
+
+func (h *loggingHandler) ListLogEntries(_ context.Context, _ *logpb.ListLogEntriesRequest) (*logpb.ListLogEntriesResponse, error) {
+	return &logpb.ListLogEntriesResponse{
+		Entries:       nil,
+		NextPageToken: "",
+	}, nil
 }

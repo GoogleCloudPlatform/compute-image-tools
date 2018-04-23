@@ -44,6 +44,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 			},
 		},
 	}
+	w.cloudLoggingClient = nil
 	s := &Step{
 		name: "step-name",
 		w:    w,
