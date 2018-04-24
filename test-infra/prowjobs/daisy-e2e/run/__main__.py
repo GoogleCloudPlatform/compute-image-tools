@@ -149,7 +149,12 @@ def run_subsuite(suite, wfs_tgz_name: str, res: result.Periodic) -> Tuple[int, L
 
 def run_wf(wf: str, wfs_tgz_name: str, res: result.Periodic) -> Tuple[int, Optional[str]]:
     """Runs a single workflow."""
-    args = OTHER_ARGS + ['-var:test-id=%s' % TEST_ID, wf]
+    args = OTHER_ARGS + ['-var:test-id=%s' % TEST_ID]
+    if REPO_URL:
+        args += ['-var:github_repo=%s' % REPO_URL]
+    if PULL_REFS:
+        args += ['-var:github_branch=%s' % PULL_REFS]
+    args += [wf]
     logging.info('Running test %s with args %s', wf, args)
 
     artifacts_path = common.urljoin(res.base_path, 'artifacts')
