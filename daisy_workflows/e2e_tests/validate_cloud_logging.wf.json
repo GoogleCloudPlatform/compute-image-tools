@@ -1,0 +1,99 @@
+{
+  "Name": "daisy-cloud-logs-test",
+  "Vars": {
+    "github_repo": {
+      "Value": "https://github.com/GoogleCloudPlatform/compute-image-tools.git",
+      "Description": "Github repo to build packages from."
+    },
+    "github_branch": {
+      "Value": "master",
+      "Description": "Github branch to build packages from."
+    }
+  },
+  "Sources": {
+    "run_daisy_and_check_logs.sh": "./scripts/run_daisy_and_check_logs.sh"
+  },
+  "Steps": {
+    "setup-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk1",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        },
+        {
+          "Name": "disk2",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "daisy-build-and-run": {
+      "CreateInstances": [
+        {
+          "Name": "inst-daisy-log-test-logs",
+          "Disks": [
+            {"Source": "disk1"}
+          ],
+          "MachineType": "n1-standard-2",
+          "Metadata": {
+            "github_branch": "${github_branch}",
+            "github_repo": "${github_repo}",
+            "should_have_logs": "true"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/logging.write",
+            "https://www.googleapis.com/auth/logging.read",
+            "https://www.googleapis.com/auth/compute"
+          ],
+          "StartupScript": "run_daisy_and_check_logs.sh"
+        },
+        {
+          "Name": "inst-daisy-log-test-nologs",
+          "Disks": [
+            {"Source": "disk2"}
+          ],
+          "MachineType": "n1-standard-2",
+          "Metadata": {
+            "github_branch": "${github_branch}",
+            "github_repo": "${github_repo}",
+            "should_have_logs": "false"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/logging.read",
+            "https://www.googleapis.com/auth/compute"
+          ],
+          "StartupScript": "run_daisy_and_check_logs.sh"
+        }
+      ]
+    },
+    "wait-for-build": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-daisy-log-test-logs",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BuildSuccess:",
+            "FailureMatch": "BuildFailed:"
+          }
+        },
+        {
+          "Name": "inst-daisy-log-test-nologs",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BuildSuccess:",
+            "FailureMatch": "BuildFailed:"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "daisy-build-and-run": ["setup-disk"],
+    "wait-for-build": ["daisy-build-and-run"]
+  }
+}
