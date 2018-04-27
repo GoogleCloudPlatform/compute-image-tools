@@ -28,13 +28,13 @@ import (
 )
 
 type MockLogger struct {
-	entries []*LogEntry
+	entries []*logEntry
 	mx      sync.Mutex
 }
 
 // StepInfo logs information for the workflow step.
 func (l *MockLogger) StepInfo(w *Workflow, stepName string, format string, a ...interface{}) {
-	entry := &LogEntry{
+	entry := &logEntry{
 		LocalTimestamp: time.Now(),
 		WorkflowName:   getAbsoluteName(w),
 		StepName:       stepName,
@@ -47,7 +47,7 @@ func (l *MockLogger) StepInfo(w *Workflow, stepName string, format string, a ...
 
 // WorkflowInfo logs information for the workflow.
 func (l *MockLogger) WorkflowInfo(w *Workflow, format string, a ...interface{}) {
-	entry := &LogEntry{
+	entry := &logEntry{
 		LocalTimestamp: time.Now(),
 		WorkflowName:   getAbsoluteName(w),
 		Message:        fmt.Sprintf(format, a...),
@@ -57,12 +57,10 @@ func (l *MockLogger) WorkflowInfo(w *Workflow, format string, a ...interface{}) 
 	l.entries = append(l.entries, entry)
 }
 
-// FlushAll flushes all loggers.
-func (l *MockLogger) FlushAll() {
-	// nop
-}
+// f flushes all loggers.
+func (l *MockLogger) FlushAll() {}
 
-func (l *MockLogger) GetEntries() []*LogEntry {
+func (l *MockLogger) getEntries() []*logEntry {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	return l.entries[:]
@@ -72,62 +70,70 @@ func TestCreateLogger(t *testing.T) {
 	ctx := context.Background()
 	prj := "test-project"
 
-	workflowWithoutCloudLoggingClient := New()
-	workflowWithCloudLoggingClient := New()
 	c, err := logging.NewClient(ctx, prj)
 	if err != nil {
-		t.Errorf("Unabled to create test logging client.")
+		t.Fatalf("Unabled to create test logging client.")
 	}
-	workflowWithCloudLoggingClient.cloudLoggingClient = c
+
+	workflowWithoutCloudLoggingClient := New()
+	workflowWithoutCloudLoggingClient.DisableCloudLogging()
+	workflowWithoutCloudLoggingClient.createLogger(ctx)
+
+	workflowWithoutGCSLoggingClient := New()
+	workflowWithoutGCSLoggingClient.DisableGCSLogging()
+	workflowWithoutGCSLoggingClient.createLogger(ctx)
+	workflowWithoutGCSLoggingClient.cloudLoggingClient = c
+
+	workflowWithAllLoggingClient := New()
+	workflowWithAllLoggingClient.createLogger(ctx)
+	workflowWithAllLoggingClient.cloudLoggingClient = c
 
 	tests := []struct {
-		w *Workflow
-		cloudLogging, gcsLogging, stdout,
-		wantCloudLogging, wantGcsLogging, wantStdout bool
+		desc                             string
+		w                                *Workflow
+		cloudLogging, gcsLogging, stdout bool
 	}{
 		{
-			workflowWithCloudLoggingClient,
-			false, false, false,
-			false, false, false,
-		},
-		{
-			workflowWithCloudLoggingClient,
-			true, true, true,
+			"with all logging",
+			workflowWithAllLoggingClient,
 			true, true, true,
 		},
 		{
+			"without cloud logging",
 			workflowWithoutCloudLoggingClient,
-			true, false, true,
 			false, true, true,
+		},
+		{
+			"without gcs logging",
+			workflowWithoutGCSLoggingClient,
+			true, false, true,
 		},
 	}
 
 	for _, tt := range tests {
-		logger := CreateLogger(ctx, tt.w, tt.cloudLogging, tt.gcsLogging, tt.stdout)
-
-		if (logger.cloudLogger == nil) == tt.wantCloudLogging {
-			t.Errorf("Wanted cloud logger (%t), got %t", tt.wantCloudLogging, logger.cloudLogger == nil)
+		tt.w.createLogger(ctx)
+		if (tt.w.Logger.(*daisyLog).cloudLogger == nil) == tt.cloudLogging {
+			t.Errorf("%q: wanted cloud logger (%t), got %t", tt.desc, tt.cloudLogging, tt.w.Logger.(*daisyLog).cloudLogger != nil)
 		}
-		if (logger.gcsLogWriter == nil) == tt.wantGcsLogging {
-			t.Errorf("Wanted gcs logger (%t), got %t", tt.wantGcsLogging, logger.gcsLogWriter == nil)
+		if (tt.w.Logger.(*daisyLog).gcsLogWriter == nil) == tt.gcsLogging {
+			t.Errorf("%q: wanted gcs logger (%t), got %t", tt.desc, tt.gcsLogging, tt.w.Logger.(*daisyLog).gcsLogWriter != nil)
 		}
-		if logger.stdoutLogging != tt.wantStdout {
-			t.Errorf("Wanted serial logging (%t), got %t", tt.wantStdout, logger.stdoutLogging)
+		if tt.w.Logger.(*daisyLog).stdoutLogging != tt.stdout {
+			t.Errorf("%q: wanted serial logging (%t), got %t", tt.desc, tt.stdout, tt.w.Logger.(*daisyLog).stdoutLogging)
 		}
 	}
 }
 
 func TestWriteWorkflowInfo(t *testing.T) {
-
 	w := New()
 	w.Name = "Test"
-	logger := CreateLogger(context.Background(), w, false, false, false)
+	w.createLogger(context.Background())
 
 	var b bytes.Buffer
-	logger.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
+	w.Logger.(*daisyLog).gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
 
-	logger.WorkflowInfo(w, "test %s", "a")
-	logger.gcsLogWriter.Flush()
+	w.Logger.WorkflowInfo(w, "test %s", "a")
+	w.Logger.(*daisyLog).gcsLogWriter.Flush()
 
 	got := b.String()
 	want := "\\[Test\\]: \\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2} [A-Z]{1,3} test a"
@@ -138,16 +144,15 @@ func TestWriteWorkflowInfo(t *testing.T) {
 }
 
 func TestWriteStepInfo(t *testing.T) {
-
 	w := New()
 	w.Name = "Test"
-	logger := CreateLogger(context.Background(), w, false, false, false)
+	w.createLogger(context.Background())
 
 	var b bytes.Buffer
-	logger.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
+	w.Logger.(*daisyLog).gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
 
-	logger.StepInfo(w, "StepName", "test %s", "a")
-	logger.FlushAll()
+	w.Logger.StepInfo(w, "StepName", "test %s", "a")
+	w.Logger.FlushAll()
 
 	got := b.String()
 	want := "\\[Test\\]: \\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2} [A-Z]{1,3} StepName: test a"

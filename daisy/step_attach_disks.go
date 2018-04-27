@@ -110,7 +110,7 @@ func (a *AttachDisks) run(ctx context.Context, s *Step) dErr {
 				ad.Instance = instRes.RealName
 			}
 
-			w.Logger.StepInfo(s.w, "AttachDisks", "attaching disk %q to instance %q.", ad.AttachedDisk.Source, inst)
+			w.Logger.StepInfo(s.w, s.name, "AttachDisks", "attaching disk %q to instance %q.", ad.AttachedDisk.Source, inst)
 			if err := w.ComputeClient.AttachDisk(ad.project, ad.zone, ad.Instance, &ad.AttachedDisk); err != nil {
 				e <- newErr(err)
 				return

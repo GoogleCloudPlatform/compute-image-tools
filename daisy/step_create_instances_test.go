@@ -85,7 +85,7 @@ func TestLogSerialOutput(t *testing.T) {
 		mockLogger := &MockLogger{}
 		w.Logger = mockLogger
 		logSerialOutput(ctx, w, tt.name, 0, 1*time.Microsecond)
-		logEntries := mockLogger.GetEntries()
+		logEntries := mockLogger.getEntries()
 		gotStep := logEntries[0].StepName
 		if gotStep != tt.wantStep {
 			t.Errorf("%s: got: %q, want: %q", tt.test, gotStep, tt.wantStep)

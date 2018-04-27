@@ -104,34 +104,50 @@ type Workflow struct {
 	Dependencies map[string][]string
 
 	// Working fields.
-	autovars           map[string]string
-	workflowDir        string
-	parent             *Workflow
-	bucket             string
-	scratchPath        string
-	sourcesPath        string
-	logsPath           string
-	outsPath           string
-	username           string
-	externalLogging    bool
-	GcsLogging         bool `json:"-"`
-	StdoutLogging      bool `json:"-"`
-	cloudLoggingClient *logging.Client
+	autovars              map[string]string
+	workflowDir           string
+	parent                *Workflow
+	bucket                string
+	scratchPath           string
+	sourcesPath           string
+	logsPath              string
+	outsPath              string
+	username              string
+	externalLogging       bool
+	gcsLoggingDisabled    bool
+	cloudLoggingDisabled  bool
+	stdoutLoggingDisabled bool
+	id                    string
+	Logger                Logger
+	cleanupHooks          []func() dErr
+	cleanupHooksMx        sync.Mutex
 
 	// Optional compute endpoint override.
-	ComputeEndpoint string
-	ComputeClient   compute.Client  `json:"-"`
-	StorageClient   *storage.Client `json:"-"`
-	id              string
-	Logger          Logger `json:"-"`
-	cleanupHooks    []func() dErr
-	cleanupHooksMx  sync.Mutex
+	ComputeEndpoint    string
+	ComputeClient      compute.Client  `json:"-"`
+	StorageClient      *storage.Client `json:"-"`
+	cloudLoggingClient *logging.Client
 
 	// Resource registries.
 	disks     *diskRegistry
 	images    *imageRegistry
 	instances *instanceRegistry
 	networks  *networkRegistry
+}
+
+//DisableCloudLogging disables logging to Cloud Logging for this workflow.
+func (w *Workflow) DisableCloudLogging() {
+	w.cloudLoggingDisabled = true
+}
+
+//DisableGCSLogging disables logging to GCS for this workflow.
+func (w *Workflow) DisableGCSLogging() {
+	w.gcsLoggingDisabled = true
+}
+
+//DisableStdoutLogging disables logging to stdout for this workflow.
+func (w *Workflow) DisableStdoutLogging() {
+	w.stdoutLoggingDisabled = true
 }
 
 // AddVar adds a variable set to the Workflow.
@@ -182,7 +198,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 		return err
 	}
 	defer w.cleanup()
-	w.Logger.WorkflowInfo(w, "Using the GCS path", "gs://"+path.Join(w.bucket, w.scratchPath))
+	w.Logger.WorkflowInfo(w, "Using the GCS path gs://%s", path.Join(w.bucket, w.scratchPath))
 
 	w.Logger.WorkflowInfo(w, "Uploading sources")
 	if err := w.uploadSources(ctx); err != nil {
@@ -217,7 +233,7 @@ func (w *Workflow) cleanup() {
 
 	if w.cloudLoggingClient != nil {
 		if err := w.cloudLoggingClient.Close(); err != nil {
-			fmt.Printf("Error returned when closing Cloud Logger client: %s", err)
+			fmt.Printf("Error returned when closing Cloud logger client: %s", err)
 		}
 	}
 }
@@ -270,18 +286,11 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 		}
 	}
 
+	loggingOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
 	if w.externalLogging && w.cloudLoggingClient == nil {
-		loggingOptions := []option.ClientOption{option.WithCredentialsFile(w.OAuthPath)}
 		w.cloudLoggingClient, err = logging.NewClient(ctx, w.Project, loggingOptions...)
 		if err != nil {
-			fmt.Printf("Unable to create the Cloud Logging client. Logs will be sent to GCS.\n%v\n", err)
-		}
-
-		// Verify we can communicate with the log service.
-		err = w.cloudLoggingClient.Ping(ctx)
-		if err != nil {
-			fmt.Printf("Unable to send logs to the Cloud Logging service. Logs will be sent to GCS.\n%v\n", err)
-			w.cloudLoggingClient = nil
+			return err
 		}
 	}
 	return nil
@@ -389,7 +398,9 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 		return err
 	}
 
-	w.populateLogger(ctx)
+	if w.Logger == nil {
+		w.createLogger(ctx)
+	}
 
 	// Run populate on each step.
 	for name, s := range w.Steps {
@@ -400,15 +411,6 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 		}
 	}
 	return nil
-}
-
-func (w *Workflow) populateLogger(ctx context.Context) {
-	if w.Logger != nil {
-		return
-	}
-
-	cloudLogging := true // enabled cloud logging by default
-	w.Logger = CreateLogger(ctx, w, cloudLogging, w.GcsLogging, w.StdoutLogging)
 }
 
 // AddDependency creates a dependency of dependent on each dependency. Returns an

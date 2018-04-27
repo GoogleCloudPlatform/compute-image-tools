@@ -8,7 +8,8 @@
     "github_branch": {
       "Value": "master",
       "Description": "Github branch to build packages from."
-    }
+    },
+    "test-id": {"Description": "The ID of this test run."}
   },
   "Sources": {
     "run_daisy_and_check_logs.sh": "./scripts/run_daisy_and_check_logs.sh"

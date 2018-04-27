@@ -47,7 +47,7 @@ func (c *CreateNetworks) run(ctx context.Context, s *Step) dErr {
 		go func(n *Network) {
 			defer wg.Done()
 
-			w.Logger.StepInfo(w, "CreateNetworks", "creating network %q.", n.Name)
+			w.Logger.StepInfo(w, s.name, "CreateNetworks", "creating network %q.", n.Name)
 			if err := w.ComputeClient.CreateNetwork(n.Project, &n.Network); err != nil {
 				e <- newErr(err)
 				return

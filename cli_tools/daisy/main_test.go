@@ -79,9 +79,7 @@ func TestParseWorkflows(t *testing.T) {
 	zone := "zone"
 	gcsPath := "gcspath"
 	oauth := "oauthpath"
-	gcsLogging := false
-	stdoutLogging := false
-	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", gcsLogging, stdoutLogging)
+	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", false, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,8 +90,9 @@ func TestParseWorkflows(t *testing.T) {
 		{w.Project, project},
 		{w.Zone, zone},
 		{w.GCSPath, gcsPath},
-		{w.GcsLogging, gcsLogging},
-		{w.StdoutLogging, stdoutLogging},
+		{w.DisableGCSLogging, true},
+		{w.DisableCloudLogging, true},
+		{w.DisableStdoutLogging, true},
 	}
 
 	for _, tt := range tests {
