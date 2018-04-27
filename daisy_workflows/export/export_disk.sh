@@ -30,9 +30,9 @@ done
 
 echo "GCEExport: Running export tool." > /dev/ttyS0
 if [[ -n $LICENSES ]]; then
-  docker run -t --privileged $IMAGE -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y > /dev/ttyS0 2>&1
+  docker run -t --net=host --privileged $IMAGE -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y > /dev/ttyS0 2>&1
 else
-  docker run -t --privileged $IMAGE -gcs_path "$GCS_PATH" -disk /dev/sdb -y > /dev/ttyS0 2>&1
+  docker run -t --net=host --privileged $IMAGE -gcs_path "$GCS_PATH" -disk /dev/sdb -y > /dev/ttyS0 2>&1
 fi
 if [ $? -ne 0 ]; then
   echo "ExportFailed: Failed to export disk source to ${GCS_PATH}." > /dev/ttyS0
