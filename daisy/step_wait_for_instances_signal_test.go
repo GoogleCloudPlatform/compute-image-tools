@@ -45,7 +45,8 @@ func TestWaitForInstanceStopped(t *testing.T) {
 	defer svr.Close()
 
 	w.ComputeClient = c
-	if err := waitForInstanceStopped(w, testProject, testZone, "foo", 1*time.Microsecond); err != nil {
+	s := &Step{name: "foo", w: w}
+	if err := waitForInstanceStopped(s, testProject, testZone, "foo", 1*time.Microsecond); err != nil {
 		t.Fatalf("error running waitForInstanceStopped: %v", err)
 	}
 }

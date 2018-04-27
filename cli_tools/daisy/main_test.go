@@ -90,18 +90,15 @@ func TestParseWorkflows(t *testing.T) {
 		{w.Project, project},
 		{w.Zone, zone},
 		{w.GCSPath, gcsPath},
-		{w.DisableGCSLogging, true},
-		{w.DisableCloudLogging, true},
-		{w.DisableStdoutLogging, true},
 	}
 
 	for _, tt := range tests {
 		if tt.want != tt.got {
-			t.Errorf("%s != %v", varMap, w.Vars)
+			t.Errorf("%v != %v", tt.want, tt.got)
 		}
 	}
 
 	if reflect.DeepEqual(w.Vars, varMap) {
-		t.Errorf("unexpected vars, want: %s, got: %v", varMap, w.Vars)
+		t.Errorf("unexpected vars, want: %v, got: %v", varMap, w.Vars)
 	}
 }

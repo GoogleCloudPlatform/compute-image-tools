@@ -631,6 +631,7 @@ func TestPrint(t *testing.T) {
     }
   },
   "Dependencies": {},
+  "Logger": {},
   "ComputeEndpoint": ""
 }
 `
@@ -818,13 +819,13 @@ func TestPopulateClients(t *testing.T) {
 	w.externalLogging = false
 	w.PopulateClients(context.Background())
 	if w.cloudLoggingClient != nil {
-		t.Errorf("Did should not populate Cloud Logging client.")
+		t.Errorf("Should not populate Cloud Logging client.")
 	}
 
 	w.cloudLoggingClient = nil
 	w.externalLogging = true
 	w.PopulateClients(context.Background())
-	if w.cloudLoggingClient != nil {
-		t.Errorf("Did should not populate Cloud Logging client.")
+	if w.cloudLoggingClient == nil {
+		t.Errorf("Did not populate Cloud Logging client.")
 	}
 }
