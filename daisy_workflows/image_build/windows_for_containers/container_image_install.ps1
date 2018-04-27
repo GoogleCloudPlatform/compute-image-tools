@@ -50,7 +50,13 @@ try {
     Restart-Computer -Force
   }
   else {
-    Write-Host 'Setting vEthernet MTU to 1460'
+    # For some reason the docker service may not be started automatically on the
+    # first reboot, although it seems to work fine on subsequent reboots. The
+    # docker service must be running or else the vEthernet interface may not be
+    # present.
+    Restart-Service docker
+
+    Write-Host 'Setting host vEthernet MTU to 1460'
     Get-NetAdapter | Where-Object {$_.Name -like 'vEthernet*'} | ForEach-Object {
       & netsh interface ipv4 set subinterface $_.InterfaceIndex mtu=1460 store=persistent
     }
@@ -58,7 +64,6 @@ try {
     # As most if not all Windows containers are based on one of these images
     # we pull it here so that running a container using this image is quick.
     Write-Host 'Pulling latest Windows containers'
-    Restart-Service docker
     & docker pull microsoft/windowsservercore:1709
     if (!$?) {
       throw 'Error running "docker pull microsoft/windowsservercore:1709"'
@@ -67,6 +72,13 @@ try {
     if (!$?) {
       throw 'Error running "docker pull microsoft/nanoserver:1709"'
     }
+
+    Write-Host 'Setting container vEthernet MTU to 1460'
+    & docker run --rm microsoft/windowsservercore:1709 powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
+    if (!$?) {
+      throw 'Error running "docker run microsoft/windowsservercore:1709"'
+    }
+
     Write-Host 'Launching sysprep.'
     & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat'
   }
