@@ -47,7 +47,7 @@
           "MachineType": "n1-highcpu-4",
           "Metadata": {
             "gcs-path": "${OUTSPATH}/${NAME}.tar.gz",
-            "licenses": "${licenses}", 
+            "licenses": "${licenses}",
             "image": "${export_image}",
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}"
           },
@@ -61,7 +61,7 @@
         {
           "Name": "inst-${NAME}",
           "SerialOutput": {
-            "Port": 1,
+            "Port": 2,
             "SuccessMatch": "ExportSuccess",
             "FailureMatch": "ExportFailed:",
             "StatusMatch": "GCEExport:"
