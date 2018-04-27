@@ -13,7 +13,7 @@
       "Description": "list of GCE licenses to record in the exported image"
     },
     "export_instance_disk_image": {
-      "Value": "projects/cos-cloud/global/images/family/cos-stable",
+      "Value": "projects/cos-cloud/global/images/cos-stable-65-10323-75-0",
       "Description": "image to use for the exporter instance, image requires docker"
     },
     "export_instance_disk_size": {
