@@ -79,9 +79,7 @@ func TestParseWorkflows(t *testing.T) {
 	zone := "zone"
 	gcsPath := "gcspath"
 	oauth := "oauthpath"
-	gcsLogging := false
-	stdoutLogging := false
-	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", gcsLogging, stdoutLogging)
+	w, err := parseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, "", false, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,17 +90,15 @@ func TestParseWorkflows(t *testing.T) {
 		{w.Project, project},
 		{w.Zone, zone},
 		{w.GCSPath, gcsPath},
-		{w.GcsLogging, gcsLogging},
-		{w.StdoutLogging, stdoutLogging},
 	}
 
 	for _, tt := range tests {
 		if tt.want != tt.got {
-			t.Errorf("%s != %v", varMap, w.Vars)
+			t.Errorf("%v != %v", tt.want, tt.got)
 		}
 	}
 
 	if reflect.DeepEqual(w.Vars, varMap) {
-		t.Errorf("unexpected vars, want: %s, got: %v", varMap, w.Vars)
+		t.Errorf("unexpected vars, want: %v, got: %v", varMap, w.Vars)
 	}
 }

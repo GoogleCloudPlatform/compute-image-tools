@@ -56,28 +56,30 @@ type InstanceSignal struct {
 	SerialOutput *SerialOutput
 }
 
-func waitForInstanceStopped(w *Workflow, project, zone, name string, interval time.Duration) dErr {
-	w.Logger.StepInfo(w, "WaitForInstancesSignal", "waiting for instance %q to stop.", name)
+func waitForInstanceStopped(s *Step, project, zone, name string, interval time.Duration) dErr {
+	w := s.w
+	w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "waiting for instance %q to stop.", name)
 	tick := time.Tick(interval)
 	for {
 		select {
-		case <-w.Cancel:
+		case <-s.w.Cancel:
 			return nil
 		case <-tick:
-			stopped, err := w.ComputeClient.InstanceStopped(project, zone, name)
+			stopped, err := s.w.ComputeClient.InstanceStopped(project, zone, name)
 			if err != nil {
 				return typedErr(apiError, err)
 			}
 			if stopped {
-				w.Logger.StepInfo(w, "WaitForInstancesSignal", "instance %q stopped.", name)
+				w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "instance %q stopped.", name)
 				return nil
 			}
 		}
 	}
 }
 
-func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutput, interval time.Duration) dErr {
-	msg := fmt.Sprintf("WaitForInstancesSignal: watching serial port %d", so.Port)
+func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, interval time.Duration) dErr {
+	w := s.w
+	msg := fmt.Sprintf("instance %q: watching serial port %d", name, so.Port)
 	if so.SuccessMatch != "" {
 		msg += fmt.Sprintf(", SuccessMatch: %q", so.SuccessMatch)
 	}
@@ -87,13 +89,13 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutp
 	if so.StatusMatch != "" {
 		msg += fmt.Sprintf(", StatusMatch: %q", so.StatusMatch)
 	}
-	w.Logger.WorkflowInfo(w, msg+".")
+	w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", msg+".")
 	var start int64
 	var errs int
 	tick := time.Tick(interval)
 	for {
 		select {
-		case <-w.Cancel:
+		case <-s.w.Cancel:
 			return nil
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(project, zone, name, so.Port, start)
@@ -106,7 +108,7 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutp
 				}
 
 				if status == "TERMINATED" || status == "STOPPED" {
-					w.Logger.StepInfo(w, "WaitForInstancesSignal", "instance %q stopped, not waiting for serial output.", name)
+					w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "instance %q stopped, not waiting for serial output.", name)
 					return nil
 				}
 				// Keep retrying until the instance is STOPPED.
@@ -125,17 +127,17 @@ func waitForSerialOutput(w *Workflow, project, zone, name string, so *SerialOutp
 			for _, ln := range strings.Split(resp.Contents, "\n") {
 				if so.StatusMatch != "" {
 					if i := strings.Index(ln, so.StatusMatch); i != -1 {
-						w.Logger.StepInfo(w, "WaitForInstancesSignal", "StatusMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+						w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "instance %q: StatusMatch found: %q", name, strings.TrimSpace(ln[i:]))
 					}
 				}
 				if so.FailureMatch != "" {
 					if i := strings.Index(ln, so.FailureMatch); i != -1 {
-						return errf("WaitForInstancesSignal: FailureMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+						return errf("WaitForInstancesSignal FailureMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
 					}
 				}
 				if so.SuccessMatch != "" {
 					if i := strings.Index(ln, so.SuccessMatch); i != -1 {
-						w.Logger.StepInfo(w, "WaitForInstancesSignal", "SuccessMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+						w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "instance %q: SuccessMatch found %q", name, strings.TrimSpace(ln[i:]))
 						return nil
 					}
 				}
@@ -177,7 +179,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) dErr {
 			stoppedSig := make(chan struct{})
 			if is.Stopped {
 				go func() {
-					if err := waitForInstanceStopped(s.w, m["project"], m["zone"], m["instance"], is.interval); err != nil {
+					if err := waitForInstanceStopped(s, m["project"], m["zone"], m["instance"], is.interval); err != nil {
 						e <- err
 					}
 					close(stoppedSig)
@@ -185,7 +187,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) dErr {
 			}
 			if is.SerialOutput != nil {
 				go func() {
-					if err := waitForSerialOutput(s.w, m["project"], m["zone"], m["instance"], is.SerialOutput, is.interval); err != nil {
+					if err := waitForSerialOutput(s, m["project"], m["zone"], m["instance"], is.SerialOutput, is.interval); err != nil {
 						e <- err
 					}
 					close(serialSig)

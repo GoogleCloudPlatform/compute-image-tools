@@ -30,16 +30,17 @@ import (
 )
 
 var (
-	oauth         = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
-	project       = flag.String("project", "", "project to run in, overrides what is set in workflow")
-	gcsPath       = flag.String("gcs_path", "", "GCS bucket to use, overrides what is set in workflow")
-	zone          = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
-	variables     = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
-	print         = flag.Bool("print", false, "print out the parsed workflow for debugging")
-	validate      = flag.Bool("validate", false, "validate the workflow and exit")
-	ce            = flag.String("compute_endpoint_override", "", "API endpoint to override default")
-	gcsLogging    = flag.Bool("log-gcs", false, "logs will be streamed to GCS when enabled")
-	stdoutLogging = flag.Bool("log-stream", false, "logs will be streamed to stdout when enabled")
+	oauth              = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
+	project            = flag.String("project", "", "project to run in, overrides what is set in workflow")
+	gcsPath            = flag.String("gcs_path", "", "GCS bucket to use, overrides what is set in workflow")
+	zone               = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
+	variables          = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
+	print              = flag.Bool("print", false, "print out the parsed workflow for debugging")
+	validate           = flag.Bool("validate", false, "validate the workflow and exit")
+	ce                 = flag.String("compute_endpoint_override", "", "API endpoint to override default")
+	gcsLogsDisabled    = flag.Bool("disable_gcs_logging", false, "do not stream logs to GCS")
+	cloudLogsDisabled  = flag.Bool("disable_cloud_logging", false, "do not stream logs to Cloud Logging")
+	stdoutLogsDisabled = flag.Bool("disable_stdout_logging", false, "do not display individual workflow logs on stdout")
 )
 
 const (
@@ -68,7 +69,7 @@ func populateVars(input string) map[string]string {
 	return varMap
 }
 
-func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint string, gcsLogging, stdoutLogging bool) (*daisy.Workflow, error) {
+func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
 	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
@@ -111,8 +112,15 @@ Loop:
 		w.ComputeEndpoint = cEndpoint
 	}
 
-	w.GcsLogging = gcsLogging
-	w.StdoutLogging = stdoutLogging
+	if disableGCSLogs {
+		w.DisableGCSLogging()
+	}
+	if diableCloudLogs {
+		w.DisableCloudLogging()
+	}
+	if disableStdoutLogs {
+		w.DisableStdoutLogging()
+	}
 
 	return w, nil
 }
@@ -155,7 +163,7 @@ func main() {
 	varMap := populateVars(*variables)
 
 	for _, path := range flag.Args() {
-		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce, *gcsLogging, *stdoutLogging)
+		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled)
 		if err != nil {
 			log.Fatalf("error parsing workflow %q: %v", path, err)
 		}
