@@ -40,6 +40,7 @@ type Resource struct {
 
 	link     string
 	deleted  bool
+	stopped  bool
 	deleteMx *sync.Mutex
 
 	creator, deleter *Step

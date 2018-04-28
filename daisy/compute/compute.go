@@ -39,6 +39,7 @@ type Client interface {
 	DeleteDisk(project, zone, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
+	StopInstance(project, zone, name string) error
 	DeleteNetwork(project, name string) error
 	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
@@ -351,6 +352,16 @@ func (c *client) DeleteDisk(project, zone, name string) error {
 // DeleteInstance deletes a GCE instance.
 func (c *client) DeleteInstance(project, zone, name string) error {
 	op, err := c.Retry(c.raw.Instances.Delete(project, zone, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.operationsWait(project, zone, op.Name)
+}
+
+// StopInstance stops a GCE instance.
+func (c *client) StopInstance(project, zone, name string) error {
+	op, err := c.Retry(c.raw.Instances.Stop(project, zone, name).Do)
 	if err != nil {
 		return err
 	}

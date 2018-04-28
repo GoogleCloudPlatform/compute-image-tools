@@ -27,6 +27,7 @@ type baseResourceRegistry struct {
 	mx sync.Mutex
 
 	deleteFn func(res *Resource) dErr
+	stopFn func(res *Resource) dErr
 	typeName string
 	urlRgx   *regexp.Regexp
 }
@@ -75,6 +76,22 @@ func (r *baseResourceRegistry) delete(name string) dErr {
 		return err
 	}
 	res.deleted = true
+	return nil
+}
+
+func (r *baseResourceRegistry) stop(name string) dErr {
+	res, ok := r.get(name)
+	if !ok {
+		return errf("cannot stop %s %q; does not exist in registry", r.typeName, name)
+	}
+
+	if res.stopped {
+		return errf("cannot stop %q; already stopped", name)
+	}
+	if err := r.stopFn(res); err != nil {
+		return err
+	}
+	res.stopped = true
 	return nil
 }
 
