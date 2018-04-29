@@ -1,0 +1,53 @@
+{
+  "Name": "sub-check-logs",
+  "Vars": {
+    "instance": {"Required": true, "Description": "The name of the instance to check for the log"},
+    "script_type": {"Required": true, "Description": "The type of the script {startup,shutdown} to be tested"},
+    "exec_msg": {"Required": true, "Description": "The message to wait between start and finish"}
+  },
+  "Steps": {
+    "wait-start": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "${instance}",
+          "Interval": "0.5s",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "${script_type}-script: INFO Starting ${script_type} scripts."
+          }
+        }
+      ]
+    },
+    "wait-exec": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "${instance}",
+          "Interval": "0.5s",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "${exec_msg}"
+          }
+        }
+      ]
+    },
+    "wait-finish": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "${instance}",
+          "Interval": "0.5s",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "${script_type}-script: INFO Finished running ${script_type} scripts."
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "wait-exec": ["wait-start"],
+    "wait-finish": ["wait-exec"]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "Name": "sub-startup-shutdown-check",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "startup_msg": {"Required": true, "Description": "The message to wait when the instance starts up"},
+    "shutdown_msg": {"Required": true, "Description": "The message to wait when the instance shuts down"},
+    "startup-script": {"Description": "Startup script to create the instance"},
+    "shutdown-script": {"Description": "Shutdown script to create the instance"}
+  },
+  "Steps": {
+    "test-create-instance": {
+      "IncludeWorkflow": {
+        "Path": "./sub-create-instance.wf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "instance": "inst-metadata-ssh-startup-shutdown-check",
+            "startup-script": "${startup-script}",
+            "shutdown-script": "${shutdown-script}"
+        }
+      }
+    },
+    "test-startup-check-log": {
+      "IncludeWorkflow": {
+        "Path": "./sub-wait-message.wf.json",
+        "Vars": {
+            "instance": "inst-metadata-ssh-startup-shutdown-check",
+            "script_type": "startup",
+            "exec_msg": "${startup_msg}"
+        }
+      }
+    },
+    "test-stop-instance": {
+      "StopInstances": {
+        "Instances":["inst-metadata-ssh-startup-shutdown-check"]
+      }
+    },
+    "test-shutdown-check-log": {
+      "IncludeWorkflow": {
+        "Path": "./sub-wait-message.wf.json",
+        "Vars": {
+            "instance": "inst-metadata-ssh-startup-shutdown-check",
+            "script_type": "shutdown",
+            "exec_msg": "${shutdown_msg}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "test-startup-check-log": ["test-create-instance"],
+    "test-stop-instance": ["test-startup-check-log"],
+    "test-shutdown-check-log": ["test-startup-check-log"]
+  }
+}

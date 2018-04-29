@@ -1,0 +1,32 @@
+{
+  "Name": "metadata-script-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Steps": {
+    "test-metadata-script-integrity": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-noscript.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-metadata-script-integrity": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-junk.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-metadata-script-integrity": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-integrity.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "Name": "sub-create-instance",
+  "Vars": {
+    "instance": {"Required": true, "Description": "The name of the instance to be created"},
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "startup-script": {"Description": "Startup script to create the instance"},
+    "shutdown-script": {"Description": "Shutdown script to create the instance"}
+  },
+  "Sources": {
+    "startup-script": "../${startup-script}",
+    "shutdown-script": "../${shutdown-script}"
+  },
+  "Steps": {
+    "create-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-${instance}",
+          "SourceImage": "${source_image}",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-instance": {
+      "CreateInstances": [
+        {
+          "Name": "${instance}",
+          "Disks": [{"Source": "disk-${instance}"}],
+          "StartupScript": "startup-script",
+          "metadata": {
+            "shutdown-script-url": "${SOURCESPATH}/shutdown-script"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_only"
+          ]
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-instance": ["create-disk"]
+  }
+}

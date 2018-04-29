@@ -71,6 +71,14 @@
             "source_image": "${source_image}"
         }
       }
+    },
+    "test-metadata-script": {
+      "SubWorkflow": {
+        "Path": "./metadata-script/metadata-script.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
     }
   },
   "Dependencies": {
