@@ -56,13 +56,14 @@ For additional information about Daisy flags, use `daisy -h`.
 
 # Logging
 
-Daisy will send logs to [Cloud Logging](https://cloud.google.com/logging/). If
-the API is disabled or the account Daisy is running is under does not have
-permission to write log entries (the `logging.logEntries.create` permission),
-Daisy will send the logs to GCS.
+Daisy will send logs to [Cloud Logging](https://cloud.google.com/logging/) if
+available. If the API is disabled or the account Daisy is running is under does
+not have permission to write log entries (the `logging.logEntries.create`
+permission), Daisy will still send the logs to GCS and stdout by default.
 
-- To always send logs to GCS, call Daisy with the flag `-gcsLogging`
-- To send logs to the console, call Daisy with the flag `-stdoutLogging`
+- To disable sending logs to GCS, call Daisy with the flag `-gcsLogsDisabled=true`
+- To disable sending logs to Cloud Logging,  call Daisy with the flag `-cloudLogsDisabled=true`
+- To disable sending logs to stdout, call Daisy with the flag `-stdoutLogsDisabled=true`
 
 # What Next?
 
