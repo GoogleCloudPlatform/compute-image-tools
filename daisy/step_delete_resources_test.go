@@ -61,7 +61,13 @@ func TestDeleteResourcesRun(t *testing.T) {
 	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 	w.networks.m = map[string]*Resource{"n0": ns[0], "n1": ns[1]}
 
-	dr := &DeleteResources{Instances: []string{"in0"}, Images: []string{"im0"}, Disks: []string{"d0"}, Networks: []string{"n0"}}
+	dr := &DeleteResources{
+		Instances: []string{"in0"},
+		Images:    []string{"im0"},
+		Disks:     []string{"d0"},
+		Networks:  []string{"n0"},
+		GCSPaths:  []string{"gs://foo/bar"},
+	}
 	if err := dr.run(ctx, s); err != nil {
 		t.Fatalf("error running DeleteResources.run(): %v", err)
 	}
@@ -87,6 +93,26 @@ func TestDeleteResourcesRun(t *testing.T) {
 		} else if c.r.deleted {
 			t.Errorf("resource %q should not have been deleted", c.r.RealName)
 		}
+	}
+
+	// Bad case
+	if err := (&DeleteResources{GCSPaths: []string{"bkt"}}).run(ctx, s); err == nil {
+		t.Error("run should have failed with a parsing error")
+	}
+}
+
+func TestRecursiveGCSDelete(t *testing.T) {
+	w := testWorkflow()
+	ctx := context.Background()
+
+	// Good case
+	if err := recursiveGCSDelete(ctx, w, "foo", "bar"); err != nil {
+		t.Error(err)
+	}
+
+	// Bad case
+	if err := recursiveGCSDelete(ctx, w, "dne", "bar"); err == nil {
+		t.Errorf("expected DNE error")
 	}
 }
 
@@ -130,7 +156,13 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	}
 
 	// Good case.
-	dr := DeleteResources{Disks: []string{"d0"}, Images: []string{"im0", "projects/foo/global/images/" + testImage, "projects/foo/global/images/family/foo"}, Instances: []string{"in0"}, Networks: []string{"n0"}}
+	dr := DeleteResources{
+		Disks:     []string{"d0"},
+		Images:    []string{"im0", "projects/foo/global/images/" + testImage, "projects/foo/global/images/family/foo"},
+		Instances: []string{"in0"},
+		Networks:  []string{"n0"},
+		GCSPaths:  []string{"gs://foo/bar"},
+	}
 	if err := dr.validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
 	}
@@ -162,6 +194,13 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	}
 	if err := (&DeleteResources{Instances: []string{fmt.Sprintf("projects/%s/zones/%s/instances/dne", testProject, testZone)}}).validate(ctx, s); err != nil {
 		t.Errorf("validation should not have failed: %v", err)
+	}
+
+	if err := (&DeleteResources{GCSPaths: []string{"dne"}}).validate(ctx, s); err == nil {
+		t.Error("validation have failed with a parsing error")
+	}
+	if err := (&DeleteResources{GCSPaths: []string{"gs://dne"}}).validate(ctx, s); err == nil {
+		t.Error("validation have failed with a DNE error")
 	}
 
 	want[3].deleter = otherDeleter

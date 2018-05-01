@@ -230,6 +230,8 @@ func newTestGCSClient() (*storage.Client, error) {
 	rewriteRgx := regexp.MustCompile(`/b/([^/]+)/o/([^/]+)/rewriteTo/b/([^/]+)/o/([^?]+)`)
 	uploadRgx := regexp.MustCompile(`/b/([^/]+)/o?.*uploadType=multipart.*`)
 	getObjRgx := regexp.MustCompile(`/b/.+/o/.+alt=json&projection=full`)
+	getBktRgx := regexp.MustCompile(`/b/.+alt=json&projection=full`)
+	deleteObjRgx := regexp.MustCompile(`/b/.+/o/.+alt=json`)
 	listObjsRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&pageToken=&prefix=.+&projection=full&versions=false`)
 	listObjsNoPrefixRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&pageToken=&prefix=&projection=full&versions=false`)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -258,6 +260,22 @@ func newTestGCSClient() (*storage.Client, error) {
 			o := fmt.Sprintf(`{"bucket":"%s","name":"%s"}`, match[3], match[4])
 			fmt.Fprintf(w, `{"kind": "storage#rewriteResponse", "done": true, "objectSize": "1", "totalBytesRewritten": "1", "resource": %s}`, o)
 		} else if match := getObjRgx.FindStringSubmatch(u); m == "GET" && match != nil {
+			// Return StatusNotFound for objects that do not exist.
+			if strings.Contains(match[0], "dne") {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			// Yes this object exists, we don't need to fill out the values, just return something.
+			fmt.Fprint(w, "{}")
+		} else if match := getBktRgx.FindStringSubmatch(u); m == "GET" && match != nil {
+			// Return StatusNotFound for objects that do not exist.
+			if strings.Contains(match[0], "dne") {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			// Yes this object exists, we don't need to fill out the values, just return something.
+			fmt.Fprint(w, "{}")
+		} else if match := deleteObjRgx.FindStringSubmatch(u); m == "DELETE" && match != nil {
 			// Return StatusNotFound for objects that do not exist.
 			if strings.Contains(match[0], "dne") {
 				w.WriteHeader(http.StatusNotFound)
