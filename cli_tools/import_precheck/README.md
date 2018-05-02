@@ -13,7 +13,7 @@ Windows: https://storage.googleapis.com/compute-image-tools/release/windows/impo
 Linux: https://storage.googleapis.com/compute-image-tools/release/linux/import_precheck
 
 ## Building from Source
-`go get -u github.com/GoogleCloudPlatform/compute-image-tools/import_precheck`
+`go get -u github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck`
 
 Then, `$GOPATH/bin/import_precheck`.
 
