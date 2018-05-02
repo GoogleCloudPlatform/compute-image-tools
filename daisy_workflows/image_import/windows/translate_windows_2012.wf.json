@@ -1,0 +1,54 @@
+{
+  "Name": "translate-windows-2012",
+  "Vars": {
+    "source_disk": {
+      "Required": true,
+      "Description": "The Windows 2012 GCE disk to translate."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "sysprep": {
+      "Value": "false",
+      "Description": "Whether to run sysprep before capturing the image."
+    },
+    "image_name": {
+      "Value": "windows-server-2012-${ID}",
+      "Description": "The name of the translated Server 2012 image."
+    }
+  },
+  "Steps": {
+    "translate-image": {
+      "IncludeWorkflow": {
+        "Path": "./translate_windows_wf.json",
+        "Vars": {
+          "source_disk": "${source_disk}",
+          "install_gce_packages": "${install_gce_packages}",
+          "sysprep": "${sysprep}",
+          "drivers": "gs://gce-windows-drivers-public/release/win6.2/",
+          "version": "6.2",
+          "task_reg": "./task_reg_2012r2",
+          "task_xml": "./task_xml"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "${source_disk}",
+          "Licenses": ["projects/windows-cloud/global/licenses/windows-server-2012-dc"],
+          "GuestOsFeatures": [{"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}],
+          "Family": "windows-2012",
+          "NoCleanup": true,
+          "ExactName": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": ["translate-image"]
+  }
+}

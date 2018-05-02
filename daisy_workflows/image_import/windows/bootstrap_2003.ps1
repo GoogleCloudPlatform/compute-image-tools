@@ -123,6 +123,6 @@ try {
 catch {
   Write-Output 'Exception caught in script:'
   Write-Output $_.InvocationInfo.PositionMessage
-  #Write-Output "TranslateFailed: $($_.Exception.Message)"
+  Write-Output "TranslateFailed: $($_.Exception.Message)"
   exit 1
 }
