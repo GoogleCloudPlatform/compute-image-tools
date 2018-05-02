@@ -75,7 +75,7 @@
       }
     },
     "copy-image-object": {
-      "Timeout": "30m",
+      "Timeout": "60m",
       "CopyGCSObjects": [
         {
           "Source": "${OUTSPATH}/${NAME}.tar.gz",
