@@ -1,5 +1,6 @@
 {
   "Name": "disk-export-ext",
+  "DefaultTimeout": "90m",
   "Vars": {
     "source_disk": {
       "Required": true,
@@ -52,7 +53,6 @@
       ]
     },
     "wait-for-inst-${NAME}": {
-      "Timeout": "60m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-${NAME}",
@@ -71,7 +71,6 @@
       }
     },
     "copy-image-object": {
-      "Timeout": "30m",
       "CopyGCSObjects": [
         {
           "Source": "${OUTSPATH}/${NAME}",

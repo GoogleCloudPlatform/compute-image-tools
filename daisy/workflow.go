@@ -102,6 +102,10 @@ type Workflow struct {
 	Steps map[string]*Step
 	// Map of steps to their dependencies.
 	Dependencies map[string][]string
+	// Default timout for each step, defaults to 10m.
+	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
+	DefaultTimeout string
+	defaultTimeout time.Duration
 
 	// Working fields.
 	autovars              map[string]string
@@ -298,7 +302,8 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 
 func (w *Workflow) populateStep(ctx context.Context, s *Step) dErr {
 	if s.Timeout == "" {
-		s.Timeout = defaultTimeout
+		s.Timeout = w.DefaultTimeout
+
 	}
 	timeout, err := time.ParseDuration(s.Timeout)
 	if err != nil {
@@ -353,6 +358,13 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 	}
 	substitute(reflect.ValueOf(w).Elem(), strings.NewReplacer(replacements...))
 
+	// Parse timeout.
+	timeout, err := time.ParseDuration(w.DefaultTimeout)
+	if err != nil {
+		return newErr(err)
+	}
+	w.defaultTimeout = timeout
+
 	// Set up GCS paths.
 	if w.GCSPath == "" {
 		dBkt, err := daisyBkt(ctx, w.StorageClient, w.Project)
@@ -363,7 +375,7 @@ func (w *Workflow) populate(ctx context.Context) dErr {
 	}
 	bkt, p, err := splitGCSPath(w.GCSPath)
 	if err != nil {
-		return err
+		return newErr(err)
 	}
 	w.bucket = bkt
 	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s-%s", w.Name, now.Format("20060102-15:04:05"), w.id))
@@ -621,6 +633,7 @@ func New() *Workflow {
 	w.Vars = map[string]Var{}
 	w.Steps = map[string]*Step{}
 	w.Dependencies = map[string][]string{}
+	w.DefaultTimeout = defaultTimeout
 	w.autovars = map[string]string{}
 
 	// Resource registries and cleanup.
@@ -690,6 +703,7 @@ func (w *Workflow) copySettings(target *Workflow) {
 	target.Name = w.Name
 	target.Project = w.Project
 	target.Zone = w.Zone
+	target.DefaultTimeout = w.DefaultTimeout
 	target.autovars = w.autovars
 	target.bucket = w.bucket
 	target.scratchPath = w.scratchPath

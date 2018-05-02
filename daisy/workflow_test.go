@@ -428,6 +428,8 @@ func TestPopulate(t *testing.T) {
 	want.OAuthPath = tf
 	want.externalLogging = true
 	want.Sources = map[string]string{}
+	want.DefaultTimeout = defaultTimeout
+	want.defaultTimeout = 10 * time.Minute
 	want.Vars = map[string]Var{
 		"bucket":    {Value: "wf-bucket", Required: true},
 		"step_name": {Value: "step1"},
@@ -631,6 +633,7 @@ func TestPrint(t *testing.T) {
     }
   },
   "Dependencies": {},
+  "DefaultTimeout": "10m",
   "Logger": {},
   "ComputeEndpoint": ""
 }

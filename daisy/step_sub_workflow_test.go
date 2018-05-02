@@ -25,7 +25,7 @@ func TestSubWorkflowPopulate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	w.populate(ctx)
-	sw := &Workflow{parent: w}
+	sw := w.NewSubWorkflow()
 	sw.Vars = map[string]Var{"foo": {Value: "bar1"}, "baz": {Value: "gaz"}}
 	s := &Step{
 		name: "sw-step",
@@ -62,7 +62,7 @@ func TestSubWorkflowRun(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	w.populate(ctx)
-	sw := &Workflow{parent: w}
+	sw := w.NewSubWorkflow()
 	s := &Step{
 		name: "sw-step",
 		w:    w,

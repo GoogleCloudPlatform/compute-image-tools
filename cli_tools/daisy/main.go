@@ -37,6 +37,7 @@ var (
 	variables          = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	print              = flag.Bool("print", false, "print out the parsed workflow for debugging")
 	validate           = flag.Bool("validate", false, "validate the workflow and exit")
+	defaultTimeout     = flag.String("default_timeout", "", "sets the default timeout for the workflow")
 	ce                 = flag.String("compute_endpoint_override", "", "API endpoint to override default")
 	gcsLogsDisabled    = flag.Bool("disable_gcs_logging", false, "do not stream logs to GCS")
 	cloudLogsDisabled  = flag.Bool("disable_cloud_logging", false, "do not stream logs to Cloud Logging")
@@ -69,7 +70,7 @@ func populateVars(input string) map[string]string {
 	return varMap
 }
 
-func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
+func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
 	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
@@ -106,6 +107,9 @@ Loop:
 	}
 	if oauth != "" {
 		w.OAuthPath = oauth
+	}
+	if dTimeout != "" {
+		w.DefaultTimeout = dTimeout
 	}
 
 	if cEndpoint != "" {
@@ -163,7 +167,7 @@ func main() {
 	varMap := populateVars(*variables)
 
 	for _, path := range flag.Args() {
-		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled)
+		w, err := parseWorkflow(ctx, path, varMap, *project, *zone, *gcsPath, *oauth, *defaultTimeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled)
 		if err != nil {
 			log.Fatalf("error parsing workflow %q: %v", path, err)
 		}
