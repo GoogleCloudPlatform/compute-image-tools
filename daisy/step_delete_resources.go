@@ -16,17 +16,24 @@ package daisy
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"strings"
 	"sync"
 
+	"cloud.google.com/go/storage"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
+	"google.golang.org/api/iterator"
 )
 
-// DeleteResources deletes GCE resources.
+// DeleteResources deletes GCE/GCS resources.
 type DeleteResources struct {
 	Disks     []string `json:",omitempty"`
 	Images    []string `json:",omitempty"`
 	Instances []string `json:",omitempty"`
 	Networks  []string `json:",omitempty"`
+	GCSPaths  []string `json:",omitempty"`
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
@@ -117,6 +124,52 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 		}
 	}
 
+	// GCS path checking
+	for _, p := range d.GCSPaths {
+		bkt, _, err := splitGCSPath(p)
+		if err != nil {
+			return err
+		}
+
+		// Check if bucket exists and is writeable.
+		writableBkts.mx.Lock()
+		if !strIn(bkt, writableBkts.bkts) {
+			if _, err := s.w.StorageClient.Bucket(bkt).Attrs(ctx); err != nil {
+				return errf("error reading bucket %q: %v", bkt, err)
+			}
+
+			tObj := s.w.StorageClient.Bucket(bkt).Object(fmt.Sprintf("daisy-validate-%s-%s", s.name, s.w.id))
+			w := tObj.NewWriter(ctx)
+			if _, err := w.Write(nil); err != nil {
+				return newErr(err)
+			}
+			if err := w.Close(); err != nil {
+				return errf("error writing to bucket %q: %v", bkt, err)
+			}
+			if err := tObj.Delete(ctx); err != nil {
+				return errf("error deleting file %+v after write validation: %v", tObj, err)
+			}
+			writableBkts.bkts = append(writableBkts.bkts, bkt)
+		}
+		writableBkts.mx.Unlock()
+	}
+
+	return nil
+}
+
+func recursiveGCSDelete(ctx context.Context, w *Workflow, bkt, prefix string) dErr {
+	it := w.StorageClient.Bucket(bkt).Objects(ctx, &storage.Query{Prefix: prefix})
+	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
+		if err != nil {
+			return typedErr(apiError, err)
+		}
+		if objAttr.Size == 0 {
+			continue
+		}
+		if err := w.StorageClient.Bucket(bkt).Object(objAttr.Name).Delete(ctx); err != nil {
+			return typedErr(apiError, err)
+		}
+	}
 	return nil
 }
 
@@ -153,6 +206,32 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 				e <- err
 			}
 		}(i)
+	}
+	for _, p := range d.GCSPaths {
+		wg.Add(1)
+		go func(p string) {
+			defer wg.Done()
+			bkt, obj, err := splitGCSPath(p)
+			if err != nil {
+				e <- err
+				return
+			}
+
+			if obj == "" || strings.HasSuffix(obj, "/") {
+				if err := recursiveGCSDelete(ctx, s.w, bkt, obj); err != nil {
+					e <- err
+				}
+				return
+			}
+
+			if err := w.StorageClient.Bucket(bkt).Object(obj).Delete(ctx); err != nil {
+				if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+					w.Logger.StepInfo(w, s.name, "DeleteResources", "WARNING: Error deleting GCS Path %q: %v", p, err)
+					return
+				}
+				e <- errf("error deleting GCS path %q: %v", p, err)
+			}
+		}(p)
 	}
 
 	go func() {
