@@ -1,5 +1,6 @@
 {
   "Name": "image-export-ext",
+  "DefaultTimeout": "90m",
   "Vars": {
     "source_image": {
       "Required": true,
@@ -33,7 +34,6 @@
       ]
     },
     "export-disk": {
-      "Timeout": "90m",
       "IncludeWorkflow": {
         "Path": "./disk_export_ext.wf.json",
         "Vars": {
