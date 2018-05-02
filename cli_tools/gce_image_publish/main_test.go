@@ -257,6 +257,7 @@ func TestPopulateSteps(t *testing.T) {
 			"delete-foo":    {"publish-foo", "deprecate-foo"},
 			"deprecate-foo": {"publish-foo"},
 		},
+		DefaultTimeout: "10m",
 	}
 
 	if diff := (&pretty.Config{Diffable: true, Formatter: pretty.DefaultFormatter}).Compare(got, want); diff != "" {
@@ -266,8 +267,6 @@ func TestPopulateSteps(t *testing.T) {
 }
 
 func TestPopulateWorkflow(t *testing.T) {
-	//populateWorkflow(ctx context.Context, w *daisy.Workflow, p *publish, pubImgs []*compute.Image, rb, sd bool) error
-
 	got := daisy.New()
 	p := &publish{
 		SourceProject:  "foo-project",
@@ -309,6 +308,7 @@ func TestPopulateWorkflow(t *testing.T) {
 		Dependencies: map[string][]string{
 			"deprecate-test": {"publish-test"},
 		},
+		DefaultTimeout: "10m",
 	}
 
 	if diff := (&pretty.Config{Diffable: true, Formatter: pretty.DefaultFormatter}).Compare(got, want); diff != "" {

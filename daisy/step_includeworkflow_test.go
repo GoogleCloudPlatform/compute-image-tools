@@ -60,11 +60,12 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 
 	wantTimeout, _ := time.ParseDuration(defaultTimeout)
 	want := &Workflow{
-		Name:    "step-name",
-		Project: w.Project,
-		Zone:    w.Zone,
-		GCSPath: w.GCSPath,
-		id:      w.id,
+		Name:           "step-name",
+		Project:        w.Project,
+		Zone:           w.Zone,
+		GCSPath:        w.GCSPath,
+		DefaultTimeout: defaultTimeout,
+		id:             w.id,
 		Vars: map[string]Var{
 			"foo": {Value: "bar"},
 		},
