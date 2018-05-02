@@ -56,7 +56,7 @@
       ]
     },
     "wait-for-inst-${NAME}": {
-      "Timeout": "60m",
+      "Timeout": "90m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-${NAME}",
@@ -75,7 +75,7 @@
       }
     },
     "copy-image-object": {
-      "Timeout": "60m",
+      "Timeout": "90m",
       "CopyGCSObjects": [
         {
           "Source": "${OUTSPATH}/${NAME}.tar.gz",
