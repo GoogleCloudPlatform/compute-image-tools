@@ -43,15 +43,14 @@ def Bootstrap():
     full_import_script = os.path.join(import_dir, import_script)
     subprocess.check_call(['mkdir', import_dir])
     subprocess.check_call(
-        ['gsutil', '-m', 'cp', '-r', os.path.join(import_gcs_dir, '*'), 
+        ['gsutil', '-m', 'cp', '-r', os.path.join(import_gcs_dir, '*'),
         import_dir])
     logging.info('Making import script %s executable.', full_import_script)
     subprocess.check_call(['chmod', '+x', import_script], cwd=import_dir)
     logging.info('Running %s.', full_import_script)
     subprocess.check_call([full_import_script], cwd=import_dir)
   except Exception as e:
-    print('TranslateFailed: error: ')
-    print(str(e))
+    logging.error('TranslateFailed: error: %s', str(e))
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)
