@@ -1,5 +1,6 @@
 {
   "Name": "import-image",
+  "DefaultTimeout": "90m",
   "Vars": {
     "source_disk_file": {
       "Required": true,
@@ -24,8 +25,7 @@
           "importer_instance_disk_size": "${importer_instance_disk_size}",
           "disk_name": "${import_disk_name}"
         }
-      },
-      "Timeout": "1h"
+      }
     },
     "create-image": {
       "CreateImages": [

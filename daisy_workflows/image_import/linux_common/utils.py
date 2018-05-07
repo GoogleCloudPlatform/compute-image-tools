@@ -148,10 +148,9 @@ def RunTranslate(translate_func):
     tracer = trace.Trace(
         ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
     tracer.runfunc(translate_func)
-    print('TranslateSuccess: Translation finished.')
+    logging.info('TranslateSuccess: Translation finished.')
   except Exception as e:
-    print('TranslateFailed: error: ')
-    print(str(e))
+    logging.error('TranslateFailed: error: %s', str(e))
 
 
 def SetupLogging():

@@ -1,5 +1,6 @@
 {
   "Name": "build-el",
+  "DefaultTimeout": "60m",
   "Vars": {
     "el_release": {
       "Required": true,
