@@ -1,5 +1,6 @@
 {
   "Name": "import-disk",
+  "DefaultTimeout": "90m",
   "Vars": {
     "source_disk_file": {
       "Required": true,
@@ -62,8 +63,7 @@
             "StatusMatch": "Import:"
           }
         }
-      ],
-      "Timeout": "60m"
+      ]
     }
   },
   "Dependencies": {
