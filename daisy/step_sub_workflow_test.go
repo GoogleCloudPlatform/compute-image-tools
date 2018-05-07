@@ -35,7 +35,7 @@ func TestSubWorkflowPopulate(t *testing.T) {
 			Workflow: sw,
 		},
 	}
-	if err := s.SubWorkflow.populate(ctx, s); err != nil {
+	if err := w.populateStep(ctx, s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
@@ -70,7 +70,7 @@ func TestSubWorkflowRun(t *testing.T) {
 			Workflow: sw,
 		},
 	}
-	if err := s.SubWorkflow.populate(ctx, s); err != nil {
+	if err := w.populateStep(ctx, s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 

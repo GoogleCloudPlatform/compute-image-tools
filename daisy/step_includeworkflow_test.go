@@ -54,7 +54,7 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 		},
 	}
 
-	if err := s.IncludeWorkflow.populate(ctx, s); err != nil {
+	if err := w.populateStep(ctx, s); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 
