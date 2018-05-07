@@ -15,10 +15,10 @@
   },
   "Sources": {
     "test_files/test.py": "./oslogin-ssh-master-tester.py",
-    "test_files/utils.py": "./linux_common/utils.py",
-    "startup_master_tester": "./linux_common/bootstrap.py",
-    "test_files/slave_tester.sh": "./scripts/oslogin_slave_tester.sh",
-    "startup_slave_tester": "./scripts/oslogin_slave_tester_startup.sh"
+    "test_files/utils.py": "../linux_common/utils.py",
+    "startup_master_tester": "../linux_common/bootstrap.py",
+    "test_files/slave_tester.sh": "./oslogin_slave_tester.sh",
+    "startup_slave_tester": "./oslogin_slave_tester_startup.sh"
   },
   "Steps": {
     "create-disk-master-tester": {

@@ -5,7 +5,7 @@
     "machine_type": {"Required": true, "Description": "MachineType to test the image"}
   },
   "Sources": {
-    "boot.sh": "./scripts/boot.sh"
+    "boot.sh": "./boot.sh"
   },
   "Steps": {
     "create-test-disk": {
