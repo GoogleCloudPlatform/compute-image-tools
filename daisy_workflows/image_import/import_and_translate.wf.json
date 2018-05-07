@@ -1,5 +1,6 @@
 {
   "Name": "import-and-translate",
+  "DefaultTimeout": "90m",
   "Vars": {
     "source_disk_file": {
       "Required": true,
@@ -23,8 +24,7 @@
           "source_disk_file": "${source_disk_file}",
           "disk_name": "${translation-disk-name}"
         }
-      },
-      "Timeout": "1h"
+      }
     },
     "take-image-of-untranslated-disk": {
       "CreateImages": [{
@@ -40,8 +40,7 @@
           "source_disk": "${translation-disk-name}",
           "image_name": "${image_name}"
         }
-      },
-      "Timeout": "1h"
+      }
     },
     "cleanup": {
       "DeleteResources": {
