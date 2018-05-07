@@ -47,6 +47,7 @@ func (s *SubWorkflow) populate(ctx context.Context, st *Step) dErr {
 	s.Workflow.ComputeClient = s.Workflow.parent.ComputeClient
 	s.Workflow.StorageClient = s.Workflow.parent.StorageClient
 	s.Workflow.Logger = s.Workflow.parent.Logger
+	s.Workflow.DefaultTimeout = st.Timeout
 
 	var errs dErr
 Loop:

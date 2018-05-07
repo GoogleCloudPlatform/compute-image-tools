@@ -691,29 +691,6 @@ func JSONError(file string, data []byte, err error) error {
 	return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 }
 
-// Copy settings from one workflow to another. This is useful for setting
-// up included workflows.
-func (w *Workflow) copySettings(target *Workflow) {
-	target.id = w.id
-	target.username = w.username
-	target.ComputeClient = w.ComputeClient
-	target.StorageClient = w.StorageClient
-	target.cloudLoggingClient = w.cloudLoggingClient
-	target.GCSPath = w.GCSPath
-	target.Name = w.Name
-	target.Project = w.Project
-	target.Zone = w.Zone
-	target.DefaultTimeout = w.DefaultTimeout
-	target.autovars = w.autovars
-	target.bucket = w.bucket
-	target.scratchPath = w.scratchPath
-	target.sourcesPath = w.sourcesPath
-	target.logsPath = w.logsPath
-	target.outsPath = w.outsPath
-	target.externalLogging = w.externalLogging
-	target.Logger = w.Logger
-}
-
 func readWorkflow(file string, w *Workflow) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
