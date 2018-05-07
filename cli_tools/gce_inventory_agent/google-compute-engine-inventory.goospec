@@ -1,0 +1,31 @@
+{
+  "name": "google-compute-engine-inventory",
+  "version": "1.0.0@1",
+  "arch": "x86_64",
+  "authors": "Google Inc.",
+  "license": "http://www.apache.org/licenses/LICENSE-2.0",
+  "description": "Google Compute Engine inventory agent",
+  "files": {
+    "gce_inventory_agent.exe": "<ProgramFiles>/Google/Compute Engine/inventory/gce_inventory_agent.exe"
+  },
+  "install": {
+    "path": "install.ps1"
+  },
+  "uninstall": {
+    "path": "uninstall.ps1"
+  },
+  "releaseNotes": [
+    "1.0.0 - GCE inventory agent for Windows"
+  ],
+  "sources": [{
+      "include": [
+        "gce_inventory_agent.exe",
+        "install.ps1",
+        "uninstall.ps1"
+      ]
+  }],
+ "build": {
+    "linux": "/bin/bash",
+    "linuxArgs": ["-c", "GOOS=windows go build"]
+  }
+}
