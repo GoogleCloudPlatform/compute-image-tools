@@ -58,9 +58,9 @@ function check_google_services {
       fail "Google accounts daemon not running."
     fi
 
-    status "Checking google-ip-forwarding-daemon."
-    if initctl status google-ip-forwarding-daemon | grep -qv 'running'; then
-      fail "Google IP Forwarding daemon not running."
+    status "Checking google-network-daemon."
+    if initctl status google-network-daemon | grep -qv 'running'; then
+      fail "Google Network daemon not running."
     fi
 
     status "Checking google-clock-skew-daemon."
@@ -74,10 +74,10 @@ function check_google_services {
       fail "Google accounts daemon not running."
     fi
 
-    status "Checking google-ip-forwarding-daemon."
-    service google-ip-forwarding-daemon status
+    status "Checking google-network-daemon."
+    service google-network-daemon status
     if [[ $? -ne 0 ]]; then
-      fail "Google IP Forwarding daemon not running."
+      fail "Google Network daemon not running."
     fi
 
     status "Checking google-clock-skew-daemon."
