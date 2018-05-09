@@ -182,7 +182,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			w.Logger.StepInfo(w, s.name, "DeleteResources", "deleting instance %q.", i)
+			w.Logger.StepInfo(w, s.name, "DeleteResources", "Deleting instance %q.", i)
 			if err := w.instances.delete(i); err != nil {
 				if err.Type() == resourceDNEError {
 					w.Logger.StepInfo(w, s.name, "DeleteResources", "WARNING: Error deleting instance %q: %v", i, err)
@@ -197,7 +197,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			w.Logger.StepInfo(w, s.name, "DeleteResources", "deleting image %q.", i)
+			w.Logger.StepInfo(w, s.name, "DeleteResources", "Deleting image %q.", i)
 			if err := w.images.delete(i); err != nil {
 				if err.Type() == resourceDNEError {
 					w.Logger.StepInfo(w, s.name, "DeleteResources", "WARNING: Error deleting image %q: %v", i, err)
@@ -254,7 +254,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
-			w.Logger.StepInfo(w, s.name, "DeleteResources", "deleting disk %q.", d)
+			w.Logger.StepInfo(w, s.name, "DeleteResources", "Deleting disk %q.", d)
 			if err := w.disks.delete(d); err != nil {
 				if err.Type() == resourceDNEError {
 					w.Logger.StepInfo(w, s.name, "DeleteResources", "WARNING: Error deleting disk %q: %v", d, err)
@@ -270,7 +270,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(n string) {
 			defer wg.Done()
-			w.Logger.StepInfo(w, s.name, "DeleteResources", "deleting network %q.", n)
+			w.Logger.StepInfo(w, s.name, "DeleteResources", "Deleting network %q.", n)
 			if err := w.networks.delete(n); err != nil {
 				if err.Type() == resourceDNEError {
 					w.Logger.StepInfo(w, s.name, "DeleteResources", "WARNING: Error deleting network %q: %v", n, err)

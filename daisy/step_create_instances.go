@@ -19,10 +19,11 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
-	"google.golang.org/api/googleapi"
+	"cloud.google.com/go/logging"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
@@ -31,47 +32,71 @@ type CreateInstances []*Instance
 func logSerialOutput(ctx context.Context, s *Step, name string, port int64, interval time.Duration) {
 	w := s.w
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
-	w.Logger.StepInfo(w, s.name, "CreateInstances", "streaming instance %q serial port %d output to gs://%s/%s", name, port, w.bucket, logsObj)
+	w.Logger.StepInfo(w, s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
-	var errs int
+	var gcsErr bool
 	tick := time.Tick(interval)
+
+Loop:
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			break Loop
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
 			if err != nil {
 				// Instance was deleted by this workflow.
 				if _, ok := w.instances.get(name); !ok {
-					return
+					break Loop
 				}
 				// Instance is stopped.
 				stopped, sErr := w.ComputeClient.InstanceStopped(w.Project, w.Zone, name)
 				if stopped && sErr == nil {
-					return
+					break Loop
 				}
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "instance %q: error getting serial port: %v", name, err)
-				return
+				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error getting serial port: %v", name, err)
+				break Loop
 			}
 			start = resp.Next
 			buf.WriteString(resp.Contents)
 			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
 			wc.ContentType = "text/plain"
-			if _, err := wc.Write(buf.Bytes()); err != nil {
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "instance %q: error writing log to GCS: %v", name, err)
-				return
+			if _, err := wc.Write(buf.Bytes()); err != nil && !gcsErr {
+				gcsErr = true
+				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", name, err)
+				continue
 			}
-			if err := wc.Close(); err != nil {
-				if apiErr, ok := err.(*googleapi.Error); ok && (apiErr.Code >= 500 && apiErr.Code <= 599) {
-					errs++
-					continue
-				}
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "instance %q: error saving log to GCS: %v", name, err)
-				return
+			if err := wc.Close(); err != nil && !gcsErr {
+				gcsErr = true
+				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", name, err)
+				continue
 			}
-			errs = 0
+		}
+	}
+
+	// Write the output to cloud logging only after instance has stopped.
+	// Type assertion check is needed for tests not to panic.
+	// Split if output is too long for log entry (100K max, we leave a 2K buffer).
+	dl, ok := w.Logger.(*daisyLog)
+	if ok {
+		ss := strings.SplitAfter(buf.String(), "\n")
+		var str string
+		for i, s := range ss {
+			str += s
+			if i+1 < len(ss) && len(str)+len(ss[i+1]) < 98*1024 {
+				continue
+			}
+			dl.cloudLogger.Log(logging.Entry{
+				Payload: map[string]string{
+					"localTimestamp": time.Now().String(),
+					"workflowName":   getAbsoluteName(w),
+					"message":        fmt.Sprintf("Serial port output for instance %q", name),
+					"serialPort1":    str,
+					"type":           "Daisy",
+				},
+			})
+			str = ""
 		}
 	}
 }
@@ -116,7 +141,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 				}
 			}
 
-			w.Logger.StepInfo(w, s.name, "CreateInstances", "creating instance %q.", i.Name)
+			w.Logger.StepInfo(w, s.name, "CreateInstances", "Creating instance %q.", i.Name)
 			if err := w.ComputeClient.CreateInstance(i.Project, i.Zone, &i.Instance); err != nil {
 				eChan <- newErr(err)
 				return

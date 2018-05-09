@@ -106,8 +106,6 @@ Loop:
 		return err
 	}
 
-	i.Workflow.createLogger(ctx)
-
 	for name, st := range i.Workflow.Steps {
 		st.name = name
 		st.w = i.Workflow

@@ -53,25 +53,25 @@ func TestLogSerialOutput(t *testing.T) {
 	}{
 		{
 			"Error but instance stopped",
-			"streaming instance \"i1\" serial port 0 output to gs://test-bucket/i1-serial-port0.log",
+			"Streaming instance \"i1\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i1-serial-port0.log",
 			"",
 			"i1",
 		},
 		{
 			"Error but instance running",
-			"streaming instance \"i2\" serial port 0 output to gs://test-bucket/i2-serial-port0.log",
-			"instance \"i2\": error getting serial port: fail",
+			"Streaming instance \"i2\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i2-serial-port0.log",
+			"Instance \"i2\": error getting serial port: fail",
 			"i2",
 		},
 		{
 			"Normal flow",
-			"streaming instance \"i3\" serial port 0 output to gs://test-bucket/i3-serial-port0.log",
+			"Streaming instance \"i3\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i3-serial-port0.log",
 			"",
 			"i3",
 		},
 		{
 			"Error but instance deleted",
-			"streaming instance \"i4\" serial port 0 output to gs://test-bucket/i4-serial-port0.log",
+			"Streaming instance \"i4\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i4-serial-port0.log",
 			"",
 			"i4",
 		},
