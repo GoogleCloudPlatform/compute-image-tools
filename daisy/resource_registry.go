@@ -27,7 +27,7 @@ type baseResourceRegistry struct {
 	mx sync.Mutex
 
 	deleteFn func(res *Resource) dErr
-	stopFn func(res *Resource) dErr
+	stopFn   func(res *Resource) dErr
 	typeName string
 	urlRgx   *regexp.Regexp
 }
