@@ -48,6 +48,7 @@ func TestTestClient(t *testing.T) {
 		{"create image", func() { c.CreateImage("a", &compute.Image{}) }, "/a/global/images?alt=json"},
 		{"create instance", func() { c.CreateInstance("a", "b", &compute.Instance{}) }, "/a/zones/b/instances?alt=json"},
 		{"create network", func() { c.CreateNetwork("a", &compute.Network{}) }, "/a/global/networks?alt=json"},
+		{"instances stop", func() { c.StopInstance("a", "b", "c") }, "/a/zones/b/instances/c/stop?alt=json"},
 		{"delete disk", func() { c.DeleteDisk("a", "b", "c") }, "/a/zones/b/disks/c?alt=json"},
 		{"delete image", func() { c.DeleteImage("a", "b") }, "/a/global/images/b?alt=json"},
 		{"delete instance", func() { c.DeleteInstance("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
@@ -107,6 +108,7 @@ func TestTestClient(t *testing.T) {
 	c.CreateImageFn = func(_ string, _ *compute.Image) error { fakeCalled = true; return nil }
 	c.CreateInstanceFn = func(_, _ string, _ *compute.Instance) error { fakeCalled = true; return nil }
 	c.CreateNetworkFn = func(_ string, _ *compute.Network) error { fakeCalled = true; return nil }
+	c.StopInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeleteDiskFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeleteImageFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.DeleteInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }

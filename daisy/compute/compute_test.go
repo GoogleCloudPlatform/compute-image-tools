@@ -169,6 +169,30 @@ func TestCreates(t *testing.T) {
 	}
 }
 
+func TestStops(t *testing.T) {
+	var stopURL, opGetURL string
+	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" && r.URL.String() == stopURL {
+			fmt.Fprint(w, `{}`)
+		} else if r.Method == "GET" && r.URL.String() == opGetURL {
+			fmt.Fprint(w, `{"Status":"DONE"}`)
+		} else {
+			w.WriteHeader(500)
+			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, r.URL)
+		}
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svr.Close()
+
+	stopURL = fmt.Sprintf("/%s/zones/%s/instances/%s/stop?alt=json", testProject, testZone, testInstance)
+	opGetURL = fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone)
+	if err := c.StopInstance(testProject, testZone, testInstance); err != nil {
+		t.Errorf("error running Stop: %v", err)
+	}
+}
+
 func TestDeletes(t *testing.T) {
 	var deleteURL, opGetURL *string
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
