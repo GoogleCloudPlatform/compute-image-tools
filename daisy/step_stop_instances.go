@@ -54,10 +54,6 @@ func (st *StopInstances) run(ctx context.Context, s *Step) dErr {
 			defer wg.Done()
 			w.Logger.StepInfo(w, "StopInstances", "stopping instance %q.", i)
 			if err := w.instances.stop(i); err != nil {
-				if err.Type() == resourceDNEError {
-					w.Logger.StepInfo(w, "StopInstances", "WARNING: Error stopping instance %q: %v", i, err)
-					return
-				}
 				e <- err
 			}
 		}(i)

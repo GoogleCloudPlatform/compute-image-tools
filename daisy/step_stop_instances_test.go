@@ -51,9 +51,6 @@ func TestStopInstanceValidate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := (&StopInstances{Instances: []string{"instance1"}}).validate(ctx, s); err == nil {
-		t.Errorf("validation should not have failed: %v", err)
-	}
 	if err := (&StopInstances{Instances: []string{"dne"}}).validate(ctx, s); err == nil {
 		t.Error("StopInstances should have returned an error when stopping an instance that DNE")
 	}
