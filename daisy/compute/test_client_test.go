@@ -71,6 +71,7 @@ func TestTestClient(t *testing.T) {
 		{"list disks", func() { c.ListDisks("a", "b", listOpts...) }, "/a/zones/b/disks?alt=json&filter=foo&orderBy=foo&pageToken="},
 		{"instance status", func() { c.InstanceStatus("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
 		{"instance stopped", func() { c.InstanceStopped("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
+		{"set instance metadata", func() { c.SetInstanceMetadata("a", "b", "c", nil) }, "/a/zones/b/instances/c/setMetadata?alt=json"},
 		{"operation wait", func() { c.operationsWait("a", "b", "c") }, "/a/zones/b/operations/c?alt=json"},
 	}
 
@@ -150,6 +151,7 @@ func TestTestClient(t *testing.T) {
 	}
 	c.InstanceStatusFn = func(_, _, _ string) (string, error) { fakeCalled = true; return "", nil }
 	c.InstanceStoppedFn = func(_, _, _ string) (bool, error) { fakeCalled = true; return false, nil }
+	c.SetInstanceMetadataFn = func(_, _, _ string, _ *compute.Metadata) error { fakeCalled = true; return nil }
 	c.operationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	wantFakeCalled = true
 	wantRealCalled = false

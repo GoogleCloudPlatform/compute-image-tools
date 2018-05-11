@@ -74,6 +74,7 @@ type TestClient struct {
 	ListNetworksFn        func(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	InstanceStatusFn      func(project, zone, name string) (string, error)
 	InstanceStoppedFn     func(project, zone, name string) (bool, error)
+	SetInstanceMetadataFn func(project, zone, name string, md *compute.Metadata) error
 	RetryFn               func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 
 	operationsWaitFn func(project, zone, name string) error
@@ -309,6 +310,14 @@ func (c *TestClient) InstanceStopped(project, zone, name string) (bool, error) {
 		return c.InstanceStoppedFn(project, zone, name)
 	}
 	return c.client.InstanceStopped(project, zone, name)
+}
+
+// SetInstanceMetadata uses the override method SetInstancemetadataFn or the real implementation.
+func (c *TestClient) SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error {
+	if c.InstanceStoppedFn != nil {
+		return c.SetInstanceMetadataFn(project, zone, name, md)
+	}
+	return c.client.SetInstanceMetadata(project, zone, name, md)
 }
 
 // operationsWait uses the override method operationsWaitFn or the real implementation.

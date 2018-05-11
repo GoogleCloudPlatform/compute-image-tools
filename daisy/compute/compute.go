@@ -42,23 +42,25 @@ type Client interface {
 	DeleteNetwork(project, name string) error
 	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
-	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
 	GetProject(project string) (*compute.Project, error)
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZone(project, zone string) (*compute.Zone, error)
-	ListZones(project string, opts ...ListCallOption) ([]*compute.Zone, error)
 	GetInstance(project, zone, name string) (*compute.Instance, error)
-	ListInstances(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
-	ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	GetImage(project, name string) (*compute.Image, error)
 	GetImageFromFamily(project, family string) (*compute.Image, error)
-	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
 	GetNetwork(project, name string) (*compute.Network, error)
-	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
+	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
+	ListZones(project string, opts ...ListCallOption) ([]*compute.Zone, error)
+	ListInstances(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
+	ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
+	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
+	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
+	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
+
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 	BasePath() string
 }
@@ -637,4 +639,13 @@ func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
 	default:
 		return false, fmt.Errorf("unexpected instance status %q", status)
 	}
+}
+
+// SetInstanceMetadata sets an instances metadata.
+func (c *client) SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error {
+	op, err := c.Retry(c.raw.Instances.SetMetadata(project, zone, name, md).Do)
+	if err != nil {
+		return err
+	}
+	return c.i.operationsWait(project, zone, op.Name)
 }
