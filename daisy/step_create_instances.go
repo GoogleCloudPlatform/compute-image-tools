@@ -82,11 +82,7 @@ Loop:
 	if ok {
 		ss := strings.SplitAfter(buf.String(), "\n")
 		var str string
-		for i, s := range ss {
-			str += s
-			if i+1 < len(ss) && len(str)+len(ss[i+1]) < 98*1024 {
-				continue
-			}
+		cl := func(str string) {
 			dl.cloudLogger.Log(logging.Entry{
 				Payload: map[string]string{
 					"localTimestamp": time.Now().String(),
@@ -96,8 +92,16 @@ Loop:
 					"type":           "Daisy",
 				},
 			})
-			str = ""
 		}
+		for _, s := range ss {
+			if len(str)+len(s) > 98*1024 {
+				cl(str)
+				str = s
+			} else {
+				str += s
+			}
+		}
+		cl(str)
 	}
 }
 

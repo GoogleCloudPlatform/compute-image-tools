@@ -75,8 +75,7 @@ func (l *daisyLog) StepInfo(w *Workflow, stepName, stepType, format string, a ..
 		StepName:       stepName,
 		StepType:       stepType,
 		Message:        fmt.Sprintf(format, a...),
-
-		Type: "Daisy",
+		Type:           "Daisy",
 	}
 	l.writeLogEntry(entry)
 }
@@ -109,8 +108,7 @@ type logEntry struct {
 	StepName       string    `json:"stepName,omitempty"`
 	StepType       string    `json:"stepType,omitempty"`
 	Message        string    `json:"message"`
-
-	Type string `json:"type"`
+	Type           string    `json:"type"`
 }
 
 func (l *daisyLog) writeLogEntry(e *logEntry) {
