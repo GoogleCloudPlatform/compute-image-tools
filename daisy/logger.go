@@ -75,6 +75,7 @@ func (l *daisyLog) StepInfo(w *Workflow, stepName, stepType, format string, a ..
 		StepName:       stepName,
 		StepType:       stepType,
 		Message:        fmt.Sprintf(format, a...),
+		Type:           "Daisy",
 	}
 	l.writeLogEntry(entry)
 }
@@ -107,11 +108,12 @@ type logEntry struct {
 	StepName       string    `json:"stepName,omitempty"`
 	StepType       string    `json:"stepType,omitempty"`
 	Message        string    `json:"message"`
+	Type           string    `json:"type"`
 }
 
 func (l *daisyLog) writeLogEntry(e *logEntry) {
 	if l.cloudLogger != nil {
-		l.cloudLogger.Log(logging.Entry{Payload: e})
+		l.cloudLogger.Log(logging.Entry{Timestamp: e.LocalTimestamp, Payload: e})
 	}
 
 	if l.gcsLogWriter != nil {

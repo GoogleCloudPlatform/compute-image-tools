@@ -202,13 +202,15 @@ func (w *Workflow) Run(ctx context.Context) error {
 		return err
 	}
 	defer w.cleanup()
-	w.Logger.WorkflowInfo(w, "Using the GCS path gs://%s", path.Join(w.bucket, w.scratchPath))
+	w.Logger.WorkflowInfo(w, "Daisy scratch path: https://console.cloud.google.com/storage/browser/%s", path.Join(w.bucket, w.scratchPath))
 
-	w.Logger.WorkflowInfo(w, "Uploading sources")
-	if err := w.uploadSources(ctx); err != nil {
-		w.Logger.WorkflowInfo(w, "Error uploading sources: %v", err)
-		close(w.Cancel)
-		return err
+	if len(w.Sources) != 0 {
+		w.Logger.WorkflowInfo(w, "Uploading sources")
+		if err := w.uploadSources(ctx); err != nil {
+			w.Logger.WorkflowInfo(w, "Error uploading sources: %v", err)
+			close(w.Cancel)
+			return err
+		}
 	}
 	w.Logger.WorkflowInfo(w, "Running workflow")
 	if err := w.run(ctx); err != nil {
