@@ -317,8 +317,12 @@ class DebianTests(GenericDistroTests):
                                raise_errors=False)
     return rc == 0
 
+  def GetGoogleAptSource(self):
+    return 'packages.cloud.google.com'
+
   def TestPackageManagerConfig(self):
-    command = ['grep', '-r', 'packages.cloud.google.com', '/etc/apt/']
+    desired_source = self.GetGoogleAptSource()
+    command = ['grep', '-r', desired_source, '/etc/apt/']
     utils.Execute(command)
 
   def TestAutomaticSecurityUpdates(self):
@@ -342,7 +346,8 @@ class DebianTests(GenericDistroTests):
 
 
 class UbuntuTests(DebianTests):
-  pass
+  def GetGoogleAptSource(self):
+    return 'gce.archive.ubuntu.com'
 
 
 class SuseTests(GenericDistroTests):
