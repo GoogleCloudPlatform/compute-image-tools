@@ -336,9 +336,6 @@ class DebianTests(GenericDistroTests):
     if not self.IsPackageInstalled(package_name):
       raise Exception('%s package is not installed' % package_name)
 
-    # service returns zero if service exists and is running
-    utils.Execute(['service', 'unattended-upgrades', 'status'])
-
     # check unattended upgrade configuration
     command = ['unattended-upgrade', '-v']
     rc, output = utils.Execute(command, capture_output=True)
