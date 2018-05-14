@@ -148,11 +148,17 @@ class GenericDistroTests(object):
     """
     Ensure that the network interface MTU is set to 1460.
     """
-    cur_mtu = int(open('/sys/class/net/eth0/mtu').read())
-    desired_mtu = 1460
-    if cur_mtu != desired_mtu:
-      raise Exception('Network MTU is %d instead of expected %d' % (
-          cur_mtu, desired_mtu))
+    from os import listdir
+    for interface in listdir('/sys/class/net/'):
+      if interface == 'lo':
+        # Loopback is not subject to this restriction
+        continue
+
+      cur_mtu = int(open('/sys/class/net/%s/mtu' % interface).read())
+      desired_mtu = 1460
+      if cur_mtu != desired_mtu:
+        raise Exception('Network MTU is %d but expected %d on %s interface' % (
+            cur_mtu, desired_mtu, interface))
 
   def TestNTPConfig(self):
     """
