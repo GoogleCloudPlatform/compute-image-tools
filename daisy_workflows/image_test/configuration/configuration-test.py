@@ -48,13 +48,6 @@ class GenericDistroTests(object):
     """
     pass
 
-  def EnsurePackageIsInstalled(self, package_name):
-    """
-    Raises exception if @package_name is not installed
-    """
-    if not self.IsPackageInstalled(package_name):
-      raise Exception('%s package is not installed' % package_name)
-
   def TestNoIrqbalanceInstalled(self):
     """
     Ensure that `irqbalance` is not installed or running.
@@ -144,12 +137,12 @@ class GenericDistroTests(object):
         raise Exception('Sshd key "%s" should be "%s" and not "%s"' % (
             key, sshd_desired_configs[key], actual_sshd_configs[key]))
 
+  @abc.abstractmethod
   def TestPackageManagerConfig(self):
     """
     Ensure apt/yum repos are setup for GCE repos.
     """
-    # The google-cloud-sdk package should only be found if GCE repo is setup
-    self.EnsurePackageIsInstalled('google-cloud-sdk')
+    pass
 
   def TestNetworkInterfaceMTU(self):
     """
@@ -228,6 +221,11 @@ class GenericDistroTests(object):
 
 
 class RedHatTests(GenericDistroTests):
+  """
+  Abstract class. Please use a derived one.
+  """
+  __metaclass__ = abc.ABCMeta
+
   def TestPackageInstallation(self):
     # install something to test repository sanity
     utils.Execute(['yum', '-y', 'install', 'tree'])
@@ -240,20 +238,31 @@ class RedHatTests(GenericDistroTests):
     rc, output = utils.Execute(command, raise_errors=False)
     return rc == 0
 
+  def TestPackageManagerConfig(self):
+    command = ['grep', '-r', 'packages.cloud.google.com', '/etc/yum.repos.d/']
+    utils.Execute(command)
+
+  @abc.abstractmethod
+  def GetYumCronConfig(self):
+    """
+    Return the location of yum-cron configuration on the system and a
+    configuration dictionary to be checked on
+    """
+    pass
+
   def TestAutomaticSecurityUpdates(self):
     # the following command returns zero if package is installed
     utils.Execute(['yum', '--assumeno', 'install', 'yum-cron'])
 
-    # systemctl returns zero if service exists and is running
-    utils.Execute(['systemctl', 'status', 'yum-cron'])
+    # service returns zero if service exists and is running
+    utils.Execute(['service', 'yum-cron', 'status'])
 
     # check yum-cron configuration
-    configs = {
-        'download_updates': 'yes',
-        'apply_updates': 'yes',
-    }
+    # Now this part is, unfortunately, different between RedHat 6 and 7
+    yum_cron_file, configs = self.GetYumCronConfig()
+
     for key in configs:
-      command = ['grep', key, '/etc/yum/yum-cron.conf']
+      command = ['grep', key, yum_cron_file]
       rc, output = utils.Execute(command, capture_output=True)
       # get clean text after '=' token
       cur_value = RemoveCommentAndStrip(output[output.find('=') + 1:])
@@ -262,7 +271,38 @@ class RedHatTests(GenericDistroTests):
             key, cur_value, configs[key]))
 
 
+class RedHat6Tests(RedHatTests):
+  def GetYumCronConfig(self):
+    return (
+        '/etc/sysconfig/yum-cron',
+        {
+            'CHECK_ONLY': 'no',
+            'DOWNLOAD_ONLY': 'no',
+        }
+    )
+
+
+class RedHat7Tests(RedHatTests):
+  def GetYumCronConfig(self):
+    return (
+        '/etc/yum/yum-cron.conf',
+        {
+            'download_updates': 'yes',
+            'apply_updates': 'yes',
+        }
+    )
+
+
 class CentOSTests(RedHatTests):
+  __metaclass__ = abc.ABCMeta
+  pass
+
+
+class CentOS6Tests(RedHat6Tests):
+  pass
+
+
+class CentOS7Tests(RedHat7Tests):
   pass
 
 
@@ -277,8 +317,14 @@ class DebianTests(GenericDistroTests):
                                raise_errors=False)
     return rc == 0
 
+  def TestPackageManagerConfig(self):
+    command = ['grep', '-r', 'packages.cloud.google.com', '/etc/apt/']
+    utils.Execute(command)
+
   def TestAutomaticSecurityUpdates(self):
-    self.EnsurePackageIsInstalled('unattended-upgrades')
+    package_name = 'unattended-upgrades'
+    if not self.IsPackageInstalled(package_name):
+      raise Exception('%s package is not installed' % package_name)
 
     # service returns zero if service exists and is running
     utils.Execute(['service', 'unattended-upgrades', 'status'])
@@ -312,12 +358,17 @@ def main():
 
   distribution = distro.linux_distribution()
   distro_name = distribution[0].lower()
+  distro_version = distribution[1].split('.')[0]
   distro_tests = None
 
-  if 'red hat enterprise linux' in distro_name:
-    distro_tests = RedHatTests()
+  if 'red hat enterprise linux' in distro_name and distro_version == '6':
+    distro_tests = RedHat6Tests()
+  elif 'red hat enterprise linux' in distro_name:
+    distro_tests = RedHat7Tests()
+  elif 'centos' in distro_name and distro_version == '6':
+    distro_tests = CentOS6Tests()
   elif 'centos' in distro_name:
-    distro_tests = CentOSTests()
+    distro_tests = CentOS7Tests()
   elif 'debian' in distro_name:
     distro_tests = DebianTests()
   elif 'ubuntu' in distro_name:
