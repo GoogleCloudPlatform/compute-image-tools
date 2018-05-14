@@ -4,9 +4,16 @@
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
   "Sources": {
+    "bootstrap": "../linux_common/bootstrap.py",
+    "test_files/centos.py": "./centos.py",
+    "test_files/configuration-test.py": "./configuration-test.py",
+    "test_files/debian.py": "./debian.py",
+    "test_files/generic_distro.py": "./generic_distro.py",
+    "test_files/redhat.py": "./redhat.py",
+    "test_files/suse.py": "./suse.py",
     "test_files/test.py": "./configuration-test.py",
-    "test_files/utils.py": "../linux_common/utils.py",
-    "bootstrap": "../linux_common/bootstrap.py"
+    "test_files/ubuntu.py": "./ubuntu.py",
+    "test_files/utils.py": "../linux_common/utils.py"
   },
   "Steps": {
     "create-disk": {
