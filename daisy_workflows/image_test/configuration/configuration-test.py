@@ -44,6 +44,8 @@ def main():
     from ubuntu import UbuntuTests as DistroClass
   elif 'suse' in distro_name:
     from suse import SuseTests as DistroClass
+  elif 'FreeBSD' in distro.system():
+    from freebsd import FreeBSDTests as DistroClass
   else:
     raise Exception('Distribution %s is not supported' % distro_name)
 
