@@ -124,6 +124,46 @@ func TestResourceRegistryDelete(t *testing.T) {
 	}
 }
 
+func TestResourceRegistryStop(t *testing.T) {
+	var stopFnErr dErr
+	r := &baseResourceRegistry{m: map[string]*Resource{}}
+	r.stopFn = func(r *Resource) dErr {
+		return stopFnErr
+	}
+
+	r.m["foo"] = &Resource{}
+	r.m["baz"] = &Resource{}
+
+	tests := []struct {
+		desc, input string
+		stopFnErr dErr
+		shouldErr   bool
+	}{
+		{"good case", "foo", nil, false},
+		{"bad restop case", "foo", nil, true},
+		{"bad resource dne case", "bar", nil, true},
+		{"bad stopFn error case", "baz", errf("error"), true},
+	}
+
+	for _, tt := range tests {
+		stopFnErr = tt.stopFnErr
+		err := r.stop(tt.input)
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: should have erred but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+
+	wantM := map[string]*Resource{
+		"foo": {stopped: true},
+		"baz": {stopped: false},
+	}
+	if diffRes := diff(r.m, wantM, 0); diffRes != "" {
+		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diffRes)
+	}
+}
+
 func TestResourceRegistryGet(t *testing.T) {
 	xRes := &Resource{}
 	yRes := &Resource{}

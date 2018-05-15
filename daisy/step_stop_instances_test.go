@@ -39,7 +39,7 @@ func TestStopInstancesPopulate(t *testing.T) {
 	}
 }
 
-func TestStopInstanceValidate(t *testing.T) {
+func TestStopInstancesValidate(t *testing.T) {
 	ctx := context.Background()
 	// Set up.
 	w := testWorkflow()
@@ -51,7 +51,44 @@ func TestStopInstanceValidate(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if err := (&StopInstances{Instances: []string{"instance1"}}).validate(ctx, s); err != nil {
+		t.Errorf("validation should not have failed: %v", err)
+	}
+
 	if err := (&StopInstances{Instances: []string{"dne"}}).validate(ctx, s); err == nil {
 		t.Error("StopInstances should have returned an error when stopping an instance that DNE")
+	}
+}
+
+func TestStopInstancesRun(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+
+	s, _ := w.NewStep("s")
+	ins := []*Resource{{RealName: "in0", link: "link"}, {RealName: "in1", link: "link"}}
+	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
+
+	si := &StopInstances{
+		Instances: []string{"in0"},
+	}
+	if err := si.run(ctx, s); err != nil {
+		t.Fatalf("error running StopInstances.run(): %v", err)
+	}
+
+	stoppedChecks := []struct {
+		r               *Resource
+		shouldBeStopped bool
+	}{
+		{ins[0], true},
+		{ins[1], false},
+	}
+	for _, c := range stoppedChecks {
+		if c.shouldBeStopped {
+			if !c.r.stopped {
+				t.Errorf("resource %q should have been stopped", c.r.RealName)
+			}
+		} else if c.r.stopped {
+			t.Errorf("resource %q should not have been stopped", c.r.RealName)
+		}
 	}
 }
