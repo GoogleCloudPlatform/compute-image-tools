@@ -23,6 +23,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"cloud.google.com/go/logging"
 )
 
 type MockLogger struct {
@@ -54,6 +56,10 @@ func (l *MockLogger) WorkflowInfo(w *Workflow, format string, a ...interface{}) 
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	l.entries = append(l.entries, entry)
+}
+
+func (l *MockLogger) SendSerialPortLogsToCloud(w *Workflow, instance string, buf bytes.Buffer) {
+	// nop
 }
 
 // f flushes all loggers.
@@ -104,4 +110,50 @@ func TestWriteStepInfo(t *testing.T) {
 	if !match {
 		t.Errorf("Wanted to match %s, got %s", want, got)
 	}
+}
+
+type MockCloudLogWriter struct {
+	entries []*logging.Entry
+	mx      sync.Mutex
+}
+
+func (cl *MockCloudLogWriter) Log(e logging.Entry) {
+	cl.mx.Lock()
+	defer cl.mx.Unlock()
+	cl.entries = append(cl.entries, &e)
+}
+
+func (cl *MockCloudLogWriter) Flush() error {
+	return nil
+}
+
+func TestSendSerialPortLogsToCloud(t *testing.T) {
+	w := New()
+	w.Name = "Test"
+	w.createLogger(context.Background())
+	cl := &MockCloudLogWriter{}
+	w.Logger.(*daisyLog).cloudLogger = cl
+	var buf bytes.Buffer
+	for i := 0; i < 98*1024; i++ {
+		buf.WriteString("Serial output\n")
+	}
+
+	w.Logger.SendSerialPortLogsToCloud(w, "instance-name", buf)
+
+	if len(cl.entries) != 14 {
+		t.Errorf("Wanted %d", len(cl.entries))
+	}
+}
+
+func TestSendSerialPortLogsToCloudDisabled(t *testing.T) {
+	w := New()
+	w.Name = "Test"
+	w.createLogger(context.Background())
+	w.Logger.(*daisyLog).cloudLogger = nil
+	var buf bytes.Buffer
+	buf.WriteString("Serial output\n")
+
+	w.Logger.SendSerialPortLogsToCloud(w, "instance-name", buf)
+
+	// Nothing to verify. Nothing happened.
 }
