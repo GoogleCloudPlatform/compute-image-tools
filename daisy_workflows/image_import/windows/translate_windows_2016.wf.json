@@ -27,7 +27,6 @@
           "source_disk": "${source_disk}",
           "install_gce_packages": "${install_gce_packages}",
           "sysprep": "${sysprep}",
-          "imported_disk": "${disk_name}",
           "drivers": "gs://gce-windows-drivers-public/release/win6.3/",
           "version": "10.0",
           "task_reg": "./task_reg_2016",
