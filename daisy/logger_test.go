@@ -17,7 +17,6 @@ package daisy
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
 	"regexp"
 	"sync"
@@ -74,7 +73,7 @@ func (l *MockLogger) getEntries() []*logEntry {
 func TestWriteWorkflowInfo(t *testing.T) {
 	w := New()
 	w.Name = "Test"
-	w.createLogger(context.Background())
+	w.Logger = &daisyLog{}
 
 	var b bytes.Buffer
 	w.Logger.(*daisyLog).gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
@@ -96,7 +95,7 @@ func TestWriteWorkflowInfo(t *testing.T) {
 func TestWriteStepInfo(t *testing.T) {
 	w := New()
 	w.Name = "Test"
-	w.createLogger(context.Background())
+	w.Logger = &daisyLog{}
 
 	var b bytes.Buffer
 	w.Logger.(*daisyLog).gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
