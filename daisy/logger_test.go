@@ -130,7 +130,7 @@ func (cl *MockCloudLogWriter) Flush() error {
 func TestSendSerialPortLogsToCloud(t *testing.T) {
 	w := New()
 	w.Name = "Test"
-	w.createLogger(context.Background())
+	w.Logger = &daisyLog{}
 	cl := &MockCloudLogWriter{}
 	w.Logger.(*daisyLog).cloudLogger = cl
 	var buf bytes.Buffer
@@ -148,8 +148,7 @@ func TestSendSerialPortLogsToCloud(t *testing.T) {
 func TestSendSerialPortLogsToCloudDisabled(t *testing.T) {
 	w := New()
 	w.Name = "Test"
-	w.createLogger(context.Background())
-	w.Logger.(*daisyLog).cloudLogger = nil
+	w.Logger = &daisyLog{}
 	var buf bytes.Buffer
 	buf.WriteString("Serial output\n")
 
