@@ -79,7 +79,7 @@ Loop:
 	// Type assertion check is needed for tests not to panic.
 	// Split if output is too long for log entry (100K max, we leave a 2K buffer).
 	dl, ok := w.Logger.(*daisyLog)
-	if ok {
+	if ok && !w.cloudLoggingDisabled {
 		ss := strings.SplitAfter(buf.String(), "\n")
 		var str string
 		cl := func(str string) {
