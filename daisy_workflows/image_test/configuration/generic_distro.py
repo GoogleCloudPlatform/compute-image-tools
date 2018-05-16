@@ -164,7 +164,7 @@ class GenericDistroTests(object):
     Ensure that the NTP server is set to metadata.google.internal.
     """
     # Below, not the most pythonic thing to do... but it's the easiest one
-    command = ['grep', '^server\s\+metadata.google.internal', '/etc/ntp.conf']
+    command = ['grep', '^server \+metadata.google.internal', '/etc/ntp.conf']
     utils.Execute(command)
     # if the above command returned any lines, then it found a match
 
@@ -175,35 +175,45 @@ class GenericDistroTests(object):
     """
     pass
 
+  def GetSysctlConfigs(self):
+    """
+    Return linux parameters for sysctl checks.
+    """
+    return {
+        'net.ipv4.ip_forward': 0,
+        'net.ipv4.tcp_syncookies': 1,
+        'net.ipv4.conf.all.accept_source_route': 0,
+        'net.ipv4.conf.default.accept_source_route': 0,
+        'net.ipv4.conf.all.accept_redirects': 0,
+        'net.ipv4.conf.default.accept_redirects': 0,
+        'net.ipv4.conf.all.secure_redirects': 1,
+        'net.ipv4.conf.default.secure_redirects': 1,
+        'net.ipv4.conf.all.send_redirects': 0,
+        'net.ipv4.conf.default.send_redirects': 0,
+        'net.ipv4.conf.all.rp_filter': 1,
+        'net.ipv4.conf.default.rp_filter': 1,
+        'net.ipv4.icmp_echo_ignore_broadcasts': 1,
+        'net.ipv4.icmp_ignore_bogus_error_responses': 1,
+        'net.ipv4.conf.all.log_martians': 1,
+        'net.ipv4.conf.default.log_martians': 1,
+        'net.ipv4.tcp_rfc1337': 1,
+        'kernel.randomize_va_space': 2,
+    }
+
   def TestSysctlSecurityParams(self):
     """
     Ensure sysctl security parameters are set.
     """
     def CheckSecurityParameter(key, desired_value):
-      rc, output = utils.Execute(['sysctl', key], capture_output=True)
-      actual_value = int(output.split(" = ")[1])
+      rc, output = utils.Execute(['sysctl', '-e', key], capture_output=True)
+      actual_value = int(output.split("=")[1])
       if actual_value != desired_value:
         raise Exception('Security Parameter %s is %d but expected %d' % (
             key, actual_value, desired_value))
 
-    CheckSecurityParameter('net.ipv4.ip_forward', 0)
-    CheckSecurityParameter('net.ipv4.tcp_syncookies', 1)
-    CheckSecurityParameter('net.ipv4.conf.all.accept_source_route', 0)
-    CheckSecurityParameter('net.ipv4.conf.default.accept_source_route', 0)
-    CheckSecurityParameter('net.ipv4.conf.all.accept_redirects', 0)
-    CheckSecurityParameter('net.ipv4.conf.default.accept_redirects', 0)
-    CheckSecurityParameter('net.ipv4.conf.all.secure_redirects', 1)
-    CheckSecurityParameter('net.ipv4.conf.default.secure_redirects', 1)
-    CheckSecurityParameter('net.ipv4.conf.all.send_redirects', 0)
-    CheckSecurityParameter('net.ipv4.conf.default.send_redirects', 0)
-    CheckSecurityParameter('net.ipv4.conf.all.rp_filter', 1)
-    CheckSecurityParameter('net.ipv4.conf.default.rp_filter', 1)
-    CheckSecurityParameter('net.ipv4.icmp_echo_ignore_broadcasts', 1)
-    CheckSecurityParameter('net.ipv4.icmp_ignore_bogus_error_responses', 1)
-    CheckSecurityParameter('net.ipv4.conf.all.log_martians', 1)
-    CheckSecurityParameter('net.ipv4.conf.default.log_martians', 1)
-    CheckSecurityParameter('net.ipv4.tcp_rfc1337', 1)
-    CheckSecurityParameter('kernel.randomize_va_space', 2)
+    sysctl_configs = self.GetSysctlConfigs()
+    for config in sysctl_configs:
+      CheckSecurityParameter(config, sysctl_configs[config])
 
   def TestGcloudUpToDate(self):
     """

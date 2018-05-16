@@ -8,6 +8,7 @@
     "test_files/centos.py": "./centos.py",
     "test_files/configuration-test.py": "./configuration-test.py",
     "test_files/debian.py": "./debian.py",
+    "test_files/freebsd.py": "./freebsd.py",
     "test_files/generic_distro.py": "./generic_distro.py",
     "test_files/redhat.py": "./redhat.py",
     "test_files/suse.py": "./suse.py",
@@ -21,7 +22,6 @@
         {
           "Name": "disk",
           "SourceImage": "${source_image}",
-          "SizeGb": "10",
           "Type": "pd-ssd"
         }
       ]
