@@ -48,19 +48,15 @@ AptGetInstall.first_run = True
 def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
   """Execute an external command (wrapper for Python subprocess)."""
   logging.info('Command: %s', str(cmd))
-  returncode = 0
-  output = None
-  try:
-    if capture_output:
-      output = subprocess.check_output(cmd, cwd=cwd, env=env)
-    else:
-      subprocess.check_call(cmd, cwd=cwd, env=env)
-  except subprocess.CalledProcessError as e:
+  stdout = subprocess.PIPE if capture_output else None
+  p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=stdout)
+  output = p.communicate()[0]
+  returncode = p.returncode
+  if returncode != 0:
+    # Error
     if raise_errors:
-      raise
+      raise subprocess.CalledProcessError(returncode, cmd)
     else:
-      returncode = e.returncode
-      output = e.output
       logging.exception('Command returned error status %d', returncode)
   if output:
     logging.info(output)
