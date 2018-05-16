@@ -136,7 +136,7 @@ func TestResourceRegistryStop(t *testing.T) {
 
 	tests := []struct {
 		desc, input string
-		stopFnErr dErr
+		stopFnErr   dErr
 		shouldErr   bool
 	}{
 		{"good case", "foo", nil, false},
