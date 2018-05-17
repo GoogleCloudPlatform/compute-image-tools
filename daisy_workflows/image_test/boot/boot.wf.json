@@ -24,7 +24,9 @@
           "Name": "inst-boot-test",
           "Disks": [{"Source": "disk-test-img"}],
           "MachineType": "${machine_type}",
-          "StartupScript": "boot.sh"
+          "Metadata": {
+            "startup-script": "${SOURCE:boot.sh}"
+          }
         }
       ]
     },
