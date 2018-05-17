@@ -114,7 +114,7 @@ class GenericDistroTests(object):
     """
     Ensure sshd config has sane default settings
     """
-    def parseSshdConfig(path):
+    def ParseSshdConfig(path):
       configs = {}
       with open(path) as f:
         for line in filter(RemoveCommentAndStrip, f.read().split('\n')):
@@ -130,7 +130,7 @@ class GenericDistroTests(object):
         'PasswordAuthentication': 'no',
     }
 
-    actual_sshd_configs = parseSshdConfig('/etc/ssh/sshd_config')
+    actual_sshd_configs = ParseSshdConfig('/etc/ssh/sshd_config')
     for key in sshd_desired_configs:
       if actual_sshd_configs[key] != sshd_desired_configs[key]:
         raise Exception('Sshd key "%s" should be "%s" and not "%s"' % (
