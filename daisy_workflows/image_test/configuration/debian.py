@@ -13,11 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import abc
+
 import generic_distro
 import utils
 
 
 class DebianTests(generic_distro.GenericDistroTests):
+  """
+  Abstract class. Please use a derived one.
+  """
+  __metaclass__ = abc.ABCMeta
+
   def TestPackageInstallation(self):
     utils.Execute(['apt-get', 'update'])
     utils.Execute(['apt-get', 'install', '--reinstall', '-y', 'tree'])
@@ -51,3 +58,18 @@ class DebianTests(generic_distro.GenericDistroTests):
           # There is some repository used for unattended upgrades
           return
     raise Exception('No origin repository used by unattended-upgrade')
+
+
+class Debian8Tests(DebianTests):
+  pass
+
+
+class Debian9Tests(DebianTests):
+  def GetCmdlineConfigs(self):
+    d = super(Debian9Tests, self).GetCmdlineConfigs()
+    d.update({
+        'scsi_mod.use_blk_mq': ['Y'],
+        'net.ifnames': ['0'],
+        'biosdevname': ['0'],
+    })
+    return d

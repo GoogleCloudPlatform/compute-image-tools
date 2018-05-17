@@ -26,3 +26,9 @@ class UbuntuTests(debian.DebianTests):
         'PasswordAuthentication': 'no',
     }
 
+  def GetCmdlineConfigs(self):
+    # Analysing if {'console': ['ttyS0', '38400n8'],} should be here or not.
+    # Because it fails!
+    return {
+        'scsi_mod.use_blk_mq': ['Y'],
+    }
