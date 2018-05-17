@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ -f ~/reboot.txt ]]; then
-  cat ~/reboot.txt
-else
+if ! cat /reboot.txt > /dev/console; then
   echo "BOOTED" > /dev/console
-  echo "REBOOTED" > ~/reboot.txt
+  echo "REBOOTED" > /reboot.txt
   shutdown -r now
 fi
