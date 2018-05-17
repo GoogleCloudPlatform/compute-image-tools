@@ -110,6 +110,15 @@ class GenericDistroTests(object):
     # Below, not the most pythonic thing to do... but it's the easiest one
     utils.Execute(['grep', '^root:[\!*]', '/etc/shadow'])
 
+  def GetSshdConfig(self):
+    """
+    Return desired sshd config to be checked.
+    """
+    return {
+        'PermitRootLogin': 'no',
+        'PasswordAuthentication': 'no',
+    }
+
   def TestSshdConfig(self):
     """
     Ensure sshd config has sane default settings
@@ -125,16 +134,11 @@ class GenericDistroTests(object):
             configs[entry[0]] = ' '.join(entry[1:]).strip()
       return configs
 
-    sshd_desired_configs = {
-        'PermitRootLogin': 'no',
-        'PasswordAuthentication': 'no',
-    }
-
     actual_sshd_configs = ParseSshdConfig('/etc/ssh/sshd_config')
-    for key in sshd_desired_configs:
-      if actual_sshd_configs[key] != sshd_desired_configs[key]:
+    for desired_key, desired_value in self.GetSshdConfig().iteritems():
+      if actual_sshd_configs[desired_key] != desired_value:
         raise Exception('Sshd key "%s" should be "%s" and not "%s"' % (
-            key, sshd_desired_configs[key], actual_sshd_configs[key]))
+            desired_key, desired_value, actual_sshd_configs[desired_key]))
 
   @abc.abstractmethod
   def TestPackageManagerConfig(self):

@@ -27,6 +27,11 @@ class FreeBSDTests(generic_distro.GenericDistroTests):
     rc, output = utils.Execute(command, raise_errors=False)
     return rc == 0
 
+  def GetSshdConfig(self):
+    # Don't check for PermitRootLogin and PasswordAuthentication as it
+    # fallbacks on FreeBSD to "no" when undefined
+    return {}
+
   def TestRootPasswordDisabled(self):
     """
     Ensure root password is disabled (/etc/passwd)

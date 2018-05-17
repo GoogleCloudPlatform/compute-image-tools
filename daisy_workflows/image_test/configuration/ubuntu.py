@@ -19,3 +19,10 @@ import debian
 class UbuntuTests(debian.DebianTests):
   def GetGoogleAptSource(self):
     return 'gce.archive.ubuntu.com'
+
+  def GetSshdConfig(self):
+    # They know what they are doing. No need to check for PermitRootLogin
+    return {
+        'PasswordAuthentication': 'no',
+    }
+
