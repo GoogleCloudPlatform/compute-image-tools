@@ -54,21 +54,62 @@ class GenericDistroTests(object):
     if self.IsPackageInstalled('irqbalance'):
       raise Exception('irqbalance should not be found')
 
-  def TestConsoleLogging(self):
+  def GetCmdlineConfigs(self):
     """
-    Ensure boot loader configuration for console logging is correct.
+    Return command line configurations to be checked.
     """
-    # TODO: Or maybe it can be removed as this is implicitly verified by other
-    # tests, like os-login.
-    pass
+    return {
+        'console': ['ttyS0', '38400n8'],
+    }
+
+  def GetCmdlineLocation(self):
+    """
+    Return the path for kernel arguments given by the bootloader
+    """
+    return '/proc/cmdline'
 
   def TestKernelCmdargs(self):
     """
+    Ensure boot loader configuration for console logging is correct.
     Ensure boot loader kernel command line args (per distro).
     """
-    # TODO: more information needed. Follow up on:
-    # https://github.com/GoogleCloudPlatform/compute-image-tools/issues/402
-    pass
+    def ReadCmdline():
+      cmdline = open(self.GetCmdlineLocation()).read()
+      # Store values as: { # e.g: "console=ttyS0,38400n8 ro"
+      #   'console': ['ttyS0', '38400n8'],
+      #   'ro': [],
+      # }
+      configs = {}
+      args = []
+      for line in cmdline.split('\n'):
+        if line:
+          args.extend(line.split(' '))
+      for arg in args:
+        v = arg.split('=')
+        if len(v) > 1:
+          configs[v[0]] = [i.replace('"', '').strip() for i in v[1].split(',')]
+        else:
+          configs[v[0]] = []
+      return configs
+
+    desired_configs = self.GetCmdlineConfigs()
+    cur_configs = ReadCmdline()
+
+    try:
+      for desired_config, desired_values in desired_configs.iteritems():
+        for desired_value in desired_values:
+          cur_value = cur_configs[desired_config]
+          if desired_value:
+            if desired_value not in cur_value:
+              e = 'Desired cmdline arg "%s" with value "%s" not found in "%s"'
+              raise Exception(e % (desired_config, desired_value, cur_value))
+          else:
+            # empty list
+            if cur_value:
+              e = 'Desired cmdline arg "%s" should not be defined as "%s"'
+              raise Exception(e % (desired_config, cur_value))
+    except KeyError as e:
+      raise Exception('Desired cmdline arg "%s" not found' % e.args[0])
 
   def TestHostname(self, expected_hostname):
     """
@@ -110,11 +151,20 @@ class GenericDistroTests(object):
     # Below, not the most pythonic thing to do... but it's the easiest one
     utils.Execute(['grep', '^root:[\!*]', '/etc/shadow'])
 
+  def GetSshdConfig(self):
+    """
+    Return desired sshd config to be checked.
+    """
+    return {
+        'PermitRootLogin': 'no',
+        'PasswordAuthentication': 'no',
+    }
+
   def TestSshdConfig(self):
     """
     Ensure sshd config has sane default settings
     """
-    def parseSshdConfig(path):
+    def ParseSshdConfig(path):
       configs = {}
       with open(path) as f:
         for line in filter(RemoveCommentAndStrip, f.read().split('\n')):
@@ -125,16 +175,11 @@ class GenericDistroTests(object):
             configs[entry[0]] = ' '.join(entry[1:]).strip()
       return configs
 
-    sshd_desired_configs = {
-        'PermitRootLogin': 'no',
-        'PasswordAuthentication': 'no',
-    }
-
-    actual_sshd_configs = parseSshdConfig('/etc/ssh/sshd_config')
-    for key in sshd_desired_configs:
-      if actual_sshd_configs[key] != sshd_desired_configs[key]:
+    actual_sshd_configs = ParseSshdConfig('/etc/ssh/sshd_config')
+    for desired_key, desired_value in self.GetSshdConfig().iteritems():
+      if actual_sshd_configs[desired_key] != desired_value:
         raise Exception('Sshd key "%s" should be "%s" and not "%s"' % (
-            key, sshd_desired_configs[key], actual_sshd_configs[key]))
+            desired_key, desired_value, actual_sshd_configs[desired_key]))
 
   @abc.abstractmethod
   def TestPackageManagerConfig(self):

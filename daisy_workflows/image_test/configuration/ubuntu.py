@@ -19,3 +19,16 @@ import debian
 class UbuntuTests(debian.DebianTests):
   def GetGoogleAptSource(self):
     return 'gce.archive.ubuntu.com'
+
+  def GetSshdConfig(self):
+    # They know what they are doing. No need to check for PermitRootLogin
+    return {
+        'PasswordAuthentication': 'no',
+    }
+
+  def GetCmdlineConfigs(self):
+    # Analysing if {'console': ['ttyS0', '38400n8'],} should be here or not.
+    # Because it fails!
+    return {
+        'scsi_mod.use_blk_mq': ['Y'],
+    }

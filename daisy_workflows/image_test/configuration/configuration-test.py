@@ -38,8 +38,10 @@ def main():
     from centos import CentOS6Tests as DistroClass
   elif 'centos' in distro_name:
     from centos import CentOS7Tests as DistroClass
+  elif 'debian' in distro_name and distro_version == '8':
+    from debian import Debian8Tests as DistroClass
   elif 'debian' in distro_name:
-    from debian import DebianTests as DistroClass
+    from debian import Debian9Tests as DistroClass
   elif 'ubuntu' in distro_name:
     from ubuntu import UbuntuTests as DistroClass
   elif 'suse' in distro_name:
@@ -54,7 +56,6 @@ def main():
   distro_tests = DistroClass()
   distro_tests.TestPackageInstallation()
   distro_tests.TestNoIrqbalanceInstalled()
-  distro_tests.TestConsoleLogging()
   distro_tests.TestKernelCmdargs()
   distro_tests.TestHostname(instance_name)
   distro_tests.TestRsyslogConfig()
