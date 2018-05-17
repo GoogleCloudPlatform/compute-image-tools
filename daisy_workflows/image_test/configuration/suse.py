@@ -17,4 +17,8 @@ import generic_distro
 
 
 class SuseTests(generic_distro.GenericDistroTests):
-  pass
+  def TestPackageManagerConfig(self):
+    """
+    No special repository for Suse
+    """
+    pass
