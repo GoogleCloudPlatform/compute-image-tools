@@ -14,7 +14,6 @@
         {
           "Name": "disk-tester",
           "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "SizeGb": "10",
           "Type": "pd-ssd"
         }
       ]
@@ -24,7 +23,6 @@
         {
           "Name": "disk-testee",
           "SourceImage": "${source_image}",
-          "SizeGb": "10",
           "Type": "pd-ssd"
         }
       ]

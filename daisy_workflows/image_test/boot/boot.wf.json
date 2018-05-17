@@ -13,7 +13,6 @@
         {
           "Name": "disk-test-img",
           "SourceImage": "${source_image}",
-          "SizeGb": "10",
           "Type": "pd-ssd"
         }
       ]
