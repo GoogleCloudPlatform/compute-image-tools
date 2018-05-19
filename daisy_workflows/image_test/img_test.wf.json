@@ -55,6 +55,14 @@
             "source_image": "${source_image}"
         }
       }
+    },
+    "test-configuration": {
+      "SubWorkflow": {
+        "Path": "./configuration/configuration.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
     }
   },
   "Dependencies": {

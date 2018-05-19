@@ -1,0 +1,103 @@
+{
+  "Name": "img-configuration-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Sources": {
+    "bootstrap": "../linux_common/bootstrap.py",
+    "test_files/centos.py": "./centos.py",
+    "test_files/configuration-test.py": "./configuration-test.py",
+    "test_files/debian.py": "./debian.py",
+    "test_files/freebsd.py": "./freebsd.py",
+    "test_files/generic_distro.py": "./generic_distro.py",
+    "test_files/redhat.py": "./redhat.py",
+    "test_files/suse.py": "./suse.py",
+    "test_files/test.py": "./configuration-test.py",
+    "test_files/ubuntu.py": "./ubuntu.py",
+    "test_files/utils.py": "../linux_common/utils.py"
+  },
+  "Steps": {
+    "create-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-configuration",
+          "Disks": [{"Source": "disk"}],
+          "StartupScript": "bootstrap",
+          "Metadata": {
+            "instance_name": "inst-configuration-${FULLNAME}",
+            "test_files_gcs_dir": "${SOURCESPATH}/test_files",
+            "test_script": "test.py",
+            "zone": "${ZONE}",
+            "project": "${PROJECT}"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/cloud-platform"]
+        }
+      ]
+    },
+    "rsyslog-kernel-console-test": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-configuration",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "RsyslogKernelConsoleTest"
+          }
+        }
+      ]
+    },
+    "rsyslog-hostname-test": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-configuration",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "inst-configuration-${FULLNAME}"
+          }
+        }
+      ]
+    },
+    "rsyslog-daemon-console-test": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-configuration",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "RsyslogDaemonConsoleTest"
+          }
+        }
+      ]
+    },
+    "wait-for-test-completion": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-configuration",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "TestSuccess",
+            "FailureMatch": "TestFailed"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-instance": ["create-disk"],
+    "rsyslog-kernel-console-test": ["create-instance"],
+    "rsyslog-hostname-test": ["create-instance"],
+    "rsyslog-daemon-console-test": ["create-instance"],
+    "wait-for-test-completion": ["create-instance"]
+  }
+}

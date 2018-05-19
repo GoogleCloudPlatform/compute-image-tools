@@ -13,7 +13,6 @@
         {
           "Name": "disk-test-img",
           "SourceImage": "${source_image}",
-          "SizeGb": "10",
           "Type": "pd-ssd"
         }
       ]
@@ -24,7 +23,9 @@
           "Name": "inst-boot-test",
           "Disks": [{"Source": "disk-test-img"}],
           "MachineType": "${machine_type}",
-          "StartupScript": "boot.sh"
+          "Metadata": {
+            "startup-script": "${SOURCE:boot.sh}"
+          }
         }
       ]
     },

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env python2
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if ! cat /reboot.txt > /dev/console; then
-  echo "BOOTED" > /dev/console
-  echo "REBOOTED" > /reboot.txt
-  shutdown -r now
-fi
+import debian
+
+
+class UbuntuTests(debian.DebianTests):
+  def GetGoogleAptSource(self):
+    return 'gce.archive.ubuntu.com'
+
+  def GetSshdConfig(self):
+    # They know what they are doing. No need to check for PermitRootLogin
+    return {
+        'PasswordAuthentication': 'no',
+    }
+
+  def GetCmdlineConfigs(self):
+    # Analysing if {'console': ['ttyS0', '38400n8'],} should be here or not.
+    # Because it fails!
+    return {
+        'scsi_mod.use_blk_mq': ['Y'],
+    }
