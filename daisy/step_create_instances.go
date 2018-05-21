@@ -19,11 +19,8 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"strings"
 	"sync"
 	"time"
-
-	"cloud.google.com/go/logging"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
@@ -75,34 +72,7 @@ Loop:
 		}
 	}
 
-	// Write the output to cloud logging only after instance has stopped.
-	// Type assertion check is needed for tests not to panic.
-	// Split if output is too long for log entry (100K max, we leave a 2K buffer).
-	dl, ok := w.Logger.(*daisyLog)
-	if ok {
-		ss := strings.SplitAfter(buf.String(), "\n")
-		var str string
-		cl := func(str string) {
-			dl.cloudLogger.Log(logging.Entry{
-				Payload: map[string]string{
-					"localTimestamp": time.Now().String(),
-					"workflowName":   getAbsoluteName(w),
-					"message":        fmt.Sprintf("Serial port output for instance %q", name),
-					"serialPort1":    str,
-					"type":           "Daisy",
-				},
-			})
-		}
-		for _, s := range ss {
-			if len(str)+len(s) > 98*1024 {
-				cl(str)
-				str = s
-			} else {
-				str += s
-			}
-		}
-		cl(str)
-	}
+	w.Logger.SendSerialPortLogsToCloud(w, name, buf)
 }
 
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.
