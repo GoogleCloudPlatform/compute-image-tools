@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env python2
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if ! cat /reboot.txt > /dev/console; then
-  echo "BOOTED" > /dev/console
-  echo "REBOOTED" > /reboot.txt
-  shutdown -r now
-fi
+import abc
+
+import redhat
+
+
+class CentOSTests(redhat.RedHatTests):
+  __metaclass__ = abc.ABCMeta
+  pass
+
+
+class CentOS6Tests(redhat.RedHat6Tests):
+  pass
+
+
+class CentOS7Tests(redhat.RedHat7Tests):
+  pass
