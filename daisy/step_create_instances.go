@@ -28,6 +28,9 @@ type CreateInstances []*Instance
 
 func logSerialOutput(ctx context.Context, s *Step, name string, port int64, interval time.Duration) {
 	w := s.w
+	w.logWait.Add(1)
+	defer w.logWait.Done()
+
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
 	w.Logger.StepInfo(w, s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", name, port, w.bucket, logsObj)
 	var start int64

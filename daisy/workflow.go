@@ -125,6 +125,7 @@ type Workflow struct {
 	Logger                Logger
 	cleanupHooks          []func() dErr
 	cleanupHooksMx        sync.Mutex
+	logWait               sync.WaitGroup
 
 	// Optional compute endpoint override.
 	ComputeEndpoint    string
@@ -230,16 +231,6 @@ func (w *Workflow) cleanup() {
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
 			w.Logger.WorkflowInfo(w, "Error returned from cleanup hook: %s", err)
-		}
-	}
-
-	if w.Logger != nil {
-		w.Logger.FlushAll()
-	}
-
-	if w.cloudLoggingClient != nil {
-		if err := w.cloudLoggingClient.Close(); err != nil {
-			fmt.Printf("Error returned when closing Cloud logger client: %s", err)
 		}
 	}
 }

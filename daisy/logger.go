@@ -54,6 +54,11 @@ func (w *Workflow) createLogger(ctx context.Context) {
 		stdoutLogging: !w.stdoutLoggingDisabled,
 	}
 
+	w.addCleanupHook(func() dErr {
+		w.logWait.Wait()
+		return nil
+	})
+
 	if !w.cloudLoggingDisabled && w.cloudLoggingClient != nil {
 		// Verify we can communicate with the log service.
 		if err := w.cloudLoggingClient.Ping(ctx); err != nil {
@@ -63,6 +68,13 @@ func (w *Workflow) createLogger(ctx context.Context) {
 			cloudLogName := fmt.Sprintf("daisy-%s-%s", w.Name, w.id)
 			l.cloudLogger = w.cloudLoggingClient.Logger(cloudLogName)
 			periodicFlush(func() { l.cloudLogger.Flush() })
+
+			w.addCleanupHook(func() dErr {
+				if err := w.cloudLoggingClient.Close(); err != nil {
+					return errf("error returned when closing Cloud logger client: %s", err)
+				}
+				return nil
+			})
 		}
 	}
 
@@ -72,6 +84,11 @@ func (w *Workflow) createLogger(ctx context.Context) {
 	}
 
 	w.Logger = l
+
+	w.addCleanupHook(func() dErr {
+		w.Logger.FlushAll()
+		return nil
+	})
 }
 
 // StepInfo logs information for the workflow step.
