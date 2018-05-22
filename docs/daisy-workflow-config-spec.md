@@ -17,6 +17,7 @@
     * [CreateInstances](#type-createinstances)
     * [CopyGCSObjects](#type-copygcsobjects)
     * [DeleteResources](#type-deleteresources)
+    * [StopInstances](#type-stopinstances)
     * [IncludeWorkflow](#type-includeworkflow)
     * [SubWorkflow](#type-subworkflow)
     * [WaitForInstancesSignal](#type-waitforinstancessignal)
@@ -413,6 +414,22 @@ disks, a network, a GCS object and a GCS 'folder' (recursive object delete).
      "Instances":["instance1"],
      "Networks":["network1"],
      "GCSPaths":["gs://some/object", "gs://my-bucket/delete-every-object-under-here/"]
+   }
+}
+```
+
+#### Type: StopInstances
+Stops GCE instances without deleting it.
+
+| Field Name | Type | Description |
+| - | - | - |
+| Instances | list(string) | *Optional, but at least one of these fields must be used.* The list of VM instances to delete. Values can be 1) Names of VMs created in this workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE VM. |
+
+This StopInstances step example stops an instance in the project.
+```json
+"step-name": {
+  "StopInstances": {
+     "Instances":["instance1"],
    }
 }
 ```
