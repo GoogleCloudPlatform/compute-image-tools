@@ -51,6 +51,7 @@ type TestClient struct {
 	CreateImageFn         func(project string, i *compute.Image) error
 	CreateInstanceFn      func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn       func(project string, i *compute.Network) error
+	StopInstanceFn        func(project, zone, name string) error
 	DeleteDiskFn          func(project, zone, name string) error
 	DeleteImageFn         func(project, name string) error
 	DeleteInstanceFn      func(project, zone, name string) error
@@ -126,6 +127,14 @@ func (c *TestClient) CreateNetwork(project string, n *compute.Network) error {
 		return c.CreateNetworkFn(project, n)
 	}
 	return c.client.CreateNetwork(project, n)
+}
+
+// StopInstance uses the override method StopInstanceFn or the real implementation.
+func (c *TestClient) StopInstance(project, zone, name string) error {
+	if c.StopInstanceFn != nil {
+		return c.StopInstanceFn(project, zone, name)
+	}
+	return c.client.StopInstance(project, zone, name)
 }
 
 // DeleteDisk uses the override method DeleteDiskFn or the real implementation.
