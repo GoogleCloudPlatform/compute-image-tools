@@ -18,7 +18,7 @@
         }
       ]
     },
-    "translate-2012r2": {
+    "translate-2016": {
       "Timeout": "30m",
       "IncludeWorkflow": {
         "Path": "../image_import/windows/translate_windows_2016.wf.json",
@@ -68,8 +68,8 @@
     }
   },
   "Dependencies": {
-    "translate-2012r2": ["create-disk-from-image"],
-    "create-test-disk": ["translate-2012r2"],
+    "translate-2016": ["create-disk-from-image"],
+    "create-test-disk": ["translate-2016"],
     "delete-image": ["create-test-disk"],
     "create-test-instance": ["create-test-disk"],
     "wait-for-test-instance": ["create-test-instance"]
