@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,13 +32,19 @@ import (
 type Logger interface {
 	StepInfo(w *Workflow, stepName, stepType string, format string, a ...interface{})
 	WorkflowInfo(w *Workflow, format string, a ...interface{})
+	SendSerialPortLogsToCloud(w *Workflow, instance string, buf bytes.Buffer)
 	FlushAll()
+}
+
+type cloudLogWriter interface {
+	Log(e logging.Entry)
+	Flush() error
 }
 
 // daisyLog wraps the different logging mechanisms that can be used.
 type daisyLog struct {
 	gcsLogWriter  *syncedWriter
-	cloudLogger   *logging.Logger
+	cloudLogger   cloudLogWriter
 	stdoutLogging bool
 }
 
@@ -90,6 +97,38 @@ func (l *daisyLog) WorkflowInfo(w *Workflow, format string, a ...interface{}) {
 	l.writeLogEntry(entry)
 }
 
+func (l *daisyLog) SendSerialPortLogsToCloud(w *Workflow, instance string, buf bytes.Buffer) {
+	if l.cloudLogger == nil {
+		return
+	}
+
+	writeLog := func(str string) {
+		entry := &logEntry{
+			LocalTimestamp: time.Now(),
+			WorkflowName:   getAbsoluteName(w),
+			Message:        fmt.Sprintf("Serial port output for instance %q", instance),
+			SerialPort1:    str,
+			Type:           "Daisy",
+		}
+		l.cloudLogger.Log(logging.Entry{Timestamp: entry.LocalTimestamp, Payload: entry})
+	}
+
+	// Write the output to cloud logging only after instance has stopped.
+	// Type assertion check is needed for tests not to panic.
+	// Split if output is too long for log entry (100K max, we leave a 2K buffer).
+	ss := strings.SplitAfter(buf.String(), "\n")
+	var str string
+	for _, s := range ss {
+		if len(str)+len(s) > 98*1024 {
+			writeLog(str)
+			str = s
+		} else {
+			str += s
+		}
+	}
+	writeLog(str)
+}
+
 // FlushAll flushes all loggers.
 func (l *daisyLog) FlushAll() {
 	if l.gcsLogWriter != nil {
@@ -107,6 +146,7 @@ type logEntry struct {
 	WorkflowName   string    `json:"workflow"`
 	StepName       string    `json:"stepName,omitempty"`
 	StepType       string    `json:"stepType,omitempty"`
+	SerialPort1    string    `json:"serialPort1,omitempty"`
 	Message        string    `json:"message"`
 	Type           string    `json:"type"`
 }
