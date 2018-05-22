@@ -1,0 +1,77 @@
+{
+  "Name": "windows-2016-translate-test",
+  "Vars": {
+    "source_image": "projects/compute-image-tools-test/global/images/windows-2016-import",
+    "image_name": "windows-2016-translate-test-${ID}",
+    "test-id": {"Description": "The ID of this test run."}
+  },
+  "Sources": {
+    "post_translate_test.ps1": "./scripts/post_translate_test.ps1"
+  },
+  "Steps": {
+    "create-disk-from-image": {
+      "CreateDisks": [
+        {
+          "Name": "translate-me",
+          "SourceImage": "${source_image}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "translate-2012r2": {
+      "Timeout": "30m",
+      "IncludeWorkflow": {
+        "Path": "../image_import/windows/translate_windows_2016.wf.json",
+        "Vars": {
+          "source_disk": "translate-me",
+          "image_name": "${image_name}"
+        }
+      }
+    },
+    "create-test-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-import-test",
+          "SourceImage": "${image_name}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-test-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-import-test",
+          "Disks": [{"Source": "disk-import-test"}],
+          "MachineType": "n1-standard-4",
+          "StartupScript": "post_translate_test.ps1"
+        }
+      ]
+    },
+    "wait-for-test-instance": {
+      "Timeout": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-import-test",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "All Tests Passed",
+            "FailureMatch": "Test Failed:",
+            "StatusMatch": "Test:"
+          }
+        }
+      ]
+    },
+    "delete-image": {
+      "DeleteResources": {
+        "Images": ["${image_name}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "translate-2012r2": ["create-disk-from-image"],
+    "create-test-disk": ["translate-2012r2"],
+    "delete-image": ["create-test-disk"],
+    "create-test-instance": ["create-test-disk"],
+    "wait-for-test-instance": ["create-test-instance"]
+  }
+}
