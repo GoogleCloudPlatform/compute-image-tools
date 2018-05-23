@@ -180,6 +180,11 @@ func (w *Workflow) uploadSources(ctx context.Context) dErr {
 				return err
 			}
 		}
+		if step.IncludeWorkflow != nil {
+			if err := step.IncludeWorkflow.Workflow.uploadSources(ctx); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
