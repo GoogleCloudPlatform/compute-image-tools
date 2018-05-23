@@ -123,13 +123,9 @@ class GenericDistroTests(object):
 
   def TestRsyslogConfig(self):
     """
-    Ensure that rsyslog is installed and configured (if the distro uses
-    rsyslog) and that the hostname is properly set in the logs on boot.
+    Ensure that rsyslog is installed and configured and that the hostname is
+    properly set in the logs on boot.
     """
-    if not self.IsPackageInstalled('rsyslog'):
-      # rsyslog was not found, skip this test for this distro
-      return
-
     # test if kernel and daemon messages are being logged to console. The
     # hostname output will be checked by the step "rsyslog-hostname-test"
     info = [
