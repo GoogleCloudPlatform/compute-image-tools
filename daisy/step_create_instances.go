@@ -41,7 +41,7 @@ func logSerialOutput(ctx context.Context, s *Step, name string, port int64, inte
 Loop:
 	for {
 		select {
-		case <-ctx.Done():
+		case <-w.Cancel:
 			break Loop
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
