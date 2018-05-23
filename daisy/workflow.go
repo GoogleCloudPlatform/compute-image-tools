@@ -214,11 +214,6 @@ func (w *Workflow) Run(ctx context.Context) error {
 	w.Logger.WorkflowInfo(w, "Running workflow")
 	if err := w.run(ctx); err != nil {
 		w.Logger.WorkflowInfo(w, "Error running workflow: %v", err)
-		select {
-		case <-w.Cancel:
-		default:
-			close(w.Cancel)
-		}
 		return err
 	}
 	return nil
@@ -226,6 +221,11 @@ func (w *Workflow) Run(ctx context.Context) error {
 
 func (w *Workflow) cleanup() {
 	w.Logger.WorkflowInfo(w, "Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
+	select {
+	case <-w.Cancel:
+	default:
+		close(w.Cancel)
+	}
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
 			w.Logger.WorkflowInfo(w, "Error returned from cleanup hook: %s", err)
