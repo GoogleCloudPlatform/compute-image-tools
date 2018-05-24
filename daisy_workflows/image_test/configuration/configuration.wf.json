@@ -30,10 +30,11 @@
       "CreateInstances": [
         {
           "Name": "inst-configuration",
+          "RealName": "inst-configuration-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk"}],
           "StartupScript": "bootstrap",
           "Metadata": {
-            "instance_name": "inst-configuration-${FULLNAME}",
+            "instance_name": "inst-configuration-${DATETIME}-${ID}",
             "test_files_gcs_dir": "${SOURCESPATH}/test_files",
             "test_script": "test.py",
             "zone": "${ZONE}",
@@ -62,7 +63,7 @@
           "Name": "inst-configuration",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "inst-configuration-${FULLNAME}"
+            "SuccessMatch": "inst-configuration-${DATETIME}-${ID}"
           }
         }
       ]

@@ -66,9 +66,9 @@
           "metadata": {
             "test_files_gcs_dir": "${SOURCESPATH}/test_files",
             "test_script": "test.py",
-            "testee": "inst-oslogin-ssh-testee-${FULLNAME}",
-            "osLoginTester": "inst-oslogin-ssh-tester-${FULLNAME}",
-            "osAdminLoginTester": "inst-osadminlogin-ssh-tester-${FULLNAME}",
+            "testee": "inst-oslogin-ssh-testee-${DATETIME}-${ID}",
+            "osLoginTester": "inst-oslogin-ssh-tester-${DATETIME}-${ID}",
+            "osAdminLoginTester": "inst-osadminlogin-ssh-tester-${DATETIME}-${ID}",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },
@@ -83,6 +83,7 @@
       "CreateInstances": [
         {
           "Name": "inst-oslogin-ssh-tester",
+          "RealName": "inst-oslogin-ssh-tester-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-oslogin-ssh-tester"}],
           "StartupScript": "startup_slave_tester",
           "ServiceAccounts": [{
@@ -99,6 +100,7 @@
       "CreateInstances": [
         {
           "Name": "inst-osadminlogin-ssh-tester",
+          "RealName": "inst-osadminlogin-ssh-tester-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-osadminlogin-ssh-tester"}],
           "StartupScript": "startup_slave_tester",
           "ServiceAccounts": [{
@@ -115,6 +117,7 @@
       "CreateInstances": [
         {
           "Name": "inst-oslogin-ssh-testee",
+          "RealName": "inst-oslogin-ssh-testee-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-testee"}],
           "metadata": {
             "startup-script": "service sshguard stop; echo BOOTED > /dev/console"
