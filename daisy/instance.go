@@ -265,18 +265,20 @@ func (i *Instance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step
 	if parts["zone"] != i.Zone {
 		errs = addErrs(errs, errf("cannot create instance in zone %q with InitializeParams.DiskType in zone %q", i.Zone, parts["zone"]))
 	}
-	if parts["disktype"] != "local-ssd" {
-		if _, err := s.w.images.regUse(p.SourceImage, s); err != nil {
-			errs = addErrs(errs, errf("cannot create instance: can't use InitializeParams.SourceImage %q: %v", p.SourceImage, err))
-		}
-		if !rfc1035Rgx.MatchString(p.DiskName) {
-			errs = addErrs(errs, errf("cannot create instance: bad InitializeParams.DiskName: %q", p.DiskName))
-		}
-		link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", i.Project, i.Zone, p.DiskName)
-		// Set cleanup if not being autodeleted.
-		r := &Resource{RealName: p.DiskName, link: link, NoCleanup: d.AutoDelete}
-		errs = addErrs(errs, s.w.disks.regCreate(p.DiskName, r, s, false))
+	if parts["disktype"] == "local-ssd" {
+		return
 	}
+
+	if _, err := s.w.images.regUse(p.SourceImage, s); err != nil {
+		errs = addErrs(errs, errf("cannot create instance: can't use InitializeParams.SourceImage %q: %v", p.SourceImage, err))
+	}
+	if !rfc1035Rgx.MatchString(p.DiskName) {
+		errs = addErrs(errs, errf("cannot create instance: bad InitializeParams.DiskName: %q", p.DiskName))
+	}
+	link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", i.Project, i.Zone, p.DiskName)
+	// Set cleanup if not being autodeleted.
+	r := &Resource{RealName: p.DiskName, link: link, NoCleanup: d.AutoDelete}
+	errs = addErrs(errs, s.w.disks.regCreate(p.DiskName, r, s, false))
 
 	return
 }
@@ -383,6 +385,10 @@ func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) dErr 
 	for _, d := range i.Disks {
 		dName := d.Source
 		if d.InitializeParams != nil {
+			parts := namedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
+			if parts["disktype"] == "local-ssd" {
+				continue
+			}
 			dName = d.InitializeParams.DiskName
 		}
 		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))

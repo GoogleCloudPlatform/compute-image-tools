@@ -44,12 +44,19 @@
         },
         {
           "Name": "second-instance",
-          "Disks": [{
-            "InitializeParams": {
-              "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-              "DiskType": "pd-ssd"
+          "Disks": [
+            {
+              "InitializeParams": {
+                "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+                "DiskType": "pd-ssd"
+              }
+            },
+            {
+              "InitializeParams": {
+                "DiskType": "local-ssd"
+              }
             }
-          }],
+          ],
           "StartupScript": "report_success.sh"
         },
         {
@@ -60,6 +67,12 @@
                 "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
                 "DiskType": "pd-ssd"
               }
+            },
+            {
+              "InitializeParams": {
+                "DiskType": "local-ssd"
+              },
+              "Interface": "NVME"
             },
             {
               "InitializeParams": {
