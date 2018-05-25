@@ -36,7 +36,7 @@
           "metadata": {
             "test_files_gcs_dir": "${SOURCESPATH}/test_files",
             "test_script": "test.py",
-            "testee": "inst-metadata-ssh-testee-${FULLNAME}",
+            "testee": "inst-metadata-ssh-testee-${DATETIME}-${ID}",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },
@@ -51,6 +51,7 @@
       "CreateInstances": [
         {
           "Name": "inst-metadata-ssh-testee",
+          "RealName": "inst-metadata-ssh-testee-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-testee"}],
           "metadata": {
             "startup-script": "service sshguard stop; echo BOOTED > /dev/console"
