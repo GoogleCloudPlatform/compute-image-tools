@@ -46,6 +46,30 @@ def main():
 
   MD.StartInstance(testee)
 
+  # test attaching disk while running
+  while MD.GetInstanceState(testee) != u'RUNNING':
+    time.sleep(5)
+
+  # second disk should not be available
+  key = MD.AddSshKey(MM.SSH_KEYS)
+  check_sdb = ['ls', '/dev/sdb']
+  utils.ExecuteInSsh(key, MD.ssh_user, testee, check_sdb, expect_fail=True)
+
+  removable_disk = MM.FetchMetadataDefault('testee_disk_removable')
+  MD.Wait(MD.AttachDisk(testee, removable_disk))
+
+  # should detect a second disk
+  utils.ExecuteInSsh(key, MD.ssh_user, testee, check_sdb)
+  print("DiskAttached")
+
+  # test detaching disk
+  disk_device_name = MD.GetDiskDeviceNameFromAttached(testee, removable_disk)
+  MD.Wait(MD.DetachDisk(testee, disk_device_name))
+
+  # second disk should not be available anymore
+  utils.ExecuteInSsh(key, MD.ssh_user, testee, check_sdb, expect_fail=True)
+  print("DiskDetached")
+
 
 if __name__ == '__main__':
   utils.RunTest(main)

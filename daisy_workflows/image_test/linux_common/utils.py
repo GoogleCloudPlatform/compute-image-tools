@@ -398,3 +398,61 @@ class MetadataManager:
     request = self.compute.disks().resize(
         project=self.project, zone=self.zone, disk=disk_name, body=body)
     return request.execute()
+
+  def AttachDisk(self, instance, disk_name):
+    """Attach disk on instance.
+
+    Args:
+      instance: string, the name of the instance to attach disk.
+      disk_name: string, the name of the disks to be attached.
+    """
+    body = {'source': 'projects/%s/zones/%s/disks/%s' % (
+        self.project, self.zone, disk_name)}
+    request = self.compute.instances().attachDisk(
+        project=self.project, zone=self.zone, instance=instance, body=body)
+    return request.execute()
+
+  def GetDiskDeviceNameFromAttached(self, instance, disk_name):
+    """Retrieve deviceName of an attached disk based on disk source name
+
+    Args:
+      instance: string, the name of the instance to detach disk.
+      disk_name: string, the disk name to be compared to.
+    """
+    request = self.compute.instances().get(
+        project=self.project, zone=self.zone, instance=instance)
+    response = request.execute()
+    for disk in response[u'disks']:
+      if disk_name in disk[u'source']:
+        return disk[u'deviceName']
+
+  def DetachDisk(self, instance, device_name):
+    """Detach disk on instance.
+
+    Args:
+      instance: string, the name of the instance to detach disk.
+      device_name: string, the device name of the disk to be detached.
+    """
+    request = self.compute.instances().detachDisk(
+        project=self.project, zone=self.zone, instance=instance,
+        deviceName=device_name)
+    return request.execute()
+
+  def Wait(self, response):
+    """Blocks until operation completes.
+    Code from GitHub's GoogleCloudPlatform/python-docs-samples
+
+    Args:
+      response: dict, a request's response
+    """
+    operation = response[u'name']
+    while True:
+      result = self.compute.zoneOperations().get(
+          project=self.project, zone=self.zone, operation=operation).execute()
+
+      if result['status'] == 'DONE':
+        if 'error' in result:
+          raise Exception(result['error'])
+        return result
+
+      time.sleep(1)

@@ -27,6 +27,12 @@
           "RealName": "disk-testee-${DATETIME}-${ID}",
           "SourceImage": "${source_image}",
           "Type": "pd-standard"
+        },
+        {
+          "Name": "disk-testee-removable",
+          "RealName": "disk-testee-removable-${DATETIME}-${ID}",
+          "Type": "pd-standard",
+          "sizeGb": "10"
         }
       ]
     },
@@ -41,6 +47,7 @@
             "test_script": "test.py",
             "testee": "inst-disk-testee-${DATETIME}-${ID}",
             "testee_disk": "disk-testee-${DATETIME}-${ID}",
+            "testee_disk_removable": "disk-testee-removable-${DATETIME}-${ID}",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },
@@ -97,6 +104,32 @@
             "Port": 1,
             "SuccessMatch": "DiskFreePart",
             "FailureMatch": "DiskFull"
+          }
+        }
+      ]
+    },
+    "wait-for-attached": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "DiskAttached",
+            "FailureMatch": "TestFailed"
+          }
+        }
+      ]
+    },
+    "wait-for-detached": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "DiskDetached",
+            "FailureMatch": "TestFailed"
           }
         }
       ]
@@ -184,6 +217,8 @@
     "wait-for-boot-testee": ["create-instance-testee"],
     "wait-for-resize-testee": ["wait-for-boot-testee", "create-instance-tester"],
     "wait-for-resized-testee-check": ["wait-for-resize-testee"],
+    "wait-for-attached": ["wait-for-resized-testee-check"],
+    "wait-for-detached": ["wait-for-attached"],
 
     "wait-for-local-ssd-scsi-check": ["create-instance-local-ssd-scsi"],
 
