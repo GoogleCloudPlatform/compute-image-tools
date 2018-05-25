@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script prepares a Windows Server version 1709 image to run Windows
+# This script prepares a Windows Server version 1803 image to run Windows
 # Server containers by following the steps in Microsoft's documentation:
 # https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/quick-start-windows-server.
 # These steps use the DockerMsftProvider OneGet module:
@@ -64,19 +64,19 @@ try {
     # As most if not all Windows containers are based on one of these images
     # we pull it here so that running a container using this image is quick.
     Write-Host 'Pulling latest Windows containers'
-    & docker pull microsoft/windowsservercore:1709
+    & docker pull microsoft/windowsservercore:1803
     if (!$?) {
-      throw 'Error running "docker pull microsoft/windowsservercore:1709"'
+      throw 'Error running "docker pull microsoft/windowsservercore:1803"'
     }
-    & docker pull microsoft/nanoserver:1709
+    & docker pull microsoft/nanoserver:1803
     if (!$?) {
-      throw 'Error running "docker pull microsoft/nanoserver:1709"'
+      throw 'Error running "docker pull microsoft/nanoserver:1803"'
     }
 
     Write-Host 'Setting container vEthernet MTU to 1460'
-    & docker run --rm microsoft/windowsservercore:1709 powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
+    & docker run --rm microsoft/windowsservercore:1803 powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
     if (!$?) {
-      throw 'Error running "docker run microsoft/windowsservercore:1709"'
+      throw 'Error running "docker run microsoft/windowsservercore:1803"'
     }
 
     Write-Host 'Launching sysprep.'
