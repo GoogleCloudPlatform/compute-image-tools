@@ -7,7 +7,8 @@
     "test_files/test.py": "./disk-tester.py",
     "test_files/utils.py": "../linux_common/utils.py",
     "startup_tester": "../linux_common/bootstrap.py",
-    "disk-testee.sh": "./disk-testee.sh"
+    "disk-testee.sh": "./disk-testee.sh",
+    "disk-local-ssd.sh": "./disk-local-ssd.sh"
   },
   "Steps": {
     "create-disk-tester": {
@@ -99,6 +100,82 @@
           }
         }
       ]
+    },
+
+    "create-instance-local-ssd-scsi": {
+      "CreateInstances": [
+        {
+          "Name": "inst-disk-local-ssd-scsi",
+          "Disks": [
+            {
+              "InitializeParams": {
+                "SourceImage": "${source_image}",
+                "Type": "pd-standard"
+              }
+            },
+            {
+              "InitializeParams": {
+                "Interface": "scsi",
+                "DiskType": "local-ssd"
+              }
+            }
+          ],
+          "Metadata": {
+            "startup-script": "${SOURCE:disk-local-ssd.sh}"
+          }
+        }
+      ]
+    },
+    "wait-for-local-ssd-scsi-check": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-local-ssd-scsi",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "CheckSuccessful",
+            "FailureMatch": "CheckFailed"
+          }
+        }
+      ]
+    },
+
+    "create-instance-local-ssd-nvme": {
+      "CreateInstances": [
+        {
+          "Name": "inst-disk-local-ssd-nvme",
+          "Disks": [
+            {
+              "InitializeParams": {
+                "SourceImage": "${source_image}",
+                "Type": "pd-standard"
+              }
+            },
+            {
+              "InitializeParams": {
+                "Interface": "nvme",
+                "DiskType": "local-ssd"
+              }
+            }
+          ],
+          "Metadata": {
+            "startup-script": "${SOURCE:disk-local-ssd.sh}"
+          }
+        }
+      ]
+    },
+    "wait-for-local-ssd-nvme-check": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-local-ssd-nvme",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "CheckSuccessful",
+            "FailureMatch": "CheckFailed"
+          }
+        }
+      ]
     }
   },
   "Dependencies": {
@@ -106,6 +183,10 @@
     "create-instance-tester": ["create-disk-tester"],
     "wait-for-boot-testee": ["create-instance-testee"],
     "wait-for-resize-testee": ["wait-for-boot-testee", "create-instance-tester"],
-    "wait-for-resized-testee-check": ["wait-for-resize-testee"]
+    "wait-for-resized-testee-check": ["wait-for-resize-testee"],
+
+    "wait-for-local-ssd-scsi-check": ["create-instance-local-ssd-scsi"],
+
+    "wait-for-local-ssd-nvme-check": ["create-instance-local-ssd-nvme"]
   }
 }
