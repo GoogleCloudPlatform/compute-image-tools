@@ -364,3 +364,37 @@ class MetadataManager:
       return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
     except urllib2.HTTPError:
       raise ValueError('Metadata key "%s" not found' % name)
+
+  def GetInstanceState(self, instance):
+    """Get an instance state (e.g: RUNNING, TERMINATED, STOPPING...)
+
+    Args:
+      instance: string, the name of the instance to fetch its state.
+
+    Returns:
+      value: string, the status string.
+    """
+    request = self.compute.instances().get(
+        project=self.project, zone=self.zone, instance=instance)
+    return request.execute()[u'status']
+
+  def StartInstance(self, instance):
+    """Start an instance
+
+    Args:
+      instance: string, the name of the instance to be started.
+    """
+    self.compute.instances().start(
+        project=self.project, zone=self.zone, instance=instance).execute()
+
+  def ResizeDiskGb(self, disk_name, new_size):
+    """Resize a disk to a new size. Note: Only allows size growing.
+
+    Args:
+      disk_name: string, the name of the disks to be resized.
+      new_size: int, the new size in gigabytes to be resized
+    """
+    body = {'sizeGb': "%d" % new_size}
+    request = self.compute.disks().resize(
+        project=self.project, zone=self.zone, disk=disk_name, body=body)
+    return request.execute()

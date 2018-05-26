@@ -1,0 +1,111 @@
+{
+  "Name": "img-disk-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Sources": {
+    "test_files/test.py": "./disk-tester.py",
+    "test_files/utils.py": "../linux_common/utils.py",
+    "startup_tester": "../linux_common/bootstrap.py",
+    "disk-testee.sh": "./disk-testee.sh"
+  },
+  "Steps": {
+    "create-disk-tester": {
+      "CreateDisks": [
+        {
+          "Name": "disk-tester",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "Type": "pd-standard"
+        }
+      ]
+    },
+    "create-disk-testee": {
+      "CreateDisks": [
+        {
+          "Name": "disk-testee",
+          "RealName": "disk-testee-${DATETIME}-${ID}",
+          "SourceImage": "${source_image}",
+          "Type": "pd-standard"
+        }
+      ]
+    },
+    "create-instance-tester": {
+      "CreateInstances": [
+        {
+          "Name": "inst-disk-tester",
+          "Disks": [{"Source": "disk-tester"}],
+          "StartupScript": "startup_tester",
+          "metadata": {
+            "test_files_gcs_dir": "${SOURCESPATH}/test_files",
+            "test_script": "test.py",
+            "testee": "inst-disk-testee-${DATETIME}-${ID}",
+            "testee_disk": "disk-testee-${DATETIME}-${ID}",
+            "zone": "${ZONE}",
+            "project": "${PROJECT}"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/compute"
+          ]
+        }
+      ]
+    },
+    "create-instance-testee": {
+      "CreateInstances": [
+        {
+          "Name": "inst-disk-testee",
+          "RealName": "inst-disk-testee-${DATETIME}-${ID}",
+          "Disks": [{"Source": "disk-testee"}],
+          "Metadata": {
+            "startup-script": "${SOURCE:disk-testee.sh}"
+          }
+        }
+      ]
+    },
+    "wait-for-boot-testee": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-testee",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-resize-testee": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "DiskResized",
+            "FailureMatch": "TestFailed"
+          }
+        }
+      ]
+    },
+    "wait-for-resized-testee-check": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-testee",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "DiskFreePart",
+            "FailureMatch": "DiskFull"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-instance-testee": ["create-disk-testee"],
+    "create-instance-tester": ["create-disk-tester"],
+    "wait-for-boot-testee": ["create-instance-testee"],
+    "wait-for-resize-testee": ["wait-for-boot-testee", "create-instance-tester"],
+    "wait-for-resized-testee-check": ["wait-for-resize-testee"]
+  }
+}
