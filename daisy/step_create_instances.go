@@ -26,13 +26,13 @@ import (
 // CreateInstances is a Daisy CreateInstances workflow step.
 type CreateInstances []*Instance
 
-func logSerialOutput(ctx context.Context, s *Step, name string, port int64, interval time.Duration) {
+func logSerialOutput(ctx context.Context, s *Step, i *Instance, port int64, interval time.Duration) {
 	w := s.w
 	w.logWait.Add(1)
 	defer w.logWait.Done()
 
-	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", name, port))
-	w.Logger.StepInfo(w, s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", name, port, w.bucket, logsObj)
+	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", i.Name, port))
+	w.Logger.StepInfo(w, s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", i.Name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
 	var gcsErr bool
@@ -44,18 +44,18 @@ Loop:
 		case <-w.Cancel:
 			break Loop
 		case <-tick:
-			resp, err := w.ComputeClient.GetSerialPortOutput(w.Project, w.Zone, name, port, start)
+			resp, err := w.ComputeClient.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
 			if err != nil {
 				// Instance was deleted by this workflow.
-				if _, ok := w.instances.get(name); !ok {
+				if _, ok := w.instances.get(i.Name); !ok {
 					break Loop
 				}
 				// Instance is stopped.
-				stopped, sErr := w.ComputeClient.InstanceStopped(w.Project, w.Zone, name)
+				stopped, sErr := w.ComputeClient.InstanceStopped(i.Project, i.Zone, i.Name)
 				if stopped && sErr == nil {
 					break Loop
 				}
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error getting serial port: %v", name, err)
+				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error getting serial port: %v", i.Name, err)
 				break Loop
 			}
 			start = resp.Next
@@ -64,18 +64,18 @@ Loop:
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil && !gcsErr {
 				gcsErr = true
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", name, err)
+				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", i.Name, err)
 				continue
 			}
 			if err := wc.Close(); err != nil && !gcsErr {
 				gcsErr = true
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", name, err)
+				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", i.Name, err)
 				continue
 			}
 		}
 	}
 
-	w.Logger.SendSerialPortLogsToCloud(w, name, buf)
+	w.Logger.SendSerialPortLogsToCloud(w, i.Name, buf)
 }
 
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.
@@ -123,7 +123,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 				eChan <- newErr(err)
 				return
 			}
-			go logSerialOutput(ctx, s, i.Name, 1, 3*time.Second)
+			go logSerialOutput(ctx, s, i, 1, 3*time.Second)
 		}(ci)
 	}
 

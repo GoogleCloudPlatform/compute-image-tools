@@ -49,31 +49,32 @@ func TestLogSerialOutput(t *testing.T) {
 	w.bucket = "test-bucket"
 
 	tests := []struct {
-		test, wantMessage1, wantMessage2, name string
+		test, wantMessage1, wantMessage2 string
+		instance                         *Instance
 	}{
 		{
 			"Error but instance stopped",
 			"Streaming instance \"i1\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i1-serial-port0.log",
 			"",
-			"i1",
+			&Instance{Instance: compute.Instance{Name: "i1"}},
 		},
 		{
 			"Error but instance running",
 			"Streaming instance \"i2\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i2-serial-port0.log",
 			"Instance \"i2\": error getting serial port: fail",
-			"i2",
+			&Instance{Instance: compute.Instance{Name: "i2"}},
 		},
 		{
 			"Normal flow",
 			"Streaming instance \"i3\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i3-serial-port0.log",
 			"",
-			"i3",
+			&Instance{Instance: compute.Instance{Name: "i3"}},
 		},
 		{
 			"Error but instance deleted",
 			"Streaming instance \"i4\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i4-serial-port0.log",
 			"",
-			"i4",
+			&Instance{Instance: compute.Instance{Name: "i4"}},
 		},
 	}
 
@@ -81,7 +82,7 @@ func TestLogSerialOutput(t *testing.T) {
 		mockLogger := &MockLogger{}
 		w.Logger = mockLogger
 		s := &Step{name: "foo", w: w}
-		logSerialOutput(ctx, s, tt.name, 0, 1*time.Microsecond)
+		logSerialOutput(ctx, s, tt.instance, 0, 1*time.Microsecond)
 		logEntries := mockLogger.getEntries()
 		gotStep := logEntries[0].StepName
 		if gotStep != "foo" {
