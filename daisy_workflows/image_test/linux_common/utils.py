@@ -364,3 +364,95 @@ class MetadataManager:
       return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
     except urllib2.HTTPError:
       raise ValueError('Metadata key "%s" not found' % name)
+
+  def GetInstanceState(self, instance):
+    """Get an instance state (e.g: RUNNING, TERMINATED, STOPPING...)
+
+    Args:
+      instance: string, the name of the instance to fetch its state.
+
+    Returns:
+      value: string, the status string.
+    """
+    request = self.compute.instances().get(
+        project=self.project, zone=self.zone, instance=instance)
+    return request.execute()[u'status']
+
+  def StartInstance(self, instance):
+    """Start an instance
+
+    Args:
+      instance: string, the name of the instance to be started.
+    """
+    self.compute.instances().start(
+        project=self.project, zone=self.zone, instance=instance).execute()
+
+  def ResizeDiskGb(self, disk_name, new_size):
+    """Resize a disk to a new size. Note: Only allows size growing.
+
+    Args:
+      disk_name: string, the name of the disks to be resized.
+      new_size: int, the new size in gigabytes to be resized
+    """
+    body = {'sizeGb': "%d" % new_size}
+    request = self.compute.disks().resize(
+        project=self.project, zone=self.zone, disk=disk_name, body=body)
+    return request.execute()
+
+  def AttachDisk(self, instance, disk_name):
+    """Attach disk on instance.
+
+    Args:
+      instance: string, the name of the instance to attach disk.
+      disk_name: string, the name of the disks to be attached.
+    """
+    body = {'source': 'projects/%s/zones/%s/disks/%s' % (
+        self.project, self.zone, disk_name)}
+    request = self.compute.instances().attachDisk(
+        project=self.project, zone=self.zone, instance=instance, body=body)
+    return request.execute()
+
+  def GetDiskDeviceNameFromAttached(self, instance, disk_name):
+    """Retrieve deviceName of an attached disk based on disk source name
+
+    Args:
+      instance: string, the name of the instance to detach disk.
+      disk_name: string, the disk name to be compared to.
+    """
+    request = self.compute.instances().get(
+        project=self.project, zone=self.zone, instance=instance)
+    response = request.execute()
+    for disk in response[u'disks']:
+      if disk_name in disk[u'source']:
+        return disk[u'deviceName']
+
+  def DetachDisk(self, instance, device_name):
+    """Detach disk on instance.
+
+    Args:
+      instance: string, the name of the instance to detach disk.
+      device_name: string, the device name of the disk to be detached.
+    """
+    request = self.compute.instances().detachDisk(
+        project=self.project, zone=self.zone, instance=instance,
+        deviceName=device_name)
+    return request.execute()
+
+  def Wait(self, response):
+    """Blocks until operation completes.
+    Code from GitHub's GoogleCloudPlatform/python-docs-samples
+
+    Args:
+      response: dict, a request's response
+    """
+    operation = response[u'name']
+    while True:
+      result = self.compute.zoneOperations().get(
+          project=self.project, zone=self.zone, operation=operation).execute()
+
+      if result['status'] == 'DONE':
+        if 'error' in result:
+          raise Exception(result['error'])
+        return result
+
+      time.sleep(1)
