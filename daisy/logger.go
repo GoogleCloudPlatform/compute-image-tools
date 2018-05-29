@@ -68,13 +68,6 @@ func (w *Workflow) createLogger(ctx context.Context) {
 			cloudLogName := fmt.Sprintf("daisy-%s-%s", w.Name, w.id)
 			l.cloudLogger = w.cloudLoggingClient.Logger(cloudLogName)
 			periodicFlush(func() { l.cloudLogger.Flush() })
-
-			w.addCleanupHook(func() dErr {
-				if err := w.cloudLoggingClient.Close(); err != nil {
-					return errf("error returned when closing Cloud logger client: %s", err)
-				}
-				return nil
-			})
 		}
 	}
 
