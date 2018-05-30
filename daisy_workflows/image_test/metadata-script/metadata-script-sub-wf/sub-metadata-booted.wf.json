@@ -1,0 +1,57 @@
+{
+  "Name": "sub-metadata-boot-test",
+  "Vars": {
+    "machine": {"Required": true, "Description": "Machine to test if it booted correctly"}
+  },
+  "Sources": {
+    "tester.sh": "metadata-booted-tester.sh"
+  },
+  "Steps": {
+    "create-disk-tester": {
+      "CreateDisks": [
+        {
+          "Name": "disk-tester",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SizeGb": "10",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "create-instance-tester": {
+      "CreateInstances": [
+        {
+          "Name": "inst-metadata-ssh-tester",
+          "Disks": [{"Source": "disk-tester"}],
+          "StartupScript": "startup_tester",
+          "metadata": {
+            "test_script": "tester.sh",
+            "testee": "${machine}",
+            "zone": "${ZONE}",
+            "project": "${PROJECT}"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_only",
+            "https://www.googleapis.com/auth/compute"
+          ]
+        }
+      ]
+    },
+    "wait-for-tester": {
+      "Timeout": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-metadata-ssh-tester",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "TestSuccess",
+            "FailureMatch": "TestFailed"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-instance-tester": ["create-disk-tester"],
+    "wait-for-tester": ["create-instance-tester"]
+  }
+}

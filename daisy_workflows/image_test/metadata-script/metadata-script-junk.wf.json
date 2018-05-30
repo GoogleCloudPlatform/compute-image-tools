@@ -1,0 +1,20 @@
+{
+  "Name": "metadata-script-junk-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Steps": {
+    "test-metadata-script-junk": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-sub-wf/sub-startup-shutdown-check.wf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "startup-script": "./metadata-script-test-startup-hash.sh",
+            "shutdown-script": "./metadata-script-test-shutdown-hash.sh",
+            "startup_msg": "startup-script: INFO Found startup-script-url in metadata.",
+            "shutdown_msg": "shutdown-script: INFO Found shutdown-script-url in metadata."
+        }
+      }
+    }
+  }
+}

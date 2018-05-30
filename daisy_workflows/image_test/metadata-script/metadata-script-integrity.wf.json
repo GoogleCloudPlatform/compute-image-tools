@@ -1,0 +1,20 @@
+{
+  "Name": "metadata-script-integrity-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Steps": {
+    "test-metadata-script-integrity": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-sub-wf/sub-startup-shutdown-check.wf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "startup-script": "./metadata-script-test-startup-hash.sh",
+            "shutdown-script": "./metadata-script-test-shutdown-hash.sh",
+            "startup_msg": "de626048c7b4e056ed9d33dac5be4f44",
+            "shutdown_msg": "22b54b10030a64e71fe5389ba6777566"
+        }
+      }
+    }
+  }
+}
