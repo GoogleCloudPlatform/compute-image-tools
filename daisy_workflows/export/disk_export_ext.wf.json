@@ -21,6 +21,10 @@
     "export_instance_disk_size": {
       "Value": "200",
       "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
+    },
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the export instance"
     }
   },
   "Sources": {
@@ -47,6 +51,11 @@
             "gcs-path": "${OUTSPATH}/${NAME}",
             "format": "${format}"
           },
+          "networkInterfaces": [
+            {
+              "network": "${export_network}"
+            }
+          ],
           "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control"],
           "StartupScript": "${NAME}_export_disk_ext.sh"
         }

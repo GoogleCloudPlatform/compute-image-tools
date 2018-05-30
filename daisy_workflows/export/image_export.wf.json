@@ -24,6 +24,10 @@
     "export_image": {
       "Value": "gcr.io/compute-image-tools/gce_export:release",
       "Description": "Docker image to use for the gce_export_tool"
+    },
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the export instance"
     }
   },
   "Steps": {
@@ -45,7 +49,8 @@
           "export_instance_disk_image": "${export_instance_disk_image}",
           "export_instance_disk_size": "${export_instance_disk_size}",
           "export_image": "${export_image}",
-          "licenses": "${licenses}"
+          "licenses": "${licenses}",
+          "export_network": "${export_network}"
         }
       }
     }

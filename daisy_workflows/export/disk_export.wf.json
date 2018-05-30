@@ -24,6 +24,10 @@
     "export_image": {
       "Value": "gcr.io/compute-image-tools/gce_export:release",
       "Description": "Docker image to use for the gce_export_tool"
+    },
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the export instance"
     }
   },
   "Sources": {
@@ -52,6 +56,11 @@
             "image": "${export_image}",
             "startup-script": "${SOURCE:${NAME}_export_disk.sh}"
           },
+          "networkInterfaces": [
+            {
+              "network": "${export_network}"
+            }
+          ],
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
         }
       ]
