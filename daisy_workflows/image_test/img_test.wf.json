@@ -63,6 +63,14 @@
             "source_image": "${source_image}"
         }
       }
+    },
+    "test-disk": {
+      "SubWorkflow": {
+        "Path": "./disk/disk.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
     }
   },
   "Dependencies": {
