@@ -69,6 +69,7 @@
             "testee": "inst-oslogin-ssh-testee-${DATETIME}-${ID}",
             "osLoginTester": "inst-oslogin-ssh-tester-${DATETIME}-${ID}",
             "osAdminLoginTester": "inst-osadminlogin-ssh-tester-${DATETIME}-${ID}",
+            "debian_install_google_api_python_client": "yes",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },

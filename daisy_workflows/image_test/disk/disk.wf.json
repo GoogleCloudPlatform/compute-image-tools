@@ -48,6 +48,7 @@
             "testee": "inst-disk-testee-${DATETIME}-${ID}",
             "testee_disk": "disk-testee-${DATETIME}-${ID}",
             "testee_disk_removable": "disk-testee-removable-${DATETIME}-${ID}",
+            "debian_install_google_api_python_client": "yes",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },

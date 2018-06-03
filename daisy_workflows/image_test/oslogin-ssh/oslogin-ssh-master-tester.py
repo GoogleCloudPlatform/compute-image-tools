@@ -16,8 +16,6 @@
 
 import utils
 
-utils.AptGetInstall(['python-pip'])
-utils.Execute(['pip', 'install', '--upgrade', 'google-api-python-client'])
 
 from googleapiclient import discovery
 import oauth2client.client
