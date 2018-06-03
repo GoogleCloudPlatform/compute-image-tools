@@ -15,12 +15,9 @@
 
 import time
 
-
-import utils
-
-
+from google import auth
 from googleapiclient import discovery
-import oauth2client.client
+import utils
 
 MM = utils.MetadataManager
 MD = None
@@ -30,7 +27,8 @@ def main():
   global MD
   global testee
 
-  compute = utils.GetCompute(discovery, oauth2client.client.GoogleCredentials)
+  credentials, _ = auth.default()
+  compute = utils.GetCompute(discovery, credentials)
   testee = MM.FetchMetadataDefault('testee')
   testee_disk = MM.FetchMetadataDefault('testee_disk')
   MD = MM(compute, testee)

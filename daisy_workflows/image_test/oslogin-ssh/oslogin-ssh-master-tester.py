@@ -13,12 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import utils
-
-
+from google import auth
 from googleapiclient import discovery
-import oauth2client.client
+import utils
 
 MM = utils.MetadataManager
 MD = None
@@ -188,7 +185,8 @@ def main():
   OSLOGIN_TESTER = MM.FetchMetadataDefault('osLoginTester')
   OSADMINLOGIN_TESTER = MM.FetchMetadataDefault('osAdminLoginTester')
   username = GetCurrentUsername()
-  compute = utils.GetCompute(discovery, oauth2client.client.GoogleCredentials)
+  credentials, _ = auth.default()
+  compute = utils.GetCompute(discovery, credentials)
   MD = MM(compute, TESTEE, username)
   SetEnableOsLogin(None, MM.PROJECT_LEVEL)
   SetEnableOsLogin(None, MM.INSTANCE_LEVEL)
