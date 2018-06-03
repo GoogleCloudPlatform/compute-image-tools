@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,18 +21,10 @@ import utils
 
 MM = utils.MetadataManager
 MD = None
+key = None
 
 
-def main():
-  global MD
-  global testee
-
-  credentials, _ = auth.default()
-  compute = utils.GetCompute(discovery, credentials)
-  testee = MM.FetchMetadataDefault('testee')
-  testee_disk = MM.FetchMetadataDefault('testee_disk')
-  MD = MM(compute, testee)
-
+def TestDiskResize(testee, testee_disk):
   # Instance can't be running. Wait for it if not already terminated
   while MD.GetInstanceState(testee) != u'TERMINATED':
     time.sleep(5)
@@ -40,6 +32,12 @@ def main():
   MD.Wait(MD.ResizeDiskGb(testee_disk, 2049))
   print("DiskResized")
 
+
+def CheckSdbCmd():
+  return ['ls', '/dev/sdb']
+
+
+def TestDiskAttach(testee, removable_disk):
   MD.StartInstance(testee)
 
   # test attaching disk while running
@@ -47,24 +45,40 @@ def main():
     time.sleep(5)
 
   # second disk should not be available
+  global key
   key = MD.AddSshKey(MM.SSH_KEYS)
-  check_sdb = ['ls', '/dev/sdb']
-  utils.ExecuteInSsh(key, MD.ssh_user, testee, check_sdb, expect_fail=True)
+  utils.ExecuteInSsh(key, MD.ssh_user, testee, CheckSdbCmd(), expect_fail=True)
 
-  removable_disk = MM.FetchMetadataDefault('testee_disk_removable')
   MD.Wait(MD.AttachDisk(testee, removable_disk))
 
   # should detect a second disk
-  utils.ExecuteInSsh(key, MD.ssh_user, testee, check_sdb)
+  utils.ExecuteInSsh(key, MD.ssh_user, testee, CheckSdbCmd())
   print("DiskAttached")
 
+
+def TestDiskDetach(testee, removable_disk):
   # test detaching disk
   disk_device_name = MD.GetDiskDeviceNameFromAttached(testee, removable_disk)
   MD.Wait(MD.DetachDisk(testee, disk_device_name))
 
   # second disk should not be available anymore
-  utils.ExecuteInSsh(key, MD.ssh_user, testee, check_sdb, expect_fail=True)
+  utils.ExecuteInSsh(key, MD.ssh_user, testee, CheckSdbCmd(), expect_fail=True)
   print("DiskDetached")
+
+
+def main():
+  global MD
+
+  credentials, _ = auth.default()
+  compute = utils.GetCompute(discovery, credentials)
+  testee = MM.FetchMetadataDefault('testee')
+  testee_disk = MM.FetchMetadataDefault('testee_disk')
+  removable_disk = MM.FetchMetadataDefault('testee_disk_removable')
+  MD = MM(compute, testee)
+
+  TestDiskResize(testee, testee_disk)
+  TestDiskAttach(testee, removable_disk)
+  TestDiskDetach(testee, removable_disk)
 
 
 if __name__ == '__main__':
