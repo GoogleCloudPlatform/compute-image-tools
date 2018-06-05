@@ -37,6 +37,7 @@
             "test_files_gcs_dir": "${SOURCESPATH}/test_files",
             "test_script": "test.py",
             "testee": "inst-metadata-ssh-testee-${DATETIME}-${ID}",
+            "debian_install_google_api_python_client": "yes",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },

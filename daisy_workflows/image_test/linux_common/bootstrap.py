@@ -32,10 +32,30 @@ def GetMetadataAttribute(attribute):
   return urllib2.urlopen(request).read()
 
 
+def DebianInstallGoogleApiPythonClient():
+  logging.info('Installing google-api-python-client')
+  subprocess.check_call(['apt-get', 'update'])
+  env = os.environ.copy()
+  env['DEBIAN_FRONTEND'] = 'noninteractive'
+  cmd = ['apt-get', '-q', '-y', 'install', 'python-pip']
+  subprocess.Popen(cmd, env=env).communicate()
+
+  cmd = ['pip', 'install', '--upgrade', 'google-api-python-client']
+  subprocess.check_call(cmd)
+
+
 def Bootstrap():
   """Get test files, run test."""
   try:
     logging.info('Starting bootstrap.py.')
+
+    # Optional flag
+    try:
+      if GetMetadataAttribute('debian_install_google_api_python_client'):
+        DebianInstallGoogleApiPythonClient()
+    except urllib2.HTTPError:
+      pass
+
     test_gcs_dir = GetMetadataAttribute('test_files_gcs_dir')
     test_script = GetMetadataAttribute('test_script')
     test_dir = '/test_files'

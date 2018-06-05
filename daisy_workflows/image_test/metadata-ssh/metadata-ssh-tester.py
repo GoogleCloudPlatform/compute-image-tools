@@ -13,14 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import utils
-
-utils.AptGetInstall(['python-pip'])
-utils.Execute(['pip', 'install', '--upgrade', 'google-api-python-client'])
-
+from google import auth
 from googleapiclient import discovery
-import oauth2client.client
+import utils
 
 MM = utils.MetadataManager
 MD = None
@@ -89,7 +84,8 @@ def TestBlockProjectSshKeysIgnoresProjectLevelKeys():
 def main():
   global MD
 
-  compute = utils.GetCompute(discovery, oauth2client.client.GoogleCredentials)
+  credentials, _ = auth.default()
+  compute = utils.GetCompute(discovery, credentials)
   testee = MM.FetchMetadataDefault('testee')
   MD = MM(compute, testee)
   MD.SetMetadata('enable-oslogin', False, MM.PROJECT_LEVEL)

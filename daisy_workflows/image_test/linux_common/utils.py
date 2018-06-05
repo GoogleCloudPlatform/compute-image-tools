@@ -149,17 +149,16 @@ def ExecuteInSsh(
     return ret, out
 
 
-def GetCompute(discovery, GoogleCredentials):
+def GetCompute(discovery, credentials):
   """Get google compute api cli object.
 
   Args:
     discovery: object, from googleapiclient.
-    GoogleCredentials: object, from oauth2client.client.
+    credentials: object, from google.auth.
 
   Returns:
     compute: object, the google compute api object.
   """
-  credentials = GoogleCredentials.get_application_default()
   compute = discovery.build('compute', 'v1', credentials=credentials)
   return compute
 
