@@ -740,7 +740,7 @@ func TestWrite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	l := gcsLogger{
+	l := GCSLogger{
 		client: gcsClient,
 		bucket: testBucket,
 		object: testObject,

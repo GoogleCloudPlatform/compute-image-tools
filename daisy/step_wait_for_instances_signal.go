@@ -58,7 +58,7 @@ type InstanceSignal struct {
 
 func waitForInstanceStopped(s *Step, project, zone, name string, interval time.Duration) dErr {
 	w := s.w
-	w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "Waiting for instance %q to stop.", name)
+	w.LogStepInfo(s.name, "WaitForInstancesSignal", "Waiting for instance %q to stop.", name)
 	tick := time.Tick(interval)
 	for {
 		select {
@@ -70,7 +70,7 @@ func waitForInstanceStopped(s *Step, project, zone, name string, interval time.D
 				return typedErr(apiError, err)
 			}
 			if stopped {
-				w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "Instance %q stopped.", name)
+				w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q stopped.", name)
 				return nil
 			}
 		}
@@ -89,7 +89,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 	if so.StatusMatch != "" {
 		msg += fmt.Sprintf(", StatusMatch: %q", so.StatusMatch)
 	}
-	w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", msg+".")
+	w.LogStepInfo(s.name, "WaitForInstancesSignal", msg+".")
 	var start int64
 	var errs int
 	tick := time.Tick(interval)
@@ -108,7 +108,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				}
 
 				if status == "TERMINATED" || status == "STOPPED" {
-					w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "Instance %q stopped, not waiting for serial output.", name)
+					w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q stopped, not waiting for serial output.", name)
 					return nil
 				}
 				// Keep retrying until the instance is STOPPED.
@@ -127,7 +127,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 			for _, ln := range strings.Split(resp.Contents, "\n") {
 				if so.StatusMatch != "" {
 					if i := strings.Index(ln, so.StatusMatch); i != -1 {
-						w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "Instance %q: StatusMatch found: %q", name, strings.TrimSpace(ln[i:]))
+						w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: StatusMatch found: %q", name, strings.TrimSpace(ln[i:]))
 					}
 				}
 				if so.FailureMatch != "" {
@@ -137,7 +137,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				}
 				if so.SuccessMatch != "" {
 					if i := strings.Index(ln, so.SuccessMatch); i != -1 {
-						w.Logger.StepInfo(w, s.name, "WaitForInstancesSignal", "Instance %q: SuccessMatch found %q", name, strings.TrimSpace(ln[i:]))
+						w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: SuccessMatch found %q", name, strings.TrimSpace(ln[i:]))
 						return nil
 					}
 				}

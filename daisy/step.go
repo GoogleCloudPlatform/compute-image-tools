@@ -199,7 +199,7 @@ func (s *Step) getChain() []*Step {
 }
 
 func (s *Step) populate(ctx context.Context) dErr {
-	s.w.Logger.WorkflowInfo(s.w, "Populating step %q", s.name)
+	s.w.LogWorkflowInfo("Populating step %q", s.name)
 	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapPopulateError(err)
@@ -221,20 +221,20 @@ func (s *Step) run(ctx context.Context) dErr {
 	} else {
 		st = t.Name()
 	}
-	s.w.Logger.WorkflowInfo(s.w, "Running step %q (%s)", s.name, st)
+	s.w.LogWorkflowInfo("Running step %q (%s)", s.name, st)
 	if err = impl.run(ctx, s); err != nil {
 		return s.wrapRunError(err)
 	}
 	select {
 	case <-s.w.Cancel:
 	default:
-		s.w.Logger.WorkflowInfo(s.w, "Step %q (%s) successfully finished.", s.name, st)
+		s.w.LogWorkflowInfo("Step %q (%s) successfully finished.", s.name, st)
 	}
 	return nil
 }
 
 func (s *Step) validate(ctx context.Context) dErr {
-	s.w.Logger.WorkflowInfo(s.w, "Validating step %q", s.name)
+	s.w.LogWorkflowInfo("Validating step %q", s.name)
 	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
 		return s.wrapValidateError(errf("step name must start with a letter and only contain letters, numbers, and hyphens"))
 	}

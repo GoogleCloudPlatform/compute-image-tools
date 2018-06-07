@@ -17,54 +17,32 @@ package daisy
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"regexp"
 	"sync"
 	"testing"
-	"time"
 
 	"cloud.google.com/go/logging"
 )
 
 type MockLogger struct {
-	entries []*logEntry
+	entries []*LogEntry
 	mx      sync.Mutex
 }
 
-// StepInfo logs information for the workflow step.
-func (l *MockLogger) StepInfo(w *Workflow, stepName, stepType string, format string, a ...interface{}) {
-	entry := &logEntry{
-		LocalTimestamp: time.Now(),
-		WorkflowName:   getAbsoluteName(w),
-		StepName:       stepName,
-		StepType:       stepType,
-		Message:        fmt.Sprintf(format, a...),
-	}
-	l.mx.Lock()
-	defer l.mx.Unlock()
-	l.entries = append(l.entries, entry)
-}
-
-// WorkflowInfo logs information for the workflow.
-func (l *MockLogger) WorkflowInfo(w *Workflow, format string, a ...interface{}) {
-	entry := &logEntry{
-		LocalTimestamp: time.Now(),
-		WorkflowName:   getAbsoluteName(w),
-		Message:        fmt.Sprintf(format, a...),
-	}
-	l.mx.Lock()
-	defer l.mx.Unlock()
-	l.entries = append(l.entries, entry)
-}
-
-func (l *MockLogger) SendSerialPortLogsToCloud(w *Workflow, instance string, buf bytes.Buffer) {
+func (l *MockLogger) WriteSerialPortLogsToCloudLogging(w *Workflow, instance string, buf bytes.Buffer) {
 	// nop
 }
 
-// f flushes all loggers.
-func (l *MockLogger) FlushAll() {}
+func (l *MockLogger) WriteLogEntry(e *LogEntry) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	l.entries = append(l.entries, e)
+}
 
-func (l *MockLogger) getEntries() []*logEntry {
+// f flushes all loggers.
+func (l *MockLogger) Flush() {}
+
+func (l *MockLogger) getEntries() []*LogEntry {
 	l.mx.Lock()
 	defer l.mx.Unlock()
 	return l.entries[:]
@@ -78,7 +56,7 @@ func TestWriteWorkflowInfo(t *testing.T) {
 	var b bytes.Buffer
 	w.Logger.(*daisyLog).gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
 
-	w.Logger.WorkflowInfo(w, "test %s", "a")
+	w.LogWorkflowInfo("test %s", "a")
 	w.Logger.(*daisyLog).gcsLogWriter.Flush()
 
 	got := b.String()
@@ -100,8 +78,8 @@ func TestWriteStepInfo(t *testing.T) {
 	var b bytes.Buffer
 	w.Logger.(*daisyLog).gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
 
-	w.Logger.StepInfo(w, "StepName", "StepType", "test %s", "a")
-	w.Logger.FlushAll()
+	w.LogStepInfo("StepName", "StepType", "test %s", "a")
+	w.Logger.Flush()
 
 	got := b.String()
 	want := "\\[Test.StepName\\]: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(-\\d{2}:\\d{2})|Z StepType: test a"
@@ -137,7 +115,7 @@ func TestSendSerialPortLogsToCloud(t *testing.T) {
 		buf.WriteString("Serial output\n")
 	}
 
-	w.Logger.SendSerialPortLogsToCloud(w, "instance-name", buf)
+	w.Logger.WriteSerialPortLogsToCloudLogging(w, "instance-name", buf)
 
 	if len(cl.entries) != 14 {
 		t.Errorf("Wanted %d", len(cl.entries))
@@ -151,7 +129,7 @@ func TestSendSerialPortLogsToCloudDisabled(t *testing.T) {
 	var buf bytes.Buffer
 	buf.WriteString("Serial output\n")
 
-	w.Logger.SendSerialPortLogsToCloud(w, "instance-name", buf)
+	w.Logger.WriteSerialPortLogsToCloudLogging(w, "instance-name", buf)
 
 	// Nothing to verify. Nothing happened.
 }
