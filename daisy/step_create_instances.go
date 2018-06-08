@@ -75,7 +75,7 @@ Loop:
 		}
 	}
 
-	w.Logger.WriteSerialPortLogsToCloudLogging(w, i.Name, buf)
+	w.Logger.WriteSerialPortLogs(w, i.Name, buf)
 }
 
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.

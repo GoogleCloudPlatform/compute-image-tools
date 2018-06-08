@@ -29,7 +29,7 @@ type MockLogger struct {
 	mx      sync.Mutex
 }
 
-func (l *MockLogger) WriteSerialPortLogsToCloudLogging(w *Workflow, instance string, buf bytes.Buffer) {
+func (l *MockLogger) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer) {
 	// nop
 }
 
@@ -115,7 +115,7 @@ func TestSendSerialPortLogsToCloud(t *testing.T) {
 		buf.WriteString("Serial output\n")
 	}
 
-	w.Logger.WriteSerialPortLogsToCloudLogging(w, "instance-name", buf)
+	w.Logger.WriteSerialPortLogs(w, "instance-name", buf)
 
 	if len(cl.entries) != 14 {
 		t.Errorf("Wanted %d", len(cl.entries))
@@ -129,7 +129,7 @@ func TestSendSerialPortLogsToCloudDisabled(t *testing.T) {
 	var buf bytes.Buffer
 	buf.WriteString("Serial output\n")
 
-	w.Logger.WriteSerialPortLogsToCloudLogging(w, "instance-name", buf)
+	w.Logger.WriteSerialPortLogs(w, "instance-name", buf)
 
 	// Nothing to verify. Nothing happened.
 }

@@ -31,7 +31,7 @@ import (
 // Logger is a helper that encapsulates the logging logic for Daisy.
 type Logger interface {
 	WriteLogEntry(e *LogEntry)
-	WriteSerialPortLogsToCloudLogging(w *Workflow, instance string, buf bytes.Buffer)
+	WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer)
 	Flush()
 }
 
@@ -107,8 +107,8 @@ func (w *Workflow) LogWorkflowInfo(format string, a ...interface{}) {
 	w.Logger.WriteLogEntry(entry)
 }
 
-// WriteSerialPortLogsToCloudLogging writes serial port logs to cloud logging.
-func (l *daisyLog) WriteSerialPortLogsToCloudLogging(w *Workflow, instance string, buf bytes.Buffer) {
+// WriteSerialPortLogs writes serial port logs to cloud logging.
+func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer) {
 	if l.cloudLogger == nil {
 		return
 	}

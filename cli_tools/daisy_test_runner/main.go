@@ -130,7 +130,7 @@ func (l *logger) WriteLogEntry(e *daisy.LogEntry) {
 	l.buf.WriteString(e.String())
 }
 
-func (l *logger) WriteSerialPortLogsToCloudLogging(w *daisy.Workflow, instance string, buf bytes.Buffer) {
+func (l *logger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {
 	return
 }
 

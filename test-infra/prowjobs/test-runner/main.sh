@@ -25,5 +25,5 @@ if [ ! -z "${PULL_NUMBER}" ]; then
   git checkout ${PULL_NUMBER}
 fi
 
-/daisy_test_runner -projects ${PROJECTS} -zone ${ZONE} -out_path 'artifacts/junit.xml' ${FLAGS} ${TEMPLATE}
+/daisy_test_runner "$@"
 exit $? 

@@ -86,32 +86,31 @@ func getBase() string {
 	return ""
 }
 
-func started() []byte {
-	var s map[string]interface{}
+func started(args ...string) ([]byte, error) {
+	s := map[string]interface{}{
+		"timestamp": time.Now().Unix(),
+	}
+
+	md := map[string]string{}
+	for i, arg := range args {
+		md[fmt.Sprintf("arg_%d", i+1)] = arg
+	}
+	if len(md) > 0 {
+		s["metadata"] = md
+	}
+
 	switch jobType {
 	case "batch":
-		s = map[string]interface{}{
-			"timestamp": time.Now().Unix(),
-			"pull":      pullRefs,
-		}
+		s["pull"] = pullRefs
 	case "periodic":
-		s = map[string]interface{}{
-			"timestamp": time.Now().Unix(),
-		}
 	case "postsubmit":
-		s = map[string]interface{}{
-			"timestamp": time.Now().Unix(),
-			"pull":      pullRefs,
-		}
+		s["pull"] = pullRefs
 	case "presubmit":
-		s = map[string]interface{}{
-			"timestamp": time.Now().Unix(),
-			"repos":     map[string]string{fmt.Sprintf("%s/%s", repoOwner, repoName): pullSHA},
-			"pull":      pullRefs,
-		}
+		s["pull"] = pullRefs
+		s["repos"] = map[string]string{fmt.Sprintf("%s/%s", repoOwner, repoName): pullSHA}
 	}
-	data, _ := json.Marshal(s)
-	return data
+
+	return json.Marshal(s)
 }
 
 type gcsLogger struct {
@@ -170,8 +169,12 @@ func main() {
 	buildLog = log.New(io.MultiWriter(logFile, os.Stdout), "", 0)
 
 	// Write started.json
+	data, err := started(os.Args[2:]...)
+	if err != nil {
+		log.Fatal(err)
+	}
 	buildLog.Println("Writing started.json to GCS.")
-	if err := gcsWrite(ctx, client, "started.json", started(), nil, "application/json"); err != nil {
+	if err := gcsWrite(ctx, client, "started.json", data, nil, "application/json"); err != nil {
 		buildLog.Println("ERROR: ", err)
 	}
 
