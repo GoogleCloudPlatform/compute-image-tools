@@ -67,7 +67,7 @@ func (c *CreateImages) run(ctx context.Context, s *Step) dErr {
 				}
 			}
 
-			w.Logger.StepInfo(s.w, s.name, "CreateImages", "Creating image %q.", ci.Name)
+			w.LogStepInfo(s.name, "CreateImages", "Creating image %q.", ci.Name)
 			if err := w.ComputeClient.CreateImage(ci.Project, &ci.Image); err != nil {
 				e <- newErr(err)
 				return

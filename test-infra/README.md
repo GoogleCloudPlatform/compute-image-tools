@@ -1,6 +1,7 @@
 # GoogleCloudPlatform/compute-image-tools testing infrastructure
 
 ## Prow and Gubenator
+
 We use [Prow](https://github.com/kubernetes/test-infra/tree/master/prow)
 to run periodic, postsubmit, and presubmit (PRs) tests on packages in this.
 repo. Our Prow GKE cluster runs in the GCP project, `compute-image-tools-test`.
@@ -31,6 +32,7 @@ https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#ci-daisy-e2e
 | `prowjobs/wrapper/` | Imported by other Prow jobs. Contains a wrapper binary that manages test log/artifact uploads. |
 
 ## Prow job wrapper binary
+
 The container in `prowjobs/wrapper/` is not a Prow job itself. It contains a
 binary which is imported by other other Prow job containers at container build
 time.
@@ -40,13 +42,20 @@ the GCS bucket we use for Gubenator. The wrapper logs start, finish, and build
 logs. It also uploads all artifacts found in the artifacts directory.
 The artifacts directory is set with the environment variable `${ARTIFACTS}`.
 
+## Prow job: test-runner
+
+test-runner runs the latest daisy_test_runner binary against the test
+template.
+
 ## Prow job: daisy-e2e
+
 daisy-e2e invokes our latest Daisy binary against the
 `compute-image-tools-test` GCP project. It runs the workflows matching
 `daisy_worklows/e2e_tests/*.wf.json`.
 Each matching workflow is run as a test case.
 
 ### Periodic runs and testgrid
+
 This job is run periodically and results are uploaded to Gubenator and testgrid.
 Testgrid is managed by the Kubernetes. Configuration changes require a pull
 request. See
@@ -54,19 +63,23 @@ https://github.com/kubernetes/test-infra/pull/5044
 for an example.
 
 ## Prow job: gocheck
+
 Runs `go fmt`, `go vet`, and `golint`, checking for proper Go style and
 formatting of ALL Go code within the repo.
 
 ## Prow job: flake8
+
 Runs `flake8` checking for proper python style of ALL python code within the 
 repo.
 
 ## Prow job: unittests
+
 The unittests Prow job runs all scripts with the name `unittests.sh` in the
 repo. It is up to each script to run the unit tests for the code its testing.
 The script returns a nonzero status to indicate test failures.
 
 ### Test artifacts
+
 Artifacts, such as unit test reports, produced by a `unittests.sh` script
 should be published in a directory, `artifacts`, in the same directory as the
 script. After a script terminates, artifacts are moved from its own `artifacts`
@@ -74,6 +87,7 @@ directory to a subdirectory of `/artifacts` in preparation to be uploaded by
 the wrapper.
 
 ### Coverage reports
+
 Two environment variables, `${GOCOVPATH}` and `${PYCOVPATH}`, are available to
 the `unittests.sh` scripts. These are paths to Go and Python code coverage
 reports which will be uploaded to codecov. Code coverage output must be

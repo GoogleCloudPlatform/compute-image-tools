@@ -117,3 +117,34 @@ periodics:
     - name: compute-image-tools-test-service-account
       secret:
        secretName: compute-image-tools-test-service-account
+- interval: 6h
+   agent: kubernetes
+   name: linux-image-tests
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/test-runner:latest
+      args:
+      - "-out_path=artifacts/junit.xml"
+      - "-projects=compute-image-tools-test"
+      - "-zone=us-central1-c"
+      - "-var:images=\
+          projects/debian-cloud/global/images/family/debian-8,\
+          projects/debian-cloud/global/images/family/debian-9,\
+          projects/centos-cloud/global/images/family/centos-6,\
+          projects/centos-cloud/global/images/family/centos-7,\
+          projects/rhel-cloud/global/images/family/rhel-6,\
+          projects/rhel-cloud/global/images/family/rhel-7"
+      - "daisy_workflows/image_test/linux_images.test.gotmpl"
+      env:
+      - name: REPO_OWNER
+        value: GoogleCloudPlatform
+      - name: REPO_NAME
+        value: compute-image-tools
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account

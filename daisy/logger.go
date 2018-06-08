@@ -30,10 +30,9 @@ import (
 
 // Logger is a helper that encapsulates the logging logic for Daisy.
 type Logger interface {
-	StepInfo(w *Workflow, stepName, stepType string, format string, a ...interface{})
-	WorkflowInfo(w *Workflow, format string, a ...interface{})
-	SendSerialPortLogsToCloud(w *Workflow, instance string, buf bytes.Buffer)
-	FlushAll()
+	WriteLogEntry(e *LogEntry)
+	WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer)
+	Flush()
 }
 
 type cloudLogWriter interface {
@@ -62,7 +61,7 @@ func (w *Workflow) createLogger(ctx context.Context) {
 	if !w.cloudLoggingDisabled && w.cloudLoggingClient != nil {
 		// Verify we can communicate with the log service.
 		if err := w.cloudLoggingClient.Ping(ctx); err != nil {
-			l.WorkflowInfo(w, "Unable to send logs to the Cloud Logging service, not sending logs: %v", err)
+			w.LogWorkflowInfo("Unable to send logs to the Cloud Logging service, not sending logs: %v", err)
 			w.cloudLoggingClient = nil
 		} else {
 			cloudLogName := fmt.Sprintf("daisy-%s-%s", w.Name, w.id)
@@ -72,21 +71,22 @@ func (w *Workflow) createLogger(ctx context.Context) {
 	}
 
 	if !w.gcsLoggingDisabled {
-		l.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&gcsLogger{client: w.StorageClient, bucket: w.bucket, object: path.Join(w.logsPath, "daisy.log"), ctx: ctx})}
+		gcsLogger := NewGCSLogger(ctx, w.StorageClient, w.bucket, path.Join(w.logsPath, "daisy.log"))
+		l.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(gcsLogger)}
 		periodicFlush(func() { l.gcsLogWriter.Flush() })
 	}
 
 	w.Logger = l
 
 	w.addCleanupHook(func() dErr {
-		w.Logger.FlushAll()
+		w.Logger.Flush()
 		return nil
 	})
 }
 
-// StepInfo logs information for the workflow step.
-func (l *daisyLog) StepInfo(w *Workflow, stepName, stepType, format string, a ...interface{}) {
-	entry := &logEntry{
+// LogStepInfo logs information for the workflow step.
+func (w *Workflow) LogStepInfo(stepName, stepType, format string, a ...interface{}) {
+	entry := &LogEntry{
 		LocalTimestamp: time.Now(),
 		WorkflowName:   getAbsoluteName(w),
 		StepName:       stepName,
@@ -94,26 +94,27 @@ func (l *daisyLog) StepInfo(w *Workflow, stepName, stepType, format string, a ..
 		Message:        fmt.Sprintf(format, a...),
 		Type:           "Daisy",
 	}
-	l.writeLogEntry(entry)
+	w.Logger.WriteLogEntry(entry)
 }
 
-// WorkflowInfo logs information for the workflow.
-func (l *daisyLog) WorkflowInfo(w *Workflow, format string, a ...interface{}) {
-	entry := &logEntry{
+// LogWorkflowInfo logs information for the workflow.
+func (w *Workflow) LogWorkflowInfo(format string, a ...interface{}) {
+	entry := &LogEntry{
 		LocalTimestamp: time.Now(),
 		WorkflowName:   getAbsoluteName(w),
 		Message:        fmt.Sprintf(format, a...),
 	}
-	l.writeLogEntry(entry)
+	w.Logger.WriteLogEntry(entry)
 }
 
-func (l *daisyLog) SendSerialPortLogsToCloud(w *Workflow, instance string, buf bytes.Buffer) {
+// WriteSerialPortLogs writes serial port logs to cloud logging.
+func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer) {
 	if l.cloudLogger == nil {
 		return
 	}
 
 	writeLog := func(str string) {
-		entry := &logEntry{
+		entry := &LogEntry{
 			LocalTimestamp: time.Now(),
 			WorkflowName:   getAbsoluteName(w),
 			Message:        fmt.Sprintf("Serial port output for instance %q", instance),
@@ -139,8 +140,8 @@ func (l *daisyLog) SendSerialPortLogsToCloud(w *Workflow, instance string, buf b
 	writeLog(str)
 }
 
-// FlushAll flushes all loggers.
-func (l *daisyLog) FlushAll() {
+// Flush flushes all loggers.
+func (l *daisyLog) Flush() {
 	if l.gcsLogWriter != nil {
 		l.gcsLogWriter.Flush()
 	}
@@ -150,8 +151,8 @@ func (l *daisyLog) FlushAll() {
 	}
 }
 
-// logEntry encapsulates a single log entry.
-type logEntry struct {
+// LogEntry encapsulates a single log entry.
+type LogEntry struct {
 	LocalTimestamp time.Time `json:"localTimestamp"`
 	WorkflowName   string    `json:"workflow"`
 	StepName       string    `json:"stepName,omitempty"`
@@ -161,7 +162,7 @@ type logEntry struct {
 	Type           string    `json:"type"`
 }
 
-func (l *daisyLog) writeLogEntry(e *logEntry) {
+func (l *daisyLog) WriteLogEntry(e *LogEntry) {
 	if l.cloudLogger != nil {
 		l.cloudLogger.Log(logging.Entry{Timestamp: e.LocalTimestamp, Payload: e})
 	}
@@ -192,28 +193,33 @@ func (l *syncedWriter) Flush() error {
 	return l.buf.Flush()
 }
 
-type gcsLogger struct {
+// GCSLogger is a logger that writes to a GCS object.
+type GCSLogger struct {
 	client         *storage.Client
 	bucket, object string
 	buf            *bytes.Buffer
 	ctx            context.Context
 }
 
-func (l *gcsLogger) Write(b []byte) (int, error) {
+// NewGCSLogger creates a new GCSLogger.
+func NewGCSLogger(ctx context.Context, client *storage.Client, bucket, object string) *GCSLogger {
+	return &GCSLogger{client: client, bucket: bucket, object: object, ctx: ctx}
+}
+
+func (l *GCSLogger) Write(b []byte) (int, error) {
 	if l.buf == nil {
 		l.buf = new(bytes.Buffer)
 	}
 	l.buf.Write(b)
 	wc := l.client.Bucket(l.bucket).Object(l.object).NewWriter(l.ctx)
 	wc.ContentType = "text/plain"
-	n, err := wc.Write(l.buf.Bytes())
-	if err != nil {
+	if _, err := wc.Write(l.buf.Bytes()); err != nil {
 		return 0, err
 	}
 	if err := wc.Close(); err != nil {
 		return 0, err
 	}
-	return n, err
+	return len(b), nil
 }
 
 func periodicFlush(f func()) {
@@ -233,7 +239,7 @@ func getAbsoluteName(w *Workflow) string {
 	return name
 }
 
-func (e *logEntry) String() string {
+func (e *LogEntry) String() string {
 	var prefix string
 	if e.StepName != "" {
 		prefix = fmt.Sprintf("%s.%s", e.WorkflowName, e.StepName)

@@ -186,13 +186,13 @@ func (w *Workflow) Validate(ctx context.Context) error {
 		return errf("error populating workflow: %v", err)
 	}
 
-	w.Logger.WorkflowInfo(w, "Validating workflow")
+	w.LogWorkflowInfo("Validating workflow")
 	if err := w.validate(ctx); err != nil {
-		w.Logger.WorkflowInfo(w, "Error validating workflow: %v", err)
+		w.LogWorkflowInfo("Error validating workflow: %v", err)
 		close(w.Cancel)
 		return err
 	}
-	w.Logger.WorkflowInfo(w, "Validation Complete")
+	w.LogWorkflowInfo("Validation Complete")
 	return nil
 }
 
@@ -203,24 +203,24 @@ func (w *Workflow) Run(ctx context.Context) error {
 		return err
 	}
 	defer w.cleanup()
-	w.Logger.WorkflowInfo(w, "Daisy scratch path: https://console.cloud.google.com/storage/browser/%s", path.Join(w.bucket, w.scratchPath))
+	w.LogWorkflowInfo("Daisy scratch path: https://console.cloud.google.com/storage/browser/%s", path.Join(w.bucket, w.scratchPath))
 
-	w.Logger.WorkflowInfo(w, "Uploading sources")
+	w.LogWorkflowInfo("Uploading sources")
 	if err := w.uploadSources(ctx); err != nil {
-		w.Logger.WorkflowInfo(w, "Error uploading sources: %v", err)
+		w.LogWorkflowInfo("Error uploading sources: %v", err)
 		close(w.Cancel)
 		return err
 	}
-	w.Logger.WorkflowInfo(w, "Running workflow")
+	w.LogWorkflowInfo("Running workflow")
 	if err := w.run(ctx); err != nil {
-		w.Logger.WorkflowInfo(w, "Error running workflow: %v", err)
+		w.LogWorkflowInfo("Error running workflow: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (w *Workflow) cleanup() {
-	w.Logger.WorkflowInfo(w, "Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
+	w.LogWorkflowInfo("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
 	select {
 	case <-w.Cancel:
 	default:
@@ -228,7 +228,7 @@ func (w *Workflow) cleanup() {
 	}
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
-			w.Logger.WorkflowInfo(w, "Error returned from cleanup hook: %s", err)
+			w.LogWorkflowInfo("Error returned from cleanup hook: %s", err)
 		}
 	}
 }

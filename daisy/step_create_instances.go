@@ -32,7 +32,7 @@ func logSerialOutput(ctx context.Context, s *Step, i *Instance, port int64, inte
 	defer w.logWait.Done()
 
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", i.Name, port))
-	w.Logger.StepInfo(w, s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", i.Name, port, w.bucket, logsObj)
+	w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", i.Name, port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
 	var gcsErr bool
@@ -55,7 +55,7 @@ Loop:
 				if stopped && sErr == nil {
 					break Loop
 				}
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error getting serial port: %v", i.Name, err)
+				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error getting serial port: %v", i.Name, err)
 				break Loop
 			}
 			start = resp.Next
@@ -64,18 +64,18 @@ Loop:
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil && !gcsErr {
 				gcsErr = true
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", i.Name, err)
+				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", i.Name, err)
 				continue
 			}
 			if err := wc.Close(); err != nil && !gcsErr {
 				gcsErr = true
-				w.Logger.StepInfo(w, s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", i.Name, err)
+				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", i.Name, err)
 				continue
 			}
 		}
 	}
 
-	w.Logger.SendSerialPortLogsToCloud(w, i.Name, buf)
+	w.Logger.WriteSerialPortLogs(w, i.Name, buf)
 }
 
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.
@@ -118,7 +118,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 				}
 			}
 
-			w.Logger.StepInfo(w, s.name, "CreateInstances", "Creating instance %q.", i.Name)
+			w.LogStepInfo(s.name, "CreateInstances", "Creating instance %q.", i.Name)
 			if err := w.ComputeClient.CreateInstance(i.Project, i.Zone, &i.Instance); err != nil {
 				eChan <- newErr(err)
 				return

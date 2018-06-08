@@ -77,7 +77,7 @@ func (d *DeprecateImages) run(ctx context.Context, s *Step) dErr {
 		go func(di *DeprecateImage) {
 			defer wg.Done()
 
-			w.Logger.StepInfo(w, s.name, "DeprecateImages", "%q --> %q.", di.Image, di.DeprecationStatus.State)
+			w.LogStepInfo(s.name, "DeprecateImages", "%q --> %q.", di.Image, di.DeprecationStatus.State)
 			if err := w.ComputeClient.DeprecateImage(di.Project, di.Image, &di.DeprecationStatus); err != nil {
 				e <- newErr(err)
 			}
