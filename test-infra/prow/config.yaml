@@ -134,7 +134,7 @@ periodics:
           projects/centos-cloud/global/images/family/centos-7,\
           projects/rhel-cloud/global/images/family/rhel-6,\
           projects/rhel-cloud/global/images/family/rhel-7"
-      - "daisy_workflows/image_test/linux_images.test.tmpl"
+      - "daisy_workflows/image_test/linux_images.test.gotmpl"
       env:
       - name: REPO_OWNER
         value: GoogleCloudPlatform
