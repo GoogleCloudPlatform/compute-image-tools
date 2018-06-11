@@ -6,3 +6,12 @@ plugins:
   GoogleCloudPlatform/compute-image-tools:
   - size
   - trigger
+  - config-updater
+  - golint
+
+config_updater:
+  maps:
+    prow/config.yaml:
+      name: config
+    prow/plugins.yaml:
+      name: plugins

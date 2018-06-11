@@ -3,12 +3,13 @@ plank:
  report_template: '[Full PR test history](https://k8s-gubernator.appspot.com/pr/{{.Spec.Refs.Org}}_{{.Spec.Refs.Repo}}/{{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}). [Your PR dashboard](https://k8s-gubernator.appspot.com/pr/{{with index .Spec.Refs.Pulls 0}}{{.Author}}{{end}}).'
 
 sinker:
- resync_period: 1h
- max_prowjob_age: 48h
- max_pod_age: 12h
+  resync_period: 1m
+  max_prowjob_age: 48h
+  max_pod_age: 30m
 
 prowjob_namespace: default
 pod_namespace: test-pods
+log_level: info
 
 triggers:
 - repos:
@@ -42,7 +43,6 @@ presubmits:
        secretName: compute-image-tools-test-service-account
  - name: presubmit-gocheck
    agent: kubernetes
-   always_run: true
    run_if_changed: ".*\\.go$"
    trigger: "(?m)^/gocheck$"
    rerun_command: "/gocheck"
@@ -60,7 +60,6 @@ presubmits:
        secretName: compute-image-tools-test-service-account
  - name: presubmit-flake8
    agent: kubernetes
-   always_run: true
    run_if_changed: ".*\\.py$"
    trigger: "(?m)^/flake8$"
    rerun_command: "/flake8"
@@ -78,7 +77,6 @@ presubmits:
        secretName: compute-image-tools-test-service-account
  - name: presubmit-gobuild
    agent: kubernetes
-   always_run: true
    run_if_changed: ".*\\.go$"
    trigger: "(?m)^/gobuild$"
    rerun_command: "/gobuild"
@@ -96,9 +94,9 @@ presubmits:
        secretName: compute-image-tools-test-service-account
 
 periodics:
- - interval: 6h
+ - name: ci-daisy-e2e
+   interval: 6h
    agent: kubernetes
-   name: ci-daisy-e2e
    spec:
     containers:
     - image: gcr.io/compute-image-tools-test/daisy-e2e:latest
@@ -117,15 +115,18 @@ periodics:
     - name: compute-image-tools-test-service-account
       secret:
        secretName: compute-image-tools-test-service-account
-- interval: 6h
+ - name: linux-image-tests
+   interval: 3h
    agent: kubernetes
-   name: linux-image-tests
    spec:
     containers:
     - image: gcr.io/compute-image-tools-test/test-runner:latest
       args:
-      - "-out_path=artifacts/junit.xml"
-      - "-projects=compute-image-tools-test"
+      - "-out_path=/artifacts/junit.xml"
+      - "-projects=\
+          compute-image-test-pool-001,\
+          compute-image-test-pool-002,\
+          compute-image-test-pool-003"
       - "-zone=us-central1-c"
       - "-var:images=\
           projects/debian-cloud/global/images/family/debian-8,\
