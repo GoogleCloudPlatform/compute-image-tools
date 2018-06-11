@@ -295,15 +295,15 @@ func addFlags(args []string) {
 func checkError(errors chan error) {
 	select {
 	case err := <-errors:
-		fmt.Fprintln(os.Stderr, "[TestRunner] Errors in one or more test cases:")
-		fmt.Fprintln(os.Stderr, " ", err)
+		fmt.Fprintln(os.Stderr, "\n[TestRunner] Errors in one or more test cases:")
+		fmt.Fprintln(os.Stderr, "\n - ", err)
 		for {
 			select {
 			case err := <-errors:
-				fmt.Fprintln(os.Stderr, " ", err)
+				fmt.Fprintln(os.Stderr, "\n - ", err)
 				continue
 			default:
-				fmt.Fprintln(os.Stderr, "[TestRunner] Exiting with exit code 1")
+				fmt.Fprintln(os.Stderr, "\n[TestRunner] Exiting with exit code 1")
 				os.Exit(1)
 			}
 		}
