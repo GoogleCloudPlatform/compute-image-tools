@@ -44,14 +44,10 @@ Loop:
 		case <-w.Cancel:
 			break Loop
 		case <-tick:
-			resp, err := w.ComputeClient.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
+			resp, err := w.ComputeClient.GetSerialPortOutput(path.Base(i.Project), path.Base(i.Zone), i.Name, port, start)
 			if err != nil {
-				// Instance was deleted by this workflow.
-				if _, ok := w.instances.get(i.Name); !ok {
-					break Loop
-				}
 				// Instance is stopped.
-				stopped, sErr := w.ComputeClient.InstanceStopped(i.Project, i.Zone, i.Name)
+				stopped, sErr := w.ComputeClient.InstanceStopped(path.Base(i.Project), path.Base(i.Zone), i.Name)
 				if stopped && sErr == nil {
 					break Loop
 				}
