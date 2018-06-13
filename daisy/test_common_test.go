@@ -70,19 +70,21 @@ func (m *mockStep) validate(ctx context.Context, s *Step) dErr {
 }
 
 var (
-	testWf          = "test-wf"
-	testProject     = "test-project"
-	testZone        = "test-zone"
-	testDisk        = "test-disk"
-	testImage       = "test-image"
-	testInstance    = "test-instance"
-	testMachineType = "test-machine-type"
-	testLicense     = "test-license"
-	testNetwork     = "test-network"
-	testFamily      = "test-family"
-	testGCSPath     = "gs://test-bucket"
-	testGCSObjs     []string
-	testGCSObjsMx   = sync.Mutex{}
+	testWf             = "test-wf"
+	testProject        = "test-project"
+	testZone           = "test-zone"
+	testRegion         = "test-region"
+	testDisk           = "test-disk"
+	testImage          = "test-image"
+	testInstance       = "test-instance"
+	testMachineType    = "test-machine-type"
+	testLicense        = "test-license"
+	testNetwork        = "test-network"
+	testTargetInstance = "test-target-instance"
+	testFamily         = "test-family"
+	testGCSPath        = "gs://test-bucket"
+	testGCSObjs        []string
+	testGCSObjsMx      = sync.Mutex{}
 
 	spewCfg = spew.ConfigState{
 		Indent:                  "\t",
@@ -196,6 +198,15 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, errors.New("bad project: " + p)
 		}
 		return []*compute.Network{{Name: testNetwork}}, nil
+	}
+	c.ListTargetInstancesFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.TargetInstance, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		if z != testZone {
+			return nil, errors.New("bad zone: " + z)
+		}
+		return []*compute.TargetInstance{{Name: testTargetInstance}}, nil
 	}
 	c.CreateImageFn = func(p string, i *compute.Image) error {
 		if p != testProject {

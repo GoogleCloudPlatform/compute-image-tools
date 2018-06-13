@@ -120,6 +120,9 @@ func resourceExists(client compute.Client, url string) (bool, dErr) {
 	case networkURLRegex.MatchString(url):
 		result := namedSubexp(networkURLRegex, url)
 		return networkExists(client, result["project"], result["network"])
+	case targetInstanceURLRegex.MatchString(url):
+		result := namedSubexp(targetInstanceURLRegex, url)
+		return targetInstanceExists(client, result["project"], result["zone"], result["targetInstance"])
 	}
 	return false, errf("unknown resource type: %q", url)
 }

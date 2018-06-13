@@ -47,6 +47,7 @@ type Step struct {
 	CreateImages           *CreateImages           `json:",omitempty"`
 	CreateInstances        *CreateInstances        `json:",omitempty"`
 	CreateNetworks         *CreateNetworks         `json:",omitempty"`
+	CreateTargetInstances  *CreateTargetInstances  `json:",omitempty"`
 	CopyGCSObjects         *CopyGCSObjects         `json:",omitempty"`
 	StopInstances          *StopInstances          `json:",omitempty"`
 	DeleteResources        *DeleteResources        `json:",omitempty"`
@@ -80,6 +81,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 	if s.CreateNetworks != nil {
 		matchCount++
 		result = s.CreateNetworks
+	}
+	if s.CreateTargetInstances != nil {
+		matchCount++
+		result = s.CreateTargetInstances
 	}
 	if s.CopyGCSObjects != nil {
 		matchCount++

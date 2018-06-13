@@ -29,12 +29,13 @@ import (
 )
 
 var (
-	testProject  = "test-project"
-	testZone     = "test-zone"
-	testDisk     = "test-disk"
-	testImage    = "test-image"
-	testInstance = "test-instance"
-	testNetwork  = "test-network"
+	testProject        = "test-project"
+	testZone           = "test-zone"
+	testDisk           = "test-disk"
+	testImage          = "test-image"
+	testInstance       = "test-instance"
+	testNetwork        = "test-network"
+	testTargetInstance = "test-target-instance"
 )
 
 func TestShouldRetryWithWait(t *testing.T) {
@@ -108,6 +109,7 @@ func TestCreates(t *testing.T) {
 	im := &compute.Image{Name: testImage}
 	in := &compute.Instance{Name: testInstance}
 	n := &compute.Network{Name: testNetwork}
+	ti := &compute.TargetInstance{Name: testTargetInstance}
 	creates := []struct {
 		name              string
 		do                func() error
@@ -145,6 +147,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/global/networks?alt=json", testProject),
 			&compute.Network{Name: testNetwork, SelfLink: "foo"},
 			n,
+		},
+		{
+			"targetInstances",
+			func() error { return c.CreateTargetInstance(testProject, testZone, ti) },
+			fmt.Sprintf("/%s/zones/%s/targetInstances/%s?alt=json", testProject, testZone, testTargetInstance),
+			fmt.Sprintf("/%s/zones/%s/targetInstances?alt=json", testProject, testZone),
+			&compute.TargetInstance{Name: testTargetInstance, SelfLink: "foo"},
+			ti,
 		},
 	}
 
@@ -238,6 +248,12 @@ func TestDeletes(t *testing.T) {
 			func() error { return c.DeleteNetwork(testProject, testNetwork) },
 			fmt.Sprintf("/%s/global/networks/%s?alt=json", testProject, testNetwork),
 			fmt.Sprintf("/%s/global/operations/?alt=json", testProject),
+		},
+		{
+			"targetInstances",
+			func() error { return c.DeleteTargetInstance(testProject, testZone, testTargetInstance) },
+			fmt.Sprintf("/%s/zones/%s/targetInstances/%s?alt=json", testProject, testZone, testTargetInstance),
+			fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone),
 		},
 	}
 

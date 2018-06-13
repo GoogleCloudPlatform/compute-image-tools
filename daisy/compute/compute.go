@@ -36,11 +36,13 @@ type Client interface {
 	CreateImage(project string, i *compute.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
+	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
 	DeleteDisk(project, zone, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
 	StopInstance(project, zone, name string) error
 	DeleteNetwork(project, name string) error
+	DeleteTargetInstance(project, zone, name string) error
 	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
 	GetProject(project string) (*compute.Project, error)
@@ -52,6 +54,7 @@ type Client interface {
 	GetImageFromFamily(project, family string) (*compute.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
 	GetNetwork(project, name string) (*compute.Network, error)
+	GetTargetInstance(project, zone, name string) (*compute.TargetInstance, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
@@ -60,6 +63,7 @@ type Client interface {
 	ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
+	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -329,6 +333,26 @@ func (c *client) CreateNetwork(project string, n *compute.Network) error {
 	return nil
 }
 
+// CreateTargetInstance creates a GCE Target Instance, which can be used as
+// target on ForwardingRule
+func (c *client) CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error {
+	op, err := c.Retry(c.raw.TargetInstances.Insert(project, zone, ti).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.operationsWait(project, zone, op.Name); err != nil {
+		return err
+	}
+
+	var createdTargetInstance *compute.TargetInstance
+	if createdTargetInstance, err = c.i.GetTargetInstance(project, zone, ti.Name); err != nil {
+		return err
+	}
+	*ti = *createdTargetInstance
+	return nil
+}
+
 // DeleteImage deletes a GCE image.
 func (c *client) DeleteImage(project, name string) error {
 	op, err := c.Retry(c.raw.Images.Delete(project, name).Do)
@@ -377,6 +401,16 @@ func (c *client) DeleteNetwork(project, name string) error {
 	}
 
 	return c.i.operationsWait(project, "", op.Name)
+}
+
+// DeleteTargetInstance deletes a GCE TargetInstance.
+func (c *client) DeleteTargetInstance(project, zone, name string) error {
+	op, err := c.Retry(c.raw.TargetInstances.Delete(project, zone, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.operationsWait(project, zone, op.Name)
 }
 
 // DeprecateImage sets deprecation status on a GCE image.
@@ -611,6 +645,39 @@ func (c *client) ListNetworks(project string, opts ...ListCallOption) ([]*comput
 			return ns, nil
 		}
 		pt = nl.NextPageToken
+	}
+}
+
+// GetTargetInstance gets a GCE TargetInstance.
+func (c *client) GetTargetInstance(project, zone, name string) (*compute.TargetInstance, error) {
+	n, err := c.raw.TargetInstances.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.TargetInstances.Get(project, zone, name).Do()
+	}
+	return n, err
+}
+
+// ListTargetInstances gets a list of GCE TargetInstances.
+func (c *client) ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error) {
+	var tis []*compute.TargetInstance
+	var pt string
+	call := c.raw.TargetInstances.List(project, zone)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.TargetInstancesListCall)
+	}
+	for til, err := call.PageToken(pt).Do(); ; til, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			til, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		tis = append(tis, til.Items...)
+
+		if til.NextPageToken == "" {
+			return tis, nil
+		}
+		pt = til.NextPageToken
 	}
 }
 
