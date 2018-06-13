@@ -58,22 +58,26 @@ func (w *Workflow) createLogger(ctx context.Context) {
 		return nil
 	})
 
+	if !w.gcsLoggingDisabled {
+		gcsLogger := NewGCSLogger(ctx, w.StorageClient, w.bucket, path.Join(w.logsPath, "daisy.log"))
+		l.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(gcsLogger)}
+		periodicFlush(func() { l.gcsLogWriter.Flush() })
+	}
+
 	if !w.cloudLoggingDisabled && w.cloudLoggingClient != nil {
 		// Verify we can communicate with the log service.
 		if err := w.cloudLoggingClient.Ping(ctx); err != nil {
-			w.LogWorkflowInfo("Unable to send logs to the Cloud Logging service, not sending logs: %v", err)
+			l.WriteLogEntry(&LogEntry{
+				LocalTimestamp: time.Now(),
+				WorkflowName:   getAbsoluteName(w),
+				Message:        fmt.Sprintf("Unable to send logs to the Cloud Logging service, not sending logs: %v", err),
+			})
 			w.cloudLoggingClient = nil
 		} else {
 			cloudLogName := fmt.Sprintf("daisy-%s-%s", w.Name, w.id)
 			l.cloudLogger = w.cloudLoggingClient.Logger(cloudLogName)
 			periodicFlush(func() { l.cloudLogger.Flush() })
 		}
-	}
-
-	if !w.gcsLoggingDisabled {
-		gcsLogger := NewGCSLogger(ctx, w.StorageClient, w.bucket, path.Join(w.logsPath, "daisy.log"))
-		l.gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(gcsLogger)}
-		periodicFlush(func() { l.gcsLogWriter.Flush() })
 	}
 
 	w.Logger = l
