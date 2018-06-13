@@ -15,8 +15,8 @@
   },
   "Sources": {
     "test_files/test.py": "./oslogin-ssh-master-tester.py",
-    "test_files/utils.py": "../linux_common/utils.py",
-    "startup_master_tester": "../linux_common/bootstrap.py",
+    "test_files/utils.py": "../../linux_common/utils.py",
+    "startup_master_tester": "../../linux_common/bootstrap.py",
     "test_files/slave_tester.sh": "./oslogin_slave_tester.sh",
     "startup_slave_tester": "./oslogin_slave_tester_startup.sh"
   },
@@ -64,8 +64,9 @@
           "Disks": [{"Source": "disk-master-tester"}],
           "StartupScript": "startup_master_tester",
           "metadata": {
-            "test_files_gcs_dir": "${SOURCESPATH}/test_files",
-            "test_script": "test.py",
+            "files_gcs_dir": "${SOURCESPATH}/test_files",
+            "script": "test.py",
+            "prefix": "Test",
             "testee": "inst-oslogin-ssh-testee-${DATETIME}-${ID}",
             "osLoginTester": "inst-oslogin-ssh-tester-${DATETIME}-${ID}",
             "osAdminLoginTester": "inst-osadminlogin-ssh-tester-${DATETIME}-${ID}",

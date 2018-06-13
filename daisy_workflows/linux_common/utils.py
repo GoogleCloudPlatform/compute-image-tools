@@ -19,6 +19,7 @@ import functools
 import logging
 import os
 import re
+import stat
 import subprocess
 import sys
 import time
@@ -28,12 +29,52 @@ import urllib2
 import uuid
 
 
+def GetPrefix():
+  if GetPrefix.first_run:
+    GetPrefix.prefix = GetMetadataParam('prefix')
+    GetPrefix.first_run = False
+  return GetPrefix.prefix
+
+
+GetPrefix.first_run = True
+
+
+def LogFail(*args, **kwargs):
+  logging.error('%sFailed: %s', GetPrefix(), *args, **kwargs)
+
+
+def LogStatus(*args, **kwargs):
+  logging.info('%sStatus: %s', GetPrefix(), *args, **kwargs)
+
+
+def LogWarn(*args, **kwargs):
+  logging.warn('%sWarn: %s', GetPrefix(), *args, **kwargs)
+
+
+def LogDebug(*args, **kwargs):
+  logging.debug('%sDebug: %s', GetPrefix(), *args, **kwargs)
+
+
+def LogSuccess(*args, **kwargs):
+  logging.info('%sSuccess: %s', GetPrefix(), *args, **kwargs)
+
+
+def YumInstall(package_list):
+  if YumInstall.first_run:
+    Execute(['yum', 'update'])
+    YumInstall.first_run = False
+  Execute(['yum', '-y', 'install'] + package_list)
+
+
+YumInstall.first_run = True
+
+
 def AptGetInstall(package_list):
   if AptGetInstall.first_run:
     try:
       Execute(['apt-get', 'update'])
     except subprocess.CalledProcessError as error:
-      logging.warning('Apt update failed, trying again: %s', error)
+      LogStatus('Apt update failed, trying again: %s' % error)
       Execute(['apt-get', 'update'], raise_errors=False)
     AptGetInstall.first_run = False
 
@@ -45,9 +86,20 @@ def AptGetInstall(package_list):
 AptGetInstall.first_run = True
 
 
+def PipInstall(package_list):
+  """Install Python modules via pip. Assumes pip is already installed."""
+  return Execute(['pip', 'install', '-U'] + package_list)
+
+
+def Gsutil(params):
+  """Call gsutil."""
+  env = os.environ.copy()
+  return Execute(['gsutil', '-m'] + params, capture_output=True, env=env)
+
+
 def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
   """Execute an external command (wrapper for Python subprocess)."""
-  logging.info('Command: %s', str(cmd))
+  LogStatus('Executing command: %s' % str(cmd))
   stdout = subprocess.PIPE if capture_output else None
   p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=stdout)
   output = p.communicate()[0]
@@ -57,9 +109,9 @@ def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
     if raise_errors:
       raise subprocess.CalledProcessError(returncode, cmd)
     else:
-      logging.exception('Command returned error status %d', returncode)
+      LogStatus('Command returned error status %d' % returncode)
   if output:
-    logging.info(output)
+    LogStatus(output)
   return returncode, output
 
 
@@ -69,6 +121,115 @@ def HttpGet(url, headers=None):
     for key in headers.keys():
       request.add_unredirected_header(key, headers[key])
   return urllib2.urlopen(request).read()
+
+
+def GetMetadataParam(name, default_value=None, raise_on_not_found=False):
+  try:
+    url = 'http://metadata.google.internal/computeMetadata/v1/instance/attributes/%s' % name
+    return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
+  except urllib2.HTTPError:
+    if raise_on_not_found:
+      raise ValueError('Metadata key "%s" not found' % name)
+    else:
+      return default_value
+
+
+def MountDisk(disk):
+  # Note: guestfs is not imported in the beginning of the file as it might not
+  # be installed when this module is loaded
+  import guestfs
+
+  # All new Python code should pass python_return_dict=True
+  # to the constructor.  It indicates that your program wants
+  # to receive Python dicts for methods in the API that return
+  # hashtables.
+  g = guestfs.GuestFS(python_return_dict=True)
+  # Set the product name as cloud-init checks it to confirm this is a VM in GCE
+  g.config('-smbios', 'type=1,product=Google Compute Engine')
+  g.set_verbose(1)
+  g.set_trace(1)
+
+  g.set_memsize(4096)
+
+  # Enable network
+  g.set_network(True)
+
+  # Attach the disk image to libguestfs.
+  g.add_drive_opts(disk)
+
+  # Run the libguestfs back-end.
+  g.launch()
+
+  # Ask libguestfs to inspect for operating systems.
+  roots = g.inspect_os()
+  if len(roots) == 0:
+    raise Exception('inspect_vm: no operating systems found')
+
+  # Sort keys by length, shortest first, so that we end up
+  # mounting the filesystems in the correct order.
+  mps = g.inspect_get_mountpoints(roots[0])
+
+  def compare(a, b):
+    return len(a) - len(b)
+
+  for device in sorted(mps.keys(), compare):
+    try:
+      g.mount(mps[device], device)
+    except RuntimeError as msg:
+      LogWarn('%s (ignored)' % msg)
+
+  return g
+
+
+def UnmountDisk(g):
+  try:
+    g.umount_all()
+  except Exception as e:
+    LogDebug(str(e))
+    LogWarn('Unmount failed. Continuing anyway.')
+
+
+def CommonRoutines(g):
+  # Remove udev file to force it to be re-generated
+  LogStatus("Removing udev 70-persistent-net.rules.")
+  g.rm_f('/etc/udev/rules.d/70-persistent-net.rules')
+
+  # Remove SSH host keys.
+  LogStatus("Removing SSH host keys.")
+  g.sh("rm -f /etc/ssh/ssh_host_*")
+
+
+def RunTranslate(translate_func):
+  try:
+    tracer = trace.Trace(
+        ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
+    tracer.runfunc(translate_func)
+    LogSuccess('Translation finished.')
+  except Exception as e:
+    LogFail('error: %s', str(e))
+
+
+def GetMetadataParamBool(name, default_value):
+  value = GetMetadataParam(name, default_value)
+  if not value:
+    return False
+  return True if value.lower() == 'yes' else False
+
+
+def MakeExecutable(file_path):
+  os.chmod(file_path, os.stat(file_path).st_mode | stat.S_IEXEC)
+
+
+def ReadFile(file_path, strip=False):
+  content = open(file_path).read()
+  if strip:
+    return content.strip()
+  return content
+
+
+def WriteFile(file_path, content, mode='w'):
+  with open(file_path, mode) as fp:
+    fp.write(content)
 
 
 def GenSshKey(user):
@@ -103,14 +264,14 @@ def RetryOnFailure(func):
       try:
         response = func(*args, **kwargs)
       except Exception as e:
-        logging.info(str(e))
-        logging.info(
+        LogStatus(str(e))
+        LogStatus(
             'Function %s failed, waiting %d seconds, retrying %d ...',
             str(func), wait, ntries)
         time.sleep(wait)
         wait = wait * ratio
       else:
-        logging.info(
+        LogStatus(
             'Function %s executed in less then %d sec, with %d tentative(s)',
             str(func), time.time() - start_time, ntries)
         return response
@@ -164,7 +325,7 @@ def GetCompute(discovery, credentials):
 
 
 def RunTest(test_func):
-  """Run main test function and print TestSuccess or TestFailed.
+  """Run main test function and print LogSuccess() or LogFail().
 
   Args:
     test_func: function, the function to be tested.
@@ -173,19 +334,19 @@ def RunTest(test_func):
     tracer = trace.Trace(
         ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
     tracer.runfunc(test_func)
-    print('TestSuccess: Test finished.')
+    LogSuccess('Test finished.')
   except Exception as e:
-    print('TestFailed: error: ' + str(e))
+    LogFail('error: ' + str(e))
     traceback.print_exc()
 
 
 def SetupLogging():
   """Configure Logging system."""
-  logging_level = logging.DEBUG
-  logging.basicConfig(level=logging_level)
-  console = logging.StreamHandler()
-  console.setLevel(logging_level)
-  logging.getLogger().addHandler(console)
+  logger = logging.getLogger()
+  logger.setLevel(logging.DEBUG)
+  stdout = logging.StreamHandler(sys.stdout)
+  stdout.setLevel(logging.DEBUG)
+  logger.addHandler(stdout)
 
 
 SetupLogging()

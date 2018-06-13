@@ -5,8 +5,8 @@
   },
   "Sources": {
     "test_files/test.py": "./metadata-ssh-tester.py",
-    "test_files/utils.py": "../linux_common/utils.py",
-    "startup_tester": "../linux_common/bootstrap.py"
+    "test_files/utils.py": "../../linux_common/utils.py",
+    "startup_tester": "../../linux_common/bootstrap.py"
   },
   "Steps": {
     "create-disk-tester": {
@@ -34,8 +34,9 @@
           "Disks": [{"Source": "disk-tester"}],
           "StartupScript": "startup_tester",
           "metadata": {
-            "test_files_gcs_dir": "${SOURCESPATH}/test_files",
-            "test_script": "test.py",
+            "files_gcs_dir": "${SOURCESPATH}/test_files",
+            "script": "test.py",
+            "prefix": "Test",
             "testee": "inst-metadata-ssh-testee-${DATETIME}-${ID}",
             "debian_install_google_api_python_client": "yes",
             "zone": "${ZONE}",

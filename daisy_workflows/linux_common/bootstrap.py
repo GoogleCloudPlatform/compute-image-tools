@@ -16,8 +16,10 @@
 """Bootstrapper for running a VM script.
 
 Args:
-test-files-gcs-dir: The Cloud Storage location containing the test files.
-  This dir of test files must contain a test.py containing the test logic.
+  files_gcs_dir: The Cloud Storage location containing the files.
+    This dir will be used to run the 'script' requested by Metadata.
+  script: The main script to be run
+  prefix: a string prefix for outputing status
 """
 import logging
 import os
@@ -25,15 +27,18 @@ import subprocess
 import urllib2
 
 
+DIR = '/files'
+
+
 def GetMetadataAttribute(attribute):
-  url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % attribute
+  url = 'http://metadata.google.internal/computeMetadata/v1/instance/attributes/%s' % attribute
   request = urllib2.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   return urllib2.urlopen(request).read()
 
 
-def DebianInstallGoogleApiPythonClient():
-  logging.info('Installing google-api-python-client')
+def DebianInstallGoogleApiPythonClient(prefix):
+  logging.info('%sStatus: Installing google-api-python-client', prefix)
   subprocess.check_call(['apt-get', 'update'])
   env = os.environ.copy()
   env['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -45,31 +50,32 @@ def DebianInstallGoogleApiPythonClient():
 
 
 def Bootstrap():
-  """Get test files, run test."""
+  """Get files, run."""
   try:
-    logging.info('Starting bootstrap.py.')
+    prefix = GetMetadataAttribute('prefix')
+    status = prefix + 'Status'
+    logging.info('%s: Starting bootstrap.py.', status)
 
     # Optional flag
     try:
       if GetMetadataAttribute('debian_install_google_api_python_client'):
-        DebianInstallGoogleApiPythonClient()
+        DebianInstallGoogleApiPythonClient(prefix)
     except urllib2.HTTPError:
       pass
 
-    test_gcs_dir = GetMetadataAttribute('test_files_gcs_dir')
-    test_script = GetMetadataAttribute('test_script')
-    test_dir = '/test_files'
-    full_test_script = os.path.join(test_dir, test_script)
-    subprocess.check_call(['mkdir', test_dir])
+    gcs_dir = GetMetadataAttribute('files_gcs_dir')
+    script = GetMetadataAttribute('script')
+    full_script = os.path.join(DIR, script)
+    subprocess.check_call(['mkdir', DIR])
     subprocess.check_call(
-        ['gsutil', '-m', 'cp', '-r', os.path.join(test_gcs_dir, '*'),
-         test_dir])
-    logging.info('Making test script %s executable.', full_test_script)
-    subprocess.check_call(['chmod', '+x', test_script], cwd=test_dir)
-    logging.info('Running %s.', full_test_script)
-    subprocess.check_call([full_test_script], cwd=test_dir)
+        ['gsutil', '-m', 'cp', '-r', os.path.join(gcs_dir, '*'), DIR])
+    logging.info('%s: Making script %s executable.', status, full_script)
+    subprocess.check_call(['chmod', '+x', script], cwd=DIR)
+    logging.info('%s: Running %s.', status, full_script)
+    subprocess.check_call([full_script], cwd=DIR)
   except Exception as e:
-    print('TestFailed: error: ' + str(e))
+    fail = prefix + 'Failed'
+    print('%s: error: %s' % (fail, str(e)))
 
 
 if __name__ == '__main__':
