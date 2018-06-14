@@ -75,6 +75,7 @@ var (
 	testZone           = "test-zone"
 	testRegion         = "test-region"
 	testDisk           = "test-disk"
+	testForwardingRule = "test-forwarding-rule"
 	testImage          = "test-image"
 	testInstance       = "test-instance"
 	testMachineType    = "test-machine-type"
@@ -183,6 +184,15 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, errors.New("bad zone: " + z)
 		}
 		return []*compute.Disk{{Name: testDisk}}, nil
+	}
+	c.ListForwardingRulesFn = func(p, r string, _ ...daisyCompute.ListCallOption) ([]*compute.ForwardingRule, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		if r != testRegion {
+			return nil, errors.New("bad region: " + r)
+		}
+		return []*compute.ForwardingRule{{Name: testForwardingRule}}, nil
 	}
 	c.GetLicenseFn = func(p, l string) (*compute.License, error) {
 		if p != testProject {

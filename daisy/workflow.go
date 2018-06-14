@@ -135,6 +135,7 @@ type Workflow struct {
 
 	// Resource registries.
 	disks           *diskRegistry
+	forwardingRules *forwardingRuleRegistry
 	images          *imageRegistry
 	instances       *instanceRegistry
 	networks        *networkRegistry
@@ -443,6 +444,7 @@ func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw.Cancel = w.Cancel
 	iw.parent = w
 	iw.disks = w.disks
+	iw.forwardingRules = w.forwardingRules
 	iw.images = w.images
 	iw.instances = w.instances
 	iw.networks = w.networks
@@ -631,6 +633,7 @@ func New() *Workflow {
 
 	// Resource registries and cleanup.
 	w.disks = newDiskRegistry(w)
+	w.forwardingRules = newForwardingRuleRegistry(w)
 	w.images = newImageRegistry(w)
 	w.instances = newInstanceRegistry(w)
 	w.networks = newNetworkRegistry(w)
@@ -638,6 +641,7 @@ func New() *Workflow {
 	w.addCleanupHook(func() dErr {
 		w.instances.cleanup() // instances need to be done before disks/networks
 		w.disks.cleanup()
+		w.forwardingRules.cleanup()
 		w.images.cleanup()
 		w.networks.cleanup()
 		w.targetInstances.cleanup()

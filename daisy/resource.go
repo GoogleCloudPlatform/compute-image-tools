@@ -48,6 +48,16 @@ type Resource struct {
 }
 
 func (r *Resource) populate(ctx context.Context, s *Step, name, zone string) (string, string, dErr) {
+	errs := r.populateHelper(ctx, s, name)
+	return r.RealName, strOr(zone, s.w.Zone), errs
+}
+
+func (r *Resource) populateWithRegion(ctx context.Context, s *Step, name, region string) (string, string, dErr) {
+	errs := r.populateHelper(ctx, s, name)
+	return r.RealName, strOr(region, s.w.Zone[:len(s.w.Zone)-2]), errs
+}
+
+func (r *Resource) populateHelper(ctx context.Context, s *Step, name string) dErr {
 	var errs dErr
 	if r.ExactName && r.RealName != "" {
 		errs = addErrs(errs, errf("ExactName and RealName must be used mutually exclusively"))
@@ -58,7 +68,7 @@ func (r *Resource) populate(ctx context.Context, s *Step, name, zone string) (st
 	}
 	r.daisyName = name
 	r.Project = strOr(r.Project, s.w.Project)
-	return r.RealName, strOr(zone, s.w.Zone), errs
+	return errs
 }
 
 func (r *Resource) validate(ctx context.Context, s *Step, errPrefix string) dErr {
@@ -85,6 +95,19 @@ func (r *Resource) validateWithZone(ctx context.Context, s *Step, z, errPrefix s
 		errs = addErrs(errs, errf("%s: bad zone lookup: %q, error: %v", errPrefix, z, err))
 	} else if !exists {
 		errs = addErrs(errs, errf("%s: zone does not exist: %q", errPrefix, z))
+	}
+	return errs
+}
+
+func (r *Resource) validateWithRegion(ctx context.Context, s *Step, re, errPrefix string) dErr {
+	errs := r.validate(ctx, s, errPrefix)
+	if re == "" {
+		errs = addErrs(errs, errf("%s: no region provided in step or workflow", errPrefix))
+	}
+	if exists, err := regionExists(s.w.ComputeClient, r.Project, re); err != nil {
+		errs = addErrs(errs, errf("%s: bad region lookup: %q, error: %v", errPrefix, re, err))
+	} else if !exists {
+		errs = addErrs(errs, errf("%s: region does not exist: %q", errPrefix, re))
 	}
 	return errs
 }
@@ -123,6 +146,9 @@ func resourceExists(client compute.Client, url string) (bool, dErr) {
 	case targetInstanceURLRegex.MatchString(url):
 		result := namedSubexp(targetInstanceURLRegex, url)
 		return targetInstanceExists(client, result["project"], result["zone"], result["targetInstance"])
+	case forwardingRuleURLRegex.MatchString(url):
+		result := namedSubexp(forwardingRuleURLRegex, url)
+		return forwardingRuleExists(client, result["project"], result["region"], result["forwardingRule"])
 	}
 	return false, errf("unknown resource type: %q", url)
 }

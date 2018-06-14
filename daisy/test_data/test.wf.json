@@ -2,6 +2,7 @@
   "name": "some-name",
   "project": "some-project",
   "zone": "us-central1-a",
+  "region": "us-central1",
   "gcsPath": "gs://some-bucket/images",
   "oauthPath": "somefile",
   "vars": {

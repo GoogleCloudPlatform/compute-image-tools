@@ -31,7 +31,9 @@ import (
 var (
 	testProject        = "test-project"
 	testZone           = "test-zone"
+	testRegion         = "test-region"
 	testDisk           = "test-disk"
+	testForwardingRule = "test-forwarding-rule"
 	testImage          = "test-image"
 	testInstance       = "test-instance"
 	testNetwork        = "test-network"
@@ -92,7 +94,9 @@ func TestCreates(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer svr.Close()
-	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
+	c.zoneOperationsWaitFn = func(project, zone, name string) error { return waitErr }
+	c.regionOperationsWaitFn = func(project, region, name string) error { return waitErr }
+	c.globalOperationsWaitFn = func(project, name string) error { return waitErr }
 
 	tests := []struct {
 		desc                       string
@@ -106,6 +110,7 @@ func TestCreates(t *testing.T) {
 	}
 
 	d := &compute.Disk{Name: testDisk}
+	fr := &compute.ForwardingRule{Name: testForwardingRule}
 	im := &compute.Image{Name: testImage}
 	in := &compute.Instance{Name: testInstance}
 	n := &compute.Network{Name: testNetwork}
@@ -123,6 +128,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone),
 			&compute.Disk{Name: testDisk, SelfLink: "foo"},
 			d,
+		},
+		{
+			"forwardingRules",
+			func() error { return c.CreateForwardingRule(testProject, testRegion, fr) },
+			fmt.Sprintf("/%s/regions/%s/forwardingRules/%s?alt=json", testProject, testRegion, testForwardingRule),
+			fmt.Sprintf("/%s/regions/%s/forwardingRules?alt=json", testProject, testRegion),
+			&compute.ForwardingRule{Name: testForwardingRule, SelfLink: "foo"},
+			fr,
 		},
 		{
 			"images",
@@ -230,6 +243,12 @@ func TestDeletes(t *testing.T) {
 			func() error { return c.DeleteDisk(testProject, testZone, testDisk) },
 			fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json", testProject, testZone, testDisk),
 			fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone),
+		},
+		{
+			"forwardingRules",
+			func() error { return c.DeleteForwardingRule(testProject, testRegion, testForwardingRule) },
+			fmt.Sprintf("/%s/regions/%s/forwardingRules/%s?alt=json", testProject, testRegion, testForwardingRule),
+			fmt.Sprintf("/%s/regions/%s/operations/?alt=json", testProject, testRegion),
 		},
 		{
 			"images",

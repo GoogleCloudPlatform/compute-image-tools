@@ -48,12 +48,14 @@ type TestClient struct {
 	client
 	AttachDiskFn           func(project, zone, instance string, d *compute.AttachedDisk) error
 	CreateDiskFn           func(project, zone string, d *compute.Disk) error
+	CreateForwardingRuleFn func(project, region string, fr *compute.ForwardingRule) error
 	CreateImageFn          func(project string, i *compute.Image) error
 	CreateInstanceFn       func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn        func(project string, n *compute.Network) error
 	CreateTargetInstanceFn func(project, zone string, ti *compute.TargetInstance) error
 	StopInstanceFn         func(project, zone, name string) error
 	DeleteDiskFn           func(project, zone, name string) error
+	DeleteForwardingRuleFn func(project, region, name string) error
 	DeleteImageFn          func(project, name string) error
 	DeleteInstanceFn       func(project, zone, name string) error
 	DeleteNetworkFn        func(project, name string) error
@@ -69,6 +71,8 @@ type TestClient struct {
 	ListInstancesFn        func(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
 	GetDiskFn              func(project, zone, name string) (*compute.Disk, error)
 	ListDisksFn            func(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
+	GetForwardingRuleFn    func(project, region, name string) (*compute.ForwardingRule, error)
+	ListForwardingRulesFn  func(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	GetImageFn             func(project, name string) (*compute.Image, error)
 	GetImageFromFamilyFn   func(project, family string) (*compute.Image, error)
 	ListImagesFn           func(project string, opts ...ListCallOption) ([]*compute.Image, error)
@@ -82,7 +86,9 @@ type TestClient struct {
 	SetInstanceMetadataFn  func(project, zone, name string, md *compute.Metadata) error
 	RetryFn                func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 
-	operationsWaitFn func(project, zone, name string) error
+	zoneOperationsWaitFn   func(project, zone, name string) error
+	regionOperationsWaitFn func(project, region, name string) error
+	globalOperationsWaitFn func(project, name string) error
 }
 
 // Retry uses the override method RetryFn or the real implementation.
@@ -107,6 +113,14 @@ func (c *TestClient) CreateDisk(project, zone string, d *compute.Disk) error {
 		return c.CreateDiskFn(project, zone, d)
 	}
 	return c.client.CreateDisk(project, zone, d)
+}
+
+// CreateForwardingRule uses the override method CreateForwardingRuleFn or the real implementation.
+func (c *TestClient) CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error {
+	if c.CreateForwardingRuleFn != nil {
+		return c.CreateForwardingRuleFn(project, region, fr)
+	}
+	return c.client.CreateForwardingRule(project, region, fr)
 }
 
 // CreateImage uses the override method CreateImageFn or the real implementation.
@@ -155,6 +169,14 @@ func (c *TestClient) DeleteDisk(project, zone, name string) error {
 		return c.DeleteDiskFn(project, zone, name)
 	}
 	return c.client.DeleteDisk(project, zone, name)
+}
+
+// DeleteForwardingRule uses the override method DeleteForwardingRuleFn or the real implementation.
+func (c *TestClient) DeleteForwardingRule(project, region, name string) error {
+	if c.DeleteForwardingRuleFn != nil {
+		return c.DeleteForwardingRuleFn(project, region, name)
+	}
+	return c.client.DeleteForwardingRule(project, region, name)
 }
 
 // DeleteImage uses the override method DeleteImageFn or the real implementation.
@@ -269,6 +291,22 @@ func (c *TestClient) ListDisks(project, zone string, opts ...ListCallOption) ([]
 	return c.client.ListDisks(project, zone, opts...)
 }
 
+// GetForwardingRule uses the override method GetForwardingRuleFn or the real implementation.
+func (c *TestClient) GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error) {
+	if c.GetForwardingRuleFn != nil {
+		return c.GetForwardingRuleFn(project, region, name)
+	}
+	return c.client.GetForwardingRule(project, region, name)
+}
+
+// ListForwardingRules uses the override method ListForwardingRulesFn or the real implementation.
+func (c *TestClient) ListForwardingRules(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error) {
+	if c.ListForwardingRulesFn != nil {
+		return c.ListForwardingRulesFn(project, region, opts...)
+	}
+	return c.client.ListForwardingRules(project, region, opts...)
+}
+
 // GetImage uses the override method GetImageFn or the real implementation.
 func (c *TestClient) GetImage(project, name string) (*compute.Image, error) {
 	if c.GetImageFn != nil {
@@ -365,10 +403,26 @@ func (c *TestClient) SetInstanceMetadata(project, zone, name string, md *compute
 	return c.client.SetInstanceMetadata(project, zone, name, md)
 }
 
-// operationsWait uses the override method operationsWaitFn or the real implementation.
-func (c *TestClient) operationsWait(project, zone, name string) error {
-	if c.operationsWaitFn != nil {
-		return c.operationsWaitFn(project, zone, name)
+// zoneOperationsWait uses the override method zoneOperationsWaitFn or the real implementation.
+func (c *TestClient) zoneOperationsWait(project, zone, name string) error {
+	if c.zoneOperationsWaitFn != nil {
+		return c.zoneOperationsWaitFn(project, zone, name)
 	}
-	return c.client.operationsWait(project, zone, name)
+	return c.client.zoneOperationsWait(project, zone, name)
+}
+
+// regionOperationsWait uses the override method regionOperationsWaitFn or the real implementation.
+func (c *TestClient) regionOperationsWait(project, region, name string) error {
+	if c.regionOperationsWaitFn != nil {
+		return c.regionOperationsWaitFn(project, region, name)
+	}
+	return c.client.regionOperationsWait(project, region, name)
+}
+
+// globalOperationsWait uses the override method globalOperationsWaitFn or the real implementation.
+func (c *TestClient) globalOperationsWait(project, name string) error {
+	if c.globalOperationsWaitFn != nil {
+		return c.globalOperationsWaitFn(project, name)
+	}
+	return c.client.globalOperationsWait(project, name)
 }

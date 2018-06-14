@@ -33,11 +33,13 @@ import (
 type Client interface {
 	AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error
 	CreateDisk(project, zone string, d *compute.Disk) error
+	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateImage(project string, i *compute.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
 	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
 	DeleteDisk(project, zone, name string) error
+	DeleteForwardingRule(project, region, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
 	StopInstance(project, zone, name string) error
@@ -50,6 +52,7 @@ type Client interface {
 	GetZone(project, zone string) (*compute.Zone, error)
 	GetInstance(project, zone, name string) (*compute.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
+	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetImage(project, name string) (*compute.Image, error)
 	GetImageFromFamily(project, family string) (*compute.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
@@ -59,8 +62,10 @@ type Client interface {
 	InstanceStopped(project, zone, name string) (bool, error)
 	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
 	ListZones(project string, opts ...ListCallOption) ([]*compute.Zone, error)
+	ListRegions(project string, opts ...ListCallOption) ([]*compute.Region, error)
 	ListInstances(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
 	ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
+	ListForwardingRules(project, zone string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
@@ -123,7 +128,9 @@ func (o Filter) listCallOptionApply(i interface{}) interface{} {
 
 type clientImpl interface {
 	Client
-	operationsWait(project, zone, name string) error
+	zoneOperationsWait(project, zone, name string) error
+	regionOperationsWait(project, region, name string) error
+	globalOperationsWait(project, name string) error
 }
 
 type client struct {
@@ -196,21 +203,45 @@ func (c *client) BasePath() string {
 	return c.raw.BasePath
 }
 
-func (c *client) operationsWait(project, zone, name string) error {
-	for {
-		var err error
-		var op *compute.Operation
-		if zone != "" {
-			op, err = c.Retry(c.raw.ZoneOperations.Get(project, zone, name).Do)
-			if err != nil {
-				return fmt.Errorf("failed to get operation %s: %v", name, err)
-			}
-		} else {
-			op, err = c.Retry(c.raw.GlobalOperations.Get(project, name).Do)
-			if err != nil {
-				return fmt.Errorf("failed to get operation %s: %v", name, err)
-			}
+type operationGetterFunc func() (*compute.Operation, error)
+
+func (c *client) zoneOperationsWait(project, zone, name string) error {
+	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
+		op, err = c.Retry(c.raw.ZoneOperations.Get(project, zone, name).Do)
+		if err != nil {
+			err = fmt.Errorf("failed to get zone operation %s: %v", name, err)
 		}
+		return op, err
+	})
+}
+
+func (c *client) regionOperationsWait(project, region, name string) error {
+	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
+		op, err = c.Retry(c.raw.RegionOperations.Get(project, region, name).Do)
+		if err != nil {
+			err = fmt.Errorf("failed to get region operation %s: %v", name, err)
+		}
+		return op, err
+	})
+}
+
+func (c *client) globalOperationsWait(project, name string) error {
+	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
+		op, err = c.Retry(c.raw.GlobalOperations.Get(project, name).Do)
+		if err != nil {
+			err = fmt.Errorf("failed to get global operation %s: %v", name, err)
+		}
+		return op, err
+	})
+}
+
+func (c *client) operationsWaitHelper(project, name string, getOperation operationGetterFunc) error {
+	for {
+		op, err := getOperation()
+		if err != nil {
+			return err
+		}
+
 		switch op.Status {
 		case "PENDING", "RUNNING":
 			time.Sleep(1 * time.Second)
@@ -253,7 +284,7 @@ func (c *client) AttachDisk(project, zone, instance string, d *compute.AttachedD
 		return err
 	}
 
-	return c.i.operationsWait(project, zone, op.Name)
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // CreateDisk creates a GCE persistent disk.
@@ -263,7 +294,7 @@ func (c *client) CreateDisk(project, zone string, d *compute.Disk) error {
 		return err
 	}
 
-	if err := c.i.operationsWait(project, zone, op.Name); err != nil {
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
 		return err
 	}
 
@@ -272,6 +303,25 @@ func (c *client) CreateDisk(project, zone string, d *compute.Disk) error {
 		return err
 	}
 	*d = *createdDisk
+	return nil
+}
+
+// CreateForwardingRule creates a GCE forwarding rule.
+func (c *client) CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error {
+	op, err := c.Retry(c.raw.ForwardingRules.Insert(project, region, fr).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.regionOperationsWait(project, region, op.Name); err != nil {
+		return err
+	}
+
+	var createdForwardingRule *compute.ForwardingRule
+	if createdForwardingRule, err = c.i.GetForwardingRule(project, region, fr.Name); err != nil {
+		return err
+	}
+	*fr = *createdForwardingRule
 	return nil
 }
 
@@ -285,7 +335,7 @@ func (c *client) CreateImage(project string, i *compute.Image) error {
 		return err
 	}
 
-	if err := c.i.operationsWait(project, "", op.Name); err != nil {
+	if err := c.i.globalOperationsWait(project, op.Name); err != nil {
 		return err
 	}
 
@@ -303,7 +353,7 @@ func (c *client) CreateInstance(project, zone string, i *compute.Instance) error
 		return err
 	}
 
-	if err := c.i.operationsWait(project, zone, op.Name); err != nil {
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
 		return err
 	}
 
@@ -321,7 +371,7 @@ func (c *client) CreateNetwork(project string, n *compute.Network) error {
 		return err
 	}
 
-	if err := c.i.operationsWait(project, "", op.Name); err != nil {
+	if err := c.i.globalOperationsWait(project, op.Name); err != nil {
 		return err
 	}
 
@@ -341,7 +391,7 @@ func (c *client) CreateTargetInstance(project, zone string, ti *compute.TargetIn
 		return err
 	}
 
-	if err := c.i.operationsWait(project, zone, op.Name); err != nil {
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
 		return err
 	}
 
@@ -360,7 +410,7 @@ func (c *client) DeleteImage(project, name string) error {
 		return err
 	}
 
-	return c.i.operationsWait(project, "", op.Name)
+	return c.i.globalOperationsWait(project, op.Name)
 }
 
 // DeleteDisk deletes a GCE persistent disk.
@@ -370,7 +420,17 @@ func (c *client) DeleteDisk(project, zone, name string) error {
 		return err
 	}
 
-	return c.i.operationsWait(project, zone, op.Name)
+	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// DeleteForwardingRule deletes a GCE ForwardingRule.
+func (c *client) DeleteForwardingRule(project, region, name string) error {
+	op, err := c.Retry(c.raw.ForwardingRules.Delete(project, region, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.regionOperationsWait(project, region, op.Name)
 }
 
 // DeleteInstance deletes a GCE instance.
@@ -380,7 +440,7 @@ func (c *client) DeleteInstance(project, zone, name string) error {
 		return err
 	}
 
-	return c.i.operationsWait(project, zone, op.Name)
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // StopInstance stops a GCE instance.
@@ -390,7 +450,7 @@ func (c *client) StopInstance(project, zone, name string) error {
 		return err
 	}
 
-	return c.i.operationsWait(project, zone, op.Name)
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // DeleteNetwork deletes a GCE network.
@@ -400,7 +460,7 @@ func (c *client) DeleteNetwork(project, name string) error {
 		return err
 	}
 
-	return c.i.operationsWait(project, "", op.Name)
+	return c.i.globalOperationsWait(project, op.Name)
 }
 
 // DeleteTargetInstance deletes a GCE TargetInstance.
@@ -410,7 +470,7 @@ func (c *client) DeleteTargetInstance(project, zone, name string) error {
 		return err
 	}
 
-	return c.i.operationsWait(project, zone, op.Name)
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // DeprecateImage sets deprecation status on a GCE image.
@@ -420,7 +480,7 @@ func (c *client) DeprecateImage(project, name string, deprecationstatus *compute
 		return err
 	}
 
-	return c.i.operationsWait(project, "", op.Name)
+	return c.i.globalOperationsWait(project, op.Name)
 }
 
 // GetMachineType gets a GCE MachineType.
@@ -507,6 +567,30 @@ func (c *client) ListZones(project string, opts ...ListCallOption) ([]*compute.Z
 	}
 }
 
+// ListRegions gets a list GCE Regions.
+func (c *client) ListRegions(project string, opts ...ListCallOption) ([]*compute.Region, error) {
+	var rs []*compute.Region
+	var pt string
+	call := c.raw.Regions.List(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.RegionsListCall)
+	}
+	for rl, err := call.PageToken(pt).Do(); ; rl, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			rl, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		rs = append(rs, rl.Items...)
+
+		if rl.NextPageToken == "" {
+			return rs, nil
+		}
+		pt = rl.NextPageToken
+	}
+}
+
 // GetInstance gets a GCE Instance.
 func (c *client) GetInstance(project, zone, name string) (*compute.Instance, error) {
 	i, err := c.raw.Instances.Get(project, zone, name).Do()
@@ -570,6 +654,39 @@ func (c *client) ListDisks(project, zone string, opts ...ListCallOption) ([]*com
 			return ds, nil
 		}
 		pt = dl.NextPageToken
+	}
+}
+
+// GetForwardingRule gets a GCE ForwardingRule.
+func (c *client) GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error) {
+	n, err := c.raw.ForwardingRules.Get(project, region, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.ForwardingRules.Get(project, region, name).Do()
+	}
+	return n, err
+}
+
+// ListForwardingRules gets a list of GCE ForwardingRules.
+func (c *client) ListForwardingRules(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error) {
+	var frs []*compute.ForwardingRule
+	var pt string
+	call := c.raw.ForwardingRules.List(project, region)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.ForwardingRulesListCall)
+	}
+	for frl, err := call.PageToken(pt).Do(); ; frl, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			frl, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		frs = append(frs, frl.Items...)
+
+		if frl.NextPageToken == "" {
+			return frs, nil
+		}
+		pt = frl.NextPageToken
 	}
 }
 
@@ -725,5 +842,5 @@ func (c *client) SetInstanceMetadata(project, zone, name string, md *compute.Met
 	if err != nil {
 		return err
 	}
-	return c.i.operationsWait(project, zone, op.Name)
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
