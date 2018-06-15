@@ -44,9 +44,11 @@ type Step struct {
 	// Only one of the below fields should exist for each instance of Step.
 	AttachDisks            *AttachDisks            `json:",omitempty"`
 	CreateDisks            *CreateDisks            `json:",omitempty"`
+	CreateForwardingRules  *CreateForwardingRules  `json:",omitempty"`
 	CreateImages           *CreateImages           `json:",omitempty"`
 	CreateInstances        *CreateInstances        `json:",omitempty"`
 	CreateNetworks         *CreateNetworks         `json:",omitempty"`
+	CreateTargetInstances  *CreateTargetInstances  `json:",omitempty"`
 	CopyGCSObjects         *CopyGCSObjects         `json:",omitempty"`
 	StopInstances          *StopInstances          `json:",omitempty"`
 	DeleteResources        *DeleteResources        `json:",omitempty"`
@@ -69,6 +71,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 		matchCount++
 		result = s.CreateDisks
 	}
+	if s.CreateForwardingRules != nil {
+		matchCount++
+		result = s.CreateForwardingRules
+	}
 	if s.CreateImages != nil {
 		matchCount++
 		result = s.CreateImages
@@ -80,6 +86,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 	if s.CreateNetworks != nil {
 		matchCount++
 		result = s.CreateNetworks
+	}
+	if s.CreateTargetInstances != nil {
+		matchCount++
+		result = s.CreateTargetInstances
 	}
 	if s.CopyGCSObjects != nil {
 		matchCount++

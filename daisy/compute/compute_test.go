@@ -29,12 +29,15 @@ import (
 )
 
 var (
-	testProject  = "test-project"
-	testZone     = "test-zone"
-	testDisk     = "test-disk"
-	testImage    = "test-image"
-	testInstance = "test-instance"
-	testNetwork  = "test-network"
+	testProject        = "test-project"
+	testZone           = "test-zone"
+	testRegion         = "test-region"
+	testDisk           = "test-disk"
+	testForwardingRule = "test-forwarding-rule"
+	testImage          = "test-image"
+	testInstance       = "test-instance"
+	testNetwork        = "test-network"
+	testTargetInstance = "test-target-instance"
 )
 
 func TestShouldRetryWithWait(t *testing.T) {
@@ -91,7 +94,9 @@ func TestCreates(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer svr.Close()
-	c.operationsWaitFn = func(project, zone, name string) error { return waitErr }
+	c.zoneOperationsWaitFn = func(project, zone, name string) error { return waitErr }
+	c.regionOperationsWaitFn = func(project, region, name string) error { return waitErr }
+	c.globalOperationsWaitFn = func(project, name string) error { return waitErr }
 
 	tests := []struct {
 		desc                       string
@@ -105,9 +110,11 @@ func TestCreates(t *testing.T) {
 	}
 
 	d := &compute.Disk{Name: testDisk}
+	fr := &compute.ForwardingRule{Name: testForwardingRule}
 	im := &compute.Image{Name: testImage}
 	in := &compute.Instance{Name: testInstance}
 	n := &compute.Network{Name: testNetwork}
+	ti := &compute.TargetInstance{Name: testTargetInstance}
 	creates := []struct {
 		name              string
 		do                func() error
@@ -121,6 +128,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/zones/%s/disks?alt=json", testProject, testZone),
 			&compute.Disk{Name: testDisk, SelfLink: "foo"},
 			d,
+		},
+		{
+			"forwardingRules",
+			func() error { return c.CreateForwardingRule(testProject, testRegion, fr) },
+			fmt.Sprintf("/%s/regions/%s/forwardingRules/%s?alt=json", testProject, testRegion, testForwardingRule),
+			fmt.Sprintf("/%s/regions/%s/forwardingRules?alt=json", testProject, testRegion),
+			&compute.ForwardingRule{Name: testForwardingRule, SelfLink: "foo"},
+			fr,
 		},
 		{
 			"images",
@@ -145,6 +160,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/global/networks?alt=json", testProject),
 			&compute.Network{Name: testNetwork, SelfLink: "foo"},
 			n,
+		},
+		{
+			"targetInstances",
+			func() error { return c.CreateTargetInstance(testProject, testZone, ti) },
+			fmt.Sprintf("/%s/zones/%s/targetInstances/%s?alt=json", testProject, testZone, testTargetInstance),
+			fmt.Sprintf("/%s/zones/%s/targetInstances?alt=json", testProject, testZone),
+			&compute.TargetInstance{Name: testTargetInstance, SelfLink: "foo"},
+			ti,
 		},
 	}
 
@@ -222,6 +245,12 @@ func TestDeletes(t *testing.T) {
 			fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone),
 		},
 		{
+			"forwardingRules",
+			func() error { return c.DeleteForwardingRule(testProject, testRegion, testForwardingRule) },
+			fmt.Sprintf("/%s/regions/%s/forwardingRules/%s?alt=json", testProject, testRegion, testForwardingRule),
+			fmt.Sprintf("/%s/regions/%s/operations/?alt=json", testProject, testRegion),
+		},
+		{
 			"images",
 			func() error { return c.DeleteImage(testProject, testImage) },
 			fmt.Sprintf("/%s/global/images/%s?alt=json", testProject, testImage),
@@ -238,6 +267,12 @@ func TestDeletes(t *testing.T) {
 			func() error { return c.DeleteNetwork(testProject, testNetwork) },
 			fmt.Sprintf("/%s/global/networks/%s?alt=json", testProject, testNetwork),
 			fmt.Sprintf("/%s/global/operations/?alt=json", testProject),
+		},
+		{
+			"targetInstances",
+			func() error { return c.DeleteTargetInstance(testProject, testZone, testTargetInstance) },
+			fmt.Sprintf("/%s/zones/%s/targetInstances/%s?alt=json", testProject, testZone, testTargetInstance),
+			fmt.Sprintf("/%s/zones/%s/operations/?alt=json", testProject, testZone),
 		},
 	}
 

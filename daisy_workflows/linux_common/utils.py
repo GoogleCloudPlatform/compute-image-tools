@@ -369,6 +369,7 @@ class MetadataManager:
       user: string, the user to create ssh keys and perform ssh tests.
     """
     self.zone = self.FetchMetadataDefault('zone')
+    self.region = self.zone[:-2]  # clears the "-[a-z]$" of the zone
     self.project = self.FetchMetadataDefault('project')
     self.compute = compute
     self.instance = instance
@@ -565,6 +566,9 @@ class MetadataManager:
     Args:
       instance: string, the name of the instance to attach disk.
       disk_name: string, the name of the disks to be attached.
+
+    Returns:
+      response: dict, the request's response.
     """
     body = {'source': 'projects/%s/zones/%s/disks/%s' % (
         self.project, self.zone, disk_name)}
@@ -592,6 +596,9 @@ class MetadataManager:
     Args:
       instance: string, the name of the instance to detach disk.
       device_name: string, the device name of the disk to be detached.
+
+    Returns:
+      response: dictionary, the request's response.
     """
     request = self.compute.instances().detachDisk(
         project=self.project, zone=self.zone, instance=instance,
@@ -605,10 +612,20 @@ class MetadataManager:
     Args:
       response: dict, a request's response
     """
-    operation = response[u'name']
+    def _OperationGetter(response):
+      operation = response[u'name']
+      if response.get(u'zone'):
+        return self.compute.zoneOperations().get(
+            project=self.project, zone=self.zone, operation=operation)
+      elif response.get(u'region'):
+        return self.compute.regionOperations().get(
+            project=self.project, region=self.region, operation=operation)
+      else:
+        return self.compute.globalOperations().get(
+            project=self.project, operation=operation)
+
     while True:
-      result = self.compute.zoneOperations().get(
-          project=self.project, zone=self.zone, operation=operation).execute()
+      result = _OperationGetter(response).execute()
 
       if result['status'] == 'DONE':
         if 'error' in result:
@@ -616,3 +633,17 @@ class MetadataManager:
         return result
 
       time.sleep(1)
+
+  def GetForwardingRuleIP(self, name):
+    """Retrieves a forwarding rule ip
+
+    Args:
+      name: string, the name of the forwarding rule.
+
+    Returns:
+      response: string, the forwarding rule ip.
+    """
+    request = self.compute.forwardingRules().get(
+        project=self.project, region=self.region, forwardingRule=name)
+    response = request.execute()
+    return response[u"IPAddress"]
