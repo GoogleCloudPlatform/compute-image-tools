@@ -205,6 +205,9 @@ func (w *Workflow) Run(ctx context.Context) error {
 		return err
 	}
 	defer w.cleanup()
+	w.LogWorkflowInfo("Workflow Project:", w.Project)
+	w.LogWorkflowInfo("Workflow Zone:", w.Zone)
+	w.LogWorkflowInfo("Workflow GCSPath:", w.GCSPath)
 	w.LogWorkflowInfo("Daisy scratch path: https://console.cloud.google.com/storage/browser/%s", path.Join(w.bucket, w.scratchPath))
 
 	w.LogWorkflowInfo("Uploading sources")
