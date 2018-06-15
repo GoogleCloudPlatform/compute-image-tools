@@ -13,9 +13,9 @@
   },
   "Sources": {
     "build_files/build.py": "./build.py",
-    "build_files/utils.py": "../linux_common/utils.py",
+    "build_files/utils.py": "../../linux_common/utils.py",
     "build_files/google_cloud_test_repos": "./google_cloud_test_repos/",
-    "startup_script": "../linux_common/bootstrap.py"
+    "startup_script": "../../linux_common/bootstrap.py"
   },
   "Steps": {
     "setup": {
@@ -37,8 +37,9 @@
           "Metadata": {
             "bootstrap_vz_manifest": "${bootstrap_vz_manifest}",
             "bootstrap_vz_version": "${bootstrap_vz_version}",
-            "build_files_gcs_dir": "${SOURCESPATH}/build_files",
-            "build_script": "build.py",
+            "files_gcs_dir": "${SOURCESPATH}/build_files",
+            "script": "build.py",
+            "prefix": "Build",
             "google_cloud_repo": "${google_cloud_repo}",
             "image_dest": "${image_dest}"
           },

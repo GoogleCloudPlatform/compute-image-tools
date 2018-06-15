@@ -27,8 +27,8 @@ def main():
   # Mount the installer disk.
   utils.Execute(['mount', '-t', 'ext4', '/dev/sdb1', '/mnt'])
 
-  utils.Status('Installer root: %s' % os.listdir('/mnt'))
-  utils.Status('Build logs: %s' % os.listdir('/mnt/build-logs'))
+  utils.LogStatus('Installer root: %s' % os.listdir('/mnt'))
+  utils.LogStatus('Build logs: %s' % os.listdir('/mnt/build-logs'))
 
   # For some reason we need to remove the gsutil credentials.
   utils.Execute(['rm', '-Rf', '/root/.gsutil'])
@@ -42,6 +42,6 @@ def main():
 if __name__ == '__main__':
   try:
     main()
-    utils.Success('Build logs successfully saved.')
+    utils.LogSuccess('Build logs successfully saved.')
   except:
-    utils.Fail('Failed to save build logs.')
+    utils.LogFail('Failed to save build logs.')

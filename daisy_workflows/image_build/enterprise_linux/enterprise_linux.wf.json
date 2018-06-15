@@ -38,11 +38,11 @@
   "Sources": {
     "build_files/build_installer.py": "./build_installer.py",
     "build_files/installer.iso": "${installer_iso}",
-    "build_files/utils.py": "../linux_common/utils.py",
+    "build_files/utils.py": "../../linux_common/utils.py",
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
     "build_files/save_logs.py": "./save_logs.py",
-    "installerprep_startup_script": "../linux_common/bootstrap.py"
+    "installerprep_startup_script": "../../linux_common/bootstrap.py"
   },
   "Steps": {
     "setup-disks": {
@@ -72,8 +72,9 @@
           "Disks": [{"Source": "disk-installerprep"}, {"Source": "disk-installer"}],
           "MachineType": "n1-standard-4",
           "Metadata": {
-            "build_files_gcs_dir": "${SOURCESPATH}/build_files",
-            "build_script": "build_installer.py",
+            "files_gcs_dir": "${SOURCESPATH}/build_files",
+            "script": "build_installer.py",
+            "prefix": "Build",
             "el_release": "${el_release}",
             "el_savelogs": "${el_savelogs}",
             "google_cloud_repo": "${google_cloud_repo}",
@@ -129,8 +130,8 @@
           "Disks": [{"Source": "disk-installerprep"}, {"Source": "disk-installer"}],
           "MachineType": "n1-standard-1",
           "Metadata": {
-            "build_files_gcs_dir": "${SOURCESPATH}/build_files",
-            "build_script": "save_logs.py"
+            "files_gcs_dir": "${SOURCESPATH}/build_files",
+            "script": "save_logs.py"
           },
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
           "StartupScript": "installerprep_startup_script"

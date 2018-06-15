@@ -43,9 +43,9 @@ def main():
   sap_apps = utils.GetMetadataParam('rhel_sap_apps', raise_on_not_found=False)
   sap_apps = sap_apps == 'true'
 
-  utils.Status('EL Release: %s' % release)
-  utils.Status('Google Cloud repo: %s' % repo)
-  utils.Status('Build working directory: %s' % os.getcwd())
+  utils.LogStatus('EL Release: %s' % release)
+  utils.LogStatus('Google Cloud repo: %s' % repo)
+  utils.LogStatus('Build working directory: %s' % os.getcwd())
 
   iso_file = 'installer.iso'
 
@@ -59,7 +59,7 @@ def main():
 
   # Write the installer disk. Write extlinux MBR, create partition,
   # copy installer ISO and ISO boot files over.
-  utils.Status('Writing installer disk.')
+  utils.LogStatus('Writing installer disk.')
   utils.Execute(['parted', '/dev/sdb', 'mklabel', 'msdos'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', '1MB', '100%'])
@@ -105,7 +105,7 @@ def main():
 
     # Print out a the modifications.
     diff = difflib.Differ().compare(oldcfg.splitlines(1), cfg.splitlines(1))
-    utils.Status('Modified extlinux.conf:\n%s' % '\n'.join(diff))
+    utils.LogStatus('Modified extlinux.conf:\n%s' % '\n'.join(diff))
 
     f.seek(0)
     f.write(cfg)
@@ -118,6 +118,6 @@ def main():
 if __name__ == '__main__':
   try:
     main()
-    utils.Success('EL Installer build successful!')
+    utils.LogSuccess('EL Installer build successful!')
   except:
-    utils.Fail('EL Installer build failed!')
+    utils.LogFail('EL Installer build failed!')

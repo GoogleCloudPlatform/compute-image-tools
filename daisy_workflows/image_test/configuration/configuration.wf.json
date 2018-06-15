@@ -4,17 +4,10 @@
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
   "Sources": {
-    "bootstrap": "../linux_common/bootstrap.py",
-    "test_files/centos.py": "./centos.py",
-    "test_files/configuration-test.py": "./configuration-test.py",
-    "test_files/debian.py": "./debian.py",
-    "test_files/freebsd.py": "./freebsd.py",
-    "test_files/generic_distro.py": "./generic_distro.py",
-    "test_files/redhat.py": "./redhat.py",
-    "test_files/suse.py": "./suse.py",
+    "bootstrap": "../../linux_common/bootstrap.py",
+    "test_files/": "./",
     "test_files/test.py": "./configuration-test.py",
-    "test_files/ubuntu.py": "./ubuntu.py",
-    "test_files/utils.py": "../linux_common/utils.py"
+    "test_files/utils.py": "../../linux_common/utils.py"
   },
   "Steps": {
     "create-disk": {
@@ -35,8 +28,9 @@
           "StartupScript": "bootstrap",
           "Metadata": {
             "instance_name": "inst-configuration-${DATETIME}-${ID}",
-            "test_files_gcs_dir": "${SOURCESPATH}/test_files",
-            "test_script": "test.py",
+            "files_gcs_dir": "${SOURCESPATH}/test_files",
+            "script": "test.py",
+            "prefix": "Test",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },

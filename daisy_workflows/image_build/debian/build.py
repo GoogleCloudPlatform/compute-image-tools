@@ -50,39 +50,42 @@ def main():
       'bootstrap_vz_manifest', raise_on_not_found=True)
   bvz_version = utils.GetMetadataParam(
       'bootstrap_vz_version', raise_on_not_found=True)
-  repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True).strip()
-  image_dest = utils.GetMetadataParam('image_dest', raise_on_not_found=True)
-  outs_path = utils.GetMetadataParam('daisy-outs-path', raise_on_not_found=True)
+  repo = utils.GetMetadataParam('google_cloud_repo',
+      raise_on_not_found=True).strip()
+  image_dest = utils.GetMetadataParam('image_dest',
+      raise_on_not_found=True)
+  outs_path = utils.GetMetadataParam('daisy-outs-path',
+      raise_on_not_found=True)
   if repo not in REPOS:
     raise ValueError(
         'Metadata "google_cloud_repo" must be one of %s.' % REPOS)
 
-  utils.Status('Bootstrap_vz manifest: %s' % bvz_manifest)
-  utils.Status('Bootstrap_vz version: %s' % bvz_version)
-  utils.Status('Google Cloud repo: %s' % repo)
+  utils.LogStatus('Bootstrap_vz manifest: %s' % bvz_manifest)
+  utils.LogStatus('Bootstrap_vz version: %s' % bvz_version)
+  utils.LogStatus('Google Cloud repo: %s' % repo)
 
   # Download and setup bootstrap_vz.
   bvz_url = 'https://github.com/andsens/bootstrap-vz/archive/%s.zip'
   bvz_url %= bvz_version
   bvz_zip_dir = 'bvz_zip'
-  utils.Status('Downloading bootstrap-vz at commit %s' % bvz_version)
+  utils.LogStatus('Downloading bootstrap-vz at commit %s' % bvz_version)
   urllib.urlretrieve(bvz_url, 'bvz.zip')
   with zipfile.ZipFile('bvz.zip', 'r') as z:
     z.extractall(bvz_zip_dir)
-  utils.Status('Downloaded and extracted %s to bvz.zip.' % bvz_url)
+  utils.LogStatus('Downloaded and extracted %s to bvz.zip.' % bvz_url)
   bvz_zip_contents = [d for d in os.listdir(bvz_zip_dir)]
   bvz_zip_subdir = os.path.join(bvz_zip_dir, bvz_zip_contents[0])
   utils.Execute(['mv', bvz_zip_subdir, BVZ_DIR])
-  utils.Status('Moved bootstrap_vz from %s to %s.' % (bvz_zip_subdir, BVZ_DIR))
+  utils.LogStatus('Moved bootstrap_vz from %s to %s.' % (bvz_zip_subdir, BVZ_DIR))
   bvz_bin = os.path.join(BVZ_DIR, 'bootstrap-vz')
   utils.MakeExecutable(bvz_bin)
-  utils.Status('Made %s executable.' % bvz_bin)
+  utils.LogStatus('Made %s executable.' % bvz_bin)
   bvz_manifest_file = os.path.join(BVZ_DIR, 'manifests', bvz_manifest)
 
   # Inject Google Cloud test repo plugin if using staging or unstable repos.
   # This is used to test new package releases in images.
   if repo != 'stable':
-    utils.Status('Adding Google Cloud test repos plugin for bootstrapvz.')
+    utils.LogStatus('Adding Google Cloud test repos plugin for bootstrapvz.')
     repo_plugin_dir = '/build_files/google_cloud_test_repos'
     bvz_plugins = os.path.join(BVZ_DIR, 'bootstrapvz', 'plugins')
     shutil.move(repo_plugin_dir, bvz_plugins)
@@ -96,33 +99,34 @@ def main():
 
   # Run bootstrap_vz build.
   cmd = [bvz_bin, '--debug', bvz_manifest_file]
-  utils.Status('Starting build in %s with params: %s' % (BVZ_DIR, str(cmd)))
+  utils.LogStatus('Starting build in %s with params: %s' % (BVZ_DIR, str(cmd)))
   utils.Execute(cmd, cwd=BVZ_DIR)
 
   # Upload tar.
   image_tar_gz = '/target/disk.tar.gz'
   if os.path.exists(image_tar_gz):
-    utils.Status('Saving %s to %s' % (image_tar_gz, image_dest))
+    utils.LogStatus('Saving %s to %s' % (image_tar_gz, image_dest))
     utils.Gsutil(['cp', image_tar_gz, image_dest])
 
   # Create and upload the synopsis of the image.
-  utils.Status('Creating image synopsis.')
+  utils.LogStatus('Creating image synopsis.')
   synopsis = {}
   packages = collections.OrderedDict()
-  _, output, _ = utils.Execute(['dpkg-query', '-W'], capture_output=True)
+  _, output = utils.Execute(['dpkg-query', '-W'], capture_output=True)
   for line in output.split('\n')[:-1]:  # Last line is an empty line.
     parts = line.split()
     packages[parts[0]] = parts[1]
   synopsis['installed_packages'] = packages
   with open('/tmp/synopsis.json', 'w') as f:
     f.write(json.dumps(synopsis))
-  utils.Status('Uploading image synopsis.')
+  utils.LogStatus('Uploading image synopsis.')
   synopsis_dest = os.path.join(outs_path, 'synopsis.json')
   utils.Gsutil(['cp', '/tmp/synopsis.json', synopsis_dest])
+
 
 if __name__ == '__main__':
   try:
     main()
-    utils.Success('Debian build was successful!')
+    utils.LogSuccess('Debian build was successful!')
   except:
-    utils.Fail('Debian build failed!')
+    utils.LogFail('Debian build failed!')
