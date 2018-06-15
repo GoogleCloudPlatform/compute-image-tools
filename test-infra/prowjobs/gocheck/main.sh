@@ -29,6 +29,11 @@ echo 'Pulling imports...'
 go get -d -t ./...
 GOOS=windows go get -d -t ./...
 
+# We dont run golint on Windows only code as style often matches win32 api 
+# style, not golang style
+golint -set_exit_status ./...
+GOLINT_RET=$?
+
 GOFMT_OUT=$(gofmt -l $(find . -type f -name "*.go") 2>&1)
 if [ -z "${GOFMT_OUT}" ]; then
   GOFMT_RET=0
@@ -45,13 +50,16 @@ if [ $RET != 0 ]; then
 fi
 
 # Print results and return.
+if [ ${GOLINT_RET} != 0 ]; then
+  echo "'golint ./...' returned ${GOLINT_RET}"
+fi
 if [ ${GOFMT_RET} != 0 ]; then
   echo "'gofmt -l' returned ${GOFMT_RET}"
 fi
 if [ ${GOVET_RET} != 0 ]; then
   echo "'go vet ./...' returned ${GOVET_RET}"
 fi
-if [ [ ${GOFMT_RET} != 0 ] || [ ${GOVET_RET} != 0 ]; then
+if [ ${GOLINT_RET} != 0 ] || [ ${GOFMT_RET} != 0 ] || [ ${GOVET_RET} != 0 ]; then
   exit 1
 fi
 exit 0
