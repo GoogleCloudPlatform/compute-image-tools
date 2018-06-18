@@ -134,7 +134,9 @@ periodics:
           projects/centos-cloud/global/images/family/centos-6,\
           projects/centos-cloud/global/images/family/centos-7,\
           projects/rhel-cloud/global/images/family/rhel-6,\
-          projects/rhel-cloud/global/images/family/rhel-7"
+          projects/rhel-cloud/global/images/family/rhel-7,\
+          projects/freebsd-org-cloud-dev/global/images/family/freebsd-11-2,\
+          projects/freebsd-org-cloud-dev/global/images/family/freebsd-12-0-snap"
       - "daisy_workflows/image_test/linux_images.test.gotmpl"
       env:
       - name: REPO_OWNER
