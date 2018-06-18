@@ -85,7 +85,6 @@ func (s *SubWorkflow) run(ctx context.Context, st *Step) dErr {
 	st.w.LogStepInfo(st.name, "SubWorkflow", "Running subworkflow %q", s.Workflow.Name)
 	if err := s.Workflow.run(ctx); err != nil {
 		s.Workflow.LogStepInfo(st.name, "SubWorkflow", "Error running subworkflow %q: %v", s.Workflow.Name, err)
-		close(st.w.Cancel)
 		return err
 	}
 	return nil
