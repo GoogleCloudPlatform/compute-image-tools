@@ -1,0 +1,108 @@
+{
+  "Name": "img-multi-nic-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "network_1": {"Value": "projects/${PROJECT}/global/networks/multi-nic-test-network-1", "Description": "One network name to be used on machine #1"},
+    "subnetwork_1": {"Value": "projects/${PROJECT}/regions/us-central1/subnetworks/a", "Description": "One subnetwork name to be used on machine #1"},
+    "network_2": {"Value": "projects/${PROJECT}/global/networks/multi-nic-test-network-2", "Description": "One network name to be used on machine #2"},
+    "subnetwork_2": {"Value": "projects/${PROJECT}/regions/us-central1/subnetworks/b", "Description": "One subnetwork name to be used on machine #2"},
+    "common_network": {"Value": "projects/${PROJECT}/global/networks/multi-nic-test-network-3", "Description": "The common network between 2 machines"},
+    "common_subnetwork": {"Value": "projects/${PROJECT}/regions/us-central1/subnetworks/c", "Description": "The common subnetwork between 2 machines"}
+  },
+  "Steps": {
+    "create-slave-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-slave-img",
+          "SourceImage": "${source_image}"
+        }
+      ]
+    },
+    "create-master-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-master-img",
+          "SourceImage": "${source_image}"
+        }
+      ]
+    },
+    "create-slave-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-multi-nic-slave",
+          "RealName": "inst-multi-nic-slave-${DATETIME}-${ID}",
+          "Disks": [{"Source": "disk-slave-img"}],
+          "Metadata": {
+            "startup-script": "echo BOOTED > /dev/console"
+          },
+          "NetworkInterfaces": [
+            {
+              "Network": "${common_network}",
+              "Subnetwork": "${common_subnetwork}",
+              "AccessConfigs": [{"Type": "ONE_TO_ONE_NAT"}]
+            },
+            {
+              "Network": "${network_2}",
+              "Subnetwork": "${subnetwork_2}",
+              "AccessConfigs": [{"Type": "ONE_TO_ONE_NAT"}]
+            }
+          ]
+        }
+      ]
+    },
+    "create-master-instance": {
+      "CreateInstances": [
+        {
+          "Name": "inst-multi-nic-master",
+          "Disks": [{"Source": "disk-master-img"}],
+          "Metadata": {
+            "startup-script": "sleep 10; ping -c 1 inst-multi-nic-slave-${DATETIME}-${ID} && echo 'MultiNICSuccess' > /dev/console || echo 'MultiNICFailed' > /dev/console"
+            },
+          "NetworkInterfaces": [
+            {
+              "Network": "${common_network}",
+              "Subnetwork": "${common_subnetwork}",
+              "AccessConfigs": [{"Type": "ONE_TO_ONE_NAT"}]
+            },
+            {
+              "Network": "${network_1}",
+              "Subnetwork": "${subnetwork_1}",
+              "AccessConfigs": [{"Type": "ONE_TO_ONE_NAT"}]
+            }
+          ]
+        }
+      ]
+    },
+    "wait-for-slave-instance": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+          {
+          "Name": "inst-multi-nic-slave",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "BOOTED"
+          }
+        }
+      ]
+    },
+    "wait-for-slave-check": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-multi-nic-master",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "MultiNICSuccess",
+            "FailureMatch": "MultiNICFailed"
+          }
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-slave-instance": ["create-slave-disk"],
+    "wait-for-slave-instance": ["create-slave-instance"],
+    "create-master-instance": ["wait-for-slave-instance", "create-master-disk"],
+    "wait-for-slave-check": ["create-master-instance"]
+  }
+}
