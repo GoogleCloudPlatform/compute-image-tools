@@ -36,7 +36,9 @@ import utils
 utils.AptGetInstall(
     ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
      'python-yaml'])
-utils.PipInstall(['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32'])
+utils.PipInstall(
+    ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32',
+    'google-cloud-storage'])
 
 import yaml
 
@@ -106,7 +108,7 @@ def main():
   image_tar_gz = '/target/disk.tar.gz'
   if os.path.exists(image_tar_gz):
     utils.LogStatus('Saving %s to %s' % (image_tar_gz, image_dest))
-    utils.Gsutil(['cp', image_tar_gz, image_dest])
+    utils.UploadFile(image_tar_gz, image_dest)
 
   # Create and upload the synopsis of the image.
   utils.LogStatus('Creating image synopsis.')
@@ -121,7 +123,7 @@ def main():
     f.write(json.dumps(synopsis))
   utils.LogStatus('Uploading image synopsis.')
   synopsis_dest = os.path.join(outs_path, 'synopsis.json')
-  utils.Gsutil(['cp', '/tmp/synopsis.json', synopsis_dest])
+  utils.UploadFile('/tmp/synopsis.json', synopsis_dest)
 
 
 if __name__ == '__main__':
