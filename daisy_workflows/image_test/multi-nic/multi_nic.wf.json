@@ -33,7 +33,7 @@
           "RealName": "inst-multi-nic-slave-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-slave-img"}],
           "Metadata": {
-            "startup-script": "echo BOOTED > /dev/console"
+            "startup-script": "logger -p daemon.info BOOTED"
           },
           "NetworkInterfaces": [
             {
@@ -56,7 +56,7 @@
           "Name": "inst-multi-nic-master",
           "Disks": [{"Source": "disk-master-img"}],
           "Metadata": {
-            "startup-script": "sleep 10; ping -c 1 inst-multi-nic-slave-${DATETIME}-${ID} && echo 'MultiNICSuccess' > /dev/console || echo 'MultiNICFailed' > /dev/console"
+            "startup-script": "sleep 10; ping -c 1 inst-multi-nic-slave-${DATETIME}-${ID} && logger -p daemon.info 'MultiNICSuccess' || logger -p daemon.info 'MultiNICFailed'"
             },
           "NetworkInterfaces": [
             {

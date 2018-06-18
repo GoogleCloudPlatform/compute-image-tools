@@ -13,8 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if ! cat /reboot.txt > /dev/console; then
-  echo "BOOTED" > /dev/console
-  echo "REBOOTED" > /reboot.txt
+if ! ls /reboot.txt; then
+  logger -p daemon.info "BOOTED"
+  echo "REBOOT" > /reboot.txt
+  # Wait a bit for logger
+  sleep 10
   shutdown -r now
+else
+  cat /reboot.txt | logger -p daemon.info
 fi

@@ -48,7 +48,7 @@
           "Name": "inst-boot-test",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "REBOOTED"
+            "SuccessMatch": "REBOOT"
           }
         }
       ]
