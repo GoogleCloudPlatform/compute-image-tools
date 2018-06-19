@@ -1,0 +1,21 @@
+{
+  "Name": "metadata-script-integrity-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Steps": {
+    "test-metadata-script-integrity": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "instance_tag": "integrity",
+            "startup-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-startup-hash.sh",
+            "shutdown-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-shutdown-hash.sh",
+            "startup_msg": "631efd12afdf1460ad5f236fe272dccb",
+            "shutdown_msg": "cfcddad49687cb301ffb029a5b418866"
+        }
+      }
+    }
+  }
+}
