@@ -399,11 +399,9 @@ const (
 )
 
 func waitLock(client daisyCompute.Client, project, prefix string) (*compute.Metadata, error) {
-	locked := true
 	var md *compute.Metadata
 	var err error
-	for locked {
-		locked = false
+	for {
 		md, err = getCommonInstanceMetadata(client, project)
 		if err != nil {
 			return nil, err
@@ -414,16 +412,14 @@ func waitLock(client daisyCompute.Client, project, prefix string) (*compute.Meta
 				if isExpired(*mdi.Value) {
 					md.Items = delItem(md.Items, i)
 				} else {
-					locked = true
 					r := rand.Intn(10) + 5
 					time.Sleep(time.Duration(r) * time.Second)
 					break
 				}
 			}
 		}
+		return md, nil
 	}
-
-	return md, nil
 }
 
 func projectReadLock(client daisyCompute.Client, project, key string, timeout time.Duration) (string, error) {
