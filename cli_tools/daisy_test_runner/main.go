@@ -404,6 +404,7 @@ const (
 func waitLock(client daisyCompute.Client, project, prefix string) (*compute.Metadata, error) {
 	var md *compute.Metadata
 	var err error
+Loop:
 	for {
 		md, err = getCommonInstanceMetadata(client, project)
 		if err != nil {
@@ -417,7 +418,7 @@ func waitLock(client daisyCompute.Client, project, prefix string) (*compute.Meta
 				} else {
 					r := rand.Intn(10) + 5
 					time.Sleep(time.Duration(r) * time.Second)
-					break
+					continue Loop
 				}
 			}
 		}
