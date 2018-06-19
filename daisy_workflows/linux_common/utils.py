@@ -91,12 +91,6 @@ def PipInstall(package_list):
   return Execute(['pip', 'install', '-U'] + package_list)
 
 
-def Gsutil(params):
-  """Call gsutil."""
-  env = os.environ.copy()
-  return Execute(['gsutil', '-m'] + params, capture_output=True, env=env)
-
-
 def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
   """Execute an external command (wrapper for Python subprocess)."""
   LogStatus('Executing command: %s' % str(cmd))
@@ -338,6 +332,33 @@ def RunTest(test_func):
   except Exception as e:
     LogFail('error: ' + str(e))
     traceback.print_exc()
+
+
+# Cache CLIENT and BUCKET to improve consecutive UploadFile calls
+CLIENT = None
+BUCKET = None
+
+
+def UploadFile(filename, dest):
+  # import 'google.cloud.storage' locally as 'google-cloud-storage' pip package
+  # is not a mandatory package for all utils users
+  from google.cloud import storage
+  global CLIENT, BUCKET
+
+  dest_stripped = dest[len('gs://'):]
+  dest_splitted = dest_stripped.split('/')
+  bucket_name, blob_path = dest_splitted[0], '/'.join(dest_splitted[1:])
+
+  if not CLIENT:
+    CLIENT = storage.client.Client()
+
+  if not BUCKET or BUCKET.name != bucket_name:
+    BUCKET = storage.bucket.Bucket(CLIENT, bucket_name)
+
+  blob = storage.blob.Blob(blob_path, BUCKET)
+  blob.upload_from_filename(filename)
+
+  BUCKET.copy_blob(blob, BUCKET)
 
 
 def SetupLogging():

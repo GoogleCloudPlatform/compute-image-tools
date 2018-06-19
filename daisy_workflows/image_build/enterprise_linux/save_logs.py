@@ -19,6 +19,13 @@ import os
 
 import utils
 
+utils.AptGetInstall(
+    ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
+     'python-yaml'])
+utils.PipInstall(
+    ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32',
+    'google-cloud-storage'])
+
 
 def main():
   logs_path = utils.GetMetadataParam('daisy-logs-path', raise_on_not_found=True)
@@ -30,11 +37,12 @@ def main():
   utils.LogStatus('Installer root: %s' % os.listdir('/mnt'))
   utils.LogStatus('Build logs: %s' % os.listdir('/mnt/build-logs'))
 
-  # For some reason we need to remove the gsutil credentials.
-  utils.Execute(['rm', '-Rf', '/root/.gsutil'])
-  utils.Execute(['gsutil', 'cp', '/mnt/ks.cfg', '%s/' % logs_path], raise_errors=False)
-  utils.Execute(['gsutil', 'cp', '/mnt/build-logs/*', '%s/' % logs_path], raise_errors=False)
-  utils.Execute(['gsutil', 'cp', '/mnt/build-logs/synopsis.json', '%s/synopsis.json' % outs_path], raise_errors=False)
+  utils.UploadFile('/mnt/ks.cfg', '%s/' % logs_path)
+  directory = '/mnt/build-logs'
+  for f in os.listdir(directory):
+    utils.UploadFile('%s/%s' % (directory, f), '%s/' % logs_path)
+  utils.UploadFile('/mnt/build-logs/synopsis.json',
+      '%s/synopsis.json' % outs_path)
 
   utils.Execute(['umount', '-l', '/mnt'])
 
@@ -43,5 +51,5 @@ if __name__ == '__main__':
   try:
     main()
     utils.LogSuccess('Build logs successfully saved.')
-  except:
+  except Exception:
     utils.LogFail('Failed to save build logs.')

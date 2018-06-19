@@ -44,12 +44,13 @@ def GetAccessToken():
   return '%s %s' % (response[u'token_type'], response[u'access_token'])
 
 
-def GetBucketContent(bucket):
-  url = '%(storage)s/v1/b/%(bucket_name)s/o' % {
+def GetBucketContent(bucket, prefix):
+  url = '%(storage)s/v1/b/%(bucket_name)s/o?prefix=%(prefix)s' % {
       'storage': 'https://www.googleapis.com/storage',
       'bucket_name': bucket,
+      'prefix': prefix,
   }
-  print ("Bucket listing: %s" % url)
+  print ("Bucket listing with %s prefix: %s" % (prefix, url))
   request = urllib2.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   request.add_unredirected_header('Authorization', TOKEN)
@@ -64,6 +65,19 @@ def SaveBucketFile(bucket, bucket_file, dest_filepath):
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   request.add_unredirected_header('Authorization', TOKEN)
   content = urllib2.urlopen(request).read()
+
+  # ensure directory exists before copying it
+  base_dir = ''
+  for d in os.path.dirname(dest_filepath).split('/'):
+    base_dir += d
+    if base_dir:  # handle corner case of dest_filepath beggining with '/'
+      try:
+        os.mkdir(base_dir)
+      except OSError as e:
+        if e.errno != 17:  # File exists
+          raise e
+    base_dir += '/'
+
   f = open(dest_filepath, 'w')
   f.write(content)
   f.close()
@@ -118,11 +132,7 @@ def Bootstrap():
 
     # skip leading slash on bucket_dir
     bucket, bucket_dir = path_stripped[:token], path_stripped[token + 1:]
-
-    def BelongsToBucketDir(filename):
-      return filename.startswith(bucket_dir)
-
-    bucket_files = filter(BelongsToBucketDir, GetBucketContent(bucket))
+    bucket_files = GetBucketContent(bucket, bucket_dir)
     for f in bucket_files:
       dest_filepath = f.replace(bucket_dir, DIR)
       SaveBucketFile(bucket, f, dest_filepath)
