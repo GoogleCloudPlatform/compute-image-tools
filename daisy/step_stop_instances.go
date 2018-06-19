@@ -52,7 +52,7 @@ func (st *StopInstances) run(ctx context.Context, s *Step) dErr {
 		wg.Add(1)
 		go func(i string) {
 			defer wg.Done()
-			w.LogStepInfo("StopInstances", "stopping instance %q.", i)
+			w.LogStepInfo(s.name, "StopInstances", "Stopping instance %q.", i)
 			if err := w.instances.stop(i); err != nil {
 				e <- err
 			}

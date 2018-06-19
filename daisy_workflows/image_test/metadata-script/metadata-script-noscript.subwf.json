@@ -1,0 +1,19 @@
+{
+  "Name": "metadata-script-noscript-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Steps": {
+    "test-metadata-script-noscript": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "instance_tag": "noscript",
+            "startup_msg": "startup-script: INFO No startup scripts found in metadata.",
+            "shutdown_msg": "shutdown-script: INFO No shutdown scripts found in metadata."
+        }
+      }
+    }
+  }
+}
