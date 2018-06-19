@@ -41,7 +41,10 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-const defaultParallelCount = 5
+const (
+	defaultParallelCount = 5
+	timeFormat           = time.RFC3339
+)
 
 var (
 	oauth         = flag.String("oauth", "", "path to oauth json file")
@@ -385,7 +388,7 @@ func delItem(items []*compute.MetadataItems, i int) []*compute.MetadataItems {
 }
 
 func isExpired(val string) bool {
-	t, err := time.Parse(time.RFC3339, val)
+	t, err := time.Parse(timeFormat, val)
 	if err != nil {
 		return false
 	}
@@ -429,7 +432,7 @@ func projectReadLock(client daisyCompute.Client, project, key string, timeout ti
 	}
 
 	lock := readLock + key
-	val := time.Now().Add(timeout).Format(time.RFC3339)
+	val := time.Now().Add(timeout).Format(timeFormat)
 	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
 	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
 		return "", err
@@ -446,7 +449,7 @@ func projectWriteLock(client daisyCompute.Client, project, key string, timeout t
 	// This means the project has no current write locks, set the write lock
 	// now and then wait till all current read locks are gone.
 	lock := writeLock + key
-	val := time.Now().Add(timeout).Format(time.RFC3339)
+	val := time.Now().Add(timeout).Format(timeFormat)
 	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
 	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
 		return "", err
