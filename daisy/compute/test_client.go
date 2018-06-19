@@ -46,45 +46,47 @@ func NewTestClient(handleFunc http.HandlerFunc) (*httptest.Server, *TestClient, 
 // TestClient is a Client with overrideable methods.
 type TestClient struct {
 	client
-	AttachDiskFn           func(project, zone, instance string, d *compute.AttachedDisk) error
-	CreateDiskFn           func(project, zone string, d *compute.Disk) error
-	CreateForwardingRuleFn func(project, region string, fr *compute.ForwardingRule) error
-	CreateImageFn          func(project string, i *compute.Image) error
-	CreateInstanceFn       func(project, zone string, i *compute.Instance) error
-	CreateNetworkFn        func(project string, n *compute.Network) error
-	CreateTargetInstanceFn func(project, zone string, ti *compute.TargetInstance) error
-	StopInstanceFn         func(project, zone, name string) error
-	DeleteDiskFn           func(project, zone, name string) error
-	DeleteForwardingRuleFn func(project, region, name string) error
-	DeleteImageFn          func(project, name string) error
-	DeleteInstanceFn       func(project, zone, name string) error
-	DeleteNetworkFn        func(project, name string) error
-	DeleteTargetInstanceFn func(project, zone, name string) error
-	DeprecateImageFn       func(project, name string, deprecationstatus *compute.DeprecationStatus) error
-	GetMachineTypeFn       func(project, zone, machineType string) (*compute.MachineType, error)
-	ListMachineTypesFn     func(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
-	GetProjectFn           func(project string) (*compute.Project, error)
-	GetSerialPortOutputFn  func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
-	GetZoneFn              func(project, zone string) (*compute.Zone, error)
-	ListZonesFn            func(project string, opts ...ListCallOption) ([]*compute.Zone, error)
-	GetInstanceFn          func(project, zone, name string) (*compute.Instance, error)
-	ListInstancesFn        func(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
-	GetDiskFn              func(project, zone, name string) (*compute.Disk, error)
-	ListDisksFn            func(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
-	GetForwardingRuleFn    func(project, region, name string) (*compute.ForwardingRule, error)
-	ListForwardingRulesFn  func(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
-	GetImageFn             func(project, name string) (*compute.Image, error)
-	GetImageFromFamilyFn   func(project, family string) (*compute.Image, error)
-	ListImagesFn           func(project string, opts ...ListCallOption) ([]*compute.Image, error)
-	GetLicenseFn           func(project, name string) (*compute.License, error)
-	GetNetworkFn           func(project, name string) (*compute.Network, error)
-	ListNetworksFn         func(project string, opts ...ListCallOption) ([]*compute.Network, error)
-	GetTargetInstanceFn    func(project, zone, name string) (*compute.TargetInstance, error)
-	ListTargetInstancesFn  func(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
-	InstanceStatusFn       func(project, zone, name string) (string, error)
-	InstanceStoppedFn      func(project, zone, name string) (bool, error)
-	SetInstanceMetadataFn  func(project, zone, name string, md *compute.Metadata) error
-	RetryFn                func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
+
+	AttachDiskFn                func(project, zone, instance string, d *compute.AttachedDisk) error
+	CreateDiskFn                func(project, zone string, d *compute.Disk) error
+	CreateForwardingRuleFn      func(project, region string, fr *compute.ForwardingRule) error
+	CreateImageFn               func(project string, i *compute.Image) error
+	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
+	CreateNetworkFn             func(project string, n *compute.Network) error
+	CreateTargetInstanceFn      func(project, zone string, ti *compute.TargetInstance) error
+	StopInstanceFn              func(project, zone, name string) error
+	DeleteDiskFn                func(project, zone, name string) error
+	DeleteForwardingRuleFn      func(project, region, name string) error
+	DeleteImageFn               func(project, name string) error
+	DeleteInstanceFn            func(project, zone, name string) error
+	DeleteNetworkFn             func(project, name string) error
+	DeleteTargetInstanceFn      func(project, zone, name string) error
+	DeprecateImageFn            func(project, name string, deprecationstatus *compute.DeprecationStatus) error
+	GetMachineTypeFn            func(project, zone, machineType string) (*compute.MachineType, error)
+	ListMachineTypesFn          func(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
+	GetProjectFn                func(project string) (*compute.Project, error)
+	GetSerialPortOutputFn       func(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
+	GetZoneFn                   func(project, zone string) (*compute.Zone, error)
+	ListZonesFn                 func(project string, opts ...ListCallOption) ([]*compute.Zone, error)
+	GetInstanceFn               func(project, zone, name string) (*compute.Instance, error)
+	ListInstancesFn             func(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
+	GetDiskFn                   func(project, zone, name string) (*compute.Disk, error)
+	ListDisksFn                 func(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
+	GetForwardingRuleFn         func(project, region, name string) (*compute.ForwardingRule, error)
+	ListForwardingRulesFn       func(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
+	GetImageFn                  func(project, name string) (*compute.Image, error)
+	GetImageFromFamilyFn        func(project, family string) (*compute.Image, error)
+	ListImagesFn                func(project string, opts ...ListCallOption) ([]*compute.Image, error)
+	GetLicenseFn                func(project, name string) (*compute.License, error)
+	GetNetworkFn                func(project, name string) (*compute.Network, error)
+	ListNetworksFn              func(project string, opts ...ListCallOption) ([]*compute.Network, error)
+	GetTargetInstanceFn         func(project, zone, name string) (*compute.TargetInstance, error)
+	ListTargetInstancesFn       func(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
+	InstanceStatusFn            func(project, zone, name string) (string, error)
+	InstanceStoppedFn           func(project, zone, name string) (bool, error)
+	SetInstanceMetadataFn       func(project, zone, name string, md *compute.Metadata) error
+	SetCommonInstanceMetadataFn func(project string, md *compute.Metadata) error
+	RetryFn                     func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 
 	zoneOperationsWaitFn   func(project, zone, name string) error
 	regionOperationsWaitFn func(project, region, name string) error
@@ -401,6 +403,14 @@ func (c *TestClient) SetInstanceMetadata(project, zone, name string, md *compute
 		return c.SetInstanceMetadataFn(project, zone, name, md)
 	}
 	return c.client.SetInstanceMetadata(project, zone, name, md)
+}
+
+// SetCommonInstanceMetadata uses the override method SetCommonInstanceMetadataFn or the real implementation.
+func (c *TestClient) SetCommonInstanceMetadata(project string, md *compute.Metadata) error {
+	if c.InstanceStoppedFn != nil {
+		return c.SetCommonInstanceMetadataFn(project, md)
+	}
+	return c.client.SetCommonInstanceMetadata(project, md)
 }
 
 // zoneOperationsWait uses the override method zoneOperationsWaitFn or the real implementation.

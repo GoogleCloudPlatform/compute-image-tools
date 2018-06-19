@@ -36,10 +36,15 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/google/uuid"
+	"google.golang.org/api/compute/v1"
 )
 
-const defaultParallelCount = 5
+const (
+	defaultParallelCount = 5
+	timeFormat           = time.RFC3339
+)
 
 var (
 	oauth         = flag.String("oauth", "", "path to oauth json file")
@@ -107,6 +112,10 @@ type TestCase struct {
 	logger *logger
 	// Vars to pass to the daisy workflow.
 	Vars map[string]string
+	// Default timeout is 2 hours.
+	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
+	TestTimeout string
+	timeout     time.Duration
 
 	// Optional settings that will override those set in the workflow or TestTemplate.
 	Zone            string
@@ -225,6 +234,16 @@ func createTestSuite(ctx context.Context, path string, varMap map[string]string,
 
 	for name, test := range t.Tests {
 		test.id = uuid.New().String()
+		if test.TestTimeout == "" {
+			test.timeout = defaultTimeout
+		} else {
+			d, err := time.ParseDuration(test.TestTimeout)
+			if err != nil {
+				test.timeout = defaultTimeout
+			} else {
+				test.timeout = d
+			}
+		}
 
 		if regex != nil && !regex.MatchString(name) {
 			continue
@@ -351,7 +370,121 @@ type test struct {
 	testCase *TestCase
 }
 
-func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan error) {
+func getCommonInstanceMetadata(client daisyCompute.Client, project string) (*compute.Metadata, error) {
+	proj, err := client.GetProject(project)
+	if err != nil {
+		return nil, fmt.Errorf("error getting project: %v", err)
+	}
+
+	return proj.CommonInstanceMetadata, nil
+}
+
+func delItem(items []*compute.MetadataItems, i int) []*compute.MetadataItems {
+	// Delete the element.
+	// https://github.com/golang/go/wiki/SliceTricks
+	copy(items[i:], items[i+1:])
+	items[len(items)-1] = nil
+	return items[:len(items)-1]
+}
+
+func isExpired(val string) bool {
+	t, err := time.Parse(timeFormat, val)
+	if err != nil {
+		return false
+	}
+	return time.Now().After(t)
+}
+
+const (
+	writeLock      = "TestWriteLock-"
+	readLock       = "TestReadLock-"
+	defaultTimeout = 2 * time.Hour
+)
+
+func waitLock(client daisyCompute.Client, project, prefix string) (*compute.Metadata, error) {
+	var md *compute.Metadata
+	var err error
+	for {
+		md, err = getCommonInstanceMetadata(client, project)
+		if err != nil {
+			return nil, err
+		}
+
+		for i, mdi := range md.Items {
+			if mdi != nil && strings.HasPrefix(mdi.Key, prefix) {
+				if isExpired(*mdi.Value) {
+					md.Items = delItem(md.Items, i)
+				} else {
+					r := rand.Intn(10) + 5
+					time.Sleep(time.Duration(r) * time.Second)
+					break
+				}
+			}
+		}
+		return md, nil
+	}
+}
+
+func projectReadLock(client daisyCompute.Client, project, key string, timeout time.Duration) (string, error) {
+	md, err := waitLock(client, project, writeLock)
+	if err != nil {
+		return "", err
+	}
+
+	lock := readLock + key
+	val := time.Now().Add(timeout).Format(timeFormat)
+	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
+	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
+		return "", err
+	}
+	return lock, nil
+}
+
+func projectWriteLock(client daisyCompute.Client, project, key string, timeout time.Duration) (string, error) {
+	md, err := waitLock(client, project, writeLock)
+	if err != nil {
+		return "", err
+	}
+
+	// This means the project has no current write locks, set the write lock
+	// now and then wait till all current read locks are gone.
+	lock := writeLock + key
+	val := time.Now().Add(timeout).Format(timeFormat)
+	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
+	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
+		return "", err
+	}
+
+	if _, err := waitLock(client, project, readLock); err != nil {
+		// Attempt to unlock.
+		projectUnlock(client, project, lock)
+		return "", err
+	}
+	return lock, nil
+}
+
+func projectUnlock(client daisyCompute.Client, project, lock string) error {
+	md, err := getCommonInstanceMetadata(client, project)
+	if err != nil {
+		return err
+	}
+
+	for i, mdi := range md.Items {
+		if mdi != nil && lock == mdi.Key {
+			md.Items = delItem(md.Items, i)
+		}
+	}
+
+	return client.SetCommonInstanceMetadata(project, md)
+}
+
+func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan error, retries int) {
+	if err := test.testCase.w.PopulateClients(ctx); err != nil {
+		errors <- fmt.Errorf("%s: %v", tc.Name, err)
+		tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Error"}
+		return
+	}
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
@@ -365,6 +498,52 @@ func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan
 		case <-test.testCase.w.Cancel:
 		}
 	}()
+
+	project := test.testCase.w.Project
+	client := test.testCase.w.ComputeClient
+	key := test.testCase.w.ID()
+	var lock string
+	var err error
+	if test.testCase.ProjectLock {
+		for i := 0; i < retries; i++ {
+			lock, err = projectWriteLock(client, project, key, test.testCase.timeout)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			errors <- err
+			return
+		}
+	} else {
+		for i := 0; i < retries; i++ {
+			lock, err = projectReadLock(client, project, key, test.testCase.timeout)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			errors <- err
+			return
+		}
+	}
+	defer func() {
+		for i := 0; i < retries; i++ {
+			err := projectUnlock(client, project, lock)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			fmt.Printf("[TestRunner] Test %q: Error unlocking project: %v\n", test.name, err)
+		}
+	}()
+
+	select {
+	case <-test.testCase.w.Cancel:
+		return
+	default:
+	}
 
 	start := time.Now()
 	fmt.Printf("[TestRunner] Running test case %q\n", tc.Name)
@@ -413,6 +592,8 @@ func main() {
 	}
 
 	errors := make(chan error, len(ts.Tests))
+	// Retry failed locks 2x as many tests in the test case.
+	retries := len(ts.Tests) * 2
 	if len(ts.Tests) == 0 {
 		fmt.Println("[TestRunner] Nothing to do")
 		return
@@ -469,7 +650,7 @@ func main() {
 					continue
 				}
 
-				runTestCase(ctx, test, tc, errors)
+				runTestCase(ctx, test, tc, errors, retries)
 			}
 		}()
 	}

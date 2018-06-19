@@ -73,6 +73,7 @@ func TestTestClient(t *testing.T) {
 		{"instance status", func() { c.InstanceStatus("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
 		{"instance stopped", func() { c.InstanceStopped("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
 		{"set instance metadata", func() { c.SetInstanceMetadata("a", "b", "c", nil) }, "/a/zones/b/instances/c/setMetadata?alt=json"},
+		{"set project metadata", func() { c.SetCommonInstanceMetadata("a", nil) }, "/a/setCommonInstanceMetadata?alt=json"},
 		{"zone operation wait", func() { c.zoneOperationsWait("a", "b", "c") }, "/a/zones/b/operations/c?alt=json"},
 		{"region operation wait", func() { c.regionOperationsWait("a", "b", "c") }, "/a/regions/b/operations/c?alt=json"},
 		{"global operation wait", func() { c.globalOperationsWait("a", "b") }, "/a/global/operations/b?alt=json"},
@@ -156,6 +157,7 @@ func TestTestClient(t *testing.T) {
 	c.InstanceStatusFn = func(_, _, _ string) (string, error) { fakeCalled = true; return "", nil }
 	c.InstanceStoppedFn = func(_, _, _ string) (bool, error) { fakeCalled = true; return false, nil }
 	c.SetInstanceMetadataFn = func(_, _, _ string, _ *compute.Metadata) error { fakeCalled = true; return nil }
+	c.SetCommonInstanceMetadataFn = func(_ string, _ *compute.Metadata) error { fakeCalled = true; return nil }
 	c.zoneOperationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.regionOperationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.globalOperationsWaitFn = func(_, _ string) error { fakeCalled = true; return nil }

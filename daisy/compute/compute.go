@@ -70,6 +70,7 @@ type Client interface {
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
+	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
 
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 	BasePath() string
@@ -843,4 +844,14 @@ func (c *client) SetInstanceMetadata(project, zone, name string, md *compute.Met
 		return err
 	}
 	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// SetCommonInstanceMetadata sets an instances metadata.
+func (c *client) SetCommonInstanceMetadata(project string, md *compute.Metadata) error {
+	op, err := c.Retry(c.raw.Projects.SetCommonInstanceMetadata(project, md).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.globalOperationsWait(project, op.Name)
 }
