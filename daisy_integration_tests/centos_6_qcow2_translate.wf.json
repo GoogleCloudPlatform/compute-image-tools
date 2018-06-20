@@ -1,25 +1,25 @@
 {
-  "Name": "windows-2003-32-translate-test",
+  "Name": "centos-6-qcow2-translate-test",
   "Vars": {
-    "about-this-test": { "Description": "Test Windows 2003 translation workflow" },
-    "source_image": "projects/compute-image-tools-test/global/images/windows-2003-32-import",
-    "image_name": "windows-2003-32-translate-test-${ID}",
-    "test-id": {"Description": "The ID of this test run."}
+    "source_image": "projects/compute-image-tools-test/global/images/centos-6-qcow2-import",
+    "image_name": "centos-6-translate-test-${ID}"
+  },
+  "Sources": {
+    "post_translate_test.sh": "./scripts/post_translate_test.sh"
   },
   "Steps": {
     "create-disk-from-image": {
       "CreateDisks": [
         {
           "Name": "translate-me",
-          "SourceImage": "${source_image}",
-          "Type": "pd-ssd"
+          "SourceImage": "${source_image}"
         }
       ]
     },
-    "translate-2003": {
+    "translate-disk": {
       "Timeout": "30m",
       "IncludeWorkflow": {
-        "Path": "../image_import/windows/translate_windows_2003.wf.json",
+        "Path": "../daisy_workflows/image_import/enterprise_linux/translate_centos_6.wf.json",
         "Vars": {
           "source_disk": "translate-me",
           "image_name": "${image_name}"
@@ -41,29 +41,23 @@
           "Name": "inst-import-test",
           "Disks": [{"Source": "disk-import-test"}],
           "MachineType": "n1-standard-4",
-          "Metadata": {
-            "disable-account-manager": "true"
-          }
+          "StartupScript": "post_translate_test.sh"
         }
       ]
     },
     "wait-for-test-instance": {
-      "Timeout": "5m",
+      "Timeout": "30m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-import-test",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "GCE account manager status: disabled"
+            "SuccessMatch": "PASSED:",
+            "FailureMatch": "FAILED:",
+            "StatusMatch": "STATUS:"
           }
         }
       ]
-    },
-    "delete-test-instance": {
-      "Timeout": "110s",
-      "DeleteResources": {
-        "Instances": ["inst-import-test"]
-      }
     },
     "delete-image": {
       "DeleteResources": {
@@ -72,11 +66,10 @@
     }
   },
   "Dependencies": {
-    "translate-2003": ["create-disk-from-image"],
-    "create-test-disk": ["translate-2003"],
+    "translate-disk": ["create-disk-from-image"],
+    "create-test-disk": ["translate-disk"],
     "delete-image": ["create-test-disk"],
     "create-test-instance": ["create-test-disk"],
-    "wait-for-test-instance": ["create-test-instance"],
-    "delete-test-instance": ["wait-for-test-instance"]
+    "wait-for-test-instance": ["create-test-instance"]
   }
 }

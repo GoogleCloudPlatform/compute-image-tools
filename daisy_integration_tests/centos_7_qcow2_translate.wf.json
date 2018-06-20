@@ -1,27 +1,26 @@
 {
-  "Name": "windows-2016-translate-test",
+  "Name": "centos-7-qcow2-translate-test",
   "Vars": {
-    "source_image": "projects/compute-image-tools-test/global/images/windows-2016-import",
-    "image_name": "windows-2016-translate-test-${ID}",
+    "source_image": "projects/compute-image-tools-test/global/images/centos-7-qcow2-import",
+    "image_name": "centos-7-translate-test-${ID}",
     "test-id": {"Description": "The ID of this test run."}
   },
   "Sources": {
-    "post_translate_test.ps1": "./scripts/post_translate_test.ps1"
+    "post_translate_test.sh": "./scripts/post_translate_test.sh"
   },
   "Steps": {
     "create-disk-from-image": {
       "CreateDisks": [
         {
           "Name": "translate-me",
-          "SourceImage": "${source_image}",
-          "Type": "pd-ssd"
+          "SourceImage": "${source_image}"
         }
       ]
     },
-    "translate-2016": {
+    "translate-disk": {
       "Timeout": "30m",
       "IncludeWorkflow": {
-        "Path": "../image_import/windows/translate_windows_2016.wf.json",
+        "Path": "../daisy_workflows/image_import/enterprise_linux/translate_centos_7.wf.json",
         "Vars": {
           "source_disk": "translate-me",
           "image_name": "${image_name}"
@@ -43,7 +42,7 @@
           "Name": "inst-import-test",
           "Disks": [{"Source": "disk-import-test"}],
           "MachineType": "n1-standard-4",
-          "StartupScript": "post_translate_test.ps1"
+          "StartupScript": "post_translate_test.sh"
         }
       ]
     },
@@ -54,9 +53,9 @@
           "Name": "inst-import-test",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "All Tests Passed",
-            "FailureMatch": "Test Failed:",
-            "StatusMatch": "Test:"
+            "SuccessMatch": "PASSED:",
+            "FailureMatch": "FAILED:",
+            "StatusMatch": "STATUS:"
           }
         }
       ]
@@ -68,8 +67,8 @@
     }
   },
   "Dependencies": {
-    "translate-2016": ["create-disk-from-image"],
-    "create-test-disk": ["translate-2016"],
+    "translate-disk": ["create-disk-from-image"],
+    "create-test-disk": ["translate-disk"],
     "delete-image": ["create-test-disk"],
     "create-test-instance": ["create-test-disk"],
     "wait-for-test-instance": ["create-test-instance"]
