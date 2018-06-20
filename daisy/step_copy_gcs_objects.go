@@ -49,8 +49,13 @@ func (c *CopyGCSObjects) validate(ctx context.Context, s *Step) dErr {
 		if err != nil {
 			return err
 		}
-		dBkt, _, err := splitGCSPath(co.Destination)
+		dBkt, dObj, err := splitGCSPath(co.Destination)
 		if err != nil {
+			return err
+		}
+
+		// Add object to object list.
+		if err := s.w.objects.regCreate(path.Join(dBkt, dObj)); err != nil {
 			return err
 		}
 

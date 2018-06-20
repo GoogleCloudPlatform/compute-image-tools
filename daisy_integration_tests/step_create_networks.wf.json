@@ -1,8 +1,7 @@
 {
   "Name": "create-networks-test",
   "Vars": {
-    "about-this-test": { "Description": "This test creates and uses a network." },
-    "test-id": {"Description": "The ID of this test run."}
+    "about-this-test": { "Description": "This test creates and uses a network." }
   },
   "Steps": {
     "create-network": {

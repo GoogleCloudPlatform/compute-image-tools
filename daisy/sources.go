@@ -25,11 +25,33 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
+
+type objectRegistry struct {
+	created []string
+	mx      sync.Mutex
+}
+
+func newObjectRegistry(w *Workflow) *objectRegistry {
+	return &objectRegistry{}
+}
+
+func (o *objectRegistry) regCreate(object string) dErr {
+	o.mx.Lock()
+	defer o.mx.Unlock()
+
+	if strIn(object, o.created) {
+		return errf("cannot create object %q, object already created by another step", object)
+	}
+
+	o.created = append(o.created, object)
+	return nil
+}
 
 var sourceVarRgx = regexp.MustCompile(`\$\{SOURCE:([^}]+)}`)
 

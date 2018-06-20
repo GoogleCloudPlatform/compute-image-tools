@@ -165,7 +165,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logFile := &gcsLogger{client: client, object: "build-log.txt", ctx: ctx}
+	logFile := bufio.NewWriter(&gcsLogger{client: client, object: "build-log.txt", ctx: ctx})
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			logFile.Flush()
+		}
+	}()
+
 	buildLog = log.New(io.MultiWriter(logFile, os.Stdout), "", 0)
 
 	// Write started.json
@@ -182,7 +189,9 @@ func main() {
 	buildLog.Println("Running wrapped logic.")
 	result, err := runCommand(exec.Command(os.Args[1], os.Args[2:]...), buildLog)
 	if err != nil {
-		buildLog.Fatal(err)
+		buildLog.Println("ERROR: ", err)
+		logFile.Flush()
+		os.Exit(1)
 	}
 	buildLog.Printf("Main logic finished with result %q.", result)
 
@@ -220,6 +229,8 @@ func main() {
 	if err := gcsWrite(ctx, client, "finished.json", finished(result), nil, "application/json"); err != nil {
 		buildLog.Println("ERROR: ", err)
 	}
+
+	logFile.Flush()
 
 	if result != success {
 		os.Exit(1)
