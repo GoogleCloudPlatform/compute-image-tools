@@ -166,3 +166,34 @@ periodics:
     - name: compute-image-tools-test-service-account
       secret:
        secretName: compute-image-tools-test-service-account
+ - name: windows-image-tests
+   interval: 3h
+   agent: kubernetes
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/test-runner:latest
+      args:
+      - "-out_path=/artifacts/junit.xml"
+      - "-projects=\
+          compute-image-test-pool-001,\
+          compute-image-test-pool-002,\
+          compute-image-test-pool-003"
+      - "-zone=us-central1-c"
+      - "-var:images=\
+          projects/windows-cloud/global/images/family/windows-2016-core"
+      - "-var:alias_ips=\
+          10.128.3.160"
+      - "daisy_workflows/image_test/windows_images.test.gotmpl"
+      env:
+      - name: REPO_OWNER
+        value: GoogleCloudPlatform
+      - name: REPO_NAME
+        value: compute-image-tools
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
