@@ -8,9 +8,9 @@
   "Sources": {
     "testee.sh": "./network-testee.sh",
     "test_files/test.py": "./network-tester.py",
-    "test_files/utils.py": "../linux_common/utils.py",
+    "test_files/utils.py": "../../linux_common/utils.py",
     "test_files/genips.py": "./genips.py",
-    "startup_master_tester": "../linux_common/bootstrap.py"
+    "startup_master_tester": "../../linux_common/bootstrap.py"
   },
   "Steps": {
     "create-testee-disk": {

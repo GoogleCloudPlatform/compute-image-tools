@@ -22,7 +22,7 @@
 [ -n "$INSTANCE" ] && getent hosts www.google.com
 
 # Signalize wait-for-instance that instance is ready or error occurred
-[ $? -ne 0 ] && [ -n "$INSTANCE" ] && echo "DNS_Failed" > /dev/console || echo "BOOTED" > /dev/console
+[ $? -ne 0 ] && [ -n "$INSTANCE" ] && logger -p daemon.info "DNS_Failed" || logger -p daemon.info "BOOTED"
 
 # Serve a file server that prints the hostname when requesting "/hostname"
 mkdir /server
