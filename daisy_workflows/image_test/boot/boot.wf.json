@@ -5,7 +5,8 @@
     "machine_type": {"Required": true, "Description": "MachineType to test the image"}
   },
   "Sources": {
-    "boot.sh": "./boot.sh"
+    "boot.sh": "./boot.sh",
+    "boot.bat": "./boot.bat"
   },
   "Steps": {
     "create-test-disk": {
@@ -24,7 +25,8 @@
           "Disks": [{"Source": "disk-test-img"}],
           "MachineType": "${machine_type}",
           "Metadata": {
-            "startup-script": "${SOURCE:boot.sh}"
+            "startup-script": "${SOURCE:boot.sh}",
+            "windows-startup-script-bat": "${SOURCE:boot.bat}"
           }
         }
       ]
