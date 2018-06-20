@@ -107,14 +107,11 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
 				}
 
-				if status == "TERMINATED" || status == "STOPPED" {
-					w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q stopped, not waiting for serial output.", name)
-					return nil
-				}
-				// Keep retrying until the instance is STOPPED.
-				if status == "STOPPING" {
+				// Wait until machine restarts to evaluate SerialOutput.
+				if status == "TERMINATED" || status == "STOPPED" || status == "STOPPING" {
 					continue
 				}
+
 				// Retry up to 3 times in a row on any error if we successfully got InstanceStatus.
 				if errs < 3 {
 					errs++

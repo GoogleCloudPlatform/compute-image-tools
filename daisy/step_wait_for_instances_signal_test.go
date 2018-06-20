@@ -84,12 +84,27 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		}
 		return ret, nil
 	}
+
+	i6Counter := 0
 	w.ComputeClient.(*daisyCompute.TestClient).InstanceStatusFn = func(_, _, n string) (string, error) {
 		if n == w.genName("i5") {
 			return "", errors.New("fail")
 		}
 		if n == w.genName("i4") {
 			return "RUNNING", nil
+		}
+		if n == w.genName("i6") {
+			i6Counter++
+			switch i6Counter {
+			case 1:
+				return "STOPPING", nil
+			case 2:
+				return "STOPPED", nil
+			case 3:
+				return "TERMINATED", nil
+			default:
+				return "RUNNING", nil
+			}
 		}
 		return "STOPPED", nil
 	}
@@ -142,12 +157,12 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 		t.Error("expected error")
 	}
 
-	// Error from GetSerialPortOutput but instance is terminated so no error.
+	// Error from GetSerialPortOutput but only after instance starts (kind of "i4")
 	ws = &WaitForInstancesSignal{
 		{Name: "i6", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
 	}
-	if err := ws.run(ctx, s); err != nil {
-		t.Errorf("error running WaitForInstancesSignal.run(): %v", err)
+	if err := ws.run(ctx, s); err == nil {
+		t.Errorf("expected error")
 	}
 
 	// Unresolved instance error.
