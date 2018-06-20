@@ -1,8 +1,0 @@
-google-api-python-client
-google-auth
-google-cloud-storage
-junit-xml
-ndg-httpsclient
-pyasn1
-pyopenssl
-requests

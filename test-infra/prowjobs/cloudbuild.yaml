@@ -10,8 +10,6 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/unittests:latest', '--tag=gcr.io/$PROJECT_ID/unittests:$COMMIT_SHA', './test-infra/prowjobs/unittests']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy-e2e:latest', '--tag=gcr.io/$PROJECT_ID/daisy-e2e:$COMMIT_SHA', './test-infra/prowjobs/daisy-e2e']
-- name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/test-runner:latest', '--tag=gcr.io/$PROJECT_ID/test-runner:$COMMIT_SHA', './test-infra/prowjobs/test-runner']
 
 images:
@@ -25,7 +23,5 @@ images:
   - 'gcr.io/$PROJECT_ID/gobuild:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/flake8:latest'
   - 'gcr.io/$PROJECT_ID/flake8:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/daisy-e2e:latest'
-  - 'gcr.io/$PROJECT_ID/daisy-e2e:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/test-runner:latest'
   - 'gcr.io/$PROJECT_ID/test-runner:$COMMIT_SHA'

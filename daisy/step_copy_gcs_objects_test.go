@@ -53,15 +53,21 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 
 		if m == "GET" && u == "/b/bucket1?alt=json&projection=full" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "GET" && u == "/b/bucket3?alt=json&projection=full" {
+		} else if m == "GET" && u == "/b/bucket2?alt=json&projection=full" {
 			fmt.Fprint(w, `{}`)
 		} else if m == "POST" && u == "/b/bucket1/o?alt=json&projection=full&uploadType=multipart" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "POST" && u == "/b/bucket2/o?alt=json&projection=full&uploadType=multipart" {
 			fmt.Fprint(w, `{}`)
 		} else if m == "DELETE" && u == "/b/bucket1/o/abcdef?alt=json" {
 			fmt.Fprint(w, `{}`)
 		} else if m == "DELETE" && u == "/b/bucket1/o/daisy-validate--abcdef?alt=json" {
 			fmt.Fprint(w, `{}`)
+		} else if m == "DELETE" && u == "/b/bucket2/o/daisy-validate--abcdef?alt=json" {
+			fmt.Fprint(w, `{}`)
 		} else if m == "PUT" && u == "/b/bucket1/o/daisy-validate--abcdef/acl/allUsers?alt=json" {
+			fmt.Fprint(w, `{}`)
+		} else if m == "PUT" && u == "/b/bucket2/o/daisy-validate--abcdef/acl/allUsers?alt=json" {
 			fmt.Fprint(w, `{}`)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
@@ -79,7 +85,7 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 
 	ws := &CopyGCSObjects{
 		{Source: "gs://bucket1", Destination: "gs://bucket1"},
-		{Source: "gs://bucket1", Destination: "gs://bucket1", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
+		{Source: "gs://bucket1", Destination: "gs://bucket2", ACLRules: []*storage.ACLRule{{Entity: "allUsers", Role: "OWNER"}}},
 	}
 	if err := ws.validate(ctx, s); err != nil {
 		t.Errorf("error running CopyGCSObjects.validate(): %v", err)

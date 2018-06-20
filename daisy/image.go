@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 	"regexp"
 	"sync"
 
@@ -197,8 +198,12 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	if i.RawDisk != nil {
 		sBkt, sObj, err := splitGCSPath(i.RawDisk.Source)
 		errs = addErrs(errs, err)
-		if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).Attrs(ctx); err != nil {
-			errs = addErrs(errs, errf("error reading object %s/%s: %v", sBkt, sObj, err))
+
+		// Check if this image object is created by this workflow, otherwise check if object exists.
+		if !strIn(path.Join(sBkt, sObj), s.w.objects.created) {
+			if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).Attrs(ctx); err != nil {
+				errs = addErrs(errs, errf("error reading object %s/%s: %v", sBkt, sObj, err))
+			}
 		}
 	}
 

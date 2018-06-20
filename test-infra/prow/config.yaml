@@ -95,13 +95,19 @@ presubmits:
 
 periodics:
  - name: ci-daisy-e2e
-   interval: 6h
+   interval: 3h
    agent: kubernetes
    spec:
     containers:
-    - image: gcr.io/compute-image-tools-test/daisy-e2e:latest
+    - image: gcr.io/compute-image-tools-test/test-runner:latest
       args:
-      - "--tests=e2e_tests"
+      - "-out_path=/artifacts/junit.xml"
+      - "-projects=\
+          compute-image-test-pool-001,\
+          compute-image-test-pool-002,\
+          compute-image-test-pool-003"
+      - "-zone=us-central1-c"
+      - "daisy_integration_tests/daisy_e2e.test.gotmpl"
       env:
       - name: REPO_OWNER
         value: GoogleCloudPlatform

@@ -140,6 +140,7 @@ type Workflow struct {
 	instances       *instanceRegistry
 	networks        *networkRegistry
 	targetInstances *targetInstanceRegistry
+	objects         *objectRegistry
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -452,6 +453,7 @@ func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw.instances = w.instances
 	iw.networks = w.networks
 	iw.targetInstances = w.targetInstances
+	iw.objects = w.objects
 	return iw
 }
 
@@ -640,6 +642,7 @@ func New() *Workflow {
 	w.images = newImageRegistry(w)
 	w.instances = newInstanceRegistry(w)
 	w.networks = newNetworkRegistry(w)
+	w.objects = newObjectRegistry(w)
 	w.targetInstances = newTargetInstanceRegistry(w)
 	w.addCleanupHook(func() dErr {
 		w.instances.cleanup() // instances need to be done before disks/networks
