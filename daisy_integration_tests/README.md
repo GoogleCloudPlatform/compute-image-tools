@@ -1,7 +1,13 @@
 # Daisy E2E Tests
 
-This directory contains end to end tests for Daisy. These tests are run
-periodically against HEAD.
+This directory contains end to end tests for Daisy.
+To run against your local checkout (requires access to compute-image-tools-test):
+
+```bash
+go run cli_tools/daisy_test_runner/main.go -projects=compute-image-tools-test -zone=us-central1-c daisy_integration_tests/daisy_e2e.test.gotmpl
+```
+
+Prow runs these tests periodically against HEAD.
 
 ## Test Environment Details
 
