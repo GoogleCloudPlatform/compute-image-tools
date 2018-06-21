@@ -125,15 +125,22 @@ func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) dE
 	return traverseData(v, func(val reflect.Value) dErr {
 		switch val.Interface().(type) {
 		case string:
-			if match := sourceVarRgx.FindStringSubmatch(val.String()); match != nil {
-				if len(match) < 1 || !w.sourceExists(match[1]) {
-					return errf("source not found for expansion: %s", match[0])
+			if matches := sourceVarRgx.FindAllStringSubmatch(val.String(), -1); matches != nil {
+				futureVal := val.String()
+				for _, match := range matches {
+					if len(match) < 2 || !w.sourceExists(match[1]) {
+						return errf("source not found for expansion: %s", match[0])
+					}
+					sv, err := w.sourceContent(ctx, match[1])
+					if err != nil {
+						return errf("error reading source content for %s: %v", match[1], err)
+					}
+					futureVal = strings.Replace(futureVal, match[0], sv, -1)
+					if len(futureVal) > 1024 {
+						return errf("Expanded string for '%s' is too large", val.String())
+					}
 				}
-				sv, err := w.sourceContent(ctx, match[1])
-				if err != nil {
-					return errf("error reading source content for %s: %v", match[1], err)
-				}
-				val.SetString(sv)
+				val.SetString(futureVal)
 			}
 		}
 		return nil

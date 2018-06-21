@@ -153,16 +153,41 @@ func TestSubstituteSourceVars(t *testing.T) {
 			test{String: "${SOURCE:bar}"},
 			true,
 		},
-		{ // 2
+		{ // 3
 			test{String: "${SOURCE:baz}"},
 			test{String: "${SOURCE:baz}"},
 			true,
+		},
+		{ // 4
+			test{String: "${SOURCE:big}"},
+			test{String: "${SOURCE:big}"},
+			true,
+		},
+		{ // 5
+			test{String: "Did you know that ${SOURCE:foo}?"},
+			test{String: "Did you know that this is a test?"},
+			false,
+		},
+		{ // 6
+			test{String: "Now with this expansion it crossed the limits: ${SOURCE:almost}?"},
+			test{String: "Now with this expansion it crossed the limits: ${SOURCE:almost}?"},
+			true,
+		},
+		{ // 7
+			test{String: "${SOURCE:foo} and ${SOURCE:fu}"},
+			test{String: "this is a test and this is another test"},
+			false,
 		},
 	}
 
 	ctx := context.Background()
 	w := testWorkflow()
-	w.Sources = map[string]string{"foo": "./test_data/test.txt", "bar": "./test_data/notexist.txt"}
+	w.Sources = map[string]string{
+		"foo":    "./test_data/test.txt",
+		"fu":     "./test_data/test_2.txt",
+		"bar":    "./test_data/notexist.txt",
+		"big":    "./test_data/big_string.txt",
+		"almost": "./test_data/almost_too_big.txt"}
 	for i, tt := range tests {
 		s := reflect.ValueOf(&tt.got).Elem()
 		err := w.substituteSourceVars(ctx, s)
