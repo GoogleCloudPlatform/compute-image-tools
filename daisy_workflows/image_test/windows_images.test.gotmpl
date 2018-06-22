@@ -5,10 +5,8 @@
     {{$images := split .images "," -}}
     {{$alias_ips := split .alias_ips "," -}}
     {{$length := len $images -}}
-    {{if ne (len $alias_ips) $length}},{{end}}
-    {{range $index, $zip := zip $images $alias_ips -}}
-      {{$image := index $zip 0 -}}
-      {{$alias_ip := index $zip 1 -}}
+    {{range $index, $image := $images -}}
+      {{$alias_ip := randItem $alias_ips -}}
       {{$machine_types := mkSlice "f1-micro" "g1-small" "n1-standard-4" "n1-highmem-64" -}}
       {{range $machine_type := $machine_types -}}
         "test-boot-{{$machine_type}} [{{$image}}]": {
@@ -42,7 +40,8 @@
         "Vars": {
           "source_image": "{{$image}}",
           "alias_ip": "{{$alias_ip}}"
-        }
+        },
+        "CustomProjectLock": "alias-ip-{{$alias_ip}}"
       },
       "test-disk [{{$image}}]": {
         "Path": "./disk/disk.wf.json",

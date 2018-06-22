@@ -59,31 +59,19 @@ var (
 	parallelCount = flag.Int("parallel_count", 0, "TestParallelCount")
 
 	funcMap = map[string]interface{}{
-		"zip":     zip,
-		"mkSlice": mkSlice,
-		"mkMap":   mkMap,
-		"split":   strings.Split,
-		"add":     func(i, a int) int { return i + a },
+		"randItem": randItem,
+		"mkSlice":  mkSlice,
+		"mkMap":    mkMap,
+		"split":    strings.Split,
+		"add":      func(i, a int) int { return i + a },
 	}
 
 	testTemplate = template.New("testTemplate").Option("missingkey=zero").Funcs(funcMap)
 )
 
-// zip([a, b, c], [A, B, C]) -> [[a, A], [b, B], [c, C]]
-func zip(args ...[]string) [][]string {
-	// allocate memory
-	z := make([][]string, len(args[0]))
-	for i := 0; i < len(args[0]); i++ {
-		z[i] = make([]string, len(args))
-	}
-
-	// write data
-	for argIndex, arg := range args {
-		for argElemIndex, argElem := range arg {
-			z[argElemIndex][argIndex] = argElem
-		}
-	}
-	return z
+func randItem(args []string) string {
+	rand.Seed(time.Now().UnixNano())
+	return args[rand.Intn(len(args))]
 }
 
 func mkSlice(args ...string) []string {
