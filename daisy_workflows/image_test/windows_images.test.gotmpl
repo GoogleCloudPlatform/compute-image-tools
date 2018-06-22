@@ -1,5 +1,5 @@
 {
-  "Name": "linux-image-test",
+  "Name": "windows-image-test",
   "TestParallelCount": 10,
   "Tests": {
     {{$images := split .images "," -}}
@@ -17,20 +17,6 @@
           }
         },
       {{end -}}
-      "test-metadata-ssh [{{$image}}]": {
-        "Path": "./metadata-ssh/metadata-ssh.wf.json",
-        "Vars": {
-          "source_image": "{{$image}}"
-        },
-        "ProjectLock": true
-      },
-      "test-oslogin-ssh [{{$image}}]": {
-        "Path": "./oslogin-ssh/oslogin-ssh.wf.json",
-        "Vars": {
-          "source_image": "{{$image}}"
-        },
-        "ProjectLock": true
-      },
       "test-configuration [{{$image}}]": {
         "Path": "./configuration/configuration.wf.json",
         "Vars": {
