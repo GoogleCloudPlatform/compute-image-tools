@@ -46,10 +46,13 @@ Loop:
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(path.Base(i.Project), path.Base(i.Zone), i.Name, port, start)
 			if err != nil {
-				// Instance is stopped.
-				stopped, sErr := w.ComputeClient.InstanceStopped(path.Base(i.Project), path.Base(i.Zone), i.Name)
-				if stopped && sErr == nil {
-					break Loop
+				// Instance is stopped or stopping.
+				status, sErr := w.ComputeClient.InstanceStatus(path.Base(i.Project), path.Base(i.Zone), i.Name)
+				switch status {
+				case "TERMINATED", "STOPPED", "STOPPING":
+					if sErr == nil {
+						break Loop
+					}
 				}
 				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error getting serial port: %v", i.Name, err)
 				break Loop
