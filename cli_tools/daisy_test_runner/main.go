@@ -554,13 +554,16 @@ func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan
 
 	start := time.Now()
 	fmt.Printf("[TestRunner] Running test case %q\n", tc.Name)
-	if err := test.testCase.w.Run(ctx); err != nil {
-		errors <- fmt.Errorf("%s: %v", tc.Name, err)
-		tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Failure"}
-	}
+	err = test.testCase.w.Run(ctx)
 	tc.Time = time.Since(start).Seconds()
 	tc.SystemOut = test.testCase.logger.buf.String()
-	fmt.Printf("[TestRunner] Test case %q finished\n", tc.Name)
+	var failure string
+	if err != nil {
+		errors <- fmt.Errorf("%s: %v", tc.Name, err)
+		tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Failure"}
+		failure = " with failure"
+	}
+	fmt.Printf("[TestRunner] Test case %q finished%s\n", tc.Name, failure)
 }
 
 func main() {

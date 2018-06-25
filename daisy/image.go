@@ -204,6 +204,9 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 			if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).Attrs(ctx); err != nil {
 				errs = addErrs(errs, errf("error reading object %s/%s: %v", sBkt, sObj, err))
 			}
+			if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).NewReader(ctx); err != nil {
+				errs = addErrs(errs, errf("error reading object %s/%s: %v", sBkt, sObj, err))
+			}
 		}
 	}
 

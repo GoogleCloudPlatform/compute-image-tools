@@ -1,7 +1,7 @@
 # Daisy E2E Tests
 
 This directory contains end to end tests for Daisy.
-To run against your local checkout (requires access to resources in 
+To run against your local checkout (requires access to resources in
 compute-image-tools-test):
 
 ```bash

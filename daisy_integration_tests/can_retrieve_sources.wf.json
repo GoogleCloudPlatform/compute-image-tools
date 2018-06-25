@@ -5,7 +5,7 @@
   },
   "Sources": {
     "local_file.txt": "./data/test.txt",
-    "gcs_file.txt": "gs://gce-daisy-test-resources/test.txt",
+    "gcs_file.txt": "gs://compute-image-tools-test-resources/test.txt",
     "can_retrieve_sources.sh": "./scripts/can_retrieve_sources.sh"
   },
   "Steps": {

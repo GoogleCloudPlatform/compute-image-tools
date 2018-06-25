@@ -206,9 +206,9 @@ func (w *Workflow) Run(ctx context.Context) error {
 		return err
 	}
 	defer w.cleanup()
-	w.LogWorkflowInfo("Workflow Project:", w.Project)
-	w.LogWorkflowInfo("Workflow Zone:", w.Zone)
-	w.LogWorkflowInfo("Workflow GCSPath:", w.GCSPath)
+	w.LogWorkflowInfo("Workflow Project: %s", w.Project)
+	w.LogWorkflowInfo("Workflow Zone: %s", w.Zone)
+	w.LogWorkflowInfo("Workflow GCSPath: %s", w.GCSPath)
 	w.LogWorkflowInfo("Daisy scratch path: https://console.cloud.google.com/storage/browser/%s", path.Join(w.bucket, w.scratchPath))
 
 	w.LogWorkflowInfo("Uploading sources")
@@ -646,11 +646,11 @@ func New() *Workflow {
 	w.targetInstances = newTargetInstanceRegistry(w)
 	w.addCleanupHook(func() dErr {
 		w.instances.cleanup() // instances need to be done before disks/networks
+		w.images.cleanup()
 		w.disks.cleanup()
 		w.forwardingRules.cleanup()
-		w.images.cleanup()
-		w.networks.cleanup()
 		w.targetInstances.cleanup()
+		w.networks.cleanup()
 		return nil
 	})
 

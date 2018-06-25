@@ -21,7 +21,7 @@
         {
           "Name": "from-file",
           "RawDisk": {
-            "Source": "gs://gce-daisy-test-resources/debian-9-stretch-v20170816.tar.gz"
+            "Source": "gs://compute-image-tools-test-resources/debian-9-stretch-v20170816.tar.gz"
           }
         }
       ]
