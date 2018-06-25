@@ -779,7 +779,7 @@ func TestRunStepTimeout(t *testing.T) {
 		time.Sleep(1 * time.Second)
 		return nil
 	}}
-	want := `step "test" did not stop in specified timeout of 1ns`
+	want := `step "test" did not complete in specified timeout of 1ns`
 	if err := w.runStep(context.Background(), s); err == nil || err.Error() != want {
 		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
 	}
