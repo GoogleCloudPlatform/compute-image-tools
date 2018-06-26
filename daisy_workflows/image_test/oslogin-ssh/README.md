@@ -20,10 +20,10 @@ It also performs end to end tests where:
 
 # How this test works?
 
-- master-tester: 
-- oslogin-ssh-tester: 
-- osadminlogin-ssh-tester: 
-- oslogin-ssh-testee: 
+- master-tester: machine who coordinates the tests.
+- oslogin-ssh-tester: machine with roles/compute.osLogin used by the master to test login of a user with no sudo permissions.
+- osadminlogin-ssh-tester: machine with roles/compute.osAdminLogin used by the master to test login of a user with sudo permissions.
+- oslogin-ssh-testee: machine instanciated with the image being tested.
 
 # Setup
 
