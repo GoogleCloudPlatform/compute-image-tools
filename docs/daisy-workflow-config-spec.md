@@ -13,8 +13,11 @@
   * [Steps](#steps)
     * [AttachDisks](#type-attachdisks)
     * [CreateDisks](#type-createdisks)
+    * [CreateForwardingRules](#type-createforwardingrules)
     * [CreateImages](#type-createimages)
     * [CreateInstances](#type-createinstances)
+    * [CreateTargetInstances](#type-createtargetinstances)
+    * [CreateNetworks](#type-createnetworks)
     * [CopyGCSObjects](#type-copygcsobjects)
     * [DeleteResources](#type-deleteresources)
     * [StopInstances](#type-stopinstances)
@@ -212,6 +215,35 @@ is a blank PD SSD.
 }
 ```
 
+#### Type: CreateForwardingRules
+Creates GCE ForwardingRule. A list of GCE ForwardinRule resources. See
+https://cloud.google.com/compute/docs/reference/latest/forwardingRules for the
+ForwardingRules JSON representation. Daisy
+uses the same representation.
+
+Example: A ForwardingRule is created to forward TCP traffic from port 80 to the
+instance `inst-1`, which was added to the Target Instance `target-instance-1`.
+```json
+"step-name": {
+  "CreateForwardingRules": [
+    {
+      "Name": "forwarding-rule-1",
+      "Target": "target-instance-1",
+      "PortRange": "80",
+      "IPProtocol": "TCP"
+    }
+  ]
+},
+"dependency-step": {
+  "CreateTargetInstances": [
+    {
+      "Name": "target-instance-1",
+      "Instance": "inst-1"
+    }
+  ]
+},
+```
+
 #### Type: CreateImages
 Creates GCE images. A list of GCE Image resources. See https://cloud.google.com/compute/docs/reference/latest/images for
 the Image JSON representation. Daisy uses the same representation with a few modifications:
@@ -328,6 +360,23 @@ network.
     }
   ]
 }
+```
+
+#### Type: CreateTargetInstances
+Creates GCE TargetInstance. A list of GCE TargetInstances resources. See
+https://cloud.google.com/compute/docs/reference/latest/targetInstances for the
+TargetInstances JSON representation. Daisy uses the same representation.
+
+Example: A TargetInstance is created and bounded to `inst-1`.
+```json
+"step-name": {
+  "CreateTargetInstances": [
+    {
+      "Name": "target-instance-1",
+      "Instance": "inst-1"
+    }
+  ]
+},
 ```
 
 #### Type: CreateNetworks
