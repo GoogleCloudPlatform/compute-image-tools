@@ -139,6 +139,12 @@ type logger struct {
 	mx  sync.Mutex
 }
 
+func (l *logger) getLogBuffer() string {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	return l.buf.String()
+}
+
 func (l *logger) WriteLogEntry(e *daisy.LogEntry) {
 	l.mx.Lock()
 	defer l.mx.Unlock()
@@ -556,7 +562,7 @@ func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan
 	fmt.Printf("[TestRunner] Running test case %q\n", tc.Name)
 	err = test.testCase.w.Run(ctx)
 	tc.Time = time.Since(start).Seconds()
-	tc.SystemOut = test.testCase.logger.buf.String()
+	tc.SystemOut = test.testCase.logger.getLogBuffer()
 	var failure string
 	if err != nil {
 		errors <- fmt.Errorf("%s: %v", tc.Name, err)
