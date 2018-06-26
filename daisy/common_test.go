@@ -16,6 +16,9 @@ package daisy
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -180,14 +183,25 @@ func TestSubstituteSourceVars(t *testing.T) {
 		},
 	}
 
+	td, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatalf("error creating temp dir: %v", err)
+	}
+	defer os.RemoveAll(td)
+	almost := filepath.Join(td, "almost_too_big")
+	ioutil.WriteFile(almost, []byte(strings.Repeat("a", (1024*256)-10)), 0600)
+
+	big := filepath.Join(td, "big_string")
+	ioutil.WriteFile(big, []byte(strings.Repeat("a", (1024*256)+10)), 0600)
+
 	ctx := context.Background()
 	w := testWorkflow()
 	w.Sources = map[string]string{
 		"foo":    "./test_data/test.txt",
 		"fu":     "./test_data/test_2.txt",
 		"bar":    "./test_data/notexist.txt",
-		"big":    "./test_data/big_string.txt",
-		"almost": "./test_data/almost_too_big.txt"}
+		"big":    big,
+		"almost": almost}
 	for i, tt := range tests {
 		s := reflect.ValueOf(&tt.got).Elem()
 		err := w.substituteSourceVars(ctx, s)

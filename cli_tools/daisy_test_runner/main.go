@@ -486,6 +486,8 @@ func projectUnlock(client daisyCompute.Client, project, lock string) error {
 	return client.SetCommonInstanceMetadata(project, md)
 }
 
+var allowedChars = regexp.MustCompile("[^-_a-zA-Z0-9]+")
+
 func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan error, retries int) {
 	if err := test.testCase.w.PopulateClients(ctx); err != nil {
 		errors <- fmt.Errorf("%s: %v", tc.Name, err)
@@ -514,7 +516,7 @@ func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan
 	var err error
 	if test.testCase.CustomProjectLock != "" || test.testCase.ProjectLock {
 		for i := 0; i < retries; i++ {
-			lock, err = projectWriteLock(client, project, test.testCase.CustomProjectLock, key, test.testCase.timeout)
+			lock, err = projectWriteLock(client, project, allowedChars.ReplaceAllString(test.testCase.CustomProjectLock, "_"), key, test.testCase.timeout)
 			if err == nil {
 				break
 			}
