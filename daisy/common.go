@@ -136,7 +136,7 @@ func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) dE
 						return errf("error reading source content for %s: %v", match[1], err)
 					}
 					futureVal = strings.Replace(futureVal, match[0], sv, -1)
-					if len(futureVal) > 1024 {
+					if len(futureVal) > 1024*256 {
 						return errf("Expanded string for '%s' is too large", val.String())
 					}
 				}

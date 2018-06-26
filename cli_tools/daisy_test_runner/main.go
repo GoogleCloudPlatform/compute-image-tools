@@ -131,18 +131,13 @@ type TestCase struct {
 	// If set this test will be the only test allowed to run in the project.
 	// This is required for any test that changes project level settings that may
 	// impact other concurrent test runs.
-	ProjectLock bool
+	ProjectLock       bool
+	CustomProjectLock string
 }
 
 type logger struct {
 	buf bytes.Buffer
 	mx  sync.Mutex
-}
-
-func (l *logger) getLogBuffer() string {
-	l.mx.Lock()
-	defer l.mx.Unlock()
-	return l.buf.String()
 }
 
 func (l *logger) WriteLogEntry(e *daisy.LogEntry) {
@@ -453,7 +448,7 @@ func projectReadLock(client daisyCompute.Client, project, key string, timeout ti
 	return lock, nil
 }
 
-func projectWriteLock(client daisyCompute.Client, project, key string, timeout time.Duration) (string, error) {
+func projectWriteLock(client daisyCompute.Client, project, custom, key string, timeout time.Duration) (string, error) {
 	md, err := waitLock(client, project, writeLock)
 	if err != nil {
 		return "", err
@@ -461,7 +456,7 @@ func projectWriteLock(client daisyCompute.Client, project, key string, timeout t
 
 	// This means the project has no current write locks, set the write lock
 	// now and then wait till all current read locks are gone.
-	lock := writeLock + key
+	lock := writeLock + custom + key
 	val := time.Now().Add(timeout).Format(timeFormat)
 	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
 	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
@@ -491,6 +486,8 @@ func projectUnlock(client daisyCompute.Client, project, lock string) error {
 	return client.SetCommonInstanceMetadata(project, md)
 }
 
+var allowedChars = regexp.MustCompile("[^-_a-zA-Z0-9]+")
+
 func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan error, retries int) {
 	if err := test.testCase.w.PopulateClients(ctx); err != nil {
 		errors <- fmt.Errorf("%s: %v", tc.Name, err)
@@ -517,9 +514,9 @@ func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan
 	key := test.testCase.w.ID()
 	var lock string
 	var err error
-	if test.testCase.ProjectLock {
+	if test.testCase.CustomProjectLock != "" || test.testCase.ProjectLock {
 		for i := 0; i < retries; i++ {
-			lock, err = projectWriteLock(client, project, key, test.testCase.timeout)
+			lock, err = projectWriteLock(client, project, allowedChars.ReplaceAllString(test.testCase.CustomProjectLock, "_"), key, test.testCase.timeout)
 			if err == nil {
 				break
 			}
@@ -560,16 +557,13 @@ func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan
 
 	start := time.Now()
 	fmt.Printf("[TestRunner] Running test case %q\n", tc.Name)
-	err = test.testCase.w.Run(ctx)
-	tc.Time = time.Since(start).Seconds()
-	tc.SystemOut = test.testCase.logger.getLogBuffer()
-	var failure string
-	if err != nil {
+	if err := test.testCase.w.Run(ctx); err != nil {
 		errors <- fmt.Errorf("%s: %v", tc.Name, err)
 		tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Failure"}
-		failure = " with failure"
 	}
-	fmt.Printf("[TestRunner] Test case %q finished%s\n", tc.Name, failure)
+	tc.Time = time.Since(start).Seconds()
+	tc.SystemOut = test.testCase.logger.buf.String()
+	fmt.Printf("[TestRunner] Test case %q finished\n", tc.Name)
 }
 
 func main() {
