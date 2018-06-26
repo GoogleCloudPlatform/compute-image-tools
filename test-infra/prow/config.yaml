@@ -102,10 +102,8 @@ periodics:
     - image: gcr.io/compute-image-tools-test/test-runner:latest
       args:
       - "-out_path=/artifacts/junit.xml"
-      - "-projects=\
-          compute-image-test-pool-001,\
-          compute-image-test-pool-002,\
-          compute-image-test-pool-003"
+      # One project is enough for daisy tests, no test requires a write lock.
+      - "-projects=compute-image-test-pool-001"
       - "-zone=us-central1-c"
       - "daisy_integration_tests/daisy_e2e.test.gotmpl"
       env:
@@ -129,10 +127,12 @@ periodics:
     - image: gcr.io/compute-image-tools-test/test-runner:latest
       args:
       - "-out_path=/artifacts/junit.xml"
+      # compute-image-test-pool-001 is reserved for daisy e2e tests.
       - "-projects=\
-          compute-image-test-pool-001,\
           compute-image-test-pool-002,\
-          compute-image-test-pool-003"
+          compute-image-test-pool-003,\
+          compute-image-test-pool-004,\
+          compute-image-test-pool-005"
       - "-zone=us-central1-c"
       - "-var:images=\
           projects/debian-cloud/global/images/family/debian-8,\
@@ -174,10 +174,12 @@ periodics:
     - image: gcr.io/compute-image-tools-test/test-runner:latest
       args:
       - "-out_path=/artifacts/junit.xml"
+      # compute-image-test-pool-001 is reserved for daisy e2e tests.
       - "-projects=\
-          compute-image-test-pool-001,\
           compute-image-test-pool-002,\
-          compute-image-test-pool-003"
+          compute-image-test-pool-003,\
+          compute-image-test-pool-004,\
+          compute-image-test-pool-005"
       - "-zone=us-central1-c"
       - "-var:images=\
           projects/windows-cloud/global/images/family/windows-2016-core"

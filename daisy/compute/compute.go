@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
-	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
@@ -180,7 +180,7 @@ func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) b
 
 // NewClient creates a new Google Cloud Compute client.
 func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error) {
-	o := []option.ClientOption{option.WithScopes(compute.ComputeScope)}
+	o := []option.ClientOption{option.WithScopes(compute.ComputeScope, compute.DevstorageReadWriteScope)}
 	opts = append(o, opts...)
 	hc, ep, err := transport.NewHTTPClient(ctx, opts...)
 	if err != nil {
