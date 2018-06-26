@@ -17,6 +17,7 @@
     * [CreateInstances](#type-createinstances)
     * [CopyGCSObjects](#type-copygcsobjects)
     * [DeleteResources](#type-deleteresources)
+    * [StartInstances](#type-startinstances)
     * [StopInstances](#type-stopinstances)
     * [IncludeWorkflow](#type-includeworkflow)
     * [SubWorkflow](#type-subworkflow)
@@ -418,12 +419,28 @@ disks, a network, a GCS object and a GCS 'folder' (recursive object delete).
 }
 ```
 
+#### Type: StartInstances
+Starts GCE instances that is stopped.
+
+| Field Name | Type | Description |
+| - | - | - |
+| Instances | list(string) | *Optional, but at least one of these fields must be used.* The list of VM instances to start. Values can be 1) Names of VMs created in this workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE VM. |
+
+This StartInstances step example starts an instance in the project.
+```json
+"step-name": {
+  "StartInstances": {
+     "Instances":["instance1"],
+   }
+}
+```
+
 #### Type: StopInstances
 Stops GCE instances without deleting it.
 
 | Field Name | Type | Description |
 | - | - | - |
-| Instances | list(string) | *Optional, but at least one of these fields must be used.* The list of VM instances to delete. Values can be 1) Names of VMs created in this workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE VM. |
+| Instances | list(string) | *Optional, but at least one of these fields must be used.* The list of VM instances to stop. Values can be 1) Names of VMs created in this workflow or 2) the [partial URL](#glossary-partialurl) of an existing GCE VM. |
 
 This StopInstances step example stops an instance in the project.
 ```json

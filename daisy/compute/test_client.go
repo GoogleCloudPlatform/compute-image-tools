@@ -54,6 +54,7 @@ type TestClient struct {
 	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn             func(project string, n *compute.Network) error
 	CreateTargetInstanceFn      func(project, zone string, ti *compute.TargetInstance) error
+	StartInstanceFn             func(project, zone, name string) error
 	StopInstanceFn              func(project, zone, name string) error
 	DeleteDiskFn                func(project, zone, name string) error
 	DeleteForwardingRuleFn      func(project, region, name string) error
@@ -155,6 +156,14 @@ func (c *TestClient) CreateTargetInstance(project, zone string, ti *compute.Targ
 		return c.CreateTargetInstanceFn(project, zone, ti)
 	}
 	return c.client.CreateTargetInstance(project, zone, ti)
+}
+
+// StartInstance uses the override method StartInstanceFn or the real implementation.
+func (c *TestClient) StartInstance(project, zone, name string) error {
+	if c.StartInstanceFn != nil {
+		return c.StartInstanceFn(project, zone, name)
+	}
+	return c.client.StartInstance(project, zone, name)
 }
 
 // StopInstance uses the override method StopInstanceFn or the real implementation.

@@ -27,6 +27,7 @@ type baseResourceRegistry struct {
 	mx sync.Mutex
 
 	deleteFn func(res *Resource) dErr
+	startFn  func(res *Resource) dErr
 	stopFn   func(res *Resource) dErr
 	typeName string
 	urlRgx   *regexp.Regexp
@@ -76,6 +77,22 @@ func (r *baseResourceRegistry) delete(name string) dErr {
 		return err
 	}
 	res.deleted = true
+	return nil
+}
+
+func (r *baseResourceRegistry) start(name string) dErr {
+	res, ok := r.get(name)
+	if !ok {
+		return errf("cannot start %s %q; does not exist in registry", r.typeName, name)
+	}
+
+	if !res.stopped {
+		return errf("cannot start %q; already started", name)
+	}
+	if err := r.startFn(res); err != nil {
+		return err
+	}
+	res.stopped = false
 	return nil
 }
 
