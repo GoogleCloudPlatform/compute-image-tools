@@ -1,41 +1,50 @@
 {
   "Name": "can-retrieve-sources",
-  "Vars": {
-    "about-this-test": { "Description": "This test checks that Daisy correctly uploads files from 'Sources' to the right place, that this works both locally and from GCS, and that sources are accessible to a Linux instance." }
-  },
   "Sources": {
-    "local_file.txt": "./data/test.txt",
+    "can_retrieve_sources.sh": "./scripts/can_retrieve_sources.sh",
     "gcs_file.txt": "gs://compute-image-tools-test-resources/test.txt",
-    "can_retrieve_sources.sh": "./scripts/can_retrieve_sources.sh"
+    "local_file.txt": "./data/test.txt"
+  },
+  "Vars": {
+    "about-this-test": {
+      "Value": "",
+      "Description": "This test checks that Daisy correctly uploads files from 'Sources' to the right place, that this works both locally and from GCS, and that sources are accessible to a Linux instance."
+    }
   },
   "Steps": {
     "create-instance": {
-      "CreateInstances": [ {
-        "Name": "the-instance",
-        "Disks": [{
-          "InitializeParams": {
-            "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-            "Type": "pd-ssd"
-          }
-        }],
-        "StartupScript": "can_retrieve_sources.sh"
-      } ]
+      "CreateInstances": [
+        {
+          "disks": [
+            {
+              "initializeParams": {
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
+            }
+          ],
+          "name": "the-instance",
+          "StartupScript": "can_retrieve_sources.sh"
+        }
+      ]
     },
     "verify-output": {
-      "WaitForInstancesSignal": [ {
-        "Name": "the-instance",
-        "SerialOutput": {
-          "Port": 1,
-          "SuccessMatch": "PASSED:",
-          "FailureMatch": "FAILED:",
-          "StatusMatch": "STATUS:"
+      "Timeout": "20m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "the-instance",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "PASSED:",
+            "FailureMatch": "FAILED:",
+            "StatusMatch": "STATUS:"
+          }
         }
-      } ],
-      "Timeout": "20m"
+      ]
     }
   },
   "Dependencies": {
-    "verify-output": ["create-instance"]
+    "verify-output": [
+      "create-instance"
+    ]
   }
 }
-

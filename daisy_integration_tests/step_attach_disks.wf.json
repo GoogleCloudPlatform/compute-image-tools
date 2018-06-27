@@ -1,62 +1,73 @@
 {
   "Name": "attach-disks-test",
-  "Vars": {
-    "about-this-test": { "Description": "This test creates an instance and then attaches two disks to that instance." }
-  },
   "Sources": {
     "test_devices.sh": "./scripts/test_devices.sh"
   },
+  "Vars": {
+    "about-this-test": {
+      "Value": "",
+      "Description": "This test creates an instance and then attaches two disks to that instance."
+    }
+  },
   "Steps": {
+    "attach-disks": {
+      "AttachDisks": [
+        {
+          "source": "disk1"
+        },
+        {
+          "source": "disk2"
+        }
+      ]
+    },
     "create-disks": {
       "CreateDisks": [
         {
-          "Name": "disk1",
-          "SizeGb": "10"
+          "name": "disk1",
+          "sizeGb": "10"
         },
         {
-          "Name": "disk2",
-          "SizeGb": "10"
+          "name": "disk2",
+          "sizeGb": "10"
         }
       ]
     },
     "create-instance": {
-      "CreateInstances": [{
-        "Name": "instance",
-        "Disks": [{
-          "InitializeParams": {
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "DiskType": "pd-ssd"
-          }
-        }],
-        "StartupScript": "test_devices.sh"
-      }]
-    },
-    "attach-disks": {
-      "AttachDisks": [
+      "CreateInstances": [
         {
-          "Source": "disk1",
-          "Instance": "instance"
-        },
-        {
-          "Source": "disk2",
-          "Instance": "instance"
+          "disks": [
+            {
+              "initializeParams": {
+                "diskType": "pd-ssd",
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
+            }
+          ],
+          "name": "instance",
+          "StartupScript": "test_devices.sh"
         }
       ]
     },
     "test-one-instance": {
-      "WaitForInstancesSignal": [{
-        "Name": "instance",
-        "SerialOutput": {
-          "Port": 1,
-          "SuccessMatch": "SUCCESS JO2Pd99h4qRK5HIpc5NP",
-          "FailureMatch": "FAILURE JO2Pd99h4qRK5HIpc5NP"
+      "WaitForInstancesSignal": [
+        {
+          "Name": "instance",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SUCCESS JO2Pd99h4qRK5HIpc5NP",
+            "FailureMatch": "FAILURE JO2Pd99h4qRK5HIpc5NP"
+          }
         }
-      }]
+      ]
     }
   },
   "Dependencies": {
-    "attach-disks": ["create-instance", "create-disks"],
-    "test-one-instance": ["create-instance"]
+    "attach-disks": [
+      "create-instance",
+      "create-disks"
+    ],
+    "test-one-instance": [
+      "create-instance"
+    ]
   }
 }
-

@@ -1,10 +1,21 @@
 {
   "Name": "image-import-and-translate-test",
   "Vars": {
-    "image_name": "image-import-and-translate-test-${ID}",
-    "source_disk_file": "gs://compute-image-tools-test-resources/xenial-server-cloudimg-amd64-disk1.vmdk"
+    "image_name": {
+      "Value": "image-import-and-translate-test-${ID}"
+    },
+    "source_disk_file": {
+      "Value": "gs://compute-image-tools-test-resources/xenial-server-cloudimg-amd64-disk1.vmdk"
+    }
   },
   "Steps": {
+    "delete-image": {
+      "DeleteResources": {
+        "Images": [
+          "${image_name}"
+        ]
+      }
+    },
     "import-and-translate-image": {
       "Timeout": "45m",
       "IncludeWorkflow": {
@@ -15,14 +26,11 @@
           "translate_workflow": "ubuntu/translate_ubuntu_1604.wf.json"
         }
       }
-    },
-    "delete-image": {
-      "DeleteResources": {
-        "Images": ["${image_name}"]
-      }
     }
   },
   "Dependencies": {
-    "delete-image": ["import-and-translate-image"]
+    "delete-image": [
+      "import-and-translate-image"
+    ]
   }
 }

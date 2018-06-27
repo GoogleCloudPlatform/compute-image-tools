@@ -1,26 +1,21 @@
 {
   "Name": "image-export-test",
   "Vars": {
-    "about-this-test": { "Description": "This test checks that the export_image|disk workflows actually work using 'gce_export:release'." },
-    "gcs_export": "gs://compute-image-tools-test-resources/created-by-export-test-release.tar.gz"
+    "about-this-test": {
+      "Value": "",
+      "Description": "This test checks that the export_image|disk workflows actually work using 'gce_export:release'."
+    },
+    "gcs_export": {
+      "Value": "${SCRATCHPATH}/created-by-export-test-release.tar.gz"
+    }
   },
   "Steps": {
-    "image-export": {
-      "IncludeWorkflow": {
-        "Path": "../daisy_workflows/export/image_export.wf.json",
-        "Vars": {
-          "source_image": "projects/debian-cloud/global/images/family/debian-9",
-          "destination": "${gcs_export}",
-          "export_image": "gcr.io/compute-image-tools/gce_export:release"
-        }
-      }
-    },
     "create-image": {
       "CreateImages": [
         {
-          "Name": "from-export",
-          "RawDisk": {
-            "Source": "${gcs_export}"
+          "name": "from-export",
+          "rawDisk": {
+            "source": "${gcs_export}"
           }
         }
       ]
@@ -28,21 +23,32 @@
     "create-tester": {
       "CreateInstances": [
         {
-          "Name": "tester",
-          "Disks": [
+          "disks": [
             {
-              "InitializeParams": {
-                "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-                "Type": "pd-ssd"
+              "initializeParams": {
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
               }
             }
           ],
-          "Metadata": {
-            "startup-script": "gsutil cp ${gcs_export} . && gsutil rm ${gcs_export} && echo 'SUCCESS wVnWw3a41CVe3mBVvTMn' || echo 'FAILURE wVnWw3a41CVe3mBVvTMn'"
+          "name": "tester",
+          "metadata": {
+            "startup-script": "gsutil cp ${gcs_export} . \u0026\u0026 gsutil rm ${gcs_export} \u0026\u0026 echo 'SUCCESS wVnWw3a41CVe3mBVvTMn' || echo 'FAILURE wVnWw3a41CVe3mBVvTMn'"
           },
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write"
+          ]
         }
       ]
+    },
+    "image-export": {
+      "IncludeWorkflow": {
+        "Path": "../daisy_workflows/export/image_export.wf.json",
+        "Vars": {
+          "destination": "${gcs_export}",
+          "export_image": "gcr.io/compute-image-tools/gce_export:release",
+          "source_image": "projects/debian-cloud/global/images/family/debian-9"
+        }
+      }
     },
     "verify-output": {
       "WaitForInstancesSignal": [
@@ -58,8 +64,14 @@
     }
   },
   "Dependencies": {
-    "create-image": ["image-export"],
-    "create-tester": ["create-image"],
-    "verify-output": ["create-tester"]
+    "create-image": [
+      "image-export"
+    ],
+    "create-tester": [
+      "create-image"
+    ],
+    "verify-output": [
+      "create-tester"
+    ]
   }
 }
