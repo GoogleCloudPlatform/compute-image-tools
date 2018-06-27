@@ -1,85 +1,96 @@
 {
   "Name": "create-instances-test",
-  "Vars": {
-    "about-this-test": { "Description": "This test creates an instance and checks that it was created OK, and also creates multiple instances and checks that they are also OK." }
-  },
   "Sources": {
     "report_success.sh": "./scripts/report_success.sh"
   },
+  "Vars": {
+    "about-this-test": {
+      "Value": "",
+      "Description": "This test creates an instance and checks that it was created OK, and also creates multiple instances and checks that they are also OK."
+    }
+  },
   "Steps": {
     "create-one-instance": {
-      "CreateInstances": [{
-        "Name": "single-instance",
-        "Disks": [{
-          "InitializeParams": {
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "DiskType": "pd-ssd"
-          }
-        }],
-        "StartupScript": "report_success.sh"
-      }]
-    },
-    "test-one-instance": {
-      "WaitForInstancesSignal": [{
-        "Name": "single-instance",
-        "SerialOutput": {
-          "Port": 1,
-          "SuccessMatch": "SUCCESS JO2Pd99h4qRK5HIpc5NP"
+      "CreateInstances": [
+        {
+          "disks": [
+            {
+              "initializeParams": {
+                "diskType": "pd-ssd",
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
+            }
+          ],
+          "name": "single-instance",
+          "StartupScript": "report_success.sh"
         }
-      }],
-      "Timeout": "15m"
+      ]
     },
     "create-three-instances": {
       "CreateInstances": [
         {
-          "Name": "first-instance",
-          "Disks": [{
-            "InitializeParams": {
-              "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-              "DiskType": "pd-ssd"
-            }
-          }],
-          "StartupScript": "report_success.sh"
-        },
-        {
-          "Name": "second-instance",
-          "Disks": [
+          "disks": [
             {
-              "InitializeParams": {
-                "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-                "DiskType": "pd-ssd"
-              }
-            },
-            {
-              "InitializeParams": {
-                "DiskType": "local-ssd"
+              "initializeParams": {
+                "diskType": "pd-ssd",
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
               }
             }
           ],
+          "name": "first-instance",
           "StartupScript": "report_success.sh"
         },
         {
-          "Name": "third-instance",
-          "Disks": [
+          "disks": [
             {
-              "InitializeParams": {
-                "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-                "DiskType": "pd-ssd"
+              "initializeParams": {
+                "diskType": "pd-ssd",
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
               }
             },
             {
-              "InitializeParams": {
-                "DiskType": "local-ssd"
+              "initializeParams": {
+                "diskType": "local-ssd"
+              }
+            }
+          ],
+          "name": "second-instance",
+          "StartupScript": "report_success.sh"
+        },
+        {
+          "disks": [
+            {
+              "initializeParams": {
+                "diskType": "pd-ssd",
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
+            },
+            {
+              "initializeParams": {
+                "diskType": "local-ssd"
               },
-              "Interface": "NVME"
+              "interface": "NVME"
             },
             {
-              "InitializeParams": {
-                "DiskType": "local-ssd"
+              "initializeParams": {
+                "diskType": "local-ssd"
               }
             }
           ],
+          "name": "third-instance",
           "StartupScript": "report_success.sh"
+        }
+      ]
+    },
+    "test-one-instance": {
+      "Timeout": "15m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "single-instance",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SUCCESS JO2Pd99h4qRK5HIpc5NP"
+          }
         }
       ]
     },
@@ -110,8 +121,11 @@
     }
   },
   "Dependencies": {
-    "test-one-instance": ["create-one-instance"],
-    "test-three-instances": ["create-three-instances"]
+    "test-one-instance": [
+      "create-one-instance"
+    ],
+    "test-three-instances": [
+      "create-three-instances"
+    ]
   }
 }
-

@@ -1,41 +1,48 @@
 {
   "Name": "create-disks-test",
   "Vars": {
-    "about-this-test": { "Description": "This test creates an instance and checks that it was created OK, and also creates multiple instances and checks that they are also OK." }
+    "about-this-test": {
+      "Value": "",
+      "Description": "This test creates an instance and checks that it was created OK, and also creates multiple instances and checks that they are also OK."
+    }
   },
   "Steps": {
-    "disk-to-image": {
+    "create-disks": {
       "CreateDisks": [
         {
-          "Name": "disk-to-image",
-          "SizeGb": "10"
+          "name": "disk-from-image",
+          "sourceImage": "image"
+        },
+        {
+          "name": "disk-from-image-family-url",
+          "sourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "type": "pd-ssd"
         }
       ]
     },
     "create-image": {
       "CreateImages": [
         {
-          "Name": "image",
-          "SourceDisk": "disk-to-image"
+          "name": "image",
+          "sourceDisk": "disk-to-image"
         }
       ]
     },
-    "create-disks": {
+    "disk-to-image": {
       "CreateDisks": [
         {
-          "Name": "disk-from-image",
-          "SourceImage": "image"
-        },
-        {
-          "Name": "disk-from-image-family-url",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
-          "Type": "pd-ssd"
+          "name": "disk-to-image",
+          "sizeGb": "10"
         }
       ]
     }
   },
   "Dependencies": {
-    "create-disks": ["create-image"],
-    "create-image": ["disk-to-image"]
+    "create-disks": [
+      "create-image"
+    ],
+    "create-image": [
+      "disk-to-image"
+    ]
   }
 }
