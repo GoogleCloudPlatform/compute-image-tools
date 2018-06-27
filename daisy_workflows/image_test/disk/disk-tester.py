@@ -21,38 +21,23 @@ import utils
 
 MM = utils.MetadataManager
 MD = None
-key = None
-
-
-def TestDiskResize(testee, testee_disk):
-  # Instance can't be running. Wait for it if not already terminated
-  while MD.GetInstanceState(testee) != u'TERMINATED':
-    time.sleep(5)
-
-  MD.Wait(MD.ResizeDiskGb(testee_disk, 2049))
-  print("DiskResized")
-
-
-def CheckSdbCmd():
-  return ['ls', '/dev/sdb']
+KEY = None
+CHECK_SDB_COMMAND = ['ls', '/dev/sdb']
 
 
 def TestDiskAttach(testee, removable_disk):
-  MD.StartInstance(testee)
-
   # test attaching disk while running
-  while MD.GetInstanceState(testee) != u'RUNNING':
-    time.sleep(5)
+  global KEY
+  KEY = MD.AddSshKey(MM.SSH_KEYS)
 
   # second disk should not be available
-  global key
-  key = MD.AddSshKey(MM.SSH_KEYS)
-  utils.ExecuteInSsh(key, MD.ssh_user, testee, CheckSdbCmd(), expect_fail=True)
+  utils.ExecuteInSsh(KEY, MD.ssh_user, testee, CHECK_SDB_COMMAND,
+      expect_fail=True)
 
   MD.Wait(MD.AttachDisk(testee, removable_disk))
 
   # should detect a second disk
-  utils.ExecuteInSsh(key, MD.ssh_user, testee, CheckSdbCmd())
+  utils.ExecuteInSsh(KEY, MD.ssh_user, testee, CHECK_SDB_COMMAND)
   print("DiskAttached")
 
 
@@ -62,8 +47,21 @@ def TestDiskDetach(testee, removable_disk):
   MD.Wait(MD.DetachDisk(testee, disk_device_name))
 
   # second disk should not be available anymore
-  utils.ExecuteInSsh(key, MD.ssh_user, testee, CheckSdbCmd(), expect_fail=True)
+  utils.ExecuteInSsh(KEY, MD.ssh_user, testee, CHECK_SDB_COMMAND,
+      expect_fail=True)
   print("DiskDetached")
+
+
+def TestDiskResize(testee, testee_disk):
+  # Instance can't be running. Wait for it being terminated or stopped.
+  while True:
+    state = MD.GetInstanceState(testee)
+    if state == u'TERMINATED' or state == u'STOPPED':
+      break
+    time.sleep(5)
+
+  MD.Wait(MD.ResizeDiskGb(testee_disk, 2049))
+  print("DiskResized")
 
 
 def main():
@@ -76,9 +74,9 @@ def main():
   removable_disk = MM.FetchMetadataDefault('testee_disk_removable')
   MD = MM(compute, testee)
 
-  TestDiskResize(testee, testee_disk)
   TestDiskAttach(testee, removable_disk)
   TestDiskDetach(testee, removable_disk)
+  TestDiskResize(testee, testee_disk)
 
 
 if __name__ == '__main__':

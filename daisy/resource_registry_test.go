@@ -124,6 +124,57 @@ func TestResourceRegistryDelete(t *testing.T) {
 	}
 }
 
+func TestResourceRegistryStart(t *testing.T) {
+	var startFnErr dErr
+	var stopFnErr dErr
+	r := &baseResourceRegistry{m: map[string]*Resource{}}
+	r.startFn = func(r *Resource) dErr {
+		return startFnErr
+	}
+	r.stopFn = func(r *Resource) dErr {
+		return stopFnErr
+	}
+
+	r.m["foo"] = &Resource{}
+	r.m["baz"] = &Resource{}
+	r.m["stopped"] = &Resource{}
+	r.stop("stopped")
+	r.m["keep_stopped"] = &Resource{}
+	r.stop("keep_stopped")
+
+	tests := []struct {
+		desc, input string
+		startFnErr  dErr
+		shouldErr   bool
+	}{
+		{"good case", "stopped", nil, false},
+		{"bad restart case", "foo", nil, true},
+		{"bad resource dne case", "bar", nil, true},
+		{"checks started state on creation", "baz", errf("error"), true},
+		{"bad startFn error case", "keep_stopped", errf("error"), true},
+	}
+
+	for _, tt := range tests {
+		startFnErr = tt.startFnErr
+		err := r.start(tt.input)
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: should have erred but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+
+	wantM := map[string]*Resource{
+		"foo":          {stopped: false},
+		"baz":          {stopped: false},
+		"stopped":      {stopped: false},
+		"keep_stopped": {stopped: true},
+	}
+	if diffRes := diff(r.m, wantM, 0); diffRes != "" {
+		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diffRes)
+	}
+}
+
 func TestResourceRegistryStop(t *testing.T) {
 	var stopFnErr dErr
 	r := &baseResourceRegistry{m: map[string]*Resource{}}

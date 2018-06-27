@@ -183,6 +183,10 @@ func TestStepImpl(t *testing.T) {
 			reflect.TypeOf(&CopyGCSObjects{}),
 		},
 		{
+			Step{StartInstances: &StartInstances{}},
+			reflect.TypeOf(&StartInstances{}),
+		},
+		{
 			Step{StopInstances: &StopInstances{}},
 			reflect.TypeOf(&StopInstances{}),
 		},
