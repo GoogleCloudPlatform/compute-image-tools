@@ -36,10 +36,10 @@ type WaitForInstancesSignal []*InstanceSignal
 // SuccessMatch or FailureMatch. A match with FailureMatch will cause the step
 // to fail.
 type SerialOutput struct {
-	Port         int64
-	SuccessMatch string
-	FailureMatch string
-	StatusMatch  string
+	Port         int64  `json:",omitempty"`
+	SuccessMatch string `json:",omitempty"`
+	FailureMatch string `json:",omitempty"`
+	StatusMatch  string `json:",omitempty"`
 }
 
 // InstanceSignal waits for a signal from an instance.
@@ -48,12 +48,12 @@ type InstanceSignal struct {
 	Name string
 	// Interval to check for signal (default is 5s).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	Interval string
+	Interval string `json:",omitempty"`
 	interval time.Duration
 	// Wait for the instance to stop.
-	Stopped bool
+	Stopped bool `json:",omitempty"`
 	// Wait for a string match in the serial output.
-	SerialOutput *SerialOutput
+	SerialOutput *SerialOutput `json:",omitempty"`
 }
 
 func waitForInstanceStopped(s *Step, project, zone, name string, interval time.Duration) dErr {

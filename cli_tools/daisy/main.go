@@ -17,8 +17,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -37,6 +39,7 @@ var (
 	variables          = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	print              = flag.Bool("print", false, "print out the parsed workflow for debugging")
 	validate           = flag.Bool("validate", false, "validate the workflow and exit")
+	format             = flag.Bool("format", false, "format the workflow file(s) and exit")
 	defaultTimeout     = flag.String("default_timeout", "", "sets the default timeout for the workflow")
 	ce                 = flag.String("compute_endpoint_override", "", "API endpoint to override default")
 	gcsLogsDisabled    = flag.Bool("disable_gcs_logging", false, "do not stream logs to GCS")
@@ -154,6 +157,42 @@ func addFlags(args []string) {
 	}
 }
 
+func fmtWorkflow(path string) error {
+	f, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		return err
+	}
+
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	var w *daisy.Workflow
+	if err := json.Unmarshal(data, &w); err != nil {
+		return daisy.JSONError(path, data, err)
+	}
+
+	newData, err := json.MarshalIndent(w, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	if err := f.Truncate(0); err != nil {
+		return err
+	}
+
+	if _, err := f.WriteAt(newData, 0); err != nil {
+		return err
+	}
+
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	addFlags(os.Args[1:])
 	flag.Parse()
@@ -161,6 +200,17 @@ func main() {
 	if len(flag.Args()) == 0 {
 		log.Fatal("Not enough args, first arg needs to be the path to a workflow.")
 	}
+
+	if *format {
+		for _, path := range flag.Args() {
+			fmt.Printf("[Daisy] Formating workflow file %q\n", path)
+			if err := fmtWorkflow(path); err != nil {
+				fmt.Print(err)
+			}
+		}
+		return
+	}
+
 	ctx := context.Background()
 
 	var ws []*daisy.Workflow
