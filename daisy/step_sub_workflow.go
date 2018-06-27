@@ -23,7 +23,7 @@ import (
 type SubWorkflow struct {
 	Path     string
 	Vars     map[string]string `json:",omitempty"`
-	Workflow *Workflow
+	Workflow *Workflow         `json:",omitempty"`
 }
 
 func (s *SubWorkflow) populate(ctx context.Context, st *Step) dErr {

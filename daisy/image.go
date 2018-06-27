@@ -110,7 +110,7 @@ type Image struct {
 	GuestOsFeatures guestOsFeatures `json:"guestOsFeatures,omitempty"`
 	// Should an existing image of the same name be deleted, defaults to false
 	// which will fail validation.
-	OverWrite bool
+	OverWrite bool `json:",omitempty"`
 }
 
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
