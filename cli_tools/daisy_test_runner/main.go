@@ -408,7 +408,7 @@ const (
 	defaultTimeout = 2 * time.Hour
 )
 
-func waitLock(client daisyCompute.Client, project, prefix string) (*compute.Metadata, error) {
+func waitLock(client daisyCompute.Client, project string, prefix ...string) (*compute.Metadata, error) {
 	var md *compute.Metadata
 	var err error
 Loop:
@@ -419,13 +419,17 @@ Loop:
 		}
 
 		for i, mdi := range md.Items {
-			if mdi != nil && strings.HasPrefix(mdi.Key, prefix) {
-				if isExpired(*mdi.Value) {
-					md.Items = delItem(md.Items, i)
-				} else {
-					r := rand.Intn(10) + 5
-					time.Sleep(time.Duration(r) * time.Second)
-					continue Loop
+			if mdi != nil {
+				for _, p := range prefix {
+					if strings.HasPrefix(mdi.Key, p) {
+						if isExpired(*mdi.Value) {
+							md.Items = delItem(md.Items, i)
+						} else {
+							r := rand.Intn(10) + 5
+							time.Sleep(time.Duration(r) * time.Second)
+							continue Loop
+						}
+					}
 				}
 			}
 		}
@@ -448,7 +452,24 @@ func projectReadLock(client daisyCompute.Client, project, key string, timeout ti
 	return lock, nil
 }
 
-func projectWriteLock(client daisyCompute.Client, project, custom, key string, timeout time.Duration) (string, error) {
+func customProjectWriteLock(client daisyCompute.Client, project, custom, key string, timeout time.Duration) (string, error) {
+	customLock := readLock + custom
+	md, err := waitLock(client, project, writeLock, customLock)
+	if err != nil {
+		return "", err
+	}
+
+	lock := customLock + key
+	val := time.Now().Add(timeout).Format(timeFormat)
+	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
+	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
+		return "", err
+	}
+
+	return lock, nil
+}
+
+func projectWriteLock(client daisyCompute.Client, project, key string, timeout time.Duration) (string, error) {
 	md, err := waitLock(client, project, writeLock)
 	if err != nil {
 		return "", err
@@ -456,7 +477,7 @@ func projectWriteLock(client daisyCompute.Client, project, custom, key string, t
 
 	// This means the project has no current write locks, set the write lock
 	// now and then wait till all current read locks are gone.
-	lock := writeLock + custom + key
+	lock := writeLock + key
 	val := time.Now().Add(timeout).Format(timeFormat)
 	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
 	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
@@ -514,9 +535,20 @@ func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan
 	key := test.testCase.w.ID()
 	var lock string
 	var err error
-	if test.testCase.CustomProjectLock != "" || test.testCase.ProjectLock {
+	if test.testCase.CustomProjectLock != "" {
 		for i := 0; i < retries; i++ {
-			lock, err = projectWriteLock(client, project, allowedChars.ReplaceAllString(test.testCase.CustomProjectLock, "_"), key, test.testCase.timeout)
+			lock, err = customProjectWriteLock(client, project, allowedChars.ReplaceAllString(test.testCase.CustomProjectLock, "_"), key, test.testCase.timeout)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			errors <- err
+			return
+		}
+	} else if test.testCase.ProjectLock {
+		for i := 0; i < retries; i++ {
+			lock, err = projectWriteLock(client, project, key, test.testCase.timeout)
 			if err == nil {
 				break
 			}
