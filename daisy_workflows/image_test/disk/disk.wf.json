@@ -73,7 +73,6 @@
       ]
     },
     "wait-for-boot-testee": {
-      "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-testee",
@@ -84,8 +83,12 @@
         }
       ]
     },
+    "poweroff-testee": {
+      "StopInstances": {
+        "Instances": ["inst-disk-testee"]
+      }
+    },
     "wait-for-resize-testee": {
-      "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-tester",
@@ -97,8 +100,12 @@
         }
       ]
     },
+    "poweron-testee": {
+      "StartInstances": {
+        "Instances": ["inst-disk-testee"]
+      }
+    },
     "wait-for-resized-testee-check": {
-      "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-testee",
@@ -110,8 +117,7 @@
         }
       ]
     },
-    "wait-for-attached": {
-      "Timeout": "5m",
+    "wait-for-disk-attachment": {
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-tester",
@@ -123,8 +129,7 @@
         }
       ]
     },
-    "wait-for-detached": {
-      "Timeout": "5m",
+    "wait-for-disk-detachment": {
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-tester",
@@ -162,14 +167,14 @@
       ]
     },
     "wait-for-local-ssd-scsi-check": {
-      "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-local-ssd-scsi",
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "CheckSuccessful",
-            "FailureMatch": "CheckFailed"
+            "FailureMatch": "CheckFailed",
+            "StatusMatch": "Multiqueue is"
           }
         }
       ]
@@ -200,7 +205,6 @@
       ]
     },
     "wait-for-local-ssd-nvme-check": {
-      "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-local-ssd-nvme",
@@ -215,12 +219,14 @@
   },
   "Dependencies": {
     "create-instance-testee": ["create-disk-testee"],
-    "create-instance-tester": ["create-disk-tester"],
     "wait-for-boot-testee": ["create-instance-testee"],
-    "wait-for-resize-testee": ["wait-for-boot-testee", "create-instance-tester"],
-    "wait-for-resized-testee-check": ["wait-for-resize-testee"],
-    "wait-for-attached": ["wait-for-resized-testee-check"],
-    "wait-for-detached": ["wait-for-attached"],
+    "create-instance-tester": ["create-disk-tester", "wait-for-boot-testee"],
+    "wait-for-disk-attachment": ["create-instance-tester"],
+    "wait-for-disk-detachment": ["wait-for-disk-attachment"],
+    "poweroff-testee": ["wait-for-disk-detachment"],
+    "wait-for-resize-testee": ["poweroff-testee"],
+    "poweron-testee": ["wait-for-resize-testee"],
+    "wait-for-resized-testee-check": ["poweron-testee"],
 
     "wait-for-local-ssd-scsi-check": ["create-instance-local-ssd-scsi"],
 

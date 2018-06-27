@@ -42,6 +42,7 @@ type Client interface {
 	DeleteForwardingRule(project, region, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
+	StartInstance(project, zone, name string) error
 	StopInstance(project, zone, name string) error
 	DeleteNetwork(project, name string) error
 	DeleteTargetInstance(project, zone, name string) error
@@ -437,6 +438,16 @@ func (c *client) DeleteForwardingRule(project, region, name string) error {
 // DeleteInstance deletes a GCE instance.
 func (c *client) DeleteInstance(project, zone, name string) error {
 	op, err := c.Retry(c.raw.Instances.Delete(project, zone, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// StartInstance starts a GCE instance.
+func (c *client) StartInstance(project, zone, name string) error {
+	op, err := c.Retry(c.raw.Instances.Start(project, zone, name).Do)
 	if err != nil {
 		return err
 	}
