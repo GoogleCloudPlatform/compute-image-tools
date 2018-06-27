@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,32 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Save STDOUT in fd_stdout
-exec {fd_stdout}>&1
-# Redirect STDOUT to STDERR
-exec 1>&2
-# Redirect STDERR to Serial port
-exec 2>/dev/ttyS0
-
-set -ux
-
-echo "Executing $0 $@"
-
-service sshguard stop
-
 # If first boot, just shutdown the machine and save a file to guarantee it's the
 # same disk after resize
 
 if [ ! -e /booted ]; then
-    echo "BOOTED" | tee /booted
-    poweroff
+    logger -p daemon.info "BOOTED"
+    echo "BOOTED" > /booted
+    # should power off now, but it's safer to wait for daisy to do that after
+    # the BOOTED message was spotted.
 else
     # Verify if there is any relevant unallocated disk space
-    sudo parted /dev/sda unit GB print free \
+    parted /dev/sda unit GB print free \
       | grep "Free Space" \
       | awk '{ print $3 }' \
       | grep -v "0\.00GB"
 
     # Output if there is any reasonable free partition
-    if [ $? -ne 0 ]; then echo "DiskFull"; else echo "DiskFreePart"; fi
+    [ $? -ne 0 ] && logger -p daemon.info "DiskFull" || logger -p daemon.info "DiskFreePart"
 fi

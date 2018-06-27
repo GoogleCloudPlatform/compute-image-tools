@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,17 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Save STDOUT in fd_stdout
-exec {fd_stdout}>&1
-# Redirect STDOUT to STDERR
-exec 1>&2
-# Redirect STDERR to Serial port
-exec 2>/dev/ttyS0
-
-set -eux
-
-echo "Executing $0 $@"
 
 # Test if the local ssd is working or not. Partition it, format it, place some
 # file, unmount it and check if it's still there after remount.
@@ -40,6 +29,11 @@ PARTITION=/dev/nvme0n1p1
 if [ $IS_SCSI -eq 1 ]; then
   DEVICE=/dev/sdb
   PARTITION=/dev/sdb1
+
+  # check for Multiqueue SCSI
+  grep scsi_mod.use_blk_mq=Y /proc/cmdline &> /dev/null \
+    && logger -p daemon.info "Multiqueue is enable" \
+    || logger -p daemon.info "Multiqueue is DISABLED"
 fi
 
 MOUNT_POINT=/local_ssd
@@ -56,13 +50,8 @@ echo $CHECK_STRING > $MOUNT_POINT/$CHECK_FILENAME
 umount $MOUNT_POINT
 
 mount $PARTITION $MOUNT_POINT
-if [ $IS_SCSI -eq 1 ]; then
-  # check for Multiqueue SCSI
-  grep scsi_mod.use_blk_mq=Y /proc/cmdline &> /dev/null \
-    && echo "Multiqueue is enable" || echo "Multiqueue is DISABLED"
-fi
 if [ $CHECK_STRING == $(cat $MOUNT_POINT/$CHECK_FILENAME) ]; then
-  echo "CheckSuccessful"
+  logger -p daemon.info "CheckSuccessful"
 else
-  echo "CheckFailed"
+  logger -p daemon.info "CheckFailed"
 fi
