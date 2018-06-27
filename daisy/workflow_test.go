@@ -612,14 +612,11 @@ func TestPrint(t *testing.T) {
   "GCSPath": "gs://some-bucket/images",
   "Vars": {
     "instance_name": {
-      "Value": "i1",
-      "Required": false,
-      "Description": ""
+      "Value": "i1"
     },
     "machine_type": {
       "Value": "n1-standard-1",
-      "Required": true,
-      "Description": ""
+      "Required": true
     }
   },
   "Steps": {
@@ -632,10 +629,7 @@ func TestPrint(t *testing.T) {
       }
     }
   },
-  "Dependencies": {},
-  "DefaultTimeout": "10m",
-  "Logger": {},
-  "ComputeEndpoint": ""
+  "DefaultTimeout": "10m"
 }
 `
 

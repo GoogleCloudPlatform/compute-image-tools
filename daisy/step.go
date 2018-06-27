@@ -39,7 +39,7 @@ type Step struct {
 
 	// Time to wait for this step to complete (default 10m).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	Timeout string
+	Timeout string `json:",omitempty"`
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
 	AttachDisks            *AttachDisks            `json:",omitempty"`
