@@ -39,7 +39,7 @@ var (
 	variables          = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	print              = flag.Bool("print", false, "print out the parsed workflow for debugging")
 	validate           = flag.Bool("validate", false, "validate the workflow and exit")
-	format             = flag.Bool("format", false, "format the workflow file(s) and exit")
+	format             = flag.Bool("format_workflow", false, "format the workflow file(s) and exit")
 	defaultTimeout     = flag.String("default_timeout", "", "sets the default timeout for the workflow")
 	ce                 = flag.String("compute_endpoint_override", "", "API endpoint to override default")
 	gcsLogsDisabled    = flag.Bool("disable_gcs_logging", false, "do not stream logs to GCS")
