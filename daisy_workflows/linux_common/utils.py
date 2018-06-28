@@ -436,7 +436,8 @@ class MetadataManager:
       request = self.compute.instances().setMetadata(
           project=self.project, zone=self.zone, instance=self.instance,
           body=md_obj)
-    request.execute()
+    response = request.execute()
+    self.Wait(response)
 
   def ExtractKeyItem(self, md_key, level):
     """Extract a given key value from the metadata.
