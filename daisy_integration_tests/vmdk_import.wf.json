@@ -5,7 +5,7 @@
       "Value": "image-import-test-${ID}"
     },
     "source_disk_file": {
-      "Value": "gs://gce-daisy-test-resources/xenial-server-cloudimg-amd64-disk1.vmdk"
+      "Value": "gs://compute-image-tools-test-resources/xenial-server-cloudimg-amd64-disk1.vmdk"
     }
   },
   "Steps": {

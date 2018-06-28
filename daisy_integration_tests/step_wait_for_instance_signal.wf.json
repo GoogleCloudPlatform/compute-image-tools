@@ -1,9 +1,5 @@
 {
   "Name": "wait-for-instance-signal",
-  "Sources": {
-    "output-and-stop.sh": "./scripts/output-and-stop.sh",
-    "stop.sh": "./scripts/stop.sh"
-  },
   "Vars": {
     "about-this-test": {
       "Value": "",

@@ -52,7 +52,7 @@ popd
 # Run daisy
 pushd $GOPATH/src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy
 
-./daisy ../../daisy_workflows/e2e_tests/attach_disks.wf.json
+./daisy ../../daisy_integration_tests/step_create_images.wf.json
 if [ $? -ne 0 ]; then
   echo "BuildFailed: Error executing Daisy."
   exit 1
@@ -60,7 +60,7 @@ fi
 popd
 
 # Verify logs were sent to Cloud Logging
-LOGS=$(gcloud logging read "resource.labels.instance_id=$INSTANCE_ID jsonPayload.workflow=attach-disks-test")
+LOGS=$(gcloud logging read "resource.labels.instance_id=$INSTANCE_ID jsonPayload.workflow=step_create_images")
 if [ $SHOULD_HAVE_LOGS = "true" ]; then
   if [ -z "$LOGS" ]; then
     echo "BuildFailed: Expected Cloud Logs."
