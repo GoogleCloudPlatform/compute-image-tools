@@ -13,9 +13,11 @@
     "attach-disks": {
       "AttachDisks": [
         {
+          "Instance": "instance",
           "source": "disk1"
         },
         {
+          "Instance": "instance",
           "source": "disk2"
         }
       ]
