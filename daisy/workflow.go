@@ -62,8 +62,8 @@ func daisyBkt(ctx context.Context, client *storage.Client, project string) (stri
 // by a string will unmarshal into the struct: {Value: <string>, Required: false, Description: ""}.
 type Var struct {
 	Value       string
-	Required    bool
-	Description string
+	Required    bool   `json:",omitempty"`
+	Description string `json:",omitempty"`
 }
 
 // UnmarshalJSON unmarshals a Var.
@@ -86,25 +86,25 @@ type Workflow struct {
 
 	// Workflow template fields.
 	// Workflow name.
-	Name string
+	Name string `json:",omitempty"`
 	// Project to run in.
-	Project string
+	Project string `json:",omitempty"`
 	// Zone to run in.
-	Zone string
+	Zone string `json:",omitempty"`
 	// GCS Path to use for scratch data and write logs/results to.
-	GCSPath string
+	GCSPath string `json:",omitempty"`
 	// Path to OAuth credentials file.
 	OAuthPath string `json:",omitempty"`
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string `json:",omitempty"`
 	// Vars defines workflow variables, substitution is done at Workflow run time.
-	Vars  map[string]Var `json:",omitempty"`
-	Steps map[string]*Step
+	Vars  map[string]Var   `json:",omitempty"`
+	Steps map[string]*Step `json:",omitempty"`
 	// Map of steps to their dependencies.
-	Dependencies map[string][]string
+	Dependencies map[string][]string `json:",omitempty"`
 	// Default timout for each step, defaults to 10m.
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	DefaultTimeout string
+	DefaultTimeout string `json:",omitempty"`
 	defaultTimeout time.Duration
 
 	// Working fields.
@@ -122,13 +122,13 @@ type Workflow struct {
 	cloudLoggingDisabled  bool
 	stdoutLoggingDisabled bool
 	id                    string
-	Logger                Logger
+	Logger                Logger `json:"-"`
 	cleanupHooks          []func() dErr
 	cleanupHooksMx        sync.Mutex
 	logWait               sync.WaitGroup
 
 	// Optional compute endpoint override.
-	ComputeEndpoint    string
+	ComputeEndpoint    string          `json:",omitempty"`
 	ComputeClient      compute.Client  `json:"-"`
 	StorageClient      *storage.Client `json:"-"`
 	cloudLoggingClient *logging.Client

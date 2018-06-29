@@ -1,48 +1,62 @@
 {
   "Name": "wait-for-instance-signal",
   "Vars": {
-    "about-this-test": { "Description": "This test creates two instances, and then waits for two different kinds of signals from them: Stopped, and SerialOutput." }
-  },
-  "Sources": {
-    "stop.sh": "./scripts/stop.sh",
-    "output-and-stop.sh": "./scripts/output-and-stop.sh"
+    "about-this-test": {
+      "Value": "",
+      "Description": "This test creates two instances, and then waits for two different kinds of signals from them: Stopped, and SerialOutput."
+    }
   },
   "Steps": {
     "create-instances": {
-      "CreateInstances": [ {
-        "Name": "stopper",
-        "Disks": [ {
-          "InitializeParams": {
-            "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-            "Type": "pd-ssd"
+      "CreateInstances": [
+        {
+          "disks": [
+            {
+              "initializeParams": {
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
+            }
+          ],
+          "name": "stopper",
+          "metadata": {
+            "startup-script": "shutdown -h now"
           }
-        } ],
-        "StartupScript": "stop.sh"
-      }, {
-        "Name": "serial-outputter",
-        "Disks": [ {
-          "InitializeParams": {
-            "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-            "Type": "pd-ssd"
+        },
+        {
+          "disks": [
+            {
+              "initializeParams": {
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
+            }
+          ],
+          "name": "serial-outputter",
+          "metadata": {
+            "startup-script": "echo 'SUCCESS ovqTO8AgH65shhPMLoot'"
           }
-        } ],
-        "StartupScript": "output-and-stop.sh"
-      } ]
+        }
+      ]
     },
     "wait": {
-      "WaitForInstancesSignal": [ {
-        "Name": "stopper",
-        "Stopped": true
-      }, {
-        "Name": "serial-outputter",
-        "SerialOutput": {
-          "Port": 1,
-          "SuccessMatch": "SUCCESS ovqTO8AgH65shhPMLoot"
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "stopper",
+          "Stopped": true
+        },
+        {
+          "Name": "serial-outputter",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SUCCESS ovqTO8AgH65shhPMLoot"
+          }
         }
-      } ]
+      ]
     }
   },
   "Dependencies": {
-    "wait": [ "create-instances" ]
+    "wait": [
+      "create-instances"
+    ]
   }
 }

@@ -347,6 +347,7 @@ type instanceRegistry struct {
 func newInstanceRegistry(w *Workflow) *instanceRegistry {
 	ir := &instanceRegistry{baseResourceRegistry: baseResourceRegistry{w: w, typeName: "instance", urlRgx: instanceURLRgx}}
 	ir.baseResourceRegistry.deleteFn = ir.deleteFn
+	ir.baseResourceRegistry.startFn = ir.startFn
 	ir.baseResourceRegistry.stopFn = ir.stopFn
 	ir.init()
 	return ir
@@ -355,6 +356,15 @@ func newInstanceRegistry(w *Workflow) *instanceRegistry {
 func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(instanceURLRgx, res.link)
 	err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+		return typedErr(resourceDNEError, err)
+	}
+	return newErr(err)
+}
+
+func (ir *instanceRegistry) startFn(res *Resource) dErr {
+	m := namedSubexp(instanceURLRgx, res.link)
+	err := ir.w.ComputeClient.StartInstance(m["project"], m["zone"], m["instance"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, err)
 	}

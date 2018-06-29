@@ -31,7 +31,7 @@ type CopyGCSObjects []CopyGCSObject
 // CopyGCSObject copies a GCS object from Source to Destination.
 type CopyGCSObject struct {
 	Source, Destination string
-	ACLRules            []*storage.ACLRule
+	ACLRules            []*storage.ACLRule `json:",omitempty"`
 }
 
 func (c *CopyGCSObjects) populate(ctx context.Context, s *Step) dErr {

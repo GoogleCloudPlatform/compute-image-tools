@@ -29,7 +29,7 @@ type Resource struct {
 	// If this is unset Workflow.Project is used.
 	Project string `json:",omitempty"`
 	// Should this resource be cleaned up after the workflow?
-	NoCleanup bool
+	NoCleanup bool `json:",omitempty"`
 	// If set Daisy will use this as the resource name instead of generating a name. Mutually exclusive with ExactName.
 	RealName string `json:",omitempty"`
 	// If set, Daisy will use the exact name as specified by the user instead of generating a name. Mutually exclusive with RealName.
