@@ -54,6 +54,51 @@
         }
       ]
     },
+    "create-firewall-rules": {
+      "CreateFirewallRules": [
+        {
+          "name": "allow-icmp-1",
+          "network": "${network_1}",
+          "allowed": [
+            {
+              "IPProtocol": "icmp"
+            },
+            {
+              "IPProtocol": "tcp",
+              "Ports": ["22"]
+            }
+          ]
+        },
+        {
+          "name": "allow-icmp-2",
+          "network": "${network_2}",
+          "allowed": [
+            {
+              "IPProtocol": "icmp"
+            },
+            {
+              "IPProtocol": "tcp",
+              "Ports": ["22"]
+            }
+
+          ]
+        },
+        {
+          "name": "allow-icmp-3",
+          "network": "${common_network}",
+          "allowed": [
+            {
+              "IPProtocol": "icmp"
+            },
+            {
+              "IPProtocol": "tcp",
+              "Ports": ["22"]
+            }
+
+          ]
+        }
+      ]
+    },
     "create-slave-disk": {
       "CreateDisks": [
         {
@@ -145,7 +190,8 @@
   },
   "Dependencies": {
     "create-subnetworks": ["create-networks"],
-    "create-slave-instance": ["create-subnetworks", "create-slave-disk"],
+    "create-firewall-rules": ["create-networks"],
+    "create-slave-instance": ["create-firewall-rules", "create-subnetworks", "create-slave-disk"],
     "wait-for-slave-instance": ["create-slave-instance"],
     "create-master-instance": ["wait-for-slave-instance", "create-master-disk"],
     "wait-for-slave-check": ["create-master-instance"]
