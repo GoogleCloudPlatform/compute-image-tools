@@ -107,9 +107,9 @@ def DebianInstallGoogleApiPythonClient():
 
 def Bootstrap():
   """Get files, run."""
+  prefix = GetMetadataAttribute('prefix')
+  global TOKEN
   try:
-    global TOKEN
-    prefix = GetMetadataAttribute('prefix')
     fmt = '%s%s%s' % ('%(levelname)s:', prefix, '%(message)s')
     logging.basicConfig(level=logging.DEBUG, format=fmt)
     logging.info('Status: Starting bootstrap.py.')

@@ -131,6 +131,7 @@
           "MachineType": "n1-standard-1",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/build_files",
+            "prefix": "SaveLogs",
             "script": "save_logs.py"
           },
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
