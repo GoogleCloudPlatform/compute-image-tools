@@ -83,10 +83,6 @@ def main():
   testee_fr = MM.FetchMetadataDefault('testee_forwarding_rule')
   TestForwardingRule(MM(compute, testee), testee, testee_fr)
 
-  testee_checker = MM.FetchMetadataDefault('testee_checker')
-  TestForwardingRule(MM(compute, testee_checker), testee_checker,
-      MM.FetchMetadataDefault('testee_checker_forwarding_rule'))
-
 
 if __name__ == '__main__':
   utils.RunTest(main)

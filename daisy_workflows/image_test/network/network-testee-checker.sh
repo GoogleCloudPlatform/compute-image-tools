@@ -13,13 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Signalize wait-for-instance that instance is ready
-logger -p daemon.info "BOOTED"
+# Verify DNS connections
 
-# Serve a file server that prints the hostname when requesting "/hostname"
-mkdir /server
-cd /server
-hostname > hostname
-# host it on python2 and fallback to python3
-python -m SimpleHTTPServer 80
-python3 -m http.server 80
+# Verify VM to VM DNS connection
+getent hosts $INSTANCE
+
+# Raise error if it occurred
+[ $? -ne 0 ] && logger -p daemon.info "DNS_Failed"
+
+# Verify VM to external DNS connection
+getent hosts www.google.com
+
+# Signalize wait-for-instance that instance is ready or error occurred
+[ $? -ne 0 ] && logger -p daemon.info "DNS_Failed" || logger -p daemon.info "DNS_Success"

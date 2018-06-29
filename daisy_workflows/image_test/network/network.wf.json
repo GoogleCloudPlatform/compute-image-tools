@@ -7,6 +7,7 @@
   },
   "Sources": {
     "testee.sh": "./network-testee.sh",
+    "testee-checker.sh": "./network-testee-checker.sh",
     "test_files/test.py": "./network-tester.py",
     "test_files/utils.py": "../../linux_common/utils.py",
     "test_files/genips.py": "./genips.py",
@@ -63,7 +64,7 @@
           "RealName": "inst-network-testee-checker-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-testee-checker-img"}],
           "Metadata": {
-            "startup-script": "INSTANCE=inst-network-testee-${DATETIME}-${ID}; ${SOURCE:testee.sh}"
+            "startup-script": "INSTANCE=inst-network-testee-${DATETIME}-${ID}; ${SOURCE:testee-checker.sh}"
           }
         }
       ]
@@ -83,8 +84,6 @@
             "testee_forwarding_rule": "network-testee-forwarding-rule-${DATETIME}-${ID}",
             "alias_ip": "${alias_ip}",
             "alias_ip_mask": "${alias_ip_mask}",
-            "testee_checker": "inst-network-testee-checker-${DATETIME}-${ID}",
-            "testee_checker_forwarding_rule": "network-testee-checker-forwarding-rule-${DATETIME}-${ID}",
             "zone": "${ZONE}",
             "project": "${PROJECT}"
           },
@@ -104,32 +103,12 @@
         }
       ]
     },
-    "create-testee-checker-target-instance": {
-      "CreateTargetInstances": [
-        {
-          "Name": "network-testee-checker-target-instance",
-          "RealName": "network-testee-checker-target-instance-${DATETIME}-${ID}",
-          "Instance": "inst-network-testee-checker-${DATETIME}-${ID}"
-        }
-      ]
-    },
     "create-testee-forwarding-rule": {
       "CreateForwardingRules": [
         {
           "Name": "network-testee-forwarding-rule",
           "RealName": "network-testee-forwarding-rule-${DATETIME}-${ID}",
           "Target": "network-testee-target-instance-${DATETIME}-${ID}",
-          "PortRange": "80",
-          "IPProtocol": "TCP"
-        }
-      ]
-    },
-    "create-testee-checker-forwarding-rule": {
-      "CreateForwardingRules": [
-        {
-          "Name": "network-testee-checker-forwarding-rule",
-          "RealName": "network-testee-checker-forwarding-rule-${DATETIME}-${ID}",
-          "Target": "network-testee-checker-target-instance-${DATETIME}-${ID}",
           "PortRange": "80",
           "IPProtocol": "TCP"
         }
@@ -154,7 +133,7 @@
           "Name": "inst-network-testee-checker",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "BOOTED",
+            "SuccessMatch": "DNS_Success",
             "FailureMatch": "DNS_Failed"
           }
         }
@@ -181,10 +160,8 @@
 
     "create-testee-checker-instance": ["create-testee-forwarding-rule", "create-testee-checker-disk"],
     "wait-for-testee-checker-instance": ["create-testee-checker-instance"],
-    "create-testee-checker-target-instance": ["wait-for-testee-checker-instance"],
-    "create-testee-checker-forwarding-rule": ["create-testee-checker-target-instance"],
 
-    "create-tester-instance": ["create-testee-checker-forwarding-rule", "create-tester-disk"],
+    "create-tester-instance": ["wait-for-testee-checker-instance", "create-tester-disk"],
     "wait-for-testee-check": ["create-tester-instance"]
   }
 }
