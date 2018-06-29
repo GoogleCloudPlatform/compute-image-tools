@@ -2,12 +2,12 @@
   "Name": "img-multi-nic-test",
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
-    "network_1": {"Value": "projects/${PROJECT}/global/networks/multi-nic-test-network-1", "Description": "One network name to be used on machine #1"},
-    "subnetwork_1": {"Value": "projects/${PROJECT}/regions/us-central1/subnetworks/a", "Description": "One subnetwork name to be used on machine #1"},
-    "network_2": {"Value": "projects/${PROJECT}/global/networks/multi-nic-test-network-2", "Description": "One network name to be used on machine #2"},
-    "subnetwork_2": {"Value": "projects/${PROJECT}/regions/us-central1/subnetworks/b", "Description": "One subnetwork name to be used on machine #2"},
-    "common_network": {"Value": "projects/${PROJECT}/global/networks/multi-nic-test-network-3", "Description": "The common network between 2 machines"},
-    "common_subnetwork": {"Value": "projects/${PROJECT}/regions/us-central1/subnetworks/c", "Description": "The common subnetwork between 2 machines"}
+    "network_1": {"Value": "multi-nic-test-network-1", "Description": "One network name to be used on machine #1"},
+    "subnetwork_1": {"Value": "a", "Description": "One subnetwork name to be used on machine #1"},
+    "network_2": {"Value": "multi-nic-test-network-2", "Description": "One network name to be used on machine #2"},
+    "subnetwork_2": {"Value": "b", "Description": "One subnetwork name to be used on machine #2"},
+    "common_network": {"Value": "multi-nic-test-network-3", "Description": "The common network between 2 machines"},
+    "common_subnetwork": {"Value": "c", "Description": "The common subnetwork between 2 machines"}
   },
   "Sources": {
     "slave.sh": "multi-nic-slave.sh",
@@ -16,6 +16,44 @@
     "master.bat": "multi-nic-master.bat"
   },
   "Steps": {
+    "create-networks": {
+      "CreateNetworks": [
+        {
+          "name": "${network_1}",
+          "Description": "Network meant to be used on Multi NIC integration tests",
+          "AutoCreateSubnetworks": true
+        },
+        {
+          "name": "${network_2}",
+          "Description": "Network meant to be used on Multi NIC integration tests",
+          "AutoCreateSubnetworks": true
+        },
+        {
+          "name": "${common_network}",
+          "Description": "Network meant to be used on Multi NIC integration tests",
+          "AutoCreateSubnetworks": true
+        }
+      ]
+    },
+    "create-subnetworks": {
+      "CreateSubNetworks": [
+        {
+          "name": "${subnetwork_1}",
+          "network": "${network_1}",
+          "ipCidrRange": "10.64.1.0/24"
+        },
+        {
+          "name": "${subnetwork_2}",
+          "network": "${network_2}",
+          "ipCidrRange": "10.64.2.0/24"
+        },
+        {
+          "name": "${common_subnetwork}",
+          "network": "${common_network}",
+          "ipCidrRange": "10.64.3.0/24"
+        }
+      ]
+    },
     "create-slave-disk": {
       "CreateDisks": [
         {
@@ -82,7 +120,6 @@
       ]
     },
     "wait-for-slave-instance": {
-      "Timeout": "5m",
       "WaitForInstancesSignal": [
           {
           "Name": "inst-multi-nic-slave",
@@ -94,7 +131,6 @@
       ]
     },
     "wait-for-slave-check": {
-      "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
           "Name": "inst-multi-nic-master",
@@ -108,7 +144,8 @@
     }
   },
   "Dependencies": {
-    "create-slave-instance": ["create-slave-disk"],
+    "create-subnetworks": ["create-networks"],
+    "create-slave-instance": ["create-subnetworks", "create-slave-disk"],
     "wait-for-slave-instance": ["create-slave-instance"],
     "create-master-instance": ["wait-for-slave-instance", "create-master-disk"],
     "wait-for-slave-check": ["create-master-instance"]
