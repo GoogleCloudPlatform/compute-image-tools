@@ -75,8 +75,9 @@
           "Disks": [{"Source": "disk-tester-img"}],
           "StartupScript": "startup_master_tester",
           "Metadata": {
-            "test_files_gcs_dir": "${SOURCESPATH}/test_files",
-            "test_script": "test.py",
+            "files_gcs_dir": "${SOURCESPATH}/test_files",
+            "script": "test.py",
+            "prefix": "Test",
             "debian_install_google_api_python_client": "yes",
             "testee": "inst-network-testee-${DATETIME}-${ID}",
             "testee_forwarding_rule": "network-testee-forwarding-rule-${DATETIME}-${ID}",
