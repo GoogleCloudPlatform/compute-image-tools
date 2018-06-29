@@ -72,7 +72,7 @@ func (sn *Subnetwork) MarshalJSON() ([]byte, error) {
 
 func (sn *Subnetwork) populate(ctx context.Context, s *Step) dErr {
 	var errs dErr
-	sn.Name, _, errs = sn.Resource.populate(ctx, s, sn.Name, "")
+	sn.Name, errs = sn.Resource.populateWithGlobal(ctx, s, sn.Name)
 
 	sn.Description = strOr(sn.Description, defaultDescription("Subnetwork", s.w.Name, s.w.username))
 	sn.link = fmt.Sprintf("projects/%s/regions/%s/subnetworks/%s", sn.Project, getRegionFromZone(s.w.Zone), sn.Name)

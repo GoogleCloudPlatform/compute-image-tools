@@ -76,6 +76,7 @@ var (
 	testRegion         = "test-zo"
 	testDisk           = "test-disk"
 	testForwardingRule = "test-forwarding-rule"
+	testFirewallRule   = "test-firewall-rule"
 	testImage          = "test-image"
 	testInstance       = "test-instance"
 	testMachineType    = "test-machine-type"
@@ -171,6 +172,12 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 	c.ListZonesFn = func(_ string, _ ...daisyCompute.ListCallOption) ([]*compute.Zone, error) {
 		return []*compute.Zone{{Name: testZone}}, nil
 	}
+	c.ListFirewallRulesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Firewall, error) {
+		if p == testProject {
+			return []*compute.Firewall{{Name: testFirewallRule}}, nil
+		}
+		return []*compute.Firewall{{Name: testFirewallRule}}, nil
+	}
 	c.ListImagesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Image, error) {
 		if p == testProject {
 			return []*compute.Image{{Name: testImage}}, nil
@@ -227,6 +234,15 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, errors.New("bad zone: " + z)
 		}
 		return []*compute.TargetInstance{{Name: testTargetInstance}}, nil
+	}
+	c.CreateFirewallRuleFn = func(p string, i *compute.Firewall) error {
+		if p != testProject {
+			return errors.New("bad project: " + p)
+		}
+		if i.Name != testFirewallRule {
+			return errors.New("bad FirewallRule name: " + i.Name)
+		}
+		return nil
 	}
 	c.CreateImageFn = func(p string, i *compute.Image) error {
 		if p != testProject {

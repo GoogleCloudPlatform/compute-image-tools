@@ -34,6 +34,7 @@ type Client interface {
 	AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error
 	CreateDisk(project, zone string, d *compute.Disk) error
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
+	CreateFirewallRule(project string, i *compute.Firewall) error
 	CreateImage(project string, i *compute.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
@@ -41,6 +42,7 @@ type Client interface {
 	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
 	DeleteDisk(project, zone, name string) error
 	DeleteForwardingRule(project, region, name string) error
+	DeleteFirewallRule(project, name string) error
 	DeleteImage(project, name string) error
 	DeleteInstance(project, zone, name string) error
 	StartInstance(project, zone, name string) error
@@ -56,6 +58,7 @@ type Client interface {
 	GetInstance(project, zone, name string) (*compute.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
+	GetFirewallRule(project, name string) (*compute.Firewall, error)
 	GetImage(project, name string) (*compute.Image, error)
 	GetImageFromFamily(project, family string) (*compute.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
@@ -70,6 +73,7 @@ type Client interface {
 	ListInstances(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
 	ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	ListForwardingRules(project, zone string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
+	ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
 	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
@@ -93,6 +97,8 @@ type OrderBy string
 
 func (o OrderBy) listCallOptionApply(i interface{}) interface{} {
 	switch c := i.(type) {
+	case *compute.FirewallsListCall:
+		return c.OrderBy(string(o))
 	case *compute.ImagesListCall:
 		return c.OrderBy(string(o))
 	case *compute.MachineTypesListCall:
@@ -118,6 +124,8 @@ type Filter string
 
 func (o Filter) listCallOptionApply(i interface{}) interface{} {
 	switch c := i.(type) {
+	case *compute.FirewallsListCall:
+		return c.Filter(string(o))
 	case *compute.ImagesListCall:
 		return c.Filter(string(o))
 	case *compute.MachineTypesListCall:
@@ -335,6 +343,24 @@ func (c *client) CreateForwardingRule(project, region string, fr *compute.Forwar
 	return nil
 }
 
+func (c *client) CreateFirewallRule(project string, i *compute.Firewall) error {
+	op, err := c.Retry(c.raw.Firewalls.Insert(project, i).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.globalOperationsWait(project, op.Name); err != nil {
+		return err
+	}
+
+	var createdFirewallRule *compute.Firewall
+	if createdFirewallRule, err = c.i.GetFirewallRule(project, i.Name); err != nil {
+		return err
+	}
+	*i = *createdFirewallRule
+	return nil
+}
+
 // CreateImage creates a GCE image.
 // Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
 // url (full or partial) to the source disk, sourceFile is the full Google
@@ -429,6 +455,16 @@ func (c *client) CreateTargetInstance(project, zone string, ti *compute.TargetIn
 	}
 	*ti = *createdTargetInstance
 	return nil
+}
+
+// DeleteFirewallRule deletes a GCE FirewallRule.
+func (c *client) DeleteFirewallRule(project, name string) error {
+	op, err := c.Retry(c.raw.Firewalls.Delete(project, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.globalOperationsWait(project, op.Name)
 }
 
 // DeleteImage deletes a GCE image.
@@ -735,6 +771,39 @@ func (c *client) ListForwardingRules(project, region string, opts ...ListCallOpt
 			return frs, nil
 		}
 		pt = frl.NextPageToken
+	}
+}
+
+// GetFirewallRule gets a GCE FirewallRule.
+func (c *client) GetFirewallRule(project, name string) (*compute.Firewall, error) {
+	i, err := c.raw.Firewalls.Get(project, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Firewalls.Get(project, name).Do()
+	}
+	return i, err
+}
+
+// ListFirewallRules gets a list of GCE FirewallRules.
+func (c *client) ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error) {
+	var is []*compute.Firewall
+	var pt string
+	call := c.raw.Firewalls.List(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.FirewallsListCall)
+	}
+	for il, err := call.PageToken(pt).Do(); ; il, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			il, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		is = append(is, il.Items...)
+
+		if il.NextPageToken == "" {
+			return is, nil
+		}
+		pt = il.NextPageToken
 	}
 }
 

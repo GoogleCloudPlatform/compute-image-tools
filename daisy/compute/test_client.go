@@ -50,6 +50,7 @@ type TestClient struct {
 	AttachDiskFn                func(project, zone, instance string, d *compute.AttachedDisk) error
 	CreateDiskFn                func(project, zone string, d *compute.Disk) error
 	CreateForwardingRuleFn      func(project, region string, fr *compute.ForwardingRule) error
+	CreateFirewallRuleFn        func(project string, i *compute.Firewall) error
 	CreateImageFn               func(project string, i *compute.Image) error
 	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn             func(project string, n *compute.Network) error
@@ -59,6 +60,7 @@ type TestClient struct {
 	StopInstanceFn              func(project, zone, name string) error
 	DeleteDiskFn                func(project, zone, name string) error
 	DeleteForwardingRuleFn      func(project, region, name string) error
+	DeleteFirewallRuleFn        func(project, name string) error
 	DeleteImageFn               func(project, name string) error
 	DeleteInstanceFn            func(project, zone, name string) error
 	DeleteNetworkFn             func(project, name string) error
@@ -77,6 +79,8 @@ type TestClient struct {
 	ListDisksFn                 func(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	GetForwardingRuleFn         func(project, region, name string) (*compute.ForwardingRule, error)
 	ListForwardingRulesFn       func(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
+	GetFirewallRuleFn           func(project, name string) (*compute.Firewall, error)
+	ListFirewallRulesFn         func(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
 	GetImageFn                  func(project, name string) (*compute.Image, error)
 	GetImageFromFamilyFn        func(project, family string) (*compute.Image, error)
 	ListImagesFn                func(project string, opts ...ListCallOption) ([]*compute.Image, error)
@@ -128,6 +132,14 @@ func (c *TestClient) CreateForwardingRule(project, region string, fr *compute.Fo
 		return c.CreateForwardingRuleFn(project, region, fr)
 	}
 	return c.client.CreateForwardingRule(project, region, fr)
+}
+
+// CreateFirewallRule uses the override method CreateFirewallRuleFn or the real implementation.
+func (c *TestClient) CreateFirewallRule(project string, i *compute.Firewall) error {
+	if c.CreateFirewallRuleFn != nil {
+		return c.CreateFirewallRuleFn(project, i)
+	}
+	return c.client.CreateFirewallRule(project, i)
 }
 
 // CreateImage uses the override method CreateImageFn or the real implementation.
@@ -200,6 +212,14 @@ func (c *TestClient) DeleteForwardingRule(project, region, name string) error {
 		return c.DeleteForwardingRuleFn(project, region, name)
 	}
 	return c.client.DeleteForwardingRule(project, region, name)
+}
+
+// DeleteFirewallRule uses the override method DeleteFirewallRuleFn or the real implementation.
+func (c *TestClient) DeleteFirewallRule(project, name string) error {
+	if c.DeleteFirewallRuleFn != nil {
+		return c.DeleteFirewallRuleFn(project, name)
+	}
+	return c.client.DeleteFirewallRule(project, name)
 }
 
 // DeleteImage uses the override method DeleteImageFn or the real implementation.
@@ -336,6 +356,22 @@ func (c *TestClient) ListForwardingRules(project, region string, opts ...ListCal
 		return c.ListForwardingRulesFn(project, region, opts...)
 	}
 	return c.client.ListForwardingRules(project, region, opts...)
+}
+
+// GetFirewallRule uses the override method GetFirewallRuleFn or the real implementation.
+func (c *TestClient) GetFirewallRule(project, name string) (*compute.Firewall, error) {
+	if c.GetFirewallRuleFn != nil {
+		return c.GetFirewallRuleFn(project, name)
+	}
+	return c.client.GetFirewallRule(project, name)
+}
+
+// ListFirewallRules uses the override method ListFirewallRulesFn or the real implementation.
+func (c *TestClient) ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error) {
+	if c.ListFirewallRulesFn != nil {
+		return c.ListFirewallRulesFn(project, opts...)
+	}
+	return c.client.ListFirewallRules(project, opts...)
 }
 
 // GetImage uses the override method GetImageFn or the real implementation.

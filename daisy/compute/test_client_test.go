@@ -45,6 +45,7 @@ func TestTestClient(t *testing.T) {
 		}, ""},
 		{"attach disk", func() { c.AttachDisk("a", "b", "c", &compute.AttachedDisk{}) }, "/a/zones/b/instances/c/attachDisk?alt=json"},
 		{"create disk", func() { c.CreateDisk("a", "b", &compute.Disk{}) }, "/a/zones/b/disks?alt=json"},
+		{"create firewall rule", func() { c.CreateFirewallRule("a", &compute.Firewall{}) }, "/a/global/firewalls?alt=json"},
 		{"create image", func() { c.CreateImage("a", &compute.Image{}) }, "/a/global/images?alt=json"},
 		{"create instance", func() { c.CreateInstance("a", "b", &compute.Instance{}) }, "/a/zones/b/instances?alt=json"},
 		{"create network", func() { c.CreateNetwork("a", &compute.Network{}) }, "/a/global/networks?alt=json"},
@@ -52,6 +53,7 @@ func TestTestClient(t *testing.T) {
 		{"instances start", func() { c.StartInstance("a", "b", "c") }, "/a/zones/b/instances/c/start?alt=json"},
 		{"instances stop", func() { c.StopInstance("a", "b", "c") }, "/a/zones/b/instances/c/stop?alt=json"},
 		{"delete disk", func() { c.DeleteDisk("a", "b", "c") }, "/a/zones/b/disks/c?alt=json"},
+		{"delete firewall rule", func() { c.DeleteFirewallRule("a", "b") }, "/a/global/firewalls/b?alt=json"},
 		{"delete image", func() { c.DeleteImage("a", "b") }, "/a/global/images/b?alt=json"},
 		{"delete instance", func() { c.DeleteInstance("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
 		{"delete network", func() { c.DeleteNetwork("a", "b") }, "/a/global/networks/b?alt=json"},
@@ -61,6 +63,8 @@ func TestTestClient(t *testing.T) {
 		{"get project", func() { c.GetProject("a") }, "/a?alt=json"},
 		{"get machine type", func() { c.GetMachineType("a", "b", "c") }, "/a/zones/b/machineTypes/c?alt=json"},
 		{"list machine types", func() { c.ListMachineTypes("a", "b", listOpts...) }, "/a/zones/b/machineTypes?alt=json&filter=foo&orderBy=foo&pageToken="},
+		{"get firewall rule", func() { c.GetFirewallRule("a", "b") }, "/a/global/firewalls/b?alt=json"},
+		{"list firewall rules", func() { c.ListFirewallRules("a", listOpts...) }, "/a/global/firewalls?alt=json&filter=foo&orderBy=foo&pageToken="},
 		{"get zone", func() { c.GetZone("a", "b") }, "/a/zones/b?alt=json"},
 		{"list zones", func() { c.ListZones("a", listOpts...) }, "/a/zones?alt=json&filter=foo&orderBy=foo&pageToken="},
 		{"get instance", func() { c.GetInstance("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
@@ -113,6 +117,7 @@ func TestTestClient(t *testing.T) {
 	}
 	c.AttachDiskFn = func(_, _, _ string, _ *compute.AttachedDisk) error { fakeCalled = true; return nil }
 	c.CreateDiskFn = func(_, _ string, _ *compute.Disk) error { fakeCalled = true; return nil }
+	c.CreateFirewallRuleFn = func(_ string, _ *compute.Firewall) error { fakeCalled = true; return nil }
 	c.CreateImageFn = func(_ string, _ *compute.Image) error { fakeCalled = true; return nil }
 	c.CreateInstanceFn = func(_, _ string, _ *compute.Instance) error { fakeCalled = true; return nil }
 	c.CreateNetworkFn = func(_ string, _ *compute.Network) error { fakeCalled = true; return nil }
@@ -120,6 +125,7 @@ func TestTestClient(t *testing.T) {
 	c.StartInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.StopInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeleteDiskFn = func(_, _, _ string) error { fakeCalled = true; return nil }
+	c.DeleteFirewallRuleFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.DeleteImageFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.DeleteInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeleteNetworkFn = func(_, _ string) error { fakeCalled = true; return nil }
@@ -132,6 +138,11 @@ func TestTestClient(t *testing.T) {
 	c.GetProjectFn = func(_ string) (*compute.Project, error) { fakeCalled = true; return nil, nil }
 	c.GetZoneFn = func(_, _ string) (*compute.Zone, error) { fakeCalled = true; return nil, nil }
 	c.ListZonesFn = func(_ string, _ ...ListCallOption) ([]*compute.Zone, error) {
+		fakeCalled = true
+		return nil, nil
+	}
+	c.GetFirewallRuleFn = func(_, _ string) (*compute.Firewall, error) { fakeCalled = true; return nil, nil }
+	c.ListFirewallRulesFn = func(_ string, _ ...ListCallOption) ([]*compute.Firewall, error) {
 		fakeCalled = true
 		return nil, nil
 	}

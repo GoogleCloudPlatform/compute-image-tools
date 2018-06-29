@@ -47,7 +47,12 @@ type Resource struct {
 	users            []*Step
 }
 
-func (r *Resource) populate(ctx context.Context, s *Step, name, zone string) (string, string, dErr) {
+func (r *Resource) populateWithGlobal(ctx context.Context, s *Step, name string) (string, dErr) {
+	errs := r.populateHelper(ctx, s, name)
+	return r.RealName, errs
+}
+
+func (r *Resource) populateWithZone(ctx context.Context, s *Step, name, zone string) (string, string, dErr) {
 	errs := r.populateHelper(ctx, s, name)
 	return r.RealName, strOr(zone, s.w.Zone), errs
 }
@@ -152,6 +157,9 @@ func resourceExists(client compute.Client, url string) (bool, dErr) {
 	case forwardingRuleURLRegex.MatchString(url):
 		result := namedSubexp(forwardingRuleURLRegex, url)
 		return forwardingRuleExists(client, result["project"], result["region"], result["forwardingRule"])
+	case firewallRuleURLRegex.MatchString(url):
+		result := namedSubexp(firewallRuleURLRegex, url)
+		return firewallRuleExists(client, result["project"], result["firewallRule"])
 	}
 	return false, errf("unknown resource type: %q", url)
 }

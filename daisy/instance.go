@@ -99,7 +99,7 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 
 func (i *Instance) populate(ctx context.Context, s *Step) dErr {
 	var errs dErr
-	i.Name, i.Zone, errs = i.Resource.populate(ctx, s, i.Name, i.Zone)
+	i.Name, i.Zone, errs = i.Resource.populateWithZone(ctx, s, i.Name, i.Zone)
 	i.Description = strOr(i.Description, fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 
 	errs = addErrs(errs, i.populateDisks(s.w))

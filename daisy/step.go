@@ -45,6 +45,7 @@ type Step struct {
 	AttachDisks            *AttachDisks            `json:",omitempty"`
 	CreateDisks            *CreateDisks            `json:",omitempty"`
 	CreateForwardingRules  *CreateForwardingRules  `json:",omitempty"`
+	CreateFirewallRules    *CreateFirewallRules    `json:",omitempty"`
 	CreateImages           *CreateImages           `json:",omitempty"`
 	CreateInstances        *CreateInstances        `json:",omitempty"`
 	CreateNetworks         *CreateNetworks         `json:",omitempty"`
@@ -76,6 +77,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 	if s.CreateForwardingRules != nil {
 		matchCount++
 		result = s.CreateForwardingRules
+	}
+	if s.CreateFirewallRules != nil {
+		matchCount++
+		result = s.CreateFirewallRules
 	}
 	if s.CreateImages != nil {
 		matchCount++

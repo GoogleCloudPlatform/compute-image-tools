@@ -34,6 +34,7 @@ var (
 	testRegion         = "test-region"
 	testDisk           = "test-disk"
 	testForwardingRule = "test-forwarding-rule"
+	testFirewallRule   = "test-firewall-rule"
 	testImage          = "test-image"
 	testInstance       = "test-instance"
 	testNetwork        = "test-network"
@@ -112,6 +113,7 @@ func TestCreates(t *testing.T) {
 
 	d := &compute.Disk{Name: testDisk}
 	fr := &compute.ForwardingRule{Name: testForwardingRule}
+	fir := &compute.Firewall{Name: testFirewallRule}
 	im := &compute.Image{Name: testImage}
 	in := &compute.Instance{Name: testInstance}
 	n := &compute.Network{Name: testNetwork}
@@ -138,6 +140,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/regions/%s/forwardingRules?alt=json", testProject, testRegion),
 			&compute.ForwardingRule{Name: testForwardingRule, SelfLink: "foo"},
 			fr,
+		},
+		{
+			"FirewallRules",
+			func() error { return c.CreateFirewallRule(testProject, fir) },
+			fmt.Sprintf("/%s/global/firewalls/%s?alt=json", testProject, testFirewallRule),
+			fmt.Sprintf("/%s/global/firewalls?alt=json", testProject),
+			&compute.Firewall{Name: testFirewallRule, SelfLink: "foo"},
+			fir,
 		},
 		{
 			"images",
@@ -283,6 +293,12 @@ func TestDeletes(t *testing.T) {
 			func() error { return c.DeleteForwardingRule(testProject, testRegion, testForwardingRule) },
 			fmt.Sprintf("/%s/regions/%s/forwardingRules/%s?alt=json", testProject, testRegion, testForwardingRule),
 			fmt.Sprintf("/%s/regions/%s/operations/?alt=json", testProject, testRegion),
+		},
+		{
+			"FirewallRules",
+			func() error { return c.DeleteFirewallRule(testProject, testFirewallRule) },
+			fmt.Sprintf("/%s/global/firewalls/%s?alt=json", testProject, testFirewallRule),
+			fmt.Sprintf("/%s/global/operations/?alt=json", testProject),
 		},
 		{
 			"images",

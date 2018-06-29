@@ -136,6 +136,7 @@ type Workflow struct {
 	// Resource registries.
 	disks           *diskRegistry
 	forwardingRules *forwardingRuleRegistry
+	firewallRules   *firewallRuleRegistry
 	images          *imageRegistry
 	instances       *instanceRegistry
 	networks        *networkRegistry
@@ -450,6 +451,7 @@ func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw.parent = w
 	iw.disks = w.disks
 	iw.forwardingRules = w.forwardingRules
+	iw.firewallRules = w.firewallRules
 	iw.images = w.images
 	iw.instances = w.instances
 	iw.networks = w.networks
@@ -641,6 +643,7 @@ func New() *Workflow {
 	// Resource registries and cleanup.
 	w.disks = newDiskRegistry(w)
 	w.forwardingRules = newForwardingRuleRegistry(w)
+	w.firewallRules = newFirewallRuleRegistry(w)
 	w.images = newImageRegistry(w)
 	w.instances = newInstanceRegistry(w)
 	w.networks = newNetworkRegistry(w)
@@ -653,6 +656,7 @@ func New() *Workflow {
 		w.disks.cleanup()
 		w.forwardingRules.cleanup()
 		w.targetInstances.cleanup()
+		w.firewallRules.cleanup()
 		w.subnetworks.cleanup()
 		w.networks.cleanup()
 		return nil

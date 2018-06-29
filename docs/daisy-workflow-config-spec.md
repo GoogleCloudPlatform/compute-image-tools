@@ -19,6 +19,7 @@
     * [CreateTargetInstances](#type-createtargetinstances)
     * [CreateNetworks](#type-createnetworks)
     * [CreateSubnetworks](#type-createsubnetworks)
+    * [CreateFirewallRules](#type-createfirewallrules)
     * [CopyGCSObjects](#type-copygcsobjects)
     * [DeleteResources](#type-deleteresources)
     * [StartInstances](#type-startinstances)
@@ -439,6 +440,40 @@ network.
     },
   ]
 },
+```
+
+#### Type: CreateFirewallRules
+Creates GCE firewall rules. A list of GCE Subnetwork resources. See
+https://cloud.google.com/compute/docs/reference/latest/firewalls for the
+Subnetwork JSON representation. Daisy uses the same representation.
+
+This CreateFirewallRules example creates a firewall for a daisy created network.
+```json
+"create-network": {
+  "CreateNetworks": [
+    {
+      "name": "network_1",
+      "AutoCreateSubnetworks": true
+    },
+  ]
+},
+"create-firewall-rules": {
+  "CreateFirewallRules": [
+    {
+      "name": "allow-icm-ssh",
+      "network": "network_1",
+      "allowed": [
+        {
+          "IPProtocol": "icmp"
+        },
+        {
+          "IPProtocol": "tcp",
+          "Ports": ["22"]
+        }
+      ]
+    },
+  ]
+}
 ```
 
 #### Type: CopyGCSObjects

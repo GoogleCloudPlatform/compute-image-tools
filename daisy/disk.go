@@ -77,7 +77,7 @@ func (d *Disk) MarshalJSON() ([]byte, error) {
 
 func (d *Disk) populate(ctx context.Context, s *Step) dErr {
 	var errs dErr
-	d.Name, d.Zone, errs = d.Resource.populate(ctx, s, d.Name, d.Zone)
+	d.Name, d.Zone, errs = d.Resource.populateWithZone(ctx, s, d.Name, d.Zone)
 
 	d.Description = strOr(d.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 	if d.SizeGb != "" {

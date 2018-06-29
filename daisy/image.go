@@ -137,7 +137,7 @@ func (g *guestOsFeatures) UnmarshalJSON(b []byte) error {
 
 func (i *Image) populate(ctx context.Context, s *Step) dErr {
 	var errs dErr
-	i.Name, _, errs = i.Resource.populate(ctx, s, i.Name, "")
+	i.Name, errs = i.Resource.populateWithGlobal(ctx, s, i.Name)
 
 	i.Description = strOr(i.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 
