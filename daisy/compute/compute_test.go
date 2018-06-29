@@ -37,6 +37,7 @@ var (
 	testImage          = "test-image"
 	testInstance       = "test-instance"
 	testNetwork        = "test-network"
+	testSubnetwork     = "test-subnetwork"
 	testTargetInstance = "test-target-instance"
 )
 
@@ -114,6 +115,7 @@ func TestCreates(t *testing.T) {
 	im := &compute.Image{Name: testImage}
 	in := &compute.Instance{Name: testInstance}
 	n := &compute.Network{Name: testNetwork}
+	sn := &compute.Subnetwork{Name: testSubnetwork}
 	ti := &compute.TargetInstance{Name: testTargetInstance}
 	creates := []struct {
 		name              string
@@ -160,6 +162,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/global/networks?alt=json", testProject),
 			&compute.Network{Name: testNetwork, SelfLink: "foo"},
 			n,
+		},
+		{
+			"subnetworks",
+			func() error { return c.CreateSubnetwork(testProject, testRegion, sn) },
+			fmt.Sprintf("/%s/regions/%s/subnetworks/%s?alt=json", testProject, testRegion, testSubnetwork),
+			fmt.Sprintf("/%s/regions/%s/subnetworks?alt=json", testProject, testRegion),
+			&compute.Subnetwork{Name: testSubnetwork, SelfLink: "foo"},
+			sn,
 		},
 		{
 			"targetInstances",
@@ -291,6 +301,12 @@ func TestDeletes(t *testing.T) {
 			func() error { return c.DeleteNetwork(testProject, testNetwork) },
 			fmt.Sprintf("/%s/global/networks/%s?alt=json", testProject, testNetwork),
 			fmt.Sprintf("/%s/global/operations/?alt=json", testProject),
+		},
+		{
+			"subnetworks",
+			func() error { return c.DeleteSubnetwork(testProject, testRegion, testSubnetwork) },
+			fmt.Sprintf("/%s/regions/%s/subnetworks/%s?alt=json", testProject, testRegion, testSubnetwork),
+			fmt.Sprintf("/%s/regions/%s/operations/?alt=json", testProject, testRegion),
 		},
 		{
 			"targetInstances",

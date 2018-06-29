@@ -37,6 +37,7 @@ type Client interface {
 	CreateImage(project string, i *compute.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
+	CreateSubnetwork(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
 	DeleteDisk(project, zone, name string) error
 	DeleteForwardingRule(project, region, name string) error
@@ -45,6 +46,7 @@ type Client interface {
 	StartInstance(project, zone, name string) error
 	StopInstance(project, zone, name string) error
 	DeleteNetwork(project, name string) error
+	DeleteSubnetwork(project, region, name string) error
 	DeleteTargetInstance(project, zone, name string) error
 	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
@@ -58,6 +60,7 @@ type Client interface {
 	GetImageFromFamily(project, family string) (*compute.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
 	GetNetwork(project, name string) (*compute.Network, error)
+	GetSubnetwork(project, region, name string) (*compute.Subnetwork, error)
 	GetTargetInstance(project, zone, name string) (*compute.TargetInstance, error)
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
@@ -69,6 +72,7 @@ type Client interface {
 	ListForwardingRules(project, zone string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
+	ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
@@ -101,6 +105,8 @@ func (o OrderBy) listCallOptionApply(i interface{}) interface{} {
 		return c.OrderBy(string(o))
 	case *compute.NetworksListCall:
 		return c.OrderBy(string(o))
+	case *compute.SubnetworksListCall:
+		return c.OrderBy(string(o))
 	}
 	return i
 }
@@ -123,6 +129,8 @@ func (o Filter) listCallOptionApply(i interface{}) interface{} {
 	case *compute.DisksListCall:
 		return c.Filter(string(o))
 	case *compute.NetworksListCall:
+		return c.Filter(string(o))
+	case *compute.SubnetworksListCall:
 		return c.Filter(string(o))
 	}
 	return i
@@ -385,6 +393,24 @@ func (c *client) CreateNetwork(project string, n *compute.Network) error {
 	return nil
 }
 
+func (c *client) CreateSubnetwork(project, region string, n *compute.Subnetwork) error {
+	op, err := c.Retry(c.raw.Subnetworks.Insert(project, region, n).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.regionOperationsWait(project, region, op.Name); err != nil {
+		return err
+	}
+
+	var createdSubnetwork *compute.Subnetwork
+	if createdSubnetwork, err = c.i.GetSubnetwork(project, region, n.Name); err != nil {
+		return err
+	}
+	*n = *createdSubnetwork
+	return nil
+}
+
 // CreateTargetInstance creates a GCE Target Instance, which can be used as
 // target on ForwardingRule
 func (c *client) CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error {
@@ -473,6 +499,16 @@ func (c *client) DeleteNetwork(project, name string) error {
 	}
 
 	return c.i.globalOperationsWait(project, op.Name)
+}
+
+// DeleteSubnetwork deletes a GCE subnetwork.
+func (c *client) DeleteSubnetwork(project, region, name string) error {
+	op, err := c.Retry(c.raw.Subnetworks.Delete(project, region, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.regionOperationsWait(project, region, op.Name)
 }
 
 // DeleteTargetInstance deletes a GCE TargetInstance.
@@ -760,6 +796,39 @@ func (c *client) ListNetworks(project string, opts ...ListCallOption) ([]*comput
 	call := c.raw.Networks.List(project)
 	for _, opt := range opts {
 		call = opt.listCallOptionApply(call).(*compute.NetworksListCall)
+	}
+	for nl, err := call.PageToken(pt).Do(); ; nl, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			nl, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		ns = append(ns, nl.Items...)
+
+		if nl.NextPageToken == "" {
+			return ns, nil
+		}
+		pt = nl.NextPageToken
+	}
+}
+
+// GetSubnetwork gets a GCE subnetwork.
+func (c *client) GetSubnetwork(project, region, name string) (*compute.Subnetwork, error) {
+	n, err := c.raw.Subnetworks.Get(project, region, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Subnetworks.Get(project, region, name).Do()
+	}
+	return n, err
+}
+
+// ListSubnetworks gets a list of GCE subnetworks.
+func (c *client) ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error) {
+	var ns []*compute.Subnetwork
+	var pt string
+	call := c.raw.Subnetworks.List(project, region)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.SubnetworksListCall)
 	}
 	for nl, err := call.PageToken(pt).Do(); ; nl, err = call.PageToken(pt).Do() {
 		if shouldRetryWithWait(c.hc.Transport, err, 2) {

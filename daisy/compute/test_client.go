@@ -53,6 +53,7 @@ type TestClient struct {
 	CreateImageFn               func(project string, i *compute.Image) error
 	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn             func(project string, n *compute.Network) error
+	CreateSubnetworkFn          func(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstanceFn      func(project, zone string, ti *compute.TargetInstance) error
 	StartInstanceFn             func(project, zone, name string) error
 	StopInstanceFn              func(project, zone, name string) error
@@ -61,6 +62,7 @@ type TestClient struct {
 	DeleteImageFn               func(project, name string) error
 	DeleteInstanceFn            func(project, zone, name string) error
 	DeleteNetworkFn             func(project, name string) error
+	DeleteSubnetworkFn          func(project, region, name string) error
 	DeleteTargetInstanceFn      func(project, zone, name string) error
 	DeprecateImageFn            func(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineTypeFn            func(project, zone, machineType string) (*compute.MachineType, error)
@@ -81,6 +83,8 @@ type TestClient struct {
 	GetLicenseFn                func(project, name string) (*compute.License, error)
 	GetNetworkFn                func(project, name string) (*compute.Network, error)
 	ListNetworksFn              func(project string, opts ...ListCallOption) ([]*compute.Network, error)
+	GetSubnetworkFn             func(project, region, name string) (*compute.Subnetwork, error)
+	ListSubnetworksFn           func(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	GetTargetInstanceFn         func(project, zone, name string) (*compute.TargetInstance, error)
 	ListTargetInstancesFn       func(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	InstanceStatusFn            func(project, zone, name string) (string, error)
@@ -150,6 +154,14 @@ func (c *TestClient) CreateNetwork(project string, n *compute.Network) error {
 	return c.client.CreateNetwork(project, n)
 }
 
+// CreateSubnetwork uses the override method CreateSubnetworkFn or the real implementation.
+func (c *TestClient) CreateSubnetwork(project, region string, n *compute.Subnetwork) error {
+	if c.CreateSubnetworkFn != nil {
+		return c.CreateSubnetworkFn(project, region, n)
+	}
+	return c.client.CreateSubnetwork(project, region, n)
+}
+
 // CreateTargetInstance uses the override method CreateTargetInstanceFn or the real implementation.
 func (c *TestClient) CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error {
 	if c.CreateTargetInstanceFn != nil {
@@ -212,6 +224,14 @@ func (c *TestClient) DeleteNetwork(project, name string) error {
 		return c.DeleteNetworkFn(project, name)
 	}
 	return c.client.DeleteNetwork(project, name)
+}
+
+// DeleteSubnetwork uses the override method DeleteSubnetworkFn or the real implementation.
+func (c *TestClient) DeleteSubnetwork(project, region, name string) error {
+	if c.DeleteSubnetworkFn != nil {
+		return c.DeleteSubnetworkFn(project, region, name)
+	}
+	return c.client.DeleteSubnetwork(project, region, name)
 }
 
 // DeleteTargetInstance uses the override method DeleteTargetInstanceFn or the real implementation.
@@ -364,6 +384,22 @@ func (c *TestClient) ListNetworks(project string, opts ...ListCallOption) ([]*co
 		return c.ListNetworksFn(project, opts...)
 	}
 	return c.client.ListNetworks(project, opts...)
+}
+
+// GetSubnetwork uses the override method GetSubnetworkFn or the real implementation.
+func (c *TestClient) GetSubnetwork(project, region, name string) (*compute.Subnetwork, error) {
+	if c.GetSubnetworkFn != nil {
+		return c.GetSubnetworkFn(project, region, name)
+	}
+	return c.client.GetSubnetwork(project, region, name)
+}
+
+// ListSubnetworks uses the override method ListSubnetworksFn or the real implementation.
+func (c *TestClient) ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error) {
+	if c.ListSubnetworksFn != nil {
+		return c.ListSubnetworksFn(project, region, opts...)
+	}
+	return c.client.ListSubnetworks(project, region, opts...)
 }
 
 // GetTargetInstance uses the override method GetTargetInstanceFn or the real implementation.

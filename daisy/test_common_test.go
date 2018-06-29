@@ -73,7 +73,7 @@ var (
 	testWf             = "test-wf"
 	testProject        = "test-project"
 	testZone           = "test-zone"
-	testRegion         = "test-region"
+	testRegion         = "test-zo"
 	testDisk           = "test-disk"
 	testForwardingRule = "test-forwarding-rule"
 	testImage          = "test-image"
@@ -81,6 +81,7 @@ var (
 	testMachineType    = "test-machine-type"
 	testLicense        = "test-license"
 	testNetwork        = "test-network"
+	testSubnetwork     = "test-subnetwork"
 	testTargetInstance = "test-target-instance"
 	testFamily         = "test-family"
 	testGCSPath        = "gs://test-bucket"
@@ -208,6 +209,15 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, errors.New("bad project: " + p)
 		}
 		return []*compute.Network{{Name: testNetwork}}, nil
+	}
+	c.ListSubnetworksFn = func(p, r string, _ ...daisyCompute.ListCallOption) ([]*compute.Subnetwork, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		if r != testRegion {
+			return nil, errors.New("bad region: " + r)
+		}
+		return []*compute.Subnetwork{{Name: testSubnetwork}}, nil
 	}
 	c.ListTargetInstancesFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.TargetInstance, error) {
 		if p != testProject {

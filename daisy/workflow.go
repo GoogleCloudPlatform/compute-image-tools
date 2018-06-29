@@ -139,6 +139,7 @@ type Workflow struct {
 	images          *imageRegistry
 	instances       *instanceRegistry
 	networks        *networkRegistry
+	subnetworks     *subnetworkRegistry
 	targetInstances *targetInstanceRegistry
 	objects         *objectRegistry
 }
@@ -452,6 +453,7 @@ func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw.images = w.images
 	iw.instances = w.instances
 	iw.networks = w.networks
+	iw.subnetworks = w.subnetworks
 	iw.targetInstances = w.targetInstances
 	iw.objects = w.objects
 	return iw
@@ -642,6 +644,7 @@ func New() *Workflow {
 	w.images = newImageRegistry(w)
 	w.instances = newInstanceRegistry(w)
 	w.networks = newNetworkRegistry(w)
+	w.subnetworks = newSubnetworkRegistry(w)
 	w.objects = newObjectRegistry(w)
 	w.targetInstances = newTargetInstanceRegistry(w)
 	w.addCleanupHook(func() dErr {
@@ -650,6 +653,7 @@ func New() *Workflow {
 		w.disks.cleanup()
 		w.forwardingRules.cleanup()
 		w.targetInstances.cleanup()
+		w.subnetworks.cleanup()
 		w.networks.cleanup()
 		return nil
 	})

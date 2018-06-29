@@ -18,6 +18,7 @@
     * [CreateInstances](#type-createinstances)
     * [CreateTargetInstances](#type-createtargetinstances)
     * [CreateNetworks](#type-createnetworks)
+    * [CreateSubnetworks](#type-createsubnetworks)
     * [CopyGCSObjects](#type-copygcsobjects)
     * [DeleteResources](#type-deleteresources)
     * [StartInstances](#type-startinstances)
@@ -411,6 +412,33 @@ up.
     }
   ]
 }
+```
+
+#### Type: CreateSubnetworks
+Creates GCE subnetworks. A list of GCE Subnetwork resources. See
+https://cloud.google.com/compute/docs/reference/latest/subnetworks for the Subnetwork
+JSON representation. Daisy uses the same representation.
+
+This CreateSubnetworks example creates a subnetwork in inside of a daisy created
+network.
+```json
+"create-network": {
+  "CreateNetworks": [
+    {
+      "name": "network_1",
+      "AutoCreateSubnetworks": true
+    },
+  ]
+},
+"create-subnetwork": {
+  "CreateSubNetworks": [
+    {
+      "name": "subnetwork_1",
+      "network": "network_1",
+      "ipCidrRange": "10.64.1.0/24"
+    },
+  ]
+},
 ```
 
 #### Type: CopyGCSObjects

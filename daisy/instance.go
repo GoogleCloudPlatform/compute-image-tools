@@ -207,6 +207,10 @@ func (i *Instance) populateNetworks() dErr {
 		if networkURLRegex.MatchString(n.Network) {
 			n.Network = extendPartialURL(n.Network, i.Project)
 		}
+
+		if subnetworkURLRegex.MatchString(n.Subnetwork) {
+			n.Subnetwork = extendPartialURL(n.Subnetwork, i.Project)
+		}
 	}
 
 	return nil
@@ -409,6 +413,7 @@ func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) dErr 
 		nName := n.Network
 		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
 	}
+
 	return errs
 }
 
