@@ -124,7 +124,7 @@ def Bootstrap():
     gcs_dir = GetMetadataAttribute('files_gcs_dir')
     script = GetMetadataAttribute('script')
     full_script = os.path.join(DIR, script)
-    subprocess.check_call(['mkdir', DIR])
+    subprocess.check_call(['mkdir', '-p', DIR])
 
     # Copies all files from bucket's gcs_dir to DIR
     path_stripped = gcs_dir[len('gs://'):]
