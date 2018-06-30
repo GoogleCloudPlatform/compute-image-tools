@@ -128,7 +128,7 @@
         {
           "Name": "inst-savelogs",
           "Disks": [{"Source": "disk-installerprep"}, {"Source": "disk-installer"}],
-          "MachineType": "n1-standard-1",
+          "MachineType": "n1-standard-2",
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "prefix": "SaveLogs",
