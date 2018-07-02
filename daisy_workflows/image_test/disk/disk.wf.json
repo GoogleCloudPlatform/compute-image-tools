@@ -111,8 +111,8 @@
           "Name": "inst-disk-testee",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "DiskFreePart",
-            "FailureMatch": "DiskFull"
+            "SuccessMatch": "DiskTestFinished",
+            "StatusMatch": "DiskResize:"
           }
         }
       ]
