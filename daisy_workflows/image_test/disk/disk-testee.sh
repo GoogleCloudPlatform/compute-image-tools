@@ -22,6 +22,9 @@ if [ ! -e /booted ]; then
     # should power off now, but it's safer to wait for daisy to do that after
     # the BOOTED message was spotted.
 else
+    # Output the partition table
+    parted -l | grep "Partition Table:" | sed -e 's/^/DiskResize: /' | logger -p daemon.info
+
     # Verify if there is any relevant unallocated disk space
     parted /dev/sda unit GB print free \
       | grep "Free Space" \
@@ -29,5 +32,10 @@ else
       | grep -v "0\.00GB"
 
     # Output if there is any reasonable free partition
-    [ $? -ne 0 ] && logger -p daemon.info "DiskFull" || logger -p daemon.info "DiskFreePart"
+    [ $? -ne 0 ] && \
+      logger -p daemon.info "DiskResize: The root partition is occupying the whole disk now" || \
+      logger -p daemon.info "DiskResize: There is unallocated space on the disk after growing of root partition"
+
+    # Finish test
+    logger -p daemon.info "DiskTestFinished"
 fi
