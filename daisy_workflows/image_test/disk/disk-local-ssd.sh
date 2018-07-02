@@ -41,7 +41,12 @@ CHECK_FILENAME=file
 CHECK_STRING=DiskWorks
 
 # create a primary partition allocating the whole disk
-echo -e "n\n\n\n\n\nw" | fdisk $DEVICE
+echo "n
+
+
+
+
+w" | fdisk $DEVICE
 
 mkfs.ext4 $PARTITION
 mkdir $MOUNT_POINT
@@ -50,7 +55,7 @@ echo $CHECK_STRING > $MOUNT_POINT/$CHECK_FILENAME
 umount $MOUNT_POINT
 
 mount $PARTITION $MOUNT_POINT
-if [ $CHECK_STRING == $(cat $MOUNT_POINT/$CHECK_FILENAME) ]; then
+if [ $CHECK_STRING = $(cat $MOUNT_POINT/$CHECK_FILENAME) ]; then
   logger -p daemon.info "CheckSuccessful"
 else
   logger -p daemon.info "CheckFailed"
