@@ -20,12 +20,8 @@ import os
 
 import utils
 
-utils.AptGetInstall(
-    ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
-     'python-yaml'])
-utils.PipInstall(
-    ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32',
-    'google-cloud-storage'])
+utils.AptGetInstall(['python-pip'])
+utils.PipInstall(['google-cloud-storage'])
 
 
 def main():
@@ -53,5 +49,5 @@ if __name__ == '__main__':
   try:
     main()
     logging.success('Build logs successfully saved.')
-  except Exception:
-    logging.error('Failed to save build logs.')
+  except Exception as e:
+    logging.error('Failed to save build logs: %s.' % e)
