@@ -15,6 +15,7 @@
 
 """Saves the build logs and synopsis files to GCS from an EL install."""
 
+import logging
 import os
 
 import utils
@@ -34,8 +35,8 @@ def main():
   # Mount the installer disk.
   utils.Execute(['mount', '-t', 'ext4', '/dev/sdb1', '/mnt'])
 
-  utils.LogStatus('Installer root: %s' % os.listdir('/mnt'))
-  utils.LogStatus('Build logs: %s' % os.listdir('/mnt/build-logs'))
+  logging.info('Installer root: %s' % os.listdir('/mnt'))
+  logging.info('Build logs: %s' % os.listdir('/mnt/build-logs'))
 
   utils.UploadFile('/mnt/ks.cfg', '%s/' % logs_path)
   directory = '/mnt/build-logs'
@@ -50,6 +51,6 @@ def main():
 if __name__ == '__main__':
   try:
     main()
-    utils.LogSuccess('Build logs successfully saved.')
+    logging.success('Build logs successfully saved.')
   except Exception:
-    utils.LogFail('Failed to save build logs.')
+    logging.error('Failed to save build logs.')
