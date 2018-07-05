@@ -13,6 +13,7 @@
   * [Steps](#steps)
     * [AttachDisks](#type-attachdisks)
     * [CreateDisks](#type-createdisks)
+    * [ResizeDisks](#type-resizeisks)
     * [CreateForwardingRules](#type-createforwardingrules)
     * [CreateImages](#type-createimages)
     * [CreateInstances](#type-createinstances)
@@ -213,6 +214,35 @@ is a blank PD SSD.
       "Name": "disk2",
       "SizeGb": "200",
       "Type": "pd-ssd"
+    }
+  ]
+}
+```
+
+#### Type: ResizeDisks
+Resizes GCE disks. A list of GCE ResizeDisk resources. See https://cloud.google.com/compute/docs/reference/latest/disks/resize for
+the ResizeDisk JSON representation. Daisy uses the same representation with a few modifications:
+
+| Field Name | Type | Description of Modification |
+| - | - | - |
+| Name | string | If RealName is unset, the **literal** disk name will have a generated suffix for the running instance of the workflow. |
+
+Added fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Project | string | *Optional.* Defaults to workflow's Project. The GCP project in which to create the disk. |
+| Zone | string | *Optional.* Defaults to workflow's Zone. The GCE zone in which to create the disk. |
+| NoCleanup | bool | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this disk when the workflow terminates. |
+| RealName | string | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+
+Example: Resizes a previously craeted diskname "disk1".
+```json
+"resizes": {
+  "ResizeDisks": [
+    {
+      "Name": "disk1",
+      "SizeGb": "128"
     }
   ]
 }

@@ -78,6 +78,7 @@ type Client interface {
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
+	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
 
@@ -984,6 +985,16 @@ func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
 	default:
 		return false, fmt.Errorf("unexpected instance status %q", status)
 	}
+}
+
+// ResizeDisk resizes a GCE persistent disk. You can only increase the size of the disk.
+func (c *client) ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error {
+	op, err := c.Retry(c.raw.Disks.Resize(project, zone, disk, drr).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // SetInstanceMetadata sets an instances metadata.

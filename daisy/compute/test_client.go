@@ -93,6 +93,7 @@ type TestClient struct {
 	ListTargetInstancesFn       func(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	InstanceStatusFn            func(project, zone, name string) (string, error)
 	InstanceStoppedFn           func(project, zone, name string) (bool, error)
+	ResizeDiskFn                func(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadataFn       func(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadataFn func(project string, md *compute.Metadata) error
 	RetryFn                     func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -476,6 +477,14 @@ func (c *TestClient) InstanceStopped(project, zone, name string) (bool, error) {
 		return c.InstanceStoppedFn(project, zone, name)
 	}
 	return c.client.InstanceStopped(project, zone, name)
+}
+
+// ResizeDisk uses the override method ResizeDiskFn or the real implementation.
+func (c *TestClient) ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error {
+	if c.ResizeDiskFn != nil {
+		return c.ResizeDiskFn(project, zone, disk, drr)
+	}
+	return c.client.ResizeDisk(project, zone, disk, drr)
 }
 
 // SetInstanceMetadata uses the override method SetInstancemetadataFn or the real implementation.

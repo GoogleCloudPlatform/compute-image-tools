@@ -29,17 +29,19 @@ import (
 )
 
 var (
-	testProject        = "test-project"
-	testZone           = "test-zone"
-	testRegion         = "test-region"
-	testDisk           = "test-disk"
-	testForwardingRule = "test-forwarding-rule"
-	testFirewallRule   = "test-firewall-rule"
-	testImage          = "test-image"
-	testInstance       = "test-instance"
-	testNetwork        = "test-network"
-	testSubnetwork     = "test-subnetwork"
-	testTargetInstance = "test-target-instance"
+	testProject              = "test-project"
+	testZone                 = "test-zone"
+	testRegion               = "test-region"
+	testDisk                 = "test-disk"
+	testDisk2                = "test-disk2"
+	testResize         int64 = 128
+	testForwardingRule       = "test-forwarding-rule"
+	testFirewallRule         = "test-firewall-rule"
+	testImage                = "test-image"
+	testInstance             = "test-instance"
+	testNetwork              = "test-network"
+	testSubnetwork           = "test-subnetwork"
+	testTargetInstance       = "test-target-instance"
 )
 
 func TestShouldRetryWithWait(t *testing.T) {
