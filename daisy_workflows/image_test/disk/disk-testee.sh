@@ -13,29 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# If first boot, just shutdown the machine and save a file to guarantee it's the
-# same disk after resize
-
-if [ ! -e /booted ]; then
+if [ ! -e /reboot.txt ]; then
     logger -p daemon.info "BOOTED"
-    echo "BOOTED" > /booted
-    # should power off now, but it's safer to wait for daisy to do that after
-    # the BOOTED message was spotted.
+    echo > /reboot.txt
 else
-    # Output the partition table
-    parted -l | grep "Partition Table:" | sed -e 's/^/DiskResize: /' | logger -p daemon.info
-
-    # Verify if there is any relevant unallocated disk space
-    parted /dev/sda unit GB print free \
-      | grep "Free Space" \
-      | awk '{ print $3 }' \
-      | grep -v "0\.00GB"
-
-    # Output if there is any reasonable free partition
-    [ $? -ne 0 ] && \
-      logger -p daemon.info "DiskResize: The root partition is occupying the whole disk now" || \
-      logger -p daemon.info "DiskResize: There is unallocated space on the disk after growing of root partition"
-
-    # Finish test
-    logger -p daemon.info "DiskTestFinished"
+    logger -p daemon.info "REBOOT"
 fi
+
+while [ 1 ]; do
+  echo TotalDisks:`ls /dev/sd* | grep [a-z]$ | wc -l` | logger -p daemon.info
+  sleep 1
+done

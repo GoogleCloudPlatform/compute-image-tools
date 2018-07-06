@@ -4,59 +4,23 @@
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
   "Sources": {
-    "test_files/test.py": "./disk-tester.py",
-    "test_files/utils.py": "../../linux_common/utils.py",
-    "startup_tester": "../../linux_common/bootstrap.py",
     "disk-testee.sh": "./disk-testee.sh",
-    "disk-local-ssd.sh": "./disk-local-ssd.sh"
+    "disk-testee.bat": "./disk-testee.bat",
+    "disk-local-ssd.sh": "./disk-local-ssd.sh",
+    "disk-local-ssd.bat": "./disk-local-ssd.bat"
   },
   "Steps": {
-    "create-disk-tester": {
-      "CreateDisks": [
-        {
-          "Name": "disk-tester",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "Type": "pd-standard"
-        }
-      ]
-    },
     "create-disk-testee": {
       "CreateDisks": [
         {
           "Name": "disk-testee",
-          "RealName": "disk-testee-${DATETIME}-${ID}",
           "SourceImage": "${source_image}",
           "Type": "pd-standard"
         },
         {
           "Name": "disk-testee-removable",
-          "RealName": "disk-testee-removable-${DATETIME}-${ID}",
           "Type": "pd-standard",
           "sizeGb": "10"
-        }
-      ]
-    },
-    "create-instance-tester": {
-      "CreateInstances": [
-        {
-          "Name": "inst-disk-tester",
-          "Disks": [{"Source": "disk-tester"}],
-          "StartupScript": "startup_tester",
-          "metadata": {
-            "files_gcs_dir": "${SOURCESPATH}/test_files",
-            "script": "test.py",
-            "prefix": "Test",
-            "testee": "inst-disk-testee-${DATETIME}-${ID}",
-            "testee_disk": "disk-testee-${DATETIME}-${ID}",
-            "testee_disk_removable": "disk-testee-removable-${DATETIME}-${ID}",
-            "debian_install_google_api_python_client": "yes",
-            "zone": "${ZONE}",
-            "project": "${PROJECT}"
-          },
-          "Scopes": [
-            "https://www.googleapis.com/auth/devstorage.read_write",
-            "https://www.googleapis.com/auth/compute"
-          ]
         }
       ]
     },
@@ -64,21 +28,59 @@
       "CreateInstances": [
         {
           "Name": "inst-disk-testee",
-          "RealName": "inst-disk-testee-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-testee"}],
           "Metadata": {
-            "startup-script": "${SOURCE:disk-testee.sh}"
+            "startup-script": "${SOURCE:disk-testee.sh}",
+            "windows-startup-script-bat": "${SOURCE:disk-testee.bat}"
           }
         }
       ]
     },
-    "wait-for-boot-testee": {
+    "wait-for-single-disk-check": {
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-testee",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "BOOTED"
+            "SuccessMatch": "TotalDisks:1"
+          }
+        }
+      ]
+    },
+    "attach-disk-removable": {
+      "AttachDisks": [
+        {
+          "Source": "disk-testee-removable",
+          "Instance": "inst-disk-testee"
+        }
+      ]
+    },
+    "wait-for-double-disk-check": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-testee",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "TotalDisks:2"
+          }
+        }
+      ]
+    },
+    "detach-disk-removable": {
+      "DetachDisks": [
+        {
+          "DeviceName": "disk-testee-removable",
+          "Instance": "inst-disk-testee"
+        }
+      ]
+    },
+    "wait-for-single-disk-check-again": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-disk-testee",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "TotalDisks:1"
           }
         }
       ]
@@ -88,15 +90,11 @@
         "Instances": ["inst-disk-testee"]
       }
     },
-    "wait-for-resize-testee": {
-      "WaitForInstancesSignal": [
+    "resize-disk": {
+      "ResizeDisks": [
         {
-          "Name": "inst-disk-tester",
-          "SerialOutput": {
-            "Port": 1,
-            "SuccessMatch": "DiskResized",
-            "FailureMatch": "TestFailed"
-          }
+          "Name": "disk-testee",
+          "SizeGb": "2049"
         }
       ]
     },
@@ -105,38 +103,14 @@
         "Instances": ["inst-disk-testee"]
       }
     },
-    "wait-for-resized-testee-check": {
+    "wait-for-resized-disk-check": {
       "WaitForInstancesSignal": [
         {
           "Name": "inst-disk-testee",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "DiskTestFinished",
-            "StatusMatch": "DiskResize:"
-          }
-        }
-      ]
-    },
-    "wait-for-disk-attachment": {
-      "WaitForInstancesSignal": [
-        {
-          "Name": "inst-disk-tester",
-          "SerialOutput": {
-            "Port": 1,
-            "SuccessMatch": "DiskAttached",
-            "FailureMatch": "TestFailed"
-          }
-        }
-      ]
-    },
-    "wait-for-disk-detachment": {
-      "WaitForInstancesSignal": [
-        {
-          "Name": "inst-disk-tester",
-          "SerialOutput": {
-            "Port": 1,
-            "SuccessMatch": "DiskDetached",
-            "FailureMatch": "TestFailed"
+            "SuccessMatch": "REBOOT",
+            "FailureMatch": "BOOTED"
           }
         }
       ]
@@ -161,7 +135,8 @@
             }
           ],
           "Metadata": {
-            "startup-script": "${SOURCE:disk-local-ssd.sh}"
+            "startup-script": "${SOURCE:disk-local-ssd.sh}",
+            "windows-startup-script-bat": "${SOURCE:disk-local-ssd.bat}"
           }
         }
       ]
@@ -199,7 +174,8 @@
             }
           ],
           "Metadata": {
-            "startup-script": "${SOURCE:disk-local-ssd.sh}"
+            "startup-script": "${SOURCE:disk-local-ssd.sh}",
+            "windows-startup-script-bat": "${SOURCE:disk-local-ssd.bat}"
           }
         }
       ]
@@ -219,14 +195,15 @@
   },
   "Dependencies": {
     "create-instance-testee": ["create-disk-testee"],
-    "wait-for-boot-testee": ["create-instance-testee"],
-    "create-instance-tester": ["create-disk-tester", "wait-for-boot-testee"],
-    "wait-for-disk-attachment": ["create-instance-tester"],
-    "wait-for-disk-detachment": ["wait-for-disk-attachment"],
-    "poweroff-testee": ["wait-for-disk-detachment"],
-    "wait-for-resize-testee": ["poweroff-testee"],
-    "poweron-testee": ["wait-for-resize-testee"],
-    "wait-for-resized-testee-check": ["poweron-testee"],
+    "wait-for-single-disk-check": ["create-instance-testee"],
+    "attach-disk-removable": ["wait-for-single-disk-check"],
+    "wait-for-double-disk-check": ["attach-disk-removable"],
+    "detach-disk-removable": ["wait-for-double-disk-check"],
+    "wait-for-single-disk-check-again": ["detach-disk-removable"],
+    "poweroff-testee": ["wait-for-single-disk-check-again"],
+    "resize-disk": ["poweroff-testee"],
+    "poweron-testee": ["resize-disk"],
+    "wait-for-resized-disk-check": ["poweron-testee"],
 
     "wait-for-local-ssd-scsi-check": ["create-instance-local-ssd-scsi"],
 
