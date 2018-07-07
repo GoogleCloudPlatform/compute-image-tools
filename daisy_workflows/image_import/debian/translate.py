@@ -49,7 +49,7 @@ def DistroSpecific(g):
   deb_release = utils.GetMetadataParam('debian_release')
 
   if install_gce == 'true':
-    print 'Installing GCE packages.'
+    logging.info('Installing GCE packages.')
     g.command(
         ['wget', 'https://packages.cloud.google.com/apt/doc/apt-key.gpg',
         '-O', '/tmp/gce_key'])
@@ -89,7 +89,7 @@ def DistroSpecific(g):
   g.command(['update-grub2'])
 
   # Reset network for DHCP.
-  print 'Resetting network to DHCP for eth0.'
+  logging.info('Resetting network to DHCP for eth0.')
   g.write('/etc/network/interfaces', interfaces)
 
 
