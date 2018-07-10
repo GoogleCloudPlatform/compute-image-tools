@@ -1,22 +1,20 @@
-#!/bin/sh
-
 # Test that a shutdown script can run for at least 100 seconds
 
-PRIO="daemon.info"
-echo "TestStatus: waiting 10 seconds (00/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (10/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (20/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (30/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (40/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (50/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (60/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (70/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (80/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (90/100)"  | logger -p $PRIO; sleep 10
-echo "TestStatus: waiting 10 seconds (100/100)" | logger -p $PRIO
+Write-Host "TestStatus: waiting 10 seconds (00/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (10/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (20/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (30/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (40/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (50/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (60/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (70/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (80/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (90/100)"; Start-Sleep -s 10
+Write-Host "TestStatus: waiting 10 seconds (100/100)";
 
 # Finish the script by outputing it's hash, which is the SuccessMatch
-md5sum "${0}" | logger -p daemon.info
+$md5 = Get-FileHash $MyInvocation.MyCommand.Path -Algorithm MD5
+Write-Host $md5.Hash
 
 # Below, some random data only to increase entropy in case this file gets
 # corrupted.

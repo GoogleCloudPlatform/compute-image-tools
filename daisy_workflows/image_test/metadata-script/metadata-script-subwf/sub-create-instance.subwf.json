@@ -3,8 +3,10 @@
   "Vars": {
     "instance": {"Required": true, "Description": "The name of the instance to be created"},
     "source_image": {"Required": true, "Description": "Image to be tested"},
-    "startup-script-url": {"Description": "Startup script to create the instance (URL)"},
-    "shutdown-script-url": {"Description": "Shutdown script to create the instance (URL)"}
+    "startup-script-url": {"Description": "Linux startup script to create the instance (URL)"},
+    "shutdown-script-url": {"Description": "Linux shutdown script to create the instance (URL)"},
+    "windows-startup-script-url": {"Description": "Windows startup script to create the instance (URL)"},
+    "windows-shutdown-script-url": {"Description": "Windows shutdown script to create the instance (URL)"}
   },
   "Steps": {
     "create-disk": {
@@ -22,7 +24,9 @@
           "Disks": [{"Source": "disk-${instance}"}],
           "metadata": {
             "startup-script-url": "${startup-script-url}",
-            "shutdown-script-url": "${shutdown-script-url}"
+            "shutdown-script-url": "${shutdown-script-url}",
+            "windows-startup-script-url": "${windows-startup-script-url}",
+            "windows-shutdown-script-url": "${windows-shutdown-script-url}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_only"

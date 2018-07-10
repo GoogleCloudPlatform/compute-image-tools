@@ -1,7 +1,9 @@
 {
   "Name": "metadata-script-integrity-test",
   "Vars": {
-    "source_image": {"Required": true, "Description": "Image to be tested"}
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "startup_msg": {"Required": true, "Description": "Hash of startup script"},
+    "shutdown_msg": {"Required": true, "Description": "Hash of shutdown script"}
   },
   "Steps": {
     "test-metadata-script-integrity": {
@@ -12,8 +14,10 @@
             "instance_tag": "integrity",
             "startup-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-startup-hash.sh",
             "shutdown-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-shutdown-hash.sh",
-            "startup_msg": "631efd12afdf1460ad5f236fe272dccb",
-            "shutdown_msg": "cfcddad49687cb301ffb029a5b418866"
+            "windows-startup-script-ps1": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-startup-hash.ps1",
+            "windows-shutdown-script-ps1": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-shutdown-hash.ps1",
+            "startup_msg": "${startup_msg}",
+            "shutdown_msg": "${shutdown_msg}"
         }
       }
     }

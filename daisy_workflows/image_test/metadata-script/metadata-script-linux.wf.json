@@ -1,0 +1,22 @@
+{
+  "Name": "metadata-script-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"}
+  },
+  "Steps": {
+    "test-metadata-script": {
+      "IncludeWorkflow": {
+        "Path": "./metadata-script.subwf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "startup_hash": "631efd12afdf1460ad5f236fe272dccb",
+            "shutdown_hash": "452bc222517c6f77dc1040da134eb9b7",
+            "startup_msg": "startup-script: INFO Found startup-script-url in metadata.",
+            "shutdown_msg": "shutdown-script: INFO Found shutdown-script-url in metadata.",
+            "no_startup_msg": "startup-script: INFO No startup scripts found in metadata.",
+            "no_shutdown_msg": "shutdown-script: INFO No shutdown scripts found in metadata."
+        }
+      }
+    }
+  }
+}

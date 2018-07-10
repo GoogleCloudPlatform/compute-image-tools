@@ -1,7 +1,9 @@
 {
   "Name": "metadata-script-junk-test",
   "Vars": {
-    "source_image": {"Required": true, "Description": "Image to be tested"}
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "startup_msg": {"Required": true, "Description": "Startup script message to be verified"},
+    "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"}
   },
   "Steps": {
     "test-metadata-script-junk": {
@@ -10,10 +12,12 @@
         "Vars": {
             "source_image": "${source_image}",
             "instance_tag": "junk",
-            "startup-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.sh",
-            "shutdown-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.sh",
-            "startup_msg": "startup-script: INFO Found startup-script-url in metadata.",
-            "shutdown_msg": "shutdown-script: INFO Found shutdown-script-url in metadata."
+            "startup-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
+            "shutdown-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
+            "windows-startup-script-ps1": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
+            "windows-shutdown-script-ps1": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
+            "startup_msg": "${startup_msg}",
+            "shutdown_msg": "${shutdown_msg}"
         }
       }
     }

@@ -5,8 +5,10 @@
     "instance_tag": {"Required": true, "Description": "Tag name to be used on instance name"},
     "startup_msg": {"Required": true, "Description": "The message to wait when the instance starts up"},
     "shutdown_msg": {"Required": true, "Description": "The message to wait when the instance shuts down"},
-    "startup-script-url": {"Description": "Startup script to create the instance (URL)"},
-    "shutdown-script-url": {"Description": "Shutdown script to create the instance (URL)"}
+    "startup-script-url": {"Description": "Linux startup script to create the instance (URL)"},
+    "shutdown-script-url": {"Description": "Linux shutdown script to create the instance (URL)"},
+    "windows-startup-script-url": {"Description": "Windows startup script to create the instance (URL)"},
+    "windows-shutdown-script-url": {"Description": "Windows shutdown script to create the instance (URL)"}
   },
   "Steps": {
     "test-create-instance": {
@@ -16,7 +18,9 @@
             "source_image": "${source_image}",
             "instance": "inst-metadata-scripts-${instance_tag}",
             "startup-script-url": "${startup-script-url}",
-            "shutdown-script-url": "${shutdown-script-url}"
+            "shutdown-script-url": "${shutdown-script-url}",
+            "windows-startup-script-url": "${windows-startup-script-url}",
+            "windows-shutdown-script-url": "${windows-shutdown-script-url}"
         }
       }
     },
