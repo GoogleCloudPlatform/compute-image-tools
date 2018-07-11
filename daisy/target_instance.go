@@ -71,7 +71,7 @@ func (ti *TargetInstance) MarshalJSON() ([]byte, error) {
 
 func (ti *TargetInstance) populate(ctx context.Context, s *Step) dErr {
 	var errs dErr
-	ti.Name, ti.Zone, errs = ti.Resource.populate(ctx, s, ti.Name, ti.Zone)
+	ti.Name, ti.Zone, errs = ti.Resource.populateWithZone(ctx, s, ti.Name, ti.Zone)
 
 	if instanceURLRgx.MatchString(ti.Instance) {
 		ti.Instance = extendPartialURL(ti.Instance, ti.Project)

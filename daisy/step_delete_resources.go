@@ -29,11 +29,12 @@ import (
 
 // DeleteResources deletes GCE/GCS resources.
 type DeleteResources struct {
-	Disks     []string `json:",omitempty"`
-	Images    []string `json:",omitempty"`
-	Instances []string `json:",omitempty"`
-	Networks  []string `json:",omitempty"`
-	GCSPaths  []string `json:",omitempty"`
+	Disks       []string `json:",omitempty"`
+	Images      []string `json:",omitempty"`
+	Instances   []string `json:",omitempty"`
+	Networks    []string `json:",omitempty"`
+	Subnetworks []string `json:",omitempty"`
+	GCSPaths    []string `json:",omitempty"`
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
@@ -55,6 +56,11 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
 	for i, network := range d.Networks {
 		if networkURLRegex.MatchString(network) {
 			d.Networks[i] = extendPartialURL(network, s.w.Project)
+		}
+	}
+	for i, subnetwork := range d.Subnetworks {
+		if subnetworkURLRegex.MatchString(subnetwork) {
+			d.Subnetworks[i] = extendPartialURL(subnetwork, s.w.Project)
 		}
 	}
 	return nil
@@ -124,6 +130,13 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 		}
 	}
 
+	// Subnetwork checking.
+	for _, sn := range d.Subnetworks {
+		if err := s.w.subnetworks.regDelete(sn, s); d.checkError(err, s) != nil {
+			return err
+		}
+	}
+
 	// GCS path checking
 	for _, p := range d.GCSPaths {
 		bkt, _, err := splitGCSPath(p)
@@ -171,6 +184,25 @@ func recursiveGCSDelete(ctx context.Context, w *Workflow, bkt, prefix string) dE
 		}
 	}
 	return nil
+}
+
+// Waits for the whole group to run. Monitors for error and cancels.
+// Returns true if error should be raised, false otherwise.
+func waitGroup(wg *sync.WaitGroup, e chan dErr, w *Workflow) (bool, dErr) {
+	go func() {
+		wg.Wait()
+		e <- nil
+	}()
+
+	select {
+	case err := <-e:
+		if err != nil {
+			return true, err
+		}
+	case <-w.Cancel:
+		return true, nil
+	}
+	return false, nil
 }
 
 func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
@@ -234,18 +266,8 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		}(p)
 	}
 
-	go func() {
-		wg.Wait()
-		e <- nil
-	}()
-
-	select {
-	case err := <-e:
-		if err != nil {
-			return err
-		}
-	case <-w.Cancel:
-		return nil
+	if abort, ret := waitGroup(&wg, e, w); abort {
+		return ret
 	}
 
 	// Delete disks only after instances have been deleted.
@@ -265,7 +287,26 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		}(d)
 	}
 
-	// Delete disks after instances.
+	// Delete subnetworks after instances.
+	for _, sn := range d.Subnetworks {
+		wg.Add(1)
+		go func(sn string) {
+			defer wg.Done()
+			w.LogStepInfo(s.name, "DeleteResources", "Deleting subnetwork %q.", sn)
+			if err := w.subnetworks.delete(sn); err != nil {
+				if err.Type() == resourceDNEError {
+					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting subnetwork %q: %v", sn, err)
+				}
+				e <- err
+			}
+		}(sn)
+	}
+
+	if abort, ret := waitGroup(&wg, e, w); abort {
+		return ret
+	}
+
+	// Delete networks after subnetworks have been deleted
 	for _, n := range d.Networks {
 		wg.Add(1)
 		go func(n string) {
@@ -280,15 +321,6 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 		}(n)
 	}
 
-	go func() {
-		wg.Wait()
-		e <- nil
-	}()
-
-	select {
-	case err := <-e:
-		return err
-	case <-w.Cancel:
-		return nil
-	}
+	_, ret := waitGroup(&wg, e, w)
+	return ret
 }

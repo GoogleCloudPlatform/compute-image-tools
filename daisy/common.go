@@ -119,6 +119,13 @@ func substitute(v reflect.Value, replacer *strings.Replacer) {
 	})
 }
 
+func getRegionFromZone(z string) string {
+	if z != "" {
+		return z[:len(z)-2]
+	}
+	return ""
+}
+
 // substituteSourceVars replaces source vars (${SOURCE:xxxx}) with the sources
 // content.
 func (w *Workflow) substituteSourceVars(ctx context.Context, v reflect.Value) dErr {

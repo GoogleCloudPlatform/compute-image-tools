@@ -73,14 +73,16 @@ var (
 	testWf             = "test-wf"
 	testProject        = "test-project"
 	testZone           = "test-zone"
-	testRegion         = "test-region"
+	testRegion         = "test-zo"
 	testDisk           = "test-disk"
 	testForwardingRule = "test-forwarding-rule"
+	testFirewallRule   = "test-firewall-rule"
 	testImage          = "test-image"
 	testInstance       = "test-instance"
 	testMachineType    = "test-machine-type"
 	testLicense        = "test-license"
 	testNetwork        = "test-network"
+	testSubnetwork     = "test-subnetwork"
 	testTargetInstance = "test-target-instance"
 	testFamily         = "test-family"
 	testGCSPath        = "gs://test-bucket"
@@ -170,6 +172,12 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 	c.ListZonesFn = func(_ string, _ ...daisyCompute.ListCallOption) ([]*compute.Zone, error) {
 		return []*compute.Zone{{Name: testZone}}, nil
 	}
+	c.ListFirewallRulesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Firewall, error) {
+		if p == testProject {
+			return []*compute.Firewall{{Name: testFirewallRule}}, nil
+		}
+		return []*compute.Firewall{{Name: testFirewallRule}}, nil
+	}
 	c.ListImagesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Image, error) {
 		if p == testProject {
 			return []*compute.Image{{Name: testImage}}, nil
@@ -209,6 +217,15 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return []*compute.Network{{Name: testNetwork}}, nil
 	}
+	c.ListSubnetworksFn = func(p, r string, _ ...daisyCompute.ListCallOption) ([]*compute.Subnetwork, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		if r != testRegion {
+			return nil, errors.New("bad region: " + r)
+		}
+		return []*compute.Subnetwork{{Name: testSubnetwork}}, nil
+	}
 	c.ListTargetInstancesFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.TargetInstance, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
@@ -217,6 +234,15 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, errors.New("bad zone: " + z)
 		}
 		return []*compute.TargetInstance{{Name: testTargetInstance}}, nil
+	}
+	c.CreateFirewallRuleFn = func(p string, i *compute.Firewall) error {
+		if p != testProject {
+			return errors.New("bad project: " + p)
+		}
+		if i.Name != testFirewallRule {
+			return errors.New("bad FirewallRule name: " + i.Name)
+		}
+		return nil
 	}
 	c.CreateImageFn = func(p string, i *compute.Image) error {
 		if p != testProject {
