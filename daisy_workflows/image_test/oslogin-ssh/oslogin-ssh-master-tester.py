@@ -211,15 +211,17 @@ def main():
   master_key_fingerprint = AddKeyOsLogin(MASTER_KEY + '.pub')
 
   # Execute tests
-  TestOsLogin(MM.INSTANCE_LEVEL)
-  TestOsLogin(MM.PROJECT_LEVEL)
-  TestMetadataWithOsLogin(MM.INSTANCE_LEVEL)
-  TestMetadataWithOsLogin(MM.PROJECT_LEVEL)
-  TestOsLoginFalseInInstance()
+  try:
+    TestOsLogin(MM.INSTANCE_LEVEL)
+    TestOsLogin(MM.PROJECT_LEVEL)
+    TestMetadataWithOsLogin(MM.INSTANCE_LEVEL)
+    TestMetadataWithOsLogin(MM.PROJECT_LEVEL)
+    TestOsLoginFalseInInstance()
 
   # Clean keys
-  MD.RemoveSshKey(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
-  RemoveKeyOsLogin(master_key_fingerprint)
+  finally:
+    MD.RemoveSshKey(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
+    RemoveKeyOsLogin(master_key_fingerprint)
 
 
 if __name__ == '__main__':
