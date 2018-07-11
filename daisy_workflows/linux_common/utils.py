@@ -90,15 +90,21 @@ def HttpGet(url, headers=None):
   return urllib2.urlopen(request).read()
 
 
-def GetMetadataParam(name, default_value=None, raise_on_not_found=False):
+def _GetMetadataParam(name, default_value=None, raise_on_not_found=None):
   try:
-    url = 'http://metadata.google.internal/computeMetadata/v1/instance/attributes/%s' % name
+    url = 'http://metadata.google.internal/computeMetadata/v1/instance/%s' % \
+        name
     return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
   except urllib2.HTTPError:
     if raise_on_not_found:
       raise ValueError('Metadata key "%s" not found' % name)
     else:
       return default_value
+
+
+def GetMetadataAttribute(name, default_value=None, raise_on_not_found=False):
+  return _GetMetadataParam('attributes/%s' % name, default_value,
+                           raise_on_not_found)
 
 
 def MountDisk(disk):
@@ -174,13 +180,6 @@ def RunTranslate(translate_func):
     logging.success('Translation finished.')
   except Exception as e:
     logging.error('error: %s', str(e))
-
-
-def GetMetadataParamBool(name, default_value):
-  value = GetMetadataParam(name, default_value)
-  if not value:
-    return False
-  return True if value.lower() == 'yes' else False
 
 
 def MakeExecutable(file_path):
@@ -339,7 +338,7 @@ class LogFormatter(logging.Formatter):
   formatters = {}
 
   def __init__(self):
-    prefix = GetMetadataParam('prefix', default_value='')
+    prefix = GetMetadataAttribute('prefix', default_value='')
     prefix_level = {
         logging.DEBUG: '%sDebug: ' % prefix,
         logging.INFO: '%sStatus: ' % prefix,

@@ -29,8 +29,9 @@ utils.PipInstall(
 
 
 def main():
-  logs_path = utils.GetMetadataParam('daisy-logs-path', raise_on_not_found=True)
-  outs_path = utils.GetMetadataParam('daisy-outs-path', raise_on_not_found=True)
+  raise_on_not_found = True
+  logs_path = utils.GetMetadataAttribute('daisy-logs-path', raise_on_not_found)
+  outs_path = utils.GetMetadataAttribute('daisy-outs-path', raise_on_not_found)
 
   # Mount the installer disk.
   utils.Execute(['mount', '-t', 'ext4', '/dev/sdb1', '/mnt'])

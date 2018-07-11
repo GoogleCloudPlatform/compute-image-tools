@@ -33,15 +33,15 @@ import utils
 
 def main():
   # Get Parameters
-  repo = utils.GetMetadataParam('google_cloud_repo', raise_on_not_found=True)
-  release = utils.GetMetadataParam('el_release', raise_on_not_found=True)
-  savelogs = utils.GetMetadataParam('el_savelogs', raise_on_not_found=False)
+  repo = utils.GetMetadataAttribute('google_cloud_repo', raise_on_not_found=True)
+  release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
+  savelogs = utils.GetMetadataAttribute('el_savelogs', raise_on_not_found=False)
   savelogs = savelogs == 'true'
-  byol = utils.GetMetadataParam('rhel_byol', raise_on_not_found=False)
+  byol = utils.GetMetadataAttribute('rhel_byol', raise_on_not_found=False)
   byol = byol == 'true'
-  sap_hana = utils.GetMetadataParam('rhel_sap_hana', raise_on_not_found=False)
+  sap_hana = utils.GetMetadataAttribute('rhel_sap_hana', raise_on_not_found=False)
   sap_hana = sap_hana == 'true'
-  sap_apps = utils.GetMetadataParam('rhel_sap_apps', raise_on_not_found=False)
+  sap_apps = utils.GetMetadataAttribute('rhel_sap_apps', raise_on_not_found=False)
   sap_apps = sap_apps == 'true'
 
   logging.info('EL Release: %s' % release)
