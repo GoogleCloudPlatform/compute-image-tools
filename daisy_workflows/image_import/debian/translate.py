@@ -45,8 +45,8 @@ iface eth0 inet dhcp
 '''
 
 def DistroSpecific(g):
-  install_gce = utils.GetMetadataParam('install_gce_packages')
-  deb_release = utils.GetMetadataParam('debian_release')
+  install_gce = utils.GetMetadataAttribute('install_gce_packages')
+  deb_release = utils.GetMetadataAttribute('debian_release')
 
   if install_gce == 'true':
     logging.info('Installing GCE packages.')

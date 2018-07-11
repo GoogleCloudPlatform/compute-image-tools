@@ -98,8 +98,8 @@ source /etc/network/interfaces.d/*.cfg
 '''
 
 def DistroSpecific(g):
-  ubu_release = utils.GetMetadataParam('ubuntu_release')
-  install_gce = utils.GetMetadataParam('install_gce_packages')
+  ubu_release = utils.GetMetadataAttribute('ubuntu_release')
+  install_gce = utils.GetMetadataAttribute('install_gce_packages')
 
   # Remove any hard coded DNS settings in resolvconf.
   logging.info('Resetting resolvconf base.')

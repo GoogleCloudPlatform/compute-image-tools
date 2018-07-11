@@ -17,8 +17,7 @@
     "test_files/test.py": "./oslogin-ssh-master-tester.py",
     "test_files/utils.py": "../../linux_common/utils.py",
     "startup_master_tester": "../../linux_common/bootstrap.py",
-    "test_files/slave_tester.sh": "./oslogin_slave_tester.sh",
-    "startup_slave_tester": "./oslogin_slave_tester_startup.sh"
+    "slave_tester.sh": "./oslogin_slave_tester.sh"
   },
   "Steps": {
     "create-disk-master-tester": {
@@ -87,7 +86,7 @@
           "Name": "inst-oslogin-ssh-tester",
           "RealName": "inst-oslogin-ssh-tester-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-oslogin-ssh-tester"}],
-          "StartupScript": "startup_slave_tester",
+          "StartupScript": "slave_tester.sh",
           "ServiceAccounts": [{
             "Email": "${oslogin_service_account}",
             "Scopes": [
@@ -104,7 +103,7 @@
           "Name": "inst-osadminlogin-ssh-tester",
           "RealName": "inst-osadminlogin-ssh-tester-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-osadminlogin-ssh-tester"}],
-          "StartupScript": "startup_slave_tester",
+          "StartupScript": "slave_tester.sh",
           "ServiceAccounts": [{
             "Email": "${osadminlogin_service_account}",
             "Scopes": [
