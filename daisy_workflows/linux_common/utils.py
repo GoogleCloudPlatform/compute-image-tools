@@ -16,6 +16,7 @@
 """Utility functions for all VM scripts."""
 
 import functools
+import json
 import logging
 import os
 import re
@@ -105,6 +106,36 @@ def _GetMetadataParam(name, default_value=None, raise_on_not_found=None):
 def GetMetadataAttribute(name, default_value=None, raise_on_not_found=False):
   return _GetMetadataParam('attributes/%s' % name, default_value,
                            raise_on_not_found)
+
+
+def GetCurrentLoginProfileUsername(user_lib, unique_id_user):
+  """
+  Equivalent of calling the gcloud equivalent:
+
+  gcloud compute os-login describe-profile --format \
+      value\(posixAccounts.username\)
+
+  Parameter:
+  Args:
+    user_lib: object, from GetOslogin().users()
+  Returns:
+    string, username like 'sa_101330816214789148073'
+  """
+  login_info = user_lib.getLoginProfile(name=unique_id_user).execute()
+  return login_info[u'posixAccounts'][0][u'username']
+
+
+def GetServiceAccountUniqueIDUser():
+  """
+  Retrieves unique ID for the user in format `users/{user}`.
+  Used for retrieving LoginProfile and oslogin ssh key's operations
+
+  Returns:
+    string, unique id for the user.
+  """
+  s = _GetMetadataParam('service-accounts/default/?recursive=True')
+  service_info = json.loads(s)
+  return 'users/' + service_info['email']
 
 
 def MountDisk(disk):
@@ -288,6 +319,20 @@ def GetCompute(discovery, credentials):
   """
   compute = discovery.build('compute', 'v1', credentials=credentials)
   return compute
+
+
+def GetOslogin(discovery, credentials):
+  """Get google os-login api cli object.
+
+  Args:
+    discovery: object, from googleapiclient.
+    credentials: object, from google.auth.
+
+  Returns:
+    oslogin: object, the google oslogin api object.
+  """
+  oslogin = discovery.build('oslogin', 'v1', credentials=credentials)
+  return oslogin
 
 
 def RunTest(test_func):
