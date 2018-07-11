@@ -40,4 +40,6 @@ script:
 
 # Setup
 
-No setup is needed.
+No setup is needed but please make sure to use either
+metadata-script-linux.wf.json or metadata-script-windows.wf.json as the other
+files are only subworkflows.

@@ -1,0 +1,44 @@
+{
+  "Name": "metadata-script-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "startup_hash": {"Required": true, "Description": "Hash of startup script"},
+    "shutdown_hash": {"Required": true, "Description": "Hash of shutdown script"},
+    "startup_msg": {"Required": true, "Description": "Startup script message to be verified when script exists"},
+    "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified when script exists"},
+    "no_startup_msg": {"Required": true, "Description": "Startup script message to be verified when script is missing"},
+    "no_shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified when script is missing"}
+  },
+  "Steps": {
+    "test-metadata-script-noscript": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-noscript.subwf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "startup_msg": "${no_startup_msg}",
+            "shutdown_msg": "${no_shutdown_msg}"
+        }
+      }
+    },
+    "test-metadata-script-junk": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-junk.subwf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "startup_msg": "${startup_msg}",
+            "shutdown_msg": "${shutdown_msg}"
+        }
+      }
+    },
+    "test-metadata-script-integrity": {
+      "SubWorkflow": {
+        "Path": "./metadata-script-integrity.subwf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "startup_msg": "${startup_hash}",
+            "shutdown_msg": "${shutdown_hash}"
+        }
+      }
+    }
+  }
+}

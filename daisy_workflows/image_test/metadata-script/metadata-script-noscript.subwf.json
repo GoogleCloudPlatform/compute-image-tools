@@ -1,7 +1,9 @@
 {
   "Name": "metadata-script-noscript-test",
   "Vars": {
-    "source_image": {"Required": true, "Description": "Image to be tested"}
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "startup_msg": {"Required": true, "Description": "Startup script message to be verified"},
+    "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"}
   },
   "Steps": {
     "test-metadata-script-noscript": {
@@ -10,8 +12,8 @@
         "Vars": {
             "source_image": "${source_image}",
             "instance_tag": "noscript",
-            "startup_msg": "startup-script: INFO No startup scripts found in metadata.",
-            "shutdown_msg": "shutdown-script: INFO No shutdown scripts found in metadata."
+            "startup_msg": "${startup_msg}",
+            "shutdown_msg": "${shutdown_msg}"
         }
       }
     }
