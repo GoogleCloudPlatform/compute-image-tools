@@ -47,14 +47,19 @@ type Resource struct {
 	users            []*Step
 }
 
-func (r *Resource) populate(ctx context.Context, s *Step, name, zone string) (string, string, dErr) {
+func (r *Resource) populateWithGlobal(ctx context.Context, s *Step, name string) (string, dErr) {
+	errs := r.populateHelper(ctx, s, name)
+	return r.RealName, errs
+}
+
+func (r *Resource) populateWithZone(ctx context.Context, s *Step, name, zone string) (string, string, dErr) {
 	errs := r.populateHelper(ctx, s, name)
 	return r.RealName, strOr(zone, s.w.Zone), errs
 }
 
 func (r *Resource) populateWithRegion(ctx context.Context, s *Step, name, region string) (string, string, dErr) {
 	errs := r.populateHelper(ctx, s, name)
-	return r.RealName, strOr(region, s.w.Zone[:len(s.w.Zone)-2]), errs
+	return r.RealName, strOr(region, getRegionFromZone(s.w.Zone)), errs
 }
 
 func (r *Resource) populateHelper(ctx context.Context, s *Step, name string) dErr {
@@ -143,12 +148,18 @@ func resourceExists(client compute.Client, url string) (bool, dErr) {
 	case networkURLRegex.MatchString(url):
 		result := namedSubexp(networkURLRegex, url)
 		return networkExists(client, result["project"], result["network"])
+	case subnetworkURLRegex.MatchString(url):
+		result := namedSubexp(subnetworkURLRegex, url)
+		return subnetworkExists(client, result["project"], result["region"], result["subnetwork"])
 	case targetInstanceURLRegex.MatchString(url):
 		result := namedSubexp(targetInstanceURLRegex, url)
 		return targetInstanceExists(client, result["project"], result["zone"], result["targetInstance"])
 	case forwardingRuleURLRegex.MatchString(url):
 		result := namedSubexp(forwardingRuleURLRegex, url)
 		return forwardingRuleExists(client, result["project"], result["region"], result["forwardingRule"])
+	case firewallRuleURLRegex.MatchString(url):
+		result := namedSubexp(firewallRuleURLRegex, url)
+		return firewallRuleExists(client, result["project"], result["firewallRule"])
 	}
 	return false, errf("unknown resource type: %q", url)
 }

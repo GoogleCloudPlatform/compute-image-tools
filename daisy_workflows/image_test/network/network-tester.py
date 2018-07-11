@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import urllib2
 
 
@@ -35,7 +36,7 @@ class RequestError(Exception):
 
 def GetHostname(addr, timeout=10):
   URL = "http://%s/hostname" % addr
-  print("Retrieving: %s" % URL)
+  logging.info('Retrieving: %s' % URL)
   return urllib2.urlopen(URL, None, timeout).read()
 
 

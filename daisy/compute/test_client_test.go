@@ -45,20 +45,26 @@ func TestTestClient(t *testing.T) {
 		}, ""},
 		{"attach disk", func() { c.AttachDisk("a", "b", "c", &compute.AttachedDisk{}) }, "/a/zones/b/instances/c/attachDisk?alt=json"},
 		{"create disk", func() { c.CreateDisk("a", "b", &compute.Disk{}) }, "/a/zones/b/disks?alt=json"},
+		{"create firewall rule", func() { c.CreateFirewallRule("a", &compute.Firewall{}) }, "/a/global/firewalls?alt=json"},
 		{"create image", func() { c.CreateImage("a", &compute.Image{}) }, "/a/global/images?alt=json"},
 		{"create instance", func() { c.CreateInstance("a", "b", &compute.Instance{}) }, "/a/zones/b/instances?alt=json"},
 		{"create network", func() { c.CreateNetwork("a", &compute.Network{}) }, "/a/global/networks?alt=json"},
+		{"create subnetwork", func() { c.CreateSubnetwork("a", "b", &compute.Subnetwork{}) }, "/a/regions/b/subnetworks?alt=json"},
 		{"instances start", func() { c.StartInstance("a", "b", "c") }, "/a/zones/b/instances/c/start?alt=json"},
 		{"instances stop", func() { c.StopInstance("a", "b", "c") }, "/a/zones/b/instances/c/stop?alt=json"},
 		{"delete disk", func() { c.DeleteDisk("a", "b", "c") }, "/a/zones/b/disks/c?alt=json"},
+		{"delete firewall rule", func() { c.DeleteFirewallRule("a", "b") }, "/a/global/firewalls/b?alt=json"},
 		{"delete image", func() { c.DeleteImage("a", "b") }, "/a/global/images/b?alt=json"},
 		{"delete instance", func() { c.DeleteInstance("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
 		{"delete network", func() { c.DeleteNetwork("a", "b") }, "/a/global/networks/b?alt=json"},
+		{"delete subnetwork", func() { c.DeleteSubnetwork("a", "b", "c") }, "/a/regions/b/subnetworks/c?alt=json"},
 		{"deprecate image", func() { c.DeprecateImage("a", "b", &compute.DeprecationStatus{}) }, "/a/global/images/b/deprecate?alt=json"},
 		{"get serial port", func() { c.GetSerialPortOutput("a", "b", "c", 1, 2) }, "/a/zones/b/instances/c/serialPort?alt=json&port=1&start=2"},
 		{"get project", func() { c.GetProject("a") }, "/a?alt=json"},
 		{"get machine type", func() { c.GetMachineType("a", "b", "c") }, "/a/zones/b/machineTypes/c?alt=json"},
 		{"list machine types", func() { c.ListMachineTypes("a", "b", listOpts...) }, "/a/zones/b/machineTypes?alt=json&filter=foo&orderBy=foo&pageToken="},
+		{"get firewall rule", func() { c.GetFirewallRule("a", "b") }, "/a/global/firewalls/b?alt=json"},
+		{"list firewall rules", func() { c.ListFirewallRules("a", listOpts...) }, "/a/global/firewalls?alt=json&filter=foo&orderBy=foo&pageToken="},
 		{"get zone", func() { c.GetZone("a", "b") }, "/a/zones/b?alt=json"},
 		{"list zones", func() { c.ListZones("a", listOpts...) }, "/a/zones?alt=json&filter=foo&orderBy=foo&pageToken="},
 		{"get instance", func() { c.GetInstance("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
@@ -69,6 +75,8 @@ func TestTestClient(t *testing.T) {
 		{"get license", func() { c.GetLicense("a", "b") }, "/a/global/licenses/b?alt=json"},
 		{"get network", func() { c.GetNetwork("a", "b") }, "/a/global/networks/b?alt=json"},
 		{"list networks", func() { c.ListNetworks("a", listOpts...) }, "/a/global/networks?alt=json&filter=foo&orderBy=foo&pageToken="},
+		{"get subnetwork", func() { c.GetSubnetwork("a", "b", "c") }, "/a/regions/b/subnetworks/c?alt=json"},
+		{"list subnetworks", func() { c.ListSubnetworks("a", "b", listOpts...) }, "/a/regions/b/subnetworks?alt=json&filter=foo&orderBy=foo&pageToken="},
 		{"get disk", func() { c.GetDisk("a", "b", "c") }, "/a/zones/b/disks/c?alt=json"},
 		{"list disks", func() { c.ListDisks("a", "b", listOpts...) }, "/a/zones/b/disks?alt=json&filter=foo&orderBy=foo&pageToken="},
 		{"instance status", func() { c.InstanceStatus("a", "b", "c") }, "/a/zones/b/instances/c?alt=json"},
@@ -109,15 +117,19 @@ func TestTestClient(t *testing.T) {
 	}
 	c.AttachDiskFn = func(_, _, _ string, _ *compute.AttachedDisk) error { fakeCalled = true; return nil }
 	c.CreateDiskFn = func(_, _ string, _ *compute.Disk) error { fakeCalled = true; return nil }
+	c.CreateFirewallRuleFn = func(_ string, _ *compute.Firewall) error { fakeCalled = true; return nil }
 	c.CreateImageFn = func(_ string, _ *compute.Image) error { fakeCalled = true; return nil }
 	c.CreateInstanceFn = func(_, _ string, _ *compute.Instance) error { fakeCalled = true; return nil }
 	c.CreateNetworkFn = func(_ string, _ *compute.Network) error { fakeCalled = true; return nil }
+	c.CreateSubnetworkFn = func(_, _ string, _ *compute.Subnetwork) error { fakeCalled = true; return nil }
 	c.StartInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.StopInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeleteDiskFn = func(_, _, _ string) error { fakeCalled = true; return nil }
+	c.DeleteFirewallRuleFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.DeleteImageFn = func(_, _ string) error { fakeCalled = true; return nil }
 	c.DeleteInstanceFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeleteNetworkFn = func(_, _ string) error { fakeCalled = true; return nil }
+	c.DeleteSubnetworkFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.DeprecateImageFn = func(_, _ string, _ *compute.DeprecationStatus) error { fakeCalled = true; return nil }
 	c.GetSerialPortOutputFn = func(_, _, _ string, _, _ int64) (*compute.SerialPortOutput, error) {
 		fakeCalled = true
@@ -126,6 +138,11 @@ func TestTestClient(t *testing.T) {
 	c.GetProjectFn = func(_ string) (*compute.Project, error) { fakeCalled = true; return nil, nil }
 	c.GetZoneFn = func(_, _ string) (*compute.Zone, error) { fakeCalled = true; return nil, nil }
 	c.ListZonesFn = func(_ string, _ ...ListCallOption) ([]*compute.Zone, error) {
+		fakeCalled = true
+		return nil, nil
+	}
+	c.GetFirewallRuleFn = func(_, _ string) (*compute.Firewall, error) { fakeCalled = true; return nil, nil }
+	c.ListFirewallRulesFn = func(_ string, _ ...ListCallOption) ([]*compute.Firewall, error) {
 		fakeCalled = true
 		return nil, nil
 	}
@@ -148,6 +165,11 @@ func TestTestClient(t *testing.T) {
 	c.GetLicenseFn = func(_, _ string) (*compute.License, error) { fakeCalled = true; return nil, nil }
 	c.GetNetworkFn = func(_, _ string) (*compute.Network, error) { fakeCalled = true; return nil, nil }
 	c.ListNetworksFn = func(_ string, _ ...ListCallOption) ([]*compute.Network, error) {
+		fakeCalled = true
+		return nil, nil
+	}
+	c.GetSubnetworkFn = func(_, _, _ string) (*compute.Subnetwork, error) { fakeCalled = true; return nil, nil }
+	c.ListSubnetworksFn = func(_, _ string, _ ...ListCallOption) ([]*compute.Subnetwork, error) {
 		fakeCalled = true
 		return nil, nil
 	}

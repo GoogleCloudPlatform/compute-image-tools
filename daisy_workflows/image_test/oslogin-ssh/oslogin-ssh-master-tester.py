@@ -15,6 +15,7 @@
 
 from google import auth
 from googleapiclient import discovery
+import datetime
 import utils
 
 MM = utils.MetadataManager
@@ -24,6 +25,8 @@ OSLOGIN_TESTER = None
 OSADMINLOGIN_TESTER = None
 TESTEE = None
 TESTER_SH = 'slave_tester.sh'
+OSLOGIN_USERS_LIB = None
+UNIQUE_ID_USER = None
 
 
 def MasterExecuteInSsh(machine, commands, expect_fail=False):
@@ -153,25 +156,31 @@ def TestOsLoginFalseInInstance():
   MD.TestSshLogin(tester_key, expect_fail=True)
 
 
-def GetCurrentUsername():
-  # TODO: replace gcloud usage by python CLI
-  _, username = utils.Execute(
-      ['gcloud', 'compute', 'os-login', 'describe-profile',
-       '--format', 'value(posixAccounts.username)'], capture_output=True)
-  return username.strip()
-
-
 def AddKeyOsLogin(key):
-  # TODO: replace gcloud usage by python CLI
-  utils.Execute(
-      ['gcloud', 'compute', 'os-login', 'ssh-keys', 'add', '--key-file', key])
+  """Returns the key fingerprint for using later to remove it"""
+  key = open(key).read()
+
+  # Microseconds since epoch + 30 minutes from now
+  expire_obj = datetime.datetime.now() + datetime.timedelta(minutes=30)
+  expire_str = '%d' % (int(expire_obj.strftime("%s")) * 1000000)
+
+  body = {'key': key, 'expirationTimeUsec': expire_str}
+  request = OSLOGIN_USERS_LIB.importSshPublicKey(parent=UNIQUE_ID_USER,
+                                                 body=body)
+  response = request.execute()
+  keys = response[u'loginProfile'][u'sshPublicKeys']
+
+  # retrieves the fingerprint of the added key
+  for k_dict in keys.values():
+    if k_dict[u'key'] == key:
+      return k_dict[u'fingerprint']
+
+  raise Exception('Added key not found on existing keys: %s' % key)
 
 
-def RemoveKeyOsLogin(key):
-  # TODO: replace gcloud usage by python CLI
-  utils.Execute(
-      ['gcloud', 'compute', 'os-login', 'ssh-keys', 'remove', '--key-file',
-       key])
+def RemoveKeyOsLogin(fingerprint):
+  name = '%s/sshPublicKeys/%s' % (UNIQUE_ID_USER, fingerprint)
+  OSLOGIN_USERS_LIB.sshPublicKeys().delete(name=name).execute()
 
 
 def main():
@@ -180,13 +189,19 @@ def main():
   global OSLOGIN_TESTER
   global OSADMINLOGIN_TESTER
   global TESTEE
+  global OSLOGIN_USERS_LIB
+  global UNIQUE_ID_USER
 
   TESTEE = MM.FetchMetadataDefault('testee')
   OSLOGIN_TESTER = MM.FetchMetadataDefault('osLoginTester')
   OSADMINLOGIN_TESTER = MM.FetchMetadataDefault('osAdminLoginTester')
-  username = GetCurrentUsername()
   credentials, _ = auth.default()
+  OSLOGIN_USERS_LIB = utils.GetOslogin(discovery, credentials).users()
+  UNIQUE_ID_USER = utils.GetServiceAccountUniqueIDUser()
+  username = utils.GetCurrentLoginProfileUsername(OSLOGIN_USERS_LIB,
+                                                  UNIQUE_ID_USER)
   compute = utils.GetCompute(discovery, credentials)
+
   MD = MM(compute, TESTEE, username)
   SetEnableOsLogin(None, MM.PROJECT_LEVEL)
   SetEnableOsLogin(None, MM.INSTANCE_LEVEL)
@@ -199,18 +214,20 @@ def main():
 
   # Add key in Metadata and in OsLogin to allow access peers in both modes
   MASTER_KEY = MD.AddSshKey(MM.SSH_KEYS, MM.PROJECT_LEVEL)
-  AddKeyOsLogin(MASTER_KEY + '.pub')
+  master_key_fingerprint = AddKeyOsLogin(MASTER_KEY + '.pub')
 
   # Execute tests
-  TestOsLogin(MM.INSTANCE_LEVEL)
-  TestOsLogin(MM.PROJECT_LEVEL)
-  TestMetadataWithOsLogin(MM.INSTANCE_LEVEL)
-  TestMetadataWithOsLogin(MM.PROJECT_LEVEL)
-  TestOsLoginFalseInInstance()
+  try:
+    TestOsLogin(MM.INSTANCE_LEVEL)
+    TestOsLogin(MM.PROJECT_LEVEL)
+    TestMetadataWithOsLogin(MM.INSTANCE_LEVEL)
+    TestMetadataWithOsLogin(MM.PROJECT_LEVEL)
+    TestOsLoginFalseInInstance()
 
   # Clean keys
-  MD.RemoveSshKey(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
-  RemoveKeyOsLogin(MASTER_KEY + '.pub')
+  finally:
+    MD.RemoveSshKey(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
+    RemoveKeyOsLogin(master_key_fingerprint)
 
 
 if __name__ == '__main__':

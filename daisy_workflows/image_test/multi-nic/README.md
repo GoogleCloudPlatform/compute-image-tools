@@ -12,11 +12,4 @@ slave instance).
 
 # Setup
 
-By default, this test assumes that 3 network exists on your project:
-
-- "multi-nic-test-network-1" with a subnetwork "a"
-- "multi-nic-test-network-2" with a subnetwork "b"
-- "multi-nic-test-network-3" with a subnetwork "c"
-
-If another naming is used, change the variables "network_1", "subnetwork_1", "network_2",
-"subnetwork_2", "common_network" and "common_subnetwork".
+No setup is needed.

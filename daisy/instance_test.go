@@ -219,8 +219,26 @@ func TestInstancePopulateNetworks(t *testing.T) {
 		desc        string
 		input, want []*compute.NetworkInterface
 	}{
-		{"default case", nil, []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/default", testProject), AccessConfigs: defaultAcs}}},
-		{"default AccessConfig case", []*compute.NetworkInterface{{Network: "global/networks/foo"}}, []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/foo", testProject), AccessConfigs: defaultAcs}}},
+		{
+			"default case",
+			nil,
+			[]*compute.NetworkInterface{{
+				Network:       fmt.Sprintf("projects/%s/global/networks/default", testProject),
+				AccessConfigs: defaultAcs,
+			}},
+		},
+		{
+			"default AccessConfig case",
+			[]*compute.NetworkInterface{{
+				Network:    "global/networks/foo",
+				Subnetwork: fmt.Sprintf("regions/%s/subnetworks/bar", getRegionFromZone(testZone)),
+			}},
+			[]*compute.NetworkInterface{{
+				Network:       fmt.Sprintf("projects/%s/global/networks/foo", testProject),
+				AccessConfigs: defaultAcs,
+				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
+			}},
+		},
 	}
 
 	for _, tt := range tests {

@@ -89,9 +89,9 @@ terminal --timeout=0 serial console
 
 
 def DistroSpecific(g):
-  el_release = utils.GetMetadataParam('el_release')
-  install_gce = utils.GetMetadataParam('install_gce_packages')
-  rhel_license = utils.GetMetadataParam('use_rhel_gce_license')
+  el_release = utils.GetMetadataAttribute('el_release')
+  install_gce = utils.GetMetadataAttribute('install_gce_packages')
+  rhel_license = utils.GetMetadataAttribute('use_rhel_gce_license')
 
   if rhel_license == 'true':
     if 'Red Hat' in g.cat('/etc/redhat-release'):

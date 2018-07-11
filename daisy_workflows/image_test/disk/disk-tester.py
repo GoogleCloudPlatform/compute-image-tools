@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import time
 
 from google import auth
@@ -38,7 +39,7 @@ def TestDiskAttach(testee, removable_disk):
 
   # should detect a second disk
   utils.ExecuteInSsh(KEY, MD.ssh_user, testee, CHECK_SDB_COMMAND)
-  print("DiskAttached")
+  logging.info('DiskAttached')
 
 
 def TestDiskDetach(testee, removable_disk):
@@ -49,7 +50,7 @@ def TestDiskDetach(testee, removable_disk):
   # second disk should not be available anymore
   utils.ExecuteInSsh(KEY, MD.ssh_user, testee, CHECK_SDB_COMMAND,
       expect_fail=True)
-  print("DiskDetached")
+  logging.info('DiskDetached')
 
 
 def TestDiskResize(testee, testee_disk):
@@ -61,7 +62,7 @@ def TestDiskResize(testee, testee_disk):
     time.sleep(5)
 
   MD.Wait(MD.ResizeDiskGb(testee_disk, 2049))
-  print("DiskResized")
+  logging.info('DiskResized')
 
 
 def main():

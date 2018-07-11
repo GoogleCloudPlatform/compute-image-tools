@@ -15,27 +15,25 @@
 
 """Saves the build logs and synopsis files to GCS from an EL install."""
 
+import logging
 import os
 
 import utils
 
-utils.AptGetInstall(
-    ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
-     'python-yaml'])
-utils.PipInstall(
-    ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32',
-    'google-cloud-storage'])
+utils.AptGetInstall(['python-pip'])
+utils.PipInstall(['google-cloud-storage'])
 
 
 def main():
-  logs_path = utils.GetMetadataParam('daisy-logs-path', raise_on_not_found=True)
-  outs_path = utils.GetMetadataParam('daisy-outs-path', raise_on_not_found=True)
+  raise_on_not_found = True
+  logs_path = utils.GetMetadataAttribute('daisy-logs-path', raise_on_not_found)
+  outs_path = utils.GetMetadataAttribute('daisy-outs-path', raise_on_not_found)
 
   # Mount the installer disk.
   utils.Execute(['mount', '-t', 'ext4', '/dev/sdb1', '/mnt'])
 
-  utils.LogStatus('Installer root: %s' % os.listdir('/mnt'))
-  utils.LogStatus('Build logs: %s' % os.listdir('/mnt/build-logs'))
+  logging.info('Installer root: %s' % os.listdir('/mnt'))
+  logging.info('Build logs: %s' % os.listdir('/mnt/build-logs'))
 
   utils.UploadFile('/mnt/ks.cfg', '%s/' % logs_path)
   directory = '/mnt/build-logs'
@@ -50,6 +48,6 @@ def main():
 if __name__ == '__main__':
   try:
     main()
-    utils.LogSuccess('Build logs successfully saved.')
-  except Exception:
-    utils.LogFail('Failed to save build logs.')
+    logging.success('Build logs successfully saved.')
+  except Exception as e:
+    logging.error('Failed to save build logs: %s.' % e)

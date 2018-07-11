@@ -15,9 +15,9 @@
 
 """Kickstart helper functions used to build kickstart files."""
 
+import logging
 import os
 
-import utils
 
 class RepoString(object):
   """Creates a yum.conf repository section statement for a kickstart file.
@@ -184,11 +184,11 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
   ks_packages = FetchConfigPart('common-packages.cfg')
   # For BYOL RHEL, don't remove subscription-manager.
   if byol:
-    utils.LogStatus('Building RHEL BYOL image.')
+    logging.info('Building RHEL BYOL image.')
     rhel_byol_post = FetchConfigPart('rhel-byol-post.cfg')
 
   if release == 'rhel6':
-    utils.LogStatus('Building RHEL 6 image.')
+    logging.info('Building RHEL 6 image.')
     ks_options = FetchConfigPart('el6-options.cfg')
     custom_post = FetchConfigPart('el6-post.cfg')
     if byol:
@@ -196,45 +196,45 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "centos6":
-    utils.LogStatus('Building CentOS 6 image.')
+    logging.info('Building CentOS 6 image.')
     ks_options = FetchConfigPart('el6-options.cfg')
     custom_post = FetchConfigPart('co6-post.cfg')
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "rhel7":
-    utils.LogStatus('Building RHEL 7 image.')
+    logging.info('Building RHEL 7 image.')
     ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('el7-post.cfg')
     if byol:
       custom_post = '\n'.join([custom_post, rhel_byol_post])
     elif sap_hana:
-      utils.LogStatus('Building RHEL 7 for SAP Hana')
+      logging.info('Building RHEL 7 for SAP Hana')
       custom_post = FetchConfigPart('rhel7-sap-hana-post.cfg')
     elif sap_apps:
-      utils.LogStatus('Building RHEL 7 for SAP Apps')
+      logging.info('Building RHEL 7 for SAP Apps')
       custom_post = FetchConfigPart('rhel7-sap-apps-post.cfg')
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
-    utils.LogStatus('Building CentOS 7 image.')
+    logging.info('Building CentOS 7 image.')
     ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('co7-post.cfg')
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "oraclelinux6":
-    utils.LogStatus('Building Oracle Linux 6 image.')
+    logging.info('Building Oracle Linux 6 image.')
     ks_options = FetchConfigPart('el6-options.cfg')
     custom_post = FetchConfigPart('ol6-post.cfg')
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "oraclelinux7":
-    utils.LogStatus('Building Oracle Linux 7 image.')
+    logging.info('Building Oracle Linux 7 image.')
     ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('ol7-post.cfg')
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   else:
-    utils.LogFail('Unknown Image Name: %s' % release)
+    logging.error('Unknown Image Name: %s' % release)
 
   ks_post = BuildPost(custom_post, cleanup, repo_version, google_cloud_repo)
 
