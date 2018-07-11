@@ -45,9 +45,11 @@ type Step struct {
 	AttachDisks            *AttachDisks            `json:",omitempty"`
 	CreateDisks            *CreateDisks            `json:",omitempty"`
 	CreateForwardingRules  *CreateForwardingRules  `json:",omitempty"`
+	CreateFirewallRules    *CreateFirewallRules    `json:",omitempty"`
 	CreateImages           *CreateImages           `json:",omitempty"`
 	CreateInstances        *CreateInstances        `json:",omitempty"`
 	CreateNetworks         *CreateNetworks         `json:",omitempty"`
+	CreateSubnetworks      *CreateSubnetworks      `json:",omitempty"`
 	CreateTargetInstances  *CreateTargetInstances  `json:",omitempty"`
 	CopyGCSObjects         *CopyGCSObjects         `json:",omitempty"`
 	StartInstances         *StartInstances         `json:",omitempty"`
@@ -76,6 +78,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 		matchCount++
 		result = s.CreateForwardingRules
 	}
+	if s.CreateFirewallRules != nil {
+		matchCount++
+		result = s.CreateFirewallRules
+	}
 	if s.CreateImages != nil {
 		matchCount++
 		result = s.CreateImages
@@ -87,6 +93,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 	if s.CreateNetworks != nil {
 		matchCount++
 		result = s.CreateNetworks
+	}
+	if s.CreateSubnetworks != nil {
+		matchCount++
+		result = s.CreateSubnetworks
 	}
 	if s.CreateTargetInstances != nil {
 		matchCount++

@@ -115,6 +115,9 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 				if netRes, ok := w.networks.get(n.Network); ok {
 					n.Network = netRes.link
 				}
+				if subnetRes, ok := w.subnetworks.get(n.Subnetwork); ok {
+					n.Subnetwork = subnetRes.link
+				}
 			}
 
 			w.LogStepInfo(s.name, "CreateInstances", "Creating instance %q.", i.Name)

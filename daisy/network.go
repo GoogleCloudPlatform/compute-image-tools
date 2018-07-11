@@ -69,7 +69,7 @@ func (n *Network) MarshalJSON() ([]byte, error) {
 
 func (n *Network) populate(ctx context.Context, s *Step) dErr {
 	var errs dErr
-	n.Name, _, errs = n.Resource.populate(ctx, s, n.Name, "")
+	n.Name, errs = n.Resource.populateWithGlobal(ctx, s, n.Name)
 
 	n.Description = strOr(n.Description, defaultDescription("Network", s.w.Name, s.w.username))
 	n.link = fmt.Sprintf("projects/%s/global/networks/%s", n.Project, n.Name)

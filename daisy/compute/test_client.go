@@ -50,17 +50,21 @@ type TestClient struct {
 	AttachDiskFn                func(project, zone, instance string, d *compute.AttachedDisk) error
 	CreateDiskFn                func(project, zone string, d *compute.Disk) error
 	CreateForwardingRuleFn      func(project, region string, fr *compute.ForwardingRule) error
+	CreateFirewallRuleFn        func(project string, i *compute.Firewall) error
 	CreateImageFn               func(project string, i *compute.Image) error
 	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn             func(project string, n *compute.Network) error
+	CreateSubnetworkFn          func(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstanceFn      func(project, zone string, ti *compute.TargetInstance) error
 	StartInstanceFn             func(project, zone, name string) error
 	StopInstanceFn              func(project, zone, name string) error
 	DeleteDiskFn                func(project, zone, name string) error
 	DeleteForwardingRuleFn      func(project, region, name string) error
+	DeleteFirewallRuleFn        func(project, name string) error
 	DeleteImageFn               func(project, name string) error
 	DeleteInstanceFn            func(project, zone, name string) error
 	DeleteNetworkFn             func(project, name string) error
+	DeleteSubnetworkFn          func(project, region, name string) error
 	DeleteTargetInstanceFn      func(project, zone, name string) error
 	DeprecateImageFn            func(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineTypeFn            func(project, zone, machineType string) (*compute.MachineType, error)
@@ -75,12 +79,16 @@ type TestClient struct {
 	ListDisksFn                 func(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	GetForwardingRuleFn         func(project, region, name string) (*compute.ForwardingRule, error)
 	ListForwardingRulesFn       func(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
+	GetFirewallRuleFn           func(project, name string) (*compute.Firewall, error)
+	ListFirewallRulesFn         func(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
 	GetImageFn                  func(project, name string) (*compute.Image, error)
 	GetImageFromFamilyFn        func(project, family string) (*compute.Image, error)
 	ListImagesFn                func(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	GetLicenseFn                func(project, name string) (*compute.License, error)
 	GetNetworkFn                func(project, name string) (*compute.Network, error)
 	ListNetworksFn              func(project string, opts ...ListCallOption) ([]*compute.Network, error)
+	GetSubnetworkFn             func(project, region, name string) (*compute.Subnetwork, error)
+	ListSubnetworksFn           func(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	GetTargetInstanceFn         func(project, zone, name string) (*compute.TargetInstance, error)
 	ListTargetInstancesFn       func(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	InstanceStatusFn            func(project, zone, name string) (string, error)
@@ -126,6 +134,14 @@ func (c *TestClient) CreateForwardingRule(project, region string, fr *compute.Fo
 	return c.client.CreateForwardingRule(project, region, fr)
 }
 
+// CreateFirewallRule uses the override method CreateFirewallRuleFn or the real implementation.
+func (c *TestClient) CreateFirewallRule(project string, i *compute.Firewall) error {
+	if c.CreateFirewallRuleFn != nil {
+		return c.CreateFirewallRuleFn(project, i)
+	}
+	return c.client.CreateFirewallRule(project, i)
+}
+
 // CreateImage uses the override method CreateImageFn or the real implementation.
 func (c *TestClient) CreateImage(project string, i *compute.Image) error {
 	if c.CreateImageFn != nil {
@@ -148,6 +164,14 @@ func (c *TestClient) CreateNetwork(project string, n *compute.Network) error {
 		return c.CreateNetworkFn(project, n)
 	}
 	return c.client.CreateNetwork(project, n)
+}
+
+// CreateSubnetwork uses the override method CreateSubnetworkFn or the real implementation.
+func (c *TestClient) CreateSubnetwork(project, region string, n *compute.Subnetwork) error {
+	if c.CreateSubnetworkFn != nil {
+		return c.CreateSubnetworkFn(project, region, n)
+	}
+	return c.client.CreateSubnetwork(project, region, n)
 }
 
 // CreateTargetInstance uses the override method CreateTargetInstanceFn or the real implementation.
@@ -190,6 +214,14 @@ func (c *TestClient) DeleteForwardingRule(project, region, name string) error {
 	return c.client.DeleteForwardingRule(project, region, name)
 }
 
+// DeleteFirewallRule uses the override method DeleteFirewallRuleFn or the real implementation.
+func (c *TestClient) DeleteFirewallRule(project, name string) error {
+	if c.DeleteFirewallRuleFn != nil {
+		return c.DeleteFirewallRuleFn(project, name)
+	}
+	return c.client.DeleteFirewallRule(project, name)
+}
+
 // DeleteImage uses the override method DeleteImageFn or the real implementation.
 func (c *TestClient) DeleteImage(project, name string) error {
 	if c.DeleteImageFn != nil {
@@ -212,6 +244,14 @@ func (c *TestClient) DeleteNetwork(project, name string) error {
 		return c.DeleteNetworkFn(project, name)
 	}
 	return c.client.DeleteNetwork(project, name)
+}
+
+// DeleteSubnetwork uses the override method DeleteSubnetworkFn or the real implementation.
+func (c *TestClient) DeleteSubnetwork(project, region, name string) error {
+	if c.DeleteSubnetworkFn != nil {
+		return c.DeleteSubnetworkFn(project, region, name)
+	}
+	return c.client.DeleteSubnetwork(project, region, name)
 }
 
 // DeleteTargetInstance uses the override method DeleteTargetInstanceFn or the real implementation.
@@ -318,6 +358,22 @@ func (c *TestClient) ListForwardingRules(project, region string, opts ...ListCal
 	return c.client.ListForwardingRules(project, region, opts...)
 }
 
+// GetFirewallRule uses the override method GetFirewallRuleFn or the real implementation.
+func (c *TestClient) GetFirewallRule(project, name string) (*compute.Firewall, error) {
+	if c.GetFirewallRuleFn != nil {
+		return c.GetFirewallRuleFn(project, name)
+	}
+	return c.client.GetFirewallRule(project, name)
+}
+
+// ListFirewallRules uses the override method ListFirewallRulesFn or the real implementation.
+func (c *TestClient) ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error) {
+	if c.ListFirewallRulesFn != nil {
+		return c.ListFirewallRulesFn(project, opts...)
+	}
+	return c.client.ListFirewallRules(project, opts...)
+}
+
 // GetImage uses the override method GetImageFn or the real implementation.
 func (c *TestClient) GetImage(project, name string) (*compute.Image, error) {
 	if c.GetImageFn != nil {
@@ -364,6 +420,22 @@ func (c *TestClient) ListNetworks(project string, opts ...ListCallOption) ([]*co
 		return c.ListNetworksFn(project, opts...)
 	}
 	return c.client.ListNetworks(project, opts...)
+}
+
+// GetSubnetwork uses the override method GetSubnetworkFn or the real implementation.
+func (c *TestClient) GetSubnetwork(project, region, name string) (*compute.Subnetwork, error) {
+	if c.GetSubnetworkFn != nil {
+		return c.GetSubnetworkFn(project, region, name)
+	}
+	return c.client.GetSubnetwork(project, region, name)
+}
+
+// ListSubnetworks uses the override method ListSubnetworksFn or the real implementation.
+func (c *TestClient) ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error) {
+	if c.ListSubnetworksFn != nil {
+		return c.ListSubnetworksFn(project, region, opts...)
+	}
+	return c.client.ListSubnetworks(project, region, opts...)
 }
 
 // GetTargetInstance uses the override method GetTargetInstanceFn or the real implementation.

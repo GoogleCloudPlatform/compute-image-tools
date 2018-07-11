@@ -50,7 +50,7 @@ func TestResourcePopulate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		gotName, gotZone, err := tt.r.populate(context.Background(), s, name, tt.zone)
+		gotName, gotZone, err := tt.r.populateWithZone(context.Background(), s, name, tt.zone)
 		if tt.wantErr && err == nil {
 			t.Errorf("%s: should have returned an error but didn't", tt.desc)
 		} else if !tt.wantErr && err != nil {
