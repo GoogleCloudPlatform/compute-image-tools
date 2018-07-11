@@ -107,9 +107,9 @@ def DebianInstallGoogleApiPythonClient():
 
 def Bootstrap():
   """Get files, run."""
+  prefix = GetMetadataAttribute('prefix')
+  global TOKEN
   try:
-    global TOKEN
-    prefix = GetMetadataAttribute('prefix')
     fmt = '%s%s%s' % ('%(levelname)s:', prefix, '%(message)s')
     logging.basicConfig(level=logging.DEBUG, format=fmt)
     logging.info('Status: Starting bootstrap.py.')
@@ -124,7 +124,7 @@ def Bootstrap():
     gcs_dir = GetMetadataAttribute('files_gcs_dir')
     script = GetMetadataAttribute('script')
     full_script = os.path.join(DIR, script)
-    subprocess.check_call(['mkdir', DIR])
+    subprocess.check_call(['mkdir', '-p', DIR])
 
     # Copies all files from bucket's gcs_dir to DIR
     path_stripped = gcs_dir[len('gs://'):]
