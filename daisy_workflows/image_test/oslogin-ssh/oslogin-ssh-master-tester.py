@@ -15,6 +15,7 @@
 
 from google import auth
 from googleapiclient import discovery
+import datetime
 import utils
 
 MM = utils.MetadataManager
@@ -158,7 +159,12 @@ def TestOsLoginFalseInInstance():
 def AddKeyOsLogin(key):
   """Returns the key fingerprint for using later to remove it"""
   key = open(key).read()
-  body = {'key': key}
+
+  # Microseconds since epoch + 30 minutes from now
+  expire_obj = datetime.datetime.now() + datetime.timedelta(minutes=30)
+  expire_str = '%d' % (int(expire_obj.strftime("%s")) * 1000000)
+
+  body = {'key': key, 'expirationTimeUsec': expire_str}
   request = OSLOGIN_USERS_LIB.importSshPublicKey(parent=UNIQUE_ID_USER,
                                                  body=body)
   response = request.execute()
