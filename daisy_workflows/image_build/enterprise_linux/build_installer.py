@@ -23,6 +23,7 @@ rhel_byol: true if building a RHEL BYOL image.
 """
 
 import difflib
+import logging
 import os
 import re
 
@@ -43,9 +44,9 @@ def main():
   sap_apps = utils.GetMetadataParam('rhel_sap_apps', raise_on_not_found=False)
   sap_apps = sap_apps == 'true'
 
-  utils.LogStatus('EL Release: %s' % release)
-  utils.LogStatus('Google Cloud repo: %s' % repo)
-  utils.LogStatus('Build working directory: %s' % os.getcwd())
+  logging.info('EL Release: %s' % release)
+  logging.info('Google Cloud repo: %s' % repo)
+  logging.info('Build working directory: %s' % os.getcwd())
 
   iso_file = 'installer.iso'
 
@@ -59,7 +60,7 @@ def main():
 
   # Write the installer disk. Write extlinux MBR, create partition,
   # copy installer ISO and ISO boot files over.
-  utils.LogStatus('Writing installer disk.')
+  logging.info('Writing installer disk.')
   utils.Execute(['parted', '/dev/sdb', 'mklabel', 'msdos'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', '1MB', '100%'])
@@ -105,7 +106,7 @@ def main():
 
     # Print out a the modifications.
     diff = difflib.Differ().compare(oldcfg.splitlines(1), cfg.splitlines(1))
-    utils.LogStatus('Modified extlinux.conf:\n%s' % '\n'.join(diff))
+    logging.info('Modified extlinux.conf:\n%s' % '\n'.join(diff))
 
     f.seek(0)
     f.write(cfg)
@@ -118,6 +119,6 @@ def main():
 if __name__ == '__main__':
   try:
     main()
-    utils.LogSuccess('EL Installer build successful!')
+    logging.success('EL Installer build successful!')
   except:
-    utils.LogFail('EL Installer build failed!')
+    logging.error('EL Installer build failed!')

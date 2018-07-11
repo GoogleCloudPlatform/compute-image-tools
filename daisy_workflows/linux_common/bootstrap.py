@@ -50,7 +50,7 @@ def GetBucketContent(bucket, prefix):
       'bucket_name': bucket,
       'prefix': prefix,
   }
-  print ("Bucket listing with %s prefix: %s" % (prefix, url))
+  logging.info('Status: Bucket listing with %s prefix: %s' % (prefix, url))
   request = urllib2.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   request.add_unredirected_header('Authorization', TOKEN)
@@ -60,7 +60,7 @@ def GetBucketContent(bucket, prefix):
 
 def SaveBucketFile(bucket, bucket_file, dest_filepath):
   url = 'https://storage.googleapis.com/%s/%s' % (bucket, bucket_file)
-  print ("Bucket save: %s => %s" % (url, dest_filepath))
+  logging.info('Status: Bucket save: %s => %s' % (url, dest_filepath))
   request = urllib2.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   request.add_unredirected_header('Authorization', TOKEN)
@@ -93,8 +93,8 @@ def GetMetadataAttribute(attribute):
   return urllib2.urlopen(request).read()
 
 
-def DebianInstallGoogleApiPythonClient(prefix):
-  logging.info('%sStatus: Installing google-api-python-client', prefix)
+def DebianInstallGoogleApiPythonClient():
+  logging.info('Status: Installing google-api-python-client')
   subprocess.check_call(['apt-get', 'update'])
   env = os.environ.copy()
   env['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -110,13 +110,13 @@ def Bootstrap():
   try:
     global TOKEN
     prefix = GetMetadataAttribute('prefix')
-    status = prefix + 'Status'
-    logging.info('%s: Starting bootstrap.py.', status)
-
+    fmt = '%s%s%s' % ('%(levelname)s:', prefix, '%(message)s')
+    logging.basicConfig(level=logging.DEBUG, format=fmt)
+    logging.info('Status: Starting bootstrap.py.')
     # Optional flag
     try:
       if GetMetadataAttribute('debian_install_google_api_python_client'):
-        DebianInstallGoogleApiPythonClient(prefix)
+        DebianInstallGoogleApiPythonClient()
     except urllib2.HTTPError:
       pass
 
@@ -137,15 +137,13 @@ def Bootstrap():
       dest_filepath = f.replace(bucket_dir, DIR)
       SaveBucketFile(bucket, f, dest_filepath)
 
-    logging.info('%s: Making script %s executable.', status, full_script)
+    logging.info('Status: Making script %s executable.', full_script)
     subprocess.check_call(['chmod', '+x', script], cwd=DIR)
-    logging.info('%s: Running %s.', status, full_script)
+    logging.info('Status: Running %s.', full_script)
     subprocess.check_call([full_script], cwd=DIR)
   except Exception as e:
-    fail = prefix + 'Failed'
-    print('%s: error: %s' % (fail, str(e)))
+    logging.error('Failed: error: %s' % str(e))
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level=logging.DEBUG)
   Bootstrap()

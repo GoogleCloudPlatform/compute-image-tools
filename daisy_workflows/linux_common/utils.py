@@ -29,34 +29,7 @@ import urllib2
 import uuid
 
 
-def GetPrefix():
-  if GetPrefix.first_run:
-    GetPrefix.prefix = GetMetadataParam('prefix')
-    GetPrefix.first_run = False
-  return GetPrefix.prefix
-
-
-GetPrefix.first_run = True
-
-
-def LogFail(*args, **kwargs):
-  logging.error('%sFailed: %s', GetPrefix(), *args, **kwargs)
-
-
-def LogStatus(*args, **kwargs):
-  logging.info('%sStatus: %s', GetPrefix(), *args, **kwargs)
-
-
-def LogWarn(*args, **kwargs):
-  logging.warn('%sWarn: %s', GetPrefix(), *args, **kwargs)
-
-
-def LogDebug(*args, **kwargs):
-  logging.debug('%sDebug: %s', GetPrefix(), *args, **kwargs)
-
-
-def LogSuccess(*args, **kwargs):
-  logging.info('%sSuccess: %s', GetPrefix(), *args, **kwargs)
+SUCCESS_LEVELNO = logging.ERROR - 5
 
 
 def YumInstall(package_list):
@@ -74,7 +47,7 @@ def AptGetInstall(package_list):
     try:
       Execute(['apt-get', 'update'])
     except subprocess.CalledProcessError as error:
-      LogStatus('Apt update failed, trying again: %s' % error)
+      logging.info('Apt update failed, trying again: %s' % error)
       Execute(['apt-get', 'update'], raise_errors=False)
     AptGetInstall.first_run = False
 
@@ -93,7 +66,7 @@ def PipInstall(package_list):
 
 def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
   """Execute an external command (wrapper for Python subprocess)."""
-  LogStatus('Executing command: %s' % str(cmd))
+  logging.info('Executing command: %s' % str(cmd))
   stdout = subprocess.PIPE if capture_output else None
   p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=stdout)
   output = p.communicate()[0]
@@ -103,9 +76,9 @@ def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
     if raise_errors:
       raise subprocess.CalledProcessError(returncode, cmd)
     else:
-      LogStatus('Command returned error status %d' % returncode)
+      logging.info('Command returned error status %d' % returncode)
   if output:
-    LogStatus(output)
+    logging.info(output)
   return returncode, output
 
 
@@ -170,7 +143,7 @@ def MountDisk(disk):
     try:
       g.mount(mps[device], device)
     except RuntimeError as msg:
-      LogWarn('%s (ignored)' % msg)
+      logging.warn('%s (ignored)' % msg)
 
   return g
 
@@ -179,17 +152,17 @@ def UnmountDisk(g):
   try:
     g.umount_all()
   except Exception as e:
-    LogDebug(str(e))
-    LogWarn('Unmount failed. Continuing anyway.')
+    logging.debug(str(e))
+    logging.warn('Unmount failed. Continuing anyway.')
 
 
 def CommonRoutines(g):
   # Remove udev file to force it to be re-generated
-  LogStatus("Removing udev 70-persistent-net.rules.")
+  logging.info('Removing udev 70-persistent-net.rules.')
   g.rm_f('/etc/udev/rules.d/70-persistent-net.rules')
 
   # Remove SSH host keys.
-  LogStatus("Removing SSH host keys.")
+  logging.info('Removing SSH host keys.')
   g.sh("rm -f /etc/ssh/ssh_host_*")
 
 
@@ -198,9 +171,9 @@ def RunTranslate(translate_func):
     tracer = trace.Trace(
         ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
     tracer.runfunc(translate_func)
-    LogSuccess('Translation finished.')
+    logging.success('Translation finished.')
   except Exception as e:
-    LogFail('error: %s', str(e))
+    logging.error('error: %s', str(e))
 
 
 def GetMetadataParamBool(name, default_value):
@@ -258,14 +231,14 @@ def RetryOnFailure(func):
       try:
         response = func(*args, **kwargs)
       except Exception as e:
-        LogStatus(str(e))
-        LogStatus(
+        logging.info(str(e))
+        logging.info(
             'Function %s failed, waiting %d seconds, retrying %d ...',
             str(func), wait, ntries)
         time.sleep(wait)
         wait = wait * ratio
       else:
-        LogStatus(
+        logging.info(
             'Function %s executed in less then %d sec, with %d tentative(s)',
             str(func), time.time() - start_time, ntries)
         return response
@@ -319,7 +292,7 @@ def GetCompute(discovery, credentials):
 
 
 def RunTest(test_func):
-  """Run main test function and print LogSuccess() or LogFail().
+  """Run main test function and print logging.success() or logging.error().
 
   Args:
     test_func: function, the function to be tested.
@@ -328,9 +301,9 @@ def RunTest(test_func):
     tracer = trace.Trace(
         ignoredirs=[sys.prefix, sys.exec_prefix], trace=1, count=0)
     tracer.runfunc(test_func)
-    LogSuccess('Test finished.')
+    logging.success('Test finished.')
   except Exception as e:
-    LogFail('error: ' + str(e))
+    logging.error('error: ' + str(e))
     traceback.print_exc()
 
 
@@ -361,13 +334,43 @@ def UploadFile(filename, dest):
   BUCKET.copy_blob(blob, BUCKET)
 
 
+class LogFormatter(logging.Formatter):
+  default_formatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+  formatters = {}
+
+  def __init__(self):
+    prefix = GetMetadataParam('prefix', default_value='')
+    prefix_level = {
+        logging.DEBUG: '%sDebug: ' % prefix,
+        logging.INFO: '%sStatus: ' % prefix,
+        logging.WARNING: '%sWarn: ' % prefix,
+        logging.ERROR: '%sFailed: ' % prefix,
+        SUCCESS_LEVELNO: '%sSuccess: ' % prefix
+    }
+    for loglevel in prefix_level:
+      self.formatters[loglevel] = logging.Formatter(
+          prefix_level[loglevel] + '%(message)s')
+
+  def format(self, record):
+    formatter = self.formatters.get(record.levelno, self.default_formatter)
+    return formatter.format(record)
+
+
 def SetupLogging():
   """Configure Logging system."""
   logger = logging.getLogger()
   logger.setLevel(logging.DEBUG)
   stdout = logging.StreamHandler(sys.stdout)
   stdout.setLevel(logging.DEBUG)
+  formatter = LogFormatter()
+  stdout.setFormatter(formatter)
   logger.addHandler(stdout)
+  logging.addLevelName(SUCCESS_LEVELNO, 'SUCCESS')
+
+  def success(self, message, *args, **kws):
+    self._log(SUCCESS_LEVELNO, message, args, **kws)
+  logger.success = success
+  logging.success = lambda *args: logging.log(SUCCESS_LEVELNO, *args)
 
 
 SetupLogging()
