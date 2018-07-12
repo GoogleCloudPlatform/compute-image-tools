@@ -12,6 +12,7 @@
   * [Sources](#sources)
   * [Steps](#steps)
     * [AttachDisks](#type-attachdisks)
+    * [DetachDisks](#type-detachdisks)
     * [CreateDisks](#type-createdisks)
     * [ResizeDisks](#type-resizeisks)
     * [CreateForwardingRules](#type-createforwardingrules)
@@ -177,6 +178,42 @@ using partial URLs for both the disk as well as the instance.
     {
       "Source": "projects/MYPROJECT/zones/MYZONE/disks/my-disk",
       "Instance": "projects/MYPROJECT/zones/MYZONE/instances/my-instance"
+    }
+  ]
+}
+```
+
+#### Type: DetachDisks
+Detaches a GCE disk to an instance. See
+https://cloud.google.com/compute/docs/reference/latest/instances/detachDisk,
+daisy uses the same representation with a few modifications:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Name | string | The name of the disk to detach, either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+
+Added fields:
+
+| Field Name | Type | Description |
+| - | - | - |
+| Instance | string | The name of the instance to detach this disk to, either instance [partial URLs](#glossary-partialurl) or workflow-internal instance names are valid. |
+
+Example: the first step is an example of attaching a disk and the second is
+detaching it.
+```json
+"attach-step": {
+  "AttachDisks": [
+    {
+      "Source": "my-disk",
+      "Instance": "my-instance"
+    }
+  ]
+},
+"detach-step": {
+  "DetachDisks": [
+    {
+      "Name": "my-disk",
+      "Instance": "my-instance"
     }
   ]
 }

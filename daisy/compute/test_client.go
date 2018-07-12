@@ -48,6 +48,7 @@ type TestClient struct {
 	client
 
 	AttachDiskFn                func(project, zone, instance string, d *compute.AttachedDisk) error
+	DetachDiskFn                func(project, zone, instance, disk string) error
 	CreateDiskFn                func(project, zone string, d *compute.Disk) error
 	CreateForwardingRuleFn      func(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRuleFn        func(project string, i *compute.Firewall) error
@@ -117,6 +118,14 @@ func (c *TestClient) AttachDisk(project, zone, instance string, ad *compute.Atta
 		return c.AttachDiskFn(project, zone, instance, ad)
 	}
 	return c.client.AttachDisk(project, zone, instance, ad)
+}
+
+// DetachDisk uses the override method DetachDiskFn or the real implementation.
+func (c *TestClient) DetachDisk(project, zone, instance, disk string) error {
+	if c.DetachDiskFn != nil {
+		return c.DetachDiskFn(project, zone, instance, disk)
+	}
+	return c.client.DetachDisk(project, zone, instance, disk)
 }
 
 // CreateDisk uses the override method CreateDiskFn or the real implementation.

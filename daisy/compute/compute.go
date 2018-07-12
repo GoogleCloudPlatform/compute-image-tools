@@ -32,6 +32,7 @@ import (
 // Client is a client for interacting with Google Cloud Compute.
 type Client interface {
 	AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error
+	DetachDisk(project, zone, instance, disk string) error
 	CreateDisk(project, zone string, d *compute.Disk) error
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRule(project string, i *compute.Firewall) error
@@ -299,6 +300,16 @@ func (c *client) Retry(f func(opts ...googleapi.CallOption) (*compute.Operation,
 // AttachDisk attaches a GCE persistent disk to an instance.
 func (c *client) AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error {
 	op, err := c.Retry(c.raw.Instances.AttachDisk(project, zone, instance, d).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// DetachDisk detaches a GCE persistent disk to an instance.
+func (c *client) DetachDisk(project, zone, instance, disk string) error {
+	op, err := c.Retry(c.raw.Instances.DetachDisk(project, zone, instance, disk).Do)
 	if err != nil {
 		return err
 	}

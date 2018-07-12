@@ -43,6 +43,7 @@ type Step struct {
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
 	AttachDisks            *AttachDisks            `json:",omitempty"`
+	DetachDisks            *DetachDisks            `json:",omitempty"`
 	CreateDisks            *CreateDisks            `json:",omitempty"`
 	CreateForwardingRules  *CreateForwardingRules  `json:",omitempty"`
 	CreateFirewallRules    *CreateFirewallRules    `json:",omitempty"`
@@ -70,6 +71,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 	if s.AttachDisks != nil {
 		matchCount++
 		result = s.AttachDisks
+	}
+	if s.DetachDisks != nil {
+		matchCount++
+		result = s.DetachDisks
 	}
 	if s.CreateDisks != nil {
 		matchCount++
