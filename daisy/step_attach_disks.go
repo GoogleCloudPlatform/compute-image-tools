@@ -25,7 +25,7 @@ import (
 // AttachDisks is a Daisy AttachDisks workflow step.
 type AttachDisks []*AttachDisk
 
-// AttachDisk is used to attach a GCE disk ito an instance.
+// AttachDisk is used to attach a GCE disk into an instance.
 type AttachDisk struct {
 	compute.AttachedDisk
 
