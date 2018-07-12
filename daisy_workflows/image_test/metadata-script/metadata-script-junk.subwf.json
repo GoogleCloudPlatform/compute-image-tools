@@ -14,8 +14,8 @@
             "instance_tag": "junk",
             "startup-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
             "shutdown-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
-            "windows-startup-script-ps1": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
-            "windows-shutdown-script-ps1": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
+            "windows-startup-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
+            "windows-shutdown-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
             "startup_msg": "${startup_msg}",
             "shutdown_msg": "${shutdown_msg}"
         }

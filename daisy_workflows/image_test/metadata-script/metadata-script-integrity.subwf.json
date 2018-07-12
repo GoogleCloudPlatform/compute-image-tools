@@ -14,8 +14,8 @@
             "instance_tag": "integrity",
             "startup-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-startup-hash.sh",
             "shutdown-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-shutdown-hash.sh",
-            "windows-startup-script-ps1": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-startup-hash.ps1",
-            "windows-shutdown-script-ps1": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-shutdown-hash.ps1",
+            "windows-startup-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-startup-hash.ps1",
+            "windows-shutdown-script-url": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/metadata-script-test-shutdown-hash.ps1",
             "startup_msg": "${startup_msg}",
             "shutdown_msg": "${shutdown_msg}"
         }
