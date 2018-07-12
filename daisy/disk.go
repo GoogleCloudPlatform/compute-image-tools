@@ -33,7 +33,7 @@ var (
 		exists map[string]map[string][]string
 		mu     sync.Mutex
 	}
-	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)$`, projectRgxStr, rfc1035))
+	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)(/resize)?$`, projectRgxStr, rfc1035))
 )
 
 // diskExists should only be used during validation for existing GCE disks

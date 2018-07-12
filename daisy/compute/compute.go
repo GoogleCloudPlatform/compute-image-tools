@@ -32,6 +32,7 @@ import (
 // Client is a client for interacting with Google Cloud Compute.
 type Client interface {
 	AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error
+	DetachDisk(project, zone, instance, disk string) error
 	CreateDisk(project, zone string, d *compute.Disk) error
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRule(project string, i *compute.Firewall) error
@@ -78,6 +79,7 @@ type Client interface {
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
+	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
 
@@ -298,6 +300,16 @@ func (c *client) Retry(f func(opts ...googleapi.CallOption) (*compute.Operation,
 // AttachDisk attaches a GCE persistent disk to an instance.
 func (c *client) AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error {
 	op, err := c.Retry(c.raw.Instances.AttachDisk(project, zone, instance, d).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// DetachDisk detaches a GCE persistent disk to an instance.
+func (c *client) DetachDisk(project, zone, instance, disk string) error {
+	op, err := c.Retry(c.raw.Instances.DetachDisk(project, zone, instance, disk).Do)
 	if err != nil {
 		return err
 	}
@@ -984,6 +996,16 @@ func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
 	default:
 		return false, fmt.Errorf("unexpected instance status %q", status)
 	}
+}
+
+// ResizeDisk resizes a GCE persistent disk. You can only increase the size of the disk.
+func (c *client) ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error {
+	op, err := c.Retry(c.raw.Disks.Resize(project, zone, disk, drr).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // SetInstanceMetadata sets an instances metadata.

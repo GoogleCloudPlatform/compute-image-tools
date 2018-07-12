@@ -268,6 +268,12 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil
 	}
+	c.DetachDiskFn = func(p, z, i, _ string) error {
+		if i == "bad" {
+			return errors.New("bad instance")
+		}
+		return nil
+	}
 
 	return c, err
 }

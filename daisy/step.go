@@ -43,6 +43,7 @@ type Step struct {
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
 	AttachDisks            *AttachDisks            `json:",omitempty"`
+	DetachDisks            *DetachDisks            `json:",omitempty"`
 	CreateDisks            *CreateDisks            `json:",omitempty"`
 	CreateForwardingRules  *CreateForwardingRules  `json:",omitempty"`
 	CreateFirewallRules    *CreateFirewallRules    `json:",omitempty"`
@@ -52,6 +53,7 @@ type Step struct {
 	CreateSubnetworks      *CreateSubnetworks      `json:",omitempty"`
 	CreateTargetInstances  *CreateTargetInstances  `json:",omitempty"`
 	CopyGCSObjects         *CopyGCSObjects         `json:",omitempty"`
+	ResizeDisks            *ResizeDisks            `json:",omitempty"`
 	StartInstances         *StartInstances         `json:",omitempty"`
 	StopInstances          *StopInstances          `json:",omitempty"`
 	DeleteResources        *DeleteResources        `json:",omitempty"`
@@ -69,6 +71,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 	if s.AttachDisks != nil {
 		matchCount++
 		result = s.AttachDisks
+	}
+	if s.DetachDisks != nil {
+		matchCount++
+		result = s.DetachDisks
 	}
 	if s.CreateDisks != nil {
 		matchCount++
@@ -105,6 +111,10 @@ func (s *Step) stepImpl() (stepImpl, dErr) {
 	if s.CopyGCSObjects != nil {
 		matchCount++
 		result = s.CopyGCSObjects
+	}
+	if s.ResizeDisks != nil {
+		matchCount++
+		result = s.ResizeDisks
 	}
 	if s.StartInstances != nil {
 		matchCount++

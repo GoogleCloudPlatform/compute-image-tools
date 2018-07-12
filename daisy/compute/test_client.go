@@ -48,6 +48,7 @@ type TestClient struct {
 	client
 
 	AttachDiskFn                func(project, zone, instance string, d *compute.AttachedDisk) error
+	DetachDiskFn                func(project, zone, instance, disk string) error
 	CreateDiskFn                func(project, zone string, d *compute.Disk) error
 	CreateForwardingRuleFn      func(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRuleFn        func(project string, i *compute.Firewall) error
@@ -93,6 +94,7 @@ type TestClient struct {
 	ListTargetInstancesFn       func(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	InstanceStatusFn            func(project, zone, name string) (string, error)
 	InstanceStoppedFn           func(project, zone, name string) (bool, error)
+	ResizeDiskFn                func(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadataFn       func(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadataFn func(project string, md *compute.Metadata) error
 	RetryFn                     func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
@@ -116,6 +118,14 @@ func (c *TestClient) AttachDisk(project, zone, instance string, ad *compute.Atta
 		return c.AttachDiskFn(project, zone, instance, ad)
 	}
 	return c.client.AttachDisk(project, zone, instance, ad)
+}
+
+// DetachDisk uses the override method DetachDiskFn or the real implementation.
+func (c *TestClient) DetachDisk(project, zone, instance, disk string) error {
+	if c.DetachDiskFn != nil {
+		return c.DetachDiskFn(project, zone, instance, disk)
+	}
+	return c.client.DetachDisk(project, zone, instance, disk)
 }
 
 // CreateDisk uses the override method CreateDiskFn or the real implementation.
@@ -476,6 +486,14 @@ func (c *TestClient) InstanceStopped(project, zone, name string) (bool, error) {
 		return c.InstanceStoppedFn(project, zone, name)
 	}
 	return c.client.InstanceStopped(project, zone, name)
+}
+
+// ResizeDisk uses the override method ResizeDiskFn or the real implementation.
+func (c *TestClient) ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error {
+	if c.ResizeDiskFn != nil {
+		return c.ResizeDiskFn(project, zone, disk, drr)
+	}
+	return c.client.ResizeDisk(project, zone, disk, drr)
 }
 
 // SetInstanceMetadata uses the override method SetInstancemetadataFn or the real implementation.
