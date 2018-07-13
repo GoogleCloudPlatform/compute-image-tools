@@ -38,20 +38,21 @@ class RequestError(Exception):
     return text % (self.name, self.ip_range, self.instance)
 
 
-def GetOS(addr, timeout=10):
-  URL = "http://%s/os" % addr
+def _RequestInfo(URL, timeout=10):
   logging.info('Retrieving: %s' % URL)
   return urllib2.urlopen(URL, None, timeout).read()
 
 
-def GetHostname(addr, timeout=10):
-  URL = "http://%s/hostname" % addr
-  logging.info('Retrieving: %s' % URL)
-  return urllib2.urlopen(URL, None, timeout).read()
+def RequestOS(addr):
+  return _RequestInfo("http://%s/os" % addr)
+
+
+def RequestHostname(addr):
+  return _RequestInfo("http://%s/hostname" % addr)
 
 
 def TestIPAlias(instance, ip_alias, ip_mask):
-  testee_hostname = GetHostname(instance)
+  testee_hostname = RequestHostname(instance)
   cidr = "%s/%s" % (ip_alias, ip_mask)
 
   # caching ips out of range for using it on negative tests
@@ -60,7 +61,7 @@ def TestIPAlias(instance, ip_alias, ip_mask):
   # positive test on expected IPs
   for ip in ips:
     try:
-      if testee_hostname != GetHostname(ip):
+      if testee_hostname != RequestHostname(ip):
         raise Exception("Alias hostname should be the same from host machine.")
     except urllib2.URLError:
       raise RequestError("ip_alias", instance, cidr)
@@ -69,7 +70,7 @@ def TestIPAlias(instance, ip_alias, ip_mask):
   superset_ips = list(genips.GenIPs(ip_alias, int(ip_mask) - 1))
   invalid_ip = superset_ips[superset_ips.index(ips[0]) - 1]
   try:
-    if testee_hostname == GetHostname(invalid_ip):
+    if testee_hostname == RequestHostname(invalid_ip):
       raise RequestError("ip_alias", instance, cidr, positive_test=False)
   except urllib2.URLError:
     # great, it didn't even respond! So no machine is using that ip.
@@ -97,7 +98,7 @@ def SetIPAlias(MD, instance, ip_alias=None, ip_mask=None):
 
 def TestForwardingRule(MD, instance, rule_name):
   ip = MD.GetForwardingRuleIP(rule_name)
-  if GetHostname(instance) != GetHostname(ip):
+  if RequestHostname(instance) != RequestHostname(ip):
     raise RequestError(rule_name, instance, ip)
 
 
@@ -112,7 +113,7 @@ def main():
   MD = MM(compute, testee)
 
   # Verify IP aliasing is working: not available on Windows environment
-  if GetOS(testee) != 'windows':
+  if RequestOS(testee) != 'windows':
     #  1) Testing if it works on creation time
     TestIPAlias(testee, alias_ip, alias_ip_mask)
 
