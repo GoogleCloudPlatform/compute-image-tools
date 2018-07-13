@@ -136,11 +136,47 @@ func disabled(md *metadataJSON) bool {
 	return false
 }
 
-func run(ctx context.Context) {
+func getInventory() *instanceInventory {
 	logger.Info("Gathering instance inventory.")
 
+	hs := &instanceInventory{}
+
+	hn, err := os.Hostname()
+	if err != nil {
+		hs.Errors = append(hs.Errors, err.Error())
+	}
+
+	hs.Hostname = hn
+
+	di, err := osinfo.GetDistributionInfo()
+	if err != nil {
+		hs.Errors = append(hs.Errors, err.Error())
+	}
+
+	hs.LongName = di.LongName
+	hs.ShortName = di.ShortName
+	hs.Version = di.Version
+	hs.KernelVersion = di.Kernel
+	hs.Architecture = di.Architecture
+
+	var errs []string
+	hs.InstalledPackages, errs = packages.GetInstalledPackages()
+	if len(errs) != 0 {
+		hs.Errors = append(hs.Errors, errs...)
+	}
+
+	hs.PackageUpdates, errs = packages.GetPackageUpdates()
+	if len(errs) != 0 {
+		hs.Errors = append(hs.Errors, errs...)
+	}
+
+	return hs
+}
+
+func run(ctx context.Context) {
 	agentDisabled := false
 
+	ticker := time.NewTicker(30 * time.Minute)
 	for {
 		md, err := getMetadata(ctx)
 		if err != nil {
@@ -158,48 +194,13 @@ func run(ctx context.Context) {
 
 		agentDisabled = false
 
-		hn, err := os.Hostname()
-		if err != nil {
-			logger.Error(err)
-			continue
-		}
+		writeInventory(getInventory(), reportURL)
 
-		di, err := osinfo.GetDistributionInfo()
-		if err != nil {
-			logger.Error(err)
-			continue
-		}
-
-		hs := &instanceInventory{
-			Hostname:      hn,
-			LongName:      di.LongName,
-			ShortName:     di.ShortName,
-			Version:       di.Version,
-			KernelVersion: di.Kernel,
-			Architecture:  di.Architecture,
-		}
-
-		var errs []string
-		hs.InstalledPackages, errs = packages.GetInstalledPackages()
-		if len(errs) != 0 {
-			hs.Errors = append(hs.Errors, errs...)
-		}
-
-		hs.PackageUpdates, errs = packages.GetPackageUpdates()
-		if len(errs) != 0 {
-			hs.Errors = append(hs.Errors, errs...)
-		}
-
-		writeInventory(hs, reportURL)
-
-		ticker := time.NewTicker(30 * time.Minute)
 		select {
 		case <-ticker.C:
-			ticker.Stop()
 			continue
 		case <-ctx.Done():
 			return
-		default:
 		}
 	}
 }
@@ -209,13 +210,11 @@ func main() {
 	ctx := context.Background()
 
 	var action string
-	if len(os.Args) < 2 {
-		action = "run"
-	} else {
+	if len(os.Args) > 1 {
 		action = os.Args[1]
 	}
 	if action == "noservice" {
-		run(ctx)
+		writeInventory(getInventory(), reportURL)
 		os.Exit(0)
 	}
 	if err := service.Register(ctx, "gce_inventory_agent", "GCE Inventory Agent", "", run, action); err != nil {

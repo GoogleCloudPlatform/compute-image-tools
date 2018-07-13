@@ -104,7 +104,7 @@ func Register(ctx context.Context, name, displayName, desc string, run func(cont
 		if err := svc.Stop(); err != nil {
 			return fmt.Errorf("failed to stop service %s: %s", name, err)
 		}
-	case "help":
+	case "", "help":
 		usage(name)
 	default:
 		fmt.Printf("%q is not a valid argument.\n", action)
