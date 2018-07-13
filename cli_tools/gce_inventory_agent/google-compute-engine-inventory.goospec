@@ -15,7 +15,7 @@
     "path": "uninstall.ps1"
   },
   "releaseNotes": [
-    "1.1.0 - Allow one once functionality with 'noservice' arg"
+    "1.1.0 - Allow one once functionality with 'noservice' arg",
     "1.0.0 - GCE inventory agent for Windows"
   ],
   "sources": [{
