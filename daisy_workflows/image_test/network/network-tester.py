@@ -38,6 +38,12 @@ class RequestError(Exception):
     return text % (self.name, self.ip_range, self.instance)
 
 
+def GetOS(addr, timeout=10):
+  URL = "http://%s/os" % addr
+  logging.info('Retrieving: %s' % URL)
+  return urllib2.urlopen(URL, None, timeout).read()
+
+
 def GetHostname(addr, timeout=10):
   URL = "http://%s/hostname" % addr
   logging.info('Retrieving: %s' % URL)
@@ -105,22 +111,23 @@ def main():
   compute = utils.GetCompute(discovery, credentials)
   MD = MM(compute, testee)
 
-  # Verify IP aliasing is working
-  #  1) Testing if it works on creation time
-  TestIPAlias(testee, alias_ip, alias_ip_mask)
-
-  #  2) Removing it and guaranteeing that it doesn't work anymore
-  SetIPAlias(MD, testee, [])
-  try:
+  # Verify IP aliasing is working: not available on Windows environment
+  if GetOS(testee) != 'windows':
+    #  1) Testing if it works on creation time
     TestIPAlias(testee, alias_ip, alias_ip_mask)
-  except RequestError as e:
-    # the positive test is expected to fail, as no alias ip exists.
-    if not e.positive_test:
-      raise e
 
-  #  3) Re-add it while the machine is running and verify that it works
-  SetIPAlias(MD, testee, alias_ip, alias_ip_mask)
-  TestIPAlias(testee, alias_ip, alias_ip_mask)
+    #  2) Removing it and guaranteeing that it doesn't work anymore
+    SetIPAlias(MD, testee, [])
+    try:
+      TestIPAlias(testee, alias_ip, alias_ip_mask)
+    except RequestError as e:
+      # the positive test is expected to fail, as no alias ip exists.
+      if not e.positive_test:
+        raise e
+
+    #  3) Re-add it while the machine is running and verify that it works
+    SetIPAlias(MD, testee, alias_ip, alias_ip_mask)
+    TestIPAlias(testee, alias_ip, alias_ip_mask)
 
   # Ensure routes are added when ForwardingRules are created
   testee_fr = MM.FetchMetadataDefault('testee_forwarding_rule')

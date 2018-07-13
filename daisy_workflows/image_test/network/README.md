@@ -14,6 +14,7 @@ forwarding rule send traffic to it.
   by comparing the hostname given by the IP aliased machine and by the IP that
   the Forwarding Rule should be forwarding traffic to. It also tests if IP
   alias works when the configuration is modified while the instance is running.
+  - *Note: On Windows systems the IP alias is not tested as those kind of packages are dropped.*
 
 # Setup
 

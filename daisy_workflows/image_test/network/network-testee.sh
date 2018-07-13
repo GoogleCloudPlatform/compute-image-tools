@@ -17,9 +17,11 @@
 logger -p daemon.info "BOOTED"
 
 # Serve a file server that prints the hostname when requesting "/hostname"
+# and "linux" when requesting "/os"
 mkdir /server
 cd /server
 hostname > hostname
+echo linux > os
 # host it on python2 and fallback to python3
 python -m SimpleHTTPServer 80
 python3 -m http.server 80
