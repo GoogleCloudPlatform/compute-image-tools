@@ -595,6 +595,30 @@ class MetadataManager:
     except urllib2.HTTPError:
       raise ValueError('Metadata key "%s" not found' % name)
 
+  def GetInstanceInfo(self, instance):
+    """Get an instance information
+
+    Args:
+      instance: string, the name of the instance to fetch its state.
+
+    Returns:
+      value: dictionary: instance information
+    """
+    request = self.compute.instances().get(
+        project=self.project, zone=self.zone, instance=instance)
+    return request.execute()
+
+  def GetInstanceIfaces(self, instance):
+    """Get an instance network interfaces
+
+    Args:
+      instance: string, the name of the instance to fetch its state.
+
+    Returns:
+      value: list of dict, the network interfaces information.
+    """
+    return self.GetInstanceInfo(instance)[u'networkInterfaces']
+
   def GetInstanceState(self, instance):
     """Get an instance state (e.g: RUNNING, TERMINATED, STOPPING...)
 
@@ -604,9 +628,23 @@ class MetadataManager:
     Returns:
       value: string, the status string.
     """
-    request = self.compute.instances().get(
-        project=self.project, zone=self.zone, instance=instance)
-    return request.execute()[u'status']
+    return self.GetInstanceInfo(instance)[u'status']
+
+  def SetInstanceIface(self, instance, iface_info, iface_name='nic0'):
+    """Update an instance's network interface information
+
+    Args:
+      instance: string, the name of the instance to fetch its state.
+      iface_info: dict, interface information to be set
+      iface_name: string, interface name, by default, nic0
+
+    Returns:
+      response: dict, the request's response.
+    """
+    request = self.compute.instances().updateNetworkInterface(
+        project=self.project, zone=self.zone, instance=instance,
+        networkInterface=iface_name, body=iface_info)
+    return request.execute()
 
   def StartInstance(self, instance):
     """Start an instance

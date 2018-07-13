@@ -12,10 +12,12 @@ forwarding rule send traffic to it.
   connections work.
 - tester: will verify if the IP alias and Forwarding Rule is working on testee
   by comparing the hostname given by the IP aliased machine and by the IP that
-  the Forwarding Rule should be forwarding traffic to.
+  the Forwarding Rule should be forwarding traffic to. It also tests if IP
+  alias works when the configuration is modified while the instance is running.
+  - *Note: On Windows systems the IP alias is not tested as those kind of packages are dropped.*
 
 # Setup
 
-Some IP alias and mask should be defined. By Default the 10.128.3.128 is used
+Some IP alias and mask should be defined. By Default the 10.128.3.128/31 is used
 but keep in mind this IP should be available on the instance subnet. These
 parameters can be changed through the variables "alias_ip" and "alias_ip_mask".
