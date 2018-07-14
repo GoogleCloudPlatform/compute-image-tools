@@ -1,6 +1,6 @@
 {
   "name": "google-compute-engine-inventory",
-  "version": "1.0.0@1",
+  "version": "1.1.0@1",
   "arch": "x86_64",
   "authors": "Google Inc.",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
@@ -15,6 +15,7 @@
     "path": "uninstall.ps1"
   },
   "releaseNotes": [
+    "1.1.0 - Allow one once functionality with 'noservice' arg",
     "1.0.0 - GCE inventory agent for Windows"
   ],
   "sources": [{

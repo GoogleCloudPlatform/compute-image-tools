@@ -41,7 +41,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 
 	if exists(googet) {
 		if googet, err := googetUpdates(); err != nil {
-			msg := fmt.Sprintf("error getting googet updates: %v", err)
+			msg := fmt.Sprintf("error listing googet updates: %v", err)
 			logger.Error(msg)
 			errs = append(errs, msg)
 		} else {
@@ -93,25 +93,25 @@ func googetUpdates() ([]PkgInfo, error) {
 func wuaUpdates(query string) ([]PkgInfo, error) {
 	connection := &ole.Connection{Object: nil}
 	if err := connection.Initialize(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error initializing ole connection: %v", err)
 	}
 	defer connection.Uninitialize()
 
 	unknown, err := oleutil.CreateObject("Microsoft.Update.Session")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating Microsoft.Update.Session object: %v", err)
 	}
 	defer unknown.Release()
 
-	mus, err := unknown.QueryInterface(ole.IID_IDispatch)
+	session, err := unknown.QueryInterface(ole.IID_IDispatch)
 	if err != nil {
 		return nil, err
 	}
-	defer mus.Release()
+	defer session.Release()
 
 	// returns IUpdateSearcher
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa386515(v=vs.85).aspx
-	searcherRaw, err := mus.CallMethod("CreateUpdateSearcher")
+	searcherRaw, err := session.CallMethod("CreateUpdateSearcher")
 	if err != nil {
 		return nil, err
 	}
