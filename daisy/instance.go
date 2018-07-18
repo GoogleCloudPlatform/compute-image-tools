@@ -203,7 +203,12 @@ func (i *Instance) populateNetworks() dErr {
 		if n.AccessConfigs == nil {
 			n.AccessConfigs = defaultAcs
 		}
-		n.Network = strOr(n.Network, "global/networks/default")
+
+		// Only set deafult if no subnetwork or network set.
+		if n.Subnetwork == "" {
+			n.Network = strOr(n.Network, "global/networks/default")
+		}
+
 		if networkURLRegex.MatchString(n.Network) {
 			n.Network = extendPartialURL(n.Network, i.Project)
 		}
@@ -329,16 +334,25 @@ func (i *Instance) validateMachineType(client daisyCompute.Client) (errs dErr) {
 
 func (i *Instance) validateNetworks(s *Step) (errs dErr) {
 	for _, n := range i.NetworkInterfaces {
-		nr, err := s.w.networks.regUse(n.Network, s)
-		if err != nil {
-			errs = addErrs(errs, err)
-			continue
+		if n.Subnetwork != "" {
+			_, err := s.w.subnetworks.regUse(n.Subnetwork, s)
+			if err != nil {
+				errs = addErrs(errs, err)
+			}
 		}
 
-		// Ensure network is in the same project.
-		result := namedSubexp(networkURLRegex, nr.link)
-		if result["project"] != i.Project {
-			errs = addErrs(errs, errf("cannot create instance in project %q with Network in project %q: %q", i.Project, result["project"], n.Network))
+		if n.Network != "" {
+			nr, err := s.w.networks.regUse(n.Network, s)
+			if err != nil {
+				errs = addErrs(errs, err)
+				continue
+			}
+
+			// Ensure network is in the same project.
+			result := namedSubexp(networkURLRegex, nr.link)
+			if result["project"] != i.Project {
+				errs = addErrs(errs, errf("cannot create instance in project %q with Network in project %q: %q", i.Project, result["project"], n.Network))
+			}
 		}
 	}
 	return

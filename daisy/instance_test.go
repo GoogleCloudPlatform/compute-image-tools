@@ -239,6 +239,16 @@ func TestInstancePopulateNetworks(t *testing.T) {
 				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
 			}},
 		},
+		{
+			"subnetwork case",
+			[]*compute.NetworkInterface{{
+				Subnetwork: fmt.Sprintf("regions/%s/subnetworks/bar", getRegionFromZone(testZone)),
+			}},
+			[]*compute.NetworkInterface{{
+				AccessConfigs: defaultAcs,
+				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
+			}},
+		},
 	}
 
 	for _, tt := range tests {
@@ -492,6 +502,7 @@ func TestInstanceValidateNetworks(t *testing.T) {
 	w := testWorkflow()
 	acs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	w.networks.m = map[string]*Resource{testNetwork: {link: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork)}}
+	w.subnetworks.m = map[string]*Resource{testSubnetwork: {link: fmt.Sprintf("projects/%s/global/subnetworks/%s", testProject, testSubnetwork)}}
 
 	r := Resource{Project: testProject}
 	tests := []struct {
@@ -500,6 +511,7 @@ func TestInstanceValidateNetworks(t *testing.T) {
 		shouldErr bool
 	}{
 		{"good case reference", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: testNetwork, AccessConfigs: acs}}}}, false},
+		{"good case only subnetwork", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acs}}}}, false},
 		{"good case url", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acs}}}}, false},
 		{"bad name case", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acs}}}}, true},
 		{"bad project case", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acs}}}}, true},

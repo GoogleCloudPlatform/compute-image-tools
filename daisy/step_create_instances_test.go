@@ -113,11 +113,13 @@ func TestCreateInstancesRun(t *testing.T) {
 	w.Sources = map[string]string{"file": "gs://some/file"}
 	w.disks.m = map[string]*Resource{"d": {link: "dLink"}}
 	w.networks.m = map[string]*Resource{"n": {link: "nLink"}}
+	w.subnetworks.m = map[string]*Resource{"s": {link: "sLink"}}
 
 	// Good case: check disk and network links get resolved.
 	i0 := &Instance{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Network: "n"}}}}
 	i1 := &Instance{Resource: Resource{daisyName: "i1", Project: "foo"}, Instance: compute.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "other"}}, Zone: "bar"}}
-	ci := &CreateInstances{i0, i1}
+	i2 := &Instance{Resource: Resource{daisyName: "i2"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: "s"}}}}
+	ci := &CreateInstances{i0, i1, i2}
 	if err := ci.run(ctx, s); err != nil {
 		t.Errorf("unexpected error running CreateInstances.run(): %v", err)
 	}
@@ -129,6 +131,9 @@ func TestCreateInstancesRun(t *testing.T) {
 	}
 	if i1.Disks[0].Source != "other" {
 		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", "other", i1.Disks[0].Source)
+	}
+	if i2.NetworkInterfaces[0].Subnetwork != w.subnetworks.m["s"].link {
+		t.Errorf("instance network link did not resolve properly: want: %q, got: %q", w.subnetworks.m["s"].link, i2.NetworkInterfaces[0].Network)
 	}
 
 	// Bad case: compute client Instance error.
