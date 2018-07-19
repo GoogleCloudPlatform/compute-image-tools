@@ -1,5 +1,5 @@
 {
-  "Name": "metadata-script-test",
+  "Name": "metadata-script-windows",
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
@@ -14,7 +14,10 @@
             "startup_msg": "GCEMetadataScripts: Starting startup scripts",
             "shutdown_msg": "GCEMetadataScripts: Starting shutdown scripts",
             "no_startup_msg": "GCEMetadataScripts: No startup scripts to run.",
-            "no_shutdown_msg": "GCEMetadataScripts: No shutdown scripts to run."
+            "no_shutdown_msg": "GCEMetadataScripts: No shutdown scripts to run.",
+
+            "startup_script_name": "metadata-script-test-startup-hash.ps1",
+            "shutdown_script_name": "metadata-script-test-shutdown-hash.ps1"
         }
       }
     }

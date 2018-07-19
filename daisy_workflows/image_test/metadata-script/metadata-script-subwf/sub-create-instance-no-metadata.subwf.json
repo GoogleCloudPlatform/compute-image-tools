@@ -1,0 +1,37 @@
+{
+  "Name": "sub-create-instance-no-metadata",
+  "Vars": {
+    "instance": {"Required": true, "Description": "The name of the instance to be created"},
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "startup_script": {"Value": "", "Description": "Startup script of the created instance"}
+  },
+  "Sources": {
+    "metadata-script-test-startup-hash.sh": "../metadata-script-test-startup-hash.sh",
+    "metadata-script-test-startup-hash.ps1": "../metadata-script-test-startup-hash.ps1"
+  },
+  "Steps": {
+    "create-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-${instance}",
+          "SourceImage": "${source_image}"
+        }
+      ]
+    },
+    "create-instance": {
+      "CreateInstances": [
+        {
+          "Name": "${instance}",
+          "Disks": [{"Source": "disk-${instance}"}],
+          "StartupScript": "${startup_script}",
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_only"
+          ]
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-instance": ["create-disk"]
+  }
+}
