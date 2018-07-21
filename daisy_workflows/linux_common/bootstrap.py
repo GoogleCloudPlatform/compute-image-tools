@@ -101,7 +101,8 @@ def DebianInstallGoogleApiPythonClient():
   cmd = ['apt-get', '-q', '-y', 'install', 'python-pip']
   subprocess.Popen(cmd, env=env).communicate()
 
-  cmd = ['pip', 'install', '--upgrade', 'google-api-python-client']
+  cmd = ['pip', 'install', '-U', 'google-api-python-client',
+         'google-cloud-storage']
   subprocess.check_call(cmd)
 
 
