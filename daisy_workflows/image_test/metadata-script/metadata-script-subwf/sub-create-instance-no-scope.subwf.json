@@ -1,5 +1,5 @@
 {
-  "Name": "sub-create-instance",
+  "Name": "sub-create-instance-no-scope",
   "Vars": {
     "instance": {"Required": true, "Description": "The name of the instance to be created"},
     "source_image": {"Required": true, "Description": "Image to be tested"},
@@ -32,10 +32,7 @@
 
             "${shutdown_script_meta_key}": "${shutdown_script_meta}",
             "${windows_shutdown_script_meta_key}": "${shutdown_script_meta}"
-          },
-          "Scopes": [
-            "https://www.googleapis.com/auth/devstorage.read_only"
-          ]
+          }
         }
       ]
     }

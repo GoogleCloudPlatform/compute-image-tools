@@ -1,7 +1,6 @@
+cat > startup_tester.sh <<EOF
 # avoiding shebang on purpose: testing if the script execution is using the
 # image's default shell
-
-md5sum "${0}" | logger -p daemon.info
 
 # Below, some random data only to increase entropy in case this file gets
 # corrupted.
@@ -186,3 +185,8 @@ md5sum "${0}" | logger -p daemon.info
 # fPcvQb+M/PlcNHTPdCufIClIO6tZHxGlL8LllMMOSIMN2PLfodLwpj+uSr62UllMi43VQEhmmq5o
 # P89IKaa7YU5JtyVF3R1cvWrjKFvH3+lao0dPgZT8AfvwAAJX05plBUnDO4FhDfT3fSF0pbHlkNI9
 # eZ5iEj2Jwyfxr8nmCUV7NfJfZN0KJDu/HHY99/iNZrB8G912+A==
+EOF
+
+chmod +x startup_tester.sh
+./startup_tester.sh
+md5sum ./startup_tester.sh | logger -p daemon.info

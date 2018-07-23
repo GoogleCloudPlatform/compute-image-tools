@@ -1,3 +1,4 @@
+cat > shutdown_tester.sh <<'EOF'
 #!/bin/sh
 
 # Test that a shutdown script can run for at least 100 seconds
@@ -14,9 +15,6 @@ echo "TestStatus: waiting 10 seconds (70/100)"  | logger -p $PRIO; sleep 10
 echo "TestStatus: waiting 10 seconds (80/100)"  | logger -p $PRIO; sleep 10
 echo "TestStatus: waiting 10 seconds (90/100)"  | logger -p $PRIO; sleep 10
 echo "TestStatus: waiting 10 seconds (100/100)" | logger -p $PRIO
-
-# Finish the script by outputing it's hash, which is the SuccessMatch
-md5sum "${0}" | logger -p daemon.info
 
 # Below, some random data only to increase entropy in case this file gets
 # corrupted.
@@ -201,3 +199,10 @@ md5sum "${0}" | logger -p daemon.info
 # PhjxoxKKfSvpfTOH1Ofi450SyGIz497dm0CncRcFP+cARc+FatNT48ABy1RLHpJMJg0ae5+VKEli
 # 6txosGOmsciVWXjn1m3tlZLrKtRW4b8E7qzCsvuHGkcp8PSo4jDlWrLueNRvzWmTr7CzvDXroFHY
 # gZFvZIyZIO1TA4mXJY8nEh10yU5MmoqMv4Gu7KbSS6dtGdd/qg==
+EOF
+
+chmod +x shutdown_tester.sh
+./shutdown_tester.sh
+
+# Finish the script by outputing the hash which is the SuccessMatch
+md5sum ./shutdown_tester.sh | logger -p daemon.info

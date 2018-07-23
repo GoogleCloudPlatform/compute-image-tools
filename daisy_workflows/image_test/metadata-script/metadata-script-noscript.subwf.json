@@ -1,21 +1,32 @@
 {
-  "Name": "metadata-script-noscript-test",
+  "Name": "noscript",
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "startup_msg": {"Required": true, "Description": "Startup script message to be verified"},
     "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"}
   },
   "Steps": {
-    "test-metadata-script-noscript": {
-      "SubWorkflow": {
-        "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
+    "create-noscript": {
+      "IncludeWorkflow": {
+        "Path": "./metadata-script-subwf/sub-create-instance.subwf.json",
         "Vars": {
             "source_image": "${source_image}",
-            "instance_tag": "noscript",
+            "instance": "inst-metadata-scripts-noscript"
+        }
+      }
+    },
+    "wait-noscript": {
+      "IncludeWorkflow": {
+        "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
+        "Vars": {
+            "instance": "inst-metadata-scripts-noscript",
             "startup_msg": "${startup_msg}",
             "shutdown_msg": "${shutdown_msg}"
         }
       }
     }
+  },
+  "Dependencies": {
+    "wait-noscript": ["create-noscript"]
   }
 }
