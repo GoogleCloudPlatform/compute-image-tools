@@ -67,5 +67,8 @@ case $1 in
 esac
 EOF
 
-chmod +x /bin/slave_tester.sh
+chmod a+x /bin/slave_tester.sh
+
+# Allow writting to serial port
+chmod a+w /dev/ttyS0
 logger -p daemon.info "BOOTED"
