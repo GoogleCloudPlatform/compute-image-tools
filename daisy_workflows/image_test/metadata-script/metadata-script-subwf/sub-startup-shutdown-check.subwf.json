@@ -1,34 +1,16 @@
 {
   "Name": "sub-startup-shutdown-check",
   "Vars": {
-    "source_image": {"Required": true, "Description": "Image to be tested"},
-    "instance_tag": {"Required": true, "Description": "Tag name to be used on instance name"},
+    "instance": {"Required": true, "Description": "Instance name to be tested"},
     "startup_msg": {"Required": true, "Description": "The message to wait when the instance starts up"},
-    "shutdown_msg": {"Required": true, "Description": "The message to wait when the instance shuts down"},
-    "startup-script-url": {"Description": "Linux startup script to create the instance (URL)"},
-    "shutdown-script-url": {"Description": "Linux shutdown script to create the instance (URL)"},
-    "windows-startup-script-url": {"Description": "Windows startup script to create the instance (URL)"},
-    "windows-shutdown-script-url": {"Description": "Windows shutdown script to create the instance (URL)"}
+    "shutdown_msg": {"Required": true, "Description": "The message to wait when the instance shuts down"}
   },
   "Steps": {
-    "test-create-instance": {
-      "IncludeWorkflow": {
-        "Path": "./sub-create-instance.subwf.json",
-        "Vars": {
-            "source_image": "${source_image}",
-            "instance": "inst-metadata-scripts-${instance_tag}",
-            "startup-script-url": "${startup-script-url}",
-            "shutdown-script-url": "${shutdown-script-url}",
-            "windows-startup-script-url": "${windows-startup-script-url}",
-            "windows-shutdown-script-url": "${windows-shutdown-script-url}"
-        }
-      }
-    },
     "test-startup-check-log": {
       "IncludeWorkflow": {
         "Path": "./sub-wait-message.subwf.json",
         "Vars": {
-            "instance": "inst-metadata-scripts-${instance_tag}",
+            "instance": "${instance}",
             "script_type": "startup",
             "exec_msg": "${startup_msg}"
         }
@@ -36,14 +18,14 @@
     },
     "test-stop-instance": {
       "StopInstances": {
-        "Instances":["inst-metadata-scripts-${instance_tag}"]
+        "Instances":["${instance}"]
       }
     },
     "test-shutdown-check-log": {
       "IncludeWorkflow": {
         "Path": "./sub-wait-message.subwf.json",
         "Vars": {
-            "instance": "inst-metadata-scripts-${instance_tag}",
+            "instance": "${instance}",
             "script_type": "shutdown",
             "exec_msg": "${shutdown_msg}"
         }
@@ -51,7 +33,6 @@
     }
   },
   "Dependencies": {
-    "test-startup-check-log": ["test-create-instance"],
     "test-stop-instance": ["test-startup-check-log"],
     "test-shutdown-check-log": ["test-startup-check-log"]
   }

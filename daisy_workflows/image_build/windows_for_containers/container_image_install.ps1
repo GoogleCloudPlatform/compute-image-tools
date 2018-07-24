@@ -30,8 +30,38 @@
 
 $ErrorActionPreference = 'Stop'
 
+function Get-MetadataValue {
+  param (
+    [parameter(Mandatory=$true)]
+      [string]$key,
+    [parameter(Mandatory=$false)]
+      [string]$default
+  )
+
+  $url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$key"
+  try {
+    $client = New-Object Net.WebClient
+    $client.Headers.Add('Metadata-Flavor', 'Google')
+    return ($client.DownloadString($url)).Trim()
+  }
+  catch [System.Net.WebException] {
+    if ($default) {
+      return $default
+    }
+    else {
+      Write-Output "Failed to retrieve value for $key."
+      return $null
+    }
+  }
+}
+
 & googet -noconfirm update
 try {
+  $version = Get-MetadataValue 'version'
+  if -not $version {
+    throw 'Error retrieving "version" from metadata'
+  }
+
   if (!(Get-Package -ProviderName DockerMsftProvider -ErrorAction SilentlyContinue| Where-Object {$_.Name -eq 'docker'})) {
     Write-Host 'Installing NuGet module'
     Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
@@ -64,19 +94,19 @@ try {
     # As most if not all Windows containers are based on one of these images
     # we pull it here so that running a container using this image is quick.
     Write-Host 'Pulling latest Windows containers'
-    & docker pull microsoft/windowsservercore:1803
+    & docker pull "microsoft/windowsservercore:${version}"
     if (!$?) {
-      throw 'Error running "docker pull microsoft/windowsservercore:1803"'
+      throw "Error running 'docker pull microsoft/windowsservercore:${version}'"
     }
-    & docker pull microsoft/nanoserver:1803
+    & docker pull "microsoft/nanoserver:${version}"
     if (!$?) {
-      throw 'Error running "docker pull microsoft/nanoserver:1803"'
+      throw "Error running 'docker pull microsoft/nanoserver:${version}'"
     }
 
     Write-Host 'Setting container vEthernet MTU to 1460'
-    & docker run --rm microsoft/windowsservercore:1803 powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
+    & docker run --rm "microsoft/windowsservercore:${version}" powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
     if (!$?) {
-      throw 'Error running "docker run microsoft/windowsservercore:1803"'
+      throw "Error running 'docker run microsoft/windowsservercore:${version}'"
     }
 
     Write-Host 'Launching sysprep.'
