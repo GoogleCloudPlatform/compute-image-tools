@@ -48,8 +48,10 @@ case $1 in
     if [ ! -f ${KEY}.pub ]; then
       ssh-keygen -t rsa -N '' -f daisy-key -C "$(uname -n)"
     fi
-    gcloud compute os-login ssh-keys add --key-file=${KEY}.pub
     cat ${KEY}.pub >&"$fd_stdout"
+    NKEYS=$(gcloud compute os-login ssh-keys list | grep -v FINGERPRINT | wc -l)
+    echo "Total number of keys currently on os-login: $NKEYS"
+    gcloud compute os-login ssh-keys add --key-file=${KEY}.pub --ttl=30m
     ;;
   remove_key)
     gcloud compute os-login ssh-keys remove --key-file=${KEY}.pub
