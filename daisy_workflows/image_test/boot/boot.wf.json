@@ -43,6 +43,16 @@
         }
       ]
     },
+    "stop-instance": {
+      "StopInstances": {
+        "Instances": ["inst-boot-test"]
+      }
+    },
+    "start-instance": {
+      "StartInstances": {
+        "Instances": ["inst-boot-test"]
+      }
+    },
     "wait-for-reboot-instance": {
       "Timeout": "5m",
       "WaitForInstancesSignal": [
@@ -59,6 +69,8 @@
   "Dependencies": {
     "create-test-instance": ["create-test-disk"],
     "wait-for-boot-instance": ["create-test-instance"],
-    "wait-for-reboot-instance": ["wait-for-boot-instance"]
+    "stop-instance": ["wait-for-boot-instance"],
+    "start-instance": ["stop-instance"],
+    "wait-for-reboot-instance": ["start-instance"]
   }
 }
