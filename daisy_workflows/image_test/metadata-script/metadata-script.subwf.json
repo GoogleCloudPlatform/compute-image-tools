@@ -8,8 +8,8 @@
     "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified when script exists"},
     "no_startup_msg": {"Required": true, "Description": "Startup script message to be verified when script is missing"},
     "no_shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified when script is missing"},
-    "startup_script_name": {"Description": "Startup script of the created instance"},
-    "shutdown_script_name": {"Description": "Shutdown script of the created instance"}
+    "startup_script_name": {"Required": true, "Description": "Startup script of the created instance"},
+    "shutdown_script_name": {"Required": true, "Description": "Shutdown script of the created instance"}
   },
   "Steps": {
     "test-metadata-script-noscript": {
