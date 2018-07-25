@@ -42,7 +42,8 @@
           "Name": "inst-disk-testee",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "TotalDisks:1"
+            "SuccessMatch": "TotalDisks:1",
+            "FailureMatch": "TotalDisksUnrecognized"
           }
         }
       ]
@@ -61,7 +62,8 @@
           "Name": "inst-disk-testee",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "TotalDisks:2"
+            "SuccessMatch": "TotalDisks:2",
+            "FailureMatch": "TotalDisksUnrecognized"
           }
         }
       ]
@@ -80,7 +82,8 @@
           "Name": "inst-disk-testee",
           "SerialOutput": {
             "Port": 1,
-            "SuccessMatch": "TotalDisks:1"
+            "SuccessMatch": "TotalDisks:1",
+            "FailureMatch": "TotalDisksUnrecognized"
           }
         }
       ]
