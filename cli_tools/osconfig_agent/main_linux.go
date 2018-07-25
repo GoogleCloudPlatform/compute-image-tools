@@ -14,4 +14,25 @@
 
 package main
 
-func main() {}
+import (
+	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
+	"github.com/google/logger"
+)
+
+func rebootRequired() (bool, error) {
+	return false, nil
+}
+
+func runUpdates() {
+	reboot, err := rebootRequired()
+	if err != nil {
+		logger.Errorln("Error checking rebootRequired:", err)
+	}
+	if reboot {
+		logger.Info("Reboot required")
+	}
+
+	if err := packages.UpdatePackages(); err != nil {
+		logger.Errorln("Error running updates:", err)
+	}
+}

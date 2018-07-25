@@ -33,7 +33,7 @@ func rebootRequired() (bool, error) {
 	return true, nil
 }
 
-func main() {
+func runUpdates() {
 	reboot, err := rebootRequired()
 	if err != nil {
 		logger.Errorln("Error checking rebootRequired:", err)

@@ -24,3 +24,7 @@ import (
 func init() {
 	logger.Init("gce_inventory_agent", true, false, ioutil.Discard)
 }
+
+func main() {
+	runUpdates()
+}
