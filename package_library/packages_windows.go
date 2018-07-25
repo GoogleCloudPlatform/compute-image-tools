@@ -177,13 +177,13 @@ func InstallWUAUpdates(query string) error {
 	}
 	defer connection.Uninitialize()
 
-	unknown, err := oleutil.CreateObject("Microsoft.Update.Session")
+	updateSessionObj, err := oleutil.CreateObject("Microsoft.Update.Session")
 	if err != nil {
 		return err
 	}
-	defer unknown.Release()
+	defer updateSessionObj.Release()
 
-	session, err := unknown.QueryInterface(ole.IID_IDispatch)
+	session, err := updateSessionObj.QueryInterface(ole.IID_IDispatch)
 	if err != nil {
 		return err
 	}
@@ -196,23 +196,23 @@ func InstallWUAUpdates(query string) error {
 	defer updtsRaw.Clear()
 
 	updts := updtsRaw.ToIDispatch()
-	count, err := updts.GetProperty("Count")
+	countRaw, err := updts.GetProperty("Count")
 	if err != nil {
 		return err
 	}
-	defer count.Clear()
+	defer countRaw.Clear()
 
-	updtCnt, _ := count.Value().(int32)
+	count, _ := countRaw.Value().(int32)
 
-	if updtCnt == 0 {
+	if count == 0 {
 		logger.Infof("No updates to install")
 		return nil
 	}
 
-	logger.Infof("%d Windows updates available", updtCnt)
+	logger.Infof("%d Windows updates available", count)
 
 	var msg string
-	for i := 0; i < int(updtCnt); i++ {
+	for i := 0; i < int(count); i++ {
 		if err := func() error {
 			updtRaw, err := updts.GetProperty("Item", i)
 			if err != nil {
@@ -292,6 +292,7 @@ func InstallWUAUpdateCollection(session IUpdateSession, updates IUpdateCollectio
 	}
 
 	logger.Infof("Installing updates")
+	// TODO: Look into using the async methods and attempt to track/log progress.
 	if _, err := installer.CallMethod("Install"); err != nil {
 		return fmt.Errorf("error calling method Install on IUpdateInstaller: %v", err)
 	}
