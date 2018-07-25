@@ -88,10 +88,13 @@ After you have created a Compute Engine Image from your virtual disk, next step 
 
 ```
 daisy -var:source_image=projects/<YOUR-PROJECT-NAME>/global/images/YOUR-IMPORTED-IMAGE \\
-OS_SPECIFIC_WORKFLOW
+-var:translate_workflow=OS_SPECIFIC_WORKFLOW -var:image_name=YOUR-TRANSLATED-IMAGE-NAME \\
+/daisy/import_from_image.wf.json
 ```
 
 Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `source_image` field must be specified using the partial URL format for resources: `projects/<project-name>/global/images/<image-name>`
+
+`YOUR-TRANSLATED-IMAGE-NAME` is the name of your new translated image.
 
 `OS_SPECIFIC_WORKFLOW` is the name of the conversion workflow to run. The following sample workflows are provided. You can also create your own custom workflows.
 
@@ -185,46 +188,7 @@ Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `s
 Following is an example
 
 ```
-$ daisy -var:source_image=projectsmy-awesome-projectglobal/images/my-server-import /daisy/ubuntu/translate_ubuntu_1604.wf.json
-
-[Daisy] Running workflow "translate-ubuntu-1604"
-[translate-ubuntu-1604]: 2017/06/29 22:51:10 Logs will be streamed to gs://my-awesome-bucket/daisy-translate-ubuntu-1604-20170629-22:51:10-2pmpp/logs/daisy.log
-[translate-ubuntu-1604]: 2017/06/29 22:51:10 Validating workflow
-[translate-ubuntu-1604]: 2017/06/29 22:51:10 Validating step "setup-disk"
-[translate-ubuntu-1604]: 2017/06/29 22:51:10 Validating step "translate-disk"
-[translate-ubuntu-1604]: 2017/06/29 22:51:11 Validating step "setup-disk"
-[translate-ubuntu-1604]: 2017/06/29 22:51:11 Validating step "translate-disk-inst"
-[translate-ubuntu-1604]: 2017/06/29 22:51:11 Validating step "wait-for-translator"
-[translate-ubuntu-1604]: 2017/06/29 22:51:11 Validating step "delete-instance"
-[translate-ubuntu-1604]: 2017/06/29 22:51:12 Validating step "create-image"
-[translate-ubuntu-1604]: 2017/06/29 22:51:12 Validation Complete
-[translate-ubuntu-1604]: 2017/06/29 22:51:12 Uploading sources
-[translate-ubuntu-1604]: 2017/06/29 22:51:13 Running workflow
-[translate-ubuntu-1604]: 2017/06/29 22:51:13 Running step "setup-disk" (CreateDisks)
-[translate-ubuntu-1604]: 2017/06/29 22:51:14 CreateDisks: creating disk "disk-ubu-1604-import-translate-ubuntu-1604-2pmpp".
-[translate-ubuntu-1604]: 2017/06/29 22:52:01 Step "setup-disk" (CreateDisks) successfully finished.
-[translate-ubuntu-1604]: 2017/06/29 22:52:01 Running step "translate-disk" (IncludeWorkflow)
-[translate-ubuntu-1604]: 2017/06/29 22:52:02 Running step "setup-disk" (CreateDisks)
-[translate-ubuntu-1604]: 2017/06/29 22:52:02 CreateDisks: creating disk "disk-translator-translate-ubuntu-1604-2pmpp".
-[translate-ubuntu-1604]: 2017/06/29 22:52:06 Step "setup-disk" (CreateDisks) successfully finished.
-[translate-ubuntu-1604]: 2017/06/29 22:52:06 Running step "translate-disk-inst" (CreateInstances)
-[translate-ubuntu-1604]: 2017/06/29 22:52:06 CreateInstances: creating instance "inst-translator-translate-ubuntu-1604-2pmpp".
-[translate-ubuntu-1604]: 2017/06/29 22:52:18 Step "translate-disk-inst" (CreateInstances) successfully finished.
-[translate-ubuntu-1604]: 2017/06/29 22:52:18 Running step "wait-for-translator" (WaitForInstancesSignal)
-[translate-ubuntu-1604]: 2017/06/29 22:52:18 CreateInstances: streaming instance "inst-translator-translate-ubuntu-1604-2pmpp" serial port 1 output to gs://my-awesome-bucket/daisy-translate-ubuntu-1604-20170629-22:51:10-2pmpp/logs/inst-translator-translate-ubuntu-1604-2pmpp-serial-port1.log
-[translate-ubuntu-1604]: 2017/06/29 22:52:19 WaitForInstancesSignal: watching serial port 1, SuccessMatch: "TranslateSuccess:", FailureMatch: "TranslateFailed:".
-[translate-ubuntu-1604]: 2017/06/29 22:53:39 WaitForInstancesSignal: SuccessMatch found for instance "inst-translator-translate-ubuntu-1604-2pmpp"
-[translate-ubuntu-1604]: 2017/06/29 22:53:40 Step "wait-for-translator" (WaitForInstancesSignal) successfully finished.
-[translate-ubuntu-1604]: 2017/06/29 22:53:40 Running step "delete-instance" (DeleteResources)
-[translate-ubuntu-1604]: 2017/06/29 22:53:40 DeleteResources: deleting instance "inst-translator-translate-ubuntu-1604-2pmpp".
-[translate-ubuntu-1604]: 2017/06/29 22:54:13 Step "delete-instance" (DeleteResources) successfully finished.
-[translate-ubuntu-1604]: 2017/06/29 22:54:13 Step "translate-disk" (IncludeWorkflow) successfully finished.
-[translate-ubuntu-1604]: 2017/06/29 22:54:14 Running step "create-image" (CreateImages)
-[translate-ubuntu-1604]: 2017/06/29 22:54:14 CreateImages: creating image "ubuntu-1604-2pmpp".
-[translate-ubuntu-1604]: 2017/06/29 22:54:58 Step "create-image" (CreateImages) successfully finished.
-[translate-ubuntu-1604]: 2017/06/29 22:54:59 Workflow "translate-ubuntu-1604" cleaning up (this may take up to 2 minutes.
-[Daisy] Workflow "translate-ubuntu-1604" finished
-[Daisy] All workflows completed successfully.
+$ daisy -var:source_image=projectsmy-awesome-projectglobal/images/my-server-import -var:translate_workflow=/daisy/ubuntu/translate_ubuntu_1604.wf.json -var:image_name=my-new-ubuntu-1604-image /daisy/import_from_image.wf.json
 ```
 
 # Compatibility and Known Limitations
