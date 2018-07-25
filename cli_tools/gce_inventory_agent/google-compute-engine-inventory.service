@@ -1,0 +1,10 @@
+[Unit]
+Description=Google Compute Engine inventory agent
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/gce_inventory_agent run
+
+[Install]
+WantedBy=multi-user.target
