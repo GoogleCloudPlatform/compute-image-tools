@@ -21,6 +21,16 @@ else
 fi
 
 while [ 1 ]; do
-  echo TotalDisks:`ls /dev/sd* | grep [a-z]$ | wc -l` | logger -p daemon.info
+  if [ -e /dev/sda ]; then
+    # Linux style
+    printf TotalDisks:%d\\n `ls /dev/sd* | grep [a-z]$ | wc -l` | logger -p daemon.info
+  elif [ -e /dev/da0 ]; then
+    # BSD style
+    printf TotalDisks:%d\\n `ls /dev/da* | grep da[0-9]$ | wc -l` | logger -p daemon.info
+  else
+    # unknown
+    logger -p daemon.info "TotalDisksUnrecognized"
+  fi
+
   sleep 1
 done
