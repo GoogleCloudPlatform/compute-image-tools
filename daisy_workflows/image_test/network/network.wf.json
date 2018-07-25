@@ -119,6 +119,20 @@
         }
       ]
     },
+    "create-firewall-rule": {
+      "CreateFirewallRules": [
+        {
+          "name": "allow-http",
+          "network": "global/networks/default",
+          "allowed": [
+            {
+              "IPProtocol": "tcp",
+              "Ports": ["80"]
+            }
+          ]
+        }
+      ]
+    },
     "wait-for-testee-instance": {
       "Timeout": "5m",
       "WaitForInstancesSignal": [
@@ -166,7 +180,7 @@
     "create-testee-checker-instance": ["create-testee-forwarding-rule", "create-testee-checker-disk"],
     "wait-for-testee-checker-instance": ["create-testee-checker-instance"],
 
-    "create-tester-instance": ["wait-for-testee-checker-instance", "create-tester-disk"],
+    "create-tester-instance": ["create-firewall-rule", "wait-for-testee-checker-instance", "create-tester-disk"],
     "wait-for-testee-check": ["create-tester-instance"]
   }
 }
