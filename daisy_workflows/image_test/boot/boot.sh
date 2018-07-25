@@ -14,11 +14,9 @@
 # limitations under the License.
 
 if ! ls /reboot.txt; then
-  logger -p daemon.info "BOOTED"
   echo "REBOOT" > /reboot.txt
-  # Wait a bit for logger
-  sleep 10
-  shutdown -r now
+  logger -p daemon.info "BOOTED"
 else
   cat /reboot.txt | logger -p daemon.info
 fi
+sync

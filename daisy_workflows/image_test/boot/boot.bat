@@ -16,11 +16,8 @@ REM limitations under the License.
 if EXIST reboot.txt goto REBOOT
 
 :BOOT
-    echo BOOTED
     echo REBOOT > reboot.txt
-
-    REM restart after 1 second
-    shutdown /r /t 1
+    echo BOOTED
     goto END
 
 :REBOOT
