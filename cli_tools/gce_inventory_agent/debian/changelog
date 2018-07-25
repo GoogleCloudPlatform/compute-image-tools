@@ -1,4 +1,4 @@
-google-compute-engine-inventory (1.1.0) stable; urgency=low
+google-compute-engine-inventory (1.1.0-1) stable; urgency=low
 
   * Allow one once functionality with 'noservice' arg"
 
