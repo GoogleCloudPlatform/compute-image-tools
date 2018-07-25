@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Prepare /bin/slave_tester.sh to be called later
-cat > /bin/slave_tester.sh <<EOF
+cat > /bin/slave_tester.sh <<'EOF'
 #!/bin/bash
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
@@ -39,31 +39,36 @@ exec 2>/dev/ttyS0
 
 set -eux
 
-echo "Executing \$0 \$@"
+echo "Executing $0 $@"
 
 KEY=daisy-key
 
-case \$1 in
+case $1 in
   add_key)
-    if [ ! -f \${KEY}.pub ]; then
-      ssh-keygen -t rsa -N '' -f daisy-key -C "\$(uname -n)"
+    if [ ! -f ${KEY}.pub ]; then
+      ssh-keygen -t rsa -N '' -f daisy-key -C "$(uname -n)"
     fi
-    gcloud compute os-login ssh-keys add --key-file=\${KEY}.pub
-    cat \${KEY}.pub >&"\$fd_stdout"
+    cat ${KEY}.pub >&"$fd_stdout"
+    NKEYS=$(gcloud compute os-login ssh-keys list | grep -v FINGERPRINT | wc -l)
+    echo "Total number of keys currently on os-login: $NKEYS"
+    gcloud compute os-login ssh-keys add --key-file=${KEY}.pub --ttl=30m
     ;;
   remove_key)
-    gcloud compute os-login ssh-keys remove --key-file=\${KEY}.pub
+    gcloud compute os-login ssh-keys remove --key-file=${KEY}.pub
     ;;
   test_login)
-    HOST=\$2
-    ssh -i \$KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \$HOST echo Logged
+    HOST=$2
+    ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 $HOST echo Logged
     ;;
   test_login_sudo)
-    HOST=\$2
-    ssh -i \$KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 \$HOST sudo echo Logged
+    HOST=$2
+    ssh -i $KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 $HOST sudo echo Logged
     ;;
 esac
 EOF
 
-chmod +x /bin/slave_tester.sh
+chmod a+x /bin/slave_tester.sh
+
+# Allow writting to serial port
+chmod a+w /dev/ttyS0
 logger -p daemon.info "BOOTED"

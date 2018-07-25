@@ -13,7 +13,7 @@
 #  limitations under the License.
 
 if (-not (Get-Service 'gce_inventory_agent' -ErrorAction SilentlyContinue)) {
-  New-Service -DisplayName 'GCEInventoryAgent' -Name 'gce_inventory_agent' -BinaryPathName '"C:\Program Files\Google\Compute Engine\inventory\gce_inventory_agent.exe"' -StartupType Automatic -Description 'GCE Inventory Agent'
+  New-Service -DisplayName 'GCEInventoryAgent' -Name 'gce_inventory_agent' -BinaryPathName '"C:\Program Files\Google\Compute Engine\inventory\gce_inventory_agent.exe" run' -StartupType Automatic -Description 'GCE Inventory Agent'
 }
 
 Restart-Service gce_inventory_agent -Verbose

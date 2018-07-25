@@ -1,0 +1,13 @@
+Source: google-compute-engine-inventory
+Section: utils
+Priority: optional
+Maintainer: Google Cloud Team <gc-team@google.com>
+Standards-Version: 1.1.0
+Homepage: https://github.com/GoogleCloudPlatform/compute-image-tools
+XS-Go-Import-Path: github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_inventory_agent
+Build-Depends: debhelper (>= 11), dh-golang, dh-systemd
+
+Package: google-compute-engine-inventory
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Google Compute Engine inventory agent.
