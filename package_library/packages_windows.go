@@ -41,7 +41,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 	pkgs := map[string][]PkgInfo{}
 	var errs []string
 
-	if GooGetInstalled {
+	if GooGetExists {
 		if googet, err := googetUpdates(); err != nil {
 			msg := fmt.Sprintf("error listing googet updates: %v", err)
 			logger.Error(msg)
