@@ -29,7 +29,7 @@ type PkgInfo struct {
 }
 
 func run(cmd *exec.Cmd) ([]byte, error) {
-	logger.Infof("Running %q with args %q", cmd.Path, cmd.Args)
+	logger.Infof("Running %q with args %q", cmd.Path, cmd.Args[1:])
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("error running %q with args %q: %v, stdout: %s", cmd.Path, cmd.Args, err, out)
