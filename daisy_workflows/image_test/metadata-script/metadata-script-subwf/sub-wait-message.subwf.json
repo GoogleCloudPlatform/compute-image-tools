@@ -3,15 +3,15 @@
   "Vars": {
     "instance": {"Required": true, "Description": "The name of the instance to check for the log"},
     "script_type": {"Required": true, "Description": "The type of the script {startup,shutdown} to be tested"},
-    "exec_msg": {"Required": true, "Description": "The message to wait between start and finish"}
+    "exec_msg": {"Required": true, "Description": "The message to wait between start and finish"},
+    "interval": {"Value": "0.5s", "Description": "The interval time to verify messages. The smaller, the faster. The higher, the slower"}
   },
   "Steps": {
     "wait-start": {
-      "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
           "Name": "${instance}",
-          "Interval": "0.5s",
+          "Interval": "${interval}",
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Starting ${script_type} scripts"
@@ -23,7 +23,7 @@
       "WaitForInstancesSignal": [
         {
           "Name": "${instance}",
-          "Interval": "0.5s",
+          "Interval": "${interval}",
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "${exec_msg}",
@@ -36,7 +36,7 @@
       "WaitForInstancesSignal": [
         {
           "Name": "${instance}",
-          "Interval": "0.5s",
+          "Interval": "${interval}",
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Finished running ${script_type} scripts"
@@ -44,9 +44,5 @@
         }
       ]
     }
-  },
-  "Dependencies": {
-    "wait-exec": ["wait-start"],
-    "wait-finish": ["wait-exec"]
   }
 }
