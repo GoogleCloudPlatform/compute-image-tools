@@ -46,7 +46,7 @@ func runUpdates() {
 		logger.Errorln("Error installing Windows updates:", err)
 	}
 
-	if packages.GooGetInstalled {
+	if packages.GooGetExists {
 		if err := packages.InstallGooGetUpdates(); err != nil {
 			logger.Errorln("Error installing GooGet updates:", err)
 		}

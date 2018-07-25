@@ -24,11 +24,16 @@ import (
 )
 
 var (
-	AptExists    = exists(aptGet)
-	YumExists    = exists(yum)
+	// AptExists indicates whether apt is installed.
+	AptExists = exists(aptGet)
+	// YumExists indicates whether yum is installed.
+	YumExists = exists(yum)
+	// ZypperExists indicates whether zypper is installed.
 	ZypperExists = exists(zypper)
-	GemExists    = exists(gem)
-	PipExists    = exists(pip)
+	// GemExists indicates whether gem is installed.
+	GemExists = exists(gem)
+	// PipExists indicates whether pip is installed.
+	PipExists = exists(pip)
 
 	// dpkg-query
 	dpkgquery     = "/usr/bin/dpkg-query"

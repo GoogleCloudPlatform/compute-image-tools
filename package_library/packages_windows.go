@@ -29,9 +29,10 @@ import (
 )
 
 var (
-	googetDir       = os.Getenv("GooGetRoot")
-	googet          = filepath.Join(googetDir, "googet.exe")
-	GooGetInstalled = exists(googet)
+	googetDir = os.Getenv("GooGetRoot")
+	googet    = filepath.Join(googetDir, "googet.exe")
+	// GooGetExists indicates whether googet is installed.
+	GooGetExists = exists(googet)
 )
 
 // GetPackageUpdates gets available package updates GooGet as well as any
