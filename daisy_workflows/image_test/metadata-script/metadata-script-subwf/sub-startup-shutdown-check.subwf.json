@@ -12,7 +12,8 @@
         "Vars": {
             "instance": "${instance}",
             "script_type": "startup",
-            "exec_msg": "${startup_msg}"
+            "exec_msg": "${startup_msg}",
+            "interval": "30s"
         }
       }
     },
