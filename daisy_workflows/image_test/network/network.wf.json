@@ -3,7 +3,8 @@
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "alias_ip": {"Value": "10.128.3.128", "Description": "Alias IP to be used (must match subnet)"},
-    "alias_ip_mask": {"Value": "31", "Description": "Alias IP netmask length to be set (e.g: 32, 24, 16)"}
+    "alias_ip_mask": {"Value": "31", "Description": "Alias IP netmask length to be set (e.g: 32, 24, 16)"},
+    "testee_realname": {"Value": "inst-network-testee-${DATETIME}-${ID}", "Description": "INTERNAL USE"}
   },
   "Sources": {
     "testee.sh": "./network-testee.sh",
@@ -44,7 +45,7 @@
       "CreateInstances": [
         {
           "Name": "inst-network-testee",
-          "RealName": "inst-network-testee-${DATETIME}-${ID}",
+          "RealName": "${testee_realname}",
           "Disks": [{"Source": "disk-testee-img"}],
           "Metadata": {
             "startup-script": "${SOURCE:testee.sh}",
@@ -67,8 +68,8 @@
           "RealName": "inst-network-testee-checker-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-testee-checker-img"}],
           "Metadata": {
-            "startup-script": "INSTANCE=inst-network-testee-${DATETIME}-${ID}; ${SOURCE:testee-checker.sh}",
-            "windows-startup-script-bat": "SET INSTANCE=inst-network-testee-${DATETIME}-${ID} & ${SOURCE:testee-checker.bat}"
+            "startup-script": "INSTANCE=${testee_realname}; ${SOURCE:testee-checker.sh}",
+            "windows-startup-script-bat": "SET INSTANCE=${testee_realname} & ${SOURCE:testee-checker.bat}"
           }
         }
       ]
@@ -84,7 +85,7 @@
             "script": "test.py",
             "prefix": "Test",
             "debian_install_google_api_python_client": "yes",
-            "testee": "inst-network-testee-${DATETIME}-${ID}",
+            "testee": "${testee_realname}",
             "testee_forwarding_rule": "network-testee-forwarding-rule-${DATETIME}-${ID}",
             "alias_ip": "${alias_ip}",
             "alias_ip_mask": "${alias_ip_mask}",
@@ -103,7 +104,7 @@
         {
           "Name": "network-testee-target-instance",
           "RealName": "network-testee-target-instance-${DATETIME}-${ID}",
-          "Instance": "inst-network-testee-${DATETIME}-${ID}"
+          "Instance": "${testee_realname}"
         }
       ]
     },
