@@ -24,6 +24,17 @@ import (
 )
 
 var (
+	// AptExists indicates whether apt is installed.
+	AptExists = exists(aptGet)
+	// YumExists indicates whether yum is installed.
+	YumExists = exists(yum)
+	// ZypperExists indicates whether zypper is installed.
+	ZypperExists = exists(zypper)
+	// GemExists indicates whether gem is installed.
+	GemExists = exists(gem)
+	// PipExists indicates whether pip is installed.
+	PipExists = exists(pip)
+
 	// dpkg-query
 	dpkgquery     = "/usr/bin/dpkg-query"
 	dpkgqueryArgs = []string{"-W", "-f", `${Package} ${Architecture} ${Version}\n`}
@@ -31,6 +42,7 @@ var (
 	// apt-get
 	aptGet               = "/usr/bin/apt-get"
 	aptGetUpdateArgs     = []string{"update"}
+	aptGetUpgradeArgs    = []string{"upgrade", "-y"}
 	aptGetUpgradableArgs = []string{"upgrade", "--just-print"}
 
 	// rpmquery
@@ -39,10 +51,12 @@ var (
 
 	// yum
 	yum                 = "/usr/bin/yum"
+	yumUpdateArgs       = []string{"update", "-y"}
 	yumCheckUpdatesArgs = []string{"check-updates", "--quiet"}
 
 	// zypper
 	zypper                = "/usr/bin/zypper"
+	zypperUpdateArgs      = []string{"update"}
 	zypperListUpdatesArgs = []string{"-q", "list-updates"}
 
 	// gem
@@ -58,12 +72,60 @@ var (
 	noarch = osinfo.Architecture("noarch")
 )
 
+// UpdatePackages installs all available package updates for all known system
+// package managers.
+func UpdatePackages() []error {
+	var errs []error
+	if AptExists {
+		if err := aptUpgrade(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if YumExists {
+		if err := yumUpdate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if ZypperExists {
+		if err := zypperUpdate(); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errs
+}
+
+func aptUpgrade() error {
+	if _, err := run(exec.Command(aptGet, aptGetUpdateArgs...)); err != nil {
+		return err
+	}
+
+	if _, err := run(exec.Command(aptGet, aptGetUpgradeArgs...)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func yumUpdate() error {
+	if _, err := exec.Command(yum, yumCheckUpdatesArgs...).CombinedOutput(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func zypperUpdate() error {
+	if _, err := run(exec.Command(zypper, zypperListUpdatesArgs...)); err != nil {
+		return err
+	}
+	return nil
+}
+
 // GetPackageUpdates gets all available package updates from any known
 // installed package manager.
 func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 	pkgs := map[string][]PkgInfo{}
 	var errs []string
-	if exists(aptGet) {
+	if AptExists {
 		apt, err := aptUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting apt updates: %v", err)
@@ -73,7 +135,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			pkgs["apt"] = apt
 		}
 	}
-	if exists(yum) {
+	if YumExists {
 		yum, err := yumUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting yum updates: %v", err)
@@ -83,7 +145,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			pkgs["yum"] = yum
 		}
 	}
-	if exists(zypper) {
+	if ZypperExists {
 		zypper, err := zypperUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting zypper updates: %v", err)
@@ -93,7 +155,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			pkgs["zypper"] = zypper
 		}
 	}
-	if exists(gem) {
+	if GemExists {
 		gem, err := gemUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting gem updates: %v", err)
@@ -103,7 +165,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			pkgs["gem"] = gem
 		}
 	}
-	if exists(pip) {
+	if PipExists {
 		pip, err := pipUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting pip updates: %v", err)
@@ -166,7 +228,6 @@ func aptUpdates() ([]PkgInfo, error) {
 }
 
 func yumUpdates() ([]PkgInfo, error) {
-	logger.Infof("Running %q with args %q", yum, yumCheckUpdatesArgs)
 	out, err := exec.Command(yum, yumCheckUpdatesArgs...).CombinedOutput()
 	// Exit code 0 means no updates, 100 means there are updates.
 	if err == nil {
