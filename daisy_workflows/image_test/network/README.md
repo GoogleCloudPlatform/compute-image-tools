@@ -7,8 +7,9 @@ forwarding rule send traffic to it.
 
 # How this test works?
 
-- testee: target that will print hostname on port 80.
-- testee-checker: target that verifies VM to VM and VM to external DNS
+- testee: target that will serve 2 simple files on its http port: hostname
+  (that returns the hostname) and os (returns linux or windows)
+- testee-checker: target that verifies if VM to VM and VM to external DNS
   connections work.
 - tester: will verify if the IP alias and Forwarding Rule is working on testee
   by comparing the hostname given by the IP aliased machine and by the IP that

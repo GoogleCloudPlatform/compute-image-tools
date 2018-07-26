@@ -16,4 +16,4 @@
 # Wait for network initialization
 sleep 10
 
-ping -c 1 ${HOST} && logger -p daemon.info 'MultiNICSuccess' || logger -p daemon.info 'MultiNICFailed'
+ping -c 5 ${HOST} && logger -p daemon.info 'MultiNICSuccess' || logger -p daemon.info 'MultiNICFailed'
