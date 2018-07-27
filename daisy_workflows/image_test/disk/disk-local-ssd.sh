@@ -21,19 +21,42 @@
 # Wait for all modules to load. Maybe nvme is not up yet
 sleep 10
 
-# Assuming NVMe first
-DEVICE=/dev/nvme0n1
-PARTITION=/dev/nvme0n1p1
-[ -e "$DEVICE" ] && IS_SCSI=0 || IS_SCSI=1
+# Detecting NVMe
+if [ -e "/dev/nvme0n1" ]; then
+  # NVMe on Linux
+  IS_SCSI=0
+  IS_BSD=0
+  DEVICE=/dev/nvme0n1
+  PARTITION=/dev/nvme0n1p1
+elif [ -e "/dev/nvme0ns1" ]; then
+  # NVMe on BSD
+  IS_SCSI=0
+  IS_BSD=1
+  DEVICE=/dev/nvd0
+  PARTITION=/dev/nvd0p1
+else
+  IS_SCSI=1
+fi
 
 if [ $IS_SCSI -eq 1 ]; then
-  DEVICE=/dev/sdb
-  PARTITION=/dev/sdb1
+  if [ -e "/dev/sdb" ]; then
+    # SCSI on Linux
+    IS_BSD=0
+    DEVICE=/dev/sdb
+    PARTITION=/dev/sdb1
+  else
+    # Assumes it's SCSI on BSD
+    IS_BSD=1
+    DEVICE=/dev/da1
+    PARTITION=/dev/da1p1
+  fi
 
-  # check for Multiqueue SCSI
-  grep scsi_mod.use_blk_mq=Y /proc/cmdline &> /dev/null \
-    && logger -p daemon.info "Multiqueue is enable" \
-    || logger -p daemon.info "Multiqueue is DISABLED"
+  # check for Multiqueue SCSI on Linux
+  if [ $IS_BSD -eq 0 ]; then
+    grep scsi_mod.use_blk_mq=Y /proc/cmdline &> /dev/null \
+      && logger -p daemon.info "Multiqueue is enable" \
+      || logger -p daemon.info "Multiqueue is DISABLED"
+  fi
 fi
 
 MOUNT_POINT=/local_ssd
@@ -41,14 +64,22 @@ CHECK_FILENAME=file
 CHECK_STRING=DiskWorks
 
 # create a primary partition allocating the whole disk
-echo "n
+if [ $IS_BSD -eq 0 ]; then
+  echo "n
 
 
 
 
-w" | fdisk $DEVICE
+  w" | fdisk $DEVICE
 
-mkfs.ext4 $PARTITION
+  mkfs.ext4 $PARTITION
+else
+  # BSD
+  gpart create -s GPT $DEVICE
+  gpart add -t freebsd-ufs $DEVICE
+  newfs -U $PARTITION
+fi
+
 mkdir $MOUNT_POINT
 mount $PARTITION $MOUNT_POINT
 echo $CHECK_STRING > $MOUNT_POINT/$CHECK_FILENAME
