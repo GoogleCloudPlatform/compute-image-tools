@@ -64,7 +64,7 @@ fi
 
 # Disk image size info.
 SIZE_BYTES=$(qemu-img info --output "json" /gcs/${SOURCEPATH} | grep -m1 "virtual-size" | grep -o '[0-9]\+')
- # Round up to the next GB.
+# Round up to the next GB.
 SIZE_GB=$(awk "BEGIN {print int((${SIZE_BYTES}/1000000000)+ 1)}")
 
 echo "Import: Importing ${SOURCEPATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
@@ -89,6 +89,14 @@ if [ $? -ne 0 ]; then
 fi
 
 sync
+
+# Grow partitions and file systems to use the whole disk (not always needed, but
+# running commands below is harmless on those cases)
+for PART in /dev/sdb*; do
+  e2fsck -f -y ${PART}
+  resize2fs ${PART}
+done
+
 gcloud -q compute instances detach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE}
 
 echo "ImportSuccess: Finished import." 2> /dev/null
