@@ -1,0 +1,43 @@
+{
+  "Name": "translate-ubuntu-1804",
+  "Vars": {
+    "source_disk": {
+      "Required": true,
+      "Description": "The Ubuntu 18.04 GCE disk to translate."
+    },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "image_name": {
+      "Value": "ubuntu-1804-${ID}",
+      "Description": "The name of the translated Ubuntu 18.04 image."
+    }
+  },
+  "Steps": {
+    "translate-disk": {
+      "IncludeWorkflow": {
+        "Path": "./translate_ubuntu.wf.json",
+        "Vars": {
+          "ubuntu_release": "bionic",
+          "install_gce_packages": "${install_gce_packages}",
+          "imported_disk": "${source_disk}"
+        }
+      },
+      "Timeout": "60m"
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "${source_disk}",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-image": ["translate-disk"]
+  }
+}
