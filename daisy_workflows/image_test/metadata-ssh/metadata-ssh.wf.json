@@ -9,6 +9,20 @@
     "startup_tester": "../../linux_common/bootstrap.py"
   },
   "Steps": {
+    "create-firewall-rule": {
+      "CreateFirewallRules": [
+        {
+          "name": "allow-ssh",
+          "network": "global/networks/default",
+          "allowed": [
+            {
+              "IPProtocol": "tcp",
+              "Ports": ["22"]
+            }
+          ]
+        }
+      ]
+    },
     "create-disk-tester": {
       "CreateDisks": [
         {
@@ -90,7 +104,7 @@
   "Dependencies": {
     "create-instance-testee": ["create-disk-testee"],
     "wait-for-boot-testee": ["create-instance-testee"],
-    "create-instance-tester": ["create-disk-tester", "wait-for-boot-testee"],
+    "create-instance-tester": ["create-disk-tester", "wait-for-boot-testee", "create-firewall-rule"],
     "wait-for-tester": ["create-instance-tester"]
   }
 }
