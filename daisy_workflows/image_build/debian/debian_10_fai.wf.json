@@ -1,0 +1,28 @@
+{
+  "Name": "build-debian-10-fai",
+  "Vars": {
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
+    "fai_cloud_images_version": {
+      "Value": "3ce7760da63b1e9a4ff55159d67a51b5ea6a171e",
+      "Description": "The debian's fai-cloud-images scripts git commit ID to use."
+    },
+    "debian_version": {
+      "Value": "buster",
+      "Description": "The FAI tool debian version to be requested."
+    }
+  },
+  "Steps": {
+    "build": {
+      "Timeout": "60m",
+      "IncludeWorkflow": {
+        "Path": "./debian_fai.wf.json",
+        "Vars": {
+          "fai_cloud_images_version": "${fai_cloud_images_version}",
+          "debian_version": "${debian_version}",
+          "builder_source_image": "projects/debian-cloud/global/images/family/debian-9",
+          "image_dest": "${image_dest}"
+        }
+      }
+    }
+  }
+}
