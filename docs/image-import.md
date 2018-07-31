@@ -40,7 +40,7 @@ gcloud compute ssh daisy-control
 Now inside the VM, run the workflow titled `import_image.wf.json` to convert the virtual disk file in GCS to a Compute Engine Image.
 
 ```
-daisy -var:source_disk_file=YOUR_VIRTUAL_DISK_FILE -var:image_name=YOUR-IMAGE-NAME /daisy/import_image.wf.json
+daisy -var:source_disk_file=YOUR_VIRTUAL_DISK_FILE -var:image_name=YOUR-IMAGE-NAME /daisy/image_import/import_image.wf.json
 ```
 Where, `YOUR_VIRTUAL_DISK_FILE` is the virtual disk file that you uploaded to GCS in the previous step. You must specify the full GCS path to the file.
 
@@ -49,7 +49,7 @@ Where, `YOUR_VIRTUAL_DISK_FILE` is the virtual disk file that you uploaded to GC
 Following is an example that converts `my_server.vmdk` present in gs://my-awesome-bucket
 
 ```
-daisy -var:source_disk_file=gs://my-awesome-bucket/my_Server1.vmdk -var:image_name=my-server-import /daisy/import_image.wf.json
+daisy -var:source_disk_file=gs://my-awesome-bucket/my_Server1.vmdk -var:image_name=my-server-import /daisy/image_import/import_image.wf.json
 
 [Daisy] Running workflow "import-image"
 [import-image]: 2017/06/29 21:51:12 Logs will be streamed to gs://my-awesome-bucket/daisy-import-image-20170629-21:51:12-sdgxl/logs/daisy.log
@@ -89,7 +89,7 @@ After you have created a Compute Engine Image from your virtual disk, next step 
 ```
 daisy -var:source_image=projects/<YOUR-PROJECT-NAME>/global/images/YOUR-IMPORTED-IMAGE \\
 -var:translate_workflow=OS_SPECIFIC_WORKFLOW -var:image_name=YOUR-TRANSLATED-IMAGE-NAME \\
-/daisy/import_from_image.wf.json
+/daisy/image_import/import_from_image.wf.json
 ```
 
 Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `source_image` field must be specified using the partial URL format for resources: `projects/<project-name>/global/images/<image-name>`
@@ -188,7 +188,7 @@ Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `s
 Following is an example
 
 ```
-$ daisy -var:source_image=projectsmy-awesome-projectglobal/images/my-server-import -var:translate_workflow=/daisy/ubuntu/translate_ubuntu_1604.wf.json -var:image_name=my-new-ubuntu-1604-image /daisy/import_from_image.wf.json
+$ daisy -var:source_image=projectsmy-awesome-projectglobal/images/my-server-import -var:translate_workflow=/daisy/image_import/ubuntu/translate_ubuntu_1604.wf.json -var:image_name=my-new-ubuntu-1604-image /daisy/import_from_image.wf.json
 ```
 
 # Compatibility and Known Limitations
@@ -243,7 +243,7 @@ apt-get -y install git
 mkdir /daisy
 git clone https://github.com/GoogleCloudPlatform/compute-image-tools.git /tmp/compute-image-tools
 
-cp -R /tmp/compute-image-tools/daisy_workflows/image_import/* /daisy/
+cp -R /tmp/compute-image-tools/daisy_workflows/* /daisy/
 chmod -R u+rwX,g+rX,o+rX /daisy
 
 wget https://storage.googleapis.com/compute-image-tools/release/linux/daisy -O /usr/bin/daisy
