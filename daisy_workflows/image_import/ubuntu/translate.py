@@ -97,18 +97,20 @@ iface ens4 inet dhcp
 source /etc/network/interfaces.d/*.cfg
 '''
 
+
 def DistroSpecific(g):
   ubu_release = utils.GetMetadataAttribute('ubuntu_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
 
   # Remove any hard coded DNS settings in resolvconf.
-  logging.info('Resetting resolvconf base.')
-  g.sh('echo "" > /etc/resolvconf/resolv.conf.d/base')
+  if ubu_release != 'bionic':
+    logging.info('Resetting resolvconf base.')
+    g.sh('echo "" > /etc/resolvconf/resolv.conf.d/base')
 
   # Try to reset the network to DHCP.
   if ubu_release == 'trusty':
     g.write('/etc/network/interfaces', trusty_network)
-  elif ubu_release == 'xenial':
+  elif ubu_release in ('xenial', 'bionic'):
     g.write('/etc/network/interfaces', xenial_network)
 
   if install_gce == 'true':
@@ -167,5 +169,6 @@ def main():
   utils.CommonRoutines(g)
   utils.UnmountDisk(g)
 
-if __name__=='__main__':
-  utils.RunTranslate(main) 
+
+if __name__ == '__main__':
+  utils.RunTranslate(main)
