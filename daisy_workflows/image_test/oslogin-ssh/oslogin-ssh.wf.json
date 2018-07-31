@@ -20,6 +20,20 @@
     "slave_tester.sh": "./oslogin_slave_tester.sh"
   },
   "Steps": {
+    "create-firewall-rule": {
+      "CreateFirewallRules": [
+        {
+          "name": "allow-ssh",
+          "network": "global/networks/default",
+          "allowed": [
+            {
+              "IPProtocol": "tcp",
+              "Ports": ["22"]
+            }
+          ]
+        }
+      ]
+    },
     "create-disk-master-tester": {
       "CreateDisks": [
         {
@@ -183,7 +197,7 @@
     "wait-for-boot-oslogin-ssh-tester": ["create-instance-oslogin-ssh-tester"],
     "wait-for-boot-osadminlogin-ssh-tester": ["create-instance-osadminlogin-ssh-tester"],
     "wait-for-boot-testee": ["create-instance-testee"],
-    "create-instance-master-tester": ["create-disk-master-tester", "wait-for-boot-testee", "wait-for-boot-oslogin-ssh-tester", "wait-for-boot-osadminlogin-ssh-tester", "create-instance-testee"],
+    "create-instance-master-tester": ["create-disk-master-tester", "wait-for-boot-testee", "wait-for-boot-oslogin-ssh-tester", "wait-for-boot-osadminlogin-ssh-tester", "create-instance-testee", "create-firewall-rule"],
     "wait-for-master-tester": ["create-instance-master-tester"]
   }
 }
