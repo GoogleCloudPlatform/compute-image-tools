@@ -1,0 +1,87 @@
+{
+  "Name": "translate-freebsd",
+  "Vars": {
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
+    "source_disk": {
+      "Required": true,
+      "Description": "The name of the imported GCE disk resource."
+    },
+    "image_name": {
+      "Value": "freebsd-${ID}",
+      "Description": "The name of the final translated image."
+    }
+  },
+  "Sources": {
+    "import_files/translate.py": "./translate.py",
+    "import_files/utils.py": "../../linux_common/utils.py",
+    "startup_script": "../../linux_common/bootstrap.py"
+  },
+  "Steps": {
+    "setup-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-translator",
+          "SourceImage": "projects/freebsd-org-cloud-dev/global/images/family/freebsd-11-2",
+          "SizeGb": "32",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "translate-disk-inst": {
+      "CreateInstances": [
+        {
+          "Name": "inst-translator",
+          "Disks": [
+            {"Source": "disk-translator"},
+            {"Source": "${source_disk}"}
+          ],
+          "MachineType": "n1-standard-2",
+          "Metadata": {
+            "files_gcs_dir": "${SOURCESPATH}/import_files",
+            "script": "translate.py",
+            "prefix": "Translate",
+            "install_gce_packages": "${install_gce_packages}"
+          },
+          "StartupScript": "startup_script"
+        }
+      ]
+    },
+    "wait-for-translator": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-translator",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "TranslateSuccess:",
+            "FailureMatch": "TranslateFailed:"
+          }
+        }
+      ],
+      "Timeout": "60m"
+    },
+    "delete-instance": {
+      "DeleteResources": {
+        "Instances":["inst-translator"]
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "${source_disk}",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "translate-disk-inst": ["setup-disk"],
+    "wait-for-translator": ["translate-disk-inst"],
+    "delete-instance": ["wait-for-translator"],
+    "create-image": ["delete-instance"]
+  }
+}
