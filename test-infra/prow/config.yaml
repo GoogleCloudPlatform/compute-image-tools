@@ -182,9 +182,20 @@ periodics:
           compute-image-test-pool-005"
       - "-zone=us-central1-c"
       - "-var:images=\
-          projects/windows-cloud/global/images/family/windows-2016-core"
+          projects/windows-cloud/global/images/family/windows-2008-r2,\
+          projects/windows-cloud/global/images/family/windows-2012-r2,\
+          projects/windows-cloud/global/images/family/windows-2012-r2-core,\
+          projects/windows-cloud/global/images/family/windows-2016,\
+          projects/windows-cloud/global/images/family/windows-2016-core,\
+          projects/windows-cloud/global/images/family/windows-1709-core,\
+          projects/windows-cloud/global/images/family/windows-1803-core"
       - "-var:alias_ips=\
-          10.128.3.160"
+          10.128.3.160,\
+          10.128.3.164,\
+          10.128.3.168,\
+          10.128.3.172,\
+          10.128.3.176,\
+          10.128.3.180"
       - "daisy_workflows/image_test/windows_images.test.gotmpl"
       env:
       - name: REPO_OWNER
