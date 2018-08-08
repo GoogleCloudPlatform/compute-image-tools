@@ -562,7 +562,12 @@ class MetadataManager:
     if not level:
       level = self.INSTANCE_LEVEL
     md_item = self.ExtractKeyItem(md_key, level)
-    md_item['value'] = re.sub('.*%s.*\n?' % key, '', md_item['value'])
+    # Clear the key (whole line), empty keys (if any) and the last break line.
+    md_item['value'] = re.sub('\n$', '',
+        re.sub('\n\n', '\n',
+            re.sub('.*%s.*' % key, '', md_item['value'])
+        )
+    )
     if not md_item['value']:
       self.md_items[level].remove(md_item)
     if store:
