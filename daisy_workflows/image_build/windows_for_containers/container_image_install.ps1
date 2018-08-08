@@ -58,7 +58,7 @@ function Get-MetadataValue {
 & googet -noconfirm update
 try {
   $version = Get-MetadataValue 'version'
-  if -not $version {
+  if (-not $version) {
     throw 'Error retrieving "version" from metadata'
   }
 
