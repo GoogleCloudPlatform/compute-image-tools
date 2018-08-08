@@ -26,9 +26,6 @@ Url: https://github.com/GoogleCloudPlatform/compute-image-tools
 
 %if 0%{?el7}
 BuildRequires: systemd
-%endif
-
-%if 0%{?el7}
 Requires: systemd
 %endif
 
@@ -46,6 +43,7 @@ mkdir -p %{buildroot}%{_bindir}
 cp bin/gce_inventory_agent %{buildroot}%{_bindir}
 
 %if 0%{?el6}
+mkdir -p %{buildroot}/etc/init
 cp google-compute-engine-inventory.conf %{buildroot}/etc/init/
 %endif
 
