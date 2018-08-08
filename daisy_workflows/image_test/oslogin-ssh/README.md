@@ -42,12 +42,12 @@ Create two service accounts with the following roles:
 You can use the following commands
 
     gcloud iam service-accounts create daisy-oslogin
-    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/compute.osLogin'
-    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/iam.serviceAccountUser'
-    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/storage.objectViewer'
+    gcloud projects add-iam-policy-binding ${PROJECT} --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/compute.osLogin'
+    gcloud projects add-iam-policy-binding ${PROJECT} --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/iam.serviceAccountUser'
+    gcloud projects add-iam-policy-binding ${PROJECT} --member='serviceAccount:daisy-oslogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/storage.objectViewer'
 
     gcloud iam service-accounts create daisy-osadminlogin
-    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/compute.osAdminLogin'
-    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/iam.serviceAccountUser'
-    gcloud projects add-iam-policy-binding main-nucleus-128012 --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/storage.objectViewer'
+    gcloud projects add-iam-policy-binding ${PROJECT} --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/compute.osAdminLogin'
+    gcloud projects add-iam-policy-binding ${PROJECT} --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/iam.serviceAccountUser'
+    gcloud projects add-iam-policy-binding ${PROJECT} --member='serviceAccount:daisy-osadminlogin@${PROJECT}.iam.gserviceaccount.com' --role='roles/storage.objectViewer'
 
