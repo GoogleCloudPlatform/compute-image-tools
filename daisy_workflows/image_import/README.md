@@ -57,6 +57,7 @@ Variables:
 * **enterprise_linux/translate_rhel_6_licensed.wf.json**: translates a Red Hat Enterprise Linux 6 based virtual disk and converts it to use a GCE based Red Hat cloud license. If you use the resulting image you will be charged for the license.
 * **enterprise_linux/translate_rhel_7_byol.wf.json**: translates a Red Hat Enterprise Linux 7 based virtual disk using your own Red Hat license.
 * **enterprise_linux/translate_rhel_7_licensed.wf.json**: translates a Red Hat Enterprise Linux 7 based virtual disk and converts it to use a GCE based Red Hat cloud license. If you use the resulting image you will be charged for the license.
+* **suse/translate_suse.wf.json**: translates a openSUSE Leap based virtual disk.
 * **freebsd/translate_freebsd.wf.json**: translates a FreeBSD based virtual disk.
 * **ubuntu/translate_ubuntu_1404.wf.json**: translates an Ubuntu 14.04 Trusty based virtual disk.
 * **ubuntu/translate_ubuntu_1604.wf.json**: translates an Ubuntu 16.04 Xenial based virtual disk.
