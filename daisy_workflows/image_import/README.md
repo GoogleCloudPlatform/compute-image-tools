@@ -58,6 +58,7 @@ Variables:
 * **enterprise_linux/translate_rhel_7_byol.wf.json**: translates a Red Hat Enterprise Linux 7 based virtual disk using your own Red Hat license.
 * **enterprise_linux/translate_rhel_7_licensed.wf.json**: translates a Red Hat Enterprise Linux 7 based virtual disk and converts it to use a GCE based Red Hat cloud license. If you use the resulting image you will be charged for the license.
 * **suse/translate_suse.wf.json**: translates a openSUSE Leap based virtual disk.
+* **freebsd/translate_freebsd.wf.json**: translates a FreeBSD based virtual disk.
 * **ubuntu/translate_ubuntu_1404.wf.json**: translates an Ubuntu 14.04 Trusty based virtual disk.
 * **ubuntu/translate_ubuntu_1604.wf.json**: translates an Ubuntu 16.04 Xenial based virtual disk.
 * **windows/translate_windows_2008_r2.wf.json**: translates a Windows 2008R2 based virtual disk.
@@ -73,4 +74,12 @@ daisy -project my-project \
       -oauth creds.json \
       -var:source_image projects/my-project/global/images/ubuntu-1404-xy23f \
       ubuntu/translate_ubuntu_1404.wf.json
+```
+
+Example of importing a FreeBSD disk from a bucket to a translated image
+```shell
+daisy -project my-project \
+      -zone us-central1-b \
+      -variables image_name=my-imported-freebsd,translate_workflow=freebsd/translate_freebsd.wf.json,source_disk_file=gs://bucket/my-freebsd-disk.qcow2
+      import_and_translate.wf.json
 ```
