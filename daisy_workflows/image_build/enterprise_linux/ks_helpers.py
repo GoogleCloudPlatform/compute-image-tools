@@ -128,7 +128,7 @@ class RepoString(object):
                'repo_gpgcheck',
                'gpgkey']
     yum_repo_list = (
-        [('tee -a %s << EOM' % self.repodict[self.repo]['filename']),])
+        [('tee -a %s << EOM' % self.repodict[self.repo]['filename']), ])
     for key in keylist:
       if key == 'head':
         yum_repo_list.append(self.yumseg[key])
@@ -172,8 +172,8 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
     string; a valid kickstart config.
   """
 
-  # This is where we put the kickstart config together. There are three sections
-  # in a kickstart config. Sections are:
+  # This is where we put the kickstart config together. There are three
+  # sections in a kickstart config. Sections are:
   # Commands and options
   # Packages
   # pre and post
@@ -238,8 +238,8 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
 
   ks_post = BuildPost(custom_post, cleanup, repo_version, google_cloud_repo)
 
-  # This list should be in the order that you want each section to appear in the
-  # Kickstart config.
+  # This list should be in the order that you want each section to appear in
+  # the Kickstart config.
   return '\n'.join([ks_options, ks_packages, ks_post])
 
 
@@ -305,14 +305,14 @@ def BuildReposPost(repo_version, google_cloud_repo):
     ...
     %end
 
-  The values for enabled, gpgcheck, repo_gpgcheck, and gpgkey are constants. the
-  values for head, name, and baseurl can be modified to point to use any repo
-  that will accept the supplied gpg keys.
+  The values for enabled, gpgcheck, repo_gpgcheck, and gpgkey are constants.
+  the values for head, name, and baseurl can be modified to point to use any
+  repo that will accept the supplied gpg keys.
   """
 
-  # Build a list of repos that will be returned. All images will get the compute
-  # repo. EL7 images get the cloud SDK repo. The unstable, and staging repos
-  # can be added to either by setting the google_cloud_repo value.
+  # Build a list of repos that will be returned. All images will get the
+  # compute repo. EL7 images get the cloud SDK repo. The unstable, and staging
+  # repos can be added to either by setting the google_cloud_repo value.
   repolist = ['compute']
   if repo_version == 'el7':
     repolist.append('sdk')
