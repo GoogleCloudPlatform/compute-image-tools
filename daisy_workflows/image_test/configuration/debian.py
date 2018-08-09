@@ -25,7 +25,12 @@ class DebianTests(generic_distro.GenericDistroTests):
   """
   __metaclass__ = abc.ABCMeta
 
+  @utils.RetryOnFailure
   def TestPackageInstallation(self):
+    """
+    Network instabilities can lead to errors when fetching the apt repository.
+    It worths to try if that happens
+    """
     utils.Execute(['apt-get', 'update'])
     utils.Execute(['apt-get', 'install', '--reinstall', '-y', 'tree'])
 

@@ -25,7 +25,12 @@ class RedHatTests(generic_distro.GenericDistroTests):
   """
   __metaclass__ = abc.ABCMeta
 
+  @utils.RetryOnFailure
   def TestPackageInstallation(self):
+    """
+    Network instabilities can lead to errors when fetching the yum repository.
+    It worths to try if that happens
+    """
     # install something to test repository sanity
     utils.Execute(['yum', '-y', 'install', 'tree'])
     # in case it was already installed, ask for reinstall just to be sure
