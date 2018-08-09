@@ -13,9 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import datetime
+
 from google import auth
 from googleapiclient import discovery
-import datetime
 import utils
 
 MM = utils.MetadataManager

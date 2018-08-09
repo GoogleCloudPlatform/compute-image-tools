@@ -41,7 +41,7 @@ utils.PipInstall(
     ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32',
     'google-cloud-storage'])
 
-import yaml
+import yaml  # flake8: noqa: E402
 
 BVZ_DIR = '/bvz'
 REPOS = ['stable', 'unstable', 'staging']
