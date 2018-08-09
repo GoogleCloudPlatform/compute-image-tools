@@ -27,7 +27,7 @@ import utils
 
 utils.AptGetInstall(['python-guestfs'])
 
-import guestfs
+import guestfs  # flake8: noqa: E402
 
 
 google_cloud = '''
@@ -43,6 +43,7 @@ iface lo inet loopback
 auto eth0
 iface eth0 inet dhcp
 '''
+
 
 def DistroSpecific(g):
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
@@ -99,5 +100,6 @@ def main():
   utils.CommonRoutines(g)
   utils.UnmountDisk(g)
 
-if __name__=='__main__':
-  utils.RunTranslate(main) 
+
+if __name__ == '__main__':
+  utils.RunTranslate(main)

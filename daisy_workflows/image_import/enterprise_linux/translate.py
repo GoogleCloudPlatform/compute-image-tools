@@ -29,7 +29,7 @@ import utils
 
 utils.AptGetInstall(['python-guestfs', 'libguestfs-tools'])
 
-import guestfs
+import guestfs  # flake8: noqa: E402
 
 
 repo_compute = '''
@@ -131,7 +131,8 @@ def DistroSpecific(g):
       logging.info('Getting Cloud SDK Version %s', sdk_version)
       sdk_version_tar = 'google-cloud-sdk-%s-linux-x86_64.tar.gz' % sdk_version
       sdk_version_tar_url = '%s/downloads/%s' % (sdk_base_url, sdk_version_tar)
-      logging.info('Getting versioned Cloud SDK tar file from %s', sdk_version_tar_url)
+      logging.info('Getting versioned Cloud SDK tar file from %s',
+                   sdk_version_tar_url)
       tar = utils.HttpGet(sdk_version_tar_url)
       sdk_version_tar_file = os.path.join('/tmp', sdk_version_tar)
       g.write(sdk_version_tar_file, tar)
@@ -146,7 +147,8 @@ def DistroSpecific(g):
       for binary in ['bq', 'gcloud', 'gsutil']:
         binary_path = os.path.join(sdk_bin_path, binary)
         new_bin_path = os.path.join('/usr/bin', binary)
-        bin_str = '#!/bin/bash\nsource /opt/rh/python27/enable\n%s $@' % binary_path
+        bin_str = '#!/bin/bash\nsource /opt/rh/python27/enable\n%s $@' % \
+            binary_path
         g.write(new_bin_path, bin_str)
         g.chmod(0755, new_bin_path)
 
@@ -190,5 +192,6 @@ def main():
   utils.UnmountDisk(g)
   utils.Execute(['virt-customize', '-a', disk, '--selinux-relabel'])
 
-if __name__=='__main__':
-  utils.RunTranslate(main) 
+
+if __name__ == '__main__':
+  utils.RunTranslate(main)

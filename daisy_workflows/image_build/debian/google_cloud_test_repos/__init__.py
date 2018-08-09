@@ -1,5 +1,5 @@
-import tasks
 from bootstrapvz.common.tools import rel_path
+import tasks
 
 
 def validate_manifest(data, validator, error):

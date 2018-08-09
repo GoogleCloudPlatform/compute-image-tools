@@ -16,7 +16,8 @@
 """Convert EL ISO to GCE Image and prep for installation.
 
 Parameters (retrieved from instance metadata):
-google_cloud_repo: The package repo to use. Can be stable (default), staging, or unstable.
+google_cloud_repo: The package repo to use. Can be stable (default), staging,
+  or unstable.
 el_release: rhel6, rhel7, centos6, centos7, oraclelinux6, or oraclelinux7
 el_savelogs: true to ask Anaconda to save logs (for debugging).
 rhel_byol: true if building a RHEL BYOL image.
@@ -33,15 +34,19 @@ import utils
 
 def main():
   # Get Parameters
-  repo = utils.GetMetadataAttribute('google_cloud_repo', raise_on_not_found=True)
+  repo = utils.GetMetadataAttribute('google_cloud_repo',
+                                    raise_on_not_found=True)
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
-  savelogs = utils.GetMetadataAttribute('el_savelogs', raise_on_not_found=False)
+  savelogs = utils.GetMetadataAttribute('el_savelogs',
+                                        raise_on_not_found=False)
   savelogs = savelogs == 'true'
   byol = utils.GetMetadataAttribute('rhel_byol', raise_on_not_found=False)
   byol = byol == 'true'
-  sap_hana = utils.GetMetadataAttribute('rhel_sap_hana', raise_on_not_found=False)
+  sap_hana = utils.GetMetadataAttribute('rhel_sap_hana',
+                                        raise_on_not_found=False)
   sap_hana = sap_hana == 'true'
-  sap_apps = utils.GetMetadataAttribute('rhel_sap_apps', raise_on_not_found=False)
+  sap_apps = utils.GetMetadataAttribute('rhel_sap_apps',
+                                        raise_on_not_found=False)
   sap_apps = sap_apps == 'true'
 
   logging.info('EL Release: %s' % release)
@@ -54,7 +59,8 @@ def main():
   utils.AptGetInstall(['extlinux', 'rsync'])
 
   # Build the kickstart file.
-  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap_hana, sap_apps)
+  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap_hana,
+                                        sap_apps)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 
@@ -120,5 +126,5 @@ if __name__ == '__main__':
   try:
     main()
     logging.success('EL Installer build successful!')
-  except:
+  except Exception:
     logging.error('EL Installer build failed!')
