@@ -135,7 +135,6 @@ periodics:
           compute-image-test-pool-005"
       - "-zone=us-central1-c"
       - "-var:images=\
-          projects/debian-cloud/global/images/family/debian-8,\
           projects/debian-cloud/global/images/family/debian-9,\
           projects/centos-cloud/global/images/family/centos-6,\
           projects/centos-cloud/global/images/family/centos-7,\
