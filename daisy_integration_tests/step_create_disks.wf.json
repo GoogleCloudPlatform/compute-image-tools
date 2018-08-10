@@ -15,7 +15,7 @@
         },
         {
           "name": "disk-from-image-family-url",
-          "sourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "sourceImage": "projects/debian-cloud/global/images/family/debian-9",
           "type": "pd-ssd"
         }
       ]
