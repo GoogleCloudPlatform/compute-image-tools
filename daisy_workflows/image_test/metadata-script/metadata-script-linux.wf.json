@@ -3,6 +3,7 @@
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
+  "DefaultTimeout": "15m",
   "Steps": {
     "test-metadata-script": {
       "IncludeWorkflow": {
