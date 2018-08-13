@@ -191,7 +191,7 @@ func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) dErr {
 		// Is this a concurrent attachment?
 		if att.detacher == nil || !s.nestedDepends(att.detacher) {
 			if attIName == iName {
-				errs = addErrs(errs, errf("%s: concurrently attached by step %q", pre, att.attacher))
+				errs = addErrs(errs, errf("%s: concurrently attached by step %q", pre, att.attacher.name))
 				return nil // this is a repeat attachment to the same instance -- does nothing
 			} else if strIn(diskModeRW, []string{mode, att.mode}) {
 				// Can't have concurrent attachment in RW mode.

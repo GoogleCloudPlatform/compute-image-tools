@@ -17,18 +17,6 @@ URL="http://metadata/computeMetadata/v1/instance/attributes"
 GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 FORMAT=$(curl -f -H Metadata-Flavor:Google ${URL}/format)
 
-# Set up GCS fuse repo.
-GCSFUSE_REPO="gcsfuse-`lsb_release -c -s`"
-echo "deb http://packages.cloud.google.com/apt ${GCSFUSE_REPO} main" | tee /etc/apt/sources.list.d/gcsfuse.list
-
-# Install tools.
-echo "GCEExport: Installing import tools"
-apt-get update
-apt-get -q -y install qemu-utils gcsfuse
-if [ $? -ne 0 ]; then
-  echo "ExportFailed: Unable to install gcsfuse or qemu-utils."
-fi
-
 # Strip gs://
 GCS_PATH=${GS_PATH##*//}
 # Grab only the bucket

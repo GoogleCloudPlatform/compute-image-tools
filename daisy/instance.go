@@ -114,7 +114,7 @@ func (i *Instance) populate(ctx context.Context, s *Step) dErr {
 func (i *Instance) populateDisks(w *Workflow) dErr {
 	autonameIdx := 1
 	for di, d := range i.Disks {
-		d.Boot = di == 0 // TODO(crunkleton) should we do this?
+		d.Boot = di == 0
 		d.Mode = strOr(d.Mode, defaultDiskMode)
 		if diskURLRgx.MatchString(d.Source) {
 			d.Source = extendPartialURL(d.Source, i.Project)

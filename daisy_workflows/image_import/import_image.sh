@@ -36,18 +36,6 @@ echo "DISKNAME: ${DISKNAME}" 2> /dev/null
 echo "ME: ${ME}" 2> /dev/null
 echo "ZONE: ${ZONE}" 2> /dev/null
 
-# Set up GCS fuse repo.
-export GCSFUSE_REPO="gcsfuse-`lsb_release -c -s`"
-echo "deb http://packages.cloud.google.com/apt $GCSFUSE_REPO main" | tee /etc/apt/sources.list.d/gcsfuse.list
-
-# Install tools.
-echo "Import: Installing import tools" 2> /dev/null
-apt-get update
-apt-get -q -y install qemu-utils gcsfuse
-if [ $? -ne 0 ]; then
-  echo "ImportFailed: Unable to install gcsfuse or qemu-utils." 2> /dev/null
-fi
-
 # Mount GCS bucket containing the disk image.
 mkdir -p /gcs/${SOURCEBUCKET}
 gcsfuse --implicit-dirs ${SOURCEBUCKET} /gcs/${SOURCEBUCKET}

@@ -16,28 +16,17 @@
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
-IMAGE=$(curl -f -H Metadata-Flavor:Google ${URL}/image)
 
-# Pull the docker image.
-while true; do
-  echo "GCEExport: Pulling export tool." > /dev/ttyS1
-  docker pull $IMAGE > /dev/ttyS1 2>&1
-  if [ $? -eq 0 ]; then
-    break
-  fi
-  sleep 1
-done
-
-echo "GCEExport: Running export tool." > /dev/ttyS1
+echo "GCEExport: Running export tool."
 if [[ -n $LICENSES ]]; then
-  docker run -t --net=host --privileged $IMAGE -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y > /dev/ttyS1 2>&1
+  gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
 else
-  docker run -t --net=host --privileged $IMAGE -gcs_path "$GCS_PATH" -disk /dev/sdb -y > /dev/ttyS1 2>&1
+  gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y
 fi
 if [ $? -ne 0 ]; then
-  echo "ExportFailed: Failed to export disk source to ${GCS_PATH}." > /dev/ttyS1
+  echo "ExportFailed: Failed to export disk source to ${GCS_PATH}."
   exit 1
 fi
 
-echo "ExportSuccess" > /dev/ttyS1
+echo "ExportSuccess"
 sync

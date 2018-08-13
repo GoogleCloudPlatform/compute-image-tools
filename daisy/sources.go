@@ -93,17 +93,17 @@ func (w *Workflow) sourceContent(ctx context.Context, s string) (string, error) 
 		src := w.StorageClient.Bucket(bkt).Object(objPath)
 		r, err := src.NewReader(ctx)
 		if err != nil {
-			return "", errf("error reading from file %s: %v", src, err)
+			return "", errf("error reading from file %s/%s: %v", bkt, objPath, err)
 		}
 		defer r.Close()
 
 		if r.Size() > 1024 {
-			return "", errf("file size is too large %s: %d", src, r.Size())
+			return "", errf("file size is too large %s/%s: %d", bkt, objPath, r.Size())
 		}
 
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, r); err != nil {
-			return "", errf("error reading from file %s: %v", src, err)
+			return "", errf("error reading from file %s/%s: %v", bkt, objPath, err)
 		}
 
 		return buf.String(), nil
@@ -194,13 +194,6 @@ func (w *Workflow) uploadSources(ctx context.Context) dErr {
 		}
 		if err := w.uploadFile(ctx, origPath, dst); err != nil {
 			return err
-		}
-	}
-	for _, step := range w.Steps {
-		if step.SubWorkflow != nil {
-			if err := step.SubWorkflow.Workflow.uploadSources(ctx); err != nil {
-				return err
-			}
 		}
 	}
 	return nil

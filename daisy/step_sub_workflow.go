@@ -72,7 +72,10 @@ func (s *SubWorkflow) validate(ctx context.Context, st *Step) dErr {
 }
 
 func (s *SubWorkflow) run(ctx context.Context, st *Step) dErr {
-	// Prerun work has already been done. Just run(), not Run().
+	if err := s.Workflow.uploadSources(ctx); err != nil {
+		return err
+	}
+
 	defer s.Workflow.cleanup()
 	// If the workflow fails before the subworkflow completes, the previous
 	// "defer" cleanup won't happen. Add a failsafe here, have the workflow
@@ -82,6 +85,7 @@ func (s *SubWorkflow) run(ctx context.Context, st *Step) dErr {
 		return nil
 	})
 
+	// Prerun work has already been done. Just run(), not Run().
 	st.w.LogStepInfo(st.name, "SubWorkflow", "Running subworkflow %q", s.Workflow.Name)
 	if err := s.Workflow.run(ctx); err != nil {
 		s.Workflow.LogStepInfo(st.name, "SubWorkflow", "Error running subworkflow %q: %v", s.Workflow.Name, err)

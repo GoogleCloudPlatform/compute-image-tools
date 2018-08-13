@@ -109,6 +109,11 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 				if diskRes, ok := w.disks.get(d.Source); ok {
 					d.Source = diskRes.link
 				}
+				if d.InitializeParams != nil && d.InitializeParams.SourceImage != "" {
+					if image, ok := w.images.get(d.InitializeParams.SourceImage); ok {
+						d.InitializeParams.SourceImage = image.link
+					}
+				}
 			}
 
 			for _, n := range i.NetworkInterfaces {
