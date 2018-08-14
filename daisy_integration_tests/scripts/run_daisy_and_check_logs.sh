@@ -32,7 +32,7 @@ export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 
 # Pull daisy
-go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy
+go get -v github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy
 if [ $? -ne 0 ]; then
   echo "BuildFailed: Error pulling Daisy."
   exit 1
