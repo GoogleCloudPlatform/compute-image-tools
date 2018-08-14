@@ -66,6 +66,8 @@ func TestUploadSources(t *testing.T) {
 
 	for _, tt := range tests {
 		w.Sources = tt.sources
+		// Subworkflow sources should not show up
+		sw.Sources = tt.sources
 		testGCSObjs = nil
 		derr := w.uploadSources(ctx)
 
@@ -87,10 +89,12 @@ func TestUploadSources(t *testing.T) {
 	// Check that subworkflows report errors as well.
 	w.Sources = map[string]string{}
 	for _, tt := range tests {
+		// Parent sources should not show up
+		w.Sources = tt.sources
 		sw.Sources = tt.sources
 		testGCSObjs = nil
 
-		derr := w.uploadSources(ctx)
+		derr := sw.uploadSources(ctx)
 		if tt.wantErrType == NOERR && derr != nil {
 			t.Errorf("unexpected error, test case: %q; i: %s; error result: %s", tt.desc, tt.sources, derr)
 		} else if tt.wantErrType != NOERR {
