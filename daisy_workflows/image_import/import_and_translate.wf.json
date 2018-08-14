@@ -14,6 +14,10 @@
       "Required": true,
       "Description": "The path to the translation workflow to run."
     },
+    "install_gce_packages": {
+      "Value": "true",
+      "Description": "Whether to install GCE packages."
+    },
     "translation-disk-name": "temp-translation-disk-${ID}"
   },
   "Steps": {
@@ -38,7 +42,8 @@
         "Path": "${translate_workflow}",
         "Vars": {
           "source_disk": "${translation-disk-name}",
-          "image_name": "${image_name}"
+          "image_name": "${image_name}",
+          "install_gce_packages": "${install_gce_packages}"
         }
       }
     },
