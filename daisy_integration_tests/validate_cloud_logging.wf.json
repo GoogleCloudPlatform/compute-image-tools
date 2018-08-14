@@ -3,30 +3,20 @@
   "Sources": {
     "run_daisy_and_check_logs.sh": "./scripts/run_daisy_and_check_logs.sh"
   },
-  "Vars": {
-    "github_branch": {
-      "Value": "master",
-      "Description": "Github branch to build packages from."
-    },
-    "github_repo": {
-      "Value": "https://github.com/GoogleCloudPlatform/compute-image-tools.git",
-      "Description": "Github repo to build packages from."
-    }
-  },
   "Steps": {
     "daisy-build-and-run": {
       "CreateInstances": [
         {
           "disks": [
             {
-              "source": "disk1"
+              "initializeParams": {
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
             }
           ],
           "machineType": "n1-standard-2",
           "name": "inst-daisy-log-test-logs",
           "metadata": {
-            "github_branch": "${github_branch}",
-            "github_repo": "${github_repo}",
             "should_have_logs": "true"
           },
           "Scopes": [
@@ -40,14 +30,14 @@
         {
           "disks": [
             {
-              "source": "disk2"
+              "initializeParams": {
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
             }
           ],
           "machineType": "n1-standard-2",
           "name": "inst-daisy-log-test-nologs",
           "metadata": {
-            "github_branch": "${github_branch}",
-            "github_repo": "${github_repo}",
             "should_have_logs": "false"
           },
           "Scopes": [
@@ -56,22 +46,6 @@
             "https://www.googleapis.com/auth/compute"
           ],
           "StartupScript": "run_daisy_and_check_logs.sh"
-        }
-      ]
-    },
-    "setup-disk": {
-      "CreateDisks": [
-        {
-          "name": "disk1",
-          "sourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "type": "pd-ssd",
-          "sizeGb": "10"
-        },
-        {
-          "name": "disk2",
-          "sourceImage": "projects/debian-cloud/global/images/family/debian-9",
-          "type": "pd-ssd",
-          "sizeGb": "10"
         }
       ]
     },
@@ -97,9 +71,6 @@
     }
   },
   "Dependencies": {
-    "daisy-build-and-run": [
-      "setup-disk"
-    ],
     "wait-for-build": [
       "daisy-build-and-run"
     ]
