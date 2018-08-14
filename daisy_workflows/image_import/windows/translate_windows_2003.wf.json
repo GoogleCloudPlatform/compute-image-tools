@@ -8,6 +8,10 @@
     "image_name": {
       "Value": "windows-server-2003-${ID}",
       "Description": "The name of the translated Server 2003 image."
+    },
+    "install_gce_packages": {
+      "Value": "false",
+      "Description": "variable unused for 2003"
     }
   },
   "Sources": {
