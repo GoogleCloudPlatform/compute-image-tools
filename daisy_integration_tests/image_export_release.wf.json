@@ -3,17 +3,18 @@
   "Vars": {
     "about-this-test": {
       "Value": "",
-      "Description": "This test checks that the export_image|disk workflows actually work using 'gce_export:release'."
+      "Description": "This test checks that the export_image|disk workflows actually work using the released worker image."
     },
     "gcs_export": {
       "Value": "${SCRATCHPATH}/created-by-export-test-release.tar.gz"
-    }
+    },
+    "image_name": "from-export"
   },
   "Steps": {
     "create-image": {
       "CreateImages": [
         {
-          "name": "from-export",
+          "name": "${image_name}",
           "rawDisk": {
             "source": "${gcs_export}"
           }
@@ -26,13 +27,13 @@
           "disks": [
             {
               "initializeParams": {
-                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+                "sourceImage": "${image_name}"
               }
             }
           ],
           "name": "tester",
           "metadata": {
-            "startup-script": "gsutil cp ${gcs_export} . \u0026\u0026 gsutil rm ${gcs_export} \u0026\u0026 echo 'SUCCESS wVnWw3a41CVe3mBVvTMn' || echo 'FAILURE wVnWw3a41CVe3mBVvTMn'"
+            "startup-script": "echo 'SUCCESS wVnWw3a41CVe3mBVvTMn'"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
@@ -45,7 +46,6 @@
         "Path": "../daisy_workflows/export/image_export.wf.json",
         "Vars": {
           "destination": "${gcs_export}",
-          "export_image": "gcr.io/compute-image-tools/gce_export:release",
           "source_image": "projects/debian-cloud/global/images/family/debian-9"
         }
       }

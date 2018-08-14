@@ -137,7 +137,7 @@ func (nr *networkRegistry) disconnectHelper(nName, iName string, s *Step) dErr {
 	} else if conn.disconnector != nil {
 		return errf("%s: already disconnected or concurrently disconnected by step %q", pre, conn.disconnector.name)
 	} else if !s.nestedDepends(conn.connector) {
-		return errf("%s: step %q does not depend on connecting step %q", pre, s.name, conn.connector)
+		return errf("%s: step %q does not depend on connecting step %q", pre, s.name, conn.connector.name)
 	}
 	conn.disconnector = s
 	return nil

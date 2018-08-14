@@ -49,8 +49,9 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) dErr {
 
 			// Get the source image link if using a source image.
 			if cd.SourceImage != "" {
-				image, _ := w.images.get(cd.SourceImage)
-				cd.SourceImage = image.link
+				if image, ok := w.images.get(cd.SourceImage); ok {
+					cd.SourceImage = image.link
+				}
 			}
 
 			w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
