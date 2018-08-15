@@ -20,9 +20,6 @@ import os
 
 import utils
 
-utils.AptGetInstall(['python-pip'])
-utils.PipInstall(['google-cloud-storage'])
-
 
 def main():
   raise_on_not_found = True
@@ -30,7 +27,7 @@ def main():
   outs_path = utils.GetMetadataAttribute('daisy-outs-path', raise_on_not_found)
 
   # Mount the installer disk.
-  utils.Execute(['mount', '-t', 'ext4', '/dev/sdb1', '/mnt'])
+  utils.Execute(['mount', '/dev/sdb1', '/mnt'])
 
   logging.info('Installer root: %s' % os.listdir('/mnt'))
   logging.info('Build logs: %s' % os.listdir('/mnt/build-logs'))
@@ -38,7 +35,8 @@ def main():
   utils.UploadFile('/mnt/ks.cfg', '%s/' % logs_path)
   directory = '/mnt/build-logs'
   for f in os.listdir(directory):
-    utils.UploadFile('%s/%s' % (directory, f), '%s/' % logs_path)
+    if os.path.isfile(f):
+      utils.UploadFile('%s/%s' % (directory, f), '%s/' % logs_path)
   utils.UploadFile('/mnt/build-logs/synopsis.json',
       '%s/synopsis.json' % outs_path)
 

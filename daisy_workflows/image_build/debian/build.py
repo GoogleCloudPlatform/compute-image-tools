@@ -38,8 +38,7 @@ utils.AptGetInstall(
     ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
      'python-yaml'])
 utils.PipInstall(
-    ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32',
-    'google-cloud-storage'])
+    ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32'])
 
 import yaml  # flake8: noqa: E402
 
