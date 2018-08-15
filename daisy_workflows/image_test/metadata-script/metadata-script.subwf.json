@@ -13,6 +13,7 @@
   },
   "Steps": {
     "test-metadata-script-noscript": {
+      "Timeout": "15m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-noscript.subwf.json",
         "Vars": {
@@ -23,6 +24,7 @@
       }
     },
     "test-metadata-script-junk": {
+      "Timeout": "15m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-junk.subwf.json",
         "Vars": {
@@ -33,6 +35,7 @@
       }
     },
     "test-metadata-script-integrity": {
+      "Timeout": "15m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-integrity.subwf.json",
         "Vars": {

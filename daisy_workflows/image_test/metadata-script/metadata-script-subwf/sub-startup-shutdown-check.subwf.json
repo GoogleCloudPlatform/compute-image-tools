@@ -5,6 +5,7 @@
     "startup_msg": {"Required": true, "Description": "The message to wait when the instance starts up"},
     "shutdown_msg": {"Required": true, "Description": "The message to wait when the instance shuts down"}
   },
+  "DefaultTimeout": "5m",
   "Steps": {
     "test-startup-check-log": {
       "IncludeWorkflow": {

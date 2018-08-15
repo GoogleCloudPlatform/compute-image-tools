@@ -16,6 +16,7 @@
       }
     },
     "wait-noscript": {
+      "Timeout": "15m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {

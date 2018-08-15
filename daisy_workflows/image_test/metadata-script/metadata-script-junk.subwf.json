@@ -24,6 +24,7 @@
       }
     },
     "wait-junk-url": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -48,6 +49,7 @@
       }
     },
     "wait-junk-gcs": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {

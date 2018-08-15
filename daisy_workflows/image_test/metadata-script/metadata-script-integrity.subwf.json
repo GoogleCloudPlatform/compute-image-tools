@@ -28,6 +28,7 @@
       }
     },
     "wait-integrity-url": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -54,6 +55,7 @@
       }
     },
     "wait-integrity-gcs": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -94,6 +96,7 @@
       }
     },
     "wait-integrity-public-gcs": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -120,6 +123,7 @@
       }
     },
     "wait-integrity-native": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -141,6 +145,7 @@
       }
     },
     "wait-integrity-startup-param": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
