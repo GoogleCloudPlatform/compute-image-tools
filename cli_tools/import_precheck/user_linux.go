@@ -14,12 +14,12 @@ package main
 
 import (
 	"errors"
-	"os/user"
+	"os"
 )
 
 func checkRoot() error {
-	u, _ := user.Current()
-	if u.Name != "root" {
+	uid := os.Geteuid()
+	if u.Name != 0 {
 		return errors.New("must be run as root")
 	}
 	return nil
