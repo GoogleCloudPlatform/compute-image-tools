@@ -37,6 +37,7 @@
           "Metadata": {
             "bootstrap_vz_manifest": "${bootstrap_vz_manifest}",
             "bootstrap_vz_version": "${bootstrap_vz_version}",
+            "debian_install_google_api_python_client": "true",
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "script": "build.py",
             "prefix": "Build",
