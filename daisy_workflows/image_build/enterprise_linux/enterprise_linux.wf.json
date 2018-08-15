@@ -147,9 +147,9 @@
           "Name": "inst-savelogs",
           "SerialOutput": {
             "Port": 1,
-            "FailureMatch": "BuildFailed:",
-            "SuccessMatch": "BuildSuccess:",
-            "StatusMatch": "BuildStatus:"
+            "FailureMatch": "SaveLogsFailed:",
+            "SuccessMatch": "SaveLogsSuccess:",
+            "StatusMatch": "SaveLogsStatus:"
           }
         }
       ]
