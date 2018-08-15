@@ -17,8 +17,11 @@
             "source_image": "${source_image}",
             "instance": "inst-metadata-scripts-junk-url",
             "startup_script_meta_key": "startup-script-url",
+            "windows_startup_script_meta_key": "windows-startup-script-url",
             "startup_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.ps1",
+
             "shutdown_script_meta_key": "shutdown-script-url",
+            "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.ps1"
         }
       }
@@ -42,8 +45,11 @@
             "source_image": "${source_image}",
             "instance": "inst-metadata-scripts-junk-gcs",
             "startup_script_meta_key": "startup-script-url",
+            "windows_startup_script_meta_key": "windows-startup-script-url",
             "startup_script_meta": "${SOURCESPATH}/junk_file.ps1",
+
             "shutdown_script_meta_key": "shutdown-script-url",
+            "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "${SOURCESPATH}/junk_file.ps1"
         }
       }
