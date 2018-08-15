@@ -19,7 +19,7 @@ import (
 
 func checkRoot() error {
 	uid := os.Geteuid()
-	if u.Name != 0 {
+	if uid != 0 {
 		return errors.New("must be run as root")
 	}
 	return nil
