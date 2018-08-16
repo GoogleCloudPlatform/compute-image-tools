@@ -5,8 +5,8 @@
   },
   "Sources": {
     "bootstrap": "../../linux_common/bootstrap.py",
-    "test_files/": "./",
-    "test_files/test.py": "./configuration-test.py",
+    "test_files/": "./linux/",
+    "test_files/test.py": "./linux/configuration-test.py",
     "test_files/utils.py": "../../linux_common/utils.py"
   },
   "Steps": {

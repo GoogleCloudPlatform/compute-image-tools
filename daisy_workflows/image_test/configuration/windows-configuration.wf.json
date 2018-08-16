@@ -30,18 +30,6 @@
         }
       ]
     },
-    "rsyslog-kernel-console-test": {
-      "Timeout": "5m",
-      "WaitForInstancesSignal": [
-        {
-          "Name": "inst-configuration",
-          "SerialOutput": {
-            "Port": 1,
-            "SuccessMatch": "RsyslogKernelConsoleTest"
-          }
-        }
-      ]
-    },
     "wait-for-test-completion": {
       "Timeout": "5m",
       "WaitForInstancesSignal": [
