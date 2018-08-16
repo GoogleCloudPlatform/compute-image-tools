@@ -8,8 +8,8 @@
     "shutdown_script_name": {"Required": true, "Description": "Shutdown script of the created instance"}
   },
   "Sources": {
-    "startup_file": "${startup_script_name}",
-    "shutdown_file": "${shutdown_script_name}"
+    "startup_file.ps1": "${startup_script_name}",
+    "shutdown_file.ps1": "${shutdown_script_name}"
   },
   "Steps": {
     "create-integrity-url": {
@@ -28,6 +28,7 @@
       }
     },
     "wait-integrity-url": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -46,14 +47,15 @@
             "instance": "inst-metadata-scripts-gcs",
             "startup_script_meta_key": "startup-script-url",
             "windows_startup_script_meta_key": "windows-startup-script-url",
-            "startup_script_meta": "${SOURCESPATH}/startup_file",
+            "startup_script_meta": "${SOURCESPATH}/startup_file.ps1",
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
-            "shutdown_script_meta": "${SOURCESPATH}/shutdown_file"
+            "shutdown_script_meta": "${SOURCESPATH}/shutdown_file.ps1"
         }
       }
     },
     "wait-integrity-gcs": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -67,12 +69,12 @@
     "copy-scripts-to-public": {
       "CopyGCSObjects": [
         {
-          "Source": "${SOURCESPATH}/startup_file",
+          "Source": "${SOURCESPATH}/startup_file.ps1",
           "Destination": "${SOURCESPATH}/startup_file_public",
           "AclRules": [{"Entity": "allUsers", "Role": "READER"}]
         },
         {
-          "Source": "${SOURCESPATH}/shutdown_file",
+          "Source": "${SOURCESPATH}/shutdown_file.ps1",
           "Destination": "${SOURCESPATH}/shutdown_file_public",
           "AclRules": [{"Entity": "allUsers", "Role": "READER"}]
         }
@@ -94,6 +96,7 @@
       }
     },
     "wait-integrity-public-gcs": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -112,14 +115,15 @@
             "instance": "inst-metadata-scripts-native",
             "startup_script_meta_key": "startup-script",
             "windows_startup_script_meta_key": "windows-startup-script-ps1",
-            "startup_script_meta": "${SOURCE:startup_file}",
+            "startup_script_meta": "${SOURCE:startup_file.ps1}",
             "shutdown_script_meta_key": "shutdown-script",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-ps1",
-            "shutdown_script_meta": "${SOURCE:shutdown_file}"
+            "shutdown_script_meta": "${SOURCE:shutdown_file.ps1}"
         }
       }
     },
     "wait-integrity-native": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -141,6 +145,7 @@
       }
     },
     "wait-integrity-startup-param": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {

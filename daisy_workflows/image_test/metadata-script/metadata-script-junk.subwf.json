@@ -7,7 +7,7 @@
     "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"}
   },
   "Sources": {
-    "junk_file": "./junk"
+    "junk_file.ps1": "./junk.ps1"
   },
   "Steps": {
     "create-junk-url": {
@@ -17,13 +17,17 @@
             "source_image": "${source_image}",
             "instance": "inst-metadata-scripts-junk-url",
             "startup_script_meta_key": "startup-script-url",
-            "startup_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk",
+            "windows_startup_script_meta_key": "windows-startup-script-url",
+            "startup_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.ps1",
+
             "shutdown_script_meta_key": "shutdown-script-url",
-            "shutdown_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk"
+            "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
+            "shutdown_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.ps1"
         }
       }
     },
     "wait-junk-url": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
@@ -41,13 +45,17 @@
             "source_image": "${source_image}",
             "instance": "inst-metadata-scripts-junk-gcs",
             "startup_script_meta_key": "startup-script-url",
-            "startup_script_meta": "${SOURCESPATH}/junk_file",
+            "windows_startup_script_meta_key": "windows-startup-script-url",
+            "startup_script_meta": "${SOURCESPATH}/junk_file.ps1",
+
             "shutdown_script_meta_key": "shutdown-script-url",
-            "shutdown_script_meta": "${SOURCESPATH}/junk_file"
+            "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
+            "shutdown_script_meta": "${SOURCESPATH}/junk_file.ps1"
         }
       }
     },
     "wait-junk-gcs": {
+      "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
         "Vars": {
