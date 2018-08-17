@@ -37,6 +37,12 @@
         },
         "CustomProjectLock": "alias-ip-{{$alias_ip}}"
       },
+      "test-configuragion [{{$image}}]": {
+      "Path": "./configuration/windows-configuration.wf.json",
+       "Vars": {
+         "source_image": "{{$image}}"
+       }
+      },
       "test-disk [{{$image}}]": {
         "Path": "./disk/disk.wf.json",
         "Vars": {
