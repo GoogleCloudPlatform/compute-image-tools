@@ -1,5 +1,5 @@
 {
-  "Name": "img-configuration-test",
+  "Name": "linux-configuration-test",
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
