@@ -17,10 +17,9 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"flag"
 	"io/ioutil"
 	"log"
-	"flag"
 
 	"github.com/google/logger"
 	"google.golang.org/api/option"
@@ -28,12 +27,12 @@ import (
 )
 
 var (
-	oauth              = flag.String("oauth", "", "path to oauth json file")
+	oauth    = flag.String("oauth", "", "path to oauth json file")
 	instance = flag.String("instance", "", "")
 	basePath = flag.String("base_path", "", "")
 )
 
-const basePath = "https://staging-osconfig.sandbox.googleapis.com/v1alpha1/"
+const cloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 
 func init() {
 	logger.Init("osconfig_agent", true, false, ioutil.Discard)
