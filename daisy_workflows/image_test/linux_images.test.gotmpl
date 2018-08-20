@@ -7,7 +7,7 @@
     {{$length := len $images -}}
     {{range $index, $image := $images -}}
       {{$alias_ip := randItem $alias_ips -}}
-      {{$machine_types := mkSlice "f1-micro" "g1-small" "n1-standard-4" "n1-highmem-64" -}}
+      {{$machine_types := mkSlice "f1-micro" "g1-small" "n1-standard-4" "n1-standard-96" -}}
       {{range $machine_type := $machine_types -}}
         "test-boot-{{$machine_type}} [{{$image}}]": {
           "Path": "./boot/boot.wf.json",

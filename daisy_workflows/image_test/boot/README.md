@@ -1,8 +1,7 @@
 # What is being tested?
 
 The image is being tested to be be able to on low resource machine types
-(f1-micro, g1-small) and high CPU/Mem machine types (n1-highcpu-96,
-n1-highmem-96).
+(f1-micro, g1-small) and high CPU/Mem machine types (n1-standard-96).
 
 The test consists in writing to a file, rebooting and then testing that the file
 is intact.
