@@ -16,15 +16,38 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"io/ioutil"
+	"log"
+	"flag"
 
 	"github.com/google/logger"
+	"google.golang.org/api/option"
+	"google.golang.org/api/transport"
 )
 
+var (
+	oauth              = flag.String("oauth", "", "path to oauth json file")
+	instance = flag.String("instance", "", "")
+	basePath = flag.String("base_path", "", "")
+)
+
+const basePath = "https://staging-osconfig.sandbox.googleapis.com/v1alpha1/"
+
 func init() {
-	logger.Init("gce_inventory_agent", true, false, ioutil.Discard)
+	logger.Init("osconfig_agent", true, false, ioutil.Discard)
 }
 
 func main() {
-	runUpdates()
+	flag.Parse()
+	ctx := context.Background()
+
+	hc, _, err := transport.NewHTTPClient(ctx, option.WithScopes(cloudPlatformScope), option.WithCredentialsFile(*oauth))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//runUpdates()
+
 }
