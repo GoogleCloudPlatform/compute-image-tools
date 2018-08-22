@@ -40,8 +40,10 @@ def main():
     from centos import CentOS7Tests as DistroClass
   elif 'debian' in distro_name and distro_version == '8':
     from debian import Debian8Tests as DistroClass
-  elif 'debian' in distro_name:
+  elif 'debian' in distro_name and distro_version == '9':
     from debian import Debian9Tests as DistroClass
+  elif 'debian' in distro_name:
+    from debian import Debian10Tests as DistroClass
   elif 'ubuntu' in distro_name:
     from ubuntu import UbuntuTests as DistroClass
   elif 'suse' in distro_name:
