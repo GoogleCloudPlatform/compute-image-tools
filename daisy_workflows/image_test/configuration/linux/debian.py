@@ -78,3 +78,17 @@ class Debian9Tests(DebianTests):
         'biosdevname': ['0'],
     })
     return d
+
+
+class Debian10Tests(DebianTests):
+  def GetCmdlineConfigs(self):
+    return {
+        'console': ['ttyS0', '115200'],
+        'scsi_mod.use_blk_mq': ['Y'],
+        'net.ifnames': ['0'],
+    }
+
+  def GetSshdConfig(self):
+    return {
+        'PasswordAuthentication': 'no',
+    }
