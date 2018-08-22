@@ -204,10 +204,41 @@ class GenericDistroTests(object):
     """
     Ensure that the NTP server is set to metadata.google.internal.
     """
-    # Below, not the most pythonic thing to do... but it's the easiest one
-    command = ['grep', '^server \+metadata.google.internal', '/etc/ntp.conf']
-    utils.Execute(command)
-    # if the above command returned any lines, then it found a match
+    def CheckNtpRun(cmd):
+      """
+      Run @cmd and check, if successful, whether google server is found on
+      output.
+
+      Args:
+        cmd: list of strings. Command to be passed to utils.Exceute
+
+      Return value:
+        bool. True if client exists and google server is found. False
+        otherwise.
+      """
+      try:
+        rc, out = utils.Execute(cmd, raise_errors=False, capture_output=True)
+        if rc == 0:
+          # ntp client found on system
+          if out.find('metadata.google') >= 0:
+            # Google server found
+            return True
+      except OSError:
+        # just consider it as a regular error as below
+        pass
+
+      # Command didn't run successfully
+      return False
+
+    # Try ntp
+    if CheckNtpRun(['ntpq', '-p']):
+      return
+
+    # Try chrony
+    if CheckNtpRun(['chronyc', 'sources']):
+      return
+
+    raise Exception("No NTP client found that uses Google's NTP server")
 
   @abc.abstractmethod
   def TestAutomaticSecurityUpdates(self):
