@@ -86,11 +86,11 @@ def CheckNss(user_oslogin, user_osadminlogin, expect_empty=False):
   _, users = MasterExecuteInSsh(TESTEE, ['getent', 'passwd'])
   if expect_empty and (user_oslogin in users or user_osadminlogin in users):
     raise ValueError(
-        'Os Login usernames DETECTED in getend passwd (nss) when NOT expected')
+        'Os Login usernames DETECTED in getent passwd (nss) when NOT expected')
   elif not expect_empty and (
       user_oslogin not in users or user_osadminlogin not in users):
     raise ValueError(
-        'Os Login usernames NOT DETECTED in getend passwd (nss) when expected')
+        'Os Login usernames NOT DETECTED in getent passwd (nss) when expected')
 
 
 def TestLoginFromSlaves(user_oslogin, user_osadminlogin, expect_fail=False):

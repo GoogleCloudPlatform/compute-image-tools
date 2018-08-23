@@ -1,8 +1,9 @@
 {
   "Name": "img-boot-test",
   "Vars": {
-    "source_image": {"Required": true, "Description": "Image to be tested"},
-    "machine_type": {"Required": true, "Description": "MachineType to test the image"}
+    "source_image": {"Required": true, "Description": "Image to be tested."},
+    "machine_type": {"Required": true, "Description": "MachineType to test the image."},
+    "min_cpu_platform": {"Value": "", "Description": "Minimum CPU platform to test the image."}
   },
   "Sources": {
     "boot.sh": "./boot.sh",
@@ -24,6 +25,7 @@
           "Name": "inst-boot-test",
           "Disks": [{"Source": "disk-test-img"}],
           "MachineType": "${machine_type}",
+          "minCpuPlatform": "${min_cpu_platform}",
           "Metadata": {
             "startup-script": "${SOURCE:boot.sh}",
             "windows-startup-script-bat": "${SOURCE:boot.bat}"
