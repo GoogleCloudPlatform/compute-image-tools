@@ -79,7 +79,7 @@ def main():
 
   # Run fai-tool.
   work_dir = url_params['filename']
-  fai_bin = 'bin/run-fai'
+  fai_bin = 'bin/build'
   cmd = [fai_bin, debian_version, 'gce', 'amd64', 'disk']
   logging.info('Starting build in %s with params: %s' % (
       work_dir, ' '.join(cmd))
