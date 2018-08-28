@@ -35,7 +35,18 @@
             "${windows_shutdown_script_meta_key}": "${shutdown_script_meta}"
           }
         }
-      ]
+      ],
+      "wait-for-boot": {
+        "WaitForInstancesSignal": [
+          {
+            "Name": "${instance}",
+            "SerialOutput": {
+              "Port": 1,
+              "SuccessMatch": "Finished running startup scripts"
+            }
+          }
+        ]
+      }
     }
   },
   "Dependencies": {

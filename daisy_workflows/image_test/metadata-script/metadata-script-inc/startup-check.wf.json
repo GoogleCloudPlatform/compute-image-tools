@@ -2,7 +2,8 @@
   "Name": "startup-check",
   "Vars": {
     "instance": {"Required": true, "Description": "Instance name to be tested"},
-    "startup_msg": {"Required": true, "Description": "The message to wait when the instance starts up"}
+    "startup_msg": {"Required": true, "Description": "The message to wait when the instance starts up"},
+    "script_type": "startup"
   },
   "DefaultTimeout": "5m",
   "Steps": {
@@ -11,7 +12,7 @@
         "Path": "./wait-message.wf.json",
         "Vars": {
             "instance": "${instance}",
-            "script_type": "startup",
+            "script_type": "${script_type}",
             "exec_msg": "${startup_msg}",
             "interval": "30s"
         }

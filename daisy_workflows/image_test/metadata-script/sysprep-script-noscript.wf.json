@@ -21,7 +21,8 @@
         "Path": "./metadata-script-inc/startup-check.wf.json",
         "Vars": {
             "instance": "${instance}",
-            "startup_msg": "${sysprep_msg}"
+            "startup_msg": "${sysprep_msg}",
+            "script_type": "sysprep"
         }
       }
     }

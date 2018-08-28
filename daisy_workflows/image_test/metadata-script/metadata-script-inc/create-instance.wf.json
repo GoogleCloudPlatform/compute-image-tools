@@ -13,19 +13,11 @@
     "shutdown_script_meta": {"Value": "Bar", "Description": "The metadata shutdown script of the created instance"}
   },
   "Steps": {
-    "create-disk": {
-      "CreateDisks": [
-        {
-          "Name": "disk-${instance}",
-          "SourceImage": "${source_image}"
-        }
-      ]
-    },
     "create-instance": {
       "CreateInstances": [
         {
           "Name": "${instance}",
-          "Disks": [{"Source": "disk-${instance}"}],
+          "Disks": [{"InitializeParams": {"SourceImage": "${source_image}"}, "AutoDelete": true}],
           "Metadata": {
             "${startup_script_meta_key}": "${startup_script_meta}",
             "${windows_startup_script_meta_key}": "${startup_script_meta}",
@@ -39,8 +31,5 @@
         }
       ]
     }
-  },
-  "Dependencies": {
-    "create-instance": ["create-disk"]
   }
 }

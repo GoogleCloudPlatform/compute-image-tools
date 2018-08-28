@@ -1,6 +1,3 @@
-# avoiding shebang on purpose: testing if the script execution is using the
-# image's default shell
-
 $md5 = Get-FileHash $MyInvocation.MyCommand.Path -Algorithm MD5
 Write-Host $md5.Hash
 

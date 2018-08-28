@@ -3,7 +3,9 @@
   "Description": "Like integrity test but could not add the native test because daisy checks the garbage and it can't pass that stage",
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
-    "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"}
+    "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"},
+    "instance_url": "junk-url",
+    "instance_gcs": "junk-gcs"
   },
   "Sources": {
     "junk_file.ps1": "./junk.ps1"
@@ -14,7 +16,7 @@
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
             "source_image": "${source_image}",
-            "instance": "inst-metadata-scripts-junk-url",
+            "instance": "${instance_url}",
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.ps1"
@@ -26,7 +28,7 @@
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
-            "instance": "inst-metadata-scripts-junk-url",
+            "instance": "${instance_url}",
             "shutdown_msg": "${shutdown_msg}"
         }
       }
@@ -37,7 +39,7 @@
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
             "source_image": "${source_image}",
-            "instance": "inst-metadata-scripts-junk-gcs",
+            "instance": "${instance_gcs}",
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "${SOURCESPATH}/junk_file.ps1"
@@ -49,7 +51,7 @@
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
-            "instance": "inst-metadata-scripts-junk-gcs",
+            "instance": "${instance_gcs}",
             "shutdown_msg": "${shutdown_msg}"
         }
       }

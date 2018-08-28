@@ -63,12 +63,7 @@
       "CopyGCSObjects": [
         {
           "Source": "${SOURCESPATH}/startup_file.ps1",
-          "Destination": "${SOURCESPATH}/startup_file_public",
-          "AclRules": [{"Entity": "allUsers", "Role": "READER"}]
-        },
-        {
-          "Source": "${SOURCESPATH}/shutdown_file.ps1",
-          "Destination": "${SOURCESPATH}/shutdown_file_public",
+          "Destination": "${SOURCESPATH}/startup_file_public.ps1",
           "AclRules": [{"Entity": "allUsers", "Role": "READER"}]
         }
       ]
@@ -81,7 +76,7 @@
             "instance": "${instance_public_gcs}",
             "startup_script_meta_key": "startup-script-url",
             "windows_startup_script_meta_key": "windows-startup-script-url",
-            "startup_script_meta": "${SOURCESPATH}/startup_file_public"
+            "startup_script_meta": "${SOURCESPATH}/startup_file_public.ps1"
         }
       }
     },
