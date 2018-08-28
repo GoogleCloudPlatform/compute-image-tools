@@ -1,5 +1,5 @@
 {
-  "Name": "sub-create-instance-no-scope",
+  "Name": "create-instance-no-scope",
   "Vars": {
     "instance": {"Required": true, "Description": "The name of the instance to be created"},
     "source_image": {"Required": true, "Description": "Image to be tested"},
@@ -26,6 +26,7 @@
         {
           "Name": "${instance}",
           "Disks": [{"Source": "disk-${instance}"}],
+          "Scopes": [],
           "Metadata": {
             "${startup_script_meta_key}": "${startup_script_meta}",
             "${windows_startup_script_meta_key}": "${startup_script_meta}",

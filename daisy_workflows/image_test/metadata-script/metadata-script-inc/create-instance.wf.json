@@ -1,5 +1,5 @@
 {
-  "Name": "sub-create-instance",
+  "Name": "create-instance",
   "Vars": {
     "instance": {"Required": true, "Description": "The name of the instance to be created"},
     "source_image": {"Required": true, "Description": "Image to be tested"},

@@ -1,9 +1,8 @@
 {
-  "Name": "metadata-script-junk-test",
+  "Name": "shutdown-script-junk-test",
   "Description": "Like integrity test but could not add the native test because daisy checks the garbage and it can't pass that stage",
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
-    "startup_msg": {"Required": true, "Description": "Startup script message to be verified"},
     "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"}
   },
   "Sources": {
@@ -12,14 +11,10 @@
   "Steps": {
     "create-junk-url": {
       "IncludeWorkflow": {
-        "Path": "./metadata-script-subwf/sub-create-instance.subwf.json",
+        "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
             "source_image": "${source_image}",
             "instance": "inst-metadata-scripts-junk-url",
-            "startup_script_meta_key": "startup-script-url",
-            "windows_startup_script_meta_key": "windows-startup-script-url",
-            "startup_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.ps1",
-
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.ps1"
@@ -29,10 +24,9 @@
     "wait-junk-url": {
       "Timeout": "10m",
       "IncludeWorkflow": {
-        "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
+        "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
             "instance": "inst-metadata-scripts-junk-url",
-            "startup_msg": "${startup_msg}",
             "shutdown_msg": "${shutdown_msg}"
         }
       }
@@ -40,14 +34,10 @@
 
     "create-junk-gcs": {
       "IncludeWorkflow": {
-        "Path": "./metadata-script-subwf/sub-create-instance.subwf.json",
+        "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
             "source_image": "${source_image}",
             "instance": "inst-metadata-scripts-junk-gcs",
-            "startup_script_meta_key": "startup-script-url",
-            "windows_startup_script_meta_key": "windows-startup-script-url",
-            "startup_script_meta": "${SOURCESPATH}/junk_file.ps1",
-
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "${SOURCESPATH}/junk_file.ps1"
@@ -57,10 +47,9 @@
     "wait-junk-gcs": {
       "Timeout": "10m",
       "IncludeWorkflow": {
-        "Path": "./metadata-script-subwf/sub-startup-shutdown-check.subwf.json",
+        "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
             "instance": "inst-metadata-scripts-junk-gcs",
-            "startup_msg": "${startup_msg}",
             "shutdown_msg": "${shutdown_msg}"
         }
       }

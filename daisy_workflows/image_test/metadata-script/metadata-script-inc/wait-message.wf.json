@@ -1,5 +1,5 @@
 {
-  "Name": "sub-check-logs",
+  "Name": "check-logs",
   "Vars": {
     "instance": {"Required": true, "Description": "The name of the instance to check for the log"},
     "script_type": {"Required": true, "Description": "The type of the script {startup,shutdown} to be tested"},
