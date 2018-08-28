@@ -18,25 +18,20 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
+	"fmt"
 	"log"
 
-	"github.com/google/logger"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
 )
 
 var (
 	oauth    = flag.String("oauth", "", "path to oauth json file")
-	instance = flag.String("instance", "", "")
-	basePath = flag.String("base_path", "", "")
+	resource = flag.String("resource", "", "projects/*/zones/*/instances/*")
+	basePath = flag.String("base_path", "https://staging-osconfig.sandbox.googleapis.com/v1alpha1/", "")
 )
 
 const cloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
-
-func init() {
-	logger.Init("osconfig_agent", true, false, ioutil.Discard)
-}
 
 func main() {
 	flag.Parse()
@@ -46,6 +41,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	res, err := lookupConfigs(hc, *basePath, *resource)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%+v\n", res)
+	runPackageConfig(res)
 
 	//runUpdates()
 
