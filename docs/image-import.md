@@ -106,12 +106,6 @@ Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `s
    </td>
   </tr>
   <tr>
-   <td>Debian 8
-   </td>
-   <td>/daisy/debian/translate_debian_8.wf.json
-   </td>
-  </tr>
-  <tr>
    <td>Debian 9
    </td>
    <td>/daisy/debian/translate_debian_9.wf.json
@@ -211,7 +205,7 @@ import. Below is a list of known compatibility requirements and issues:
 
 | Name | Severity | Description |
 |---|---|---|    
-| OS Version | Required | We support the following OS versions: RHEL/CentOS/OEL 6 or 7; Debian 8 or 9; Ubuntu 14.04 or 16.04. |
+| OS Version | Required | We support the following OS versions: RHEL/CentOS/OEL 6 or 7; Debian 9; Ubuntu 14.04 or 16.04. |
 | OS Disk | Required | The disk containing the OS must be bootable. The disk must be MBR and have GRUB installed. |
 | Multiple Disks | Warning  | Image import cannot directly handle multiple disk scenarios. Additional disks must be imported and attached separately. |
 | SSH | Warning | Warn if SSH is not running on port 22. GCE provides SSH clients via the Cloud Console and the gcloud CLI. These clients connect on port 22 and will not work if you have a different SSH configuration. |

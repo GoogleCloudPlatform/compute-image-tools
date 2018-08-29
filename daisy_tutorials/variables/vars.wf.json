@@ -15,7 +15,7 @@
       "CreateDisks": [
         {
           "Name": "foo-disk",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-8",
+          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
           "SizeGb": "10",
           "Type": "pd-ssd"
         }

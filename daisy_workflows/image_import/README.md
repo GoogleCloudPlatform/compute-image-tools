@@ -49,7 +49,6 @@ Variables:
 
 ### Workflows
 
-* **debian/translate_debian_8.wf.json**: translates a Debian 8 Jessie based virtual disk.
 * **debian/translate_debian_9.wf.json**: translates a Debian 9 Stretch based virtual disk.
 * **enterprise_linux//translate_centos_6.wf.json**: translates a CentOS 6 based virtual disk.
 * **enterprise_linux//translate_centos_7.wf.json**: translates a CentOS 7 based virtual disk.
