@@ -35,14 +35,6 @@
           }
         }
       ]
-    },
-    "cleanup-instance": {
-      "DeleteResources": {
-        "Instances": ["${instance}"]
-      }
     }
-  },
-  "Dependencies": {
-    "cleanup-instance": ["wait"]
   }
 }

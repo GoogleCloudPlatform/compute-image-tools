@@ -5,7 +5,6 @@
     "startup_msg": {"Required": true, "Description": "The message to wait when the instance starts up"},
     "script_type": "startup"
   },
-  "DefaultTimeout": "5m",
   "Steps": {
     "test-startup-check-log": {
       "IncludeWorkflow": {
@@ -17,6 +16,14 @@
             "interval": "30s"
         }
       }
+    },
+    "cleanup-instance": {
+      "DeleteResources": {
+        "Instances": ["${instance}"]
+      }
     }
+  },
+  "Dependencies": {
+    "cleanup-instance": ["test-startup-check-log"]
   }
 }

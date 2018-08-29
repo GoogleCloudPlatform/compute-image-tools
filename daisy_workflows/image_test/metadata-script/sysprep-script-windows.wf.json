@@ -10,7 +10,7 @@
         "Path": "./sysprep-script.wf.json",
         "Vars": {
             "source_image": "${source_image}",
-            "sysprep_hash": "A936515D7A0A646968FD163CBCEBEA48",
+            "sysprep_hash": "A4383937208BDF2E3B0FF1F5FC857B3F",
             "sysprep_msg": "GCEMetadataScripts: Starting startup scripts",
             "no_sysprep_msg": "GCEMetadataScripts: No startup scripts to run.",
             "sysprep_script_name": "metadata-script-test-startup-hash.ps1"

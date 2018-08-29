@@ -30,6 +30,20 @@
           ]
         }
       ]
+    },
+    "wait-for-boot": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "${instance}",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Finished running startup scripts"
+          }
+        }
+      ]
     }
+  },
+  "Dependencies": {
+    "wait-for-boot": ["create-instance"]
   }
 }
