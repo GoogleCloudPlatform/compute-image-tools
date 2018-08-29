@@ -106,6 +106,12 @@ Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `s
    </td>
   </tr>
   <tr>
+   <td>Debian 8
+   </td>
+   <td>/daisy/debian/translate_debian_8.wf.json
+   </td>
+  </tr>
+  <tr>
    <td>Debian 9
    </td>
    <td>/daisy/debian/translate_debian_9.wf.json
