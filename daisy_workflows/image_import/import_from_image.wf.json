@@ -17,6 +17,14 @@
       "Value": "true",
       "Description": "Whether to install GCE packages."
     },
+    "family": {
+      "Value": "",
+      "Description": "Optional family to set for the translated image"
+    },
+    "description": {
+      "Value": "",
+      "Description": "Optional description to set for the translated image"
+    },
     "disk_name": "imported-disk-${ID}"
   },
   "Steps": {
@@ -34,7 +42,9 @@
         "Vars": {
           "source_disk": "${disk_name}",
           "image_name": "${image_name}",
-          "install_gce_packages": "${install_gce_packages}"
+          "install_gce_packages": "${install_gce_packages}",
+          "family": "${family}",
+          "description": "${description}"
         }
       },
       "Timeout": "1h"

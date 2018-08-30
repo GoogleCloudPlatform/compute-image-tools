@@ -12,6 +12,14 @@
     "image_name": {
       "Value": "debian-9-${ID}",
       "Description": "The name of the translated Debian 9 image."
+    },
+    "family": {
+      "Value": "",
+      "Description": "Optional family to set for the translated image"
+    },
+    "description": {
+      "Value": "",
+      "Description": "Optional description to set for the translated image"
     }
   },
   "Steps": {
@@ -31,6 +39,8 @@
         {
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
+          "Family": "${family}",
+          "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true
         }
