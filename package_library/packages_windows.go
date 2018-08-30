@@ -67,7 +67,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 }
 
 func googetUpdates() ([]PkgInfo, error) {
-	out, err := run(exec.Command(googet, googetUpdateQueryArgs))
+	out, err := run(exec.Command(googet, googetUpdateQueryArgs...))
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,8 @@ func googetUpdates() ([]PkgInfo, error) {
 
 // InstallGooGetPackages installs GooGet packages.
 func InstallGooGetPackages(pkgs []string) error {
-	out, err := run(exec.Command(googet, googetInstallArgs, pkgs))
+	args := append(googetInstallArgs, pkgs...)
+	out, err := run(exec.Command(googet, args...))
 	if err != nil {
 		return err
 	}
@@ -113,7 +114,8 @@ func InstallGooGetPackages(pkgs []string) error {
 
 // RemoveGooGetPackages installs GooGet packages.
 func RemoveGooGetPackages(pkgs []string) error {
-	out, err := run(exec.Command(googet, googetRemoveArgs, pkgs))
+	args := append(googetRemoveArgs, pkgs...)
+	out, err := run(exec.Command(googet, args...))
 	if err != nil {
 		return err
 	}
@@ -127,7 +129,7 @@ func RemoveGooGetPackages(pkgs []string) error {
 
 // InstallGooGetUpdates installs all available GooGet updates.
 func InstallGooGetUpdates() error {
-	out, err := run(exec.Command(googet, googetUpdateArgs))
+	out, err := run(exec.Command(googet, googetUpdateArgs...))
 	if err != nil {
 		return err
 	}
@@ -140,7 +142,7 @@ func InstallGooGetUpdates() error {
 }
 
 func installedGooGetPackages() ([]PkgInfo, error) {
-	out, err := run(exec.Command(googet, googetInstalledQueryArgs))
+	out, err := run(exec.Command(googet, googetInstalledQueryArgs...))
 	if err != nil {
 		return nil, err
 	}

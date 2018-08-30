@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/internal/osconfig/v1alpha1"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"
 )
@@ -28,25 +29,34 @@ import (
 var (
 	oauth    = flag.String("oauth", "", "path to oauth json file")
 	resource = flag.String("resource", "", "projects/*/zones/*/instances/*")
-	basePath = flag.String("base_path", "https://staging-osconfig.sandbox.googleapis.com/v1alpha1/", "")
+	basePath = flag.String("base_path", "", "")
 )
-
-const cloudPlatformScope = "https://www.googleapis.com/auth/cloud-platform"
 
 func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	hc, _, err := transport.NewHTTPClient(ctx, option.WithScopes(cloudPlatformScope), option.WithCredentialsFile(*oauth))
+	hc, ep, err := transport.NewHTTPClient(ctx, option.WithEndpoint(*basePath), option.WithScopes(osconfig.CloudPlatformScope), option.WithCredentialsFile(*oauth))
 	if err != nil {
 		log.Fatal(err)
+	}
+	svc, err := osconfig.New(hc)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if ep != "" {
+		svc.BasePath = ep
 	}
 
-	res, err := lookupConfigs(hc, *basePath, *resource)
+	res, err := lookupConfigs(svc, *resource)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%+v\n", res)
+	fmt.Printf("%+v\n", res.Apt)
+	fmt.Printf("%+v\n", res.Goo)
+	fmt.Printf("%+v\n", res.Yum)
+	fmt.Printf("%+v\n", res.WindowsUpdate)
+	//fmt.Printf("%+v\n", res.PatchPolicies)
 	runPackageConfig(res)
 
 	//runUpdates()

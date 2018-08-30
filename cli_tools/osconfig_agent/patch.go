@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/internal/osconfig/v1alpha1"
 )
 
 type patchWindow struct {
@@ -31,7 +33,7 @@ func (w *patchWindow) in() bool {
 }
 
 // nextWindow will return the next applicable time window start relative to now.
-func nextWindow(now time.Time, window PatchWindow, offset int) (*patchWindow, error) {
+func nextWindow(now time.Time, window osconfig.PatchWindow, offset int) (*patchWindow, error) {
 	var start time.Time
 	var err error
 	switch {
@@ -69,7 +71,7 @@ var days = map[string]time.Weekday{
 	"saturday":  time.Saturday,
 }
 
-func monthlyWindowStart(now time.Time, start *TimeOfDay, window *Monthly, offset int) (time.Time, error) {
+func monthlyWindowStart(now time.Time, start *osconfig.TimeOfDay, window *osconfig.Monthly, offset int) (time.Time, error) {
 	var dom int
 	month := time.Month(int(now.Month()) + offset)
 	firstOfMonth := time.Date(now.Year(), month, 1, 0, 0, 0, 0, now.Location())
@@ -90,7 +92,7 @@ func monthlyWindowStart(now time.Time, start *TimeOfDay, window *Monthly, offset
 	return time.Date(now.Year(), month, dom, int(start.Hours), int(start.Minutes), 0, int(start.Nanos), now.Location()), nil
 }
 
-func weeklyWindowStart(now time.Time, start *TimeOfDay, window *Weekly, offset int) (time.Time, error) {
+func weeklyWindowStart(now time.Time, start *osconfig.TimeOfDay, window *osconfig.Weekly, offset int) (time.Time, error) {
 	day, ok := days[strings.ToLower(window.Day)]
 	if !ok {
 		return now, fmt.Errorf("%q not a valid day", window.Day)
@@ -99,6 +101,6 @@ func weeklyWindowStart(now time.Time, start *TimeOfDay, window *Weekly, offset i
 	return time.Date(t.Year(), t.Month(), t.Day(), int(start.Hours), int(start.Minutes), 0, int(start.Nanos), now.Location()), nil
 }
 
-func dailyWindowStart(now time.Time, start *TimeOfDay, window *Daily, offset int) (time.Time, error) {
+func dailyWindowStart(now time.Time, start *osconfig.TimeOfDay, window *osconfig.Daily, offset int) (time.Time, error) {
 	return time.Date(now.Year(), now.Month(), now.Day()+offset, int(start.Hours), int(start.Minutes), 0, int(start.Nanos), now.Location()), nil
 }
