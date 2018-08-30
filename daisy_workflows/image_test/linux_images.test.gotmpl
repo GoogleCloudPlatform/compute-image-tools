@@ -48,7 +48,8 @@
         "Path": "./multi-nic/multi-nic.wf.json",
         "Vars": {
           "source_image": "{{$image}}"
-        }
+        },
+        "CustomProjectLock": "subnetworks"
       },
       "test-network [{{$image}}]": {
         "Path": "./network/network.wf.json",
@@ -62,7 +63,8 @@
         "Path": "./disk/disk.wf.json",
         "Vars": {
           "source_image": "{{$image}}"
-        }
+        },
+        "CustomProjectLock": "disks"
       }{{if lt (add $index 1) $length}},{{end}}
     {{end -}}
   }
