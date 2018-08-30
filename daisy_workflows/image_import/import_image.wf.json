@@ -18,6 +18,14 @@
       "Value": "projects/compute-image-tools/global/images/family/debian-9-worker",
       "Description": "image to use for the importer instance"
     },
+    "family": {
+      "Value": "",
+      "Description": "Optional family to set for the imported image"
+    },
+    "description": {
+      "Value": "",
+      "Description": "Optional description to set for the imported image"
+    },
     "import_disk_name": "imported-disk-${ID}"
   },
   "Steps": {
@@ -37,7 +45,8 @@
         {
           "Name": "${image_name}",
           "SourceDisk": "${import_disk_name}",
-          "Description": "Imported image from ${source_disk_file}",
+          "Family": "${family}",
+          "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true
         }

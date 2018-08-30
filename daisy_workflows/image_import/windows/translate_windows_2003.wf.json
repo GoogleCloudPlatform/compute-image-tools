@@ -12,6 +12,14 @@
     "install_gce_packages": {
       "Value": "false",
       "Description": "variable unused for 2003"
+    },
+    "family": {
+      "Value": "",
+      "Description": "Optional family to set for the translated image"
+    },
+    "description": {
+      "Value": "",
+      "Description": "Optional description to set for the translated image"
     }
   },
   "Sources": {
@@ -72,7 +80,8 @@
           "SourceDisk": "${source_disk}",
           "Licenses": ["projects/windows-cloud/global/licenses/windows-server-2003"],
           "GuestOsFeatures": [{"Type":"WINDOWS"}],
-          "Family": "windows-2003",
+          "Family": "${family}",
+          "Description": "${description}",
           "NoCleanup": true,
           "ExactName": true
         }

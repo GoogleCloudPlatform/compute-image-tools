@@ -16,6 +16,14 @@
     "image_name": {
       "Value": "windows-server-2012-${ID}",
       "Description": "The name of the translated Server 2012 image."
+    },
+    "family": {
+      "Value": "",
+      "Description": "Optional family to set for the translated image"
+    },
+    "description": {
+      "Value": "",
+      "Description": "Optional description to set for the translated image"
     }
   },
   "Steps": {
@@ -41,7 +49,8 @@
           "SourceDisk": "${source_disk}",
           "Licenses": ["projects/windows-cloud/global/licenses/windows-server-2012-dc"],
           "GuestOsFeatures": [{"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}],
-          "Family": "windows-2012",
+          "Family": "${family}",
+          "Description": "${description}",
           "NoCleanup": true,
           "ExactName": true
         }
