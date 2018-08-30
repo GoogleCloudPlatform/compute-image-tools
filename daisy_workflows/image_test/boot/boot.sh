@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Wait for machine boot to avoid log race conditions
+sleep 10
+
 if ! ls /reboot.txt; then
   echo "REBOOT" > /reboot.txt
   logger -p daemon.info "BOOTED"
