@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/internal/osconfig/v1alpha1"
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/osconfig/v1alpha1"
 )
 
 type patchWindow struct {

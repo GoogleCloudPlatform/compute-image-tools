@@ -21,7 +21,7 @@
 //   import "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/internal/osconfig/v1alpha1"
 //   ...
 //   osconfigService, err := osconfig.New(oauthHttpClient)
-package osconfig // import "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/internal/osconfig/v1alpha1"
+package osconfig // import "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/osconfig/v1alpha1"
 
 import (
 	"bytes"

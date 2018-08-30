@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/internal/osconfig/v1alpha1"
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/osconfig/v1alpha1"
 )
 
 func TestNextWindow(t *testing.T) {
@@ -32,7 +32,7 @@ func TestNextWindow(t *testing.T) {
 		{
 			"daily (today before patch window)",
 			osconfig.PatchWindow{Daily: &osconfig.Daily{}, StartTime: &osconfig.TimeOfDay{Hours: 5}, Duration: "3600s"}, // Daily at 5
-			now.Add(-2 * time.Hour), // We should be before the patch window
+			now.Add(-2 * time.Hour),                                    // We should be before the patch window
 			&patchWindow{start: now, end: now.Add(3600 * time.Second)}, // Todays patch window
 		},
 		{

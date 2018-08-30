@@ -11,10 +11,11 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+
 package main
 
 import (
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/internal/osconfig/v1alpha1"
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/osconfig/v1alpha1"
 )
 
 func lookupConfigs(svc *osconfig.Service, resource string) (*osconfig.LookupConfigsResponse, error) {
