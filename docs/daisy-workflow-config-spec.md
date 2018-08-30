@@ -245,7 +245,7 @@ is a blank PD SSD.
   "CreateDisks": [
     {
       "Name": "disk1",
-      "SourceImage": "projects/debian-cloud/global/images/family/debian-8"
+      "SourceImage": "projects/debian-cloud/global/images/family/debian-9"
     },
     {
       "Name": "disk2",

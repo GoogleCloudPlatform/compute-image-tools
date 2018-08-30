@@ -7,7 +7,7 @@ daisy -project my-project \
       -zone us-west1-a \
       -gcs_path gs://bucket/daisyscratch \
       -variables image_dest=gs://bucket/images/debian_8.tar.gz \
-      debian8.wf.json
+      debian_8.wf.json
 
 
 # Debian 9 (using credentials file)
@@ -16,7 +16,7 @@ daisy -project my-project \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json \
       -variables image_dest=gs://bucket/images/debian_9.tar.gz \
-      debian9.wf.json
+      debian_9.wf.json
 ```
 
 The `google_cloud_test_repos` directory is a bootstrap-vz plugin to be used for
