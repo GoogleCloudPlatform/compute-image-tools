@@ -2,8 +2,9 @@
   "Name": "build-debian-9-fai",
   "Vars": {
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
+    "uefi": {"Value": "", "Description": "True if wanted to build an UEFI image with GPT partition format."},
     "fai_cloud_images_version": {
-      "Value": "3ce7760da63b1e9a4ff55159d67a51b5ea6a171e",
+      "Value": "9922744fe7832baaa0a7e3f0300519ac9fb4a4b6",
       "Description": "The debian's fai-cloud-images scripts git commit ID to use."
     },
     "debian_version": {
@@ -20,7 +21,8 @@
           "fai_cloud_images_version": "${fai_cloud_images_version}",
           "debian_version": "${debian_version}",
           "builder_source_image": "projects/debian-cloud/global/images/family/debian-9",
-          "image_dest": "${image_dest}"
+          "image_dest": "${image_dest}",
+          "uefi": "${uefi}"
         }
       }
     }

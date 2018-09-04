@@ -33,7 +33,7 @@ import urllib
 import utils
 
 # The following package is necessary to retrieve from https repositories.
-utils.AptGetInstall(['apt-transport-https', 'qemu-utils'])
+utils.AptGetInstall(['apt-transport-https', 'qemu-utils', 'dosfstools'])
 
 
 def main():
@@ -42,6 +42,7 @@ def main():
       'fai_cloud_images_version', raise_on_not_found=True)
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
+  uefi = utils.GetMetadataAttribute('uefi', raise_on_not_found=True)
   image_dest = utils.GetMetadataAttribute('image_dest',
       raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
@@ -79,8 +80,9 @@ def main():
 
   # Run fai-tool.
   work_dir = url_params['filename']
-  fai_bin = 'bin/run-fai'
-  cmd = [fai_bin, debian_version, 'gce', 'amd64', 'disk']
+  fai_bin = 'bin/build'
+  arch = 'amd64-efi' if uefi else 'amd64'
+  cmd = [fai_bin, debian_version, 'gce', arch, 'disk']
   logging.info('Starting build in %s with params: %s' % (
       work_dir, ' '.join(cmd))
   )

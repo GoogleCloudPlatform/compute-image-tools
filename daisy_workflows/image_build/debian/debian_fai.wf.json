@@ -8,7 +8,8 @@
       "Value": "projects/debian-cloud/global/images/family/debian-9",
       "Description": "The image used to run fai-tool."
     },
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."}
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."},
+    "uefi": {"Required": true, "Description": "Build an UEFI image with GPT partition format."}
   },
   "Sources": {
     "build_files/build.py": "./build_fai.py",
@@ -39,7 +40,8 @@
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "script": "build.py",
             "prefix": "Build",
-            "image_dest": "${image_dest}"
+            "image_dest": "${image_dest}",
+            "uefi": "${uefi}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
