@@ -3,7 +3,7 @@
   "Vars": {
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "fai_cloud_images_version": {
-      "Value": "3ce7760da63b1e9a4ff55159d67a51b5ea6a171e",
+      "Value": "c97a87739f31f46e9a9bb2c43087f799accbf13f",
       "Description": "The debian's fai-cloud-images scripts git commit ID to use."
     },
     "debian_version": {
