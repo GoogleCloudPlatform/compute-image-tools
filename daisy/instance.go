@@ -84,7 +84,7 @@ type Instance struct {
 
 	// Additional metadata to set for the instance.
 	Metadata map[string]string `json:"metadata,omitempty"`
-	// OAuth2 scopes to give the instance. If none are specified
+	// OAuth2 scopes to give the instance. If left unset
 	// https://www.googleapis.com/auth/devstorage.read_only will be added.
 	Scopes []string `json:",omitempty"`
 	// StartupScript is the Sources path to a startup script to use in this step.
@@ -222,7 +222,7 @@ func (i *Instance) populateNetworks() dErr {
 }
 
 func (i *Instance) populateScopes() dErr {
-	if len(i.Scopes) == 0 {
+	if i.Scopes == nil {
 		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
 	if i.ServiceAccounts == nil {

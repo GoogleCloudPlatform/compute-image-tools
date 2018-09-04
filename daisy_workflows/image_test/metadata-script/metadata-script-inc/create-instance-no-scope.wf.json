@@ -1,5 +1,5 @@
 {
-  "Name": "sub-create-instance",
+  "Name": "create-instance-no-scope",
   "Vars": {
     "instance": {"Required": true, "Description": "The name of the instance to be created"},
     "source_image": {"Required": true, "Description": "Image to be tested"},
@@ -13,34 +13,35 @@
     "shutdown_script_meta": {"Value": "Bar", "Description": "The metadata shutdown script of the created instance"}
   },
   "Steps": {
-    "create-disk": {
-      "CreateDisks": [
-        {
-          "Name": "disk-${instance}",
-          "SourceImage": "${source_image}"
-        }
-      ]
-    },
     "create-instance": {
       "CreateInstances": [
         {
           "Name": "${instance}",
-          "Disks": [{"Source": "disk-${instance}"}],
+          "Disks": [{"InitializeParams": {"SourceImage": "${source_image}"}, "AutoDelete": true}],
+          "Scopes": [],
           "Metadata": {
             "${startup_script_meta_key}": "${startup_script_meta}",
             "${windows_startup_script_meta_key}": "${startup_script_meta}",
 
             "${shutdown_script_meta_key}": "${shutdown_script_meta}",
             "${windows_shutdown_script_meta_key}": "${shutdown_script_meta}"
-          },
-          "Scopes": [
-            "https://www.googleapis.com/auth/devstorage.read_only"
-          ]
+          }
+        }
+      ]
+    },
+    "wait-for-boot": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "${instance}",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Finished running startup scripts"
+          }
         }
       ]
     }
   },
   "Dependencies": {
-    "create-instance": ["create-disk"]
+    "wait-for-boot": ["create-instance"]
   }
 }
