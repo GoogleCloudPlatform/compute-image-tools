@@ -189,4 +189,5 @@ EOF
 
 chmod +x startup_tester.sh
 ./startup_tester.sh
-md5sum ./startup_tester.sh | logger -p daemon.info
+(which md5sum && md5sum ./startup_tester.sh || md5 ./startup_tester.sh) \
+    | logger -p daemon.info
