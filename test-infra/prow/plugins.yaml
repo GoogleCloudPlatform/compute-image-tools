@@ -8,10 +8,11 @@ plugins:
   - trigger
   - config-updater
   - golint
+  - lgtm
 
 config_updater:
   maps:
-    prow/config.yaml:
+    test-infra/prow/config.yaml:
       name: config
-    prow/plugins.yaml:
+    test-infra/prow/plugins.yaml:
       name: plugins
