@@ -17,7 +17,7 @@
 
 Parameters (retrieved from instance metadata):
 
-fai_cloud_images_version: The debian's fai-cloud-images scripts git commit ID
+debian_cloud_images_version: The debian-cloud-images scripts git commit ID
 to use.
 debian_version: The FAI tool debian version to be requested.
 image_dest: The Cloud Storage destination for the resultant image.
@@ -33,21 +33,22 @@ import urllib
 import utils
 
 # The following package is necessary to retrieve from https repositories.
-utils.AptGetInstall(['apt-transport-https', 'qemu-utils'])
+utils.AptGetInstall(['apt-transport-https', 'qemu-utils', 'dosfstools'])
 
 
 def main():
   # Get Parameters.
-  fai_cloud_images_version = utils.GetMetadataAttribute(
-      'fai_cloud_images_version', raise_on_not_found=True)
+  debian_cloud_images_version = utils.GetMetadataAttribute(
+      'debian_cloud_images_version', raise_on_not_found=True)
   debian_version = utils.GetMetadataAttribute(
       'debian_version', raise_on_not_found=True)
+  uefi = utils.GetMetadataAttribute('uefi', raise_on_not_found=True)
   image_dest = utils.GetMetadataAttribute('image_dest',
       raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
       raise_on_not_found=True)
 
-  logging.info('fai-cloud-images version: %s' % fai_cloud_images_version)
+  logging.info('debian-cloud-images version: %s' % debian_cloud_images_version)
   logging.info('debian version: %s' % debian_version)
 
   # First, install fai-client from fai-project repository
@@ -61,17 +62,16 @@ def main():
   utils.AptGetInstall.first_run = True
   utils.AptGetInstall(['fai-server', 'fai-setup-storage'])
 
-  # Download and setup debian's fai-cloud-images scripts.
+  # Download and setup debian's debian-cloud-images scripts.
   url_params = {
-      'project': 'fai-cloud-images',
-      'commit': fai_cloud_images_version,
+      'project': 'debian-cloud-images',
+      'commit': debian_cloud_images_version,
   }
   url_params['filename'] = '%(project)s-%(commit)s' % url_params
 
   url = "https://salsa.debian.org/cloud-team/" + \
       "%(project)s/-/archive/%(commit)s/%(filename)s.tar.gz" % url_params
-  logging.info('Downloading fai-cloud-image at commit %s' %
-               fai_cloud_images_version)
+  logging.info('Downloading %(project)s at commit %(commit)s' % url_params)
   urllib.urlretrieve(url, 'fci.tar.gz')
   with tarfile.open('fci.tar.gz') as tar:
     tar.extractall()
@@ -79,8 +79,9 @@ def main():
 
   # Run fai-tool.
   work_dir = url_params['filename']
-  fai_bin = 'bin/run-fai'
-  cmd = [fai_bin, debian_version, 'gce', 'amd64', 'disk']
+  fai_bin = 'bin/build'
+  arch = 'amd64-efi' if uefi else 'amd64'
+  cmd = [fai_bin, debian_version, 'gce', arch, 'disk']
   logging.info('Starting build in %s with params: %s' % (
       work_dir, ' '.join(cmd))
   )
