@@ -28,7 +28,7 @@ import (
 var (
 	oauth    = flag.String("oauth", "", "path to oauth json file")
 	resource = flag.String("resource", "", "projects/*/zones/*/instances/*")
-	endpoint = flag.String("base_path", "staging-osconfig.sandbox.googleapis.com:443", "")
+	endpoint = flag.String("endpoint", "osconfig.googleapis.com:443", "osconfig endpoint override")
 )
 
 func main() {
