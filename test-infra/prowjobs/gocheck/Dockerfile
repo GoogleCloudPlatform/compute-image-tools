@@ -17,7 +17,7 @@ FROM golang:alpine
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 
-RUN apk add --no-cache git bash
+RUN apk add --no-cache git bash gcc
 RUN go get -u github.com/golang/lint/golint
 
 COPY --from=0 /wrapper wrapper

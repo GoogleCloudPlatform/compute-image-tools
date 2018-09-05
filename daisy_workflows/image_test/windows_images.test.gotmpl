@@ -18,8 +18,20 @@
           }
         },
       {{end -}}
-      "test-metadata-scripts [{{$image}}]": {
-        "Path": "./metadata-script/metadata-script-windows.wf.json",
+      "test-sysprep-scripts [{{$image}}]": {
+        "Path": "./metadata-script/sysprep-script-windows.wf.json",
+        "Vars": {
+          "source_image": "{{$image}}"
+        }
+      },
+      "test-startup-scripts [{{$image}}]": {
+        "Path": "./metadata-script/startup-script-windows.wf.json",
+        "Vars": {
+          "source_image": "{{$image}}"
+        }
+      },
+      "test-shutdown-scripts [{{$image}}]": {
+        "Path": "./metadata-script/shutdown-script-windows.wf.json",
         "Vars": {
           "source_image": "{{$image}}"
         }

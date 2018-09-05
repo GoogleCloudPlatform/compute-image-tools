@@ -1,23 +1,18 @@
 {
-  "Name": "metadata-script-linux",
+  "Name": "shutdown-script-linux",
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
   "DefaultTimeout": "20m",
   "Steps": {
-    "test-metadata-script": {
+    "test-shutdown-script": {
       "IncludeWorkflow": {
-        "Path": "./metadata-script.subwf.json",
+        "Path": "./shutdown-script.wf.json",
         "Vars": {
             "source_image": "${source_image}",
-            "startup_hash": "7d954ca9f2786bef7f3c69c6d6661a75",
             "shutdown_hash": "e3de3cd247bbe7c8b3a6f496f55a80f1",
-            "startup_msg": "startup-script: INFO Found startup-script-url in metadata.",
             "shutdown_msg": "shutdown-script: INFO Found shutdown-script-url in metadata.",
-            "no_startup_msg": "startup-script: INFO No startup scripts found in metadata.",
             "no_shutdown_msg": "shutdown-script: INFO No shutdown scripts found in metadata.",
-
-            "startup_script_name": "metadata-script-test-startup-hash.sh",
             "shutdown_script_name": "metadata-script-test-shutdown-hash.sh"
         }
       }
