@@ -33,6 +33,12 @@ var (
 	googet    = filepath.Join(googetDir, "googet.exe")
 	// GooGetExists indicates whether googet is installed.
 	GooGetExists = exists(googet)
+
+	googetUpdateArgs         = []string{"-noconfirm", "update"}
+	googetUpdateQueryArgs    = []string{"update"}
+	googetInstalledQueryArgs = []string{"installed"}
+	googetInstallArgs        = []string{"-noconfirm", "install"}
+	googetRemoveArgs         = []string{"-noconfirm", "remove"}
 )
 
 // GetPackageUpdates gets available package updates GooGet as well as any
@@ -61,7 +67,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 }
 
 func googetUpdates() ([]PkgInfo, error) {
-	out, err := run(exec.Command(googet, "update"))
+	out, err := run(exec.Command(googet, googetUpdateQueryArgs...))
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +93,88 @@ func googetUpdates() ([]PkgInfo, error) {
 			continue
 		}
 		pkgs = append(pkgs, PkgInfo{Name: p[0], Arch: strings.Trim(p[1], ","), Version: pkg[3]})
+	}
+	return pkgs, nil
+}
+
+// InstallGooGetPackages installs GooGet packages.
+func InstallGooGetPackages(pkgs []string) error {
+	args := append(googetInstallArgs, pkgs...)
+	out, err := run(exec.Command(googet, args...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf("  %s\n", s)
+	}
+	logger.Infof("GooGet install output:\n%s", msg)
+	return nil
+}
+
+// RemoveGooGetPackages installs GooGet packages.
+func RemoveGooGetPackages(pkgs []string) error {
+	args := append(googetRemoveArgs, pkgs...)
+	out, err := run(exec.Command(googet, args...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf("  %s\n", s)
+	}
+	logger.Infof("GooGet remove output:\n%s", msg)
+	return nil
+}
+
+// InstallGooGetUpdates installs all available GooGet updates.
+func InstallGooGetUpdates() error {
+	out, err := run(exec.Command(googet, googetUpdateArgs...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf("  %s\n", s)
+	}
+	logger.Infof("GooGet update output:\n%s", msg)
+	return nil
+}
+
+func installedGooGetPackages() ([]PkgInfo, error) {
+	out, err := run(exec.Command(googet, googetInstalledQueryArgs...))
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+	   Installed Packages:
+	   foo.x86_64 1.2.3@4
+	   bar.noarch 1.2.3@4
+	   ...
+	*/
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+
+	if len(lines) <= 1 {
+		logger.Info("No packages installed.")
+		return nil, nil
+	}
+
+	var pkgs []PkgInfo
+	for _, ln := range lines[1:] {
+		pkg := strings.Fields(ln)
+		if len(pkg) != 2 {
+			logger.Errorf("%s does not represent a package", ln)
+			continue
+		}
+
+		p := strings.Split(pkg[0], ".")
+		if len(p) != 2 {
+			logger.Errorf("%s does not represent a package", ln)
+			continue
+		}
+
+		pkgs = append(pkgs, PkgInfo{Name: p[0], Arch: p[1], Version: pkg[1]})
 	}
 	return pkgs, nil
 }
@@ -360,58 +448,6 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 	}
 
 	return pkgs, errs
-}
-
-// InstallGooGetUpdates installs all available GooGet updates.
-func InstallGooGetUpdates() error {
-	out, err := run(exec.Command(googet, "-noconfirm", "update"))
-	if err != nil {
-		return err
-	}
-	var msg string
-	for _, s := range strings.Split(string(out), "\n") {
-		msg += fmt.Sprintf("  %s\n", s)
-	}
-	logger.Infof("GooGet update output:\n%s", msg)
-	return nil
-}
-
-func installedGooGetPackages() ([]PkgInfo, error) {
-	out, err := run(exec.Command(googet, "installed"))
-	if err != nil {
-		return nil, err
-	}
-
-	/*
-			   Installed Packages:
-			   foo.x86_64 1.2.3@4
-			   bar.noarch 1.2.3@4
-		     ...
-	*/
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-
-	if len(lines) <= 1 {
-		logger.Info("No packages installed.")
-		return nil, nil
-	}
-
-	var pkgs []PkgInfo
-	for _, ln := range lines[1:] {
-		pkg := strings.Fields(ln)
-		if len(pkg) != 2 {
-			logger.Errorf("%s does not represent a package", ln)
-			continue
-		}
-
-		p := strings.Split(pkg[0], ".")
-		if len(p) != 2 {
-			logger.Errorf("%s does not represent a package", ln)
-			continue
-		}
-
-		pkgs = append(pkgs, PkgInfo{Name: p[0], Arch: p[1], Version: pkg[1]})
-	}
-	return pkgs, nil
 }
 
 type win32_QuickFixEngineering struct {
