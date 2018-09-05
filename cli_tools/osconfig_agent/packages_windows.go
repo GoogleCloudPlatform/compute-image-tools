@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -41,12 +42,14 @@ func gooRepositories(repos []*osconfigpb.GooRepository) {
 		- name: repo1-name
 		  url: https://repo2-url
 	*/
-	repoContents := "Repo file managed by Google OSConfig agent"
+	var buf bytes.Buffer
+	buf.WriteString("Repo file managed by Google OSConfig agent\n")
 	for _, repo := range repos {
-		repoContents = fmt.Sprintf("%s\n- name: %s\n  url: %s", repoContents, repo.Name, repo.Url)
+		buf.WriteString(fmt.Sprintf("\n- name: %s\n", repo.Name))
+		buf.WriteString(fmt.Sprintf("  url: %s\n", repo.Url))
 	}
-	if err := ioutil.WriteFile("C:/ProgramData/GooGet/repos/google_osconfig.repo", []byte(repoContents), 0600); err != nil {
-		log.Printf("Error writing repo file: %v", err)
+	if err := ioutil.WriteFile("C:/ProgramData/GooGet/repos/google_osconfig.repo", buf.Bytes(), 0600); err != nil {
+		log.Printf("Error writing GooGet repo file: %v", err)
 	}
 }
 
@@ -56,7 +59,7 @@ func gooInstalls(pkgs []*osconfigpb.Package) {
 		names = append(names, pkg.Name)
 	}
 	if err := packages.InstallGooGetPackages(names); err != nil {
-		log.Printf("Error installing packages: %v", err)
+		log.Printf("Error installing GooGet packages: %v", err)
 	}
 }
 
@@ -66,6 +69,6 @@ func gooRemovals(pkgs []*osconfigpb.Package) {
 		names = append(names, pkg.Name)
 	}
 	if err := packages.RemoveGooGetPackages(names); err != nil {
-		log.Printf("Error removing packages: %v", err)
+		log.Printf("Error removing GooGet packages: %v", err)
 	}
 }

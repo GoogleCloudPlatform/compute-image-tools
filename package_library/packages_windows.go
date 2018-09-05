@@ -148,10 +148,10 @@ func installedGooGetPackages() ([]PkgInfo, error) {
 	}
 
 	/*
-			   Installed Packages:
-			   foo.x86_64 1.2.3@4
-			   bar.noarch 1.2.3@4
-		     ...
+	   Installed Packages:
+	   foo.x86_64 1.2.3@4
+	   bar.noarch 1.2.3@4
+	   ...
 	*/
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 
