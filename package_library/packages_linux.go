@@ -72,12 +72,16 @@ var (
 	noarch = osinfo.Architecture("noarch")
 )
 
+// InstallAptPackages installs apt packages.
 func InstallAptPackages(pkgs []string) {}
 
+// RemoveAptPackages removes apt packages.
 func RemoveAptPackages(pkgs []string) {}
 
+// InstallYumPackages installs yum packages.
 func InstallYumPackages(pkgs []string) {}
 
+// RemoveYumPackages removes yum packages.
 func RemoveYumPackages(pkgs []string) {}
 
 // UpdatePackages installs all available package updates for all known system

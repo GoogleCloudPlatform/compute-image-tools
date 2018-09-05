@@ -20,12 +20,11 @@ import (
 	"io/ioutil"
 	"log"
 
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
-func runPackageConfig(res *osconfig.LookupConfigsResponse) {
+func runPackageConfig(res *osconfigpb.LookupConfigsResponse) {
 	if res.Goo != nil && packages.GooGetExists {
 		gooRepositories(res.Goo.Repositories)
 		gooInstalls(res.Goo.PackageInstalls)
