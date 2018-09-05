@@ -83,7 +83,11 @@ func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
 	}
 	for _, ad := range attachedDisks {
 		if ad.AutoDelete {
-			if err := s.w.disks.regDelete(ad.Source, s); err != nil {
+			dName := ad.Source
+			if ad.InitializeParams != nil {
+				dName = ad.InitializeParams.DiskName
+			}
+			if err := s.w.disks.regDelete(dName, s); err != nil {
 				return err
 			}
 		}

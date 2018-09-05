@@ -1,6 +1,6 @@
 {
   "Name": "linux-image-test",
-  "TestParallelCount": 30,
+  "TestParallelCount": 10,
   "Tests": {
     {{$images := split .images "," -}}
     {{$alias_ips := split .alias_ips "," -}}
@@ -38,8 +38,14 @@
           "source_image": "{{$image}}"
         }
       },
-      "test-metadata-scripts [{{$image}}]": {
-        "Path": "./metadata-script/metadata-script-linux.wf.json",
+      "test-startup-scripts [{{$image}}]": {
+        "Path": "./metadata-script/startup-script-linux.wf.json",
+        "Vars": {
+          "source_image": "{{$image}}"
+        }
+      },
+      "test-shutdown-scripts [{{$image}}]": {
+        "Path": "./metadata-script/shutdown-script-linux.wf.json",
         "Vars": {
           "source_image": "{{$image}}"
         }

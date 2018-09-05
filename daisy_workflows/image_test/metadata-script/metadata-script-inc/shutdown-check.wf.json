@@ -1,0 +1,33 @@
+{
+  "Name": "shutdown-check",
+  "Vars": {
+    "instance": {"Required": true, "Description": "Instance name to be tested"},
+    "shutdown_msg": {"Required": true, "Description": "The message to wait when the instance shuts down"}
+  },
+  "Steps": {
+    "test-stop-instance": {
+      "StopInstances": {
+        "Instances":["${instance}"]
+      }
+    },
+    "test-shutdown-check-log": {
+      "Timeout": "140s",
+      "IncludeWorkflow": {
+        "Path": "./wait-message.wf.json",
+        "Vars": {
+            "instance": "${instance}",
+            "script_type": "shutdown",
+            "exec_msg": "${shutdown_msg}"
+        }
+      }
+    },
+    "cleanup-instance": {
+      "DeleteResources": {
+        "Instances": ["${instance}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "cleanup-instance": ["test-stop-instance", "test-shutdown-check-log"]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "Name": "shutdown-noscript",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"},
+    "instance": "noscript"
+  },
+  "Steps": {
+    "create-noscript": {
+      "IncludeWorkflow": {
+        "Path": "./metadata-script-inc/create-instance.wf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "instance": "${instance}"
+        }
+      }
+    },
+    "wait-noscript": {
+      "Timeout": "15m",
+      "IncludeWorkflow": {
+        "Path": "./metadata-script-inc/shutdown-check.wf.json",
+        "Vars": {
+            "instance": "${instance}",
+            "shutdown_msg": "${shutdown_msg}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "wait-noscript": ["create-noscript"]
+  }
+}
