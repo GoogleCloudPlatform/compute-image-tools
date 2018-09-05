@@ -16,15 +16,42 @@
 package main
 
 import (
-	"io/ioutil"
+	"context"
+	"flag"
+	"fmt"
+	"log"
 
-	"github.com/google/logger"
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	"google.golang.org/api/option"
 )
 
-func init() {
-	logger.Init("gce_inventory_agent", true, false, ioutil.Discard)
-}
+var (
+	oauth    = flag.String("oauth", "", "path to oauth json file")
+	resource = flag.String("resource", "", "projects/*/zones/*/instances/*")
+	endpoint = flag.String("base_path", "staging-osconfig.sandbox.googleapis.com:443", "")
+)
 
 func main() {
-	runUpdates()
+	flag.Parse()
+	ctx := context.Background()
+
+	client, err := osconfig.NewClient(ctx, option.WithEndpoint(*endpoint), option.WithCredentialsFile(*oauth))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := lookupConfigs(ctx, client, *resource)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%+v\n", res)
+	fmt.Printf("%+v\n", res.Apt)
+	fmt.Printf("%+v\n", res.Goo)
+	fmt.Printf("%+v\n", res.Yum)
+	fmt.Printf("%+v\n", res.WindowsUpdate)
+	//fmt.Printf("%+v\n", res.PatchPolicies)
+	runPackageConfig(res)
+
+	//runUpdates()
+
 }
