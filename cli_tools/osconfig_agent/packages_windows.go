@@ -19,7 +19,8 @@ import (
 	"io/ioutil"
 	"log"
 
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/osconfig/v1alpha1"
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
@@ -27,11 +28,11 @@ func runPackageConfig(res *osconfig.LookupConfigsResponse) {
 	if res.Goo != nil && packages.GooGetExists {
 		gooRepositories(res.Goo.Repositories)
 		gooInstalls(res.Goo.PackageInstalls)
-		gooInstalls(res.Goo.PackageRemovals)
+		gooRemovals(res.Goo.PackageRemovals)
 	}
 }
 
-func gooRepositories(repos []*osconfig.GooRepository) {
+func gooRepositories(repos []*osconfigpb.GooRepository) {
 	/*
 		Repo file managed by Google OSConfig agent
 
@@ -49,7 +50,7 @@ func gooRepositories(repos []*osconfig.GooRepository) {
 	}
 }
 
-func gooInstalls(pkgs []*osconfig.Package) {
+func gooInstalls(pkgs []*osconfigpb.Package) {
 	var names []string
 	for _, pkg := range pkgs {
 		names = append(names, pkg.Name)
@@ -59,7 +60,7 @@ func gooInstalls(pkgs []*osconfig.Package) {
 	}
 }
 
-func gooRemovals(pkgs []*osconfig.Package) {
+func gooRemovals(pkgs []*osconfigpb.Package) {
 	var names []string
 	for _, pkg := range pkgs {
 		names = append(names, pkg.Name)

@@ -14,6 +14,33 @@
 
 package main
 
-import osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/osconfig/v1alpha1"
+import (
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
+)
 
-func runPackageConfig(res *osconfig.LookupConfigsResponse) {}
+func runPackageConfig(res *osconfigpb.LookupConfigsResponse) {
+	if res.Apt != nil && packages.AptExists {
+		aptRepositories(res.Apt.Repositories)
+		aptInstalls(res.Apt.PackageInstalls)
+		aptRemovals(res.Apt.PackageRemovals)
+	}
+
+	if res.Yum != nil && packages.YumExists {
+		yumRepositories(res.Yum.Repositories)
+		yumInstalls(res.Yum.PackageInstalls)
+		yumRemovals(res.Yum.PackageRemovals)
+	}
+}
+
+func aptRepositories(repos []*osconfigpb.AptRepository) {}
+
+func aptInstalls(pkgs []*osconfigpb.Package) {}
+
+func aptRemovals(pkgs []*osconfigpb.Package) {}
+
+func yumRepositories(repos []*osconfigpb.YumRepository) {}
+
+func yumInstalls(pkgs []*osconfigpb.Package) {}
+
+func yumRemovals(pkgs []*osconfigpb.Package) {}

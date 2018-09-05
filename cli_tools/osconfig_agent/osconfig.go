@@ -15,12 +15,21 @@
 package main
 
 import (
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/osconfig/v1alpha1"
+	"context"
+
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
-func lookupConfigs(svc *osconfig.Service, resource string) (*osconfig.LookupConfigsResponse, error) {
-	req := &osconfig.LookupConfigsRequest{
-		ConfigTypes: []string{"APT", "GOO", "YUM"},
+func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
+	req := &osconfigpb.LookupConfigsRequest{
+		Resource: resource,
+		ConfigTypes: []osconfigpb.LookupConfigsRequest_ConfigType{
+			osconfigpb.LookupConfigsRequest_APT,
+			osconfigpb.LookupConfigsRequest_YUM,
+			osconfigpb.LookupConfigsRequest_GOO,
+			osconfigpb.LookupConfigsRequest_WINDOWS_UPDATE},
 	}
-	return svc.Projects.Zones.Instances.LookupConfigs(resource, req).Do()
+
+	return client.LookupConfigs(ctx, req)
 }

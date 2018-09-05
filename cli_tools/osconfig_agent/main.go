@@ -21,37 +21,30 @@ import (
 	"fmt"
 	"log"
 
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/osconfig/v1alpha1"
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"google.golang.org/api/option"
-	"google.golang.org/api/transport"
 )
 
 var (
 	oauth    = flag.String("oauth", "", "path to oauth json file")
 	resource = flag.String("resource", "", "projects/*/zones/*/instances/*")
-	basePath = flag.String("base_path", "", "")
+	endpoint = flag.String("base_path", "staging-osconfig.sandbox.googleapis.com:443", "")
 )
 
 func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	hc, ep, err := transport.NewHTTPClient(ctx, option.WithEndpoint(*basePath), option.WithScopes(osconfig.CloudPlatformScope), option.WithCredentialsFile(*oauth))
+	client, err := osconfig.NewClient(ctx, option.WithEndpoint(*endpoint), option.WithCredentialsFile(*oauth))
 	if err != nil {
 		log.Fatal(err)
-	}
-	svc, err := osconfig.New(hc)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if ep != "" {
-		svc.BasePath = ep
 	}
 
-	res, err := lookupConfigs(svc, *resource)
+	res, err := lookupConfigs(ctx, client, *resource)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("%+v\n", res)
 	fmt.Printf("%+v\n", res.Apt)
 	fmt.Printf("%+v\n", res.Goo)
 	fmt.Printf("%+v\n", res.Yum)
