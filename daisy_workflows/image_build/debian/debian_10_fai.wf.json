@@ -4,7 +4,7 @@
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "uefi": {"Value": "", "Description": "True if wanted to build an UEFI image with GPT partition format."},
     "debian_cloud_images_version": {
-      "Value": "9922744fe7832baaa0a7e3f0300519ac9fb4a4b6",
+      "Value": "2b90708843e6c03605b2633796fccae386eadde2",
       "Description": "The debian-cloud-images scripts git commit ID to use."
     },
     "debian_version": {
