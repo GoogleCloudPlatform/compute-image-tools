@@ -88,7 +88,7 @@ def main():
   # This is used to test new package releases in images.
   if repo != 'stable':
     logging.info('Adding Google Cloud test repos plugin for bootstrapvz.')
-    repo_plugin_dir = '/build_files/google_cloud_test_repos'
+    repo_plugin_dir = '/files/google_cloud_test_repos'
     bvz_plugins = os.path.join(BVZ_DIR, 'bootstrapvz', 'plugins')
     shutil.move(repo_plugin_dir, bvz_plugins)
 
@@ -130,5 +130,5 @@ if __name__ == '__main__':
   try:
     main()
     logging.success('Debian build was successful!')
-  except:
-    logging.error('Debian build failed!')
+  except Exception as e:
+    logging.error('Debian build failed: %s' % str(e))
