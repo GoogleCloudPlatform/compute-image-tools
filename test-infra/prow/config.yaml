@@ -151,7 +151,7 @@ periodics:
           10.128.3.148,\
           10.128.3.152,\
           10.128.3.156"
-      - "daisy_workflows/image_test/linux_images.test.gotmpl"
+      - "image_test/linux_images.test.gotmpl"
       env:
       - name: REPO_OWNER
         value: GoogleCloudPlatform
@@ -195,7 +195,7 @@ periodics:
           10.128.3.172,\
           10.128.3.176,\
           10.128.3.180"
-      - "daisy_workflows/image_test/windows_images.test.gotmpl"
+      - "image_test/windows_images.test.gotmpl"
       env:
       - name: REPO_OWNER
         value: GoogleCloudPlatform
