@@ -12,9 +12,9 @@
     "testee-checker.sh": "./network-testee-checker.sh",
     "testee-checker.bat": "./network-testee-checker.bat",
     "test_files/test.py": "./network-tester.py",
-    "test_files/utils.py": "../../linux_common/utils.py",
+    "test_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
     "test_files/genips.py": "./genips.py",
-    "startup_master_tester": "../../linux_common/bootstrap.py"
+    "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.py"
   },
   "Steps": {
     "create-testee-disk": {

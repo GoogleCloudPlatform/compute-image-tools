@@ -15,8 +15,8 @@
   },
   "Sources": {
     "test_files/test.py": "./oslogin-ssh-master-tester.py",
-    "test_files/utils.py": "../../linux_common/utils.py",
-    "startup_master_tester": "../../linux_common/bootstrap.py",
+    "test_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
+    "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.py",
     "slave_tester.sh": "./oslogin_slave_tester.sh"
   },
   "Steps": {
