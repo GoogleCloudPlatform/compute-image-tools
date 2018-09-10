@@ -57,48 +57,48 @@ func main() {
 	fmt.Println("-- register flipyflappy, should request reboot and exit and run imediately next time")
 
 	now := time.Now().UTC()
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 	patchManager(
-		[]*osconfigpb.PatchPolicy{
-			&osconfigpb.PatchPolicy{
-				Name: "foo",
+		[]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+			&osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+				FullName: "foo",
 				PatchWindow: &osconfigpb.PatchWindow{
 					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
 					StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour()), Minutes: int32(now.Minute())},
 					Duration:  &duration.Duration{Seconds: 10},
 				},
 			},
-			/*&osconfigpb.PatchPolicy{
-				Name: "bar",
+			&osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+				FullName: "bar",
 				PatchWindow: &osconfigpb.PatchWindow{
 					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
 					StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second())},
 					Duration:  &duration.Duration{Seconds: 10},
 				},
 			},
-			&osconfigpb.PatchPolicy{
-				Name: "baz",
+			&osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+				FullName: "baz",
 				PatchWindow: &osconfigpb.PatchWindow{
 					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
 					StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Add(5 * time.Second).Second())},
 					Duration:  &duration.Duration{Seconds: 4},
 				},
 			},
-			&osconfigpb.PatchPolicy{
-				Name: "flipyflappy",
+			&osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+				FullName: "flipyflappy",
 				PatchWindow: &osconfigpb.PatchWindow{
 					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
 					StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Add(6 * time.Second).Second())},
 					Duration:  &duration.Duration{Seconds: 60},
 				},
-			},*/
+			},
 		},
 	)
 
-	//fmt.Println("----sleep----")
-	//time.Sleep(30 * time.Second)
+	fmt.Println("----sleep----")
+	time.Sleep(15 * time.Second)
 
-//	return
+	//	return
 
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(*endpoint), option.WithCredentialsFile(*oauth))
 	if err != nil {
@@ -109,8 +109,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("DEBUG: LookupConfigs response:\n%s\n\n", dump.Sprint(res))
-	//fmt.Printf("%+v\n", res.PatchPolicies)
+	patchManager(res.PatchPolicies)
 
 	//runPackageConfig(res)
 	//runUpdates()

@@ -69,5 +69,11 @@ func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string
 
 	fmt.Printf("DEBUG: LookupConfigs request:\n%s\n\n", dump.Sprint(req))
 
-	return client.LookupConfigs(ctx, req)
+	res, err := client.LookupConfigs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("DEBUG: LookupConfigs response:\n%s\n\n", dump.Sprint(res))
+
+	return res, nil
 }

@@ -33,13 +33,13 @@ func rebootRequired() (bool, error) {
 	return true, nil
 }
 
-func runUpdates() {
+func runUpdates() (bool, error) {
 	reboot, err := rebootRequired()
 	if err != nil {
-		logger.Errorln("Error checking rebootRequired:", err)
+		false, err
 	}
 	if reboot {
-		logger.Info("Reboot required")
+		true, nil
 	}
 
 	if err := packages.InstallWUAUpdates("IsInstalled=0"); err != nil {
@@ -52,11 +52,5 @@ func runUpdates() {
 		}
 	}
 
-	reboot, err = rebootRequired()
-	if err != nil {
-		logger.Errorln("Error checking rebootRequired:", err)
-	}
-	if reboot {
-		logger.Info("Reboot required")
-	}
+	return rebootRequired()
 }
