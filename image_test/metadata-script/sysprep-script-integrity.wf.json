@@ -62,8 +62,8 @@
     "copy-scripts-to-public": {
       "CopyGCSObjects": [
         {
-          "Source": "${SOURCESPATH}/shutdown_file.ps1",
-          "Destination": "${SOURCESPATH}/shutdown_file_public.ps1",
+          "Source": "${SOURCESPATH}/startup_file.ps1",
+          "Destination": "${SOURCESPATH}/startup_file_public.ps1",
           "AclRules": [{"Entity": "allUsers", "Role": "READER"}]
         }
       ]
