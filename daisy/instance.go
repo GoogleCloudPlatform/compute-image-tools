@@ -23,6 +23,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -373,11 +374,20 @@ func newInstanceRegistry(w *Workflow) *instanceRegistry {
 
 func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(instanceURLRgx, res.link)
-	err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
-	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, err)
+	for {
+		if _, err := ir.w.ComputeClient.GetInstance(m["project"], m["zone"], m["instance"]); err != nil {
+			// Can't remove an instance that was not even yet created!
+			// However as the command was already submitted, wait.
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		// Proceed to instance deletion
+		err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
+		if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+			return typedErr(resourceDNEError, err)
+		}
+		return newErr(err)
 	}
-	return newErr(err)
 }
 
 func (ir *instanceRegistry) startFn(res *Resource) dErr {
