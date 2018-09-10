@@ -5,8 +5,8 @@
   },
   "Sources": {
     "test_files/test.py": "./metadata-ssh-tester.py",
-    "test_files/utils.py": "../../linux_common/utils.py",
-    "startup_tester": "../../linux_common/bootstrap.py"
+    "test_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
+    "startup_tester": "../../daisy_workflows/linux_common/bootstrap.py"
   },
   "Steps": {
     "create-firewall-rule": {
