@@ -16,20 +16,58 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
+	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
 func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
+	info, err := osinfo.GetDistributionInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	var configTypes []osconfigpb.LookupConfigsRequest_ConfigType
+
+	if packages.AptExists {
+		configTypes = append(configTypes, osconfigpb.LookupConfigsRequest_APT)
+	}
+	if packages.YumExists {
+		configTypes = append(configTypes, osconfigpb.LookupConfigsRequest_YUM)
+	}
+	if packages.GooGetExists {
+		configTypes = append(configTypes, osconfigpb.LookupConfigsRequest_GOO)
+	}
+	if info.ShortName == osinfo.Windows {
+		configTypes = append(configTypes, osconfigpb.LookupConfigsRequest_WINDOWS_UPDATE)
+	}
+
+	// TODO: Remove this override once testing is complete.
+	// --------------------------------------
+	configTypes = []osconfigpb.LookupConfigsRequest_ConfigType{
+		osconfigpb.LookupConfigsRequest_APT,
+		osconfigpb.LookupConfigsRequest_YUM,
+		osconfigpb.LookupConfigsRequest_GOO,
+		osconfigpb.LookupConfigsRequest_WINDOWS_UPDATE,
+	}
+	// --------------------------------------
+
 	req := &osconfigpb.LookupConfigsRequest{
 		Resource: resource,
-		ConfigTypes: []osconfigpb.LookupConfigsRequest_ConfigType{
-			osconfigpb.LookupConfigsRequest_APT,
-			osconfigpb.LookupConfigsRequest_YUM,
-			osconfigpb.LookupConfigsRequest_GOO,
-			osconfigpb.LookupConfigsRequest_WINDOWS_UPDATE},
+		OsInfo: &osconfigpb.LookupConfigsRequest_OsInfo{
+			OsLongName:     info.LongName,
+			OsShortName:    info.ShortName,
+			OsVersion:      info.Version,
+			OsKernel:       info.Kernel,
+			OsArchitecture: info.Architecture,
+		},
+		ConfigTypes: configTypes,
 	}
+
+	fmt.Printf("DEBUG: LookupConfigs request:\n%s\n\n", dump.Sprint(req))
 
 	return client.LookupConfigs(ctx, req)
 }

@@ -24,6 +24,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
+const googetRepoFile = "C:/ProgramData/GooGet/repos/google_osconfig.repo"
+
 func runPackageConfig(res *osconfigpb.LookupConfigsResponse) {
 	if res.Goo != nil && packages.GooGetExists {
 		gooRepositories(res.Goo.Repositories)
@@ -47,7 +49,7 @@ func gooRepositories(repos []*osconfigpb.GooRepository) {
 		buf.WriteString(fmt.Sprintf("\n- name: %s\n", repo.Name))
 		buf.WriteString(fmt.Sprintf("  url: %s\n", repo.Url))
 	}
-	if err := ioutil.WriteFile("C:/ProgramData/GooGet/repos/google_osconfig.repo", buf.Bytes(), 0600); err != nil {
+	if err := ioutil.WriteFile(googetRepoFile, buf.Bytes(), 0600); err != nil {
 		log.Printf("Error writing GooGet repo file: %v", err)
 	}
 }

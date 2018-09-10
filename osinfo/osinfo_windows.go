@@ -131,7 +131,7 @@ func GetDistributionInfo() (*DistributionInfo, error) {
 		return nil, err
 	}
 
-	di := &DistributionInfo{ShortName: "windows", LongName: oi.Caption, Version: oi.Version, Kernel: oi.Version, Architecture: Architecture(runtime.GOARCH)}
+	di := &DistributionInfo{ShortName: Windows, LongName: oi.Caption, Version: oi.Version, Kernel: oi.Version, Architecture: Architecture(runtime.GOARCH)}
 
 	kVersion, err := getKernelVersion()
 	if err != nil {

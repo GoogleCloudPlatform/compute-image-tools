@@ -24,17 +24,6 @@ import (
 )
 
 var (
-	// AptExists indicates whether apt is installed.
-	AptExists = exists(aptGet)
-	// YumExists indicates whether yum is installed.
-	YumExists = exists(yum)
-	// ZypperExists indicates whether zypper is installed.
-	ZypperExists = exists(zypper)
-	// GemExists indicates whether gem is installed.
-	GemExists = exists(gem)
-	// PipExists indicates whether pip is installed.
-	PipExists = exists(pip)
-
 	// dpkg-query
 	dpkgquery     = "/usr/bin/dpkg-query"
 	dpkgqueryArgs = []string{"-W", "-f", `${Package} ${Architecture} ${Version}\n`}
@@ -68,9 +57,15 @@ var (
 	pip             = "/usr/bin/pip"
 	pipListArgs     = []string{"list", "--format=legacy"}
 	pipOutdatedArgs = append(pipListArgs, "--outdated")
-
-	noarch = osinfo.Architecture("noarch")
 )
+
+func init() {
+	AptExists = exists(aptGet)
+	YumExists = exists(yum)
+	ZypperExists = exists(zypper)
+	GemExists = exists(gem)
+	PipExists = exists(pip)
+}
 
 // InstallAptPackages installs apt packages.
 func InstallAptPackages(pkgs []string) {}

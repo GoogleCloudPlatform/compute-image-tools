@@ -15,6 +15,13 @@ limitations under the License.
 // Linux.
 package osinfo
 
+const (
+	// Linux is the default shortname used for a Linux system.
+	Linux = "linux"
+	// Windows is the default shortname used for Windows system.
+	Windows = "windows"
+)
+
 // DistributionInfo describes an OS distribution.
 type DistributionInfo struct {
 	LongName, ShortName, Version, Kernel, Architecture string

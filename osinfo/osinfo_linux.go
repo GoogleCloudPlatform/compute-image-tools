@@ -69,7 +69,7 @@ func parseOsRelease(path string) (*DistributionInfo, error) {
 	}
 
 	if di.ShortName == "" {
-		di.ShortName = "linux"
+		di.ShortName = Linux
 	}
 
 	return di, nil
@@ -78,7 +78,7 @@ func parseOsRelease(path string) (*DistributionInfo, error) {
 func parseEnterpriseRelease(path string) (*DistributionInfo, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		return &DistributionInfo{ShortName: "linux"}, fmt.Errorf("unable to obtain release info: %v", err)
+		return &DistributionInfo{ShortName: Linux}, fmt.Errorf("unable to obtain release info: %v", err)
 	}
 	rel := string(b)
 

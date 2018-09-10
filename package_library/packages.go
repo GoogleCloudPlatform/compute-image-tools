@@ -20,7 +20,25 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
 	"github.com/google/logger"
+)
+
+var (
+	// AptExists indicates whether apt is installed.
+	AptExists bool
+	// YumExists indicates whether yum is installed.
+	YumExists bool
+	// ZypperExists indicates whether zypper is installed.
+	ZypperExists bool
+	// GemExists indicates whether gem is installed.
+	GemExists bool
+	// PipExists indicates whether pip is installed.
+	PipExists bool
+	// GooGetExists indicates whether googet is installed.
+	GooGetExists bool
+
+	noarch = osinfo.Architecture("noarch")
 )
 
 // PkgInfo describes a package.

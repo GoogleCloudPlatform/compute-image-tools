@@ -31,8 +31,6 @@ import (
 var (
 	googetDir = os.Getenv("GooGetRoot")
 	googet    = filepath.Join(googetDir, "googet.exe")
-	// GooGetExists indicates whether googet is installed.
-	GooGetExists = exists(googet)
 
 	googetUpdateArgs         = []string{"-noconfirm", "update"}
 	googetUpdateQueryArgs    = []string{"update"}
@@ -40,6 +38,10 @@ var (
 	googetInstallArgs        = []string{"-noconfirm", "install"}
 	googetRemoveArgs         = []string{"-noconfirm", "remove"}
 )
+
+func init() {
+	GooGetExists = exists(googet)
+}
 
 // GetPackageUpdates gets available package updates GooGet as well as any
 // available updates from Windows Update Agent.
