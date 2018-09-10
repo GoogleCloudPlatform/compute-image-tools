@@ -20,7 +20,7 @@
 //   NOTE: This package is in alpha. It is not stable, and is likely to change.
 //
 // Manages OS configurations for GCE VM instances.
-package osconfig // import "cloud.google.com/go/osconfig/apiv1alpha1"
+package osconfig
 
 import (
 	"golang.org/x/net/context"

@@ -1,8 +1,0 @@
-api_name: osconfig
-api_version: v1alpha1
-artifact_type: GAPIC
-organization_name: google-cloud
-proto_deps:
-- name: google-common-protos
-proto_path: google/cloud/osconfig/v1alpha1
-release_level: null
