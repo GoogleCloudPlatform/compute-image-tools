@@ -105,10 +105,10 @@ func TestDeleteResourcesRun(t *testing.T) {
 	}
 
 	// Bad case, no instance created but registered. Throws error only one time to cover error handling.
-	first_run := true
+	firstRun := true
 	w.ComputeClient.(*daisyCompute.TestClient).GetInstanceFn = func(project, zone, name string) (*compute.Instance, error) {
-		if first_run {
-			first_run = false
+		if firstRun {
+			firstRun = false
 			return nil, errors.New("foo")
 		}
 		return nil, nil

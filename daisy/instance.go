@@ -372,7 +372,7 @@ func newInstanceRegistry(w *Workflow) *instanceRegistry {
 	return ir
 }
 
-// Sleep function is mocked on testing.
+// SleepFn function is mocked on testing.
 var SleepFn = time.Sleep
 
 func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
