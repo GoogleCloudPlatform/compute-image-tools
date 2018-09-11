@@ -16,9 +16,12 @@ package daisy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
+	"time"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -52,11 +55,11 @@ func TestDeleteResourcesRun(t *testing.T) {
 	w := testWorkflow()
 
 	s, _ := w.NewStep("s")
-	ins := []*Resource{{RealName: "in0", link: "link"}, {RealName: "in1", link: "link"}}
+	ins := []*Resource{{RealName: "in0", link: "link"}, {RealName: "in1", link: "link"}, {RealName: "in2", link: "link"}}
 	ims := []*Resource{{RealName: "im0", link: "link"}, {RealName: "im1", link: "link"}}
 	ds := []*Resource{{RealName: "d0", link: "link"}, {RealName: "d1", link: "link"}}
 	ns := []*Resource{{RealName: "n0", link: "link"}, {RealName: "n1", link: "link"}}
-	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1]}
+	w.instances.m = map[string]*Resource{"in0": ins[0], "in1": ins[1], "in2": ins[2]}
 	w.images.m = map[string]*Resource{"im0": ims[0], "im1": ims[1]}
 	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 	w.networks.m = map[string]*Resource{"n0": ns[0], "n1": ns[1]}
@@ -78,6 +81,7 @@ func TestDeleteResourcesRun(t *testing.T) {
 	}{
 		{ins[0], true},
 		{ins[1], false},
+		{ins[2], false},
 		{ims[0], true},
 		{ims[1], false},
 		{ds[0], true},
@@ -98,6 +102,20 @@ func TestDeleteResourcesRun(t *testing.T) {
 	// Bad case
 	if err := (&DeleteResources{GCSPaths: []string{"bkt"}}).run(ctx, s); err == nil {
 		t.Error("run should have failed with a parsing error")
+	}
+
+	// Bad case, no instance created but registered. Throws error only one time to cover error handling.
+	first_run := true
+	w.ComputeClient.(*daisyCompute.TestClient).GetInstanceFn = func(project, zone, name string) (*compute.Instance, error) {
+		if first_run {
+			first_run = false
+			return nil, errors.New("foo")
+		}
+		return nil, nil
+	}
+	SleepFn = func(time.Duration) {}
+	if err := (&DeleteResources{Instances: []string{"in2"}}).run(ctx, s); err != nil {
+		t.Error("unexpected error")
 	}
 }
 

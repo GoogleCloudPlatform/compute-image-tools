@@ -372,13 +372,16 @@ func newInstanceRegistry(w *Workflow) *instanceRegistry {
 	return ir
 }
 
+// Sleep function is mocked on testing.
+var SleepFn = time.Sleep
+
 func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(instanceURLRgx, res.link)
 	for {
 		if _, err := ir.w.ComputeClient.GetInstance(m["project"], m["zone"], m["instance"]); err != nil {
 			// Can't remove an instance that was not even yet created!
 			// However as the command was already submitted, wait.
-			time.Sleep(1 * time.Second)
+			SleepFn(1 * time.Second)
 			continue
 		}
 		// Proceed to instance deletion
