@@ -104,18 +104,13 @@ func TestDeleteResourcesRun(t *testing.T) {
 		t.Error("run should have failed with a parsing error")
 	}
 
-	// Bad case, no instance created but registered. Throws error only one time to cover error handling.
-	firstRun := true
+	// Bad case, no instance created but registered.
 	w.ComputeClient.(*daisyCompute.TestClient).GetInstanceFn = func(project, zone, name string) (*compute.Instance, error) {
-		if firstRun {
-			firstRun = false
-			return nil, errors.New("foo")
-		}
-		return nil, nil
+		return nil, errors.New("foo")
 	}
 	SleepFn = func(time.Duration) {}
-	if err := (&DeleteResources{Instances: []string{"in2"}}).run(ctx, s); err != nil {
-		t.Error("unexpected error")
+	if err := (&DeleteResources{Instances: []string{"in2"}}).run(ctx, s); err == nil {
+		t.Error("instance delete didn't fail as expected")
 	}
 }
 

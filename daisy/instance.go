@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"path"
 	"regexp"
@@ -377,11 +378,11 @@ var SleepFn = time.Sleep
 
 func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(instanceURLRgx, res.link)
-	for {
+	for i := 1; i < 4; i++ {
 		if _, err := ir.w.ComputeClient.GetInstance(m["project"], m["zone"], m["instance"]); err != nil {
 			// Can't remove an instance that was not even yet created!
 			// However as the command was already submitted, wait.
-			SleepFn(1 * time.Second)
+			SleepFn((time.Duration(rand.Intn(1000))*time.Millisecond + 1*time.Second) * time.Duration(i))
 			continue
 		}
 		// Proceed to instance deletion
@@ -391,6 +392,7 @@ func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
 		}
 		return newErr(err)
 	}
+	return errf("error deleting instances %q from project %q, zone %q", m["instance"], m["project"], m["zone"])
 }
 
 func (ir *instanceRegistry) startFn(res *Resource) dErr {
