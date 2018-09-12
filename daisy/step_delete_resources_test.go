@@ -104,13 +104,17 @@ func TestDeleteResourcesRun(t *testing.T) {
 		t.Error("run should have failed with a parsing error")
 	}
 
-	// Bad case, no instance created but registered.
+	// Robustness check, no instance created but registered. Should retry a few times
 	w.ComputeClient.(*daisyCompute.TestClient).GetInstanceFn = func(project, zone, name string) (*compute.Instance, error) {
 		return nil, errors.New("foo")
 	}
-	SleepFn = func(time.Duration) {}
-	if err := (&DeleteResources{Instances: []string{"in2"}}).run(ctx, s); err == nil {
-		t.Error("instance delete didn't fail as expected")
+	retries := 0
+	SleepFn = func(time.Duration) { retries++ }
+	if err := (&DeleteResources{Instances: []string{"in2"}}).run(ctx, s); err != nil {
+		t.Error("instance delete fail unexpectly")
+	}
+	if retries == 0 {
+		t.Errorf("faulty instance delete didn't retry as expected. It run %v times", retries)
 	}
 }
 

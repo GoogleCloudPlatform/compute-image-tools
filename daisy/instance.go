@@ -385,14 +385,13 @@ func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
 			SleepFn((time.Duration(rand.Intn(1000))*time.Millisecond + 1*time.Second) * time.Duration(i))
 			continue
 		}
-		// Proceed to instance deletion
-		err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
-		if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-			return typedErr(resourceDNEError, err)
-		}
-		return newErr(err)
 	}
-	return errf("error deleting instances %q from project %q, zone %q", m["instance"], m["project"], m["zone"])
+	// Proceed to instance deletion
+	err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+		return typedErr(resourceDNEError, err)
+	}
+	return newErr(err)
 }
 
 func (ir *instanceRegistry) startFn(res *Resource) dErr {
