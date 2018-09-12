@@ -18,16 +18,11 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
-	"time"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
-	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
-	"google.golang.org/genproto/googleapis/type/timeofday"
 )
 
 var (
@@ -49,56 +44,9 @@ func strIn(s string, ss []string) bool {
 
 func main() {
 	flag.Parse()
+	patchInit()
+
 	ctx := context.Background()
-
-	fmt.Println("-- register foo, should not run")
-	fmt.Println("-- register bar, should complete then deregister")
-	fmt.Println("-- register baz, should run then timeout")
-	fmt.Println("-- register flipyflappy, should request reboot and exit and run imediately next time")
-
-	now := time.Now().UTC()
-	time.Sleep(1 * time.Second)
-	patchManager(
-		[]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-			&osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-				FullName: "foo",
-				PatchWindow: &osconfigpb.PatchWindow{
-					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-					StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour()), Minutes: int32(now.Minute())},
-					Duration:  &duration.Duration{Seconds: 10},
-				},
-			},
-			&osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-				FullName: "bar",
-				PatchWindow: &osconfigpb.PatchWindow{
-					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-					StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second())},
-					Duration:  &duration.Duration{Seconds: 10},
-				},
-			},
-			&osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-				FullName: "baz",
-				PatchWindow: &osconfigpb.PatchWindow{
-					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-					StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Add(5 * time.Second).Second())},
-					Duration:  &duration.Duration{Seconds: 4},
-				},
-			},
-			&osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-				FullName: "flipyflappy",
-				PatchWindow: &osconfigpb.PatchWindow{
-					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-					StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Add(6 * time.Second).Second())},
-					Duration:  &duration.Duration{Seconds: 60},
-				},
-			},
-		},
-	)
-
-	fmt.Println("----sleep----")
-	time.Sleep(15 * time.Second)
-
-	//	return
 
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(*endpoint), option.WithCredentialsFile(*oauth))
 	if err != nil {

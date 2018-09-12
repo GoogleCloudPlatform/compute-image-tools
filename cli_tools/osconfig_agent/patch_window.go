@@ -37,12 +37,17 @@ var (
 	rc chan *patchWindow
 )
 
-func init() {
+func patchInit() {
 	aw.windows = map[string]*patchWindow{}
 	rc = make(chan *patchWindow)
 
 	// Load current patch state off disk.
-	loadState(state)
+	pw, err := loadState(state)
+	if err != nil {
+		log.Println("ERROR:", err)
+	} else if pw != nil && pw.Name != "" {
+		pw.register()
+	}
 
 	// Start the patch runner goroutine.
 	go patchRunner()
@@ -53,24 +58,16 @@ type activeWindows struct {
 	mx      sync.Mutex
 }
 
-func (a *activeWindows) lock() {
+func (a *activeWindows) delete(name string) {
 	a.mx.Lock()
-}
-
-func (a *activeWindows) unlock() {
+	delete(a.windows, name)
 	a.mx.Unlock()
 }
 
-func (a *activeWindows) delete(name string) {
-	a.lock()
-	delete(a.windows, name)
-	a.unlock()
-}
-
 func (a *activeWindows) add(name string, w *patchWindow) {
-	a.lock()
+	a.mx.Lock()
 	a.windows[name] = w
-	a.unlock()
+	a.mx.Unlock()
 }
 
 type patchPolicy struct {
@@ -101,9 +98,6 @@ type patchWindow struct {
 	t      *time.Timer
 	cancel chan struct{}
 	mx     sync.RWMutex
-
-	//DEBUG
-	Ran bool
 }
 
 func (w *patchWindow) String() string {
@@ -198,9 +192,13 @@ func (w *patchWindow) run() (reboot bool) {
 
 	defer func() {
 		if reboot {
-			saveState(state, w)
+			if err := saveState(state, w); err != nil {
+				log.Println("ERROR:", err)
+			}
 		} else {
-			saveState(state, nil)
+			if err := saveState(state, nil); err != nil {
+				log.Println("ERROR:", err)
+			}
 		}
 	}()
 
@@ -211,19 +209,13 @@ func (w *patchWindow) run() (reboot bool) {
 	}
 
 	fmt.Println("running patch window", w.Name)
-	saveState(state, w)
+	if err := saveState(state, w); err != nil {
+		log.Println("ERROR:", err)
+	}
 
 	//runUpdates()
 	// Pretend to do work
 	time.Sleep(5 * time.Second)
-
-	// DEBUG
-	// ---------------------------
-	if w.Name == "flipyflappy" && !w.Ran {
-		w.Ran = true
-		return true
-	}
-	// ---------------------------
 
 	// Make sure we are still in the patch window after each step.
 	// TODO: Pass this to runUpdates instead?
@@ -244,7 +236,7 @@ func patchManager(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy)
 	}
 
 	var toDeregister []*patchWindow
-	aw.lock()
+	aw.mx.Lock()
 	for _, w := range aw.windows {
 		if !strIn(w.Name, ppns) {
 			toDeregister = append(toDeregister, w)
@@ -273,34 +265,25 @@ func patchManager(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy)
 		fmt.Println("DEBUG: patchWindow to create:", w.Name)
 		defer w.register()
 	}
-	aw.unlock()
+	aw.mx.Unlock()
 }
 
-func loadState(state string) {
+func loadState(state string) (*patchWindow, error) {
 	d, err := ioutil.ReadFile(state)
 	if os.IsNotExist(err) {
-		return
+		return nil, nil
 	}
 	if err != nil {
-		log.Print("ERROR:", err)
-		return
+		return nil, err
 	}
 
 	var pw patchWindow
-	if err := json.Unmarshal(d, &pw); err != nil {
-		log.Print("ERROR:", err)
-		return
-	}
-
-	if pw.Name != "" {
-		pw.register()
-	}
+	return &pw, json.Unmarshal(d, &pw)
 }
 
-func saveState(state string, w *patchWindow) {
+func saveState(state string, w *patchWindow) error {
 	if w == nil {
-		ioutil.WriteFile(state, nil, 0600)
-		return
+		return ioutil.WriteFile(state, []byte("{}"), 0600)
 	}
 
 	w.mx.RLock()
@@ -308,14 +291,10 @@ func saveState(state string, w *patchWindow) {
 
 	d, err := json.Marshal(w)
 	if err != nil {
-		log.Print("ERROR:", err)
-		return
+		return err
 	}
 
-	if err := ioutil.WriteFile(state, d, 0600); err != nil {
-		log.Print("ERROR:", err)
-		return
-	}
+	return ioutil.WriteFile(state, d, 0600)
 }
 
 func patchRunner() {
