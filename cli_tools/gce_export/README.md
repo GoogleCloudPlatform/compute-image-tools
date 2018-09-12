@@ -13,7 +13,7 @@ install the `gce_export` tool, this should place the binary in the
 [Go bin directory](https://golang.org/doc/code.html#GOPATH):
 
 ```
-go get github.com/GoogleCloudPlatform/compute-image-tools/gce_export
+go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export
 ```
 
 ### Flags
