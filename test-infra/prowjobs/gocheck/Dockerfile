@@ -13,11 +13,12 @@
 # limitations under the License.
 FROM gcr.io/compute-image-tools-test/wrapper:latest
 
-FROM golang:alpine
+FROM golang
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 
-RUN apk add --no-cache git bash gcc
+RUN RUN apt-get update && apt-get install -y git && \
+    rm -rf /var/cache/apt/archives
 RUN go get -u github.com/golang/lint/golint
 
 COPY --from=0 /wrapper wrapper

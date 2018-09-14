@@ -283,7 +283,7 @@ func newTestGCSClient() (*storage.Client, error) {
 	rewriteRgx := regexp.MustCompile(`/b/([^/]+)/o/([^/]+)/rewriteTo/b/([^/]+)/o/([^?]+)`)
 	uploadRgx := regexp.MustCompile(`/b/([^/]+)/o?.*uploadType=multipart.*`)
 	getObjRgx := regexp.MustCompile(`/b/.+/o/.+alt=json&projection=full`)
-	getBktRgx := regexp.MustCompile(`/b/.+alt=json&projection=full`)
+	getBktRgx := regexp.MustCompile(`/b/.+alt=json&prettyPrint=false&projection=full`)
 	deleteObjRgx := regexp.MustCompile(`/b/.+/o/.+alt=json`)
 	listObjsRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&pageToken=&prefix=.+&projection=full&versions=false`)
 	listObjsNoPrefixRgx := regexp.MustCompile(`/b/.+/o\?alt=json&delimiter=&pageToken=&prefix=&projection=full&versions=false`)
@@ -347,17 +347,17 @@ func newTestGCSClient() (*storage.Client, error) {
 		} else if match := listObjsNoPrefixRgx.FindStringSubmatch(u); m == "GET" && match != nil {
 			// Return 2 objects for testing recursiveGCS.
 			fmt.Fprint(w, `{"kind": "storage#objects", "items": [{"kind": "storage#object", "name": "object", "size": "1"},{"kind": "storage#object", "name": "folder/object", "size": "1"}]}`)
-		} else if m == "PUT" && u == "/b/bucket/o/object/acl/allUsers?alt=json" {
+		} else if m == "PUT" && u == "/b/bucket/o/object/acl/allUsers?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "PUT" && u == "/b/bucket/o/object%2Ffolder%2Ffolder%2Fobject/acl/allUsers?alt=json" {
+		} else if m == "PUT" && u == "/b/bucket/o/object%2Ffolder%2Ffolder%2Fobject/acl/allUsers?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "PUT" && u == "/b/bucket/o/object%2Ffolder%2Fobject/acl/allUsers?alt=json" {
+		} else if m == "PUT" && u == "/b/bucket/o/object%2Ffolder%2Fobject/acl/allUsers?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&project=foo-project&projection=full" {
+		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&prettyPrint=false&project=foo-project&projection=full" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&project=bar-project&projection=full" {
+		} else if m == "GET" && u == "/b?alt=json&pageToken=&prefix=&prettyPrint=false&project=bar-project&projection=full" {
 			fmt.Fprint(w, `{"items": [{"name": "bar-project-daisy-bkt"}]}`)
-		} else if m == "POST" && u == "/b?alt=json&project=foo-project" {
+		} else if m == "POST" && u == "/b?alt=json&prettyPrint=false&project=foo-project" {
 			fmt.Fprint(w, `{}`)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
