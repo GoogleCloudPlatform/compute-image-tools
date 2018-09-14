@@ -19,7 +19,7 @@
             "instance": "${instance_url}",
             "startup_script_meta_key": "startup-script-url",
             "windows_startup_script_meta_key": "windows-startup-script-url",
-            "startup_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/daisy_workflows/image_test/metadata-script/junk.ps1"
+            "startup_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/image_test/metadata-script/junk.ps1"
         }
       }
     },
