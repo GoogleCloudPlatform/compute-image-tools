@@ -235,7 +235,7 @@ func TestPatchManagerRunAndCancel(t *testing.T) {
 		},
 	}
 
-	// Run should start imediately, and just hang as no one is listening on the channel.
+	// This patch should queue imediately, and just hang as no one is listening on the channel.
 	patchManager([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo})
 
 	window, ok := aw.windows["foo"]

@@ -59,7 +59,5 @@ func main() {
 	}
 	patchManager(res.PatchPolicies)
 
-	//runPackageConfig(res)
 	//runUpdates()
-
 }
