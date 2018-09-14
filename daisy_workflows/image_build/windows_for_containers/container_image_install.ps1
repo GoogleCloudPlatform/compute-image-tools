@@ -15,18 +15,10 @@
 # This script prepares a Windows Server version 1803 image to run Windows
 # Server containers by following the steps in Microsoft's documentation:
 # https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/quick-start-windows-server.
-# These steps use the DockerMsftProvider OneGet module:
-# https://github.com/OneGet/MicrosoftDockerProvider.
-#
-# Docker provides its own "Docker for Windows" setup
-# (https://docs.docker.com/docker-for-windows/), but ignore it. "Docker for
-# Windows" is primarily targeted at running Linux containers on Windows hosts,
-# so it relies on a physical Windows host with Hyper-V support. Their installer
-# also adds several Docker components such as docker-compose and docker-machine
-# which are not needed for running Windows Server containers. In the future we
-# intend to satisfy the requirements for running Hyper-V containers in our
-# Windows VMs, but we only want to include the minimum necessary Docker runtime
-# support in our container images.
+# These steps use the DockerMsftProvider OneGet module
+# (https://github.com/OneGet/MicrosoftDockerProvider), which installs Docker
+# Enterprise Edition (not "Docker for Windows", which is a distribution of
+# Docker Community Edition meant for Windows client installations).
 
 $ErrorActionPreference = 'Stop'
 
@@ -69,8 +61,8 @@ try {
     Write-Host 'Installing DockerMsftProvider module'
     Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
 
-    Write-Host 'Installing Docker package'
-    Install-Package -Name docker -ProviderName DockerMsftProvider -Force
+    Write-Host 'Installing Docker EE 18.03'
+    Install-Package -Name docker -ProviderName DockerMsftProvider -Force -RequiredVersion 18.03
 
     Write-Host 'Enabling IPv6'
     $ipv_path = 'HKLM:\SYSTEM\CurrentControlSet\services\TCPIP6\Parameters'
