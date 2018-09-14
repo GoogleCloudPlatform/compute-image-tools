@@ -295,12 +295,14 @@ class GenericDistroTests(object):
     https://github.com/GoogleCloudPlatform/compute-image-tools/issues/400
     """
     # firstly check if gcloud and gsutil are available
-    rc_gcloud, output = utils.Execute(['gcloud', 'info'], raise_errors=False)
-    rc_gsutil, output = utils.Execute(['gsutil', 'version'],
-                                      raise_errors=False)
-    if rc_gcloud != 0 or rc_gsutil != 0:
-      # if these commands are not available, skip this test
-      return
+    try:
+      rc_gcloud, output = utils.Execute(['gcloud'], raise_errors=False)
+      rc_gsutil, output = utils.Execute(['gsutil'], raise_errors=False)
+    except OSError as e:
+      if e.errno == 2:  # No such file or directory
+        # command is not available, skip this test
+        return
+      raise e
 
     # now test if their API are still valid
     utils.Execute(['gcloud', 'compute', 'images', 'list'])
