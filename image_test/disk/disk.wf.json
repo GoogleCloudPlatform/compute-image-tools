@@ -24,7 +24,7 @@
         }
       ]
     },
-    "create-instance-testee": {
+    "create-disk-instance-testee": {
       "CreateInstances": [
         {
           "Name": "inst-disk-testee",
@@ -197,8 +197,8 @@
     }
   },
   "Dependencies": {
-    "create-instance-testee": ["create-disk-testee"],
-    "wait-for-single-disk-check": ["create-instance-testee"],
+    "create-disk-instance-testee": ["create-disk-testee"],
+    "wait-for-single-disk-check": ["create-disk-instance-testee"],
     "attach-disk-removable": ["wait-for-single-disk-check"],
     "wait-for-double-disk-check": ["attach-disk-removable"],
     "detach-disk-removable": ["wait-for-double-disk-check"],

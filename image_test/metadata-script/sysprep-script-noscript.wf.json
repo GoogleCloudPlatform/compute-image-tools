@@ -3,7 +3,7 @@
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "sysprep_msg": {"Required": true, "Description": "Sysprep script message to be verified"},
-    "instance": "noscript"
+    "instance": "sysprep-noscript-instance"
   },
   "Steps": {
     "create-noscript": {

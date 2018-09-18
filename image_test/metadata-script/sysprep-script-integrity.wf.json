@@ -4,16 +4,16 @@
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "sysprep_msg": {"Required": true, "Description": "Hash of sysprep script"},
     "sysprep_script_name": {"Required": true, "Description": "Sysprep script of the created instance"},
-    "instance_url": "integrity-url",
-    "instance_gcs": "integrity-gcs",
-    "instance_public_gcs": "integrity-public-gcs",
-    "instance_metadata": "integrity-metadata"
+    "instance_url": "sysprep-integrity-url",
+    "instance_gcs": "sysprep-integrity-gcs-instance",
+    "instance_public_gcs": "sysprep-integrity-public-gcs",
+    "instance_metadata": "sysprep-integrity-metadata"
   },
   "Sources": {
-    "startup_file.ps1": "${sysprep_script_name}"
+    "sysprep_startup_file.ps1": "${sysprep_script_name}"
   },
   "Steps": {
-    "create-integrity-url": {
+    "create-sysprep-integrity-url": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
@@ -24,7 +24,7 @@
         }
       }
     },
-    "wait-integrity-url": {
+    "wait-sysprep-integrity-url": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/startup-check.wf.json",
@@ -36,18 +36,18 @@
       }
     },
 
-    "create-integrity-gcs": {
+    "create-sysprep-integrity-gcs": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
             "source_image": "${source_image}",
             "instance": "${instance_gcs}",
             "windows_startup_script_meta_key": "sysprep-specialize-script-urll",
-            "startup_script_meta": "${SOURCESPATH}/startup_file.ps1"
+            "startup_script_meta": "${SOURCESPATH}/sysprep_startup_file.ps1"
         }
       }
     },
-    "wait-integrity-gcs": {
+    "wait-sysprep-integrity-gcs": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/startup-check.wf.json",
@@ -59,27 +59,27 @@
       }
     },
 
-    "copy-scripts-to-public": {
+    "copy-sysprep-scripts-to-public": {
       "CopyGCSObjects": [
         {
-          "Source": "${SOURCESPATH}/startup_file.ps1",
-          "Destination": "${SOURCESPATH}/startup_file_public.ps1",
+          "Source": "${SOURCESPATH}/sysprep_startup_file.ps1",
+          "Destination": "${SOURCESPATH}/sysprep_startup_file_public.ps1",
           "AclRules": [{"Entity": "allUsers", "Role": "READER"}]
         }
       ]
     },
-    "create-integrity-public-gcs": {
+    "create-sysprep-integrity-public-gcs": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance-no-scope.wf.json",
         "Vars": {
             "source_image": "${source_image}",
             "instance": "${instance_public_gcs}",
             "windows_startup_script_meta_key": "sysprep-specialize-script-url",
-            "startup_script_meta": "${SOURCESPATH}/startup_file_public.ps1"
+            "startup_script_meta": "${SOURCESPATH}/sysprep_startup_file_public.ps1"
         }
       }
     },
-    "wait-integrity-public-gcs": {
+    "wait-sysprep-integrity-public-gcs": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/startup-check.wf.json",
@@ -91,7 +91,7 @@
       }
     },
 
-    "create-integrity-metadata": {
+    "create-sysprep-integrity-metadata": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
@@ -102,7 +102,7 @@
         }
       }
     },
-    "wait-integrity-metadata": {
+    "wait-sysprep-integrity-metadata": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/startup-check.wf.json",
@@ -115,10 +115,10 @@
     }
   },
   "Dependencies": {
-    "wait-integrity-url": ["create-integrity-url"],
-    "wait-integrity-gcs": ["create-integrity-gcs"],
-    "create-integrity-public-gcs": ["copy-scripts-to-public"],
-    "wait-integrity-public-gcs": ["create-integrity-public-gcs"],
-    "wait-integrity-metadata": ["create-integrity-metadata"]
+    "wait-sysprep-integrity-url": ["create-sysprep-integrity-url"],
+    "wait-sysprep-integrity-gcs": ["create-sysprep-integrity-gcs"],
+    "create-sysprep-integrity-public-gcs": ["copy-sysprep-scripts-to-public"],
+    "wait-sysprep-integrity-public-gcs": ["create-sysprep-integrity-public-gcs"],
+    "wait-sysprep-integrity-metadata": ["create-sysprep-integrity-metadata"]
   }
 }

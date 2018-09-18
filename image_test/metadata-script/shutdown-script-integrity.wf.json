@@ -4,16 +4,16 @@
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "shutdown_msg": {"Required": true, "Description": "Hash of shutdown script"},
     "shutdown_script_name": {"Required": true, "Description": "Shutdown script of the created instance"},
-    "instance_url": "integrity-url",
-    "instance_gcs": "integrity-gcs",
-    "instance_public_gcs": "integrity-public-gcs",
-    "instance_metadata": "integrity-metadata"
+    "instance_url": "shutdown-integrity-url",
+    "instance_gcs": "shutdown-integrity-gcs-instance",
+    "instance_public_gcs": "sysprep-integrity-public-gcs",
+    "instance_metadata": "sysprep-integrity-metadata"
   },
   "Sources": {
     "shutdown_file.ps1": "${shutdown_script_name}"
   },
   "Steps": {
-    "create-integrity-url": {
+    "create-shutdown-integrity-url": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
@@ -25,7 +25,7 @@
         }
       }
     },
-    "wait-integrity-url": {
+    "wait-shutdown-integrity-url": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
@@ -36,7 +36,7 @@
       }
     },
 
-    "create-integrity-gcs": {
+    "create-shutdown-integrity-gcs": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
@@ -48,7 +48,7 @@
         }
       }
     },
-    "wait-integrity-gcs": {
+    "wait-shutdown-integrity-gcs": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
@@ -59,7 +59,7 @@
       }
     },
 
-    "copy-scripts-to-public": {
+    "copy-shutdown-scripts-to-public": {
       "CopyGCSObjects": [
         {
           "Source": "${SOURCESPATH}/shutdown_file.ps1",
@@ -68,7 +68,7 @@
         }
       ]
     },
-    "create-integrity-public-gcs": {
+    "create-shutdown-integrity-public-gcs": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance-no-scope.wf.json",
         "Vars": {
@@ -80,7 +80,7 @@
         }
       }
     },
-    "wait-integrity-public-gcs": {
+    "wait-shutdown-integrity-public-gcs": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
@@ -91,7 +91,7 @@
       }
     },
 
-    "create-integrity-metadata": {
+    "create-shutdown-integrity-metadata": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
@@ -103,7 +103,7 @@
         }
       }
     },
-    "wait-integrity-metadata": {
+    "wait-shutdown-integrity-metadata": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
@@ -115,10 +115,10 @@
     }
   },
   "Dependencies": {
-    "wait-integrity-url": ["create-integrity-url"],
-    "wait-integrity-gcs": ["create-integrity-gcs"],
-    "create-integrity-public-gcs": ["copy-scripts-to-public"],
-    "wait-integrity-public-gcs": ["create-integrity-public-gcs"],
-    "wait-integrity-metadata": ["create-integrity-metadata"]
+    "wait-shutdown-integrity-url": ["create-shutdown-integrity-url"],
+    "wait-shutdown-integrity-gcs": ["create-shutdown-integrity-gcs"],
+    "create-shutdown-integrity-public-gcs": ["copy-shutdown-scripts-to-public"],
+    "wait-shutdown-integrity-public-gcs": ["create-shutdown-integrity-public-gcs"],
+    "wait-shutdown-integrity-metadata": ["create-shutdown-integrity-metadata"]
   }
 }

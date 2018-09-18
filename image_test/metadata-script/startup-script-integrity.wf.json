@@ -4,16 +4,16 @@
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "startup_msg": {"Required": true, "Description": "Hash of startup script"},
     "startup_script_name": {"Required": true, "Description": "Startup script of the created instance"},
-    "instance_url": "integrity-url",
-    "instance_gcs": "integrity-gcs",
-    "instance_public_gcs": "integrity-public-gcs",
-    "instance_metadata": "integrity-metadata"
+    "instance_url": "startup-integrity-url",
+    "instance_gcs": "startup-integrity-gcs-instance",
+    "instance_public_gcs": "startup-integrity-public-gcs",
+    "instance_metadata": "startup-integrity-metadata"
   },
   "Sources": {
     "startup_file.ps1": "${startup_script_name}"
   },
   "Steps": {
-    "create-integrity-url": {
+    "create-startup-integrity-url": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
@@ -25,7 +25,7 @@
         }
       }
     },
-    "wait-integrity-url": {
+    "wait-startup-integrity-url": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/startup-check.wf.json",
@@ -36,7 +36,7 @@
       }
     },
 
-    "create-integrity-gcs": {
+    "create-startup-integrity-gcs": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
@@ -48,7 +48,7 @@
         }
       }
     },
-    "wait-integrity-gcs": {
+    "wait-startup-integrity-gcs": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/startup-check.wf.json",
@@ -59,7 +59,7 @@
       }
     },
 
-    "copy-scripts-to-public": {
+    "copy-startup-scripts-to-public": {
       "CopyGCSObjects": [
         {
           "Source": "${SOURCESPATH}/startup_file.ps1",
@@ -68,7 +68,7 @@
         }
       ]
     },
-    "create-integrity-public-gcs": {
+    "create-startup-integrity-public-gcs": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance-no-scope.wf.json",
         "Vars": {
@@ -80,7 +80,7 @@
         }
       }
     },
-    "wait-integrity-public-gcs": {
+    "wait-startup-integrity-public-gcs": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/startup-check.wf.json",
@@ -91,7 +91,7 @@
       }
     },
 
-    "create-integrity-metadata": {
+    "create-startup-integrity-metadata": {
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
@@ -103,7 +103,7 @@
         }
       }
     },
-    "wait-integrity-metadata": {
+    "wait-startup-integrity-metadata": {
       "Timeout": "10m",
       "IncludeWorkflow": {
         "Path": "./metadata-script-inc/startup-check.wf.json",
@@ -115,10 +115,10 @@
     }
   },
   "Dependencies": {
-    "wait-integrity-url": ["create-integrity-url"],
-    "wait-integrity-gcs": ["create-integrity-gcs"],
-    "create-integrity-public-gcs": ["copy-scripts-to-public"],
-    "wait-integrity-public-gcs": ["create-integrity-public-gcs"],
-    "wait-integrity-metadata": ["create-integrity-metadata"]
+    "wait-startup-integrity-url": ["create-startup-integrity-url"],
+    "wait-startup-integrity-gcs": ["create-startup-integrity-gcs"],
+    "create-startup-integrity-public-gcs": ["copy-startup-scripts-to-public"],
+    "wait-startup-integrity-public-gcs": ["create-startup-integrity-public-gcs"],
+    "wait-startup-integrity-metadata": ["create-startup-integrity-metadata"]
   }
 }

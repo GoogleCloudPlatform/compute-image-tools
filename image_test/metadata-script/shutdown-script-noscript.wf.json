@@ -3,7 +3,7 @@
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"},
-    "instance": "noscript"
+    "instance": "shutdown-noscript-instance"
   },
   "Steps": {
     "create-noscript": {

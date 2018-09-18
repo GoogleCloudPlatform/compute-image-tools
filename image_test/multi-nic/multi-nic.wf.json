@@ -10,10 +10,10 @@
     "common_subnetwork": {"Value": "c", "Description": "The common subnetwork between 2 machines"}
   },
   "Sources": {
-    "slave.sh": "multi-nic-slave.sh",
-    "slave.bat": "multi-nic-slave.bat",
-    "master.sh": "multi-nic-master.sh",
-    "master.bat": "multi-nic-master.bat"
+    "multi-nic-slave.sh": "multi-nic-slave.sh",
+    "multi-nic-slave.bat": "multi-nic-slave.bat",
+    "multi-nic-master.sh": "multi-nic-master.sh",
+    "multi-nic-master.bat": "multi-nic-master.bat"
   },
   "Steps": {
     "create-networks": {
@@ -122,8 +122,8 @@
           "RealName": "inst-multi-nic-slave-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-slave-img"}],
           "Metadata": {
-            "startup-script": "${SOURCE:slave.sh}",
-            "windows-startup-script-bat": "${SOURCE:slave.bat}"
+            "startup-script": "${SOURCE:multi-nic-slave.sh}",
+            "windows-startup-script-bat": "${SOURCE:multi-nic-slave.bat}"
           },
           "NetworkInterfaces": [
             {
@@ -146,8 +146,8 @@
           "Name": "inst-multi-nic-master",
           "Disks": [{"Source": "disk-master-img"}],
           "Metadata": {
-            "startup-script": "export HOST=inst-multi-nic-slave-${DATETIME}-${ID}; ${SOURCE:master.sh}",
-            "windows-startup-script-bat": "SET HOST=inst-multi-nic-slave-${DATETIME}-${ID} & ${SOURCE:master.bat}"
+            "startup-script": "export HOST=inst-multi-nic-slave-${DATETIME}-${ID}; ${SOURCE:multi-nic-master.sh}",
+            "windows-startup-script-bat": "SET HOST=inst-multi-nic-slave-${DATETIME}-${ID} & ${SOURCE:multi-nic-master.bat}"
             },
           "NetworkInterfaces": [
             {

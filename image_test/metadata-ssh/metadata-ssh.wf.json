@@ -4,15 +4,15 @@
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
   "Sources": {
-    "test_files/test.py": "./metadata-ssh-tester.py",
-    "test_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
-    "startup_tester": "../../daisy_workflows/linux_common/bootstrap.py"
+    "metadata_ssh_files/test.py": "./metadata-ssh-tester.py",
+    "metadata_ssh_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
+    "metadata_ssh_startup.py": "../../daisy_workflows/linux_common/bootstrap.py"
   },
   "Steps": {
     "create-firewall-rule": {
       "CreateFirewallRules": [
         {
-          "name": "allow-ssh",
+          "name": "allow-metadata-ssh",
           "network": "global/networks/default",
           "allowed": [
             {
@@ -32,10 +32,10 @@
         }
       ]
     },
-    "create-disk-testee": {
+    "create-metadata-ssh-disk-testee": {
       "CreateDisks": [
         {
-          "Name": "disk-testee",
+          "Name": "metadata-ssh-disk-testee",
           "SourceImage": "${source_image}",
           "Type": "pd-ssd"
         }
@@ -46,9 +46,9 @@
         {
           "Name": "inst-metadata-ssh-tester",
           "Disks": [{"Source": "disk-tester"}],
-          "StartupScript": "startup_tester",
+          "StartupScript": "metadata_ssh_startup.py",
           "metadata": {
-            "files_gcs_dir": "${SOURCESPATH}/test_files",
+            "files_gcs_dir": "${SOURCESPATH}/metadata_ssh_files",
             "script": "test.py",
             "prefix": "Test",
             "testee": "inst-metadata-ssh-testee-${DATETIME}-${ID}",
@@ -63,19 +63,19 @@
         }
       ]
     },
-    "create-instance-testee": {
+    "create-metadata-ssh-instance-testee": {
       "CreateInstances": [
         {
           "Name": "inst-metadata-ssh-testee",
           "RealName": "inst-metadata-ssh-testee-${DATETIME}-${ID}",
-          "Disks": [{"Source": "disk-testee"}],
+          "Disks": [{"Source": "metadata-ssh-disk-testee"}],
           "metadata": {
             "startup-script": "service sshguard stop; logger -p daemon.info BOOTED"
           }
         }
       ]
     },
-    "wait-for-boot-testee": {
+    "wait-for-metadata-ssh-testee-boot": {
       "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
@@ -102,9 +102,9 @@
     }
   },
   "Dependencies": {
-    "create-instance-testee": ["create-disk-testee"],
-    "wait-for-boot-testee": ["create-instance-testee"],
-    "create-instance-tester": ["create-disk-tester", "wait-for-boot-testee", "create-firewall-rule"],
+    "create-metadata-ssh-instance-testee": ["create-metadata-ssh-disk-testee"],
+    "wait-for-metadata-ssh-testee-boot": ["create-metadata-ssh-instance-testee"],
+    "create-instance-tester": ["create-disk-tester", "wait-for-metadata-ssh-testee-boot", "create-firewall-rule"],
     "wait-for-tester": ["create-instance-tester"]
   }
 }

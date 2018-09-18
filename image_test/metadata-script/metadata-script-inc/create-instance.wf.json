@@ -1,5 +1,5 @@
 {
-  "Name": "create-instance",
+  "Name": "create-metadata-script-instance",
   "Vars": {
     "instance": {"Required": true, "Description": "The name of the instance to be created"},
     "source_image": {"Required": true, "Description": "Image to be tested"},
@@ -13,7 +13,7 @@
     "shutdown_script_meta": {"Value": "Bar", "Description": "The metadata shutdown script of the created instance"}
   },
   "Steps": {
-    "create-instance": {
+    "create-script-instance": {
       "CreateInstances": [
         {
           "Name": "${instance}",
@@ -44,6 +44,6 @@
     }
   },
   "Dependencies": {
-    "wait-for-boot": ["create-instance"]
+    "wait-for-boot": ["create-script-instance"]
   }
 }

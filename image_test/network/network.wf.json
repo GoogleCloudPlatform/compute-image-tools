@@ -7,14 +7,14 @@
     "testee_realname": {"Value": "inst-network-testee-${DATETIME}-${ID}", "Description": "INTERNAL USE"}
   },
   "Sources": {
-    "testee.sh": "./network-testee.sh",
-    "testee.ps1": "./network-testee.ps1",
-    "testee-checker.sh": "./network-testee-checker.sh",
-    "testee-checker.bat": "./network-testee-checker.bat",
-    "test_files/test.py": "./network-tester.py",
-    "test_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
-    "test_files/genips.py": "./genips.py",
-    "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.py"
+    "network-testee.sh": "./network-testee.sh",
+    "network-testee.ps1": "./network-testee.ps1",
+    "network-testee-checker.sh": "./network-testee-checker.sh",
+    "network-testee-checker.bat": "./network-testee-checker.bat",
+    "network_files/test.py": "./network-tester.py",
+    "network_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
+    "network_files/genips.py": "./genips.py",
+    "network_startup.py": "../../daisy_workflows/linux_common/bootstrap.py"
   },
   "Steps": {
     "create-testee-disk": {
@@ -48,8 +48,8 @@
           "RealName": "${testee_realname}",
           "Disks": [{"Source": "disk-testee-img"}],
           "Metadata": {
-            "startup-script": "${SOURCE:testee.sh}",
-            "windows-startup-script-ps1": "${SOURCE:testee.ps1}"
+            "startup-script": "${SOURCE:network-testee.sh}",
+            "windows-startup-script-ps1": "${SOURCE:network-testee.ps1}"
           },
           "NetworkInterfaces": [
             {
@@ -68,8 +68,8 @@
           "RealName": "inst-network-testee-checker-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-testee-checker-img"}],
           "Metadata": {
-            "startup-script": "INSTANCE=${testee_realname}; ${SOURCE:testee-checker.sh}",
-            "windows-startup-script-bat": "SET INSTANCE=${testee_realname} & ${SOURCE:testee-checker.bat}"
+            "startup-script": "INSTANCE=${testee_realname}; ${SOURCE:network-testee-checker.sh}",
+            "windows-startup-script-bat": "SET INSTANCE=${testee_realname} & ${SOURCE:network-testee-checker.bat}"
           }
         }
       ]
@@ -79,9 +79,9 @@
         {
           "Name": "inst-network-tester",
           "Disks": [{"Source": "disk-tester-img"}],
-          "StartupScript": "startup_master_tester",
+          "StartupScript": "network_startup.py",
           "Metadata": {
-            "files_gcs_dir": "${SOURCESPATH}/test_files",
+            "files_gcs_dir": "${SOURCESPATH}/network_files",
             "script": "test.py",
             "prefix": "Test",
             "debian_install_google_api_python_client": "yes",

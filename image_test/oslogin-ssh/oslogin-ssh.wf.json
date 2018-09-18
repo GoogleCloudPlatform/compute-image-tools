@@ -14,16 +14,16 @@
     }
   },
   "Sources": {
-    "test_files/test.py": "./oslogin-ssh-master-tester.py",
-    "test_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
-    "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.py",
-    "slave_tester.sh": "./oslogin_slave_tester.sh"
+    "oslogin_ssh_files/test.py": "./oslogin-ssh-master-tester.py",
+    "oslogin_ssh_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
+    "oslogin_ssh_master_startup.py": "../../daisy_workflows/linux_common/bootstrap.py",
+    "oslogin_ssh_slave_tester.sh": "./oslogin_slave_tester.sh"
   },
   "Steps": {
     "create-firewall-rule": {
       "CreateFirewallRules": [
         {
-          "name": "allow-ssh",
+          "name": "allow-oslogin-ssh",
           "network": "global/networks/default",
           "allowed": [
             {
@@ -61,10 +61,10 @@
         }
       ]
     },
-    "create-disk-testee": {
+    "create-oslogin-ssh-disk-testee": {
       "CreateDisks": [
         {
-          "Name": "disk-testee",
+          "Name": "oslogin-ssh-disk-testee",
           "SourceImage": "${source_image}",
           "Type": "pd-ssd"
         }
@@ -75,9 +75,9 @@
         {
           "Name": "inst-master-tester",
           "Disks": [{"Source": "disk-master-tester"}],
-          "StartupScript": "startup_master_tester",
+          "StartupScript": "oslogin_ssh_master_startup.py",
           "metadata": {
-            "files_gcs_dir": "${SOURCESPATH}/test_files",
+            "files_gcs_dir": "${SOURCESPATH}/oslogin_ssh_files",
             "script": "test.py",
             "prefix": "Test",
             "testee": "inst-oslogin-ssh-testee-${DATETIME}-${ID}",
@@ -100,7 +100,7 @@
           "Name": "inst-oslogin-ssh-tester",
           "RealName": "inst-oslogin-ssh-tester-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-oslogin-ssh-tester"}],
-          "StartupScript": "slave_tester.sh",
+          "StartupScript": "oslogin_ssh_slave_tester.sh",
           "ServiceAccounts": [{
             "Email": "${oslogin_service_account}",
             "Scopes": [
@@ -117,7 +117,7 @@
           "Name": "inst-osadminlogin-ssh-tester",
           "RealName": "inst-osadminlogin-ssh-tester-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-osadminlogin-ssh-tester"}],
-          "StartupScript": "slave_tester.sh",
+          "StartupScript": "oslogin_ssh_slave_tester.sh",
           "ServiceAccounts": [{
             "Email": "${osadminlogin_service_account}",
             "Scopes": [
@@ -128,12 +128,12 @@
         }
       ]
     },
-    "create-instance-testee": {
+    "create-oslogin-ssh-instance-testee": {
       "CreateInstances": [
         {
           "Name": "inst-oslogin-ssh-testee",
           "RealName": "inst-oslogin-ssh-testee-${DATETIME}-${ID}",
-          "Disks": [{"Source": "disk-testee"}],
+          "Disks": [{"Source": "oslogin-ssh-disk-testee"}],
           "metadata": {
             "startup-script": "service sshguard stop; logger -p daemon.info BOOTED"
           }
@@ -164,7 +164,7 @@
         }
       ]
     },
-    "wait-for-boot-testee": {
+    "wait-for-oslogin-ssh-testee-boot": {
       "Timeout": "5m",
       "WaitForInstancesSignal": [
         {
@@ -193,11 +193,11 @@
   "Dependencies": {
     "create-instance-oslogin-ssh-tester": ["create-disk-oslogin-ssh-tester"],
     "create-instance-osadminlogin-ssh-tester": ["create-disk-osadminlogin-ssh-tester"],
-    "create-instance-testee": ["create-disk-testee"],
+    "create-oslogin-ssh-instance-testee": ["create-oslogin-ssh-disk-testee"],
     "wait-for-boot-oslogin-ssh-tester": ["create-instance-oslogin-ssh-tester"],
     "wait-for-boot-osadminlogin-ssh-tester": ["create-instance-osadminlogin-ssh-tester"],
-    "wait-for-boot-testee": ["create-instance-testee"],
-    "create-instance-master-tester": ["create-disk-master-tester", "wait-for-boot-testee", "wait-for-boot-oslogin-ssh-tester", "wait-for-boot-osadminlogin-ssh-tester", "create-instance-testee", "create-firewall-rule"],
+    "wait-for-oslogin-ssh-testee-boot": ["create-oslogin-ssh-instance-testee"],
+    "create-instance-master-tester": ["create-disk-master-tester", "wait-for-oslogin-ssh-testee-boot", "wait-for-boot-oslogin-ssh-tester", "wait-for-boot-osadminlogin-ssh-tester", "create-oslogin-ssh-instance-testee", "create-firewall-rule"],
     "wait-for-master-tester": ["create-instance-master-tester"]
   }
 }

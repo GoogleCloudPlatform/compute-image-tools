@@ -4,11 +4,11 @@
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"},
-    "instance_url": "junk-url",
-    "instance_gcs": "junk-gcs"
+    "instance_url": "shutdown-junk-url",
+    "instance_gcs": "shutdown-junk-gcs-instance"
   },
   "Sources": {
-    "junk_file.ps1": "./junk.ps1"
+    "shutdown_junk_file.ps1": "./junk.ps1"
   },
   "Steps": {
     "create-junk-url": {
@@ -42,7 +42,7 @@
             "instance": "${instance_gcs}",
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
-            "shutdown_script_meta": "${SOURCESPATH}/junk_file.ps1"
+            "shutdown_script_meta": "${SOURCESPATH}/shutdown_junk_file.ps1"
         }
       }
     },

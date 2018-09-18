@@ -4,7 +4,7 @@
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
   "Sources": {
-    "test_config.ps1": "./windows/test_config.ps1"
+    "configuration_test.ps1": "./windows/configuration_test.ps1"
   },
   "Steps": {
     "create-disk": {
@@ -16,12 +16,12 @@
         }
       ]
     },
-    "create-instance": {
+    "create-configuration-instance": {
       "CreateInstances": [
         {
           "Name": "inst-configuration",
           "Disks": [{"Source": "disk"}],
-          "StartupScript": "test_config.ps1",
+          "StartupScript": "configuration_test.ps1",
           "Metadata": {
             "zone": "${ZONE}",
             "project": "${PROJECT}"
@@ -45,7 +45,7 @@
     }
   },
   "Dependencies": {
-    "create-instance": ["create-disk"],
-    "wait-for-test-completion": ["create-instance"]
+    "create-configuration-instance": ["create-disk"],
+    "wait-for-test-completion": ["create-configuration-instance"]
   }
 }
