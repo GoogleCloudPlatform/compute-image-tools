@@ -34,13 +34,7 @@ SUCCESS_LEVELNO = logging.ERROR - 5
 
 
 def YumInstall(package_list):
-  if YumInstall.first_run:
-    Execute(['yum', 'update'])
-    YumInstall.first_run = False
   Execute(['yum', '-y', 'install'] + package_list)
-
-
-YumInstall.first_run = True
 
 
 def AptGetInstall(package_list):
