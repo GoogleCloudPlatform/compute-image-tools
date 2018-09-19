@@ -11,7 +11,7 @@
       }
     },
     "test-shutdown-check-log": {
-      "Timeout": "140s",
+      "Timeout": "5m",
       "IncludeWorkflow": {
         "Path": "./wait-message.wf.json",
         "Vars": {
