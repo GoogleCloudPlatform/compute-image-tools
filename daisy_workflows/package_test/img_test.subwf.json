@@ -1,0 +1,79 @@
+{
+  "Name": "img-test",
+  "Vars": {
+    "source_image": {"Required": true, "Description": "Image to be tested"},
+    "alias_ip": {"Required": true, "Description": "Alias IP to be used on network test (must match subnet)"}
+  },
+  "Steps": {
+    "test-boot": {
+      "IncludeWorkflow": {
+        "Path": "../../image_test/boot/boot.wf.json",
+        "Vars": {
+            "machine_type": "n1-standard-96",
+            "source_image": "${source_image}",
+            "min_cpu_platform": "skylake"
+        }
+      }
+    },
+    "test-metadata-ssh": {
+      "IncludeWorkflow": {
+        "Path": "../../image_test/metadata-ssh/metadata-ssh.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-startup-scripts": {
+      "IncludeWorkflow": {
+        "Path": "../../image_test/metadata-script/startup-script-linux.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-shutdown-scripts": {
+      "IncludeWorkflow": {
+        "Path": "../../image_test/metadata-script/shutdown-script-linux.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-oslogin-ssh": {
+      "IncludeWorkflow": {
+        "Path": "../../image_test/oslogin-ssh/oslogin-ssh.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-configuration": {
+      "IncludeWorkflow": {
+        "Path": "../../image_test/configuration/linux-configuration.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-multi-nic": {
+      "IncludeWorkflow": {
+        "Path": "../../image_test/multi-nic/multi-nic.wf.json",
+        "Vars": {
+            "source_image": "${source_image}"
+        }
+      }
+    },
+    "test-network": {
+      "IncludeWorkflow": {
+        "Path": "../../image_test/network/network.wf.json",
+        "Vars": {
+            "source_image": "${source_image}",
+            "alias_ip": "${alias_ip}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "test-oslogin-ssh": ["test-metadata-ssh"]
+  }
+}

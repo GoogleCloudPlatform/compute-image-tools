@@ -1,0 +1,90 @@
+{
+  "Name": "package-test",
+  "Vars": {
+    "git_revision": {"Required": true, "Description": "The git revision/branch from compute-image-packages to be tested"},
+    "git_uri": {"Required": true, "Description": "True if wanted to build an UEFI image with GPT partition format."},
+    "alias_ip": {"Required": true, "Description": "Alias IP to be used on network test (must match subnet)"},
+    "source_image": {"Required": true, "Description": "Source image to be used when building packages with build_script"},
+    "build_script": {"Required": true, "Description": "Script to be used in order to package compute-image-tools and install it"}
+  },
+  "Sources": {
+    "build_files/build.py": "${build_script}",
+    "build_files/utils.py": "../linux_common/utils.py",
+    "startup_script": "../linux_common/bootstrap.py"
+  },
+  "Steps": {
+    "setup": {
+      "CreateDisks": [
+        {
+          "Name": "package-test-disk",
+          "SourceImage": "${source_image}",
+          "SizeGb": "50"
+        }
+      ]
+    },
+    "install-packages": {
+      "CreateInstances": [
+        {
+          "Name": "inst-builder",
+          "Disks": [{"Source": "package-test-disk"}],
+          "MachineType": "n1-standard-4",
+          "Metadata": {
+            "git_revision": "${git_revision}",
+            "git_uri": "${git_uri}",
+            "files_gcs_dir": "${SOURCESPATH}/build_files",
+            "script": "build.py",
+            "prefix": "Build"
+          },
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write"
+          ],
+          "StartupScript": "startup_script"
+        }
+      ]
+    },
+    "wait": {
+      "timeout": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-builder",
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "BuildFailed:",
+            "SuccessMatch": "BuildSuccess:",
+            "StatusMatch": "BuildStatus:"
+          }
+        }
+      ]
+    },
+    "stop": {
+      "StopInstances": {
+        "Instances":["inst-builder"]
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "updated-image",
+          "SourceDisk": "package-test-disk"
+        }
+      ]
+    },
+    "run-tests": {
+      "timeout": "45m",
+      "IncludeWorkflow": {
+        "Path": "./img_test.subwf.json",
+        "Vars": {
+          "source_image": "updated-image",
+          "alias_ip": "${alias_ip}"
+        }
+      }
+    }
+  },
+  "Dependencies": {
+    "install-packages": ["setup"],
+    "wait": ["install-packages"],
+    "stop": ["wait"],
+    "create-image": ["stop"],
+    "run-tests": ["create-image"]
+  }
+}

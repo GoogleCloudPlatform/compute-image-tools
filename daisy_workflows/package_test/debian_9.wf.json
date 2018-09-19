@@ -1,0 +1,26 @@
+{
+  "Name": "debian-9",
+  "Vars": {
+    "git_revision": {"Value": "development", "Description": "The git revision/branch from compute-image-packages to be tested"},
+    "git_uri": {
+      "Value": "https://github.com/GoogleCloudPlatform/compute-image-packages.git",
+      "Description": "The git uri reference to the compute-image-packages repository"
+    },
+    "alias_ip": {"Value": "10.128.3.128", "Description": "Alias IP to be used on network test (must match subnet)"}
+  },
+  "Steps": {
+    "run": {
+      "Timeout": "90m",
+      "IncludeWorkflow": {
+        "Path": "./package_test.subwf.json",
+        "Vars": {
+          "git_revision": "${git_revision}",
+          "git_uri": "${git_uri}",
+          "alias_ip": "${alias_ip}",
+          "source_image": "projects/debian-cloud/global/images/family/debian-9",
+          "build_script": "debian_package.py"
+        }
+      }
+    }
+  }
+}
