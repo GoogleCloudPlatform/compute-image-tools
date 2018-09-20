@@ -26,6 +26,10 @@
       "Value": "false",
       "Description": "Create a BYOL RHEL image."
     },
+    "rhel_sap": {
+      "Value": "false",
+      "Description": "Create a RHEL for SAP image."
+    },
     "rhel_sap_hana": {
       "Value": "false",
       "Description": "Create a RHEL for SAP Hana image."
@@ -80,6 +84,7 @@
             "el_savelogs": "${el_savelogs}",
             "google_cloud_repo": "${google_cloud_repo}",
             "rhel_byol": "${rhel_byol}",
+            "rhel_sap": "${rhel_sap}",
             "rhel_sap_hana": "${rhel_sap_hana}",
             "rhel_sap_apps": "${rhel_sap_apps}"
           },

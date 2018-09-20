@@ -48,7 +48,8 @@ def main():
   sap_apps = utils.GetMetadataAttribute('rhel_sap_apps',
                                         raise_on_not_found=False)
   sap_apps = sap_apps == 'true'
-
+  sap = utils.GetMetadataAttribute('rhel_sap', raise_on_not_found=False)
+  sap = sap == 'true'
   logging.info('EL Release: %s' % release)
   logging.info('Google Cloud repo: %s' % repo)
   logging.info('Build working directory: %s' % os.getcwd())
@@ -59,7 +60,7 @@ def main():
   utils.AptGetInstall(['extlinux', 'rsync'])
 
   # Build the kickstart file.
-  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap_hana,
+  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap, sap_hana,
                                         sap_apps)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
@@ -126,5 +127,5 @@ if __name__ == '__main__':
   try:
     main()
     logging.success('EL Installer build successful!')
-  except Exception:
-    logging.error('EL Installer build failed!')
+  except Exception as e:
+    logging.error('EL Installer build failed: %s' % str(e))
