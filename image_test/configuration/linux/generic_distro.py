@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import abc
+import time
 
 import utils
 
@@ -132,8 +133,11 @@ class GenericDistroTests(object):
         ['kern.info', 'RsyslogKernelConsoleTest'],
         ['daemon.info', 'RsyslogDaemonConsoleTest'],
     ]
+    # Avoid log output overload on centos-6
+    time.sleep(0.1)
     for facility in info:
       utils.Execute(['logger', '-p'] + facility)
+      time.sleep(0.1)
 
   def TestRootPasswordDisabled(self):
     """
@@ -163,6 +167,8 @@ class GenericDistroTests(object):
     def ParseSshdConfig(path):
       configs = {}
       with open(path) as f:
+        # Avoid log output overload on centos-6
+        time.sleep(0.1)
         for line in filter(RemoveCommentAndStrip, f.read().split('\n')):
           if line:
             # use line separator for key and # values
@@ -285,6 +291,8 @@ class GenericDistroTests(object):
 
     sysctl_configs = self.GetSysctlConfigs()
     for config in sysctl_configs:
+      # Avoid log output overload on centos-6
+      time.sleep(0.1)
       CheckSecurityParameter(config, sysctl_configs[config])
 
   def TestGcloudUpToDate(self):
@@ -304,6 +312,12 @@ class GenericDistroTests(object):
         return
       raise e
 
+    # Avoid log output overload on centos-6
+    time.sleep(1)
     # now test if their API are still valid
     utils.Execute(['gcloud', 'compute', 'images', 'list'])
+
+    # Avoid log output overload on centos-6
+    time.sleep(1)
     utils.Execute(['gsutil', 'ls'])
+    time.sleep(1)
