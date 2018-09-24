@@ -25,7 +25,6 @@ import (
 )
 
 func TestUnmarshalJSON(t *testing.T) {
-
 	tests := []struct {
 		input string
 		want  guestOsFeatures
