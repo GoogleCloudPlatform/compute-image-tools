@@ -13,26 +13,15 @@
 # limitations under the License.
 FROM gcr.io/compute-image-tools-test/wrapper:latest
 
-FROM debian:stable-slim
+FROM golang
 
 ENV ARTIFACTS /artifacts
 RUN mkdir -p ${ARTIFACTS}
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 ENV CODECOV_TOKEN /etc/codecov/token
-ENV GOVERSION 1.10
-ENV GOROOT /goroot
-ENV GOPATH /gopath
-ENV PATH ${GOROOT}/bin:${GOPATH}/bin:${PATH}
 
 RUN apt-get update && apt-get -y install bash ca-certificates curl git libssl-dev wget && \
     rm -rf /var/cache/apt/archives
-
-# Install Go.
-RUN wget https://dl.google.com/go/go${GOVERSION}.linux-amd64.tar.gz -O go.tgz && \
-    mkdir ${GOROOT} ${GOPATH} && \
-    tar xf go.tgz && \
-    mv go/* ${GOROOT}/ && \
-    rm -rf go.tgz go
 
 # Go test junit xml output
 RUN go get -u github.com/jstemmer/go-junit-report

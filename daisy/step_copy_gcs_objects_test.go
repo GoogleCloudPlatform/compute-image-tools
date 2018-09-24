@@ -51,23 +51,23 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 		u := r.URL.String()
 		m := r.Method
 
-		if m == "GET" && u == "/b/bucket1?alt=json&projection=full" {
+		if m == "GET" && u == "/b/bucket1?alt=json&prettyPrint=false&projection=full" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "GET" && u == "/b/bucket2?alt=json&projection=full" {
+		} else if m == "GET" && u == "/b/bucket2?alt=json&prettyPrint=false&projection=full" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "POST" && u == "/b/bucket1/o?alt=json&projection=full&uploadType=multipart" {
+		} else if m == "POST" && u == "/b/bucket1/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "POST" && u == "/b/bucket2/o?alt=json&projection=full&uploadType=multipart" {
+		} else if m == "POST" && u == "/b/bucket2/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "DELETE" && u == "/b/bucket1/o/abcdef?alt=json" {
+		} else if m == "DELETE" && u == "/b/bucket1/o/abcdef?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "DELETE" && u == "/b/bucket1/o/daisy-validate--abcdef?alt=json" {
+		} else if m == "DELETE" && u == "/b/bucket1/o/daisy-validate--abcdef?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "DELETE" && u == "/b/bucket2/o/daisy-validate--abcdef?alt=json" {
+		} else if m == "DELETE" && u == "/b/bucket2/o/daisy-validate--abcdef?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "PUT" && u == "/b/bucket1/o/daisy-validate--abcdef/acl/allUsers?alt=json" {
+		} else if m == "PUT" && u == "/b/bucket1/o/daisy-validate--abcdef/acl/allUsers?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "PUT" && u == "/b/bucket2/o/daisy-validate--abcdef/acl/allUsers?alt=json" {
+		} else if m == "PUT" && u == "/b/bucket2/o/daisy-validate--abcdef/acl/allUsers?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)

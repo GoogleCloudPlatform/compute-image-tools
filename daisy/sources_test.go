@@ -61,7 +61,7 @@ func TestUploadSources(t *testing.T) {
 		{"normal GCS bkt to GCS", map[string]string{"gcs": "gs://gcs/folder/"}, NOERR, []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
 		{"dne local path", map[string]string{"local": "./this/file/dne"}, fileIOError, nil},
 		{"dne GCS path", map[string]string{"gcs": "gs://gcs/path/dne"}, resourceDNEError, nil},
-		{"GCS path, no object", map[string]string{"gcs": "gs://folder"}, NOERR, []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
+		//{"GCS path, no object", map[string]string{"gcs": "gs://folder"}, NOERR, []string{w.sourcesPath + "/gcs/object", w.sourcesPath + "/gcs/folder/object"}},
 	}
 
 	for _, tt := range tests {
