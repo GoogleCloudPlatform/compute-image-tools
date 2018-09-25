@@ -48,4 +48,4 @@ if __name__ == '__main__':
     main()
     logging.success('Build logs successfully saved.')
   except Exception as e:
-    logging.error('Failed to save build logs: %s.' % e)
+    logging.error('Failed to save build logs: %s.' % str(e))

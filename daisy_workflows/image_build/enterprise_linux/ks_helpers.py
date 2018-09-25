@@ -158,13 +158,14 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
+def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps):
   """Builds kickstart config from shards.
 
   Args:
     release: string; image from metadata.
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
     byol: bool; true if using a BYOL RHEL license.
+    sap: bool; true if building RHEL for SAP
     sap_hana: bool; true if building RHEL for SAP HANA
     sap_apps: bool; true is building RHEL for SAP Apps
 
@@ -190,7 +191,9 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
   if release == 'rhel6':
     logging.info('Building RHEL 6 image.')
     ks_options = FetchConfigPart('el6-options.cfg')
-    custom_post = FetchConfigPart('el6-post.cfg')
+    rhel_post = FetchConfigPart('rhel6-post.cfg')
+    el_post = FetchConfigPart('el6-post.cfg')
+    custom_post = '\n'.join([rhel_post, el_post])
     if byol:
       custom_post = '\n'.join([custom_post, rhel_byol_post])
     cleanup = FetchConfigPart('el6-cleanup.cfg')
@@ -198,39 +201,48 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap_hana, sap_apps):
   elif release == "centos6":
     logging.info('Building CentOS 6 image.')
     ks_options = FetchConfigPart('el6-options.cfg')
-    custom_post = FetchConfigPart('co6-post.cfg')
+    custom_post = FetchConfigPart('el6-post.cfg')
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "rhel7":
     logging.info('Building RHEL 7 image.')
     ks_options = FetchConfigPart('el7-options.cfg')
-    custom_post = FetchConfigPart('el7-post.cfg')
-    if byol:
-      custom_post = '\n'.join([custom_post, rhel_byol_post])
+    rhel_post = FetchConfigPart('rhel7-post.cfg')
+    if sap:
+      logging.info('Building RHEL 7 for SAP')
+      rhel_post = FetchConfigPart('rhel7-sap-post.cfg')
     elif sap_hana:
       logging.info('Building RHEL 7 for SAP Hana')
-      custom_post = FetchConfigPart('rhel7-sap-hana-post.cfg')
+      rhel_post = FetchConfigPart('rhel7-sap-hana-post.cfg')
     elif sap_apps:
       logging.info('Building RHEL 7 for SAP Apps')
-      custom_post = FetchConfigPart('rhel7-sap-apps-post.cfg')
+      rhel_post = FetchConfigPart('rhel7-sap-apps-post.cfg')
+    el_post = FetchConfigPart('el7-post.cfg')
+    custom_post = '\n'.join([rhel_post, el_post])
+    if byol:
+      custom_post = '\n'.join([custom_post, rhel_byol_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
     logging.info('Building CentOS 7 image.')
     ks_options = FetchConfigPart('el7-options.cfg')
-    custom_post = FetchConfigPart('co7-post.cfg')
+    custom_post = FetchConfigPart('el7-post.cfg')
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "oraclelinux6":
     logging.info('Building Oracle Linux 6 image.')
     ks_options = FetchConfigPart('el6-options.cfg')
-    custom_post = FetchConfigPart('ol6-post.cfg')
+    ol_post = FetchConfigPart('ol6-post.cfg')
+    el_post = FetchConfigPart('el6-post.cfg')
+    custom_post = '\n'.join([ol_post, el_post])
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "oraclelinux7":
     logging.info('Building Oracle Linux 7 image.')
     ks_options = FetchConfigPart('el7-options.cfg')
-    custom_post = FetchConfigPart('ol7-post.cfg')
+    ol_post = FetchConfigPart('ol7-post.cfg')
+    el_post = FetchConfigPart('el7-post.cfg')
+    custom_post = '\n'.join([ol_post, el_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   else:
