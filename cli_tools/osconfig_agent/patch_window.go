@@ -205,9 +205,12 @@ func (w *patchWindow) run() (reboot bool) {
 		log.Println("ERROR:", err)
 	}
 
-	//runUpdates()
-	// Pretend to do work
-	time.Sleep(5 * time.Second)
+	reboot, err := runUpdates()
+	if err != nil {
+		// TODO: implement retries
+		log.Println("ERROR:", err)
+		return false
+	}
 
 	// Make sure we are still in the patch window after each step.
 	// TODO: Pass this to runUpdates instead?
@@ -216,8 +219,7 @@ func (w *patchWindow) run() (reboot bool) {
 		return false
 	}
 
-	fmt.Println("finished patch window", w.Name)
-	return false
+	return reboot
 }
 
 func patchManager(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy) {
@@ -275,6 +277,7 @@ func patchRunner() {
 				// TODO: Actually reboot.
 				os.Exit(0)
 			}
+			fmt.Println("DEBUG: finished patch window", pw.Name)
 		}
 	}
 }
