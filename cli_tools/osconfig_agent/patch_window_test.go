@@ -15,9 +15,6 @@
 package main
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -81,144 +78,6 @@ func TestPatchWindowIn(t *testing.T) {
 		}
 	}
 
-}
-
-func TestLoadState(t *testing.T) {
-	td, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatalf("error creating temp dir: %v", err)
-	}
-	defer os.RemoveAll(td)
-	testState := filepath.Join(td, "testState")
-
-	// test no state file
-	if _, err := loadState(testState); err != nil {
-		t.Errorf("no state file: unexpected error: %v", err)
-	}
-
-	var tests = []struct {
-		desc    string
-		state   []byte
-		wantErr bool
-		want    *patchWindow
-	}{
-		{
-			"blank state",
-			[]byte("{}"),
-			false,
-			&patchWindow{},
-		},
-		{
-			"bad state",
-			[]byte("foo"),
-			true,
-			&patchWindow{},
-		},
-		{
-			"test patchWindow",
-			[]byte(`{"Name":"foo","Policy":{"LookupConfigsResponse_EffectivePatchPolicy":{"fullName":"flipyflappy","patchWindow":{"startTime":{"hours":1,"minutes":2,"seconds":3},"duration":"60m","daily":{}}}},"Start":"2018-09-11T01:00:00Z","End":"2018-09-11T02:00:00Z"}`),
-			false,
-			&patchWindow{
-				Name: "foo",
-				Policy: &patchPolicy{
-					LookupConfigsResponse_EffectivePatchPolicy: &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-						FullName: "flipyflappy",
-						PatchWindow: &osconfigpb.PatchWindow{
-							StartTime: &timeofday.TimeOfDay{
-								Hours:   1,
-								Minutes: 2,
-								Seconds: 3,
-							},
-							Duration:  &duration.Duration{Seconds: 3600},
-							Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-						},
-					},
-				},
-				Start: time.Date(2018, 9, 11, 1, 0, 0, 0, time.UTC),
-				End:   time.Date(2018, 9, 11, 2, 0, 0, 0, time.UTC),
-			},
-		},
-	}
-	for _, tt := range tests {
-		if err := ioutil.WriteFile(testState, tt.state, 0600); err != nil {
-			t.Errorf("%s: error writing state: %v", tt.desc, err)
-			continue
-		}
-
-		got, err := loadState(testState)
-		if err != nil && !tt.wantErr {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-			continue
-		}
-		if err == nil && tt.wantErr {
-			t.Errorf("%s: expected error", tt.desc)
-			continue
-		}
-		if diff := pretty.Compare(tt.want, got); diff != "" {
-			t.Errorf("%s: patchWindow does not match expectation: (-got +want)\n%s", tt.desc, diff)
-		}
-	}
-}
-
-func TestSaveState(t *testing.T) {
-	td, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatalf("error creating temp dir: %v", err)
-	}
-	defer os.RemoveAll(td)
-	testState := filepath.Join(td, "testState")
-
-	var tests = []struct {
-		desc  string
-		state *patchWindow
-		want  string
-	}{
-		{
-			"blank state",
-			nil,
-			"{}",
-		},
-		{
-			"test patchWindow",
-			&patchWindow{
-				Name: "foo",
-				Policy: &patchPolicy{
-					LookupConfigsResponse_EffectivePatchPolicy: &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-						FullName: "flipyflappy",
-						PatchWindow: &osconfigpb.PatchWindow{
-							StartTime: &timeofday.TimeOfDay{
-								Hours:   1,
-								Minutes: 2,
-								Seconds: 3,
-							},
-							Duration:  &duration.Duration{Seconds: 3600},
-							Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-						},
-					},
-				},
-				Start: time.Date(2018, 9, 11, 1, 0, 0, 0, time.UTC),
-				End:   time.Date(2018, 9, 11, 2, 0, 0, 0, time.UTC),
-			},
-			"{\"Name\":\"foo\",\"Policy\":{\"LookupConfigsResponse_EffectivePatchPolicy\":{\"fullName\":\"flipyflappy\",\"patchWindow\":{\"startTime\":{\"hours\":1,\"minutes\":2,\"seconds\":3},\"duration\":\"3600s\",\"daily\":{}}}},\"Start\":\"2018-09-11T01:00:00Z\",\"End\":\"2018-09-11T02:00:00Z\"}",
-		},
-	}
-	for _, tt := range tests {
-		err := saveState(testState, tt.state)
-		if err != nil {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-			continue
-		}
-
-		got, err := ioutil.ReadFile(testState)
-		if err != nil {
-			t.Errorf("%s: error reading state: %v", tt.desc, err)
-			continue
-		}
-
-		if string(got) != tt.want {
-			t.Errorf("%s: %q != %q", tt.desc, got, tt.want)
-		}
-	}
 }
 
 func TestPatchManagerRunAndCancel(t *testing.T) {
@@ -322,12 +181,11 @@ func TestPatchManager(t *testing.T) {
 	}
 
 	// Modify "foo" policy, delete "bar", and add "boo".
-	// Start updated
-	foo = &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+	newFoo := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
 		FullName: "foo",
 		PatchWindow: &osconfigpb.PatchWindow{
 			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Add(6 * time.Hour).Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second()), Nanos: int32(now.Nanosecond())},
+			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Add(5 * time.Hour).Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second()), Nanos: int32(now.Nanosecond())},
 			Duration:  &duration.Duration{Seconds: 3600},
 		},
 	}
@@ -341,7 +199,7 @@ func TestPatchManager(t *testing.T) {
 		},
 	}
 	// Unchanged
-	baz = &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+	newBaz := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
 		FullName: "baz",
 		PatchWindow: &osconfigpb.PatchWindow{
 			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
@@ -350,14 +208,14 @@ func TestPatchManager(t *testing.T) {
 		},
 	}
 
-	patchManager([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo, boo, baz})
+	patchManager([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{newFoo, boo, newBaz})
 
-	want = map[string]*patchWindow{
+	newWant := map[string]*patchWindow{
 		"foo": &patchWindow{
-			Name:   foo.GetFullName(),
-			Policy: &patchPolicy{foo},
-			Start:  now.Add(6 * time.Hour),
-			End:    now.Add(7 * time.Hour),
+			Name:   newFoo.GetFullName(),
+			Policy: &patchPolicy{newFoo},
+			Start:  now.Add(5 * time.Hour),
+			End:    now.Add(6 * time.Hour),
 		},
 		"boo": &patchWindow{
 			Name:   boo.GetFullName(),
@@ -366,15 +224,15 @@ func TestPatchManager(t *testing.T) {
 			End:    now.Add(6 * time.Hour),
 		},
 		"baz": &patchWindow{
-			Name:   baz.GetFullName(),
-			Policy: &patchPolicy{baz},
+			Name:   newBaz.GetFullName(),
+			Policy: &patchPolicy{newBaz},
 			Start:  now.Add(5 * time.Hour),
 			End:    now.Add(6 * time.Hour),
 		},
 	}
 
-	if diff := compare.Compare(want, aw.windows); diff != "" {
-		t.Errorf("active windows do not match expectation: (-got +want)\n%s", diff)
+	if diff := compare.Compare(newWant, aw.windows); diff != "" {
+		t.Errorf("active windows do not match expectation after update: (-got +want)\n%s", diff)
 	}
 }
 

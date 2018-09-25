@@ -24,12 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
-func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
-	info, err := osinfo.GetDistributionInfo()
-	if err != nil {
-		return nil, err
-	}
-
+func getConfigTypes(info *osinfo.DistributionInfo) []osconfigpb.LookupConfigsRequest_ConfigType {
 	var configTypes []osconfigpb.LookupConfigsRequest_ConfigType
 
 	if packages.AptExists {
@@ -55,6 +50,15 @@ func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string
 	}
 	// --------------------------------------
 
+	return configTypes
+}
+
+func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
+	info, err := osinfo.GetDistributionInfo()
+	if err != nil {
+		return nil, err
+	}
+
 	req := &osconfigpb.LookupConfigsRequest{
 		Resource: resource,
 		OsInfo: &osconfigpb.LookupConfigsRequest_OsInfo{
@@ -64,7 +68,7 @@ func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string
 			OsKernel:       info.Kernel,
 			OsArchitecture: info.Architecture,
 		},
-		ConfigTypes: configTypes,
+		ConfigTypes: getConfigTypes(info),
 	}
 
 	fmt.Printf("DEBUG: LookupConfigs request:\n%s\n\n", dump.Sprint(req))

@@ -15,10 +15,8 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"sync"
@@ -29,8 +27,6 @@ import (
 	"google.golang.org/genproto/googleapis/type/dayofweek"
 	"google.golang.org/genproto/googleapis/type/timeofday"
 )
-
-const state = "osconfig_patch.state"
 
 var (
 	aw activeWindows
@@ -230,15 +226,15 @@ func (w *patchWindow) run() (reboot bool) {
 
 func patchManager(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy) {
 	// Deregister any existing patchWindows that no longer exist.
-	var ppns []string
+	ppns := make(map[string]struct{})
 	for _, pp := range efps {
-		ppns = append(ppns, pp.GetFullName())
+		ppns[pp.GetFullName()] = struct{}{}
 	}
 
 	var toDeregister []*patchWindow
 	aw.mx.Lock()
 	for _, w := range aw.windows {
-		if !strIn(w.Name, ppns) {
+		if _, ok := ppns[w.Name]; !ok {
 			toDeregister = append(toDeregister, w)
 		}
 	}
@@ -265,36 +261,9 @@ func patchManager(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy)
 		fmt.Println("DEBUG: patchWindow to create:", w.Name)
 		defer w.register()
 	}
+	// TODO: Look into simplifying locking, maybe just one lock and no updates
+	// during a patch run?
 	aw.mx.Unlock()
-}
-
-func loadState(state string) (*patchWindow, error) {
-	d, err := ioutil.ReadFile(state)
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	var pw patchWindow
-	return &pw, json.Unmarshal(d, &pw)
-}
-
-func saveState(state string, w *patchWindow) error {
-	if w == nil {
-		return ioutil.WriteFile(state, []byte("{}"), 0600)
-	}
-
-	w.mx.RLock()
-	defer w.mx.RUnlock()
-
-	d, err := json.Marshal(w)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(state, d, 0600)
 }
 
 func patchRunner() {
