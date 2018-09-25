@@ -110,6 +110,7 @@ func newPatchWindow(pp *osconfigpb.LookupConfigsResponse_EffectivePatchPolicy) (
 		Policy: &patchPolicy{pp},
 		Start:  start,
 		End:    end,
+		cancel: make(chan struct{}),
 	}, nil
 }
 
@@ -163,7 +164,6 @@ func (w *patchWindow) register() {
 
 	// Create the Timer that will kick off the patch process.
 	// If we happen to be in the patch window now this will start imediately.
-	w.cancel = make(chan struct{})
 	w.t = time.AfterFunc(w.Start.Sub(time.Now()), func() { rc <- w })
 	fmt.Println(w.Name, "register done")
 }
