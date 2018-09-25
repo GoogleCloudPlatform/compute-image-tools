@@ -36,10 +36,10 @@ func rebootRequired() (bool, error) {
 func runUpdates() (bool, error) {
 	reboot, err := rebootRequired()
 	if err != nil {
-		false, err
+		return false, err
 	}
 	if reboot {
-		true, nil
+		return true, nil
 	}
 
 	if err := packages.InstallWUAUpdates("IsInstalled=0"); err != nil {

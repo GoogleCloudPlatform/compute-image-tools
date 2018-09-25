@@ -16,23 +16,25 @@ package main
 
 import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
-	"github.com/google/logger"
 )
 
 func rebootRequired() (bool, error) {
+	// TODO: actually check for distro specific reboot file.
 	return false, nil
 }
 
-func runUpdates() {
+func runUpdates() (bool, error) {
 	reboot, err := rebootRequired()
 	if err != nil {
-		logger.Errorln("Error checking rebootRequired:", err)
+		return false, err
 	}
 	if reboot {
-		logger.Info("Reboot required")
+		return true, nil
 	}
 
 	if err := packages.UpdatePackages(); err != nil {
-		logger.Errorln("Error running updates:", err)
+		return false, err
 	}
+
+	return rebootRequired()
 }

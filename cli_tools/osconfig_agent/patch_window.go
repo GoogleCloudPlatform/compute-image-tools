@@ -158,8 +158,6 @@ func (w *patchWindow) register() {
 	fmt.Println("DEBUG: register", w.Name)
 	w.mx.Lock()
 	defer w.mx.Unlock()
-	fmt.Println("DEBUG: register got lock", w.Name)
-	defer func() { fmt.Println("DEBUG: register unlock", w.Name) }()
 
 	aw.add(w.Name, w)
 
@@ -173,7 +171,7 @@ func (w *patchWindow) register() {
 // deregister stops a patch windows timer and removes it from activeWindows
 // but does not cancel any current runs.
 func (w *patchWindow) deregister() {
-	fmt.Println(w.Name, "deregister")
+	fmt.Println("DEBUG: deregister", w.Name)
 	w.t.Stop()
 	aw.delete(w.Name)
 }
@@ -183,8 +181,6 @@ func (w *patchWindow) run() (reboot bool) {
 
 	w.mx.RLock()
 	defer w.mx.RUnlock()
-	fmt.Println("DEBUG: run got lock", w.Name)
-	defer func() { fmt.Println("DEBUG: run unlock", w.Name) }()
 
 	defer func() {
 		if reboot {
@@ -276,6 +272,7 @@ func patchRunner() {
 			reboot := pw.run()
 			if reboot {
 				fmt.Println("DEBUG: reboot requested", pw.Name)
+				// TODO: Actually reboot.
 				os.Exit(0)
 			}
 		}
