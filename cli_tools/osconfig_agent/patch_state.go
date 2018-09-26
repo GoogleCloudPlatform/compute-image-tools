@@ -15,26 +15,40 @@
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
+	"encoding/json"
+	"io/ioutil"
+	"os"
 )
 
-func rebootRequired() (bool, error) {
-	// TODO: actually check for distro specific reboot file.
-	return false, nil
+const state = "osconfig_patch.state"
+
+func loadState(state string) (*patchWindow, error) {
+	d, err := ioutil.ReadFile(state)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var pw patchWindow
+	return &pw, json.Unmarshal(d, &pw)
 }
 
-func runUpdates() (bool, error) {
-	reboot, err := rebootRequired()
+func saveState(state string, w *patchWindow) error {
+	if w == nil {
+		return ioutil.WriteFile(state, []byte("{}"), 0600)
+	}
+
+	w.mx.RLock()
+	defer w.mx.RUnlock()
+
+	d, err := json.Marshal(w)
 	if err != nil {
-		return false, err
-	}
-	if reboot {
-		return true, nil
+		return err
 	}
 
-	if err := packages.UpdatePackages(); err != nil {
-		return false, err
-	}
-
-	return rebootRequired()
+	// TODO: Once we are storing more state consider atomic state save
+	// operations.
+	return ioutil.WriteFile(state, d, 0600)
 }

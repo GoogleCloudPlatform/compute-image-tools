@@ -16,7 +16,6 @@ package main
 
 import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
-	"github.com/google/logger"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -33,30 +32,24 @@ func rebootRequired() (bool, error) {
 	return true, nil
 }
 
-func runUpdates() {
+func runUpdates() (bool, error) {
 	reboot, err := rebootRequired()
 	if err != nil {
-		logger.Errorln("Error checking rebootRequired:", err)
+		return false, err
 	}
 	if reboot {
-		logger.Info("Reboot required")
+		return true, nil
 	}
 
 	if err := packages.InstallWUAUpdates("IsInstalled=0"); err != nil {
-		logger.Errorln("Error installing Windows updates:", err)
+		return false, err
 	}
 
 	if packages.GooGetExists {
 		if err := packages.InstallGooGetUpdates(); err != nil {
-			logger.Errorln("Error installing GooGet updates:", err)
+			return false, err
 		}
 	}
 
-	reboot, err = rebootRequired()
-	if err != nil {
-		logger.Errorln("Error checking rebootRequired:", err)
-	}
-	if reboot {
-		logger.Info("Reboot required")
-	}
+	return rebootRequired()
 }

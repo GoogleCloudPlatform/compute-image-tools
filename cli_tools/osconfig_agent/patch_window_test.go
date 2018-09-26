@@ -20,84 +20,303 @@ import (
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/genproto/googleapis/type/dayofweek"
 	"google.golang.org/genproto/googleapis/type/timeofday"
 )
 
+func TestPatchWindowIn(t *testing.T) {
+	c := make(chan struct{})
+	close(c)
+
+	var tests = []struct {
+		desc string
+		pw   *patchWindow
+		want bool
+	}{
+		{
+			"in window",
+			&patchWindow{
+				Start: time.Now().Add(-10 * time.Second),
+				End:   time.Now().Add(10 * time.Second),
+			},
+			true,
+		},
+		{
+			"in window, canceled",
+			&patchWindow{
+				Start:  time.Now().Add(-10 * time.Second),
+				End:    time.Now().Add(10 * time.Second),
+				cancel: c,
+			},
+			false,
+		},
+		{
+			"start time in the future",
+			&patchWindow{
+				Start:  time.Now().Add(5 * time.Second),
+				End:    time.Now().Add(10 * time.Second),
+				cancel: c,
+			},
+			false,
+		},
+		{
+			"end time passed",
+			&patchWindow{
+				Start:  time.Now().Add(-10 * time.Second),
+				End:    time.Now().Add(-5 * time.Second),
+				cancel: c,
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		got := tt.pw.in()
+		if got != tt.want {
+			t.Errorf("%s: want(%t) != got(%t)", tt.desc, tt.want, got)
+		}
+	}
+
+}
+
+func TestPatchManagerRunAndCancel(t *testing.T) {
+	aw.windows = map[string]*patchWindow{}
+	rc = make(chan *patchWindow)
+
+	now := time.Now().UTC()
+	foo := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+		FullName: "foo",
+		PatchWindow: &osconfigpb.PatchWindow{
+			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour())},
+			Duration:  &duration.Duration{Seconds: 7200},
+		},
+	}
+
+	// This patch should queue imediately, and just hang as no one is listening on the channel.
+	patchManager([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo})
+
+	window, ok := aw.windows["foo"]
+	if !ok {
+		t.Fatal("new window not registered in activeWindows")
+	}
+
+	select {
+	case <-rc:
+	case <-time.Tick(1 * time.Second):
+		t.Fatal("window did not run")
+	}
+
+	// Should cancel current run.
+	foo.PatchWindow.StartTime = &timeofday.TimeOfDay{Hours: int32(now.Add(1 * time.Hour).Hour())}
+	go patchManager([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo})
+
+	select {
+	case <-window.cancel:
+	case <-time.Tick(1 * time.Second):
+		t.Fatal("window was not canceled")
+	}
+}
+
+func TestPatchManager(t *testing.T) {
+	aw.windows = map[string]*patchWindow{}
+	compare := &pretty.Config{
+		Diffable:  true,
+		Formatter: pretty.DefaultFormatter,
+	}
+
+	// Start with some basic policies.
+	now := time.Now().UTC()
+	foo := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+		FullName: "foo",
+		PatchWindow: &osconfigpb.PatchWindow{
+			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Add(5 * time.Hour).Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second()), Nanos: int32(now.Nanosecond())},
+			Duration:  &duration.Duration{Seconds: 3600},
+		},
+	}
+	bar := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+		FullName: "bar",
+		PatchWindow: &osconfigpb.PatchWindow{
+			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Add(5 * time.Hour).Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second()), Nanos: int32(now.Nanosecond())},
+			Duration:  &duration.Duration{Seconds: 3600},
+		},
+	}
+	baz := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+		FullName: "baz",
+		PatchWindow: &osconfigpb.PatchWindow{
+			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Add(5 * time.Hour).Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second()), Nanos: int32(now.Nanosecond())},
+			Duration:  &duration.Duration{Seconds: 3600},
+		},
+	}
+
+	patchManager([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo, bar, baz})
+
+	want := map[string]*patchWindow{
+		"foo": &patchWindow{
+			Name:   foo.GetFullName(),
+			Policy: &patchPolicy{foo},
+			Start:  now.Add(5 * time.Hour),
+			End:    now.Add(6 * time.Hour),
+		},
+		"bar": &patchWindow{
+			Name:   bar.GetFullName(),
+			Policy: &patchPolicy{bar},
+			Start:  now.Add(5 * time.Hour),
+			End:    now.Add(6 * time.Hour),
+		},
+		"baz": &patchWindow{
+			Name:   baz.GetFullName(),
+			Policy: &patchPolicy{baz},
+			Start:  now.Add(5 * time.Hour),
+			End:    now.Add(6 * time.Hour),
+		},
+	}
+
+	if diff := compare.Compare(want, aw.windows); diff != "" {
+		t.Errorf("active windows do not match expectation: (-got +want)\n%s", diff)
+	}
+
+	// Modify "foo" policy, delete "bar", and add "boo".
+	newFoo := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+		FullName: "foo",
+		PatchWindow: &osconfigpb.PatchWindow{
+			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Add(5 * time.Hour).Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second()), Nanos: int32(now.Nanosecond())},
+			Duration:  &duration.Duration{Seconds: 3600},
+		},
+	}
+	// Replaces bar
+	boo := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+		FullName: "boo",
+		PatchWindow: &osconfigpb.PatchWindow{
+			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Add(5 * time.Hour).Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second()), Nanos: int32(now.Nanosecond())},
+			Duration:  &duration.Duration{Seconds: 3600},
+		},
+	}
+	// Unchanged
+	newBaz := &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
+		FullName: "baz",
+		PatchWindow: &osconfigpb.PatchWindow{
+			Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+			StartTime: &timeofday.TimeOfDay{Hours: int32(now.Add(5 * time.Hour).Hour()), Minutes: int32(now.Minute()), Seconds: int32(now.Second()), Nanos: int32(now.Nanosecond())},
+			Duration:  &duration.Duration{Seconds: 3600},
+		},
+	}
+
+	patchManager([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{newFoo, boo, newBaz})
+
+	newWant := map[string]*patchWindow{
+		"foo": &patchWindow{
+			Name:   newFoo.GetFullName(),
+			Policy: &patchPolicy{newFoo},
+			Start:  now.Add(5 * time.Hour),
+			End:    now.Add(6 * time.Hour),
+		},
+		"boo": &patchWindow{
+			Name:   boo.GetFullName(),
+			Policy: &patchPolicy{boo},
+			Start:  now.Add(5 * time.Hour),
+			End:    now.Add(6 * time.Hour),
+		},
+		"baz": &patchWindow{
+			Name:   newBaz.GetFullName(),
+			Policy: &patchPolicy{newBaz},
+			Start:  now.Add(5 * time.Hour),
+			End:    now.Add(6 * time.Hour),
+		},
+	}
+
+	if diff := compare.Compare(newWant, aw.windows); diff != "" {
+		t.Errorf("active windows do not match expectation after update: (-got +want)\n%s", diff)
+	}
+}
+
 func TestNextWindow(t *testing.T) {
 	now := time.Date(2018, 7, 1, 5, 0, 0, 0, time.UTC) // July 1st 2018 is a Sunday
 	var tests = []struct {
-		desc string
-		pw   osconfigpb.PatchWindow
-		now  time.Time
-		want *patchWindow
+		desc      string
+		pw        *osconfigpb.PatchWindow
+		now       time.Time
+		wantStart time.Time
+		wantEnd   time.Time
 	}{
 		{
 			"daily (today before patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
 				StartTime: &timeofday.TimeOfDay{Hours: 5},
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Daily at 5
-			now.Add(-2 * time.Hour),                                    // We should be before the patch window
-			&patchWindow{start: now, end: now.Add(3600 * time.Second)}, // Todays patch window
+			now.Add(-2 * time.Hour), // We should be before the patch window
+			now,
+			now.Add(3600 * time.Second), // Todays patch window
 		},
 		{
 			"daily (today inside patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
 				StartTime: &timeofday.TimeOfDay{Hours: 5},
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Daily at 5
 			now, // We should be inside the patch window
-			&patchWindow{start: now, end: now.Add(3600 * time.Second)}, // Todays patch window
+			now,
+			now.Add(3600 * time.Second), // Todays patch window
 		},
 		{
 			"daily (today after patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
 				StartTime: &timeofday.TimeOfDay{Hours: 5},
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Daily at 5
 			now.Add(2 * time.Hour), // Now is after todays patch window
-			&patchWindow{start: now.AddDate(0, 0, 1), end: now.Add(3600*time.Second).AddDate(0, 0, 1)}, // Tomorrows patch window
+			now.AddDate(0, 0, 1),
+			now.Add(3600*time.Second).AddDate(0, 0, 1), // Tomorrows patch window
 		},
 		{
 			"weekly (before this weeks patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Weekly_{
 					Weekly: &osconfigpb.PatchWindow_Weekly{Day: dayofweek.DayOfWeek_FRIDAY},
 				}, StartTime: &timeofday.TimeOfDay{Hours: 5},
 				Duration: &duration.Duration{Seconds: 3600},
 			}, // Weekly on Friday at 5
 			now, // We should be before the patch window
-			&patchWindow{start: time.Date(2018, 7, 6, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 7, 6, 5, 0, 3600, 0, time.UTC)}, // This week, 6th July
+			time.Date(2018, 7, 6, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 7, 6, 5, 0, 3600, 0, time.UTC), // This week, 6th July
 		},
 		{
 			"weekly (during this weeks patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Weekly_{
 					Weekly: &osconfigpb.PatchWindow_Weekly{Day: dayofweek.DayOfWeek_FRIDAY},
 				}, StartTime: &timeofday.TimeOfDay{Hours: 5},
 				Duration: &duration.Duration{Seconds: 3600},
 			}, // Weekly on Friday at 5
 			now.AddDate(0, 0, 5), // Sunday + 5 = Friday
-			&patchWindow{start: time.Date(2018, 7, 6, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 7, 6, 5, 0, 3600, 0, time.UTC)}, // This week, 6th July
+			time.Date(2018, 7, 6, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 7, 6, 5, 0, 3600, 0, time.UTC), // This week, 6th July
 		},
 		{
 			"weekly (after this weeks patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Weekly_{
 					Weekly: &osconfigpb.PatchWindow_Weekly{Day: dayofweek.DayOfWeek_FRIDAY},
 				}, StartTime: &timeofday.TimeOfDay{Hours: 5},
 				Duration: &duration.Duration{Seconds: 3600},
 			}, // Weekly on Friday at 5.
 			now.AddDate(0, 0, 6), // Sunday + 6 = Saturday
-			&patchWindow{start: time.Date(2018, 7, 13, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 7, 13, 5, 0, 3600, 0, time.UTC)}, // Next week, 13th July
+			time.Date(2018, 7, 13, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 7, 13, 5, 0, 3600, 0, time.UTC), // Next week, 13th July
 		},
 		{
 			"monthly 5th day of the month (before this months patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Monthly_{
 					Monthly: &osconfigpb.PatchWindow_Monthly{Day: &osconfigpb.PatchWindow_Monthly_DayOfMonth{DayOfMonth: 5}},
 				},
@@ -105,11 +324,12 @@ func TestNextWindow(t *testing.T) {
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Monthly on the 5th at 5.
 			now, // We should be before the patch window
-			&patchWindow{start: time.Date(2018, 7, 5, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 7, 5, 5, 0, 3600, 0, time.UTC)}, // This month, 5th July
+			time.Date(2018, 7, 5, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 7, 5, 5, 0, 3600, 0, time.UTC), // This month, 5th July
 		},
 		{
 			"monthly 5th day of the month (during this months patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Monthly_{
 					Monthly: &osconfigpb.PatchWindow_Monthly{Day: &osconfigpb.PatchWindow_Monthly_DayOfMonth{DayOfMonth: 5}},
 				},
@@ -117,11 +337,12 @@ func TestNextWindow(t *testing.T) {
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Monthly on the 5th at 5.
 			now.AddDate(0, 0, 4), // 1st + 4 = 5th
-			&patchWindow{start: time.Date(2018, 7, 5, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 7, 5, 5, 0, 3600, 0, time.UTC)}, // This month, 5th July
+			time.Date(2018, 7, 5, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 7, 5, 5, 0, 3600, 0, time.UTC), // This month, 5th July
 		},
 		{
 			"monthly 5th day of the month (after this months patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Monthly_{
 					Monthly: &osconfigpb.PatchWindow_Monthly{Day: &osconfigpb.PatchWindow_Monthly_DayOfMonth{DayOfMonth: 5}},
 				},
@@ -129,11 +350,12 @@ func TestNextWindow(t *testing.T) {
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Monthly on the 5th at 5.
 			now.AddDate(0, 0, 6), // 1st + 6 = 7th
-			&patchWindow{start: time.Date(2018, 8, 5, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 8, 5, 5, 0, 3600, 0, time.UTC)}, // Next month, 5th Aug
+			time.Date(2018, 8, 5, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 8, 5, 5, 0, 3600, 0, time.UTC), // Next month, 5th Aug
 		},
 		{
 			"monthly last day of the month (before this months patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Monthly_{
 					Monthly: &osconfigpb.PatchWindow_Monthly{Day: &osconfigpb.PatchWindow_Monthly_DayOfMonth{DayOfMonth: -1}},
 				},
@@ -141,11 +363,12 @@ func TestNextWindow(t *testing.T) {
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Monthly on the last day at 5.
 			now, // We should be before the patch window
-			&patchWindow{start: time.Date(2018, 7, 31, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 7, 31, 5, 0, 3600, 0, time.UTC)}, // This month, 31st of July
+			time.Date(2018, 7, 31, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 7, 31, 5, 0, 3600, 0, time.UTC), // This month, 31st of July
 		},
 		{
 			"monthly last day of the month (after this months patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Monthly_{
 					Monthly: &osconfigpb.PatchWindow_Monthly{Day: &osconfigpb.PatchWindow_Monthly_DayOfMonth{DayOfMonth: -1}},
 				},
@@ -153,11 +376,12 @@ func TestNextWindow(t *testing.T) {
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Monthly on the last day at 5.
 			now.Add(5*time.Hour).AddDate(0, 0, 30),
-			&patchWindow{start: time.Date(2018, 8, 31, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 8, 31, 5, 0, 3600, 0, time.UTC)}, // Next month, 31st of Aug
+			time.Date(2018, 8, 31, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 8, 31, 5, 0, 3600, 0, time.UTC), // Next month, 31st of Aug
 		},
 		{
 			"monthly on the second Tuesday (before this weeks patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Monthly_{
 					Monthly: &osconfigpb.PatchWindow_Monthly{
 						Day: &osconfigpb.PatchWindow_Monthly_OccurrenceOfDay_{
@@ -172,11 +396,12 @@ func TestNextWindow(t *testing.T) {
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Monthly on the second Tuesday at 5
 			now, // We should be before the patch window
-			&patchWindow{start: time.Date(2018, 7, 10, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 7, 10, 5, 0, 3600, 0, time.UTC)}, // This month, 10th of July
+			time.Date(2018, 7, 10, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 7, 10, 5, 0, 3600, 0, time.UTC), // This month, 10th of July
 		},
 		{
 			"monthly on the second Tuesday (after this weeks patch window)",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Monthly_{
 					Monthly: &osconfigpb.PatchWindow_Monthly{
 						Day: &osconfigpb.PatchWindow_Monthly_OccurrenceOfDay_{
@@ -191,22 +416,23 @@ func TestNextWindow(t *testing.T) {
 				Duration:  &duration.Duration{Seconds: 3600},
 			}, // Monthly on the second Tuesday at 5
 			now.AddDate(0, 0, 15), // 15 days is after this months window
-			&patchWindow{start: time.Date(2018, 8, 14, 5, 0, 0, 0, time.UTC), end: time.Date(2018, 8, 14, 5, 0, 3600, 0, time.UTC)}, // Next month, 14th of Aug
+			time.Date(2018, 8, 14, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 8, 14, 5, 0, 3600, 0, time.UTC), // Next month, 14th of Aug
 		},
 	}
 
 	for _, tt := range tests {
-		got, err := nextWindow(tt.now, tt.pw, 0)
+		gotStart, gotEnd, err := nextWindow(tt.now, tt.pw, 0)
 		if err != nil {
 			t.Errorf("%s: %v", tt.desc, err)
 			continue
 		}
 
-		if tt.want.start != got.start {
-			t.Errorf("%s start: want(%q) != got(%q)", tt.desc, tt.want.start, got.start)
+		if tt.wantStart != gotStart {
+			t.Errorf("%s start: want(%q) != got(%q)", tt.desc, tt.wantStart, gotStart)
 		}
-		if tt.want.end != got.end {
-			t.Errorf("%s end: want(%q) != got(%q)", tt.desc, tt.want.end, got.end)
+		if tt.wantEnd != gotEnd {
+			t.Errorf("%s end: want(%q) != got(%q)", tt.desc, tt.wantEnd, gotEnd)
 		}
 	}
 }
@@ -214,18 +440,18 @@ func TestNextWindow(t *testing.T) {
 func TestNextWindowErrors(t *testing.T) {
 	var tests = []struct {
 		desc string
-		pw   osconfigpb.PatchWindow
+		pw   *osconfigpb.PatchWindow
 	}{
 		{
 			"no window",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				StartTime: &timeofday.TimeOfDay{Hours: 5},
 				Duration:  &duration.Duration{Seconds: 3600},
 			},
 		},
 		{
 			"bad duration",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Daily_{},
 				StartTime: &timeofday.TimeOfDay{Hours: 5},
 				Duration:  &duration.Duration{Seconds: 3600},
@@ -233,7 +459,7 @@ func TestNextWindowErrors(t *testing.T) {
 		},
 		{
 			"weekly invalid day",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Weekly_{
 					Weekly: &osconfigpb.PatchWindow_Weekly{Day: dayofweek.DayOfWeek_DAY_OF_WEEK_UNSPECIFIED},
 				},
@@ -243,7 +469,7 @@ func TestNextWindowErrors(t *testing.T) {
 		},
 		{
 			"monthly invalid day",
-			osconfigpb.PatchWindow{
+			&osconfigpb.PatchWindow{
 				Frequency: &osconfigpb.PatchWindow_Monthly_{
 					Monthly: &osconfigpb.PatchWindow_Monthly{
 						Day: &osconfigpb.PatchWindow_Monthly_OccurrenceOfDay_{
@@ -261,7 +487,7 @@ func TestNextWindowErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if _, err := nextWindow(time.Now(), tt.pw, 0); err == nil {
+		if _, _, err := nextWindow(time.Now(), tt.pw, 0); err == nil {
 			t.Errorf("%s: expected error", tt.desc)
 			continue
 		}

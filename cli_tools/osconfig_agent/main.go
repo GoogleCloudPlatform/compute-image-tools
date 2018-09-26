@@ -18,10 +18,10 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
 
@@ -31,8 +31,21 @@ var (
 	endpoint = flag.String("endpoint", "osconfig.googleapis.com:443", "osconfig endpoint override")
 )
 
+var dump = &pretty.Config{IncludeUnexported: true}
+
+func strIn(s string, ss []string) bool {
+	for _, x := range ss {
+		if s == x {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	flag.Parse()
+	patchInit()
+
 	ctx := context.Background()
 
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(*endpoint), option.WithCredentialsFile(*oauth))
@@ -44,14 +57,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%+v\n", res)
-	fmt.Printf("%+v\n", res.Apt)
-	fmt.Printf("%+v\n", res.Goo)
-	fmt.Printf("%+v\n", res.Yum)
-	fmt.Printf("%+v\n", res.WindowsUpdate)
-	//fmt.Printf("%+v\n", res.PatchPolicies)
-	runPackageConfig(res)
+	patchManager(res.PatchPolicies)
 
 	//runUpdates()
-
 }
