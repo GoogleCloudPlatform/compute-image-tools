@@ -12,9 +12,22 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-if (-not (Get-Service 'google_osconfig_agent' -ErrorAction SilentlyContinue)) {
-  New-Service -DisplayName 'GoogleOSConfigAgent' -Name 'google_osconfig_agent' -BinaryPathName '"C:\Program Files\Google\Compute Engine\osconfig\google_osconfig_agent.exe" run' -StartupType Automatic -Description 'Google OSConfig Agent'
-}
+$ErrorActionPreference = 'Stop'
 
-Restart-Service google_osconfig_agent -Verbose
+try {
+  if (-not (Get-Service 'google_osconfig_agent' -ErrorAction SilentlyContinue)) {
+    New-Service -DisplayName 'Google OSConfig Agent' `
+                -Name 'google_osconfig_agent' `
+                -BinaryPathName '"C:\Program Files\Google\OSConfig\osconfig_agent.exe" run' `
+                -StartupType Automatic `
+                -Description 'Google OSConfig service agent'
+  }
+
+  Restart-Service google_osconfig_agent -Verbose -ErrorAction Stop
+}
+catch {
+  Write-Output $_.InvocationInfo.PositionMessage
+  Write-Output "Install failed: $($_.Exception.Message)"
+  exit 1
+}
   

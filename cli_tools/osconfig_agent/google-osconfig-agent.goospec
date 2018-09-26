@@ -1,15 +1,15 @@
 {
-  "name": "google-compute-engine-osconfig-agent",
-  "version": "0.0.1@1",
+  "name": "google-osconfig-agent",
+  "version": "0.1.0@1",
   "arch": "x86_64",
   "authors": "Google Inc.",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
-  "description": "Google Compute Engine OSConfig agent",
+  "description": "Google OSConfig agent",
   "files": {
-    "osconfig_agent.exe": "<ProgramFiles>/Google/Compute Engine/osconfig/osconfig_agent.exe"
+    "osconfig_agent.exe": "<ProgramFiles>/Google/OSConfig/osconfig_agent.exe"
   },
   "releaseNotes": [
-    "0.0.1 - Initial packaging"
+    "0.1.0 - Initial packaging"
   ],
   "install": {
     "path": "install.ps1"
@@ -19,7 +19,7 @@
   },
   "sources": [{
       "include": [
-        "gce_inventory_agent.exe",
+        "osconfig_agent.exe",
         "install.ps1",
         "uninstall.ps1"
       ]

@@ -17,10 +17,10 @@
 package osconfig_test
 
 import (
-	"cloud.google.com/go/osconfig/apiv1alpha1"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
-	osconfigpb "google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	iampb "google.golang.org/genproto/googleapis/iam/v1"
 )
 

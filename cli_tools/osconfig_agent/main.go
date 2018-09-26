@@ -17,10 +17,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"log"
-	"os"
+	"net/http"
 	"time"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
@@ -38,8 +40,57 @@ var (
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
-// TODO: make this configurable.
-const interval = 10 * time.Minute
+const (
+	// TODO: make this configurable.
+	interval    = 10 * time.Minute
+	metadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/?recursive=true&alt=json"
+)
+
+type metadataJSON struct {
+	ID   int
+	Zone string
+}
+
+func getResource(r string) (string, error) {
+	if r != "" {
+		return r, nil
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", metadataURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("Metadata-Flavor", "Google")
+
+	var res *http.Response
+	// Retry forever, increase sleep between retries (up to 5 times) in order
+	// to wait for slow network initialization.
+	var rt time.Duration
+	for i := 1; ; i++ {
+		res, err = client.Do(req)
+		if err == nil {
+			break
+		}
+		if i < 6 {
+			rt = time.Duration(3*i) * time.Second
+		}
+		logger.Errorf("error connecting to metadata server, retrying in %s, error: %v", rt, err)
+		time.Sleep(rt)
+	}
+	defer res.Body.Close()
+
+	dec := json.NewDecoder(res.Body)
+	var m metadataJSON
+	for {
+		if err := dec.Decode(&m); err == io.EOF {
+			break
+		} else if err != nil {
+			return "", err
+		}
+	}
+	return fmt.Sprintf("%s/instances/%d", m.Zone, m.ID), nil
+}
 
 func strIn(s string, ss []string) bool {
 	for _, x := range ss {
@@ -50,48 +101,26 @@ func strIn(s string, ss []string) bool {
 	return false
 }
 
-func main() {
-	flag.Parse()
-	patchInit()
-
-	ctx := context.Background()
-
+func run(ctx context.Context) {
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(*endpoint), option.WithCredentialsFile(*oauth))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln("NewClient Error:", err)
 	}
 
-	res, err := lookupConfigs(ctx, client, *resource)
+	res, err := getResource(*resource)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln("getResource error:", err)
 	}
-	patchManager(res.PatchPolicies)
 
-	//runUpdates()
-}
-
-func run(ctx context.Context) {
-	agentDisabled := false
-
+	patchInit()
 	ticker := time.NewTicker(interval)
 	for {
-		md, err := getMetadata(ctx)
+		res, err := lookupConfigs(ctx, client, res)
 		if err != nil {
-			logger.Error(err)
-			continue
+			log.Println("ERROR:", err)
+		} else {
+			patchManager(res.PatchPolicies)
 		}
-
-		if disabled(md) {
-			if !agentDisabled {
-				logger.Info("GCE inventory agent disabled by metadata")
-			}
-			agentDisabled = true
-			continue
-		}
-
-		agentDisabled = false
-
-		writeInventory(getInventory(), reportURL)
 
 		select {
 		case <-ticker.C:
@@ -103,18 +132,10 @@ func run(ctx context.Context) {
 }
 
 func main() {
-	logger.Init("gce_inventory_agent", true, false, ioutil.Discard)
+	flag.Parse()
 	ctx := context.Background()
 
-	var action string
-	if len(os.Args) > 1 {
-		action = os.Args[1]
-	}
-	if action == "noservice" {
-		writeInventory(getInventory(), reportURL)
-		os.Exit(0)
-	}
-	if err := service.Register(ctx, "gce_inventory_agent", "GCE Inventory Agent", "", run, action); err != nil {
-		logger.Fatal(err)
+	if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, flag.Arg(0)); err != nil {
+		log.Fatal(err)
 	}
 }
