@@ -18,9 +18,14 @@ package main
 import (
 	"context"
 	"flag"
+	"io/ioutil"
 	"log"
+	"os"
+	"time"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	service "github.com/GoogleCloudPlatform/compute-image-tools/service_library"
+	"github.com/GoogleCloudPlatform/compute-image-windows/logger"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
@@ -32,6 +37,9 @@ var (
 )
 
 var dump = &pretty.Config{IncludeUnexported: true}
+
+// TODO: make this configurable.
+const interval = 10 * time.Minute
 
 func strIn(s string, ss []string) bool {
 	for _, x := range ss {
@@ -60,4 +68,53 @@ func main() {
 	patchManager(res.PatchPolicies)
 
 	//runUpdates()
+}
+
+func run(ctx context.Context) {
+	agentDisabled := false
+
+	ticker := time.NewTicker(interval)
+	for {
+		md, err := getMetadata(ctx)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+
+		if disabled(md) {
+			if !agentDisabled {
+				logger.Info("GCE inventory agent disabled by metadata")
+			}
+			agentDisabled = true
+			continue
+		}
+
+		agentDisabled = false
+
+		writeInventory(getInventory(), reportURL)
+
+		select {
+		case <-ticker.C:
+			continue
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func main() {
+	logger.Init("gce_inventory_agent", true, false, ioutil.Discard)
+	ctx := context.Background()
+
+	var action string
+	if len(os.Args) > 1 {
+		action = os.Args[1]
+	}
+	if action == "noservice" {
+		writeInventory(getInventory(), reportURL)
+		os.Exit(0)
+	}
+	if err := service.Register(ctx, "gce_inventory_agent", "GCE Inventory Agent", "", run, action); err != nil {
+		logger.Fatal(err)
+	}
 }
