@@ -119,6 +119,7 @@ func run(ctx context.Context) {
 		if err != nil {
 			log.Println("ERROR:", err)
 		} else {
+			runPackageConfig(res)
 			patchManager(res.PatchPolicies)
 		}
 

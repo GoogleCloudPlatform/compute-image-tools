@@ -16,9 +16,10 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
+	"strings"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
@@ -26,17 +27,29 @@ import (
 
 const googetRepoFile = "C:/ProgramData/GooGet/repos/google_osconfig.repo"
 
-func runPackageConfig(res *osconfigpb.LookupConfigsResponse) {
+func runPackageConfig(res *osconfigpb.LookupConfigsResponse) error {
+	var errs []string
 	if res.Goo != nil && packages.GooGetExists {
-		gooRepositories(res.Goo.Repositories)
-		gooInstalls(res.Goo.PackageInstalls)
-		gooRemovals(res.Goo.PackageRemovals)
+		if err := gooRepositories(res.Goo.Repositories); err != nil {
+			errs = append(errs, fmt.Sprintf("error writing GooGet repo file: %v", err))
+		}
+		if err := gooInstalls(res.Goo.PackageInstalls); err != nil {
+			errs = append(errs, fmt.Sprintf("error installing GooGet packages: %v", err))
+		}
+		if err := gooRemovals(res.Goo.PackageRemovals); err != nil {
+			errs = append(errs, fmt.Sprintf("error removing GooGet packages: %v", err))
+		}
 	}
+
+	if errs == nil {
+		return nil
+	}
+	return errors.New(strings.Join(errs, ",\n"))
 }
 
-func gooRepositories(repos []*osconfigpb.GooRepository) {
+func gooRepositories(repos []*osconfigpb.GooRepository) error {
 	/*
-		Repo file managed by Google OSConfig agent
+		# Repo file managed by Google OSConfig agent
 
 		- name: repo1-name
 		  url: https://repo1-url
@@ -44,32 +57,35 @@ func gooRepositories(repos []*osconfigpb.GooRepository) {
 		  url: https://repo2-url
 	*/
 	var buf bytes.Buffer
-	buf.WriteString("Repo file managed by Google OSConfig agent\n")
+	buf.WriteString("# Repo file managed by Google OSConfig agent\n")
 	for _, repo := range repos {
 		buf.WriteString(fmt.Sprintf("\n- name: %s\n", repo.Name))
 		buf.WriteString(fmt.Sprintf("  url: %s\n", repo.Url))
 	}
-	if err := ioutil.WriteFile(googetRepoFile, buf.Bytes(), 0600); err != nil {
-		log.Printf("Error writing GooGet repo file: %v", err)
-	}
+
+	return ioutil.WriteFile(googetRepoFile, buf.Bytes(), 0600)
 }
 
-func gooInstalls(pkgs []*osconfigpb.Package) {
+func gooInstalls(pkgs []*osconfigpb.Package) error {
+	if pkgs == nil {
+		return nil
+	}
+
 	var names []string
 	for _, pkg := range pkgs {
 		names = append(names, pkg.Name)
 	}
-	if err := packages.InstallGooGetPackages(names); err != nil {
-		log.Printf("Error installing GooGet packages: %v", err)
-	}
+	return packages.InstallGooGetPackages(names)
 }
 
-func gooRemovals(pkgs []*osconfigpb.Package) {
+func gooRemovals(pkgs []*osconfigpb.Package) error {
+	if pkgs == nil {
+		return nil
+	}
+
 	var names []string
 	for _, pkg := range pkgs {
 		names = append(names, pkg.Name)
 	}
-	if err := packages.RemoveGooGetPackages(names); err != nil {
-		log.Printf("Error removing GooGet packages: %v", err)
-	}
+	return packages.RemoveGooGetPackages(names)
 }
