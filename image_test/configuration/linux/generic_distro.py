@@ -315,7 +315,7 @@ class GenericDistroTests(object):
     # Avoid log output overload on centos-6
     time.sleep(1)
     # now test if their API are still valid
-    utils.Execute(['gcloud', 'compute', 'images', 'list'])
+    utils.Execute(['gcloud', 'compute', 'images', 'list', '>', '/dev/null'])
 
     # Avoid log output overload on centos-6
     time.sleep(1)
