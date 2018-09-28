@@ -274,7 +274,9 @@ func patchRunner() {
 			reboot := pw.run()
 			if reboot {
 				fmt.Println("DEBUG: reboot requested", pw.Name)
-				// TODO: Actually reboot.
+				if err := rebootSystem(); err != nil {
+					fmt.Println("ERROR: error running reboot:", err)
+				}
 				os.Exit(0)
 			}
 			fmt.Println("DEBUG: finished patch window", pw.Name)

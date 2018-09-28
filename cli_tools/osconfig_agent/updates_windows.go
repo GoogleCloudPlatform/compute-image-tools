@@ -15,6 +15,8 @@
 package main
 
 import (
+	"os/exec"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 	"golang.org/x/sys/windows/registry"
 )
@@ -52,4 +54,8 @@ func runUpdates() (bool, error) {
 	}
 
 	return rebootRequired()
+}
+
+func rebootSystem() error {
+	return exec.Command("shutdown", "/r", "/t", "00", "/f", "/d", "p:2:3").Run()
 }
