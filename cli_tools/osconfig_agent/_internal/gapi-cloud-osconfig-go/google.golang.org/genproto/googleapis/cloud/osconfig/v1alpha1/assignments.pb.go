@@ -3,11 +3,13 @@
 
 package osconfig
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import timestamp "github.com/golang/protobuf/ptypes/timestamp"
-import field_mask "google.golang.org/genproto/protobuf/field_mask"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	timestamp "github.com/golang/protobuf/ptypes/timestamp"
+	field_mask "google.golang.org/genproto/protobuf/field_mask"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -57,7 +59,7 @@ func (m *Assignment) Reset()         { *m = Assignment{} }
 func (m *Assignment) String() string { return proto.CompactTextString(m) }
 func (*Assignment) ProtoMessage()    {}
 func (*Assignment) Descriptor() ([]byte, []int) {
-	return fileDescriptor_assignments_a9adb4bdd7635f81, []int{0}
+	return fileDescriptor_7e4b5881c4fd4af0, []int{0}
 }
 func (m *Assignment) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Assignment.Unmarshal(m, b)
@@ -65,8 +67,8 @@ func (m *Assignment) XXX_Unmarshal(b []byte) error {
 func (m *Assignment) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Assignment.Marshal(b, m, deterministic)
 }
-func (dst *Assignment) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Assignment.Merge(dst, src)
+func (m *Assignment) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Assignment.Merge(m, src)
 }
 func (m *Assignment) XXX_Size() int {
 	return xxx_messageInfo_Assignment.Size(m)
@@ -148,7 +150,7 @@ func (m *CreateAssignmentRequest) Reset()         { *m = CreateAssignmentRequest
 func (m *CreateAssignmentRequest) String() string { return proto.CompactTextString(m) }
 func (*CreateAssignmentRequest) ProtoMessage()    {}
 func (*CreateAssignmentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_assignments_a9adb4bdd7635f81, []int{1}
+	return fileDescriptor_7e4b5881c4fd4af0, []int{1}
 }
 func (m *CreateAssignmentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateAssignmentRequest.Unmarshal(m, b)
@@ -156,8 +158,8 @@ func (m *CreateAssignmentRequest) XXX_Unmarshal(b []byte) error {
 func (m *CreateAssignmentRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_CreateAssignmentRequest.Marshal(b, m, deterministic)
 }
-func (dst *CreateAssignmentRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CreateAssignmentRequest.Merge(dst, src)
+func (m *CreateAssignmentRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateAssignmentRequest.Merge(m, src)
 }
 func (m *CreateAssignmentRequest) XXX_Size() int {
 	return xxx_messageInfo_CreateAssignmentRequest.Size(m)
@@ -195,7 +197,7 @@ func (m *GetAssignmentRequest) Reset()         { *m = GetAssignmentRequest{} }
 func (m *GetAssignmentRequest) String() string { return proto.CompactTextString(m) }
 func (*GetAssignmentRequest) ProtoMessage()    {}
 func (*GetAssignmentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_assignments_a9adb4bdd7635f81, []int{2}
+	return fileDescriptor_7e4b5881c4fd4af0, []int{2}
 }
 func (m *GetAssignmentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetAssignmentRequest.Unmarshal(m, b)
@@ -203,8 +205,8 @@ func (m *GetAssignmentRequest) XXX_Unmarshal(b []byte) error {
 func (m *GetAssignmentRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_GetAssignmentRequest.Marshal(b, m, deterministic)
 }
-func (dst *GetAssignmentRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetAssignmentRequest.Merge(dst, src)
+func (m *GetAssignmentRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetAssignmentRequest.Merge(m, src)
 }
 func (m *GetAssignmentRequest) XXX_Size() int {
 	return xxx_messageInfo_GetAssignmentRequest.Size(m)
@@ -241,7 +243,7 @@ func (m *ListAssignmentsRequest) Reset()         { *m = ListAssignmentsRequest{}
 func (m *ListAssignmentsRequest) String() string { return proto.CompactTextString(m) }
 func (*ListAssignmentsRequest) ProtoMessage()    {}
 func (*ListAssignmentsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_assignments_a9adb4bdd7635f81, []int{3}
+	return fileDescriptor_7e4b5881c4fd4af0, []int{3}
 }
 func (m *ListAssignmentsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListAssignmentsRequest.Unmarshal(m, b)
@@ -249,8 +251,8 @@ func (m *ListAssignmentsRequest) XXX_Unmarshal(b []byte) error {
 func (m *ListAssignmentsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ListAssignmentsRequest.Marshal(b, m, deterministic)
 }
-func (dst *ListAssignmentsRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListAssignmentsRequest.Merge(dst, src)
+func (m *ListAssignmentsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListAssignmentsRequest.Merge(m, src)
 }
 func (m *ListAssignmentsRequest) XXX_Size() int {
 	return xxx_messageInfo_ListAssignmentsRequest.Size(m)
@@ -298,7 +300,7 @@ func (m *ListAssignmentsResponse) Reset()         { *m = ListAssignmentsResponse
 func (m *ListAssignmentsResponse) String() string { return proto.CompactTextString(m) }
 func (*ListAssignmentsResponse) ProtoMessage()    {}
 func (*ListAssignmentsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_assignments_a9adb4bdd7635f81, []int{4}
+	return fileDescriptor_7e4b5881c4fd4af0, []int{4}
 }
 func (m *ListAssignmentsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListAssignmentsResponse.Unmarshal(m, b)
@@ -306,8 +308,8 @@ func (m *ListAssignmentsResponse) XXX_Unmarshal(b []byte) error {
 func (m *ListAssignmentsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_ListAssignmentsResponse.Marshal(b, m, deterministic)
 }
-func (dst *ListAssignmentsResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ListAssignmentsResponse.Merge(dst, src)
+func (m *ListAssignmentsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListAssignmentsResponse.Merge(m, src)
 }
 func (m *ListAssignmentsResponse) XXX_Size() int {
 	return xxx_messageInfo_ListAssignmentsResponse.Size(m)
@@ -350,7 +352,7 @@ func (m *UpdateAssignmentRequest) Reset()         { *m = UpdateAssignmentRequest
 func (m *UpdateAssignmentRequest) String() string { return proto.CompactTextString(m) }
 func (*UpdateAssignmentRequest) ProtoMessage()    {}
 func (*UpdateAssignmentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_assignments_a9adb4bdd7635f81, []int{5}
+	return fileDescriptor_7e4b5881c4fd4af0, []int{5}
 }
 func (m *UpdateAssignmentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateAssignmentRequest.Unmarshal(m, b)
@@ -358,8 +360,8 @@ func (m *UpdateAssignmentRequest) XXX_Unmarshal(b []byte) error {
 func (m *UpdateAssignmentRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_UpdateAssignmentRequest.Marshal(b, m, deterministic)
 }
-func (dst *UpdateAssignmentRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_UpdateAssignmentRequest.Merge(dst, src)
+func (m *UpdateAssignmentRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateAssignmentRequest.Merge(m, src)
 }
 func (m *UpdateAssignmentRequest) XXX_Size() int {
 	return xxx_messageInfo_UpdateAssignmentRequest.Size(m)
@@ -404,7 +406,7 @@ func (m *DeleteAssignmentRequest) Reset()         { *m = DeleteAssignmentRequest
 func (m *DeleteAssignmentRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteAssignmentRequest) ProtoMessage()    {}
 func (*DeleteAssignmentRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_assignments_a9adb4bdd7635f81, []int{6}
+	return fileDescriptor_7e4b5881c4fd4af0, []int{6}
 }
 func (m *DeleteAssignmentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteAssignmentRequest.Unmarshal(m, b)
@@ -412,8 +414,8 @@ func (m *DeleteAssignmentRequest) XXX_Unmarshal(b []byte) error {
 func (m *DeleteAssignmentRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DeleteAssignmentRequest.Marshal(b, m, deterministic)
 }
-func (dst *DeleteAssignmentRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteAssignmentRequest.Merge(dst, src)
+func (m *DeleteAssignmentRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteAssignmentRequest.Merge(m, src)
 }
 func (m *DeleteAssignmentRequest) XXX_Size() int {
 	return xxx_messageInfo_DeleteAssignmentRequest.Size(m)
@@ -443,10 +445,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("google/cloud/osconfig/v1alpha1/assignments.proto", fileDescriptor_assignments_a9adb4bdd7635f81)
+	proto.RegisterFile("google/cloud/osconfig/v1alpha1/assignments.proto", fileDescriptor_7e4b5881c4fd4af0)
 }
 
-var fileDescriptor_assignments_a9adb4bdd7635f81 = []byte{
+var fileDescriptor_7e4b5881c4fd4af0 = []byte{
 	// 570 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0x51, 0x6b, 0xd4, 0x4c,
 	0x14, 0x25, 0xdd, 0x76, 0xbf, 0xee, 0x0d, 0xfd, 0x94, 0xa1, 0x74, 0xc3, 0x8a, 0x35, 0x04, 0x94,

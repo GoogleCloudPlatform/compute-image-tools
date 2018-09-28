@@ -15,6 +15,8 @@
 package main
 
 import (
+	"os/exec"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
@@ -37,4 +39,9 @@ func runUpdates() (bool, error) {
 	}
 
 	return rebootRequired()
+}
+
+func rebootSystem() error {
+	// TODO: make this work on all systems, maybe call back to reboot(2)
+	return exec.Command("shutdown", "-r", "-t", "0").Run()
 }

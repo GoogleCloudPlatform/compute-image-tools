@@ -17,10 +17,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
+	"fmt"
+	"io"
 	"log"
+	"math"
+	"net/http"
+	"time"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	service "github.com/GoogleCloudPlatform/compute-image-tools/service_library"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
@@ -33,6 +40,56 @@ var (
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
+const (
+	// TODO: make this configurable.
+	interval      = 10 * time.Minute
+	metadataURL   = "http://metadata.google.internal/computeMetadata/v1/instance/?recursive=true&alt=json"
+	maxRetryDelay = 30
+)
+
+type metadataJSON struct {
+	ID   int
+	Zone string
+}
+
+func getResourceName(r string) (string, error) {
+	if r != "" {
+		return r, nil
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", metadataURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("Metadata-Flavor", "Google")
+
+	var res *http.Response
+	// Retry forever, increase sleep between retries (up to 20s) in order
+	// to wait for slow network initialization.
+	for i := 1; ; i++ {
+		res, err = client.Do(req)
+		if err == nil {
+			break
+		}
+		rt := time.Duration(math.Min(float64(3*i), maxRetryDelay)) * time.Second
+		fmt.Printf("Error connecting to metadata server (error number: %d), retrying in %s, error: %v\n", i, rt, err)
+		time.Sleep(rt)
+	}
+	defer res.Body.Close()
+
+	dec := json.NewDecoder(res.Body)
+	var m metadataJSON
+	for {
+		if err := dec.Decode(&m); err == io.EOF {
+			break
+		} else if err != nil {
+			return "", err
+		}
+	}
+	return fmt.Sprintf("%s/instances/%d", m.Zone, m.ID), nil
+}
+
 func strIn(s string, ss []string) bool {
 	for _, x := range ss {
 		if s == x {
@@ -42,22 +99,42 @@ func strIn(s string, ss []string) bool {
 	return false
 }
 
-func main() {
-	flag.Parse()
-	patchInit()
-
-	ctx := context.Background()
-
+func run(ctx context.Context) {
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(*endpoint), option.WithCredentialsFile(*oauth))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln("NewClient Error:", err)
 	}
 
-	res, err := lookupConfigs(ctx, client, *resource)
+	res, err := getResourceName(*resource)
 	if err != nil {
+		log.Fatalln("getResourceName error:", err)
+	}
+
+	patchInit()
+	ticker := time.NewTicker(interval)
+	for {
+		resp, err := lookupConfigs(ctx, client, res)
+		if err != nil {
+			log.Println("ERROR:", err)
+		} else {
+			setOsConfig(resp)
+			setPatchPolicies(resp.PatchPolicies)
+		}
+
+		select {
+		case <-ticker.C:
+			continue
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func main() {
+	flag.Parse()
+	ctx := context.Background()
+
+	if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, flag.Arg(0)); err != nil {
 		log.Fatal(err)
 	}
-	patchManager(res.PatchPolicies)
-
-	//runUpdates()
 }
