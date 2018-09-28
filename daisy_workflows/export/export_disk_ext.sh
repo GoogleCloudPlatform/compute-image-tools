@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -x
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
@@ -24,6 +25,9 @@ GCS_BUCKET=${GCS_PATH%%/*}
 # Mount GCS bucket containing the disk image.
 mkdir -p "/gcs/${GCS_BUCKET}"
 gcsfuse ${GCS_BUCKET} /gcs/${GCS_BUCKET}
+if [ $? -ne 0 ]; then
+  echo "ExportFailed: Failed to mount ${GCS_BUCKET}."
+fi
 OUTS=${GCS_PATH%/*}
 mkdir -p "/gcs/${OUTS}"
 
