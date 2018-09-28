@@ -23,7 +23,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
-func runPackageConfig(res *osconfigpb.LookupConfigsResponse) error {
+func setOsConfig(res *osconfigpb.LookupConfigsResponse) error {
 	var errs []string
 	if res.Apt != nil && packages.AptExists {
 		if err := aptRepositories(res.Apt.Repositories); err != nil {

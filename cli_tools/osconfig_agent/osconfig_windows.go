@@ -27,7 +27,7 @@ import (
 
 const googetRepoFile = "C:/ProgramData/GooGet/repos/google_osconfig.repo"
 
-func runPackageConfig(res *osconfigpb.LookupConfigsResponse) error {
+func setOsConfig(res *osconfigpb.LookupConfigsResponse) error {
 	var errs []string
 	if res.Goo != nil && packages.GooGetExists {
 		if err := gooRepositories(res.Goo.Repositories); err != nil {

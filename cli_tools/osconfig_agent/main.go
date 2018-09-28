@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"time"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	service "github.com/GoogleCloudPlatform/compute-image-tools/service_library"
-	"github.com/GoogleCloudPlatform/compute-image-windows/logger"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
@@ -42,8 +42,9 @@ var dump = &pretty.Config{IncludeUnexported: true}
 
 const (
 	// TODO: make this configurable.
-	interval    = 10 * time.Minute
-	metadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/?recursive=true&alt=json"
+	interval      = 10 * time.Minute
+	metadataURL   = "http://metadata.google.internal/computeMetadata/v1/instance/?recursive=true&alt=json"
+	maxRetryDelay = 30
 )
 
 type metadataJSON struct {
@@ -51,7 +52,7 @@ type metadataJSON struct {
 	Zone string
 }
 
-func getResource(r string) (string, error) {
+func getResourceName(r string) (string, error) {
 	if r != "" {
 		return r, nil
 	}
@@ -64,18 +65,15 @@ func getResource(r string) (string, error) {
 	req.Header.Add("Metadata-Flavor", "Google")
 
 	var res *http.Response
-	// Retry forever, increase sleep between retries (up to 5 times) in order
+	// Retry forever, increase sleep between retries (up to 20s) in order
 	// to wait for slow network initialization.
-	var rt time.Duration
 	for i := 1; ; i++ {
 		res, err = client.Do(req)
 		if err == nil {
 			break
 		}
-		if i < 6 {
-			rt = time.Duration(3*i) * time.Second
-		}
-		logger.Errorf("error connecting to metadata server, retrying in %s, error: %v", rt, err)
+		rt := time.Duration(math.Min(float64(3*i), maxRetryDelay)) * time.Second
+		fmt.Printf("Error connecting to metadata server (error number: %d), retrying in %s, error: %v\n", i, rt, err)
 		time.Sleep(rt)
 	}
 	defer res.Body.Close()
@@ -107,20 +105,20 @@ func run(ctx context.Context) {
 		log.Fatalln("NewClient Error:", err)
 	}
 
-	res, err := getResource(*resource)
+	res, err := getResourceName(*resource)
 	if err != nil {
-		log.Fatalln("getResource error:", err)
+		log.Fatalln("getResourceName error:", err)
 	}
 
 	patchInit()
 	ticker := time.NewTicker(interval)
 	for {
-		res, err := lookupConfigs(ctx, client, res)
+		resp, err := lookupConfigs(ctx, client, res)
 		if err != nil {
 			log.Println("ERROR:", err)
 		} else {
-			runPackageConfig(res)
-			patchManager(res.PatchPolicies)
+			setOsConfig(resp)
+			setPatchPolicies(resp.PatchPolicies)
 		}
 
 		select {
