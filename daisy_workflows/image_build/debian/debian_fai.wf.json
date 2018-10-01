@@ -2,8 +2,9 @@
   "Name": "build-debian-fai",
   "DefaultTimeout": "60m",
   "Vars": {
-    "debian_cloud_images_version": {"Required": true, "Description": "The debian-cloud-images scripts git commit ID to use." },
-    "debian_version": {"Required": true, "Description": "The FAI tool debian version to be requested." },
+    "build_date": {"Value": "${TIMESTAMP}", "Description": "Build datestamp used to version the image."},
+    "debian_cloud_images_version": {"Required": true, "Description": "The debian-cloud-images scripts git commit ID to use."},
+    "debian_version": {"Required": true, "Description": "The FAI tool debian version to be requested."},
     "builder_source_image": {
       "Value": "projects/debian-cloud/global/images/family/debian-9",
       "Description": "The image used to run fai-tool."
@@ -34,6 +35,7 @@
           "Disks": [{"Source": "disk-builder"}],
           "MachineType": "n1-standard-4",
           "Metadata": {
+            "build_date": "${build_date}",
             "debian_cloud_images_version": "${debian_cloud_images_version}",
             "debian_version": "${debian_version}",
             "debian_install_google_api_python_client": "yes",

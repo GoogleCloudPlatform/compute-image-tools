@@ -38,6 +38,8 @@ utils.AptGetInstall(['apt-transport-https', 'qemu-utils', 'dosfstools'])
 
 def main():
   # Get Parameters.
+  build_date = utils.GetMetadataAttribute(
+      'build_date', raise_on_not_found=True)
   debian_cloud_images_version = utils.GetMetadataAttribute(
       'debian_cloud_images_version', raise_on_not_found=True)
   debian_version = utils.GetMetadataAttribute(
@@ -81,7 +83,7 @@ def main():
   work_dir = url_params['filename']
   fai_bin = 'bin/build'
   arch = 'amd64-efi' if uefi else 'amd64'
-  cmd = [fai_bin, debian_version, 'gce', arch, 'disk']
+  cmd = [fai_bin, debian_version, 'gce', arch, 'disk', build_date]
   logging.info('Starting build in %s with params: %s' % (
       work_dir, ' '.join(cmd))
   )
