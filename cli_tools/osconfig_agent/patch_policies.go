@@ -202,7 +202,7 @@ func (w *patchWindow) run() (reboot bool) {
 		log.Println("ERROR:", err)
 	}
 
-	reboot, err := runUpdates()
+	reboot, err := runUpdates(w.Policy)
 	if err != nil {
 		// TODO: implement retries
 		log.Println("ERROR:", err)
@@ -269,12 +269,17 @@ func patchRunner() {
 		case pw := <-rc:
 			fmt.Println("DEBUG: patchrunner running", pw.Name)
 			reboot := pw.run()
-			if reboot {
+			if pw.Policy.RebootConfig == osconfigpb.PatchPolicy_NEVER {
+				continue
+			}
+			if (pw.Policy.RebootConfig == osconfigpb.PatchPolicy_ALWAYS) || (pw.Policy.RebootConfig == osconfigpb.PatchPolicy_DEFAULT && reboot) {
 				fmt.Println("DEBUG: reboot requested", pw.Name)
 				if err := rebootSystem(); err != nil {
 					fmt.Println("ERROR: error running reboot:", err)
+				} else {
+					// Reboot can take a bit, shutdown the agent so other activities don't start.
+					os.Exit(0)
 				}
-				os.Exit(0)
 			}
 			fmt.Println("DEBUG: finished patch window", pw.Name)
 		}

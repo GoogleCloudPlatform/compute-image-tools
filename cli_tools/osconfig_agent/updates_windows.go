@@ -17,6 +17,7 @@ package main
 import (
 	"os/exec"
 
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 	"golang.org/x/sys/windows/registry"
 )
@@ -34,16 +35,43 @@ func rebootRequired() (bool, error) {
 	return true, nil
 }
 
-func runUpdates() (bool, error) {
-	reboot, err := rebootRequired()
-	if err != nil {
-		return false, err
-	}
-	if reboot {
-		return true, nil
+classifications = map[osconfig.WindowsUpdateSettings_Classification]string{
+	osconfigpb.WindowsUpdateSettings_CRITICAL: "",
+	osconfigpb.WindowsUpdateSettings_SECURITY: "",
+	osconfigpb.WindowsUpdateSettings_DEFINITION: "",
+	osconfigpb.WindowsUpdateSettings_DRIVER: "",
+	osconfigpb.WindowsUpdateSettings_FEATURE_PACK: "",
+	osconfigpb.WindowsUpdateSettings_SERVICE_PACK: "",
+	osconfigpb.WindowsUpdateSettings_TOOL: "",
+	osconfigpb.WindowsUpdateSettings_UPDATE_ROLLUP: "",
+	osconfigpb.WindowsUpdateSettings_UPDATE: "",
+}
+
+func runUpdates(pp *patchPolicy) (bool, error) {
+	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
+		reboot, err := rebootRequired()
+		if err != nil {
+			return false, err
+		}
+		if reboot {
+			return true, nil
+		}
 	}
 
-	if err := packages.InstallWUAUpdates("IsInstalled=0"); err != nil {
+	query := "IsInstalled=0"
+	for _, c := range pp.WindowsUpdate.Classifications {
+		sc, ok := classifications[c]
+		if !ok {
+			fmt.Println("Unknown classification:", c)
+			continue
+		}
+		query = fmt.Sprintf("%s and Type=%s", query, sc) 
+	}
+	for _, e := range pp.WindowsUpdate.Excludes {
+		query = fmt.Sprintf("%s and UpdateID!=%s", query, e) 
+	}
+
+	if err := packages.InstallWUAUpdates(query); err != nil {
 		return false, err
 	}
 
@@ -53,7 +81,10 @@ func runUpdates() (bool, error) {
 		}
 	}
 
-	return rebootRequired()
+	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
+		return rebootRequired()
+	}
+	return false, nil
 }
 
 func rebootSystem() error {

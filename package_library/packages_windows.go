@@ -25,7 +25,6 @@ import (
 	"github.com/StackExchange/wmi"
 	ole "github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
-	"github.com/google/logger"
 )
 
 var (
@@ -52,7 +51,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 	if GooGetExists {
 		if googet, err := googetUpdates(); err != nil {
 			msg := fmt.Sprintf("error listing googet updates: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["googet"] = googet
@@ -60,7 +59,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 	}
 	if wua, err := wuaUpdates("IsInstalled=0"); err != nil {
 		msg := fmt.Sprintf("error listing installed Windows updates: %v", err)
-		logger.Error(msg)
+		fmt.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
 		pkgs["wua"] = wua
@@ -91,7 +90,7 @@ func googetUpdates() ([]PkgInfo, error) {
 
 		p := strings.Split(pkg[0], ".")
 		if len(p) != 2 {
-			logger.Errorf("%s does not represent a package", ln)
+			fmt.Printf("%s does not represent a package\n", ln)
 			continue
 		}
 		pkgs = append(pkgs, PkgInfo{Name: p[0], Arch: strings.Trim(p[1], ","), Version: pkg[3]})
@@ -110,7 +109,7 @@ func InstallGooGetPackages(pkgs []string) error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	logger.Infof("GooGet install output:\n%s", msg)
+	fmt.Printf("GooGet install output:\n%s\n", msg)
 	return nil
 }
 
@@ -125,7 +124,7 @@ func RemoveGooGetPackages(pkgs []string) error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	logger.Infof("GooGet remove output:\n%s", msg)
+	fmt.Printf("GooGet remove output:\n%s\n", msg)
 	return nil
 }
 
@@ -139,7 +138,7 @@ func InstallGooGetUpdates() error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	logger.Infof("GooGet update output:\n%s", msg)
+	fmt.Printf("GooGet update output:\n%s\n", msg)
 	return nil
 }
 
@@ -158,7 +157,7 @@ func installedGooGetPackages() ([]PkgInfo, error) {
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 
 	if len(lines) <= 1 {
-		logger.Info("No packages installed.")
+		fmt.Println("No packages installed.")
 		return nil, nil
 	}
 
@@ -166,13 +165,13 @@ func installedGooGetPackages() ([]PkgInfo, error) {
 	for _, ln := range lines[1:] {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 2 {
-			logger.Errorf("%s does not represent a package", ln)
+			fmt.Printf("%s does not represent a package\n", ln)
 			continue
 		}
 
 		p := strings.Split(pkg[0], ".")
 		if len(p) != 2 {
-			logger.Errorf("%s does not represent a package", ln)
+			fmt.Printf("%s does not represent a package\n", ln)
 			continue
 		}
 
@@ -188,11 +187,10 @@ type (
 
 // wuaUpdates queries the Windows Update Agent API searcher with the provided query.
 func wuaUpdates(query string) ([]PkgInfo, error) {
-	connection := &ole.Connection{Object: nil}
-	if err := connection.Initialize(); err != nil {
-		return nil, fmt.Errorf("error initializing ole connection: %v", err)
+	if err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED); err != nil {
+		return nil, err
 	}
-	defer connection.Uninitialize()
+	defer ole.CoUninitialize()
 
 	unknown, err := oleutil.CreateObject("Microsoft.Update.Session")
 	if err != nil {
@@ -225,7 +223,7 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 		return nil, nil
 	}
 
-	logger.Infof("%d updates available", updtCnt)
+	fmt.Printf("%d updates available\n", updtCnt)
 
 	var updates []PkgInfo
 	for i := 0; i < int(updtCnt); i++ {
@@ -262,11 +260,10 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 
 // InstallWUAUpdates installs all WUA updates that match query.
 func InstallWUAUpdates(query string) error {
-	connection := &ole.Connection{Object: nil}
-	if err := connection.Initialize(); err != nil {
+	if err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED); err != nil {
 		return err
 	}
-	defer connection.Uninitialize()
+	defer ole.CoUninitialize()
 
 	updateSessionObj, err := oleutil.CreateObject("Microsoft.Update.Session")
 	if err != nil {
@@ -274,7 +271,7 @@ func InstallWUAUpdates(query string) error {
 	}
 	defer updateSessionObj.Release()
 
-	session, err := updateSessionObj.QueryInterface(ole.IID_IDispatch)
+	session, err := updateSessionObj.IDispatch(ole.IID_IDispatch)
 	if err != nil {
 		return err
 	}
@@ -296,11 +293,11 @@ func InstallWUAUpdates(query string) error {
 	count, _ := countRaw.Value().(int32)
 
 	if count == 0 {
-		logger.Infof("No updates to install")
+		fmt.Println("No updates to install")
 		return nil
 	}
 
-	logger.Infof("%d Windows updates available", count)
+	fmt.Printf("%d Windows updates available\n", count)
 
 	var msg string
 	for i := 0; i < int(count); i++ {
@@ -309,7 +306,6 @@ func InstallWUAUpdates(query string) error {
 			if err != nil {
 				return err
 			}
-			defer updtRaw.Clear()
 
 			updt := updtRaw.ToIDispatch()
 			defer updt.Release()
@@ -333,7 +329,7 @@ func InstallWUAUpdates(query string) error {
 			return err
 		}
 	}
-	logger.Infof("Windows updates to be installed:\n%s", msg)
+	fmt.Printf("Windows updates to be installed:\n%s\n", msg)
 
 	if err := DownloadWUAUpdateCollection(session, updtsRaw); err != nil {
 		return fmt.Errorf("DownloadWUAUpdates error: %v", err)
@@ -360,7 +356,7 @@ func DownloadWUAUpdateCollection(session IUpdateSession, updates IUpdateCollecti
 		return fmt.Errorf("error calling PutProperty Updates on IUpdateDownloader: %v", err)
 	}
 
-	logger.Infof("Downloading updates")
+	fmt.Println("Downloading updates")
 	if _, err := downloader.CallMethod("Download"); err != nil {
 		return fmt.Errorf("error calling method Download on IUpdateDownloader: %v", err)
 	}
@@ -382,7 +378,7 @@ func InstallWUAUpdateCollection(session IUpdateSession, updates IUpdateCollectio
 		return fmt.Errorf("error calling PutProperty Updates on IUpdateInstaller: %v", err)
 	}
 
-	logger.Infof("Installing updates")
+	fmt.Println("Installing updates")
 	// TODO: Look into using the async methods and attempt to track/log progress.
 	if _, err := installer.CallMethod("Install"); err != nil {
 		return fmt.Errorf("error calling method Install on IUpdateInstaller: %v", err)
@@ -402,7 +398,7 @@ func GetWUAUpdateCollection(session IUpdateSession, query string) (IUpdateCollec
 	searcher := searcherRaw.ToIDispatch()
 	defer searcherRaw.Clear()
 
-	logger.Infof("Querying Windows Update Agent Search with query %q.", query)
+	fmt.Printf("Querying Windows Update Agent Search with query %q.\n", query)
 	// returns ISearchResult
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa386077(v=vs.85).aspx
 	resultRaw, err := searcher.CallMethod("Search", query)
@@ -426,7 +422,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 	if exists(googet) {
 		if googet, err := installedGooGetPackages(); err != nil {
 			msg := fmt.Sprintf("error listing installed googet packages: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["googet"] = googet
@@ -435,7 +431,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 
 	if wua, err := wuaUpdates("IsInstalled=1"); err != nil {
 		msg := fmt.Sprintf("error listing installed Windows updates: %v", err)
-		logger.Error(msg)
+		fmt.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
 		pkgs["wua"] = wua
@@ -443,7 +439,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 
 	if qfe, err := quickFixEngineering(); err != nil {
 		msg := fmt.Sprintf("error listing installed QuickFixEngineering updates: %v", err)
-		logger.Error(msg)
+		fmt.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
 		pkgs["qfe"] = qfe
@@ -459,7 +455,7 @@ type win32_QuickFixEngineering struct {
 // quickFixEngineering queries the wmi object win32_QuickFixEngineering for a list of installed updates.
 func quickFixEngineering() ([]PkgInfo, error) {
 	var updts []win32_QuickFixEngineering
-	logger.Info("Querying WMI for installed QuickFixEngineering updates.")
+	fmt.Println("Querying WMI for installed QuickFixEngineering updates.")
 	if err := wmi.Query(wmi.CreateQuery(&updts, ""), &updts); err != nil {
 		return nil, err
 	}

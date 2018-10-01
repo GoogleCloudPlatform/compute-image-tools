@@ -17,6 +17,7 @@ package main
 import (
 	"os/exec"
 
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
 )
 
@@ -25,23 +26,28 @@ func rebootRequired() (bool, error) {
 	return false, nil
 }
 
-func runUpdates() (bool, error) {
-	reboot, err := rebootRequired()
-	if err != nil {
-		return false, err
-	}
-	if reboot {
-		return true, nil
+func runUpdates(pp *patchPolicy) (bool, error) {
+	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
+		reboot, err := rebootRequired()
+		if err != nil {
+			return false, err
+		}
+		if reboot {
+			return true, nil
+		}
 	}
 
 	if err := packages.UpdatePackages(); err != nil {
 		return false, err
 	}
 
-	return rebootRequired()
+	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
+		return rebootRequired()
+	}
+	return false, nil
 }
 
 func rebootSystem() error {
-	// TODO: make this work on all systems, maybe call back to reboot(2)
+	// TODO: make this work on all systems, maybe fall back to reboot(2)
 	return exec.Command("shutdown", "-r", "-t", "0").Run()
 }
