@@ -24,6 +24,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
@@ -36,6 +37,7 @@ var (
 	oauth    = flag.String("oauth", "", "path to oauth json file")
 	resource = flag.String("resource", "", "projects/*/zones/*/instances/*")
 	endpoint = flag.String("endpoint", "osconfig.googleapis.com:443", "osconfig endpoint override")
+	logger   = log.New(os.Stdout, "", 0)
 )
 
 var dump = &pretty.Config{IncludeUnexported: true}
@@ -75,7 +77,7 @@ func getResourceName(r string) (string, error) {
 			break
 		}
 		rt := time.Duration(math.Min(float64(3*i), maxRetryDelay)) * time.Second
-		fmt.Printf("Error connecting to metadata server (error number: %d), retrying in %s, error: %v\n", i, rt, err)
+		logger.Printf("Error connecting to metadata server (error number: %d), retrying in %s, error: %v\n", i, rt, err)
 		time.Sleep(rt)
 	}
 	defer res.Body.Close()
