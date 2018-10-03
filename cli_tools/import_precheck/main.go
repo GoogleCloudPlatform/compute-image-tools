@@ -18,7 +18,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/google/logger"
 )
 
