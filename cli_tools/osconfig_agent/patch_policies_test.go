@@ -36,35 +36,35 @@ func TestPatchWindowIn(t *testing.T) {
 		{
 			"in window",
 			&patchWindow{
-				Start: time.Now().Add(-10 * time.Second),
-				End:   time.Now().Add(10 * time.Second),
+				ScheduledStart: time.Now().Add(-10 * time.Second),
+				ScheduledEnd:   time.Now().Add(10 * time.Second),
 			},
 			true,
 		},
 		{
 			"in window, canceled",
 			&patchWindow{
-				Start:  time.Now().Add(-10 * time.Second),
-				End:    time.Now().Add(10 * time.Second),
-				cancel: c,
+				ScheduledStart: time.Now().Add(-10 * time.Second),
+				ScheduledEnd:   time.Now().Add(10 * time.Second),
+				cancel:         c,
 			},
 			false,
 		},
 		{
 			"start time in the future",
 			&patchWindow{
-				Start:  time.Now().Add(5 * time.Second),
-				End:    time.Now().Add(10 * time.Second),
-				cancel: c,
+				ScheduledStart: time.Now().Add(5 * time.Second),
+				ScheduledEnd:   time.Now().Add(10 * time.Second),
+				cancel:         c,
 			},
 			false,
 		},
 		{
 			"end time passed",
 			&patchWindow{
-				Start:  time.Now().Add(-10 * time.Second),
-				End:    time.Now().Add(-5 * time.Second),
-				cancel: c,
+				ScheduledStart: time.Now().Add(-10 * time.Second),
+				ScheduledEnd:   time.Now().Add(-5 * time.Second),
+				cancel:         c,
 			},
 			false,
 		},
@@ -96,7 +96,7 @@ func TestSetPatchPoliciesRunAndCancel(t *testing.T) {
 	// This patch should queue imediately, and just hang as no one is listening on the channel.
 	setPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo})
 
-	window, ok := aw.windows["foo"]
+	window, ok := aw.get("foo")
 	if !ok {
 		t.Fatal("new window not registered in activeWindows")
 	}
@@ -119,7 +119,9 @@ func TestSetPatchPoliciesRunAndCancel(t *testing.T) {
 }
 
 func TestSetPatchPolicies(t *testing.T) {
+	aw.mx.Lock()
 	aw.windows = map[string]*patchWindow{}
+	aw.mx.Unlock()
 	compare := &pretty.Config{
 		Diffable:  true,
 		Formatter: pretty.DefaultFormatter,
@@ -156,22 +158,22 @@ func TestSetPatchPolicies(t *testing.T) {
 
 	want := map[string]*patchWindow{
 		"foo": &patchWindow{
-			Name:   foo.GetFullName(),
-			Policy: &patchPolicy{foo},
-			Start:  now.Add(5 * time.Hour),
-			End:    now.Add(6 * time.Hour),
+			Name:           foo.GetFullName(),
+			Policy:         &patchPolicy{foo},
+			ScheduledStart: now.Add(5 * time.Hour),
+			ScheduledEnd:   now.Add(6 * time.Hour),
 		},
 		"bar": &patchWindow{
-			Name:   bar.GetFullName(),
-			Policy: &patchPolicy{bar},
-			Start:  now.Add(5 * time.Hour),
-			End:    now.Add(6 * time.Hour),
+			Name:           bar.GetFullName(),
+			Policy:         &patchPolicy{bar},
+			ScheduledStart: now.Add(5 * time.Hour),
+			ScheduledEnd:   now.Add(6 * time.Hour),
 		},
 		"baz": &patchWindow{
-			Name:   baz.GetFullName(),
-			Policy: &patchPolicy{baz},
-			Start:  now.Add(5 * time.Hour),
-			End:    now.Add(6 * time.Hour),
+			Name:           baz.GetFullName(),
+			Policy:         &patchPolicy{baz},
+			ScheduledStart: now.Add(5 * time.Hour),
+			ScheduledEnd:   now.Add(6 * time.Hour),
 		},
 	}
 
@@ -211,22 +213,22 @@ func TestSetPatchPolicies(t *testing.T) {
 
 	newWant := map[string]*patchWindow{
 		"foo": &patchWindow{
-			Name:   newFoo.GetFullName(),
-			Policy: &patchPolicy{newFoo},
-			Start:  now.Add(5 * time.Hour),
-			End:    now.Add(6 * time.Hour),
+			Name:           newFoo.GetFullName(),
+			Policy:         &patchPolicy{newFoo},
+			ScheduledStart: now.Add(5 * time.Hour),
+			ScheduledEnd:   now.Add(6 * time.Hour),
 		},
 		"boo": &patchWindow{
-			Name:   boo.GetFullName(),
-			Policy: &patchPolicy{boo},
-			Start:  now.Add(5 * time.Hour),
-			End:    now.Add(6 * time.Hour),
+			Name:           boo.GetFullName(),
+			Policy:         &patchPolicy{boo},
+			ScheduledStart: now.Add(5 * time.Hour),
+			ScheduledEnd:   now.Add(6 * time.Hour),
 		},
 		"baz": &patchWindow{
-			Name:   newBaz.GetFullName(),
-			Policy: &patchPolicy{newBaz},
-			Start:  now.Add(5 * time.Hour),
-			End:    now.Add(6 * time.Hour),
+			Name:           newBaz.GetFullName(),
+			Policy:         &patchPolicy{newBaz},
+			ScheduledStart: now.Add(5 * time.Hour),
+			ScheduledEnd:   now.Add(6 * time.Hour),
 		},
 	}
 

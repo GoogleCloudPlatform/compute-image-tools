@@ -20,8 +20,8 @@ import (
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
-	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
 func getConfigTypes(info *osinfo.DistributionInfo) []osconfigpb.LookupConfigsRequest_ConfigType {

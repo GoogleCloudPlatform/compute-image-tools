@@ -27,7 +27,7 @@ import (
 	"time"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
-	service "github.com/GoogleCloudPlatform/compute-image-tools/service_library"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
@@ -41,10 +41,12 @@ var (
 var dump = &pretty.Config{IncludeUnexported: true}
 
 const (
-	// TODO: make this configurable.
-	interval      = 10 * time.Minute
-	metadataURL   = "http://metadata.google.internal/computeMetadata/v1/instance/?recursive=true&alt=json"
-	maxRetryDelay = 30
+	// TODO: make interval configurable.
+	interval          = 10 * time.Minute
+	instanceMetadata  = "http://metadata.google.internal/computeMetadata/v1/instance"
+	metadataRecursive = instanceMetadata + "/?recursive=true&alt=json"
+	reportURL         = instanceMetadata + "/guest-attributes"
+	maxRetryDelay     = 30
 )
 
 type metadataJSON struct {
@@ -58,7 +60,7 @@ func getResourceName(r string) (string, error) {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", metadataURL, nil)
+	req, err := http.NewRequest("GET", metadataRecursive, nil)
 	if err != nil {
 		return "", err
 	}
@@ -97,6 +99,23 @@ func strIn(s string, ss []string) bool {
 		}
 	}
 	return false
+}
+
+func postAttribute(url string, value io.Reader) error {
+	req, err := http.NewRequest("PUT", url, value)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Metadata-Flavor", "Google")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(`received status code %q for request "%s %s"`, resp.Status, req.Method, req.URL.String())
+	}
+	return nil
 }
 
 func run(ctx context.Context) {

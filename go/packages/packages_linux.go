@@ -20,7 +20,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 )
 
 var (

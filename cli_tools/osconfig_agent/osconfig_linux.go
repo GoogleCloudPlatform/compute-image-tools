@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
 func setOsConfig(res *osconfigpb.LookupConfigsResponse) error {

@@ -15,7 +15,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -46,6 +48,10 @@ func saveState(state string, w *patchWindow) error {
 	d, err := json.Marshal(w)
 	if err != nil {
 		return err
+	}
+
+	if err := postAttribute(reportURL+"/osConfig/patchRunner", bytes.NewReader(d)); err != nil {
+		fmt.Println("ERROR:", err)
 	}
 
 	// TODO: Once we are storing more state consider atomic state save

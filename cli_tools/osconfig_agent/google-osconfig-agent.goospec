@@ -26,6 +26,6 @@
   }],
   "build": {
     "linux": "/bin/bash",
-    "linuxArgs": ["-c", "GOOS=windows go build"]
+    "linuxArgs": ["-c", "GOOS=windows go build -ldflags='-s -w'"]
   }
 }

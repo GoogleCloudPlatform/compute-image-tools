@@ -18,7 +18,7 @@ import (
 	"os/exec"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
 func rebootRequired() (bool, error) {
@@ -26,7 +26,7 @@ func rebootRequired() (bool, error) {
 	return false, nil
 }
 
-func runUpdates(pp *patchPolicy) (bool, error) {
+func runUpdates(pp patchPolicy) (bool, error) {
 	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
 		reboot, err := rebootRequired()
 		if err != nil {

@@ -38,7 +38,7 @@ func patchInit() {
 	pw, err := loadState(state)
 	if err != nil {
 		log.Println("ERROR:", err)
-	} else if pw != nil && pw.Name != "" {
+	} else if pw != nil && pw.Name != "" && !pw.Complete {
 		pw.register()
 	}
 
@@ -48,7 +48,14 @@ func patchInit() {
 
 type activeWindows struct {
 	windows map[string]*patchWindow
-	mx      sync.Mutex
+	mx      sync.RWMutex
+}
+
+func (a *activeWindows) get(name string) (*patchWindow, bool) {
+	a.mx.RLock()
+	defer a.mx.RUnlock()
+	w, ok := aw.windows[name]
+	return w, ok
 }
 
 func (a *activeWindows) delete(name string) {
@@ -83,18 +90,81 @@ func (p *patchPolicy) UnmarshalJSON(b []byte) error {
 }
 
 type patchWindow struct {
-	Name   string
-	Policy *patchPolicy
+	Name                         string
+	Policy                       *patchPolicy
+	ScheduledStart, ScheduledEnd time.Time
 
-	Start, End time.Time
+	StartedAt, EndedAt time.Time `json:",omitempty"`
+	Complete           bool
+	Errors             []string `json:",omitempty"`
 
 	t      *time.Timer
 	cancel chan struct{}
 	mx     sync.RWMutex
 }
 
-func (w *patchWindow) String() string {
+func (w *patchWindow) getName() string {
+	w.mx.RLock()
+	defer w.mx.RUnlock()
 	return w.Name
+}
+
+func (w *patchWindow) setName(name string) {
+	w.mx.Lock()
+	defer w.mx.Unlock()
+	w.Name = name
+}
+
+func (w *patchWindow) getScheduledStart() time.Time {
+	w.mx.RLock()
+	defer w.mx.RUnlock()
+	return w.ScheduledStart
+}
+
+func (w *patchWindow) setScheduledStart(s time.Time) {
+	w.mx.Lock()
+	defer w.mx.Unlock()
+	w.ScheduledStart = s
+}
+
+func (w *patchWindow) getScheduledEnd() time.Time {
+	w.mx.RLock()
+	defer w.mx.RUnlock()
+	return w.ScheduledEnd
+}
+
+func (w *patchWindow) setScheduledEnd(s time.Time) {
+	w.mx.Lock()
+	defer w.mx.Unlock()
+	w.ScheduledEnd = s
+}
+
+func (w *patchWindow) stopTimer() {
+	w.mx.RLock()
+	defer w.mx.RUnlock()
+	w.t.Stop()
+}
+
+func (w *patchWindow) setTimer(t *time.Timer) {
+	w.mx.Lock()
+	defer w.mx.Unlock()
+	w.t = t
+}
+
+func (w *patchWindow) getPolicy() *patchPolicy {
+	w.mx.RLock()
+	defer w.mx.RUnlock()
+	return w.Policy
+}
+
+func (w *patchWindow) setPolicy(p *patchPolicy) {
+	w.mx.Lock()
+	defer w.mx.Unlock()
+	w.Policy = p
+}
+
+func (w *patchWindow) String() string {
+	return w.getName()
 }
 
 func newPatchWindow(pp *osconfigpb.LookupConfigsResponse_EffectivePatchPolicy) (*patchWindow, error) {
@@ -103,11 +173,11 @@ func newPatchWindow(pp *osconfigpb.LookupConfigsResponse_EffectivePatchPolicy) (
 		return nil, err
 	}
 	return &patchWindow{
-		Name:   pp.GetFullName(),
-		Policy: &patchPolicy{pp},
-		Start:  start,
-		End:    end,
-		cancel: make(chan struct{}),
+		Name:           pp.GetFullName(),
+		Policy:         &patchPolicy{pp},
+		ScheduledStart: start,
+		ScheduledEnd:   end,
+		cancel:         make(chan struct{}),
 	}, nil
 }
 
@@ -119,7 +189,7 @@ func (w *patchWindow) in() bool {
 	}
 
 	now := time.Now()
-	return now.After(w.Start) && now.Before(w.End)
+	return now.After(w.getScheduledStart()) && now.Before(w.getScheduledEnd())
 }
 
 // update updates a patchWindow with a PatchPolicy.
@@ -130,9 +200,9 @@ func (w *patchWindow) update(p *osconfigpb.LookupConfigsResponse_EffectivePatchP
 		return
 	}
 
-	if start != w.Start {
+	if start != w.getScheduledStart() {
 		fmt.Println("DEBUG: patchWindow start changed, need to reregister:", w.Name)
-		w.t.Stop()
+		w.stopTimer()
 		// Cancel any potential current run if we are no longer in a patch window.
 		if w.in() {
 			fmt.Println("DEBUG: patchWindow running, need to cancel:", w.Name)
@@ -142,10 +212,9 @@ func (w *patchWindow) update(p *osconfigpb.LookupConfigsResponse_EffectivePatchP
 		defer w.register()
 	}
 
-	w.mx.Lock()
-	w.Start, w.End = start, end
-	w.Policy = &patchPolicy{p}
-	w.mx.Unlock()
+	w.setScheduledStart(start)
+	w.setScheduledEnd(end)
+	w.setPolicy(&patchPolicy{p})
 
 	fmt.Println("DEBUG: update end", w.Name)
 }
@@ -154,14 +223,11 @@ func (w *patchWindow) update(p *osconfigpb.LookupConfigsResponse_EffectivePatchP
 // window with the same name.
 func (w *patchWindow) register() {
 	fmt.Println("DEBUG: register", w.Name)
-	w.mx.Lock()
-	defer w.mx.Unlock()
-
-	aw.add(w.Name, w)
+	aw.add(w.getName(), w)
 
 	// Create the Timer that will kick off the patch process.
 	// If we happen to be in the patch window now this will start imediately.
-	w.t = time.AfterFunc(w.Start.Sub(time.Now()), func() { rc <- w })
+	w.setTimer(time.AfterFunc(w.ScheduledStart.Sub(time.Now()), func() { rc <- w }))
 	fmt.Println(w.Name, "register done")
 }
 
@@ -169,25 +235,22 @@ func (w *patchWindow) register() {
 // but does not cancel any current runs.
 func (w *patchWindow) deregister() {
 	fmt.Println("DEBUG: deregister", w.Name)
-	w.t.Stop()
-	aw.delete(w.Name)
+	w.stopTimer()
+	aw.delete(w.getName())
 }
 
 func (w *patchWindow) run() (reboot bool) {
 	fmt.Println("DEBUG: run", w.Name)
 
-	w.mx.RLock()
-	defer w.mx.RUnlock()
+	w.StartedAt = time.Now()
+
+	if w.Complete {
+		return false
+	}
 
 	defer func() {
-		if reboot {
-			if err := saveState(state, w); err != nil {
-				log.Println("ERROR:", err)
-			}
-		} else {
-			if err := saveState(state, nil); err != nil {
-				log.Println("ERROR:", err)
-			}
+		if err := saveState(state, w); err != nil {
+			log.Println("ERROR:", err)
 		}
 	}()
 
@@ -197,25 +260,30 @@ func (w *patchWindow) run() (reboot bool) {
 		return false
 	}
 
-	fmt.Println("running patch window", w.Name)
 	if err := saveState(state, w); err != nil {
 		log.Println("ERROR:", err)
+		w.Errors = append(w.Errors, err.Error())
 	}
 
-	reboot, err := runUpdates(w.Policy)
+	reboot, err := runUpdates(*w.getPolicy())
 	if err != nil {
 		// TODO: implement retries
 		log.Println("ERROR:", err)
+		w.Errors = append(w.Errors, err.Error())
 		return false
 	}
 
-	// Make sure we are still in the patch window after each step.
-	// TODO: Pass this to runUpdates instead?
+	// Make sure we are still in the patch window
 	if !w.in() {
 		fmt.Println(w.Name, "timedout")
+		w.Errors = append(w.Errors, "Patch window timed out")
 		return false
 	}
 
+	if !reboot {
+		w.Complete = true
+		w.EndedAt = time.Now()
+	}
 	return reboot
 }
 
@@ -233,18 +301,19 @@ func setPatchPolicies(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPol
 			toDeregister = append(toDeregister, w)
 		}
 	}
+	aw.mx.Unlock()
 
 	fmt.Printf("DEBUG: list of patchWindows to deregister: %q\n", toDeregister)
 	for _, w := range toDeregister {
-		defer w.deregister()
+		w.deregister()
 	}
 
 	// Update or create patchWindows based on provided patch policies.
 	for _, pp := range efps {
 		fmt.Println("DEBUG: setup", pp.GetFullName())
-		if w, ok := aw.windows[pp.GetFullName()]; ok {
+		if w, ok := aw.get(pp.GetFullName()); ok {
 			fmt.Println("DEBUG: patchWindow to update:", w.Name)
-			defer w.update(pp)
+			w.update(pp)
 			continue
 		}
 
@@ -254,11 +323,8 @@ func setPatchPolicies(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPol
 			continue
 		}
 		fmt.Println("DEBUG: patchWindow to create:", w.Name)
-		defer w.register()
+		w.register()
 	}
-	// TODO: Look into simplifying locking, maybe just one lock and no updates
-	// during a patch run?
-	aw.mx.Unlock()
 }
 
 func patchRunner() {
@@ -272,7 +338,8 @@ func patchRunner() {
 			if pw.Policy.RebootConfig == osconfigpb.PatchPolicy_NEVER {
 				continue
 			}
-			if (pw.Policy.RebootConfig == osconfigpb.PatchPolicy_ALWAYS) || (pw.Policy.RebootConfig == osconfigpb.PatchPolicy_DEFAULT && reboot) {
+			if (pw.Policy.RebootConfig == osconfigpb.PatchPolicy_ALWAYS) ||
+				((pw.Policy.RebootConfig == osconfigpb.PatchPolicy_DEFAULT) || (pw.Policy.RebootConfig == osconfigpb.PatchPolicy_REBOOT_CONFIG_UNSPECIFIED) && reboot) {
 				fmt.Println("DEBUG: reboot requested", pw.Name)
 				if err := rebootSystem(); err != nil {
 					fmt.Println("ERROR: error running reboot:", err)

@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/StackExchange/wmi"
 	ole "github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -208,7 +208,6 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer updtsRaw.Clear()
 
 	updts := updtsRaw.ToIDispatch()
 
@@ -216,7 +215,6 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer count.Clear()
 	updtCnt, _ := count.Value().(int32)
 
 	if updtCnt == 0 {
@@ -231,7 +229,6 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer updtRaw.Clear()
 
 		updt := updtRaw.ToIDispatch()
 		defer updt.Release()
@@ -256,89 +253,6 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 	}
 
 	return updates, nil
-}
-
-// InstallWUAUpdates installs all WUA updates that match query.
-func InstallWUAUpdates(query string) error {
-	if err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED); err != nil {
-		return err
-	}
-	defer ole.CoUninitialize()
-
-	updateSessionObj, err := oleutil.CreateObject("Microsoft.Update.Session")
-	if err != nil {
-		return err
-	}
-	defer updateSessionObj.Release()
-
-	session, err := updateSessionObj.IDispatch(ole.IID_IDispatch)
-	if err != nil {
-		return err
-	}
-	defer session.Release()
-
-	updtsRaw, err := GetWUAUpdateCollection(session, query)
-	if err != nil {
-		return fmt.Errorf("GetWUAUpdates error: %v", err)
-	}
-	defer updtsRaw.Clear()
-
-	updts := updtsRaw.ToIDispatch()
-	countRaw, err := updts.GetProperty("Count")
-	if err != nil {
-		return err
-	}
-	defer countRaw.Clear()
-
-	count, _ := countRaw.Value().(int32)
-
-	if count == 0 {
-		fmt.Println("No updates to install")
-		return nil
-	}
-
-	fmt.Printf("%d Windows updates available\n", count)
-
-	var msg string
-	for i := 0; i < int(count); i++ {
-		if err := func() error {
-			updtRaw, err := updts.GetProperty("Item", i)
-			if err != nil {
-				return err
-			}
-
-			updt := updtRaw.ToIDispatch()
-			defer updt.Release()
-
-			title, err := updt.GetProperty("Title")
-			if err != nil {
-				return err
-			}
-			defer title.Clear()
-
-			eula, err := updt.GetProperty("EulaAccepted")
-			if err != nil {
-				updtRaw.Clear()
-				return err
-			}
-			defer eula.Clear()
-
-			msg += fmt.Sprintf("  %s\n  - EulaAccepted: %v\n", title.Value(), eula.Value())
-			return nil
-		}(); err != nil {
-			return err
-		}
-	}
-	fmt.Printf("Windows updates to be installed:\n%s\n", msg)
-
-	if err := DownloadWUAUpdateCollection(session, updtsRaw); err != nil {
-		return fmt.Errorf("DownloadWUAUpdates error: %v", err)
-	}
-
-	if err := InstallWUAUpdateCollection(session, updtsRaw); err != nil {
-		return fmt.Errorf("InstallWUAUpdates error: %v", err)
-	}
-	return nil
 }
 
 // DownloadWUAUpdateCollection downloads all updates in a IUpdateCollection
