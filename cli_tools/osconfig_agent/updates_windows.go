@@ -38,23 +38,32 @@ func rebootRequired() (bool, error) {
 	return true, nil
 }
 
+func getIterativeProp(src *ole.IDispatch, prop string) (*ole.IDispatch, int32, error) {
+	raw, err := src.GetProperty(prop)
+	if err != nil {
+		return nil, 0, err
+	}
+	dis := raw.ToIDispatch()
+
+	countRaw, err := dis.GetProperty("Count")
+	if err != nil {
+		return nil, 0, err
+	}
+	count, _ := countRaw.Value().(int32)
+
+	return dis, count, nil
+}
+
 func filterUpdate(classFilter, excludes map[string]struct{}, updt, updateColl *ole.IDispatch) error {
 	title, err := updt.GetProperty("Title")
 	if err != nil {
 		return fmt.Errorf(`updt.GetProperty("Title"): %v`, err)
 	}
 
-	kbArticleIDsRaw, err := updt.GetProperty("KBArticleIDs")
+	kbArticleIDs, kbArticleIDsCount, err := getIterativeProp(updt, "KBArticleIDs")
 	if err != nil {
-		return fmt.Errorf(`updt.GetProperty("KBArticleIDs"): %v`, err)
+		return fmt.Errorf(`getIterativeProp(updt, "KBArticleIDs"): %v`, err)
 	}
-	kbArticleIDs := kbArticleIDsRaw.ToIDispatch()
-
-	kbArticleIDsCountRaw, err := kbArticleIDs.GetProperty("Count")
-	if err != nil {
-		return fmt.Errorf(`kbArticleIDsRaw.ToIDispatch().GetProperty("Count"): %v`, err)
-	}
-	kbArticleIDsCount, _ := kbArticleIDsCountRaw.Value().(int32)
 
 	fmt.Printf("DEBUG: filtering out KBs: %q\n", excludes)
 	for i := 0; i < int(kbArticleIDsCount); i++ {
@@ -70,18 +79,12 @@ func filterUpdate(classFilter, excludes map[string]struct{}, updt, updateColl *o
 
 	fmt.Printf("DEBUG: filtering by classifications: %q\n", classFilter)
 	if len(classFilter) != 0 {
-		categoriesRaw, err := updt.GetProperty("Categories")
+		categories, categoriesCount, err := getIterativeProp(updt, "Categories")
 		if err != nil {
-			return fmt.Errorf(`updt.GetProperty("Categories"): %v`, err)
+			return fmt.Errorf(`getIterativeProp(updt, "Categories"): %v`, err)
 		}
-		categories := categoriesRaw.ToIDispatch()
 
-		categoriesCountRaw, err := categories.GetProperty("Count")
-		if err != nil {
-			return fmt.Errorf(`categoriesRaw.ToIDispatch().GetProperty("Count"): %v`, err)
-		}
-		categoriesCount, _ := categoriesCountRaw.Value().(int32)
-
+		var found bool
 		for i := 0; i < int(categoriesCount); i++ {
 			catRaw, err := categories.GetProperty("Item", i)
 			if err != nil {
@@ -93,9 +96,12 @@ func filterUpdate(classFilter, excludes map[string]struct{}, updt, updateColl *o
 				return fmt.Errorf(`catRaw.ToIDispatch().GetProperty("CategoryID"): %v`, err)
 			}
 
-			if _, ok := classFilter[catIdRaw.ToString()]; !ok {
-				return nil
+			if _, ok := classFilter[catIdRaw.ToString()]; ok {
+				found = true
 			}
+		}
+		if !found {
+			return nil
 		}
 	}
 
