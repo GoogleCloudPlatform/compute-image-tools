@@ -171,7 +171,7 @@ func installWUAUpdates(pp *patchPolicy) error {
 	for _, c := range pp.WindowsUpdate.Classifications {
 		sc, ok := classifications[c]
 		if !ok {
-			return fmt.Errorf("Unknown classification:", c)
+			return fmt.Errorf("Unknown classification: %s", c)
 		}
 		class[sc] = struct{}{}
 	}
