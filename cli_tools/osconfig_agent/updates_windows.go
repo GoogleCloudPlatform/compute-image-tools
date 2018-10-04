@@ -98,6 +98,7 @@ func filterUpdate(classFilter, excludes map[string]struct{}, updt, updateColl *o
 
 			if _, ok := classFilter[catIdRaw.ToString()]; ok {
 				found = true
+				break
 			}
 		}
 		if !found {
