@@ -61,7 +61,7 @@ function Remove-VMWareTools {
   Get-ChildItem HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall | Foreach-Object {
     if ((Get-ItemProperty $_.PSPath).DisplayName -eq 'VMWare Tools') {
       Write-Output 'Translate: Found VMWare Tools installed, removing...'
-      Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet') -Wait
+      Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet') -Wait -ErrorAction SilentlyContinue
       Restart-Computer
       exit 0
     }
@@ -260,6 +260,7 @@ try {
   $script:outs_dir = Get-MetadataValue -key 'daisy-outs-path'
   $script:install_packages = Get-MetadataValue -key 'install-gce-packages'
   $script:sysprep = Get-MetadataValue -key 'sysprep'
+  $script:byol = Get-MetadataValue -key 'byol'
 
   Remove-VMWareTools
   Change-InstanceProperties
@@ -278,8 +279,10 @@ try {
   if ($script:sysprep.ToLower() -ne 'true') {
     Enable-RemoteDesktop
 
-    Write-Output 'Translate: Setting up KMS activation'
-    . 'C:\Program Files\Google\Compute Engine\sysprep\activate_instance.ps1' | Out-Null
+    if ($script:byol.ToLower() -ne 'true') {
+      Write-Output 'Translate: Setting up KMS activation'
+      . 'C:\Program Files\Google\Compute Engine\sysprep\activate_instance.ps1' | Out-Null
+    }
 
     if ($script:install_packages.ToLower() -ne 'true') {
       Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-engine-metadata-scripts
@@ -288,6 +291,10 @@ try {
     Write-Output 'Translate complete.'
     Stop-Computer
     exit 0
+  }
+
+  if ($script:byol.ToLower() -eq 'true') {
+    'Image imported into GCE using BYOL worklfow' > 'C:\Program Files\Google\Compute Engine\sysprep\byol_image'
   }
 
   Write-Output 'Translate: Launching sysprep.'
