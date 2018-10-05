@@ -338,7 +338,9 @@ func patchRunner() {
 				continue
 			}
 			if (pw.Policy.RebootConfig == osconfigpb.PatchPolicy_ALWAYS) ||
-				((pw.Policy.RebootConfig == osconfigpb.PatchPolicy_DEFAULT) || (pw.Policy.RebootConfig == osconfigpb.PatchPolicy_REBOOT_CONFIG_UNSPECIFIED) && reboot) {
+				(((pw.Policy.RebootConfig == osconfigpb.PatchPolicy_DEFAULT) ||
+					(pw.Policy.RebootConfig == osconfigpb.PatchPolicy_REBOOT_CONFIG_UNSPECIFIED)) &&
+					reboot) {
 				logger.Println("DEBUG: reboot requested", pw.Name)
 				if err := rebootSystem(); err != nil {
 					logger.Println("ERROR: error running reboot:", err)
