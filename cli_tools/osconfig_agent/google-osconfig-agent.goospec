@@ -1,6 +1,6 @@
 {
   "name": "google-osconfig-agent",
-  "version": "0.1.1@1",
+  "version": "0.2.0@1",
   "arch": "x86_64",
   "authors": "Google Inc.",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
@@ -26,6 +26,6 @@
   }],
   "build": {
     "linux": "/bin/bash",
-    "linuxArgs": ["-c", "GOOS=windows go build"]
+    "linuxArgs": ["-c", "GOOS=windows go build -ldflags='-s -w'"]
   }
 }

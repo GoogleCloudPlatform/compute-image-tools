@@ -27,7 +27,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/option"
 	"google.golang.org/api/transport"

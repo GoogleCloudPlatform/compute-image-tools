@@ -24,10 +24,11 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
-	service "github.com/GoogleCloudPlatform/compute-image-tools/service_library"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
 )
@@ -36,15 +37,18 @@ var (
 	oauth    = flag.String("oauth", "", "path to oauth json file")
 	resource = flag.String("resource", "", "projects/*/zones/*/instances/*")
 	endpoint = flag.String("endpoint", "osconfig.googleapis.com:443", "osconfig endpoint override")
+	logger   = log.New(os.Stdout, "", 0)
 )
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
 const (
-	// TODO: make this configurable.
-	interval      = 10 * time.Minute
-	metadataURL   = "http://metadata.google.internal/computeMetadata/v1/instance/?recursive=true&alt=json"
-	maxRetryDelay = 30
+	// TODO: make interval configurable.
+	interval          = 10 * time.Minute
+	instanceMetadata  = "http://metadata.google.internal/computeMetadata/v1/instance"
+	metadataRecursive = instanceMetadata + "/?recursive=true&alt=json"
+	reportURL         = instanceMetadata + "/guest-attributes"
+	maxRetryDelay     = 30
 )
 
 type metadataJSON struct {
@@ -58,7 +62,7 @@ func getResourceName(r string) (string, error) {
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", metadataURL, nil)
+	req, err := http.NewRequest("GET", metadataRecursive, nil)
 	if err != nil {
 		return "", err
 	}
@@ -73,7 +77,7 @@ func getResourceName(r string) (string, error) {
 			break
 		}
 		rt := time.Duration(math.Min(float64(3*i), maxRetryDelay)) * time.Second
-		fmt.Printf("Error connecting to metadata server (error number: %d), retrying in %s, error: %v\n", i, rt, err)
+		logger.Printf("Error connecting to metadata server (error number: %d), retrying in %s, error: %v\n", i, rt, err)
 		time.Sleep(rt)
 	}
 	defer res.Body.Close()
@@ -97,6 +101,23 @@ func strIn(s string, ss []string) bool {
 		}
 	}
 	return false
+}
+
+func postAttribute(url string, value io.Reader) error {
+	req, err := http.NewRequest("PUT", url, value)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Metadata-Flavor", "Google")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf(`received status code %q for request "%s %s"`, resp.Status, req.Method, req.URL.String())
+	}
+	return nil
 }
 
 func run(ctx context.Context) {

@@ -20,8 +20,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
-	"github.com/google/logger"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 )
 
 var (
@@ -140,7 +139,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 		apt, err := aptUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting apt updates: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["apt"] = apt
@@ -150,7 +149,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 		yum, err := yumUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting yum updates: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["yum"] = yum
@@ -160,7 +159,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 		zypper, err := zypperUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting zypper updates: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["zypper"] = zypper
@@ -170,7 +169,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 		gem, err := gemUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting gem updates: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["gem"] = gem
@@ -180,7 +179,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 		pip, err := pipUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting pip updates: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["pip"] = pip
@@ -228,7 +227,7 @@ func aptUpdates() ([]PkgInfo, error) {
 			continue
 		}
 		if len(pkg) < 6 {
-			logger.Errorf("%q does not represent an apt update", ln)
+			fmt.Printf("%q does not represent an apt update\n", ln)
 			continue
 		}
 		ver := strings.Trim(pkg[3], "(")
@@ -273,7 +272,7 @@ func yumUpdates() ([]PkgInfo, error) {
 			break
 		}
 		if len(pkg) != 3 {
-			logger.Errorf("%s does not represent a yum update", ln)
+			fmt.Printf("%s does not represent a yum update\n", ln)
 			continue
 		}
 		name := strings.Split(pkg[0], ".")
@@ -306,7 +305,7 @@ func zypperUpdates() ([]PkgInfo, error) {
 	for _, ln := range lines[2:] {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 11 {
-			logger.Errorf("%s does not represent a zypper update", ln)
+			fmt.Printf("%s does not represent a zypper update\n", ln)
 			continue
 		}
 		pkgs = append(pkgs, PkgInfo{Name: pkg[4], Arch: osinfo.Architecture(pkg[10]), Version: pkg[8]})
@@ -334,7 +333,7 @@ func gemUpdates() ([]PkgInfo, error) {
 	for _, ln := range lines {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 4 {
-			logger.Errorf("%q does not represent a gem update", ln)
+			fmt.Printf("%q does not represent a gem update\n", ln)
 			continue
 		}
 		ver := strings.Trim(pkg[3], ")")
@@ -363,7 +362,7 @@ func pipUpdates() ([]PkgInfo, error) {
 	for _, ln := range lines {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 6 {
-			logger.Errorf("%q does not represent a pip update", ln)
+			fmt.Printf("%q does not represent a pip update\n", ln)
 			continue
 		}
 		pkgs = append(pkgs, PkgInfo{Name: pkg[0], Arch: noarch, Version: pkg[4]})
@@ -380,7 +379,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 		rpm, err := installedRPM()
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed rpm packages: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["rpm"] = rpm
@@ -390,7 +389,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 		deb, err := installedDEB()
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed deb packages: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["deb"] = deb
@@ -400,7 +399,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 		gem, err := installedGEM()
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed gem packages: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["gem"] = gem
@@ -410,7 +409,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 		pip, err := installedPIP()
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed pip packages: %v", err)
-			logger.Error(msg)
+			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs["pip"] = pip
@@ -433,7 +432,7 @@ func installedDEB() ([]PkgInfo, error) {
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 
 	if len(lines) == 0 {
-		logger.Info("No deb packages installed.")
+		fmt.Println("No deb packages installed.")
 		return nil, nil
 	}
 
@@ -441,7 +440,7 @@ func installedDEB() ([]PkgInfo, error) {
 	for _, ln := range lines {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 3 {
-			logger.Errorf("%q does not represent a deb", ln)
+			fmt.Printf("%q does not represent a deb\n", ln)
 			continue
 		}
 
@@ -464,7 +463,7 @@ func installedRPM() ([]PkgInfo, error) {
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 
 	if len(lines) == 0 {
-		logger.Info("No rpm packages installed.")
+		fmt.Println("No rpm packages installed.")
 		return nil, nil
 	}
 
@@ -472,7 +471,7 @@ func installedRPM() ([]PkgInfo, error) {
 	for _, ln := range lines {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 3 {
-			logger.Errorf("%q does not represent a rpm", ln)
+			fmt.Printf("%q does not represent a rpm\n", ln)
 			continue
 		}
 
@@ -498,7 +497,7 @@ func installedGEM() ([]PkgInfo, error) {
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 
 	if len(lines) == 0 {
-		logger.Info("No gems installed.")
+		fmt.Println("No gems installed.")
 		return nil, nil
 	}
 
@@ -506,7 +505,7 @@ func installedGEM() ([]PkgInfo, error) {
 	for _, ln := range lines[2:] {
 		pkg := strings.Fields(ln)
 		if len(pkg) < 2 {
-			logger.Errorf("%q does not represent a gem", ln)
+			fmt.Printf("%q does not represent a gem\n", ln)
 			continue
 		}
 		for _, ver := range strings.Split(strings.Trim(pkg[1], "()"), ", ") {
@@ -530,7 +529,7 @@ func installedPIP() ([]PkgInfo, error) {
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 
 	if len(lines) == 0 {
-		logger.Info("No python packages installed.")
+		fmt.Println("No python packages installed.")
 		return nil, nil
 	}
 
@@ -538,7 +537,7 @@ func installedPIP() ([]PkgInfo, error) {
 	for _, ln := range lines[2:] {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 2 {
-			logger.Errorf("%q does not represent a python packages", ln)
+			fmt.Printf("%q does not represent a python packages\n", ln)
 			continue
 		}
 		ver := strings.Trim(pkg[1], "()")

@@ -60,7 +60,7 @@ func TestLoadState(t *testing.T) {
 		},
 		{
 			"test patchWindow",
-			[]byte(`{"Name":"foo","Policy":{"LookupConfigsResponse_EffectivePatchPolicy":{"fullName":"flipyflappy","patchWindow":{"startTime":{"hours":1,"minutes":2,"seconds":3},"duration":"60m","daily":{}}}},"Start":"2018-09-11T01:00:00Z","End":"2018-09-11T02:00:00Z"}`),
+			[]byte(`{"Name":"foo","Policy":{"LookupConfigsResponse_EffectivePatchPolicy":{"fullName":"flipyflappy","patchWindow":{"startTime":{"hours":1,"minutes":2,"seconds":3},"duration":"60m","daily":{}}}},"ScheduledStart":"2018-09-11T01:00:00Z","ScheduledEnd":"2018-09-11T02:00:00Z"}`),
 			false,
 			&patchWindow{
 				Name: "foo",
@@ -78,8 +78,8 @@ func TestLoadState(t *testing.T) {
 						},
 					},
 				},
-				Start: time.Date(2018, 9, 11, 1, 0, 0, 0, time.UTC),
-				End:   time.Date(2018, 9, 11, 2, 0, 0, 0, time.UTC),
+				ScheduledStart: time.Date(2018, 9, 11, 1, 0, 0, 0, time.UTC),
+				ScheduledEnd:   time.Date(2018, 9, 11, 2, 0, 0, 0, time.UTC),
 			},
 		},
 	}
@@ -140,10 +140,10 @@ func TestSaveState(t *testing.T) {
 						},
 					},
 				},
-				Start: time.Date(2018, 9, 11, 1, 0, 0, 0, time.UTC),
-				End:   time.Date(2018, 9, 11, 2, 0, 0, 0, time.UTC),
+				ScheduledStart: time.Date(2018, 9, 11, 1, 0, 0, 0, time.UTC),
+				ScheduledEnd:   time.Date(2018, 9, 11, 2, 0, 0, 0, time.UTC),
 			},
-			"{\"Name\":\"foo\",\"Policy\":{\"LookupConfigsResponse_EffectivePatchPolicy\":{\"fullName\":\"flipyflappy\",\"patchWindow\":{\"startTime\":{\"hours\":1,\"minutes\":2,\"seconds\":3},\"duration\":\"3600s\",\"daily\":{}}}},\"Start\":\"2018-09-11T01:00:00Z\",\"End\":\"2018-09-11T02:00:00Z\"}",
+			"{\"Name\":\"foo\",\"Policy\":{\"LookupConfigsResponse_EffectivePatchPolicy\":{\"fullName\":\"flipyflappy\",\"patchWindow\":{\"startTime\":{\"hours\":1,\"minutes\":2,\"seconds\":3},\"duration\":\"3600s\",\"daily\":{}}}},\"ScheduledStart\":\"2018-09-11T01:00:00Z\",\"ScheduledEnd\":\"2018-09-11T02:00:00Z\",\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false}",
 		},
 	}
 	for _, tt := range tests {

@@ -31,9 +31,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osinfo"
-	"github.com/GoogleCloudPlatform/compute-image-tools/package_library"
-	"github.com/GoogleCloudPlatform/compute-image-tools/service_library"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
 	"github.com/google/logger"
 )
 
