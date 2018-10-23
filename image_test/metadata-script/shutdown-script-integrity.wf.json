@@ -3,14 +3,17 @@
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "shutdown_msg": {"Required": true, "Description": "Hash of shutdown script"},
+    "wait_msg": {"Required": true, "Description": "Message to stop instance"},
     "shutdown_script_name": {"Required": true, "Description": "Shutdown script of the created instance"},
+    "startup_script_name": {"Required": true, "Description": "Startup script of the created instance"},
     "instance_url": "integrity-url",
     "instance_gcs": "integrity-gcs",
     "instance_public_gcs": "integrity-public-gcs",
     "instance_metadata": "integrity-metadata"
   },
   "Sources": {
-    "shutdown_file.ps1": "${shutdown_script_name}"
+    "shutdown_file.ps1": "${shutdown_script_name}",
+    "startup_script.ps1": "${startup_script_name}"
   },
   "Steps": {
     "create-integrity-url": {
@@ -19,6 +22,8 @@
         "Vars": {
             "source_image": "${source_image}",
             "instance": "${instance_url}",
+            "startup_script_meta_key": "startup-script-url",
+            "startup_script_meta": "${SOURCESPATH}/startup_script.ps1",
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "https://raw.githubusercontent.com/GoogleCloudPlatform/compute-image-tools/master/image_test/metadata-script/${shutdown_script_name}"
@@ -31,7 +36,8 @@
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
             "instance": "${instance_url}",
-            "shutdown_msg": "${shutdown_msg}"
+            "shutdown_msg": "${shutdown_msg}",
+            "wait_msg": "${wait_msg}"
         }
       }
     },
@@ -42,6 +48,8 @@
         "Vars": {
             "source_image": "${source_image}",
             "instance":  "${instance_gcs}",
+            "startup_script_meta_key": "startup-script-url",
+            "startup_script_meta": "${SOURCESPATH}/startup_script.ps1",
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "${SOURCESPATH}/shutdown_file.ps1"
@@ -54,7 +62,8 @@
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
             "instance": "${instance_gcs}",
-            "shutdown_msg": "${shutdown_msg}"
+            "shutdown_msg": "${shutdown_msg}",
+            "wait_msg": "${wait_msg}"
         }
       }
     },
@@ -65,6 +74,11 @@
           "Source": "${SOURCESPATH}/shutdown_file.ps1",
           "Destination": "${SOURCESPATH}/shutdown_file_public.ps1",
           "AclRules": [{"Entity": "allUsers", "Role": "READER"}]
+        },
+        {
+          "Source": "${SOURCESPATH}/startup_script.ps1",
+          "Destination": "${SOURCESPATH}/startup_script_public.ps1",
+          "AclRules": [{"Entity": "allUsers", "Role": "READER"}]
         }
       ]
     },
@@ -74,6 +88,8 @@
         "Vars": {
             "source_image": "${source_image}",
             "instance": "${instance_public_gcs}",
+            "startup_script_meta_key": "startup-script-url",
+            "startup_script_meta": "${SOURCESPATH}/startup_script_public.ps1",
             "shutdown_script_meta_key": "shutdown-script-url",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-url",
             "shutdown_script_meta": "${SOURCESPATH}/shutdown_file_public.ps1"
@@ -86,7 +102,8 @@
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
             "instance": "${instance_public_gcs}",
-            "shutdown_msg": "${shutdown_msg}"
+            "shutdown_msg": "${shutdown_msg}",
+            "wait_msg": "${wait_msg}"
         }
       }
     },
@@ -97,6 +114,8 @@
         "Vars": {
             "source_image": "${source_image}",
             "instance": "${instance_metadata}",
+            "startup_script_meta_key": "startup-script-url",
+            "startup_script_meta": "${SOURCESPATH}/startup_script.ps1",
             "shutdown_script_meta_key": "shutdown-script",
             "windows_shutdown_script_meta_key": "windows-shutdown-script-ps1",
             "shutdown_script_meta": "${SOURCE:shutdown_file.ps1}"
@@ -109,7 +128,8 @@
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
             "instance": "${instance_metadata}",
-            "shutdown_msg": "${shutdown_msg}"
+            "shutdown_msg": "${shutdown_msg}",
+            "wait_msg": "${wait_msg}"
         }
       }
     }
