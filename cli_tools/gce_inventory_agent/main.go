@@ -71,23 +71,23 @@ func postAttribute(url string, value io.Reader) error {
 }
 
 func postAttributeCompressed(url string, body interface{}) error {
-	msg, err := json.Marshal(body)
-	if err != nil {
-		return err
-	}
 
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-
-	if _, err := zw.Write(msg); err != nil {
+	buf := &bytes.Buffer{}
+	b := base64.NewEncoder(base64.StdEncoding, buf)
+	zw := gzip.NewWriter(b)
+	w := json.NewEncoder(zw)
+	if err := w.Encode(body); err != nil {
 		return err
 	}
 
 	if err := zw.Close(); err != nil {
 		return err
 	}
+	if err := b.Close(); err != nil {
+		return err
+	}
 
-	return postAttribute(url, strings.NewReader(base64.StdEncoding.EncodeToString(buf.Bytes())))
+	return postAttribute(url, buf)
 }
 
 func writeInventory(state *instanceInventory, url string) {
