@@ -43,8 +43,8 @@ var AptRepository_ArchiveType_name = map[int32]string{
 
 var AptRepository_ArchiveType_value = map[string]int32{
 	"ARCHIVE_TYPE_UNSPECIFIED": 0,
-	"DEB":     1,
-	"DEB_SRC": 2,
+	"DEB":                      1,
+	"DEB_SRC":                  2,
 }
 
 func (x AptRepository_ArchiveType) String() string {

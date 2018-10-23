@@ -26,24 +26,19 @@ if [ ! -z "${PULL_NUMBER}" ]; then
 fi
 
 echo 'Pulling imports...'
-go get -d -t -v ./...
-GOOS=windows go get -d -t -v ./...
+go get -d -t ./...
+GOOS=windows go get -d -t ./...
 
 # We dont run golint on Windows only code as style often matches win32 api 
 # style, not golang style
 golint -set_exit_status ./...
 GOLINT_RET=$?
 
-GOFMT_OUT=$(gofmt -l $(find . -type f -name "*.go") 2>&1)
-if [ -z "${GOFMT_OUT}" ]; then
-  GOFMT_RET=0
-else
-  GOFMT_RET=1
-fi
+GOFMT_OUT=$(gofmt -d $(find . -type f -name "*.go") 2>&1)
 
-go vet -v ./...
+go vet ./...
 GOVET_RET=$?
-GOOS=windows go vet -v ./...
+GOOS=windows go vet ./...
 RET=$?
 if [ $RET != 0 ]; then
   GOVET_RET=$RET
@@ -53,8 +48,12 @@ fi
 if [ ${GOLINT_RET} != 0 ]; then
   echo "'golint ./...' returned ${GOLINT_RET}"
 fi
-if [ ${GOFMT_RET} != 0 ]; then
-  echo "'gofmt -l' returned ${GOFMT_RET}"
+if [ -z "${GOFMT_OUT}" ]; then
+  echo "'gofmt -d \$(find . -type f -name \"*.go\")' returned:"
+  echo ${GOFMT_OUT}
+  GOFMT_RET=1
+else
+  GOFMT_RET=0
 fi
 if [ ${GOVET_RET} != 0 ]; then
   echo "'go vet ./...' returned ${GOVET_RET}"

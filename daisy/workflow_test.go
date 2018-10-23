@@ -288,7 +288,7 @@ func TestNewFromFile(t *testing.T) {
 			},
 		},
 		"postinstall-stopped": {
-			name: "postinstall-stopped",
+			name:                   "postinstall-stopped",
 			WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "postinstall", Stopped: true}},
 		},
 		"create-image": {

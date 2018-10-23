@@ -57,11 +57,11 @@ var LookupConfigsRequest_ConfigType_name = map[int32]string{
 
 var LookupConfigsRequest_ConfigType_value = map[string]int32{
 	"CONFIG_TYPE_UNSPECIFIED": 0,
-	"APT":            1,
-	"YUM":            2,
-	"GOO":            3,
-	"WINDOWS_UPDATE": 4,
-	"ZYPPER":         5,
+	"APT":                     1,
+	"YUM":                     2,
+	"GOO":                     3,
+	"WINDOWS_UPDATE":          4,
+	"ZYPPER":                  5,
 }
 
 func (x LookupConfigsRequest_ConfigType) String() string {
