@@ -17,9 +17,9 @@ FROM golang
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 
-RUN RUN apt-get update && apt-get install -y git && \
+RUN apt-get update && apt-get install -y git && \
     rm -rf /var/cache/apt/archives
-RUN go get -u github.com/golang/lint/golint
+RUN go get -u golang.org/x/lint/golint
 
 COPY --from=0 /wrapper wrapper
 COPY main.sh main.sh

@@ -26,7 +26,8 @@
     },
     "task_xml": {
       "Required": true
-    }
+    },
+    "byol": "false"
   },
   "Sources": {
     "translate.ps1": "./translate.ps1",
@@ -93,7 +94,8 @@
           "MachineType": "n1-standard-2",
           "Metadata": {
             "install-gce-packages": "${install_gce_packages}",
-            "sysprep": "${sysprep}"
+            "sysprep": "${sysprep}",
+            "byol": "${byol}"
           },
           "StartupScript": "translate.ps1"
         }
