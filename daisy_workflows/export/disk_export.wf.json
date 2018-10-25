@@ -24,6 +24,10 @@
     "export_network": {
       "Value": "global/networks/default",
       "Description": "Network to use for the export instance"
+    },
+    "export_subnet": {
+      "Value": "",
+      "Description": "SubNetwork to use for the export instance"
     }
   },
   "Sources": {
@@ -53,7 +57,8 @@
           },
           "networkInterfaces": [
             {
-              "network": "${export_network}"
+              "network": "${export_network}",
+	      "subnetwork": "${export_subnet}"
             }
           ],
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
