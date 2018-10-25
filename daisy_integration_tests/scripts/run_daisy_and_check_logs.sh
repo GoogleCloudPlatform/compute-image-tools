@@ -39,14 +39,14 @@ if [ $? -ne 0 ]; then
 fi
 
 # Run daisy
-daisy go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_integration_tests/step_create_images.wf.json
+daisy go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_integration_tests/step_create_disks.wf.json
 if [ $? -ne 0 ]; then
   echo "BuildFailed: Error executing Daisy."
   exit 1
 fi
 
 # Verify logs were sent to Cloud Logging
-LOGS=$(gcloud logging read "resource.labels.instance_id=$INSTANCE_ID jsonPayload.workflow=step_create_images")
+LOGS=$(gcloud logging read "resource.labels.instance_id=$INSTANCE_ID jsonPayload.workflow=create-disks-test")
 if [ $SHOULD_HAVE_LOGS = "true" ]; then
   if [ -z "$LOGS" ]; then
     echo "BuildFailed: Expected Cloud Logs."
