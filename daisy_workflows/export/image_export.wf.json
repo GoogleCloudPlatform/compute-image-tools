@@ -50,7 +50,7 @@
           "export_instance_disk_size": "${export_instance_disk_size}",
           "licenses": "${licenses}",
           "export_network": "${export_network}",
-	  "export_subnet": "${export_subnet}"
+          "export_subnet": "${export_subnet}"
         }
       }
     }
