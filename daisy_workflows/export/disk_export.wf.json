@@ -24,10 +24,6 @@
     "export_network": {
       "Value": "global/networks/default",
       "Description": "Network to use for the export instance"
-    },
-    "export_subnet": {
-      "Value": "",
-      "Description": "SubNetwork to use for the export instance"
     }
   },
   "Sources": {
@@ -51,13 +47,13 @@
           "Disks": [{"Source": "disk-${NAME}"}, {"Source": "${source_disk}", "Mode": "READ_ONLY"}],
           "MachineType": "n1-highcpu-4",
           "Metadata": {
+            "block-project-ssh-keys": "true",
             "gcs-path": "${OUTSPATH}/${NAME}.tar.gz",
             "licenses": "${licenses}"
           },
           "networkInterfaces": [
             {
-              "network": "${export_network}",
-	      "subnetwork": "${export_subnet}"
+              "network": "${export_network}"
             }
           ],
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
