@@ -61,6 +61,7 @@ func (*Assignment) ProtoMessage()    {}
 func (*Assignment) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e4b5881c4fd4af0, []int{0}
 }
+
 func (m *Assignment) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Assignment.Unmarshal(m, b)
 }
@@ -152,6 +153,7 @@ func (*CreateAssignmentRequest) ProtoMessage()    {}
 func (*CreateAssignmentRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e4b5881c4fd4af0, []int{1}
 }
+
 func (m *CreateAssignmentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateAssignmentRequest.Unmarshal(m, b)
 }
@@ -199,6 +201,7 @@ func (*GetAssignmentRequest) ProtoMessage()    {}
 func (*GetAssignmentRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e4b5881c4fd4af0, []int{2}
 }
+
 func (m *GetAssignmentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetAssignmentRequest.Unmarshal(m, b)
 }
@@ -245,6 +248,7 @@ func (*ListAssignmentsRequest) ProtoMessage()    {}
 func (*ListAssignmentsRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e4b5881c4fd4af0, []int{3}
 }
+
 func (m *ListAssignmentsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListAssignmentsRequest.Unmarshal(m, b)
 }
@@ -302,6 +306,7 @@ func (*ListAssignmentsResponse) ProtoMessage()    {}
 func (*ListAssignmentsResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e4b5881c4fd4af0, []int{4}
 }
+
 func (m *ListAssignmentsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListAssignmentsResponse.Unmarshal(m, b)
 }
@@ -354,6 +359,7 @@ func (*UpdateAssignmentRequest) ProtoMessage()    {}
 func (*UpdateAssignmentRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e4b5881c4fd4af0, []int{5}
 }
+
 func (m *UpdateAssignmentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateAssignmentRequest.Unmarshal(m, b)
 }
@@ -408,6 +414,7 @@ func (*DeleteAssignmentRequest) ProtoMessage()    {}
 func (*DeleteAssignmentRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_7e4b5881c4fd4af0, []int{6}
 }
+
 func (m *DeleteAssignmentRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteAssignmentRequest.Unmarshal(m, b)
 }
