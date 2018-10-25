@@ -18,7 +18,7 @@
 %endif
 
 Name: google-compute-engine-inventory
-Version: 1.1.0
+Version: 1.2.0
 Release: 1%{?dist}
 Summary: Google Compute Engine inventory agent
 License: ASL 2.0

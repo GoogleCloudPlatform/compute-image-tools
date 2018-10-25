@@ -48,8 +48,8 @@ type instanceInventory struct {
 	Version           string
 	Architecture      string
 	KernelVersion     string
-	InstalledPackages map[string][]packages.PkgInfo
-	PackageUpdates    map[string][]packages.PkgInfo
+	InstalledPackages packages.Packages
+	PackageUpdates    packages.Packages
 	Errors            []string
 }
 

@@ -132,8 +132,8 @@ func zypperUpdate() error {
 
 // GetPackageUpdates gets all available package updates from any known
 // installed package manager.
-func GetPackageUpdates() (map[string][]PkgInfo, []string) {
-	pkgs := map[string][]PkgInfo{}
+func GetPackageUpdates() (Packages, []string) {
+	pkgs := Packages{}
 	var errs []string
 	if AptExists {
 		apt, err := aptUpdates()
@@ -142,7 +142,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["apt"] = apt
+			pkgs.Apt = apt
 		}
 	}
 	if YumExists {
@@ -152,7 +152,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["yum"] = yum
+			pkgs.Yum = yum
 		}
 	}
 	if ZypperExists {
@@ -162,7 +162,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["zypper"] = zypper
+			pkgs.Zypper = zypper
 		}
 	}
 	if GemExists {
@@ -172,7 +172,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["gem"] = gem
+			pkgs.Gem = gem
 		}
 	}
 	if PipExists {
@@ -182,7 +182,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["pip"] = pip
+			pkgs.Pip = pip
 		}
 	}
 	return pkgs, errs
@@ -372,8 +372,8 @@ func pipUpdates() ([]PkgInfo, error) {
 
 // GetInstalledPackages gets all installed packages from any known installed
 // package manager.
-func GetInstalledPackages() (map[string][]PkgInfo, []string) {
-	pkgs := map[string][]PkgInfo{}
+func GetInstalledPackages() (Packages, []string) {
+	pkgs := Packages{}
 	var errs []string
 	if exists(rpmquery) {
 		rpm, err := installedRPM()
@@ -382,7 +382,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["rpm"] = rpm
+			pkgs.Rpm = rpm
 		}
 	}
 	if exists(dpkgquery) {
@@ -392,7 +392,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["deb"] = deb
+			pkgs.Deb = deb
 		}
 	}
 	if exists(gem) {
@@ -402,7 +402,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["gem"] = gem
+			pkgs.Gem = gem
 		}
 	}
 	if exists(pip) {
@@ -412,7 +412,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["pip"] = pip
+			pkgs.Pip = pip
 		}
 	}
 	return pkgs, errs
