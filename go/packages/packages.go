@@ -43,9 +43,9 @@ var (
 // Packages is a selection of packages based on their manager.
 type Packages struct {
 	Yum    []PkgInfo    `json:"yum,omitempty"`
-	Rpm    []PkgInfo    `json:"yum,omitempty"`
+	Rpm    []PkgInfo    `json:"rpm,omitempty"`
 	Apt    []PkgInfo    `json:"apt,omitempty"`
-	Deb    []PkgInfo    `json:"apt,omitempty"`
+	Deb    []PkgInfo    `json:"deb,omitempty"`
 	Zypper []PkgInfo    `json:"zypper,omitempty"`
 	Gem    []PkgInfo    `json:"gem,omitempty"`
 	Pip    []PkgInfo    `json:"pip,omitempty"`
@@ -64,13 +64,11 @@ type WUAPackage struct {
 	Title          string
 	Description    string
 	Categories     []string
+	CategoryIDs    []string
 	KBArticleIDs   []string
 	SupportURL     string
 	UpdateID       string
 	RevisionNumber int32
-	//SecurityBulletinIDs []string
-	//MsrcSeverity        string
-	//CveIDs              []string
 }
 
 // QFEPackage describes a Windows Quick Fix Engineering package.

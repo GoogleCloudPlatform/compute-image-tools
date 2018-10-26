@@ -206,34 +206,40 @@ func getStringSlice(dis *ole.IDispatch) ([]string, error) {
 	return ss, nil
 }
 
-func getCategories(cat *ole.IDispatch) ([]string, error) {
+func getCategories(cat *ole.IDispatch) ([]string, []string, error) {
 	countRaw, err := cat.GetProperty("Count")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	count, _ := countRaw.Value().(int32)
 
 	if count == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
-	var ss []string
+	var cns, cids []string
 	for i := 0; i < int(count); i++ {
 		itemRaw, err := cat.GetProperty("Item", i)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		item := itemRaw.ToIDispatch()
 		defer item.Release()
 
 		name, err := item.GetProperty("Name")
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		ss = append(ss, name.ToString())
+		categoryID, err := item.GetProperty("CategoryID")
+		if err != nil {
+			return nil, nil, err
+		}
+
+		cns = append(cns, name.ToString())
+		cids = append(cids, categoryID.ToString())
 	}
-	return ss, nil
+	return cns, cids, nil
 }
 
 // wuaUpdates queries the Windows Update Agent API searcher with the provided query.
@@ -305,7 +311,7 @@ func wuaUpdates(query string) ([]WUAPackage, error) {
 		if err != nil {
 			return nil, err
 		}
-		categories, err := getCategories(categoriesRaw.ToIDispatch())
+		categories, categoryIDs, err := getCategories(categoriesRaw.ToIDispatch())
 		if err != nil {
 			return nil, err
 		}
@@ -338,6 +344,7 @@ func wuaUpdates(query string) ([]WUAPackage, error) {
 			KBArticleIDs:   kbArticleIDs,
 			UpdateID:       updateID.ToString(),
 			Categories:     categories,
+			CategoryIDs:    categoryIDs,
 			RevisionNumber: int32(revisionNumber.Val),
 		}
 
