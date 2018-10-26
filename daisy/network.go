@@ -59,6 +59,7 @@ func networkExists(client daisyCompute.Client, project, name string) (bool, dErr
 // Network is used to create a GCE network.
 type Network struct {
 	compute.Network
+	AutoCreateSubnetworks *bool `json:"autoCreateSubnetworks,omitempty"`
 	Resource
 }
 
@@ -73,6 +74,11 @@ func (n *Network) populate(ctx context.Context, s *Step) dErr {
 
 	n.Description = strOr(n.Description, defaultDescription("Network", s.w.Name, s.w.username))
 	n.link = fmt.Sprintf("projects/%s/global/networks/%s", n.Project, n.Name)
+
+	if n.AutoCreateSubnetworks != nil {
+		n.Network.AutoCreateSubnetworks = *n.AutoCreateSubnetworks
+		n.Network.ForceSendFields = []string{"AutoCreateSubnetworks"}
+	}
 	return errs
 }
 

@@ -90,6 +90,7 @@ func (*OsConfig) ProtoMessage()    {}
 func (*OsConfig) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{0}
 }
+
 func (m *OsConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_OsConfig.Unmarshal(m, b)
 }
@@ -202,6 +203,7 @@ func (*AptPackageConfig) ProtoMessage()    {}
 func (*AptPackageConfig) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{1}
 }
+
 func (m *AptPackageConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AptPackageConfig.Unmarshal(m, b)
 }
@@ -265,6 +267,7 @@ func (*YumPackageConfig) ProtoMessage()    {}
 func (*YumPackageConfig) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{2}
 }
+
 func (m *YumPackageConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_YumPackageConfig.Unmarshal(m, b)
 }
@@ -328,6 +331,7 @@ func (*ZypperPackageConfig) ProtoMessage()    {}
 func (*ZypperPackageConfig) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{3}
 }
+
 func (m *ZypperPackageConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ZypperPackageConfig.Unmarshal(m, b)
 }
@@ -391,6 +395,7 @@ func (*GooPackageConfig) ProtoMessage()    {}
 func (*GooPackageConfig) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{4}
 }
+
 func (m *GooPackageConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GooPackageConfig.Unmarshal(m, b)
 }
@@ -446,6 +451,7 @@ func (*WindowsUpdateConfig) ProtoMessage()    {}
 func (*WindowsUpdateConfig) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{5}
 }
+
 func (m *WindowsUpdateConfig) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WindowsUpdateConfig.Unmarshal(m, b)
 }
@@ -486,6 +492,7 @@ func (*Package) ProtoMessage()    {}
 func (*Package) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{6}
 }
+
 func (m *Package) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Package.Unmarshal(m, b)
 }
@@ -536,6 +543,7 @@ func (*AptRepository) ProtoMessage()    {}
 func (*AptRepository) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{7}
 }
+
 func (m *AptRepository) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AptRepository.Unmarshal(m, b)
 }
@@ -613,6 +621,7 @@ func (*YumRepository) ProtoMessage()    {}
 func (*YumRepository) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{8}
 }
+
 func (m *YumRepository) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_YumRepository.Unmarshal(m, b)
 }
@@ -683,6 +692,7 @@ func (*ZypperRepository) ProtoMessage()    {}
 func (*ZypperRepository) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{9}
 }
+
 func (m *ZypperRepository) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ZypperRepository.Unmarshal(m, b)
 }
@@ -747,6 +757,7 @@ func (*GooRepository) ProtoMessage()    {}
 func (*GooRepository) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{10}
 }
+
 func (m *GooRepository) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GooRepository.Unmarshal(m, b)
 }
@@ -796,6 +807,7 @@ func (*CreateOsConfigRequest) ProtoMessage()    {}
 func (*CreateOsConfigRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{11}
 }
+
 func (m *CreateOsConfigRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CreateOsConfigRequest.Unmarshal(m, b)
 }
@@ -843,6 +855,7 @@ func (*GetOsConfigRequest) ProtoMessage()    {}
 func (*GetOsConfigRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{12}
 }
+
 func (m *GetOsConfigRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetOsConfigRequest.Unmarshal(m, b)
 }
@@ -889,6 +902,7 @@ func (*ListOsConfigsRequest) ProtoMessage()    {}
 func (*ListOsConfigsRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{13}
 }
+
 func (m *ListOsConfigsRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListOsConfigsRequest.Unmarshal(m, b)
 }
@@ -946,6 +960,7 @@ func (*ListOsConfigsResponse) ProtoMessage()    {}
 func (*ListOsConfigsResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{14}
 }
+
 func (m *ListOsConfigsResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ListOsConfigsResponse.Unmarshal(m, b)
 }
@@ -997,6 +1012,7 @@ func (*UpdateOsConfigRequest) ProtoMessage()    {}
 func (*UpdateOsConfigRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{15}
 }
+
 func (m *UpdateOsConfigRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateOsConfigRequest.Unmarshal(m, b)
 }
@@ -1051,6 +1067,7 @@ func (*DeleteOsConfigRequest) ProtoMessage()    {}
 func (*DeleteOsConfigRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_734d7e4527b6d512, []int{16}
 }
+
 func (m *DeleteOsConfigRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteOsConfigRequest.Unmarshal(m, b)
 }
@@ -1077,6 +1094,7 @@ func (m *DeleteOsConfigRequest) GetName() string {
 }
 
 func init() {
+	proto.RegisterEnum("google.cloud.osconfig.v1alpha1.AptRepository_ArchiveType", AptRepository_ArchiveType_name, AptRepository_ArchiveType_value)
 	proto.RegisterType((*OsConfig)(nil), "google.cloud.osconfig.v1alpha1.OsConfig")
 	proto.RegisterMapType((map[string]string)(nil), "google.cloud.osconfig.v1alpha1.OsConfig.LabelsEntry")
 	proto.RegisterType((*AptPackageConfig)(nil), "google.cloud.osconfig.v1alpha1.AptPackageConfig")
@@ -1095,7 +1113,6 @@ func init() {
 	proto.RegisterType((*ListOsConfigsResponse)(nil), "google.cloud.osconfig.v1alpha1.ListOsConfigsResponse")
 	proto.RegisterType((*UpdateOsConfigRequest)(nil), "google.cloud.osconfig.v1alpha1.UpdateOsConfigRequest")
 	proto.RegisterType((*DeleteOsConfigRequest)(nil), "google.cloud.osconfig.v1alpha1.DeleteOsConfigRequest")
-	proto.RegisterEnum("google.cloud.osconfig.v1alpha1.AptRepository_ArchiveType", AptRepository_ArchiveType_name, AptRepository_ArchiveType_value)
 }
 
 func init() {

@@ -18,10 +18,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/StackExchange/wmi"
 	ole "github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
@@ -44,8 +42,8 @@ func init() {
 
 // GetPackageUpdates gets available package updates GooGet as well as any
 // available updates from Windows Update Agent.
-func GetPackageUpdates() (map[string][]PkgInfo, []string) {
-	pkgs := map[string][]PkgInfo{}
+func GetPackageUpdates() (Packages, []string) {
+	var pkgs Packages
 	var errs []string
 
 	if GooGetExists {
@@ -54,7 +52,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["googet"] = googet
+			pkgs.GooGet = googet
 		}
 	}
 	if wua, err := wuaUpdates("IsInstalled=0"); err != nil {
@@ -62,7 +60,7 @@ func GetPackageUpdates() (map[string][]PkgInfo, []string) {
 		fmt.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
-		pkgs["wua"] = wua
+		pkgs.WUA = wua
 	}
 	return pkgs, errs
 }
@@ -185,8 +183,67 @@ type (
 	IUpdateCollection = *ole.VARIANT
 )
 
+func getStringSlice(dis *ole.IDispatch) ([]string, error) {
+	countRaw, err := dis.GetProperty("Count")
+	if err != nil {
+		return nil, err
+	}
+	count, _ := countRaw.Value().(int32)
+
+	if count == 0 {
+		return nil, nil
+	}
+
+	var ss []string
+	for i := 0; i < int(count); i++ {
+		item, err := dis.GetProperty("Item", i)
+		if err != nil {
+			return nil, err
+		}
+
+		ss = append(ss, item.ToString())
+	}
+	return ss, nil
+}
+
+func getCategories(cat *ole.IDispatch) ([]string, []string, error) {
+	countRaw, err := cat.GetProperty("Count")
+	if err != nil {
+		return nil, nil, err
+	}
+	count, _ := countRaw.Value().(int32)
+
+	if count == 0 {
+		return nil, nil, nil
+	}
+
+	var cns, cids []string
+	for i := 0; i < int(count); i++ {
+		itemRaw, err := cat.GetProperty("Item", i)
+		if err != nil {
+			return nil, nil, err
+		}
+		item := itemRaw.ToIDispatch()
+		defer item.Release()
+
+		name, err := item.GetProperty("Name")
+		if err != nil {
+			return nil, nil, err
+		}
+
+		categoryID, err := item.GetProperty("CategoryID")
+		if err != nil {
+			return nil, nil, err
+		}
+
+		cns = append(cns, name.ToString())
+		cids = append(cids, categoryID.ToString())
+	}
+	return cns, cids, nil
+}
+
 // wuaUpdates queries the Windows Update Agent API searcher with the provided query.
-func wuaUpdates(query string) ([]PkgInfo, error) {
+func wuaUpdates(query string) ([]WUAPackage, error) {
 	if err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED); err != nil {
 		return nil, err
 	}
@@ -223,7 +280,7 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 
 	fmt.Printf("%d updates available\n", updtCnt)
 
-	var updates []PkgInfo
+	var packages []WUAPackage
 	for i := 0; i < int(updtCnt); i++ {
 		updtRaw, err := updts.GetProperty("Item", i)
 		if err != nil {
@@ -237,22 +294,64 @@ func wuaUpdates(query string) ([]PkgInfo, error) {
 		if err != nil {
 			return nil, err
 		}
-		name := title.ToString()
-		ver := "unknown"
-		// Match (KB4052623) or just KB4052623 for Defender patches.
-		if start := strings.Index(name, "(KB"); start != -1 {
-			if end := strings.Index(name[start:], ")"); end != -1 {
-				ver = name[start+1 : start+end]
-			}
-		} else if start := strings.Index(name, "KB"); start != -1 {
-			if end := strings.Index(name[start:], " "); end != -1 {
-				ver = name[start : start+end]
-			}
+		description, err := updt.GetProperty("Description")
+		if err != nil {
+			return nil, err
 		}
-		updates = append(updates, PkgInfo{Name: name, Arch: osinfo.Architecture(runtime.GOARCH), Version: ver})
+		kbArticleIDsRaw, err := updt.GetProperty("KBArticleIDs")
+		if err != nil {
+			return nil, err
+		}
+		kbArticleIDs, err := getStringSlice(kbArticleIDsRaw.ToIDispatch())
+		if err != nil {
+			return nil, err
+		}
+
+		categoriesRaw, err := updt.GetProperty("Categories")
+		if err != nil {
+			return nil, err
+		}
+		categories, categoryIDs, err := getCategories(categoriesRaw.ToIDispatch())
+		if err != nil {
+			return nil, err
+		}
+
+		supportURL, err := updt.GetProperty("SupportURL")
+		if err != nil {
+			return nil, err
+		}
+
+		identityRaw, err := updt.GetProperty("Identity")
+		if err != nil {
+			return nil, err
+		}
+		identity := identityRaw.ToIDispatch()
+		defer updt.Release()
+
+		revisionNumber, err := identity.GetProperty("RevisionNumber")
+		if err != nil {
+			return nil, err
+		}
+		updateID, err := identity.GetProperty("UpdateID")
+		if err != nil {
+			return nil, err
+		}
+
+		pkg := WUAPackage{
+			Title:          title.ToString(),
+			Description:    description.ToString(),
+			SupportURL:     supportURL.ToString(),
+			KBArticleIDs:   kbArticleIDs,
+			UpdateID:       updateID.ToString(),
+			Categories:     categories,
+			CategoryIDs:    categoryIDs,
+			RevisionNumber: int32(revisionNumber.Val),
+		}
+
+		packages = append(packages, pkg)
 	}
 
-	return updates, nil
+	return packages, nil
 }
 
 // DownloadWUAUpdateCollection downloads all updates in a IUpdateCollection
@@ -329,8 +428,8 @@ func GetWUAUpdateCollection(session IUpdateSession, query string) (IUpdateCollec
 
 // GetInstalledPackages gets all installed GooGet packages and Windows updates.
 // Windows updates are read from Windows Update Agent and Win32_QuickFixEngineering.
-func GetInstalledPackages() (map[string][]PkgInfo, []string) {
-	pkgs := map[string][]PkgInfo{}
+func GetInstalledPackages() (Packages, []string) {
+	var pkgs Packages
 	var errs []string
 
 	if exists(googet) {
@@ -339,7 +438,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 			fmt.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
-			pkgs["googet"] = googet
+			pkgs.GooGet = googet
 		}
 	}
 
@@ -348,7 +447,7 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 		fmt.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
-		pkgs["wua"] = wua
+		pkgs.WUA = wua
 	}
 
 	if qfe, err := quickFixEngineering(); err != nil {
@@ -356,26 +455,31 @@ func GetInstalledPackages() (map[string][]PkgInfo, []string) {
 		fmt.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
-		pkgs["qfe"] = qfe
+		pkgs.QFE = qfe
 	}
 
 	return pkgs, errs
 }
 
 type win32_QuickFixEngineering struct {
-	HotFixID string
+	Caption, Description, HotFixID, InstalledOn string
 }
 
 // quickFixEngineering queries the wmi object win32_QuickFixEngineering for a list of installed updates.
-func quickFixEngineering() ([]PkgInfo, error) {
+func quickFixEngineering() ([]QFEPackage, error) {
 	var updts []win32_QuickFixEngineering
 	fmt.Println("Querying WMI for installed QuickFixEngineering updates.")
 	if err := wmi.Query(wmi.CreateQuery(&updts, ""), &updts); err != nil {
 		return nil, err
 	}
-	var qfe []PkgInfo
+	var qfe []QFEPackage
 	for _, update := range updts {
-		qfe = append(qfe, PkgInfo{Name: update.HotFixID, Arch: osinfo.Architecture(runtime.GOARCH), Version: update.HotFixID})
+		qfe = append(qfe, QFEPackage{
+			Caption:     update.Caption,
+			Description: update.Description,
+			HotFixID:    update.HotFixID,
+			InstalledOn: update.InstalledOn,
+		})
 	}
 	return qfe, nil
 }

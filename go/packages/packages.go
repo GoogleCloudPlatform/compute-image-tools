@@ -40,9 +40,40 @@ var (
 	noarch = osinfo.Architecture("noarch")
 )
 
+// Packages is a selection of packages based on their manager.
+type Packages struct {
+	Yum    []PkgInfo    `json:"yum,omitempty"`
+	Rpm    []PkgInfo    `json:"rpm,omitempty"`
+	Apt    []PkgInfo    `json:"apt,omitempty"`
+	Deb    []PkgInfo    `json:"deb,omitempty"`
+	Zypper []PkgInfo    `json:"zypper,omitempty"`
+	Gem    []PkgInfo    `json:"gem,omitempty"`
+	Pip    []PkgInfo    `json:"pip,omitempty"`
+	GooGet []PkgInfo    `json:"googet,omitempty"`
+	WUA    []WUAPackage `json:"wua,omitempty"`
+	QFE    []QFEPackage `json:"qfe,omitempty"`
+}
+
 // PkgInfo describes a package.
 type PkgInfo struct {
 	Name, Arch, Version string
+}
+
+// WUAPackage describes a Windows Update Agent package.
+type WUAPackage struct {
+	Title          string
+	Description    string
+	Categories     []string
+	CategoryIDs    []string
+	KBArticleIDs   []string
+	SupportURL     string
+	UpdateID       string
+	RevisionNumber int32
+}
+
+// QFEPackage describes a Windows Quick Fix Engineering package.
+type QFEPackage struct {
+	Caption, Description, HotFixID, InstalledOn string
 }
 
 func run(cmd *exec.Cmd) ([]byte, error) {
