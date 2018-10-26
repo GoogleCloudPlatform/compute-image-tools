@@ -42,8 +42,16 @@ func (s *sha2DriverSigningCheck) run() (*report, error) {
 		return nil, fmt.Errorf("GetInstalledPackages errors:\n* %s", strings.Join(errs, "\n* "))
 	}
 
-	for _, pkg := range append(pkgs["qfe"], pkgs["wua"]...) {
-		if pkg.Version == sha2Windows2008R2KB || pkg.Version == windows2008R2RollupKB {
+	for _, pkg := range pkgs.WUA {
+		for _, id := range pkg.KBArticleIDs {
+			if id == sha2Windows2008R2KB {
+				r.Info(fmt.Sprintf("Windows Update containing SHA2 driver signing support found: %v", pkg))
+				return r, nil
+			}
+		}
+	}
+	for _, pkg := range pkgs.QFE {
+		if pkg.HotFixID == sha2Windows2008R2KB {
 			r.Info(fmt.Sprintf("Windows Update containing SHA2 driver signing support found: %v", pkg))
 			return r, nil
 		}
