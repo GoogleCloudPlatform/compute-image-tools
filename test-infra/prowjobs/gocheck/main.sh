@@ -48,7 +48,7 @@ fi
 if [ ${GOLINT_RET} != 0 ]; then
   echo "'golint ./...' returned ${GOLINT_RET}"
 fi
-if [ -z "${GOFMT_OUT}" ]; then
+if [ ! -z "${GOFMT_OUT}" ]; then
   echo "'gofmt -d \$(find . -type f -name \"*.go\")' returned:"
   echo ${GOFMT_OUT}
   GOFMT_RET=1
