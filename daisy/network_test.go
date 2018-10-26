@@ -27,6 +27,9 @@ func TestNetworkPopulate(t *testing.T) {
 	w := testWorkflow()
 	s, _ := w.NewStep("s")
 
+	pTrue := true
+	pFalse := false
+
 	desc := defaultDescription("Network", w.Name, w.username)
 	name := "name"
 	tests := []struct {
@@ -34,6 +37,8 @@ func TestNetworkPopulate(t *testing.T) {
 		n, want *Network
 	}{
 		{"defaults case", &Network{}, &Network{Network: compute.Network{Description: desc}, Resource: Resource{link: fmt.Sprintf("projects/%s/global/networks/%s", w.Project, name)}}},
+		{"AutoCreateSubnetworks false", &Network{AutoCreateSubnetworks: &pFalse}, &Network{AutoCreateSubnetworks: &pFalse, Network: compute.Network{Description: desc, AutoCreateSubnetworks: false, ForceSendFields: []string{"AutoCreateSubnetworks"}}, Resource: Resource{link: fmt.Sprintf("projects/%s/global/networks/%s", w.Project, name)}}},
+		{"AutoCreateSubnetworks true", &Network{AutoCreateSubnetworks: &pTrue}, &Network{AutoCreateSubnetworks: &pTrue, Network: compute.Network{Description: desc, AutoCreateSubnetworks: true, ForceSendFields: []string{"AutoCreateSubnetworks"}}, Resource: Resource{link: fmt.Sprintf("projects/%s/global/networks/%s", w.Project, name)}}},
 	}
 
 	for _, tt := range tests {
