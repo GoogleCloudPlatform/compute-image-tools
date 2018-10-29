@@ -76,12 +76,21 @@ func (s *SubWorkflow) run(ctx context.Context, st *Step) dErr {
 		return err
 	}
 
-	defer s.Workflow.cleanup()
+	swCleanup := func() {
+		s.Workflow.LogWorkflowInfo("SubWorkflow %q cleaning up (this may take up to 2 minutes).", s.Workflow.Name)
+		for _, hook := range s.Workflow.cleanupHooks {
+			if err := hook(); err != nil {
+				s.Workflow.LogWorkflowInfo("Error returned from SubWorkflow cleanup hook: %s", err)
+			}
+		}
+	}
+
+	defer swCleanup()
 	// If the workflow fails before the subworkflow completes, the previous
 	// "defer" cleanup won't happen. Add a failsafe here, have the workflow
 	// also call this subworkflow's cleanup.
 	st.w.addCleanupHook(func() dErr {
-		s.Workflow.cleanup()
+		swCleanup()
 		return nil
 	})
 
