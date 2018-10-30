@@ -20,6 +20,7 @@ import (
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/golang/protobuf/ptypes/duration"
+	"google.golang.org/genproto/googleapis/type/date"
 	"google.golang.org/genproto/googleapis/type/dayofweek"
 	"google.golang.org/genproto/googleapis/type/timeofday"
 )
@@ -206,6 +207,44 @@ func TestNextWindow(t *testing.T) {
 			now.AddDate(0, 0, 15), // 15 days is after this months window
 			time.Date(2018, 8, 14, 5, 0, 0, 0, time.UTC),
 			time.Date(2018, 8, 14, 5, 0, 3600, 0, time.UTC), // Next month, 14th of Aug
+		},
+		{
+			"run once in the future",
+			&osconfigpb.PatchWindow{
+				Frequency: &osconfigpb.PatchWindow_RunOnce_{
+					RunOnce: &osconfigpb.PatchWindow_RunOnce{
+						Date: &date.Date{
+							Year:  2018,
+							Month: 10,
+							Day:   10,
+						},
+					},
+				},
+				StartTime: &timeofday.TimeOfDay{Hours: 5},
+				Duration:  &duration.Duration{Seconds: 3600},
+			}, // Run once on 2018-10-10
+			now,
+			time.Date(2018, 10, 10, 5, 0, 0, 0, time.UTC),
+			time.Date(2018, 10, 10, 5, 0, 3600, 0, time.UTC),
+		},
+		{
+			"run once already should have started",
+			&osconfigpb.PatchWindow{
+				Frequency: &osconfigpb.PatchWindow_RunOnce_{
+					RunOnce: &osconfigpb.PatchWindow_RunOnce{
+						Date: &date.Date{
+							Year:  int32(now.Year()),
+							Month: int32(now.Month()),
+							Day:   int32(now.Day()),
+						},
+					},
+				},
+				StartTime: &timeofday.TimeOfDay{Hours: int32(now.Hour() - 1)},
+				Duration:  &duration.Duration{Seconds: 7200},
+			}, // Run once window started an hour ago
+			now, // We are already in the patch window
+			now.Add(-3600 * time.Second),
+			now.Add(3600 * time.Second),
 		},
 	}
 
