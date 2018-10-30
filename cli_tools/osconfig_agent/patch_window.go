@@ -35,6 +35,8 @@ func nextWindow(now time.Time, window *osconfigpb.PatchWindow, offset int) (time
 		start, err = weeklyWindowStart(now, window.GetStartTime(), window.GetWeekly(), offset)
 	case window.GetMonthly() != nil:
 		start, err = monthlyWindowStart(now, window.GetStartTime(), window.GetMonthly(), offset)
+	case window.GetRunOnce() != nil:
+		start, err = runOnceStart(now, window.GetStartTime(), window.GetRunOnce(), offset)
 	default:
 		return now, now, errors.New("no window set in PatchWindow")
 	}
@@ -45,9 +47,21 @@ func nextWindow(now time.Time, window *osconfigpb.PatchWindow, offset int) (time
 	length := time.Duration(window.GetDuration().GetSeconds()) * time.Second
 	end := start.Add(length)
 	if now.After(end) {
-		return nextWindow(now, window, offset+1)
+		if isRecurringWindow(window) {
+			return nextWindow(now, window, offset+1)
+		}
+		return now, now, errors.New("Non recurring window already expired")
 	}
 	return start, end, nil
+}
+
+func isRecurringWindow(window *osconfigpb.PatchWindow) bool {
+	return window.GetDaily() != nil || window.GetWeekly() != nil || window.GetMonthly() != nil
+}
+
+func runOnceStart(now time.Time, start *timeofday.TimeOfDay, window *osconfigpb.PatchWindow_RunOnce, offset int) (time.Time, error) {
+	nextRun := time.Date(int(window.Date.Year), time.Month(int(window.Date.Month)), int(window.Date.Day), int(start.Hours), int(start.Minutes), int(start.Seconds), int(start.Nanos), now.Location())
+	return nextRun, nil
 }
 
 func monthlyWindowStart(now time.Time, start *timeofday.TimeOfDay, window *osconfigpb.PatchWindow_Monthly, offset int) (time.Time, error) {
