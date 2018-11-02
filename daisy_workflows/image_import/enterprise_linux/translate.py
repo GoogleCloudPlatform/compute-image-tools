@@ -27,11 +27,6 @@ import os
 
 import utils
 
-utils.AptGetInstall(['python-guestfs', 'libguestfs-tools'])
-
-import guestfs  # flake8: noqa: E402
-
-
 repo_compute = '''
 [google-cloud-compute]
 name=Google Cloud Compute
@@ -150,7 +145,7 @@ def DistroSpecific(g):
         bin_str = '#!/bin/bash\nsource /opt/rh/python27/enable\n%s $@' % \
             binary_path
         g.write(new_bin_path, bin_str)
-        g.chmod(0755, new_bin_path)
+        g.chmod(0o755, new_bin_path)
 
     g.command([
         'yum', '-y', 'install', 'google-compute-engine',
@@ -170,10 +165,10 @@ def DistroSpecific(g):
     g.write('/tmp/grub_gce_generated', grub_cfg)
     g.sh(
         r'grep -P "^[\t ]*initrd|^[\t ]*root|^[\t ]*kernel|^[\t ]*title" '
-            r'/boot/grub/grub.conf >> /tmp/grub_gce_generated;'
+        r'/boot/grub/grub.conf >> /tmp/grub_gce_generated;'
         r'sed -i "s/console=ttyS0[^ ]*//g" /tmp/grub_gce_generated;'
         r'sed -i "/^[\t ]*kernel/s/$/ console=ttyS0,38400n8/" '
-            r'/tmp/grub_gce_generated;'
+        r'/tmp/grub_gce_generated;'
         r'mv /tmp/grub_gce_generated /boot/grub/grub.conf')
   else:
     g.write('/etc/default/grub', grub2_cfg)

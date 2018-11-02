@@ -25,10 +25,6 @@ import logging
 
 import utils
 
-utils.AptGetInstall(['python-guestfs', 'tinyproxy'])
-
-import guestfs  # flake8: noqa: E402
-
 
 tinyproxy_cfg = '''
 User tinyproxy

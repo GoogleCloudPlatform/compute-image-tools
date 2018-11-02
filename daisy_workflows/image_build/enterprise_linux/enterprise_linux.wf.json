@@ -42,7 +42,9 @@
   "Sources": {
     "build_files/build_installer.py": "./build_installer.py",
     "build_files/installer.iso": "${installer_iso}",
-    "build_files/utils.py": "../../linux_common/utils.py",
+    "build_files/utils/common.py": "../../linux_common/utils/common.py",
+    "build_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
+    "build_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
     "build_files/save_logs.py": "./save_logs.py",

@@ -25,16 +25,11 @@ import logging
 
 import utils
 
-utils.AptGetInstall(['python-guestfs'])
-
-import guestfs  # flake8: noqa: E402
-
-
 google_cloud = '''
 deb http://packages.cloud.google.com/apt cloud-sdk-{deb_release} main
 deb http://packages.cloud.google.com/apt google-compute-engine-{deb_release}-stable main
 deb http://packages.cloud.google.com/apt google-cloud-packages-archive-keyring-{deb_release} main
-'''
+'''  # noqa: E501
 
 interfaces = '''
 source-directory /etc/network/interfaces.d
