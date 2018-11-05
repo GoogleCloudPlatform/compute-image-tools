@@ -24,11 +24,6 @@ import logging
 
 import utils
 
-utils.AptGetInstall(['python-guestfs'])
-
-
-import guestfs  # flake8: noqa: E402
-
 
 network = '''
 BOOTPROTO='dhcp'
@@ -70,7 +65,8 @@ def DistroSpecific(g):
           ['zypper', '-n', 'install', '--no-recommends',
           'google-cloud-sdk'])
     except Exception as e:
-      print "Optional google-cloud-sdk package couldn't be installed: %s" % e
+      logging.warn("Optional google-cloud-sdk package couldn't be installed: "
+                   "%s" % e)
 
   # Update grub config to log to console, remove quiet and timeouts.
   g.command(

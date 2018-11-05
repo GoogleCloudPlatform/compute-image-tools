@@ -22,7 +22,9 @@ if [ ! -z "${PULL_NUMBER}" ]; then
   git checkout ${PULL_NUMBER}
 fi
 
-flake8 --ignore E111,E114,E121,E125,E128,E129 --import-order-style=google /repo
+python -V
+flake8 --version
+flake8 --show-source --ignore E111,E114,E121,E125,E128,E129 --import-order-style=google /repo
 RET=$?
 
 # Print results and return.

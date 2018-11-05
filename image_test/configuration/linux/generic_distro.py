@@ -149,7 +149,7 @@ class GenericDistroTests(object):
     # password to log in
     #
     # Below, not the most pythonic thing to do... but it's the easiest one
-    utils.Execute(['grep', '^root:[\!*]', '/etc/shadow'])
+    utils.Execute(['grep', '^root:[\\!*]', '/etc/shadow'])
 
   def GetSshdConfig(self):
     """
