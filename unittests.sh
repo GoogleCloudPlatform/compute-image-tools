@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+GOCOVPATH=./artifacts/test-report.out
 RET=0
 go get -t ./...
 for d in $(go list ./... | grep -v vendor); do
