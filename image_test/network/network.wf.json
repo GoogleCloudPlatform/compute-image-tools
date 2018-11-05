@@ -12,7 +12,9 @@
     "testee-checker.sh": "./network-testee-checker.sh",
     "testee-checker.bat": "./network-testee-checker.bat",
     "test_files/test.py": "./network-tester.py",
-    "test_files/utils.py": "../../daisy_workflows/linux_common/utils.py",
+    "test_files/utils/common.py": "../../daisy_workflows/linux_common/utils/common.py",
+    "test_files/utils/diskutils.py": "../../daisy_workflows/linux_common/utils/diskutils.py",
+    "test_files/utils/__init__.py": "../../daisy_workflows/linux_common/utils/__init__.py",
     "test_files/genips.py": "./genips.py",
     "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.py"
   },
