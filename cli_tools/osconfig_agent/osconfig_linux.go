@@ -49,6 +49,18 @@ func setOsConfig(res *osconfigpb.LookupConfigsResponse) error {
 		}
 	}
 
+	if res.Zypper != nil && packages.ZypperExists {
+		if err := zypperRepositories(res.Zypper.Repositories); err != nil {
+			errs = append(errs, fmt.Sprintf("error writing zypper repo file: %v", err))
+		}
+		if err := zypperInstalls(res.Zypper.PackageInstalls); err != nil {
+			errs = append(errs, fmt.Sprintf("error installing zypper packages: %v", err))
+		}
+		if err := zypperRemovals(res.Zypper.PackageRemovals); err != nil {
+			errs = append(errs, fmt.Sprintf("error removing zypper packages: %v", err))
+		}
+	}
+
 	if errs == nil {
 		return nil
 	}
@@ -66,3 +78,9 @@ func yumRepositories(repos []*osconfigpb.YumRepository) error { return nil }
 func yumInstalls(pkgs []*osconfigpb.Package) error { return nil }
 
 func yumRemovals(pkgs []*osconfigpb.Package) error { return nil }
+
+func zypperRepositories(repos []*osconfigpb.ZypperRepository) error { return nil }
+
+func zypperInstalls(pkgs []*osconfigpb.Package) error { return nil }
+
+func zypperRemovals(pkgs []*osconfigpb.Package) error { return nil }
