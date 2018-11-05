@@ -158,7 +158,8 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps):
+def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
+                  uefi):
   """Builds kickstart config from shards.
 
   Args:
@@ -206,7 +207,11 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps):
     repo_version = 'el6'
   elif release == "rhel7":
     logging.info('Building RHEL 7 image.')
-    ks_options = FetchConfigPart('el7-options.cfg')
+    if uefi:
+      logging.info('Building RHEL 7 for UEFI')
+      ks_options = FetchConfigPart('el7-uefi-options.cfg')
+    else:
+      ks_options = FetchConfigPart('el7-options.cfg')
     rhel_post = FetchConfigPart('rhel7-post.cfg')
     if sap:
       logging.info('Building RHEL 7 for SAP')
@@ -221,6 +226,9 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps):
     custom_post = '\n'.join([rhel_post, el_post])
     if byol:
       custom_post = '\n'.join([custom_post, rhel_byol_post])
+    if uefi:
+      rhel_uefi_post = FetchConfigPart('rhel7-uefi-post.cfg')
+      custom_post = '\n'.join([custom_post, rhel_uefi_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
