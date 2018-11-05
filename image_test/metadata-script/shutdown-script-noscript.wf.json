@@ -3,7 +3,12 @@
   "Vars": {
     "source_image": {"Required": true, "Description": "Image to be tested"},
     "shutdown_msg": {"Required": true, "Description": "Shutdown script message to be verified"},
+    "startup_script_name": {"Required": true, "Description": "Startup script of the created instance"},
+    "wait_msg": {"Required": true, "Description": "Message to stop instance"},
     "instance": "noscript"
+  },
+  "Sources": {
+    "startup_script_no_script.ps1": "${startup_script_name}"
   },
   "Steps": {
     "create-noscript": {
@@ -11,7 +16,9 @@
         "Path": "./metadata-script-inc/create-instance.wf.json",
         "Vars": {
             "source_image": "${source_image}",
-            "instance": "${instance}"
+            "instance": "${instance}",
+            "startup_script_meta_key": "startup-script-url",
+            "startup_script_meta": "${SOURCESPATH}/startup_script_no_script.ps1"
         }
       }
     },
@@ -21,7 +28,8 @@
         "Path": "./metadata-script-inc/shutdown-check.wf.json",
         "Vars": {
             "instance": "${instance}",
-            "shutdown_msg": "${shutdown_msg}"
+            "shutdown_msg": "${shutdown_msg}",
+            "wait_msg": "${wait_msg}"
         }
       }
     }

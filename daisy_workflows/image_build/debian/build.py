@@ -40,7 +40,7 @@ utils.AptGetInstall(
 utils.PipInstall(
     ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32'])
 
-import yaml  # flake8: noqa: E402
+import yaml  # noqa: E402,I202
 
 BVZ_DIR = '/bvz'
 REPOS = ['stable', 'unstable', 'staging']

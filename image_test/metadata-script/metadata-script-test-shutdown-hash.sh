@@ -204,5 +204,13 @@ EOF
 chmod +x shutdown_tester.sh
 ./shutdown_tester.sh
 
+# In FreeBSD the default utility to calculate md5 checksum for a file is 'md5'
+# and for Linux based systems is 'md5sum'.
+if [ "$(uname)" = 'FreeBSD' ]; then
+    md5bin=md5
+else
+    md5bin=md5sum
+fi
+
 # Finish the script by outputing the hash which is the SuccessMatch
-md5sum ./shutdown_tester.sh | logger -p daemon.info
+$md5bin ./shutdown_tester.sh | logger -p daemon.info

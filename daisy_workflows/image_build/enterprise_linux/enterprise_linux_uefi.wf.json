@@ -61,11 +61,13 @@
         },
         {
           "Name": "disk-installer",
+          "SourceImage": "projects/bct-uefi-images/global/images/uefi-feature-disk",
           "SizeGb": "50",
           "Type": "pd-ssd"
         },
         {
           "Name": "${install_disk}",
+          "SourceImage": "projects/bct-uefi-images/global/images/uefi-feature-disk",
           "SizeGb": "10",
           "Type": "pd-ssd"
         }
