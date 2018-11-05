@@ -7,7 +7,9 @@
     "bootstrap": "../../daisy_workflows/linux_common/bootstrap.py",
     "test_files/": "./linux/",
     "test_files/test.py": "./linux/configuration-test.py",
-    "test_files/utils.py": "../../daisy_workflows/linux_common/utils.py"
+    "test_files/utils/common.py": "../../daisy_workflows/linux_common/utils/common.py",
+    "test_files/utils/diskutils.py": "../../daisy_workflows/linux_common/utils/diskutils.py",
+    "test_files/utils/__init__.py": "../../daisy_workflows/linux_common/utils/__init__.py"
   },
   "Steps": {
     "create-disk": {
