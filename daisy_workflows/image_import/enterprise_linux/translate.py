@@ -180,6 +180,7 @@ def DistroSpecific(g):
 
 
 def main():
+  utils.AptGetInstall(['libguestfs-tools'])
   disk = '/dev/sdb'
   g = utils.MountDisk(disk)
   DistroSpecific(g)
