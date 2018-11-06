@@ -45,7 +45,10 @@ var (
 
 	// zypper
 	zypper                = "/usr/bin/zypper"
+	zypperInstallArgs     = []string{"install", "--no-confirm"}
+	zypperRemoveArgs      = []string{"remove", "--no-confirm"}
 	zypperUpdateArgs      = []string{"update"}
+	zypperListArgs        = []string{"packages", "--installed-only"}
 	zypperListUpdatesArgs = []string{"-q", "list-updates"}
 
 	// gem
@@ -79,12 +82,56 @@ func InstallYumPackages(pkgs []string) {}
 // RemoveYumPackages removes yum packages.
 func RemoveYumPackages(pkgs []string) {}
 
+// InstalledZypperPackges Installs zypper packages
+func InstallZypperPackages(pkgs []string) error {
+	args := append(zypperInstallArgs, pkgs...)
+	out, err := run(exec.Command(zypper, args...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf(" %s\n", s)
+	}
+	fmt.Printf("Zypper install output:\n%s\n", msg)
+	return nil
+}
+
+// RemoveZypperPackages installed Zypper packages.
+func RemoveZypperPackages(pkgs []string) error {
+	args := append(zypperRemoveArgs, pkgs...)
+	out, err := run(exec.Command(zypper, args...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf("  %s\n", s)
+	}
+	fmt.Printf("Zypper remove output:\n%s\n", msg)
+	return nil
+}
+
+// InstallZypperUpdates installs all available Zypper updates.
+func InstallZypperUpdates() error {
+	out, err := run(exec.Command(zypper, zypperUpdateArgs...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf("  %s\n", s)
+	}
+	fmt.Printf("Zypper update output:\n%s\n", msg)
+	return nil
+}
+
 // UpdatePackages installs all available package updates for all known system
 // package managers.
 func UpdatePackages() error {
 	var errs []string
 	if AptExists {
-		if err := aptUpgrade(); err != nil {
+		if err := aptUpgrade(run); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
@@ -94,7 +141,7 @@ func UpdatePackages() error {
 		}
 	}
 	if ZypperExists {
-		if err := zypperUpdate(); err != nil {
+		if err := zypperUpdate(run); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
@@ -104,7 +151,8 @@ func UpdatePackages() error {
 	return errors.New(strings.Join(errs, ",\n"))
 }
 
-func aptUpgrade() error {
+// update apt packages
+func aptUpgrade(run runFunc) error {
 	if _, err := run(exec.Command(aptGet, aptGetUpdateArgs...)); err != nil {
 		return err
 	}
@@ -116,15 +164,17 @@ func aptUpgrade() error {
 	return nil
 }
 
+// update yum packages
 func yumUpdate() error {
-	if _, err := exec.Command(yum, yumCheckUpdatesArgs...).CombinedOutput(); err != nil {
+	if _, err := exec.Command(yum, yumUpdateArgs...).CombinedOutput(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func zypperUpdate() error {
-	if _, err := run(exec.Command(zypper, zypperListUpdatesArgs...)); err != nil {
+// update zypper packages
+func zypperUpdate(run runFunc) error {
+	if _, err := run(exec.Command(zypper, zypperUpdateArgs...)); err != nil {
 		return err
 	}
 	return nil
@@ -136,7 +186,7 @@ func GetPackageUpdates() (Packages, []string) {
 	pkgs := Packages{}
 	var errs []string
 	if AptExists {
-		apt, err := aptUpdates()
+		apt, err := aptUpdates(run)
 		if err != nil {
 			msg := fmt.Sprintf("error getting apt updates: %v", err)
 			fmt.Println("Error:", msg)
@@ -156,7 +206,7 @@ func GetPackageUpdates() (Packages, []string) {
 		}
 	}
 	if ZypperExists {
-		zypper, err := zypperUpdates()
+		zypper, err := zypperUpdates(run)
 		if err != nil {
 			msg := fmt.Sprintf("error getting zypper updates: %v", err)
 			fmt.Println("Error:", msg)
@@ -166,7 +216,7 @@ func GetPackageUpdates() (Packages, []string) {
 		}
 	}
 	if GemExists {
-		gem, err := gemUpdates()
+		gem, err := gemUpdates(run)
 		if err != nil {
 			msg := fmt.Sprintf("error getting gem updates: %v", err)
 			fmt.Println("Error:", msg)
@@ -176,7 +226,7 @@ func GetPackageUpdates() (Packages, []string) {
 		}
 	}
 	if PipExists {
-		pip, err := pipUpdates()
+		pip, err := pipUpdates(run)
 		if err != nil {
 			msg := fmt.Sprintf("error getting pip updates: %v", err)
 			fmt.Println("Error:", msg)
@@ -188,7 +238,7 @@ func GetPackageUpdates() (Packages, []string) {
 	return pkgs, errs
 }
 
-func aptUpdates() ([]PkgInfo, error) {
+func aptUpdates(run runFunc) ([]PkgInfo, error) {
 	out, err := run(exec.Command(aptGet, aptGetUpdateArgs...))
 	if err != nil {
 		return nil, err
@@ -281,7 +331,7 @@ func yumUpdates() ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func zypperUpdates() ([]PkgInfo, error) {
+func zypperUpdates(run runFunc) ([]PkgInfo, error) {
 	out, err := run(exec.Command(zypper, zypperListUpdatesArgs...))
 	if err != nil {
 		return nil, err
@@ -313,7 +363,7 @@ func zypperUpdates() ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func gemUpdates() ([]PkgInfo, error) {
+func gemUpdates(run runFunc) ([]PkgInfo, error) {
 	out, err := run(exec.Command(gem, gemOutdatedArgs...))
 	if err != nil {
 		return nil, err
@@ -342,7 +392,7 @@ func gemUpdates() ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func pipUpdates() ([]PkgInfo, error) {
+func pipUpdates(run runFunc) ([]PkgInfo, error) {
 	out, err := run(exec.Command(pip, pipOutdatedArgs...))
 	if err != nil {
 		return nil, err
@@ -376,7 +426,7 @@ func GetInstalledPackages() (Packages, []string) {
 	pkgs := Packages{}
 	var errs []string
 	if exists(rpmquery) {
-		rpm, err := installedRPM()
+		rpm, err := installedRPM(run)
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed rpm packages: %v", err)
 			fmt.Println("Error:", msg)
@@ -386,7 +436,7 @@ func GetInstalledPackages() (Packages, []string) {
 		}
 	}
 	if exists(dpkgquery) {
-		deb, err := installedDEB()
+		deb, err := installedDEB(run)
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed deb packages: %v", err)
 			fmt.Println("Error:", msg)
@@ -396,7 +446,7 @@ func GetInstalledPackages() (Packages, []string) {
 		}
 	}
 	if exists(gem) {
-		gem, err := installedGEM()
+		gem, err := installedGEM(run)
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed gem packages: %v", err)
 			fmt.Println("Error:", msg)
@@ -405,8 +455,19 @@ func GetInstalledPackages() (Packages, []string) {
 			pkgs.Gem = gem
 		}
 	}
+	if exists(zypper) {
+		zypper, err := installedZypper(run)
+		if err != nil {
+			msg := fmt.Sprintf("error listing installed zypper packages: %v", err)
+			fmt.Println("Error:", msg)
+			errs = append(errs, msg)
+		} else {
+			pkgs.Zypper = zypper
+		}
+	}
+
 	if exists(pip) {
-		pip, err := installedPIP()
+		pip, err := installedPIP(run)
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed pip packages: %v", err)
 			fmt.Println("Error:", msg)
@@ -418,7 +479,7 @@ func GetInstalledPackages() (Packages, []string) {
 	return pkgs, errs
 }
 
-func installedDEB() ([]PkgInfo, error) {
+func installedDEB(run runFunc) ([]PkgInfo, error) {
 	out, err := run(exec.Command(dpkgquery, dpkgqueryArgs...))
 	if err != nil {
 		return nil, err
@@ -449,7 +510,7 @@ func installedDEB() ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func installedRPM() ([]PkgInfo, error) {
+func installedRPM(run runFunc) ([]PkgInfo, error) {
 	out, err := run(exec.Command(rpmquery, rpmqueryArgs...))
 	if err != nil {
 		return nil, err
@@ -480,7 +541,7 @@ func installedRPM() ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func installedGEM() ([]PkgInfo, error) {
+func installedGEM(run runFunc) ([]PkgInfo, error) {
 	out, err := run(exec.Command(gem, gemListArgs...))
 	if err != nil {
 		return nil, err
@@ -515,7 +576,7 @@ func installedGEM() ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func installedPIP() ([]PkgInfo, error) {
+func installedPIP(run runFunc) ([]PkgInfo, error) {
 	out, err := run(exec.Command(pip, pipListArgs...))
 	if err != nil {
 		return nil, err
@@ -542,6 +603,41 @@ func installedPIP() ([]PkgInfo, error) {
 		}
 		ver := strings.Trim(pkg[1], "()")
 		pkgs = append(pkgs, PkgInfo{Name: pkg[0], Arch: noarch, Version: ver})
+	}
+	return pkgs, nil
+}
+
+func installedZypper(run runFunc) ([]PkgInfo, error) {
+	out, err := run(exec.Command(zypper, zypperListArgs...))
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+		S  | Repository                             | Name                                    | Version                             | Arch
+		---+----------------------------------------+-----------------------------------------+-------------------------------------+-------
+		i  | SLE-Module-Basesystem15-Pool           | GeoIP-data                              | 1.6.11-1.19                         | noarch
+		v  | SLE-Module-Basesystem15-Updates        | SUSEConnect                             | 0.3.14-3.13.1                       | x86_64
+		v  | SLE-Module-Basesystem15-Updates        | SUSEConnect                             | 0.3.12-3.10.1                       | x86_64
+		i+ | SLE-Module-Basesystem15-Updates        | SUSEConnect                             | 0.3.11-3.3.1                        | x86_64
+		v  | SLE-Module-Basesystem15-Pool           | SUSEConnect                             | 0.3.11-1.4                          | x86_64
+		i+ | @System                                | SuSEfirewall2                           | 3.6.378-1.33                        | noarch
+	*/
+	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
+
+	if len(lines) == 0 {
+		fmt.Println("No zypper packages installed.")
+		return nil, nil
+	}
+
+	var pkgs []PkgInfo
+	for _, ln := range lines[2:] {
+		pkg := strings.Fields(ln)
+		if len(pkg) != 9 {
+			fmt.Printf("%q does not represent a zypper packages\n", ln)
+			continue
+		}
+		pkgs = append(pkgs, PkgInfo{Name: pkg[4], Arch: osinfo.Architecture(pkg[8]), Version: pkg[6]})
 	}
 	return pkgs, nil
 }

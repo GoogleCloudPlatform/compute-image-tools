@@ -1,0 +1,4 @@
+S  | Repository                                | Name                                    | Version                             | Arch  
+---+-------------------------------------------+-----------------------------------------+-------------------------------------+-------
+i  | SLE-Module-Basesystem15-Pool              | GeoIP-data                              | 1.6.11-1.19                         | noarch
+v  | SLE-Module-Basesystem15-Updates           | SUSEConnect                            
