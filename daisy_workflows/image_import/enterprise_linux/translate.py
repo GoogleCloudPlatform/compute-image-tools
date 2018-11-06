@@ -26,6 +26,8 @@ import logging
 import os
 
 import utils
+import utils.diskutils as diskutils
+
 
 repo_compute = '''
 [google-cloud-compute]
@@ -182,10 +184,10 @@ def DistroSpecific(g):
 def main():
   utils.AptGetInstall(['libguestfs-tools'])
   disk = '/dev/sdb'
-  g = utils.MountDisk(disk)
+  g = diskutils.MountDisk(disk)
   DistroSpecific(g)
   utils.CommonRoutines(g)
-  utils.UnmountDisk(g)
+  diskutils.UnmountDisk(g)
   utils.Execute(['virt-customize', '-a', disk, '--selinux-relabel'])
 
 
