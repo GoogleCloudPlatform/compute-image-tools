@@ -37,7 +37,7 @@ func (s *sha2DriverSigningCheck) run() (*report, error) {
 		return r, nil
 	}
 
-	pkgs, errs := packages.GetInstalledPackages()
+	pkgs, errs := packages.GetInstalledPackages(packages.Run)
 	if errs != nil {
 		return nil, fmt.Errorf("GetInstalledPackages errors:\n* %s", strings.Join(errs, "\n* "))
 	}

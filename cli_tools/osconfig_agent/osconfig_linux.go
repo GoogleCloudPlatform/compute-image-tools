@@ -15,13 +15,17 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
+	"github.com/compute-image-tools/go/packages"
 )
+
+const zypperRepoFile = "/etc/zypp/repos.d/google_osconfig.repo"
 
 func setOsConfig(res *osconfigpb.LookupConfigsResponse) error {
 	var errs []string
@@ -79,8 +83,51 @@ func yumInstalls(pkgs []*osconfigpb.Package) error { return nil }
 
 func yumRemovals(pkgs []*osconfigpb.Package) error { return nil }
 
-func zypperRepositories(repos []*osconfigpb.ZypperRepository) error { return nil }
+func zypperRepositories(repos []*osconfigpb.ZypperRepository) error {
+	/*
+		# Repo file managed by Google OSConfig agent
+		- id: repo1-name
+		  display_name: repo1
+		  url: https://repo1-url
+		- id: repo2-name
+		  display_name: repo2-name
+		  url: https://repo2-url
+	*/
+	var buf bytes.Buffer
+	buf.WriteString("# Repo file managed by Google OSConfig agent\n")
+	for _, repo := range repos {
+		buf.WriteString(fmt.Sprintf("\n- id: %s\n", repo.Id))
+		if repo.DisplayName == "" {
+			buf.WriteString(fmt.Sprintf("\n- display_name: %s\n", repo.Id))
+		} else {
+			buf.WriteString(fmt.Sprintf("\n- display_name: %s\n", repo.DisplayName))
+		}
+		buf.WriteString(fmt.Sprintf("  url: %s\n", repo.BaseUrl))
+	}
 
-func zypperInstalls(pkgs []*osconfigpb.Package) error { return nil }
+	return ioutil.WriteFile(zypperRepoFile, buf.Bytes(), 0600)
+}
 
-func zypperRemovals(pkgs []*osconfigpb.Package) error { return nil }
+func zypperInstalls(pkgs []*osconfigpb.Package) error {
+	if pkgs == nil {
+		return nil
+	}
+
+	var names []string
+	for _, pkg := range pkgs {
+		names = append(names, pkg.Name)
+	}
+	return packages.InstallZypperPackages(packages.Run, names)
+}
+
+func zypperRemovals(pkgs []*osconfigpb.Package) error {
+	if pkgs == nil {
+		return nil
+	}
+
+	var names []string
+	for _, pkg := range pkgs {
+		names = append(names, pkg.Name)
+	}
+	return packages.RemoveZypperPackages(packages.Run, names)
+}
