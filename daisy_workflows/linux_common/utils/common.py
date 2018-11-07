@@ -316,7 +316,7 @@ def UploadFile(filename, dest):
   if not BUCKET or BUCKET.name != bucket_name:
     BUCKET = storage.bucket.Bucket(CLIENT, bucket_name)
 
-  blob = storage.blob.Blob(blob_path, BUCKET)
+  blob = storage.blob.Blob(blob_path + filename, BUCKET)
   blob.upload_from_filename(filename)
 
   BUCKET.copy_blob(blob, BUCKET)
