@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
@@ -98,6 +99,9 @@ type TestClient struct {
 	SetInstanceMetadataFn       func(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadataFn func(project string, md *compute.Metadata) error
 	RetryFn                     func(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
+
+	// Beta API calls
+	GetGuestAttributesFn func(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
 
 	zoneOperationsWaitFn   func(project, zone, name string) error
 	regionOperationsWaitFn func(project, region, name string) error
@@ -470,6 +474,14 @@ func (c *TestClient) GetSerialPortOutput(project, zone, name string, port, start
 		return c.GetSerialPortOutputFn(project, zone, name, port, start)
 	}
 	return c.client.GetSerialPortOutput(project, zone, name, port, start)
+}
+
+// GetGuestAttributes uses the override method GetGuestAttributesFn or the real implementation.
+func (c *TestClient) GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error) {
+	if c.GetGuestAttributesFn != nil {
+		return c.GetGuestAttributesFn(project, zone, name, queryPath, variableKey)
+	}
+	return c.client.GetGuestAttributes(project, zone, name, queryPath, variableKey)
 }
 
 // InstanceStatus uses the override method InstanceStatusFn or the real implementation.

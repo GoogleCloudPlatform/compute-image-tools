@@ -119,6 +119,22 @@ periodics:
     - name: compute-image-tools-test-service-account
       secret:
        secretName: compute-image-tools-test-service-account
+ - name: osconfig-tests
+   interval: 3h
+   agent: kubernetes
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
+      args:
+      - "-out_path=/artifacts/junit.xml"
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
  - name: linux-image-tests
    interval: 3h
    agent: kubernetes
