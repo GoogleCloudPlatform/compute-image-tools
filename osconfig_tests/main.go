@@ -32,10 +32,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 )
 
-const (
-	defaultParallelCount = 5
-)
-
 var (
 	oauth           = flag.String("oauth", "", "path to oauth json file")
 	testSuiteFilter = flag.String("test_suite_filter", "", "test suite filter")

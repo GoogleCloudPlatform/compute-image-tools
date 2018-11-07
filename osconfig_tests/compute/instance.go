@@ -24,6 +24,8 @@ import (
 	api "google.golang.org/api/compute/v1"
 )
 
+// RandString generates a random string of n length.
+// TODO: move this to a common utils library instead of 'compute'.
 func RandString(n int) string {
 	gen := rand.New(rand.NewSource(time.Now().UnixNano()))
 	letters := "bdghjlmnpqrstvwxyz0123456789"
@@ -34,18 +36,21 @@ func RandString(n int) string {
 	return string(b)
 }
 
+// Instance is a compute instance.
 type Instance struct {
 	*api.Instance
 	client        daisyCompute.Client
 	Project, Zone string
 }
 
+// Cleanup deletes the Instance.
 func (i *Instance) Cleanup() {
 	if err := i.client.DeleteInstance(i.Project, i.Zone, i.Name); err != nil {
 		fmt.Printf("Error deleting instance: %v\n", err)
 	}
 }
 
+// WaitForSerialOutput waits to a string match on a serial port.
 func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeout time.Duration) error {
 	var start int64
 	var errs int
@@ -89,6 +94,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 	}
 }
 
+// CreateInstance creates a compute instance.
 func CreateInstance(client daisyCompute.Client, project, zone string, i *api.Instance) (*Instance, error) {
 	if err := client.CreateInstance(project, zone, i); err != nil {
 		return nil, err
