@@ -14,7 +14,15 @@
       "Value": "projects/compute-image-tools/global/images/family/debian-9-worker",
       "Description": "image to use for the importer instance"
     },
-    "disk_name": "imported-disk-${ID}"
+    "disk_name": "imported-disk-${ID}",
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the import instance"
+    },
+    "export_subnet": {
+      "Value": "",
+      "Description": "SubNetwork to use for the import instance"
+    }
   },
   "Sources": {
     "import_image.sh": "./import_image.sh",
@@ -49,6 +57,12 @@
             "disk_name": "${disk_name}",
             "source_disk_file": "${source_disk_file}"
           },
+          "networkInterfaces": [
+            {
+              "network": "${export_network}",
+              "subnetwork": "${export_subnet}"
+            }
+          ],
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write",
             "https://www.googleapis.com/auth/compute"

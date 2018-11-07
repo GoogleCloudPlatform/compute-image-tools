@@ -26,7 +26,15 @@
       "Value": "",
       "Description": "Optional description to set for the translated image"
     },
-    "translation-disk-name": "temp-translation-disk-${ID}"
+    "translation-disk-name": "temp-translation-disk-${ID}",
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the import instance"
+    },
+    "export_subnet": {
+      "Value": "",
+      "Description": "SubNetwork to use for the import instance"
+    }
   },
   "Steps": {
     "import": {
@@ -34,7 +42,9 @@
         "Path": "import_disk.wf.json",
         "Vars": {
           "source_disk_file": "${source_disk_file}",
-          "disk_name": "${translation-disk-name}"
+          "disk_name": "${translation-disk-name}",
+          "export_network": "${export_network}",
+          "export_subnet": "${export_subnet}"
         }
       }
     },
@@ -53,7 +63,9 @@
           "image_name": "${image_name}",
           "install_gce_packages": "${install_gce_packages}",
           "family": "${family}",
-          "description": "${description}"
+          "description": "${description}",
+          "export_network": "${export_network}",
+          "export_subnet": "${export_subnet}"
         }
       }
     },
