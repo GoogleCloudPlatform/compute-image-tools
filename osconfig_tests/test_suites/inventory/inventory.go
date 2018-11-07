@@ -31,7 +31,7 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junit"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
 )
@@ -59,14 +59,14 @@ type inventoryTestSetup struct {
 }
 
 // TestSuite is a InventoryTests test suite.
-func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp) {
+func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp) {
 	defer tswg.Done()
 
 	if testSuiteRegex != nil && testSuiteRegex.MatchString(testSuiteName) {
 		return
 	}
 
-	testSuite := junit.NewTestSuite(testSuiteName)
+	testSuite := junitxml.NewTestSuite(testSuiteName)
 	defer testSuite.Finish(testSuites)
 
 	logger.Printf("Running TestSuite %q", testSuite.Name)
@@ -143,7 +143,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	}
 
 	var wg sync.WaitGroup
-	tests := make(chan *junit.TestCase)
+	tests := make(chan *junitxml.TestCase)
 	for _, setup := range testSetup {
 		wg.Add(1)
 		go inventoryTestCase(ctx, setup, tests, &wg, logger, testCaseRegex)
@@ -161,7 +161,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junit.TestCase) (*apiBeta.GuestAttributes, bool) {
+func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) (*apiBeta.GuestAttributes, bool) {
 	testCase.Logf("Creating compute client")
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -227,7 +227,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	return ga, true
 }
 
-func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junit.TestCase) {
+func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) {
 	var hostname string
 	for _, item := range ga.QueryValue.Items {
 		if item.Key == "Hostname" {
@@ -246,7 +246,7 @@ func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 	}
 }
 
-func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junit.TestCase) {
+func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) {
 	var shortName string
 	for _, item := range ga.QueryValue.Items {
 		if item.Key == "ShortName" {
@@ -265,7 +265,7 @@ func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup
 	}
 }
 
-func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junit.TestCase) {
+func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) {
 	var packagesEncoded string
 	for _, item := range ga.QueryValue.Items {
 		if item.Key == "InstalledPackages" {
@@ -345,19 +345,19 @@ func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 	}
 }
 
-func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests chan *junit.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
+func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
 	defer wg.Done()
 
-	gatherInventoryTest := junit.NewTestCase(testSuiteName, fmt.Sprintf("Gather Inventory [%s]", testSetup.image))
+	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Gather Inventory [%s]", testSetup.image))
 	defer gatherInventoryTest.Finish(tests)
 
-	hostnameTest := junit.NewTestCase(testSuiteName, fmt.Sprintf("Check Hostname [%s]", testSetup.image))
+	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Check Hostname [%s]", testSetup.image))
 	defer hostnameTest.Finish(tests)
 
-	shortNameTest := junit.NewTestCase(testSuiteName, fmt.Sprintf("Check ShortName [%s]", testSetup.image))
+	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Check ShortName [%s]", testSetup.image))
 	defer hostnameTest.Finish(tests)
 
-	packageTest := junit.NewTestCase(testSuiteName, fmt.Sprintf("Check InstalledPackages [%s]", testSetup.image))
+	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Check InstalledPackages [%s]", testSetup.image))
 	defer hostnameTest.Finish(tests)
 
 	if gatherInventoryTest.FilterTestCase(regex) {
@@ -377,7 +377,7 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 		return
 	}
 
-	for tc, f := range map[*junit.TestCase]func(*apiBeta.GuestAttributes, *inventoryTestSetup, *junit.TestCase){
+	for tc, f := range map[*junitxml.TestCase]func(*apiBeta.GuestAttributes, *inventoryTestSetup, *junitxml.TestCase){
 		hostnameTest:  runHostnameTest,
 		shortNameTest: runShortNameTest,
 		packageTest:   runPackagesTest,

@@ -12,7 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package junit
+// Package junitxml provides helpers around creating junit XML data.
+package junitxml
 
 import (
 	"bytes"
@@ -32,7 +33,7 @@ func NewTestSuite(name string) *TestSuite {
 	}
 }
 
-// TestSuite is a junit TestSuite.
+// TestSuite is a junitxml TestSuite.
 type TestSuite struct {
 	XMLName  xml.Name `xml:"testsuite"`
 	Name     string   `xml:"name,attr"`
@@ -73,7 +74,7 @@ func NewTestCase(classname, name string) *TestCase {
 	}
 }
 
-// TestCase is a junit TestCase.
+// TestCase is a junitxml TestCase.
 type TestCase struct {
 	Classname string        `xml:"classname,attr"`
 	ID        string        `xml:"id,attr"`

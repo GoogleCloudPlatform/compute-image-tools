@@ -23,12 +23,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"regexp"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junit"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 )
 
@@ -39,13 +38,13 @@ var (
 	outPath         = flag.String("out_path", "junit.xml", "junit xml path")
 )
 
-var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junit.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
+var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
 	inventory.TestSuite,
 }
 
 func main() {
 	flag.Parse()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 
 	if err := os.MkdirAll(filepath.Dir(*outPath), 0770); err != nil {
 		log.Fatal(err)
@@ -71,20 +70,10 @@ func main() {
 		}
 	}
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	go func() {
-		select {
-		case <-c:
-			fmt.Printf("\nCtrl-C caught, cancel currently unimplemented\n")
-			cancel()
-		}
-	}()
-
 	logger := log.New(os.Stdout, "[OSConfigTests] ", 0)
 	logger.Println("Starting...")
 
-	tests := make(chan *junit.TestSuite)
+	tests := make(chan *junitxml.TestSuite)
 	var wg sync.WaitGroup
 	for _, tf := range testFunctions {
 		wg.Add(1)
@@ -95,7 +84,7 @@ func main() {
 		close(tests)
 	}()
 
-	var testSuites []*junit.TestSuite
+	var testSuites []*junitxml.TestSuite
 	for ret := range tests {
 		testSuites = append(testSuites, ret)
 	}
