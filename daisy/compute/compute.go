@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
@@ -82,6 +83,9 @@ type Client interface {
 	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
+
+	// Beta API calls
+	GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
 
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
 	BasePath() string
@@ -154,9 +158,10 @@ type clientImpl interface {
 }
 
 type client struct {
-	i   clientImpl
-	hc  *http.Client
-	raw *compute.Service
+	i       clientImpl
+	hc      *http.Client
+	raw     *compute.Service
+	rawBeta *computeBeta.Service
 }
 
 // shouldRetryWithWait returns true if the HTTP response / error indicates
@@ -212,7 +217,14 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error)
 	if ep != "" {
 		rawService.BasePath = ep
 	}
-	c := &client{hc: hc, raw: rawService}
+	rawBetaService, err := computeBeta.New(hc)
+	if err != nil {
+		return nil, fmt.Errorf("beta compute client: %v", err)
+	}
+	if ep != "" {
+		rawBetaService.BasePath = ep
+	}
+	c := &client{hc: hc, raw: rawService, rawBeta: rawBetaService}
 	c.i = c
 
 	return c, nil
@@ -1025,4 +1037,20 @@ func (c *client) SetCommonInstanceMetadata(project string, md *compute.Metadata)
 	}
 
 	return c.i.globalOperationsWait(project, op.Name)
+}
+
+// GetGuestAttributes gets a Guest Attributes.
+func (c *client) GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error) {
+	call := c.rawBeta.Instances.GetGuestAttributes(project, zone, name)
+	if queryPath != "" {
+		call = call.QueryPath(queryPath)
+	}
+	if variableKey != "" {
+		call = call.VariableKey(variableKey)
+	}
+	a, err := call.Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return call.Do()
+	}
+	return a, err
 }
