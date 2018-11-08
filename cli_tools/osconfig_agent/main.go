@@ -140,6 +140,7 @@ func run(ctx context.Context) {
 		} else {
 			setOsConfig(resp)
 			setPatchPolicies(resp.PatchPolicies)
+			runInventory()
 		}
 
 		select {
@@ -155,7 +156,8 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, flag.Arg(0)); err != nil {
+	action := flag.Arg(0)
+	if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, action); err != nil {
 		log.Fatal(err)
 	}
 }
