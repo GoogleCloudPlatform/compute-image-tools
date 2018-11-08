@@ -152,6 +152,12 @@ periodics:
       - "-zone=us-central1-c"
       - "-var:images=\
           projects/debian-cloud/global/images/family/debian-9,\
+          projects/ubuntu-os-cloud/global/images/family/ubuntu-1404-lts,\
+          projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts,\
+          projects/ubuntu-os-cloud/global/images/family/ubuntu-minimal-1604-lts,\
+          projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts,\
+          projects/ubuntu-os-cloud/global/images/family/ubuntu-minimal-1804-lts,\
+          projects/ubuntu-os-cloud/global/images/family/ubuntu-1810,\
           projects/centos-cloud/global/images/family/centos-6,\
           projects/centos-cloud/global/images/family/centos-7,\
           projects/rhel-cloud/global/images/family/rhel-6,\
