@@ -12,6 +12,14 @@
     "imported_disk": {
       "Required": true,
       "Description": "The name of the imported GCE disk resource."
+    },
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the import instance"
+    },
+    "export_subnet": {
+      "Value": "",
+      "Description": "SubNetwork to use for the import instance"
     }
   },
   "Sources": {
@@ -48,6 +56,12 @@
             "debian_release": "${debian_release}",
             "install_gce_packages": "${install_gce_packages}"
           },
+          "networkInterfaces": [
+            {
+              "network": "${export_network}",
+              "subnetwork": "${export_subnet}"
+            }
+          ],
           "StartupScript": "startup_script"
         }
       ]

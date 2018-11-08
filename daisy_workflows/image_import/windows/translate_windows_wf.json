@@ -27,7 +27,15 @@
     "task_xml": {
       "Required": true
     },
-    "byol": "false"
+    "byol": "false",
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the import instance"
+    },
+    "export_subnet": {
+      "Value": "",
+      "Description": "SubNetwork to use for the import instance"
+    }
   },
   "Sources": {
     "translate.ps1": "./translate.ps1",
@@ -60,6 +68,12 @@
             "install-gce-packages": "${install_gce_packages}",
             "version": "${version}"
           },
+          "networkInterfaces": [
+            {
+              "network": "${export_network}",
+              "subnetwork": "${export_subnet}"
+            }
+          ],
           "StartupScript": "translate_bootstrap.ps1"
         }
       ]
@@ -97,6 +111,12 @@
             "sysprep": "${sysprep}",
             "byol": "${byol}"
           },
+          "networkInterfaces": [
+            {
+              "network": "${export_network}",
+              "subnetwork": "${export_subnet}"
+            }
+          ],
           "StartupScript": "translate.ps1"
         }
       ]

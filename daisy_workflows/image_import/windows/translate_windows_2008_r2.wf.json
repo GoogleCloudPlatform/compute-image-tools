@@ -24,6 +24,14 @@
     "description": {
       "Value": "",
       "Description": "Optional description to set for the translated image"
+    },
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the import instance"
+    },
+    "export_subnet": {
+      "Value": "",
+      "Description": "SubNetwork to use for the import instance"
     }
   },
   "Steps": {
@@ -37,7 +45,9 @@
           "drivers": "gs://gce-windows-drivers-public/release/win6.1/",
           "version": "6.1",
           "task_reg": "./task_reg_2008r2",
-          "task_xml": "./task_xml"
+          "task_xml": "./task_xml",
+          "export_network": "${export_network}",
+          "export_subnet": "${export_subnet}"
         }
       },
       "Timeout": "60m"

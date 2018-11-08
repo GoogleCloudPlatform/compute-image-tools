@@ -20,6 +20,14 @@
     "use_rhel_gce_license": {
       "Value": "false",
       "Description": "Whether to use a GCE RHEL license or not."
+    },
+    "export_network": {
+      "Value": "global/networks/default",
+      "Description": "Network to use for the import instance"
+    },
+    "export_subnet": {
+      "Value": "",
+      "Description": "SubNetwork to use for the import instance"
     }
   },
   "Sources": {
@@ -47,6 +55,12 @@
             "install_gce_packages": "${install_gce_packages}",
             "use_rhel_gce_license": "${use_rhel_gce_license}"
           },
+          "networkInterfaces": [
+            {
+              "network": "${export_network}",
+              "subnetwork": "${export_subnet}"
+            }
+          ],
           "StartupScript": "startup_script"
         }
       ]
