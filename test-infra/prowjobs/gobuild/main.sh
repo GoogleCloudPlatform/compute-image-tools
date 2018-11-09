@@ -37,9 +37,9 @@ TARGETS=("github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/daisy"
          "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_image_publish" 
          "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_inventory_agent" 
          "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/import_precheck"
-         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/instance_inventory"
          "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/daisy_test_runner"
-         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/osconfig_agent")
+         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/osconfig_agent"
+         "github.com/${REPO_OWNER}/${REPO_NAME}/osconfig_tests")
 for TARGET in "${TARGETS[@]}"; do
   echo "Building ${TARGET} for Linux"
   go build $TARGET

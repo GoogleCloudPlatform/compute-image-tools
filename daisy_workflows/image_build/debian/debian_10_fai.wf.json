@@ -1,7 +1,7 @@
 {
   "Name": "build-debian-10-fai",
   "Vars": {
-    "build_date": {"Value": "${TIMESTAMP}", "Description": "Build datestamp used to version the image."},
+    "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "uefi": {"Value": "", "Description": "True if wanted to build an UEFI image with GPT partition format."},
     "debian_cloud_images_version": {

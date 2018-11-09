@@ -2,7 +2,7 @@
   "Name": "build-debian-fai",
   "DefaultTimeout": "60m",
   "Vars": {
-    "build_date": {"Value": "${TIMESTAMP}", "Description": "Build datestamp used to version the image."},
+    "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "debian_cloud_images_version": {"Required": true, "Description": "The debian-cloud-images scripts git commit ID to use."},
     "debian_version": {"Required": true, "Description": "The FAI tool debian version to be requested."},
     "builder_source_image": {

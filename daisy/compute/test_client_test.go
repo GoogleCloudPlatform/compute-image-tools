@@ -19,7 +19,8 @@ import (
 	"net/http"
 	"testing"
 
-	compute "google.golang.org/api/compute/v1"
+	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -88,6 +89,7 @@ func TestTestClient(t *testing.T) {
 		{"zone operation wait", func() { c.zoneOperationsWait("a", "b", "c") }, "/a/zones/b/operations/c?alt=json&prettyPrint=false"},
 		{"region operation wait", func() { c.regionOperationsWait("a", "b", "c") }, "/a/regions/b/operations/c?alt=json&prettyPrint=false"},
 		{"global operation wait", func() { c.globalOperationsWait("a", "b") }, "/a/global/operations/b?alt=json&prettyPrint=false"},
+		{"get guest attributes", func() { c.GetGuestAttributes("a", "b", "c", "d", "e") }, "/a/zones/b/instances/c/getGuestAttributes?alt=json&prettyPrint=false&queryPath=d&variableKey=e"},
 	}
 
 	runTests := func() {
@@ -189,6 +191,7 @@ func TestTestClient(t *testing.T) {
 	c.zoneOperationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.regionOperationsWaitFn = func(_, _, _ string) error { fakeCalled = true; return nil }
 	c.globalOperationsWaitFn = func(_, _ string) error { fakeCalled = true; return nil }
+	c.GetGuestAttributesFn = func(_, _, _, _, _ string) (*computeBeta.GuestAttributes, error) { fakeCalled = true; return nil, nil }
 	wantFakeCalled = true
 	wantRealCalled = false
 	runTests()

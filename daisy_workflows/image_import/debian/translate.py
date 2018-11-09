@@ -24,6 +24,8 @@ install_gce_packages: True if GCE agent and SDK should be installed
 import logging
 
 import utils
+import utils.diskutils as diskutils
+
 
 google_cloud = '''
 deb http://packages.cloud.google.com/apt cloud-sdk-{deb_release} main
@@ -90,10 +92,10 @@ def DistroSpecific(g):
 
 
 def main():
-  g = utils.MountDisk('/dev/sdb')
+  g = diskutils.MountDisk('/dev/sdb')
   DistroSpecific(g)
   utils.CommonRoutines(g)
-  utils.UnmountDisk(g)
+  diskutils.UnmountDisk(g)
 
 
 if __name__ == '__main__':
