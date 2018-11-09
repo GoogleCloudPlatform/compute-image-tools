@@ -58,7 +58,7 @@ func TestInstalledZypperContainsTwoPackages(t *testing.T) {
 	if err != nil {
 		t.Fatal("could not load test data")
 	}
-	run := getMockRun(out, nil)
+	run = getMockRun(out, nil)
 	pkgs, err := installedZypper(run)
 
 	if err != nil {
@@ -78,7 +78,7 @@ func TestInstalledZypperContainsTwoPackages(t *testing.T) {
 
 func TestInstalledZypperNoPackagesInstalled(t *testing.T) {
 	out, err := helperLoadBytes("installedZypperDataNoZypperPackage")
-	run := getMockRun(out, nil)
+	run = getMockRun(out, nil)
 	pkgs, err := installedZypper(run)
 
 	if pkgs != nil && err != nil {
@@ -91,7 +91,7 @@ func TestInstalledZypperOneInvalidPackageEntry(t *testing.T) {
 	if err != nil {
 		t.Fatal("could not load test data")
 	}
-	run := getMockRun(out, nil)
+	run = getMockRun(out, nil)
 	pkgs, err := installedZypper(run)
 
 	if len(pkgs) != 1 {

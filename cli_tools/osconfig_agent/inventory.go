@@ -120,12 +120,12 @@ func getInventory() *instanceInventory {
 	hs.Architecture = di.Architecture
 
 	var errs []string
-	hs.InstalledPackages, errs = packages.GetInstalledPackages(packages.Run)
+	hs.InstalledPackages, errs = packages.GetInstalledPackages()
 	if len(errs) != 0 {
 		hs.Errors = append(hs.Errors, errs...)
 	}
 
-	hs.PackageUpdates, errs = packages.GetPackageUpdates(packages.Run)
+	hs.PackageUpdates, errs = packages.GetPackageUpdates()
 	if len(errs) != 0 {
 		hs.Errors = append(hs.Errors, errs...)
 	}

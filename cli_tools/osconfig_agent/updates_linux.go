@@ -37,7 +37,7 @@ func runUpdates(pp patchPolicy) (bool, error) {
 		}
 	}
 
-	if err := packages.UpdatePackages(packages.Run); err != nil {
+	if err := packages.UpdatePackages(); err != nil {
 		return false, err
 	}
 

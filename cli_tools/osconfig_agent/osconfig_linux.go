@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/compute-image-tools/go/packages"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
 const zypperRepoFile = "/etc/zypp/repos.d/google_osconfig.repo"

@@ -128,7 +128,7 @@ func InstallZypperUpdates() error {
 
 // UpdatePackages installs all available package updates for all known system
 // package managers.
-func UpdatePackages(Run RunFunc) error {
+func UpdatePackages() error {
 	var errs []string
 	if AptExists {
 		if err := aptUpgrade(run); err != nil {
@@ -157,7 +157,7 @@ func aptUpgrade(run runFunc) error {
 		return err
 	}
 
-	if _, err := Run(exec.Command(aptGet, aptGetUpgradeArgs...)); err != nil {
+	if _, err := run(exec.Command(aptGet, aptGetUpgradeArgs...)); err != nil {
 		return err
 	}
 
@@ -182,7 +182,7 @@ func zypperUpdate(run runFunc) error {
 
 // GetPackageUpdates gets all available package updates from any known
 // installed package manager.
-func GetPackageUpdates(Run RunFunc) (Packages, []string) {
+func GetPackageUpdates() (Packages, []string) {
 	pkgs := Packages{}
 	var errs []string
 	if AptExists {
@@ -244,7 +244,7 @@ func aptUpdates(run runFunc) ([]PkgInfo, error) {
 		return nil, err
 	}
 
-	out, err = Run(exec.Command(aptGet, aptGetUpgradableArgs...))
+	out, err = run(exec.Command(aptGet, aptGetUpgradableArgs...))
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +422,7 @@ func pipUpdates(run runFunc) ([]PkgInfo, error) {
 
 // GetInstalledPackages gets all installed packages from any known installed
 // package manager.
-func GetInstalledPackages(Run RunFunc) (Packages, []string) {
+func GetInstalledPackages() (Packages, []string) {
 	pkgs := Packages{}
 	var errs []string
 	if exists(rpmquery) {
