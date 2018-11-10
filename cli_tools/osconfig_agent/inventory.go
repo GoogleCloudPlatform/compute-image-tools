@@ -12,7 +12,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// gce_inventory_agent gathers and writes instance inventory to guest attributes.
 package main
 
 import (
@@ -84,7 +83,7 @@ func writeInventory(state *instanceInventory, url string) {
 				state.Errors = append(state.Errors, err.Error())
 				fmt.Println("ERROR:", err)
 			}
-		case reflect.Map:
+		case reflect.Struct:
 			if err := postAttributeCompressed(u, f.Interface()); err != nil {
 				state.Errors = append(state.Errors, err.Error())
 				fmt.Println("ERROR:", err)
