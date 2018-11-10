@@ -82,7 +82,7 @@ func InstallYumPackages(pkgs []string) {}
 // RemoveYumPackages removes yum packages.
 func RemoveYumPackages(pkgs []string) {}
 
-// InstalledZypperPackges Installs zypper packages
+// InstallZypperPackges Installs zypper packages
 func InstallZypperPackages(pkgs []string) error {
 	args := append(zypperInstallArgs, pkgs...)
 	out, err := run(exec.Command(zypper, args...))
