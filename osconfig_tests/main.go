@@ -25,10 +25,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sync"
+	"sync"gc
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	"github.com/adjackura/compute-image-tools/osconfig_tests/test_suites/inventory"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 )
 
 var (
