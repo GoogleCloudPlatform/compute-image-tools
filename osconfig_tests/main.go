@@ -28,7 +28,7 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
+	"github.com/adjackura/compute-image-tools/osconfig_tests/test_suites/inventory"
 )
 
 var (
