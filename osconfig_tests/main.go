@@ -25,7 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sync"gc
+	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
