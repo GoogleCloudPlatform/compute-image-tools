@@ -595,38 +595,3 @@ func installedPIP(run runFunc) ([]PkgInfo, error) {
 	}
 	return pkgs, nil
 }
-
-func installedZypper(run runFunc) ([]PkgInfo, error) {
-	out, err := run(exec.Command(zypper, zypperListArgs...))
-	if err != nil {
-		return nil, err
-	}
-
-	/*
-		S  | Repository                             | Name                                    | Version                             | Arch
-		---+----------------------------------------+-----------------------------------------+-------------------------------------+-------
-		i  | SLE-Module-Basesystem15-Pool           | GeoIP-data                              | 1.6.11-1.19                         | noarch
-		v  | SLE-Module-Basesystem15-Updates        | SUSEConnect                             | 0.3.14-3.13.1                       | x86_64
-		v  | SLE-Module-Basesystem15-Updates        | SUSEConnect                             | 0.3.12-3.10.1                       | x86_64
-		i+ | SLE-Module-Basesystem15-Updates        | SUSEConnect                             | 0.3.11-3.3.1                        | x86_64
-		v  | SLE-Module-Basesystem15-Pool           | SUSEConnect                             | 0.3.11-1.4                          | x86_64
-		i+ | @System                                | SuSEfirewall2                           | 3.6.378-1.33                        | noarch
-	*/
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-
-	if len(lines) == 0 {
-		fmt.Println("No zypper packages installed.")
-		return nil, nil
-	}
-
-	var pkgs []PkgInfo
-	for _, ln := range lines[2:] {
-		pkg := strings.Fields(ln)
-		if len(pkg) != 9 {
-			fmt.Printf("%q does not represent a zypper packages\n", ln)
-			continue
-		}
-		pkgs = append(pkgs, PkgInfo{Name: pkg[4], Arch: osinfo.Architecture(pkg[8]), Version: pkg[6]})
-	}
-	return pkgs, nil
-}

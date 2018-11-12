@@ -16,7 +16,6 @@ package packages
 
 import (
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
@@ -50,58 +49,6 @@ func TestZypperInstallsReturnError(t *testing.T) {
 	actual := InstallZypperPackages(pkgs)
 	if actual == nil {
 		t.Errorf("unexpected error: %v", actual)
-	}
-}
-
-func TestInstalledZypperContainsTwoPackages(t *testing.T) {
-	out, err := helperLoadBytes("installedZypperData")
-	if err != nil {
-		t.Fatal("could not load test data")
-	}
-	run = getMockRun(out, nil)
-	pkgs, err := installedZypper(run)
-
-	if err != nil {
-		t.Fatal("could not execxute test")
-	}
-
-	if len(pkgs) != 2 {
-		t.Errorf("unexpected number of packages")
-	}
-
-	fmt.Printf("%s\n%s", pkgs[0], pkgs[1])
-
-	if pkgs[0].Name != "GeoIP-data" || pkgs[1].Name != "SUSEConnect" {
-		t.Errorf("Unexpected output")
-	}
-}
-
-func TestInstalledZypperNoPackagesInstalled(t *testing.T) {
-	out, err := helperLoadBytes("installedZypperDataNoZypperPackage")
-	run = getMockRun(out, nil)
-	pkgs, err := installedZypper(run)
-
-	if pkgs != nil && err != nil {
-		t.Errorf("Unexpected output")
-	}
-}
-
-func TestInstalledZypperOneInvalidPackageEntry(t *testing.T) {
-	out, err := helperLoadBytes("installedZypperPackageOneValidEntry")
-	if err != nil {
-		t.Fatal("could not load test data")
-	}
-	run = getMockRun(out, nil)
-	pkgs, err := installedZypper(run)
-
-	if len(pkgs) != 1 {
-		t.Errorf("unexpected number of packages")
-	}
-
-	fmt.Printf("%s", pkgs[0])
-
-	if pkgs[0].Name != "GeoIP-data" {
-		t.Errorf("Unexpected output")
 	}
 }
 
