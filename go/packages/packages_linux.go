@@ -136,7 +136,7 @@ func UpdatePackages() error {
 		}
 	}
 	if YumExists {
-		if err := yumUpdate(); err != nil {
+		if err := yumUpdate(run); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
@@ -165,8 +165,8 @@ func aptUpgrade(run runFunc) error {
 }
 
 // update yum packages
-func yumUpdate() error {
-	if _, err := exec.Command(yum, yumUpdateArgs...).CombinedOutput(); err != nil {
+func yumUpdate(run runFunc) error {
+	if _, err := run(exec.Command(yum, yumUpdateArgs...)); err != nil {
 		return err
 	}
 	return nil
@@ -455,17 +455,6 @@ func GetInstalledPackages() (Packages, []string) {
 			pkgs.Gem = gem
 		}
 	}
-	if exists(zypper) {
-		zypper, err := installedZypper(run)
-		if err != nil {
-			msg := fmt.Sprintf("error listing installed zypper packages: %v", err)
-			fmt.Println("Error:", msg)
-			errs = append(errs, msg)
-		} else {
-			pkgs.Zypper = zypper
-		}
-	}
-
 	if exists(pip) {
 		pip, err := installedPIP(run)
 		if err != nil {

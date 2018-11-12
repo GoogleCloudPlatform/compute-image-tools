@@ -83,6 +83,7 @@ func yumInstalls(pkgs []*osconfigpb.Package) error { return nil }
 
 func yumRemovals(pkgs []*osconfigpb.Package) error { return nil }
 
+// TODO: Write repo_gpgcheck, pkg_gpgcheck, gpgkeys, type
 func zypperRepositories(repos []*osconfigpb.ZypperRepository) error {
 	/*
 		# Repo file managed by Google OSConfig agent
