@@ -28,7 +28,7 @@
           "image_name": "${image_name}",
           "source_disk_file": "${source_disk_file}",
           "translate_workflow": "ubuntu/translate_ubuntu_1604.wf.json",
-          "export_network": "my-network"
+          "import_network": "my-network"
         }
       }
     },
