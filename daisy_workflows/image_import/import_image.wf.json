@@ -27,11 +27,11 @@
       "Description": "Optional description to set for the imported image"
     },
     "import_disk_name": "imported-disk-${ID}",
-    "export_network": {
+    "import_network": {
       "Value": "global/networks/default",
       "Description": "Network to use for the import instance"
     },
-    "export_subnet": {
+    "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
     }
@@ -45,8 +45,8 @@
           "importer_instance_disk_size": "${importer_instance_disk_size}",
           "disk_name": "${import_disk_name}",
           "import_instance_disk_image": "${import_instance_disk_image}",
-          "export_network": "${export_network}",
-          "export_subnet": "${export_subnet}"
+          "import_network": "${import_network}",
+          "import_subnet": "${import_subnet}"
         }
       }
     },
