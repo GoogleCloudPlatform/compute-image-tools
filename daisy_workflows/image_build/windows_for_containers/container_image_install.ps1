@@ -49,8 +49,8 @@ function Get-MetadataValue {
 
 & googet -noconfirm update
 try {
-  $version = Get-MetadataValue 'version'
-  if (-not $version) {
+  $windows_version = Get-MetadataValue 'version'
+  if (-not $windows_version) {
     throw 'Error retrieving "version" from metadata'
   }
 
@@ -61,8 +61,9 @@ try {
     Write-Host 'Installing DockerMsftProvider module'
     Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
 
-    Write-Host 'Installing Docker EE 18.03'
-    Install-Package -Name docker -ProviderName DockerMsftProvider -Force -RequiredVersion 18.03
+    $docker_version = "18.09"
+    Write-Host "Installing Docker EE ${docker_version}"
+    Install-Package -Name docker -ProviderName DockerMsftProvider -Force -RequiredVersion ${docker_version}
 
     Write-Host 'Enabling IPv6'
     $ipv_path = 'HKLM:\SYSTEM\CurrentControlSet\services\TCPIP6\Parameters'
@@ -86,19 +87,19 @@ try {
     # As most if not all Windows containers are based on one of these images
     # we pull it here so that running a container using this image is quick.
     Write-Host 'Pulling latest Windows containers'
-    & docker pull "microsoft/windowsservercore:${version}"
+    & docker pull "microsoft/windowsservercore:${windows_version}"
     if (!$?) {
-      throw "Error running 'docker pull microsoft/windowsservercore:${version}'"
+      throw "Error running 'docker pull microsoft/windowsservercore:${windows_version}'"
     }
-    & docker pull "microsoft/nanoserver:${version}"
+    & docker pull "microsoft/nanoserver:${windows_version}"
     if (!$?) {
-      throw "Error running 'docker pull microsoft/nanoserver:${version}'"
+      throw "Error running 'docker pull microsoft/nanoserver:${windows_version}'"
     }
 
     Write-Host 'Setting container vEthernet MTU to 1460'
-    & docker run --rm "microsoft/windowsservercore:${version}" powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
+    & docker run --rm "microsoft/windowsservercore:${windows_version}" powershell.exe "Get-NetAdapter | Where-Object {`$_.Name -like 'vEthernet*'} | ForEach-Object { & netsh interface ipv4 set subinterface `$_.InterfaceIndex mtu=1460 store=persistent }"
     if (!$?) {
-      throw "Error running 'docker run microsoft/windowsservercore:${version}'"
+      throw "Error running 'docker run microsoft/windowsservercore:${windows_version}'"
     }
 
     Write-Host 'Launching sysprep.'
