@@ -11,6 +11,7 @@
   },
   "Steps": {
     "test-export": {
+      "Timeout": "20m",
       "SubWorkflow": {
         "Path": "image_export_vmdk.subwf.json",
         "Vars": {
