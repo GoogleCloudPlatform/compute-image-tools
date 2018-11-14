@@ -44,10 +44,11 @@ const testZone = "us-central1-c"
 
 // TODO: Move to the new combined osconfig package, also make this easily available to other tests.
 var installInventoryDeb = `echo 'deb http://packages.cloud.google.com/apt google-compute-engine-inventory-unstable main' >> /etc/apt/sources.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-compute-engine-inventory
 echo 'inventory install done'`
-var installInventoryGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-compute-engine-staging google-compute-engine-inventory
+var installInventoryGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
 echo 'inventory install done'`
 
 type inventoryTestSetup struct {
@@ -115,7 +116,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		// Ubuntu images
 		&inventoryTestSetup{
 			image:       "projects/ubuntu-os-cloud/global/images/family/ubuntu-1404-lts",
-			packageType: []string{"deb", "pip", "gem"},
+			packageType: []string{"deb"},
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
@@ -124,7 +125,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		},
 		&inventoryTestSetup{
 			image:       "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
-			packageType: []string{"deb", "pip", "gem"},
+			packageType: []string{"deb"},
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
@@ -133,7 +134,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		},
 		&inventoryTestSetup{
 			image:       "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts",
-			packageType: []string{"deb", "pip", "gem"},
+			packageType: []string{"deb"},
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
@@ -218,13 +219,19 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	}
 
 	testCase.Logf("Checking inventory data")
-	ga, err := client.GetGuestAttributes(inst.Project, inst.Zone, inst.Name, "guestInventory/", "")
-	if err != nil {
-		testCase.WriteFailure("Error getting guest attributes: %v", err)
-		return nil, false
+	// It can take a bit to start collecting data, retry a few times.
+	for i := 0; ; i++ {
+		ga, err := client.GetGuestAttributes(inst.Project, inst.Zone, inst.Name, "guestInventory/", "")
+		if err != nil && i > 5 {
+			testCase.WriteFailure("Error getting guest attributes: %v", err)
+			return nil, false
+		}
+		if ga != nil {
+			return ga, true
+		}
+		time.Sleep(10 * time.Second)
+		continue
 	}
-
-	return ga, true
 }
 
 func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) {
@@ -355,10 +362,10 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 	defer hostnameTest.Finish(tests)
 
 	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Check ShortName [%s]", testSetup.image))
-	defer hostnameTest.Finish(tests)
+	defer shortNameTest.Finish(tests)
 
 	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Check InstalledPackages [%s]", testSetup.image))
-	defer hostnameTest.Finish(tests)
+	defer packageTest.Finish(tests)
 
 	if gatherInventoryTest.FilterTestCase(regex) {
 		hostnameTest.WriteSkipped("Setup skipped")
@@ -371,9 +378,9 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 	ga, ok := runGatherInventoryTest(ctx, testSetup, gatherInventoryTest)
 	logger.Printf("TestCase '%s.%q' finished", gatherInventoryTest.Classname, gatherInventoryTest.Name)
 	if !ok {
-		hostnameTest.WriteSkipped("Setup Failure")
-		shortNameTest.WriteSkipped("Setup Failure")
-		packageTest.WriteSkipped("Setup Failure")
+		hostnameTest.WriteFailure("Setup Failure")
+		shortNameTest.WriteFailure("Setup Failure")
+		packageTest.WriteFailure("Setup Failure")
 		return
 	}
 
