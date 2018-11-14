@@ -61,7 +61,7 @@ def main():
 
   # Build the kickstart file.
   ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap, sap_hana,
-                                        sap_apps)
+                                        sap_apps, uefi=False)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 
