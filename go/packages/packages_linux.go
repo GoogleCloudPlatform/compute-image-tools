@@ -30,6 +30,8 @@ var (
 
 	// apt-get
 	aptGet               = "/usr/bin/apt-get"
+	aptGetInstallArgs    = []string{"install", "-y"}
+	aptGetRemoveArgs     = []string{"remove", "-y"}
 	aptGetUpdateArgs     = []string{"update"}
 	aptGetUpgradeArgs    = []string{"upgrade", "-y"}
 	aptGetUpgradableArgs = []string{"upgrade", "--just-print"}
@@ -40,6 +42,8 @@ var (
 
 	// yum
 	yum                 = "/usr/bin/yum"
+	yumInstallArgs      = []string{"install", "-y"}
+	yumRemoveArgs       = []string{"remove", "-y"}
 	yumUpdateArgs       = []string{"update", "-y"}
 	yumCheckUpdatesArgs = []string{"check-updates", "--quiet"}
 
@@ -71,16 +75,65 @@ func init() {
 }
 
 // InstallAptPackages installs apt packages.
-func InstallAptPackages(pkgs []string) {}
+func InstallAptPackages(pkgs []string) error {
+	args := append(aptGetInstallArgs, pkgs...)
+	out, err := run(exec.Command(aptGet, args...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf(" %s\n", s)
+	}
+	fmt.Printf("apt install output:\n%s\n", msg)
+	return nil
+}
 
 // RemoveAptPackages removes apt packages.
-func RemoveAptPackages(pkgs []string) {}
+func RemoveAptPackages(pkgs []string) error {
+	args := append(aptGetRemoveArgs, pkgs...)
+	out, err := run(exec.Command(aptGet, args...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf(" %s\n", s)
+	}
+	fmt.Printf("apt remove output:\n%s\n", msg)
+	return nil
+}
 
 // InstallYumPackages installs yum packages.
-func InstallYumPackages(pkgs []string) {}
+func InstallYumPackages(pkgs []string) error {
+	args := append(yumInstallArgs, pkgs...)
+	out, err := run(exec.Command(yum, args...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf(" %s\n", s)
+	}
+	fmt.Printf("yum install output:\n%s\n", msg)
+	return nil
+}
 
 // RemoveYumPackages removes yum packages.
-func RemoveYumPackages(pkgs []string) {}
+func RemoveYumPackages(pkgs []string) error {
+	args := append(yumRemoveArgs, pkgs...)
+	out, err := run(exec.Command(yum, args...))
+	if err != nil {
+		return err
+	}
+	var msg string
+	for _, s := range strings.Split(string(out), "\n") {
+		msg += fmt.Sprintf(" %s\n", s)
+	}
+	fmt.Printf("yum remove output:\n%s\n", msg)
+	return nil
+
+}
 
 // InstallZypperPackages Installs zypper packages
 func InstallZypperPackages(pkgs []string) error {

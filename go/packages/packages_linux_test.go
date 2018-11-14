@@ -90,6 +90,86 @@ func TestInstallZypperUpdatesReturnError(t *testing.T) {
 	}
 }
 
+func TestInstallYumPackages(t *testing.T) {
+	out := "install successfull"
+	run = getMockRun([]byte(out), nil)
+	pkgs := getMockPackages()
+	actual := InstallYumPackages(pkgs)
+	if actual != nil {
+		t.Errorf("unexpected error: %v", actual)
+	}
+}
+
+func TestInstallYumPackagesReturnsError(t *testing.T) {
+	out := "Could not install"
+	run = getMockRun([]byte(out), errors.New("Could not install package"))
+	pkgs := getMockPackages()
+	actual := InstallYumPackages(pkgs)
+	if actual == nil {
+		t.Errorf("unexpected error: %v", actual)
+	}
+}
+
+func TestRemoveYum(t *testing.T) {
+	out := "removed successful output"
+	run = getMockRun([]byte(out), nil)
+	pkgs := getMockPackages()
+	actual := RemoveYumPackages(pkgs)
+	if actual != nil {
+		t.Errorf("unexpected error: %v", actual)
+	}
+}
+
+func TestRemoveYumReturnError(t *testing.T) {
+	out := ""
+	run = getMockRun([]byte(out), errors.New("Could not find package"))
+	pkgs := getMockPackages()
+	actual := RemoveYumPackages(pkgs)
+	if actual == nil {
+		t.Errorf("unexpected error: %v", actual)
+	}
+}
+
+func TestInstallAptPackages(t *testing.T) {
+	out := "install successfull"
+	run = getMockRun([]byte(out), nil)
+	pkgs := getMockPackages()
+	actual := InstallAptPackages(pkgs)
+	if actual != nil {
+		t.Errorf("unexpected error: %v", actual)
+	}
+}
+
+func TestInstallAptPackagesReturnsError(t *testing.T) {
+	out := "Could not install"
+	run = getMockRun([]byte(out), errors.New("Could not install package"))
+	pkgs := getMockPackages()
+	actual := InstallAptPackages(pkgs)
+	if actual == nil {
+		t.Errorf("unexpected error: %v", actual)
+	}
+}
+
+func TestRemoveApt(t *testing.T) {
+	out := "removed successful output"
+	run = getMockRun([]byte(out), nil)
+	pkgs := getMockPackages()
+	actual := RemoveAptPackages(pkgs)
+	if actual != nil {
+		t.Errorf("unexpected error: %v", actual)
+	}
+}
+
+func TestRemoveAptReturnError(t *testing.T) {
+	out := ""
+	run = getMockRun([]byte(out), errors.New("Could not find package"))
+	pkgs := getMockPackages()
+	actual := RemoveAptPackages(pkgs)
+	if actual == nil {
+		t.Errorf("unexpected error: %v", actual)
+	}
+}
+
 // TODO: move this to a common helper package
 func helperLoadBytes(name string) ([]byte, error) {
 	path := filepath.Join("testdata", name) // relative path
