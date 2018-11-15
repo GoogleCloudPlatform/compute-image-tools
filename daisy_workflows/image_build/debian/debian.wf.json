@@ -17,7 +17,7 @@
     "build_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
     "build_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
     "build_files/google_cloud_test_repos": "./google_cloud_test_repos/",
-    "startup_script": "../../linux_common/bootstrap.py"
+    "startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
     "setup": {

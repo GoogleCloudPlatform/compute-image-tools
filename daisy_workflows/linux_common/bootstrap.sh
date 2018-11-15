@@ -1,3 +1,17 @@
+#!/bin/sh
+
+# Ubuntu 18.x does not ship python2 installed by default.
+if [  -n "$(uname -a | grep Ubuntu)" ]; then
+    ubuntu_release=$(lsb_release -rs)
+    if [ "$ubuntu_release" = "18.04" -o "$ubuntu_release" = "18.10" ]; then
+        apt-get update && apt-get install -y python
+    fi
+fi
+
+bootstrap_script="$(dirname $0)/bootstrap.py"
+
+echo "Creating $bootstrap_script"
+cat > $bootstrap_script <<EOF
 #!/usr/bin/env python2
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
@@ -148,3 +162,8 @@ def Bootstrap():
 
 if __name__ == '__main__':
   Bootstrap()
+EOF
+
+echo "Calling $bootstrap_script"
+chmod +x $bootstrap_script
+$bootstrap_script

@@ -48,7 +48,7 @@
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
     "build_files/save_logs.py": "./save_logs.py",
-    "installerprep_startup_script": "../../linux_common/bootstrap.py"
+    "installerprep_startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
     "setup-disks": {

@@ -16,7 +16,7 @@
     "test_files/utils/diskutils.py": "../../daisy_workflows/linux_common/utils/diskutils.py",
     "test_files/utils/__init__.py": "../../daisy_workflows/linux_common/utils/__init__.py",
     "test_files/genips.py": "./genips.py",
-    "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.py"
+    "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.sh"
   },
   "Steps": {
     "create-testee-disk": {
