@@ -13,6 +13,10 @@
       "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     },
+    "rhel_release": {
+      "Value": "rhel7",
+      "Description": "RHEL release version to use."
+    },
     "install_disk": {
       "Value": "disk-rhel-7",
       "Description": "Name of the disk to install onto."
@@ -28,7 +32,7 @@
       "IncludeWorkflow": {
         "Path": "./enterprise_linux.wf.json",
         "Vars": {
-          "el_release": "rhel7",
+          "el_release": "${rhel_release}",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",

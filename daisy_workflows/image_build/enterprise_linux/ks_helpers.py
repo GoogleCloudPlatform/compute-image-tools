@@ -166,9 +166,10 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     release: string; image from metadata.
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
     byol: bool; true if using a BYOL RHEL license.
-    sap: bool; true if building RHEL for SAP
-    sap_hana: bool; true if building RHEL for SAP HANA
-    sap_apps: bool; true is building RHEL for SAP Apps
+    sap: bool; true if building RHEL for SAP.
+    sap_hana: bool; true if building RHEL for SAP HANA.
+    sap_apps: bool; true if building RHEL for SAP Apps.
+    uefi: bool; true if building uefi image.
 
   Returns:
     string; a valid kickstart config.
@@ -183,6 +184,7 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
   # have to be.
 
   # Common
+  pre = ''
   ks_packages = FetchConfigPart('common-packages.cfg')
   # For BYOL RHEL, don't remove subscription-manager.
   if byol:
@@ -191,6 +193,7 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
 
   if release == 'rhel6':
     logging.info('Building RHEL 6 image.')
+    pre = FetchConfigPart('el6-pre.cfg')
     ks_options = FetchConfigPart('el6-options.cfg')
     rhel_post = FetchConfigPart('rhel6-post.cfg')
     el_post = FetchConfigPart('el6-post.cfg')
@@ -201,11 +204,12 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     repo_version = 'el6'
   elif release == "centos6":
     logging.info('Building CentOS 6 image.')
+    pre = FetchConfigPart('el6-pre.cfg')
     ks_options = FetchConfigPart('el6-options.cfg')
     custom_post = FetchConfigPart('el6-post.cfg')
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
-  elif release == "rhel7":
+  elif release.startswith('rhel7'):
     logging.info('Building RHEL 7 image.')
     if uefi:
       logging.info('Building RHEL 7 for UEFI')
@@ -215,7 +219,17 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     rhel_post = FetchConfigPart('rhel7-post.cfg')
     if sap:
       logging.info('Building RHEL 7 for SAP')
-      rhel_post = FetchConfigPart('rhel7-sap-post.cfg')
+      point = ''
+      if release == 'rhel7.3':
+        logging.info('Building RHEL 7.3 for SAP')
+        point = FetchConfigPart('rhel7-3-post.cfg')
+      if release == 'rhel7.4':
+        logging.info('Building RHEL 7.4 for SAP')
+        point = FetchConfigPart('rhel7-4-post.cfg')
+      if release == 'rhel7.6':
+        logging.info('Building RHEL 7.6 for SAP')
+        point = FetchConfigPart('rhel7-6-post.cfg')
+      rhel_post = '\n'.join([point, FetchConfigPart('rhel7-sap-post.cfg')])
     elif sap_hana:
       logging.info('Building RHEL 7 for SAP Hana')
       rhel_post = FetchConfigPart('rhel7-sap-hana-post.cfg')
@@ -239,6 +253,7 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     repo_version = 'el7'
   elif release == "oraclelinux6":
     logging.info('Building Oracle Linux 6 image.')
+    pre = FetchConfigPart('el6-pre.cfg')
     ks_options = FetchConfigPart('el6-options.cfg')
     ol_post = FetchConfigPart('ol6-post.cfg')
     el_post = FetchConfigPart('el6-post.cfg')
@@ -260,14 +275,14 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
 
   # This list should be in the order that you want each section to appear in
   # the Kickstart config.
-  return '\n'.join([ks_options, ks_packages, ks_post])
+  return '\n'.join([ks_options, ks_packages, pre, ks_post])
 
 
 def BuildPost(custom_post, cleanup, repo_version, google_cloud_repo):
-  """Assembles the %pre/post section of a kickstart file.
+  """Assembles the %post section of a kickstart file.
 
   Args:
-    custom_post: string; a kickstart %pre/post segment containing post install
+    custom_post: string; a kickstart %post segment containing post install
                  steps needed for a given flavor of Enterprise Linux.
 
     cleanup: string; a kickstart %post segment for cleanup.
@@ -279,9 +294,6 @@ def BuildPost(custom_post, cleanup, repo_version, google_cloud_repo):
   Returns:
     string; a complete %pre/post segment of a kickstart file.
   """
-  # EL6 requires a %pre section to set up networking before the install.
-  el6_pre = FetchConfigPart('el6-pre.cfg')
-
   # This is used to create a synopsis of the image and should appear right
   # before the image is pushed to GCS.
   create_synopsis = FetchConfigPart('create-synopsis-post.cfg')
@@ -289,13 +301,7 @@ def BuildPost(custom_post, cleanup, repo_version, google_cloud_repo):
   # Configure repository %post section
   repo_post = BuildReposPost(repo_version, google_cloud_repo)
 
-  if repo_version == 'el6':
-    ks_post_list = [
-        el6_pre, repo_post, custom_post, create_synopsis, cleanup]
-  else:
-    ks_post_list = [
-        repo_post, custom_post, create_synopsis, cleanup]
-
+  ks_post_list = [repo_post, custom_post, create_synopsis, cleanup]
   return '\n'.join(ks_post_list)
 
 
