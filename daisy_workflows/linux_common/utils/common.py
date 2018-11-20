@@ -316,6 +316,9 @@ def UploadFile(filename, dest):
   if not BUCKET or BUCKET.name != bucket_name:
     BUCKET = storage.bucket.Bucket(CLIENT, bucket_name)
 
+  if not blob_path.endswith('/'):
+    blob_path += '/'
+
   blob = storage.blob.Blob(blob_path + filename, BUCKET)
   blob.upload_from_filename(filename)
 

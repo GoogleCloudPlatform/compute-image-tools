@@ -140,8 +140,8 @@ func run(ctx context.Context) {
 		} else {
 			setOsConfig(resp)
 			setPatchPolicies(resp.PatchPolicies)
-			runInventory()
 		}
+		runInventory()
 
 		select {
 		case <-ticker.C:
