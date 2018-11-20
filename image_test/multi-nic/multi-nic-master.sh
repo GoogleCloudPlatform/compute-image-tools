@@ -16,4 +16,11 @@
 # Wait for network initialization
 sleep 10
 
+# Ubuntu minimal images do not have ping installed by default.
+if [  -n "$(uname -a | grep Ubuntu)" ]; then
+    if ! type ping > /dev/null; then
+        apt-get update && apt-get install -y iputils-ping
+    fi
+fi
+
 ping -c 5 ${HOST} && logger -p daemon.info 'MultiNICSuccess' || logger -p daemon.info 'MultiNICFailed'
