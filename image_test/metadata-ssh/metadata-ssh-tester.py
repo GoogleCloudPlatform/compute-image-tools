@@ -81,6 +81,18 @@ def TestBlockProjectSshKeysIgnoresProjectLevelKeys():
   MD.TestSshLogin(instance_key, expect_fail=True)
 
 
+def TestAdminLoginSshKeys(level):
+  key = MD.AddSshKey(MM.SSH_KEYS, level)
+  MD.TestSshLogin(key, as_root=True)
+  MD.RemoveSshKey(key, MM.SSH_KEYS, level)
+  MD.TestSshLogin(key, as_root=True, expect_fail=True)
+  # Re-add a new ssh key and check if it still has root privileges.
+  new_key = MD.AddSshKey(MM.SSH_KEYS, level)
+  MD.TestSshLogin(new_key, as_root=True)
+  MD.RemoveSshKey(new_key, MM.SSH_KEYS, level)
+  MD.TestSshLogin(new_key, as_root=True, expect_fail=True)
+
+
 def main():
   global MD
 
@@ -93,6 +105,8 @@ def main():
 
   TestLoginSshKeys(MM.INSTANCE_LEVEL)
   TestLoginSshKeys(MM.PROJECT_LEVEL)
+  TestAdminLoginSshKeys(MM.INSTANCE_LEVEL)
+  TestAdminLoginSshKeys(MM.PROJECT_LEVEL)
   TestSshKeysWithSshKeys(MM.INSTANCE_LEVEL)
   TestSshKeysWithSshKeys(MM.PROJECT_LEVEL)
   TestSshKeysMixedProjectInstanceLevel()
