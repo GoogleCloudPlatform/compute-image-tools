@@ -4,7 +4,7 @@
     "source_image": {"Required": true, "Description": "Image to be tested"}
   },
   "Sources": {
-    "bootstrap": "../../daisy_workflows/linux_common/bootstrap.py",
+    "bootstrap": "../../daisy_workflows/linux_common/bootstrap.sh",
     "test_files/": "./linux/",
     "test_files/test.py": "./linux/configuration-test.py",
     "test_files/utils/common.py": "../../daisy_workflows/linux_common/utils/common.py",
