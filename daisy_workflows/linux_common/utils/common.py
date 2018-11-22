@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,8 @@ import sys
 import time
 import trace
 import traceback
-import urllib2
+import urllib.error
+import urllib.request
 import uuid
 
 SUCCESS_LEVELNO = logging.ERROR - 5
@@ -77,17 +78,18 @@ def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
       raise subprocess.CalledProcessError(returncode, cmd)
     else:
       logging.info('Command returned error status %d' % returncode)
-  if output:
+  if output is not None:
+    output = output.decode()
     logging.info(output)
   return returncode, output
 
 
 def HttpGet(url, headers=None):
-  request = urllib2.Request(url)
+  request = urllib.request.Request(url)
   if headers:
     for key in headers.keys():
       request.add_unredirected_header(key, headers[key])
-  return urllib2.urlopen(request).read()
+  return urllib.request.urlopen(request).read().decode()
 
 
 def _GetMetadataParam(name, default_value=None, raise_on_not_found=None):
@@ -95,7 +97,7 @@ def _GetMetadataParam(name, default_value=None, raise_on_not_found=None):
     url = 'http://metadata.google.internal/computeMetadata/v1/instance/%s' % \
         name
     return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
-  except urllib2.HTTPError:
+  except urllib.error.HTTPError:
     if raise_on_not_found:
       raise ValueError('Metadata key "%s" not found' % name)
     else:
@@ -548,7 +550,7 @@ class MetadataManager:
     try:
       url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % name
       return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
-    except urllib2.HTTPError:
+    except urllib.error.HTTPError:
       raise ValueError('Metadata key "%s" not found' % name)
 
   def GetInstanceInfo(self, instance):

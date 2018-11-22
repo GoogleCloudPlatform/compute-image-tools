@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,8 @@ import json
 import logging
 import os
 import subprocess
-import urllib2
+import urllib.error
+import urllib.request
 
 
 DIR = '/files'
@@ -37,10 +38,11 @@ def GetAccessToken():
   url = '%(metadata)s/v1/instance/service-accounts/default/token' % {
       'metadata': 'http://metadata.google.internal/computeMetadata',
   }
-  request = urllib2.Request(url)
+  request = urllib.request.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   # converts the stringified dictionary of the response to a dictionary
-  response = ast.literal_eval(urllib2.urlopen(request).read())
+  response_str = urllib.request.urlopen(request).read().decode()
+  response = ast.literal_eval(response_str)
   return '%s %s' % (response[u'token_type'], response[u'access_token'])
 
 
@@ -51,20 +53,20 @@ def GetBucketContent(bucket, prefix):
       'prefix': prefix,
   }
   logging.info('Status: Bucket listing with %s prefix: %s' % (prefix, url))
-  request = urllib2.Request(url)
+  request = urllib.request.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   request.add_unredirected_header('Authorization', TOKEN)
-  content = json.load(urllib2.urlopen(request))
+  content = json.load(urllib.request.urlopen(request))
   return [i['name'] for i in content['items']]
 
 
 def SaveBucketFile(bucket, bucket_file, dest_filepath):
   url = 'https://storage.googleapis.com/%s/%s' % (bucket, bucket_file)
   logging.info('Status: Bucket save: %s => %s' % (url, dest_filepath))
-  request = urllib2.Request(url)
+  request = urllib.request.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
   request.add_unredirected_header('Authorization', TOKEN)
-  content = urllib2.urlopen(request).read()
+  content = urllib.request.urlopen(request).read().decode()
 
   # ensure directory exists before copying it
   base_dir = ''
@@ -88,9 +90,9 @@ def GetMetadataAttribute(attribute):
       'metadata': 'http://metadata.google.internal/computeMetadata',
       'attribute_name': attribute,
   }
-  request = urllib2.Request(url)
+  request = urllib.request.Request(url)
   request.add_unredirected_header('Metadata-Flavor', 'Google')
-  return urllib2.urlopen(request).read()
+  return urllib.request.urlopen(request).read().decode()
 
 
 def DebianInstallGoogleApiPythonClient():
@@ -118,7 +120,7 @@ def Bootstrap():
     try:
       if GetMetadataAttribute('debian_install_google_api_python_client'):
         DebianInstallGoogleApiPythonClient()
-    except urllib2.HTTPError:
+    except urllib.error.HTTPError:
       pass
 
     TOKEN = GetAccessToken()
