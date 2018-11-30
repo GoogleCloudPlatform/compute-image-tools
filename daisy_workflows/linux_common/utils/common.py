@@ -304,8 +304,8 @@ def UploadFile(source_file, dest_file):
   """Uploads a file to GCS.
 
   Expects a local source file and a destination file in GCS. If the destination
-  is a GCS path instead of an object (or blob), upload the source file using its
-  original path as the resulting object name.
+  is a GCS path instead of an object (or blob), upload the source file using
+  its original path as the resulting object name.
 
   Args:
     source_file: string, the path of a source file to upload.
