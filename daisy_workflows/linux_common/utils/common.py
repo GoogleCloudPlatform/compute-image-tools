@@ -319,8 +319,8 @@ def UploadFile(source_file, dest_file):
   global CLIENT, BUCKET
 
   dest_stripped = dest_file[len('gs://'):]
-  dest_splitted = dest_file_stripped.split('/')
-  bucket_name, blob = dest_splitted[0], '/'.join(dest_splitted[1:])
+  dest_split = dest_stripped.split('/')
+  bucket_name, blob = dest_split[0], '/'.join(dest_split[1:])
 
   # If the dest_file is actually a path, upload the original file using its
   # defined source path.
