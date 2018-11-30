@@ -9,7 +9,7 @@
       "Value": "projects/debian-cloud/global/images/family/debian-9",
       "Description": "The image used to run fai-tool."
     },
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."},
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "uefi": {"Required": true, "Description": "Build an UEFI image with GPT partition format."}
   },
   "Sources": {

@@ -300,15 +300,34 @@ CLIENT = None
 BUCKET = None
 
 
-def UploadFile(filename, dest):
+def UploadFile(source_file, dest_file):
+  """Uploads a file to GCS.
+
+  Expects a local source file and a destination file in GCS. If the destination
+  is a GCS path instead of an object (or blob), upload the source file using its
+  original path as the resulting object name.
+
+  Args:
+    source_file: string, the path of a source file to upload.
+        ex: /path/to/local/orig_file.tar.gz
+    dest_file: string, the path to the resulting GCS file in gs:// notation.
+        ex: gs://some_bucket/path/file.tar.gz
+  """
   # import 'google.cloud.storage' locally as 'google-cloud-storage' pip package
   # is not a mandatory package for all utils users
   from google.cloud import storage
   global CLIENT, BUCKET
 
-  dest_stripped = dest[len('gs://'):]
-  dest_splitted = dest_stripped.split('/')
-  bucket_name, blob_path = dest_splitted[0], '/'.join(dest_splitted[1:])
+  dest_stripped = dest_file[len('gs://'):]
+  dest_splitted = dest_file_stripped.split('/')
+  bucket_name, blob = dest_splitted[0], '/'.join(dest_splitted[1:])
+
+  # If the dest_file is actually a path, upload the original file using its
+  # defined source path.
+  if blob.endswith('/'):
+    if source_file.startswith('/'):
+      source_file = source_file.lstrip('/')
+    blob = blob + source_file
 
   if not CLIENT:
     CLIENT = storage.client.Client()
@@ -316,8 +335,8 @@ def UploadFile(filename, dest):
   if not BUCKET or BUCKET.name != bucket_name:
     BUCKET = storage.bucket.Bucket(CLIENT, bucket_name)
 
-  blob = storage.blob.Blob(blob_path + filename, BUCKET)
-  blob.upload_from_filename(filename)
+  blob = storage.blob.Blob(blob, BUCKET)
+  blob.upload_from_filename(source_file)
 
   BUCKET.copy_blob(blob, BUCKET)
 
@@ -701,4 +720,4 @@ class MetadataManager:
     request = self.compute.forwardingRules().get(
         project=self.project, region=self.region, forwardingRule=name)
     response = request.execute()
-    return response[u"IPAddress"]
+    return response[u'IPAddress']

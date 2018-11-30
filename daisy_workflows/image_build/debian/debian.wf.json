@@ -9,7 +9,7 @@
       "Description": "The image used to run bootstrap-vz."
     },
     "google_cloud_repo": {"Required": true, "Description": "The Google Cloud Repo branch to use."},
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."}
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."}
   },
   "Sources": {
     "build_files/build.py": "./build.py",
