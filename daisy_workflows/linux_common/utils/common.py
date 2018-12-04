@@ -536,14 +536,20 @@ class MetadataManager:
       self.StoreMetadata(level)
 
   @RetryOnFailure
-  def TestSshLogin(self, key, expect_fail=False):
+  def TestSshLogin(self, key, as_root=False, expect_fail=False):
     """Try to login to self.instance using key.
 
     Args:
       key: string, the private key to be used in the ssh connection.
+      as_root: bool, indicates if the test is executed with root privileges.
+      expect_fail: bool, indicates if the failure in the execution is expected.
     """
+
+    command = ['echo', 'Logged']
+    if as_root:
+        command.insert(0, 'sudo')
     ExecuteInSsh(
-        key, self.ssh_user, self.instance, ['echo', 'Logged'],
+        key, self.ssh_user, self.instance, command,
         expect_fail=expect_fail)
 
   @classmethod
