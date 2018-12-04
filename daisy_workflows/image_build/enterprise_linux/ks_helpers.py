@@ -220,13 +220,13 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     if sap:
       logging.info('Building RHEL 7 for SAP')
       point = ''
-      if release == 'rhel7.3':
+      if release == 'rhel-7-3':
         logging.info('Building RHEL 7.3 for SAP')
         point = FetchConfigPart('rhel7-3-post.cfg')
-      if release == 'rhel7.4':
+      if release == 'rhel-7-4':
         logging.info('Building RHEL 7.4 for SAP')
         point = FetchConfigPart('rhel7-4-post.cfg')
-      if release == 'rhel7.6':
+      if release == 'rhel-7-6':
         logging.info('Building RHEL 7.6 for SAP')
         point = FetchConfigPart('rhel7-6-post.cfg')
       rhel_post = '\n'.join([point, FetchConfigPart('rhel7-sap-post.cfg')])
