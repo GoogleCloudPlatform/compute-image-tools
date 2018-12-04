@@ -99,7 +99,7 @@ def main():
     # Change boot args.
     args = ' '.join([
         'text', 'ks=hd:/dev/sda1:/%s' % ks_cfg,
-        'console=ttyS0,38400n8', 'sshd=1', 'loglevel=debug'
+        'console=ttyS0,38400n8', 'loglevel=debug'
     ])
     # Tell Anaconda not to store its logs in the installed image,
     # unless requested to keep them for debugging.
@@ -108,7 +108,7 @@ def main():
     cfg = re.sub(r'append initrd=initrd\.img.*', r'\g<0> %s' % args, cfg)
 
     # Change labels to explicit partitions.
-    if release in ['centos7', 'rhel7', 'oraclelinux7']:
+    if release.startswith(('centos7', 'rhel7', 'oraclelinux7')):
       cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.
