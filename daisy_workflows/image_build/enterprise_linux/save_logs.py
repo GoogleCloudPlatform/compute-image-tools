@@ -36,10 +36,10 @@ def main():
   directory = '/mnt/build-logs'
   for log in os.listdir(directory):
     if os.path.isfile(log):
-      utils.UploadFile(os.path.join(directory, log),
-                       '%s/%s' % (logs_path, log))
-  utils.UploadFile('/mnt/build-logs/synopsis.json',
-      '%s/synopsis.json' % outs_path)
+      utils.UploadFile(
+          os.path.join(directory, log), '%s/%s' % (logs_path, log))
+  utils.UploadFile(
+      '/mnt/build-logs/synopsis.json', '%s/synopsis.json' % outs_path)
 
   utils.Execute(['umount', '-l', '/mnt'])
 
