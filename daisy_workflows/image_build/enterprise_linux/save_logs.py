@@ -32,13 +32,14 @@ def main():
   logging.info('Installer root: %s' % os.listdir('/mnt'))
   logging.info('Build logs: %s' % os.listdir('/mnt/build-logs'))
 
-  utils.UploadFile('/mnt/ks.cfg', '%s/' % logs_path)
+  utils.UploadFile('/mnt/ks.cfg', '%s/ks.cfg' % logs_path)
   directory = '/mnt/build-logs'
-  for f in os.listdir(directory):
-    if os.path.isfile(f):
-      utils.UploadFile('%s/%s' % (directory, f), '%s/' % logs_path)
-  utils.UploadFile('/mnt/build-logs/synopsis.json',
-      '%s/synopsis.json' % outs_path)
+  for log in os.listdir(directory):
+    if os.path.isfile(log):
+      utils.UploadFile(
+          os.path.join(directory, log), '%s/%s' % (logs_path, log))
+  utils.UploadFile(
+      '/mnt/build-logs/synopsis.json', '%s/synopsis.json' % outs_path)
 
   utils.Execute(['umount', '-l', '/mnt'])
 

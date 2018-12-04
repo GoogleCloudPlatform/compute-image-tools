@@ -295,50 +295,33 @@ def RunTest(test_func):
     traceback.print_exc()
 
 
-# Cache CLIENT and BUCKET to improve consecutive UploadFile calls
-CLIENT = None
-BUCKET = None
-
-
-def UploadFile(source_file, dest_file):
+def UploadFile(source_file, gcs_dest_file):
   """Uploads a file to GCS.
 
-  Expects a local source file and a destination file in GCS. If the destination
-  is a GCS path instead of an object (or blob), upload the source file using
-  its original path as the resulting object name.
+  Expects a local source file and a destination bucket and GCS path.
 
   Args:
     source_file: string, the path of a source file to upload.
         ex: /path/to/local/orig_file.tar.gz
-    dest_file: string, the path to the resulting GCS file in gs:// notation.
-        ex: gs://some_bucket/path/file.tar.gz
+    gcs_dest_file: string, the path to the resulting file in GCS
+        ex: gs://new/path/orig_file.tar.gz
   """
   # import 'google.cloud.storage' locally as 'google-cloud-storage' pip package
   # is not a mandatory package for all utils users
   from google.cloud import storage
-  global CLIENT, BUCKET
 
-  dest_stripped = dest_file[len('gs://'):]
-  dest_split = dest_stripped.split('/')
-  bucket_name, blob = dest_split[0], '/'.join(dest_split[1:])
+  bucket = r'(?P<bucket>[a-z0-9][-_.a-z0-9]*[a-z0-9])'
+  obj = r'(?P<obj>[^\*\?]+)'
+  prefix = r'gs://'
+  gs_regex = re.compile(r'{prefix}{bucket}/{obj}'.format(prefix=prefix,
+                                                         bucket=bucket,
+                                                         obj=obj))
+  match = gs_regex.match(gcs_dest_file)
 
-  # If the dest_file is actually a path, upload the original file using its
-  # defined source path.
-  if blob.endswith('/'):
-    if source_file.startswith('/'):
-      source_file = source_file.lstrip('/')
-    blob = blob + source_file
-
-  if not CLIENT:
-    CLIENT = storage.client.Client()
-
-  if not BUCKET or BUCKET.name != bucket_name:
-    BUCKET = storage.bucket.Bucket(CLIENT, bucket_name)
-
-  blob = storage.blob.Blob(blob, BUCKET)
+  client = storage.Client()
+  bucket = client.get_bucket(match.group('bucket'))
+  blob = bucket.blob(match.group('obj'))
   blob.upload_from_filename(source_file)
-
-  BUCKET.copy_blob(blob, BUCKET)
 
 
 class LogFormatter(logging.Formatter):
