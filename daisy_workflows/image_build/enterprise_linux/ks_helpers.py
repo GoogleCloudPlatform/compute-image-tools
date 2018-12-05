@@ -209,7 +209,7 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     custom_post = FetchConfigPart('el6-post.cfg')
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
-  elif release.startswith('rhel7'):
+  elif release.startswith('rhel7') or release.startswith('rhel-7'):
     logging.info('Building RHEL 7 image.')
     if uefi:
       logging.info('Building RHEL 7 for UEFI')
