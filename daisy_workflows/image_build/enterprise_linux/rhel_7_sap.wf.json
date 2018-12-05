@@ -43,13 +43,13 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-7-sap-v${build_date}",
+          "Name": "${rhel_release}-sap-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
             "projects/rhel-sap-cloud/global/licenses/rhel-7-sap"
           ],
           "Description": "Red Hat, Red Hat Enterprise Linux for SAP, 7, x86_64 built on ${build_date}",
-          "Family": "rhel-7-sap",
+          "Family": "${rhel_release}-sap",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true
