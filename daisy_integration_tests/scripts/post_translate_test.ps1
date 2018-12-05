@@ -30,7 +30,33 @@ function Check-MetadataAccessibility {
   }
 }
 
-function Check-Activation  {
+function Get-MetadataValue {
+  param (
+    [parameter(Mandatory=$true)]
+      [string]$key,
+    [parameter(Mandatory=$false)]
+      [string]$default
+  )
+
+  # Returns the provided metadata value for a given key.
+  $url = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/$key"
+  try {
+    $client = New-Object Net.WebClient
+    $client.Headers.Add('Metadata-Flavor', 'Google')
+    return ($client.DownloadString($url)).Trim()
+  }
+  catch [System.Net.WebException] {
+    if ($default) {
+      return $default
+    }
+    else {
+      Write-Output "Failed to retrieve value for $key."
+      return $null
+    }
+  }
+}
+
+function Check-Activation {
   # Force activation as this is on a timer.
   & cscript c:\windows\system32\slmgr.vbs /ato
 
@@ -45,16 +71,30 @@ function Check-Activation  {
   }
 }
 
+function Check-SkipActivation {
+  $kms_name = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform').KeyManagementServiceName
+  if ($kms_name -ne $null) {
+    throw "KMS server set when it should be blank: $kms_name"
+  }
+}
+
 try {
+  $byol = Get-MetadataValue -key 'byol' -default 'false'
+
   Write-Output 'Test: GCEAgent Service'
   Get-Service GCEAgent
   Write-Output 'Test: Check-VMWareTools'
   Check-VMWareTools
   Write-Output 'Test: Check-MetadataAccessibility'
   Check-MetadataAccessibility
-  Write-Output 'Test: Check-Activation'
-  Check-Activation
-
+  if ($byol.ToLower() -eq 'true') {
+    Write-Output 'Test: Check-SkipActivation'
+    Check-SkipActivation
+  }
+  else {
+    Write-Output 'Test: Check-Activation'
+    Check-Activation
+  }
   Write-Output 'All Tests Passed'
 }
 catch {
