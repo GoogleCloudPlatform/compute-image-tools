@@ -192,18 +192,18 @@ func (w *patchWindow) in() bool {
 
 // update updates a patchWindow with a PatchPolicy.
 func (w *patchWindow) update(p *osconfigpb.LookupConfigsResponse_EffectivePatchPolicy) {
-	logDebugf("update", w.Name)
+	logDebugf("update %s", w.Name)
 	start, end, err := nextWindow(time.Now().UTC(), p.PatchWindow, 0)
 	if err != nil {
 		return
 	}
 
 	if start != w.getScheduledStart() {
-		logDebugf("patchWindow start changed, need to reregister:", w.Name)
+		logDebugf("patchWindow start changed, need to reregister: %s", w.Name)
 		w.stopTimer()
 		// Cancel any potential current run if we are no longer in a patch window.
 		if w.in() {
-			logDebugf("patchWindow running, need to cancel:", w.Name)
+			logDebugf("patchWindow running, need to cancel: %s", w.Name)
 			close(w.cancel)
 		}
 
@@ -214,31 +214,31 @@ func (w *patchWindow) update(p *osconfigpb.LookupConfigsResponse_EffectivePatchP
 	w.setScheduledEnd(end)
 	w.setPolicy(&patchPolicy{p})
 
-	logDebugf("update end", w.Name)
+	logDebugf("update end %s", w.Name)
 }
 
 // register registers a patch window as active, this will clobber any existing
 // window with the same name.
 func (w *patchWindow) register() {
-	logDebugf("register", w.Name)
+	logDebugf("register %s", w.Name)
 	aw.add(w.getName(), w)
 
 	// Create the Timer that will kick off the patch process.
 	// If we happen to be in the patch window now this will start imediately.
 	w.setTimer(time.AfterFunc(w.ScheduledStart.Sub(time.Now()), func() { rc <- w }))
-	logDebugf(w.Name, "register done")
+	logDebugf("%s register done", w.Name)
 }
 
 // deregister stops a patch windows timer and removes it from activeWindows
 // but does not cancel any current runs.
 func (w *patchWindow) deregister() {
-	logDebugf("deregister", w.Name)
+	logDebugf("deregister %s", w.Name)
 	w.stopTimer()
 	aw.delete(w.getName())
 }
 
 func (w *patchWindow) run() (reboot bool) {
-	logDebugf("run", w.Name)
+	logDebugf("run %s", w.Name)
 
 	w.StartedAt = time.Now()
 
@@ -254,7 +254,7 @@ func (w *patchWindow) run() (reboot bool) {
 
 	// Make sure we are still in the patch window.
 	if !w.in() {
-		logDebugf(w.Name, "not in patch window")
+		logDebugf("%s not in patch window", w.Name)
 		return false
 	}
 
@@ -308,9 +308,9 @@ func setPatchPolicies(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPol
 
 	// Update or create patchWindows based on provided patch policies.
 	for _, pp := range efps {
-		logDebugf("setup", pp.GetFullName())
+		logDebugf("setup %s", pp.GetFullName())
 		if w, ok := aw.get(pp.GetFullName()); ok {
-			logDebugf("patchWindow to update:", w.Name)
+			logDebugf("patchWindow to update: %s", w.Name)
 			w.update(pp)
 			continue
 		}
@@ -320,7 +320,7 @@ func setPatchPolicies(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPol
 			logErrorf("newPatchWindow error: %v", err)
 			continue
 		}
-		logDebugf("patchWindow to create:", w.Name)
+		logDebugf("patchWindow to create: %s", w.Name)
 		w.register()
 	}
 }
@@ -331,7 +331,7 @@ func patchRunner() {
 		logDebugf("waiting for patches to run")
 		select {
 		case pw := <-rc:
-			logDebugf("patchrunner running", pw.Name)
+			logDebugf("patchrunner running %s", pw.Name)
 			reboot := pw.run()
 			if pw.Policy.RebootConfig == osconfigpb.PatchPolicy_NEVER {
 				continue
@@ -340,15 +340,15 @@ func patchRunner() {
 				(((pw.Policy.RebootConfig == osconfigpb.PatchPolicy_DEFAULT) ||
 					(pw.Policy.RebootConfig == osconfigpb.PatchPolicy_REBOOT_CONFIG_UNSPECIFIED)) &&
 					reboot) {
-				logDebugf("reboot requested", pw.Name)
+				logDebugf("reboot requested %s", pw.Name)
 				if err := rebootSystem(); err != nil {
-					logErrorf("error running reboot:", err)
+					logErrorf("error running reboot: %s", err)
 				} else {
 					// Reboot can take a bit, shutdown the agent so other activities don't start.
 					os.Exit(0)
 				}
 			}
-			logDebugf("finished patch window", pw.Name)
+			logDebugf("finished patch window %s", pw.Name)
 		}
 	}
 }
