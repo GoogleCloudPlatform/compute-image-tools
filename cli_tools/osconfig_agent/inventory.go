@@ -29,6 +29,10 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
+func init() {
+	packages.DebugLogger = debugLog
+}
+
 const (
 	inventoryURL = reportURL + "/guestInventory"
 )

@@ -461,7 +461,7 @@ func GetInstalledPackages() (Packages, []string) {
 		errs = append(errs, msg)
 	} else {
 		pkgs.WUA = wua
-	}I definitely did that, but ja
+	}
 
 	if qfe, err := quickFixEngineering(); err != nil {
 		msg := fmt.Sprintf("error listing installed QuickFixEngineering updates: %v", err)
