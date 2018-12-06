@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,12 +15,13 @@
 
 import logging
 import time
-import urllib2
+import urllib.error
+import urllib.request
 
 
-import genips
 from google import auth
 from googleapiclient import discovery
+import netaddr
 import utils
 
 
@@ -40,7 +41,8 @@ class RequestError(Exception):
 
 def _RequestInfo(URL, timeout=10):
   logging.info('Retrieving: %s' % URL)
-  return urllib2.urlopen(URL, None, timeout).read()
+  request = urllib.request.Request(URL)
+  return urllib.request.urlopen(request).read().decode()
 
 
 def RequestOS(addr):
@@ -56,23 +58,25 @@ def TestIPAlias(instance, ip_alias, ip_mask):
   cidr = "%s/%s" % (ip_alias, ip_mask)
 
   # caching ips out of range for using it on negative tests
-  ips = list(genips.GenIPs(ip_alias, ip_mask))
+  ips = [str(ip) for ip in netaddr.IPNetwork(
+      "{}/{}".format(ip_alias, ip_mask))]
 
   # positive test on expected IPs
   for ip in ips:
     try:
       if testee_hostname != RequestHostname(ip):
         raise Exception("Alias hostname should be the same from host machine.")
-    except urllib2.URLError:
+    except urllib.error.URLError:
       raise RequestError("ip_alias", instance, cidr)
 
   # negative test
-  superset_ips = list(genips.GenIPs(ip_alias, int(ip_mask) - 1))
+  superset_ips = [str(ip) for ip in netaddr.IPNetwork(
+      "{}/{}".format(ip_alias, int(ip_mask) - 1))]
   invalid_ip = superset_ips[superset_ips.index(ips[0]) - 1]
   try:
     if testee_hostname == RequestHostname(invalid_ip):
       raise RequestError("ip_alias", instance, cidr, positive_test=False)
-  except urllib2.URLError:
+  except urllib.error.URLError:
     # great, it didn't even respond! So no machine is using that ip.
     pass
 

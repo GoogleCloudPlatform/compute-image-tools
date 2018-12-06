@@ -15,8 +15,7 @@
     "test_files/utils/common.py": "../../daisy_workflows/linux_common/utils/common.py",
     "test_files/utils/diskutils.py": "../../daisy_workflows/linux_common/utils/diskutils.py",
     "test_files/utils/__init__.py": "../../daisy_workflows/linux_common/utils/__init__.py",
-    "test_files/genips.py": "./genips.py",
-    "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.py"
+    "startup_master_tester": "../../daisy_workflows/linux_common/bootstrap.sh"
   },
   "Steps": {
     "create-testee-disk": {
@@ -87,6 +86,7 @@
             "script": "test.py",
             "prefix": "Test",
             "debian_install_google_api_python_client": "yes",
+            "debian_install_netaddr_python_module": "yes",
             "testee": "${testee_realname}",
             "testee_forwarding_rule": "network-testee-forwarding-rule-${DATETIME}-${ID}",
             "alias_ip": "${alias_ip}",
