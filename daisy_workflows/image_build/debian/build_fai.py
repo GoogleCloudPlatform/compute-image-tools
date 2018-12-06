@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,7 @@ import json
 import logging
 import os
 import tarfile
-import urllib
+import urllib.request
 
 import utils
 
@@ -55,7 +55,7 @@ def main():
 
   # First, install fai-client from fai-project repository
   key_url = 'https://fai-project.org/download/2BF8D9FE074BCDE4.asc'
-  urllib.urlretrieve(key_url, 'key.asc')
+  urllib.request.urlretrieve(key_url, 'key.asc')
   utils.Execute(['apt-key', 'add', 'key.asc'])
   with open('/etc/apt/sources.list.d/fai-project.list', 'w') as fai_list:
     fai_list.write('deb https://fai-project.org/download stretch koeln')
@@ -74,7 +74,7 @@ def main():
   url = "https://salsa.debian.org/cloud-team/" + \
       "%(project)s/-/archive/%(commit)s/%(filename)s.tar.gz" % url_params
   logging.info('Downloading %(project)s at commit %(commit)s' % url_params)
-  urllib.urlretrieve(url, 'fci.tar.gz')
+  urllib.request.urlretrieve(url, 'fci.tar.gz')
   with tarfile.open('fci.tar.gz') as tar:
     tar.extractall()
   logging.info('Downloaded and extracted %s.' % url)

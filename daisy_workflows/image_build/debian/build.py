@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,16 +29,16 @@ import json
 import logging
 import os
 import shutil
-import urllib
+import urllib.request
 import zipfile
 
 import utils
 
 utils.AptGetInstall(
     ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
-     'python-yaml'])
+     'python-yaml', 'python3-yaml'])
 utils.PipInstall(
-    ['termcolor', 'fysom', 'jsonschema', 'docopt', 'functools32'])
+    ['termcolor', 'fysom', 'jsonschema', 'docopt'])
 
 import yaml  # noqa: E402,I202
 
@@ -71,7 +71,7 @@ def main():
   bvz_url %= bvz_version
   bvz_zip_dir = 'bvz_zip'
   logging.info('Downloading bootstrap-vz at commit %s' % bvz_version)
-  urllib.urlretrieve(bvz_url, 'bvz.zip')
+  urllib.request.urlretrieve(bvz_url, 'bvz.zip')
   with zipfile.ZipFile('bvz.zip', 'r') as z:
     z.extractall(bvz_zip_dir)
   logging.info('Downloaded and extracted %s to bvz.zip.' % bvz_url)
