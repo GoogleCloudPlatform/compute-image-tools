@@ -65,19 +65,19 @@ func filterUpdate(classFilter, excludes map[string]struct{}, updt, updateColl *o
 		return fmt.Errorf(`getIterativeProp(updt, "KBArticleIDs"): %v`, err)
 	}
 
-	logger.Printf("DEBUG: filtering out KBs: %q\n", excludes)
+	logDebugf("filtering out KBs: %q\n", excludes)
 	for i := 0; i < int(kbArticleIDsCount); i++ {
 		kbRaw, err := kbArticleIDs.GetProperty("Item", i)
 		if err != nil {
 			return err
 		}
 		if _, ok := excludes[kbRaw.ToString()]; ok {
-			logger.Printf("Update %s (%s) matched exclude list\n", title.ToString(), kbRaw.ToString())
+			logDebugf("Update %s (%s) matched exclude list\n", title.ToString(), kbRaw.ToString())
 			return nil
 		}
 	}
 
-	logger.Printf("DEBUG: filtering by classifications: %q\n", classFilter)
+	logDebugf("filtering by classifications: %q\n", classFilter)
 	if len(classFilter) != 0 {
 		categories, categoriesCount, err := getIterativeProp(updt, "Categories")
 		if err != nil {
@@ -111,7 +111,7 @@ func filterUpdate(classFilter, excludes map[string]struct{}, updt, updateColl *o
 		return fmt.Errorf(`updt.GetProperty("EulaAccepted"): %v`, err)
 	}
 
-	logger.Printf("%s\n  - EulaAccepted: %v\n", title.Value(), eula.Value())
+	logDebugf("%s\n  - EulaAccepted: %v\n", title.Value(), eula.Value())
 	if _, err := updateColl.CallMethod("Add", updt); err != nil {
 		return fmt.Errorf(`updateColl.CallMethod("Add", updt): %v`, err)
 	}
@@ -150,11 +150,11 @@ func installWUAUpdates(pp *patchPolicy) error {
 	count, _ := countRaw.Value().(int32)
 
 	if count == 0 {
-		logger.Println("No Windows updates to install")
+		logInfof("No Windows updates to install")
 		return nil
 	}
 
-	logger.Printf("DEBUG: %d Windows updates available\n", count)
+	logDebugf("DEBUG: %d Windows updates available\n", count)
 
 	updateCollObj, err := oleutil.CreateObject("Microsoft.Update.UpdateColl")
 	if err != nil {

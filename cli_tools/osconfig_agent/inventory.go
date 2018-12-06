@@ -29,6 +29,10 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
+func init() {
+	packages.DebugLogger = debugLog
+}
+
 const (
 	inventoryURL = reportURL + "/guestInventory"
 )
@@ -65,11 +69,11 @@ func postAttributeCompressed(url string, body interface{}) error {
 }
 
 func writeInventory(state *instanceInventory, url string) {
-	fmt.Println("Writing instance inventory.")
+	logInfof("Writing instance inventory.")
 
 	if err := postAttribute(url+"/Timestamp", strings.NewReader(time.Now().UTC().Format(time.RFC3339))); err != nil {
 		state.Errors = append(state.Errors, err.Error())
-		fmt.Println("ERROR:", err)
+		logErrorf("postAttribute error: %v", err)
 	}
 
 	e := reflect.ValueOf(state).Elem()
@@ -77,26 +81,27 @@ func writeInventory(state *instanceInventory, url string) {
 	for i := 0; i < e.NumField(); i++ {
 		f := e.Field(i)
 		u := fmt.Sprintf("%s/%s", url, t.Field(i).Name)
+		logDebugf("postAttribute %s: %+v\n", u, f)
 		switch f.Kind() {
 		case reflect.String:
 			if err := postAttribute(u, strings.NewReader(f.String())); err != nil {
 				state.Errors = append(state.Errors, err.Error())
-				fmt.Println("ERROR:", err)
+				logErrorf("postAttribute error: %v", err)
 			}
 		case reflect.Struct:
 			if err := postAttributeCompressed(u, f.Interface()); err != nil {
 				state.Errors = append(state.Errors, err.Error())
-				fmt.Println("ERROR:", err)
+				logErrorf("postAttributeCompressed error: %v", err)
 			}
 		}
 	}
 	if err := postAttribute(url+"/Errors", strings.NewReader(fmt.Sprintf("%q", state.Errors))); err != nil {
-		fmt.Println("ERROR:", err)
+		logErrorf("postAttribute error: %v", err)
 	}
 }
 
 func getInventory() *instanceInventory {
-	fmt.Println("Gathering instance inventory.")
+	logInfof("Gathering instance inventory.")
 
 	hs := &instanceInventory{}
 
