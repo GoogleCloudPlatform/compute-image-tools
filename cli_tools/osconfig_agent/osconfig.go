@@ -67,16 +67,14 @@ func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string
 			OsKernel:       info.Kernel,
 			OsArchitecture: info.Architecture,
 		},
-		ConfigTypes: getConfigTypes(info),
 	}
-
-	logger.Printf("DEBUG: LookupConfigs request:\n%s\n\n", dump.Sprint(req))
+	logDebugf("LookupConfigs request:\n%s\n\n", dump.Sprint(req))
 
 	res, err := client.LookupConfigs(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	logger.Printf("DEBUG: LookupConfigs response:\n%s\n\n", dump.Sprint(res))
+	logDebugf("LookupConfigs response:\n%s\n\n", dump.Sprint(res))
 
 	return res, nil
 }

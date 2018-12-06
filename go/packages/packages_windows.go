@@ -49,7 +49,7 @@ func GetPackageUpdates() (Packages, []string) {
 	if GooGetExists {
 		if googet, err := googetUpdates(); err != nil {
 			msg := fmt.Sprintf("error listing googet updates: %v", err)
-			fmt.Println("Error:", msg)
+			DebugLogger.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs.GooGet = googet
@@ -57,7 +57,7 @@ func GetPackageUpdates() (Packages, []string) {
 	}
 	if wua, err := wuaUpdates("IsInstalled=0"); err != nil {
 		msg := fmt.Sprintf("error listing installed Windows updates: %v", err)
-		fmt.Println("Error:", msg)
+		DebugLogger.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
 		pkgs.WUA = wua
@@ -88,7 +88,7 @@ func googetUpdates() ([]PkgInfo, error) {
 
 		p := strings.Split(pkg[0], ".")
 		if len(p) != 2 {
-			fmt.Printf("%s does not represent a package\n", ln)
+			DebugLogger.Printf("%s does not represent a package\n", ln)
 			continue
 		}
 		pkgs = append(pkgs, PkgInfo{Name: p[0], Arch: strings.Trim(p[1], ","), Version: pkg[3]})
@@ -107,7 +107,7 @@ func InstallGooGetPackages(pkgs []string) error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	fmt.Printf("GooGet install output:\n%s\n", msg)
+	DebugLogger.Printf("GooGet install output:\n%s\n", msg)
 	return nil
 }
 
@@ -122,7 +122,7 @@ func RemoveGooGetPackages(pkgs []string) error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	fmt.Printf("GooGet remove output:\n%s\n", msg)
+	DebugLogger.Printf("GooGet remove output:\n%s\n", msg)
 	return nil
 }
 
@@ -136,7 +136,7 @@ func InstallGooGetUpdates() error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	fmt.Printf("GooGet update output:\n%s\n", msg)
+	DebugLogger.Printf("GooGet update output:\n%s\n", msg)
 	return nil
 }
 
@@ -155,7 +155,7 @@ func installedGooGetPackages() ([]PkgInfo, error) {
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
 
 	if len(lines) <= 1 {
-		fmt.Println("No packages installed.")
+		DebugLogger.Println("No packages GooGet installed.")
 		return nil, nil
 	}
 
@@ -163,13 +163,13 @@ func installedGooGetPackages() ([]PkgInfo, error) {
 	for _, ln := range lines[1:] {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 2 {
-			fmt.Printf("%s does not represent a package\n", ln)
+			DebugLogger.Printf("%s does not represent a GooGet package\n", ln)
 			continue
 		}
 
 		p := strings.Split(pkg[0], ".")
 		if len(p) != 2 {
-			fmt.Printf("%s does not represent a package\n", ln)
+			DebugLogger.Printf("%s does not represent a GooGet package\n", ln)
 			continue
 		}
 
@@ -278,7 +278,7 @@ func wuaUpdates(query string) ([]WUAPackage, error) {
 		return nil, nil
 	}
 
-	fmt.Printf("%d updates available\n", updtCnt)
+	DebugLogger.Printf("%d WUA updates available\n", updtCnt)
 
 	var packages []WUAPackage
 	for i := 0; i < int(updtCnt); i++ {
@@ -294,10 +294,12 @@ func wuaUpdates(query string) ([]WUAPackage, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		description, err := updt.GetProperty("Description")
 		if err != nil {
 			return nil, err
 		}
+
 		kbArticleIDsRaw, err := updt.GetProperty("KBArticleIDs")
 		if err != nil {
 			return nil, err
@@ -321,6 +323,15 @@ func wuaUpdates(query string) ([]WUAPackage, error) {
 			return nil, err
 		}
 
+		lastDeploymentChangeTimeRaw, err := updt.GetProperty("LastDeploymentChangeTime")
+		if err != nil {
+			return nil, err
+		}
+		lastDeploymentChangeTime, err := ole.GetVariantDate(uint64(lastDeploymentChangeTimeRaw.Val))
+		if err != nil {
+			return nil, err
+		}
+
 		identityRaw, err := updt.GetProperty("Identity")
 		if err != nil {
 			return nil, err
@@ -332,20 +343,22 @@ func wuaUpdates(query string) ([]WUAPackage, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		updateID, err := identity.GetProperty("UpdateID")
 		if err != nil {
 			return nil, err
 		}
 
 		pkg := WUAPackage{
-			Title:          title.ToString(),
-			Description:    description.ToString(),
-			SupportURL:     supportURL.ToString(),
-			KBArticleIDs:   kbArticleIDs,
-			UpdateID:       updateID.ToString(),
-			Categories:     categories,
-			CategoryIDs:    categoryIDs,
-			RevisionNumber: int32(revisionNumber.Val),
+			Title:                    title.ToString(),
+			Description:              description.ToString(),
+			SupportURL:               supportURL.ToString(),
+			KBArticleIDs:             kbArticleIDs,
+			UpdateID:                 updateID.ToString(),
+			Categories:               categories,
+			CategoryIDs:              categoryIDs,
+			RevisionNumber:           int32(revisionNumber.Val),
+			LastDeploymentChangeTime: lastDeploymentChangeTime,
 		}
 
 		packages = append(packages, pkg)
@@ -369,7 +382,7 @@ func DownloadWUAUpdateCollection(session IUpdateSession, updates IUpdateCollecti
 		return fmt.Errorf("error calling PutProperty Updates on IUpdateDownloader: %v", err)
 	}
 
-	fmt.Println("Downloading updates")
+	DebugLogger.Println("Downloading WUA updates")
 	if _, err := downloader.CallMethod("Download"); err != nil {
 		return fmt.Errorf("error calling method Download on IUpdateDownloader: %v", err)
 	}
@@ -391,7 +404,7 @@ func InstallWUAUpdateCollection(session IUpdateSession, updates IUpdateCollectio
 		return fmt.Errorf("error calling PutProperty Updates on IUpdateInstaller: %v", err)
 	}
 
-	fmt.Println("Installing updates")
+	DebugLogger.Println("Installing WUA updates")
 	// TODO: Look into using the async methods and attempt to track/log progress.
 	if _, err := installer.CallMethod("Install"); err != nil {
 		return fmt.Errorf("error calling method Install on IUpdateInstaller: %v", err)
@@ -411,7 +424,7 @@ func GetWUAUpdateCollection(session IUpdateSession, query string) (IUpdateCollec
 	searcher := searcherRaw.ToIDispatch()
 	defer searcherRaw.Clear()
 
-	fmt.Printf("Querying Windows Update Agent Search with query %q.\n", query)
+	DebugLogger.Printf("Querying Windows Update Agent Search with query %q.\n", query)
 	// returns ISearchResult
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa386077(v=vs.85).aspx
 	resultRaw, err := searcher.CallMethod("Search", query)
@@ -435,7 +448,7 @@ func GetInstalledPackages() (Packages, []string) {
 	if exists(googet) {
 		if googet, err := installedGooGetPackages(); err != nil {
 			msg := fmt.Sprintf("error listing installed googet packages: %v", err)
-			fmt.Println("Error:", msg)
+			DebugLogger.Println("Error:", msg)
 			errs = append(errs, msg)
 		} else {
 			pkgs.GooGet = googet
@@ -444,15 +457,15 @@ func GetInstalledPackages() (Packages, []string) {
 
 	if wua, err := wuaUpdates("IsInstalled=1"); err != nil {
 		msg := fmt.Sprintf("error listing installed Windows updates: %v", err)
-		fmt.Println("Error:", msg)
+		DebugLogger.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
 		pkgs.WUA = wua
-	}
+	}I definitely did that, but ja
 
 	if qfe, err := quickFixEngineering(); err != nil {
 		msg := fmt.Sprintf("error listing installed QuickFixEngineering updates: %v", err)
-		fmt.Println("Error:", msg)
+		DebugLogger.Println("Error:", msg)
 		errs = append(errs, msg)
 	} else {
 		pkgs.QFE = qfe
@@ -468,7 +481,7 @@ type win32_QuickFixEngineering struct {
 // quickFixEngineering queries the wmi object win32_QuickFixEngineering for a list of installed updates.
 func quickFixEngineering() ([]QFEPackage, error) {
 	var updts []win32_QuickFixEngineering
-	fmt.Println("Querying WMI for installed QuickFixEngineering updates.")
+	DebugLogger.Println("Querying WMI for installed QuickFixEngineering updates.")
 	if err := wmi.Query(wmi.CreateQuery(&updts, ""), &updts); err != nil {
 		return nil, err
 	}

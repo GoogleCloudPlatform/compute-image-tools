@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"net/http"
 	"os"
@@ -37,7 +36,7 @@ var (
 	oauth    = flag.String("oauth", "", "path to oauth json file")
 	resource = flag.String("resource", "", "projects/*/zones/*/instances/*")
 	endpoint = flag.String("endpoint", "osconfig.googleapis.com:443", "osconfig endpoint override")
-	logger   = log.New(os.Stdout, "", 0)
+	debug    = flag.Bool("debug", false, "set debug log verbosity")
 )
 
 var dump = &pretty.Config{IncludeUnexported: true}
@@ -77,7 +76,7 @@ func getResourceName(r string) (string, error) {
 			break
 		}
 		rt := time.Duration(math.Min(float64(3*i), maxRetryDelay)) * time.Second
-		logger.Printf("Error connecting to metadata server (error number: %d), retrying in %s, error: %v\n", i, rt, err)
+		logErrorf("Error connecting to metadata server (error number: %d), retrying in %s, error: %v\n", i, rt, err)
 		time.Sleep(rt)
 	}
 	defer res.Body.Close()
@@ -123,12 +122,12 @@ func postAttribute(url string, value io.Reader) error {
 func run(ctx context.Context) {
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(*endpoint), option.WithCredentialsFile(*oauth))
 	if err != nil {
-		log.Fatalln("NewClient Error:", err)
+		logFatalf("NewClient Error: %v", err)
 	}
 
 	res, err := getResourceName(*resource)
 	if err != nil {
-		log.Fatalln("getResourceName error:", err)
+		logFatalf("getResourceName error: %v", err)
 	}
 
 	patchInit()
@@ -136,7 +135,7 @@ func run(ctx context.Context) {
 	for {
 		resp, err := lookupConfigs(ctx, client, res)
 		if err != nil {
-			log.Println("ERROR:", err)
+			logErrorf("lookupConfigs error: %v", err)
 		} else {
 			setOsConfig(resp)
 			setPatchPolicies(resp.PatchPolicies)
@@ -157,7 +156,12 @@ func main() {
 	ctx := context.Background()
 
 	action := flag.Arg(0)
+	if action == "inventory" {
+		runInventory()
+		os.Exit(0)
+	}
+
 	if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, action); err != nil {
-		log.Fatal(err)
+		logFatalf("service.Register error: %v", err)
 	}
 }

@@ -50,7 +50,7 @@ func saveState(state string, w *patchWindow) error {
 	}
 
 	if err := postAttribute(reportURL+"/osConfig/patchRunner", bytes.NewReader(d)); err != nil {
-		logger.Println("ERROR:", err)
+		logErrorf("postAttribute error: %v", err)
 	}
 
 	// TODO: Once we are storing more state consider atomic state save
