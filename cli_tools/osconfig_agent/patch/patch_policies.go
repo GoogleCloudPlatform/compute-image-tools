@@ -328,6 +328,8 @@ func SetPatchPolicies(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPol
 	}
 }
 
+//tasker.Enqueue("osconfig", func() { setOsConfig(resp) })
+
 func patchRunner() {
 	logger.Debugf("patchrunner start")
 	for {

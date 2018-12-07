@@ -26,6 +26,6 @@
   }],
   "build": {
     "linux": "/bin/bash",
-    "linuxArgs": ["-c", "GOOS=windows go build -ldflags='-s -w'"]
+    "linuxArgs": ["-c", "GOOS=windows go build -ldflags='-s -w' github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent"]
   }
 }
