@@ -12,9 +12,11 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+// Package logger logs messages as appropriate.
+package logger
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -29,27 +31,28 @@ var (
 	infoLog    = log.New(os.Stdout, "INFO: ", logFlags)
 	warningLog = log.New(os.Stderr, "WARN: ", logFlags)
 	errorLog   = log.New(os.Stderr, "ERROR: ", logFlags)
+	debug      = flag.Bool("debug", false, "set debug log verbosity")
 )
 
-func logDebugf(format string, v ...interface{}) {
+func Debugf(format string, v ...interface{}) {
 	if *debug {
 		debugLog.Output(2, fmt.Sprintf(format, v...))
 	}
 }
 
-func logInfof(format string, v ...interface{}) {
+func Infof(format string, v ...interface{}) {
 	infoLog.Output(2, fmt.Sprintf(format, v...))
 }
 
-func logWarningf(format string, v ...interface{}) {
+func Warningf(format string, v ...interface{}) {
 	warningLog.Output(2, fmt.Sprintf(format, v...))
 }
 
-func logErrorf(format string, v ...interface{}) {
+func Errorf(format string, v ...interface{}) {
 	errorLog.Output(2, fmt.Sprintf(format, v...))
 }
 
-func logFatalf(format string, v ...interface{}) {
+func Fatalf(format string, v ...interface{}) {
 	errorLog.Output(2, fmt.Sprintf(format, v...))
 	os.Exit(1)
 }
