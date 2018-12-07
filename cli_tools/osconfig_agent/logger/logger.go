@@ -34,24 +34,29 @@ var (
 	debug      = flag.Bool("debug", false, "set debug log verbosity")
 )
 
+// Debugf logs debug information.
 func Debugf(format string, v ...interface{}) {
 	if *debug {
 		debugLog.Output(2, fmt.Sprintf(format, v...))
 	}
 }
 
+// Infof logs general information.
 func Infof(format string, v ...interface{}) {
 	infoLog.Output(2, fmt.Sprintf(format, v...))
 }
 
+// Warningf logs warning information.
 func Warningf(format string, v ...interface{}) {
 	warningLog.Output(2, fmt.Sprintf(format, v...))
 }
 
+// Errorf logs error information.
 func Errorf(format string, v ...interface{}) {
 	errorLog.Output(2, fmt.Sprintf(format, v...))
 }
 
+// Fatalf logs fatal error information and exits.
 func Fatalf(format string, v ...interface{}) {
 	errorLog.Output(2, fmt.Sprintf(format, v...))
 	os.Exit(1)

@@ -45,7 +45,7 @@ func Poll(ctx context.Context) {
 		logger.Fatalf("get instance error: %v", err)
 	}
 
-	patch.PatchInit()
+	patch.Init()
 	ticker := time.NewTicker(config.SvcPollInterval())
 	for {
 		resp, err := lookupConfigs(ctx, client, res)

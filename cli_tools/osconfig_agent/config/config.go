@@ -23,7 +23,8 @@ import (
 
 const (
 	instanceMetadata = "http://metadata.google.internal/computeMetadata/v1/instance"
-	ReportURL        = instanceMetadata + "/guest-attributes"
+	// ReportURL is where OS configurations are written in guest attributes.
+	ReportURL = instanceMetadata + "/guest-attributes"
 )
 
 var (

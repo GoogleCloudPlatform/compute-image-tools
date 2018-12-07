@@ -29,7 +29,8 @@ var (
 	rc chan *patchWindow
 )
 
-func PatchInit() {
+// Init starts the patch runner.
+func Init() {
 	aw.windows = map[string]*patchWindow{}
 	rc = make(chan *patchWindow)
 
@@ -286,6 +287,7 @@ func (w *patchWindow) run() (reboot bool) {
 	return reboot
 }
 
+// SetPatchPolicies sets the patch policies from the service.
 func SetPatchPolicies(efps []*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy) {
 	// Deregister any existing patchWindows that no longer exist.
 	ppns := make(map[string]struct{})
