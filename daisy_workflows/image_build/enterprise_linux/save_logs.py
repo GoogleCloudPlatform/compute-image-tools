@@ -25,9 +25,13 @@ def main():
   raise_on_not_found = True
   logs_path = utils.GetMetadataAttribute('daisy-logs-path', raise_on_not_found)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path', raise_on_not_found)
+  uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
 
   # Mount the installer disk.
-  utils.Execute(['mount', '/dev/sdb1', '/mnt'])
+  if uefi:
+    utils.Execute(['mount', '/dev/sdb2', '/mnt'])
+  else:
+    utils.Execute(['mount', '/dev/sdb1', '/mnt'])
 
   logging.info('Installer root: %s' % os.listdir('/mnt'))
   logging.info('Build logs: %s' % os.listdir('/mnt/build-logs'))
