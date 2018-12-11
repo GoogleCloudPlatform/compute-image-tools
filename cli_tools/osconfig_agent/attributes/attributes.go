@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package attributes posts data to Guest Attributes
+// Package attributes posts data to Guest Attributes.
 package attributes
 
 import (

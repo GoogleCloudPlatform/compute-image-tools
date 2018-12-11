@@ -12,30 +12,34 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package apipoller contains utilities to periodically poll the service for configurations.
-package apipoller
+// Package service runs the osconfig service.
+package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	osconfigAgent "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
-	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/tasker"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/osconfig"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/ospackage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/patch"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
+
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
-// Poll periodically calls the service to pull the latest applicaple configurations.
-func Poll(ctx context.Context) {
-	client, err := osconfigAgent.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+func run(ctx context.Context) {
+	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 	if err != nil {
 		logger.Fatalf("NewClient Error: %v", err)
 	}
@@ -52,10 +56,10 @@ func Poll(ctx context.Context) {
 		if err != nil {
 			logger.Errorf("lookupConfigs error: %v", err)
 		} else {
-			osconfig.SetOsConfig(resp)
+			tasker.Enqueue("Set package config", func() { ospackage.SetConfig(resp) })
 			patch.SetPatchPolicies(resp.PatchPolicies)
 		}
-		inventory.RunInventory()
+		tasker.Enqueue("Gather inventory", inventory.RunInventory)
 
 		select {
 		case <-ticker.C:
@@ -66,7 +70,7 @@ func Poll(ctx context.Context) {
 	}
 }
 
-func lookupConfigs(ctx context.Context, client *osconfigAgent.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
+func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
 	info, err := osinfo.GetDistributionInfo()
 	if err != nil {
 		return nil, err
@@ -91,4 +95,13 @@ func lookupConfigs(ctx context.Context, client *osconfigAgent.Client, resource s
 	logger.Debugf("LookupConfigs response:\n%s\n\n", dump.Sprint(res))
 
 	return res, nil
+}
+
+// Run registers a service to periodically call the osconfig enpoint to pull
+// the latest applicaple configurations and apply them.
+func Run(ctx context.Context, action string) error {
+	if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, action); err != nil {
+		return fmt.Errorf("service.Register error: %v", err)
+	}
+	return nil
 }

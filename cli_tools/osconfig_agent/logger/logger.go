@@ -27,11 +27,12 @@ const (
 )
 
 var (
+	debug = flag.Bool("debug", false, "set debug log verbosity")
+
 	debugLog   = log.New(os.Stdout, "DEBUG: ", logFlags)
 	infoLog    = log.New(os.Stdout, "INFO: ", logFlags)
 	warningLog = log.New(os.Stderr, "WARN: ", logFlags)
 	errorLog   = log.New(os.Stderr, "ERROR: ", logFlags)
-	debug      = flag.Bool("debug", false, "set debug log verbosity")
 )
 
 // Debugf logs debug information.
