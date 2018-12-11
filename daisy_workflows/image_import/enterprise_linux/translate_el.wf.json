@@ -35,7 +35,7 @@
     "import_files/utils/common.py": "../../linux_common/utils/common.py",
     "import_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
     "import_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
-    "startup_script": "../../linux_common/bootstrap.py"
+    "startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
     "translate-disk-inst": {

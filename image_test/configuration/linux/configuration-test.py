@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +20,7 @@ import utils
 
 def main():
   # detect distros to instantiate the correct class
-  if sys.version_info >= (3, 6):
+  if sys.version_info >= (3, 7):
     import distro
   else:
     import platform as distro
