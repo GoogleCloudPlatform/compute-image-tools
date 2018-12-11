@@ -208,7 +208,12 @@ function Change-InstanceProperties {
   # Change time zone to Coordinated Universal Time.
   Run-Command tzutil /s 'UTC'
 
-  Run-Command powercfg /hibernate off
+  # Not supported on 6.1 client, but is supported on 6.1 server
+  $pn_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+  $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
+  if ($pn -notlike '*Windows 7*') {
+    Run-Command powercfg /hibernate off
+  }
 }
 
 function Configure-RDPSecurity {
