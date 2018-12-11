@@ -17,8 +17,11 @@ package packages
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 )
@@ -40,6 +43,9 @@ var (
 	GooGetExists bool
 
 	noarch = osinfo.Architecture("noarch")
+
+	// DebugLogger is the debug logger to use.
+	DebugLogger = log.New(ioutil.Discard, "", 0)
 )
 
 // Packages is a selection of packages based on their manager.
@@ -63,14 +69,15 @@ type PkgInfo struct {
 
 // WUAPackage describes a Windows Update Agent package.
 type WUAPackage struct {
-	Title          string
-	Description    string
-	Categories     []string
-	CategoryIDs    []string
-	KBArticleIDs   []string
-	SupportURL     string
-	UpdateID       string
-	RevisionNumber int32
+	Title                    string
+	Description              string
+	Categories               []string
+	CategoryIDs              []string
+	KBArticleIDs             []string
+	SupportURL               string
+	UpdateID                 string
+	RevisionNumber           int32
+	LastDeploymentChangeTime time.Time
 }
 
 // QFEPackage describes a Windows Quick Fix Engineering package.
@@ -79,7 +86,7 @@ type QFEPackage struct {
 }
 
 var run runFunc = func(cmd *exec.Cmd) ([]byte, error) {
-	fmt.Printf("Running %q with args %q\n", cmd.Path, cmd.Args[1:])
+	DebugLogger.Printf("Running %q with args %q\n", cmd.Path, cmd.Args[1:])
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("error running %q with args %q: %v, stdout: %s", cmd.Path, cmd.Args, err, out)

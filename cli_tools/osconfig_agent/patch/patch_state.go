@@ -12,13 +12,17 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+package patch
 
 import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"os"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/attributes"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
 )
 
 const state = "osconfig_patch.state"
@@ -49,8 +53,8 @@ func saveState(state string, w *patchWindow) error {
 		return err
 	}
 
-	if err := postAttribute(reportURL+"/osConfig/patchRunner", bytes.NewReader(d)); err != nil {
-		logger.Println("ERROR:", err)
+	if err := attributes.PostAttribute(config.ReportURL+"/osConfig/patchRunner", bytes.NewReader(d)); err != nil {
+		logger.Errorf("postAttribute error: %v", err)
 	}
 
 	// TODO: Once we are storing more state consider atomic state save

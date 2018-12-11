@@ -12,7 +12,9 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+// Package inventory scans the current inventory (patches and package installed and available)
+// and writes them to Guest Attributes.
+package inventory
 
 import (
 	"bytes"
@@ -25,12 +27,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/attributes"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
 const (
-	inventoryURL = reportURL + "/guestInventory"
+	inventoryURL = config.ReportURL + "/guestInventory"
 )
 
 type instanceInventory struct {
@@ -61,15 +66,15 @@ func postAttributeCompressed(url string, body interface{}) error {
 		return err
 	}
 
-	return postAttribute(url, buf)
+	return attributes.PostAttribute(url, buf)
 }
 
 func writeInventory(state *instanceInventory, url string) {
-	fmt.Println("Writing instance inventory.")
+	logger.Infof("Writing instance inventory.")
 
-	if err := postAttribute(url+"/Timestamp", strings.NewReader(time.Now().UTC().Format(time.RFC3339))); err != nil {
+	if err := attributes.PostAttribute(url+"/Timestamp", strings.NewReader(time.Now().UTC().Format(time.RFC3339))); err != nil {
 		state.Errors = append(state.Errors, err.Error())
-		fmt.Println("ERROR:", err)
+		logger.Errorf("postAttribute error: %v", err)
 	}
 
 	e := reflect.ValueOf(state).Elem()
@@ -77,26 +82,27 @@ func writeInventory(state *instanceInventory, url string) {
 	for i := 0; i < e.NumField(); i++ {
 		f := e.Field(i)
 		u := fmt.Sprintf("%s/%s", url, t.Field(i).Name)
+		logger.Debugf("postAttribute %s: %+v\n", u, f)
 		switch f.Kind() {
 		case reflect.String:
-			if err := postAttribute(u, strings.NewReader(f.String())); err != nil {
+			if err := attributes.PostAttribute(u, strings.NewReader(f.String())); err != nil {
 				state.Errors = append(state.Errors, err.Error())
-				fmt.Println("ERROR:", err)
+				logger.Errorf("postAttribute error: %v", err)
 			}
 		case reflect.Struct:
-			if err := postAttributeCompressed(u, f.Interface()); err != nil {
+			if err := attributes.PostAttributeCompressed(u, f.Interface()); err != nil {
 				state.Errors = append(state.Errors, err.Error())
-				fmt.Println("ERROR:", err)
+				logger.Errorf("postAttributeCompressed error: %v", err)
 			}
 		}
 	}
-	if err := postAttribute(url+"/Errors", strings.NewReader(fmt.Sprintf("%q", state.Errors))); err != nil {
-		fmt.Println("ERROR:", err)
+	if err := attributes.PostAttribute(url+"/Errors", strings.NewReader(fmt.Sprintf("%q", state.Errors))); err != nil {
+		logger.Errorf("postAttribute error: %v", err)
 	}
 }
 
 func getInventory() *instanceInventory {
-	fmt.Println("Gathering instance inventory.")
+	logger.Infof("Gathering instance inventory.")
 
 	hs := &instanceInventory{}
 
@@ -132,6 +138,7 @@ func getInventory() *instanceInventory {
 	return hs
 }
 
-func runInventory() {
+// RunInventory gets the current inventory and writes it to guest attributes.
+func RunInventory() {
 	writeInventory(getInventory(), inventoryURL)
 }
