@@ -89,14 +89,14 @@ def HttpGet(url, headers=None):
   if headers:
     for key in headers.keys():
       request.add_unredirected_header(key, headers[key])
-  return urllib.request.urlopen(request).read().decode()
+  return urllib.request.urlopen(request).read()
 
 
 def _GetMetadataParam(name, default_value=None, raise_on_not_found=None):
   try:
     url = 'http://metadata.google.internal/computeMetadata/v1/instance/%s' % \
         name
-    return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
+    return HttpGet(url, headers={'Metadata-Flavor': 'Google'}).decode()
   except urllib.error.HTTPError:
     if raise_on_not_found:
       raise ValueError('Metadata key "%s" not found' % name)
@@ -549,7 +549,7 @@ class MetadataManager:
     """
     try:
       url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % name
-      return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
+      return HttpGet(url, headers={'Metadata-Flavor': 'Google'}).decode()
     except urllib.error.HTTPError:
       raise ValueError('Metadata key "%s" not found' % name)
 
