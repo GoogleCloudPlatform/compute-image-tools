@@ -23,7 +23,8 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "${exec_msg}",
-            "StatusMatch": "TestStatus:"
+            "StatusMatch": "TestStatus:",
+            "FailureMatch": "Failure:"
           }
         },
         {
