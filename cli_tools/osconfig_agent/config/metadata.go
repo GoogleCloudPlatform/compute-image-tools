@@ -27,12 +27,14 @@ const (
 	metadataRecursive = instanceMetadata + "/?recursive=true&alt=json"
 )
 
-type instanceMetadataJSON struct {
+// InstanceMetadataJSON is instance metadata.
+type InstanceMetadataJSON struct {
 	ID   int
 	Zone string
 }
 
-func getInstanceMetadata() (*instanceMetadataJSON, error) {
+// GetInstanceMetadata returns instance metadata.
+func GetInstanceMetadata() (*InstanceMetadataJSON, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", metadataRecursive, nil)
 	if err != nil {
@@ -41,9 +43,10 @@ func getInstanceMetadata() (*instanceMetadataJSON, error) {
 	req.Header.Add("Metadata-Flavor", "Google")
 
 	var res *http.Response
-	// Retry forever, increase sleep between retries (up to 20s) in order
-	// to wait for slow network initialization.
-	for i := 1; ; i++ {
+	// Retry up to MaxMetadataRetries, increase sleep between retries
+	// (up to MaxMetadataRetryDelay) in order to wait for slow network
+	// initialization.
+	for i := 1; i < MaxMetadataRetries(); i++ {
 		res, err = client.Do(req)
 		if err == nil {
 			break
@@ -59,7 +62,7 @@ func getInstanceMetadata() (*instanceMetadataJSON, error) {
 	defer res.Body.Close()
 
 	dec := json.NewDecoder(res.Body)
-	var m instanceMetadataJSON
+	var m InstanceMetadataJSON
 	for {
 		if err := dec.Decode(&m); err == io.EOF {
 			break

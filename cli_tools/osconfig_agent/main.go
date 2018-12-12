@@ -20,10 +20,9 @@ import (
 	"flag"
 	"os"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/apipoller"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/service"
 )
 
 func main() {
@@ -32,11 +31,12 @@ func main() {
 
 	action := flag.Arg(0)
 	if action == "inventory" {
+		// Just run inventory and exit.
 		inventory.RunInventory()
 		os.Exit(0)
 	}
 
-	if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", apipoller.Poll, action); err != nil {
-		logger.Fatalf("service.Register error: %v", err)
+	if err := service.Run(ctx, action); err != nil {
+		logger.Fatalf(err.Error())
 	}
 }

@@ -45,6 +45,11 @@ func MaxMetadataRetryDelay() time.Duration {
 	return 30 * time.Second
 }
 
+// MaxMetadataRetries is the maximum retry delay when getting data from the metadata server.
+func MaxMetadataRetries() int {
+	return 30
+}
+
 // OAuthPath is the local location of the OAuth credentials file.
 func OAuthPath() string {
 	return *oauth
@@ -71,7 +76,7 @@ func Instance() (string, error) {
 		return *instance, nil
 	}
 
-	m, err := getInstanceMetadata()
+	m, err := GetInstanceMetadata()
 	if err != nil {
 		return "", err
 	}

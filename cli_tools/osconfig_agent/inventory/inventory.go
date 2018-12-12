@@ -17,10 +17,6 @@
 package inventory
 
 import (
-	"bytes"
-	"compress/gzip"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -48,25 +44,6 @@ type instanceInventory struct {
 	InstalledPackages packages.Packages
 	PackageUpdates    packages.Packages
 	Errors            []string
-}
-
-func postAttributeCompressed(url string, body interface{}) error {
-	buf := &bytes.Buffer{}
-	b := base64.NewEncoder(base64.StdEncoding, buf)
-	zw := gzip.NewWriter(b)
-	w := json.NewEncoder(zw)
-	if err := w.Encode(body); err != nil {
-		return err
-	}
-
-	if err := zw.Close(); err != nil {
-		return err
-	}
-	if err := b.Close(); err != nil {
-		return err
-	}
-
-	return attributes.PostAttribute(url, buf)
 }
 
 func writeInventory(state *instanceInventory, url string) {
