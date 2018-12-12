@@ -255,19 +255,17 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	}
 
 	testCase.Logf("Checking inventory data")
-	// It can take a long time to start collecting data, especially on Windows.
-	var retryTime = 10 * time.Second
+	// It can take a bit to start collecting data, especially on Windows.
 	for i := 0; ; i++ {
 		ga, err := client.GetGuestAttributes(inst.Project, inst.Zone, inst.Name, "guestInventory/", "")
-		totalRetryTime := time.Duration(i) * retryTime
-		if err != nil && totalRetryTime > 25*time.Minute {
+		if err != nil && i > 100 {
 			testCase.WriteFailure("Error getting guest attributes: %v", err)
 			return nil, false
 		}
 		if ga != nil {
 			return ga, true
 		}
-		time.Sleep(retryTime)
+		time.Sleep(15 * time.Second)
 		continue
 	}
 }
