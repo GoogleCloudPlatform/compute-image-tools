@@ -202,11 +202,13 @@ def RetryOnFailure(func):
     ntries = 0
     start_time = time.time()
     end_time = start_time + 15 * 60
+    exception = None
     while time.time() < end_time:
       ntries += 1
       try:
         response = func(*args, **kwargs)
       except Exception as e:
+        exception = e
         logging.info(str(e))
         logging.info(
             'Function %s failed, waiting %d seconds, retrying %d ...',
@@ -218,7 +220,7 @@ def RetryOnFailure(func):
             'Function %s executed in less then %d sec, with %d tentative(s)',
             str(func), time.time() - start_time, ntries)
         return response
-    raise
+    raise exception
   return Wrapper
 
 
