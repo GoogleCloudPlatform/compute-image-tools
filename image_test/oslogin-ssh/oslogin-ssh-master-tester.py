@@ -18,6 +18,7 @@ import datetime
 from google import auth
 from googleapiclient import discovery
 import utils
+from utils import logging
 
 MM = utils.MetadataManager
 MD = None
@@ -193,6 +194,8 @@ def main():
   global OSLOGIN_USERS_LIB
   global UNIQUE_ID_USER
 
+  logging.info("master: starting environment configuration")
+
   TESTEE = MM.FetchMetadataDefault('testee')
   OSLOGIN_TESTER = MM.FetchMetadataDefault('osLoginTester')
   OSADMINLOGIN_TESTER = MM.FetchMetadataDefault('osAdminLoginTester')
@@ -219,14 +222,25 @@ def main():
 
   # Execute tests
   try:
+    logging.info("master: starting: TestOsLogin(MM.INSTANCE_LEVEL)")
     TestOsLogin(MM.INSTANCE_LEVEL)
+
+    logging.info("master: starting: TestOsLogin(MM.PROJECT_LEVEL)")
     TestOsLogin(MM.PROJECT_LEVEL)
+
+    logging.info(
+        "master: starting: TestMetadataWithOsLogin(MM.INSTANCE_LEVEL)")
     TestMetadataWithOsLogin(MM.INSTANCE_LEVEL)
+
+    logging.info("master: starting: TestMetadataWithOsLogin(MM.PROJECT_LEVEL)")
     TestMetadataWithOsLogin(MM.PROJECT_LEVEL)
+
+    logging.info("master: starting test: TestOsLoginFalseInInstance()")
     TestOsLoginFalseInInstance()
 
   # Clean keys
   finally:
+    logging.info("master: starting environment cleanup")
     MD.RemoveSshKey(MASTER_KEY, MM.SSH_KEYS, MM.PROJECT_LEVEL)
     RemoveKeyOsLogin(master_key_fingerprint)
 

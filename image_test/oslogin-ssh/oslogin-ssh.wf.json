@@ -186,7 +186,8 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "TestSuccess",
-            "FailureMatch": "TestFailed"
+            "FailureMatch": "TestFailed",
+            "StatusMatch": "TestStatus: master"
           }
         }
       ]
