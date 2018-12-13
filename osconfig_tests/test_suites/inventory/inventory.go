@@ -93,7 +93,43 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-2012-r2-core",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-cmd",
+				Value: &installInventoryGooGet,
+			},
+		},
+		&inventoryTestSetup{
 			image:       "projects/windows-cloud/global/images/family/windows-2016",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-cmd",
+				Value: &installInventoryGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-2016-core",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-cmd",
+				Value: &installInventoryGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-1709-core",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-cmd",
+				Value: &installInventoryGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-1803-core",
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
@@ -219,17 +255,19 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	}
 
 	testCase.Logf("Checking inventory data")
-	// It can take a bit to start collecting data, retry a few times.
+	// It can take a long time to start collecting data, especially on Windows.
+	var retryTime = 10 * time.Second
 	for i := 0; ; i++ {
 		ga, err := client.GetGuestAttributes(inst.Project, inst.Zone, inst.Name, "guestInventory/", "")
-		if err != nil && i > 5 {
+		totalRetryTime := time.Duration(i) * retryTime
+		if err != nil && totalRetryTime > 25*time.Minute {
 			testCase.WriteFailure("Error getting guest attributes: %v", err)
 			return nil, false
 		}
 		if ga != nil {
 			return ga, true
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(retryTime)
 		continue
 	}
 }
@@ -355,32 +393,34 @@ func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
 	defer wg.Done()
 
-	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Gather Inventory [%s]", testSetup.image))
-	defer gatherInventoryTest.Finish(tests)
-
-	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Check Hostname [%s]", testSetup.image))
-	defer hostnameTest.Finish(tests)
-
-	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Check ShortName [%s]", testSetup.image))
-	defer shortNameTest.Finish(tests)
-
-	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("Check InstalledPackages [%s]", testSetup.image))
-	defer packageTest.Finish(tests)
+	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Gather Inventory", testSetup.image))
+	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check Hostname", testSetup.image))
+	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check ShortName", testSetup.image))
+	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check InstalledPackages", testSetup.image))
 
 	if gatherInventoryTest.FilterTestCase(regex) {
+		gatherInventoryTest.Finish(tests)
+
 		hostnameTest.WriteSkipped("Setup skipped")
+		hostnameTest.Finish(tests)
 		shortNameTest.WriteSkipped("Setup skipped")
+		hostnameTest.Finish(tests)
 		packageTest.WriteSkipped("Setup skipped")
+		packageTest.Finish(tests)
 		return
 	}
 
 	logger.Printf("Running TestCase '%s.%q'", gatherInventoryTest.Classname, gatherInventoryTest.Name)
 	ga, ok := runGatherInventoryTest(ctx, testSetup, gatherInventoryTest)
+	gatherInventoryTest.Finish(tests)
 	logger.Printf("TestCase '%s.%q' finished", gatherInventoryTest.Classname, gatherInventoryTest.Name)
 	if !ok {
 		hostnameTest.WriteFailure("Setup Failure")
+		hostnameTest.Finish(tests)
 		shortNameTest.WriteFailure("Setup Failure")
+		hostnameTest.Finish(tests)
 		packageTest.WriteFailure("Setup Failure")
+		packageTest.Finish(tests)
 		return
 	}
 
@@ -389,10 +429,13 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 		shortNameTest: runShortNameTest,
 		packageTest:   runPackagesTest,
 	} {
-		if !tc.FilterTestCase(regex) {
+		if tc.FilterTestCase(regex) {
+			tc.Finish(tests)
+		} else {
 			logger.Printf("Running TestCase '%s.%q'", tc.Classname, tc.Name)
 			f(ga, testSetup, tc)
-			logger.Printf("TestCase '%s.%q' finished", tc.Classname, tc.Name)
+			tc.Finish(tests)
+			logger.Printf("TestCase '%s.%q' finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}
 	}
 

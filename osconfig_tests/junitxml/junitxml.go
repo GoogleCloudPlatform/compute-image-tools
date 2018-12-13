@@ -68,7 +68,7 @@ func (s *TestSuite) Finish(tests chan *TestSuite) {
 func NewTestCase(classname, name string) *TestCase {
 	return &TestCase{
 		Classname: classname,
-		Name:      name,
+		Name:      fmt.Sprintf("[%s] %s", classname, name),
 		ID:        uuid.New().String(),
 		start:     time.Now(),
 	}
@@ -127,7 +127,8 @@ func (c *TestCase) Finish(tests chan *TestCase) {
 	tests <- c
 }
 
-// FilterTestCase markes a TestCase as skipped if the name matches the regex.
+// FilterTestCase markes a TestCase as skipped if the name matches does not
+// match the regex.
 func (c *TestCase) FilterTestCase(regex *regexp.Regexp) bool {
 	if regex != nil && !regex.MatchString(c.Name) {
 		c.WriteSkipped("Test does not match filter: %q", regex.String())
