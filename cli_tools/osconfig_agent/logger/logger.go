@@ -50,8 +50,8 @@ func Init(ctx context.Context, project string) {
 	cloudLogger = cloudLoggingClient.Logger("osconfig")
 	if err := cloudLogger.LogSync(ctx, logging.Entry{Severity: logging.Info, Payload: map[string]string{"localTimestamp": now(), "message": "OSConfig Agent Init"}}); err != nil {
 		// This means cloud logging is not working, so don't continue to try to log.
-		Errorf(err.Error())
 		cloudLogger = nil
+		Errorf(err.Error())
 		return
 	}
 
