@@ -18,21 +18,26 @@ package config
 import (
 	"flag"
 	"fmt"
+	"runtime"
 	"time"
+
+	"cloud.google.com/go/compute/metadata"
 )
 
 const (
-	instanceMetadata = "http://metadata.google.internal/computeMetadata/v1/instance"
+	// InstanceMetadata is the instance metadata URL.
+	InstanceMetadata = "http://metadata.google.internal/computeMetadata/v1/instance"
 	// ReportURL is where OS configurations are written in guest attributes.
-	ReportURL = instanceMetadata + "/guest-attributes"
+	ReportURL = InstanceMetadata + "/guest-attributes"
 )
 
 var (
-	instance           = flag.String("instance", "", "The URI of the instance this agent is running on in the form of `projects/*/zones/*/instances/*`. If omitted, the name will be determined by querying the metadata service.")
+	resourceOverride   = flag.String("resource_override", "", "The URI of the instance this agent is running on in the form of `projects/*/zones/*/instances/*`. If omitted, the name will be determined by querying the metadata service.")
 	endpoint           = flag.String("endpoint", "osconfig.googleapis.com:443", "osconfig endpoint override")
 	oauth              = flag.String("oauth", "", "path to oauth json file")
 	googetRepoFilePath = flag.String("googetRepoFile", "C:/ProgramData/GooGet/repos/google_osconfig.repo", "googet repo file location")
 	zypperRepoFilePath = flag.String("zypperRepoFile", "/etc/zypp/repos.d/google_osconfig.repo", "zypper repo file location")
+	debug              = flag.Bool("debug", false, "set debug log verbosity")
 )
 
 // SvcPollInterval returns the frequency to poll the service.
@@ -48,6 +53,24 @@ func MaxMetadataRetryDelay() time.Duration {
 // MaxMetadataRetries is the maximum retry delay when getting data from the metadata server.
 func MaxMetadataRetries() int {
 	return 30
+}
+
+// SerialLogPort is the serial port to log to.
+func SerialLogPort() string {
+	if runtime.GOOS == "windows" {
+		return "COM1"
+	}
+	return "/dev/ttyS0"
+}
+
+// ResourceOverride is the URI of the resource.
+func ResourceOverride() string {
+	return *resourceOverride
+}
+
+// Debug sets the debug log verbosity.
+func Debug() bool {
+	return *debug
 }
 
 // OAuthPath is the local location of the OAuth credentials file.
@@ -72,13 +95,24 @@ func GoogetRepoFilePath() string {
 
 // Instance is the URI of the instance the agent is running on.
 func Instance() (string, error) {
-	if *instance != "" {
-		return *instance, nil
+	if ResourceOverride() != "" {
+		return ResourceOverride(), nil
 	}
 
-	m, err := GetInstanceMetadata()
+	zone, err := metadata.Zone()
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s/instances/%d", m.Zone, m.ID), nil
+
+	name, err := metadata.InstanceName()
+	if err != nil {
+		return "", err
+	}
+	// Zone returns projects/<project>/zones/<zone>
+	return fmt.Sprintf("%s/instances/%s", zone, name), nil
+}
+
+// Project is the URI of the instance the agent is running on.
+func Project() (string, error) {
+	return metadata.ProjectID()
 }

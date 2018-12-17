@@ -20,14 +20,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/tasker"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/ospackage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/patch"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/tasker"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
 	"github.com/kylelemons/godebug/pretty"
@@ -39,11 +37,6 @@ import (
 var dump = &pretty.Config{IncludeUnexported: true}
 
 func run(ctx context.Context) {
-	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
-	if err != nil {
-		logger.Fatalf("NewClient Error: %v", err)
-	}
-
 	res, err := config.Instance()
 	if err != nil {
 		logger.Fatalf("get instance error: %v", err)
@@ -52,6 +45,11 @@ func run(ctx context.Context) {
 	patch.Init()
 	ticker := time.NewTicker(config.SvcPollInterval())
 	for {
+		client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+		if err != nil {
+			logger.Errorf("NewClient Error: %v", err)
+		}
+
 		resp, err := lookupConfigs(ctx, client, res)
 		if err != nil {
 			logger.Errorf("lookupConfigs error: %v", err)
@@ -59,12 +57,12 @@ func run(ctx context.Context) {
 			tasker.Enqueue("Set package config", func() { ospackage.SetConfig(resp) })
 			patch.SetPatchPolicies(resp.PatchPolicies)
 		}
-		tasker.Enqueue("Gather inventory", inventory.RunInventory)
 
 		select {
 		case <-ticker.C:
 			continue
 		case <-ctx.Done():
+			logger.Close()
 			return
 		}
 	}

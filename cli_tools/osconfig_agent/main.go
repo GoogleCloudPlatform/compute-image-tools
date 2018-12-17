@@ -20,6 +20,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/service"
@@ -29,10 +30,18 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
+	proj, err := config.Project()
+	if err != nil {
+		logger.Fatalf(err.Error())
+	}
+
+	logger.Init(ctx, proj)
+
 	action := flag.Arg(0)
 	if action == "inventory" {
 		// Just run inventory and exit.
 		inventory.RunInventory()
+		logger.Close()
 		os.Exit(0)
 	}
 

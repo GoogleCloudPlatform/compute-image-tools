@@ -88,7 +88,7 @@ func googetUpdates() ([]PkgInfo, error) {
 
 		p := strings.Split(pkg[0], ".")
 		if len(p) != 2 {
-			DebugLogger.Printf("%s does not represent a package\n", ln)
+			DebugLogger.Printf("%s does not represent a package", ln)
 			continue
 		}
 		pkgs = append(pkgs, PkgInfo{Name: p[0], Arch: strings.Trim(p[1], ","), Version: pkg[3]})
@@ -107,7 +107,7 @@ func InstallGooGetPackages(pkgs []string) error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	DebugLogger.Printf("GooGet install output:\n%s\n", msg)
+	DebugLogger.Printf("GooGet install output:\n%s", msg)
 	return nil
 }
 
@@ -122,7 +122,7 @@ func RemoveGooGetPackages(pkgs []string) error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	DebugLogger.Printf("GooGet remove output:\n%s\n", msg)
+	DebugLogger.Printf("GooGet remove output:\n%s", msg)
 	return nil
 }
 
@@ -136,7 +136,7 @@ func InstallGooGetUpdates() error {
 	for _, s := range strings.Split(string(out), "\n") {
 		msg += fmt.Sprintf("  %s\n", s)
 	}
-	DebugLogger.Printf("GooGet update output:\n%s\n", msg)
+	DebugLogger.Printf("GooGet update output:\n%s", msg)
 	return nil
 }
 
@@ -163,13 +163,13 @@ func installedGooGetPackages() ([]PkgInfo, error) {
 	for _, ln := range lines[1:] {
 		pkg := strings.Fields(ln)
 		if len(pkg) != 2 {
-			DebugLogger.Printf("%s does not represent a GooGet package\n", ln)
+			DebugLogger.Printf("%s does not represent a GooGet package", ln)
 			continue
 		}
 
 		p := strings.Split(pkg[0], ".")
 		if len(p) != 2 {
-			DebugLogger.Printf("%s does not represent a GooGet package\n", ln)
+			DebugLogger.Printf("%s does not represent a GooGet package", ln)
 			continue
 		}
 
@@ -278,7 +278,7 @@ func wuaUpdates(query string) ([]WUAPackage, error) {
 		return nil, nil
 	}
 
-	DebugLogger.Printf("%d WUA updates available\n", updtCnt)
+	DebugLogger.Printf("%d WUA updates available", updtCnt)
 
 	var packages []WUAPackage
 	for i := 0; i < int(updtCnt); i++ {
@@ -424,7 +424,7 @@ func GetWUAUpdateCollection(session IUpdateSession, query string) (IUpdateCollec
 	searcher := searcherRaw.ToIDispatch()
 	defer searcherRaw.Clear()
 
-	DebugLogger.Printf("Querying Windows Update Agent Search with query %q.\n", query)
+	DebugLogger.Printf("Querying Windows Update Agent Search with query %q.", query)
 	// returns ISearchResult
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa386077(v=vs.85).aspx
 	resultRaw, err := searcher.CallMethod("Search", query)
@@ -481,7 +481,7 @@ type win32_QuickFixEngineering struct {
 // quickFixEngineering queries the wmi object win32_QuickFixEngineering for a list of installed updates.
 func quickFixEngineering() ([]QFEPackage, error) {
 	var updts []win32_QuickFixEngineering
-	DebugLogger.Println("Querying WMI for installed QuickFixEngineering updates.")
+	DebugLogger.Print("Querying WMI for installed QuickFixEngineering updates.")
 	if err := wmi.Query(wmi.CreateQuery(&updts, ""), &updts); err != nil {
 		return nil, err
 	}
