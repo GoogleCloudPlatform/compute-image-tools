@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/logging"
@@ -107,7 +108,7 @@ func log(e *logEntry, out io.Writer) {
 	if cloudLogger != nil {
 		cloudLogger.Log(logging.Entry{Severity: e.severity, SourceLocation: e.source, Payload: e, Labels: e.Labels})
 	}
-	out.Write([]byte(e.String()))
+	out.Write([]byte(strings.TrimSpace(e.String()) + "\n"))
 }
 
 func now() string {

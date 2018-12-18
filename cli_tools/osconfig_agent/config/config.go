@@ -111,6 +111,11 @@ func Instance() (string, error) {
 		return ResourceOverride(), nil
 	}
 
+	project, err := metadata.ProjectID()
+	if err != nil {
+		return "", err
+	}
+
 	zone, err := metadata.Zone()
 	if err != nil {
 		return "", err
@@ -120,8 +125,7 @@ func Instance() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Zone returns projects/<project>/zones/<zone>
-	return fmt.Sprintf("%s/instances/%s", zone, name), nil
+	return fmt.Sprintf("projects/%s/zones/%s/instances/%s", project, zone, name), nil
 }
 
 // Project is the URI of the instance the agent is running on.
