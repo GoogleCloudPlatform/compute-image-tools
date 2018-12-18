@@ -77,10 +77,15 @@ func main() {
 		if err != nil {
 			logger.Fatalf("LookupConfigs error: %v", err)
 		}
-		ospackage.SetConfig(resp)
+		if err := ospackage.SetConfig(resp); err != nil {
+			log.Fatalf(err.Error())
+		}
 		os.Exit(0)
 	}
 
+	if action == "" {
+		action = "run"
+	}
 	if err := service.Run(ctx, action); err != nil {
 		logger.Fatalf(err.Error())
 	}

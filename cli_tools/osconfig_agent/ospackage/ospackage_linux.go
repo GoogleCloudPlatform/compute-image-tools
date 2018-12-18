@@ -116,6 +116,7 @@ func aptRemovals(pkgs []*osconfigpb.Package) error {
 }
 
 func yumRepositories(repos []*osconfigpb.YumRepository) error {
+	// TODO: Would it be easier to just use templates?
 	/*
 		# Repo file managed by Google OSConfig agent
 		[repo1]
