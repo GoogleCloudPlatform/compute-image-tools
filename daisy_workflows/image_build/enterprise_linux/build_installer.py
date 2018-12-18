@@ -54,7 +54,7 @@ def main():
   logging.info('Google Cloud repo: %s' % repo)
   logging.info('Build working directory: %s' % os.getcwd())
 
-  iso_file = 'installer.iso'
+  iso_file = '/files/installer.iso'
 
   # Necessary libs and tools to build the installer disk.
   utils.AptGetInstall(['extlinux', 'rsync'])
