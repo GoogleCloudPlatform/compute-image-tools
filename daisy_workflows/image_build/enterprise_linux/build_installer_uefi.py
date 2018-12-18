@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # Copyright 2017 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,21 +35,16 @@ import utils
 def main():
   # Get Parameters
   repo = utils.GetMetadataAttribute('google_cloud_repo',
-                                    raise_on_not_found=True)
+                    raise_on_not_found=True)
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
-  savelogs = utils.GetMetadataAttribute('el_savelogs',
-                                        raise_on_not_found=False)
-  savelogs = savelogs == 'true'
-  byol = utils.GetMetadataAttribute('rhel_byol', raise_on_not_found=False)
-  byol = byol == 'true'
-  sap_hana = utils.GetMetadataAttribute('rhel_sap_hana',
-                                        raise_on_not_found=False)
-  sap_hana = sap_hana == 'true'
-  sap_apps = utils.GetMetadataAttribute('rhel_sap_apps',
-                                        raise_on_not_found=False)
-  sap_apps = sap_apps == 'true'
-  sap = utils.GetMetadataAttribute('rhel_sap', raise_on_not_found=False)
-  sap = sap == 'true'
+
+  savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
+  byol = utils.GetMetadataAttribute('rhel_byol') == 'true'
+  sap_hana = utils.GetMetadataAttribute('rhel_sap_hana') == 'true'
+  sap_apps = utils.GetMetadataAttribute('rhel_sap_apps') == 'true'
+  sap = utils.GetMetadataAttribute('rhel_sap') == 'true'
+  uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
+
   logging.info('EL Release: %s' % release)
   logging.info('Google Cloud repo: %s' % repo)
   logging.info('Build working directory: %s' % os.getcwd())
@@ -61,7 +56,7 @@ def main():
 
   # Build the kickstart file.
   ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap, sap_hana,
-                                        sap_apps)
+                      sap_apps, uefi)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 
@@ -94,6 +89,7 @@ def main():
   utils.Execute(['rsync', '-Pav', 'iso/EFI', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
+  utils.Execute(['cp', '-r', './sb_keys', 'installer/'])
 
   # Modify boot config.
   with open('boot/EFI/BOOT/grub.cfg', 'r+') as f:
@@ -101,15 +97,16 @@ def main():
     cfg = re.sub(r'-l .RHEL.*', r"""-l 'ESP'""", oldcfg)
     cfg = re.sub(r'timeout=60', 'timeout=1', cfg)
     cfg = re.sub(r'set default=.*', 'set default="0"', cfg)
-    cfg = re.sub(r'load_video\n', r'serial --speed=38400 --unit=0 --word=8 '
-                 '--parity=no\nterminal_input serial\nterminal_output '
-                 'serial\n', cfg)
+    cfg = re.sub(r'load_video\n',
+           r'serial --speed=38400 --unit=0 --word=8--parity=no\n'
+           'terminal_input serial\nterminal_output serial\n', cfg)
 
     # Change boot args.
     args = ' '.join([
-        'text', 'ks=hd:LABEL=INSTALLER:/%s' % ks_cfg,
-        'console=ttyS0,38400n8', 'inst.sshd=1', 'inst.gpt'
+      'text', 'ks=hd:LABEL=INSTALLER:/%s' % ks_cfg,
+      'console=ttyS0,38400n8', 'inst.sshd=1', 'inst.gpt'
     ])
+
     # Tell Anaconda not to store its logs in the installed image,
     # unless requested to keep them for debugging.
     if not savelogs:
@@ -120,17 +117,19 @@ def main():
       cfg = re.sub(r'LABEL=[^ :]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.
-    diff = difflib.Differ().compare(oldcfg.splitlines(1), cfg.splitlines(1))
+    diff = difflib.Differ().compare(
+        oldcfg.splitlines(1),
+        cfg.splitlines(1))
     logging.info('Modified grub.cfg:\n%s' % '\n'.join(diff))
 
     f.seek(0)
     f.write(cfg)
     f.truncate()
 
-  logging.info("Creating boot path file\n")
+  logging.info("Creating gsetup boot path file\n")
   utils.Execute(['mkdir', '-p', 'boot/EFI/Google/gsetup'])
   with open('boot/EFI/Google/gsetup/boot', 'w') as g:
-    g.write("\\EFI\\BOOT\\BOOTX64.EFI\n")
+    g.write("\\EFI\\BOOT\\grubx64.efi\n")
 
   utils.Execute(['umount', 'installer'])
   utils.Execute(['umount', 'iso'])

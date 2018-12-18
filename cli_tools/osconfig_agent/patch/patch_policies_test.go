@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+package patch
 
 import (
 	"testing"
@@ -94,7 +94,7 @@ func TestSetPatchPoliciesRunAndCancel(t *testing.T) {
 	}
 
 	// This patch should queue imediately, and just hang as no one is listening on the channel.
-	setPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo})
+	SetPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo})
 
 	window, ok := aw.get("foo")
 	if !ok {
@@ -109,7 +109,7 @@ func TestSetPatchPoliciesRunAndCancel(t *testing.T) {
 
 	// Should cancel current run.
 	foo.PatchWindow.StartTime = &timeofday.TimeOfDay{Hours: int32(now.Add(1 * time.Hour).Hour())}
-	go setPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo})
+	go SetPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo})
 
 	select {
 	case <-window.cancel:
@@ -154,7 +154,7 @@ func TestSetPatchPolicies(t *testing.T) {
 		},
 	}
 
-	setPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo, bar, baz})
+	SetPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{foo, bar, baz})
 
 	want := map[string]*patchWindow{
 		"foo": &patchWindow{
@@ -209,7 +209,7 @@ func TestSetPatchPolicies(t *testing.T) {
 		},
 	}
 
-	setPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{newFoo, boo, newBaz})
+	SetPatchPolicies([]*osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{newFoo, boo, newBaz})
 
 	newWant := map[string]*patchWindow{
 		"foo": &patchWindow{

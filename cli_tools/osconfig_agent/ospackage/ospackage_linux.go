@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+package ospackage
 
 import (
 	"bytes"
@@ -21,13 +21,14 @@ import (
 	"io/ioutil"
 	"strings"
 
-	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
+
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
-const zypperRepoFile = "/etc/zypp/repos.d/google_osconfig.repo"
-
-func setOsConfig(res *osconfigpb.LookupConfigsResponse) error {
+// SetConfig applies the configurations specified in the service.
+func SetConfig(res *osconfigpb.LookupConfigsResponse) error {
 	var errs []string
 	if res.Apt != nil && packages.AptExists {
 		if err := aptRepositories(res.Apt.Repositories); err != nil {
@@ -106,7 +107,7 @@ func zypperRepositories(repos []*osconfigpb.ZypperRepository) error {
 		buf.WriteString(fmt.Sprintf("  url: %s\n", repo.BaseUrl))
 	}
 
-	return ioutil.WriteFile(zypperRepoFile, buf.Bytes(), 0600)
+	return ioutil.WriteFile(config.ZypperRepoFilePath(), buf.Bytes(), 0600)
 }
 
 func zypperInstalls(pkgs []*osconfigpb.Package) error {

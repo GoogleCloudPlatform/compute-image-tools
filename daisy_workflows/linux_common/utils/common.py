@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,8 @@ import sys
 import time
 import trace
 import traceback
-import urllib2
+import urllib.error
+import urllib.request
 import uuid
 
 SUCCESS_LEVELNO = logging.ERROR - 5
@@ -77,25 +78,26 @@ def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
       raise subprocess.CalledProcessError(returncode, cmd)
     else:
       logging.info('Command returned error status %d' % returncode)
-  if output:
+  if output is not None:
+    output = output.decode()
     logging.info(output)
   return returncode, output
 
 
 def HttpGet(url, headers=None):
-  request = urllib2.Request(url)
+  request = urllib.request.Request(url)
   if headers:
     for key in headers.keys():
       request.add_unredirected_header(key, headers[key])
-  return urllib2.urlopen(request).read()
+  return urllib.request.urlopen(request).read()
 
 
 def _GetMetadataParam(name, default_value=None, raise_on_not_found=None):
   try:
     url = 'http://metadata.google.internal/computeMetadata/v1/instance/%s' % \
         name
-    return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
-  except urllib2.HTTPError:
+    return HttpGet(url, headers={'Metadata-Flavor': 'Google'}).decode()
+  except urllib.error.HTTPError:
     if raise_on_not_found:
       raise ValueError('Metadata key "%s" not found' % name)
     else:
@@ -200,11 +202,13 @@ def RetryOnFailure(func):
     ntries = 0
     start_time = time.time()
     end_time = start_time + 15 * 60
+    exception = None
     while time.time() < end_time:
       ntries += 1
       try:
         response = func(*args, **kwargs)
       except Exception as e:
+        exception = e
         logging.info(str(e))
         logging.info(
             'Function %s failed, waiting %d seconds, retrying %d ...',
@@ -216,7 +220,7 @@ def RetryOnFailure(func):
             'Function %s executed in less then %d sec, with %d tentative(s)',
             str(func), time.time() - start_time, ntries)
         return response
-    raise
+    raise exception
   return Wrapper
 
 
@@ -295,34 +299,33 @@ def RunTest(test_func):
     traceback.print_exc()
 
 
-# Cache CLIENT and BUCKET to improve consecutive UploadFile calls
-CLIENT = None
-BUCKET = None
+def UploadFile(source_file, gcs_dest_file):
+  """Uploads a file to GCS.
 
+  Expects a local source file and a destination bucket and GCS path.
 
-def UploadFile(filename, dest):
+  Args:
+    source_file: string, the path of a source file to upload.
+        ex: /path/to/local/orig_file.tar.gz
+    gcs_dest_file: string, the path to the resulting file in GCS
+        ex: gs://new/path/orig_file.tar.gz
+  """
   # import 'google.cloud.storage' locally as 'google-cloud-storage' pip package
   # is not a mandatory package for all utils users
   from google.cloud import storage
-  global CLIENT, BUCKET
 
-  dest_stripped = dest[len('gs://'):]
-  dest_splitted = dest_stripped.split('/')
-  bucket_name, blob_path = dest_splitted[0], '/'.join(dest_splitted[1:])
+  bucket = r'(?P<bucket>[a-z0-9][-_.a-z0-9]*[a-z0-9])'
+  obj = r'(?P<obj>[^\*\?]+)'
+  prefix = r'gs://'
+  gs_regex = re.compile(r'{prefix}{bucket}/{obj}'.format(prefix=prefix,
+                                                         bucket=bucket,
+                                                         obj=obj))
+  match = gs_regex.match(gcs_dest_file)
 
-  if not CLIENT:
-    CLIENT = storage.client.Client()
-
-  if not BUCKET or BUCKET.name != bucket_name:
-    BUCKET = storage.bucket.Bucket(CLIENT, bucket_name)
-
-  if not blob_path.endswith('/'):
-    blob_path += '/'
-
-  blob = storage.blob.Blob(blob_path + filename, BUCKET)
-  blob.upload_from_filename(filename)
-
-  BUCKET.copy_blob(blob, BUCKET)
+  client = storage.Client()
+  bucket = client.get_bucket(match.group('bucket'))
+  blob = bucket.blob(match.group('obj'))
+  blob.upload_from_filename(source_file)
 
 
 class LogFormatter(logging.Formatter):
@@ -520,14 +523,20 @@ class MetadataManager:
       self.StoreMetadata(level)
 
   @RetryOnFailure
-  def TestSshLogin(self, key, expect_fail=False):
+  def TestSshLogin(self, key, as_root=False, expect_fail=False):
     """Try to login to self.instance using key.
 
     Args:
       key: string, the private key to be used in the ssh connection.
+      as_root: bool, indicates if the test is executed with root privileges.
+      expect_fail: bool, indicates if the failure in the execution is expected.
     """
+
+    command = ['echo', 'Logged']
+    if as_root:
+        command.insert(0, 'sudo')
     ExecuteInSsh(
-        key, self.ssh_user, self.instance, ['echo', 'Logged'],
+        key, self.ssh_user, self.instance, command,
         expect_fail=expect_fail)
 
   @classmethod
@@ -542,8 +551,8 @@ class MetadataManager:
     """
     try:
       url = 'http://metadata/computeMetadata/v1/instance/attributes/%s' % name
-      return HttpGet(url, headers={'Metadata-Flavor': 'Google'})
-    except urllib2.HTTPError:
+      return HttpGet(url, headers={'Metadata-Flavor': 'Google'}).decode()
+    except urllib.error.HTTPError:
       raise ValueError('Metadata key "%s" not found' % name)
 
   def GetInstanceInfo(self, instance):
@@ -704,4 +713,4 @@ class MetadataManager:
     request = self.compute.forwardingRules().get(
         project=self.project, region=self.region, forwardingRule=name)
     response = request.execute()
-    return response[u"IPAddress"]
+    return response[u'IPAddress']

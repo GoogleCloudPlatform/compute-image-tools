@@ -32,5 +32,6 @@ while [ 1 ]; do
     logger -p daemon.info "TotalDisksUnrecognized"
   fi
 
-  sleep 1
+  # Avoid flooding the logs, otherwise we might lose the BOOTED/REBOOT message
+  sleep 10
 done

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -97,7 +97,7 @@ class GenericDistroTests(object):
     cur_configs = ReadCmdline()
 
     try:
-      for desired_config, desired_values in desired_configs.iteritems():
+      for desired_config, desired_values in desired_configs.items():
         for desired_value in desired_values:
           cur_value = cur_configs[desired_config]
           if desired_value:
@@ -178,7 +178,7 @@ class GenericDistroTests(object):
       return configs
 
     actual_sshd_configs = ParseSshdConfig('/etc/ssh/sshd_config')
-    for desired_key, desired_value in self.GetSshdConfig().iteritems():
+    for desired_key, desired_value in self.GetSshdConfig().items():
       if actual_sshd_configs[desired_key] != desired_value:
         raise Exception('Sshd key "%s" should be "%s" and not "%s"' % (
             desired_key, desired_value, actual_sshd_configs[desired_key]))

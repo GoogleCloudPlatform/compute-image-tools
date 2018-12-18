@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,11 @@
 
 import logging
 
-from common import AptGetInstall
+from .common import AptGetInstall
 try:
   import guestfs
 except ImportError:
-  AptGetInstall(['python-guestfs'])
+  AptGetInstall(['python3-guestfs'])
   import guestfs
 
 
@@ -56,10 +56,7 @@ def MountDisk(disk):
   # mounting the filesystems in the correct order.
   mps = g.inspect_get_mountpoints(roots[0])
 
-  def compare(a, b):
-    return len(a) - len(b)
-
-  for device in sorted(mps.keys(), compare):
+  for device in sorted(list(mps.keys()), key=len):
     try:
       g.mount(mps[device], device)
     except RuntimeError as msg:

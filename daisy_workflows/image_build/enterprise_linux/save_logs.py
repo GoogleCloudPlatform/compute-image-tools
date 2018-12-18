@@ -25,20 +25,25 @@ def main():
   raise_on_not_found = True
   logs_path = utils.GetMetadataAttribute('daisy-logs-path', raise_on_not_found)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path', raise_on_not_found)
+  uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
 
   # Mount the installer disk.
-  utils.Execute(['mount', '/dev/sdb1', '/mnt'])
+  if uefi:
+    utils.Execute(['mount', '/dev/sdb2', '/mnt'])
+  else:
+    utils.Execute(['mount', '/dev/sdb1', '/mnt'])
 
   logging.info('Installer root: %s' % os.listdir('/mnt'))
   logging.info('Build logs: %s' % os.listdir('/mnt/build-logs'))
 
-  utils.UploadFile('/mnt/ks.cfg', '%s/' % logs_path)
+  utils.UploadFile('/mnt/ks.cfg', '%s/ks.cfg' % logs_path)
   directory = '/mnt/build-logs'
-  for f in os.listdir(directory):
-    if os.path.isfile(f):
-      utils.UploadFile('%s/%s' % (directory, f), '%s/' % logs_path)
-  utils.UploadFile('/mnt/build-logs/synopsis.json',
-      '%s/synopsis.json' % outs_path)
+  for log in os.listdir(directory):
+    if os.path.isfile(log):
+      utils.UploadFile(
+          os.path.join(directory, log), '%s/%s' % (logs_path, log))
+  utils.UploadFile(
+      '/mnt/build-logs/synopsis.json', '%s/synopsis.json' % outs_path)
 
   utils.Execute(['umount', '-l', '/mnt'])
 

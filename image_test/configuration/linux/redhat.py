@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,7 +38,7 @@ class RedHatTests(generic_distro.GenericDistroTests):
 
   def IsPackageInstalled(self, package_name):
     # the following command returns zero if package is installed
-    command = ['yum', '--assumeno', 'install', package_name]
+    command = ['yum', 'list', 'installed', package_name]
     rc, output = utils.Execute(command, raise_errors=False)
     return rc == 0
 
@@ -56,7 +56,7 @@ class RedHatTests(generic_distro.GenericDistroTests):
 
   def TestAutomaticSecurityUpdates(self):
     # the following command returns zero if package is installed
-    utils.Execute(['yum', '--assumeno', 'install', 'yum-cron'])
+    utils.Execute(['yum', 'list', 'installed', 'yum-cron'])
 
     # service returns zero if service exists and is running
     utils.Execute(['service', 'yum-cron', 'status'])

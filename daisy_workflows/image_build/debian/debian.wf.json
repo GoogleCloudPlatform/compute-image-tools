@@ -9,7 +9,7 @@
       "Description": "The image used to run bootstrap-vz."
     },
     "google_cloud_repo": {"Required": true, "Description": "The Google Cloud Repo branch to use."},
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image.."}
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."}
   },
   "Sources": {
     "build_files/build.py": "./build.py",
@@ -17,7 +17,7 @@
     "build_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
     "build_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
     "build_files/google_cloud_test_repos": "./google_cloud_test_repos/",
-    "startup_script": "../../linux_common/bootstrap.py"
+    "startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
     "setup": {
@@ -39,7 +39,7 @@
           "Metadata": {
             "bootstrap_vz_manifest": "${bootstrap_vz_manifest}",
             "bootstrap_vz_version": "${bootstrap_vz_version}",
-            "debian_install_google_api_python_client": "true",
+            "debian_install_google_api_python_client": "yes",
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "script": "build.py",
             "prefix": "Build",
