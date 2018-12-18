@@ -177,7 +177,7 @@ func Errorf(format string, v ...interface{}) {
 
 // Fatal logs an error entry and exits.
 func Fatal(e LogEntry) {
-	le := &logEntry{LocalTimestamp: now(), LogEntry: e, severity: logging.Error, source: caller(e.CallDepth)}
+	le := &logEntry{LocalTimestamp: now(), LogEntry: e, severity: logging.Critical, source: caller(e.CallDepth)}
 	log(le, io.MultiWriter(os.Stderr, port))
 	Close()
 	os.Exit(1)

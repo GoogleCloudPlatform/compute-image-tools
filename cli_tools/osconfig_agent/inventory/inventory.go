@@ -17,9 +17,7 @@
 package inventory
 
 import (
-	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -80,19 +78,8 @@ func writeInventory(state *instanceInventory, url string) {
 	}
 }
 
-type logWritter struct{}
-
-func (l *logWritter) Write(b []byte) (int, error) {
-	logger.Debug(logger.LogEntry{CallDepth: 3, Message: string(bytes.TrimSpace(b))})
-	return len(b), nil
-}
-
 func getInventory() *instanceInventory {
 	logger.Infof("Gathering instance inventory.")
-
-	if config.Debug() {
-		packages.DebugLogger = log.New(&logWritter{}, "", 0)
-	}
 
 	hs := &instanceInventory{}
 
