@@ -89,7 +89,7 @@ def main():
   utils.Execute(['rsync', '-Pav', 'iso/EFI', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
-  utils.Execute(['cp', '-r', './sb_keys', 'installer/'])
+  utils.Execute(['cp', '-r', '/files/sb_keys', 'installer/'])
 
   # Modify boot config.
   with open('boot/EFI/BOOT/grub.cfg', 'r+') as f:
