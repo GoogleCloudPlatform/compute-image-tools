@@ -22,11 +22,14 @@ import (
 	"log"
 	"os"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/ospackage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
+	"google.golang.org/api/option"
 )
 
 type logWritter struct{}
@@ -56,6 +59,26 @@ func main() {
 		// Just run inventory and exit.
 		inventory.RunInventory()
 		logger.Close()
+		os.Exit(0)
+	}
+
+	if action == "ospackage" {
+		// Just run SetConfig and exit.
+		client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+		if err != nil {
+			logger.Fatalf("NewClient Error: %v", err)
+		}
+
+		res, err := config.Instance()
+		if err != nil {
+			logger.Fatalf("get instance error: %v", err)
+		}
+
+		resp, err := service.LookupConfigs(ctx, client, res)
+		if err != nil {
+			logger.Fatalf("LookupConfigs error: %v", err)
+		}
+		ospackage.SetConfig(resp)
 		os.Exit(0)
 	}
 
