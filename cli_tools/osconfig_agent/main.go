@@ -16,23 +16,46 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
+	"log"
 	"os"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
+
+type logWritter struct{}
+
+func (l *logWritter) Write(b []byte) (int, error) {
+	logger.Debug(logger.LogEntry{CallDepth: 3, Message: string(bytes.TrimSpace(b))})
+	return len(b), nil
+}
 
 func main() {
 	flag.Parse()
 	ctx := context.Background()
 
+	if config.Debug() {
+		packages.DebugLogger = log.New(&logWritter{}, "", 0)
+	}
+
+	proj, err := config.Project()
+	if err != nil {
+		logger.Fatalf(err.Error())
+	}
+
+	logger.Init(ctx, proj)
+
 	action := flag.Arg(0)
 	if action == "inventory" {
 		// Just run inventory and exit.
 		inventory.RunInventory()
+		logger.Close()
 		os.Exit(0)
 	}
 

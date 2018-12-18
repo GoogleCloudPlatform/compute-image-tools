@@ -59,7 +59,7 @@ func writeInventory(state *instanceInventory, url string) {
 	for i := 0; i < e.NumField(); i++ {
 		f := e.Field(i)
 		u := fmt.Sprintf("%s/%s", url, t.Field(i).Name)
-		logger.Debugf("postAttribute %s: %+v\n", u, f)
+		logger.Debugf("postAttribute %s: %+v", u, f)
 		switch f.Kind() {
 		case reflect.String:
 			if err := attributes.PostAttribute(u, strings.NewReader(f.String())); err != nil {
