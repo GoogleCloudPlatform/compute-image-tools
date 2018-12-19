@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/ospackage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/patch"
@@ -57,6 +58,7 @@ func run(ctx context.Context) {
 			tasker.Enqueue("Set package config", func() { ospackage.SetConfig(resp) })
 			patch.SetPatchPolicies(resp.PatchPolicies)
 		}
+		tasker.Enqueue("Gather instance inventory", inventory.RunInventory)
 
 		select {
 		case <-ticker.C:
