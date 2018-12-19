@@ -35,9 +35,11 @@ var (
 	resourceOverride   = flag.String("resource_override", "", "The URI of the instance this agent is running on in the form of `projects/*/zones/*/instances/*`. If omitted, the name will be determined by querying the metadata service.")
 	endpoint           = flag.String("endpoint", "osconfig.googleapis.com:443", "osconfig endpoint override")
 	oauth              = flag.String("oauth", "", "path to oauth json file")
-	googetRepoFilePath = flag.String("googetRepoFile", "C:/ProgramData/GooGet/repos/google_osconfig.repo", "googet repo file location")
-	zypperRepoFilePath = flag.String("zypperRepoFile", "/etc/zypp/repos.d/google_osconfig.repo", "zypper repo file location")
 	debug              = flag.Bool("debug", false, "set debug log verbosity")
+	googetRepoFilePath = flag.String("googet_repo_file", "C:/ProgramData/GooGet/repos/google_osconfig.repo", "googet repo file location")
+	zypperRepoFilePath = flag.String("zypper_repo_file", "/etc/zypp/repos.d/google_osconfig.repo", "zypper repo file location")
+	yumRepoFilePath    = flag.String("yum_repo_file", "/etc/yum/repos.d/google_osconfig.repo", "yum repo file location")
+	aptRepoFilePath    = flag.String("aptrepo_file", "/etc/apt/sources.list.d/google_osconfig.list", "apt repo file location")
 )
 
 // SvcPollInterval returns the frequency to poll the service.
@@ -88,6 +90,16 @@ func ZypperRepoFilePath() string {
 	return *zypperRepoFilePath
 }
 
+// YumRepoFilePath is the location where the zypper repo file will be created.
+func YumRepoFilePath() string {
+	return *yumRepoFilePath
+}
+
+// AptRepoFilePath is the location where the zypper repo file will be created.
+func AptRepoFilePath() string {
+	return *aptRepoFilePath
+}
+
 // GoogetRepoFilePath is the location where the googet repo file will be created.
 func GoogetRepoFilePath() string {
 	return *googetRepoFilePath
@@ -99,6 +111,11 @@ func Instance() (string, error) {
 		return ResourceOverride(), nil
 	}
 
+	project, err := metadata.ProjectID()
+	if err != nil {
+		return "", err
+	}
+
 	zone, err := metadata.Zone()
 	if err != nil {
 		return "", err
@@ -108,8 +125,7 @@ func Instance() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Zone returns projects/<project>/zones/<zone>
-	return fmt.Sprintf("%s/instances/%s", zone, name), nil
+	return fmt.Sprintf("projects/%s/zones/%s/instances/%s", project, zone, name), nil
 }
 
 // Project is the URI of the instance the agent is running on.
