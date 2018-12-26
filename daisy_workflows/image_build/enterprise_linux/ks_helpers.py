@@ -364,5 +364,5 @@ def FetchConfigPart(config_file):
   Returns:
     string; contents of config_file should be a string with newlines.
   """
-  with open(os.path.join('kickstart', config_file)) as f:
+  with open(os.path.join('files', 'kickstart', config_file)) as f:
     return f.read()

@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/ospackage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/patch"
@@ -50,13 +51,14 @@ func run(ctx context.Context) {
 			logger.Errorf("NewClient Error: %v", err)
 		}
 
-		resp, err := lookupConfigs(ctx, client, res)
+		resp, err := LookupConfigs(ctx, client, res)
 		if err != nil {
-			logger.Errorf("lookupConfigs error: %v", err)
+			logger.Errorf("LookupConfigs error: %v", err)
 		} else {
 			tasker.Enqueue("Set package config", func() { ospackage.SetConfig(resp) })
 			patch.SetPatchPolicies(resp.PatchPolicies)
 		}
+		tasker.Enqueue("Gather instance inventory", inventory.RunInventory)
 
 		select {
 		case <-ticker.C:
@@ -68,7 +70,8 @@ func run(ctx context.Context) {
 	}
 }
 
-func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
+// LookupConfigs looks up osconfigs.
+func LookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
 	info, err := osinfo.GetDistributionInfo()
 	if err != nil {
 		return nil, err
@@ -82,6 +85,13 @@ func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string
 			OsVersion:      info.Version,
 			OsKernel:       info.Kernel,
 			OsArchitecture: info.Architecture,
+		},
+		ConfigTypes: []osconfigpb.LookupConfigsRequest_ConfigType{
+			osconfigpb.LookupConfigsRequest_GOO,
+			osconfigpb.LookupConfigsRequest_WINDOWS_UPDATE,
+			osconfigpb.LookupConfigsRequest_APT,
+			osconfigpb.LookupConfigsRequest_YUM,
+			osconfigpb.LookupConfigsRequest_ZYPPER,
 		},
 	}
 	logger.Debugf("LookupConfigs request:\n%s\n\n", dump.Sprint(req))

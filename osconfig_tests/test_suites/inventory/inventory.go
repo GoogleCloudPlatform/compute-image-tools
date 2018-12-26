@@ -418,7 +418,7 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 		hostnameTest.WriteFailure("Setup Failure")
 		hostnameTest.Finish(tests)
 		shortNameTest.WriteFailure("Setup Failure")
-		hostnameTest.Finish(tests)
+		shortNameTest.Finish(tests)
 		packageTest.WriteFailure("Setup Failure")
 		packageTest.Finish(tests)
 		return
