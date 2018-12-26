@@ -201,12 +201,23 @@ func (w *Workflow) Validate(ctx context.Context) error {
 	return nil
 }
 
+type WorkflowModifier func(*Workflow)
+
 // Run runs a workflow.
 func (w *Workflow) Run(ctx context.Context) error {
+	return w.RunWithModifier(ctx, nil)
+}
+
+func (w *Workflow) RunWithModifier(ctx context.Context, workflowModifier WorkflowModifier) error {
 	w.externalLogging = true
 	if err := w.Validate(ctx); err != nil {
 		return err
 	}
+
+	if workflowModifier != nil {
+		workflowModifier(w)
+	}
+	//return nil
 	defer w.cleanup()
 	w.LogWorkflowInfo("Workflow Project: %s", w.Project)
 	w.LogWorkflowInfo("Workflow Zone: %s", w.Zone)
