@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+
+export PATH := /tmp/go11/bin:$(PATH)
+export SHELL := env PATH=$(PATH) /bin/bash
+
+export DH_OPTIONS
+export DH_GOPKG := github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent
+
+%:
+	dh $@  --buildsystem=golang --with=golang
+
+override_dh_auto_install:
+	# Binary-only package.
+	dh_auto_install -- --no-source
+
+override_dh_golang:
+	# We don't use any packaged dependencies, so skip dh_golang step.
