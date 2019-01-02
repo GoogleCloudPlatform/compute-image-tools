@@ -169,18 +169,35 @@ func fatalIfError(f func() error) {
 }
 
 func populateMissingParameters() {
-	fatalIfError(populateZoneIfMissing)
+	fatalIfError(func() error {
+		return populateZoneIfMissing(metadataGCEHolder{})
+	})
 	fatalIfError(populateRegion)
 
 	//TODO: network, subnetwork, gcsPath (create scratch bucket including regionalization, if possible)
 }
 
-func populateZoneIfMissing() error {
+type metadataGCEHolder struct {}
+
+type metadataGCE interface {
+	OnGCE() bool
+	Zone() (string, error)
+}
+
+func (m metadataGCEHolder) OnGCE() bool {
+	return metadata.OnGCE()
+}
+
+func (m metadataGCEHolder) Zone() (string, error) {
+	return metadata.Zone()
+}
+
+func populateZoneIfMissing(mgce metadataGCE) error {
 	if *zone == "" {
 		var err error
 		var aZone = ""
-		if metadata.OnGCE() {
-			aZone, err = metadata.Zone()
+		if mgce.OnGCE() {
+			aZone, err = mgce.Zone()
 		}
 
 		if err != nil {

@@ -92,11 +92,12 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 	defer setBoolP(&dataDisk, false)()
 	defer setStringP(&sourceImage, "image-1")()
 	defer setStringP(&osId, "ubuntu-1404")()
+	defer setStringP(&sourceImage, "")()
 
 	workflow, translate := getWorkflowPaths()
 
-	if workflow != "ubuntu/translate_ubuntu_1404.wf.json" && translate != "" {
-		t.Errorf("%v != %v and/or translate not empty", workflow, "ubuntu/translate_ubuntu_1404.wf.json")
+	if workflow != importAndTranslateWorkflow || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
+		t.Errorf("%v != %v and/or translate not %v", workflow, "ubuntu/translate_ubuntu_1404.wf.json", importAndTranslateWorkflow)
 	}
 }
 
@@ -105,6 +106,50 @@ func TestFlagsImageNameNotProvided(t *testing.T) {
 	expected := fmt.Errorf("The flag -image_name must be provided")
 	if err != expected && err.Error() != expected.Error() {
 		t.Errorf("%v != %v", err, expected)
+	}
+}
+
+func TestFlagsClientIdNotProvided(t *testing.T) {
+	defer backupOsArgs()()
+	cliArgs := getAllCliArgs()
+	defer clearStringFlag(cliArgs, clientIdFlagKey, &clientId)()
+	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing client_id flag", t)
+}
+
+func TestFlagsDataDiskOrOSFlagsNotProvided(t *testing.T) {
+	defer backupOsArgs()()
+	cliArgs := getAllCliArgs()
+	defer clearStringFlag(cliArgs, "os", &osId)()
+	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing os or data_disk flag", t)
+}
+
+func TestFlagsDataDiskAndOSFlagsBothProvided(t *testing.T) {
+	defer backupOsArgs()()
+	cliArgs := getAllCliArgs()
+	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for both os and data_disk set at the same time", t)
+}
+
+func TestFlagsSourceFileOrSourceImageNotProvided(t *testing.T) {
+	defer backupOsArgs()()
+	cliArgs := getAllCliArgs()
+	defer clearStringFlag(cliArgs, "source_file", &sourceFile)()
+	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
+	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing source_file or source_image flag", t)
+}
+
+func TestFlagsSourceFileAndSourceImageBothProvided(t *testing.T) {
+	defer backupOsArgs()()
+	cliArgs := getAllCliArgs()
+	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for both source_file and source_image flags set", t)
+}
+
+func buildOsArgsAndAssertErrorOnValidate(cliArgs map[string]interface{}, errorMsg string, t *testing.T) {
+	buildOsArgs(cliArgs)
+	if err := validateFlags(); err == nil {
+		t.Error(errorMsg)
 	}
 }
 
@@ -179,8 +224,8 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 	defer setBoolP(&noExternalIP, false)()
 	buildId = "abc"
 
-	w := daisy.New()
 	extraLabels := map[string]string{"labelKey": "labelValue"}
+	w := daisy.New()
 	w.Steps =  map[string]*daisy.Step{
 		"ci": {
 			CreateInstances: &daisy.CreateInstances{
@@ -208,9 +253,17 @@ func TestUpdateWorkflowDisksLabelled(t *testing.T) {
 	defer setBoolP(&noExternalIP, false)()
 	buildId = "abc"
 
-	w := daisy.New()
 	extraLabels := map[string]string{"labelKey": "labelValue"}
-	w.Steps =  map[string]*daisy.Step{
+	w := createWorkflowWithCreateDisksStep()
+
+	updateWorkflow(w)
+	validateLabels(&(*w.Steps["cd"].CreateDisks)[0].Disk.Labels, "gce-image-import-tmp", t, &extraLabels)
+	validateLabels(&(*w.Steps["cd"].CreateDisks)[1].Disk.Labels, "gce-image-import-tmp", t)
+}
+
+func createWorkflowWithCreateDisksStep() *daisy.Workflow {
+	w := daisy.New()
+	w.Steps = map[string]*daisy.Step{
 		"cd": {
 			CreateDisks: &daisy.CreateDisks{
 				{
@@ -224,10 +277,28 @@ func TestUpdateWorkflowDisksLabelled(t *testing.T) {
 			},
 		},
 	}
+	return w
+}
+
+func TestUpdateWorkflowIncludedWorkflow(t *testing.T) {
+	defer setBoolP(&noExternalIP, false)()
+	buildId = "abc"
+
+	child_workflow := createWorkflowWithCreateDisksStep()
+	extraLabels := map[string]string{"labelKey": "labelValue"}
+
+	w := daisy.New()
+	w.Steps = map[string]*daisy.Step{
+		"cd": {
+			IncludeWorkflow: &daisy.IncludeWorkflow{
+				Workflow: child_workflow,
+			},
+		},
+	}
 
 	updateWorkflow(w)
-	validateLabels(&(*w.Steps["cd"].CreateDisks)[0].Disk.Labels,"gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*w.Steps["cd"].CreateDisks)[1].Disk.Labels,"gce-image-import-tmp", t)
+	validateLabels(&(*child_workflow.Steps["cd"].CreateDisks)[0].Disk.Labels,"gce-image-import-tmp", t, &extraLabels)
+	validateLabels(&(*child_workflow.Steps["cd"].CreateDisks)[1].Disk.Labels,"gce-image-import-tmp", t)
 }
 
 func TestUpdateWorkflowImagesLabelled(t *testing.T) {
@@ -297,6 +368,17 @@ func TestUpdateWorkflowInstancesNotModifiedIfExternalIPAllowed(t *testing.T) {
 	}
 }
 
+func TestUpdateWorkflowInstancesNotModifiedIfNoNetworkInterfaceElement(t *testing.T) {
+	defer setBoolP(&noExternalIP, true)()
+	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
+	(*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces = nil
+	updateWorkflow(w)
+
+	if (*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces != nil {
+		t.Errorf("Instance NetworkInterfaces should stay nil if nil before update")
+	}
+}
+
 func TestBuildDaisyVars(t *testing.T) {
 	defer setStringP(&imageName, "image-a")()
 	defer setBoolP(&noGuestEnvironment, true)()
@@ -319,9 +401,74 @@ func TestBuildDaisyVars(t *testing.T) {
 	assertEqual(got["import_subnet"], "regions/a-region/subnetworks/a-subnet", t)
 }
 
+var onGCE *bool
+var gceZone *string
+var gceMetadataError error
+
+func TestPopulateZoneIfMissingOnGCESuccess(t *testing.T) {
+	defer setBoolP(&onGCE, true)()
+	defer setStringP(&gceZone, "europe-north1-c")()
+	defer setStringP(&zone, "")()
+	err := populateZoneIfMissing(dummyMetadataGCE{})
+
+	assertNil(err, t)
+	assertEqual(*zone, "europe-north1-c", t)
+}
+
+func TestPopulateZoneIfMissingNotOnGCEZoneDoesntChange(t *testing.T) {
+	defer setBoolP(&onGCE, false)()
+	defer setStringP(&zone, "us-west-1c")()
+	defer setStringP(&gceZone, "europe-north1-c")()
+
+	err := populateZoneIfMissing(dummyMetadataGCE{})
+
+	assertNil(err, t)
+	assertEqual(*zone, "us-west-1c", t)
+}
+
+func TestPopulateZoneIfMissingOnGCEError(t *testing.T) {
+	defer setBoolP(&onGCE, true)()
+	defer setStringP(&gceZone, "europe-north1-c")()
+	defer setStringP(&zone, "")()
+	gceMetadataError = fmt.Errorf("zone error")
+
+	assertError(populateZoneIfMissing(dummyMetadataGCE{}), t)
+
+	gceMetadataError = nil
+}
+
+func TestPopulateZoneIfMissingOnGCEEnmptyZoneReturned(t *testing.T) {
+	defer setBoolP(&onGCE, true)()
+	defer setStringP(&gceZone, "")()
+	defer setStringP(&zone, "")()
+	assertError(populateZoneIfMissing(dummyMetadataGCE{}), t)
+}
+
+type dummyMetadataGCE struct {}
+
+func (m dummyMetadataGCE) OnGCE() bool {
+	return *onGCE
+}
+
+func (m dummyMetadataGCE) Zone() (string, error) {
+	return *gceZone, gceMetadataError
+}
+
 func assertEqual(i1 interface{}, i2 interface{}, t *testing.T) {
 	if i1 != i2 {
 		t.Errorf("%v != %v", i1, i2)
+	}
+}
+
+func assertNil(i1 interface{}, t *testing.T) {
+	if i1 != nil {
+		t.Errorf("%v not nil", i1)
+	}
+}
+
+func assertError(err error, t *testing.T) {
+	if err == nil {
+		t.Errorf("%v error is empty", err)
 	}
 }
 
