@@ -63,7 +63,6 @@ func TestPopulateRegion(t *testing.T) {
 		zone = &test.input
 		region = nil
 		err := populateRegion()
-		fmt.Printf("got err `%v`, expected err `%v`\n", err, test.err)
 		if err != test.err && test.err.Error() != err.Error() {
 			t.Errorf("%v != %v", test.err, err)
 		} else if region!=nil && test.want != *region {
@@ -116,7 +115,6 @@ func TestFlagsSourceFile(t *testing.T) {
 	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
 	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgs(cliArgs)
-	t.Logf("osArgs %v", os.Args)
 
 	if err := validateFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -131,7 +129,6 @@ func TestFlagsInvalidSourceFile(t *testing.T) {
 	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
 	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgs(cliArgs)
-	t.Logf("osArgs %v", os.Args)
 
 	if err := validateFlags(); err == nil {
 		t.Errorf("Expected error")
@@ -145,7 +142,6 @@ func TestFlagsSourceImage(t *testing.T) {
 	defer clearStringFlag(cliArgs, "source_file", &sourceFile)()
 	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgs(cliArgs)
-	t.Logf("osArgs %v", os.Args)
 
 	if err := validateFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -159,7 +155,6 @@ func TestFlagsDataDisk(t *testing.T) {
 	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
 	defer clearStringFlag(cliArgs, "os", &osId)()
 	buildOsArgs(cliArgs)
-	t.Logf("osArgs %v", os.Args)
 
 	if err := validateFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -174,7 +169,6 @@ func TestFlagsInvalidOS(t *testing.T) {
 	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
 	cliArgs["os"] = "invalidOs"
 	buildOsArgs(cliArgs)
-	t.Logf("osArgs %v", os.Args)
 
 	if err := validateFlags(); err == nil {
 		t.Errorf("Expected error")

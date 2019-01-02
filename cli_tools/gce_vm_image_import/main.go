@@ -118,17 +118,11 @@ func validateFlags() error {
 		}
 	}
 
-	log.Printf("data-disk %v", *dataDisk)
-	log.Printf("osId %v", *osId)
-	log.Printf("sourceFile %v", *sourceFile)
-	log.Printf("sourceImage %v", *sourceImage)
-
 	if *sourceFile!="" {
-		bkt, obj, err := splitGCSPath(*sourceFile)
+		_, _, err := splitGCSPath(*sourceFile)
 		if err != nil {
 			return err
 		}
-		log.Printf("source file: %v %v", bkt, obj)
 	}
 	return nil
 }
@@ -197,7 +191,6 @@ func populateZoneIfMissing() error {
 		}
 
 		zone = &aZone
-		log.Printf("Using GCE Zone %v", *zone)
 	}
 	return nil
 }
@@ -227,8 +220,7 @@ func getRegion() (string, error) {
 // - Updates instance network interfaces to not require external IP if external IP is disabled by
 //   org policy
 func updateWorkflow(workflow *daisy.Workflow) {
-	for name, step := range workflow.Steps {
-		log.Printf("Step %v %v incw %v\n", name, step, step.IncludeWorkflow)
+	for _, step := range workflow.Steps {
 		if step.IncludeWorkflow != nil {
 			//recurse into included workflow
 			updateWorkflow(step.IncludeWorkflow.Workflow)
@@ -285,8 +277,6 @@ func addImageImportLabels(labels map[string]string,
 	labels[imageTypeLabel] = "true"
 	labels["gce-image-import-build-id"] = buildId
 
-	log.Printf("Labels after update: %v\n", labels)
-
 	return labels
 }
 
@@ -324,7 +314,6 @@ func main() {
 	ctx := context.Background()
 
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
-	log.Printf("workflows %v %v", importWorkflowPath, translateWorkflowPath)
 
 	varMap := buildDaisyVars(translateWorkflowPath)
 	workflow, err := daisy_common.ParseWorkflow(ctx, importWorkflowPath, varMap, *project, *zone,
@@ -334,10 +323,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error parsing workflow %q: %v", importWorkflowPath, err)
 	}
-
-	log.Printf("workflowID %v", workflow.ID())
-	log.Printf("workflow %v", workflow)
-	log.Printf("BUILD_ID %v", buildId)
 
 	if err := workflow.RunWithModifier(ctx, updateWorkflow); err != nil {
 		log.Fatalf("%s: %v", workflow.Name, err)
