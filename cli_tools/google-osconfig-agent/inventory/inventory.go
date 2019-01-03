@@ -23,9 +23,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/attributes"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/attributes"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
