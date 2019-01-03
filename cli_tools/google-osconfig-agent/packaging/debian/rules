@@ -7,11 +7,21 @@ export DH_OPTIONS
 export DH_GOPKG := github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent
 
 %:
-	dh $@  --buildsystem=golang --with=golang
+	dh $@  --buildsystem=golang --with=golang,systemd
 
 override_dh_auto_install:
 	# Binary-only package.
 	dh_auto_install -- --no-source
+	mv debian/google-osconfig-agent/usr/bin/google-osconfig-agent debian/google-osconfig-agent/usr/bin/google_osconfig_agent
 
 override_dh_golang:
 	# We don't use any packaged dependencies, so skip dh_golang step.
+
+override_dh_installinit:
+	dh_installinit --noscripts
+
+override_dh_systemd_start:
+	dh_systemd_start --no-start
+
+override_dh_systemd_enable:
+	dh_systemd_enable --no-enable

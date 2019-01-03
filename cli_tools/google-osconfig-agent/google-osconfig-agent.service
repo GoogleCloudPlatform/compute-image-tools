@@ -1,0 +1,7 @@
+[Unit]
+Description=Google OSConfig Agent
+
+[Service]
+ExecStart=/usr/bin/google_osconfig_agent
+Restart=always
+RestartSec=120
