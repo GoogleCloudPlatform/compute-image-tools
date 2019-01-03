@@ -28,7 +28,7 @@ fi
 DEBIAN_FRONTEND=noninteractive sudo apt-get -y install debhelper devscripts build-essential curl tar
 
 # Build dependencies.
-DEBIAN_FRONTEND=noninteractive sudo apt-get -y install dh-golang
+DEBIAN_FRONTEND=noninteractive sudo apt-get -y install dh-golang dh-systemd
 
 dpkg-checkbuilddeps packaging/debian/control
 
@@ -53,6 +53,7 @@ tar xzvf ${NAME}_${VERSION}.orig.tar.gz
 cd ${NAME}-${VERSION}
 
 cp -r ${working_dir}/packaging/debian ./
+cp -r ${working_dir}/*.service ./debian/
 
 debuild -us -uc
 
