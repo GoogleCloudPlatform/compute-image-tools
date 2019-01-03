@@ -74,8 +74,9 @@ func TestPopulateRegion(t *testing.T) {
 
 func TestGetWorkflowPathsFromImage(t *testing.T) {
 	defer setStringP(&sourceImage, "image-1")()
+	defer setStringP(&osId, "ubuntu-1404")()
 	workflow, translate := getWorkflowPaths()
-	if workflow != importFromImageWorkflow && translate != "" {
+	if workflow != importFromImageWorkflow && translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
 	}
 }
@@ -379,10 +380,11 @@ func TestUpdateWorkflowInstancesNotModifiedIfNoNetworkInterfaceElement(t *testin
 	}
 }
 
-func TestBuildDaisyVars(t *testing.T) {
+func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	defer setStringP(&imageName, "image-a")()
 	defer setBoolP(&noGuestEnvironment, true)()
 	defer setStringP(&sourceFile, "source-file-path")()
+	defer setStringP(&sourceImage, "")()
 	defer setStringP(&family, "a-family")()
 	defer setStringP(&description, "a-description")()
 	defer setStringP(&network, "a-network")()
@@ -399,6 +401,31 @@ func TestBuildDaisyVars(t *testing.T) {
 	assertEqual(got["description"], "a-description", t)
 	assertEqual(got["import_network"], "global/networks/a-network", t)
 	assertEqual(got["import_subnet"], "regions/a-region/subnetworks/a-subnet", t)
+	assertEqual(len(got), 8, t)
+}
+
+func TestBuildDaisyVarsFromImage(t *testing.T) {
+	defer setStringP(&imageName, "image-a")()
+	defer setBoolP(&noGuestEnvironment, true)()
+	defer setStringP(&sourceFile, "")()
+	defer setStringP(&sourceImage, "source-image")()
+	defer setStringP(&family, "a-family")()
+	defer setStringP(&description, "a-description")()
+	defer setStringP(&network, "a-network")()
+	defer setStringP(&subnet, "a-subnet")()
+	defer setStringP(&region, "a-region")()
+
+	got := buildDaisyVars("translate/workflow/path")
+
+	assertEqual(got["image_name"], "image-a", t)
+	assertEqual(got["translate_workflow"], "translate/workflow/path", t)
+	assertEqual(got["install_gce_packages"], "false", t)
+	assertEqual(got["source_image"], "global/images/source-image", t)
+	assertEqual(got["family"], "a-family", t)
+	assertEqual(got["description"], "a-description", t)
+	assertEqual(got["import_network"], "global/networks/a-network", t)
+	assertEqual(got["import_subnet"], "regions/a-region/subnetworks/a-subnet", t)
+	assertEqual(len(got), 8, t)
 }
 
 var onGCE *bool

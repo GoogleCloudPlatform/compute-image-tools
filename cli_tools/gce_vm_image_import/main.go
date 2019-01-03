@@ -25,6 +25,7 @@ import (
 	"google.golang.org/api/compute/v1"
 	"log"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -114,7 +115,7 @@ func validateFlags() error {
 
 	if *osId !="" {
 		if _, osValid := osChoices[*osId]; !osValid {
-			return fmt.Errorf("os %v is invalid", *osId)
+			return fmt.Errorf("os %v is invalid. Allowed values: %v", *osId, reflect.ValueOf(osChoices).MapKeys())
 		}
 	}
 
@@ -150,7 +151,7 @@ func splitGCSPath(p string) (string, string, error) {
 //Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return importFromImageWorkflow, ""
+		return importFromImageWorkflow, getTranslateWorkflowPath(osId)
 	}
 	if *dataDisk {
 		return importWorkflow, ""
@@ -311,7 +312,7 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 		varMap["source_disk_file"] = *sourceFile
 	}
 	if *sourceImage != "" {
-		varMap["source_image"] = *sourceImage
+		varMap["source_image"] = fmt.Sprintf("global/images/%v", *sourceImage)
 	}
 	varMap["family"] = *family
 	varMap["description"] = *description
