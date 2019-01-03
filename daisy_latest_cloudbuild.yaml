@@ -31,6 +31,9 @@ steps:
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './linux/*', 'gs://compute-image-tools/latest/linux/']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/gce_vm_image_import', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import']
+  env: ['CGO_ENABLED=0']
 # Build Linux containers.
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy:latest', '--tag=gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA', '--file=Dockerfile.daisy', '.']
@@ -38,6 +41,8 @@ steps:
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_image_publish:latest', '--tag=gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA', '--file=Dockerfile.gce_image_publish', '.']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_export:latest', '--tag=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA', '--file=Dockerfile.gce_export', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_import:latest', '--file=Dockerfile.gce_vm_image_import', '.']
 
 # Build Windows binaries.
 - name: 'gcr.io/cloud-builders/go'
@@ -76,3 +81,5 @@ images:
   - 'gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/gce_export:latest'
   - 'gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_import:latest'
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA'

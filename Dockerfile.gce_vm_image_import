@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# We use this image just for ca-certificates.crt
-FROM gcr.io/distroless/base
-#FROM gcr.io/google/ubuntu16_04
-
-#FROM scratch
 FROM gcr.io/distroless/python2.7:debug
 
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
