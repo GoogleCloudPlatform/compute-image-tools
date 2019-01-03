@@ -15,7 +15,7 @@
 // Package tasker is a task queue for the osconfig_agent.
 package tasker
 
-import "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
+import "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 
 var tc chan *task
 

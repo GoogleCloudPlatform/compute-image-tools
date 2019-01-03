@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
 	"github.com/tarm/serial"
 
 	logpb "google.golang.org/genproto/googleapis/logging/v2"

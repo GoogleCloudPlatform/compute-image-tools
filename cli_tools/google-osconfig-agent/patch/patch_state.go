@@ -20,9 +20,9 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/attributes"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/osconfig_agent/logger"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/attributes"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 )
 
 const state = "osconfig_patch.state"
