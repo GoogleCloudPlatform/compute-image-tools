@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/distroless/python2.7:debug
+FROM gcr.io/gcp-runtimes/ubuntu_16_0_4:latest
 
-COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY linux/gce_vm_image_import /gce_vm_image_import
-COPY /daisy_workflows/ /daisy_workflows/
+COPY daisy_workflows/ /daisy_workflows/
 
+WORKDIR /
 ENTRYPOINT ["/gce_vm_image_import"]
