@@ -11,8 +11,8 @@
         "Vars": {
             "source_image": "${source_image}",
             "shutdown_hash": "e3de3cd247bbe7c8b3a6f496f55a80f1",
-            "shutdown_msg": "shutdown-script: INFO Found shutdown-script-url in metadata.",
-            "no_shutdown_msg": "shutdown-script: INFO No shutdown scripts found in metadata.",
+            "shutdown_msg": "INFO Found shutdown-script-url in metadata.",
+            "no_shutdown_msg": "INFO No shutdown scripts found in metadata.",
             "wait_msg": "Ready to stop instance.",
             "shutdown_script_name": "metadata-script-test-shutdown-hash.sh",
             "startup_script_name": "startup-script-for-shutdown-tests.sh"

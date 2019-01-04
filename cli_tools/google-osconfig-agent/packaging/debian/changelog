@@ -1,0 +1,5 @@
+google-osconfig-agent (0.4.1-1) UNRELEASED; urgency=medium
+
+  * Initial release. (Closes: #XXXXXX)
+
+ -- Google Cloud Team <gc-team@google.com>  Mon, 31 Dec 2018 12:00:00 +0000

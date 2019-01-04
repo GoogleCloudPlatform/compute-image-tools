@@ -1,0 +1,14 @@
+Source: google-osconfig-agent
+Maintainer: Google Cloud Team <gc-team@google.com>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.8
+Build-Depends: debhelper (>= 9), dh-golang (>= 1.1), dh-systemd
+
+Package: google-osconfig-agent
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Google Compute Engine OSConfig Agent
+ Contains the OSConfig agent service binary as well as systemd
+ startup scripts
+XS-Go-Import-Path: github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent
