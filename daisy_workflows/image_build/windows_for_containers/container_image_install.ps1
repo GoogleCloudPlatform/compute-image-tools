@@ -146,10 +146,6 @@ function Run-FirstBootSteps {
   $docker_version = "18.09"
   Write-Host "Installing Docker EE ${docker_version}"
   Install-Package -Name docker -ProviderName DockerMsftProvider -Force -RequiredVersion ${docker_version}
-
-  Write-Host 'Enabling IPv6'
-  $ipv_path = 'HKLM:\SYSTEM\CurrentControlSet\services\TCPIP6\Parameters'
-  Set-ItemProperty -Path $ipv_path -Name 'DisabledComponents' -Value 0x0
 }
 
 function Run-SecondBootSteps {
