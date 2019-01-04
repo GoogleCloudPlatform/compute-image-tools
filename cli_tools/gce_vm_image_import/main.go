@@ -223,7 +223,7 @@ func populateRegion() error {
 }
 
 func getRegion() (string, error) {
-	if *zone=="" {
+	if *zone =="" {
 		return "", fmt.Errorf("zone is empty. Can't determine region")
 	}
 	zoneStrs := strings.Split(*zone, "-")
