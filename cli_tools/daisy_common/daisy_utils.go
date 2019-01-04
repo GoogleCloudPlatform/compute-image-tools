@@ -12,15 +12,16 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package daisy_common
+package daisycommon
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"fmt"
 	"cloud.google.com/go/compute/metadata"
+	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"context"
 )
 
+// ParseWorkflow parses Daisy workflow file and returns Daisy workflow object or error in case of failure
 func ParseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
 	w, err := daisy.NewFromFile(path)
 	if err != nil {

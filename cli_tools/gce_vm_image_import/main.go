@@ -33,9 +33,9 @@ import (
 
 var (
 	imageName            = flag.String(imageNameFlagKey, "","Image name to be imported.")
-	clientId             = flag.String(clientIdFlagKey, "","Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
+	clientID             = flag.String(clientIDFlagKey, "","Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
 	dataDisk             = flag.Bool("data_disk", false, "Specifies that the disk has no bootable OS installed on it.	Imports the disk without making it bootable or installing Google tools on it. ")
-	osId                 = flag.String("os", "","Specifies the OS of the image being imported. Must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-2008r2, windows-2012r2, windows-2016.")
+	osID                 = flag.String("os", "","Specifies the OS of the image being imported. Must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-2008r2, windows-2012r2, windows-2016.")
 	sourceFile           = flag.String("source_file", "","Google Cloud Storage URI of the virtual disk file	to import. For example: gs://my-bucket/my-image.vmdk")
 	sourceImage          = flag.String("source_image", "","Compute Engine image from which to import")
 	noGuestEnvironment   = flag.Bool("no_guest_environment", false, "Google Guest Environment will not be installed on the image.")
@@ -58,10 +58,10 @@ var (
 	kmsProject           = flag.String("kms_project", "","The Cloud project for the key")
 	noExternalIP         = flag.Bool("no_external_ip", false, "VPC doesn't allow external IPs")
 
-	region    *string
-	buildId   = os.Getenv("BUILD_ID")
-	gsRegex   = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
-	osChoices = map[string]string {
+	region               *string
+	buildID              = os.Getenv("BUILD_ID")
+	gsRegex              = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
+	osChoices            = map[string]string {
 		"debian-8": "debian/translate_debian_8.wf.json",
 		"debian-9": "debian/translate_debian_9.wf.json",
 		"centos-6": "enterprise_linux/translate_centos_6.wf.json",
@@ -84,7 +84,7 @@ const (
 	importFromImageWorkflow    = workflowDir + "import_from_image.wf.json"
 	importAndTranslateWorkflow = workflowDir + "import_and_translate.wf.json"
 	imageNameFlagKey           = "image_name"
-	clientIdFlagKey            = "client_id"
+	clientIDFlagKey            = "client_id"
 )
 
 func validateFlags() error {
@@ -93,15 +93,15 @@ func validateFlags() error {
 	if err := validateStringFlag(*imageName, imageNameFlagKey); err != nil {
 		return err
 	}
-	if err := validateStringFlag(*clientId, clientIdFlagKey); err != nil {
+	if err := validateStringFlag(*clientID, clientIDFlagKey); err != nil {
 		return err
 	}
 
-	if !*dataDisk && *osId == "" {
+	if !*dataDisk && *osID == "" {
 		return fmt.Errorf("-data_disk or -os has to be specified")
 	}
 
-	if *dataDisk && *osId != "" {
+	if *dataDisk && *osID != "" {
 		return fmt.Errorf("either -data_disk or -os has to be specified, but not both")
 	}
 
@@ -113,9 +113,9 @@ func validateFlags() error {
 		return fmt.Errorf("either -source_file or -source_image has to be specified, but not both %v %v", *sourceFile, *sourceImage)
 	}
 
-	if *osId !="" {
-		if _, osValid := osChoices[*osId]; !osValid {
-			return fmt.Errorf("os %v is invalid. Allowed values: %v", *osId, reflect.ValueOf(osChoices).MapKeys())
+	if *osID !="" {
+		if _, osValid := osChoices[*osID]; !osValid {
+			return fmt.Errorf("os %v is invalid. Allowed values: %v", *osID, reflect.ValueOf(osChoices).MapKeys())
 		}
 	}
 
@@ -151,12 +151,12 @@ func splitGCSPath(p string) (string, string, error) {
 //Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return importFromImageWorkflow, getTranslateWorkflowPath(osId)
+		return importFromImageWorkflow, getTranslateWorkflowPath(osID)
 	}
 	if *dataDisk {
 		return importWorkflow, ""
 	}
-	return importAndTranslateWorkflow, getTranslateWorkflowPath(osId)
+	return importAndTranslateWorkflow, getTranslateWorkflowPath(osID)
 }
 
 func getTranslateWorkflowPath(os *string) string {
@@ -293,7 +293,7 @@ func addImageImportLabels(labels map[string]string,
 		imageTypeLabel = imageTypeLabelOptional[0]
 	}
 	labels[imageTypeLabel] = "true"
-	labels["gce-image-import-build-id"] = buildId
+	labels["gce-image-import-build-id"] = buildID
 
 	return labels
 }
@@ -334,7 +334,7 @@ func main() {
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
 
 	varMap := buildDaisyVars(translateWorkflowPath)
-	workflow, err := daisy_common.ParseWorkflow(ctx, importWorkflowPath, varMap, *project, *zone,
+	workflow, err := daisycommon.ParseWorkflow(ctx, importWorkflowPath, varMap, *project, *zone,
 		*scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled)
 

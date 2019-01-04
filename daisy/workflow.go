@@ -201,6 +201,7 @@ func (w *Workflow) Validate(ctx context.Context) error {
 	return nil
 }
 
+// WorkflowModifier is a function type for functions that can modify a Workflow object.
 type WorkflowModifier func(*Workflow)
 
 // Run runs a workflow.
@@ -208,6 +209,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 	return w.RunWithModifier(ctx, nil)
 }
 
+// RunWithModifier runs a workflow with the ability to modify it once validated but before it's actually run.
 func (w *Workflow) RunWithModifier(ctx context.Context, workflowModifier WorkflowModifier) error {
 	w.externalLogging = true
 	if err := w.Validate(ctx); err != nil {

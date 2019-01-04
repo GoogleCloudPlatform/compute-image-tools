@@ -74,7 +74,7 @@ func TestPopulateRegion(t *testing.T) {
 
 func TestGetWorkflowPathsFromImage(t *testing.T) {
 	defer setStringP(&sourceImage, "image-1")()
-	defer setStringP(&osId, "ubuntu-1404")()
+	defer setStringP(&osID, "ubuntu-1404")()
 	workflow, translate := getWorkflowPaths()
 	if workflow != importFromImageWorkflow && translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
@@ -92,7 +92,7 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 func TestGetWorkflowPathsFromFile(t *testing.T) {
 	defer setBoolP(&dataDisk, false)()
 	defer setStringP(&sourceImage, "image-1")()
-	defer setStringP(&osId, "ubuntu-1404")()
+	defer setStringP(&osID, "ubuntu-1404")()
 	defer setStringP(&sourceImage, "")()
 
 	workflow, translate := getWorkflowPaths()
@@ -113,14 +113,14 @@ func TestFlagsImageNameNotProvided(t *testing.T) {
 func TestFlagsClientIdNotProvided(t *testing.T) {
 	defer backupOsArgs()()
 	cliArgs := getAllCliArgs()
-	defer clearStringFlag(cliArgs, clientIdFlagKey, &clientId)()
+	defer clearStringFlag(cliArgs, clientIDFlagKey, &clientID)()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing client_id flag", t)
 }
 
 func TestFlagsDataDiskOrOSFlagsNotProvided(t *testing.T) {
 	defer backupOsArgs()()
 	cliArgs := getAllCliArgs()
-	defer clearStringFlag(cliArgs, "os", &osId)()
+	defer clearStringFlag(cliArgs, "os", &osID)()
 	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing os or data_disk flag", t)
 }
@@ -199,7 +199,7 @@ func TestFlagsDataDisk(t *testing.T) {
 
 	cliArgs := getAllCliArgs()
 	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
-	defer clearStringFlag(cliArgs, "os", &osId)()
+	defer clearStringFlag(cliArgs, "os", &osID)()
 	buildOsArgs(cliArgs)
 
 	if err := validateFlags(); err != nil {
@@ -223,7 +223,7 @@ func TestFlagsInvalidOS(t *testing.T) {
 
 func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 	defer setBoolP(&noExternalIP, false)()
-	buildId = "abc"
+	buildID = "abc"
 
 	extraLabels := map[string]string{"labelKey": "labelValue"}
 	w := daisy.New()
@@ -252,7 +252,7 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 
 func TestUpdateWorkflowDisksLabelled(t *testing.T) {
 	defer setBoolP(&noExternalIP, false)()
-	buildId = "abc"
+	buildID = "abc"
 
 	extraLabels := map[string]string{"labelKey": "labelValue"}
 	w := createWorkflowWithCreateDisksStep()
@@ -283,28 +283,28 @@ func createWorkflowWithCreateDisksStep() *daisy.Workflow {
 
 func TestUpdateWorkflowIncludedWorkflow(t *testing.T) {
 	defer setBoolP(&noExternalIP, false)()
-	buildId = "abc"
+	buildID = "abc"
 
-	child_workflow := createWorkflowWithCreateDisksStep()
+	childWorkflow := createWorkflowWithCreateDisksStep()
 	extraLabels := map[string]string{"labelKey": "labelValue"}
 
 	w := daisy.New()
 	w.Steps = map[string]*daisy.Step{
 		"cd": {
 			IncludeWorkflow: &daisy.IncludeWorkflow{
-				Workflow: child_workflow,
+				Workflow: childWorkflow,
 			},
 		},
 	}
 
 	updateWorkflow(w)
-	validateLabels(&(*child_workflow.Steps["cd"].CreateDisks)[0].Disk.Labels,"gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*child_workflow.Steps["cd"].CreateDisks)[1].Disk.Labels,"gce-image-import-tmp", t)
+	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[0].Disk.Labels,"gce-image-import-tmp", t, &extraLabels)
+	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[1].Disk.Labels,"gce-image-import-tmp", t)
 }
 
 func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 	defer setBoolP(&noExternalIP, false)()
-	buildId = "abc"
+	buildID = "abc"
 
 	w := daisy.New()
 	extraLabels := map[string]string{"labelKey": "labelValue"}
@@ -536,8 +536,8 @@ func validateLabels(labels *map[string]string, typeLabel string, t *testing.T, e
 		t.Errorf("Labels %v should have only 2 elements", labels)
 	}
 	got := (*labels)["gce-image-import-build-id"]
-	if buildId != got {
-		t.Errorf("%v != %v", buildId, got)
+	if buildID != got {
+		t.Errorf("%v != %v", buildID, got)
 	}
 	got = (*labels)[typeLabel]
 	if "true" != got {
@@ -583,30 +583,30 @@ func formatCliArg(argKey, argValue interface{}) string {
 
 func getAllCliArgs() map[string]interface{} {
 	return map[string]interface{} {
-		imageNameFlagKey: "img",
-		clientIdFlagKey: "aClient",
-		"data_disk": true,
-		"os": "ubuntu-1404",
-		"source_file": "gs://source_bucket/source_file",
-		"source_image": "anImage",
-		"no_guest_environment": true,
-		"family": "aFamily",
-		"description": "aDescription",
-		"network": "aNetwork",
-		"subnet": "aSubnet",
-		"timeout": "2h",
-		"zone": "us-central1-c",
-		"project": "aProject",
-		"scratch_bucket_gcs_path": "gs://bucket/folder",
-		"oauth": "oAuthFilePath",
+		imageNameFlagKey:            "img",
+		clientIDFlagKey:             "aClient",
+		"data_disk":                 true,
+		"os":                        "ubuntu-1404",
+		"source_file":               "gs://source_bucket/source_file",
+		"source_image":              "anImage",
+		"no_guest_environment":      true,
+		"family":                    "aFamily",
+		"description":               "aDescription",
+		"network":                   "aNetwork",
+		"subnet":                    "aSubnet",
+		"timeout":                   "2h",
+		"zone":                      "us-central1-c",
+		"project":                   "aProject",
+		"scratch_bucket_gcs_path":   "gs://bucket/folder",
+		"oauth":                     "oAuthFilePath",
 		"compute_endpoint_override": "us-east1-c",
-		"disable_gcs_logging": true,
-		"disable_cloud_logging": true,
-		"disable_stdout_logging": true,
-		"kms_key": "aKmsKey",
-		"kms_keyring": "aKmsKeyRing",
-		"kms_location": "aKmsLocation",
-		"kms_project": "aKmsProject",
+		"disable_gcs_logging":       true,
+		"disable_cloud_logging":     true,
+		"disable_stdout_logging":    true,
+		"kms_key":                   "aKmsKey",
+		"kms_keyring":               "aKmsKeyRing",
+		"kms_location":              "aKmsLocation",
+		"kms_project":               "aKmsProject",
 	}
 }
 
