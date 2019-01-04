@@ -68,11 +68,12 @@ Exactly one of these must be specified:
 ### Usage
 
 ```
-gce_vm_image_import IMAGE_NAME (--data-disk | --os=OS)
-        (--source-file=SOURCE_FILE | --source-image=SOURCE_IMAGE) 
-        [--no-guest-environment] [--log-location=LOG_LOCATION]
-        [--network=NETWORK] [--subnet=SUBNET] [--timeout=TIMEOUT; default="2h"]
-        [--zone=ZONE] [--tags=TAGS] [--kms-key=KMS_KEY 
-        --kms-keyring=KMS_KEYRING --kms-location=KMS_LOCATION 
-        --kms-project=KMS_PROJECT]
+gce_vm_image_import -image_name IMAGE_NAME -client_id CLIENT_ID (-data-disk | -os=OS)
+        (-source-file=SOURCE_FILE | -source-image=SOURCE_IMAGE) [-no-guest-environment] 
+        [-log-location=LOG_LOCATION] [-family=FAMILY] [-description=DESCRIPTION]
+        [-network=NETWORK] [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT; default="2h"]
+        [-project=PROJECT] [-scratch_bucket_gcs_path=PATH] [-oauth=OAUTH_PATH]
+        [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging] [-disable_cloud_logging]
+        [-disable_stdout_logging] [-kms-key=KMS_KEY -kms-keyring=KMS_KEYRING
+        -kms-location=KMS_LOCATION -kms-project=KMS_PROJECT]
 ```
