@@ -25,10 +25,10 @@ import (
 func TestGetRegion(t *testing.T) {
 	tests := []struct {
 		input string
-		want string
-		err error
+		want  string
+		err   error
 	}{
-		{"us-central1-c","us-central1", nil},
+		{"us-central1-c", "us-central1", nil},
 		{"europe-north1-a", "europe-north1", nil},
 		{"europe", "", fmt.Errorf("%v is not a valid zone", "europe")},
 		{"", "", fmt.Errorf("zone is empty. Can't determine region")},
@@ -50,10 +50,10 @@ func TestGetRegion(t *testing.T) {
 func TestPopulateRegion(t *testing.T) {
 	tests := []struct {
 		input string
-		want string
-		err error
+		want  string
+		err   error
 	}{
-		{"us-central1-c","us-central1", nil},
+		{"us-central1-c", "us-central1", nil},
 		{"europe", "", fmt.Errorf("%v is not a valid zone", "europe")},
 		{"", "", fmt.Errorf("zone is empty. Can't determine region")},
 	}
@@ -65,7 +65,7 @@ func TestPopulateRegion(t *testing.T) {
 		err := populateRegion()
 		if err != test.err && test.err.Error() != err.Error() {
 			t.Errorf("%v != %v", test.err, err)
-		} else if region!=nil && test.want != *region {
+		} else if region != nil && test.want != *region {
 			t.Errorf("%v != %v", test.want, *region)
 		}
 	}
@@ -227,12 +227,12 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 
 	extraLabels := map[string]string{"labelKey": "labelValue"}
 	w := daisy.New()
-	w.Steps =  map[string]*daisy.Step{
+	w.Steps = map[string]*daisy.Step{
 		"ci": {
 			CreateInstances: &daisy.CreateInstances{
 				{
 					Instance: compute.Instance{
-						Disks: []*compute.AttachedDisk{{Source: "key1"}},
+						Disks:  []*compute.AttachedDisk{{Source: "key1"}},
 						Labels: map[string]string{"labelKey": "labelValue"},
 					},
 				},
@@ -246,8 +246,8 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 	}
 
 	updateWorkflow(w)
-	validateLabels(&(*w.Steps["ci"].CreateInstances)[0].Instance.Labels,"gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*w.Steps["ci"].CreateInstances)[1].Instance.Labels,"gce-image-import-tmp", t)
+	validateLabels(&(*w.Steps["ci"].CreateInstances)[0].Instance.Labels, "gce-image-import-tmp", t, &extraLabels)
+	validateLabels(&(*w.Steps["ci"].CreateInstances)[1].Instance.Labels, "gce-image-import-tmp", t)
 }
 
 func TestUpdateWorkflowDisksLabelled(t *testing.T) {
@@ -298,8 +298,8 @@ func TestUpdateWorkflowIncludedWorkflow(t *testing.T) {
 	}
 
 	updateWorkflow(w)
-	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[0].Disk.Labels,"gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[1].Disk.Labels,"gce-image-import-tmp", t)
+	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[0].Disk.Labels, "gce-image-import-tmp", t, &extraLabels)
+	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[1].Disk.Labels, "gce-image-import-tmp", t)
 }
 
 func TestUpdateWorkflowImagesLabelled(t *testing.T) {
@@ -308,12 +308,12 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 
 	w := daisy.New()
 	extraLabels := map[string]string{"labelKey": "labelValue"}
-	w.Steps =  map[string]*daisy.Step{
+	w.Steps = map[string]*daisy.Step{
 		"cimg": {
 			CreateImages: &daisy.CreateImages{
 				{
 					Image: compute.Image{
-						Name: "final-image-1",
+						Name:   "final-image-1",
 						Labels: map[string]string{"labelKey": "labelValue"},
 					},
 				},
@@ -324,7 +324,7 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 				},
 				{
 					Image: compute.Image{
-						Name: "untranslated-image-1",
+						Name:   "untranslated-image-1",
 						Labels: map[string]string{"labelKey": "labelValue"},
 					},
 				},
@@ -333,7 +333,6 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 						Name: "untranslated-image-2",
 					},
 				},
-
 			},
 		},
 	}
@@ -471,7 +470,7 @@ func TestPopulateZoneIfMissingOnGCEEnmptyZoneReturned(t *testing.T) {
 	assertError(populateZoneIfMissing(dummyMetadataGCE{}), t)
 }
 
-type dummyMetadataGCE struct {}
+type dummyMetadataGCE struct{}
 
 func (m dummyMetadataGCE) OnGCE() bool {
 	return *onGCE
@@ -532,7 +531,7 @@ func validateLabels(labels *map[string]string, typeLabel string, t *testing.T, e
 	if extraLabels != nil {
 		extraLabelCount = len(*extraLabels)
 	}
-	if len(*labels) != extraLabelCount + 2 {
+	if len(*labels) != extraLabelCount+2 {
 		t.Errorf("Labels %v should have only 2 elements", labels)
 	}
 	got := (*labels)["gce-image-import-build-id"]
@@ -582,7 +581,7 @@ func formatCliArg(argKey, argValue interface{}) string {
 }
 
 func getAllCliArgs() map[string]interface{} {
-	return map[string]interface{} {
+	return map[string]interface{}{
 		imageNameFlagKey:            "img",
 		clientIDFlagKey:             "aClient",
 		"data_disk":                 true,
@@ -621,7 +620,7 @@ func setStringP(p **string, value string) func() {
 func setBoolP(p **bool, value bool) func() {
 	oldValue := *p
 	*p = &value
-	return func() {*p = oldValue}
+	return func() { *p = oldValue }
 }
 
 func clearStringFlag(cliArgs map[string]interface{}, flagKey string, flag **string) func() {

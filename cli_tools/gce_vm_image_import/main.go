@@ -32,19 +32,19 @@ import (
 )
 
 var (
-	imageName            = flag.String(imageNameFlagKey, "","Image name to be imported.")
-	clientID             = flag.String(clientIDFlagKey, "","Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
+	imageName            = flag.String(imageNameFlagKey, "", "Image name to be imported.")
+	clientID             = flag.String(clientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
 	dataDisk             = flag.Bool("data_disk", false, "Specifies that the disk has no bootable OS installed on it.	Imports the disk without making it bootable or installing Google tools on it. ")
-	osID                 = flag.String("os", "","Specifies the OS of the image being imported. Must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-2008r2, windows-2012r2, windows-2016.")
-	sourceFile           = flag.String("source_file", "","Google Cloud Storage URI of the virtual disk file	to import. For example: gs://my-bucket/my-image.vmdk")
-	sourceImage          = flag.String("source_image", "","Compute Engine image from which to import")
+	osID                 = flag.String("os", "", "Specifies the OS of the image being imported. Must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-2008r2, windows-2012r2, windows-2016.")
+	sourceFile           = flag.String("source_file", "", "Google Cloud Storage URI of the virtual disk file	to import. For example: gs://my-bucket/my-image.vmdk")
+	sourceImage          = flag.String("source_image", "", "Compute Engine image from which to import")
 	noGuestEnvironment   = flag.Bool("no_guest_environment", false, "Google Guest Environment will not be installed on the image.")
-	family               = flag.String("family", "","Family to set for the translated image")
-	description          = flag.String("description", "","Description to set for the translated image")
-	network              = flag.String("network", "","Name of the network in your project to use for the image import. The network must have access to Google Cloud Storage. If not specified, the network named default is used.")
-	subnet               = flag.String("subnet", "","Name of the subnetwork in your project to use for the image import. If	the network resource is in legacy mode, do not provide this property. If the network is in auto subnet mode, providing the subnetwork is optional. If the network is in custom subnet mode, then this field should be specified. Zone should be specified if this field is specified.")
-	zone                 = flag.String("zone", "","Zone of the image to import. The zone in which to do the work of importing the image. Overrides the default compute/zone property value for this command invocation.")
-	timeout              = flag.String("timeout", "","Maximum time a build can last before it is failed as TIMEOUT. For example, specifying 2h will fail the process after 2 hours. See $ gcloud topic datetimes for information on duration formats.")
+	family               = flag.String("family", "", "Family to set for the translated image")
+	description          = flag.String("description", "", "Description to set for the translated image")
+	network              = flag.String("network", "", "Name of the network in your project to use for the image import. The network must have access to Google Cloud Storage. If not specified, the network named default is used.")
+	subnet               = flag.String("subnet", "", "Name of the subnetwork in your project to use for the image import. If	the network resource is in legacy mode, do not provide this property. If the network is in auto subnet mode, providing the subnetwork is optional. If the network is in custom subnet mode, then this field should be specified. Zone should be specified if this field is specified.")
+	zone                 = flag.String("zone", "", "Zone of the image to import. The zone in which to do the work of importing the image. Overrides the default compute/zone property value for this command invocation.")
+	timeout              = flag.String("timeout", "", "Maximum time a build can last before it is failed as TIMEOUT. For example, specifying 2h will fail the process after 2 hours. See $ gcloud topic datetimes for information on duration formats.")
 	project              = flag.String("project", "", "project to run in, overrides what is set in workflow")
 	scratchBucketGcsPath = flag.String("scratch_bucket_gcs_path", "", "GCS scratch bucket to use, overrides what is set in workflow")
 	oauth                = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
@@ -52,29 +52,29 @@ var (
 	gcsLogsDisabled      = flag.Bool("disable_gcs_logging", false, "do not stream logs to GCS")
 	cloudLogsDisabled    = flag.Bool("disable_cloud_logging", false, "do not stream logs to Cloud Logging")
 	stdoutLogsDisabled   = flag.Bool("disable_stdout_logging", false, "do not display individual workflow logs on stdout")
-	kmsKey               = flag.String("kms_key", "","ID of the key or fully qualified identifier for the key. This flag must be specified if any of the other arguments below are specified.")
-	kmsKeyring           = flag.String("kms_keyring", "","The KMS keyring of the key.")
-	kmsLocation          = flag.String("kms_location", "","The Cloud location for the key.")
-	kmsProject           = flag.String("kms_project", "","The Cloud project for the key")
+	kmsKey               = flag.String("kms_key", "", "ID of the key or fully qualified identifier for the key. This flag must be specified if any of the other arguments below are specified.")
+	kmsKeyring           = flag.String("kms_keyring", "", "The KMS keyring of the key.")
+	kmsLocation          = flag.String("kms_location", "", "The Cloud location for the key.")
+	kmsProject           = flag.String("kms_project", "", "The Cloud project for the key")
 	noExternalIP         = flag.Bool("no_external_ip", false, "VPC doesn't allow external IPs")
 
-	region               *string
-	buildID              = os.Getenv("BUILD_ID")
-	gsRegex              = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
-	osChoices            = map[string]string {
-		"debian-8": "debian/translate_debian_8.wf.json",
-		"debian-9": "debian/translate_debian_9.wf.json",
-		"centos-6": "enterprise_linux/translate_centos_6.wf.json",
-		"centos-7": "enterprise_linux/translate_centos_7.wf.json",
-		"rhel-6": "enterprise_linux/translate_rhel_6_licensed.wf.json",
-		"rhel-7": "enterprise_linux/translate_rhel_7_licensed.wf.json",
-		"rhel-6-byol": "enterprise_linux/translate_rhel_6_byol.wf.json",
-		"rhel-7-byol": "enterprise_linux/translate_rhel_7_byol.wf.json",
-		"ubuntu-1404": "ubuntu/translate_ubuntu_1404.wf.json",
-		"ubuntu-1604": "ubuntu/translate_ubuntu_1604.wf.json",
+	region    *string
+	buildID   = os.Getenv("BUILD_ID")
+	gsRegex   = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
+	osChoices = map[string]string{
+		"debian-8":       "debian/translate_debian_8.wf.json",
+		"debian-9":       "debian/translate_debian_9.wf.json",
+		"centos-6":       "enterprise_linux/translate_centos_6.wf.json",
+		"centos-7":       "enterprise_linux/translate_centos_7.wf.json",
+		"rhel-6":         "enterprise_linux/translate_rhel_6_licensed.wf.json",
+		"rhel-7":         "enterprise_linux/translate_rhel_7_licensed.wf.json",
+		"rhel-6-byol":    "enterprise_linux/translate_rhel_6_byol.wf.json",
+		"rhel-7-byol":    "enterprise_linux/translate_rhel_7_byol.wf.json",
+		"ubuntu-1404":    "ubuntu/translate_ubuntu_1404.wf.json",
+		"ubuntu-1604":    "ubuntu/translate_ubuntu_1604.wf.json",
 		"windows-2008r2": "windows/translate_windows_2008_r2.wf.json",
 		"windows-2012r2": "windows/translate_windows_2012_r2.wf.json",
-		"windows-2016": "windows/translate_windows_2016.wf.json",
+		"windows-2016":   "windows/translate_windows_2016.wf.json",
 	}
 )
 
@@ -113,13 +113,13 @@ func validateFlags() error {
 		return fmt.Errorf("either -source_file or -source_image has to be specified, but not both %v %v", *sourceFile, *sourceImage)
 	}
 
-	if *osID !="" {
+	if *osID != "" {
 		if _, osValid := osChoices[*osID]; !osValid {
 			return fmt.Errorf("os %v is invalid. Allowed values: %v", *osID, reflect.ValueOf(osChoices).MapKeys())
 		}
 	}
 
-	if *sourceFile!="" {
+	if *sourceFile != "" {
 		_, _, err := splitGCSPath(*sourceFile)
 		if err != nil {
 			return err
@@ -178,7 +178,7 @@ func populateMissingParameters() {
 	//TODO: network, subnetwork, gcsPath (create scratch bucket including regionalization, if possible)
 }
 
-type metadataGCEHolder struct {}
+type metadataGCEHolder struct{}
 
 type metadataGCE interface {
 	OnGCE() bool
@@ -223,11 +223,11 @@ func populateRegion() error {
 }
 
 func getRegion() (string, error) {
-	if *zone =="" {
+	if *zone == "" {
 		return "", fmt.Errorf("zone is empty. Can't determine region")
 	}
 	zoneStrs := strings.Split(*zone, "-")
-	if len(zoneStrs)<2 {
+	if len(zoneStrs) < 2 {
 		return "", fmt.Errorf("%v is not a valid zone", *zone)
 	}
 	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
@@ -283,7 +283,7 @@ func configureInstanceNetworkInterfaceForNoExternalIP(instance *daisy.Instance) 
 
 //Extend labels with image import related labels
 func addImageImportLabels(labels map[string]string,
-	imageTypeLabelOptional ...string) map[string]string {
+		imageTypeLabelOptional ...string) map[string]string {
 
 	if labels == nil {
 		labels = make(map[string]string)

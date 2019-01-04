@@ -16,9 +16,9 @@ package daisycommon
 
 import (
 	"cloud.google.com/go/compute/metadata"
+	"context"
 	"fmt"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"context"
 )
 
 // ParseWorkflow parses Daisy workflow file and returns Daisy workflow object or error in case of failure
