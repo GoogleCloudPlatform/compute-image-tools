@@ -283,7 +283,7 @@ func configureInstanceNetworkInterfaceForNoExternalIP(instance *daisy.Instance) 
 
 //Extend labels with image import related labels
 func addImageImportLabels(labels map[string]string,
-		imageTypeLabelOptional ...string) map[string]string {
+	imageTypeLabelOptional ...string) map[string]string {
 
 	if labels == nil {
 		labels = make(map[string]string)
