@@ -29,11 +29,14 @@ steps:
 - name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=linux/import_precheck', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck']
   env: ['CGO_ENABLED=0']
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', './linux/*', 'gs://compute-image-tools/latest/linux/']
 - name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=linux/gce_vm_image_import', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import']
   env: ['CGO_ENABLED=0']
+
+# Copy Linux binaries to GS
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './linux/*', 'gs://compute-image-tools/latest/linux/']
+
 # Build Linux containers.
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/daisy:latest', '--tag=gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA', '--file=Dockerfile.daisy', '.']

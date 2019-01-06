@@ -31,6 +31,15 @@ import (
 	"strings"
 )
 
+const (
+	workflowDir                = "daisy_workflows/image_import/"
+	importWorkflow             = workflowDir + "import_image.wf.json"
+	importFromImageWorkflow    = workflowDir + "import_from_image.wf.json"
+	importAndTranslateWorkflow = workflowDir + "import_and_translate.wf.json"
+	imageNameFlagKey           = "image_name"
+	clientIDFlagKey            = "client_id"
+)
+
 var (
 	imageName            = flag.String(imageNameFlagKey, "", "Image name to be imported.")
 	clientID             = flag.String(clientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
@@ -76,15 +85,6 @@ var (
 		"windows-2012r2": "windows/translate_windows_2012_r2.wf.json",
 		"windows-2016":   "windows/translate_windows_2016.wf.json",
 	}
-)
-
-const (
-	workflowDir                = "daisy_workflows/image_import/"
-	importWorkflow             = workflowDir + "import_image.wf.json"
-	importFromImageWorkflow    = workflowDir + "import_from_image.wf.json"
-	importAndTranslateWorkflow = workflowDir + "import_and_translate.wf.json"
-	imageNameFlagKey           = "image_name"
-	clientIDFlagKey            = "client_id"
 )
 
 func validateFlags() error {
@@ -245,7 +245,7 @@ func updateWorkflow(workflow *daisy.Workflow) {
 		}
 		if step.CreateInstances != nil {
 			for _, instance := range *step.CreateInstances {
-				instance.Instance.Labels = addImageImportLabels(instance.Instance.Labels)
+				instance.Instance.Labels = addImageImportLabels(instance.Instance.Labels, "")
 				if *noExternalIP {
 					configureInstanceNetworkInterfaceForNoExternalIP(instance)
 				}
@@ -253,7 +253,7 @@ func updateWorkflow(workflow *daisy.Workflow) {
 		}
 		if step.CreateDisks != nil {
 			for _, disk := range *step.CreateDisks {
-				disk.Disk.Labels = addImageImportLabels(disk.Disk.Labels)
+				disk.Disk.Labels = addImageImportLabels(disk.Disk.Labels, "")
 			}
 		}
 		if step.CreateImages != nil {
@@ -282,15 +282,13 @@ func configureInstanceNetworkInterfaceForNoExternalIP(instance *daisy.Instance) 
 }
 
 //Extend labels with image import related labels
-func addImageImportLabels(labels map[string]string,
-	imageTypeLabelOptional ...string) map[string]string {
+func addImageImportLabels(labels map[string]string, imageTypeLabel string) map[string]string {
 
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	imageTypeLabel := "gce-image-import-tmp"
-	if len(imageTypeLabelOptional) > 0 {
-		imageTypeLabel = imageTypeLabelOptional[0]
+	if imageTypeLabel == "" {
+		imageTypeLabel = "gce-image-import-tmp"
 	}
 	labels[imageTypeLabel] = "true"
 	labels["gce-image-import-build-id"] = buildID

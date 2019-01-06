@@ -219,7 +219,6 @@ func (w *Workflow) RunWithModifier(ctx context.Context, workflowModifier Workflo
 	if workflowModifier != nil {
 		workflowModifier(w)
 	}
-	//return nil
 	defer w.cleanup()
 	w.LogWorkflowInfo("Workflow Project: %s", w.Project)
 	w.LogWorkflowInfo("Workflow Zone: %s", w.Zone)
