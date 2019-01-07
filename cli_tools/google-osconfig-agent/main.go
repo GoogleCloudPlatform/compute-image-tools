@@ -33,6 +33,11 @@ import (
 
 var version string
 
+func init() {
+	// We do this here so the -X value doesn't need the full path.
+	config.SetVersion(version)
+}
+
 type logWritter struct{}
 
 func (l *logWritter) Write(b []byte) (int, error) {

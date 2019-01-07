@@ -40,6 +40,9 @@ var (
 
 // Init instantiates the logger.
 func Init(ctx context.Context, project string) {
+	msg := fmt.Sprintf("OSConfig Agent (version %s) Init", config.Version())
+	Infof(msg)
+
 	var err error
 	cloudLoggingClient, err = logging.NewClient(ctx, project)
 	if err != nil {
@@ -49,7 +52,7 @@ func Init(ctx context.Context, project string) {
 
 	// This automatically detects and associates with a GCE resource.
 	cloudLogger = cloudLoggingClient.Logger("osconfig")
-	if err := cloudLogger.LogSync(ctx, logging.Entry{Severity: logging.Info, Payload: map[string]string{"localTimestamp": now(), "message": "OSConfig Agent Init"}}); err != nil {
+	if err := cloudLogger.LogSync(ctx, logging.Entry{Severity: logging.Info, Payload: map[string]string{"localTimestamp": now(), "message": msg}}); err != nil {
 		// This means cloud logging is not working, so don't continue to try to log.
 		cloudLogger = nil
 		Errorf(err.Error())

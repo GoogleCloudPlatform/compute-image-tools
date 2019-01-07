@@ -9,6 +9,7 @@
     "google_osconfig_agent.exe": "<ProgramFiles>/Google/OSConfig/google_osconfig_agent.exe"
   },
   "releaseNotes": [
+    "0.4.2 - Add version info to binary",
     "0.3.0 - Merge inventory agent funtionality"
   ],
   "install": {

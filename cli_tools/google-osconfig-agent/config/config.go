@@ -40,6 +40,8 @@ var (
 	zypperRepoFilePath = flag.String("zypper_repo_file", "/etc/zypp/repos.d/google_osconfig.repo", "zypper repo file location")
 	yumRepoFilePath    = flag.String("yum_repo_file", "/etc/yum/repos.d/google_osconfig.repo", "yum repo file location")
 	aptRepoFilePath    = flag.String("aptrepo_file", "/etc/apt/sources.list.d/google_osconfig.list", "apt repo file location")
+
+	version string
 )
 
 // SvcPollInterval returns the frequency to poll the service.
@@ -131,4 +133,14 @@ func Instance() (string, error) {
 // Project is the URI of the instance the agent is running on.
 func Project() (string, error) {
 	return metadata.ProjectID()
+}
+
+// Version is the agent version.
+func Version() string {
+	return version
+}
+
+// SetVersion sets the agent version.
+func SetVersion(v string) {
+	version = v
 }

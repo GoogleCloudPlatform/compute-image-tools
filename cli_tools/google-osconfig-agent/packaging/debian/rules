@@ -5,6 +5,7 @@ export SHELL := env PATH=$(PATH) /bin/bash
 
 export DH_OPTIONS
 export DH_GOPKG := github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent
+export CGO_ENABLED := 0
 
 %:
 	dh $@  --buildsystem=golang --with=golang,systemd
@@ -16,6 +17,9 @@ override_dh_auto_install:
 
 override_dh_golang:
 	# We don't use any packaged dependencies, so skip dh_golang step.
+
+override_dh_auto_build:
+	dh_auto_build -O--buildsystem=golang -- -ldflags "-s -w -X main.version=$(VERSION)"
 
 override_dh_installinit:
 	dh_installinit --noscripts
