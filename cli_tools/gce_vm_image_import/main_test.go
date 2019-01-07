@@ -103,7 +103,7 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 }
 
 func TestFlagsImageNameNotProvided(t *testing.T) {
-	err := validateFlags()
+	err := validateAndParseFlags()
 	expected := fmt.Errorf("The flag -image_name must be provided")
 	if err != expected && err.Error() != expected.Error() {
 		t.Errorf("%v != %v", err, expected)
@@ -149,7 +149,7 @@ func TestFlagsSourceFileAndSourceImageBothProvided(t *testing.T) {
 
 func buildOsArgsAndAssertErrorOnValidate(cliArgs map[string]interface{}, errorMsg string, t *testing.T) {
 	buildOsArgs(cliArgs)
-	if err := validateFlags(); err == nil {
+	if err := validateAndParseFlags(); err == nil {
 		t.Error(errorMsg)
 	}
 }
@@ -162,7 +162,7 @@ func TestFlagsSourceFile(t *testing.T) {
 	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgs(cliArgs)
 
-	if err := validateFlags(); err != nil {
+	if err := validateAndParseFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 }
@@ -176,7 +176,7 @@ func TestFlagsInvalidSourceFile(t *testing.T) {
 	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgs(cliArgs)
 
-	if err := validateFlags(); err == nil {
+	if err := validateAndParseFlags(); err == nil {
 		t.Errorf("Expected error")
 	}
 }
@@ -189,7 +189,7 @@ func TestFlagsSourceImage(t *testing.T) {
 	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgs(cliArgs)
 
-	if err := validateFlags(); err != nil {
+	if err := validateAndParseFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 }
@@ -202,7 +202,7 @@ func TestFlagsDataDisk(t *testing.T) {
 	defer clearStringFlag(cliArgs, "os", &osID)()
 	buildOsArgs(cliArgs)
 
-	if err := validateFlags(); err != nil {
+	if err := validateAndParseFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 }
@@ -216,7 +216,7 @@ func TestFlagsInvalidOS(t *testing.T) {
 	cliArgs["os"] = "invalidOs"
 	buildOsArgs(cliArgs)
 
-	if err := validateFlags(); err == nil {
+	if err := validateAndParseFlags(); err == nil {
 		t.Errorf("Expected error")
 	}
 }
@@ -225,7 +225,7 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 	defer setBoolP(&noExternalIP, false)()
 	buildID = "abc"
 
-	extraLabels := map[string]string{"labelKey": "labelValue"}
+	existingLabels := map[string]string{"labelKey": "labelValue"}
 	w := daisy.New()
 	w.Steps = map[string]*daisy.Step{
 		"ci": {
@@ -246,7 +246,7 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 	}
 
 	updateWorkflow(w)
-	validateLabels(&(*w.Steps["ci"].CreateInstances)[0].Instance.Labels, "gce-image-import-tmp", t, &extraLabels)
+	validateLabels(&(*w.Steps["ci"].CreateInstances)[0].Instance.Labels, "gce-image-import-tmp", t, &existingLabels)
 	validateLabels(&(*w.Steps["ci"].CreateInstances)[1].Instance.Labels, "gce-image-import-tmp", t)
 }
 
@@ -470,6 +470,79 @@ func TestPopulateZoneIfMissingOnGCEEnmptyZoneReturned(t *testing.T) {
 	assertError(populateZoneIfMissing(dummyMetadataGCE{}), t)
 }
 
+func TestParseUserLabelsReturnsEmptyMap(t *testing.T) {
+	labels := ""
+	labelsMap, err := parseUserLabels(&labels)
+	assertNil(err, t)
+	assertNotNil(labelsMap, t)
+	if len(*labelsMap) > 0 {
+		t.Errorf("Labels map %v should be empty, but it's size is %v.", labelsMap, len(*labelsMap))
+	}
+}
+
+func TestParseUserLabels(t *testing.T) {
+	doTestParseUserLabels("userkey1=uservalue1,userkey2=uservalue2", t)
+}
+
+func TestParseUserLabelsWithWhiteChars(t *testing.T) {
+	doTestParseUserLabels("	 userkey1 = uservalue1	,	 userkey2	 =	 uservalue2	 ", t)
+}
+
+func doTestParseUserLabels(labels string, t *testing.T) {
+	labelsMap, err := parseUserLabels(&labels)
+	assertNil(err, t)
+	assertNotNil(labelsMap, t)
+	if len(*labelsMap) != 2 {
+		t.Errorf("Labels map %v should be have size 2, but it's %v.", labelsMap, len(*labelsMap))
+	}
+	assertEqual("uservalue1", (*labelsMap)["userkey1"], t)
+	assertEqual("uservalue2", (*labelsMap)["userkey2"], t)
+}
+
+func TestParseUserLabelsNoEqualsSignSingleLabel(t *testing.T) {
+	doTestParseUserLabelsNoEqualsSign("userkey1", t)
+}
+
+func TestParseUserLabelsNoEqualsSignLast(t *testing.T) {
+	doTestParseUserLabelsNoEqualsSign("userkey2=uservalue2,userkey1", t)
+}
+
+func TestParseUserLabelsNoEqualsSignFirst(t *testing.T) {
+	doTestParseUserLabelsNoEqualsSign("userkey1,userkey2=uservalue2", t)
+}
+
+func TestParseUserLabelsNoEqualsSignMiddle(t *testing.T) {
+	doTestParseUserLabelsNoEqualsSign("userkey3=uservalue3,userkey1,userkey2=uservalue2", t)
+}
+
+func TestParseUserLabelsNoEqualsSignMultiple(t *testing.T) {
+	doTestParseUserLabelsNoEqualsSign("userkey1,userkey2", t)
+}
+
+func TestParseUserLabelsWhiteSpacesOnlyInKey(t *testing.T) {
+	doTestParseUserLabelsError(" 	=uservalue1", "Labels map %v should be nil for %v", t)
+}
+
+func TestParseUserLabelsWhiteSpacesOnlyInValue(t *testing.T) {
+	doTestParseUserLabelsError("userkey= 	", "Labels map %v should be nil for %v", t)
+}
+
+func TestParseUserLabelsWhiteSpacesOnlyInKeyAndValue(t *testing.T) {
+	doTestParseUserLabelsError(" 	= 	", "Labels map %v should be nil for %v", t)
+}
+
+func doTestParseUserLabelsNoEqualsSign(labels string, t *testing.T) {
+	doTestParseUserLabelsError(labels, "Labels map %v should be nil for v%", t)
+}
+
+func doTestParseUserLabelsError(labels string, errorMsg string, t *testing.T) {
+	labelsMap, err := parseUserLabels(&labels)
+	if labelsMap != nil {
+		t.Errorf(errorMsg, labelsMap, labels)
+	}
+	assertNotNil(err, t)
+}
+
 type dummyMetadataGCE struct{}
 
 func (m dummyMetadataGCE) OnGCE() bool {
@@ -483,6 +556,12 @@ func (m dummyMetadataGCE) Zone() (string, error) {
 func assertEqual(i1 interface{}, i2 interface{}, t *testing.T) {
 	if i1 != i2 {
 		t.Errorf("%v != %v", i1, i2)
+	}
+}
+
+func assertNotNil(i1 interface{}, t *testing.T) {
+	if i1 == nil {
+		t.Errorf("%v is nil", i1)
 	}
 }
 
@@ -531,17 +610,14 @@ func validateLabels(labels *map[string]string, typeLabel string, t *testing.T, e
 	if extraLabels != nil {
 		extraLabelCount = len(*extraLabels)
 	}
-	if len(*labels) != extraLabelCount+2 {
-		t.Errorf("Labels %v should have only 2 elements", labels)
+	expectedLabelCount := extraLabelCount + 4
+	if len(*labels) != expectedLabelCount {
+		t.Errorf("Labels %v should have only %v elements", labels, expectedLabelCount)
 	}
-	got := (*labels)["gce-image-import-build-id"]
-	if buildID != got {
-		t.Errorf("%v != %v", buildID, got)
-	}
-	got = (*labels)[typeLabel]
-	if "true" != got {
-		t.Errorf("%v not true, %v instead", typeLabel, got)
-	}
+	assertEqual(buildID, (*labels)["gce-image-import-build-id"], t)
+	assertEqual("true", (*labels)[typeLabel], t)
+	assertEqual("uservalue1", (*labels)["userkey1"], t)
+	assertEqual("uservalue2", (*labels)["userkey2"], t)
 
 	if extraLabels != nil {
 		for extraKey, extraValue := range *extraLabels {
@@ -606,6 +682,7 @@ func getAllCliArgs() map[string]interface{} {
 		"kms_keyring":               "aKmsKeyRing",
 		"kms_location":              "aKmsLocation",
 		"kms_project":               "aKmsProject",
+		"labels":                    "userkey1=uservalue1,userkey2=uservalue2",
 	}
 }
 

@@ -64,6 +64,9 @@ Exactly one of these must be specified:
 + `-kms-location=KMS_LOCATION` The Cloud location for the key.
 + `-kms-project=KMS_PROJECT` The Cloud project for the key
 + `-no_external_ip` Set if VPC does not allow external IPs
++ `-labels=[KEY=VALUE,...]` labels: List of label KEY=VALUE pairs to add. Keys must start with a
+  lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and 
+  numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.
   
 ### Usage
 
@@ -75,5 +78,5 @@ gce_vm_image_import -image_name IMAGE_NAME -client_id CLIENT_ID (-data-disk | -o
         [-project=PROJECT] [-scratch_bucket_gcs_path=PATH] [-oauth=OAUTH_PATH]
         [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging] [-disable_cloud_logging]
         [-disable_stdout_logging] [-kms-key=KMS_KEY -kms-keyring=KMS_KEYRING
-        -kms-location=KMS_LOCATION -kms-project=KMS_PROJECT]
+        -kms-location=KMS_LOCATION -kms-project=KMS_PROJECT] [-labels=KEY=VALUE,...]
 ```

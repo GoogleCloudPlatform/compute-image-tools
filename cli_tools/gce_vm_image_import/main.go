@@ -66,6 +66,7 @@ var (
 	kmsLocation          = flag.String("kms_location", "", "The Cloud location for the key.")
 	kmsProject           = flag.String("kms_project", "", "The Cloud project for the key")
 	noExternalIP         = flag.Bool("no_external_ip", false, "VPC doesn't allow external IPs")
+	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 
 	region    *string
 	buildID   = os.Getenv("BUILD_ID")
@@ -85,9 +86,10 @@ var (
 		"windows-2012r2": "windows/translate_windows_2012_r2.wf.json",
 		"windows-2016":   "windows/translate_windows_2016.wf.json",
 	}
+	userLabels *map[string]string
 )
 
-func validateFlags() error {
+func validateAndParseFlags() error {
 	flag.Parse()
 
 	if err := validateStringFlag(*imageName, imageNameFlagKey); err != nil {
@@ -125,7 +127,47 @@ func validateFlags() error {
 			return err
 		}
 	}
+
+	if *labels != "" {
+		var err error
+		userLabels, err = parseUserLabels(labels)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func parseUserLabels(labelsFlag *string) (*map[string]string, error) {
+	labelsMap := make(map[string]string)
+	splits := strings.Split(*labelsFlag, ",")
+	for _, split := range splits {
+		if len(split) == 0 {
+			continue
+		}
+		key, value, err := parseUserLabel(split)
+		if err != nil {
+			return nil, err
+		}
+		labelsMap[key] = value
+	}
+	return &labelsMap, nil
+}
+
+func parseUserLabel(labelSplit string) (string, string, error) {
+	splits := strings.Split(labelSplit, "=")
+	if len(splits) != 2 {
+		return "", "", fmt.Errorf("Label specification should be in the following format: LABEL_KEY=LABEL_VALUE, but it's %v", labelSplit)
+	}
+	key := strings.TrimSpace(splits[0])
+	value := strings.TrimSpace(splits[1])
+	if len(key) == 0 {
+		return "", "", fmt.Errorf("Label key is empty string: %v", labelSplit)
+	}
+	if len(value) == 0 {
+		return "", "", fmt.Errorf("Label value is empty string: %v", labelSplit)
+	}
+	return key, value, nil
 }
 
 func validateStringFlag(flagValue string, flagKey string) error {
@@ -245,7 +287,7 @@ func updateWorkflow(workflow *daisy.Workflow) {
 		}
 		if step.CreateInstances != nil {
 			for _, instance := range *step.CreateInstances {
-				instance.Instance.Labels = addImageImportLabels(instance.Instance.Labels, "")
+				instance.Instance.Labels = updateResourceLabels(instance.Instance.Labels, "")
 				if *noExternalIP {
 					configureInstanceNetworkInterfaceForNoExternalIP(instance)
 				}
@@ -253,12 +295,12 @@ func updateWorkflow(workflow *daisy.Workflow) {
 		}
 		if step.CreateDisks != nil {
 			for _, disk := range *step.CreateDisks {
-				disk.Disk.Labels = addImageImportLabels(disk.Disk.Labels, "")
+				disk.Disk.Labels = updateResourceLabels(disk.Disk.Labels, "")
 			}
 		}
 		if step.CreateImages != nil {
 			for _, image := range *step.CreateImages {
-				image.Image.Labels = addImageImportLabels(image.Image.Labels, getImageTypeLabelKey(image))
+				image.Image.Labels = updateResourceLabels(image.Image.Labels, getImageTypeLabelKey(image))
 			}
 		}
 	}
@@ -281,9 +323,14 @@ func configureInstanceNetworkInterfaceForNoExternalIP(instance *daisy.Instance) 
 	}
 }
 
-//Extend labels with image import related labels
-func addImageImportLabels(labels map[string]string, imageTypeLabel string) map[string]string {
+func updateResourceLabels(labels map[string]string, imageTypeLabel string) map[string]string {
+	labels = extendWithImageImportLabels(labels, imageTypeLabel)
+	labels = extendWithUserLabels(labels)
+	return labels
+}
 
+//Extend labels with image import related labels
+func extendWithImageImportLabels(labels map[string]string, imageTypeLabel string) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string)
 	}
@@ -293,6 +340,21 @@ func addImageImportLabels(labels map[string]string, imageTypeLabel string) map[s
 	labels[imageTypeLabel] = "true"
 	labels["gce-image-import-build-id"] = buildID
 
+	return labels
+}
+
+func extendWithUserLabels(labels map[string]string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	if userLabels == nil || len(*userLabels) == 0 {
+		return labels
+	}
+
+	for key, value := range *userLabels {
+		labels[key] = value
+	}
 	return labels
 }
 
@@ -324,7 +386,7 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 }
 
 func main() {
-	fatalIfError(validateFlags)
+	fatalIfError(validateAndParseFlags)
 	populateMissingParameters()
 
 	ctx := context.Background()
