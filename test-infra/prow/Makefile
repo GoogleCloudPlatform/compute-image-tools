@@ -53,24 +53,12 @@ deck-deployment: get-cluster-credentials
 deck-service: get-cluster-credentials
 	kubectl apply -f cluster/deck_service.yaml
 
-splice-deployment: get-cluster-credentials
-	kubectl apply -f cluster/splice_deployment.yaml
-
-tot-deployment: get-cluster-credentials
-	kubectl apply -f cluster/tot_deployment.yaml
-
-tot-service: get-cluster-credentials
-	kubectl apply -f cluster/tot_service.yaml
-
 horologium-deployment: get-cluster-credentials
 	kubectl apply -f cluster/horologium_deployment.yaml
 
 plank-deployment: get-cluster-credentials
 	kubectl apply -f cluster/plank_deployment.yaml
 
-tide-deployment: get-cluster-credentials
-	kubectl apply -f cluster/tide_deployment.yaml
+.PHONY: hook-deployment hook-service sinker-deployment deck-deployment deck-service horologium-deployment plank-deployment
 
-.PHONY: hook-deployment hook-service sinker-deployment deck-deployment deck-service splice-deployment tot-service tot-deployment horologium-deployment plank-deployment tide-deployment
-
-update-all: update-config update-plugins hook-deployment hook-service sinker-deployment deck-deployment deck-service splice-deployment horologium-deployment plank-deployment tide-deployment tot-deployment tot-service
+update-all: update-config update-plugins hook-deployment hook-service sinker-deployment deck-deployment deck-service horologium-deployment plank-deployment
