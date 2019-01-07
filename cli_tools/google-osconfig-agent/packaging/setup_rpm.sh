@@ -13,23 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-
-NAME="google-osconfig-agent"
-VERSION="0.4.1"
+# This downloads a go version we don't use for rpmbuild.
+source packaging/common.sh 
 
 rpm_working_dir=/tmp/rpmpackage/
-working_dir=${PWD}
-if [[ $(basename "$working_dir") != $NAME ]]; then
-  echo "Packaging scripts must be run from top of package dir."
-  exit 1
-fi
 
 # RPM creation tools.
 sudo yum -y install rpmdevtools go-srpm-macros
-
-# Go build dependencies.
-sudo su -c 'GOPATH=/usr/share/gocode go get -d ./...'
 
 rm -rf /tmp/rpmpackage
 mkdir -p ${rpm_working_dir}/{SOURCES,SPECS}

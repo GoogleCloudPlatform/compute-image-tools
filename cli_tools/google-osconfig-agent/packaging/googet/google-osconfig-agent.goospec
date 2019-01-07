@@ -1,6 +1,6 @@
 {
   "name": "google-osconfig-agent",
-  "version": "0.4.1@1",
+  "version": "0.4.2@1",
   "arch": "x86_64",
   "authors": "Google Inc.",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
@@ -20,14 +20,8 @@
   "sources": [{
       "include": [
         "google_osconfig_agent.exe",
-        "install.ps1",
-        "uninstall.ps1"
+        "packaging/googet/install.ps1",
+        "packaging/googet/uninstall.ps1"
       ]
-  }],
-  "build": {
-    "linux": "/bin/bash",
-    "linuxArgs": ["-c", "GOOS=windows go build -ldflags='-s -w' -o \
-    google_osconfig_agent.exe \
-    github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent"]
-  }
+  }]
 }
