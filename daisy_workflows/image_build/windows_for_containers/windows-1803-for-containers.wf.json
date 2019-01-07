@@ -3,7 +3,7 @@
   "Vars": {
     "build_date": "${TIMESTAMP}",
     "publish_project": "${PROJECT}",
-    "install_disk": {"Value": "disk-install", "Description": "Name of the GCE disk to use for the SQL install"},
+    "install_disk": {"Value": "disk-install", "Description": "Name of the GCE disk to use for the installation"},
     "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."}
   },
   "Sources": {

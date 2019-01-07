@@ -1,5 +1,5 @@
 {
-  "Name": "windows-1709-for-containers-image-build",
+  "Name": "windows-2019-for-containers-image-build",
   "Vars": {
     "build_date": "${TIMESTAMP}",
     "publish_project": "${PROJECT}",
@@ -19,7 +19,7 @@
         },
         {
           "Name": "${install_disk}",
-          "SourceImage": "projects/${source_image_project}/global/images/family/windows-1709-core",
+          "SourceImage": "projects/${source_image_project}/global/images/family/windows-2019",
           "Type": "pd-ssd"
         }
       ]
@@ -31,7 +31,7 @@
           "Disks": [{"Source": "${install_disk}"}, {"Source": "disk-scratch"}],
           "MachineType": "n1-highcpu-4",
           "Metadata": {
-            "version": "1709"
+            "version": "2019"
           },
           "StartupScript": "container_image_install.ps1"
         }
@@ -57,12 +57,12 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "windows-server-1709-dc-core-for-containers-v${build_date}",
+          "Name": "windows-server-2019-dc-for-containers-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": ["projects/windows-cloud/global/licenses/windows-for-containers"],
-          "Description": "Microsoft, Windows Server, version 1709 Core for Containers, Server Core, x64 built on ${build_date}",
+          "Description": "Microsoft, Windows Server, 2019 Datacenter for Containers, x64 built on ${build_date}",
           "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"],
-          "Family": "windows-1709-core-for-containers",
+          "Family": "windows-2019-for-containers",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true
