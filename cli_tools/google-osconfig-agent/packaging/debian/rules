@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-export PATH := /tmp/go11/bin:$(PATH)
+export PATH := /tmp/go/bin:$(PATH)
 export SHELL := env PATH=$(PATH) /bin/bash
 
 export DH_OPTIONS

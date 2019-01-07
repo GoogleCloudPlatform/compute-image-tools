@@ -31,6 +31,8 @@ import (
 	"google.golang.org/api/option"
 )
 
+var version string
+
 type logWritter struct{}
 
 func (l *logWritter) Write(b []byte) (int, error) {

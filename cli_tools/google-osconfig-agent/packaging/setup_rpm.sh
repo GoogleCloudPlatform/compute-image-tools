@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 NAME="google-osconfig-agent"
-VERSION="0.4.11"
+VERSION="0.4.1"
 
 rpm_working_dir=/tmp/rpmpackage/
 working_dir=${PWD}
