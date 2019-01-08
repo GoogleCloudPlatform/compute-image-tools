@@ -26,6 +26,6 @@
       ]
   }],
   "build": {
-    "linux": "./agent_build.sh"
+    "linux": "./build.sh"
   }
 }

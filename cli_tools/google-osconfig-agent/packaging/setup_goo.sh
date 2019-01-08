@@ -17,4 +17,4 @@ source packaging/common.sh
 
 echo "Building package"
 $GO get github.com/google/googet/goopack
-~/go/bin/goopack packaging/googet/google-osconfig-agent.goospec
+$GO run github.com/google/googet/goopack packaging/googet/google-osconfig-agent.goospec
