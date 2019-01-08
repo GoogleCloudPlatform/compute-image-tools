@@ -23,7 +23,7 @@ sudo apt-get update
 DEBIAN_FRONTEND=noninteractive sudo apt-get -y install debhelper devscripts build-essential curl tar
 
 # Build dependencies.
-DEBIAN_FRONTEND=noninteractive sudo apt-get -y install dh-golang dh-systemd
+DEBIAN_FRONTEND=noninteractive sudo apt-get -y install dh-golang dh-systemd golang-go
 
 dpkg-checkbuilddeps packaging/debian/control
 
