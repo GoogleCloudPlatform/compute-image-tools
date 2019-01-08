@@ -3,7 +3,7 @@ Maintainer: Google Cloud Team <gc-team@google.com>
 Section: misc
 Priority: optional
 Standards-Version: 3.9.8
-Build-Depends: debhelper (>= 9), dh-golang (>= 1.1), dh-systemd
+Build-Depends: debhelper (>= 9.20160709), dh-golang (>= 1.1), golang-go
 
 Package: google-osconfig-agent
 Architecture: any

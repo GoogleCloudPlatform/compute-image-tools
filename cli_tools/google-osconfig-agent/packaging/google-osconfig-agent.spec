@@ -33,7 +33,7 @@ Contains the OSConfig agent binary and startup scripts
 %autosetup
 
 %build
-GOPATH=%{gopath} go build -ldflags="-linkmode=external" -o google_osconfig_agent
+GOPATH=%{gopath} CGO_ENABLED=0 %{_go} build -ldflags="-s -w -X main.version=%{_version}" -o google_osconfig_agent
 
 %install
 install -d %{buildroot}%{_bindir}
