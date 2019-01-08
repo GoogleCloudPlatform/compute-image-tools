@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This downloads a go version we don't use for rpmbuild.
 source packaging/common.sh 
 
 rpm_working_dir=/tmp/rpmpackage/
