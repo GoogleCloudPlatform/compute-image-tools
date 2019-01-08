@@ -17,5 +17,4 @@ source packaging/common.sh
 
 echo "Building package"
 $GO get github.com/google/googet/goopack
-GOOS=windows $GO build -ldflags="-s -w -X main.version=${VERSION}" -o google_osconfig_agent.exe 
 ~/go/bin/goopack packaging/googet/google-osconfig-agent.goospec

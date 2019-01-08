@@ -39,6 +39,6 @@ cd ${NAME}-${VERSION}
 cp -r ${working_dir}/packaging/debian ./
 cp -r ${working_dir}/*.service ./debian/
 
-debuild -us -uc -e "VERSION=${VERSION}"
+debuild -e "VERSION=${VERSION}" -us -uc
 
 popd

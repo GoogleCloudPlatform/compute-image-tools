@@ -30,4 +30,4 @@ tar czvf ${rpm_working_dir}/SOURCES/${NAME}_${VERSION}.orig.tar.gz \
   --exclude .git --exclude packaging --transform "s/^\./${NAME}-${VERSION}/" .
 
 rpmbuild --define "_topdir ${rpm_working_dir}/" --define "_version ${VERSION}" \
-  -ba ${rpm_working_dir}/SPECS/${NAME}.spec
+  --define "_go ${GO}" -ba ${rpm_working_dir}/SPECS/${NAME}.spec

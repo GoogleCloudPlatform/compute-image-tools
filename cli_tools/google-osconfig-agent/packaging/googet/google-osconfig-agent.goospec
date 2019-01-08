@@ -24,5 +24,8 @@
         "packaging/googet/install.ps1",
         "packaging/googet/uninstall.ps1"
       ]
-  }]
+  }],
+  "build": {
+    "linux": "./agent_build.sh"
+  }
 }
