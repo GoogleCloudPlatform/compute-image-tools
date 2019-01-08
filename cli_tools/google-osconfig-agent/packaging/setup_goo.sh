@@ -15,6 +15,8 @@
 
 source packaging/common.sh 
 
+sudo cp * ${GOPATH}/src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/
+
 echo "Building package"
-$GO get github.com/google/googet/goopack
+sudo su -c "GOPATH=${GOPATH} ${GO} get -d github.com/google/googet/goopack"
 $GO run github.com/google/googet/goopack packaging/googet/google-osconfig-agent.goospec
