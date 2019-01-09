@@ -39,7 +39,6 @@ spec:
           - name: http
             containerPort: 8080
         args:
-        - --tide-url=http://tide/
         - --hook-url=http://hook:8888/plugin-help
         volumeMounts:
         - name: config

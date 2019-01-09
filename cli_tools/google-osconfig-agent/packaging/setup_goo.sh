@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2018 Google Inc. All Rights Reserved.
+# Copyright 2019 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,18 +15,8 @@
 
 source packaging/common.sh 
 
-rpm_working_dir=/tmp/rpmpackage/
+sudo cp * ${GOPATH}/src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/
 
-# RPM creation tools.
-sudo yum -y install rpmdevtools go-srpm-macros
-
-rm -rf /tmp/rpmpackage
-mkdir -p ${rpm_working_dir}/{SOURCES,SPECS}
-
-cp packaging/${NAME}.spec ${rpm_working_dir}/SPECS/
-
-tar czvf ${rpm_working_dir}/SOURCES/${NAME}_${VERSION}.orig.tar.gz \
-  --exclude .git --exclude packaging --transform "s/^\./${NAME}-${VERSION}/" .
-
-rpmbuild --define "_topdir ${rpm_working_dir}/" --define "_version ${VERSION}" \
-  --define "_go ${GO}" -ba ${rpm_working_dir}/SPECS/${NAME}.spec
+echo "Building package"
+sudo su -c "GOPATH=${GOPATH} ${GO} get -d github.com/google/googet/goopack"
+$GO run github.com/google/googet/goopack packaging/googet/google-osconfig-agent.goospec
