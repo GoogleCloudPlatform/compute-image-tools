@@ -16,19 +16,20 @@
 package main
 
 import (
-	"cloud.google.com/go/compute/metadata"
 	"context"
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/compute/v1"
 	"log"
 	"os"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"cloud.google.com/go/compute/metadata"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"google.golang.org/api/compute/v1"
 )
 
 const (

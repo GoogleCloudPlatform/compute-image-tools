@@ -15,9 +15,10 @@
 package daisycommon
 
 import (
-	"cloud.google.com/go/compute/metadata"
 	"context"
 	"fmt"
+
+	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
