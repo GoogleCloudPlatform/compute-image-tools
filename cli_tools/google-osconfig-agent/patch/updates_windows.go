@@ -119,7 +119,7 @@ func filterUpdate(classFilter, excludes map[string]struct{}, updt, updateColl *o
 	return nil
 }
 
-func installWUAUpdates(pp *patchPolicy) error {
+func installWUAUpdates(pp *osconfigpb.PatchPolicy) error {
 	if err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED); err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ var classifications = map[osconfigpb.WindowsUpdateSettings_Classification]string
 	osconfigpb.WindowsUpdateSettings_UPDATE:        "cd5ffd1e-e932-4e3a-bf74-18bf0b1bbd83",
 }
 
-func runUpdates(pp patchPolicy) (bool, error) {
+func runUpdates(pp *patchPolicy) (bool, error) {
 	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
 		reboot, err := rebootRequired()
 		if err != nil {
@@ -229,7 +229,7 @@ func runUpdates(pp patchPolicy) (bool, error) {
 		}
 	}
 
-	if err := installWUAUpdates(&pp); err != nil {
+	if err := installWUAUpdates(pp); err != nil {
 		return false, err
 	}
 

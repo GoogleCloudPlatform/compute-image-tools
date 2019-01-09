@@ -27,7 +27,7 @@ import (
 
 const state = "osconfig_patch.state"
 
-func loadState(state string) (*patchWindow, error) {
+func loadState(state string) (*patchRun, error) {
 	d, err := ioutil.ReadFile(state)
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -36,17 +36,14 @@ func loadState(state string) (*patchWindow, error) {
 		return nil, err
 	}
 
-	var pw patchWindow
+	var pw patchRun
 	return &pw, json.Unmarshal(d, &pw)
 }
 
-func saveState(state string, w *patchWindow) error {
+func saveState(state string, w *patchRun) error {
 	if w == nil {
 		return ioutil.WriteFile(state, []byte("{}"), 0600)
 	}
-
-	w.mx.RLock()
-	defer w.mx.RUnlock()
 
 	d, err := json.Marshal(w)
 	if err != nil {

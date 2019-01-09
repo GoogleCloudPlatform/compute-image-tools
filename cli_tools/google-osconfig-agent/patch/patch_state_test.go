@@ -19,12 +19,31 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/genproto/googleapis/type/timeofday"
+)
+
+var (
+	testPatchWindowJSON = "{\"Policy\":{\"PatchPolicy\":{\"name\":\"flipyflappy\",\"patchWindow\":{\"startTime\":{\"hours\":1,\"minutes\":2,\"seconds\":3},\"duration\":\"3600s\",\"daily\":{}}}},\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false}"
+	testPatchWindow     = &patchWindow{
+		Policy: &patchPolicy{
+			&osconfigpb.PatchPolicy{
+				Name: "flipyflappy",
+				PatchWindow: &osconfigpb.PatchWindow{
+					StartTime: &timeofday.TimeOfDay{
+						Hours:   1,
+						Minutes: 2,
+						Seconds: 3,
+					},
+					Duration:  &duration.Duration{Seconds: 3600},
+					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+				},
+			},
+		},
+	}
 )
 
 func TestLoadState(t *testing.T) {
@@ -60,27 +79,9 @@ func TestLoadState(t *testing.T) {
 		},
 		{
 			"test patchWindow",
-			[]byte(`{"Name":"foo","Policy":{"LookupConfigsResponse_EffectivePatchPolicy":{"fullName":"flipyflappy","patchWindow":{"startTime":{"hours":1,"minutes":2,"seconds":3},"duration":"60m","daily":{}}}},"ScheduledStart":"2018-09-11T01:00:00Z","ScheduledEnd":"2018-09-11T02:00:00Z"}`),
+			[]byte(testPatchWindowJSON),
 			false,
-			&patchWindow{
-				Name: "foo",
-				Policy: &patchPolicy{
-					LookupConfigsResponse_EffectivePatchPolicy: &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-						FullName: "flipyflappy",
-						PatchWindow: &osconfigpb.PatchWindow{
-							StartTime: &timeofday.TimeOfDay{
-								Hours:   1,
-								Minutes: 2,
-								Seconds: 3,
-							},
-							Duration:  &duration.Duration{Seconds: 3600},
-							Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-						},
-					},
-				},
-				ScheduledStart: time.Date(2018, 9, 11, 1, 0, 0, 0, time.UTC),
-				ScheduledEnd:   time.Date(2018, 9, 11, 2, 0, 0, 0, time.UTC),
-			},
+			testPatchWindow,
 		},
 	}
 	for _, tt := range tests {
@@ -124,26 +125,8 @@ func TestSaveState(t *testing.T) {
 		},
 		{
 			"test patchWindow",
-			&patchWindow{
-				Name: "foo",
-				Policy: &patchPolicy{
-					LookupConfigsResponse_EffectivePatchPolicy: &osconfigpb.LookupConfigsResponse_EffectivePatchPolicy{
-						FullName: "flipyflappy",
-						PatchWindow: &osconfigpb.PatchWindow{
-							StartTime: &timeofday.TimeOfDay{
-								Hours:   1,
-								Minutes: 2,
-								Seconds: 3,
-							},
-							Duration:  &duration.Duration{Seconds: 3600},
-							Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
-						},
-					},
-				},
-				ScheduledStart: time.Date(2018, 9, 11, 1, 0, 0, 0, time.UTC),
-				ScheduledEnd:   time.Date(2018, 9, 11, 2, 0, 0, 0, time.UTC),
-			},
-			"{\"Name\":\"foo\",\"Policy\":{\"LookupConfigsResponse_EffectivePatchPolicy\":{\"fullName\":\"flipyflappy\",\"patchWindow\":{\"startTime\":{\"hours\":1,\"minutes\":2,\"seconds\":3},\"duration\":\"3600s\",\"daily\":{}}}},\"ScheduledStart\":\"2018-09-11T01:00:00Z\",\"ScheduledEnd\":\"2018-09-11T02:00:00Z\",\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false}",
+			testPatchWindow,
+			testPatchWindowJSON,
 		},
 	}
 	for _, tt := range tests {
@@ -160,7 +143,7 @@ func TestSaveState(t *testing.T) {
 		}
 
 		if string(got) != tt.want {
-			t.Errorf("%s: %q != %q", tt.desc, got, tt.want)
+			t.Errorf("%s: got:\n%q\nwant:\n %q", tt.desc, got, tt.want)
 		}
 	}
 }

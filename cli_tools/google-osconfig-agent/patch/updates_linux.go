@@ -26,7 +26,7 @@ func rebootRequired() (bool, error) {
 	return false, nil
 }
 
-func runUpdates(pp patchPolicy) (bool, error) {
+func runUpdates(pp *patchPolicy) (bool, error) {
 	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
 		reboot, err := rebootRequired()
 		if err != nil {
