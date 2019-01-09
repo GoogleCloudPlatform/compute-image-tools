@@ -119,7 +119,7 @@ func filterUpdate(classFilter, excludes map[string]struct{}, updt, updateColl *o
 	return nil
 }
 
-func installWUAUpdates(pp *osconfigpb.PatchPolicy) error {
+func installWUAUpdates(pc *osconfigpb.PatchConfig) error {
 	if err := ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED); err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func installWUAUpdates(pp *osconfigpb.PatchPolicy) error {
 	defer updateColl.Release()
 
 	class := make(map[string]struct{})
-	for _, c := range pp.WindowsUpdate.Classifications {
+	for _, c := range pc.WindowsUpdate.Classifications {
 		sc, ok := classifications[c]
 		if !ok {
 			return fmt.Errorf("Unknown classification: %s", c)
@@ -179,7 +179,7 @@ func installWUAUpdates(pp *osconfigpb.PatchPolicy) error {
 	}
 
 	excludes := make(map[string]struct{})
-	for _, e := range pp.WindowsUpdate.Excludes {
+	for _, e := range pc.WindowsUpdate.Excludes {
 		excludes[e] = struct{}{}
 	}
 
@@ -218,8 +218,8 @@ var classifications = map[osconfigpb.WindowsUpdateSettings_Classification]string
 	osconfigpb.WindowsUpdateSettings_UPDATE:        "cd5ffd1e-e932-4e3a-bf74-18bf0b1bbd83",
 }
 
-func runUpdates(pp *patchPolicy) (bool, error) {
-	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
+func runUpdates(pc *osconfigpb.PatchConfig) (bool, error) {
+	if pc.RebootConfig != osconfigpb.PatchConfig_NEVER {
 		reboot, err := rebootRequired()
 		if err != nil {
 			return false, err
@@ -229,7 +229,7 @@ func runUpdates(pp *patchPolicy) (bool, error) {
 		}
 	}
 
-	if err := installWUAUpdates(pp); err != nil {
+	if err := installWUAUpdates(pc); err != nil {
 		return false, err
 	}
 
@@ -239,7 +239,7 @@ func runUpdates(pp *patchPolicy) (bool, error) {
 		}
 	}
 
-	if pp.RebootConfig != osconfigpb.PatchPolicy_NEVER {
+	if pc.RebootConfig != osconfigpb.PatchConfig_NEVER {
 		return rebootRequired()
 	}
 	return false, nil

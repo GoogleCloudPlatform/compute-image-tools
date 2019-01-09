@@ -21,25 +21,17 @@ import (
 	"testing"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/kylelemons/godebug/pretty"
-	"google.golang.org/genproto/googleapis/type/timeofday"
 )
 
 var (
-	testPatchWindowJSON = "{\"Policy\":{\"PatchPolicy\":{\"name\":\"flipyflappy\",\"patchWindow\":{\"startTime\":{\"hours\":1,\"minutes\":2,\"seconds\":3},\"duration\":\"3600s\",\"daily\":{}}}},\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false}"
-	testPatchWindow     = &patchWindow{
-		Policy: &patchPolicy{
-			&osconfigpb.PatchPolicy{
-				Name: "flipyflappy",
-				PatchWindow: &osconfigpb.PatchWindow{
-					StartTime: &timeofday.TimeOfDay{
-						Hours:   1,
-						Minutes: 2,
-						Seconds: 3,
-					},
-					Duration:  &duration.Duration{Seconds: 3600},
-					Frequency: &osconfigpb.PatchWindow_Daily_{Daily: &osconfigpb.PatchWindow_Daily{}},
+	testPatchRunJSON = "{\"Job\":{\"ReportPatchJobInstanceDetailsResponse\":{\"patchJobName\":\"flipyflappy\",\"patchConfig\":{\"rebootConfig\":\"ALWAYS\"}}},\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false}"
+	testPatchRun     = &patchRun{
+		Job: &patchJob{
+			&osconfigpb.ReportPatchJobInstanceDetailsResponse{
+				PatchJobName: "flipyflappy",
+				PatchConfig: &osconfigpb.PatchConfig{
+					RebootConfig: osconfigpb.PatchConfig_ALWAYS,
 				},
 			},
 		},
@@ -63,25 +55,25 @@ func TestLoadState(t *testing.T) {
 		desc    string
 		state   []byte
 		wantErr bool
-		want    *patchWindow
+		want    *patchRun
 	}{
 		{
 			"blank state",
 			[]byte("{}"),
 			false,
-			&patchWindow{},
+			&patchRun{},
 		},
 		{
 			"bad state",
 			[]byte("foo"),
 			true,
-			&patchWindow{},
+			&patchRun{},
 		},
 		{
-			"test patchWindow",
-			[]byte(testPatchWindowJSON),
+			"test patchRun",
+			[]byte(testPatchRunJSON),
 			false,
-			testPatchWindow,
+			testPatchRun,
 		},
 	}
 	for _, tt := range tests {
@@ -115,7 +107,7 @@ func TestSaveState(t *testing.T) {
 
 	var tests = []struct {
 		desc  string
-		state *patchWindow
+		state *patchRun
 		want  string
 	}{
 		{
@@ -125,8 +117,8 @@ func TestSaveState(t *testing.T) {
 		},
 		{
 			"test patchWindow",
-			testPatchWindow,
-			testPatchWindowJSON,
+			testPatchRun,
+			testPatchRunJSON,
 		},
 	}
 	for _, tt := range tests {

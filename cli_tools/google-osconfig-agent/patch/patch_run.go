@@ -20,34 +20,48 @@ import (
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
 	"github.com/golang/protobuf/jsonpb"
 )
 
+// Init starts the patch system.
+func Init() {
+	// Load current patch state off disk.
+	pr, err := loadState(state)
+	if err != nil {
+		logger.Errorf("loadState error: %v", err)
+	} else if pr != nil && !pr.Complete {
+		tasker.Enqueue("Gather instance inventory", func() { patchRunner(pr) })
+	}
+
+	// go runWatcher()
+}
+
 type patchRun struct {
-	Policy *patchPolicy
+	Job *patchJob
 
 	StartedAt, EndedAt time.Time `json:",omitempty"`
 	Complete           bool
 	Errors             []string `json:",omitempty"`
 }
 
-type patchPolicy struct {
-	*osconfigpb.PatchPolicy
+type patchJob struct {
+	*osconfigpb.ReportPatchJobInstanceDetailsResponse
 }
 
-// MarshalJSON marchals a patchPolicy using jsonpb.
-func (p *patchPolicy) MarshalJSON() ([]byte, error) {
+// MarshalJSON marchals a patchConfig using jsonpb.
+func (j *patchJob) MarshalJSON() ([]byte, error) {
 	m := jsonpb.Marshaler{}
-	s, err := m.MarshalToString(p)
+	s, err := m.MarshalToString(j)
 	if err != nil {
 		return nil, err
 	}
 	return []byte(s), nil
 }
 
-// UnmarshalJSON unmarshals apatchPolicy using jsonpb.
-func (p *patchPolicy) UnmarshalJSON(b []byte) error {
-	return jsonpb.UnmarshalString(string(b), p)
+// UnmarshalJSON unmarshals a patchConfig using jsonpb.
+func (j *patchJob) UnmarshalJSON(b []byte) error {
+	return jsonpb.UnmarshalString(string(b), j)
 }
 
 func (r *patchRun) in() bool {
@@ -55,7 +69,7 @@ func (r *patchRun) in() bool {
 }
 
 func (r *patchRun) run() (reboot bool) {
-	logger.Debugf("run %s", r.Policy.Name)
+	logger.Debugf("run %s", r.Job.PatchJobName)
 
 	r.StartedAt = time.Now()
 
@@ -71,7 +85,7 @@ func (r *patchRun) run() (reboot bool) {
 
 	// Make sure we are still in the patch window.
 	if !r.in() {
-		logger.Debugf("%s not in patch window", r.Policy.Name)
+		logger.Debugf("%s not in patch window", r.Job.PatchJobName)
 		return false
 	}
 
@@ -80,7 +94,7 @@ func (r *patchRun) run() (reboot bool) {
 		r.Errors = append(r.Errors, err.Error())
 	}
 
-	reboot, err := runUpdates(r.Policy)
+	reboot, err := runUpdates(r.Job.PatchConfig)
 	if err != nil {
 		// TODO: implement retries
 		logger.Errorf("runUpdates error: %v", err)
@@ -90,7 +104,7 @@ func (r *patchRun) run() (reboot bool) {
 
 	// Make sure we are still in the patch window
 	if !r.in() {
-		logger.Errorf("%s timedout", r.Policy.Name)
+		logger.Errorf("%s timedout", r.Job.PatchJobName)
 		r.Errors = append(r.Errors, "Patch window timed out")
 		return false
 	}
@@ -102,18 +116,17 @@ func (r *patchRun) run() (reboot bool) {
 	return reboot
 }
 
-func patchRunner(pp *osconfigpb.PatchPolicy) {
-	logger.Debugf("patchrunner running %s", pp.Name)
-	pr := &patchRun{Policy: &patchPolicy{pp}}
+func patchRunner(pr *patchRun) {
+	logger.Debugf("patchrunner running %s", pr.Job.PatchJobName)
 	reboot := pr.run()
-	if pp.RebootConfig == osconfigpb.PatchPolicy_NEVER {
+	if pr.Job.PatchConfig.RebootConfig == osconfigpb.PatchConfig_NEVER {
 		return
 	}
-	if (pp.RebootConfig == osconfigpb.PatchPolicy_ALWAYS) ||
-		(((pp.RebootConfig == osconfigpb.PatchPolicy_DEFAULT) ||
-			(pp.RebootConfig == osconfigpb.PatchPolicy_REBOOT_CONFIG_UNSPECIFIED)) &&
+	if (pr.Job.PatchConfig.RebootConfig == osconfigpb.PatchConfig_ALWAYS) ||
+		(((pr.Job.PatchConfig.RebootConfig == osconfigpb.PatchConfig_DEFAULT) ||
+			(pr.Job.PatchConfig.RebootConfig == osconfigpb.PatchConfig_REBOOT_CONFIG_UNSPECIFIED)) &&
 			reboot) {
-		logger.Debugf("reboot requested %s", pp.Name)
+		logger.Debugf("reboot requested %s", pr.Job.PatchJobName)
 		if err := rebootSystem(); err != nil {
 			logger.Errorf("error running reboot: %s", err)
 		} else {
@@ -121,5 +134,5 @@ func patchRunner(pp *osconfigpb.PatchPolicy) {
 			os.Exit(0)
 		}
 	}
-	logger.Debugf("finished patch window %s", pp.Name)
+	logger.Debugf("finished patch window %s", pr.Job.PatchJobName)
 }
