@@ -45,7 +45,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_export:latest', '--tag=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA', '--file=Dockerfile.gce_export', '.']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_import:latest', '--file=Dockerfile.gce_vm_image_import', '.']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_import:latest', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA', '--file=Dockerfile.gce_vm_image_import', '.']
 
 # Build Windows binaries.
 - name: 'gcr.io/cloud-builders/go'
@@ -60,6 +60,8 @@ steps:
 - name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=windows/import_precheck.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/import_precheck']
   env: ['GOOS=windows']
+
+# Copy Windows binaries to GS
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './windows/*', 'gs://compute-image-tools/latest/windows/']
 
@@ -70,6 +72,8 @@ steps:
 - name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=darwin/gce_image_publish', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_image_publish']
   env: ['GOOS=darwin']
+
+# Copy OSX binaries to GS
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', './darwin/*', 'gs://compute-image-tools/latest/darwin/']
 
