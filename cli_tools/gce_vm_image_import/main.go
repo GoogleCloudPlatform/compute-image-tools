@@ -398,7 +398,6 @@ func main() {
 	workflow, err := daisycommon.ParseWorkflow(ctx, importWorkflowPath, varMap, *project, *zone,
 		*scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled)
-
 	if err != nil {
 		log.Fatalf("Error parsing workflow %q: %v", importWorkflowPath, err)
 	}
