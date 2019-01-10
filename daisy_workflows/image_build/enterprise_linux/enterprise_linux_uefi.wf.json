@@ -37,10 +37,14 @@
     "rhel_sap_apps": {
       "Value": "false",
       "Description": "Create a RHEL for SAP Apps image."
+    },
+    "rhel_uefi": {
+      "Value": "true",
+      "Description": "Create a RHEL UEFI image."
     }
   },
   "Sources": {
-    "build_files/build_installer.py": "./build_installer.py",
+    "build_files/build_installer.py": "./build_installer_uefi.py",
     "build_files/installer.iso": "${installer_iso}",
     "build_files/utils/common.py": "../../linux_common/utils/common.py",
     "build_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
@@ -91,7 +95,8 @@
             "rhel_byol": "${rhel_byol}",
             "rhel_sap": "${rhel_sap}",
             "rhel_sap_hana": "${rhel_sap_hana}",
-            "rhel_sap_apps": "${rhel_sap_apps}"
+            "rhel_sap_apps": "${rhel_sap_apps}",
+            "rhel_uefi": "${rhel_uefi}"
           },
           "StartupScript": "installerprep_startup_script"
         }
@@ -143,7 +148,8 @@
           "Metadata": {
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "prefix": "SaveLogs",
-            "script": "save_logs.py"
+            "script": "save_logs.py",
+            "rhel_uefi": "${rhel_uefi}"
           },
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
           "StartupScript": "installerprep_startup_script"
@@ -171,6 +177,8 @@
     "cleanup-installer-prep": ["wait-installer-prep"],
     "run-installation": ["cleanup-installer-prep"],
     "wait-installation": ["run-installation"],
-    "cleanup-inst-build": ["wait-installation"]
+    "cleanup-inst-build": ["wait-installation"],
+    "save-build-logs": ["cleanup-inst-build"],
+    "wait-for-build-logs": ["save-build-logs"]
   }
 }
