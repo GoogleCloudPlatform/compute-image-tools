@@ -15,26 +15,35 @@
 package patch
 
 import (
+	"context"
 	"os"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
 	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/api/option"
 )
 
 // Init starts the patch system.
-func Init() {
+func Init(ctx context.Context) {
 	// Load current patch state off disk.
 	pr, err := loadState(state)
 	if err != nil {
 		logger.Errorf("loadState error: %v", err)
 	} else if pr != nil && !pr.Complete {
-		tasker.Enqueue("Gather instance inventory", func() { patchRunner(pr) })
+		client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+		if err != nil {
+			logger.Errorf("osconfig.NewClient Error: %v", err)
+		} else {
+			tasker.Enqueue("Run patch", func() { patchRunner(ctx, client, pr) })
+		}
 	}
 
-	// go runWatcher()
+	go watcher(ctx)
 }
 
 type patchRun struct {
@@ -83,9 +92,8 @@ func (r *patchRun) run() (reboot bool) {
 		}
 	}()
 
-	// Make sure we are still in the patch window.
+	// TODO: Change this to be calls to ReportPatchJobInstanceDetails.
 	if !r.in() {
-		logger.Debugf("%s not in patch window", r.Job.PatchJobName)
 		return false
 	}
 
@@ -102,10 +110,8 @@ func (r *patchRun) run() (reboot bool) {
 		return false
 	}
 
-	// Make sure we are still in the patch window
+	// TODO: Change this to be calls to ReportPatchJobInstanceDetails.
 	if !r.in() {
-		logger.Errorf("%s timedout", r.Job.PatchJobName)
-		r.Errors = append(r.Errors, "Patch window timed out")
 		return false
 	}
 
@@ -116,7 +122,7 @@ func (r *patchRun) run() (reboot bool) {
 	return reboot
 }
 
-func patchRunner(pr *patchRun) {
+func patchRunner(ctx context.Context, client *osconfig.Client, pr *patchRun) {
 	logger.Debugf("patchrunner running %s", pr.Job.PatchJobName)
 	reboot := pr.run()
 	if pr.Job.PatchConfig.RebootConfig == osconfigpb.PatchConfig_NEVER {
@@ -135,4 +141,21 @@ func patchRunner(pr *patchRun) {
 		}
 	}
 	logger.Debugf("finished patch window %s", pr.Job.PatchJobName)
+}
+
+func ackPatch(ctx context.Context, id string) {
+	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+	if err != nil {
+		logger.Errorf("osconfig.NewClient Error: %v", err)
+		return
+	}
+
+	// TODO: Add all necessary bits into the API.
+	res, err := client.ReportPatchJobInstanceDetails(ctx, &osconfigpb.ReportPatchJobInstanceDetailsRequest{PatchJobName: id, State: osconfigpb.Instance_NOTIFIED})
+	if err != nil {
+		logger.Errorf("osconfig.ReportPatchJobInstanceDetails Error: %v", err)
+		return
+	}
+
+	tasker.Enqueue("Run patch", func() { patchRunner(ctx, client, &patchRun{Job: &patchJob{res}}) })
 }

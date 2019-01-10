@@ -35,25 +35,35 @@ import (
 
 // CallOptions contains the retry settings for each method of Client.
 type CallOptions struct {
-	CreateOsConfig     []gax.CallOption
-	GetOsConfig        []gax.CallOption
-	ListOsConfigs      []gax.CallOption
-	UpdateOsConfig     []gax.CallOption
-	DeleteOsConfig     []gax.CallOption
-	CreatePatchPolicy  []gax.CallOption
-	GetPatchPolicy     []gax.CallOption
-	ListPatchPolicies  []gax.CallOption
-	UpdatePatchPolicy  []gax.CallOption
-	DeletePatchPolicy  []gax.CallOption
-	CreateAssignment   []gax.CallOption
-	GetAssignment      []gax.CallOption
-	ListAssignments    []gax.CallOption
-	UpdateAssignment   []gax.CallOption
-	DeleteAssignment   []gax.CallOption
-	GetIamPolicy       []gax.CallOption
-	SetIamPolicy       []gax.CallOption
-	TestIamPermissions []gax.CallOption
-	LookupConfigs      []gax.CallOption
+	CreateOsConfig                []gax.CallOption
+	GetOsConfig                   []gax.CallOption
+	ListOsConfigs                 []gax.CallOption
+	UpdateOsConfig                []gax.CallOption
+	DeleteOsConfig                []gax.CallOption
+	CreatePatchPolicy             []gax.CallOption
+	GetPatchPolicy                []gax.CallOption
+	ListPatchPolicies             []gax.CallOption
+	UpdatePatchPolicy             []gax.CallOption
+	DeletePatchPolicy             []gax.CallOption
+	CreateAssignment              []gax.CallOption
+	GetAssignment                 []gax.CallOption
+	ListAssignments               []gax.CallOption
+	UpdateAssignment              []gax.CallOption
+	DeleteAssignment              []gax.CallOption
+	GetIamPolicy                  []gax.CallOption
+	SetIamPolicy                  []gax.CallOption
+	TestIamPermissions            []gax.CallOption
+	LookupConfigs                 []gax.CallOption
+	ReportInstancePatchStatus     []gax.CallOption
+	GetLatestPatchRun             []gax.CallOption
+	GetPatchRun                   []gax.CallOption
+	ListPatchRunInstanceReports   []gax.CallOption
+	ExecutePatchJob               []gax.CallOption
+	GetPatchJob                   []gax.CallOption
+	CancelPatchJob                []gax.CallOption
+	ListPatchJobs                 []gax.CallOption
+	ReportPatchJobInstanceDetails []gax.CallOption
+	ListPatchJobInstanceDetails   []gax.CallOption
 }
 
 func defaultClientOptions() []option.ClientOption {
@@ -79,25 +89,35 @@ func defaultCallOptions() *CallOptions {
 		},
 	}
 	return &CallOptions{
-		CreateOsConfig:     retry[[2]string{"default", "non_idempotent"}],
-		GetOsConfig:        retry[[2]string{"default", "idempotent"}],
-		ListOsConfigs:      retry[[2]string{"default", "idempotent"}],
-		UpdateOsConfig:     retry[[2]string{"default", "non_idempotent"}],
-		DeleteOsConfig:     retry[[2]string{"default", "idempotent"}],
-		CreatePatchPolicy:  retry[[2]string{"default", "non_idempotent"}],
-		GetPatchPolicy:     retry[[2]string{"default", "idempotent"}],
-		ListPatchPolicies:  retry[[2]string{"default", "idempotent"}],
-		UpdatePatchPolicy:  retry[[2]string{"default", "non_idempotent"}],
-		DeletePatchPolicy:  retry[[2]string{"default", "idempotent"}],
-		CreateAssignment:   retry[[2]string{"default", "non_idempotent"}],
-		GetAssignment:      retry[[2]string{"default", "idempotent"}],
-		ListAssignments:    retry[[2]string{"default", "idempotent"}],
-		UpdateAssignment:   retry[[2]string{"default", "non_idempotent"}],
-		DeleteAssignment:   retry[[2]string{"default", "idempotent"}],
-		GetIamPolicy:       retry[[2]string{"default", "non_idempotent"}],
-		SetIamPolicy:       retry[[2]string{"default", "non_idempotent"}],
-		TestIamPermissions: retry[[2]string{"default", "non_idempotent"}],
-		LookupConfigs:      retry[[2]string{"default", "non_idempotent"}],
+		CreateOsConfig:                retry[[2]string{"default", "non_idempotent"}],
+		GetOsConfig:                   retry[[2]string{"default", "idempotent"}],
+		ListOsConfigs:                 retry[[2]string{"default", "idempotent"}],
+		UpdateOsConfig:                retry[[2]string{"default", "non_idempotent"}],
+		DeleteOsConfig:                retry[[2]string{"default", "idempotent"}],
+		CreatePatchPolicy:             retry[[2]string{"default", "non_idempotent"}],
+		GetPatchPolicy:                retry[[2]string{"default", "idempotent"}],
+		ListPatchPolicies:             retry[[2]string{"default", "idempotent"}],
+		UpdatePatchPolicy:             retry[[2]string{"default", "non_idempotent"}],
+		DeletePatchPolicy:             retry[[2]string{"default", "idempotent"}],
+		CreateAssignment:              retry[[2]string{"default", "non_idempotent"}],
+		GetAssignment:                 retry[[2]string{"default", "idempotent"}],
+		ListAssignments:               retry[[2]string{"default", "idempotent"}],
+		UpdateAssignment:              retry[[2]string{"default", "non_idempotent"}],
+		DeleteAssignment:              retry[[2]string{"default", "idempotent"}],
+		GetIamPolicy:                  retry[[2]string{"default", "non_idempotent"}],
+		SetIamPolicy:                  retry[[2]string{"default", "non_idempotent"}],
+		TestIamPermissions:            retry[[2]string{"default", "non_idempotent"}],
+		LookupConfigs:                 retry[[2]string{"default", "non_idempotent"}],
+		ReportInstancePatchStatus:     retry[[2]string{"default", "non_idempotent"}],
+		GetLatestPatchRun:             retry[[2]string{"default", "idempotent"}],
+		GetPatchRun:                   retry[[2]string{"default", "idempotent"}],
+		ListPatchRunInstanceReports:   retry[[2]string{"default", "idempotent"}],
+		ExecutePatchJob:               retry[[2]string{"default", "non_idempotent"}],
+		GetPatchJob:                   retry[[2]string{"default", "idempotent"}],
+		CancelPatchJob:                retry[[2]string{"default", "non_idempotent"}],
+		ListPatchJobs:                 retry[[2]string{"default", "idempotent"}],
+		ReportPatchJobInstanceDetails: retry[[2]string{"default", "non_idempotent"}],
+		ListPatchJobInstanceDetails:   retry[[2]string{"default", "idempotent"}],
 	}
 }
 
@@ -521,6 +541,245 @@ func (c *Client) LookupConfigs(ctx context.Context, req *osconfigpb.LookupConfig
 	return resp, nil
 }
 
+// ReportInstancePatchStatus reports the patch status of a specific instance, at the direction of a
+// specific patch policy. This should be called multiple times by the same
+// instance for the same patch run as its status changes.
+// This should generally only be called by the agent running on the
+// instance.
+func (c *Client) ReportInstancePatchStatus(ctx context.Context, req *osconfigpb.ReportInstancePatchStatusRequest, opts ...gax.CallOption) (*osconfigpb.ReportInstancePatchStatusResponse, error) {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ReportInstancePatchStatus[0:len(c.CallOptions.ReportInstancePatchStatus):len(c.CallOptions.ReportInstancePatchStatus)], opts...)
+	var resp *osconfigpb.ReportInstancePatchStatusResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = c.client.ReportInstancePatchStatus(ctx, req, settings.GRPC...)
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetLatestPatchRun gets a summary of the latest patch run, including status of all the
+// instances that have logged information about this patch run.
+func (c *Client) GetLatestPatchRun(ctx context.Context, req *osconfigpb.GetLatestPatchRunRequest, opts ...gax.CallOption) (*osconfigpb.PatchRun, error) {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.GetLatestPatchRun[0:len(c.CallOptions.GetLatestPatchRun):len(c.CallOptions.GetLatestPatchRun)], opts...)
+	var resp *osconfigpb.PatchRun
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = c.client.GetLatestPatchRun(ctx, req, settings.GRPC...)
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetPatchRun gets a summary of the specified patch run, including status of all the
+// instances that have logged information about this patch run.
+func (c *Client) GetPatchRun(ctx context.Context, req *osconfigpb.GetPatchRunRequest, opts ...gax.CallOption) (*osconfigpb.PatchRun, error) {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.GetPatchRun[0:len(c.CallOptions.GetPatchRun):len(c.CallOptions.GetPatchRun)], opts...)
+	var resp *osconfigpb.PatchRun
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = c.client.GetPatchRun(ctx, req, settings.GRPC...)
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ListPatchRunInstanceReports gets detailed instance patch status info, reported by instances. This
+// rpc call supports pagination.
+func (c *Client) ListPatchRunInstanceReports(ctx context.Context, req *osconfigpb.ListPatchRunInstanceReportsRequest, opts ...gax.CallOption) *InstancePatchReportIterator {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ListPatchRunInstanceReports[0:len(c.CallOptions.ListPatchRunInstanceReports):len(c.CallOptions.ListPatchRunInstanceReports)], opts...)
+	it := &InstancePatchReportIterator{}
+	req = proto.Clone(req).(*osconfigpb.ListPatchRunInstanceReportsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*osconfigpb.InstancePatchReport, string, error) {
+		var resp *osconfigpb.ListPatchRunInstanceReportsResponse
+		req.PageToken = pageToken
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = c.client.ListPatchRunInstanceReports(ctx, req, settings.GRPC...)
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+		return resp.Instances, resp.NextPageToken, nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.PageSize)
+	return it
+}
+
+// ExecutePatchJob patch GCE instances by creating and running a PatchJob.
+func (c *Client) ExecutePatchJob(ctx context.Context, req *osconfigpb.ExecutePatchJobRequest, opts ...gax.CallOption) (*osconfigpb.PatchJob, error) {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ExecutePatchJob[0:len(c.CallOptions.ExecutePatchJob):len(c.CallOptions.ExecutePatchJob)], opts...)
+	var resp *osconfigpb.PatchJob
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = c.client.ExecutePatchJob(ctx, req, settings.GRPC...)
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetPatchJob get the patch job. This can be used to track the progress of an
+// ongoing patch job or review the details of completed jobs.
+func (c *Client) GetPatchJob(ctx context.Context, req *osconfigpb.GetPatchJobRequest, opts ...gax.CallOption) (*osconfigpb.PatchJob, error) {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.GetPatchJob[0:len(c.CallOptions.GetPatchJob):len(c.CallOptions.GetPatchJob)], opts...)
+	var resp *osconfigpb.PatchJob
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = c.client.GetPatchJob(ctx, req, settings.GRPC...)
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// CancelPatchJob cancel a patch job. The patch job must be active. Canceled patch jobs
+// cannot be restarted.
+func (c *Client) CancelPatchJob(ctx context.Context, req *osconfigpb.CancelPatchJobRequest, opts ...gax.CallOption) (*osconfigpb.PatchJob, error) {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.CancelPatchJob[0:len(c.CallOptions.CancelPatchJob):len(c.CallOptions.CancelPatchJob)], opts...)
+	var resp *osconfigpb.PatchJob
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = c.client.CancelPatchJob(ctx, req, settings.GRPC...)
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ListPatchJobs get a page of patch jobs.
+func (c *Client) ListPatchJobs(ctx context.Context, req *osconfigpb.ListPatchJobsRequest, opts ...gax.CallOption) *PatchJobIterator {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ListPatchJobs[0:len(c.CallOptions.ListPatchJobs):len(c.CallOptions.ListPatchJobs)], opts...)
+	it := &PatchJobIterator{}
+	req = proto.Clone(req).(*osconfigpb.ListPatchJobsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*osconfigpb.PatchJob, string, error) {
+		var resp *osconfigpb.ListPatchJobsResponse
+		req.PageToken = pageToken
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = c.client.ListPatchJobs(ctx, req, settings.GRPC...)
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+		return resp.PatchJobs, resp.NextPageToken, nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.PageSize)
+	return it
+}
+
+// ReportPatchJobInstanceDetails endpoint used by the agent to report back its state during a patch
+// deployment. This endpoint will also return the patch job's state and
+// configurations that the agent needs to know in order to run or stop
+// patching.
+//
+// This endpoint is only used by the agent. Using it in other ways may
+// affect the state of the active patch job and prevent the patches from
+// being correctly applied to this instance.
+func (c *Client) ReportPatchJobInstanceDetails(ctx context.Context, req *osconfigpb.ReportPatchJobInstanceDetailsRequest, opts ...gax.CallOption) (*osconfigpb.ReportPatchJobInstanceDetailsResponse, error) {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ReportPatchJobInstanceDetails[0:len(c.CallOptions.ReportPatchJobInstanceDetails):len(c.CallOptions.ReportPatchJobInstanceDetails)], opts...)
+	var resp *osconfigpb.ReportPatchJobInstanceDetailsResponse
+	err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+		var err error
+		resp, err = c.client.ReportPatchJobInstanceDetails(ctx, req, settings.GRPC...)
+		return err
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// ListPatchJobInstanceDetails get a page of instances' details for a given patch job.
+func (c *Client) ListPatchJobInstanceDetails(ctx context.Context, req *osconfigpb.ListPatchJobInstanceDetailsRequest, opts ...gax.CallOption) *PatchJobInstanceDetailsIterator {
+	ctx = insertMetadata(ctx, c.xGoogMetadata)
+	opts = append(c.CallOptions.ListPatchJobInstanceDetails[0:len(c.CallOptions.ListPatchJobInstanceDetails):len(c.CallOptions.ListPatchJobInstanceDetails)], opts...)
+	it := &PatchJobInstanceDetailsIterator{}
+	req = proto.Clone(req).(*osconfigpb.ListPatchJobInstanceDetailsRequest)
+	it.InternalFetch = func(pageSize int, pageToken string) ([]*osconfigpb.PatchJobInstanceDetails, string, error) {
+		var resp *osconfigpb.ListPatchJobInstanceDetailsResponse
+		req.PageToken = pageToken
+		if pageSize > math.MaxInt32 {
+			req.PageSize = math.MaxInt32
+		} else {
+			req.PageSize = int32(pageSize)
+		}
+		err := gax.Invoke(ctx, func(ctx context.Context, settings gax.CallSettings) error {
+			var err error
+			resp, err = c.client.ListPatchJobInstanceDetails(ctx, req, settings.GRPC...)
+			return err
+		}, opts...)
+		if err != nil {
+			return nil, "", err
+		}
+		return resp.PatchJobInstanceDetails, resp.NextPageToken, nil
+	}
+	fetch := func(pageSize int, pageToken string) (string, error) {
+		items, nextPageToken, err := it.InternalFetch(pageSize, pageToken)
+		if err != nil {
+			return "", err
+		}
+		it.items = append(it.items, items...)
+		return nextPageToken, nil
+	}
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(fetch, it.bufLen, it.takeBuf)
+	it.pageInfo.MaxSize = int(req.PageSize)
+	return it
+}
+
 // AssignmentIterator manages a stream of *osconfigpb.Assignment.
 type AssignmentIterator struct {
 	items    []*osconfigpb.Assignment
@@ -563,6 +822,48 @@ func (it *AssignmentIterator) takeBuf() interface{} {
 	return b
 }
 
+// InstancePatchReportIterator manages a stream of *osconfigpb.InstancePatchReport.
+type InstancePatchReportIterator struct {
+	items    []*osconfigpb.InstancePatchReport
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*osconfigpb.InstancePatchReport, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+func (it *InstancePatchReportIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *InstancePatchReportIterator) Next() (*osconfigpb.InstancePatchReport, error) {
+	var item *osconfigpb.InstancePatchReport
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *InstancePatchReportIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *InstancePatchReportIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
 // OsConfigIterator manages a stream of *osconfigpb.OsConfig.
 type OsConfigIterator struct {
 	items    []*osconfigpb.OsConfig
@@ -600,6 +901,90 @@ func (it *OsConfigIterator) bufLen() int {
 }
 
 func (it *OsConfigIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// PatchJobInstanceDetailsIterator manages a stream of *osconfigpb.PatchJobInstanceDetails.
+type PatchJobInstanceDetailsIterator struct {
+	items    []*osconfigpb.PatchJobInstanceDetails
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*osconfigpb.PatchJobInstanceDetails, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+func (it *PatchJobInstanceDetailsIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *PatchJobInstanceDetailsIterator) Next() (*osconfigpb.PatchJobInstanceDetails, error) {
+	var item *osconfigpb.PatchJobInstanceDetails
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *PatchJobInstanceDetailsIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *PatchJobInstanceDetailsIterator) takeBuf() interface{} {
+	b := it.items
+	it.items = nil
+	return b
+}
+
+// PatchJobIterator manages a stream of *osconfigpb.PatchJob.
+type PatchJobIterator struct {
+	items    []*osconfigpb.PatchJob
+	pageInfo *iterator.PageInfo
+	nextFunc func() error
+
+	// InternalFetch is for use by the Google Cloud Libraries only.
+	// It is not part of the stable interface of this package.
+	//
+	// InternalFetch returns results from a single call to the underlying RPC.
+	// The number of results is no greater than pageSize.
+	// If there are no more results, nextPageToken is empty and err is nil.
+	InternalFetch func(pageSize int, pageToken string) (results []*osconfigpb.PatchJob, nextPageToken string, err error)
+}
+
+// PageInfo supports pagination. See the google.golang.org/api/iterator package for details.
+func (it *PatchJobIterator) PageInfo() *iterator.PageInfo {
+	return it.pageInfo
+}
+
+// Next returns the next result. Its second return value is iterator.Done if there are no more
+// results. Once Next returns Done, all subsequent calls will return Done.
+func (it *PatchJobIterator) Next() (*osconfigpb.PatchJob, error) {
+	var item *osconfigpb.PatchJob
+	if err := it.nextFunc(); err != nil {
+		return item, err
+	}
+	item = it.items[0]
+	it.items = it.items[1:]
+	return item, nil
+}
+
+func (it *PatchJobIterator) bufLen() int {
+	return len(it.items)
+}
+
+func (it *PatchJobIterator) takeBuf() interface{} {
 	b := it.items
 	it.items = nil
 	return b

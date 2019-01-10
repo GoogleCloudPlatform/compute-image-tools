@@ -52,7 +52,7 @@ func runOsConfig(ctx context.Context, res string) error {
 }
 
 func run(ctx context.Context) {
-	patch.Init()
+	patch.Init(ctx)
 
 	res, err := config.Instance()
 	if err != nil {
