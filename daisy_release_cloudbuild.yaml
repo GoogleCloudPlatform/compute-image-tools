@@ -70,9 +70,9 @@ steps:
   args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/release/*']
 
 images:
-- 'gcr.io/$PROJECT_ID/daisy:release'
-- 'gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/gce_image_publish:release'
-- 'gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/gce_export:release'
-- 'gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/daisy:release'
+  - 'gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_image_publish:release'
+  - 'gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_export:release'
+  - 'gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA'

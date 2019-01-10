@@ -78,11 +78,11 @@ steps:
   args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/latest/*']
 
 images:
-- 'gcr.io/$PROJECT_ID/daisy:latest'
-- 'gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/gce_image_publish:latest'
-- 'gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/gce_export:latest'
-- 'gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA'
-- 'gcr.io/$PROJECT_ID/gce_vm_image_import:latest'
-- 'gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/daisy:latest'
+  - 'gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_image_publish:latest'
+  - 'gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_export:latest'
+  - 'gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_import:latest'
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA'
