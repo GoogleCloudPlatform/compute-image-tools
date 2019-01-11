@@ -43,12 +43,24 @@ const testProject = "compute-image-test-pool-001"
 const testZone = "us-central1-c"
 
 // TODO: Move to the new combined osconfig package, also make this easily available to other tests.
-var installInventoryDeb = `echo 'deb http://packages.cloud.google.com/apt google-compute-engine-inventory-unstable main' >> /etc/apt/sources.list
+var installInventoryDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
-apt-get install -y google-compute-engine-inventory
+apt-get install -y google-osconfig-agent
 echo 'inventory install done'`
 var installInventoryGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
+echo 'inventory install done'`
+var installInventoryYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
+[google-osconfig-agent]
+name=Google OSConfig Agent Repository
+baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el7-unstable
+enabled=1
+gpgcheck=0
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOM
+yum -y install google-osconfig-agent
 echo 'inventory install done'`
 
 type inventoryTestSetup struct {
@@ -146,6 +158,28 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
 				Value: &installInventoryDeb,
+			},
+		},
+
+		// Centos images.
+		&inventoryTestSetup{
+			image:       "projects/centos-cloud/global/images/family/centos-7",
+			packageType: []string{"rpm"},
+			shortName:   "centos",
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &installInventoryYumEL7,
+			},
+		},
+
+		// RHEL images.
+		&inventoryTestSetup{
+			image:       "projects/rhel-cloud/global/images/family/rhel-7",
+			packageType: []string{"rpm"},
+			shortName:   "rhel",
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &installInventoryYumEL7,
 			},
 		},
 

@@ -35,15 +35,16 @@ const (
 )
 
 type instanceInventory struct {
-	Hostname          string
-	LongName          string
-	ShortName         string
-	Version           string
-	Architecture      string
-	KernelVersion     string
-	InstalledPackages packages.Packages
-	PackageUpdates    packages.Packages
-	Errors            []string
+	Hostname             string
+	LongName             string
+	ShortName            string
+	Version              string
+	Architecture         string
+	KernelVersion        string
+	OSConfigAgentVersion string
+	InstalledPackages    packages.Packages
+	PackageUpdates       packages.Packages
+	Errors               []string
 }
 
 func writeInventory(state *instanceInventory, url string) {
@@ -100,6 +101,7 @@ func getInventory() *instanceInventory {
 	hs.Version = di.Version
 	hs.KernelVersion = di.Kernel
 	hs.Architecture = di.Architecture
+	hs.OSConfigAgentVersion = config.Version()
 
 	var errs []string
 	hs.InstalledPackages, errs = packages.GetInstalledPackages()

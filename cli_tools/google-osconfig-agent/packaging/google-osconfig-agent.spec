@@ -20,11 +20,10 @@ License: ASL 2.0
 Url: https://github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent
 Source0: %{name}_%{version}.orig.tar.gz
 
-ExclusiveArch: %{go_arches}
+BuildArch: %{_arch}
 %if 0%{?rhel} == 7
 BuildRequires: systemd
 %endif
-BuildRequires: golang >= 1.11
 
 %description
 Contains the OSConfig agent binary and startup scripts
@@ -33,7 +32,7 @@ Contains the OSConfig agent binary and startup scripts
 %autosetup
 
 %build
-GOPATH=%{gopath} CGO_ENABLED=0 %{_go} build -ldflags="-s -w -X main.version=%{_version}" -o google_osconfig_agent
+GOPATH=%{_gopath} CGO_ENABLED=0 %{_go} build -ldflags="-s -w -X main.version=%{_version}" -o google_osconfig_agent
 
 %install
 install -d %{buildroot}%{_bindir}
@@ -53,4 +52,12 @@ install -p -m 0644 %{name}.conf %{buildroot}/etc/init
 %{_unitdir}/%{name}.service
 %else
 /etc/init/%{name}.conf
+%endif
+
+%post
+%if 0%{?rhel} == 7
+%systemd_post google-osconfig-agent.service
+if [ $1 -eq 2 ]; then
+  systemctl reload-or-restart google-osconfig-agent.service
+fi
 %endif

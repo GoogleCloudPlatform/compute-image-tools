@@ -25,7 +25,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/ospackage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/patch"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
@@ -37,27 +36,41 @@ import (
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
+func runOsConfig(ctx context.Context, res string) error {
+	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+	if err != nil {
+		return fmt.Errorf("osconfig.NewClient Error: %v", err)
+	}
+
+	resp, err := LookupConfigs(ctx, client, res)
+	if err != nil {
+		return fmt.Errorf("LookupConfigs error: %v", err)
+	}
+	tasker.Enqueue("Set package config", func() { ospackage.SetConfig(resp) })
+	return nil
+}
+
 func run(ctx context.Context) {
+	//patch.Init(ctx)
+
 	res, err := config.Instance()
 	if err != nil {
 		logger.Fatalf("get instance error: %v", err)
 	}
 
-	patch.Init()
 	ticker := time.NewTicker(config.SvcPollInterval())
+	configError := false
 	for {
-		client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
-		if err != nil {
-			logger.Errorf("NewClient Error: %v", err)
+		err := runOsConfig(ctx, res)
+		// Only log osconfig error on the first error so as not to spam the logs.
+		// TODO: Remove once the API is in beta.
+		if err != nil && !configError {
+			logger.Errorf(err.Error())
+			configError = true
+		} else {
+			configError = false
 		}
 
-		resp, err := LookupConfigs(ctx, client, res)
-		if err != nil {
-			logger.Errorf("LookupConfigs error: %v", err)
-		} else {
-			tasker.Enqueue("Set package config", func() { ospackage.SetConfig(resp) })
-			patch.SetPatchPolicies(resp.PatchPolicies)
-		}
 		tasker.Enqueue("Gather instance inventory", inventory.RunInventory)
 
 		select {

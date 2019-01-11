@@ -17,8 +17,9 @@
 package osconfig
 
 import (
-	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	durationpb "github.com/golang/protobuf/ptypes/duration"
 	emptypb "github.com/golang/protobuf/ptypes/empty"
+	osconfigpb "google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	iampb "google.golang.org/genproto/googleapis/iam/v1"
 	field_maskpb "google.golang.org/genproto/protobuf/field_mask"
 )
@@ -289,6 +290,126 @@ func (s *mockOsConfigServer) LookupConfigs(ctx context.Context, req *osconfigpb.
 		return nil, s.err
 	}
 	return s.resps[0].(*osconfigpb.LookupConfigsResponse), nil
+}
+
+func (s *mockOsConfigServer) ReportInstancePatchStatus(ctx context.Context, req *osconfigpb.ReportInstancePatchStatusRequest) (*osconfigpb.ReportInstancePatchStatusResponse, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.ReportInstancePatchStatusResponse), nil
+}
+
+func (s *mockOsConfigServer) GetLatestPatchRun(ctx context.Context, req *osconfigpb.GetLatestPatchRunRequest) (*osconfigpb.PatchRun, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.PatchRun), nil
+}
+
+func (s *mockOsConfigServer) GetPatchRun(ctx context.Context, req *osconfigpb.GetPatchRunRequest) (*osconfigpb.PatchRun, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.PatchRun), nil
+}
+
+func (s *mockOsConfigServer) ListPatchRunInstanceReports(ctx context.Context, req *osconfigpb.ListPatchRunInstanceReportsRequest) (*osconfigpb.ListPatchRunInstanceReportsResponse, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.ListPatchRunInstanceReportsResponse), nil
+}
+
+func (s *mockOsConfigServer) ExecutePatchJob(ctx context.Context, req *osconfigpb.ExecutePatchJobRequest) (*osconfigpb.PatchJob, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.PatchJob), nil
+}
+
+func (s *mockOsConfigServer) GetPatchJob(ctx context.Context, req *osconfigpb.GetPatchJobRequest) (*osconfigpb.PatchJob, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.PatchJob), nil
+}
+
+func (s *mockOsConfigServer) CancelPatchJob(ctx context.Context, req *osconfigpb.CancelPatchJobRequest) (*osconfigpb.PatchJob, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.PatchJob), nil
+}
+
+func (s *mockOsConfigServer) ListPatchJobs(ctx context.Context, req *osconfigpb.ListPatchJobsRequest) (*osconfigpb.ListPatchJobsResponse, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.ListPatchJobsResponse), nil
+}
+
+func (s *mockOsConfigServer) ReportPatchJobInstanceDetails(ctx context.Context, req *osconfigpb.ReportPatchJobInstanceDetailsRequest) (*osconfigpb.ReportPatchJobInstanceDetailsResponse, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.ReportPatchJobInstanceDetailsResponse), nil
+}
+
+func (s *mockOsConfigServer) ListPatchJobInstanceDetails(ctx context.Context, req *osconfigpb.ListPatchJobInstanceDetailsRequest) (*osconfigpb.ListPatchJobInstanceDetailsResponse, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	if xg := md["x-goog-api-client"]; len(xg) == 0 || !strings.Contains(xg[0], "gl-go/") {
+		return nil, fmt.Errorf("x-goog-api-client = %v, expected gl-go key", xg)
+	}
+	s.reqs = append(s.reqs, req)
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.resps[0].(*osconfigpb.ListPatchJobInstanceDetailsResponse), nil
 }
 
 // clientOpt is the option tests should use to connect to the test server.
@@ -642,9 +763,11 @@ func TestOsConfigServiceDeleteOsConfigError(t *testing.T) {
 func TestOsConfigServiceCreatePatchPolicy(t *testing.T) {
 	var name string = "name3373707"
 	var description string = "description-1724546052"
+	var version int64 = 351608024
 	var expectedResponse = &osconfigpb.PatchPolicy{
 		Name:        name,
 		Description: description,
+		Version:     version,
 	}
 
 	mockOsConfig.err = nil
@@ -707,9 +830,11 @@ func TestOsConfigServiceCreatePatchPolicyError(t *testing.T) {
 func TestOsConfigServiceGetPatchPolicy(t *testing.T) {
 	var name2 string = "name2-1052831874"
 	var description string = "description-1724546052"
+	var version int64 = 351608024
 	var expectedResponse = &osconfigpb.PatchPolicy{
 		Name:        name2,
 		Description: description,
+		Version:     version,
 	}
 
 	mockOsConfig.err = nil
@@ -718,8 +843,10 @@ func TestOsConfigServiceGetPatchPolicy(t *testing.T) {
 	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
 
 	var formattedName string = fmt.Sprintf("projects/%s/patchPolicies/%s", "[PROJECT]", "[PATCH_POLICY]")
+	var patchVersion int64 = 284957665
 	var request = &osconfigpb.GetPatchPolicyRequest{
-		Name: formattedName,
+		Name:         formattedName,
+		PatchVersion: patchVersion,
 	}
 
 	c, err := NewClient(context.Background(), clientOpt)
@@ -747,8 +874,10 @@ func TestOsConfigServiceGetPatchPolicyError(t *testing.T) {
 	mockOsConfig.err = gstatus.Error(errCode, "test error")
 
 	var formattedName string = fmt.Sprintf("projects/%s/patchPolicies/%s", "[PROJECT]", "[PATCH_POLICY]")
+	var patchVersion int64 = 284957665
 	var request = &osconfigpb.GetPatchPolicyRequest{
-		Name: formattedName,
+		Name:         formattedName,
+		PatchVersion: patchVersion,
 	}
 
 	c, err := NewClient(context.Background(), clientOpt)
@@ -840,9 +969,11 @@ func TestOsConfigServiceListPatchPoliciesError(t *testing.T) {
 func TestOsConfigServiceUpdatePatchPolicy(t *testing.T) {
 	var name2 string = "name2-1052831874"
 	var description string = "description-1724546052"
+	var version int64 = 351608024
 	var expectedResponse = &osconfigpb.PatchPolicy{
 		Name:        name2,
 		Description: description,
+		Version:     version,
 	}
 
 	mockOsConfig.err = nil
@@ -1525,6 +1656,706 @@ func TestOsConfigServiceLookupConfigsError(t *testing.T) {
 	}
 
 	resp, err := c.LookupConfigs(context.Background(), request)
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceReportInstancePatchStatus(t *testing.T) {
+	var expectedResponse *osconfigpb.ReportInstancePatchStatusResponse = &osconfigpb.ReportInstancePatchStatusResponse{}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedResource string = fmt.Sprintf("projects/%s/zones/%s/instances/%s", "[PROJECT]", "[ZONE]", "[INSTANCE]")
+	var patchReport *osconfigpb.InstancePatchReport = &osconfigpb.InstancePatchReport{}
+	var request = &osconfigpb.ReportInstancePatchStatusRequest{
+		Resource:    formattedResource,
+		PatchReport: patchReport,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ReportInstancePatchStatus(context.Background(), request)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	if want, got := expectedResponse, resp; !proto.Equal(want, got) {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceReportInstancePatchStatusError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedResource string = fmt.Sprintf("projects/%s/zones/%s/instances/%s", "[PROJECT]", "[ZONE]", "[INSTANCE]")
+	var patchReport *osconfigpb.InstancePatchReport = &osconfigpb.InstancePatchReport{}
+	var request = &osconfigpb.ReportInstancePatchStatusRequest{
+		Resource:    formattedResource,
+		PatchReport: patchReport,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ReportInstancePatchStatus(context.Background(), request)
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceGetLatestPatchRun(t *testing.T) {
+	var patchRunId int64 = 1848976166
+	var patchPolicyName string = "patchPolicyName335564801"
+	var expectedResponse = &osconfigpb.PatchRun{
+		PatchRunId:      patchRunId,
+		PatchPolicyName: patchPolicyName,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedResource string = fmt.Sprintf("projects/%s/patchPolicies/%s", "[PROJECT]", "[PATCH_POLICY]")
+	var request = &osconfigpb.GetLatestPatchRunRequest{
+		Resource: formattedResource,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.GetLatestPatchRun(context.Background(), request)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	if want, got := expectedResponse, resp; !proto.Equal(want, got) {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceGetLatestPatchRunError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedResource string = fmt.Sprintf("projects/%s/patchPolicies/%s", "[PROJECT]", "[PATCH_POLICY]")
+	var request = &osconfigpb.GetLatestPatchRunRequest{
+		Resource: formattedResource,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.GetLatestPatchRun(context.Background(), request)
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceGetPatchRun(t *testing.T) {
+	var patchRunId2 int64 = 1250362023
+	var patchPolicyName string = "patchPolicyName335564801"
+	var expectedResponse = &osconfigpb.PatchRun{
+		PatchRunId:      patchRunId2,
+		PatchPolicyName: patchPolicyName,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedResource string = fmt.Sprintf("projects/%s/patchPolicies/%s", "[PROJECT]", "[PATCH_POLICY]")
+	var patchRunId int64 = 1848976166
+	var request = &osconfigpb.GetPatchRunRequest{
+		Resource:   formattedResource,
+		PatchRunId: patchRunId,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.GetPatchRun(context.Background(), request)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	if want, got := expectedResponse, resp; !proto.Equal(want, got) {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceGetPatchRunError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedResource string = fmt.Sprintf("projects/%s/patchPolicies/%s", "[PROJECT]", "[PATCH_POLICY]")
+	var patchRunId int64 = 1848976166
+	var request = &osconfigpb.GetPatchRunRequest{
+		Resource:   formattedResource,
+		PatchRunId: patchRunId,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.GetPatchRun(context.Background(), request)
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceListPatchRunInstanceReports(t *testing.T) {
+	var resource2 string = "resource2-1345649599"
+	var nextPageToken string = ""
+	var instancesElement *osconfigpb.InstancePatchReport = &osconfigpb.InstancePatchReport{}
+	var instances = []*osconfigpb.InstancePatchReport{instancesElement}
+	var expectedResponse = &osconfigpb.ListPatchRunInstanceReportsResponse{
+		Resource:      resource2,
+		NextPageToken: nextPageToken,
+		Instances:     instances,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedResource string = fmt.Sprintf("projects/%s/patchPolicies/%s", "[PROJECT]", "[PATCH_POLICY]")
+	var patchRunId int64 = 1848976166
+	var request = &osconfigpb.ListPatchRunInstanceReportsRequest{
+		Resource:   formattedResource,
+		PatchRunId: patchRunId,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ListPatchRunInstanceReports(context.Background(), request).Next()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	want := (interface{})(expectedResponse.Instances[0])
+	got := (interface{})(resp)
+	var ok bool
+
+	switch want := (want).(type) {
+	case proto.Message:
+		ok = proto.Equal(want, got.(proto.Message))
+	default:
+		ok = want == got
+	}
+	if !ok {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceListPatchRunInstanceReportsError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedResource string = fmt.Sprintf("projects/%s/patchPolicies/%s", "[PROJECT]", "[PATCH_POLICY]")
+	var patchRunId int64 = 1848976166
+	var request = &osconfigpb.ListPatchRunInstanceReportsRequest{
+		Resource:   formattedResource,
+		PatchRunId: patchRunId,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ListPatchRunInstanceReports(context.Background(), request).Next()
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceExecutePatchJob(t *testing.T) {
+	var name string = "name3373707"
+	var description2 string = "description2568623279"
+	var filter2 string = "filter2-721168085"
+	var dryRun bool = false
+	var expectedResponse = &osconfigpb.PatchJob{
+		Name:        name,
+		Description: description2,
+		Filter:      filter2,
+		DryRun:      dryRun,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedParent string = fmt.Sprintf("projects/%s", "[PROJECT]")
+	var description string = "description-1724546052"
+	var filter string = "filter-1274492040"
+	var patchConfig *osconfigpb.PatchConfig = &osconfigpb.PatchConfig{}
+	var duration *durationpb.Duration = &durationpb.Duration{}
+	var request = &osconfigpb.ExecutePatchJobRequest{
+		Parent:      formattedParent,
+		Description: description,
+		Filter:      filter,
+		PatchConfig: patchConfig,
+		Duration:    duration,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ExecutePatchJob(context.Background(), request)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	if want, got := expectedResponse, resp; !proto.Equal(want, got) {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceExecutePatchJobError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedParent string = fmt.Sprintf("projects/%s", "[PROJECT]")
+	var description string = "description-1724546052"
+	var filter string = "filter-1274492040"
+	var patchConfig *osconfigpb.PatchConfig = &osconfigpb.PatchConfig{}
+	var duration *durationpb.Duration = &durationpb.Duration{}
+	var request = &osconfigpb.ExecutePatchJobRequest{
+		Parent:      formattedParent,
+		Description: description,
+		Filter:      filter,
+		PatchConfig: patchConfig,
+		Duration:    duration,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ExecutePatchJob(context.Background(), request)
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceGetPatchJob(t *testing.T) {
+	var name2 string = "name2-1052831874"
+	var description string = "description-1724546052"
+	var filter string = "filter-1274492040"
+	var dryRun bool = false
+	var expectedResponse = &osconfigpb.PatchJob{
+		Name:        name2,
+		Description: description,
+		Filter:      filter,
+		DryRun:      dryRun,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedName string = fmt.Sprintf("projects/%s/patchJobs/%s", "[PROJECT]", "[PATCH_JOB]")
+	var request = &osconfigpb.GetPatchJobRequest{
+		Name: formattedName,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.GetPatchJob(context.Background(), request)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	if want, got := expectedResponse, resp; !proto.Equal(want, got) {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceGetPatchJobError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedName string = fmt.Sprintf("projects/%s/patchJobs/%s", "[PROJECT]", "[PATCH_JOB]")
+	var request = &osconfigpb.GetPatchJobRequest{
+		Name: formattedName,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.GetPatchJob(context.Background(), request)
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceCancelPatchJob(t *testing.T) {
+	var name2 string = "name2-1052831874"
+	var description string = "description-1724546052"
+	var filter string = "filter-1274492040"
+	var dryRun bool = false
+	var expectedResponse = &osconfigpb.PatchJob{
+		Name:        name2,
+		Description: description,
+		Filter:      filter,
+		DryRun:      dryRun,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedName string = fmt.Sprintf("projects/%s/patchJobs/%s", "[PROJECT]", "[PATCH_JOB]")
+	var request = &osconfigpb.CancelPatchJobRequest{
+		Name: formattedName,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.CancelPatchJob(context.Background(), request)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	if want, got := expectedResponse, resp; !proto.Equal(want, got) {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceCancelPatchJobError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedName string = fmt.Sprintf("projects/%s/patchJobs/%s", "[PROJECT]", "[PATCH_JOB]")
+	var request = &osconfigpb.CancelPatchJobRequest{
+		Name: formattedName,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.CancelPatchJob(context.Background(), request)
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceListPatchJobs(t *testing.T) {
+	var nextPageToken string = ""
+	var patchJobsElement *osconfigpb.PatchJob = &osconfigpb.PatchJob{}
+	var patchJobs = []*osconfigpb.PatchJob{patchJobsElement}
+	var expectedResponse = &osconfigpb.ListPatchJobsResponse{
+		NextPageToken: nextPageToken,
+		PatchJobs:     patchJobs,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedParent string = fmt.Sprintf("projects/%s", "[PROJECT]")
+	var request = &osconfigpb.ListPatchJobsRequest{
+		Parent: formattedParent,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ListPatchJobs(context.Background(), request).Next()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	want := (interface{})(expectedResponse.PatchJobs[0])
+	got := (interface{})(resp)
+	var ok bool
+
+	switch want := (want).(type) {
+	case proto.Message:
+		ok = proto.Equal(want, got.(proto.Message))
+	default:
+		ok = want == got
+	}
+	if !ok {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceListPatchJobsError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedParent string = fmt.Sprintf("projects/%s", "[PROJECT]")
+	var request = &osconfigpb.ListPatchJobsRequest{
+		Parent: formattedParent,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ListPatchJobs(context.Background(), request).Next()
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceReportPatchJobInstanceDetails(t *testing.T) {
+	var patchJobName2 string = "patchJobName21226828439"
+	var dryRun bool = false
+	var expectedResponse = &osconfigpb.ReportPatchJobInstanceDetailsResponse{
+		PatchJobName: patchJobName2,
+		DryRun:       dryRun,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedResource string = fmt.Sprintf("projects/%s/zones/%s/instances/%s", "[PROJECT]", "[ZONE]", "[INSTANCE]")
+	var instanceSystemId string = "instanceSystemId144160257"
+	var patchJobName string = "patchJobName613566436"
+	var state osconfigpb.Instance_PatchState = osconfigpb.Instance_PATCH_STATE_UNSPECIFIED
+	var failureReason string = "failureReason1743941273"
+	var attemptCount int64 = 394495715
+	var request = &osconfigpb.ReportPatchJobInstanceDetailsRequest{
+		Resource:         formattedResource,
+		InstanceSystemId: instanceSystemId,
+		PatchJobName:     patchJobName,
+		State:            state,
+		FailureReason:    failureReason,
+		AttemptCount:     attemptCount,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ReportPatchJobInstanceDetails(context.Background(), request)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	if want, got := expectedResponse, resp; !proto.Equal(want, got) {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceReportPatchJobInstanceDetailsError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedResource string = fmt.Sprintf("projects/%s/zones/%s/instances/%s", "[PROJECT]", "[ZONE]", "[INSTANCE]")
+	var instanceSystemId string = "instanceSystemId144160257"
+	var patchJobName string = "patchJobName613566436"
+	var state osconfigpb.Instance_PatchState = osconfigpb.Instance_PATCH_STATE_UNSPECIFIED
+	var failureReason string = "failureReason1743941273"
+	var attemptCount int64 = 394495715
+	var request = &osconfigpb.ReportPatchJobInstanceDetailsRequest{
+		Resource:         formattedResource,
+		InstanceSystemId: instanceSystemId,
+		PatchJobName:     patchJobName,
+		State:            state,
+		FailureReason:    failureReason,
+		AttemptCount:     attemptCount,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ReportPatchJobInstanceDetails(context.Background(), request)
+
+	if st, ok := gstatus.FromError(err); !ok {
+		t.Errorf("got error %v, expected grpc error", err)
+	} else if c := st.Code(); c != errCode {
+		t.Errorf("got error code %q, want %q", c, errCode)
+	}
+	_ = resp
+}
+func TestOsConfigServiceListPatchJobInstanceDetails(t *testing.T) {
+	var nextPageToken string = ""
+	var patchJobInstanceDetailsElement *osconfigpb.PatchJobInstanceDetails = &osconfigpb.PatchJobInstanceDetails{}
+	var patchJobInstanceDetails = []*osconfigpb.PatchJobInstanceDetails{patchJobInstanceDetailsElement}
+	var expectedResponse = &osconfigpb.ListPatchJobInstanceDetailsResponse{
+		NextPageToken:           nextPageToken,
+		PatchJobInstanceDetails: patchJobInstanceDetails,
+	}
+
+	mockOsConfig.err = nil
+	mockOsConfig.reqs = nil
+
+	mockOsConfig.resps = append(mockOsConfig.resps[:0], expectedResponse)
+
+	var formattedParent string = fmt.Sprintf("projects/%s/patchJobs/%s", "[PROJECT]", "[PATCH_JOB]")
+	var request = &osconfigpb.ListPatchJobInstanceDetailsRequest{
+		Parent: formattedParent,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ListPatchJobInstanceDetails(context.Background(), request).Next()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if want, got := request, mockOsConfig.reqs[0]; !proto.Equal(want, got) {
+		t.Errorf("wrong request %q, want %q", got, want)
+	}
+
+	want := (interface{})(expectedResponse.PatchJobInstanceDetails[0])
+	got := (interface{})(resp)
+	var ok bool
+
+	switch want := (want).(type) {
+	case proto.Message:
+		ok = proto.Equal(want, got.(proto.Message))
+	default:
+		ok = want == got
+	}
+	if !ok {
+		t.Errorf("wrong response %q, want %q)", got, want)
+	}
+}
+
+func TestOsConfigServiceListPatchJobInstanceDetailsError(t *testing.T) {
+	errCode := codes.PermissionDenied
+	mockOsConfig.err = gstatus.Error(errCode, "test error")
+
+	var formattedParent string = fmt.Sprintf("projects/%s/patchJobs/%s", "[PROJECT]", "[PATCH_JOB]")
+	var request = &osconfigpb.ListPatchJobInstanceDetailsRequest{
+		Parent: formattedParent,
+	}
+
+	c, err := NewClient(context.Background(), clientOpt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := c.ListPatchJobInstanceDetails(context.Background(), request).Next()
 
 	if st, ok := gstatus.FromError(err); !ok {
 		t.Errorf("got error %v, expected grpc error", err)

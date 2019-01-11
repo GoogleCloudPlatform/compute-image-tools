@@ -17,10 +17,10 @@
 package osconfig_test
 
 import (
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
-	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"cloud.google.com/go/osconfig/apiv1alpha1"
 	"golang.org/x/net/context"
 	"google.golang.org/api/iterator"
+	osconfigpb "google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	iampb "google.golang.org/genproto/googleapis/iam/v1"
 )
 
@@ -386,4 +386,202 @@ func ExampleClient_LookupConfigs() {
 	}
 	// TODO: Use resp.
 	_ = resp
+}
+
+func ExampleClient_ReportInstancePatchStatus() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.ReportInstancePatchStatusRequest{
+		// TODO: Fill request struct fields.
+	}
+	resp, err := c.ReportInstancePatchStatus(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_GetLatestPatchRun() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.GetLatestPatchRunRequest{
+		// TODO: Fill request struct fields.
+	}
+	resp, err := c.GetLatestPatchRun(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_GetPatchRun() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.GetPatchRunRequest{
+		// TODO: Fill request struct fields.
+	}
+	resp, err := c.GetPatchRun(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_ListPatchRunInstanceReports() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.ListPatchRunInstanceReportsRequest{
+		// TODO: Fill request struct fields.
+	}
+	it := c.ListPatchRunInstanceReports(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+	}
+}
+
+func ExampleClient_ExecutePatchJob() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.ExecutePatchJobRequest{
+		// TODO: Fill request struct fields.
+	}
+	resp, err := c.ExecutePatchJob(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_GetPatchJob() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.GetPatchJobRequest{
+		// TODO: Fill request struct fields.
+	}
+	resp, err := c.GetPatchJob(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_CancelPatchJob() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.CancelPatchJobRequest{
+		// TODO: Fill request struct fields.
+	}
+	resp, err := c.CancelPatchJob(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_ListPatchJobs() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.ListPatchJobsRequest{
+		// TODO: Fill request struct fields.
+	}
+	it := c.ListPatchJobs(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+	}
+}
+
+func ExampleClient_ReportPatchJobInstanceDetails() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.ReportPatchJobInstanceDetailsRequest{
+		// TODO: Fill request struct fields.
+	}
+	resp, err := c.ReportPatchJobInstanceDetails(ctx, req)
+	if err != nil {
+		// TODO: Handle error.
+	}
+	// TODO: Use resp.
+	_ = resp
+}
+
+func ExampleClient_ListPatchJobInstanceDetails() {
+	ctx := context.Background()
+	c, err := osconfig.NewClient(ctx)
+	if err != nil {
+		// TODO: Handle error.
+	}
+
+	req := &osconfigpb.ListPatchJobInstanceDetailsRequest{
+		// TODO: Fill request struct fields.
+	}
+	it := c.ListPatchJobInstanceDetails(ctx, req)
+	for {
+		resp, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			// TODO: Handle error.
+		}
+		// TODO: Use resp.
+		_ = resp
+	}
 }
