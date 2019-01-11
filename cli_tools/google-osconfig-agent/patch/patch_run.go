@@ -58,7 +58,7 @@ type patchJob struct {
 	*osconfigpb.ReportPatchJobInstanceDetailsResponse
 }
 
-// MarshalJSON marchals a patchConfig using jsonpb.
+// MarshalJSON marshals a patchConfig using jsonpb.
 func (j *patchJob) MarshalJSON() ([]byte, error) {
 	m := jsonpb.Marshaler{}
 	s, err := m.MarshalToString(j)
