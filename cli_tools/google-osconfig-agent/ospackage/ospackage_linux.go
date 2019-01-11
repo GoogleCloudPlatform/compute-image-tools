@@ -88,7 +88,7 @@ func aptRepositories(repos []*osconfigpb.AptRepository) error {
 		buf.WriteString(line + "\n")
 	}
 
-	return ioutil.WriteFile(config.YumRepoFilePath(), buf.Bytes(), 0600)
+	return ioutil.WriteFile(config.AptRepoFilePath(), buf.Bytes(), 0600)
 }
 
 func aptInstalls(pkgs []*osconfigpb.Package) error {
