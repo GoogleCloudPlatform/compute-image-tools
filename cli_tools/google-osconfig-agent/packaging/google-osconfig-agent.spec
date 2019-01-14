@@ -39,7 +39,9 @@ install -d %{buildroot}%{_bindir}
 install -p -m 0755 google_osconfig_agent %{buildroot}%{_bindir}/google_osconfig_agent
 %if 0%{?rhel} == 7
 install -d %{buildroot}%{_unitdir}
+install -d %{buildroot}%{_presetdir}
 install -p -m 0644 %{name}.service %{buildroot}%{_unitdir}
+install -p -m 0644 90-%{name}.preset %{buildroot}%{_presetdir}/90-%{name}.preset
 %else
 install -d %{buildroot}/etc/init
 install -p -m 0644 %{name}.conf %{buildroot}/etc/init
@@ -50,6 +52,7 @@ install -p -m 0644 %{name}.conf %{buildroot}/etc/init
 %{_bindir}/google_osconfig_agent
 %if 0%{?rhel} == 7
 %{_unitdir}/%{name}.service
+%{_presetdir}/90-%{name}.preset
 %else
 /etc/init/%{name}.conf
 %endif

@@ -21,13 +21,10 @@ function exit_error
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/daisy-outs-path)
-if [[ -z $GCS_PATH ]]; then
-  echo 'Package build failed gcs-path metadata key blank'
-  exit 1
-fi
+BASE_REPO=$(curl -f -H Metadata-Flavor:Google ${URL}/base-repo)
 
 apt-get install -y git-core || exit_error
-git clone https://github.com/GoogleCloudPlatform/compute-image-tools.git || exit_error
+git clone "https://github.com/${BASE_REPO}/compute-image-tools.git" || exit_error
 cd compute-image-tools/cli_tools/google-osconfig-agent || exit_error
 packaging/setup_goo.sh || exit_error
 gsutil cp google-osconfig-agent*.goo "${GCS_PATH}/" || exit_error

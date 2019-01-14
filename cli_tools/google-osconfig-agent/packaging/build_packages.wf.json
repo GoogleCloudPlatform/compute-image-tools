@@ -109,7 +109,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Package build success",
-            "FailureMatch": "Package build failed"
+            "FailureMatch": "build failed"
           }
         },
         {
@@ -117,7 +117,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Package build success",
-            "FailureMatch": "Package build failed"
+            "FailureMatch": "build failed"
           }
         },
         {
@@ -125,7 +125,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Package build success",
-            "FailureMatch": "Package build failed"
+            "FailureMatch": "build failed"
           }
         },
         {
@@ -133,7 +133,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "Package build success",
-            "FailureMatch": "Package build failed"
+            "FailureMatch": "build failed"
           }
         }
       ]

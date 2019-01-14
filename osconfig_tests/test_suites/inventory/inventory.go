@@ -176,6 +176,15 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 		// Centos images.
 		&inventoryTestSetup{
+			image:       "projects/centos-cloud/global/images/family/centos-6",
+			packageType: []string{"rpm"},
+			shortName:   "centos",
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &installInventoryYumEL6,
+			},
+		},
+		&inventoryTestSetup{
 			image:       "projects/centos-cloud/global/images/family/centos-7",
 			packageType: []string{"rpm"},
 			shortName:   "centos",
@@ -186,6 +195,15 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		},
 
 		// RHEL images.
+		&inventoryTestSetup{
+			image:       "projects/rhel-cloud/global/images/family/rhel-6",
+			packageType: []string{"rpm"},
+			shortName:   "rhel",
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &installInventoryYumEL6,
+			},
+		},
 		&inventoryTestSetup{
 			image:       "projects/rhel-cloud/global/images/family/rhel-7",
 			packageType: []string{"rpm"},
