@@ -43,14 +43,14 @@ const testProject = "compute-image-test-pool-001"
 const testZone = "us-central1-c"
 
 // TODO: Move to the new combined osconfig package, also make this easily available to other tests.
-var installInventoryDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
+var installOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-osconfig-agent
 echo 'inventory install done'`
-var installInventoryGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
+var installOSConfigGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
 echo 'inventory install done'`
-var installInventoryYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
+var installOSConfigYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [google-osconfig-agent]
 name=Google OSConfig Agent Repository
 baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el7-unstable
@@ -62,7 +62,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
 EOM
 yum -y install google-osconfig-agent
 echo 'inventory install done'`
-var installInventoryYumEL6 = `sleep 10
+var installOSConfigYumEL6 = `sleep 10
 cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [google-osconfig-agent]
 name=Google OSConfig Agent Repository
@@ -105,7 +105,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installInventoryGooGet,
+				Value: &installOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -114,7 +114,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installInventoryGooGet,
+				Value: &installOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -123,7 +123,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installInventoryGooGet,
+				Value: &installOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -132,7 +132,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installInventoryGooGet,
+				Value: &installOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -141,7 +141,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installInventoryGooGet,
+				Value: &installOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -150,7 +150,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installInventoryGooGet,
+				Value: &installOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -159,7 +159,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installInventoryGooGet,
+				Value: &installOSConfigGooGet,
 			},
 		},
 
@@ -170,7 +170,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "debian",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installInventoryDeb,
+				Value: &installOSConfigDeb,
 			},
 		},
 
@@ -181,7 +181,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "centos",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installInventoryYumEL6,
+				Value: &installOSConfigYumEL6,
 			},
 		},
 		&inventoryTestSetup{
@@ -190,7 +190,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "centos",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installInventoryYumEL7,
+				Value: &installOSConfigYumEL7,
 			},
 		},
 
@@ -201,7 +201,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "rhel",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installInventoryYumEL6,
+				Value: &installOSConfigYumEL6,
 			},
 		},
 		&inventoryTestSetup{
@@ -210,7 +210,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "rhel",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installInventoryYumEL7,
+				Value: &installOSConfigYumEL7,
 			},
 		},
 
@@ -221,7 +221,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installInventoryDeb,
+				Value: &installOSConfigDeb,
 			},
 		},
 		&inventoryTestSetup{
@@ -230,7 +230,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installInventoryDeb,
+				Value: &installOSConfigDeb,
 			},
 		},
 		&inventoryTestSetup{
@@ -239,7 +239,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installInventoryDeb,
+				Value: &installOSConfigDeb,
 			},
 		},
 	}
