@@ -1,0 +1,161 @@
+{
+  "Name": "build-packages",
+  "Sources": {
+    "build_deb.sh": "./build_packages_deb.sh",
+    "build_goo.sh": "./build_packages_goo.sh",
+    "build_rpm.sh": "./build_packages_rpm.sh"
+  },
+  "Vars": {
+    "gcs_path": {
+      "Value": "",
+      "Required": true,
+      "Description": "GCS path to dump the built packages in: gs://my-bucket/packages"
+    },
+    "base_repo": {
+      "Value": "GoogleCloudPlatform",
+      "Description": "Base GitHub repo"
+    }
+  },
+  "Steps": {
+    "build-packages": {
+      "CreateInstances": [
+        {
+          "disks": [
+            {
+              "source": "disk-deb-build"
+            }
+          ],
+          "Metadata": {
+            "base-repo": "${base_repo}"
+          },
+          "machineType": "n1-standard-2",
+          "name": "inst-build-deb",
+          "StartupScript": "build_deb.sh",
+	      "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+        },
+        {
+          "disks": [
+            {
+              "source": "disk-goo-build"
+            }
+          ],
+          "Metadata": {
+            "base-repo": "${base_repo}"
+          },
+          "machineType": "n1-standard-2",
+          "name": "inst-build-goo",
+          "StartupScript": "build_goo.sh",
+	      "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+        },
+        {
+          "disks": [
+            {
+              "source": "disk-el6-build"
+            }
+          ],
+          "Metadata": {
+            "base-repo": "${base_repo}"
+          },
+          "machineType": "n1-standard-2",
+          "name": "inst-build-el6",
+          "StartupScript": "build_rpm.sh",
+	      "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+        },
+        {
+          "disks": [
+            {
+              "source": "disk-el7-build"
+            }
+          ],
+          "Metadata": {
+            "base-repo": "${base_repo}"
+          },
+          "machineType": "n1-standard-2",
+          "name": "inst-build-el7",
+          "StartupScript": "build_rpm.sh",
+	      "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
+        }
+      ]
+    },
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "name": "disk-deb-build",
+          "sourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "type": "pd-ssd"
+        },
+        {
+          "name": "disk-goo-build",
+          "sourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "type": "pd-ssd"
+        },
+        {
+          "name": "disk-el6-build",
+          "sourceImage": "projects/centos-cloud/global/images/family/centos-6",
+          "type": "pd-ssd"
+        },
+        {
+          "name": "disk-el7-build",
+          "sourceImage": "projects/centos-cloud/global/images/family/centos-7",
+          "type": "pd-ssd"
+        }
+      ]
+    },
+    "wait-for-build": {
+      "Timeout": "30m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-build-deb",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Package build success",
+            "FailureMatch": "Package build failed"
+          }
+        },
+        {
+          "Name": "inst-build-goo",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Package build success",
+            "FailureMatch": "Package build failed"
+          }
+        },
+        {
+          "Name": "inst-build-el6",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Package build success",
+            "FailureMatch": "Package build failed"
+          }
+        },
+        {
+          "Name": "inst-build-el7",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Package build success",
+            "FailureMatch": "Package build failed"
+          }
+        }
+      ]
+    },
+    "copy-packages": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/",
+          "Destination": "${gcs_path}/"
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "build-packages": [
+      "setup-disks"
+    ],
+    "wait-for-build": [
+      "build-packages"
+    ],
+    "copy-packages": [
+      "wait-for-build"
+    ]
+  }
+}

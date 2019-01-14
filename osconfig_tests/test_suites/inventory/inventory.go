@@ -62,6 +62,19 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
 EOM
 yum -y install google-osconfig-agent
 echo 'inventory install done'`
+var installInventoryYumEL6 = `sleep 10
+cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
+[google-osconfig-agent]
+name=Google OSConfig Agent Repository
+baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el6-unstable
+enabled=1
+gpgcheck=0
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOM
+yum -y install google-osconfig-agent
+echo 'inventory install done'`
 
 type inventoryTestSetup struct {
 	image       string

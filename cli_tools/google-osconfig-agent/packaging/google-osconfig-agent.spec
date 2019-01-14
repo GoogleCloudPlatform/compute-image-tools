@@ -57,7 +57,14 @@ install -p -m 0644 %{name}.conf %{buildroot}/etc/init
 %post
 %if 0%{?rhel} == 7
 %systemd_post google-osconfig-agent.service
-if [ $1 -eq 2 ]; then
-  systemctl reload-or-restart google-osconfig-agent.service
-fi
+%endif
+
+%preun
+%if 0%{?rhel} == 7
+%systemd_preun google-osconfig-agent.service
+%endif
+
+%postun
+%if 0%{?rhel} == 7
+%systemd_postun_with_restart google-osconfig-agent.service
 %endif
