@@ -26,11 +26,11 @@ var (
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-osconfig-agent
-echo 'inventory install done'`
+echo 'osconfig install done'`
 
 	// InstallOSConfigGooGet installs the osconfig agent on googet based systems.
 	InstallOSConfigGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
-echo 'inventory install done'`
+echo 'osconfig install done'`
 
 	// InstallOSConfigYumEL7 installs the osconfig agent on el7 based systems.
 	InstallOSConfigYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
@@ -51,7 +51,7 @@ while ! yum install -y google-osconfig-agent; do
   n=$[$n+1]
   sleep 5
 done
-echo 'inventory install done'`
+echo 'osconfig install done'`
 
 	// InstallOSConfigYumEL6 installs the osconfig agent on el6 based systems.
 	InstallOSConfigYumEL6 = `sleep 10
@@ -73,7 +73,7 @@ while ! yum install -y google-osconfig-agent; do
   n=$[$n+1]
   sleep 5
 done
-echo 'inventory install done'`
+echo 'osconfig install done'`
 )
 
 // RandString generates a random string of n length.
