@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,25 +17,33 @@ package osconfig_server
 
 import (
 	"context"
+	"fmt"
 	"log"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
+	"github.com/kylelemons/godebug/pretty"
+	"google.golang.org/api/option"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
-	"github.com/kylelemons/godebug/pretty"
-	"google.golang.org/api/option"
 )
 
 var dump = &pretty.Config{IncludeUnexported: true}
+var osconfigClient *osconfig.Client
 
 func getOsConfigClient(ctx context.Context, logger *log.Logger) (*osconfig.Client, error) {
+
+	if osconfigClient != nil {
+		return osconfigClient, nil
+	}
+
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 
 	if err != nil {
 		logger.Printf("error while creating osconfig client: %s\n", err)
 	}
 	return client, err
-
 }
 
 func CreateOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.CreateOsConfigRequest) (*osconfigpb.OsConfig, error) {
@@ -68,7 +76,7 @@ func ListOsConfigs(ctx context.Context, logger *log.Logger, req *osconfigpb.List
 
 	resp := client.ListOsConfigs(ctx, req)
 	if resp == nil {
-		logger.Printf("error while deleting osconfig:\n%s\n\n", *resp)
+		logger.Printf("error while listing osconfig:\n%s\n\n", *resp)
 		return nil
 	}
 
@@ -90,4 +98,23 @@ func DeleteOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.Del
 		return nil
 	}
 	return ok
+}
+
+// This function will cleanup all the osconfig created under project
+// Assumption is that this project is only used by this test application
+func CleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, osConfig *osconfigpb.OsConfig) {
+
+	logger.Printf("Starting OsConfig cleanup...")
+
+	deleteReq := &osconfigpb.DeleteOsConfigRequest{
+		Name: fmt.Sprintf("projects/compute-image-test-pool-001/osConfigs/%s", osConfig.Name),
+	}
+	ok := DeleteOsConfig(ctx, logger, deleteReq)
+	if ok != nil {
+		testCase.WriteFailure("error while cleaning up")
+		return
+	}
+
+	logger.Printf("OsConfig cleanup done.")
+
 }

@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import (
 	api "google.golang.org/api/compute/v1"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-
 	osconfig_server "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 )
 
@@ -38,14 +37,15 @@ const testZone = "us-central1-c"
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
-// TODO: Move to the new combined osconfig package, also make this easily available to other tests.
 var installOsConfigAgentDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-osconfig-agent
 echo 'osconfig agent install done'`
+
 var installOsConfigAgentGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
 echo 'osconfig agent install done'`
+
 var installOsConfigAgentYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [google-osconfig-agent]
 name=Google OSConfig Agent Repository
@@ -113,13 +113,16 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 }
 
 func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger) {
-	defer cleanupOsConfig(ctx, testCase, logger)
+
+	osConfig := &osconfigpb.OsConfig{
+		Name: "foo",
+	}
+
+	defer osconfig_server.CleanupOsConfig(ctx, testCase, logger, osConfig)
 
 	req := &osconfigpb.CreateOsConfigRequest{
-		Parent: "projects/compute-image-test-pool-001",
-		OsConfig: &osconfigpb.OsConfig{
-			Name: "foo",
-		},
+		Parent:   "projects/compute-image-test-pool-001",
+		OsConfig: osConfig,
 	}
 
 	logger.Printf("create osconfig request:\n%s\n\n", dump.Sprint(req))
@@ -130,41 +133,6 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, log
 	}
 
 	logger.Printf("CreateOsConfig response:\n%s\n\n", dump.Sprint(res))
-}
-
-// This function will cleanup all the osconfig created under project
-// Assumption is that this project is only used by this test application
-func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger) {
-
-	logger.Printf("Starting OsConfig cleanup...")
-
-	req := &osconfigpb.ListOsConfigsRequest{
-		Parent: "projects/compute-image-test-pool-001",
-	}
-
-	logger.Printf("List all osconfig under project [compute-image-test-pool-001] for cleanup: \n%s\n\n", dump.Sprint(req))
-
-	resp := osconfig_server.ListOsConfigs(ctx, logger, req)
-	if resp == nil {
-		testCase.WriteFailure("error while listing osconfig")
-	}
-
-	for item, ok := resp.Next(); ; item, ok = resp.Next() {
-		if ok != nil {
-			break
-		}
-		logger.Printf("deleting osconfig\n%s", item.Name)
-		deleteReq := &osconfigpb.DeleteOsConfigRequest{
-			Name: fmt.Sprintf("projects/compute-image-test-pool-001/osConfigs/%s", item.Name),
-		}
-		ok := osconfig_server.DeleteOsConfig(ctx, logger, deleteReq)
-		if ok != nil {
-			testCase.WriteFailure("error while cleaning up")
-			return
-		}
-	}
-	logger.Printf("OsConfig cleanup done.")
-
 }
 
 func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
