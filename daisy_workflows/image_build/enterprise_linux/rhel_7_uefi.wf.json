@@ -38,7 +38,7 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-7-v${build_date}",
+          "Name": "rhel-7-uefi-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-7-server"
