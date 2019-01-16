@@ -15,7 +15,13 @@
 
 set -e
 
-trap "{ echo 'build failed' && exit 1 }" EXIT
+function exit_error
+{
+  echo "build failed"
+  exit 1
+}
+
+trap exit_error ERR
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/daisy-outs-path)

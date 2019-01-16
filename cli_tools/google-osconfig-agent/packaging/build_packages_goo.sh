@@ -15,14 +15,20 @@
 
 set -e
 
-trap "{ echo 'build failed' && exit 1 }" EXIT
+function exit_error
+{
+  echo "build failed"
+  exit 1
+}
+
+trap exit_error ERR
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/daisy-outs-path)
 BASE_REPO=$(curl -f -H Metadata-Flavor:Google ${URL}/base-repo)
 
 apt-get install -y git-core
-git clone "https://github.com/${BASE_REPO}/compute-image-tools.git"
+git clone "https://github.com/${BASE_REPO}/compute-image-tools.git" 
 cd compute-image-tools/cli_tools/google-osconfig-agent
 packaging/setup_goo.sh
 gsutil cp google-osconfig-agent*.goo "${GCS_PATH}/"
