@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package compute contains wrappers around the GCE compute API.
+// Package contains wrapper around osconfig service APIs and helper methods
 package osconfig_server
 
 import (
@@ -28,11 +28,21 @@ import (
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
-func CreateOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.CreateOsConfigRequest) (*osconfigpb.OsConfig, error) {
+func getOsConfigClient(ctx context.Context, logger *log.Logger) (*osconfig.Client, error) {
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 
 	if err != nil {
 		logger.Printf("error while creating osconfig client: %s\n", err)
+	}
+	return client, err
+
+}
+
+func CreateOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.CreateOsConfigRequest) (*osconfigpb.OsConfig, error) {
+	client, err := getOsConfigClient(ctx, logger)
+
+	if err != nil {
+		return nil, err
 	}
 
 	logger.Printf("create osconfig request:\n%s\n\n", dump.Sprint(req))
@@ -48,10 +58,10 @@ func CreateOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.Cre
 }
 
 func ListOsConfigs(ctx context.Context, logger *log.Logger, req *osconfigpb.ListOsConfigsRequest) *osconfig.OsConfigIterator {
-	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+	client, err := getOsConfigClient(ctx, logger)
 
 	if err != nil {
-		logger.Printf("error while creating osconfig client: %s\n", err)
+		return nil
 	}
 
 	logger.Printf("List osconfig request:\n%s\n\n", dump.Sprint(req))
@@ -66,10 +76,10 @@ func ListOsConfigs(ctx context.Context, logger *log.Logger, req *osconfigpb.List
 }
 
 func DeleteOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.DeleteOsConfigRequest) error {
-	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+	client, err := getOsConfigClient(ctx, logger)
 
 	if err != nil {
-		logger.Printf("error while creating osconfig client: %s\n", err)
+		return err
 	}
 
 	logger.Printf("Delete osconfig request:\n%s\n\n", dump.Sprint(req))

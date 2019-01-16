@@ -132,6 +132,8 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, log
 	logger.Printf("CreateOsConfig response:\n%s\n\n", dump.Sprint(res))
 }
 
+// This function will cleanup all the osconfig created under project
+// Assumption is that this project is only used by this test application
 func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger) {
 
 	logger.Printf("Starting OsConfig cleanup...")

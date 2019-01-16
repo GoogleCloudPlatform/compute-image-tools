@@ -84,6 +84,7 @@ func run(ctx context.Context) {
 }
 
 // LookupConfigs looks up osconfigs.
+// TODO: move to osconfig_service wrapper
 func LookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
 	info, err := osinfo.GetDistributionInfo()
 	if err != nil {
