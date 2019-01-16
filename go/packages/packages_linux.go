@@ -41,11 +41,11 @@ var (
 	rpmqueryArgs = []string{"-a", "--queryformat", `%{NAME} %{ARCH} %{VERSION}-%{RELEASE}\n`}
 
 	// yum
-	yum                 = "/usr/bin/yum"
-	yumInstallArgs      = []string{"install", "-y"}
-	yumRemoveArgs       = []string{"remove", "-y"}
-	yumUpdateArgs       = []string{"update", "-y"}
-	yumCheckUpdatesArgs = []string{"check-updates", "--quiet"}
+	yum                = "/usr/bin/yum"
+	yumInstallArgs     = []string{"install", "-y"}
+	yumRemoveArgs      = []string{"remove", "-y"}
+	yumUpdateArgs      = []string{"update", "-y"}
+	yumCheckUpdateArgs = []string{"check-update", "--quiet"}
 
 	// zypper
 	zypper                = "/usr/bin/zypper"
@@ -340,7 +340,7 @@ func aptUpdates(run runFunc) ([]PkgInfo, error) {
 }
 
 func yumUpdates() ([]PkgInfo, error) {
-	out, err := exec.Command(yum, yumCheckUpdatesArgs...).CombinedOutput()
+	out, err := exec.Command(yum, yumCheckUpdateArgs...).CombinedOutput()
 	// Exit code 0 means no updates, 100 means there are updates.
 	if err == nil {
 		return nil, nil
@@ -370,7 +370,7 @@ func yumUpdates() ([]PkgInfo, error) {
 	var pkgs []PkgInfo
 	for _, ln := range lines[1:] {
 		pkg := strings.Fields(ln)
-		if pkg[0] == "Obsoleting" && pkg[1] == "Packages" {
+		if len(pkg) == 2 && pkg[0] == "Obsoleting" && pkg[1] == "Packages" {
 			break
 		}
 		if len(pkg) != 3 {

@@ -13,20 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function exit_error
-{
-  echo "Package build failed"
-  exit 1
-}
+set -e
+
+trap "{ echo 'build failed' && exit 1 }" EXIT
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/daisy-outs-path)
 BASE_REPO=$(curl -f -H Metadata-Flavor:Google ${URL}/base-repo)
 
-apt-get install -y git-core || exit_error
-git clone "https://github.com/${BASE_REPO}/compute-image-tools.git" || exit_error
-cd compute-image-tools/cli_tools/google-osconfig-agent || exit_error
-packaging/setup_goo.sh || exit_error
-gsutil cp google-osconfig-agent*.goo "${GCS_PATH}/" || exit_error
+apt-get install -y git-core
+git clone "https://github.com/${BASE_REPO}/compute-image-tools.git"
+cd compute-image-tools/cli_tools/google-osconfig-agent
+packaging/setup_goo.sh
+gsutil cp google-osconfig-agent*.goo "${GCS_PATH}/"
 
 echo 'Package build success'

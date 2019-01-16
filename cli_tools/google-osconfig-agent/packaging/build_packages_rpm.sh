@@ -13,23 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-function exit_error
-{
-  echo "build failed"
-  exit 1
-}
+set -e
+
+trap "{ echo 'build failed' && exit 1 }" EXIT
 
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/daisy-outs-path)
 BASE_REPO=$(curl -f -H Metadata-Flavor:Google ${URL}/base-repo)
 
-# There seems to be some kindof network initialization issue on el6, this sleep fixes that
-sleep 10
+n=0
+while ! yum install -y git-core; do
+  if [[ n -gt 3 ]]; then
+    exit 1
+  fi
+  n=$[$n+1]
+  sleep 5
+done
 
-yum install -y git-core || exit_error
-git clone "https://github.com/${BASE_REPO}/compute-image-tools.git" || exit_error
-cd compute-image-tools/cli_tools/google-osconfig-agent || exit_error
-packaging/setup_rpm.sh || exit_error
-gsutil cp /tmp/rpmpackage/RPMS/x86_64/google-osconfig-agent-*.rpm "${GCS_PATH}/" || exit_error
+git clone "https://github.com/${BASE_REPO}/compute-image-tools.git"
+cd compute-image-tools/cli_tools/google-osconfig-agent 
+packaging/setup_rpm.sh
+gsutil cp /tmp/rpmpackage/RPMS/x86_64/google-osconfig-agent-*.rpm "${GCS_PATH}/"
 
 echo 'Package build success'
