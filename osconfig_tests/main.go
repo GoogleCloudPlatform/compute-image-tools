@@ -29,16 +29,17 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 )
 
 var (
-	oauth           = flag.String("oauth", "", "path to oauth json file")
 	testSuiteFilter = flag.String("test_suite_filter", "", "test suite filter")
 	testCaseFilter  = flag.String("test_case_filter", "", "test case filter")
 	outPath         = flag.String("out_path", "junit.xml", "junit xml path")
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
+	package_management.TestSuite,
 	inventory.TestSuite,
 }
 
@@ -70,7 +71,7 @@ func main() {
 		}
 	}
 
-	logger := log.New(os.Stdout, "[OSConfigTests] ", 0)
+	logger := log.New(os.Stdout, "[OsConfigTests] ", 0)
 	logger.Println("Starting...")
 
 	tests := make(chan *junitxml.TestSuite)
