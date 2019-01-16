@@ -97,6 +97,7 @@
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
           "Family": "${family}",
+          "Licenses": ["projects/suse-cloud/global/licenses/sles-12"],
           "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true

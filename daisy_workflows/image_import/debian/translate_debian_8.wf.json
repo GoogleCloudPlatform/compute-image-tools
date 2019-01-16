@@ -50,6 +50,7 @@
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
           "Family": "${family}",
+          "Licenses": ["projects/debian-cloud/global/licenses/debian-8-jessie"],
           "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true
