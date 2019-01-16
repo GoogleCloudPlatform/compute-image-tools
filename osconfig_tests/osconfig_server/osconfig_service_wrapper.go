@@ -12,8 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package contains wrapper around osconfig service APIs and helper methods
-package osconfig_server
+// Package osconfigserver contains wrapper around osconfig service APIs and helper methods
+package osconfigserver
 
 import (
 	"context"
@@ -46,6 +46,7 @@ func getOsConfigClient(ctx context.Context, logger *log.Logger) (*osconfig.Clien
 	return client, err
 }
 
+// CreateOsConfig is a wrapper around createOsConfig API
 func CreateOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.CreateOsConfigRequest) (*osconfigpb.OsConfig, error) {
 	client, err := getOsConfigClient(ctx, logger)
 
@@ -65,6 +66,7 @@ func CreateOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.Cre
 	return res, nil
 }
 
+// ListOsConfigs is a wrapper around listOsConfigs API
 func ListOsConfigs(ctx context.Context, logger *log.Logger, req *osconfigpb.ListOsConfigsRequest) *osconfig.OsConfigIterator {
 	client, err := getOsConfigClient(ctx, logger)
 
@@ -76,13 +78,14 @@ func ListOsConfigs(ctx context.Context, logger *log.Logger, req *osconfigpb.List
 
 	resp := client.ListOsConfigs(ctx, req)
 	if resp == nil {
-		logger.Printf("error while listing osconfig:\n%s\n\n", *resp)
+		logger.Printf("error while listing osconfig:\n%v\n\n", resp)
 		return nil
 	}
 
 	return resp
 }
 
+// DeleteOsConfig is a wrapper around deleteOsConfig API
 func DeleteOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.DeleteOsConfigRequest) error {
 	client, err := getOsConfigClient(ctx, logger)
 
@@ -100,8 +103,7 @@ func DeleteOsConfig(ctx context.Context, logger *log.Logger, req *osconfigpb.Del
 	return ok
 }
 
-// This function will cleanup all the osconfig created under project
-// Assumption is that this project is only used by this test application
+// CleanupOsConfig function will cleanup the osconfig created under project
 func CleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, osConfig *osconfigpb.OsConfig) {
 
 	logger.Printf("Starting OsConfig cleanup...")

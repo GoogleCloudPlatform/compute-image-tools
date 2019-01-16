@@ -29,7 +29,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
+	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 )
 
 var (
@@ -39,7 +39,7 @@ var (
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
-	package_management.TestSuite,
+	packagemanagement.TestSuite,
 	inventory.TestSuite,
 }
 

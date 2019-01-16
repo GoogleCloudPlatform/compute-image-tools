@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package package_management
+package packagemanagement
 
 import (
 	"context"
@@ -26,7 +26,7 @@ import (
 	api "google.golang.org/api/compute/v1"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	osconfig_server "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 )
 
 const testSuiteName = "PackageManagementTests"
@@ -115,10 +115,10 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger) {
 
 	osConfig := &osconfigpb.OsConfig{
-		Name: "foo",
+		Name: "CreateOsConfig-test-osconfig",
 	}
 
-	defer osconfig_server.CleanupOsConfig(ctx, testCase, logger, osConfig)
+	defer osconfigserver.CleanupOsConfig(ctx, testCase, logger, osConfig)
 
 	req := &osconfigpb.CreateOsConfigRequest{
 		Parent:   "projects/compute-image-test-pool-001",
@@ -127,7 +127,7 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, log
 
 	logger.Printf("create osconfig request:\n%s\n\n", dump.Sprint(req))
 
-	res, err := osconfig_server.CreateOsConfig(ctx, logger, req)
+	res, err := osconfigserver.CreateOsConfig(ctx, logger, req)
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig:\n%s\n\n", err)
 	}
