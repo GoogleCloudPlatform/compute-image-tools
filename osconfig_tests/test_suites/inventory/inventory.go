@@ -32,6 +32,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
 )
@@ -42,44 +43,6 @@ const (
 	// TODO: Should these be configurable via flags?
 	testProject = "compute-image-test-pool-001"
 	testZone    = "us-central1-c"
-)
-
-var (
-	installOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-apt-get update
-apt-get install -y google-osconfig-agent
-echo 'inventory install done'`
-
-	installOSConfigGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
-echo 'inventory install done'`
-
-	installOSConfigYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
-[google-osconfig-agent]
-name=Google OSConfig Agent Repository
-baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el7-unstable
-enabled=1
-gpgcheck=0
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM
-yum -y install google-osconfig-agent
-echo 'inventory install done'`
-
-	installOSConfigYumEL6 = `sleep 10
-cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
-[google-osconfig-agent]
-name=Google OSConfig Agent Repository
-baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el6-unstable
-enabled=1
-gpgcheck=0
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM
-yum -y install google-osconfig-agent
-echo 'inventory install done'`
 )
 
 type inventoryTestSetup struct {
@@ -111,7 +74,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installOSConfigGooGet,
+				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -120,7 +83,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installOSConfigGooGet,
+				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -129,7 +92,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installOSConfigGooGet,
+				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -138,7 +101,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installOSConfigGooGet,
+				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -147,7 +110,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installOSConfigGooGet,
+				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -156,7 +119,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installOSConfigGooGet,
+				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
 		&inventoryTestSetup{
@@ -165,7 +128,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "windows",
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-cmd",
-				Value: &installOSConfigGooGet,
+				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
 
@@ -176,7 +139,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "debian",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installOSConfigDeb,
+				Value: &utils.InstallOSConfigDeb,
 			},
 		},
 
@@ -187,7 +150,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "centos",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installOSConfigYumEL6,
+				Value: &utils.InstallOSConfigYumEL6,
 			},
 		},
 		&inventoryTestSetup{
@@ -196,7 +159,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "centos",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installOSConfigYumEL7,
+				Value: &utils.InstallOSConfigYumEL7,
 			},
 		},
 
@@ -207,7 +170,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "rhel",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installOSConfigYumEL6,
+				Value: &utils.InstallOSConfigYumEL6,
 			},
 		},
 		&inventoryTestSetup{
@@ -216,7 +179,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "rhel",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installOSConfigYumEL7,
+				Value: &utils.InstallOSConfigYumEL7,
 			},
 		},
 
@@ -227,7 +190,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installOSConfigDeb,
+				Value: &utils.InstallOSConfigDeb,
 			},
 		},
 		&inventoryTestSetup{
@@ -236,7 +199,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installOSConfigDeb,
+				Value: &utils.InstallOSConfigDeb,
 			},
 		},
 	}
@@ -269,7 +232,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	testSetup.name = fmt.Sprintf("inventory-test-%s-%s", path.Base(testSetup.image), compute.RandString(5))
+	testSetup.name = fmt.Sprintf("inventory-test-%s-%s", path.Base(testSetup.image), utils.RandString(5))
 
 	i := &api.Instance{
 		Name:        testSetup.name,
