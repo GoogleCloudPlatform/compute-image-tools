@@ -58,16 +58,28 @@ install -p -m 0644 %{name}.conf %{buildroot}/etc/init
 %endif
 
 %post
+%if 0%{?el6}
+if [ $1 -eq 1 ]; then
+  # Start the service on first install
+  start -q -n google-osconfig-agent
+fi
+if [ $1 -eq 2 ]; then
+  # Restart on upgrade
+  restart -q -n google-osconfig-agent
+fi
+%endif
+
 %if 0%{?el7}
 %systemd_post google-osconfig-agent.service
-%endif
+if [ $1 -eq 1 ]; then
+  # Start the service on first install
+  systemctl start google-osconfig-agent.service
+fi
 
 %preun
-%if 0%{?el7}
 %systemd_preun google-osconfig-agent.service
-%endif
 
 %postun
-%if 0%{?el7}
 %systemd_postun_with_restart google-osconfig-agent.service
+
 %endif

@@ -36,21 +36,25 @@ import (
 	api "google.golang.org/api/compute/v1"
 )
 
-const testSuiteName = "InventoryTests"
+const (
+	testSuiteName = "InventoryTests"
 
-// TODO: Should these be configurable via flags?
-const testProject = "compute-image-test-pool-001"
-const testZone = "us-central1-c"
+	// TODO: Should these be configurable via flags?
+	testProject = "compute-image-test-pool-001"
+	testZone    = "us-central1-c"
+)
 
-// TODO: Move to the new combined osconfig package, also make this easily available to other tests.
-var installOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
+var (
+	installOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-osconfig-agent
 echo 'inventory install done'`
-var installOSConfigGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
+
+	installOSConfigGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
 echo 'inventory install done'`
-var installOSConfigYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
+
+	installOSConfigYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [google-osconfig-agent]
 name=Google OSConfig Agent Repository
 baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el7-unstable
@@ -62,7 +66,8 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
 EOM
 yum -y install google-osconfig-agent
 echo 'inventory install done'`
-var installOSConfigYumEL6 = `sleep 10
+
+	installOSConfigYumEL6 = `sleep 10
 cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [google-osconfig-agent]
 name=Google OSConfig Agent Repository
@@ -75,6 +80,7 @@ gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
 EOM
 yum -y install google-osconfig-agent
 echo 'inventory install done'`
+)
 
 type inventoryTestSetup struct {
 	image       string
@@ -215,15 +221,6 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		},
 
 		// Ubuntu images
-		&inventoryTestSetup{
-			image:       "projects/ubuntu-os-cloud/global/images/family/ubuntu-1404-lts",
-			packageType: []string{"deb"},
-			shortName:   "ubuntu",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &installOSConfigDeb,
-			},
-		},
 		&inventoryTestSetup{
 			image:       "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
 			packageType: []string{"deb"},
