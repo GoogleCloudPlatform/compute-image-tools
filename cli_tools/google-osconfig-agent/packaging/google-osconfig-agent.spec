@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Force the dist to be el7 to avoid el7.centos.
+
 Name: google-osconfig-agent
 Version: %{_version}
 Release: 1%{?dist}
@@ -21,7 +23,7 @@ Url: https://github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google
 Source0: %{name}_%{version}.orig.tar.gz
 
 BuildArch: %{_arch}
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 BuildRequires: systemd
 %endif
 
@@ -37,7 +39,7 @@ GOPATH=%{_gopath} CGO_ENABLED=0 %{_go} build -ldflags="-s -w -X main.version=%{_
 %install
 install -d %{buildroot}%{_bindir}
 install -p -m 0755 google_osconfig_agent %{buildroot}%{_bindir}/google_osconfig_agent
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 install -d %{buildroot}%{_unitdir}
 install -d %{buildroot}%{_presetdir}
 install -p -m 0644 %{name}.service %{buildroot}%{_unitdir}
@@ -50,7 +52,7 @@ install -p -m 0644 %{name}.conf %{buildroot}/etc/init
 %files
 %defattr(-,root,root,-)
 %{_bindir}/google_osconfig_agent
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 %{_unitdir}/%{name}.service
 %{_presetdir}/90-%{name}.preset
 %else
@@ -58,16 +60,16 @@ install -p -m 0644 %{name}.conf %{buildroot}/etc/init
 %endif
 
 %post
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 %systemd_post google-osconfig-agent.service
 %endif
 
 %preun
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 %systemd_preun google-osconfig-agent.service
 %endif
 
 %postun
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 %systemd_postun_with_restart google-osconfig-agent.service
 %endif
