@@ -13,10 +13,10 @@
     "0.3.0 - Merge inventory agent funtionality"
   ],
   "install": {
-    "path": "install.ps1"
+    "path": "packaging/googet/install.ps1"
   },
   "uninstall": {
-    "path": "uninstall.ps1"
+    "path": "packaging/googet/uninstall.ps1"
   },
   "sources": [{
       "include": [

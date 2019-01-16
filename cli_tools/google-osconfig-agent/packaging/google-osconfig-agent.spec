@@ -21,7 +21,7 @@ Url: https://github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google
 Source0: %{name}_%{version}.orig.tar.gz
 
 BuildArch: %{_arch}
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 BuildRequires: systemd
 %endif
 
@@ -37,9 +37,11 @@ GOPATH=%{_gopath} CGO_ENABLED=0 %{_go} build -ldflags="-s -w -X main.version=%{_
 %install
 install -d %{buildroot}%{_bindir}
 install -p -m 0755 google_osconfig_agent %{buildroot}%{_bindir}/google_osconfig_agent
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 install -d %{buildroot}%{_unitdir}
+install -d %{buildroot}%{_presetdir}
 install -p -m 0644 %{name}.service %{buildroot}%{_unitdir}
+install -p -m 0644 90-%{name}.preset %{buildroot}%{_presetdir}/90-%{name}.preset
 %else
 install -d %{buildroot}/etc/init
 install -p -m 0644 %{name}.conf %{buildroot}/etc/init
@@ -48,16 +50,36 @@ install -p -m 0644 %{name}.conf %{buildroot}/etc/init
 %files
 %defattr(-,root,root,-)
 %{_bindir}/google_osconfig_agent
-%if 0%{?rhel} == 7
+%if 0%{?el7}
 %{_unitdir}/%{name}.service
+%{_presetdir}/90-%{name}.preset
 %else
 /etc/init/%{name}.conf
 %endif
 
 %post
-%if 0%{?rhel} == 7
-%systemd_post google-osconfig-agent.service
-if [ $1 -eq 2 ]; then
-  systemctl reload-or-restart google-osconfig-agent.service
+%if 0%{?el6}
+if [ $1 -eq 1 ]; then
+  # Start the service on first install
+  start -q -n google-osconfig-agent
 fi
+if [ $1 -eq 2 ]; then
+  # Restart on upgrade
+  restart -q -n google-osconfig-agent
+fi
+%endif
+
+%if 0%{?el7}
+%systemd_post google-osconfig-agent.service
+if [ $1 -eq 1 ]; then
+  # Start the service on first install
+  systemctl start google-osconfig-agent.service
+fi
+
+%preun
+%systemd_preun google-osconfig-agent.service
+
+%postun
+%systemd_postun_with_restart google-osconfig-agent.service
+
 %endif
