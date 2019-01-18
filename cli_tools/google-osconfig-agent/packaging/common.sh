@@ -14,7 +14,7 @@
 # limitations under the License.
 
 NAME="google-osconfig-agent"
-VERSION="0.4.2"
+VERSION="0.4.3"
 GOLANG="go1.11.4.linux-amd64.tar.gz"
 GO=/tmp/go/bin/go
 export GOPATH=/usr/share/gocode
