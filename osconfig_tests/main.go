@@ -82,7 +82,7 @@ func main() {
 	}()
 
 	for ret := range tests {
-		testSuiteOutPath := filepath.Join(*outDir, fmt.Sprintf("%s.xml", ret.Name))
+		testSuiteOutPath := filepath.Join(*outDir, fmt.Sprintf("%s_junit.xml", ret.Name))
 		if err := os.MkdirAll(filepath.Dir(testSuiteOutPath), 0770); err != nil {
 			log.Fatal(err)
 		}
