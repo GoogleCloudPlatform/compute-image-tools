@@ -18,14 +18,20 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os/exec"
+	"path"
 	"regexp"
 	"sync"
+	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 )
 
@@ -35,29 +41,20 @@ const testSuiteName = "PackageManagementTests"
 const testProject = "compute-image-test-pool-001"
 const testZone = "us-central1-c"
 
-var dump = &pretty.Config{IncludeUnexported: true}
+var (
+	// dpkg-query
+	dpkgquery     = "/usr/bin/dpkg-query"
+	dpkgqueryArgs = []string{"-W"}
 
-var installOsConfigAgentDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-apt-get update
-apt-get install -y google-osconfig-agent
-echo 'osconfig agent install done'`
+	serviceAccountEmail  = "281997379984-compute@developer.gserviceaccount.com"
+	serviceAccountScopes = []string{
+		"https://www.googleapis.com/auth/cloud-platform",
+	}
 
-var installOsConfigAgentGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
-echo 'osconfig agent install done'`
+	writeToSerialConsole = " | sudo tee /dev/ttyS0"
 
-var installOsConfigAgentYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
-[google-osconfig-agent]
-name=Google OSConfig Agent Repository
-baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el7-unstable
-enabled=1
-gpgcheck=0
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM
-yum -y install google-osconfig-agent
-echo 'osconfig agent install done'`
+	dump = &pretty.Config{IncludeUnexported: true}
+)
 
 type packageManagementTestSetup struct {
 	image       string
@@ -88,7 +85,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "debian",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &installOsConfigAgentDeb,
+				Value: &utils.InstallOSConfigDeb,
 			},
 		},
 	}
@@ -112,22 +109,21 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger) {
+func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
 
-	osConfig := &osconfigpb.OsConfig{
-		Name: "create-osconfig-test",
+	oc := &osconfigserver.OsConfig{
+		&osconfigpb.OsConfig{
+			Name: "createosconfig-test-osconfig",
+		},
 	}
 
-	defer osconfigserver.CleanupOsConfig(ctx, testCase, logger, osConfig)
+	logger.Printf("create osconfig request:\n%s\n\n", dump.Sprint(oc))
 
-	req := &osconfigpb.CreateOsConfigRequest{
-		Parent:   "projects/compute-image-test-pool-001",
-		OsConfig: osConfig,
-	}
+	parent := fmt.Sprintf("projects/%s", testProject)
+	res, err := osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
 
-	logger.Printf("create osconfig request:\n%s\n\n", dump.Sprint(req))
+	defer cleanuposconfig(ctx, testCase, logger, oc)
 
-	res, err := osconfigserver.CreateOsConfig(ctx, logger, req)
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig:\n%s\n\n", err)
 	}
@@ -135,21 +131,175 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, log
 	logger.Printf("CreateOsConfig response:\n%s\n\n", dump.Sprint(res))
 }
 
+func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
+
+	osConfig, err := osconfigserver.JsonToOsConfig(packageInstallTestOsConfigString, logger)
+
+	if err != nil {
+		testCase.WriteFailure("error while converting json to osconfig: \n%s\n", err)
+		return
+	}
+
+	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
+
+	parent := fmt.Sprintf("projects/%s", testProject)
+	osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
+
+	if err != nil {
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		return
+	}
+
+	defer cleanuposconfig(ctx, testCase, logger, oc)
+
+	assignment, err := osconfigserver.JsonToAssignment(packageInstallTestAssignmentString, logger)
+	if err != nil {
+		testCase.WriteFailure("error while converting json to assignment: \n%s\n", err)
+		return
+	}
+
+	assign := &osconfigserver.Assignment{Assignment: assignment}
+
+	res, err := osconfigserver.CreateAssignment(ctx, logger, assign, parent)
+	if err != nil {
+		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+	}
+	_ = res
+
+	defer cleanupassignment(ctx, testCase, logger, assign)
+
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("error creating client: %v", err)
+		return
+	}
+
+	testCase.Logf("Creating instance with image %q", testSetup.image)
+	testSetup.name = fmt.Sprintf("osconfig-test-%s-%s", path.Base(testSetup.image), "packageinstalltest")
+
+	i := &api.Instance{
+		Name:        testSetup.name,
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
+		NetworkInterfaces: []*api.NetworkInterface{
+			&api.NetworkInterface{
+				Network: "global/networks/default",
+				AccessConfigs: []*api.AccessConfig{
+					&api.AccessConfig{
+						Type: "ONE_TO_ONE_NAT",
+					},
+				},
+			},
+		},
+		Metadata: &api.Metadata{
+			Items: []*api.MetadataItems{
+				testSetup.startup,
+			},
+		},
+		Disks: []*api.AttachedDisk{
+			&api.AttachedDisk{
+				AutoDelete: true,
+				Boot:       true,
+				InitializeParams: &api.AttachedDiskInitializeParams{
+					SourceImage: testSetup.image,
+				},
+			},
+		},
+		ServiceAccounts: []*api.ServiceAccount{
+			&api.ServiceAccount{
+				Email:  serviceAccountEmail,
+				Scopes: serviceAccountScopes,
+			},
+		},
+	}
+
+	inst, err := compute.CreateInstance(client, testProject, testZone, i)
+	if err != nil {
+		testCase.WriteFailure("Error creating instance: %v", err)
+		return
+	}
+	defer inst.Cleanup()
+
+	testCase.Logf("Waiting for agent install to complete")
+	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
+		return
+	}
+
+	testCase.Logf("Agent installed successfully")
+
+	// allow agent to make the lookupconfig call and install the package
+	time.Sleep(1 * time.Minute)
+	// TODO refactor to remove hardcoding of package name
+	listPkgCmd := getDebListCmd()
+	sshCmd := getGcloudSshCmd(testZone, testSetup.name, listPkgCmd, logger)
+	out, err := run(sshCmd, logger)
+
+	if err != nil {
+		testCase.WriteFailure("Error running verification command: %v", err)
+		return
+	}
+	_ = out
+
+	if err = inst.WaitForSerialOutput("cowsay", 1, 5*time.Second, 5*time.Minute); err != nil {
+		testCase.WriteFailure("Error waiting for assertion: %v", err)
+		return
+	}
+
+}
+
+func getGcloudSshCmd(zone string, instance string, pkgManagerCommand string, logger *log.Logger) *exec.Cmd {
+	return exec.Command("gcloud", []string{"compute", "ssh", "--zone", fmt.Sprintf("%s", zone), instance, "--command", fmt.Sprintf("%s %s\n", pkgManagerCommand, writeToSerialConsole)}...)
+}
+
+//TODO move this to common library
+func run(cmd *exec.Cmd, logger *log.Logger) ([]byte, error) {
+	logger.Printf("Running %q with args %q\n", cmd.Path, cmd.Args[1:])
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("error running %q with args %q: %v, stdout: %s", cmd.Path, cmd.Args, err, out)
+	}
+	return out, nil
+}
+
 func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
 	defer wg.Done()
 
 	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[CreateOsConfig] Create OsConfig"))
+	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstall] Pacakge installation"))
 
-	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *log.Logger){
+	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger){
 		createOsConfigTest: runCreateOsConfigTest,
+		packageInstallTest: runPackageInstallTest,
 	} {
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
 			logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
-			f(ctx, tc, logger)
+			f(ctx, tc, testSetup, logger)
 			tc.Finish(tests)
 			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}
 	}
+}
+
+func cleanuposconfig(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, oc *osconfigserver.OsConfig) {
+	err := oc.Cleanup(ctx, logger)
+	if err != nil {
+		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", err))
+	}
+}
+
+func cleanupassignment(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, assignment *osconfigserver.Assignment) {
+	err := assignment.Cleanup(ctx, logger)
+	if err != nil {
+		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", err))
+	}
+}
+
+func getDebListCmd() string {
+	cmd := dpkgquery
+	for _, arg := range dpkgqueryArgs {
+		cmd = fmt.Sprintf("%s %s", cmd, arg)
+	}
+	return cmd
 }
