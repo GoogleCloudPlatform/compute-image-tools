@@ -35,7 +35,7 @@ import (
 var (
 	testSuiteFilter = flag.String("test_suite_filter", "", "test suite filter")
 	testCaseFilter  = flag.String("test_case_filter", "", "test case filter")
-	outPath         = flag.String("out_path", "junit.xml", "junit xml path")
+	outDir          = flag.String("out_dir", "/tmp", "junit xml directory")
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
@@ -82,7 +82,7 @@ func main() {
 	}()
 
 	for ret := range tests {
-		testSuiteOutPath := fmt.Sprintf("%s-%s", ret.Name, *outPath)
+		testSuiteOutPath := filepath.Join(*outDir, fmt.Sprintf("%s.xml", ret.Name))
 		if err := os.MkdirAll(filepath.Dir(testSuiteOutPath), 0770); err != nil {
 			log.Fatal(err)
 		}
