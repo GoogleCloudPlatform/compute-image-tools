@@ -19,6 +19,7 @@
           "Name": "${instance}",
           "Disks": [{"InitializeParams": {"SourceImage": "${source_image}"}, "AutoDelete": true}],
           "Scopes": [],
+          "ServiceAccounts": [],
           "Metadata": {
             "${startup_script_meta_key}": "${startup_script_meta}",
             "${windows_startup_script_meta_key}": "${startup_script_meta}",
