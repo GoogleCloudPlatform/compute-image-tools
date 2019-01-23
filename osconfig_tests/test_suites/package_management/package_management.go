@@ -115,7 +115,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger) {
 
 	osConfig := &osconfigpb.OsConfig{
-		Name: "CreateOsConfig-test-osconfig",
+		Name: "createOsConfig-test-osconfig",
 	}
 
 	defer osconfigserver.CleanupOsConfig(ctx, testCase, logger, osConfig)
