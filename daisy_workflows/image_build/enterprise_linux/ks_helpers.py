@@ -241,14 +241,21 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     if byol:
       custom_post = '\n'.join([custom_post, rhel_byol_post])
     if uefi:
-      rhel_uefi_post = FetchConfigPart('rhel7-uefi-post.cfg')
-      custom_post = '\n'.join([custom_post, rhel_uefi_post])
+      el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg')
+      custom_post = '\n'.join([custom_post, el7_uefi_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
     logging.info('Building CentOS 7 image.')
-    ks_options = FetchConfigPart('el7-options.cfg')
+    if uefi:
+      logging.info('Building CentOS 7 for UEFI')
+      ks_options = FetchConfigPart('el7-uefi-options.cfg')
+    else:
+      ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('el7-post.cfg')
+    if uefi:
+      el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg')
+      custom_post = '\n'.join([custom_post, el7_uefi_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "oraclelinux6":
