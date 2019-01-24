@@ -43,7 +43,7 @@ def YumInstall(package_list):
 YumInstall.first_run = True
 
 
-def AptGetInstall(package_list):
+def AptGetInstall(package_list, suite=None):
   if AptGetInstall.first_run:
     try:
       Execute(['apt-get', 'update'])
@@ -54,7 +54,12 @@ def AptGetInstall(package_list):
 
   env = os.environ.copy()
   env['DEBIAN_FRONTEND'] = 'noninteractive'
-  return Execute(['apt-get', '-q', '-y', 'install'] + package_list, env=env)
+
+  cmd = ['apt-get', '-q', '-y', 'install']
+  if suite:
+      cmd += ['-t', suite]
+
+  return Execute(cmd + package_list, env=env)
 
 
 AptGetInstall.first_run = True
