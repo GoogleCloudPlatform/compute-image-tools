@@ -126,7 +126,7 @@ periodics:
     containers:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
-      - "-out_path=/artifacts/junit.xml"
+      - "-out_dir=/artifacts"
       volumeMounts:
       - name: compute-image-tools-test-service-account
         mountPath: /etc/compute-image-tools-test-service-account

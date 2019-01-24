@@ -35,7 +35,7 @@ import (
 var (
 	testSuiteFilter = flag.String("test_suite_filter", "", "test suite filter")
 	testCaseFilter  = flag.String("test_case_filter", "", "test case filter")
-	outPath         = flag.String("out_path", "junit.xml", "junit xml path")
+	outDir          = flag.String("out_dir", "/tmp", "junit xml directory")
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
@@ -46,10 +46,6 @@ var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.Test
 func main() {
 	flag.Parse()
 	ctx := context.Background()
-
-	if err := os.MkdirAll(filepath.Dir(*outPath), 0770); err != nil {
-		log.Fatal(err)
-	}
 
 	var testSuiteRegex *regexp.Regexp
 	if *testSuiteFilter != "" {
@@ -85,23 +81,25 @@ func main() {
 		close(tests)
 	}()
 
-	var testSuites []*junitxml.TestSuite
 	for ret := range tests {
-		testSuites = append(testSuites, ret)
-	}
+		testSuiteOutPath := filepath.Join(*outDir, fmt.Sprintf("%s_junit.xml", ret.Name))
+		if err := os.MkdirAll(filepath.Dir(testSuiteOutPath), 0770); err != nil {
+			log.Fatal(err)
+		}
 
-	logger.Printf("Creating junit xml file: %q", *outPath)
-	d, err := xml.MarshalIndent(testSuites, "  ", "   ")
-	if err != nil {
-		log.Fatal(err)
-	}
+		logger.Printf("Creating junit xml file: %s", testSuiteOutPath)
+		d, err := xml.MarshalIndent(ret, "  ", "   ")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if err := ioutil.WriteFile(*outPath, d, 0644); err != nil {
-		log.Fatal(err)
+		if err := ioutil.WriteFile(testSuiteOutPath, d, 0644); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	var buf bytes.Buffer
-	for _, ts := range testSuites {
+	for ts := range tests {
 		if ts.Failures > 0 {
 			buf.WriteString(fmt.Sprintf("TestSuite %q has errors:\n", ts.Name))
 			for _, tc := range ts.TestCase {
