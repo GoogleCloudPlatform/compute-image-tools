@@ -26,7 +26,7 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-func rebootRequired() (bool, error) {
+func systemRebootRequired() (bool, error) {
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired`, registry.QUERY_VALUE)
 	if err != nil {
 		if err == registry.ErrNotExist {
@@ -218,31 +218,18 @@ var classifications = map[osconfigpb.WindowsUpdateSettings_Classification]string
 	osconfigpb.WindowsUpdateSettings_UPDATE:        "cd5ffd1e-e932-4e3a-bf74-18bf0b1bbd83",
 }
 
-func runUpdates(pc *osconfigpb.PatchConfig) (bool, error) {
-	if pc.RebootConfig != osconfigpb.PatchConfig_NEVER {
-		reboot, err := rebootRequired()
-		if err != nil {
-			return false, err
-		}
-		if reboot {
-			return true, nil
-		}
-	}
-
+func runUpdates(pc *osconfigpb.PatchConfig) error {
 	if err := installWUAUpdates(pc); err != nil {
-		return false, err
+		return err
 	}
 
 	if packages.GooGetExists {
 		if err := packages.InstallGooGetUpdates(); err != nil {
-			return false, err
+			return err
 		}
 	}
 
-	if pc.RebootConfig != osconfigpb.PatchConfig_NEVER {
-		return rebootRequired()
-	}
-	return false, nil
+	return nil
 }
 
 func rebootSystem() error {
