@@ -34,7 +34,7 @@ func JsonToOsConfig(jsonString string, logger *log.Logger) (*osconfigpb.OsConfig
 	return &osconfig, err
 }
 
-//
+// JsonToAssignment creates an assignment object from json string
 func JsonToAssignment(jsonString string, logger *log.Logger) (*osconfigpb.Assignment, error) {
 
 	var assignment osconfigpb.Assignment

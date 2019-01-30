@@ -31,7 +31,6 @@ type Assignment struct {
 // CreateAssignment is a wrapper around createAssignment API
 func CreateAssignment(ctx context.Context, logger *log.Logger, assignment *Assignment, parent string) (*Assignment, error) {
 	client, err := GetOsConfigClient(ctx, logger)
-
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +53,7 @@ func CreateAssignment(ctx context.Context, logger *log.Logger, assignment *Assig
 }
 
 // Cleanup function will cleanup the assignment created under project
-func (o *Assignment) Cleanup(ctx context.Context, logger *log.Logger) error {
+func (a *Assignment) Cleanup(ctx context.Context, logger *log.Logger) error {
 	client, err := GetOsConfigClient(ctx, logger)
 
 	if err != nil {
@@ -64,7 +63,7 @@ func (o *Assignment) Cleanup(ctx context.Context, logger *log.Logger) error {
 	logger.Printf("Deleting assignment...")
 
 	deleteReq := &osconfigpb.DeleteAssignmentRequest{
-		Name: fmt.Sprintf("projects/compute-image-test-pool-001/assignments/%s", o.Name),
+		Name: fmt.Sprintf("projects/compute-image-test-pool-001/assignments/%s", a.Name),
 	}
 	ok := client.DeleteAssignment(ctx, deleteReq)
 	if ok != nil {

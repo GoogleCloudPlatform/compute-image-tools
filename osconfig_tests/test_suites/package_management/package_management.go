@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
-	"path"
 	"regexp"
 	"sync"
 	"time"
@@ -34,16 +33,13 @@ import (
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 )
 
-const testSuiteName = "PackageManagementTests"
+const (
+	testSuiteName = "PackageManagementTests"
+	testProject   = "compute-image-test-pool-001"
+	testZone      = "us-central1-c"
 
-// TODO: Should these be configurable via flags?
-const testProject = "compute-image-test-pool-001"
-const testZone = "us-central1-c"
-
-var (
 	// dpkg-query
-	dpkgquery     = "/usr/bin/dpkg-query"
-	dpkgqueryArgs = []string{"-W"}
+	dpkgListCmd = "/usr/bin/dpkg-query -W"
 
 	serviceAccountEmail  = "281997379984-compute@developer.gserviceaccount.com"
 	serviceAccountScopes = []string{
@@ -121,7 +117,7 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	parent := fmt.Sprintf("projects/%s", testProject)
 	res, err := osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
 
-	defer cleanuposconfig(ctx, testCase, logger, oc)
+	defer cleanupOsConfig(ctx, testCase, logger, oc)
 
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig:\n%s\n\n", err)
@@ -149,7 +145,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 		return
 	}
 
-	defer cleanuposconfig(ctx, testCase, logger, oc)
+	defer cleanupOsConfig(ctx, testCase, logger, oc)
 
 	assignment, err := osconfigserver.JsonToAssignment(packageInstallTestAssignmentString, logger)
 	if err != nil {
@@ -159,13 +155,12 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	assign := &osconfigserver.Assignment{Assignment: assignment}
 
-	res, err := osconfigserver.CreateAssignment(ctx, logger, assign, parent)
+	_, err := osconfigserver.CreateAssignment(ctx, logger, assign, parent)
 	if err != nil {
 		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
 	}
-	_ = res
 
-	defer cleanupassignment(ctx, testCase, logger, assign)
+	defer cleanupAssignment(ctx, testCase, logger, assign)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -174,8 +169,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	testSetup.name = fmt.Sprintf("osconfig-test-%s-%s", path.Base(testSetup.image), "packageinstalltest")
-
+	testSetup.name = getTestSetupName(testSetup.image, "packageInstallTest")
 	i := &api.Instance{
 		Name:        testSetup.name,
 		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
@@ -228,9 +222,8 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	// allow agent to make the lookupconfig call and install the package
 	time.Sleep(1 * time.Minute)
-	// TODO refactor to remove hardcoding of package name
-	listPkgCmd := getDebListCmd()
-	sshCmd := getGcloudSshCmd(testZone, testSetup.name, listPkgCmd, logger)
+
+	sshCmd := getGcloudSshCmd(testZone, testSetup.name, dpkgListCmd, logger)
 	out, err := run(sshCmd, logger)
 
 	if err != nil {
@@ -239,15 +232,18 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 	_ = out
 
+	// TODO refactor to remove hardcoding of package name
 	if err = inst.WaitForSerialOutput("cowsay", 1, 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for assertion: %v", err)
 		return
 	}
-
 }
 
 func getGcloudSshCmd(zone string, instance string, pkgManagerCommand string, logger *log.Logger) *exec.Cmd {
-	return exec.Command("gcloud", []string{"compute", "ssh", "--zone", fmt.Sprintf("%s", zone), instance, "--command", fmt.Sprintf("%s %s\n", pkgManagerCommand, writeToSerialConsole)}...)
+	return exec.Command("gcloud", []string{"compute", "ssh", "--zone",
+		fmt.Sprintf("%s", zone),
+		instance, "--command", fmt.Sprintf("%s %s\n",
+			pkgManagerCommand, writeToSerialConsole)}...)
 }
 
 //TODO move this to common library
@@ -281,24 +277,20 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 	}
 }
 
-func cleanuposconfig(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, oc *osconfigserver.OsConfig) {
+func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, oc *osconfigserver.OsConfig) {
 	err := oc.Cleanup(ctx, logger)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", err))
 	}
 }
 
-func cleanupassignment(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, assignment *osconfigserver.Assignment) {
+func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, assignment *osconfigserver.Assignment) {
 	err := assignment.Cleanup(ctx, logger)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", err))
 	}
 }
 
-func getDebListCmd() string {
-	cmd := dpkgquery
-	for _, arg := range dpkgqueryArgs {
-		cmd = fmt.Sprintf("%s %s", cmd, arg)
-	}
-	return cmd
+func getTestSetupName(imageName string, testName string) {
+	return fmt.Sprintf("osconfig-test-%s-%s", imageName, testName)
 }
