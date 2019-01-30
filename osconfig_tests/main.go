@@ -28,7 +28,6 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 )
 
@@ -40,7 +39,7 @@ var (
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
 	packagemanagement.TestSuite,
-	inventory.TestSuite,
+	// inventory.TestSuite,
 }
 
 func main() {

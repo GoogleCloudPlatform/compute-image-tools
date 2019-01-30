@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+	"path"
 	"regexp"
 	"sync"
 	"time"
@@ -39,15 +40,15 @@ const (
 	testZone      = "us-central1-c"
 
 	// dpkg-query
-	dpkgListCmd = "/usr/bin/dpkg-query -W"
-
+	dpkgListCmd          = "/usr/bin/dpkg-query -W"
 	serviceAccountEmail  = "281997379984-compute@developer.gserviceaccount.com"
+	writeToSerialConsole = " | sudo tee /dev/ttyS0"
+)
+
+var (
 	serviceAccountScopes = []string{
 		"https://www.googleapis.com/auth/cloud-platform",
 	}
-
-	writeToSerialConsole = " | sudo tee /dev/ttyS0"
-
 	dump = &pretty.Config{IncludeUnexported: true}
 )
 
@@ -155,7 +156,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	assign := &osconfigserver.Assignment{Assignment: assignment}
 
-	_, err := osconfigserver.CreateAssignment(ctx, logger, assign, parent)
+	_, err = osconfigserver.CreateAssignment(ctx, logger, assign, parent)
 	if err != nil {
 		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
 	}
@@ -169,7 +170,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	testSetup.name = getTestSetupName(testSetup.image, "packageInstallTest")
+	testSetup.name = getTestSetupName(path.Base(testSetup.image), "packageinstalltest")
 	i := &api.Instance{
 		Name:        testSetup.name,
 		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
@@ -220,22 +221,31 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	testCase.Logf("Agent installed successfully")
 
-	// allow agent to make the lookupconfig call and install the package
-	time.Sleep(1 * time.Minute)
+	// agent might take a while to install the package. retry the command until timeout
+	var sleepTime = 5 * time.Second
+	var timeout = 60 * time.Second
+	var totalTime = 0 * time.Second
+	for {
+		sshCmd := getGcloudSshCmd(testZone, testSetup.name, dpkgListCmd, logger)
+		_, err := run(sshCmd, logger)
 
-	sshCmd := getGcloudSshCmd(testZone, testSetup.name, dpkgListCmd, logger)
-	out, err := run(sshCmd, logger)
+		if err != nil {
+			testCase.WriteFailure("Error running verification command: %v", err)
+			return
+		}
+		// TODO refactor to remove hardcoding of package name
+		// read the serial console once
+		if err = inst.WaitForSerialOutput("cowsay", 1, sleepTime, sleepTime); err == nil {
+			return
+		}
 
-	if err != nil {
-		testCase.WriteFailure("Error running verification command: %v", err)
-		return
-	}
-	_ = out
-
-	// TODO refactor to remove hardcoding of package name
-	if err = inst.WaitForSerialOutput("cowsay", 1, 5*time.Second, 5*time.Minute); err != nil {
-		testCase.WriteFailure("Error waiting for assertion: %v", err)
-		return
+		totalTime = totalTime + sleepTime
+		if totalTime < timeout {
+			logger.Print("Did not get expected response from serial console, will retry")
+		} else {
+			testCase.WriteFailure("Error while assertion: %v", err)
+			break
+		}
 	}
 }
 
@@ -291,6 +301,6 @@ func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, logger 
 	}
 }
 
-func getTestSetupName(imageName string, testName string) {
+func getTestSetupName(imageName string, testName string) string {
 	return fmt.Sprintf("osconfig-test-%s-%s", imageName, testName)
 }
