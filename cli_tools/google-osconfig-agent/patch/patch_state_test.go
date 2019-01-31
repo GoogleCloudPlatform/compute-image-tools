@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	testPatchRunJSON = "{\"Job\":{\"ReportPatchJobInstanceDetailsResponse\":{\"patchJobName\":\"flipyflappy\",\"patchConfig\":{\"rebootConfig\":\"ALWAYS\"}}},\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false}"
+	testPatchRunJSON = "{\"Job\":{\"ReportPatchJobInstanceDetailsResponse\":{\"patchJobName\":\"flipyflappy\",\"patchConfig\":{\"rebootConfig\":\"ALWAYS\"}}},\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false,\"PatchStep\":0}"
 	testPatchRun     = &patchRun{
 		Job: &patchJob{
 			&osconfigpb.ReportPatchJobInstanceDetailsResponse{
