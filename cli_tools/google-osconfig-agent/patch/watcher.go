@@ -23,14 +23,19 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 )
 
-const defaultEtag = "NONE"
+const (
+	defaultEtag      = ""
+	metadataURL      = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&wait_for_change=true&last_etag="
+	metadataPatchKey = "osconfig-patch-notify"
+)
 
 var (
-	metadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/osconfig-patch-notify?wait_for_change=true&last_etag="
-	etag        = defaultEtag
+	etag                = defaultEtag
+	currentPatchJobName = ""
 )
 
 func updateEtag(resp *http.Response) bool {
@@ -66,10 +71,11 @@ func watchMetadata() (string, error) {
 	return string(md), nil
 }
 
-func watcher(ctx context.Context) {
+func watcher(ctx context.Context, savedPatchJobName string) {
+	currentPatchJobName = savedPatchJobName
 	webError := 0
 	for {
-		md, err := watchMetadata()
+		_, err := watchMetadata()
 		if err != nil {
 			// Only log the second web error to avoid transient errors and
 			// not to spam the log on network failures.
@@ -88,9 +94,30 @@ func watcher(ctx context.Context) {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		id := strings.Split(md, ",")[0]
-		if id != "" {
-			ackPatch(ctx, id)
+
+		patchNotification, err := metadata.InstanceAttributeValue(metadataPatchKey)
+		if err != nil {
+			switch err.(type) {
+			case metadata.NotDefinedError:
+				logger.Debugf("Metadata updated but key '%s' not set.", metadataPatchKey)
+				continue
+			default:
+				logger.Errorf("Error when requesting metadata, make sure your instance has an active network and can reach the metadata server. %v", err)
+				continue
+			}
+		}
+
+		patchJobName := strings.Split(patchNotification, ",")[0]
+
+		if currentPatchJobName == patchJobName {
+			logger.Debugf("Already ran patch '%s'. Ignoring notification.", patchJobName)
+			continue
+		}
+
+		currentPatchJobName = patchJobName
+
+		if patchJobName != "" {
+			ackPatch(ctx, patchJobName)
 		}
 		webError = 0
 	}

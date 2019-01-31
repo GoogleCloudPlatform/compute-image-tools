@@ -30,20 +30,24 @@ import (
 
 // Init starts the patch system.
 func Init(ctx context.Context) {
+	savedPatchName := ""
 	// Load current patch state off disk.
 	pr, err := loadState(state)
 	if err != nil {
 		logger.Errorf("loadState error: %v", err)
-	} else if pr != nil && !pr.Complete {
-		client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
-		if err != nil {
-			logger.Errorf("osconfig.NewClient Error: %v", err)
-		} else {
-			tasker.Enqueue("Run patch", func() { patchRunner(ctx, client, pr) })
+	} else if pr != nil {
+		savedPatchName = pr.Job.PatchJobName
+		if !pr.Complete {
+			client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+			if err != nil {
+				logger.Errorf("osconfig.NewClient Error: %v", err)
+			} else {
+				tasker.Enqueue("Run patch", func() { patchRunner(ctx, client, pr) })
+			}
 		}
 	}
 
-	go watcher(ctx)
+	go watcher(ctx, savedPatchName)
 }
 
 type patchRun struct {
