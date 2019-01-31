@@ -28,9 +28,9 @@ import (
 )
 
 const (
-	defaultEtag         = ""
-	metadataURL         = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&wait_for_change=true&last_etag="
-	metadataPatchKey    = "osconfig-patch-notify"
+	defaultEtag      = ""
+	metadataURL      = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&wait_for_change=true&last_etag="
+	metadataPatchKey = "osconfig-patch-notify"
 )
 
 var (
