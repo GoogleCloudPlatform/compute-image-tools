@@ -52,7 +52,7 @@ func main() {
 		var err error
 		testSuiteRegex, err = regexp.Compile(*testSuiteFilter)
 		if err != nil {
-			fmt.Println("-testCaseFilter flag not valid:", err)
+			fmt.Println("-testSuiteFilter flag not valid:", err)
 			os.Exit(1)
 		}
 	}
@@ -81,7 +81,9 @@ func main() {
 		close(tests)
 	}()
 
+	var testSuites []*junitxml.TestSuite
 	for ret := range tests {
+		testSuites = append(testSuites, ret)
 		testSuiteOutPath := filepath.Join(*outDir, fmt.Sprintf("junit_%s.xml", ret.Name))
 		if err := os.MkdirAll(filepath.Dir(testSuiteOutPath), 0770); err != nil {
 			log.Fatal(err)
@@ -99,7 +101,7 @@ func main() {
 	}
 
 	var buf bytes.Buffer
-	for ts := range tests {
+	for _, ts := range testSuites {
 		if ts.Failures > 0 {
 			buf.WriteString(fmt.Sprintf("TestSuite %q has errors:\n", ts.Name))
 			for _, tc := range ts.TestCase {
