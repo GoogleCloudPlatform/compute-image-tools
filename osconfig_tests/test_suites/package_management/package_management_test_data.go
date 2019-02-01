@@ -15,63 +15,71 @@
 package packagemanagement
 
 const (
-	packageInstallTestOsConfigString string = `{
-	"name": "packageinstalltest",
-	"description": "test osconfig to test package installation",
-	"apt": {
-		"package_installs": [{
-			"name": "cowsay"
-		}]
+	PackageInstallTestOsConfig = &osconfigpb.OsConfig{
+		Name:        "packageinstalltest",
+		Description: "test osconfig to test package installation",
+		Apt: &osconfigpb.AptPackageConfig{
+			PackageInstalls: []*osconfigpb.Package{
+				&osconfigpb.Package{
+					Name: "cowsay",
+				},
+			},
+		},
 	}
-}`
 
-	packageInstallTestAssignmentString string = `{
-	"name": "packageinstalltest",
-	"description": "test assignment to test package installation",
-	"os_configs": [
-		"projects/281997379984/osConfigs/packageinstalltest"
-	],
-	"expression": "instance.name==\"osconfig-test-debian-9-packageinstalltest\""
-}`
-
-	packageRemovalTestOsConfigString string = `{
-	"name": "packageremovaltest",
-	"description": "test osconfig to test package removal",
-	"apt": {
-		"package_removals": [{
-			"name": "wget"
-		}]
+	PackageInstallTestAssignment = &osconfigpb.Assignment{
+		Name:        "packageinstalltest",
+		Description: "test assignment to test package installation",
+		OsConfigs: []*string{
+			"projects/281997379984/osConfigs/packageinstalltest",
+		},
+		Expression: "instance.Name=\"osconfig-test-debian-9-packageinstalltest\"",
 	}
-}`
 
-	packageRemovalTestAssignmentString string = `{
-	"name": "packageinstalltest",
-	"description": "test assignment to test package installation",
-	"os_configs": [
-		"projects/281997379984/osConfigs/packageremovaltest"
-	],
-	"expression": "instance.name==\"osconfig-test-debian-9-packageremovaltest\""
-}`
-
-	packageInstallRemoveTestOsConfigString string = `{
-	"name": "packageinstallremovetest",
-	"description": "test osconfig to test package removal supersides installation",
-	"apt": {
-		"package_installs" : [{
-			"name": "cowsay"
-		}],
-		"package_removals": [{
-			"name": "cowsay"
-		}]
+	PackageRemovalTestOsConfig = &osconfigpb.OsConfig{
+		Name:        "packageremovaltest",
+		Description: "test osconfig to test package removal",
+		Apt: &osconfigpb.AptPackageConfig{
+			PackageRemovals: []*osconfigpb.Package{
+				&osconfigpb.Package{
+					Name: "cowsay",
+				},
+			},
+		},
 	}
-}`
 
-	packageInstallRemoveTestAssignmentString string = `{
-	"name": "packageinstallremovetest",
-	"description": "test assignment to test package installation",
-	"os_configs": [
-		"projects/281997379984/osConfigs/packageinstallremovetest"
-	],
-	"expression": "instance.name==\"osconfig-test-debian-9-packageinstallremovetest\""
-}`
+	PackageRemovalTestAssignment = &osconfigpb.Assignment{
+		Name:        "packageremovaltest",
+		Description: "test assignment to test package removal",
+		OsConfigs: []*string{
+			"projects/281997379984/osConfigs/packageremovaltest",
+		},
+		Expression: "instance.Name=\"osconfig-test-debian-9-packageremovaltest\"",
+	}
+
+	PackageInstalRemovalTestOsConfig = &osconfigpb.OsConfig{
+		Name:        "packageinstallremovaltest",
+		Description: "test osconfig to test package removal takes precedence over installation",
+		Apt: &osconfigpb.AptPackageConfig{
+			PackageInstalls: []*osconfigpb.Package{
+				&osconfigpb.Package{
+					Name: "cowsay",
+				},
+			},
+			PackageRemovals: []*osconfigpb.Package{
+				&osconfigpb.Package{
+					Name: "cowsay",
+				},
+			},
+		},
+	}
+
+	PackageInstallRemovalTestAssignment = &osconfigpb.Assignment{
+		Name:        "packageinstallremovaltest",
+		Description: "test assignment to test package install removal test",
+		OsConfigs: []*string{
+			"projects/281997379984/osConfigs/packageinstallremovaltest",
+		},
+		Expression: "instance.Name=\"osconfig-test-debian-9-packageinstallremovaltest\"",
+	}
 )

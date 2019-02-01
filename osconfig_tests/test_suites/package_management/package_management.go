@@ -112,9 +112,9 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	logger.Printf("create osconfig request:\n%s\n\n", dump.Sprint(oc))
 
 	parent := fmt.Sprintf("projects/%s", testProject)
-	res, err := osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
+	res, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
-	defer cleanupOsConfig(ctx, testCase, logger, oc)
+	defer cleanupOsConfig(ctx, testCase, oc)
 
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig:\n%s\n\n", err)
@@ -135,14 +135,14 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
 
 	parent := fmt.Sprintf("projects/%s", testProject)
-	osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
+	osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
 		return
 	}
 
-	defer cleanupOsConfig(ctx, testCase, logger, oc)
+	defer cleanupOsConfig(ctx, testCase, oc)
 
 	assignment, err := osconfigserver.JsonToAssignment(packageRemovalTestAssignmentString, logger)
 	if err != nil {
@@ -152,12 +152,12 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	assign := &osconfigserver.Assignment{Assignment: assignment}
 
-	_, err = osconfigserver.CreateAssignment(ctx, logger, assign, parent)
+	_, err = osconfigserver.CreateAssignment(ctx, assign, parent)
 	if err != nil {
 		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
 	}
 
-	defer cleanupAssignment(ctx, testCase, logger, assign)
+	defer cleanupAssignment(ctx, testCase, assign)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -233,14 +233,14 @@ func runPackageInstallRemoveTest(ctx context.Context, testCase *junitxml.TestCas
 	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
 
 	parent := fmt.Sprintf("projects/%s", testProject)
-	osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
+	osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
 		return
 	}
 
-	defer cleanupOsConfig(ctx, testCase, logger, oc)
+	defer cleanupOsConfig(ctx, testCase, oc)
 
 	assignment, err := osconfigserver.JsonToAssignment(packageInstallRemoveTestAssignmentString, logger)
 	if err != nil {
@@ -250,12 +250,12 @@ func runPackageInstallRemoveTest(ctx context.Context, testCase *junitxml.TestCas
 
 	assign := &osconfigserver.Assignment{Assignment: assignment}
 
-	_, err = osconfigserver.CreateAssignment(ctx, logger, assign, parent)
+	_, err = osconfigserver.CreateAssignment(ctx, assign, parent)
 	if err != nil {
 		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
 	}
 
-	defer cleanupAssignment(ctx, testCase, logger, assign)
+	defer cleanupAssignment(ctx, testCase, assign)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -333,14 +333,14 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
 
 	parent := fmt.Sprintf("projects/%s", testProject)
-	osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
+	osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
 		return
 	}
 
-	defer cleanupOsConfig(ctx, testCase, logger, oc)
+	defer cleanupOsConfig(ctx, testCase, oc)
 
 	assignment, err := osconfigserver.JsonToAssignment(packageInstallTestAssignmentString, logger)
 	if err != nil {
@@ -350,12 +350,12 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	assign := &osconfigserver.Assignment{Assignment: assignment}
 
-	_, err = osconfigserver.CreateAssignment(ctx, logger, assign, parent)
+	_, err = osconfigserver.CreateAssignment(ctx, assign, parent)
 	if err != nil {
 		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
 	}
 
-	defer cleanupAssignment(ctx, testCase, logger, assign)
+	defer cleanupAssignment(ctx, testCase, assign)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -446,15 +446,15 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 	}
 }
 
-func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, oc *osconfigserver.OsConfig) {
-	err := oc.Cleanup(ctx, logger)
+func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig) {
+	err := oc.Cleanup(ctx)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", err))
 	}
 }
 
-func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger, assignment *osconfigserver.Assignment) {
-	err := assignment.Cleanup(ctx, logger)
+func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignment *osconfigserver.Assignment) {
+	err := assignment.Cleanup(ctx)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", err))
 	}

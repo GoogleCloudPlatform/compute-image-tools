@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
@@ -29,8 +28,8 @@ type Assignment struct {
 }
 
 // CreateAssignment is a wrapper around createAssignment API
-func CreateAssignment(ctx context.Context, logger *log.Logger, assignment *Assignment, parent string) (*Assignment, error) {
-	client, err := GetOsConfigClient(ctx, logger)
+func CreateAssignment(ctx context.Context, assignment *Assignment, parent string) (*Assignment, error) {
+	client, err := GetOsConfigClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -40,37 +39,29 @@ func CreateAssignment(ctx context.Context, logger *log.Logger, assignment *Assig
 		Assignment: assignment.Assignment,
 	}
 
-	logger.Printf("create assignment request:\n%s\n\n", dump.Sprint(req))
-
 	res, err := client.CreateAssignment(ctx, req)
 	if err != nil {
-		logger.Printf("error while creating assignment:\n%s\n\n", err)
 		return nil, err
 	}
-	logger.Printf("create assignment response:\n%s\n", dump.Sprint(res))
 
 	return &Assignment{Assignment: res}, nil
 }
 
 // Cleanup function will cleanup the assignment created under project
-func (a *Assignment) Cleanup(ctx context.Context, logger *log.Logger) error {
-	client, err := GetOsConfigClient(ctx, logger)
+func (a *Assignment) Cleanup(ctx context.Context) error {
+	client, err := GetOsConfigClient(ctx)
 
 	if err != nil {
 		return err
 	}
-
-	logger.Printf("Deleting assignment...")
 
 	deleteReq := &osconfigpb.DeleteAssignmentRequest{
 		Name: fmt.Sprintf("projects/compute-image-test-pool-001/assignments/%s", a.Name),
 	}
 	ok := client.DeleteAssignment(ctx, deleteReq)
 	if ok != nil {
-		logger.Printf("error while cleaning up")
 		return errors.New(fmt.Sprintf("error while cleaning up the assignment: %s\n", ok))
 	}
 
-	logger.Printf("Assignment cleanup done.")
 	return nil
 }

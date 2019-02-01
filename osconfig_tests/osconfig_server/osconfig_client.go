@@ -16,7 +16,6 @@ package osconfigserver
 
 import (
 	"context"
-	"log"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
@@ -25,7 +24,7 @@ import (
 
 var osconfigClient *osconfig.Client
 
-func GetOsConfigClient(ctx context.Context, logger *log.Logger) (*osconfig.Client, error) {
+func GetOsConfigClient(ctx context.Context) (*osconfig.Client, error) {
 
 	if osconfigClient != nil {
 		return osconfigClient, nil
@@ -33,8 +32,5 @@ func GetOsConfigClient(ctx context.Context, logger *log.Logger) (*osconfig.Clien
 
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 
-	if err != nil {
-		logger.Printf("error while creating osconfig client: %s\n", err)
-	}
 	return client, err
 }

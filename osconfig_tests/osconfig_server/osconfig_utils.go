@@ -20,10 +20,7 @@ import (
 	"log"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/kylelemons/godebug/pretty"
 )
-
-var dump = &pretty.Config{IncludeUnexported: true}
 
 // JsonToOsConfig creates an osconfig object from json string
 func JsonToOsConfig(jsonString string, logger *log.Logger) (*osconfigpb.OsConfig, error) {
