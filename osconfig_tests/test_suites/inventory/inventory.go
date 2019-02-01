@@ -57,7 +57,7 @@ type inventoryTestSetup struct {
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp) {
 	defer tswg.Done()
 
-	if testSuiteRegex != nil && testSuiteRegex.MatchString(testSuiteName) {
+	if testSuiteRegex != nil && !testSuiteRegex.MatchString(testSuiteName) {
 		return
 	}
 
