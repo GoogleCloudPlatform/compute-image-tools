@@ -26,7 +26,8 @@ var (
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-osconfig-agent
-echo 'osconfig install done'`
+echo 'osconfig install done'
+while true; do /usr/bin/dpkg-query -f '${Package} ${Status}\n' -W | sudo tee /dev/ttyS0; sleep 5; done`
 
 	// InstallOSConfigGooGet installs the osconfig agent on googet based systems.
 	InstallOSConfigGooGet = `Start-Sleep 10

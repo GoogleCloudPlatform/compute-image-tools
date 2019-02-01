@@ -17,7 +17,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os/exec"
 	"path"
 	"regexp"
 	"sync"
@@ -39,10 +38,7 @@ const (
 	testProject   = "compute-image-test-pool-001"
 	testZone      = "us-central1-c"
 
-	// dpkg-query
-	dpkgListCmd          = "/usr/bin/dpkg-query -W"
-	serviceAccountEmail  = "281997379984-compute@developer.gserviceaccount.com"
-	writeToSerialConsole = " | sudo tee /dev/ttyS0"
+	serviceAccountEmail = "281997379984-compute@developer.gserviceaccount.com"
 )
 
 var (
@@ -125,6 +121,204 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	logger.Printf("CreateOsConfig response:\n%s\n\n", dump.Sprint(res))
+}
+
+func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
+
+	osConfig, err := osconfigserver.JsonToOsConfig(packageRemovalTestOsConfigString, logger)
+
+	if err != nil {
+		testCase.WriteFailure("error while converting json to osconfig: \n%s\n", err)
+		return
+	}
+
+	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
+
+	parent := fmt.Sprintf("projects/%s", testProject)
+	osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
+
+	if err != nil {
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		return
+	}
+
+	defer cleanupOsConfig(ctx, testCase, logger, oc)
+
+	assignment, err := osconfigserver.JsonToAssignment(packageRemovalTestAssignmentString, logger)
+	if err != nil {
+		testCase.WriteFailure("error while converting json to assignment: \n%s\n", err)
+		return
+	}
+
+	assign := &osconfigserver.Assignment{Assignment: assignment}
+
+	_, err = osconfigserver.CreateAssignment(ctx, logger, assign, parent)
+	if err != nil {
+		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+	}
+
+	defer cleanupAssignment(ctx, testCase, logger, assign)
+
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("error creating client: %v", err)
+		return
+	}
+
+	testCase.Logf("Creating instance with image %q", testSetup.image)
+	testSetup.name = getTestSetupName(path.Base(testSetup.image), "packageremovaltest")
+	i := &api.Instance{
+		Name:        testSetup.name,
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
+		NetworkInterfaces: []*api.NetworkInterface{
+			&api.NetworkInterface{
+				Network: "global/networks/default",
+				AccessConfigs: []*api.AccessConfig{
+					&api.AccessConfig{
+						Type: "ONE_TO_ONE_NAT",
+					},
+				},
+			},
+		},
+		Metadata: &api.Metadata{
+			Items: []*api.MetadataItems{
+				testSetup.startup,
+			},
+		},
+		Disks: []*api.AttachedDisk{
+			&api.AttachedDisk{
+				AutoDelete: true,
+				Boot:       true,
+				InitializeParams: &api.AttachedDiskInitializeParams{
+					SourceImage: testSetup.image,
+				},
+			},
+		},
+		ServiceAccounts: []*api.ServiceAccount{
+			&api.ServiceAccount{
+				Email:  serviceAccountEmail,
+				Scopes: serviceAccountScopes,
+			},
+		},
+	}
+
+	inst, err := compute.CreateInstance(client, testProject, testZone, i)
+	if err != nil {
+		testCase.WriteFailure("Error creating instance: %v", err)
+		return
+	}
+	defer inst.Cleanup()
+
+	testCase.Logf("Waiting for agent install to complete")
+	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
+		return
+	}
+
+	// read the serial console once
+	if err = inst.WaitForSerialOutput("wget deinstall ok config-files", 1, 10*time.Second, 600*time.Second); err != nil {
+		return
+	}
+}
+
+func runPackageInstallRemoveTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
+
+	osConfig, err := osconfigserver.JsonToOsConfig(packageInstallRemoveTestOsConfigString, logger)
+
+	if err != nil {
+		testCase.WriteFailure("error while converting json to osconfig: \n%s\n", err)
+		return
+	}
+
+	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
+
+	parent := fmt.Sprintf("projects/%s", testProject)
+	osconfigserver.CreateOsConfig(ctx, logger, oc, parent)
+
+	if err != nil {
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		return
+	}
+
+	defer cleanupOsConfig(ctx, testCase, logger, oc)
+
+	assignment, err := osconfigserver.JsonToAssignment(packageInstallRemoveTestAssignmentString, logger)
+	if err != nil {
+		testCase.WriteFailure("error while converting json to assignment: \n%s\n", err)
+		return
+	}
+
+	assign := &osconfigserver.Assignment{Assignment: assignment}
+
+	_, err = osconfigserver.CreateAssignment(ctx, logger, assign, parent)
+	if err != nil {
+		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+	}
+
+	defer cleanupAssignment(ctx, testCase, logger, assign)
+
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("error creating client: %v", err)
+		return
+	}
+
+	testCase.Logf("Creating instance with image %q", testSetup.image)
+	testSetup.name = getTestSetupName(path.Base(testSetup.image), "packageinstallremovetest")
+	i := &api.Instance{
+		Name:        testSetup.name,
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
+		NetworkInterfaces: []*api.NetworkInterface{
+			&api.NetworkInterface{
+				Network: "global/networks/default",
+				AccessConfigs: []*api.AccessConfig{
+					&api.AccessConfig{
+						Type: "ONE_TO_ONE_NAT",
+					},
+				},
+			},
+		},
+		Metadata: &api.Metadata{
+			Items: []*api.MetadataItems{
+				testSetup.startup,
+			},
+		},
+		Disks: []*api.AttachedDisk{
+			&api.AttachedDisk{
+				AutoDelete: true,
+				Boot:       true,
+				InitializeParams: &api.AttachedDiskInitializeParams{
+					SourceImage: testSetup.image,
+				},
+			},
+		},
+		ServiceAccounts: []*api.ServiceAccount{
+			&api.ServiceAccount{
+				Email:  serviceAccountEmail,
+				Scopes: serviceAccountScopes,
+			},
+		},
+	}
+
+	inst, err := compute.CreateInstance(client, testProject, testZone, i)
+	if err != nil {
+		testCase.WriteFailure("Error creating instance: %v", err)
+		return
+	}
+	defer inst.Cleanup()
+
+	testCase.Logf("Waiting for agent install to complete")
+	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
+		return
+	}
+
+	testCase.Logf("Agent installed successfully")
+
+	// read the serial console once
+	if err = inst.WaitForSerialOutput("cowsay", 1, 1*time.Second, 60*time.Second); err == nil {
+		testCase.WriteFailure("error asserting package installation, cowsay package should not have been installed")
+	}
 }
 
 func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
@@ -221,49 +415,10 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	testCase.Logf("Agent installed successfully")
 
-	// agent might take a while to install the package. retry the command until timeout
-	var sleepTime = 5 * time.Second
-	var timeout = 60 * time.Second
-	var totalTime = 0 * time.Second
-	for {
-		sshCmd := getGcloudSshCmd(testZone, testSetup.name, dpkgListCmd, logger)
-		_, err := run(sshCmd, logger)
-
-		if err != nil {
-			testCase.WriteFailure("Error running verification command: %v", err)
-			return
-		}
-		// TODO refactor to remove hardcoding of package name
-		// read the serial console once
-		if err = inst.WaitForSerialOutput("cowsay", 1, sleepTime, sleepTime); err == nil {
-			return
-		}
-
-		totalTime = totalTime + sleepTime
-		if totalTime < timeout {
-			logger.Print("Did not get expected response from serial console, will retry")
-		} else {
-			testCase.WriteFailure("Error while assertion: %v", err)
-			break
-		}
+	// read the serial console once
+	if err = inst.WaitForSerialOutput("cowsay install ok installed", 1, 10*time.Second, 60*time.Second); err != nil {
+		testCase.WriteFailure("error asserting package installation: %v", err)
 	}
-}
-
-func getGcloudSshCmd(zone string, instance string, pkgManagerCommand string, logger *log.Logger) *exec.Cmd {
-	return exec.Command("gcloud", []string{"compute", "ssh", "--zone",
-		fmt.Sprintf("%s", zone),
-		instance, "--command", fmt.Sprintf("%s %s\n",
-			pkgManagerCommand, writeToSerialConsole)}...)
-}
-
-//TODO move this to common library
-func run(cmd *exec.Cmd, logger *log.Logger) ([]byte, error) {
-	logger.Printf("Running %q with args %q\n", cmd.Path, cmd.Args[1:])
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("error running %q with args %q: %v, stdout: %s", cmd.Path, cmd.Args, err, out)
-	}
-	return out, nil
 }
 
 func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
@@ -271,10 +426,14 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 
 	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[CreateOsConfig] Create OsConfig"))
 	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstall] Pacakge installation"))
+	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageRemove] Package removal"))
+	packageInstallRemoveTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstallRemove] Package no change"))
 
 	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger){
-		createOsConfigTest: runCreateOsConfigTest,
-		packageInstallTest: runPackageInstallTest,
+		createOsConfigTest:       runCreateOsConfigTest,
+		packageInstallTest:       runPackageInstallTest,
+		packageRemovalTest:       runPackageRemovalTest,
+		packageInstallRemoveTest: runPackageInstallRemoveTest,
 	} {
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
