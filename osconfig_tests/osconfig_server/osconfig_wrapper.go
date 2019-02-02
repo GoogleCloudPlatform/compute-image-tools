@@ -65,7 +65,7 @@ func ListOsConfigs(ctx context.Context, req *osconfigpb.ListOsConfigsRequest) *O
 }
 
 // Cleanup function will cleanup the osconfig created under project
-func (o *OsConfig) Cleanup(ctx context.Context) error {
+func (o *OsConfig) Cleanup(ctx context.Context, projectId string) error {
 	client, err := GetOsConfigClient(ctx)
 
 	if err != nil {
@@ -73,7 +73,7 @@ func (o *OsConfig) Cleanup(ctx context.Context) error {
 	}
 
 	deleteReq := &osconfigpb.DeleteOsConfigRequest{
-		Name: fmt.Sprintf("projects/compute-image-test-pool-001/osConfigs/%s", o.Name),
+		Name: fmt.Sprintf("projects/%s/osConfigs/%s", projectId, o.Name),
 	}
 	ok := client.DeleteOsConfig(ctx, deleteReq)
 	return ok

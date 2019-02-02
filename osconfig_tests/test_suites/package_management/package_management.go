@@ -17,16 +17,16 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"path"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
+	"google.golang.org/grpc/status"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -35,6 +35,8 @@ import (
 
 const (
 	testSuiteName = "PackageManagementTests"
+	testProjectId = "281997379984"
+	debianImage   = "projects/debian-cloud/global/images/family/debian-9"
 	testProject   = "compute-image-test-pool-001"
 	testZone      = "us-central1-c"
 
@@ -49,11 +51,13 @@ var (
 )
 
 type packageManagementTestSetup struct {
-	image       string
-	name        string
-	packageType []string
-	shortName   string
-	startup     *api.MetadataItems
+	image      string
+	name       string
+	fname      string
+	osconfig   *osconfigpb.OsConfig
+	assignment *osconfigpb.Assignment
+	startup    *api.MetadataItems
+	vf         func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
 // TestSuite is a PackageManagementTests test suite.
@@ -69,19 +73,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 
-	testSetup := []*packageManagementTestSetup{
-		// Debian images.
-		&packageManagementTestSetup{
-			image:       "projects/debian-cloud/global/images/family/debian-9",
-			packageType: []string{"deb"},
-			shortName:   "debian",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
-			},
-		},
-	}
-
+	testSetup := generateAllTestSetup()
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
 	for _, setup := range testSetup {
@@ -103,39 +95,28 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
 
-	oc := &osconfigserver.OsConfig{
-		&osconfigpb.OsConfig{
-			Name: "createosconfig-test-osconfig",
-		},
-	}
-
-	logger.Printf("create osconfig request:\n%s\n\n", dump.Sprint(oc))
-
-	parent := fmt.Sprintf("projects/%s", testProject)
-	res, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
+	oc := &osconfigserver.OsConfig{testSetup.osconfig}
+	parent := fmt.Sprintf("projects/%s", testProjectId)
+	_, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	defer cleanupOsConfig(ctx, testCase, oc)
 
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig:\n%s\n\n", err)
+		st, ok := status.FromError(err)
+		if ok {
+			testCase.WriteFailure("error while creating osconfig:\n%s\n", st)
+		} else {
+			testCase.WriteFailure("error while creating osconfig:\n%s\n\n", err)
+		}
 	}
-
-	logger.Printf("CreateOsConfig response:\n%s\n\n", dump.Sprint(res))
 }
 
 func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
 
-	osConfig, err := osconfigserver.JsonToOsConfig(packageRemovalTestOsConfigString, logger)
+	oc := &osconfigserver.OsConfig{testSetup.osconfig}
 
-	if err != nil {
-		testCase.WriteFailure("error while converting json to osconfig: \n%s\n", err)
-		return
-	}
-
-	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
-
-	parent := fmt.Sprintf("projects/%s", testProject)
-	osconfigserver.CreateOsConfig(ctx, oc, parent)
+	parent := fmt.Sprintf("projects/%s", testProjectId)
+	_, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
@@ -144,13 +125,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	defer cleanupOsConfig(ctx, testCase, oc)
 
-	assignment, err := osconfigserver.JsonToAssignment(packageRemovalTestAssignmentString, logger)
-	if err != nil {
-		testCase.WriteFailure("error while converting json to assignment: \n%s\n", err)
-		return
-	}
-
-	assign := &osconfigserver.Assignment{Assignment: assignment}
+	assign := &osconfigserver.Assignment{testSetup.assignment}
 
 	_, err = osconfigserver.CreateAssignment(ctx, assign, parent)
 	if err != nil {
@@ -166,7 +141,6 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	testSetup.name = getTestSetupName(path.Base(testSetup.image), "packageremovaltest")
 	i := &api.Instance{
 		Name:        testSetup.name,
 		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
@@ -216,24 +190,17 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	// read the serial console once
-	if err = inst.WaitForSerialOutput("wget deinstall ok config-files", 1, 10*time.Second, 600*time.Second); err != nil {
+	if err = testSetup.vf(inst, "wget deinstall ok config-files", 1, 10*time.Second, 600*time.Second); err != nil {
+		testCase.WriteFailure("error while asserting: %v", err)
 		return
 	}
 }
 
-func runPackageInstallRemoveTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
+func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
+	oc := &osconfigserver.OsConfig{testSetup.osconfig}
 
-	osConfig, err := osconfigserver.JsonToOsConfig(packageInstallRemoveTestOsConfigString, logger)
-
-	if err != nil {
-		testCase.WriteFailure("error while converting json to osconfig: \n%s\n", err)
-		return
-	}
-
-	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
-
-	parent := fmt.Sprintf("projects/%s", testProject)
-	osconfigserver.CreateOsConfig(ctx, oc, parent)
+	parent := fmt.Sprintf("projects/%s", testProjectId)
+	_, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
@@ -242,13 +209,7 @@ func runPackageInstallRemoveTest(ctx context.Context, testCase *junitxml.TestCas
 
 	defer cleanupOsConfig(ctx, testCase, oc)
 
-	assignment, err := osconfigserver.JsonToAssignment(packageInstallRemoveTestAssignmentString, logger)
-	if err != nil {
-		testCase.WriteFailure("error while converting json to assignment: \n%s\n", err)
-		return
-	}
-
-	assign := &osconfigserver.Assignment{Assignment: assignment}
+	assign := &osconfigserver.Assignment{testSetup.assignment}
 
 	_, err = osconfigserver.CreateAssignment(ctx, assign, parent)
 	if err != nil {
@@ -264,7 +225,6 @@ func runPackageInstallRemoveTest(ctx context.Context, testCase *junitxml.TestCas
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	testSetup.name = getTestSetupName(path.Base(testSetup.image), "packageinstallremovetest")
 	i := &api.Instance{
 		Name:        testSetup.name,
 		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
@@ -322,18 +282,10 @@ func runPackageInstallRemoveTest(ctx context.Context, testCase *junitxml.TestCas
 }
 
 func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
+	oc := &osconfigserver.OsConfig{testSetup.osconfig}
 
-	osConfig, err := osconfigserver.JsonToOsConfig(packageInstallTestOsConfigString, logger)
-
-	if err != nil {
-		testCase.WriteFailure("error while converting json to osconfig: \n%s\n", err)
-		return
-	}
-
-	oc := &osconfigserver.OsConfig{OsConfig: osConfig}
-
-	parent := fmt.Sprintf("projects/%s", testProject)
-	osconfigserver.CreateOsConfig(ctx, oc, parent)
+	parent := fmt.Sprintf("projects/%s", testProjectId)
+	_, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
 		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
@@ -342,13 +294,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	defer cleanupOsConfig(ctx, testCase, oc)
 
-	assignment, err := osconfigserver.JsonToAssignment(packageInstallTestAssignmentString, logger)
-	if err != nil {
-		testCase.WriteFailure("error while converting json to assignment: \n%s\n", err)
-		return
-	}
-
-	assign := &osconfigserver.Assignment{Assignment: assignment}
+	assign := &osconfigserver.Assignment{testSetup.assignment}
 
 	_, err = osconfigserver.CreateAssignment(ctx, assign, parent)
 	if err != nil {
@@ -364,7 +310,6 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	testSetup.name = getTestSetupName(path.Base(testSetup.image), "packageinstalltest")
 	i := &api.Instance{
 		Name:        testSetup.name,
 		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
@@ -416,8 +361,8 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = inst.WaitForSerialOutput("cowsay install ok installed", 1, 10*time.Second, 60*time.Second); err != nil {
-		testCase.WriteFailure("error asserting package installation: %v", err)
+	if err = testSetup.vf(inst, "cowsay install ok installed", 1, 10*time.Second, 60*time.Second); err != nil {
+		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
 
@@ -426,15 +371,20 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 
 	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[CreateOsConfig] Create OsConfig"))
 	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstall] Pacakge installation"))
-	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageRemove] Package removal"))
-	packageInstallRemoveTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstallRemove] Package no change"))
+	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageRemoval] Package removal"))
+	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstallRemoval] Package no change"))
 
 	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger){
-		createOsConfigTest:       runCreateOsConfigTest,
-		packageInstallTest:       runPackageInstallTest,
-		packageRemovalTest:       runPackageRemovalTest,
-		packageInstallRemoveTest: runPackageInstallRemoveTest,
+		createOsConfigTest:        runCreateOsConfigTest,
+		packageInstallTest:        runPackageInstallTest,
+		packageRemovalTest:        runPackageRemovalTest,
+		packageInstallRemovalTest: runPackageInstallRemovalTest,
 	} {
+		tfname := strings.ToLower(strings.Replace(testSetup.fname, "test", "", 1))
+		ttc := strings.ToLower(getTestNameFromTestCase(tc.Name))
+		if strings.Compare(tfname, ttc) != 0 {
+			continue
+		}
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
@@ -447,19 +397,25 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 }
 
 func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig) {
-	err := oc.Cleanup(ctx)
+	err := oc.Cleanup(ctx, testProjectId)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", err))
 	}
 }
 
 func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignment *osconfigserver.Assignment) {
-	err := assignment.Cleanup(ctx)
+	err := assignment.Cleanup(ctx, testProjectId)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", err))
 	}
 }
 
-func getTestSetupName(imageName string, testName string) string {
-	return fmt.Sprintf("osconfig-test-%s-%s", imageName, testName)
+func getTestNameFromTestCase(tc string) string {
+	re := regexp.MustCompile(`\[[^]]*\]`)
+	ss := re.FindAllString(tc, -1)
+	var ret []string
+	for _, s := range ss {
+		ret = append(ret, s[1:len(s)-1])
+	}
+	return ret[1]
 }

@@ -14,72 +14,156 @@
 
 package packagemanagement
 
-const (
-	PackageInstallTestOsConfig = &osconfigpb.OsConfig{
-		Name:        "packageinstalltest",
-		Description: "test osconfig to test package installation",
-		Apt: &osconfigpb.AptPackageConfig{
-			PackageInstalls: []*osconfigpb.Package{
-				&osconfigpb.Package{
-					Name: "cowsay",
-				},
-			},
-		},
-	}
+import (
+	"fmt"
+	"path/filepath"
+	"time"
 
-	PackageInstallTestAssignment = &osconfigpb.Assignment{
-		Name:        "packageinstalltest",
-		Description: "test assignment to test package installation",
-		OsConfigs: []*string{
-			"projects/281997379984/osConfigs/packageinstalltest",
-		},
-		Expression: "instance.Name=\"osconfig-test-debian-9-packageinstalltest\"",
-	}
-
-	PackageRemovalTestOsConfig = &osconfigpb.OsConfig{
-		Name:        "packageremovaltest",
-		Description: "test osconfig to test package removal",
-		Apt: &osconfigpb.AptPackageConfig{
-			PackageRemovals: []*osconfigpb.Package{
-				&osconfigpb.Package{
-					Name: "cowsay",
-				},
-			},
-		},
-	}
-
-	PackageRemovalTestAssignment = &osconfigpb.Assignment{
-		Name:        "packageremovaltest",
-		Description: "test assignment to test package removal",
-		OsConfigs: []*string{
-			"projects/281997379984/osConfigs/packageremovaltest",
-		},
-		Expression: "instance.Name=\"osconfig-test-debian-9-packageremovaltest\"",
-	}
-
-	PackageInstalRemovalTestOsConfig = &osconfigpb.OsConfig{
-		Name:        "packageinstallremovaltest",
-		Description: "test osconfig to test package removal takes precedence over installation",
-		Apt: &osconfigpb.AptPackageConfig{
-			PackageInstalls: []*osconfigpb.Package{
-				&osconfigpb.Package{
-					Name: "cowsay",
-				},
-			},
-			PackageRemovals: []*osconfigpb.Package{
-				&osconfigpb.Package{
-					Name: "cowsay",
-				},
-			},
-		},
-	}
-
-	PackageInstallRemovalTestAssignment = &osconfigpb.Assignment{
-		Name:        "packageinstallremovaltest",
-		Description: "test assignment to test package install removal test",
-		OsConfigs: []*string{
-			"projects/281997379984/osConfigs/packageinstallremovaltest",
-		},
-		Expression: "instance.Name=\"osconfig-test-debian-9-packageinstallremovaltest\"",
-	}
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
+	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
+	api "google.golang.org/api/compute/v1"
 )
+
+var (
+	pkgTestSetup = []*packageManagementTestSetup{}
+	pkgManagers  = [...]string{"apt"}
+)
+
+var vf = func(inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
+	if err := inst.WaitForSerialOutput(vfString, port, interval, timeout); err != nil {
+		return err
+	}
+	return nil
+}
+
+func addCreateOsConfigTest() {
+	testName := "createosconfigtest"
+	desc := "test osconfig creation"
+	for _, pkgManager := range pkgManagers {
+		var oc *osconfigpb.OsConfig
+
+		switch pkgManager {
+		case "apt":
+			pkg := osconfigserver.BuildPackage("cowsay")
+			pkgs := []*osconfigpb.Package{pkg}
+			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
+		}
+		setup := packageManagementTestSetup{
+			image:      debianImage,
+			name:       fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName),
+			osconfig:   oc,
+			assignment: nil,
+			fname:      testName,
+			vf:         vf,
+		}
+		pkgTestSetup = append(pkgTestSetup, &setup)
+	}
+}
+func addPackageInstallTest() {
+	testName := "packageinstalltest"
+	desc := "test package installation"
+	for _, pkgManager := range pkgManagers {
+		var oc *osconfigpb.OsConfig
+		var assign *osconfigpb.Assignment
+		var instancename string
+
+		switch pkgManager {
+		case "apt":
+			instancename = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
+			pkg := osconfigserver.BuildPackage("cowsay")
+			pkgs := []*osconfigpb.Package{pkg}
+			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectId, oc.Name)})
+		}
+		setup := packageManagementTestSetup{
+			image:      debianImage,
+			name:       instancename,
+			osconfig:   oc,
+			assignment: assign,
+			fname:      testName,
+			vf:         vf,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigDeb,
+			},
+		}
+		pkgTestSetup = append(pkgTestSetup, &setup)
+	}
+}
+
+func addPackageRemovalTest() {
+	testName := "packageremovaltest"
+	desc := "test package removal"
+	for _, pkgManager := range pkgManagers {
+		var oc *osconfigpb.OsConfig
+		var assign *osconfigpb.Assignment
+		var instancename string
+
+		switch pkgManager {
+		case "apt":
+			instancename = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
+			pkg := osconfigserver.BuildPackage("cowsay")
+			pkgs := []*osconfigpb.Package{pkg}
+			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectId, oc.Name)})
+		}
+		setup := packageManagementTestSetup{
+			image:      debianImage,
+			name:       instancename,
+			osconfig:   oc,
+			assignment: assign,
+			fname:      testName,
+			vf:         vf,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigDeb,
+			},
+		}
+		pkgTestSetup = append(pkgTestSetup, &setup)
+	}
+}
+
+func addPackageInstallRemovalTest() {
+	testName := "packageinstallremovaltest"
+	desc := "test package removal takes precedence over package installation"
+	for _, pkgManager := range pkgManagers {
+		var oc *osconfigpb.OsConfig
+		var assign *osconfigpb.Assignment
+		var instancename string
+
+		switch pkgManager {
+		case "apt":
+			instancename = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
+			pkg := osconfigserver.BuildPackage("cowsay")
+			installPkg := []*osconfigpb.Package{pkg}
+			pkg = osconfigserver.BuildPackage("cowsay")
+			removePkg := []*osconfigpb.Package{pkg}
+			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectId, oc.Name)})
+		}
+		setup := packageManagementTestSetup{
+			image:      debianImage,
+			name:       instancename,
+			osconfig:   oc,
+			assignment: assign,
+			fname:      testName,
+			vf:         vf,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigDeb,
+			},
+		}
+		pkgTestSetup = append(pkgTestSetup, &setup)
+	}
+}
+
+func generateAllTestSetup() []*packageManagementTestSetup {
+	addCreateOsConfigTest()
+	addPackageInstallTest()
+	addPackageRemovalTest()
+	addPackageInstallRemovalTest()
+
+	return pkgTestSetup
+}

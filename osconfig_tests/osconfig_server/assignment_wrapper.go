@@ -17,11 +17,13 @@ package osconfigserver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"github.com/kylelemons/godebug/pretty"
 )
+
+var dump = &pretty.Config{IncludeUnexported: true}
 
 type Assignment struct {
 	*osconfigpb.Assignment
@@ -40,15 +42,12 @@ func CreateAssignment(ctx context.Context, assignment *Assignment, parent string
 	}
 
 	res, err := client.CreateAssignment(ctx, req)
-	if err != nil {
-		return nil, err
-	}
 
 	return &Assignment{Assignment: res}, nil
 }
 
 // Cleanup function will cleanup the assignment created under project
-func (a *Assignment) Cleanup(ctx context.Context) error {
+func (a *Assignment) Cleanup(ctx context.Context, projectId string) error {
 	client, err := GetOsConfigClient(ctx)
 
 	if err != nil {
@@ -56,12 +55,9 @@ func (a *Assignment) Cleanup(ctx context.Context) error {
 	}
 
 	deleteReq := &osconfigpb.DeleteAssignmentRequest{
-		Name: fmt.Sprintf("projects/compute-image-test-pool-001/assignments/%s", a.Name),
+		Name: fmt.Sprintf("projects/%s/assignments/%s", projectId, a.Name),
 	}
 	ok := client.DeleteAssignment(ctx, deleteReq)
-	if ok != nil {
-		return errors.New(fmt.Sprintf("error while cleaning up the assignment: %s\n", ok))
-	}
 
-	return nil
+	return ok
 }
