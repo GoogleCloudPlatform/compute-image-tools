@@ -22,7 +22,7 @@ import (
 
 	"cloud.google.com/go/compute/metadata"
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
-	api "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	osconfigpg "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
@@ -39,16 +39,16 @@ type patchStep int
 // These patch steps are ordered to allow us to skip steps that have already been completed. Progress should
 // always move forward, even if we need to retry a step.
 const (
+	//TODO: replace this with strings to make it more clear what the state is by looking at the config
+	// and to make it easier to add additional states. Also, consider refactoring into generic "steps";
+	// that can be tested and retried in isolation.
 	unknown patchStep = iota
 	notified
 	started
-	preScript
 	prePatchReboot
-	downloadPatch
 	applyPatch
 	postPatchReboot
 	postPatchRebooted // even if we fail, we don't want to force reboot more than once.
-	postPatchScript
 	completeSuccess
 	completeFailed
 	completeJobCompleted
@@ -56,8 +56,7 @@ const (
 
 // Init starts the patch system.
 func Init(ctx context.Context) {
-	savedPatchJobName := checkSavedState(ctx)
-	go watcher(ctx, savedPatchJobName)
+	go RunPatchAgent(ctx)
 }
 
 // RunPatchAgent runs patching as a single blocking agent.
@@ -66,7 +65,8 @@ func RunPatchAgent(ctx context.Context) {
 	watcher(ctx, savedPatchJobName)
 }
 
-// Load current patch state off disk and return its name.
+// Load current patch state off disk, schedule the patch if it isn't complete,
+// and return its name.
 func checkSavedState(ctx context.Context) string {
 	savedPatchJobName := ""
 	pr, err := loadState(state)
@@ -91,7 +91,7 @@ type patchRun struct {
 }
 
 type patchJob struct {
-	*api.ReportPatchJobInstanceDetailsResponse
+	*osconfigpg.ReportPatchJobInstanceDetailsResponse
 }
 
 // MarshalJSON marshals a patchConfig using jsonpb.
@@ -123,7 +123,7 @@ func (r *patchRun) finishAndReportError(ctx context.Context, msg string, err err
 	r.PatchStep = completeFailed
 	errMsg := fmt.Sprintf(msg, err)
 	logger.Errorf(errMsg)
-	_, rptErr := reportPatchDetails(ctx, r.Job.PatchJobName, api.Instance_FAILED, 0, errMsg)
+	_, rptErr := reportPatchDetails(ctx, r.Job.PatchJobName, osconfigpg.Instance_FAILED, 0, errMsg)
 	if rptErr != nil {
 		logger.Errorf("Failed to report patch failure. Error: %v", rptErr)
 		return
@@ -139,7 +139,7 @@ func (r *patchRun) finishJobComplete() {
 	r.saveState()
 }
 
-func (r *patchRun) reportState(ctx context.Context, patchState api.Instance_PatchState) (shouldStop bool) {
+func (r *patchRun) reportState(ctx context.Context, patchState osconfigpg.Instance_PatchState) (shouldStop bool) {
 	patchJob, err := reportPatchDetails(ctx, r.Job.PatchJobName, patchState, 0, "")
 	if err != nil {
 		// If we fail to report state, we can't report that we failed.
@@ -147,7 +147,7 @@ func (r *patchRun) reportState(ctx context.Context, patchState api.Instance_Patc
 		return true
 	}
 	r.Job.ReportPatchJobInstanceDetailsResponse = patchJob
-	if patchJob.PatchJobState == api.ReportPatchJobInstanceDetailsResponse_COMPLETED {
+	if patchJob.PatchJobState == osconfigpg.ReportPatchJobInstanceDetailsResponse_COMPLETED {
 		r.finishJobComplete()
 		return true
 	}
@@ -156,13 +156,13 @@ func (r *patchRun) reportState(ctx context.Context, patchState api.Instance_Patc
 }
 
 func (r *patchRun) rebootIfNeeded(ctx context.Context, postUpdate bool) (shouldStop bool) {
-	if r.Job.PatchConfig.RebootConfig == api.PatchConfig_NEVER {
+	if r.Job.PatchConfig.RebootConfig == osconfigpg.PatchConfig_NEVER {
 		return true
 	}
 
 	var reboot bool
 	var err error
-	if r.Job.PatchConfig.RebootConfig == api.PatchConfig_ALWAYS && postUpdate {
+	if r.Job.PatchConfig.RebootConfig == osconfigpg.PatchConfig_ALWAYS && postUpdate {
 		reboot = true
 	} else {
 		reboot, err = systemRebootRequired()
@@ -173,7 +173,7 @@ func (r *patchRun) rebootIfNeeded(ctx context.Context, postUpdate bool) (shouldS
 	}
 
 	if reboot {
-		if r.reportState(ctx, api.Instance_REBOOTING) {
+		if r.reportState(ctx, osconfigpg.Instance_REBOOTING) {
 			return true
 		}
 
@@ -208,9 +208,9 @@ func (r *patchRun) reportSucceeded(ctx context.Context) {
 	r.Complete = true
 	r.EndedAt = time.Now()
 
-	finalState := api.Instance_SUCCEEDED
+	finalState := osconfigpg.Instance_SUCCEEDED
 	if isFinalRebootRequired {
-		finalState = api.Instance_REBOOT_REQUIRED
+		finalState = osconfigpg.Instance_REBOOT_REQUIRED
 	}
 
 	if r.reportState(ctx, finalState) {
@@ -245,7 +245,7 @@ func (r *patchRun) runPatch(ctx context.Context) {
 		logger.Debugf("Starting patchJob %s", r.Job)
 		r.StartedAt = time.Now()
 
-		if r.reportState(ctx, api.Instance_STARTED) {
+		if r.reportState(ctx, osconfigpg.Instance_STARTED) {
 			return
 		}
 	}
@@ -258,7 +258,7 @@ func (r *patchRun) runPatch(ctx context.Context) {
 	}
 
 	if r.PatchStep <= applyPatch {
-		if r.reportState(ctx, api.Instance_APPLYING_PATCHES) {
+		if r.reportState(ctx, osconfigpg.Instance_APPLYING_PATCHES) {
 			return
 		}
 
@@ -294,15 +294,19 @@ func patchRunner(ctx context.Context, pr *patchRun) {
 }
 
 func ackPatch(ctx context.Context, patchJobName string) {
+	// TODO: Don't load the state off disk. This should be cached in memory with its access
+	// blocked by a mutex.
 	currentPatchJob, err := loadState(state)
 	if err != nil {
 		logger.Errorf("Unable to load state to ack notification. Error: %v", err)
 		return
 	}
 
-	// Notify the server if we haven't yet
+	// Notify the server if we haven't yet. If we've already been notified about this Job,
+	// the server may have inadvertantly notified us twice (at least once deliver) so we
+	// can ignore it.
 	if currentPatchJob == nil || currentPatchJob.Job.PatchJobName != patchJobName {
-		res, err := reportPatchDetails(ctx, patchJobName, api.Instance_NOTIFIED, 0, "")
+		res, err := reportPatchDetails(ctx, patchJobName, osconfigpg.Instance_NOTIFIED, 0, "")
 		if err != nil {
 			logger.Errorf("reportPatchDetails Error: %v", err)
 			return
@@ -310,15 +314,10 @@ func ackPatch(ctx context.Context, patchJobName string) {
 		tasker.Enqueue("Run patch", func() {
 			patchRunner(ctx, &patchRun{Job: &patchJob{res}})
 		})
-		return
 	}
-
-	tasker.Enqueue("Run patch", func() {
-		patchRunner(ctx, &patchRun{Job: &patchJob{currentPatchJob.Job.ReportPatchJobInstanceDetailsResponse}})
-	})
 }
 
-func reportPatchDetails(ctx context.Context, patchJobName string, patchState api.Instance_PatchState, attemptCount int64, failureReason string) (*api.ReportPatchJobInstanceDetailsResponse, error) {
+func reportPatchDetails(ctx context.Context, patchJobName string, patchState osconfigpg.Instance_PatchState, attemptCount int64, failureReason string) (*osconfigpg.ReportPatchJobInstanceDetailsResponse, error) {
 	// TODO: add retries. Patching shouldn't continue if we can't talk to the server.
 
 	logger.Infof("Reporting patch details name:'%s', state:'%s', failReason:'%s'", patchJobName, patchState, failureReason)
@@ -344,7 +343,7 @@ func reportPatchDetails(ctx context.Context, patchJobName string, patchState api
 		return nil, err
 	}
 
-	request := api.ReportPatchJobInstanceDetailsRequest{
+	request := osconfigpg.ReportPatchJobInstanceDetailsRequest{
 		Resource:         fullInstanceName,
 		InstanceSystemId: instanceID,
 		PatchJobName:     patchJobName,
