@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/ospackage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/patch"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"google.golang.org/api/option"
@@ -87,6 +88,11 @@ func main() {
 		if err := ospackage.SetConfig(resp); err != nil {
 			log.Fatalf(err.Error())
 		}
+		os.Exit(0)
+	}
+
+	if action == "ospatch" {
+		patch.RunPatchAgent(ctx)
 		os.Exit(0)
 	}
 

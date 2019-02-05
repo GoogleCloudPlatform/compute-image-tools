@@ -50,8 +50,9 @@ func saveState(state string, w *patchRun) error {
 		return err
 	}
 
+	// This sends state to guest attributes and isn't required for patching to work.
 	if err := attributes.PostAttribute(config.ReportURL+"/osConfig/patchRunner", bytes.NewReader(d)); err != nil {
-		logger.Errorf("postAttribute error: %v", err)
+		logger.Debugf("postAttribute error: %v", err)
 	}
 
 	// TODO: Once we are storing more state consider atomic state save

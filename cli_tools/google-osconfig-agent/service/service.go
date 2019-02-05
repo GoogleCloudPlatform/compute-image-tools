@@ -25,6 +25,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/ospackage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/patch"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
@@ -51,7 +52,7 @@ func runOsConfig(ctx context.Context, res string) error {
 }
 
 func run(ctx context.Context) {
-	//patch.Init(ctx)
+	patch.Init(ctx)
 
 	res, err := config.Instance()
 	if err != nil {
