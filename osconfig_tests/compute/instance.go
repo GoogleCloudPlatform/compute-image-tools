@@ -17,25 +17,12 @@ package compute
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	api "google.golang.org/api/compute/v1"
 )
-
-// RandString generates a random string of n length.
-// TODO: move this to a common utils library instead of 'compute'.
-func RandString(n int) string {
-	gen := rand.New(rand.NewSource(time.Now().UnixNano()))
-	letters := "bdghjlmnpqrstvwxyz0123456789"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[gen.Int63()%int64(len(letters))]
-	}
-	return string(b)
-}
 
 // Instance is a compute instance.
 type Instance struct {

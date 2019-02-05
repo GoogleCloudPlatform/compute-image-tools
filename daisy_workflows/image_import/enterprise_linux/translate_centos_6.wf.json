@@ -61,6 +61,7 @@
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
           "Family": "${family}",
+          "Licenses": ["projects/centos-cloud/global/licenses/centos-6"],
           "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true

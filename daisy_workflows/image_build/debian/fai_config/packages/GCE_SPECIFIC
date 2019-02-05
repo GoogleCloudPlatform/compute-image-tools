@@ -1,0 +1,3 @@
+# To avoid entropy issues when intances boot
+PACKAGES install
+haveged

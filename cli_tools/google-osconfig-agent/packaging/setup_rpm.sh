@@ -18,7 +18,7 @@ source packaging/common.sh
 rpm_working_dir=/tmp/rpmpackage/
 
 # RPM creation tools.
-sudo yum -y install rpmdevtools go-srpm-macros
+sudo yum -y install rpmdevtools
 
 rm -rf /tmp/rpmpackage
 mkdir -p ${rpm_working_dir}/{SOURCES,SPECS}
@@ -29,4 +29,5 @@ tar czvf ${rpm_working_dir}/SOURCES/${NAME}_${VERSION}.orig.tar.gz \
   --exclude .git --exclude packaging --transform "s/^\./${NAME}-${VERSION}/" .
 
 rpmbuild --define "_topdir ${rpm_working_dir}/" --define "_version ${VERSION}" \
-  --define "_go ${GO}" -ba ${rpm_working_dir}/SPECS/${NAME}.spec
+  --define "_go ${GO}" --define "_arch x86_64" --define "_gopath ${GOPATH}" \
+  -ba ${rpm_working_dir}/SPECS/${NAME}.spec

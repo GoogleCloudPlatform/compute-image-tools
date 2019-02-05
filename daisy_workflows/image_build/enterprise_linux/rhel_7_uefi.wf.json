@@ -26,7 +26,7 @@
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./enterprise_linux.wf.json",
+        "Path": "./enterprise_linux_uefi.wf.json",
         "Vars": {
           "el_release": "rhel7",
           "google_cloud_repo": "${google_cloud_repo}",
@@ -38,7 +38,7 @@
     "create-image": {
       "CreateImages": [
         {
-          "Name": "rhel-7-v${build_date}",
+          "Name": "rhel-7-uefi-v${build_date}",
           "SourceDisk": "${install_disk}",
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-7-server"

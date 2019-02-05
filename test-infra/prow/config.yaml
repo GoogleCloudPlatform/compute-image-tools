@@ -126,7 +126,7 @@ periodics:
     containers:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
-      - "-out_path=/artifacts/junit.xml"
+      - "-out_dir=/artifacts"
       volumeMounts:
       - name: compute-image-tools-test-service-account
         mountPath: /etc/compute-image-tools-test-service-account
@@ -152,19 +152,37 @@ periodics:
       - "-zone=us-central1-c"
       - "-var:images=\
           projects/debian-cloud/global/images/family/debian-9,\
+          projects/debian-cloud-testing/global/images/family/debian-10,\
           projects/ubuntu-os-cloud/global/images/family/ubuntu-1404-lts,\
           projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts,\
           projects/ubuntu-os-cloud/global/images/family/ubuntu-minimal-1604-lts,\
           projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts,\
           projects/ubuntu-os-cloud/global/images/family/ubuntu-minimal-1804-lts,\
           projects/ubuntu-os-cloud/global/images/family/ubuntu-1810,\
+          projects/ubuntu-os-cloud-image-proposed/global/images/family/ubuntu-1404-lts,\
+          projects/ubuntu-os-cloud-image-proposed/global/images/family/ubuntu-1604-lts,\
+          projects/ubuntu-os-cloud-image-proposed/global/images/family/ubuntu-1804-lts,\
+          projects/ubuntu-os-cloud-image-proposed/global/images/family/ubuntu-1810,\
           projects/centos-cloud/global/images/family/centos-6,\
           projects/centos-cloud/global/images/family/centos-7,\
           projects/rhel-cloud/global/images/family/rhel-6,\
           projects/rhel-cloud/global/images/family/rhel-7,\
           projects/freebsd-org-cloud-dev/global/images/family/freebsd-11-2-snap,\
-          projects/freebsd-org-cloud-dev/global/images/family/freebsd-12-0"
+          projects/freebsd-org-cloud-dev/global/images/family/freebsd-12-0-snap,\
+          projects/freebsd-org-cloud-dev/global/images/family/freebsd-13-0-snap"
       - "-var:alias_ips=\
+          10.128.3.80,\
+          10.128.3.84,\
+          10.128.3.88,\
+          10.128.3.92,\
+          10.128.3.96,\
+          10.128.3.100,\
+          10.128.3.104,\
+          10.128.3.108,\
+          10.128.3.112,\
+          10.128.3.116,\
+          10.128.3.120,\
+          10.128.3.124,\
           10.128.3.128,\
           10.128.3.132,\
           10.128.3.136,\
@@ -208,15 +226,22 @@ periodics:
           projects/windows-cloud/global/images/family/windows-2012-r2-core,\
           projects/windows-cloud/global/images/family/windows-2016,\
           projects/windows-cloud/global/images/family/windows-2016-core,\
+          projects/windows-cloud/global/images/family/windows-2019,\
+          projects/windows-cloud/global/images/family/windows-2019-core,\
           projects/windows-cloud/global/images/family/windows-1709-core,\
-          projects/windows-cloud/global/images/family/windows-1803-core"
+          projects/windows-cloud/global/images/family/windows-1803-core,\
+          projects/windows-cloud/global/images/family/windows-1809-core"
       - "-var:alias_ips=\
           10.128.3.160,\
           10.128.3.164,\
           10.128.3.168,\
           10.128.3.172,\
           10.128.3.176,\
-          10.128.3.180"
+          10.128.3.180,\
+          10.128.3.184,\
+          10.128.3.188,\
+          10.128.3.192,\
+          10.128.3.196"
       - "image_test/windows_images.test.gotmpl"
       env:
       - name: REPO_OWNER

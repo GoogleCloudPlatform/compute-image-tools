@@ -61,6 +61,7 @@
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
           "Family": "${family}",
+          "Licenses": ["projects/rhel-cloud/global/licenses/rhel-7-byol"],
           "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true

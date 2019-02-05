@@ -1,7 +1,12 @@
 [Unit]
 Description=Google OSConfig Agent
+After=local-fs.target network-online.target network.target
+Wants=local-fs.target network-online.target network.target
 
 [Service]
 ExecStart=/usr/bin/google_osconfig_agent
 Restart=always
 RestartSec=120
+
+[Install]
+WantedBy=multi-user.target

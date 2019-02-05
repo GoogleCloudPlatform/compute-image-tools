@@ -62,6 +62,7 @@
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
           "Family": "${family}",
+          "Licenses": ["projects/rhel-cloud/global/licenses/rhel-7-server"],
           "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true

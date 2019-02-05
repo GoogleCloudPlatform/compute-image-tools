@@ -29,16 +29,17 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
+	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 )
 
 var (
-	oauth           = flag.String("oauth", "", "path to oauth json file")
 	testSuiteFilter = flag.String("test_suite_filter", "", "test suite filter")
 	testCaseFilter  = flag.String("test_case_filter", "", "test case filter")
-	outPath         = flag.String("out_path", "junit.xml", "junit xml path")
+	outDir          = flag.String("out_dir", "/tmp", "junit xml directory")
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
+	packagemanagement.TestSuite,
 	inventory.TestSuite,
 }
 
@@ -46,16 +47,12 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	if err := os.MkdirAll(filepath.Dir(*outPath), 0770); err != nil {
-		log.Fatal(err)
-	}
-
 	var testSuiteRegex *regexp.Regexp
 	if *testSuiteFilter != "" {
 		var err error
 		testSuiteRegex, err = regexp.Compile(*testSuiteFilter)
 		if err != nil {
-			fmt.Println("-testCaseFilter flag not valid:", err)
+			fmt.Println("-testSuiteFilter flag not valid:", err)
 			os.Exit(1)
 		}
 	}
@@ -70,7 +67,7 @@ func main() {
 		}
 	}
 
-	logger := log.New(os.Stdout, "[OSConfigTests] ", 0)
+	logger := log.New(os.Stdout, "[OsConfigTests] ", 0)
 	logger.Println("Starting...")
 
 	tests := make(chan *junitxml.TestSuite)
@@ -87,16 +84,20 @@ func main() {
 	var testSuites []*junitxml.TestSuite
 	for ret := range tests {
 		testSuites = append(testSuites, ret)
-	}
+		testSuiteOutPath := filepath.Join(*outDir, fmt.Sprintf("junit_%s.xml", ret.Name))
+		if err := os.MkdirAll(filepath.Dir(testSuiteOutPath), 0770); err != nil {
+			log.Fatal(err)
+		}
 
-	logger.Printf("Creating junit xml file: %q", *outPath)
-	d, err := xml.MarshalIndent(testSuites, "  ", "   ")
-	if err != nil {
-		log.Fatal(err)
-	}
+		logger.Printf("Creating junit xml file: %s", testSuiteOutPath)
+		d, err := xml.MarshalIndent(ret, "  ", "   ")
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if err := ioutil.WriteFile(*outPath, d, 0644); err != nil {
-		log.Fatal(err)
+		if err := ioutil.WriteFile(testSuiteOutPath, d, 0644); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	var buf bytes.Buffer

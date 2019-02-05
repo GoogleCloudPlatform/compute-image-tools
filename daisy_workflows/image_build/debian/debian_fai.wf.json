@@ -3,17 +3,17 @@
   "DefaultTimeout": "60m",
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
-    "debian_cloud_images_version": {"Required": true, "Description": "The debian-cloud-images scripts git commit ID to use."},
+    "debian_cloud_images_version": {"Required": true, "Description": "The debian-cloud-images scripts git commit ID or branch to use."},
     "debian_version": {"Required": true, "Description": "The FAI tool debian version to be requested."},
     "builder_source_image": {
       "Value": "projects/debian-cloud/global/images/family/debian-9",
       "Description": "The image used to run fai-tool."
     },
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
-    "uefi": {"Required": true, "Description": "Build an UEFI image with GPT partition format."}
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."}
   },
   "Sources": {
     "build_files/build.py": "./build_fai.py",
+    "build_files/fai_config/packages/GCE_SPECIFIC": "./fai_config/packages/GCE_SPECIFIC",
     "build_files/utils/common.py": "../../linux_common/utils/common.py",
     "build_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
     "build_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
@@ -44,8 +44,7 @@
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "script": "build.py",
             "prefix": "Build",
-            "image_dest": "${image_dest}",
-            "uefi": "${uefi}"
+            "image_dest": "${image_dest}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"
