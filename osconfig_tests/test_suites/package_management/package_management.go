@@ -101,6 +101,8 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	defer cleanupOsConfig(ctx, testCase, oc)
 
+	// TODO: improve logging to include status report as it contains more
+	// meaningful information that helps in debugging
 	if err != nil {
 		st, ok := status.FromError(err)
 		if ok {
@@ -141,6 +143,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
+	//TODO: move instance definition to a common method
 	i := &api.Instance{
 		Name:        testSetup.name,
 		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),

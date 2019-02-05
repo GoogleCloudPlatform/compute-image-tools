@@ -166,7 +166,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "debian",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
+				Value: &utils.StartupScriptDeb,
 			},
 		},
 
@@ -217,7 +217,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
+				Value: &utils.StartupScriptDeb,
 			},
 		},
 		&inventoryTestSetup{
@@ -226,7 +226,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			shortName:   "ubuntu",
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
+				Value: &utils.StartupScriptDeb,
 			},
 		},
 	}

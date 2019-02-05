@@ -86,7 +86,7 @@ func addPackageInstallTest() {
 			vf:         vf,
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
+				Value: &utils.StartupScriptDeb,
 			},
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
@@ -118,7 +118,7 @@ func addPackageRemovalTest() {
 			vf:         vf,
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
+				Value: &utils.StartupScriptDeb,
 			},
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
@@ -152,7 +152,7 @@ func addPackageInstallRemovalTest() {
 			vf:         vf,
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
+				Value: &utils.StartupScriptDeb,
 			},
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
