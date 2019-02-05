@@ -23,10 +23,12 @@ import (
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
+// OsConfig is a wrapper struct around osconfig
 type OsConfig struct {
 	*osconfigpb.OsConfig
 }
 
+// OsConfigIterator is a wrapper struct around OsConfigIterator
 type OsConfigIterator struct {
 	*osconfig.OsConfigIterator
 }
@@ -65,7 +67,7 @@ func ListOsConfigs(ctx context.Context, req *osconfigpb.ListOsConfigsRequest) *O
 }
 
 // Cleanup function will cleanup the osconfig created under project
-func (o *OsConfig) Cleanup(ctx context.Context, projectId string) error {
+func (o *OsConfig) Cleanup(ctx context.Context, projectID string) error {
 	client, err := GetOsConfigClient(ctx)
 
 	if err != nil {
@@ -73,7 +75,7 @@ func (o *OsConfig) Cleanup(ctx context.Context, projectId string) error {
 	}
 
 	deleteReq := &osconfigpb.DeleteOsConfigRequest{
-		Name: fmt.Sprintf("projects/%s/osConfigs/%s", projectId, o.Name),
+		Name: fmt.Sprintf("projects/%s/osConfigs/%s", projectID, o.Name),
 	}
 	ok := client.DeleteOsConfig(ctx, deleteReq)
 	return ok

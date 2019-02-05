@@ -20,6 +20,7 @@ import (
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
+// BuildOsConfig creates a struct of OsConfig
 func BuildOsConfig(name, description string, aptconfig *osconfigpb.AptPackageConfig, yumconfig *osconfigpb.YumPackageConfig, gooconfig *osconfigpb.GooPackageConfig, wuconfig *osconfigpb.WindowsUpdateConfig, zypperconfig *osconfigpb.ZypperPackageConfig) *osconfigpb.OsConfig {
 	return &osconfigpb.OsConfig{
 		Name:          name,
@@ -32,6 +33,7 @@ func BuildOsConfig(name, description string, aptconfig *osconfigpb.AptPackageCon
 	}
 }
 
+// BuildAssignment creates a struct of Assignment
 func BuildAssignment(name, description, expression string, osconfigs []string) *osconfigpb.Assignment {
 	return &osconfigpb.Assignment{
 		Name:        name,
@@ -41,6 +43,7 @@ func BuildAssignment(name, description, expression string, osconfigs []string) *
 	}
 }
 
+// BuildAptPackageConfig creates an Apt package config
 func BuildAptPackageConfig(installs, removes []*osconfigpb.Package, repos []*osconfigpb.AptRepository) *osconfigpb.AptPackageConfig {
 	return &osconfigpb.AptPackageConfig{
 		PackageInstalls: installs,
@@ -49,6 +52,7 @@ func BuildAptPackageConfig(installs, removes []*osconfigpb.Package, repos []*osc
 	}
 }
 
+// BuildYumPackageConfig creates a yum package config
 func BuildYumPackageConfig(installs, removes []*osconfigpb.Package, repos []*osconfigpb.YumRepository) *osconfigpb.YumPackageConfig {
 	return &osconfigpb.YumPackageConfig{
 		PackageInstalls: installs,
@@ -57,6 +61,7 @@ func BuildYumPackageConfig(installs, removes []*osconfigpb.Package, repos []*osc
 	}
 }
 
+// BuildGooPackageConfig create a goo package config
 func BuildGooPackageConfig(installs, removes []*osconfigpb.Package, repos []*osconfigpb.GooRepository) *osconfigpb.GooPackageConfig {
 	return &osconfigpb.GooPackageConfig{
 		PackageInstalls: installs,
@@ -65,6 +70,7 @@ func BuildGooPackageConfig(installs, removes []*osconfigpb.Package, repos []*osc
 	}
 }
 
+// BuildZypperPackageConfig create a zypper package config
 func BuildZypperPackageConfig(installs, removes []*osconfigpb.Package, repos []*osconfigpb.ZypperRepository) *osconfigpb.ZypperPackageConfig {
 	return &osconfigpb.ZypperPackageConfig{
 		PackageInstalls: installs,
@@ -73,16 +79,20 @@ func BuildZypperPackageConfig(installs, removes []*osconfigpb.Package, repos []*
 	}
 }
 
+// BuildWUPackageConfig create a window update config
 func BuildWUPackageConfig(wusu string) *osconfigpb.WindowsUpdateConfig {
 	return &osconfigpb.WindowsUpdateConfig{
 		WindowsUpdateServerUri: wusu,
 	}
 }
 
+// BuildInstanceFilterExpression creates an instance filter expression to
+// be used by Assignment
 func BuildInstanceFilterExpression(instance string) string {
 	return fmt.Sprintf("instance.name==%s", instance)
 }
 
+// BuildPackage creates an os config package
 func BuildPackage(name string) *osconfigpb.Package {
 	return &osconfigpb.Package{
 		Name: name,

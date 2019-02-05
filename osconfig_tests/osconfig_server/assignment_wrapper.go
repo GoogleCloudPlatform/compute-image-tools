@@ -25,6 +25,7 @@ import (
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
+// Assignment is a wrapper around osconfig Assignment object
 type Assignment struct {
 	*osconfigpb.Assignment
 }
@@ -47,7 +48,7 @@ func CreateAssignment(ctx context.Context, assignment *Assignment, parent string
 }
 
 // Cleanup function will cleanup the assignment created under project
-func (a *Assignment) Cleanup(ctx context.Context, projectId string) error {
+func (a *Assignment) Cleanup(ctx context.Context, projectID string) error {
 	client, err := GetOsConfigClient(ctx)
 
 	if err != nil {
@@ -55,7 +56,7 @@ func (a *Assignment) Cleanup(ctx context.Context, projectId string) error {
 	}
 
 	deleteReq := &osconfigpb.DeleteAssignmentRequest{
-		Name: fmt.Sprintf("projects/%s/assignments/%s", projectId, a.Name),
+		Name: fmt.Sprintf("projects/%s/assignments/%s", projectID, a.Name),
 	}
 	ok := client.DeleteAssignment(ctx, deleteReq)
 

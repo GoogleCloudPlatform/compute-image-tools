@@ -75,7 +75,7 @@ func addPackageInstallTest() {
 			pkg := osconfigserver.BuildPackage("cowsay")
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectId, oc.Name)})
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
 		}
 		setup := packageManagementTestSetup{
 			image:      debianImage,
@@ -107,7 +107,7 @@ func addPackageRemovalTest() {
 			pkg := osconfigserver.BuildPackage("cowsay")
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectId, oc.Name)})
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
 		}
 		setup := packageManagementTestSetup{
 			image:      debianImage,
@@ -141,7 +141,7 @@ func addPackageInstallRemovalTest() {
 			pkg = osconfigserver.BuildPackage("cowsay")
 			removePkg := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectId, oc.Name)})
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
 		}
 		setup := packageManagementTestSetup{
 			image:      debianImage,

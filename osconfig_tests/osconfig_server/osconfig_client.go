@@ -24,6 +24,7 @@ import (
 
 var osconfigClient *osconfig.Client
 
+// GetOsConfigClient return a singleton object of OsConfigClient
 func GetOsConfigClient(ctx context.Context) (*osconfig.Client, error) {
 
 	if osconfigClient != nil {

@@ -32,6 +32,7 @@ var (
 	// the startup script that queries the packages and redirects to serial console.
 	// The only caveat is that it requires a reboot which would ultimately increase
 	// test running time.
+
 	// StartupScriptDeb installs the osconfig agent on deb based systems.
 	StartupScriptDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -

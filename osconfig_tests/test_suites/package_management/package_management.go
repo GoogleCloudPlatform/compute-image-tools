@@ -35,7 +35,7 @@ import (
 
 const (
 	testSuiteName = "PackageManagementTests"
-	testProjectId = "281997379984"
+	testProjectID = "281997379984"
 	debianImage   = "projects/debian-cloud/global/images/family/debian-9"
 	testProject   = "compute-image-test-pool-001"
 	testZone      = "us-central1-c"
@@ -96,7 +96,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
 
 	oc := &osconfigserver.OsConfig{testSetup.osconfig}
-	parent := fmt.Sprintf("projects/%s", testProjectId)
+	parent := fmt.Sprintf("projects/%s", testProjectID)
 	_, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	defer cleanupOsConfig(ctx, testCase, oc)
@@ -117,7 +117,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	oc := &osconfigserver.OsConfig{testSetup.osconfig}
 
-	parent := fmt.Sprintf("projects/%s", testProjectId)
+	parent := fmt.Sprintf("projects/%s", testProjectID)
 	_, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
@@ -202,7 +202,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
 	oc := &osconfigserver.OsConfig{testSetup.osconfig}
 
-	parent := fmt.Sprintf("projects/%s", testProjectId)
+	parent := fmt.Sprintf("projects/%s", testProjectID)
 	_, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
@@ -287,7 +287,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
 	oc := &osconfigserver.OsConfig{testSetup.osconfig}
 
-	parent := fmt.Sprintf("projects/%s", testProjectId)
+	parent := fmt.Sprintf("projects/%s", testProjectID)
 	_, err := osconfigserver.CreateOsConfig(ctx, oc, parent)
 
 	if err != nil {
@@ -400,14 +400,14 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 }
 
 func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig) {
-	err := oc.Cleanup(ctx, testProjectId)
+	err := oc.Cleanup(ctx, testProjectID)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", err))
 	}
 }
 
 func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignment *osconfigserver.Assignment) {
-	err := assignment.Cleanup(ctx, testProjectId)
+	err := assignment.Cleanup(ctx, testProjectID)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", err))
 	}
