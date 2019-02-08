@@ -31,11 +31,9 @@ var (
 	pkgManagers  = [...]string{"apt"}
 )
 
+// vf is the the vertificationFunction that is used in each testSetup during assertion of test case.
 var vf = func(inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
-	if err := inst.WaitForSerialOutput(vfString, port, interval, timeout); err != nil {
-		return err
-	}
-	return nil
+	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
 func addCreateOsConfigTest() {
@@ -49,6 +47,9 @@ func addCreateOsConfigTest() {
 			pkg := osconfigserver.BuildPackage("cowsay")
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
+			break
+		default:
+			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
 		}
 		setup := packageManagementTestSetup{
 			image:      debianImage,
@@ -67,19 +68,22 @@ func addPackageInstallTest() {
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
-		var instancename string
+		var instaneName string
 
 		switch pkgManager {
 		case "apt":
-			instancename = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
+			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
 			pkg := osconfigserver.BuildPackage("cowsay")
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			break
+		default:
+			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
 		}
 		setup := packageManagementTestSetup{
 			image:      debianImage,
-			name:       instancename,
+			name:       instaneName,
 			osconfig:   oc,
 			assignment: assign,
 			fname:      testName,
@@ -99,19 +103,22 @@ func addPackageRemovalTest() {
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
-		var instancename string
+		var instaneName string
 
 		switch pkgManager {
 		case "apt":
-			instancename = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
+			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
 			pkg := osconfigserver.BuildPackage("cowsay")
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			break
+		default:
+			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
 		}
 		setup := packageManagementTestSetup{
 			image:      debianImage,
-			name:       instancename,
+			name:       instaneName,
 			osconfig:   oc,
 			assignment: assign,
 			fname:      testName,
@@ -131,21 +138,24 @@ func addPackageInstallRemovalTest() {
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
-		var instancename string
+		var instaneName string
 
 		switch pkgManager {
 		case "apt":
-			instancename = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
+			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
 			pkg := osconfigserver.BuildPackage("cowsay")
 			installPkg := []*osconfigpb.Package{pkg}
 			pkg = osconfigserver.BuildPackage("cowsay")
 			removePkg := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instancename), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			break
+		default:
+			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
 		}
 		setup := packageManagementTestSetup{
 			image:      debianImage,
-			name:       instancename,
+			name:       instaneName,
 			osconfig:   oc,
 			assignment: assign,
 			fname:      testName,

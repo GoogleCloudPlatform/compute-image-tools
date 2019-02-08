@@ -43,14 +43,15 @@ func CreateAssignment(ctx context.Context, assignment *Assignment, parent string
 	}
 
 	res, err := client.CreateAssignment(ctx, req)
-
+	if err != nil {
+		return nil, err
+	}
 	return &Assignment{Assignment: res}, nil
 }
 
 // Cleanup function will cleanup the assignment created under project
 func (a *Assignment) Cleanup(ctx context.Context, projectID string) error {
 	client, err := GetOsConfigClient(ctx)
-
 	if err != nil {
 		return err
 	}
@@ -58,7 +59,5 @@ func (a *Assignment) Cleanup(ctx context.Context, projectID string) error {
 	deleteReq := &osconfigpb.DeleteAssignmentRequest{
 		Name: fmt.Sprintf("projects/%s/assignments/%s", projectID, a.Name),
 	}
-	ok := client.DeleteAssignment(ctx, deleteReq)
-
-	return ok
+	return client.DeleteAssignment(ctx, deleteReq)
 }

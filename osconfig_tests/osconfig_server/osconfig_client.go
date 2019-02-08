@@ -26,12 +26,9 @@ var osconfigClient *osconfig.Client
 
 // GetOsConfigClient return a singleton object of OsConfigClient
 func GetOsConfigClient(ctx context.Context) (*osconfig.Client, error) {
-
 	if osconfigClient != nil {
 		return osconfigClient, nil
 	}
 
-	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
-
-	return client, err
+	return osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 }

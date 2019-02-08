@@ -36,7 +36,6 @@ type OsConfigIterator struct {
 // CreateOsConfig is a wrapper around createOsConfig API
 func CreateOsConfig(ctx context.Context, oc *OsConfig, parent string) (*OsConfig, error) {
 	client, err := GetOsConfigClient(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +55,6 @@ func CreateOsConfig(ctx context.Context, oc *OsConfig, parent string) (*OsConfig
 // ListOsConfigs is a wrapper around listOsConfigs API
 func ListOsConfigs(ctx context.Context, req *osconfigpb.ListOsConfigsRequest) *OsConfigIterator {
 	client, err := GetOsConfigClient(ctx)
-
 	if err != nil {
 		return nil
 	}
@@ -69,7 +67,6 @@ func ListOsConfigs(ctx context.Context, req *osconfigpb.ListOsConfigsRequest) *O
 // Cleanup function will cleanup the osconfig created under project
 func (o *OsConfig) Cleanup(ctx context.Context, projectID string) error {
 	client, err := GetOsConfigClient(ctx)
-
 	if err != nil {
 		return err
 	}
@@ -77,6 +74,5 @@ func (o *OsConfig) Cleanup(ctx context.Context, projectID string) error {
 	deleteReq := &osconfigpb.DeleteOsConfigRequest{
 		Name: fmt.Sprintf("projects/%s/osConfigs/%s", projectID, o.Name),
 	}
-	ok := client.DeleteOsConfig(ctx, deleteReq)
-	return ok
+	return client.DeleteOsConfig(ctx, deleteReq)
 }
