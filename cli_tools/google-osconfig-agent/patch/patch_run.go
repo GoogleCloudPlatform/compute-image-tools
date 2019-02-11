@@ -35,15 +35,15 @@ type patchStep string
 const (
 	identityTokenPath = "instance/service-accounts/default/identity?audience=osconfig.googleapis.com&format=full"
 
-	unknown = ""
-	notified = "notified"
-	started = "started"
-	prePatchReboot = "prePatchReboot"
-	applyPatch = "applyPatch"
-	postPatchReboot = "postPatchReboot"
-	postPatchRebooted = "postPatchRebooted"
-	completeSuccess = "completeSuccess"
-	completeFailed = "completeFailed"
+	unknown              = ""
+	notified             = "notified"
+	started              = "started"
+	prePatchReboot       = "prePatchReboot"
+	applyPatch           = "applyPatch"
+	postPatchReboot      = "postPatchReboot"
+	postPatchRebooted    = "postPatchRebooted"
+	completeSuccess      = "completeSuccess"
+	completeFailed       = "completeFailed"
 	completeJobCompleted = "completeJobCompleted"
 )
 
@@ -56,15 +56,15 @@ var (
 	//
 	// TODO: Consider refactoring into generic "steps" which can be tested and retried in isolation.
 	patchStepIndex = map[patchStep]int{
-		unknown: 0,
-		notified: 1,
-		started: 2,
-		prePatchReboot: 3,
-		applyPatch: 4,
-		postPatchReboot: 5,
-		postPatchRebooted: 6, // even if we fail, we don't want to force reboot more than once.
-		completeSuccess: 7,
-		completeFailed: 8,
+		unknown:              0,
+		notified:             1,
+		started:              2,
+		prePatchReboot:       3,
+		applyPatch:           4,
+		postPatchReboot:      5,
+		postPatchRebooted:    6, // even if we fail, we don't want to force reboot more than once.
+		completeSuccess:      7,
+		completeFailed:       8,
 		completeJobCompleted: 9,
 	}
 )
