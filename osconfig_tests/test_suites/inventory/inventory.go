@@ -236,7 +236,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-2", testProject, testZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -279,11 +279,17 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 		return nil, false
 	}
 
+	return gatherInventory(client, testCase, inst.Project, inst.Zone, inst.Name)
+}
+
+func gatherInventory(client daisyCompute.Client, testCase *junitxml.TestCase, project, zone, name string) (*apiBeta.GuestAttributes, bool) {
 	testCase.Logf("Checking inventory data")
 	// It can take a long time to start collecting data, especially on Windows.
 	var retryTime = 10 * time.Second
 	for i := 0; ; i++ {
-		ga, err := client.GetGuestAttributes(inst.Project, inst.Zone, inst.Name, "guestInventory/", "")
+		time.Sleep(retryTime)
+
+		ga, err := client.GetGuestAttributes(project, zone, name, "guestInventory/", "")
 		totalRetryTime := time.Duration(i) * retryTime
 		if err != nil && totalRetryTime > 25*time.Minute {
 			testCase.WriteFailure("Error getting guest attributes: %v", err)
@@ -292,7 +298,6 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 		if ga != nil {
 			return ga, true
 		}
-		time.Sleep(retryTime)
 		continue
 	}
 }
