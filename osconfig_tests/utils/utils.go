@@ -29,8 +29,9 @@ apt-get install -y google-osconfig-agent
 echo 'osconfig install done'`
 
 	// InstallOSConfigGooGet installs the osconfig agent on googet based systems.
-	InstallOSConfigGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
-echo 'osconfig install done'`
+	InstallOSConfigGooGet = `Start-Sleep 10
+c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
+Write-Host 'osconfig install done'`
 
 	// InstallOSConfigYumEL7 installs the osconfig agent on el7 based systems.
 	InstallOSConfigYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
