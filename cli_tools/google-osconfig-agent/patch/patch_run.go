@@ -30,28 +30,43 @@ import (
 	"google.golang.org/api/option"
 )
 
+type patchStep string
+
 const (
 	identityTokenPath = "instance/service-accounts/default/identity?audience=osconfig.googleapis.com&format=full"
+
+	unknown              = ""
+	notified             = "notified"
+	started              = "started"
+	prePatchReboot       = "prePatchReboot"
+	applyPatch           = "applyPatch"
+	postPatchReboot      = "postPatchReboot"
+	postPatchRebooted    = "postPatchRebooted"
+	completeSuccess      = "completeSuccess"
+	completeFailed       = "completeFailed"
+	completeJobCompleted = "completeJobCompleted"
 )
 
-type patchStep int
-
-// These patch steps are ordered to allow us to skip steps that have already been completed. Progress should
-// always move forward, even if we need to retry a step.
-const (
-	//TODO: replace this with strings to make it more clear what the state is by looking at the config
-	// and to make it easier to add additional states. Also, consider refactoring into generic "steps";
-	// that can be tested and retried in isolation.
-	unknown patchStep = iota
-	notified
-	started
-	prePatchReboot
-	applyPatch
-	postPatchReboot
-	postPatchRebooted // even if we fail, we don't want to force reboot more than once.
-	completeSuccess
-	completeFailed
-	completeJobCompleted
+var (
+	// These patch steps are ordered to allow us to skip steps that have already been completed. Progress should
+	// always move forward, even if we need to retry a step.
+	//
+	// NOTE: Changing the name/string of these steps can break the agent. The numbers themselves can change
+	// since we store the name as a string.
+	//
+	// TODO: Consider refactoring into generic "steps" which can be tested and retried in isolation.
+	patchStepIndex = map[patchStep]int{
+		unknown:              0,
+		notified:             1,
+		started:              2,
+		prePatchReboot:       3,
+		applyPatch:           4,
+		postPatchReboot:      5,
+		postPatchRebooted:    6, // even if we fail, we don't want to force reboot more than once.
+		completeSuccess:      7,
+		completeFailed:       8,
+		completeJobCompleted: 9,
+	}
 )
 
 // Init starts the patch system.
@@ -241,7 +256,7 @@ func (r *patchRun) runPatch(ctx context.Context) {
 		r.PatchStep = started
 	}
 
-	if r.PatchStep <= started {
+	if patchStepIndex[r.PatchStep] <= patchStepIndex[started] {
 		logger.Debugf("Starting patchJob %s", r.Job)
 		r.StartedAt = time.Now()
 
@@ -250,14 +265,14 @@ func (r *patchRun) runPatch(ctx context.Context) {
 		}
 	}
 
-	if r.PatchStep <= prePatchReboot {
+	if patchStepIndex[r.PatchStep] <= patchStepIndex[prePatchReboot] {
 		// check if we need to reboot
 		if r.rebootIfNeeded(ctx, false) {
 			return
 		}
 	}
 
-	if r.PatchStep <= applyPatch {
+	if patchStepIndex[r.PatchStep] <= patchStepIndex[applyPatch] {
 		if r.reportState(ctx, osconfigpb.Instance_APPLYING_PATCHES) {
 			return
 		}
@@ -273,14 +288,14 @@ func (r *patchRun) runPatch(ctx context.Context) {
 		}
 	}
 
-	if r.PatchStep <= postPatchReboot {
+	if patchStepIndex[r.PatchStep] <= patchStepIndex[postPatchReboot] {
 		// check if we need to reboot
 		if r.rebootIfNeeded(ctx, true) {
 			return
 		}
 	}
 
-	if r.PatchStep <= completeSuccess {
+	if patchStepIndex[r.PatchStep] <= patchStepIndex[completeSuccess] {
 		r.PatchStep = completeSuccess
 		r.reportSucceeded(ctx)
 	}
