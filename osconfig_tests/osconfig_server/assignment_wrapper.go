@@ -31,7 +31,7 @@ type Assignment struct {
 }
 
 // CreateAssignment is a wrapper around createAssignment API
-func CreateAssignment(ctx context.Context, assignment *Assignment, parent string) (*Assignment, error) {
+func CreateAssignment(ctx context.Context, assignment *osconfigpb.Assignment, parent string) (*Assignment, error) {
 	client, err := GetOsConfigClient(ctx)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func CreateAssignment(ctx context.Context, assignment *Assignment, parent string
 
 	req := &osconfigpb.CreateAssignmentRequest{
 		Parent:     parent,
-		Assignment: assignment.Assignment,
+		Assignment: assignment,
 	}
 
 	res, err := client.CreateAssignment(ctx, req)

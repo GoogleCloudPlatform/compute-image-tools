@@ -34,7 +34,7 @@ type OsConfigIterator struct {
 }
 
 // CreateOsConfig is a wrapper around createOsConfig API
-func CreateOsConfig(ctx context.Context, oc *OsConfig, parent string) (*OsConfig, error) {
+func CreateOsConfig(ctx context.Context, oc *osconfigpb.OsConfig, parent string) (*OsConfig, error) {
 	client, err := GetOsConfigClient(ctx)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func CreateOsConfig(ctx context.Context, oc *OsConfig, parent string) (*OsConfig
 
 	req := &osconfigpb.CreateOsConfigRequest{
 		Parent:   parent,
-		OsConfig: oc.OsConfig,
+		OsConfig: oc,
 	}
 
 	res, err := client.CreateOsConfig(ctx, req)

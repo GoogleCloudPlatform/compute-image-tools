@@ -27,8 +27,7 @@ import (
 )
 
 var (
-	pkgTestSetup = []*packageManagementTestSetup{}
-	pkgManagers  = [...]string{"apt"}
+	pkgManagers = []string{"apt"}
 )
 
 // vf is the the vertificationFunction that is used in each testSetup during assertion of test case.
@@ -36,7 +35,7 @@ var vf = func(inst *compute.Instance, vfString string, port int64, interval, tim
 	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
-func addCreateOsConfigTest() {
+func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup) []*packageManagementTestSetup {
 	testName := "createosconfigtest"
 	desc := "test osconfig creation"
 	for _, pkgManager := range pkgManagers {
@@ -61,8 +60,9 @@ func addCreateOsConfigTest() {
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
 	}
+	return pkgTestSetup
 }
-func addPackageInstallTest() {
+func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packageManagementTestSetup {
 	testName := "packageinstalltest"
 	desc := "test package installation"
 	for _, pkgManager := range pkgManagers {
@@ -95,9 +95,10 @@ func addPackageInstallTest() {
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
 	}
+	return pkgTestSetup
 }
 
-func addPackageRemovalTest() {
+func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packageManagementTestSetup {
 	testName := "packageremovaltest"
 	desc := "test package removal"
 	for _, pkgManager := range pkgManagers {
@@ -108,7 +109,7 @@ func addPackageRemovalTest() {
 		switch pkgManager {
 		case "apt":
 			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
-			pkg := osconfigserver.BuildPackage("cowsay")
+			pkg := osconfigserver.BuildPackage("wget")
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
@@ -130,9 +131,10 @@ func addPackageRemovalTest() {
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
 	}
+	return pkgTestSetup
 }
 
-func addPackageInstallRemovalTest() {
+func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packageManagementTestSetup {
 	testName := "packageinstallremovaltest"
 	desc := "test package removal takes precedence over package installation"
 	for _, pkgManager := range pkgManagers {
@@ -167,13 +169,14 @@ func addPackageInstallRemovalTest() {
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
 	}
+	return pkgTestSetup
 }
 
 func generateAllTestSetup() []*packageManagementTestSetup {
-	addCreateOsConfigTest()
-	addPackageInstallTest()
-	addPackageRemovalTest()
-	addPackageInstallRemovalTest()
-
+	pkgTestSetup := []*packageManagementTestSetup{}
+	pkgTestSetup = addCreateOsConfigTest(pkgTestSetup)
+	pkgTestSetup = addPackageInstallTest(pkgTestSetup)
+	pkgTestSetup = addPackageRemovalTest(pkgTestSetup)
+	pkgTestSetup = addPackageInstallRemovalTest(pkgTestSetup)
 	return pkgTestSetup
 }

@@ -89,7 +89,7 @@ func BuildWUPackageConfig(wusu string) *osconfigpb.WindowsUpdateConfig {
 // BuildInstanceFilterExpression creates an instance filter expression to
 // be used by Assignment
 func BuildInstanceFilterExpression(instance string) string {
-	return fmt.Sprintf("instance.name==%s", instance)
+	return fmt.Sprintf("instance.name==\"%s\"", instance)
 }
 
 // BuildPackage creates an os config package
