@@ -22,6 +22,7 @@ import (
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
+// Changes represents the delta between the actual and the desired package installation state.
 type Changes struct {
 	PackagesToInstall []string
 	PackagesToUpgrade []string
