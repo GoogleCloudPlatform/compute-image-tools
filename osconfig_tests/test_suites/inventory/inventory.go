@@ -73,7 +73,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -82,7 +82,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -91,7 +91,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -100,7 +100,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -109,7 +109,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -118,7 +118,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -127,7 +127,34 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-1809-core",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-2019-core",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-2019",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
