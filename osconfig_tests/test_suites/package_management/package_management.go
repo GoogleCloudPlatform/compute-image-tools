@@ -102,7 +102,7 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Message()))
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Details()))
 		return
 	}
 
@@ -115,7 +115,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Message()))
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Details()))
 		return
 	}
 
@@ -196,7 +196,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Message()))
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Details()))
 		return
 	}
 
@@ -276,7 +276,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Message()))
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Details()))
 		return
 	}
 	defer cleanupOsConfig(ctx, testCase, oc)
