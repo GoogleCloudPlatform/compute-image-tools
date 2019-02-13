@@ -73,7 +73,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -82,7 +82,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -91,7 +91,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -100,7 +100,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -109,7 +109,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -118,7 +118,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -127,7 +127,34 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			packageType: []string{"googet", "wua", "qfe"},
 			shortName:   "windows",
 			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-cmd",
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-1809-core",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-2019-core",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&inventoryTestSetup{
+			image:       "projects/windows-cloud/global/images/family/windows-2019",
+			packageType: []string{"googet", "wua", "qfe"},
+			shortName:   "windows",
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
 				Value: &utils.InstallOSConfigGooGet,
 			},
 		},
@@ -236,7 +263,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-2", testProject, testZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -274,16 +301,22 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	defer inst.Cleanup()
 
 	testCase.Logf("Waiting for agent install to complete")
-	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 7*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return nil, false
 	}
 
+	return gatherInventory(client, testCase, inst.Project, inst.Zone, inst.Name)
+}
+
+func gatherInventory(client daisyCompute.Client, testCase *junitxml.TestCase, project, zone, name string) (*apiBeta.GuestAttributes, bool) {
 	testCase.Logf("Checking inventory data")
 	// It can take a long time to start collecting data, especially on Windows.
 	var retryTime = 10 * time.Second
 	for i := 0; ; i++ {
-		ga, err := client.GetGuestAttributes(inst.Project, inst.Zone, inst.Name, "guestInventory/", "")
+		time.Sleep(retryTime)
+
+		ga, err := client.GetGuestAttributes(project, zone, name, "guestInventory/", "")
 		totalRetryTime := time.Duration(i) * retryTime
 		if err != nil && totalRetryTime > 25*time.Minute {
 			testCase.WriteFailure("Error getting guest attributes: %v", err)
@@ -292,7 +325,6 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 		if ga != nil {
 			return ga, true
 		}
-		time.Sleep(retryTime)
 		continue
 	}
 }

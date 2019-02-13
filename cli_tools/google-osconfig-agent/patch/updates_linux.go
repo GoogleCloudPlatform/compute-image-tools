@@ -21,30 +21,13 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
-func rebootRequired() (bool, error) {
+func systemRebootRequired() (bool, error) {
 	// TODO: actually check for distro specific reboot file.
 	return false, nil
 }
 
-func runUpdates(pc *osconfigpb.PatchConfig) (bool, error) {
-	if pc.RebootConfig != osconfigpb.PatchConfig_NEVER {
-		reboot, err := rebootRequired()
-		if err != nil {
-			return false, err
-		}
-		if reboot {
-			return true, nil
-		}
-	}
-
-	if err := packages.UpdatePackages(); err != nil {
-		return false, err
-	}
-
-	if pc.RebootConfig != osconfigpb.PatchConfig_NEVER {
-		return rebootRequired()
-	}
-	return false, nil
+func runUpdates(pc *osconfigpb.PatchConfig) error {
+	return packages.UpdatePackages()
 }
 
 func rebootSystem() error {

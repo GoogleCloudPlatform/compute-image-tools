@@ -42,6 +42,6 @@ a PR:
 * `/retest`: reruns failed tests, only available after Prow reports failures.
 
 Periodic tests run every 6 hours. Currently, periodic tests include the e2e
-tests here: [../daisy_workflows/e2e_tests](../daisy_workflows/e2e_tests). You
-can see the test results for the e2e tests in testgrid: [https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#daisy-e2e].
+tests here: [../test-infra/prow/config.yaml](../test-infra/prow/config.yaml). You
+can see the test results for the e2e tests in testgrid: [https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#ci-daisy-e2e].
 
