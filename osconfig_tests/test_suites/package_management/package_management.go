@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -38,6 +39,8 @@ const (
 	testSuiteName = "PackageManagementTests"
 	testProjectID = "281997379984"
 	debianImage   = "projects/debian-cloud/global/images/family/debian-9"
+	centosImage   = "projects/centos-cloud/global/images/family/centos-7"
+	rhelImage     = "projects/rhel-cloud/global/images/family/rhel-7"
 	testProject   = "compute-image-test-pool-001"
 	testZone      = "us-central1-c"
 
@@ -99,22 +102,11 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Message()))
 		return
 	}
 
 	defer cleanupOsConfig(ctx, testCase, oc)
-
-	// TODO: improve logging to include status report as it contains more
-	// meaningful information that helps in debugging
-	if err != nil {
-		st, ok := status.FromError(err)
-		if ok {
-			testCase.WriteFailure("error while creating osconfig:\n%s\n", st)
-		} else {
-			testCase.WriteFailure("error while creating osconfig:\n%s\n\n", err)
-		}
-	}
 }
 
 func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
@@ -123,7 +115,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Message()))
 		return
 	}
 
@@ -204,7 +196,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Message()))
 		return
 	}
 
@@ -284,7 +276,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Message()))
 		return
 	}
 	defer cleanupOsConfig(ctx, testCase, oc)
@@ -361,10 +353,10 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
 	defer wg.Done()
 
-	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[CreateOsConfig] Create OsConfig"))
-	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstall] Pacakge installation"))
-	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageRemoval] Package removal"))
-	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstallRemoval] Package no change"))
+	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/CreateOsConfig] Create OsConfig", testSetup.image))
+	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstall] Package installation", testSetup.image))
+	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageRemoval] Package removal", testSetup.image))
+	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallRemoval] Package no change", testSetup.image))
 
 	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger){
 		createOsConfigTest:        runCreateOsConfigTest,
@@ -409,5 +401,5 @@ func getTestNameFromTestCase(tc string) string {
 	for _, s := range ss {
 		ret = append(ret, s[1:len(s)-1])
 	}
-	return ret[1]
+	return filepath.Base(ret[1])
 }
