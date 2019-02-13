@@ -21,6 +21,18 @@ import (
 )
 
 var (
+	// TODO: the startup script installs the osconfig agent and then keeps querying
+	// for list of installed packages. Though, this is required for package
+	// management tests, it is not required for inventory tests.
+	// Running multiple startup script is not supported. We have project level and
+	// instance level startup scripts, but only one of them gets executed by virtue
+	// of concept of overriding.
+	// A way to solve this is to spin up the vm with a project level startup script
+	// that installs the osconfig-agent and once the agent is installed, replace
+	// the startup script that queries the packages and redirects to serial console.
+	// The only caveat is that it requires a reboot which would ultimately increase
+	// test running time.
+
 	// InstallOSConfigDeb installs the osconfig agent on deb based systems.
 	InstallOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
