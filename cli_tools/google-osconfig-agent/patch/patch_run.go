@@ -71,6 +71,7 @@ var (
 
 // Init starts the patch system.
 func Init(ctx context.Context) {
+	disableAutoUpdates()
 	go RunPatchAgent(ctx)
 }
 
