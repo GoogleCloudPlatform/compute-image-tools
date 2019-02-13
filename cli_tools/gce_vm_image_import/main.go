@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -386,6 +388,14 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 	return varMap
 }
 
+func toWorkingDir(dir string) string {
+	wd, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err == nil {
+		return path.Join(wd, dir)
+	}
+	return dir
+}
+
 func main() {
 	fatalIfError(validateAndParseFlags)
 	populateMissingParameters()
@@ -393,6 +403,7 @@ func main() {
 	ctx := context.Background()
 
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
+	importWorkflowPath = toWorkingDir(importWorkflowPath)
 
 	varMap := buildDaisyVars(translateWorkflowPath)
 	workflow, err := daisycommon.ParseWorkflow(ctx, importWorkflowPath, varMap, *project, *zone,
