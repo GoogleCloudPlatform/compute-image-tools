@@ -293,8 +293,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	if err != nil {
 		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
 	}
-	defer assign.Cleanup(ctx, parent)
-	// defer cleanupAssignment(ctx, testCase, assign)
+	defer cleanupAssignment(ctx, testCase, assign)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
