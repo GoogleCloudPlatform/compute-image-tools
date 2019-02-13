@@ -68,7 +68,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
-		var instaneName string
+		var instaneName, ss, vs string
 
 		switch pkgManager {
 		case "apt":
@@ -77,6 +77,8 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			ss = fmt.Sprintf("%s\nwhile true; do /usr/bin/dpkg-query -s cowsay | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb)
+			vs = fmt.Sprintf("install ok installed")
 			break
 		default:
 			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
@@ -88,9 +90,10 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			assignment: assign,
 			fname:      testName,
 			vf:         vf,
+			vstring:    vs,
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.StartupScriptDeb,
+				Value: &ss,
 			},
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
@@ -104,15 +107,17 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
-		var instaneName string
+		var instaneName, ss, vs string
 
 		switch pkgManager {
 		case "apt":
 			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
-			pkg := osconfigserver.BuildPackage("wget")
+			pkg := osconfigserver.BuildPackage("cowsay")
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			ss = fmt.Sprintf("%s\nsudo apt-get -y install cowsay\nwhile true; do /usr/bin/dpkg-query -s cowsay | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb)
+			vs = fmt.Sprintf("package 'cowsay' is not installed")
 			break
 		default:
 			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
@@ -124,9 +129,10 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			assignment: assign,
 			fname:      testName,
 			vf:         vf,
+			vstring:    vs,
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.StartupScriptDeb,
+				Value: &ss,
 			},
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
@@ -140,7 +146,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
-		var instaneName string
+		var instaneName, ss, vs string
 
 		switch pkgManager {
 		case "apt":
@@ -151,6 +157,8 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 			removePkg := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+			ss = fmt.Sprintf("%s\nwhile true; do /usr/bin/dpkg-query -s wget | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb)
+			vs = fmt.Sprintf("package 'cowsay' is not installed")
 			break
 		default:
 			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
@@ -162,9 +170,10 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 			assignment: assign,
 			fname:      testName,
 			vf:         vf,
+			vstring:    vs,
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
-				Value: &utils.StartupScriptDeb,
+				Value: &ss,
 			},
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)

@@ -58,6 +58,7 @@ type packageManagementTestSetup struct {
 	osconfig   *osconfigpb.OsConfig
 	assignment *osconfigpb.Assignment
 	startup    *api.MetadataItems
+	vstring    string
 	vf         func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
@@ -193,7 +194,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	// read the serial console once
-	if err = testSetup.vf(inst, "wget deinstall ok config-files", 1, 10*time.Second, 600*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 600*time.Second); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 		return
 	}
@@ -274,8 +275,8 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = inst.WaitForSerialOutput("cowsay", 1, 1*time.Second, 60*time.Second); err == nil {
-		testCase.WriteFailure("error asserting package installation, cowsay package should not have been installed")
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 60*time.Second); err != nil {
+		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
 
@@ -353,7 +354,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, "cowsay install ok installed", 1, 10*time.Second, 60*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 60*time.Second); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }

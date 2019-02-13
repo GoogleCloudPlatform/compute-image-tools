@@ -33,13 +33,12 @@ var (
 	// The only caveat is that it requires a reboot which would ultimately increase
 	// test running time.
 
-	// StartupScriptDeb installs the osconfig agent on deb based systems.
-	StartupScriptDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
+	// InstallOSConfigDeb installs the osconfig agent on deb based systems.
+	InstallOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-osconfig-agent
-echo 'osconfig install done'
-while true; do /usr/bin/dpkg-query -f '${Package} ${Status}\n' -W | sudo tee /dev/ttyS0; sleep 5; done`
+echo 'osconfig install done'`
 
 	// InstallOSConfigGooGet installs the osconfig agent on googet based systems.
 	InstallOSConfigGooGet = `Start-Sleep 10
