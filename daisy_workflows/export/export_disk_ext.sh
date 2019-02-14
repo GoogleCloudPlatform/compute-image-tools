@@ -37,7 +37,7 @@ SIZE_BYTES=$(qemu-img info --output "json" /dev/sdb | grep -m1 "virtual-size" | 
 SIZE_GB=$(awk "BEGIN {print int((${SIZE_BYTES}/1000000000)+ 1)}")
 
 echo "GCEExport: Exporting disk of size ${SIZE_GB}GB and format ${FORMAT}."
-qemu-img convertiii /dev/sdb "/gcs/${GCS_PATH}" -p -O $FORMAT &> qemu_output.txt
+qemu-img convert /dev/sdb "/gcs/${GCS_PATH}" -p -O $FORMAT &> qemu_output.txt
 QEMU_ERR=$?
 if [ ${QEMU_ERR} -ne 0 ]; then
 	echo "ExportFailed: Failed to export disk source to ${GS_PATH} due to qemu-img error code '${QEMU_ERR}', error info: $(cat qemu_output.txt)"
