@@ -79,7 +79,13 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = fmt.Sprintf("%s\nwhile true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb, packageName)
+			ss = `%s
+			while true;
+			do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
+			sleep 5;
+			done;
+			`
+			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName)
 			vs = fmt.Sprintf("install ok installed")
 			break
 		default:
@@ -119,7 +125,12 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = fmt.Sprintf("%s\nsudo apt-get -y install %s \nwhile true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb, packageName, packageName)
+			ss = `%s
+			sudo apt-get -y install %s;
+			while true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
+			sleep 5;
+			done`
+			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName)
 			vs = fmt.Sprintf("package '%s' is not installed", packageName)
 			break
 		default:
@@ -161,7 +172,13 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 			removePkg := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = fmt.Sprintf("%s\nsudo apt-get -y install %s\nwhile true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb, packageName, packageName)
+			ss = `%s
+			sudo apt-get -y install %s
+			while true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
+			sleep 5;
+			done
+			`
+			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName)
 			vs = fmt.Sprintf("package '%s' is not installed", packageName)
 			break
 		default:
