@@ -17,6 +17,7 @@ package compute
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -38,16 +39,17 @@ func (i *Instance) Cleanup() {
 	}
 }
 
-// WaitForSerialOutput waits to a string match on a serial port.
-func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeout time.Duration) error {
+// WaitForSerialOutput waits for a match with regular expression regex on a serial port.
+func (i *Instance) WaitForSerialOutput(regex string, port int64, interval, timeout time.Duration) error {
 	var start int64
 	var errs int
+	var validMatch = regexp.MustCompile(regex)
 	tick := time.Tick(interval)
 	timedout := time.Tick(timeout)
 	for {
 		select {
 		case <-timedout:
-			return fmt.Errorf("timed out waiting for %q", match)
+			return fmt.Errorf("timed out waiting to match regular expression:", regex)
 		case <-tick:
 			resp, err := i.client.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
 			if err != nil {
@@ -73,7 +75,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 			}
 			start = resp.Next
 			for _, ln := range strings.Split(resp.Contents, "\n") {
-				if i := strings.Index(ln, match); i != -1 {
+				if validMatch.MatchString(ln) {
 					return nil
 				}
 			}
