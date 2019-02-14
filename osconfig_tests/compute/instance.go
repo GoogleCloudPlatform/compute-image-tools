@@ -49,7 +49,7 @@ func (i *Instance) WaitForSerialOutput(regex string, port int64, interval, timeo
 	for {
 		select {
 		case <-timedout:
-			return fmt.Errorf("timed out waiting to match regular expression:", regex)
+			return fmt.Errorf("timed out waiting to match regular expression: %s", regex)
 		case <-tick:
 			resp, err := i.client.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
 			if err != nil {
