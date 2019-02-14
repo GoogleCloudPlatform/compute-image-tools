@@ -90,7 +90,13 @@ var (
 		"windows-2016":   "windows/translate_windows_2016.wf.json",
 	}
 	userLabels *map[string]string
+	currentExecutablePath *string
 )
+
+func init() {
+	currentExecutablePathStr := string(os.Args[0])
+	currentExecutablePath = &currentExecutablePathStr
+}
 
 func validateAndParseFlags() error {
 	flag.Parse()
@@ -196,12 +202,20 @@ func splitGCSPath(p string) (string, string, error) {
 //Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return importFromImageWorkflow, getTranslateWorkflowPath(osID)
+		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath(osID)
 	}
 	if *dataDisk {
-		return importWorkflow, ""
+		return toWorkingDir(importWorkflow), ""
 	}
-	return importAndTranslateWorkflow, getTranslateWorkflowPath(osID)
+	return toWorkingDir(importAndTranslateWorkflow), getTranslateWorkflowPath(osID)
+}
+
+func toWorkingDir(dir string) string {
+	wd, err := filepath.Abs(filepath.Dir(*currentExecutablePath))
+	if err == nil {
+		return path.Join(wd, dir)
+	}
+	return dir
 }
 
 func getTranslateWorkflowPath(os *string) string {
@@ -388,14 +402,6 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 	return varMap
 }
 
-func toWorkingDir(dir string) string {
-	wd, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err == nil {
-		return path.Join(wd, dir)
-	}
-	return dir
-}
-
 func main() {
 	fatalIfError(validateAndParseFlags)
 	populateMissingParameters()
@@ -403,7 +409,6 @@ func main() {
 	ctx := context.Background()
 
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
-	importWorkflowPath = toWorkingDir(importWorkflowPath)
 
 	varMap := buildDaisyVars(translateWorkflowPath)
 	workflow, err := daisycommon.ParseWorkflow(ctx, importWorkflowPath, varMap, *project, *zone,

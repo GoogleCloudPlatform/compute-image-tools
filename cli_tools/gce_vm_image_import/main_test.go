@@ -90,15 +90,21 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 }
 
 func TestGetWorkflowPathsFromFile(t *testing.T) {
+	homeDir := "/home/gce/"
 	defer setBoolP(&dataDisk, false)()
 	defer setStringP(&sourceImage, "image-1")()
 	defer setStringP(&osID, "ubuntu-1404")()
 	defer setStringP(&sourceImage, "")()
+	defer setStringP(&currentExecutablePath, homeDir+"executable")()
 
 	workflow, translate := getWorkflowPaths()
 
-	if workflow != importAndTranslateWorkflow || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
-		t.Errorf("%v != %v and/or translate not %v", workflow, "ubuntu/translate_ubuntu_1404.wf.json", importAndTranslateWorkflow)
+	if workflow != homeDir+importAndTranslateWorkflow {
+		t.Errorf("resulting workflow path `%v` does not match expected `%v`", workflow, homeDir+importAndTranslateWorkflow)
+	}
+
+	if translate != "ubuntu/translate_ubuntu_1404.wf.json" {
+		t.Errorf("resulting translate workflow path `%v` does not match expected `%v`", translate, "ubuntu/translate_ubuntu_1404.wf.json")
 	}
 }
 
