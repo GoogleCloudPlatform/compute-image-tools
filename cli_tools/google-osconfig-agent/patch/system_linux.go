@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package patch
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 
@@ -25,7 +26,16 @@ import (
 func disableAutoUpdates() {
 	// yum-cron on el systems
 	if _, err := os.Stat("/usr/sbin/yum-cron"); err == nil {
-		out, err := exec.Command("chkconfig", "yum-cron", "off").CombinedOutput()
+		out, err := exec.Command("chkconfig", "yum-cron").CombinedOutput()
+		if err != nil {
+			logger.Errorf("error checking status of yum-cron, error: %v, out: %s", err, out)
+		}
+		if bytes.Contains(out, []byte("disabled")) {
+			return
+		}
+
+		logger.Debugf("Disabling yum-cron")
+		out, err = exec.Command("chkconfig", "yum-cron", "off").CombinedOutput()
 		if err != nil {
 			logger.Errorf("error disabling yum-cron, error: %v, out: %s", err, out)
 		}
@@ -36,6 +46,7 @@ func disableAutoUpdates() {
 	// the configs, this is probably best done by looking through
 	// /etc/apt/apt.conf.d/ and setting APT::Periodic::Unattended-Upgrade to 0.
 	if _, err := os.Stat("/usr/bin/unattended-upgrades"); err == nil {
+		logger.Debugf("Removing unattended-upgrades package")
 		out, err := exec.Command("apt-get", "remove", "-y", "unattended-upgrades").CombinedOutput()
 		if err != nil {
 			logger.Errorf("error disabling unattended-upgrades, error: %v, out: %s", err, out)

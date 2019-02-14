@@ -31,6 +31,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc/status"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
@@ -113,6 +114,9 @@ func LookupConfigs(ctx context.Context, client *osconfig.Client, resource string
 
 	res, err := client.LookupConfigs(ctx, req)
 	if err != nil {
+		if s, ok := status.FromError(err); ok {
+			return nil, fmt.Errorf("code: %q, message: %q, details: %q", s.Code(), s.Message(), s.Details())
+		}
 		return nil, err
 	}
 	logger.Debugf("LookupConfigs response:\n%s\n\n", dump.Sprint(res))

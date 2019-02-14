@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -21,11 +21,19 @@ import (
 
 // disableAutoUpdates disables system auto udpdates.
 func disableAutoUpdates() {
-	k, _, err := registry.CreateKey(registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU`, registry.WRITE)
+	k, openedExisting, err := registry.CreateKey(registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU`, registry.ALL_ACCESS)
 	if err != nil {
 		logger.Errorf("error disabling Windows auto updates, error: %v", err)
 	}
 	defer k.Close()
+
+	if openedExisting {
+		val, _, err := k.GetIntegerValue("NoAutoUpdate")
+		if err == nil && val == 1 {
+			return
+		}
+	}
+	logger.Debugf("Disabling Windows Auto Updates")
 
 	if err := k.SetDWordValue("NoAutoUpdate", 1); err != nil {
 		logger.Errorf("error disabling Windows auto updates, error: %v", err)
