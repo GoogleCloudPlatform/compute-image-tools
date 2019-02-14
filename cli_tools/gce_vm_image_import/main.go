@@ -89,7 +89,7 @@ var (
 		"windows-2012r2": "windows/translate_windows_2012_r2.wf.json",
 		"windows-2016":   "windows/translate_windows_2016.wf.json",
 	}
-	userLabels *map[string]string
+	userLabels            *map[string]string
 	currentExecutablePath *string
 )
 
