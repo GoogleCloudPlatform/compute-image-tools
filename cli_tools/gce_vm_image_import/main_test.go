@@ -559,6 +559,10 @@ func (m dummyMetadataGCE) Zone() (string, error) {
 	return *gceZone, gceMetadataError
 }
 
+func (m dummyMetadataGCE) ProjectID() (string, error) {
+	return "", gceMetadataError
+}
+
 func assertEqual(i1 interface{}, i2 interface{}, t *testing.T) {
 	if i1 != i2 {
 		t.Errorf("%v != %v", i1, i2)

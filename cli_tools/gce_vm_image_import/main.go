@@ -16,9 +16,15 @@
 package main
 
 import (
+	"cloud.google.com/go/compute/metadata"
+	"cloud.google.com/go/storage"
 	"context"
 	"flag"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/option"
 	"log"
 	"os"
 	"path"
@@ -27,11 +33,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"cloud.google.com/go/compute/metadata"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/compute/v1"
 )
 
 const (
@@ -190,6 +191,7 @@ func validateString(value string, key string, errorMessage string) error {
 	return nil
 }
 
+// Returns: bucket, object path, error
 func splitGCSPath(p string) (string, string, error) {
 	matches := gsRegex.FindStringSubmatch(p)
 	if matches != nil {
@@ -228,31 +230,49 @@ func fatalIfError(f func() error) {
 	}
 }
 
-func populateMissingParameters() {
-	fatalIfError(func() error {
-		return populateZoneIfMissing(metadataGCEHolder{})
-	})
-	fatalIfError(populateRegion)
+func populateMissingParameters(metadata MetadataGCE, scratchBucketCreator ScratchBucketCreatorInterface) error {
+	if err := populateZoneIfMissing(metadata); err != nil {
+		return err
+	}
+	if err := populateRegion(); err != nil {
+		return err
+	}
+
+	// TODO: should we use scratch bucket region to set as global region as well as pick a zone to run import in?
+	scratchBucketName, _, err := scratchBucketCreator.CreateScratchBucketIfNotSet(scratchBucketGcsPath, sourceFile)
+	if err != nil {
+		return err
+	}
+
+	newScratchBucketGcsPath := fmt.Sprintf("gs://%v/", scratchBucketName)
+	scratchBucketGcsPath = &newScratchBucketGcsPath
 
 	//TODO: network, subnetwork, gcsPath (create scratch bucket including regionalization, if possible)
+
+	return nil
 }
 
-type metadataGCEHolder struct{}
+type MetadataGCEHolder struct{}
 
-type metadataGCE interface {
+type MetadataGCE interface {
 	OnGCE() bool
 	Zone() (string, error)
+	ProjectID() (string, error)
 }
 
-func (m metadataGCEHolder) OnGCE() bool {
+func (m MetadataGCEHolder) OnGCE() bool {
 	return metadata.OnGCE()
 }
 
-func (m metadataGCEHolder) Zone() (string, error) {
+func (m MetadataGCEHolder) Zone() (string, error) {
 	return metadata.Zone()
 }
 
-func populateZoneIfMissing(mgce metadataGCE) error {
+func (m MetadataGCEHolder) ProjectID() (string, error) {
+	return metadata.ProjectID()
+}
+
+func populateZoneIfMissing(mgce MetadataGCE) error {
 	if *zone == "" {
 		var err error
 		var aZone = ""
@@ -266,6 +286,7 @@ func populateZoneIfMissing(mgce metadataGCE) error {
 		if aZone == "" {
 			return fmt.Errorf("zone is empty")
 		}
+		fmt.Printf("[image-importer] Zone not provided, using %v\n", aZone)
 
 		zone = &aZone
 	}
@@ -402,11 +423,25 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 	return varMap
 }
 
-func main() {
-	fatalIfError(validateAndParseFlags)
-	populateMissingParameters()
+func createStorageClient(ctx context.Context) *storage.Client {
+	storageOptions := []option.ClientOption{option.WithCredentialsFile(*oauth)}
+	storageClient, err := storage.NewClient(ctx, storageOptions...)
+	if err != nil {
+		log.Fatalf("error creating storage client %v", err)
+	}
+	return storageClient
+}
 
+func main() {
+	metadata := MetadataGCEHolder{}
 	ctx := context.Background()
+
+	fatalIfError(validateAndParseFlags)
+
+	scratchBucketCreator := NewScratchBucketCreator(metadata, createStorageClient(ctx), ctx)
+	if err := populateMissingParameters(metadata, scratchBucketCreator); err != nil {
+		log.Fatalf(err.Error())
+	}
 
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
 
@@ -415,7 +450,7 @@ func main() {
 		*scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled)
 	if err != nil {
-		log.Fatalf("Error parsing workflow %q: %v", importWorkflowPath, err)
+		log.Fatalf("error parsing workflow %q: %v", importWorkflowPath, err)
 	}
 
 	if err := workflow.RunWithModifier(ctx, updateWorkflow); err != nil {
