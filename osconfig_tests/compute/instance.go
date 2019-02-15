@@ -40,10 +40,16 @@ func (i *Instance) Cleanup() {
 }
 
 // WaitForSerialOutput waits for a match with regular expression regex on a serial port.
+// if you are using regular expression make sure to check the err
 func (i *Instance) WaitForSerialOutput(regex string, port int64, interval, timeout time.Duration) error {
 	var start int64
 	var errs int
-	var validMatch = regexp.MustCompile(regex)
+	validMatch, err := regexp.Compile(regex)
+
+	if err != nil {
+		return fmt.Errorf("error compiling regex: %v", err)
+	}
+
 	tick := time.Tick(interval)
 	timedout := time.Tick(timeout)
 	for {
