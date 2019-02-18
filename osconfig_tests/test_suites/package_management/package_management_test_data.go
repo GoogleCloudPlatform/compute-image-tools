@@ -22,8 +22,12 @@ import (
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	api "google.golang.org/api/compute/v1"
+)
+
+const (
+	packageInstalledString    = "package is installed"
+	packageNotInstalledString = "package is not installed"
 )
 
 var (
@@ -85,16 +89,9 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			pkg := osconfigserver.BuildPackage(packageName)
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
-			ss = `%s
-			while true;
-			do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done;
-			`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName)
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			vs = fmt.Sprintf("install ok installed")
+			vs = fmt.Sprintf(packageInstalledString)
 			break
 		case "yum":
 			image = centosImage
@@ -103,17 +100,13 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = `%s
-			while true;
-			do /usr/bin/rpmquery -a %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName)
-			vs = fmt.Sprintf(packageName)
+			vs = fmt.Sprintf(packageInstalledString)
 			break
 		default:
 			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
 		}
+
+		ss = getPackageInstallStartupScript(pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
 			name:       instanceName,
@@ -149,13 +142,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = `%s
-			sudo apt-get -y install %s;
-			while true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName)
-			vs = fmt.Sprintf("package '%s' is not installed", packageName)
+			vs = fmt.Sprintf(packageNotInstalledString)
 		case "yum":
 			image = centosImage
 			instanceName = fmt.Sprintf("%s-%s", path.Base(image), testName)
@@ -163,18 +150,13 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 			removePkg := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = `%s
-			sudo yum -y install %s
-			while true;
-			do /usr/bin/rpmquery -s %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName)
-			vs = fmt.Sprintf("package cowsay is not installed")
+			vs = fmt.Sprintf(packageNotInstalledString)
 			break
 		default:
 			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
 		}
+
+		ss = getPackageRemovalStartupScript(pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
 			name:       instanceName,
@@ -212,14 +194,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 			removePkg := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = `%s
-			sudo apt-get -y install %s
-			while true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done
-			`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName)
-			vs = fmt.Sprintf("package '%s' is not installed", packageName)
+			vs = fmt.Sprintf(packageNotInstalledString)
 		case "yum":
 			image = centosImage
 			instanceName = fmt.Sprintf("%s-%s", path.Base(image), testName)
@@ -229,16 +204,12 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 			removePkg := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = `%s
-			while true;
-			do /usr/bin/rpmquery -s %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName)
-			vs = fmt.Sprintf("package %s is not installed", packageName)
+			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
 			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
 		}
+
+		ss = getPackageInstallRemovalStartupScript(pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
 			name:       instanceName,
