@@ -15,8 +15,12 @@
 package main
 
 import (
+	"cloud.google.com/go/storage"
 	"fmt"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 	"os"
 	"testing"
@@ -398,15 +402,15 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 
 	got := buildDaisyVars("translate/workflow/path")
 
-	assertEqual(got["image_name"], "image-a", t)
-	assertEqual(got["translate_workflow"], "translate/workflow/path", t)
-	assertEqual(got["install_gce_packages"], "false", t)
-	assertEqual(got["source_disk_file"], "source-file-path", t)
-	assertEqual(got["family"], "a-family", t)
-	assertEqual(got["description"], "a-description", t)
-	assertEqual(got["import_network"], "global/networks/a-network", t)
-	assertEqual(got["import_subnet"], "regions/a-region/subnetworks/a-subnet", t)
-	assertEqual(len(got), 8, t)
+	assert.Equal(t, got["image_name"], "image-a")
+	assert.Equal(t, got["translate_workflow"], "translate/workflow/path")
+	assert.Equal(t, got["install_gce_packages"], "false")
+	assert.Equal(t, got["source_disk_file"], "source-file-path")
+	assert.Equal(t, got["family"], "a-family")
+	assert.Equal(t, got["description"], "a-description")
+	assert.Equal(t, got["import_network"], "global/networks/a-network")
+	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
+	assert.Equal(t, len(got), 8)
 }
 
 func TestBuildDaisyVarsFromImage(t *testing.T) {
@@ -422,65 +426,222 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 
 	got := buildDaisyVars("translate/workflow/path")
 
-	assertEqual(got["image_name"], "image-a", t)
-	assertEqual(got["translate_workflow"], "translate/workflow/path", t)
-	assertEqual(got["install_gce_packages"], "false", t)
-	assertEqual(got["source_image"], "global/images/source-image", t)
-	assertEqual(got["family"], "a-family", t)
-	assertEqual(got["description"], "a-description", t)
-	assertEqual(got["import_network"], "global/networks/a-network", t)
-	assertEqual(got["import_subnet"], "regions/a-region/subnetworks/a-subnet", t)
-	assertEqual(len(got), 8, t)
+	assert.Equal(t, got["image_name"], "image-a")
+	assert.Equal(t, got["translate_workflow"], "translate/workflow/path")
+	assert.Equal(t, got["install_gce_packages"], "false")
+	assert.Equal(t, got["source_image"], "global/images/source-image")
+	assert.Equal(t, got["family"], "a-family")
+	assert.Equal(t, got["description"], "a-description")
+	assert.Equal(t, got["import_network"], "global/networks/a-network")
+	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
+	assert.Equal(t, len(got), 8)
 }
 
-var onGCE *bool
-var gceZone *string
-var gceMetadataError error
-
-func TestPopulateZoneIfMissingOnGCESuccess(t *testing.T) {
-	defer setBoolP(&onGCE, true)()
-	defer setStringP(&gceZone, "europe-north1-c")()
+func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
 	defer setStringP(&zone, "")()
-	err := populateZoneIfMissing(dummyMetadataGCE{})
+	defer setStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
+	defer setStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
+	defer setStringP(&project, "a_project")()
 
-	assertNil(err, t)
-	assertEqual(*zone, "europe-north1-c", t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	storageRegion := "europe-north1"
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockZoneRetriever.EXPECT().GetZone(storageRegion, *project).Return("europe-north1-b", nil).Times(1)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: storageRegion}, nil)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "europe-north1-b", *zone)
+	assert.Equal(t, "europe-north1", *region)
+	assert.Equal(t, "gs://scratchbucket/scratchpath", *scratchBucketGcsPath)
 }
 
-func TestPopulateZoneIfMissingNotOnGCEZoneDoesntChange(t *testing.T) {
-	defer setBoolP(&onGCE, false)()
-	defer setStringP(&zone, "us-west-1c")()
-	defer setStringP(&gceZone, "europe-north1-c")()
-
-	err := populateZoneIfMissing(dummyMetadataGCE{})
-
-	assertNil(err, t)
-	assertEqual(*zone, "us-west-1c", t)
-}
-
-func TestPopulateZoneIfMissingOnGCEError(t *testing.T) {
-	defer setBoolP(&onGCE, true)()
-	defer setStringP(&gceZone, "europe-north1-c")()
+func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
+	projectId := "a_project"
 	defer setStringP(&zone, "")()
-	gceMetadataError = fmt.Errorf("zone error")
+	defer setStringP(&scratchBucketGcsPath, "")()
+	defer setStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
+	defer setStringP(&project, projectId)()
 
-	assertError(populateZoneIfMissing(dummyMetadataGCE{}), t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
 
-	gceMetadataError = nil
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().
+		CreateScratchBucket(*sourceFile, *project).
+		Return("new_scratch_bucket", "europe-north1", nil).
+		Times(1)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockZoneRetriever.EXPECT().GetZone("europe-north1", projectId).Return("europe-north1-c", nil).Times(1)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "europe-north1-c", *zone)
+	assert.Equal(t, "europe-north1", *region)
+	assert.Equal(t, "gs://new_scratch_bucket/", *scratchBucketGcsPath)
 }
 
-func TestPopulateZoneIfMissingOnGCEEnmptyZoneReturned(t *testing.T) {
-	defer setBoolP(&onGCE, true)()
-	defer setStringP(&gceZone, "")()
+func TestPopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing.T) {
+	projectId := "a_project"
 	defer setStringP(&zone, "")()
-	assertError(populateZoneIfMissing(dummyMetadataGCE{}), t)
+	defer setStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
+	defer setStringP(&project, projectId)()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockZoneRetriever.EXPECT().GetZone("us-west2", projectId).Return("", fmt.Errorf("err")).Times(1)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.NotNil(t, err)
+}
+
+func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNotRunningOnGCE(t *testing.T) {
+	defer setStringP(&project, "")()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.NotNil(t, err)
+}
+
+func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCEProjectIdEmpty(t *testing.T) {
+	defer setStringP(&project, "")()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(true)
+	mockMetadataGce.EXPECT().ProjectID().Return("", nil)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.NotNil(t, err)
+}
+
+func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
+	defer setStringP(&project, "")()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(true)
+	mockMetadataGce.EXPECT().ProjectID().Return("gce_project", nil)
+
+	err := populateProjectIfMissing(mockMetadataGce)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "gce_project", *project)
+}
+
+func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMetadataReturnsError(t *testing.T) {
+	defer setStringP(&project, "")()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(true)
+	mockMetadataGce.EXPECT().ProjectID().Return("pr", fmt.Errorf("Err"))
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.NotNil(t, err)
+}
+
+func TestPopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *testing.T) {
+	defer setStringP(&scratchBucketGcsPath, "")()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().CreateScratchBucket(*sourceFile, *project).Return("", "", fmt.Errorf("err"))
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.NotNil(t, err)
+}
+
+func TestPopulateMissingParametersReturnsErrorWhenScratchBucketInvalidFormat(t *testing.T) {
+	defer setStringP(&scratchBucketGcsPath, "NOT_GCS_PATH")()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.NotNil(t, err)
+}
+
+func TestPopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *testing.T) {
+	defer setStringP(&zone, "NOT_ZONE")()
+	defer setStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
+	defer setStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
+	defer setStringP(&project, "a_project")()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	storageRegion := "NOT_REGION"
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: storageRegion}, nil)
+
+	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.NotNil(t, err)
 }
 
 func TestParseUserLabelsReturnsEmptyMap(t *testing.T) {
 	labels := ""
 	labelsMap, err := parseUserLabels(&labels)
-	assertNil(err, t)
-	assertNotNil(labelsMap, t)
+	assert.Nil(t, err)
+	assert.NotNil(t, labelsMap)
 	if len(*labelsMap) > 0 {
 		t.Errorf("Labels map %v should be empty, but it's size is %v.", labelsMap, len(*labelsMap))
 	}
@@ -496,13 +657,13 @@ func TestParseUserLabelsWithWhiteChars(t *testing.T) {
 
 func doTestParseUserLabels(labels string, t *testing.T) {
 	labelsMap, err := parseUserLabels(&labels)
-	assertNil(err, t)
-	assertNotNil(labelsMap, t)
+	assert.Nil(t, err)
+	assert.NotNil(t, labelsMap)
 	if len(*labelsMap) != 2 {
 		t.Errorf("Labels map %v should be have size 2, but it's %v.", labelsMap, len(*labelsMap))
 	}
-	assertEqual("uservalue1", (*labelsMap)["userkey1"], t)
-	assertEqual("uservalue2", (*labelsMap)["userkey2"], t)
+	assert.Equal(t, "uservalue1", (*labelsMap)["userkey1"])
+	assert.Equal(t, "uservalue2", (*labelsMap)["userkey2"])
 }
 
 func TestParseUserLabelsNoEqualsSignSingleLabel(t *testing.T) {
@@ -546,45 +707,7 @@ func doTestParseUserLabelsError(labels string, errorMsg string, t *testing.T) {
 	if labelsMap != nil {
 		t.Errorf(errorMsg, labelsMap, labels)
 	}
-	assertNotNil(err, t)
-}
-
-type dummyMetadataGCE struct{}
-
-func (m dummyMetadataGCE) OnGCE() bool {
-	return *onGCE
-}
-
-func (m dummyMetadataGCE) Zone() (string, error) {
-	return *gceZone, gceMetadataError
-}
-
-func (m dummyMetadataGCE) ProjectID() (string, error) {
-	return "", gceMetadataError
-}
-
-func assertEqual(i1 interface{}, i2 interface{}, t *testing.T) {
-	if i1 != i2 {
-		t.Errorf("%v != %v", i1, i2)
-	}
-}
-
-func assertNotNil(i1 interface{}, t *testing.T) {
-	if i1 == nil {
-		t.Errorf("%v is nil", i1)
-	}
-}
-
-func assertNil(i1 interface{}, t *testing.T) {
-	if i1 != nil {
-		t.Errorf("%v not nil", i1)
-	}
-}
-
-func assertError(err error, t *testing.T) {
-	if err == nil {
-		t.Errorf("%v error is empty", err)
-	}
+	assert.NotNil(t, err)
 }
 
 func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
@@ -624,10 +747,10 @@ func validateLabels(labels *map[string]string, typeLabel string, t *testing.T, e
 	if len(*labels) != expectedLabelCount {
 		t.Errorf("Labels %v should have only %v elements", labels, expectedLabelCount)
 	}
-	assertEqual(buildID, (*labels)["gce-image-import-build-id"], t)
-	assertEqual("true", (*labels)[typeLabel], t)
-	assertEqual("uservalue1", (*labels)["userkey1"], t)
-	assertEqual("uservalue2", (*labels)["userkey2"], t)
+	assert.Equal(t, buildID, (*labels)["gce-image-import-build-id"])
+	assert.Equal(t, "true", (*labels)[typeLabel])
+	assert.Equal(t, "uservalue1", (*labels)["userkey1"])
+	assert.Equal(t, "uservalue2", (*labels)["userkey2"])
 
 	if extraLabels != nil {
 		for extraKey, extraValue := range *extraLabels {
