@@ -98,94 +98,155 @@ Where, `YOUR_IMPORTED_IMAGE` is the GCE image that was created in step 2. The `s
 
 `OS_SPECIFIC_WORKFLOW` is the name of the conversion workflow to run. The following sample workflows are provided. You can also create your own custom workflows.
 
+### Workflows to use for open source or Google provided licensing
+
 <table>
   <tr>
-   <td>Source Operating System
-   </td>
-   <td>Workflow File
-   </td>
+    <td>Source Operating System
+    </td>
+    <td>Workflow File
+    </td>
   </tr>
   <tr>
-   <td>Debian 8
-   </td>
-   <td>/daisy/debian/translate_debian_8.wf.json
-   </td>
+    <td>Debian 8
+    </td>
+    <td>/daisy/debian/translate_debian_8.wf.json
+    </td>
   </tr>
   <tr>
-   <td>Debian 9
-   </td>
-   <td>/daisy/debian/translate_debian_9.wf.json
-   </td>
+    <td>Debian 9
+    </td>
+    <td>/daisy/debian/translate_debian_9.wf.json
+    </td>
   </tr>
   <tr>
-   <td>CentOS 6
-   </td>
-   <td>/daisy/enterprise_linux//translate_centos_6.wf.json
-   </td>
+    <td>CentOS 6
+    </td>
+    <td>/daisy/enterprise_linux//translate_centos_6.wf.json
+    </td>
   </tr>
   <tr>
-   <td>CentOS 7
-   </td>
-   <td>/daisy/enterprise_linux//translate_centos_7.wf.json
-   </td>
+    <td>CentOS 7
+    </td>
+    <td>/daisy/enterprise_linux//translate_centos_7.wf.json
+    </td>
   </tr>
   <tr>
-   <td>RHEL 6 BYOL
-   </td>
-   <td>/daisy/enterprise_linux/translate_rhel_6_byol.wf.json
-   </td>
+    <td>RHEL 6
+    </td>
+    <td>/daisy/enterprise_linux/translate_rhel_6_licensed.wf.json
+    </td>
   </tr>
   <tr>
-   <td>RHEL 6
-   </td>
-   <td>/daisy/enterprise_linux/translate_rhel_6_licensed.wf.json
-   </td>
+    <td>RHEL 7
+    </td>
+    <td>/daisy/enterprise_linux/translate_rhel_7_licensed.wf.json
+    </td>
   </tr>
   <tr>
-   <td>RHEL 7 BYOL
-   </td>
-   <td>/daisy/enterprise_linux/translate_rhel_7_byol.wf.json
-   </td>
+    <td>Ubuntu 14.04
+    </td>
+    <td>/daisy/ubuntu/translate_ubuntu_1404.wf.json
+    </td>
   </tr>
   <tr>
-   <td>RHEL 7
-   </td>
-   <td>/daisy/enterprise_linux/translate_rhel_7_licensed.wf.json
-   </td>
+    <td>Ubuntu 16.04
+    </td>
+    <td>/daisy/ubuntu/translate_ubuntu_1604.wf.json
+    </td>
   </tr>
   <tr>
-   <td>Ubuntu 14.04
-   </td>
-   <td>/daisy/ubuntu/translate_ubuntu_1404.wf.json
-   </td>
+    <td>Windows Server 2008 R2
+    </td>
+    <td>/daisy/windows/translate_windows_2008_r2.wf.json
+    </td>
   </tr>
   <tr>
-   <td>Ubuntu 16.04
-   </td>
-   <td>/daisy/ubuntu/translate_ubuntu_1604.wf.json
-   </td>
+    <td>Windows Server 2012 R2
+    </td>
+    <td>/daisy/windows/translate_windows_2012_r2.wf.json
+    </td>
   </tr>
   <tr>
-   <td>Windows Server 2008 R2
-   </td>
-   <td>/daisy/windows/translate_windows_2008_r2.wf.json
-   </td>
-  </tr>
-  <tr>
-   <td>Windows Server 2012 R2
-   </td>
-   <td>/daisy/windows/translate_windows_2012_r2.wf.json
-   </td>
-  </tr>
-  <tr>
-   <td>Windows Server 2016
-   </td>
-   <td>/daisy/windows/translate_windows_2016.wf.json
-   </td>
+    <td>Windows Server 2016
+    </td>
+    <td>/daisy/windows/translate_windows_2016.wf.json
+    </td>
   </tr>
 </table>
 
-Following is an example
+### Workflows to use if customer supplies licensing (BYOL)
+
+<table>
+  <tr>
+    <td>Source Operating System
+    </td>
+    <td>Workflow File
+    </td>
+  </tr>
+  <tr>
+    <td>RHEL 6 BYOL
+    </td>
+    <td>/daisy/enterprise_linux/translate_rhel_6_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>RHEL 7 BYOL
+    </td>
+    <td>/daisy/enterprise_linux/translate_rhel_7_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>Windows Server 2008 R2 BYOL
+    </td>
+    <td>/daisy/windows/translate_windows_2008_r2_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>Windows Server 2012 BYOL
+    </td>
+    <td>/daisy/windows/translate_windows_2012_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>Windows Server 2012 R2 BYOL
+    </td>
+    <td>/daisy/windows/translate_windows_2012_r2_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>Windows Server 2016 BYOL
+    </td>
+    <td>/daisy/windows/translate_windows_2016_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>Windows Server 2019 BYOL
+    </td>
+    <td>/daisy/windows/translate_windows_2019_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>Windows 7 x64 BYOL
+    </td>
+    <td>/daisy/windows/translate_windows_7_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>Windows 8.1 x64 BYOL
+    </td>
+    <td>/daisy/windows/translate_windows_81_byol.wf.json
+    </td>
+  </tr>
+  <tr>
+    <td>Windows 10 x64 BYOL
+    </td>
+    <td>/daisy/windows/translate_windows_10_byol.wf.json
+    </td>
+  </tr>
+</table>
+
+For example,
 
 ```
 $ daisy -var:source_image=projectsmy-awesome-projectglobal/images/my-server-import -var:translate_workflow=/daisy/image_import/ubuntu/translate_ubuntu_1604.wf.json -var:image_name=my-new-ubuntu-1604-image /daisy/import_from_image.wf.json
@@ -210,7 +271,7 @@ import. Below is a list of known compatibility requirements and issues:
 ### Linux
 
 | Name | Severity | Description |
-|---|---|---|    
+|---|---|---|
 | OS Version | Required | We support the following OS versions: RHEL/CentOS/OEL 6 or 7; Debian 9; Ubuntu 14.04 or 16.04. |
 | OS Disk | Required | The disk containing the OS must be bootable. The disk must be MBR and have GRUB installed. |
 | Multiple Disks | Warning  | Image import cannot directly handle multiple disk scenarios. Additional disks must be imported and attached separately. |
@@ -259,8 +320,8 @@ In order to complete most workflows, specifically import workflows, Daisy needs 
 
 
 *   **Option A**:  Create Compute Engine instances with appropriate API scope and run Daisy in the instance.  Following API scopes are required.
-	*   https://www.googleapis.com/auth/devstorage.read_write
-	*   https://www.googleapis.com/auth/compute
+        *   https://www.googleapis.com/auth/devstorage.read_write
+        *   https://www.googleapis.com/auth/compute
 
 `gcloud compute --project "YOUR-PROJECT" instances create "test-import-vm" --scopes=compute-rw,storage-full --image-project debian-cloud --image-family debian-9`
 
