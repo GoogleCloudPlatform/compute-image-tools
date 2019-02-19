@@ -38,12 +38,13 @@ var vf = func(inst *compute.Instance, vfString string, port int64, interval, tim
 func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup) []*packageManagementTestSetup {
 	testName := "createosconfigtest"
 	desc := "test osconfig creation"
+	packageName := "cowsay"
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 
 		switch pkgManager {
 		case "apt":
-			pkg := osconfigserver.BuildPackage("cowsay")
+			pkg := osconfigserver.BuildPackage(packageName)
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 			break
@@ -65,6 +66,7 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packageManagementTestSetup {
 	testName := "packageinstalltest"
 	desc := "test package installation"
+	packageName := "cowsay"
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
@@ -73,11 +75,17 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 		switch pkgManager {
 		case "apt":
 			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
-			pkg := osconfigserver.BuildPackage("cowsay")
+			pkg := osconfigserver.BuildPackage(packageName)
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = fmt.Sprintf("%s\nwhile true; do /usr/bin/dpkg-query -s cowsay | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb)
+			ss = `%s
+			while true;
+			do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
+			sleep 5;
+			done;
+			`
+			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName)
 			vs = fmt.Sprintf("install ok installed")
 			break
 		default:
@@ -104,6 +112,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packageManagementTestSetup {
 	testName := "packageremovaltest"
 	desc := "test package removal"
+	packageName := "cowsay"
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
@@ -112,12 +121,17 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 		switch pkgManager {
 		case "apt":
 			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
-			pkg := osconfigserver.BuildPackage("cowsay")
+			pkg := osconfigserver.BuildPackage(packageName)
 			pkgs := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = fmt.Sprintf("%s\nsudo apt-get -y install cowsay\nwhile true; do /usr/bin/dpkg-query -s cowsay | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb)
-			vs = fmt.Sprintf("package 'cowsay' is not installed")
+			ss = `%s
+			sudo apt-get -y install %s;
+			while true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
+			sleep 5;
+			done`
+			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName)
+			vs = fmt.Sprintf("package '%s' is not installed", packageName)
 			break
 		default:
 			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
@@ -143,6 +157,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packageManagementTestSetup {
 	testName := "packageinstallremovaltest"
 	desc := "test package removal takes precedence over package installation"
+	packageName := "cowsay"
 	for _, pkgManager := range pkgManagers {
 		var oc *osconfigpb.OsConfig
 		var assign *osconfigpb.Assignment
@@ -151,14 +166,20 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 		switch pkgManager {
 		case "apt":
 			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
-			pkg := osconfigserver.BuildPackage("cowsay")
+			pkg := osconfigserver.BuildPackage(packageName)
 			installPkg := []*osconfigpb.Package{pkg}
-			pkg = osconfigserver.BuildPackage("cowsay")
+			pkg = osconfigserver.BuildPackage(packageName)
 			removePkg := []*osconfigpb.Package{pkg}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = fmt.Sprintf("%s\nwhile true; do /usr/bin/dpkg-query -s wget | sudo tee /dev/ttyS0; sleep 5; done", utils.InstallOSConfigDeb)
-			vs = fmt.Sprintf("package 'cowsay' is not installed")
+			ss = `%s
+			sudo apt-get -y install %s
+			while true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
+			sleep 5;
+			done
+			`
+			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName)
+			vs = fmt.Sprintf("package '%s' is not installed", packageName)
 			break
 		default:
 			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))

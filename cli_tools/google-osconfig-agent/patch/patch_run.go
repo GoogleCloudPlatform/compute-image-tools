@@ -28,6 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
 	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/api/option"
+	"google.golang.org/grpc/status"
 )
 
 type patchStep string
@@ -71,6 +72,7 @@ var (
 
 // Init starts the patch system.
 func Init(ctx context.Context) {
+	disableAutoUpdates()
 	go RunPatchAgent(ctx)
 }
 
@@ -369,5 +371,11 @@ func reportPatchDetails(ctx context.Context, patchJobName string, patchState osc
 	}
 
 	res, err := client.ReportPatchJobInstanceDetails(ctx, &request)
-	return res, err
+	if err != nil {
+		if s, ok := status.FromError(err); ok {
+			return nil, fmt.Errorf("code: %q, message: %q, details: %q", s.Code(), s.Message(), s.Details())
+		}
+		return nil, err
+	}
+	return res, nil
 }
