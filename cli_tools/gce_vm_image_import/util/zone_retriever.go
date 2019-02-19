@@ -30,27 +30,30 @@ func NewZoneRetriever(aMgce domain.MetadataGCEInterface, cs domain.ComputeServic
 }
 
 func (zr *ZoneRetriever) GetZone(storageRegion string, project string) (string, error) {
+	zone := ""
+	var err error
 	if storageRegion != "" {
 		// pick a random zone from the region where data is stored
-		return zr.getZoneFromRegion(storageRegion, project)
+		zone, err = zr.getZoneFromRegion(storageRegion, project)
+		if err == nil {
+			return zone, err
+		}
 	}
 
 	// determine zone based on the zone Cloud Build is running in
-	var err error
-	var aZone = ""
 	if zr.Mgce.OnGCE() {
-		aZone, err = zr.Mgce.Zone()
+		zone, err = zr.Mgce.Zone()
 	}
 
 	if err != nil {
 		return "", fmt.Errorf("can't infer zone: %v", err)
 	}
-	if aZone == "" {
+	if zone == "" {
 		return "", fmt.Errorf("zone is empty")
 	}
-	fmt.Printf("[image-importer] Zone not provided, using %v\n", aZone)
+	fmt.Printf("[image-importer] Zone not provided, using %v\n", zone)
 
-	return aZone, nil
+	return zone, nil
 }
 
 func (zr *ZoneRetriever) getZoneFromRegion(region string, project string) (string, error) {
