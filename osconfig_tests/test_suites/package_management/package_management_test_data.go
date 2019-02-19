@@ -25,13 +25,18 @@ import (
 	api "google.golang.org/api/compute/v1"
 )
 
+type platformPkgManagerTuple struct {
+	platform   string
+	pkgManager string
+}
+
 const (
 	packageInstalledString    = "package is installed"
 	packageNotInstalledString = "package is not installed"
 )
 
 var (
-	pkgManagers = []string{"apt", "yum"}
+	tuples = []platformPkgManagerTuple{{"debian", "apt"}, {"centos", "yum"}, {"rhel", "yum"}}
 )
 
 // vf is the the vertificationFunction that is used in each testSetup during assertion of test case.
@@ -43,21 +48,25 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 	testName := "createosconfigtest"
 	desc := "test osconfig creation"
 	packageName := "cowsay"
-	for _, pkgManager := range pkgManagers {
+	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image string
 
-		switch pkgManager {
-		case "apt":
+		switch tuple.platform {
+		case "debian":
 			image = debianImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
-		case "yum":
+		case "centos":
 			image = centosImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+		case "rhel":
+			image = rhelImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 		default:
-			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
+			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
 		setup := packageManagementTestSetup{
 			image:      image,
@@ -75,28 +84,33 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 	testName := "packageinstalltest"
 	desc := "test package installation"
 	packageName := "cowsay"
-	for _, pkgManager := range pkgManagers {
+	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 
-		switch pkgManager {
-		case "apt":
+		switch tuple.platform {
+		case "debian":
 			image = debianImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
-		case "yum":
+		case "centos":
 			image = centosImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
+		case "rhel":
+			image = rhelImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+			vs = fmt.Sprintf(packageInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
+			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
 
 		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
 		assign := osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-		ss := getPackageInstallStartupScript(pkgManager, packageName)
+		ss := getPackageInstallStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
 			name:       instanceName,
@@ -119,28 +133,33 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 	testName := "packageremovaltest"
 	desc := "test package removal"
 	packageName := "cowsay"
-	for _, pkgManager := range pkgManagers {
+	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 
-		switch pkgManager {
-		case "apt":
+		switch tuple.platform {
+		case "debian":
 			image = debianImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
-		case "yum":
+		case "centos":
 			image = centosImage
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
+		case "rhel":
+			image = rhelImage
+			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
+			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
+			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
 
 		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
 		assign := osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-		ss := getPackageRemovalStartupScript(pkgManager, packageName)
+		ss := getPackageRemovalStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
 			name:       instanceName,
@@ -163,30 +182,36 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 	testName := "packageinstallremovaltest"
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
-	for _, pkgManager := range pkgManagers {
+	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 
-		switch pkgManager {
-		case "apt":
+		switch tuple.platform {
+		case "debian":
 			image = debianImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
-		case "yum":
+		case "centos":
 			image = centosImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
+		case "rhel":
+			image = rhelImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
+			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
 
 		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
 		assign := osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-		ss := getPackageInstallRemovalStartupScript(pkgManager, packageName)
+		ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
 			name:       instanceName,
