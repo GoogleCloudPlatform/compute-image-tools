@@ -73,6 +73,11 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) string {
 			"echo \"could not install package\"\n" +
 			"exit 1\n" +
 			"fi\n" +
+			"systemctl restart google-osconfig-agent\n" +
+			"if [[ $? != 0 ]]; then\n" +
+			"echo \"Error restarting google-osconfig-agent\"\n" +
+			"exit 1\n" +
+			"fi\n" +
 			"while true;\n" +
 			"do\n" +
 			"isinstalled=\"$(/usr/bin/dpkg-query -s %s 2>&1 )\"\n" +
@@ -93,7 +98,11 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) string {
 			"echo \"could not install package\"\n" +
 			"exit 1\n" +
 			"fi\n" +
-			"while true;\n" +
+			"systemctl restart google-osconfig-agent\n" +
+			"if [[ $? != 0 ]]; then\n" +
+			"echo \"Error restarting google-osconfig-agent\"\n" +
+			"exit 1\n" +
+			"fi\n" + "while true;\n" +
 			"do\n" +
 			"isinstalled=`/usr/bin/rpmquery -a %s`\n" +
 			"if [[ $isinstalled =~ ^cowsay-* ]]; then\n" +
@@ -121,7 +130,7 @@ func getPackageInstallRemovalStartupScript(pkgManager, packageName string) strin
 			"while true;\n" +
 			"do\n" +
 			"isinstalled=`/usr/bin/dpkg-query -s %s`\n" +
-			"if [[ $isinstalled =~ \"pacakge '%s' is not installed\" ]]; then\n" +
+			"if [[ $isinstalled =~ \"package '%s' is not installed\" ]]; then\n" +
 			"echo \"%s\"\n" +
 			"else\n" +
 			"echo \"%s\"\n" +
