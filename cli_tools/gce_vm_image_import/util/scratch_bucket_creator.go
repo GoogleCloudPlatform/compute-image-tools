@@ -24,6 +24,11 @@ import (
 	"strings"
 )
 
+const (
+	defaultRegion       = "US"
+	defaultStorageClass = "MULTI_REGIONAL"
+)
+
 // Creates scratch bucket
 type ScratchBucketCreator struct {
 	StorageClient         domain.StorageClientInterface
@@ -37,14 +42,31 @@ func NewScratchBucketCreator(storageClient *storage.Client, ctx context.Context)
 
 // Creates scratch bucket in the same region as sourceFileFlag. Returns (bucket_name, region, error)
 func (c *ScratchBucketCreator) CreateScratchBucket(
-	sourceFileFlag string, projectFlag string) (string, string, error) {
-	if sourceFileFlag != "" {
-		// source file provided, create bucket in the same region for cost/performance reasons
-		return c.createBucketMatchFileRegion(sourceFileFlag, projectFlag)
+	sourceFileFlag string, project string) (string, string, error) {
+	bucket := ""
+	region := ""
+	var err error
+
+	if project == "" {
+		return "", "", fmt.Errorf("can't create scratch bucket if project not specified")
 	}
 
-	// we don't care about scratch bucket region if no source file
-	return "", "", nil
+	if sourceFileFlag != "" {
+		// source file provided, create bucket in the same region for cost/performance reasons
+		bucket, region, err = c.createBucketMatchFileRegion(sourceFileFlag, project)
+	}
+
+	if sourceFileFlag == "" || err != nil {
+		// source file not provided or couldn't create bucket based on it, create default scratch bucket
+		defaultBucketName := c.formatScratchBucketName(project, defaultRegion)
+		region, err = c.createBucketIfNotExisting(defaultBucketName, project,
+			&storage.BucketAttrs{Name: defaultBucketName, Location: defaultRegion, StorageClass: defaultStorageClass})
+		if err == nil {
+			bucket = defaultBucketName
+		}
+	}
+
+	return bucket, region, err
 }
 
 func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string) (string, string, error) {
@@ -58,32 +80,48 @@ func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, p
 		return "", "", fmt.Errorf("couldn't determine region for bucket `%v` : %v", fileBucket, err)
 	}
 
-	bucket := strings.ToLower(strings.Replace(project, ":", "-", -1) +
-		"-daisy-bkt-" + fileBucketAttrs.Location)
-	bucketAttrs := createBucketAttrsWithLocationStorageType(bucket, fileBucketAttrs)
+	bucket := c.formatScratchBucketName(project, fileBucketAttrs.Location)
+	bucketAttrs := c.createBucketAttrsWithLocationStorageType(bucket, fileBucketAttrs)
 
+	location, err := c.createBucketIfNotExisting(bucket, project, bucketAttrs)
+	if err != nil {
+		return "", "", err
+	}
+	return bucket, location, nil
+}
+
+func (c *ScratchBucketCreator) createBucketIfNotExisting(bucket string, project string,
+	bucketAttrs *storage.BucketAttrs) (string, error) {
 	it := c.BucketIteratorCreator.CreateBucketIterator(c.Ctx, c.StorageClient, project)
 	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
 		if err != nil {
-			return "", "", err
+			return "", err
 		}
 		if itBucketAttrs.Name == bucket {
-			return bucket, itBucketAttrs.Location, nil
+			return itBucketAttrs.Location, nil
 		}
 	}
 
-	log.Printf("Creating scratch bucket `%v` in %v region", bucket, fileBucketAttrs.Location)
+	log.Printf("Creating scratch bucket `%v` in %v region", bucket, bucketAttrs.Location)
 	if err := c.StorageClient.CreateBucket(bucket, c.Ctx, project, bucketAttrs); err != nil {
-		return "", "", err
+		return "", err
 	}
-	return bucket, fileBucketAttrs.Location, nil
+	return bucketAttrs.Location, nil
 }
 
-func createBucketAttrsWithLocationStorageType(name string,
+func (c *ScratchBucketCreator) createBucketAttrsWithLocationStorageType(name string,
 	bucketAttrs *storage.BucketAttrs) *storage.BucketAttrs {
 	return &storage.BucketAttrs{
 		Name:         name,
 		Location:     bucketAttrs.Location,
 		StorageClass: bucketAttrs.StorageClass,
 	}
+}
+
+func (c *ScratchBucketCreator) formatScratchBucketName(project string, location string) string {
+	bucket := strings.Replace(project, ":", "-", -1) + "-daisy-bkt"
+	if location != "" {
+		bucket = bucket + "-" + location
+	}
+	return strings.ToLower(bucket)
 }
