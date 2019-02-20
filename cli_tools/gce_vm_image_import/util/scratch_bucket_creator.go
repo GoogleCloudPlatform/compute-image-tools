@@ -37,8 +37,8 @@ type ScratchBucketCreator struct {
 }
 
 // NewScratchBucketCreator creates a ScratchBucketCreator
-func NewScratchBucketCreator(ctx context.Context, storageClient *storage.Client) *ScratchBucketCreator {
-	return &ScratchBucketCreator{NewStorageClient(ctx, storageClient), ctx, &BucketIteratorCreator{}}
+func NewScratchBucketCreator(ctx context.Context, storageClient domain.StorageClientInterface) *ScratchBucketCreator {
+	return &ScratchBucketCreator{storageClient, ctx, &BucketIteratorCreator{}}
 }
 
 // CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
@@ -57,18 +57,15 @@ func (c *ScratchBucketCreator) CreateScratchBucket(
 		// source file provided, create bucket in the same region for cost/performance reasons
 		bucket, region, err = c.createBucketMatchFileRegion(sourceFileFlag, project)
 	}
-
 	if sourceFileFlag == "" || err != nil {
 		// source file not provided or couldn't create bucket based on it, create default scratch bucket
-		defaultBucketName := c.formatScratchBucketName(project, defaultRegion)
-		region, err = c.createBucketIfNotExisting(defaultBucketName, project,
-			&storage.BucketAttrs{Name: defaultBucketName, Location: defaultRegion, StorageClass: defaultStorageClass})
-		if err == nil {
-			bucket = defaultBucketName
+		bucket = c.formatScratchBucketName(project, defaultRegion)
+		region, err = c.createBucketIfNotExisting(bucket, project, &storage.BucketAttrs{Name: bucket, Location: defaultRegion, StorageClass: defaultStorageClass})
+		if err != nil {
+			return "", "", err
 		}
 	}
-
-	return bucket, region, err
+	return bucket, region, nil
 }
 
 func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string) (string, string, error) {

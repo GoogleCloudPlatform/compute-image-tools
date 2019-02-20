@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
-	"github.com/prometheus/common/log"
 	"google.golang.org/api/option"
 	storagev1 "google.golang.org/api/storage/v1"
 	htransport "google.golang.org/api/transport/http"
@@ -48,14 +47,13 @@ func (hc *HTTPClient) Get(url string) (resp *http.Response, err error) {
 }
 
 // NewStorageClient creates a StorageClient
-func NewStorageClient(ctx context.Context, client *storage.Client) *StorageClient {
+func NewStorageClient(ctx context.Context, client *storage.Client) (*StorageClient, error) {
 	o := []option.ClientOption{option.WithScopes(storagev1.DevstorageReadOnlyScope)}
 	hc, _, err := htransport.NewClient(ctx, o...)
 	if err != nil {
-		log.Fatalf("Cannot create storage HTTP client %v", err.Error())
-		return nil
+		return nil, fmt.Errorf("cannot create storage HTTP client %v", err.Error())
 	}
-	return &StorageClient{client, &HTTPClient{hc}, ctx}
+	return &StorageClient{client, &HTTPClient{hc}, ctx}, nil
 }
 
 // CreateBucket creates a GCS bucket
