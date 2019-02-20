@@ -26,5 +26,5 @@ type ComputeService struct {
 
 // GetZones returns a slice of Zones for give project
 func (cs *ComputeService) GetZones(project string) ([]*compute.Zone, error) {
-	return cs.Cc.ListZones(project, nil)
+	return cs.Cc.ListZones(project)
 }
