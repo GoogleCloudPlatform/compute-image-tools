@@ -26,9 +26,9 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
-	"google.golang.org/grpc/status"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -102,7 +102,7 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Details()))
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
@@ -115,7 +115,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Details()))
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
@@ -123,7 +123,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
@@ -174,7 +174,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	inst, err := compute.CreateInstance(client, testProject, testZone, i)
 	if err != nil {
-		testCase.WriteFailure("Error creating instance: %v", err)
+		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
@@ -196,7 +196,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Details()))
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
@@ -204,7 +204,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 	}
 
 	defer cleanupAssignment(ctx, testCase, assign)
@@ -253,7 +253,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 
 	inst, err := compute.CreateInstance(client, testProject, testZone, i)
 	if err != nil {
-		testCase.WriteFailure("Error creating instance: %v", err)
+		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
@@ -276,14 +276,14 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	parent := fmt.Sprintf("projects/%s", testProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", dump.Sprint(status.Convert(err).Details()))
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 	defer cleanupOsConfig(ctx, testCase, oc)
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 	}
 	defer cleanupAssignment(ctx, testCase, assign)
 
@@ -331,7 +331,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	inst, err := compute.CreateInstance(client, testProject, testZone, i)
 	if err != nil {
-		testCase.WriteFailure("Error creating instance: %v", err)
+		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
@@ -383,14 +383,14 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig) {
 	err := oc.Cleanup(ctx, testProjectID)
 	if err != nil {
-		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", err))
+		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", utils.GetStatusFromError(err)))
 	}
 }
 
 func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignment *osconfigserver.Assignment) {
 	err := assignment.Cleanup(ctx, testProjectID)
 	if err != nil {
-		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", err))
+		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", utils.GetStatusFromError(err)))
 	}
 }
 
