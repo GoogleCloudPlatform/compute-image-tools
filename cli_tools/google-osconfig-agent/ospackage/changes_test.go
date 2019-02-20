@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package inventory
+package ospackage
 
 import (
 	"reflect"
@@ -24,14 +24,13 @@ import (
 )
 
 func TestGetNecessaryChanges(t *testing.T) {
-
 	tests := [...]struct {
 		name            string
 		installedPkgs   []packages.PkgInfo
 		upgradablePkgs  []packages.PkgInfo
 		packageInstalls []*osconfigpb.Package
 		packageRemovals []*osconfigpb.Package
-		want            Changes
+		want            changes
 	}{
 		{
 			name:            "install from empty",
@@ -39,10 +38,10 @@ func TestGetNecessaryChanges(t *testing.T) {
 			upgradablePkgs:  createPkgInfos(),
 			packageInstalls: createPackages("foo"),
 			packageRemovals: createPackages(),
-			want: Changes{
-				PackagesToInstall: []string{"foo"},
-				PackagesToUpgrade: []string{},
-				PackagesToRemove:  []string{},
+			want: changes{
+				packagesToInstall: []string{"foo"},
+				packagesToUpgrade: []string{},
+				packagesToRemove:  []string{},
 			},
 		}, {
 			name:            "single upgrade",
@@ -50,10 +49,10 @@ func TestGetNecessaryChanges(t *testing.T) {
 			upgradablePkgs:  createPkgInfos("foo"),
 			packageInstalls: createPackages("foo"),
 			packageRemovals: createPackages(),
-			want: Changes{
-				PackagesToInstall: []string{},
-				PackagesToUpgrade: []string{"foo"},
-				PackagesToRemove:  []string{},
+			want: changes{
+				packagesToInstall: []string{},
+				packagesToUpgrade: []string{"foo"},
+				packagesToRemove:  []string{},
 			},
 		}, {
 			name:            "remove",
@@ -61,10 +60,10 @@ func TestGetNecessaryChanges(t *testing.T) {
 			upgradablePkgs:  createPkgInfos("foo"),
 			packageInstalls: createPackages(),
 			packageRemovals: createPackages("foo"),
-			want: Changes{
-				PackagesToInstall: []string{},
-				PackagesToUpgrade: []string{},
-				PackagesToRemove:  []string{"foo"},
+			want: changes{
+				packagesToInstall: []string{},
+				packagesToUpgrade: []string{},
+				packagesToRemove:  []string{"foo"},
 			},
 		}, {
 			name:            "mixed",
@@ -72,16 +71,16 @@ func TestGetNecessaryChanges(t *testing.T) {
 			upgradablePkgs:  createPkgInfos("bar"),
 			packageInstalls: createPackages("foo", "baz"),
 			packageRemovals: createPackages("buz"),
-			want: Changes{
-				PackagesToInstall: []string{"baz"},
-				PackagesToUpgrade: []string{},
-				PackagesToRemove:  []string{"buz"},
+			want: changes{
+				packagesToInstall: []string{"baz"},
+				packagesToUpgrade: []string{},
+				packagesToRemove:  []string{"buz"},
 			},
 		},
 	}
 
 	for _, tt := range tests {
-		got := GetNecessaryChanges(tt.installedPkgs, tt.upgradablePkgs, tt.packageInstalls, tt.packageRemovals)
+		got := getNecessaryChanges(tt.installedPkgs, tt.upgradablePkgs, tt.packageInstalls, tt.packageRemovals)
 
 		if !equalChanges(&got, &tt.want) {
 			t.Errorf("Did not get expected changes for '%s', got: %v, want: %v", tt.name, got, tt.want)
@@ -89,10 +88,10 @@ func TestGetNecessaryChanges(t *testing.T) {
 	}
 }
 
-func equalChanges(got *Changes, want *Changes) bool {
-	return equalSlices(got.PackagesToInstall, want.PackagesToInstall) &&
-		equalSlices(got.PackagesToRemove, want.PackagesToRemove) &&
-		equalSlices(got.PackagesToUpgrade, want.PackagesToUpgrade)
+func equalChanges(got *changes, want *changes) bool {
+	return equalSlices(got.packagesToInstall, want.packagesToInstall) &&
+		equalSlices(got.packagesToRemove, want.packagesToRemove) &&
+		equalSlices(got.packagesToUpgrade, want.packagesToUpgrade)
 }
 
 func equalSlices(got []string, want []string) bool {

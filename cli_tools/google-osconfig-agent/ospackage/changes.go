@@ -14,7 +14,7 @@
 
 // Package inventory scans the current inventory (patches and package installed and available)
 // and writes them to Guest Attributes.
-package inventory
+package ospackage
 
 import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
@@ -22,17 +22,16 @@ import (
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
-// Changes represents the delta between the actual and the desired package installation state.
-type Changes struct {
-	PackagesToInstall []string
-	PackagesToUpgrade []string
-	PackagesToRemove  []string
+// changes represents the delta between the actual and the desired package installation state.
+type changes struct {
+	packagesToInstall []string
+	packagesToUpgrade []string
+	packagesToRemove  []string
 }
 
-// GetNecessaryChanges compares the current state and the desired state to determine which packages
+// getNecessaryChanges compares the current state and the desired state to determine which packages
 // need to be installed, upgraded, or removed.
-func GetNecessaryChanges(installedPkgs []packages.PkgInfo, upgradablePkgs []packages.PkgInfo, packageInstalls []*osconfigpb.Package, packageRemovals []*osconfigpb.Package) Changes {
-
+func getNecessaryChanges(installedPkgs []packages.PkgInfo, upgradablePkgs []packages.PkgInfo, packageInstalls []*osconfigpb.Package, packageRemovals []*osconfigpb.Package) changes {
 	installedPkgMap := make(map[string]bool)
 	for _, pkg := range installedPkgs {
 		installedPkgMap[pkg.Name] = true
@@ -66,9 +65,9 @@ func GetNecessaryChanges(installedPkgs []packages.PkgInfo, upgradablePkgs []pack
 		}
 	}
 
-	return Changes{
-		PackagesToInstall: pkgsToInstall,
-		PackagesToUpgrade: pkgsToUpgrade,
-		PackagesToRemove:  pkgsToRemove,
+	return changes{
+		packagesToInstall: pkgsToInstall,
+		packagesToUpgrade: pkgsToUpgrade,
+		packagesToRemove:  pkgsToRemove,
 	}
 }
