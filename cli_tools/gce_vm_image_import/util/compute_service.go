@@ -14,27 +14,17 @@
 
 package gcevmimageimportutil
 
-import "google.golang.org/api/compute/v1"
+import (
+	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/compute/v1"
+)
 
 // ComputeService wraps GCE compute.Service and implements ComputeServiceInterface
 type ComputeService struct {
-	Cs *compute.Service
+	Cc daisycompute.Client
 }
 
 // GetZones returns a slice of Zones for give project
 func (cs *ComputeService) GetZones(project string) ([]*compute.Zone, error) {
-	call := cs.Cs.Zones.List(project)
-	var pt string
-	var zs []*compute.Zone
-	for zl, err := call.PageToken(pt).Do(); ; zl, err = call.PageToken(pt).Do() {
-		if err != nil {
-			return nil, err
-		}
-		zs = append(zs, zl.Items...)
-
-		if zl.NextPageToken == "" {
-			return zs, nil
-		}
-		pt = zl.NextPageToken
-	}
+	return cs.Cc.ListZones(project, nil)
 }

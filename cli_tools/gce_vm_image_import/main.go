@@ -24,9 +24,9 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/util"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
-	"google.golang.org/api/transport"
 	"log"
 	"os"
 	"path"
@@ -414,22 +414,18 @@ func createStorageClient(ctx context.Context) *storage.Client {
 	return storageClient
 }
 
-// creates a new Google Cloud Compute client.
-func createComputeService(ctx *context.Context) *compute.Service {
-	opts := []option.ClientOption{option.WithScopes(compute.ComputeScope, compute.DevstorageReadOnlyScope)}
-	hc, ep, err := transport.NewHTTPClient(*ctx, opts...)
-	if err != nil {
-		log.Fatalf("dialing: %v", err)
+// creates a new Daisy Compute client
+func createComputeClient(ctx *context.Context) daisycompute.Client {
+	computeOptions := []option.ClientOption{option.WithCredentialsFile(*oauth)}
+	if *ce != "" {
+		computeOptions = append(computeOptions, option.WithEndpoint(*ce))
 	}
-	computeService, err := compute.New(hc)
+
+	computeClient, err := daisycompute.NewClient(*ctx, computeOptions...)
 	if err != nil {
 		log.Fatalf("compute client: %v", err)
 	}
-	if ep != "" {
-		computeService.BasePath = ep
-	}
-
-	return computeService
+	return computeClient
 }
 
 func runImport(ctx context.Context, metadataGCEHolder gcevmimageimportutil.MetadataGCE,
@@ -461,7 +457,7 @@ func main() {
 	metadataGCEHolder := gcevmimageimportutil.MetadataGCE{}
 	storageClient := createStorageClient(ctx)
 	scratchBucketCreator := gcevmimageimportutil.NewScratchBucketCreator(ctx, storageClient)
-	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(&metadataGCEHolder, &gcevmimageimportutil.ComputeService{Cs: createComputeService(&ctx)})
+	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(&metadataGCEHolder, &gcevmimageimportutil.ComputeService{Cc: createComputeClient(&ctx)})
 
 	if err != nil {
 		log.Fatalf(err.Error())
