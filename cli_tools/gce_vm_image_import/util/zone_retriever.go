@@ -20,15 +20,22 @@ import (
 	"strings"
 )
 
+// ZoneRetriever is responsible for retrieving GCE zone to run import in
 type ZoneRetriever struct {
 	Mgce              domain.MetadataGCEInterface
 	ComputeGCEService domain.ComputeServiceInterface
 }
 
+// NewZoneRetriever creates a ZoneRetriever
 func NewZoneRetriever(aMgce domain.MetadataGCEInterface, cs domain.ComputeServiceInterface) (*ZoneRetriever, error) {
 	return &ZoneRetriever{Mgce: aMgce, ComputeGCEService: cs}, nil
 }
 
+// GetZone retrieves GCE zone to run import in based on imported source file region and available
+// zones in the project.
+// If storageRegion is provided and valid, first zone within that region will be used.
+// If no storageRegion is provided, GCE Zone from the running process
+// will be used.
 func (zr *ZoneRetriever) GetZone(storageRegion string, project string) (string, error) {
 	zone := ""
 	var err error

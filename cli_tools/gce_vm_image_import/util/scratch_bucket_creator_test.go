@@ -48,7 +48,7 @@ func TestCreateScratchBucketNoSourceFileDefaultBucketCreated(t *testing.T) {
 	ctx := context.Background()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, ctx, project, &storage.BucketAttrs{
+	mockStorageClient.EXPECT().CreateBucket(ctx, expectedBucket, project, &storage.BucketAttrs{
 		Name:         expectedBucket,
 		Location:     defaultRegion,
 		StorageClass: defaultStorageClass,
@@ -70,7 +70,7 @@ func TestCreateScratchBucketNoSourceErrorCreatingDefaultBucket(t *testing.T) {
 	ctx := context.Background()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().CreateBucket(wouldBeBucketName, ctx, project, &storage.BucketAttrs{
+	mockStorageClient.EXPECT().CreateBucket(ctx, wouldBeBucketName, project, &storage.BucketAttrs{
 		Name:         wouldBeBucketName,
 		Location:     defaultRegion,
 		StorageClass: defaultStorageClass,
@@ -109,7 +109,7 @@ func TestCreateScratchBucketNewBucketCreatedProject(t *testing.T) {
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs(sourceBucketAttrs.Name).Return(sourceBucketAttrs, nil).Times(1)
-	mockStorageClient.EXPECT().CreateBucket("project1-daisy-bkt-us-west2", ctx, project, scratchBucketAttrs).Return(nil).Times(1)
+	mockStorageClient.EXPECT().CreateBucket(ctx, "project1-daisy-bkt-us-west2", project, scratchBucketAttrs).Return(nil).Times(1)
 
 	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
 	first := mockBucketIterator.EXPECT().Next().Return(anotherBucketAttrs, nil)
@@ -145,7 +145,7 @@ func TestCreateScratchBucketInvalidSourceFileDefaultBucketCreated(t *testing.T) 
 	ctx := context.Background()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, ctx, project, &storage.BucketAttrs{
+	mockStorageClient.EXPECT().CreateBucket(ctx, expectedBucket, project, &storage.BucketAttrs{
 		Name:         expectedBucket,
 		Location:     defaultRegion,
 		StorageClass: defaultStorageClass,
@@ -169,7 +169,7 @@ func TestCreateScratchBucketErrorRetrievingSourceFileBucketMetadataDefaultBucket
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("sourcebucket").Return(&storage.BucketAttrs{}, fmt.Errorf("error retrieving bucket attrs")).Times(1)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, ctx, project, &storage.BucketAttrs{
+	mockStorageClient.EXPECT().CreateBucket(ctx, expectedBucket, project, &storage.BucketAttrs{
 		Name:         expectedBucket,
 		Location:     defaultRegion,
 		StorageClass: defaultStorageClass,
@@ -193,7 +193,7 @@ func TestCreateScratchBucketNilSourceFileBucketMetadataDefaultBucketCreated(t *t
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("sourcebucket").Return(nil, nil).Times(1)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, ctx, project, &storage.BucketAttrs{
+	mockStorageClient.EXPECT().CreateBucket(ctx, expectedBucket, project, &storage.BucketAttrs{
 		Name:         expectedBucket,
 		Location:     defaultRegion,
 		StorageClass: defaultStorageClass,
@@ -211,7 +211,7 @@ func TestCreateScratchBucketErrorWhenIteratingOverProjectBucketsWhileCreatingBuc
 	defer mockCtrl.Finish()
 	ctx := context.Background()
 
-	projectId := "PROJECT1"
+	projectID := "PROJECT1"
 	expectedBucket := "project1-daisy-bkt-us"
 	expectedRegion := "US"
 
@@ -222,7 +222,7 @@ func TestCreateScratchBucketErrorWhenIteratingOverProjectBucketsWhileCreatingBuc
 	}
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("sourcebucket").Return(sourceBucketAttrs, nil).Times(1)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, ctx, projectId, &storage.BucketAttrs{
+	mockStorageClient.EXPECT().CreateBucket(ctx, expectedBucket, projectID, &storage.BucketAttrs{
 		Name:         expectedBucket,
 		Location:     defaultRegion,
 		StorageClass: defaultStorageClass,
@@ -235,15 +235,15 @@ func TestCreateScratchBucketErrorWhenIteratingOverProjectBucketsWhileCreatingBuc
 	secondMockBucketIterator.EXPECT().Next().Return(nil, iterator.Done)
 
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
-	first := mockBucketIteratorCreator.EXPECT().CreateBucketIterator(ctx, mockStorageClient, projectId).
+	first := mockBucketIteratorCreator.EXPECT().CreateBucketIterator(ctx, mockStorageClient, projectID).
 		Return(mockBucketIterator)
-	second := mockBucketIteratorCreator.EXPECT().CreateBucketIterator(ctx, mockStorageClient, projectId).
+	second := mockBucketIteratorCreator.EXPECT().CreateBucketIterator(ctx, mockStorageClient, projectID).
 		Return(secondMockBucketIterator)
 
 	gomock.InOrder(first, second)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
-	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", projectId)
+	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", projectID)
 	assert.Equal(t, expectedBucket, bucket)
 	assert.Equal(t, expectedRegion, region)
 	assert.Nil(t, err)
@@ -254,7 +254,7 @@ func TestCreateScratchBucketReturnsExistingScratchBucketNoCreate(t *testing.T) {
 	defer mockCtrl.Finish()
 	ctx := context.Background()
 
-	projectId := "PROJECT1"
+	projectID := "PROJECT1"
 
 	sourceBucketAttrs := &storage.BucketAttrs{
 		Name:         "sourcebucket",
@@ -284,12 +284,12 @@ func TestCreateScratchBucketReturnsExistingScratchBucketNoCreate(t *testing.T) {
 
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 	mockBucketIteratorCreator.EXPECT().
-		CreateBucketIterator(ctx, mockStorageClient, projectId).
+		CreateBucketIterator(ctx, mockStorageClient, projectID).
 		Return(mockBucketIterator).
 		Times(1)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
-	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", projectId)
+	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", projectID)
 	assert.Equal(t, "project1-daisy-bkt-us-west2", bucket)
 	assert.Equal(t, "us-west2", region)
 	assert.Nil(t, err)
@@ -326,10 +326,10 @@ func TestCreateScratchBucketErrorWhenCreatingBucket(t *testing.T) {
 		Return(sourceBucketAttrs, nil).
 		Times(1)
 	mockStorageClient.EXPECT().
-		CreateBucket("project1-daisy-bkt-us-west2", ctx, project, scratchBucketAttrs).
+		CreateBucket(ctx, "project1-daisy-bkt-us-west2", project, scratchBucketAttrs).
 		Return(fmt.Errorf("error creating a bucket")).
 		Times(1)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, ctx, project, &storage.BucketAttrs{
+	mockStorageClient.EXPECT().CreateBucket(ctx, expectedBucket, project, &storage.BucketAttrs{
 		Name:         expectedBucket,
 		Location:     defaultRegion,
 		StorageClass: defaultStorageClass,

@@ -28,39 +28,48 @@ import (
 	"net/http"
 )
 
+// StorageClient implements domain.StorageClientInterface. It implements main Storage functions
+// used by image import features.
 type StorageClient struct {
 	storageClient *storage.Client
-	httpClient    domain.HttpClientInterface
+	httpClient    domain.HTTPClientInterface
 	ctx           context.Context
 }
 
-type HttpClient struct {
+// HTTPClient implements domain.HTTPClientInterface which abstracts HTTP functionality used by
+// image import features.
+type HTTPClient struct {
 	httpClient *http.Client
 }
 
-func (hc *HttpClient) Get(url string) (resp *http.Response, err error) {
+// Get executes HTTP GET request for given URL
+func (hc *HTTPClient) Get(url string) (resp *http.Response, err error) {
 	return hc.httpClient.Get(url)
 }
 
-func NewStorageClient(client *storage.Client, ctx context.Context) *StorageClient {
+// NewStorageClient creates a StorageClient
+func NewStorageClient(ctx context.Context, client *storage.Client) *StorageClient {
 	o := []option.ClientOption{option.WithScopes(storagev1.DevstorageReadOnlyScope)}
-	if hc, _, err := htransport.NewClient(ctx, o...); err != nil {
+	hc, _, err := htransport.NewClient(ctx, o...)
+	if err != nil {
 		log.Fatalf("Cannot create storage HTTP client %v", err.Error())
 		return nil
-	} else {
-		return &StorageClient{client, &HttpClient{hc}, ctx}
 	}
+	return &StorageClient{client, &HTTPClient{hc}, ctx}
 }
 
-func (sc *StorageClient) CreateBucket(bucketName string, ctx context.Context,
+// CreateBucket creates a GCS bucket
+func (sc *StorageClient) CreateBucket(ctx context.Context, bucketName string,
 	project string, attrs *storage.BucketAttrs) error {
 	return sc.storageClient.Bucket(bucketName).Create(ctx, project, attrs)
 }
 
+// Buckets returns a bucket iterator for all buckets within a project
 func (sc *StorageClient) Buckets(ctx context.Context, projectID string) *storage.BucketIterator {
 	return sc.storageClient.Buckets(ctx, projectID)
 }
 
+// GetBucketAttrs returns bucket attributes for given bucket
 func (sc *StorageClient) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
 	resp, err := sc.httpClient.Get("https://www.googleapis.com/storage/v1/b/" + bucket + "?fields=location%2CstorageClass")
 	defer resp.Body.Close()

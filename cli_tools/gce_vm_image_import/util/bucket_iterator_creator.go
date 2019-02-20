@@ -20,19 +20,24 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
 )
 
+// BucketIteratorCreator is responsible for creating GCS bucket iterator
 type BucketIteratorCreator struct {
-	it *storage.BucketIterator
 }
 
+// CreateBucketIterator creates GCS bucket iterator
 func (bic *BucketIteratorCreator) CreateBucketIterator(ctx context.Context,
-	storageClient domain.StorageClientInterface, projectId string) domain.BucketIteratorInterface {
-	return &BucketIterator{storageClient.Buckets(ctx, projectId)}
+	storageClient domain.StorageClientInterface, projectID string) domain.BucketIteratorInterface {
+	return &BucketIterator{storageClient.Buckets(ctx, projectID)}
 }
 
+// BucketIterator is a wrapper around storage.BucketIterator. Implements BucketIteratorInterface.
 type BucketIterator struct {
 	it *storage.BucketIterator
 }
 
+// Next returns the next result. Its second return value is iterator.Done if
+// there are no more results. Once Next returns iterator.Done, all subsequent
+// calls will return iterator.Done.
 func (bi *BucketIterator) Next() (*storage.BucketAttrs, error) {
 	return bi.it.Next()
 }

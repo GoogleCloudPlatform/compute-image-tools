@@ -432,12 +432,11 @@ func createComputeService(ctx *context.Context) *compute.Service {
 	return computeService
 }
 
-func runImport(metadataGCEHolder gcevmimageimportutil.MetadataGCEHolder,
+func runImport(ctx context.Context, metadataGCEHolder gcevmimageimportutil.MetadataGCE,
 	scratchBucketCreator *gcevmimageimportutil.ScratchBucketCreator,
-	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient *storage.Client,
-	ctx context.Context) error {
+	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient *storage.Client) error {
 
-	err := populateMissingParameters(&metadataGCEHolder, scratchBucketCreator, zoneRetriever, gcevmimageimportutil.NewStorageClient(storageClient, ctx))
+	err := populateMissingParameters(&metadataGCEHolder, scratchBucketCreator, zoneRetriever, gcevmimageimportutil.NewStorageClient(ctx, storageClient))
 	if err != nil {
 		return err
 	}
@@ -459,16 +458,16 @@ func main() {
 	}
 
 	ctx := context.Background()
-	metadataGCEHolder := gcevmimageimportutil.MetadataGCEHolder{}
+	metadataGCEHolder := gcevmimageimportutil.MetadataGCE{}
 	storageClient := createStorageClient(ctx)
-	scratchBucketCreator := gcevmimageimportutil.NewScratchBucketCreator(storageClient, ctx)
-	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(&metadataGCEHolder, &gcevmimageimportutil.ComputeService{createComputeService(&ctx)})
+	scratchBucketCreator := gcevmimageimportutil.NewScratchBucketCreator(ctx, storageClient)
+	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(&metadataGCEHolder, &gcevmimageimportutil.ComputeService{Cs: createComputeService(&ctx)})
 
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 
-	if err := runImport(metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient, ctx); err != nil {
+	if err := runImport(ctx, metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient); err != nil {
 		log.Fatalf(err.Error())
 	}
 }

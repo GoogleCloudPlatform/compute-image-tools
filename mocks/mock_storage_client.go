@@ -63,7 +63,7 @@ func (mr *MockStorageClientInterfaceMockRecorder) Buckets(arg0, arg1 interface{}
 }
 
 // CreateBucket mocks base method
-func (m *MockStorageClientInterface) CreateBucket(arg0 string, arg1 context.Context, arg2 string, arg3 *storage.BucketAttrs) error {
+func (m *MockStorageClientInterface) CreateBucket(arg0 context.Context, arg1, arg2 string, arg3 *storage.BucketAttrs) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateBucket", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)

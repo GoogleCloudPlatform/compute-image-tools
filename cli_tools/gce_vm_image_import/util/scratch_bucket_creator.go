@@ -29,18 +29,20 @@ const (
 	defaultStorageClass = "MULTI_REGIONAL"
 )
 
-// Creates scratch bucket
+// ScratchBucketCreator is responsible for creating Daisy scratch bucketets
 type ScratchBucketCreator struct {
 	StorageClient         domain.StorageClientInterface
 	Ctx                   context.Context
 	BucketIteratorCreator domain.BucketIteratorCreatorInterface
 }
 
-func NewScratchBucketCreator(storageClient *storage.Client, ctx context.Context) *ScratchBucketCreator {
-	return &ScratchBucketCreator{NewStorageClient(storageClient, ctx), ctx, &BucketIteratorCreator{}}
+// NewScratchBucketCreator creates a ScratchBucketCreator
+func NewScratchBucketCreator(ctx context.Context, storageClient *storage.Client) *ScratchBucketCreator {
+	return &ScratchBucketCreator{NewStorageClient(ctx, storageClient), ctx, &BucketIteratorCreator{}}
 }
 
-// Creates scratch bucket in the same region as sourceFileFlag. Returns (bucket_name, region, error)
+// CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
+// Returns (bucket_name, region, error)
 func (c *ScratchBucketCreator) CreateScratchBucket(
 	sourceFileFlag string, project string) (string, string, error) {
 	bucket := ""
@@ -103,7 +105,7 @@ func (c *ScratchBucketCreator) createBucketIfNotExisting(bucket string, project 
 	}
 
 	log.Printf("Creating scratch bucket `%v` in %v region", bucket, bucketAttrs.Location)
-	if err := c.StorageClient.CreateBucket(bucket, c.Ctx, project, bucketAttrs); err != nil {
+	if err := c.StorageClient.CreateBucket(c.Ctx, bucket, project, bucketAttrs); err != nil {
 		return "", err
 	}
 	return bucketAttrs.Location, nil

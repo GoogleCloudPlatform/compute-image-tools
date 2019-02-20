@@ -23,7 +23,7 @@ var (
 	gsRegex = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
 )
 
-// Returns: bucket, object path, error
+// SplitGCSPath splits GCS path into: bucket, object path, error
 func SplitGCSPath(p string) (string, string, error) {
 	matches := gsRegex.FindStringSubmatch(p)
 	if matches != nil {

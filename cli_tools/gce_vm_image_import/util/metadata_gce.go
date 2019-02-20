@@ -16,16 +16,20 @@ package gcevmimageimportutil
 
 import "cloud.google.com/go/compute/metadata"
 
-type MetadataGCEHolder struct{}
+// MetadataGCE implements MetadataGCEInterface
+type MetadataGCE struct{}
 
-func (m *MetadataGCEHolder) OnGCE() bool {
+// OnGCE reports whether this process is running on Google Compute Engine.
+func (m *MetadataGCE) OnGCE() bool {
 	return metadata.OnGCE()
 }
 
-func (m *MetadataGCEHolder) Zone() (string, error) {
+// Zone returns the current VM's zone, such as "us-central1-b".
+func (m *MetadataGCE) Zone() (string, error) {
 	return metadata.Zone()
 }
 
-func (m *MetadataGCEHolder) ProjectID() (string, error) {
+// ProjectID returns the current instance's project ID string.
+func (m *MetadataGCE) ProjectID() (string, error) {
 	return metadata.ProjectID()
 }

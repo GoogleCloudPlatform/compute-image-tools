@@ -464,11 +464,11 @@ func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRe
 }
 
 func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
-	projectId := "a_project"
+	projectID := "a_project"
 	defer setStringP(&zone, "")()
 	defer setStringP(&scratchBucketGcsPath, "")()
 	defer setStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer setStringP(&project, projectId)()
+	defer setStringP(&project, projectID)()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -481,7 +481,7 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 		Return("new_scratch_bucket", "europe-north1", nil).
 		Times(1)
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockZoneRetriever.EXPECT().GetZone("europe-north1", projectId).Return("europe-north1-c", nil).Times(1)
+	mockZoneRetriever.EXPECT().GetZone("europe-north1", projectID).Return("europe-north1-c", nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
 	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
@@ -493,10 +493,10 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 }
 
 func TestPopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing.T) {
-	projectId := "a_project"
+	projectID := "a_project"
 	defer setStringP(&zone, "")()
 	defer setStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer setStringP(&project, projectId)()
+	defer setStringP(&project, projectID)()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -504,7 +504,7 @@ func TestPopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockZoneRetriever.EXPECT().GetZone("us-west2", projectId).Return("", fmt.Errorf("err")).Times(1)
+	mockZoneRetriever.EXPECT().GetZone("us-west2", projectID).Return("", fmt.Errorf("err")).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
 

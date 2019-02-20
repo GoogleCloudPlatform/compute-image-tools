@@ -16,10 +16,12 @@ package gcevmimageimportutil
 
 import "google.golang.org/api/compute/v1"
 
+// ComputeService wraps GCE compute.Service and implements ComputeServiceInterface
 type ComputeService struct {
 	Cs *compute.Service
 }
 
+// GetZones returns a slice of Zones for give project
 func (cs *ComputeService) GetZones(project string) ([]*compute.Zone, error) {
 	call := cs.Cs.Zones.List(project)
 	var pt string
