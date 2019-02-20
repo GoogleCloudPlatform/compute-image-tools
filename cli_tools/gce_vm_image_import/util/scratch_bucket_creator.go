@@ -52,7 +52,6 @@ func (c *ScratchBucketCreator) CreateScratchBucket(
 	if project == "" {
 		return "", "", fmt.Errorf("can't create scratch bucket if project not specified")
 	}
-
 	if sourceFileFlag != "" {
 		// source file provided, create bucket in the same region for cost/performance reasons
 		bucket, region, err = c.createBucketMatchFileRegion(sourceFileFlag, project)

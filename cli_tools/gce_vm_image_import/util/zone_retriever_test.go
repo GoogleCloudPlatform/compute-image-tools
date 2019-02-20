@@ -23,6 +23,21 @@ import (
 	"testing"
 )
 
+var (
+	defaultZones = []*compute.Zone{
+		createUpZone("us-west1", "b"),
+		createUpZone("us-west2", "a"),
+		createUpZone("us-west2", "b"),
+		createUpZone("us-west2", "c"),
+		createUpZone("us-central2", "a"),
+		createUpZone("us-central2", "b"),
+		createUpZone("us-central1", "a"),
+		createUpZone("us-central1", "b"),
+		createUpZone("europe-north1", "c"),
+		createUpZone("europe-north2", "a"),
+	}
+)
+
 func TestGetZoneFromGCEMetadata(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -96,16 +111,16 @@ func TestGetZoneFromStorageRegion(t *testing.T) {
 
 	projectID := "a_project"
 	zones := []*compute.Zone{
-		createZone("us-west1", "b"),
-		createZone("us-west2", "a"),
-		createZone("us-west2", "b"),
-		createZone("us-west2", "c"),
-		createZone("europe-north1", "c"),
-		createZone("europe-north2", "a"),
-		createZone("europe-north2", "b"),
-		createZone("europe-north2", "c"),
-		createZone("europe-west3", "a"),
-		createZone("europe-west3", "b"),
+		createUpZone("us-west1", "b"),
+		createUpZone("us-west2", "a"),
+		createUpZone("us-west2", "b"),
+		createUpZone("us-west2", "c"),
+		createUpZone("europe-north1", "c"),
+		createUpZone("europe-north2", "a"),
+		createUpZone("europe-north2", "b"),
+		createUpZone("europe-north2", "c"),
+		createUpZone("europe-west3", "a"),
+		createUpZone("europe-west3", "b"),
 	}
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockComputeService := mocks.NewMockComputeServiceInterface(mockCtrl)
@@ -124,10 +139,10 @@ func TestGetZoneFromGCEWhenNoMatchingZone(t *testing.T) {
 
 	projectID := "a_project"
 	zones := []*compute.Zone{
-		createZone("us-west1", "b"),
-		createZone("us-west2", "a"),
-		createZone("us-west2", "b"),
-		createZone("us-west2", "c"),
+		createUpZone("us-west1", "b"),
+		createUpZone("us-west2", "a"),
+		createUpZone("us-west2", "b"),
+		createUpZone("us-west2", "c"),
 	}
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().Zone().Return("europe-north1-c", nil).Times(1)
@@ -142,24 +157,89 @@ func TestGetZoneFromGCEWhenNoMatchingZone(t *testing.T) {
 	assert.Equal(t, "europe-north1-c", zone)
 }
 
-func TestGetZoneErrorWhenNoMatchingZoneAndNotOnGCE(t *testing.T) {
+func TestGetZoneFromStorageMultiRegion(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	projectID := "a_project"
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockComputeService := mocks.NewMockComputeServiceInterface(mockCtrl)
+	mockComputeService.EXPECT().GetZones(projectID).Return(defaultZones, nil)
+
+	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
+	zone, err := zr.GetZone("US", projectID)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "us-central1-a", zone)
+}
+
+func TestGetZoneFromGCEWhenMultiRegionHasNoValidZones(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	projectID := "a_project"
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().Zone().Return("europe-north1-c", nil).Times(1)
+	mockMetadataGce.EXPECT().OnGCE().Return(true).Times(1)
+
+	zones := []*compute.Zone{
+		createUpZone("us-west1", "b"),
+		createUpZone("us-west2", "a"),
+		createUpZone("us-west2", "b"),
+		createUpZone("us-west2", "c"),
+	}
+	mockComputeService := mocks.NewMockComputeServiceInterface(mockCtrl)
+	mockComputeService.EXPECT().GetZones(projectID).Return(zones, nil)
+
+	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
+	zone, err := zr.GetZone("ASIA", projectID)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "europe-north1-c", zone)
+}
+
+func TestGetZoneFromGCEWhenMultiRegionHasNoZonesUP(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
 	projectID := "a_project"
 	zones := []*compute.Zone{
-		createZone("us-west1", "b"),
-		createZone("us-west2", "a"),
-		createZone("us-west2", "b"),
-		createZone("us-west2", "c"),
+		createDownZone("us-west1", "b"),
+		createDownZone("us-west2", "a"),
+		createDownZone("us-west2", "b"),
+		createDownZone("us-west2", "c"),
+		createDownZone("us-central2", "a"),
+		createUpZone("europe-north2", "b"),
+		createUpZone("europe-north2", "c"),
+		createUpZone("europe-west3", "a"),
 	}
+
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(false).Times(1)
+	mockMetadataGce.EXPECT().Zone().Return("asia-east1-c", nil).Times(1)
+	mockMetadataGce.EXPECT().OnGCE().Return(true).Times(1)
+
 	mockComputeService := mocks.NewMockComputeServiceInterface(mockCtrl)
 	mockComputeService.EXPECT().GetZones(projectID).Return(zones, nil)
 
 	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("EUROPE-NORTH2", projectID)
+	zone, err := zr.GetZone("US", projectID)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "asia-east1-c", zone)
+}
+
+func TestGetZoneErrorWhenNoMatchingZoneAndNotOnGCE(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	projectID := "a_project"
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false).Times(1)
+	mockComputeService := mocks.NewMockComputeServiceInterface(mockCtrl)
+	mockComputeService.EXPECT().GetZones(projectID).Return(defaultZones, nil)
+
+	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
+	zone, err := zr.GetZone("ASIA-EAST1", projectID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "", zone)
@@ -231,6 +311,14 @@ func TestGetZoneErrorWhenProjectNotSetAndStorageRegionSetAndNotOnGCE(t *testing.
 	assert.Equal(t, "", zone)
 }
 
-func createZone(region string, zoneSuffix string) *compute.Zone {
-	return &compute.Zone{Name: region + "-" + zoneSuffix, Region: "/regions/" + region}
+func createUpZone(region string, zoneSuffix string) *compute.Zone {
+	return createZone(region, zoneSuffix, "UP")
+}
+
+func createDownZone(region string, zoneSuffix string) *compute.Zone {
+	return createZone(region, zoneSuffix, "DOWN")
+}
+
+func createZone(region string, zoneSuffix string, status string) *compute.Zone {
+	return &compute.Zone{Name: region + "-" + zoneSuffix, Region: "/regions/" + region, Status: status}
 }

@@ -17,7 +17,20 @@ package gcevmimageimportutil
 import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
+	"google.golang.org/api/compute/v1"
 	"strings"
+)
+
+var (
+	// for each multi region, regions are sorted by cost in ascending order as of the time of writing
+	// this code.
+	multiRegions = map[string][]string{
+		"US":   {"us-central1", "us-east1", "us-west1", "us-east4", "us-west2"},
+		"EU":   {"europe-north1", "europe-west1", "europe-west4", "europe-west2", "europe-west3"},
+		"ASIA": {"asia-east1", "asia-south1", "asia-southeast1", "asia-northeast1", "asia-east2"},
+		"EUR4": {"europe-north1", "europe-west4"},
+		"NAM4": {"us-central1", "us-east1"},
+	}
 )
 
 // ZoneRetriever is responsible for retrieving GCE zone to run import in
@@ -31,17 +44,17 @@ func NewZoneRetriever(aMgce domain.MetadataGCEInterface, cs domain.ComputeServic
 	return &ZoneRetriever{Mgce: aMgce, ComputeGCEService: cs}, nil
 }
 
-// GetZone retrieves GCE zone to run import in based on imported source file region and available
+// GetZone retrieves GCE zone to run import in based on imported source file location and available
 // zones in the project.
 // If storageRegion is provided and valid, first zone within that region will be used.
 // If no storageRegion is provided, GCE Zone from the running process
 // will be used.
-func (zr *ZoneRetriever) GetZone(storageRegion string, project string) (string, error) {
+func (zr *ZoneRetriever) GetZone(storageLocation string, project string) (string, error) {
 	zone := ""
 	var err error
-	if storageRegion != "" {
-		// pick a random zone from the region where data is stored
-		zone, err = zr.getZoneFromRegion(storageRegion, project)
+	if storageLocation != "" {
+		// pick a zone from the region where data is stored
+		zone, err = zr.getZoneFromStorageLocation(storageLocation, project)
 		if err == nil {
 			return zone, err
 		}
@@ -63,18 +76,43 @@ func (zr *ZoneRetriever) GetZone(storageRegion string, project string) (string, 
 	return zone, nil
 }
 
-func (zr *ZoneRetriever) getZoneFromRegion(region string, project string) (string, error) {
+func (zr *ZoneRetriever) getZoneFromStorageLocation(location string, project string) (string, error) {
 	if project == "" {
-		return "", fmt.Errorf("project cannot be empty in order to find a zone from a region")
+		return "", fmt.Errorf("project cannot be empty in order to find a zone from a location")
 	}
 	zones, err := zr.ComputeGCEService.GetZones(project)
 	if err != nil {
 		return "", err
 	}
+	if zr.isMultiRegion(location) {
+		return zr.getBestZoneForMultiRegion(location, zones)
+	}
+	return zr.getZoneForRegion(location, zones)
+}
+
+func (zr *ZoneRetriever) getZoneForRegion(region string, zones []*compute.Zone) (string, error) {
 	for _, zone := range zones {
-		if strings.HasSuffix(strings.ToLower(zone.Region), strings.ToLower(region)) {
+		if isZoneUp(zone) && strings.HasSuffix(strings.ToLower(zone.Region), strings.ToLower(region)) {
 			return zone.Name, nil
 		}
 	}
-	return "", fmt.Errorf("No zone found for %v region", region)
+	return "", fmt.Errorf("no zone found for %v region", region)
+}
+
+func (zr *ZoneRetriever) getBestZoneForMultiRegion(multiRegion string, zones []*compute.Zone) (string, error) {
+	for _, region := range multiRegions[multiRegion] {
+		if zone, err := zr.getZoneForRegion(region, zones); err == nil {
+			return zone, nil
+		}
+	}
+	return "", fmt.Errorf("no zones found for %v multi region", multiRegion)
+}
+
+func (zr *ZoneRetriever) isMultiRegion(location string) bool {
+	_, containsKey := multiRegions[location]
+	return containsKey
+}
+
+func isZoneUp(zone *compute.Zone) bool {
+	return zone != nil && zone.Status == "UP"
 }
