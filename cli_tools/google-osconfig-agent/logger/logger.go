@@ -69,7 +69,9 @@ func Init(ctx context.Context, project string) {
 
 // Close closes the logger.
 func Close() {
-	cloudLoggingClient.Close()
+	if cloudLoggingClient != nil {
+		cloudLoggingClient.Close()
+	}
 }
 
 type serialPort struct {
@@ -120,8 +122,7 @@ func now() string {
 }
 
 func caller(depth int) *logpb.LogEntrySourceLocation {
-	// Add 2 to depth to account for this function and the imediate caller.
-	depth = depth + 2
+	depth = depth + 1
 	pc, file, line, ok := runtime.Caller(depth)
 	if !ok {
 		file = "???"
