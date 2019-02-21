@@ -12,8 +12,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package inventory scans the current inventory (patches and package installed and available)
-// and writes them to Guest Attributes.
 package ospackage
 
 import (
