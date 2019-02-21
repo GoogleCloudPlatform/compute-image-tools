@@ -78,7 +78,7 @@ func main() {
 
 		res, err := config.Instance()
 		if err != nil {
-			logger.Fatalf("get instance error: %v", err)
+			logger.Fatalf("Instance error: %v", err)
 		}
 
 		resp, err := service.LookupConfigs(ctx, client, res)
@@ -86,7 +86,7 @@ func main() {
 			logger.Fatalf("LookupConfigs error: %v", err)
 		}
 		if err := ospackage.SetConfig(resp); err != nil {
-			log.Fatalf(err.Error())
+			logger.Fatalf("SetConfig error: %v", err)
 		}
 		os.Exit(0)
 	}

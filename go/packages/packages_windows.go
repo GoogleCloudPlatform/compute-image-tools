@@ -15,25 +15,10 @@ package packages
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 
 	"github.com/StackExchange/wmi"
 	ole "github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
-)
-
-var (
-	googetDir = os.Getenv("GooGetRoot")
-	googet    = filepath.Join(googetDir, "googet.exe")
-
-	googetUpdateArgs         = []string{"-noconfirm", "update"}
-	googetUpdateQueryArgs    = []string{"update"}
-	googetInstalledQueryArgs = []string{"installed"}
-	googetInstallArgs        = []string{"-noconfirm", "install"}
-	googetRemoveArgs         = []string{"-noconfirm", "remove"}
 )
 
 func init() {
@@ -65,117 +50,43 @@ func GetPackageUpdates() (Packages, []string) {
 	return pkgs, errs
 }
 
-func googetUpdates() ([]PkgInfo, error) {
-	out, err := run(exec.Command(googet, googetUpdateQueryArgs...))
-	if err != nil {
-		return nil, err
+// GetInstalledPackages gets all installed GooGet packages and Windows updates.
+// Windows updates are read from Windows Update Agent and Win32_QuickFixEngineering.
+func GetInstalledPackages() (Packages, []string) {
+	var pkgs Packages
+	var errs []string
+
+	if exists(googet) {
+		if googet, err := installedGooGetPackages(); err != nil {
+			msg := fmt.Sprintf("error listing installed googet packages: %v", err)
+			DebugLogger.Println("Error:", msg)
+			errs = append(errs, msg)
+		} else {
+			pkgs.GooGet = googet
+		}
 	}
 
-	/*
-	   Searching for available updates...
-	   foo.noarch, 3.5.4@1 --> 3.6.7@1 from repo
-	   ...
-	   Perform update? (y/N):
-	*/
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-
-	var pkgs []PkgInfo
-	for _, ln := range lines[1:] {
-		pkg := strings.Fields(ln)
-		if len(pkg) != 6 {
-			continue
-		}
-
-		p := strings.Split(pkg[0], ".")
-		if len(p) != 2 {
-			DebugLogger.Printf("%s does not represent a package", ln)
-			continue
-		}
-		pkgs = append(pkgs, PkgInfo{Name: p[0], Arch: strings.Trim(p[1], ","), Version: pkg[3]})
+	if wua, err := wuaUpdates("IsInstalled=1"); err != nil {
+		msg := fmt.Sprintf("error listing installed Windows updates: %v", err)
+		DebugLogger.Println("Error:", msg)
+		errs = append(errs, msg)
+	} else {
+		pkgs.WUA = wua
 	}
-	return pkgs, nil
+
+	if qfe, err := quickFixEngineering(); err != nil {
+		msg := fmt.Sprintf("error listing installed QuickFixEngineering updates: %v", err)
+		DebugLogger.Println("Error:", msg)
+		errs = append(errs, msg)
+	} else {
+		pkgs.QFE = qfe
+	}
+
+	return pkgs, errs
 }
 
-// InstallGooGetPackages installs GooGet packages.
-func InstallGooGetPackages(pkgs []string) error {
-	args := append(googetInstallArgs, pkgs...)
-	out, err := run(exec.Command(googet, args...))
-	if err != nil {
-		return err
-	}
-	var msg string
-	for _, s := range strings.Split(string(out), "\n") {
-		msg += fmt.Sprintf("  %s\n", s)
-	}
-	DebugLogger.Printf("GooGet install output:\n%s", msg)
-	return nil
-}
-
-// RemoveGooGetPackages installs GooGet packages.
-func RemoveGooGetPackages(pkgs []string) error {
-	args := append(googetRemoveArgs, pkgs...)
-	out, err := run(exec.Command(googet, args...))
-	if err != nil {
-		return err
-	}
-	var msg string
-	for _, s := range strings.Split(string(out), "\n") {
-		msg += fmt.Sprintf("  %s\n", s)
-	}
-	DebugLogger.Printf("GooGet remove output:\n%s", msg)
-	return nil
-}
-
-// InstallGooGetUpdates installs all available GooGet updates.
-func InstallGooGetUpdates() error {
-	out, err := run(exec.Command(googet, googetUpdateArgs...))
-	if err != nil {
-		return err
-	}
-	var msg string
-	for _, s := range strings.Split(string(out), "\n") {
-		msg += fmt.Sprintf("  %s\n", s)
-	}
-	DebugLogger.Printf("GooGet update output:\n%s", msg)
-	return nil
-}
-
-func installedGooGetPackages() ([]PkgInfo, error) {
-	out, err := run(exec.Command(googet, googetInstalledQueryArgs...))
-	if err != nil {
-		return nil, err
-	}
-
-	/*
-	   Installed Packages:
-	   foo.x86_64 1.2.3@4
-	   bar.noarch 1.2.3@4
-	   ...
-	*/
-	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-
-	if len(lines) <= 1 {
-		DebugLogger.Println("No packages GooGet installed.")
-		return nil, nil
-	}
-
-	var pkgs []PkgInfo
-	for _, ln := range lines[1:] {
-		pkg := strings.Fields(ln)
-		if len(pkg) != 2 {
-			DebugLogger.Printf("%s does not represent a GooGet package", ln)
-			continue
-		}
-
-		p := strings.Split(pkg[0], ".")
-		if len(p) != 2 {
-			DebugLogger.Printf("%s does not represent a GooGet package", ln)
-			continue
-		}
-
-		pkgs = append(pkgs, PkgInfo{Name: p[0], Arch: p[1], Version: pkg[1]})
-	}
-	return pkgs, nil
+type win32_QuickFixEngineering struct {
+	Caption, Description, HotFixID, InstalledOn string
 }
 
 type (
@@ -437,45 +348,6 @@ func GetWUAUpdateCollection(session IUpdateSession, query string) (IUpdateCollec
 	// returns IUpdateCollection
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa386107(v=vs.85).aspx
 	return result.GetProperty("Updates")
-}
-
-// GetInstalledPackages gets all installed GooGet packages and Windows updates.
-// Windows updates are read from Windows Update Agent and Win32_QuickFixEngineering.
-func GetInstalledPackages() (Packages, []string) {
-	var pkgs Packages
-	var errs []string
-
-	if exists(googet) {
-		if googet, err := installedGooGetPackages(); err != nil {
-			msg := fmt.Sprintf("error listing installed googet packages: %v", err)
-			DebugLogger.Println("Error:", msg)
-			errs = append(errs, msg)
-		} else {
-			pkgs.GooGet = googet
-		}
-	}
-
-	if wua, err := wuaUpdates("IsInstalled=1"); err != nil {
-		msg := fmt.Sprintf("error listing installed Windows updates: %v", err)
-		DebugLogger.Println("Error:", msg)
-		errs = append(errs, msg)
-	} else {
-		pkgs.WUA = wua
-	}
-
-	if qfe, err := quickFixEngineering(); err != nil {
-		msg := fmt.Sprintf("error listing installed QuickFixEngineering updates: %v", err)
-		DebugLogger.Println("Error:", msg)
-		errs = append(errs, msg)
-	} else {
-		pkgs.QFE = qfe
-	}
-
-	return pkgs, errs
-}
-
-type win32_QuickFixEngineering struct {
-	Caption, Description, HotFixID, InstalledOn string
 }
 
 // quickFixEngineering queries the wmi object win32_QuickFixEngineering for a list of installed updates.
