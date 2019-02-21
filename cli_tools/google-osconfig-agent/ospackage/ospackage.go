@@ -12,11 +12,14 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+// +build !public
+
 // Package ospackage configures OS packages based on osconfig API response.
 package ospackage
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -25,14 +28,78 @@ import (
 	"os"
 	"strings"
 
+	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
+	"github.com/kylelemons/godebug/pretty"
+	"google.golang.org/api/option"
+	"google.golang.org/grpc/status"
 )
 
-// SetConfig applies the configurations specified in the service.
-func SetConfig(res *osconfigpb.LookupConfigsResponse) error {
+var dump = &pretty.Config{IncludeUnexported: true}
+
+// RunOsConfig looks up osconfigs and applies them.
+func RunOsConfig(ctx context.Context, res string, enqueue bool) error {
+	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
+	if err != nil {
+		return fmt.Errorf("osconfig.NewClient Error: %v", err)
+	}
+
+	resp, err := lookupConfigs(ctx, client, res)
+	if err != nil {
+		return fmt.Errorf("LookupConfigs error: %v", err)
+	}
+
+	if enqueue {
+		// We don't check the error from ospackage.SetConfig as all errors are already logged.
+		tasker.Enqueue("Set package config", func() { setConfig(resp) })
+		return nil
+	}
+	return setConfig(resp)
+}
+
+func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
+	info, err := osinfo.GetDistributionInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	req := &osconfigpb.LookupConfigsRequest{
+		Resource: resource,
+		OsInfo: &osconfigpb.LookupConfigsRequest_OsInfo{
+			OsLongName:     info.LongName,
+			OsShortName:    info.ShortName,
+			OsVersion:      info.Version,
+			OsKernel:       info.Kernel,
+			OsArchitecture: info.Architecture,
+		},
+		ConfigTypes: []osconfigpb.LookupConfigsRequest_ConfigType{
+			osconfigpb.LookupConfigsRequest_GOO,
+			osconfigpb.LookupConfigsRequest_WINDOWS_UPDATE,
+			osconfigpb.LookupConfigsRequest_APT,
+			osconfigpb.LookupConfigsRequest_YUM,
+			osconfigpb.LookupConfigsRequest_ZYPPER,
+		},
+	}
+	logger.Debugf("LookupConfigs request:\n%s\n\n", dump.Sprint(req))
+
+	res, err := client.LookupConfigs(ctx, req)
+	if err != nil {
+		if s, ok := status.FromError(err); ok {
+			return nil, fmt.Errorf("code: %q, message: %q, details: %q", s.Code(), s.Message(), s.Details())
+		}
+		return nil, err
+	}
+	logger.Debugf("LookupConfigs response:\n%s\n\n", dump.Sprint(res))
+
+	return res, nil
+}
+
+func setConfig(res *osconfigpb.LookupConfigsResponse) error {
 	var errs []string
 
 	if res.Goo != nil && packages.GooGetExists {

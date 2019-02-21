@@ -20,39 +20,14 @@ import (
 	"fmt"
 	"time"
 
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/ospackage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/patch"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
-	"github.com/kylelemons/godebug/pretty"
-	"google.golang.org/api/option"
-	"google.golang.org/grpc/status"
-
-	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
-
-var dump = &pretty.Config{IncludeUnexported: true}
-
-func runOsConfig(ctx context.Context, res string) error {
-	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
-	if err != nil {
-		return fmt.Errorf("osconfig.NewClient Error: %v", err)
-	}
-
-	resp, err := LookupConfigs(ctx, client, res)
-	if err != nil {
-		return fmt.Errorf("LookupConfigs error: %v", err)
-	}
-
-	// We don't check the error from ospackage.SetConfig as all errors are already logged.
-	tasker.Enqueue("Set package config", func() { ospackage.SetConfig(resp) })
-	return nil
-}
 
 func run(ctx context.Context) {
 	patch.Init(ctx)
@@ -63,16 +38,9 @@ func run(ctx context.Context) {
 	}
 
 	ticker := time.NewTicker(config.SvcPollInterval())
-	configError := false
 	for {
-		err := runOsConfig(ctx, res)
-		// Only log osconfig error on the first error so as not to spam the logs.
-		// TODO: Remove once the API is in beta.
-		if err != nil && !configError {
+		if err := ospackage.RunOsConfig(ctx, res, true); err != nil {
 			logger.Errorf(err.Error())
-			configError = true
-		} else {
-			configError = false
 		}
 
 		// This should always run after ospackage.SetConfig.
@@ -86,45 +54,6 @@ func run(ctx context.Context) {
 			return
 		}
 	}
-}
-
-// LookupConfigs looks up osconfigs.
-// TODO: move to osconfig_service wrapper
-func LookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {
-	info, err := osinfo.GetDistributionInfo()
-	if err != nil {
-		return nil, err
-	}
-
-	req := &osconfigpb.LookupConfigsRequest{
-		Resource: resource,
-		OsInfo: &osconfigpb.LookupConfigsRequest_OsInfo{
-			OsLongName:     info.LongName,
-			OsShortName:    info.ShortName,
-			OsVersion:      info.Version,
-			OsKernel:       info.Kernel,
-			OsArchitecture: info.Architecture,
-		},
-		ConfigTypes: []osconfigpb.LookupConfigsRequest_ConfigType{
-			osconfigpb.LookupConfigsRequest_GOO,
-			osconfigpb.LookupConfigsRequest_WINDOWS_UPDATE,
-			osconfigpb.LookupConfigsRequest_APT,
-			osconfigpb.LookupConfigsRequest_YUM,
-			osconfigpb.LookupConfigsRequest_ZYPPER,
-		},
-	}
-	logger.Debugf("LookupConfigs request:\n%s\n\n", dump.Sprint(req))
-
-	res, err := client.LookupConfigs(ctx, req)
-	if err != nil {
-		if s, ok := status.FromError(err); ok {
-			return nil, fmt.Errorf("code: %q, message: %q, details: %q", s.Code(), s.Message(), s.Details())
-		}
-		return nil, err
-	}
-	logger.Debugf("LookupConfigs response:\n%s\n\n", dump.Sprint(res))
-
-	return res, nil
 }
 
 // Run registers a service to periodically call the osconfig enpoint to pull

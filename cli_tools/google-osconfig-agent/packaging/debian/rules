@@ -19,7 +19,7 @@ override_dh_golang:
 	# We don't use any packaged dependencies, so skip dh_golang step.
 
 override_dh_auto_build:
-	dh_auto_build -O--buildsystem=golang -- -ldflags "-s -w -X main.version=$(VERSION)"
+	dh_auto_build -O--buildsystem=golang -- -ldflags "-s -w -X main.version=$(VERSION)" -tags public
 
 override_dh_installinit:
 	dh_installinit --noscripts

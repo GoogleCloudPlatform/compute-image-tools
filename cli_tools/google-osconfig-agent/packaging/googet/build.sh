@@ -5,4 +5,4 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-GOOS=windows /tmp/go/bin/go build -ldflags "-X main.version=${version}" -o google_osconfig_agent.exe
+GOOS=windows /tmp/go/bin/go build -ldflags "-X main.version=${version}" -o google_osconfig_agent.exe -tags public

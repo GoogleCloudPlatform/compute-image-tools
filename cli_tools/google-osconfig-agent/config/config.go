@@ -132,7 +132,11 @@ func Instance() (string, error) {
 
 // Project is the URI of the instance the agent is running on.
 func Project() (string, error) {
-	return metadata.ProjectID()
+	proj, err := metadata.ProjectID()
+	if err != nil {
+		return "", fmt.Errorf("unable to resolve project, are you running in GCE? error: %v", err)
+	}
+	return proj, nil
 }
 
 // Version is the agent version.
