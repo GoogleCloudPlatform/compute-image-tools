@@ -1,6 +1,6 @@
 # Compute Engine Image Tools
 [![codecov](https://codecov.io/gh/GoogleCloudPlatform/compute-image-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/GoogleCloudPlatform/compute-image-tools)
-ovf
+
 This repository contains various tools for managing disk images on Google
 Compute Engine.
 
