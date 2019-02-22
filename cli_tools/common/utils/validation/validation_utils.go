@@ -12,23 +12,22 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package domain
+package validationutils
 
 import (
-	"net/http"
+	"fmt"
 )
 
-// ScratchBucketCreatorInterface represents Daisy scratch (temporary) bucket creator
-type ScratchBucketCreatorInterface interface {
-	CreateScratchBucket(sourceFileFlag string, projectFlag string) (string, string, error)
+// ValidateStringFlagNotEmpty returns error with error message stating field must be provided if
+// value is empty string. Returns nil otherwise.
+func ValidateStringFlagNotEmpty(flagValue string, flagKey string) error {
+	return ValidateStringNotEmpty(flagValue, flagKey, "The flag -%v must be provided")
 }
 
-// ZoneRetrieverInterface represents Daisy GCE zone retriever
-type ZoneRetrieverInterface interface {
-	GetZone(storageRegion string, project string) (string, error)
-}
-
-// HTTPClientInterface represents HTTP client
-type HTTPClientInterface interface {
-	Get(url string) (resp *http.Response, err error)
+// ValidateStringNotEmpty returns error with specific error message if string is empty. Returns nil otherwise.
+func ValidateStringNotEmpty(value string, key string, errorMessage string) error {
+	if value == "" {
+		return fmt.Errorf(errorMessage, key)
+	}
+	return nil
 }

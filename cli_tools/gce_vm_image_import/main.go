@@ -20,18 +20,21 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/parse"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/util"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 )
@@ -76,21 +79,6 @@ var (
 	region  *string
 	buildID = os.Getenv("BUILD_ID")
 
-	osChoices = map[string]string{
-		"debian-8":       "debian/translate_debian_8.wf.json",
-		"debian-9":       "debian/translate_debian_9.wf.json",
-		"centos-6":       "enterprise_linux/translate_centos_6.wf.json",
-		"centos-7":       "enterprise_linux/translate_centos_7.wf.json",
-		"rhel-6":         "enterprise_linux/translate_rhel_6_licensed.wf.json",
-		"rhel-7":         "enterprise_linux/translate_rhel_7_licensed.wf.json",
-		"rhel-6-byol":    "enterprise_linux/translate_rhel_6_byol.wf.json",
-		"rhel-7-byol":    "enterprise_linux/translate_rhel_7_byol.wf.json",
-		"ubuntu-1404":    "ubuntu/translate_ubuntu_1404.wf.json",
-		"ubuntu-1604":    "ubuntu/translate_ubuntu_1604.wf.json",
-		"windows-2008r2": "windows/translate_windows_2008_r2.wf.json",
-		"windows-2012r2": "windows/translate_windows_2012_r2.wf.json",
-		"windows-2016":   "windows/translate_windows_2016.wf.json",
-	}
 	userLabels            *map[string]string
 	currentExecutablePath *string
 )
@@ -103,10 +91,10 @@ func init() {
 func validateAndParseFlags() error {
 	flag.Parse()
 
-	if err := validateStringFlag(*imageName, imageNameFlagKey); err != nil {
+	if err := validationutils.ValidateStringFlagNotEmpty(*imageName, imageNameFlagKey); err != nil {
 		return err
 	}
-	if err := validateStringFlag(*clientID, clientIDFlagKey); err != nil {
+	if err := validationutils.ValidateStringFlagNotEmpty(*clientID, clientIDFlagKey); err != nil {
 		return err
 	}
 
@@ -127,8 +115,8 @@ func validateAndParseFlags() error {
 	}
 
 	if *osID != "" {
-		if _, osValid := osChoices[*osID]; !osValid {
-			return fmt.Errorf("os %v is invalid. Allowed values: %v", *osID, reflect.ValueOf(osChoices).MapKeys())
+		if err := daisyutils.ValidateOS(*osID); err != nil {
+			return err
 		}
 	}
 
@@ -141,7 +129,7 @@ func validateAndParseFlags() error {
 
 	if *labels != "" {
 		var err error
-		userLabels, err = parseUserLabels(labels)
+		userLabels, err = parseutils.ParseKeyValues(labels)
 		if err != nil {
 			return err
 		}
@@ -149,58 +137,15 @@ func validateAndParseFlags() error {
 	return nil
 }
 
-func parseUserLabels(labelsFlag *string) (*map[string]string, error) {
-	labelsMap := make(map[string]string)
-	splits := strings.Split(*labelsFlag, ",")
-	for _, split := range splits {
-		if len(split) == 0 {
-			continue
-		}
-		key, value, err := parseUserLabel(split)
-		if err != nil {
-			return nil, err
-		}
-		labelsMap[key] = value
-	}
-	return &labelsMap, nil
-}
-
-func parseUserLabel(labelSplit string) (string, string, error) {
-	splits := strings.Split(labelSplit, "=")
-	if len(splits) != 2 {
-		return "", "", fmt.Errorf("Label specification should be in the following format: LABEL_KEY=LABEL_VALUE, but it's %v", labelSplit)
-	}
-	key := strings.TrimSpace(splits[0])
-	value := strings.TrimSpace(splits[1])
-	if len(key) == 0 {
-		return "", "", fmt.Errorf("Label key is empty string: %v", labelSplit)
-	}
-	if len(value) == 0 {
-		return "", "", fmt.Errorf("Label value is empty string: %v", labelSplit)
-	}
-	return key, value, nil
-}
-
-func validateStringFlag(flagValue string, flagKey string) error {
-	return validateString(flagValue, flagKey, "The flag -%v must be provided")
-}
-
-func validateString(value string, key string, errorMessage string) error {
-	if value == "" {
-		return fmt.Errorf(errorMessage, key)
-	}
-	return nil
-}
-
 //Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath(osID)
+		return toWorkingDir(importFromImageWorkflow), daisyutils.GetTranslateWorkflowPath(osID)
 	}
 	if *dataDisk {
 		return toWorkingDir(importWorkflow), ""
 	}
-	return toWorkingDir(importAndTranslateWorkflow), getTranslateWorkflowPath(osID)
+	return toWorkingDir(importAndTranslateWorkflow), daisyutils.GetTranslateWorkflowPath(osID)
 }
 
 func toWorkingDir(dir string) string {
@@ -211,13 +156,9 @@ func toWorkingDir(dir string) string {
 	return dir
 }
 
-func getTranslateWorkflowPath(os *string) string {
-	return osChoices[*os]
-}
-
-func populateMissingParameters(mgce domain.MetadataGCEInterface,
+func populateMissingParameters(mgce commondomain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface,
-	zoneRetriever domain.ZoneRetrieverInterface, storageClient domain.StorageClientInterface) error {
+	zoneRetriever domain.ZoneRetrieverInterface, storageClient commondomain.StorageClientInterface) error {
 
 	if err := populateProjectIfMissing(mgce); err != nil {
 		return err
@@ -255,13 +196,10 @@ func populateMissingParameters(mgce domain.MetadataGCEInterface,
 	if err := populateRegion(); err != nil {
 		return err
 	}
-
-	//TODO: network, subnetwork, gcsPath (create scratch bucket including regionalization, if possible)
-
 	return nil
 }
 
-func populateProjectIfMissing(mgce domain.MetadataGCEInterface) error {
+func populateProjectIfMissing(mgce commondomain.MetadataGCEInterface) error {
 	aProject := *project
 	if aProject == "" {
 		if !mgce.OnGCE() {
@@ -297,93 +235,10 @@ func getRegion() (string, error) {
 	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
 }
 
-// Updates workflow to support image import:
-// - Labels temporary and permanent resources with appropriate labels
-// - Updates instance network interfaces to not require external IP if external IP is disabled by
-//   org policy
-func updateWorkflow(workflow *daisy.Workflow) {
-	for _, step := range workflow.Steps {
-		if step.IncludeWorkflow != nil {
-			//recurse into included workflow
-			updateWorkflow(step.IncludeWorkflow.Workflow)
-		}
-		if step.CreateInstances != nil {
-			for _, instance := range *step.CreateInstances {
-				instance.Instance.Labels = updateResourceLabels(instance.Instance.Labels, "")
-				if *noExternalIP {
-					configureInstanceNetworkInterfaceForNoExternalIP(instance)
-				}
-			}
-		}
-		if step.CreateDisks != nil {
-			for _, disk := range *step.CreateDisks {
-				disk.Disk.Labels = updateResourceLabels(disk.Disk.Labels, "")
-			}
-		}
-		if step.CreateImages != nil {
-			for _, image := range *step.CreateImages {
-				image.Image.Labels = updateResourceLabels(image.Image.Labels, getImageTypeLabelKey(image))
-			}
-		}
-	}
-}
-
-func getImageTypeLabelKey(image *daisy.Image) string {
-	imageTypeLabel := "gce-image-import"
-	if strings.Contains(image.Image.Name, "untranslated") {
-		imageTypeLabel = "gce-image-import-tmp"
-	}
-	return imageTypeLabel
-}
-
-func configureInstanceNetworkInterfaceForNoExternalIP(instance *daisy.Instance) {
-	if instance.Instance.NetworkInterfaces == nil {
-		return
-	}
-	for _, networkInterface := range instance.Instance.NetworkInterfaces {
-		networkInterface.AccessConfigs = []*compute.AccessConfig{}
-	}
-}
-
-func updateResourceLabels(labels map[string]string, imageTypeLabel string) map[string]string {
-	labels = extendWithImageImportLabels(labels, imageTypeLabel)
-	labels = extendWithUserLabels(labels)
-	return labels
-}
-
-//Extend labels with image import related labels
-func extendWithImageImportLabels(labels map[string]string, imageTypeLabel string) map[string]string {
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	if imageTypeLabel == "" {
-		imageTypeLabel = "gce-image-import-tmp"
-	}
-	labels[imageTypeLabel] = "true"
-	labels["gce-image-import-build-id"] = buildID
-
-	return labels
-}
-
-func extendWithUserLabels(labels map[string]string) map[string]string {
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-
-	if userLabels == nil || len(*userLabels) == 0 {
-		return labels
-	}
-
-	for key, value := range *userLabels {
-		labels[key] = value
-	}
-	return labels
-}
-
 func buildDaisyVars(translateWorkflowPath string) map[string]string {
 	varMap := map[string]string{}
 
-	varMap["image_name"] = *imageName
+	varMap["image_name"] = strings.ToLower(*imageName)
 	if translateWorkflowPath != "" {
 		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!*noGuestEnvironment)
@@ -428,9 +283,9 @@ func createComputeClient(ctx *context.Context) daisycompute.Client {
 	return computeClient
 }
 
-func runImport(ctx context.Context, metadataGCEHolder gcevmimageimportutil.MetadataGCE,
+func runImport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
 	scratchBucketCreator *gcevmimageimportutil.ScratchBucketCreator,
-	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient domain.StorageClientInterface) error {
+	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient commondomain.StorageClientInterface) error {
 
 	err := populateMissingParameters(&metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
@@ -438,14 +293,34 @@ func runImport(ctx context.Context, metadataGCEHolder gcevmimageimportutil.Metad
 	}
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
 	varMap := buildDaisyVars(translateWorkflowPath)
-	workflow, err := daisycommon.ParseWorkflow(ctx, importWorkflowPath, varMap, *project, *zone,
-		*scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
-		*stdoutLogsDisabled)
+	workflow, err := daisyutils.ParseWorkflow(&computeutils.MetadataGCE{}, importWorkflowPath, varMap,
+		*project, *zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled,
+		*cloudLogsDisabled, *stdoutLogsDisabled)
 	if err != nil {
 		return err
 	}
 
-	return workflow.RunWithModifier(ctx, updateWorkflow)
+	workflowModifier := func(w *daisy.Workflow) {
+		rl := &daisyutils.ResourceLabeler{
+			BuildID: buildID, UserLabels: userLabels, BuildIDLabelKey: "gce-image-import-build-id",
+			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
+				return "gce-image-import-tmp"
+			},
+			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+				return "gce-image-import-tmp"
+			},
+			ImageLabelKeyRetriever: func(image *daisy.Image) string {
+				imageTypeLabel := "gce-image-import"
+				if strings.Contains(image.Image.Name, "untranslated") {
+					imageTypeLabel = "gce-image-import-tmp"
+				}
+				return imageTypeLabel
+			}}
+		rl.LabelResources(w)
+		daisyutils.UpdateAllInstanceNoExternalIP(w, *noExternalIP)
+	}
+
+	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
 }
 
 func main() {
@@ -454,15 +329,15 @@ func main() {
 	}
 
 	ctx := context.Background()
-	metadataGCEHolder := gcevmimageimportutil.MetadataGCE{}
-	storageClient, err := gcevmimageimportutil.NewStorageClient(ctx, createStorageClient(ctx))
+	metadataGCEHolder := computeutils.MetadataGCE{}
+	storageClient, err := storageutils.NewStorageClient(ctx, createStorageClient(ctx))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 
 	scratchBucketCreator := gcevmimageimportutil.NewScratchBucketCreator(ctx, storageClient)
 	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(
-		&metadataGCEHolder, &gcevmimageimportutil.ComputeService{Cc: createComputeClient(&ctx)})
+		&metadataGCEHolder, createComputeClient(&ctx))
 
 	if err != nil {
 		log.Fatalf(err.Error())
