@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"io"
 	"log"
 	"os"
@@ -66,15 +67,6 @@ func splitLicenses(input string) []string {
 	return ls
 }
 
-func splitGCSPath(p string) (string, string, error) {
-	matches := gsRegex.FindStringSubmatch(p)
-	if matches != nil {
-		return matches[1], matches[2], nil
-	}
-
-	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
-}
-
 func main() {
 	flag.Parse()
 
@@ -86,7 +78,7 @@ func main() {
 		log.Fatal("The flag -disk must be provided")
 	}
 
-	bkt, obj, err := splitGCSPath(*gcsPath)
+	bkt, obj, err := storageutils.SplitGCSPath(*gcsPath)
 	if err != nil {
 		log.Fatal(err)
 	}

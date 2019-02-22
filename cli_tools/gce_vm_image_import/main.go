@@ -20,7 +20,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/util"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -31,7 +35,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 )
@@ -76,21 +79,6 @@ var (
 	region  *string
 	buildID = os.Getenv("BUILD_ID")
 
-	osChoices = map[string]string{
-		"debian-8":       "debian/translate_debian_8.wf.json",
-		"debian-9":       "debian/translate_debian_9.wf.json",
-		"centos-6":       "enterprise_linux/translate_centos_6.wf.json",
-		"centos-7":       "enterprise_linux/translate_centos_7.wf.json",
-		"rhel-6":         "enterprise_linux/translate_rhel_6_licensed.wf.json",
-		"rhel-7":         "enterprise_linux/translate_rhel_7_licensed.wf.json",
-		"rhel-6-byol":    "enterprise_linux/translate_rhel_6_byol.wf.json",
-		"rhel-7-byol":    "enterprise_linux/translate_rhel_7_byol.wf.json",
-		"ubuntu-1404":    "ubuntu/translate_ubuntu_1404.wf.json",
-		"ubuntu-1604":    "ubuntu/translate_ubuntu_1604.wf.json",
-		"windows-2008r2": "windows/translate_windows_2008_r2.wf.json",
-		"windows-2012r2": "windows/translate_windows_2012_r2.wf.json",
-		"windows-2016":   "windows/translate_windows_2016.wf.json",
-	}
 	userLabels            *map[string]string
 	currentExecutablePath *string
 )
@@ -103,10 +91,10 @@ func init() {
 func validateAndParseFlags() error {
 	flag.Parse()
 
-	if err := validateStringFlag(*imageName, imageNameFlagKey); err != nil {
+	if err := validationutils.ValidateStringFlagNotEmpty(*imageName, imageNameFlagKey); err != nil {
 		return err
 	}
-	if err := validateStringFlag(*clientID, clientIDFlagKey); err != nil {
+	if err := validationutils.ValidateStringFlagNotEmpty(*clientID, clientIDFlagKey); err != nil {
 		return err
 	}
 
@@ -127,8 +115,8 @@ func validateAndParseFlags() error {
 	}
 
 	if *osID != "" {
-		if _, osValid := osChoices[*osID]; !osValid {
-			return fmt.Errorf("os %v is invalid. Allowed values: %v", *osID, reflect.ValueOf(osChoices).MapKeys())
+		if err := daisyutils.ValidateOs(*osID); err != nil {
+			return err
 		}
 	}
 
@@ -181,26 +169,15 @@ func parseUserLabel(labelSplit string) (string, string, error) {
 	return key, value, nil
 }
 
-func validateStringFlag(flagValue string, flagKey string) error {
-	return validateString(flagValue, flagKey, "The flag -%v must be provided")
-}
-
-func validateString(value string, key string, errorMessage string) error {
-	if value == "" {
-		return fmt.Errorf(errorMessage, key)
-	}
-	return nil
-}
-
 //Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath(osID)
+		return toWorkingDir(importFromImageWorkflow), daisyutils.GetTranslateWorkflowPath(osID)
 	}
 	if *dataDisk {
 		return toWorkingDir(importWorkflow), ""
 	}
-	return toWorkingDir(importAndTranslateWorkflow), getTranslateWorkflowPath(osID)
+	return toWorkingDir(importAndTranslateWorkflow), daisyutils.GetTranslateWorkflowPath(osID)
 }
 
 func toWorkingDir(dir string) string {
@@ -211,13 +188,9 @@ func toWorkingDir(dir string) string {
 	return dir
 }
 
-func getTranslateWorkflowPath(os *string) string {
-	return osChoices[*os]
-}
-
-func populateMissingParameters(mgce domain.MetadataGCEInterface,
+func populateMissingParameters(mgce commondomain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface,
-	zoneRetriever domain.ZoneRetrieverInterface, storageClient domain.StorageClientInterface) error {
+	zoneRetriever domain.ZoneRetrieverInterface, storageClient commondomain.StorageClientInterface) error {
 
 	if err := populateProjectIfMissing(mgce); err != nil {
 		return err
@@ -261,7 +234,7 @@ func populateMissingParameters(mgce domain.MetadataGCEInterface,
 	return nil
 }
 
-func populateProjectIfMissing(mgce domain.MetadataGCEInterface) error {
+func populateProjectIfMissing(mgce commondomain.MetadataGCEInterface) error {
 	aProject := *project
 	if aProject == "" {
 		if !mgce.OnGCE() {
@@ -428,9 +401,9 @@ func createComputeClient(ctx *context.Context) daisycompute.Client {
 	return computeClient
 }
 
-func runImport(ctx context.Context, metadataGCEHolder gcevmimageimportutil.MetadataGCE,
+func runImport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
 	scratchBucketCreator *gcevmimageimportutil.ScratchBucketCreator,
-	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient domain.StorageClientInterface) error {
+	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient commondomain.StorageClientInterface) error {
 
 	err := populateMissingParameters(&metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
@@ -438,9 +411,9 @@ func runImport(ctx context.Context, metadataGCEHolder gcevmimageimportutil.Metad
 	}
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
 	varMap := buildDaisyVars(translateWorkflowPath)
-	workflow, err := daisycommon.ParseWorkflow(ctx, importWorkflowPath, varMap, *project, *zone,
-		*scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
-		*stdoutLogsDisabled)
+	workflow, err := daisyutils.ParseWorkflow(&computeutils.MetadataGCE{}, importWorkflowPath, varMap,
+		*project, *zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled,
+		*cloudLogsDisabled,	*stdoutLogsDisabled)
 	if err != nil {
 		return err
 	}
@@ -454,8 +427,8 @@ func main() {
 	}
 
 	ctx := context.Background()
-	metadataGCEHolder := gcevmimageimportutil.MetadataGCE{}
-	storageClient, err := gcevmimageimportutil.NewStorageClient(ctx, createStorageClient(ctx))
+	metadataGCEHolder := computeutils.MetadataGCE{}
+	storageClient, err := storageutils.NewStorageClient(ctx, createStorageClient(ctx))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

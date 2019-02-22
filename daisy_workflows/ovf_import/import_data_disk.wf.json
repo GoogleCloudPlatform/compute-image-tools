@@ -2,7 +2,7 @@
   "Name": "import-disk",
   "DefaultTimeout": "90m",
   "Vars": {
-    "source_disk_file": {
+    "source_data_disk_1_file": {
       "Required": true,
       "Description": "The GCS path to the virtual disk to import."
     },
@@ -25,8 +25,8 @@
     }
   },
   "Sources": {
-    "import_image.sh": "./import_image.sh",
-    "source_disk_file": "${source_disk_file}"
+    "import_image_data.sh": "../image_import/import_image.sh",
+    "source_data_disk_1_file": "${source_data_disk_1_file}"
   },
   "Steps": {
     "setup-disks": {
@@ -55,7 +55,7 @@
           "Metadata": {
             "block-project-ssh-keys": "true",
             "disk_name": "${disk_name}",
-            "source_disk_file": "${source_disk_file}"
+            "source_disk_file": "${source_data_disk_1_file}"
           },
           "networkInterfaces": [
             {
@@ -67,7 +67,7 @@
             "https://www.googleapis.com/auth/devstorage.read_write",
             "https://www.googleapis.com/auth/compute"
           ],
-          "StartupScript": "import_image.sh"
+          "StartupScript": "import_image_data.sh"
         }
       ]
     },

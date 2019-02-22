@@ -120,16 +120,22 @@ Loop:
 			continue
 		}
 		if _, ok := s.w.Sources[k]; ok {
-			return errf("source %q already exists in workflow", k)
+			if s.w.SourcesParents != nil && s.w.SourcesParents[k] != i.Path {
+				return errf("source %q already exists in workflow", k)
+			}
 		}
 		if s.w.Sources == nil {
 			s.w.Sources = map[string]string{}
+		}
+		if s.w.SourcesParents == nil {
+			s.w.SourcesParents = map[string]string{}
 		}
 
 		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
 			v = filepath.Join(i.Workflow.workflowDir, v)
 		}
 		s.w.Sources[k] = v
+		s.w.SourcesParents[k] = i.Path
 	}
 
 	return nil

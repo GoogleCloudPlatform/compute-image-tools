@@ -16,6 +16,7 @@ package gcevmimageimportutil
 
 import (
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
 	"google.golang.org/api/compute/v1"
 	"strings"
@@ -35,12 +36,12 @@ var (
 
 // ZoneRetriever is responsible for retrieving GCE zone to run import in
 type ZoneRetriever struct {
-	Mgce              domain.MetadataGCEInterface
+	Mgce              commondomain.MetadataGCEInterface
 	ComputeGCEService domain.ComputeServiceInterface
 }
 
 // NewZoneRetriever creates a ZoneRetriever
-func NewZoneRetriever(aMgce domain.MetadataGCEInterface, cs domain.ComputeServiceInterface) (*ZoneRetriever, error) {
+func NewZoneRetriever(aMgce commondomain.MetadataGCEInterface, cs domain.ComputeServiceInterface) (*ZoneRetriever, error) {
 	return &ZoneRetriever{Mgce: aMgce, ComputeGCEService: cs}, nil
 }
 
