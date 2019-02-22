@@ -100,11 +100,9 @@ func main() {
 	case "noservice":
 		run(ctx)
 	case "inventory":
-		// Just run inventory and exit.
 		inventory.RunInventory()
 		return
 	case "ospackage":
-		// Just run SetConfig and exit.
 		res, err := config.Instance()
 		if err != nil {
 			logger.Fatalf("get instance error: %v", err)
