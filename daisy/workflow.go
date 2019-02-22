@@ -206,18 +206,26 @@ type WorkflowModifier func(*Workflow)
 
 // Run runs a workflow.
 func (w *Workflow) Run(ctx context.Context) error {
-	return w.RunWithModifier(ctx, nil)
+	return w.RunWithModifiers(ctx, nil, nil)
 }
 
-// RunWithModifier runs a workflow with the ability to modify it once validated but before it's actually run.
-func (w *Workflow) RunWithModifier(ctx context.Context, workflowModifier WorkflowModifier) error {
+// RunWithModifiers runs a workflow with the ability to modify it before and/or after validation.
+func (w *Workflow) RunWithModifiers(
+	ctx context.Context,
+	preValidateWorkflowModifier WorkflowModifier,
+	postValidateWorkflowModifier WorkflowModifier) error {
+
 	w.externalLogging = true
+	if preValidateWorkflowModifier != nil {
+		preValidateWorkflowModifier(w)
+	}
+
 	if err := w.Validate(ctx); err != nil {
 		return err
 	}
 
-	if workflowModifier != nil {
-		workflowModifier(w)
+	if postValidateWorkflowModifier != nil {
+		postValidateWorkflowModifier(w)
 	}
 	defer w.cleanup()
 	w.LogWorkflowInfo("Workflow Project: %s", w.Project)

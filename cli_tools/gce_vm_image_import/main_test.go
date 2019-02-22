@@ -17,12 +17,10 @@ package main
 import (
 	"cloud.google.com/go/storage"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/api/compute/v1"
-	"os"
 	"testing"
 )
 
@@ -77,8 +75,8 @@ func TestPopulateRegion(t *testing.T) {
 }
 
 func TestGetWorkflowPathsFromImage(t *testing.T) {
-	defer setStringP(&sourceImage, "image-1")()
-	defer setStringP(&osID, "ubuntu-1404")()
+	defer testutils.SetStringP(&sourceImage, "image-1")()
+	defer testutils.SetStringP(&osID, "ubuntu-1404")()
 	workflow, translate := getWorkflowPaths()
 	if workflow != importFromImageWorkflow && translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
@@ -86,7 +84,7 @@ func TestGetWorkflowPathsFromImage(t *testing.T) {
 }
 
 func TestGetWorkflowPathsDataDisk(t *testing.T) {
-	defer setBoolP(&dataDisk, true)()
+	defer testutils.SetBoolP(&dataDisk, true)()
 	workflow, translate := getWorkflowPaths()
 	if workflow != importWorkflow && translate != "" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importWorkflow)
@@ -95,11 +93,11 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 
 func TestGetWorkflowPathsFromFile(t *testing.T) {
 	homeDir := "/home/gce/"
-	defer setBoolP(&dataDisk, false)()
-	defer setStringP(&sourceImage, "image-1")()
-	defer setStringP(&osID, "ubuntu-1404")()
-	defer setStringP(&sourceImage, "")()
-	defer setStringP(&currentExecutablePath, homeDir+"executable")()
+	defer testutils.SetBoolP(&dataDisk, false)()
+	defer testutils.SetStringP(&sourceImage, "image-1")()
+	defer testutils.SetStringP(&osID, "ubuntu-1404")()
+	defer testutils.SetStringP(&sourceImage, "")()
+	defer testutils.SetStringP(&currentExecutablePath, homeDir+"executable")()
 
 	workflow, translate := getWorkflowPaths()
 
@@ -121,56 +119,56 @@ func TestFlagsImageNameNotProvided(t *testing.T) {
 }
 
 func TestFlagsClientIdNotProvided(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
-	defer clearStringFlag(cliArgs, clientIDFlagKey, &clientID)()
+	defer testutils.ClearStringFlag(cliArgs, clientIDFlagKey, &clientID)()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing client_id flag", t)
 }
 
 func TestFlagsDataDiskOrOSFlagsNotProvided(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
-	defer clearStringFlag(cliArgs, "os", &osID)()
-	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	defer testutils.ClearStringFlag(cliArgs, "os", &osID)()
+	defer testutils.ClearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing os or data_disk flag", t)
 }
 
 func TestFlagsDataDiskAndOSFlagsBothProvided(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for both os and data_disk set at the same time", t)
 }
 
 func TestFlagsSourceFileOrSourceImageNotProvided(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
-	defer clearStringFlag(cliArgs, "source_file", &sourceFile)()
-	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
-	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	defer testutils.ClearStringFlag(cliArgs, "source_file", &sourceFile)()
+	defer testutils.ClearStringFlag(cliArgs, "source_image", &sourceImage)()
+	defer testutils.ClearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing source_file or source_image flag", t)
 }
 
 func TestFlagsSourceFileAndSourceImageBothProvided(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
-	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	defer testutils.ClearBoolFlag(cliArgs, "data_disk", &dataDisk)()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for both source_file and source_image flags set", t)
 }
 
 func buildOsArgsAndAssertErrorOnValidate(cliArgs map[string]interface{}, errorMsg string, t *testing.T) {
-	buildOsArgs(cliArgs)
+	testutils.BuildOsArgs(cliArgs)
 	if err := validateAndParseFlags(); err == nil {
 		t.Error(errorMsg)
 	}
 }
 
 func TestFlagsSourceFile(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 
 	cliArgs := getAllCliArgs()
-	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
-	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
-	buildOsArgs(cliArgs)
+	defer testutils.ClearStringFlag(cliArgs, "source_image", &sourceImage)()
+	defer testutils.ClearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	testutils.BuildOsArgs(cliArgs)
 
 	if err := validateAndParseFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -178,13 +176,13 @@ func TestFlagsSourceFile(t *testing.T) {
 }
 
 func TestFlagsInvalidSourceFile(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 
 	cliArgs := getAllCliArgs()
 	cliArgs["source_file"] = "invalidSourceFile"
-	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
-	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
-	buildOsArgs(cliArgs)
+	defer testutils.ClearStringFlag(cliArgs, "source_image", &sourceImage)()
+	defer testutils.ClearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	testutils.BuildOsArgs(cliArgs)
 
 	if err := validateAndParseFlags(); err == nil {
 		t.Errorf("Expected error")
@@ -192,12 +190,12 @@ func TestFlagsInvalidSourceFile(t *testing.T) {
 }
 
 func TestFlagsSourceImage(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 
 	cliArgs := getAllCliArgs()
-	defer clearStringFlag(cliArgs, "source_file", &sourceFile)()
-	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
-	buildOsArgs(cliArgs)
+	defer testutils.ClearStringFlag(cliArgs, "source_file", &sourceFile)()
+	defer testutils.ClearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	testutils.BuildOsArgs(cliArgs)
 
 	if err := validateAndParseFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -205,12 +203,12 @@ func TestFlagsSourceImage(t *testing.T) {
 }
 
 func TestFlagsDataDisk(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 
 	cliArgs := getAllCliArgs()
-	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
-	defer clearStringFlag(cliArgs, "os", &osID)()
-	buildOsArgs(cliArgs)
+	defer testutils.ClearStringFlag(cliArgs, "source_image", &sourceImage)()
+	defer testutils.ClearStringFlag(cliArgs, "os", &osID)()
+	testutils.BuildOsArgs(cliArgs)
 
 	if err := validateAndParseFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -218,187 +216,29 @@ func TestFlagsDataDisk(t *testing.T) {
 }
 
 func TestFlagsInvalidOS(t *testing.T) {
-	defer backupOsArgs()()
+	defer testutils.BackupOsArgs()()
 
 	cliArgs := getAllCliArgs()
-	defer clearBoolFlag(cliArgs, "data_disk", &dataDisk)()
-	defer clearStringFlag(cliArgs, "source_image", &sourceImage)()
+	defer testutils.ClearBoolFlag(cliArgs, "data_disk", &dataDisk)()
+	defer testutils.ClearStringFlag(cliArgs, "source_image", &sourceImage)()
 	cliArgs["os"] = "invalidOs"
-	buildOsArgs(cliArgs)
+	testutils.BuildOsArgs(cliArgs)
 
 	if err := validateAndParseFlags(); err == nil {
 		t.Errorf("Expected error")
 	}
 }
 
-func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-	buildID = "abc"
-
-	existingLabels := map[string]string{"labelKey": "labelValue"}
-	w := daisy.New()
-	w.Steps = map[string]*daisy.Step{
-		"ci": {
-			CreateInstances: &daisy.CreateInstances{
-				{
-					Instance: compute.Instance{
-						Disks:  []*compute.AttachedDisk{{Source: "key1"}},
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Instance: compute.Instance{
-						Disks: []*compute.AttachedDisk{{Source: "key2"}},
-					},
-				},
-			},
-		},
-	}
-
-	updateWorkflow(w)
-	validateLabels(&(*w.Steps["ci"].CreateInstances)[0].Instance.Labels, "gce-image-import-tmp", t, &existingLabels)
-	validateLabels(&(*w.Steps["ci"].CreateInstances)[1].Instance.Labels, "gce-image-import-tmp", t)
-}
-
-func TestUpdateWorkflowDisksLabelled(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-	buildID = "abc"
-
-	extraLabels := map[string]string{"labelKey": "labelValue"}
-	w := createWorkflowWithCreateDisksStep()
-
-	updateWorkflow(w)
-	validateLabels(&(*w.Steps["cd"].CreateDisks)[0].Disk.Labels, "gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*w.Steps["cd"].CreateDisks)[1].Disk.Labels, "gce-image-import-tmp", t)
-}
-
-func createWorkflowWithCreateDisksStep() *daisy.Workflow {
-	w := daisy.New()
-	w.Steps = map[string]*daisy.Step{
-		"cd": {
-			CreateDisks: &daisy.CreateDisks{
-				{
-					Disk: compute.Disk{
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Disk: compute.Disk{},
-				},
-			},
-		},
-	}
-	return w
-}
-
-func TestUpdateWorkflowIncludedWorkflow(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-	buildID = "abc"
-
-	childWorkflow := createWorkflowWithCreateDisksStep()
-	extraLabels := map[string]string{"labelKey": "labelValue"}
-
-	w := daisy.New()
-	w.Steps = map[string]*daisy.Step{
-		"cd": {
-			IncludeWorkflow: &daisy.IncludeWorkflow{
-				Workflow: childWorkflow,
-			},
-		},
-	}
-
-	updateWorkflow(w)
-	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[0].Disk.Labels, "gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[1].Disk.Labels, "gce-image-import-tmp", t)
-}
-
-func TestUpdateWorkflowImagesLabelled(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-	buildID = "abc"
-
-	w := daisy.New()
-	extraLabels := map[string]string{"labelKey": "labelValue"}
-	w.Steps = map[string]*daisy.Step{
-		"cimg": {
-			CreateImages: &daisy.CreateImages{
-				{
-					Image: compute.Image{
-						Name:   "final-image-1",
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Image: compute.Image{
-						Name: "final-image-2",
-					},
-				},
-				{
-					Image: compute.Image{
-						Name:   "untranslated-image-1",
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Image: compute.Image{
-						Name: "untranslated-image-2",
-					},
-				},
-			},
-		},
-	}
-
-	updateWorkflow(w)
-
-	validateLabels(&(*w.Steps["cimg"].CreateImages)[0].Image.Labels, "gce-image-import", t, &extraLabels)
-	validateLabels(&(*w.Steps["cimg"].CreateImages)[1].Image.Labels, "gce-image-import", t)
-
-	validateLabels(&(*w.Steps["cimg"].CreateImages)[2].Image.Labels, "gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*w.Steps["cimg"].CreateImages)[3].Image.Labels, "gce-image-import-tmp", t)
-}
-
-func TestUpdateWorkflowInstancesConfiguredForNoExternalIP(t *testing.T) {
-	defer setBoolP(&noExternalIP, true)()
-
-	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	updateWorkflow(w)
-
-	if len((*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces[0].AccessConfigs) != 0 {
-		t.Errorf("Instance AccessConfigs not empty")
-	}
-}
-
-func TestUpdateWorkflowInstancesNotModifiedIfExternalIPAllowed(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-
-	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	updateWorkflow(w)
-
-	if len((*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces[0].AccessConfigs) != 1 {
-		t.Errorf("Instance AccessConfigs doesn't have exactly one instance")
-	}
-}
-
-func TestUpdateWorkflowInstancesNotModifiedIfNoNetworkInterfaceElement(t *testing.T) {
-	defer setBoolP(&noExternalIP, true)()
-	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	(*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces = nil
-	updateWorkflow(w)
-
-	if (*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces != nil {
-		t.Errorf("Instance NetworkInterfaces should stay nil if nil before update")
-	}
-}
-
 func TestBuildDaisyVarsFromDisk(t *testing.T) {
-	defer setStringP(&imageName, "image-a")()
-	defer setBoolP(&noGuestEnvironment, true)()
-	defer setStringP(&sourceFile, "source-file-path")()
-	defer setStringP(&sourceImage, "")()
-	defer setStringP(&family, "a-family")()
-	defer setStringP(&description, "a-description")()
-	defer setStringP(&network, "a-network")()
-	defer setStringP(&subnet, "a-subnet")()
-	defer setStringP(&region, "a-region")()
+	defer testutils.SetStringP(&imageName, "image-a")()
+	defer testutils.SetBoolP(&noGuestEnvironment, true)()
+	defer testutils.SetStringP(&sourceFile, "source-file-path")()
+	defer testutils.SetStringP(&sourceImage, "")()
+	defer testutils.SetStringP(&family, "a-family")()
+	defer testutils.SetStringP(&description, "a-description")()
+	defer testutils.SetStringP(&network, "a-network")()
+	defer testutils.SetStringP(&subnet, "a-subnet")()
+	defer testutils.SetStringP(&region, "a-region")()
 
 	got := buildDaisyVars("translate/workflow/path")
 
@@ -414,15 +254,15 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 }
 
 func TestBuildDaisyVarsFromImage(t *testing.T) {
-	defer setStringP(&imageName, "image-a")()
-	defer setBoolP(&noGuestEnvironment, true)()
-	defer setStringP(&sourceFile, "")()
-	defer setStringP(&sourceImage, "source-image")()
-	defer setStringP(&family, "a-family")()
-	defer setStringP(&description, "a-description")()
-	defer setStringP(&network, "a-network")()
-	defer setStringP(&subnet, "a-subnet")()
-	defer setStringP(&region, "a-region")()
+	defer testutils.SetStringP(&imageName, "image-a")()
+	defer testutils.SetBoolP(&noGuestEnvironment, true)()
+	defer testutils.SetStringP(&sourceFile, "")()
+	defer testutils.SetStringP(&sourceImage, "source-image")()
+	defer testutils.SetStringP(&family, "a-family")()
+	defer testutils.SetStringP(&description, "a-description")()
+	defer testutils.SetStringP(&network, "a-network")()
+	defer testutils.SetStringP(&subnet, "a-subnet")()
+	defer testutils.SetStringP(&region, "a-region")()
 
 	got := buildDaisyVars("translate/workflow/path")
 
@@ -438,10 +278,10 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 }
 
 func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
-	defer setStringP(&zone, "")()
-	defer setStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer setStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer setStringP(&project, "a_project")()
+	defer testutils.SetStringP(&zone, "")()
+	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
+	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
+	defer testutils.SetStringP(&project, "a_project")()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -465,10 +305,10 @@ func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRe
 
 func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
 	projectID := "a_project"
-	defer setStringP(&zone, "")()
-	defer setStringP(&scratchBucketGcsPath, "")()
-	defer setStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer setStringP(&project, projectID)()
+	defer testutils.SetStringP(&zone, "")()
+	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
+	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
+	defer testutils.SetStringP(&project, projectID)()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -494,9 +334,9 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 
 func TestPopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing.T) {
 	projectID := "a_project"
-	defer setStringP(&zone, "")()
-	defer setStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer setStringP(&project, projectID)()
+	defer testutils.SetStringP(&zone, "")()
+	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
+	defer testutils.SetStringP(&project, projectID)()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -514,7 +354,7 @@ func TestPopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing
 }
 
 func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNotRunningOnGCE(t *testing.T) {
-	defer setStringP(&project, "")()
+	defer testutils.SetStringP(&project, "")()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -531,7 +371,7 @@ func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNotRunnin
 }
 
 func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCEProjectIdEmpty(t *testing.T) {
-	defer setStringP(&project, "")()
+	defer testutils.SetStringP(&project, "")()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -549,7 +389,7 @@ func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCEProjec
 }
 
 func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
-	defer setStringP(&project, "")()
+	defer testutils.SetStringP(&project, "")()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -565,7 +405,7 @@ func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
 }
 
 func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMetadataReturnsError(t *testing.T) {
-	defer setStringP(&project, "")()
+	defer testutils.SetStringP(&project, "")()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -583,7 +423,7 @@ func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMetadataR
 }
 
 func TestPopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *testing.T) {
-	defer setStringP(&scratchBucketGcsPath, "")()
+	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -600,7 +440,7 @@ func TestPopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *
 }
 
 func TestPopulateMissingParametersReturnsErrorWhenScratchBucketInvalidFormat(t *testing.T) {
-	defer setStringP(&scratchBucketGcsPath, "NOT_GCS_PATH")()
+	defer testutils.SetStringP(&scratchBucketGcsPath, "NOT_GCS_PATH")()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -616,10 +456,10 @@ func TestPopulateMissingParametersReturnsErrorWhenScratchBucketInvalidFormat(t *
 }
 
 func TestPopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *testing.T) {
-	defer setStringP(&zone, "NOT_ZONE")()
-	defer setStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer setStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer setStringP(&project, "a_project")()
+	defer testutils.SetStringP(&zone, "NOT_ZONE")()
+	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
+	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
+	defer testutils.SetStringP(&project, "a_project")()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -637,156 +477,12 @@ func TestPopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *testing
 	assert.NotNil(t, err)
 }
 
-func TestParseUserLabelsReturnsEmptyMap(t *testing.T) {
-	labels := ""
-	labelsMap, err := parseUserLabels(&labels)
-	assert.Nil(t, err)
-	assert.NotNil(t, labelsMap)
-	if len(*labelsMap) > 0 {
-		t.Errorf("Labels map %v should be empty, but it's size is %v.", labelsMap, len(*labelsMap))
-	}
-}
+func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
+	defer testutils.SetStringP(&imageName, "IMAGE-a")()
 
-func TestParseUserLabels(t *testing.T) {
-	doTestParseUserLabels("userkey1=uservalue1,userkey2=uservalue2", t)
-}
+	got := buildDaisyVars("translate/workflow/path")
 
-func TestParseUserLabelsWithWhiteChars(t *testing.T) {
-	doTestParseUserLabels("	 userkey1 = uservalue1	,	 userkey2	 =	 uservalue2	 ", t)
-}
-
-func doTestParseUserLabels(labels string, t *testing.T) {
-	labelsMap, err := parseUserLabels(&labels)
-	assert.Nil(t, err)
-	assert.NotNil(t, labelsMap)
-	if len(*labelsMap) != 2 {
-		t.Errorf("Labels map %v should be have size 2, but it's %v.", labelsMap, len(*labelsMap))
-	}
-	assert.Equal(t, "uservalue1", (*labelsMap)["userkey1"])
-	assert.Equal(t, "uservalue2", (*labelsMap)["userkey2"])
-}
-
-func TestParseUserLabelsNoEqualsSignSingleLabel(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey1", t)
-}
-
-func TestParseUserLabelsNoEqualsSignLast(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey2=uservalue2,userkey1", t)
-}
-
-func TestParseUserLabelsNoEqualsSignFirst(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey1,userkey2=uservalue2", t)
-}
-
-func TestParseUserLabelsNoEqualsSignMiddle(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey3=uservalue3,userkey1,userkey2=uservalue2", t)
-}
-
-func TestParseUserLabelsNoEqualsSignMultiple(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey1,userkey2", t)
-}
-
-func TestParseUserLabelsWhiteSpacesOnlyInKey(t *testing.T) {
-	doTestParseUserLabelsError(" 	=uservalue1", "Labels map %v should be nil for %v", t)
-}
-
-func TestParseUserLabelsWhiteSpacesOnlyInValue(t *testing.T) {
-	doTestParseUserLabelsError("userkey= 	", "Labels map %v should be nil for %v", t)
-}
-
-func TestParseUserLabelsWhiteSpacesOnlyInKeyAndValue(t *testing.T) {
-	doTestParseUserLabelsError(" 	= 	", "Labels map %v should be nil for %v", t)
-}
-
-func doTestParseUserLabelsNoEqualsSign(labels string, t *testing.T) {
-	doTestParseUserLabelsError(labels, "Labels map %v should be nil for v%", t)
-}
-
-func doTestParseUserLabelsError(labels string, errorMsg string, t *testing.T) {
-	labelsMap, err := parseUserLabels(&labels)
-	if labelsMap != nil {
-		t.Errorf(errorMsg, labelsMap, labels)
-	}
-	assert.NotNil(t, err)
-}
-
-func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
-	w := daisy.New()
-	w.Steps = map[string]*daisy.Step{
-		"ci": {
-			CreateInstances: &daisy.CreateInstances{
-				{
-					Instance: compute.Instance{
-						Disks: []*compute.AttachedDisk{{Source: "key1"}},
-						NetworkInterfaces: []*compute.NetworkInterface{
-							{
-								Network: "n",
-								AccessConfigs: []*compute.AccessConfig{
-									{Type: "ONE_TO_ONE_NAT"},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	return w
-}
-
-func validateLabels(labels *map[string]string, typeLabel string, t *testing.T, extraLabelsArr ...*map[string]string) {
-	var extraLabels *map[string]string
-	if len(extraLabelsArr) > 0 {
-		extraLabels = extraLabelsArr[0]
-	}
-	extraLabelCount := 0
-	if extraLabels != nil {
-		extraLabelCount = len(*extraLabels)
-	}
-	expectedLabelCount := extraLabelCount + 4
-	if len(*labels) != expectedLabelCount {
-		t.Errorf("Labels %v should have only %v elements", labels, expectedLabelCount)
-	}
-	assert.Equal(t, buildID, (*labels)["gce-image-import-build-id"])
-	assert.Equal(t, "true", (*labels)[typeLabel])
-	assert.Equal(t, "uservalue1", (*labels)["userkey1"])
-	assert.Equal(t, "uservalue2", (*labels)["userkey2"])
-
-	if extraLabels != nil {
-		for extraKey, extraValue := range *extraLabels {
-			if value, ok := (*labels)[extraKey]; !ok || value != extraValue {
-				t.Errorf("Key %v from labels missing or value %v not matching", extraKey, value)
-			}
-		}
-	}
-}
-
-func backupOsArgs() func() {
-	oldArgs := os.Args
-	return func() { os.Args = oldArgs }
-}
-
-func buildOsArgs(cliArgs map[string]interface{}) {
-	os.Args = make([]string, len(cliArgs)+1)
-	i := 0
-	os.Args[i] = "cmd"
-	i++
-	for key, value := range cliArgs {
-		if value != nil {
-			os.Args[i] = formatCliArg(key, value)
-			i++
-		}
-	}
-}
-
-func formatCliArg(argKey, argValue interface{}) string {
-	if argValue == true {
-		return fmt.Sprintf("-%v", argKey)
-	}
-	if argValue != false {
-		return fmt.Sprintf("-%v=%v", argKey, argValue)
-	}
-	return ""
+	assert.Equal(t, got["image_name"], "image-a")
 }
 
 func getAllCliArgs() map[string]interface{} {
@@ -817,28 +513,4 @@ func getAllCliArgs() map[string]interface{} {
 		"kms_project":               "aKmsProject",
 		"labels":                    "userkey1=uservalue1,userkey2=uservalue2",
 	}
-}
-
-func setStringP(p **string, value string) func() {
-	oldValue := *p
-	*p = &value
-	return func() {
-		*p = oldValue
-	}
-}
-
-func setBoolP(p **bool, value bool) func() {
-	oldValue := *p
-	*p = &value
-	return func() { *p = oldValue }
-}
-
-func clearStringFlag(cliArgs map[string]interface{}, flagKey string, flag **string) func() {
-	delete(cliArgs, flagKey)
-	return setStringP(flag, "")
-}
-
-func clearBoolFlag(cliArgs map[string]interface{}, flagKey string, flag **bool) func() {
-	delete(cliArgs, flagKey)
-	return setBoolP(flag, false)
 }

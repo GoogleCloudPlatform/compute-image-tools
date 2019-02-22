@@ -14,21 +14,19 @@
 
 package domain
 
-import (
-	"net/http"
-)
+import "github.com/vmware/govmomi/ovf"
 
-// ScratchBucketCreatorInterface represents Daisy scratch (temporary) bucket creator
-type ScratchBucketCreatorInterface interface {
-	CreateScratchBucket(sourceFileFlag string, projectFlag string) (string, string, error)
+// OvfDescriptorValidatorInterface represents OVF descriptor validator
+type OvfDescriptorValidatorInterface interface {
+	ValidateOvfPackage(ovfDescriptor *ovf.Envelope, ovfGcsPath string) (*ovf.Envelope, error)
 }
 
-// ZoneRetrieverInterface represents Daisy GCE zone retriever
-type ZoneRetrieverInterface interface {
-	GetZone(storageRegion string, project string) (string, error)
+// OvfDescriptorLoaderInterface represents a loader for OVF descriptors
+type OvfDescriptorLoaderInterface interface {
+	Load(ovfGcsPath string) (*ovf.Envelope, error)
 }
 
-// HTTPClientInterface represents HTTP client
-type HTTPClientInterface interface {
-	Get(url string) (resp *http.Response, err error)
+// MachineTypeProviderInterface is responsible for providing GCE machine type
+type MachineTypeProviderInterface interface {
+	GetMachineType() (string, error)
 }
