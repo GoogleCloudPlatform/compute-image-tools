@@ -208,7 +208,7 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error)
 	opts = append(o, opts...)
 	hc, ep, err := transport.NewHTTPClient(ctx, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("dialing: %v", err)
+		return nil, fmt.Errorf("error creating HTTP API client: %v", err)
 	}
 	rawService, err := compute.New(hc)
 	if err != nil {

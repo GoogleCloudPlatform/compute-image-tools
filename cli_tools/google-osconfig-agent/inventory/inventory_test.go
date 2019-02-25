@@ -42,7 +42,7 @@ func decodePackages(str string) packages.Packages {
 }
 
 func TestWriteInventory(t *testing.T) {
-	inv := &instanceInventory{
+	inv := &InstanceInventory{
 		Hostname:      "Hostname",
 		LongName:      "LongName",
 		ShortName:     "ShortName",

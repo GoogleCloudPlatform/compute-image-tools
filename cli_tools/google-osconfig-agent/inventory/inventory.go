@@ -34,7 +34,8 @@ const (
 	inventoryURL = config.ReportURL + "/guestInventory"
 )
 
-type instanceInventory struct {
+// InstanceInventory is an instances inventory data.
+type InstanceInventory struct {
 	Hostname             string
 	LongName             string
 	ShortName            string
@@ -44,14 +45,12 @@ type instanceInventory struct {
 	OSConfigAgentVersion string
 	InstalledPackages    packages.Packages
 	PackageUpdates       packages.Packages
-	Errors               []string
 }
 
-func writeInventory(state *instanceInventory, url string) {
+func writeInventory(state *InstanceInventory, url string) {
 	logger.Infof("Writing instance inventory.")
 
 	if err := attributes.PostAttribute(url+"/Timestamp", strings.NewReader(time.Now().UTC().Format(time.RFC3339))); err != nil {
-		state.Errors = append(state.Errors, err.Error())
 		logger.Errorf("postAttribute error: %v", err)
 	}
 
@@ -64,36 +63,32 @@ func writeInventory(state *instanceInventory, url string) {
 		switch f.Kind() {
 		case reflect.String:
 			if err := attributes.PostAttribute(u, strings.NewReader(f.String())); err != nil {
-				state.Errors = append(state.Errors, err.Error())
 				logger.Errorf("postAttribute error: %v", err)
 			}
 		case reflect.Struct:
 			if err := attributes.PostAttributeCompressed(u, f.Interface()); err != nil {
-				state.Errors = append(state.Errors, err.Error())
 				logger.Errorf("postAttributeCompressed error: %v", err)
 			}
 		}
 	}
-	if err := attributes.PostAttribute(url+"/Errors", strings.NewReader(fmt.Sprintf("%q", state.Errors))); err != nil {
-		logger.Errorf("postAttribute error: %v", err)
-	}
 }
 
-func getInventory() *instanceInventory {
+// GetInventory generates inventory data.
+func GetInventory() *InstanceInventory {
 	logger.Infof("Gathering instance inventory.")
 
-	hs := &instanceInventory{}
+	hs := &InstanceInventory{}
 
 	hn, err := os.Hostname()
 	if err != nil {
-		hs.Errors = append(hs.Errors, err.Error())
+		logger.Errorf("os.Hostname() error: %v", err)
 	}
 
 	hs.Hostname = hn
 
 	di, err := osinfo.GetDistributionInfo()
 	if err != nil {
-		hs.Errors = append(hs.Errors, err.Error())
+		logger.Errorf("osinfo.GetDistributionInfo() error: %v", err)
 	}
 
 	hs.LongName = di.LongName
@@ -106,12 +101,12 @@ func getInventory() *instanceInventory {
 	var errs []string
 	hs.InstalledPackages, errs = packages.GetInstalledPackages()
 	if len(errs) != 0 {
-		hs.Errors = append(hs.Errors, errs...)
+		logger.Errorf("packages.GetInstalledPackages() error: %v", err)
 	}
 
 	hs.PackageUpdates, errs = packages.GetPackageUpdates()
 	if len(errs) != 0 {
-		hs.Errors = append(hs.Errors, errs...)
+		logger.Errorf("packages.GetPackageUpdates() error: %v", err)
 	}
 
 	return hs
@@ -119,5 +114,5 @@ func getInventory() *instanceInventory {
 
 // RunInventory gets the current inventory and writes it to guest attributes.
 func RunInventory() {
-	writeInventory(getInventory(), inventoryURL)
+	writeInventory(GetInventory(), inventoryURL)
 }

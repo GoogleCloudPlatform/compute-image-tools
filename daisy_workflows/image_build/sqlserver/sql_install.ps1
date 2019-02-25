@@ -233,6 +233,11 @@ function Install-SSMS {
   Write-Host 'Finished installing SSMS'
 }
 
+function Enable-MicrosoftUpdate {
+  $service_manager = New-Object -ComObject 'Microsoft.Update.ServiceManager'
+  $service_manager.AddService2("7971f918-a847-4430-9279-4a52d1efe18d",7,"")
+}
+
 try {
   if (!(Test-Path 'D:\')) {
     $sysprep = 'c:\Windows\System32\Sysprep'
@@ -241,6 +246,7 @@ try {
     Format-ScratchDisk
     Install-SqlServer
     Install-SSMS
+    Enable-MicrosoftUpdate
   }
 
   $reboot_required = Install-WindowsUpdates

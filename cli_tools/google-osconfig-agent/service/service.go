@@ -48,6 +48,8 @@ func runOsConfig(ctx context.Context, res string) error {
 	if err != nil {
 		return fmt.Errorf("LookupConfigs error: %v", err)
 	}
+
+	// We don't check the error from ospackage.SetConfig as all errors are already logged.
 	tasker.Enqueue("Set package config", func() { ospackage.SetConfig(resp) })
 	return nil
 }
@@ -73,6 +75,7 @@ func run(ctx context.Context) {
 			configError = false
 		}
 
+		// This should always run after ospackage.SetConfig.
 		tasker.Enqueue("Gather instance inventory", inventory.RunInventory)
 
 		select {
