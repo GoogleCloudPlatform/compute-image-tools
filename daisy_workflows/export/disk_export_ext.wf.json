@@ -32,7 +32,8 @@
     }
   },
   "Sources": {
-    "${NAME}_export_disk_ext.sh": "./export_disk_ext.sh"
+    "${NAME}_export_disk_ext.sh": "./export_disk_ext.sh",
+    "disk_resizing_mon.sh": "./disk_resizing_mon.sh"
   },
   "Steps": {
     "setup-disks": {
@@ -62,7 +63,7 @@
               "subnetwork": "${export_subnet}"
             }
           ],
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control"],
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control", "https://www.googleapis.com/auth/cloud-platform"],
           "StartupScript": "${NAME}_export_disk_ext.sh"
         }
       ]
