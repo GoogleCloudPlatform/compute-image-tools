@@ -16,18 +16,27 @@ package packagemanagement
 
 import (
 	"fmt"
-	"path/filepath"
+	"path"
 	"time"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	api "google.golang.org/api/compute/v1"
 )
 
+type platformPkgManagerTuple struct {
+	platform   string
+	pkgManager string
+}
+
+const (
+	packageInstalledString    = "package is installed"
+	packageNotInstalledString = "package is not installed"
+)
+
 var (
-	pkgManagers = []string{"apt"}
+	tuples = []platformPkgManagerTuple{{"debian", "apt"}, {"centos", "yum"}, {"rhel", "yum"}}
 )
 
 // vf is the the vertificationFunction that is used in each testSetup during assertion of test case.
@@ -39,21 +48,29 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 	testName := "createosconfigtest"
 	desc := "test osconfig creation"
 	packageName := "cowsay"
-	for _, pkgManager := range pkgManagers {
+	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
+		var image string
 
-		switch pkgManager {
-		case "apt":
-			pkg := osconfigserver.BuildPackage(packageName)
-			pkgs := []*osconfigpb.Package{pkg}
-			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
-			break
+		switch tuple.platform {
+		case "debian":
+			image = debianImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
+		case "centos":
+			image = centosImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+		case "rhel":
+			image = rhelImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 		default:
-			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
+			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
 		setup := packageManagementTestSetup{
-			image:      debianImage,
-			name:       fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName),
+			image:      image,
+			name:       fmt.Sprintf("%s-%s", path.Base(image), testName),
 			osconfig:   oc,
 			assignment: nil,
 			fname:      testName,
@@ -67,33 +84,36 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 	testName := "packageinstalltest"
 	desc := "test package installation"
 	packageName := "cowsay"
-	for _, pkgManager := range pkgManagers {
+	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
-		var assign *osconfigpb.Assignment
-		var instaneName, ss, vs string
+		var image, vs string
 
-		switch pkgManager {
-		case "apt":
-			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
-			pkg := osconfigserver.BuildPackage(packageName)
-			pkgs := []*osconfigpb.Package{pkg}
+		switch tuple.platform {
+		case "debian":
+			image = debianImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = `%s
-			while true;
-			do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done;
-			`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName)
-			vs = fmt.Sprintf("install ok installed")
-			break
+			vs = fmt.Sprintf(packageInstalledString)
+		case "centos":
+			image = centosImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+			vs = fmt.Sprintf(packageInstalledString)
+		case "rhel":
+			image = rhelImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+			vs = fmt.Sprintf(packageInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
+			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
+
+		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
+		assign := osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+		ss := getPackageInstallStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
-			image:      debianImage,
-			name:       instaneName,
+			image:      image,
+			name:       instanceName,
 			osconfig:   oc,
 			assignment: assign,
 			fname:      testName,
@@ -113,32 +133,36 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup) []*packag
 	testName := "packageremovaltest"
 	desc := "test package removal"
 	packageName := "cowsay"
-	for _, pkgManager := range pkgManagers {
+	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
-		var assign *osconfigpb.Assignment
-		var instaneName, ss, vs string
+		var image, vs string
 
-		switch pkgManager {
-		case "apt":
-			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
-			pkg := osconfigserver.BuildPackage(packageName)
-			pkgs := []*osconfigpb.Package{pkg}
+		switch tuple.platform {
+		case "debian":
+			image = debianImage
+			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = `%s
-			sudo apt-get -y install %s;
-			while true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName)
-			vs = fmt.Sprintf("package '%s' is not installed", packageName)
-			break
+			vs = fmt.Sprintf(packageNotInstalledString)
+		case "centos":
+			image = centosImage
+			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
+			vs = fmt.Sprintf(packageNotInstalledString)
+		case "rhel":
+			image = rhelImage
+			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
+			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
+			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
+
+		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
+		assign := osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+		ss := getPackageRemovalStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
-			image:      debianImage,
-			name:       instaneName,
+			image:      image,
+			name:       instanceName,
 			osconfig:   oc,
 			assignment: assign,
 			fname:      testName,
@@ -158,35 +182,39 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup) []
 	testName := "packageinstallremovaltest"
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
-	for _, pkgManager := range pkgManagers {
+	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
-		var assign *osconfigpb.Assignment
-		var instaneName, ss, vs string
+		var image, vs string
 
-		switch pkgManager {
-		case "apt":
-			instaneName = fmt.Sprintf("%s-%s", filepath.Base(debianImage), testName)
-			pkg := osconfigserver.BuildPackage(packageName)
-			installPkg := []*osconfigpb.Package{pkg}
-			pkg = osconfigserver.BuildPackage(packageName)
-			removePkg := []*osconfigpb.Package{pkg}
+		switch tuple.platform {
+		case "debian":
+			image = debianImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
-			assign = osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instaneName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
-			ss = `%s
-			sudo apt-get -y install %s
-			while true; do /usr/bin/dpkg-query -s %s | sudo tee /dev/ttyS0;
-			sleep 5;
-			done
-			`
-			ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName)
-			vs = fmt.Sprintf("package '%s' is not installed", packageName)
-			break
+			vs = fmt.Sprintf(packageNotInstalledString)
+		case "centos":
+			image = centosImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			vs = fmt.Sprintf(packageNotInstalledString)
+		case "rhel":
+			image = rhelImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			oc = osconfigserver.BuildOsConfig(testName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent package manager: %s", pkgManager))
+			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
+
+		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
+		assign := osconfigserver.BuildAssignment(testName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectID, oc.Name)})
+		ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
-			image:      debianImage,
-			name:       instaneName,
+			image:      image,
+			name:       instanceName,
 			osconfig:   oc,
 			assignment: assign,
 			fname:      testName,
