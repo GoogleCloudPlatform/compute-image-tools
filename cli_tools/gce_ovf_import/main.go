@@ -23,9 +23,11 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/parse"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
@@ -48,10 +50,10 @@ const (
 var (
 	instanceName                = flag.String(instanceNameFlagKey, "", "VM Instance name to be created.")
 	clientId                    = flag.String(clientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
-	noGuestEnvironment          = flag.Bool("no-guest-environment", false, "Google Guest Environment will not be installed on the image.")
 	ovfOvaGcsPath               = flag.String(ovfGcsPathFlagKey, "", " Google Cloud Storage URI of the OVF or OVA file to import. For example: gs://my-bucket/my-vm.ovf.")
-	canIpForward                = flag.String("can-ip-forward", "", "If provided, allows the instances to send and receive packets with non-matching destination or source IP addresses.")
-	deletionProtection          = flag.String("deletion-protection", "", "Enables deletion protection for the instance.")
+	noGuestEnvironment          = flag.Bool("no-guest-environment", false, "Google Guest Environment will not be installed on the image.")
+	canIpForward                = flag.Bool("can-ip-forward", false, "If provided, allows the instances to send and receive packets with non-matching destination or source IP addresses.")
+	deletionProtection          = flag.Bool("deletion-protection", false, "Enables deletion protection for the instance.")
 	description                 = flag.String("description", "", "Specifies a textual description of the instances.")
 	labels                      = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 	machineType                 = flag.String("machine-type", "", "Specifies the machine type used for the instances. To get a list of available machine types, run 'gcloud compute machine-types list'. If unspecified, the default type is n1-standard-1.")
@@ -61,11 +63,11 @@ var (
 	subnet                      = flag.String("subnet", "", "Name of the subnetwork in your project to use for the image import. If	the network resource is in legacy mode, do not provide this property. If the network is in auto subnet mode, providing the subnetwork is optional. If the network is in custom subnet mode, then this field should be specified. Zone should be specified if this field is specified.")
 	privateNetworkIP            = flag.String("private-network-ip", "", "Specifies the RFC1918 IP to assign to the instance. The IP should be in the subnet or legacy network IP range.")
 	noExternalIP                = flag.Bool("no-external-ip", false, "Specifies that VPC into which instances is being imported doesn't allow external IPs.")
-	noRestartOnFailure          = flag.String("no-restart-on-failure", "", "the instance will not be restarted if it’s terminated by Compute Engine. This does not affect terminations performed by the user.")
+	noRestartOnFailure          = flag.Bool("no-restart-on-failure", false, "the instance will not be restarted if it’s terminated by Compute Engine. This does not affect terminations performed by the user.")
 	osID                        = flag.String("os", "", "Specifies the OS of the image being imported. Must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-2008r2, windows-2012r2, windows-2016")
-	shieldedIntegrityMonitoring = flag.String("shielded-integrity-monitoring", "", "Enables monitoring and attestation of the boot integrity of the instance. The attestation is performed against the integrity policy baseline. This baseline is initially derived from the implicitly trusted boot image when the instance is created. This baseline can be updated by using --shielded-vm-learn-integrity-policy.")
-	shieldedSecureBoot          = flag.String("shielded-secure-boot", "", "The instance will boot with secure boot enabled.")
-	shieldedVtpm                = flag.String("shielded-vtpm", "", "The instance will boot with the TPM (Trusted Platform Module) enabled. A TPM is a hardware module that can be used for different security operations such as remote attestation, encryption and sealing of keys.")
+	shieldedIntegrityMonitoring = flag.Bool("shielded-integrity-monitoring", false, "Enables monitoring and attestation of the boot integrity of the instance. The attestation is performed against the integrity policy baseline. This baseline is initially derived from the implicitly trusted boot image when the instance is created. This baseline can be updated by using --shielded-vm-learn-integrity-policy.")
+	shieldedSecureBoot          = flag.Bool("shielded-secure-boot", false, "The instance will boot with secure boot enabled.")
+	shieldedVtpm                = flag.Bool("shielded-vtpm", false, "The instance will boot with the TPM (Trusted Platform Module) enabled. A TPM is a hardware module that can be used for different security operations such as remote attestation, encryption and sealing of keys.")
 	tags                        = flag.String("tags", "", "Specifies a list of tags to apply to the instance. These tags allow network firewall rules and routes to be applied to specified VM instances. See `gcloud compute firewall-rules create` for more details.")
 	zone                        = flag.String("zone", "", "Zone of the image to import. The zone in which to do the work of importing the image. Overrides the default compute/zone property value for this command invocation")
 	bootDiskKmskey              = flag.String("boot-disk-kms-key", "", "The Cloud KMS (Key Management Service) cryptokey that will be used to protect the disk. The arguments in this group can be used to specify the attributes of this resource. ID of the key or fully qualified identifier for the key. This flag must be specified if any of the other arguments in this group are specified.")
@@ -103,12 +105,25 @@ func validateAndParseFlags() error {
 	if err := validationutils.ValidateStringFlagNotEmpty(*ovfOvaGcsPath, ovfGcsPathFlagKey); err != nil {
 		return err
 	}
+
+	if err := validationutils.ValidateStringFlagNotEmpty(*clientId, clientIDFlagKey); err != nil {
+		return err
+	}
+
 	if _, _, err := storageutils.SplitGCSPath(*ovfOvaGcsPath); err != nil {
 		return fmt.Errorf("%v should be a path to OVF or OVA package in GCS", ovfGcsPathFlagKey)
 	}
 
 	if *osID != "" {
 		if err := daisyutils.ValidateOs(*osID); err != nil {
+			return err
+		}
+	}
+
+	if *labels != "" {
+		var err error
+		userLabels, err = parseutils.ParseKeyValues(labels)
+		if err != nil {
 			return err
 		}
 	}
@@ -156,7 +171,7 @@ func buildTmpGcsPath() error {
 	return nil
 }
 
-func buildDaisyVars(translateWorkflowPath string, bootDiskGcsPath string, dataDiskGcsPath string) map[string]string {
+func buildDaisyVars(translateWorkflowPath string, bootDiskInfo *ovfutils.DiskInfo) map[string]string {
 	varMap := map[string]string{}
 
 	varMap["instance_name"] = *instanceName
@@ -164,35 +179,30 @@ func buildDaisyVars(translateWorkflowPath string, bootDiskGcsPath string, dataDi
 		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!*noGuestEnvironment)
 	}
-	if bootDiskGcsPath != "" {
-		varMap["boot_disk_file"] = bootDiskGcsPath
+	if bootDiskInfo != nil {
+		varMap["boot_disk_file"] = bootDiskInfo.FilePath
 	}
-	if dataDiskGcsPath != "" {
-		varMap["data_disk_file_1"] = dataDiskGcsPath
-	}
-	varMap["description"] = *description
 	if *network != "" {
-		varMap["import_network"] = fmt.Sprintf("global/networks/%v", *network)
+		varMap["network"] = fmt.Sprintf("global/networks/%v", *network)
 	}
 	if *subnet != "" {
-		varMap["import_subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", *region, *subnet)
+		varMap["subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", *region, *subnet)
 	}
+	if *machineType != "" {
+		varMap["machine_type"] = *machineType
+	}
+	if *description != "" {
+		varMap["description"] = *description
+	}
+
 	return varMap
 }
 
-// Updates workflow to support image import:
-// - Labels temporary and permanent resources with appropriate labels
-// - Updates instance network interfaces to not require external IP if external IP is disabled by
-//   org policy
-func updateWorkflow(workflow *daisy.Workflow) {
-	for _, step := range workflow.Steps {
-		if step.IncludeWorkflow != nil {
-			//recurse into included workflow
-			updateWorkflow(step.IncludeWorkflow.Workflow)
-		}
-
-		//TODO: create multiple disks for each disk in VM
-	}
+// Daisy workflow files don't support boolean variables so we have to do it here.
+func updateInstanceWithBooleanFlagValues(w *daisy.Workflow) {
+	instance := (*w.Steps["create-instance"].CreateInstances)[0]
+	instance.CanIpForward = *canIpForward
+	instance.DeletionProtection = *deletionProtection
 }
 
 func toWorkingDir(dir string) string {
@@ -250,18 +260,26 @@ func main() {
 		log.Println(err)
 		return
 	}
-	diskFileNames, err := ovfutils.GetDiskFileNames(virtualHardware, &ovfDescriptor.Disk.Disks, &ovfDescriptor.References)
+	diskInfos, err := ovfutils.GetDiskInfos(virtualHardware, &ovfDescriptor.Disk.Disks, &ovfDescriptor.References)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	for i, d := range diskInfos {
+		diskInfos[i].FilePath = ovfGcsPath + d.FilePath
+	}
 
 	translateWorkflowPath := "../image_import/" + daisyutils.GetTranslateWorkflowPath(osID)
-	varMap := buildDaisyVars(translateWorkflowPath, ovfGcsPath+diskFileNames[0], ovfGcsPath+diskFileNames[1])
+	varMap := buildDaisyVars(translateWorkflowPath, &diskInfos[0])
+
+	//TODO
+	//workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow)
+	workingDirOVFImportWorkflow := ovfImportWorkflow
+	//workingDirOVFImportWorkflow := "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_workflows/ovf_import/import_data_disks.wf.json"
 
 	workflow, err := daisyutils.ParseWorkflow(&computeutils.MetadataGCE{},
-	  toWorkingDir(ovfImportWorkflow), varMap, *project, *zone,	*scratchBucketGcsPath, *oauth,
-	  *timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled)
+		workingDirOVFImportWorkflow, varMap, *project, *zone, *scratchBucketGcsPath, *oauth,
+		*timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled, *stdoutLogsDisabled)
 
 	if err != nil {
 		log.Println(fmt.Errorf("error parsing workflow %q: %v", ovfImportWorkflow, err))
@@ -272,7 +290,30 @@ func main() {
 	log.Println(workflow)
 	log.Println(varMap)
 
-	if err := workflow.RunWithModifier(ctx, updateWorkflow); err != nil {
+	preValidateWorkflowModifier := func(w *daisy.Workflow) {
+		daisyovfutils.AddDiskImportSteps(w, diskInfos[1:])
+		updateInstanceWithBooleanFlagValues(w)
+	}
+
+	postValidateWorkflowModifier := func(w *daisy.Workflow) {
+		rl := &daisyutils.ResourceLabeler{
+			BuildID: buildID, UserLabels: userLabels, BuildIDLabelKey: "gce-ovf-import-build-id",
+			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
+				if *instanceName == instance.Name {
+					return "gce-ovf-import"
+				}
+				return "gce-ovf-import-tmp"
+			},
+			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+				return "gce-ovf-import-tmp"
+			},
+			ImageLabelKeyRetriever: func(image *daisy.Image) string {
+				return "gce-ovf-import-tmp"
+			}}
+		rl.LabelResources(w)
+	}
+
+	if err := workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier); err != nil {
 		log.Println(fmt.Errorf("%s: %v", workflow.Name, err))
 		return
 	}

@@ -218,7 +218,6 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-
 func TestFindGcsFile(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()

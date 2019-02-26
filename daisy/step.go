@@ -65,6 +65,10 @@ type Step struct {
 	testType stepImpl
 }
 
+func NewStep(name string, w *Workflow, timeout time.Duration) *Step {
+	return &Step{name: name, w: w, timeout: timeout}
+}
+
 func (s *Step) stepImpl() (stepImpl, dErr) {
 	var result stepImpl
 	matchCount := 0

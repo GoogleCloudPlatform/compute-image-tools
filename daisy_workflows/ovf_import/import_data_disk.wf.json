@@ -1,5 +1,5 @@
 {
-  "Name": "import-disk",
+  "Name": "import-data-disk",
   "DefaultTimeout": "90m",
   "Vars": {
     "source_data_disk_1_file": {

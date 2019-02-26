@@ -231,136 +231,11 @@ func TestFlagsInvalidOS(t *testing.T) {
 	}
 }
 
-func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-	buildID = "abc"
-
-	existingLabels := map[string]string{"labelKey": "labelValue"}
-	w := daisy.New()
-	w.Steps = map[string]*daisy.Step{
-		"ci": {
-			CreateInstances: &daisy.CreateInstances{
-				{
-					Instance: compute.Instance{
-						Disks:  []*compute.AttachedDisk{{Source: "key1"}},
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Instance: compute.Instance{
-						Disks: []*compute.AttachedDisk{{Source: "key2"}},
-					},
-				},
-			},
-		},
-	}
-
-	updateWorkflow(w)
-	validateLabels(&(*w.Steps["ci"].CreateInstances)[0].Instance.Labels, "gce-image-import-tmp", t, &existingLabels)
-	validateLabels(&(*w.Steps["ci"].CreateInstances)[1].Instance.Labels, "gce-image-import-tmp", t)
-}
-
-func TestUpdateWorkflowDisksLabelled(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-	buildID = "abc"
-
-	extraLabels := map[string]string{"labelKey": "labelValue"}
-	w := createWorkflowWithCreateDisksStep()
-
-	updateWorkflow(w)
-	validateLabels(&(*w.Steps["cd"].CreateDisks)[0].Disk.Labels, "gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*w.Steps["cd"].CreateDisks)[1].Disk.Labels, "gce-image-import-tmp", t)
-}
-
-func createWorkflowWithCreateDisksStep() *daisy.Workflow {
-	w := daisy.New()
-	w.Steps = map[string]*daisy.Step{
-		"cd": {
-			CreateDisks: &daisy.CreateDisks{
-				{
-					Disk: compute.Disk{
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Disk: compute.Disk{},
-				},
-			},
-		},
-	}
-	return w
-}
-
-func TestUpdateWorkflowIncludedWorkflow(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-	buildID = "abc"
-
-	childWorkflow := createWorkflowWithCreateDisksStep()
-	extraLabels := map[string]string{"labelKey": "labelValue"}
-
-	w := daisy.New()
-	w.Steps = map[string]*daisy.Step{
-		"cd": {
-			IncludeWorkflow: &daisy.IncludeWorkflow{
-				Workflow: childWorkflow,
-			},
-		},
-	}
-
-	updateWorkflow(w)
-	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[0].Disk.Labels, "gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*childWorkflow.Steps["cd"].CreateDisks)[1].Disk.Labels, "gce-image-import-tmp", t)
-}
-
-func TestUpdateWorkflowImagesLabelled(t *testing.T) {
-	defer setBoolP(&noExternalIP, false)()
-	buildID = "abc"
-
-	w := daisy.New()
-	extraLabels := map[string]string{"labelKey": "labelValue"}
-	w.Steps = map[string]*daisy.Step{
-		"cimg": {
-			CreateImages: &daisy.CreateImages{
-				{
-					Image: compute.Image{
-						Name:   "final-image-1",
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Image: compute.Image{
-						Name: "final-image-2",
-					},
-				},
-				{
-					Image: compute.Image{
-						Name:   "untranslated-image-1",
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Image: compute.Image{
-						Name: "untranslated-image-2",
-					},
-				},
-			},
-		},
-	}
-
-	updateWorkflow(w)
-
-	validateLabels(&(*w.Steps["cimg"].CreateImages)[0].Image.Labels, "gce-image-import", t, &extraLabels)
-	validateLabels(&(*w.Steps["cimg"].CreateImages)[1].Image.Labels, "gce-image-import", t)
-
-	validateLabels(&(*w.Steps["cimg"].CreateImages)[2].Image.Labels, "gce-image-import-tmp", t, &extraLabels)
-	validateLabels(&(*w.Steps["cimg"].CreateImages)[3].Image.Labels, "gce-image-import-tmp", t)
-}
-
 func TestUpdateWorkflowInstancesConfiguredForNoExternalIP(t *testing.T) {
 	defer setBoolP(&noExternalIP, true)()
 
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	updateWorkflow(w)
+	updateAllInstanceNoExternalIP(w)
 
 	if len((*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces[0].AccessConfigs) != 0 {
 		t.Errorf("Instance AccessConfigs not empty")
@@ -371,7 +246,7 @@ func TestUpdateWorkflowInstancesNotModifiedIfExternalIPAllowed(t *testing.T) {
 	defer setBoolP(&noExternalIP, false)()
 
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	updateWorkflow(w)
+	updateAllInstanceNoExternalIP(w)
 
 	if len((*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces[0].AccessConfigs) != 1 {
 		t.Errorf("Instance AccessConfigs doesn't have exactly one instance")
@@ -382,7 +257,7 @@ func TestUpdateWorkflowInstancesNotModifiedIfNoNetworkInterfaceElement(t *testin
 	defer setBoolP(&noExternalIP, true)()
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
 	(*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces = nil
-	updateWorkflow(w)
+	updateAllInstanceNoExternalIP(w)
 
 	if (*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces != nil {
 		t.Errorf("Instance NetworkInterfaces should stay nil if nil before update")
@@ -637,79 +512,6 @@ func TestPopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *testing
 	assert.NotNil(t, err)
 }
 
-func TestParseUserLabelsReturnsEmptyMap(t *testing.T) {
-	labels := ""
-	labelsMap, err := parseUserLabels(&labels)
-	assert.Nil(t, err)
-	assert.NotNil(t, labelsMap)
-	if len(*labelsMap) > 0 {
-		t.Errorf("Labels map %v should be empty, but it's size is %v.", labelsMap, len(*labelsMap))
-	}
-}
-
-func TestParseUserLabels(t *testing.T) {
-	doTestParseUserLabels("userkey1=uservalue1,userkey2=uservalue2", t)
-}
-
-func TestParseUserLabelsWithWhiteChars(t *testing.T) {
-	doTestParseUserLabels("	 userkey1 = uservalue1	,	 userkey2	 =	 uservalue2	 ", t)
-}
-
-func doTestParseUserLabels(labels string, t *testing.T) {
-	labelsMap, err := parseUserLabels(&labels)
-	assert.Nil(t, err)
-	assert.NotNil(t, labelsMap)
-	if len(*labelsMap) != 2 {
-		t.Errorf("Labels map %v should be have size 2, but it's %v.", labelsMap, len(*labelsMap))
-	}
-	assert.Equal(t, "uservalue1", (*labelsMap)["userkey1"])
-	assert.Equal(t, "uservalue2", (*labelsMap)["userkey2"])
-}
-
-func TestParseUserLabelsNoEqualsSignSingleLabel(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey1", t)
-}
-
-func TestParseUserLabelsNoEqualsSignLast(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey2=uservalue2,userkey1", t)
-}
-
-func TestParseUserLabelsNoEqualsSignFirst(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey1,userkey2=uservalue2", t)
-}
-
-func TestParseUserLabelsNoEqualsSignMiddle(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey3=uservalue3,userkey1,userkey2=uservalue2", t)
-}
-
-func TestParseUserLabelsNoEqualsSignMultiple(t *testing.T) {
-	doTestParseUserLabelsNoEqualsSign("userkey1,userkey2", t)
-}
-
-func TestParseUserLabelsWhiteSpacesOnlyInKey(t *testing.T) {
-	doTestParseUserLabelsError(" 	=uservalue1", "Labels map %v should be nil for %v", t)
-}
-
-func TestParseUserLabelsWhiteSpacesOnlyInValue(t *testing.T) {
-	doTestParseUserLabelsError("userkey= 	", "Labels map %v should be nil for %v", t)
-}
-
-func TestParseUserLabelsWhiteSpacesOnlyInKeyAndValue(t *testing.T) {
-	doTestParseUserLabelsError(" 	= 	", "Labels map %v should be nil for %v", t)
-}
-
-func doTestParseUserLabelsNoEqualsSign(labels string, t *testing.T) {
-	doTestParseUserLabelsError(labels, "Labels map %v should be nil for v%", t)
-}
-
-func doTestParseUserLabelsError(labels string, errorMsg string, t *testing.T) {
-	labelsMap, err := parseUserLabels(&labels)
-	if labelsMap != nil {
-		t.Errorf(errorMsg, labelsMap, labels)
-	}
-	assert.NotNil(t, err)
-}
-
 func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
 	w := daisy.New()
 	w.Steps = map[string]*daisy.Step{
@@ -732,33 +534,6 @@ func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
 		},
 	}
 	return w
-}
-
-func validateLabels(labels *map[string]string, typeLabel string, t *testing.T, extraLabelsArr ...*map[string]string) {
-	var extraLabels *map[string]string
-	if len(extraLabelsArr) > 0 {
-		extraLabels = extraLabelsArr[0]
-	}
-	extraLabelCount := 0
-	if extraLabels != nil {
-		extraLabelCount = len(*extraLabels)
-	}
-	expectedLabelCount := extraLabelCount + 4
-	if len(*labels) != expectedLabelCount {
-		t.Errorf("Labels %v should have only %v elements", labels, expectedLabelCount)
-	}
-	assert.Equal(t, buildID, (*labels)["gce-image-import-build-id"])
-	assert.Equal(t, "true", (*labels)[typeLabel])
-	assert.Equal(t, "uservalue1", (*labels)["userkey1"])
-	assert.Equal(t, "uservalue2", (*labels)["userkey2"])
-
-	if extraLabels != nil {
-		for extraKey, extraValue := range *extraLabels {
-			if value, ok := (*labels)[extraKey]; !ok || value != extraValue {
-				t.Errorf("Key %v from labels missing or value %v not matching", extraKey, value)
-			}
-		}
-	}
 }
 
 func backupOsArgs() func() {

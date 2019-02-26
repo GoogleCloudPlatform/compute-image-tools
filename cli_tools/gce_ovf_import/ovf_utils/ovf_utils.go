@@ -31,8 +31,14 @@ const (
 	USBController          uint16 = 23
 )
 
+type DiskInfo struct {
+	FilePath string
+	SizeInGB int
+}
+
 // Returns file names of disks in the virtual appliance. The first file is boot disk.
-func GetDiskFileNames(virtualHardware *ovf.VirtualHardwareSection, disks *[]ovf.VirtualDiskDesc, references *[]ovf.File) ([]string, error) {
+func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, disks *[]ovf.VirtualDiskDesc,
+	references *[]ovf.File) ([]DiskInfo, error) {
 	if virtualHardware == nil {
 		return nil, fmt.Errorf("virtualHardware cannot be nil")
 	}
@@ -45,7 +51,7 @@ func GetDiskFileNames(virtualHardware *ovf.VirtualHardwareSection, disks *[]ovf.
 
 	diskControllers := getDiskControllersPrioritized(virtualHardware)
 	allDiskItems := filterItemsByResourceTypes(virtualHardware, Disk)
-	diskFileNames := make([]string, 0)
+	diskInfos := make([]DiskInfo, 0)
 
 	for _, diskController := range diskControllers {
 		controllerDisks := make([]ovf.ResourceAllocationSettingData, 0)
@@ -61,15 +67,25 @@ func GetDiskFileNames(virtualHardware *ovf.VirtualHardwareSection, disks *[]ovf.
 		})
 
 		for _, diskItem := range controllerDisks {
-			if diskFileName, err := getDiskFileHref(diskItem.HostResource[0], disks, references); err != nil {
-				return diskFileNames, err
+			if diskFileName, virtualDiscDesc, err := getDiskFileInfo(diskItem.HostResource[0], disks, references); err != nil {
+				return diskInfos, err
 			} else {
-				diskFileNames = append(diskFileNames, diskFileName)
+				diskInfo := DiskInfo{FilePath: diskFileName}
+				sizeInGB, err := strconv.Atoi(virtualDiscDesc.Capacity)
+				if err == nil {
+					//TODO: parse allocation unit and round up to GB
+					if *virtualDiscDesc.CapacityAllocationUnits != "byte * 2^30" {
+						return nil, fmt.Errorf("support for %v units not implemented", *virtualDiscDesc.CapacityAllocationUnits)
+					}
+					diskInfo.SizeInGB = sizeInGB
+				}
+
+				diskInfos = append(diskInfos, diskInfo)
 			}
 		}
 	}
 
-	return diskFileNames, nil
+	return diskInfos, nil
 }
 
 func GetVirtualHardwareSection(virtualSystem *ovf.VirtualSystem) (*ovf.VirtualHardwareSection, error) {
@@ -128,22 +144,24 @@ func filterItemsByResourceTypes(virtualHardware *ovf.VirtualHardwareSection, res
 	return filtered
 }
 
-func getDiskFileHref(diskHostResource string, disks *[]ovf.VirtualDiskDesc, references *[]ovf.File) (string, error) {
+func getDiskFileInfo(diskHostResource string, disks *[]ovf.VirtualDiskDesc,
+	references *[]ovf.File) (string, *ovf.VirtualDiskDesc, error) {
+
 	diskId, err := extractDiskId(diskHostResource)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	for _, disk := range *disks {
 		if diskId == disk.DiskID {
 			for _, file := range *references {
 				if file.ID == *disk.FileRef {
-					return file.Href, nil
+					return file.Href, &disk, nil
 				}
 			}
-			return "", fmt.Errorf("file reference '%v' for disk '%v' not found in OVF descriptor", *disk.FileRef, diskId)
+			return "", nil, fmt.Errorf("file reference '%v' for disk '%v' not found in OVF descriptor", *disk.FileRef, diskId)
 		}
 	}
-	return "", fmt.Errorf(
+	return "", nil, fmt.Errorf(
 		"disk with reference %v couldn't be found in OVF descriptor", diskHostResource)
 }
 

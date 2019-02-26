@@ -152,7 +152,6 @@ func TestParseWorkflowsReturnsErrorWhenMetadataZoneReturnsError(t *testing.T) {
 	assert.Nil(t, w)
 }
 
-
 func TestParseWorkflowsInvalidPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -171,7 +170,7 @@ func TestParseWorkflowsInvalidPath(t *testing.T) {
 }
 
 func assertWorkflow(t *testing.T, w *daisy.Workflow, project string, zone string, gcsPath string,
-		oauth string, dTimeout string, endpoint string, varMap map[string]string) {
+	oauth string, dTimeout string, endpoint string, varMap map[string]string) {
 	tests := []struct {
 		want, got interface{}
 	}{

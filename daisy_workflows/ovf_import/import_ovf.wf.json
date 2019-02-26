@@ -6,10 +6,6 @@
       "Required": true,
       "Description": "The GCS path to the virtual disk to import."
     },
-    "data_disk_file_1": {
-      "Required": false,
-      "Description": "The GCS path to the virtual disk to import."
-    },
     "instance_name": {
       "Required": true,
       "Description": "The name of the imported instance."
@@ -22,23 +18,19 @@
       "Value": "true",
       "Description": "Whether to install GCE packages."
     },
-    "family": {
-      "Value": "",
-      "Description": "Optional family to set for the translated image"
-    },
     "description": {
       "Value": "",
-      "Description": "Optional description to set for the translated image"
+      "Description": "Optional description to set for the instance."
     },
     "translation_disk_name": "temp-translation-disk-${ID}",
     "boot_image_name": "boot-image-${ID}",
     "boot_image_name_untranslated": "boot-image-untranslated-${ID}",
-    "machine_type": "n1-standard-2",
-    "import_network": {
+    "machine_type": "n1-standard-1",
+    "network": {
       "Value": "global/networks/default",
       "Description": "Network to use for the import instance"
     },
-    "import_subnet": {
+    "subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
     }
@@ -50,8 +42,8 @@
         "Vars": {
           "source_disk_file": "${boot_disk_file}",
           "disk_name": "${translation_disk_name}",
-          "import_network": "${import_network}",
-          "import_subnet": "${import_subnet}"
+          "import_network": "${network}",
+          "import_subnet": "${subnet}"
         }
       }
     },
@@ -69,10 +61,9 @@
           "source_disk": "${translation_disk_name}",
           "image_name": "${boot_image_name}",
           "install_gce_packages": "${install_gce_packages}",
-          "family": "${family}",
           "description": "${description}",
-          "import_network": "${import_network}",
-          "import_subnet": "${import_subnet}"
+          "import_network": "${network}",
+          "import_subnet": "${subnet}"
         }
       }
     },
@@ -86,17 +77,6 @@
         }
       ]
     },
-    "import-data-disk-1": {
-      "IncludeWorkflow": {
-        "Path": "import_data_disk.wf.json",
-        "Vars": {
-          "source_data_disk_1_file": "${data_disk_file_1}",
-          "disk_name": "${instance_name}-data-disk-1-${ID}",
-          "import_network": "${import_network}",
-          "import_subnet": "${import_subnet}"
-        }
-      }
-    },
     "create-instance": {
       "CreateInstances": [
         {
@@ -104,20 +84,19 @@
           "Disks": [
             {
               "Source": "${instance_name}-boot-disk",
+              "AutoDelete": true,
               "boot": true
-            },
-            {
-              "Source": "${instance_name}-data-disk-1-${ID}"
             }
           ],
           "MachineType": "${machine_type}",
           "networkInterfaces": [
             {
-              "network": "${import_network}",
-              "subnetwork": "${import_subnet}"
+              "network": "${network}",
+              "subnetwork": "${subnet}"
             }
           ],
-          "NoCleanup": true
+          "NoCleanup": true,
+          "Description": "${description}"
         }
       ]
     },
@@ -132,8 +111,7 @@
     "take-image-of-untranslated-disk": ["import-boot-disk"],
     "translate": ["take-image-of-untranslated-disk"],
     "create-boot-disk": ["translate"],
-    "import-data-disk-1": ["create-boot-disk"],
-    "create-instance": ["import-data-disk-1"],
+    "create-instance": ["create-boot-disk"],
     "cleanup": ["create-instance"]
   }
 }

@@ -15,6 +15,7 @@
 package ovfutils
 
 import (
+	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
 	"reflect"
 	"testing"
@@ -36,7 +37,7 @@ var (
 	}
 )
 
-func TestGetDiskFileNamesDisksOnSingleControllerOutOfOrder(t *testing.T) {
+func TestGetDiskFileInfosDisksOnSingleControllerOutOfOrder(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
 		Item: []ovf.ResourceAllocationSettingData{
 			createControllerItem("3", SATAController),
@@ -46,10 +47,10 @@ func TestGetDiskFileNamesDisksOnSingleControllerOutOfOrder(t *testing.T) {
 			createDiskItem("6", "0", "disk0", "ovf:/disk/vmdisk1", "5"),
 		},
 	}
-	doTestGetDiskFileNamesSuccess(virtualHardware, t)
+	doTestGetDiskFileInfosSuccess(t, virtualHardware)
 }
 
-func TestGetDiskFileNamesDisksOnSeparateControllersOutOfOrder(t *testing.T) {
+func TestGetDiskFileInfosDisksOnSeparateControllersOutOfOrder(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
 		Item: []ovf.ResourceAllocationSettingData{
 			createControllerItem("3", SATAController),
@@ -60,10 +61,10 @@ func TestGetDiskFileNamesDisksOnSeparateControllersOutOfOrder(t *testing.T) {
 		},
 	}
 
-	doTestGetDiskFileNamesSuccess(virtualHardware, t)
+	doTestGetDiskFileInfosSuccess(t, virtualHardware)
 }
 
-func TestGetDiskFileNamesInvalidDiskReferenceFormat(t *testing.T) {
+func TestGetDiskFileInfosInvalidDiskReferenceFormat(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
 		Item: []ovf.ResourceAllocationSettingData{
 			createControllerItem("3", SATAController),
@@ -74,13 +75,13 @@ func TestGetDiskFileNamesInvalidDiskReferenceFormat(t *testing.T) {
 		},
 	}
 
-	_, err := GetDiskFileNames(virtualHardware, defaultDisks, defaultReferences)
+	_, err := GetDiskInfos(virtualHardware, defaultDisks, defaultReferences)
 	if err == nil {
 		t.Error("error expected", err)
 	}
 }
 
-func TestGetDiskFileNamesMissingDiskReference(t *testing.T) {
+func TestGetDiskFileInfosMissingDiskReference(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
 		Item: []ovf.ResourceAllocationSettingData{
 			createControllerItem("3", SATAController),
@@ -91,13 +92,13 @@ func TestGetDiskFileNamesMissingDiskReference(t *testing.T) {
 		},
 	}
 
-	_, err := GetDiskFileNames(virtualHardware, defaultDisks, defaultReferences)
+	_, err := GetDiskInfos(virtualHardware, defaultDisks, defaultReferences)
 	if err == nil {
 		t.Error("error expected", err)
 	}
 }
 
-func TestGetDiskFileNamesMissingFileReference(t *testing.T) {
+func TestGetDiskFileInfosMissingFileReference(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
 		Item: []ovf.ResourceAllocationSettingData{
 			createControllerItem("3", SATAController),
@@ -108,7 +109,7 @@ func TestGetDiskFileNamesMissingFileReference(t *testing.T) {
 		},
 	}
 
-	_, err := GetDiskFileNames(virtualHardware, defaultDisks, &[]ovf.File{
+	_, err := GetDiskInfos(virtualHardware, defaultDisks, &[]ovf.File{
 		{Href: "Ubuntu_for_Horizon71_1_1.0-disk1.vmdk", ID: "file1", Size: 1151322112},
 	})
 	if err == nil {
@@ -116,7 +117,7 @@ func TestGetDiskFileNamesMissingFileReference(t *testing.T) {
 	}
 }
 
-func TestGetDiskFileNamesDiskWithoutParentController(t *testing.T) {
+func TestGetDiskFileInfosDiskWithoutParentController(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
 		Item: []ovf.ResourceAllocationSettingData{
 			createControllerItem("3", SATAController),
@@ -128,50 +129,40 @@ func TestGetDiskFileNamesDiskWithoutParentController(t *testing.T) {
 		},
 	}
 
-	doTestGetDiskFileNamesSuccess(virtualHardware, t)
+	doTestGetDiskFileInfosSuccess(t, virtualHardware)
 }
 
-func TestGetDiskFileNamesNilFileReferences(t *testing.T) {
-	_, err := GetDiskFileNames(&ovf.VirtualHardwareSection{}, defaultDisks, nil)
+func TestGetDiskFileInfosNilFileReferences(t *testing.T) {
+	_, err := GetDiskInfos(&ovf.VirtualHardwareSection{}, defaultDisks, nil)
 	if err == nil {
 		t.Error("error expected", err)
 	}
 }
 
-func TestGetDiskFileNamesNilDisks(t *testing.T) {
-	_, err := GetDiskFileNames(&ovf.VirtualHardwareSection{}, nil, defaultReferences)
+func TestGetDiskFileInfosNilDisks(t *testing.T) {
+	_, err := GetDiskInfos(&ovf.VirtualHardwareSection{}, nil, defaultReferences)
 	if err == nil {
 		t.Error("error expected", err)
 	}
 }
 
-func TestGetDiskFileNamesNilVirtualHardware(t *testing.T) {
-	_, err := GetDiskFileNames(nil, defaultDisks, defaultReferences)
+func TestGetDiskFileInfosNilVirtualHardware(t *testing.T) {
+	_, err := GetDiskInfos(nil, defaultDisks, defaultReferences)
 	if err == nil {
 		t.Error("error expected", err)
 	}
 }
 
-func doTestGetDiskFileNamesSuccess(virtualHardware *ovf.VirtualHardwareSection, t *testing.T) {
-	fileNames, err := GetDiskFileNames(virtualHardware, defaultDisks, defaultReferences)
-	if err != nil {
-		t.Errorf("error returned for virtual system when nil error expected: `%v`", err)
-		return
-	}
-	if fileNames == nil {
-		t.Errorf("file names is nil")
-		return
-	}
-	if len(fileNames) != 2 {
-		t.Errorf("file names should contain 2 elements but it actually contains %v", len(fileNames))
-		return
-	}
-	if fileNames[0] != "Ubuntu_for_Horizon71_1_1.0-disk1.vmdk" || fileNames[1] != "Ubuntu_for_Horizon71_1_1.0-disk2.vmdk" {
-		t.Errorf(
-			"resulting file names should contain Ubuntu_for_Horizon71_1_1.0-disk1.vmdk and Ubuntu_for_Horizon71_1_1.0-disk2.vmdk but are instead %v",
-			fileNames)
-		return
-	}
+func doTestGetDiskFileInfosSuccess(t *testing.T, virtualHardware *ovf.VirtualHardwareSection) {
+	diskInfos, err := GetDiskInfos(virtualHardware, defaultDisks, defaultReferences)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, diskInfos)
+	assert.Equal(t, 2, len(diskInfos))
+	assert.Equal(t, "Ubuntu_for_Horizon71_1_1.0-disk1.vmdk", diskInfos[0].FilePath)
+	assert.Equal(t, "Ubuntu_for_Horizon71_1_1.0-disk2.vmdk", diskInfos[1].FilePath)
+	assert.Equal(t, 20, diskInfos[0].SizeInGB)
+	assert.Equal(t, 1, diskInfos[1].SizeInGB)
 }
 
 func TestGetVirtualHardwareSection(t *testing.T) {

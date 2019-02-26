@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/parse"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
@@ -129,44 +130,12 @@ func validateAndParseFlags() error {
 
 	if *labels != "" {
 		var err error
-		userLabels, err = parseUserLabels(labels)
+		userLabels, err = parseutils.ParseKeyValues(labels)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func parseUserLabels(labelsFlag *string) (*map[string]string, error) {
-	labelsMap := make(map[string]string)
-	splits := strings.Split(*labelsFlag, ",")
-	for _, split := range splits {
-		if len(split) == 0 {
-			continue
-		}
-		key, value, err := parseUserLabel(split)
-		if err != nil {
-			return nil, err
-		}
-		labelsMap[key] = value
-	}
-	return &labelsMap, nil
-}
-
-func parseUserLabel(labelSplit string) (string, string, error) {
-	splits := strings.Split(labelSplit, "=")
-	if len(splits) != 2 {
-		return "", "", fmt.Errorf("Label specification should be in the following format: LABEL_KEY=LABEL_VALUE, but it's %v", labelSplit)
-	}
-	key := strings.TrimSpace(splits[0])
-	value := strings.TrimSpace(splits[1])
-	if len(key) == 0 {
-		return "", "", fmt.Errorf("Label key is empty string: %v", labelSplit)
-	}
-	if len(value) == 0 {
-		return "", "", fmt.Errorf("Label value is empty string: %v", labelSplit)
-	}
-	return key, value, nil
 }
 
 //Returns main workflow and translate workflow paths (if any)
@@ -270,89 +239,6 @@ func getRegion() (string, error) {
 	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
 }
 
-// Updates workflow to support image import:
-// - Labels temporary and permanent resources with appropriate labels
-// - Updates instance network interfaces to not require external IP if external IP is disabled by
-//   org policy
-func updateWorkflow(workflow *daisy.Workflow) {
-	for _, step := range workflow.Steps {
-		if step.IncludeWorkflow != nil {
-			//recurse into included workflow
-			updateWorkflow(step.IncludeWorkflow.Workflow)
-		}
-		if step.CreateInstances != nil {
-			for _, instance := range *step.CreateInstances {
-				instance.Instance.Labels = updateResourceLabels(instance.Instance.Labels, "")
-				if *noExternalIP {
-					configureInstanceNetworkInterfaceForNoExternalIP(instance)
-				}
-			}
-		}
-		if step.CreateDisks != nil {
-			for _, disk := range *step.CreateDisks {
-				disk.Disk.Labels = updateResourceLabels(disk.Disk.Labels, "")
-			}
-		}
-		if step.CreateImages != nil {
-			for _, image := range *step.CreateImages {
-				image.Image.Labels = updateResourceLabels(image.Image.Labels, getImageTypeLabelKey(image))
-			}
-		}
-	}
-}
-
-func getImageTypeLabelKey(image *daisy.Image) string {
-	imageTypeLabel := "gce-image-import"
-	if strings.Contains(image.Image.Name, "untranslated") {
-		imageTypeLabel = "gce-image-import-tmp"
-	}
-	return imageTypeLabel
-}
-
-func configureInstanceNetworkInterfaceForNoExternalIP(instance *daisy.Instance) {
-	if instance.Instance.NetworkInterfaces == nil {
-		return
-	}
-	for _, networkInterface := range instance.Instance.NetworkInterfaces {
-		networkInterface.AccessConfigs = []*compute.AccessConfig{}
-	}
-}
-
-func updateResourceLabels(labels map[string]string, imageTypeLabel string) map[string]string {
-	labels = extendWithImageImportLabels(labels, imageTypeLabel)
-	labels = extendWithUserLabels(labels)
-	return labels
-}
-
-//Extend labels with image import related labels
-func extendWithImageImportLabels(labels map[string]string, imageTypeLabel string) map[string]string {
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	if imageTypeLabel == "" {
-		imageTypeLabel = "gce-image-import-tmp"
-	}
-	labels[imageTypeLabel] = "true"
-	labels["gce-image-import-build-id"] = buildID
-
-	return labels
-}
-
-func extendWithUserLabels(labels map[string]string) map[string]string {
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-
-	if userLabels == nil || len(*userLabels) == 0 {
-		return labels
-	}
-
-	for key, value := range *userLabels {
-		labels[key] = value
-	}
-	return labels
-}
-
 func buildDaisyVars(translateWorkflowPath string) map[string]string {
 	varMap := map[string]string{}
 
@@ -401,6 +287,28 @@ func createComputeClient(ctx *context.Context) daisycompute.Client {
 	return computeClient
 }
 
+func updateAllInstanceNoExternalIP(workflow *daisy.Workflow) {
+	if !*noExternalIP {
+		return
+	}
+	for _, step := range workflow.Steps {
+		if step.IncludeWorkflow != nil {
+			//recurse into included workflow
+			updateAllInstanceNoExternalIP(step.IncludeWorkflow.Workflow)
+		}
+		if step.CreateInstances != nil {
+			for _, instance := range *step.CreateInstances {
+				if instance.Instance.NetworkInterfaces == nil {
+					return
+				}
+				for _, networkInterface := range instance.Instance.NetworkInterfaces {
+					networkInterface.AccessConfigs = []*compute.AccessConfig{}
+				}
+			}
+		}
+	}
+}
+
 func runImport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
 	scratchBucketCreator *gcevmimageimportutil.ScratchBucketCreator,
 	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient commondomain.StorageClientInterface) error {
@@ -413,12 +321,32 @@ func runImport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
 	varMap := buildDaisyVars(translateWorkflowPath)
 	workflow, err := daisyutils.ParseWorkflow(&computeutils.MetadataGCE{}, importWorkflowPath, varMap,
 		*project, *zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled,
-		*cloudLogsDisabled,	*stdoutLogsDisabled)
+		*cloudLogsDisabled, *stdoutLogsDisabled)
 	if err != nil {
 		return err
 	}
 
-	return workflow.RunWithModifier(ctx, updateWorkflow)
+	workflowModifier := func(w *daisy.Workflow) {
+		rl := &daisyutils.ResourceLabeler{
+			BuildID: buildID, UserLabels: userLabels, BuildIDLabelKey: "gce-image-import-build-id",
+			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
+				return "gce-image-import-tmp"
+			},
+			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
+				return "gce-image-import-tmp"
+			},
+			ImageLabelKeyRetriever: func(image *daisy.Image) string {
+				imageTypeLabel := "gce-image-import"
+				if strings.Contains(image.Image.Name, "untranslated") {
+					imageTypeLabel = "gce-image-import-tmp"
+				}
+				return imageTypeLabel
+			}}
+		rl.LabelResources(w)
+		updateAllInstanceNoExternalIP(w)
+	}
+
+	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
 }
 
 func main() {
