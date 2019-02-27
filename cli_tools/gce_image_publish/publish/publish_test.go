@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+package publish
 
 import (
 	"context"
@@ -27,8 +27,8 @@ import (
 func TestPublishImage(t *testing.T) {
 	tests := []struct {
 		desc    string
-		p       *publish
-		img     *image
+		p       *Publish
+		img     *Image
 		pubImgs []*compute.Image
 		skipDup bool
 		replace bool
@@ -38,8 +38,8 @@ func TestPublishImage(t *testing.T) {
 	}{
 		{
 			"normal case",
-			&publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
 			[]*compute.Image{
 				{Name: "bar-2", Family: "bar-family"},
 				{Name: "foo-2", Family: "foo-family"},
@@ -56,8 +56,8 @@ func TestPublishImage(t *testing.T) {
 		},
 		{
 			"multiple images to deprecate",
-			&publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family"},
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
 			[]*compute.Image{
 				{Name: "bar-2", Family: "bar-family"},
 				{Name: "foo-2", Family: "foo-family"},
@@ -75,8 +75,8 @@ func TestPublishImage(t *testing.T) {
 		},
 		{
 			"GCSPath case",
-			&publish{SourceGCSPath: "gs://bar-project-path", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family"},
+			&Publish{SourceGCSPath: "gs://bar-project-path", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
 			[]*compute.Image{},
 			false,
 			false,
@@ -88,8 +88,8 @@ func TestPublishImage(t *testing.T) {
 		},
 		{
 			"both SourceGCSPath and SourceProject set",
-			&publish{SourceGCSPath: "gs://bar-project-path", SourceProject: "bar-project"},
-			&image{},
+			&Publish{SourceGCSPath: "gs://bar-project-path", SourceProject: "bar-project"},
+			&Image{},
 			nil,
 			false,
 			false,
@@ -99,8 +99,8 @@ func TestPublishImage(t *testing.T) {
 		},
 		{
 			"neither SourceGCSPath and SourceProject set",
-			&publish{},
-			&image{},
+			&Publish{},
+			&Image{},
 			nil,
 			false,
 			false,
@@ -110,8 +110,8 @@ func TestPublishImage(t *testing.T) {
 		},
 		{
 			"image already exists",
-			&publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature"}},
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature"}},
 			[]*compute.Image{{Name: "foo-3", Family: "foo-family"}},
 			false,
 			false,
@@ -121,8 +121,8 @@ func TestPublishImage(t *testing.T) {
 		},
 		{
 			"image already exists, skipDup set",
-			&publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature"}},
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature"}},
 			[]*compute.Image{
 				{Name: "foo-3", Family: "bar-family"},
 				{Name: "foo-2", Family: "foo-family"},
@@ -135,8 +135,8 @@ func TestPublishImage(t *testing.T) {
 		},
 		{
 			"image already exists, replace set",
-			&publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family"},
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
 			[]*compute.Image{
 				{Name: "foo-3", Family: "bar-family"},
 				{Name: "foo-2", Family: "foo-family"},
@@ -173,16 +173,16 @@ func TestPublishImage(t *testing.T) {
 func TestRollbackImage(t *testing.T) {
 	tests := []struct {
 		desc    string
-		p       *publish
-		img     *image
+		p       *Publish
+		img     *Image
 		pubImgs []*compute.Image
 		wantDR  *daisy.DeleteResources
 		wantDI  *daisy.DeprecateImages
 	}{
 		{
 			"normal case",
-			&publish{PublishProject: "foo-project", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family"},
+			&Publish{PublishProject: "foo-project", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
 			[]*compute.Image{
 				{Name: "bar-3", Family: "bar-family"},
 				{Name: "foo-3", Family: "foo-family"},
@@ -196,8 +196,8 @@ func TestRollbackImage(t *testing.T) {
 		},
 		{
 			"no image to undeprecate",
-			&publish{PublishProject: "foo-project", publishVersion: "3"},
-			&image{Prefix: "foo", Family: "foo-family"},
+			&Publish{PublishProject: "foo-project", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
 			[]*compute.Image{
 				{Name: "bar-3", Family: "bar-family"},
 				{Name: "foo-3", Family: "foo-family"},
@@ -209,8 +209,8 @@ func TestRollbackImage(t *testing.T) {
 		},
 		{
 			"image DNE",
-			&publish{PublishProject: "foo-project", publishVersion: "1"},
-			&image{Prefix: "foo", Family: "foo-family"},
+			&Publish{PublishProject: "foo-project", publishVersion: "1"},
+			&Image{Prefix: "foo", Family: "foo-family"},
 			[]*compute.Image{
 				{Name: "bar-1", Family: "bar-family"},
 			},
@@ -268,12 +268,12 @@ func TestPopulateSteps(t *testing.T) {
 
 func TestPopulateWorkflow(t *testing.T) {
 	got := daisy.New()
-	p := &publish{
+	p := &Publish{
 		SourceProject:  "foo-project",
 		PublishProject: "foo-project",
 		publishVersion: "pv",
 		sourceVersion:  "sv",
-		Images: []*image{
+		Images: []*Image{
 			{
 				Prefix: "test",
 				Family: "test-family",
@@ -333,7 +333,7 @@ func TestCreatePrintOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &publish{}
+			p := &Publish{}
 			p.createPrintOut(tt.args)
 			if !reflect.DeepEqual(p.toCreate, tt.want) {
 				t.Errorf("createPrintOut() got = %v, want %v", p.toCreate, tt.want)
@@ -355,7 +355,7 @@ func TestDeletePrintOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &publish{}
+			p := &Publish{}
 			p.deletePrintOut(tt.args)
 			if !reflect.DeepEqual(p.toDelete, tt.want) {
 				t.Errorf("deletePrintOut() got = %v, want %v", p.toDelete, tt.want)
@@ -386,7 +386,7 @@ func TestDeprecatePrintOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := &publish{}
+			p := &Publish{}
 			p.deprecatePrintOut(tt.args)
 			if !reflect.DeepEqual(p.toDeprecate, tt.toDeprecate) {
 				t.Errorf("deprecatePrintOut() got = %v, want %v", p.toDeprecate, tt.toDeprecate)
