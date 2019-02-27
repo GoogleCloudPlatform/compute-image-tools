@@ -37,7 +37,7 @@ if ! out=$(qemu-img convert /dev/sdb "/gs/${LOCAL_PATH}" -p -O $FORMAT 2>&1); th
 fi
 echo ${out}
 
-if ! out=$(gsutil cp "/gs/${LOCAL_PATH}" "${GS_PATH}"); then
+if ! out=$(gsutil cp "/gs/${LOCAL_PATH}" "${GS_PATH}" 2>&1); then
   echo "ExportFiled: Failed to copy output image to ${GS_PATH}, error: ${out}"
   exit
 fi
