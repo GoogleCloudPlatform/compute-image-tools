@@ -67,6 +67,7 @@ type Disk struct {
 	Resource
 
 	// Size of this disk.
+	// test line
 	SizeGb string `json:"sizeGb,omitempty"`
 }
 
