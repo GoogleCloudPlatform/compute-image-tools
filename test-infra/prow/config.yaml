@@ -127,6 +127,8 @@ periodics:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
       - "-out_dir=/artifacts"
+      - "-test_project_id=compute-image-osconfigagent"
+      - "-test_zone=us-central1-c"
       volumeMounts:
       - name: compute-image-tools-test-service-account
         mountPath: /etc/compute-image-tools-test-service-account

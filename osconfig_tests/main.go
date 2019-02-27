@@ -25,9 +25,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 )
@@ -36,9 +38,11 @@ var (
 	testSuiteFilter = flag.String("test_suite_filter", "", "test suite filter")
 	testCaseFilter  = flag.String("test_case_filter", "", "test case filter")
 	outDir          = flag.String("out_dir", "/tmp", "junit xml directory")
+	testProjectID   = flag.String("test_project_id", "", "test project id")
+	testZone        = flag.String("test_zone", "", "test zone")
 )
 
-var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp){
+var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
 	packagemanagement.TestSuite,
 	inventory.TestSuite,
 }
@@ -46,6 +50,19 @@ var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.Test
 func main() {
 	flag.Parse()
 	ctx := context.Background()
+
+	if len(strings.TrimSpace(*testProjectID)) == 0 {
+		fmt.Println("-test_project_id is invalid")
+		os.Exit(1)
+	}
+
+	// TODO: check if the zone is valid, fail fast
+	if len(strings.TrimSpace(*testZone)) == 0 {
+		fmt.Println("-test_zone is invalid")
+		os.Exit(1)
+	}
+
+	pr := testconfig.GetProject(*testProjectID, *testZone)
 
 	var testSuiteRegex *regexp.Regexp
 	if *testSuiteFilter != "" {
@@ -74,7 +91,7 @@ func main() {
 	var wg sync.WaitGroup
 	for _, tf := range testFunctions {
 		wg.Add(1)
-		go tf(ctx, &wg, tests, logger, testSuiteRegex, testCaseRegex)
+		go tf(ctx, &wg, tests, logger, testSuiteRegex, testCaseRegex, pr)
 	}
 	go func() {
 		wg.Wait()

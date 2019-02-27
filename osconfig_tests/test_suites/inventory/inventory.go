@@ -32,6 +32,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
@@ -39,10 +40,6 @@ import (
 
 const (
 	testSuiteName = "InventoryTests"
-
-	// TODO: Should these be configurable via flags?
-	testProject = "compute-image-test-pool-001"
-	testZone    = "us-central1-c"
 )
 
 type inventoryTestSetup struct {
@@ -54,7 +51,7 @@ type inventoryTestSetup struct {
 }
 
 // TestSuite is a InventoryTests test suite.
-func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp) {
+func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer tswg.Done()
 
 	if testSuiteRegex != nil && !testSuiteRegex.MatchString(testSuiteName) {
@@ -235,7 +232,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	tests := make(chan *junitxml.TestCase)
 	for _, setup := range testSetup {
 		wg.Add(1)
-		go inventoryTestCase(ctx, setup, tests, &wg, logger, testCaseRegex)
+		go inventoryTestCase(ctx, setup, tests, &wg, logger, testCaseRegex, testProjectConfig)
 	}
 
 	go func() {
@@ -250,7 +247,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) (*apiBeta.GuestAttributes, bool) {
+func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) (*apiBeta.GuestAttributes, bool) {
 	testCase.Logf("Creating compute client")
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -263,7 +260,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-2", testProject, testZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-2", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -293,7 +290,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 			},
 		},
 	}
-	inst, err := compute.CreateInstance(client, testProject, testZone, i)
+	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", err)
 		return nil, false
@@ -329,7 +326,7 @@ func gatherInventory(client daisyCompute.Client, testCase *junitxml.TestCase, pr
 	}
 }
 
-func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) {
+func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
 	var hostname string
 	for _, item := range ga.QueryValue.Items {
 		if item.Key == "Hostname" {
@@ -348,7 +345,7 @@ func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 	}
 }
 
-func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) {
+func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
 	var shortName string
 	for _, item := range ga.QueryValue.Items {
 		if item.Key == "ShortName" {
@@ -367,7 +364,7 @@ func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup
 	}
 }
 
-func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase) {
+func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
 	var packagesEncoded string
 	for _, item := range ga.QueryValue.Items {
 		if item.Key == "InstalledPackages" {
@@ -447,7 +444,7 @@ func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 	}
 }
 
-func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
+func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
 	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Gather Inventory", testSetup.image))
@@ -468,7 +465,7 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 	}
 
 	logger.Printf("Running TestCase '%s.%q'", gatherInventoryTest.Classname, gatherInventoryTest.Name)
-	ga, ok := runGatherInventoryTest(ctx, testSetup, gatherInventoryTest)
+	ga, ok := runGatherInventoryTest(ctx, testSetup, gatherInventoryTest, testProjectConfig)
 	gatherInventoryTest.Finish(tests)
 	logger.Printf("TestCase '%s.%q' finished", gatherInventoryTest.Classname, gatherInventoryTest.Name)
 	if !ok {
@@ -481,7 +478,7 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 		return
 	}
 
-	for tc, f := range map[*junitxml.TestCase]func(*apiBeta.GuestAttributes, *inventoryTestSetup, *junitxml.TestCase){
+	for tc, f := range map[*junitxml.TestCase]func(*apiBeta.GuestAttributes, *inventoryTestSetup, *junitxml.TestCase, *testconfig.Project){
 		hostnameTest:  runHostnameTest,
 		shortNameTest: runShortNameTest,
 		packageTest:   runPackagesTest,
@@ -490,7 +487,7 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 			tc.Finish(tests)
 		} else {
 			logger.Printf("Running TestCase '%s.%q'", tc.Classname, tc.Name)
-			f(ga, testSetup, tc)
+			f(ga, testSetup, tc, testProjectConfig)
 			tc.Finish(tests)
 			logger.Printf("TestCase '%s.%q' finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}
