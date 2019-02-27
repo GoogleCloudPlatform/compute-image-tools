@@ -21,9 +21,9 @@ GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 FORMAT=$(curl -f -H Metadata-Flavor:Google ${URL}/format)
 
 # Strip gs://
-LOCAL_PATH=${GS_PATH##*//}
+IMAGE_OUTPUT_PATH=${GS_PATH##*//}
 # Create dir for output
-OUTS_PATH=${LOCAL_PATH%/*}
+OUTS_PATH=${IMAGE_OUTPUT_PATH%/*}
 mkdir -p "/gs/${OUTS_PATH}"
 
 # Prepare disk size info.
@@ -45,7 +45,7 @@ sudo mount /dev/sdc "/gs/${OUTS_PATH}"
 DISK_RESIZING_MON_GCS_PATH=gs://${OUTS_PATH%/*}/sources/${DISK_RESIZING_MON}
 DISK_RESIZING_MON_LOCAL_PATH=/gs/${DISK_RESIZING_MON}
 echo "GCEExport: Copying disk size monitor script..."
-if ! out=$(gsutil cp "${DISK_RESIZING_MON_PATH}" "/gs/${OUTS}/${DISK_RESIZING_MON}"); then
+if ! out=$(gsutil cp "${DISK_RESIZING_MON_GCS_PATH}" "${DISK_RESIZING_MON_LOCAL_PATH}" 2>&1); then
   echo "ExportFailed: Failed to copy disk size monitor script. Error: ${out}"
   exit
 fi

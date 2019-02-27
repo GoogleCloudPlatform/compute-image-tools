@@ -49,7 +49,7 @@
           "destination": "${destination}",
           "format": "${format}",
           "export_instance_disk_image": "${export_instance_disk_image}",
-          "export_instance_disk_size": "${export_instance_disk_size}",
+          "buffer_disk_size": "${buffer_disk_size}",
           "export_network": "${export_network}",
           "export_subnet": "${export_subnet}"
         }
