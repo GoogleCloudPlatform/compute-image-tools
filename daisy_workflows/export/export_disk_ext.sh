@@ -21,8 +21,8 @@ FORMAT=$(curl -f -H Metadata-Flavor:Google ${URL}/format)
 # Strip gs://
 LOCAL_PATH=${GS_PATH##*//}
 # Create dir for output
-OUTS=${LOCAL_PATH%/*}
-mkdir -p "/gs/${OUTS}"
+OUTS_PATH=${LOCAL_PATH%/*}
+mkdir -p "/gs/${OUTS_PATH}"
 
 # Disk image size info.
 SIZE_BYTES=$(qemu-img info --output "json" /dev/sdb | grep -m1 "virtual-size" | grep -o '[0-9]\+')
@@ -38,7 +38,7 @@ fi
 echo ${out}
 
 if ! out=$(gsutil cp "/gs/${LOCAL_PATH}" "${GS_PATH}"); then
-  echo "ExportFiled: Failed to copy output image to ${GS_PATH}"
+  echo "ExportFiled: Failed to copy output image to ${GS_PATH}, error: ${out}"
   exit
 fi
 echo ${out}
