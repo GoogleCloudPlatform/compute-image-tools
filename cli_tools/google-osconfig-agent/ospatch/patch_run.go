@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package patch
+package ospatch
 
 import (
 	"context"
@@ -73,11 +73,11 @@ var (
 // Init starts the patch system.
 func Init(ctx context.Context) {
 	disableAutoUpdates()
-	go RunPatchAgent(ctx)
+	go Run(ctx)
 }
 
-// RunPatchAgent runs patching as a single blocking agent.
-func RunPatchAgent(ctx context.Context) {
+// Run runs patching as a single blocking agent.
+func Run(ctx context.Context) {
 	savedPatchJobName := checkSavedState(ctx)
 	watcher(ctx, savedPatchJobName)
 }
