@@ -40,8 +40,7 @@ import (
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
-// Run looks up osconfigs and applies them.
-func Run(ctx context.Context, res string, enqueue bool) error {
+func run(ctx context.Context, res string, enqueue bool) {
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 	if err != nil {
 		return fmt.Errorf("osconfig.NewClient Error: %v", err)
@@ -58,6 +57,16 @@ func Run(ctx context.Context, res string, enqueue bool) error {
 		return nil
 	}
 	return setConfig(resp)
+}
+
+// RunWithEnqueue looks up osconfigs and applies them using tasker.Enqueue.
+func RunWithEnqueue(ctx context.Context, res string) error {
+	return run(ctxm res, true)
+}
+
+// Run looks up osconfigs and applies them.
+func Run(ctx context.Context, res string) error {
+	return run(ctxm res, false)
 }
 
 func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {

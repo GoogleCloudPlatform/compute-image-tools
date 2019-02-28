@@ -99,6 +99,7 @@ func main() {
 		}
 	case "noservice":
 		run(ctx)
+		return
 	case "inventory":
 		inventory.RunInventory()
 		return
