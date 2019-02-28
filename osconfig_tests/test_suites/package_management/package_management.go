@@ -381,7 +381,6 @@ func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *oscon
 }
 
 func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignment *osconfigserver.Assignment, testProjectConfig *testconfig.Project) {
-	fmt.Printf("deleting assignment: %s\n\n", assignment.Name)
 	err := assignment.Cleanup(ctx, testProjectConfig.TestProjectID)
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", utils.GetStatusFromError(err)))
