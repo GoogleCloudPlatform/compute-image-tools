@@ -58,7 +58,7 @@ func run(ctx context.Context) {
 	ticker := time.NewTicker(config.SvcPollInterval())
 	for {
 		if config.OSPackageEnabled() {
-			if err := ospackage.Run(ctx, res, true); err != nil {
+			if err := ospackage.RunWithEnqueue(ctx, res); err != nil {
 				logger.Errorf(err.Error())
 			}
 		}
@@ -108,7 +108,7 @@ func main() {
 		if err != nil {
 			logger.Fatalf("get instance error: %v", err)
 		}
-		if err := ospackage.Run(ctx, res, false); err != nil {
+		if err := ospackage.Run(ctx, res); err != nil {
 			logger.Fatalf(err.Error())
 		}
 		return
