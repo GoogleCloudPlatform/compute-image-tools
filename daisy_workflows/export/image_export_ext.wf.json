@@ -18,9 +18,15 @@
       "Value": "projects/compute-image-tools/global/images/family/debian-9-worker",
       "Description": "image to use for the exporter instance"
     },
+<<<<<<< HEAD
     "export_instance_disk_size": {
       "Value": "200",
       "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
+=======
+    "buffer_disk_size": {
+      "Value": "200",
+      "Description": "size of the export instances buffer disk, this disk starts from a larger size to increase PD read speed, and grows on demand"
+>>>>>>> 1dd4684... refine some details
     },
     "export_network": {
       "Value": "global/networks/default",
