@@ -51,8 +51,8 @@ if ! out=$(gsutil cp "${DISK_RESIZING_MON_PATH}" "/gs/${OUTS}/${DISK_RESIZING_MO
 fi
 echo ${out}
 
-echo "GCEExport: Running disk size monitor, which can resize disk to at most ${SIZE_DISK_GB}GB depending on actual output image size."
-sh /gs/${OUTS}/${DISK_RESIZING_MON} &
+echo "GCEExport: Launching disk size monitor in background..."
+sh ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_DISK_SIZE_GB} &
 
 echo "GCEExport: Exporting disk of size ${SIZE_OUTPUT_GB}GB and format ${FORMAT}."
 if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT 2>&1); then
@@ -62,7 +62,7 @@ fi
 echo ${out}
 
 echo "GCEExport: Copying output image to target GCS path..."
-if ! out=$(gsutil cp "/gs/${LOCAL_PATH}" "${GS_PATH}" 2>&1); then
+if ! out=$(gsutil cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>&1); then
   echo "ExportFailed: Failed to copy output image to ${GS_PATH}, error: ${out}"
   exit
 fi
