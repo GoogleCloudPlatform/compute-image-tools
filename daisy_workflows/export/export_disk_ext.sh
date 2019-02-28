@@ -52,7 +52,7 @@ fi
 echo ${out}
 
 echo "GCEExport: Launching disk size monitor in background..."
-sh ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_DISK_SIZE_GB} &
+sh ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
 
 echo "GCEExport: Exporting disk of size ${SIZE_OUTPUT_GB}GB and format ${FORMAT}."
 if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT 2>&1); then
