@@ -68,11 +68,15 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) string {
 	switch pkgManager {
 	case "apt":
 		ss = "%s\n" +
-			"sudo apt-get -y install %s\n" +
-			"if [[ $? != 0 ]]; then\n" +
+			"n=0\n" +
+			"while ! apt-get -y install %s; do\n" +
+			"if [[ n -gt 3 ]]; then\n" +
 			"echo \"could not install package\"\n" +
 			"exit 1\n" +
 			"fi\n" +
+			"n=$[$n+1]\n" +
+			"sleep 5\n" +
+			"done\n" +
 			"systemctl restart google-osconfig-agent\n" +
 			"if [[ $? != 0 ]]; then\n" +
 			"echo \"Error restarting google-osconfig-agent\"\n" +
@@ -89,11 +93,11 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) string {
 			"sleep 5;\n" +
 			"done;\n"
 
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageNotInstalledString, packageInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName, packageName, packageNotInstalledString, packageInstalledString)
 
 	case "yum":
 		ss = "%s\n" +
-			"sudo yum -y install %s\n" +
+			"yum -y install %s\n" +
 			"if [[ $? != 0 ]]; then\n" +
 			"echo \"could not install package\"\n" +
 			"exit 1\n" +
@@ -105,14 +109,14 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) string {
 			"fi\n" + "while true;\n" +
 			"do\n" +
 			"isinstalled=`/usr/bin/rpmquery -a %s`\n" +
-			"if [[ $isinstalled =~ ^cowsay-* ]]; then\n" +
+			"if [[ $isinstalled =~ ^%s-* ]]; then\n" +
 			"echo \"%s\"\n" +
 			"else\n" +
 			"echo \"%s\"\n" +
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName, packageName, packageInstalledString, packageNotInstalledString)
 
 	default:
 		panic(fmt.Sprintf("invalid package manager: %s", pkgManager))
@@ -129,7 +133,7 @@ func getPackageInstallRemovalStartupScript(pkgManager, packageName string) strin
 		ss = "%s\n" +
 			"while true;\n" +
 			"do\n" +
-			"isinstalled=`/usr/bin/dpkg-query -s %s`\n" +
+			"isinstalled=\"$(/usr/bin/dpkg-query -s %s 2>&1 )\"\n" +
 			"if [[ $isinstalled =~ \"package '%s' is not installed\" ]]; then\n" +
 			"echo \"%s\"\n" +
 			"else\n" +
@@ -152,7 +156,7 @@ func getPackageInstallRemovalStartupScript(pkgManager, packageName string) strin
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageInstalledString, packageNotInstalledString)
 
 	default:
 		panic(fmt.Sprintf("invalid package manager: %s", pkgManager))
