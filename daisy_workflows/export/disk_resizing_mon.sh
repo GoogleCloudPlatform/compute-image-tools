@@ -28,10 +28,25 @@ do
 
   # Prepare parameters for resizing
   ZONE=$(curl "${METADATA_URL}/zone" -H "Metadata-Flavor: Google"| cut -d'/' -f4)
-
+  if [ $? -ne 0 ]; then
+    echo "GCEExport: Failed to get metadata from ${METADATA_URL}/zone, will try again later."
+    continue
+  fi
   INSTANCE_NAME_PREFIX=$(curl "${METADATA_URL}/attributes/instance-name" -H "Metadata-Flavor: Google")
+  if [ $? -ne 0 ]; then
+    echo "GCEExport: Failed to get metadata from ${METADATA_URL}/attributes/instance-name, will try again later."
+    continue
+  fi
   HOST_NAME=$(curl "${METADATA_URL}/hostname" -H "Metadata-Flavor: Google"| cut -d'.' -f1)
+  if [ $? -ne 0 ]; then
+    echo "GCEExport: Failed to get metadata from ${METADATA_URL}/hostname, will try again later."
+    continue
+  fi
   BUFFER_DISK_PREFIX=$(curl "${METADATA_URL}/attributes/buffer-disk" -H "Metadata-Flavor: Google")
+  if [ $? -ne 0 ]; then
+    echo "GCEExport: Failed to get metadata from ${METADATA_URL}/attributes/buffer-disk, will try again later."
+    continue
+  fi
   BUFFER_DISK=${BUFFER_DISK_PREFIX}-$(echo ${HOST_NAME} | awk -F"${INSTANCE_NAME_PREFIX}-" '{ print $2}')
 
   echo "GCEExport: Resizing buffer disk from ${CURRENT_SIZE}GB to ${NEXT_SIZE}GB..."
