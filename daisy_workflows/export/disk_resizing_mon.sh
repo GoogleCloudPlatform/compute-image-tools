@@ -19,7 +19,7 @@ do
   fi
 
   # Decide the new size, which won't be higher than max size.
-  CURRENT_SIZE=$(df -BG /dev/sdc --output=size | sed 1d)
+  CURRENT_SIZE=$(lsblk /dev/sdc --output=SIZE | sed -n 2p)
   CURRENT_SIZE=${CURRENT_SIZE%?}
   NEXT_SIZE=$(awk "BEGIN {print int(${CURRENT_SIZE} + ${BUFFER_SIZE})}")
   if [ ${NEXT_SIZE} -gt ${MAX_SIZE} ]; then
