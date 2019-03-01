@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -25,29 +26,24 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
-	"google.golang.org/grpc/status"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 )
 
 const (
 	testSuiteName = "PackageManagementTests"
-	testProjectID = "281997379984"
 	debianImage   = "projects/debian-cloud/global/images/family/debian-9"
-	testProject   = "compute-image-test-pool-001"
-	testZone      = "us-central1-c"
-
-	serviceAccountEmail = "281997379984-compute@developer.gserviceaccount.com"
+	centosImage   = "projects/centos-cloud/global/images/family/centos-7"
+	rhelImage     = "projects/rhel-cloud/global/images/family/rhel-7"
 )
 
 var (
-	serviceAccountScopes = []string{
-		"https://www.googleapis.com/auth/cloud-platform",
-	}
 	dump = &pretty.Config{IncludeUnexported: true}
 )
 
@@ -63,7 +59,7 @@ type packageManagementTestSetup struct {
 }
 
 // TestSuite is a PackageManagementTests test suite.
-func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp) {
+func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer tswg.Done()
 
 	if testSuiteRegex != nil && !testSuiteRegex.MatchString(testSuiteName) {
@@ -74,12 +70,12 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	defer testSuite.Finish(testSuites)
 
 	logger.Printf("Running TestSuite %q", testSuite.Name)
-	testSetup := generateAllTestSetup()
+	testSetup := generateAllTestSetup(testProjectConfig)
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
 	for _, setup := range testSetup {
 		wg.Add(1)
-		go packageManagementTestCase(ctx, setup, tests, &wg, logger, testCaseRegex)
+		go packageManagementTestCase(ctx, setup, tests, &wg, logger, testCaseRegex, testProjectConfig)
 	}
 
 	go func() {
@@ -94,48 +90,37 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
+func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	parent := fmt.Sprintf("projects/%s", testProjectID)
+	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
-	defer cleanupOsConfig(ctx, testCase, oc)
-
-	// TODO: improve logging to include status report as it contains more
-	// meaningful information that helps in debugging
-	if err != nil {
-		st, ok := status.FromError(err)
-		if ok {
-			testCase.WriteFailure("error while creating osconfig:\n%s\n", st)
-		} else {
-			testCase.WriteFailure("error while creating osconfig:\n%s\n\n", err)
-		}
-	}
+	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
 }
 
-func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
+func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	parent := fmt.Sprintf("projects/%s", testProjectID)
+	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
-	defer cleanupOsConfig(ctx, testCase, oc)
+	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
-	defer cleanupAssignment(ctx, testCase, assign)
+	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -147,7 +132,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	//TODO: move instance definition to a common method
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -174,15 +159,15 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 		},
 		ServiceAccounts: []*api.ServiceAccount{
 			&api.ServiceAccount{
-				Email:  serviceAccountEmail,
-				Scopes: serviceAccountScopes,
+				Email:  testProjectConfig.ServiceAccountEmail,
+				Scopes: testProjectConfig.ServiceAccountScopes,
 			},
 		},
 	}
 
-	inst, err := compute.CreateInstance(client, testProject, testZone, i)
+	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
 	if err != nil {
-		testCase.WriteFailure("Error creating instance: %v", err)
+		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
@@ -200,22 +185,22 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 }
 
-func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
-	parent := fmt.Sprintf("projects/%s", testProjectID)
+func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
-	defer cleanupOsConfig(ctx, testCase, oc)
+	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 	}
 
-	defer cleanupAssignment(ctx, testCase, assign)
+	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -226,7 +211,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -253,15 +238,15 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 		},
 		ServiceAccounts: []*api.ServiceAccount{
 			&api.ServiceAccount{
-				Email:  serviceAccountEmail,
-				Scopes: serviceAccountScopes,
+				Email:  testProjectConfig.ServiceAccountEmail,
+				Scopes: testProjectConfig.ServiceAccountScopes,
 			},
 		},
 	}
 
-	inst, err := compute.CreateInstance(client, testProject, testZone, i)
+	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
 	if err != nil {
-		testCase.WriteFailure("Error creating instance: %v", err)
+		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
@@ -280,20 +265,20 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	}
 }
 
-func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger) {
-	parent := fmt.Sprintf("projects/%s", testProjectID)
+func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", err)
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
-	defer cleanupOsConfig(ctx, testCase, oc)
+	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", err)
+		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 	}
-	defer cleanupAssignment(ctx, testCase, assign)
+	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -304,7 +289,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProject, testZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -331,15 +316,15 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 		},
 		ServiceAccounts: []*api.ServiceAccount{
 			&api.ServiceAccount{
-				Email:  serviceAccountEmail,
-				Scopes: serviceAccountScopes,
+				Email:  testProjectConfig.ServiceAccountEmail,
+				Scopes: testProjectConfig.ServiceAccountScopes,
 			},
 		},
 	}
 
-	inst, err := compute.CreateInstance(client, testProject, testZone, i)
+	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
 	if err != nil {
-		testCase.WriteFailure("Error creating instance: %v", err)
+		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
@@ -358,15 +343,15 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 }
 
-func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
+func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[CreateOsConfig] Create OsConfig"))
-	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstall] Pacakge installation"))
-	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageRemoval] Package removal"))
-	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PackageInstallRemoval] Package no change"))
+	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/CreateOsConfig] Create OsConfig", testSetup.image))
+	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstall] Package installation", testSetup.image))
+	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageRemoval] Package removal", testSetup.image))
+	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallRemoval] Package no change", testSetup.image))
 
-	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger){
+	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *testconfig.Project){
 		createOsConfigTest:        runCreateOsConfigTest,
 		packageInstallTest:        runPackageInstallTest,
 		packageRemovalTest:        runPackageRemovalTest,
@@ -381,24 +366,24 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 			tc.Finish(tests)
 		} else {
 			logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
-			f(ctx, tc, testSetup, logger)
+			f(ctx, tc, testSetup, logger, testProjectConfig)
 			tc.Finish(tests)
 			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}
 	}
 }
 
-func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig) {
-	err := oc.Cleanup(ctx, testProjectID)
+func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig, testProjectConfig *testconfig.Project) {
+	err := oc.Cleanup(ctx, testProjectConfig.TestProjectID)
 	if err != nil {
-		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", err))
+		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", utils.GetStatusFromError(err)))
 	}
 }
 
-func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignment *osconfigserver.Assignment) {
-	err := assignment.Cleanup(ctx, testProjectID)
+func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignment *osconfigserver.Assignment, testProjectConfig *testconfig.Project) {
+	err := assignment.Cleanup(ctx, testProjectConfig.TestProjectID)
 	if err != nil {
-		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", err))
+		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", utils.GetStatusFromError(err)))
 	}
 }
 
@@ -409,5 +394,5 @@ func getTestNameFromTestCase(tc string) string {
 	for _, s := range ss {
 		ret = append(ret, s[1:len(s)-1])
 	}
-	return ret[1]
+	return filepath.Base(ret[1])
 }

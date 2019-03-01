@@ -16,8 +16,11 @@
 package utils
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
+
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -98,4 +101,13 @@ func RandString(n int) string {
 		b[i] = letters[gen.Int63()%int64(len(letters))]
 	}
 	return string(b)
+}
+
+// GetStatusFromError return a string that contains all information
+// about the error that is created from a status
+func GetStatusFromError(err error) string {
+	if s, ok := status.FromError(err); ok {
+		return fmt.Sprintf("code: %q, message: %q, details: %q", s.Code(), s.Message(), s.Details())
+	}
+	return fmt.Sprintf("%v", err)
 }
