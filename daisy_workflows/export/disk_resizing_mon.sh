@@ -12,7 +12,7 @@ do
   sleep ${INTERVAL}
 
   # Check whether available buffer space is lower than threshold.
-  AVAILABLE_BUFFER=$(df -BG /dev/sdc --output=avail | sed 1d)
+  AVAILABLE_BUFFER=$(df -BG /dev/sdc --output=avail | sed -n 2p)
   AVAILABLE_BUFFER=${AVAILABLE_BUFFER%?}
   if [ ${AVAILABLE_BUFFER} -ge ${BUFFER_SIZE} ]; then
     continue
