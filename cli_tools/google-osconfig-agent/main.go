@@ -63,8 +63,10 @@ func run(ctx context.Context) {
 			}
 		}
 
-		// This should always run after ospackage.SetConfig.
-		tasker.Enqueue("Gather instance inventory", inventory.RunInventory)
+		if config.OSInventoryEnabled() {
+			// This should always run after ospackage.SetConfig.
+			tasker.Enqueue("Gather instance inventory", inventory.RunInventory)
+		}
 
 		select {
 		case <-ticker.C:
