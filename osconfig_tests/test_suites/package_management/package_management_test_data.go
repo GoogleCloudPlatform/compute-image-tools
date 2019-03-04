@@ -53,7 +53,7 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image string
-		uuid := utils.RandString(8)
+		uuid := utils.RandString(5)
 
 		switch tuple.platform {
 		case "debian":
@@ -90,7 +90,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
-		uuid := utils.RandString(8)
+		uuid := utils.RandString(5)
 
 		switch tuple.platform {
 		case "debian":
@@ -140,7 +140,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
-		uuid := utils.RandString(8)
+		uuid := utils.RandString(5)
 
 		switch tuple.platform {
 		case "debian":
@@ -190,7 +190,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
-		uuid := utils.RandString(8)
+		uuid := utils.RandString(5)
 
 		switch tuple.platform {
 		case "debian":
