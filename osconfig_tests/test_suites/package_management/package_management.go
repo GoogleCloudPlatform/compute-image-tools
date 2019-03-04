@@ -71,6 +71,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 	testSetup := generateAllTestSetup(testProjectConfig)
+	fmt.Sprintf("%s\n", dump.Sprint(testSetup))
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
 	for _, setup := range testSetup {
@@ -198,6 +199,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
 		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
+		return
 	}
 
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
