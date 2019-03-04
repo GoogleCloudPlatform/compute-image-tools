@@ -19,17 +19,16 @@ import (
 	"context"
 	"flag"
 	"log"
-	"os"
+	"time"
 
-	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/ospackage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/patch"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/ospatch"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
-	"google.golang.org/api/option"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/service"
 )
 
 var version string
@@ -46,6 +45,37 @@ func (l *logWritter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+func run(ctx context.Context) {
+	if config.OSPatchEnabled() {
+		ospatch.Init(ctx)
+	}
+
+	res, err := config.Instance()
+	if err != nil {
+		logger.Fatalf("get instance error: %v", err)
+	}
+
+	ticker := time.NewTicker(config.SvcPollInterval())
+	for {
+		if config.OSPackageEnabled() {
+			if err := ospackage.RunWithEnqueue(ctx, res); err != nil {
+				logger.Errorf(err.Error())
+			}
+		}
+
+		// This should always run after ospackage.SetConfig.
+		tasker.Enqueue("Gather instance inventory", inventory.RunInventory)
+
+		select {
+		case <-ticker.C:
+			continue
+		case <-ctx.Done():
+			logger.Close()
+			return
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
 	ctx := context.Background()
@@ -60,46 +90,32 @@ func main() {
 	}
 
 	logger.Init(ctx, proj)
+	defer logger.Close()
 
-	action := flag.Arg(0)
-	if action == "inventory" {
-		// Just run inventory and exit.
-		inventory.RunInventory()
-		logger.Close()
-		os.Exit(0)
-	}
-
-	if action == "ospackage" {
-		// Just run SetConfig and exit.
-		client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
-		if err != nil {
-			logger.Fatalf("NewClient Error: %v", err)
+	switch action := flag.Arg(0); action {
+	case "":
+		if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, "run"); err != nil {
+			logger.Fatalf("service.Register error: %v", err)
 		}
-
+	case "noservice":
+		run(ctx)
+		return
+	case "inventory":
+		inventory.RunInventory()
+		return
+	case "ospackage":
 		res, err := config.Instance()
 		if err != nil {
-			logger.Fatalf("Instance error: %v", err)
+			logger.Fatalf("get instance error: %v", err)
 		}
-
-		resp, err := service.LookupConfigs(ctx, client, res)
-		if err != nil {
-			logger.Fatalf("LookupConfigs error: %v", err)
+		if err := ospackage.Run(ctx, res); err != nil {
+			logger.Fatalf(err.Error())
 		}
-		if err := ospackage.SetConfig(resp); err != nil {
-			logger.Fatalf("SetConfig error: %v", err)
-		}
-		os.Exit(0)
-	}
-
-	if action == "ospatch" {
-		patch.RunPatchAgent(ctx)
-		os.Exit(0)
-	}
-
-	if action == "" {
-		action = "run"
-	}
-	if err := service.Run(ctx, action); err != nil {
-		logger.Fatalf(err.Error())
+		return
+	case "ospatch":
+		ospatch.Run(ctx)
+		return
+	default:
+		logger.Fatalf("Unknown arg %q", action)
 	}
 }
