@@ -146,6 +146,10 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 		Metadata: &api.Metadata{
 			Items: []*api.MetadataItems{
 				testSetup.startup,
+				&api.MetadataItems{
+					Key:   "os-package-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
@@ -225,6 +229,10 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 		Metadata: &api.Metadata{
 			Items: []*api.MetadataItems{
 				testSetup.startup,
+				&api.MetadataItems{
+					Key:   "os-package-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
@@ -303,6 +311,10 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 		Metadata: &api.Metadata{
 			Items: []*api.MetadataItems{
 				testSetup.startup,
+				&api.MetadataItems{
+					Key:   "os-package-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
