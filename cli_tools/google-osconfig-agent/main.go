@@ -46,10 +46,6 @@ func (l *logWritter) Write(b []byte) (int, error) {
 }
 
 func run(ctx context.Context) {
-	if config.OSPatchEnabled() {
-		ospatch.Init(ctx)
-	}
-
 	res, err := config.Instance()
 	if err != nil {
 		logger.Fatalf("get instance error: %v", err)
@@ -57,15 +53,20 @@ func run(ctx context.Context) {
 
 	ticker := time.NewTicker(config.SvcPollInterval())
 	for {
+		if err := config.SetConfig(); err != nil {
+			logger.Errorf(err.Error())
+		}
+
+		// This sets up the patching system to run in the background.
+		ospatch.Configure(ctx)
+
 		if config.OSPackageEnabled() {
-			if err := ospackage.RunWithEnqueue(ctx, res); err != nil {
-				logger.Errorf(err.Error())
-			}
+			ospackage.Run(ctx, res)
 		}
 
 		if config.OSInventoryEnabled() {
 			// This should always run after ospackage.SetConfig.
-			tasker.Enqueue("Gather instance inventory", inventory.RunInventory)
+			inventory.Run()
 		}
 
 		select {
@@ -103,19 +104,19 @@ func main() {
 		run(ctx)
 		return
 	case "inventory":
-		inventory.RunInventory()
+		inventory.Run()
+		tasker.Close()
 		return
 	case "ospackage":
 		res, err := config.Instance()
 		if err != nil {
 			logger.Fatalf("get instance error: %v", err)
 		}
-		if err := ospackage.Run(ctx, res); err != nil {
-			logger.Fatalf(err.Error())
-		}
+		ospackage.Run(ctx, res)
+		tasker.Close()
 		return
 	case "ospatch":
-		ospatch.Run(ctx)
+		ospatch.Run(ctx, make(chan struct{}))
 		return
 	default:
 		logger.Fatalf("Unknown arg %q", action)

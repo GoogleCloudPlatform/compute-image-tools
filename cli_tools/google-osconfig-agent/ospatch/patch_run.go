@@ -68,18 +68,43 @@ var (
 		completeFailed:       8,
 		completeJobCompleted: 9,
 	}
+
+	cancelC chan struct{}
 )
 
-// Init starts the patch system.
-func Init(ctx context.Context) {
+func initPatch(ctx context.Context) {
+	cancelC = make(chan struct{})
 	disableAutoUpdates()
-	go Run(ctx)
+	go Run(ctx, cancelC)
 }
 
-// Run runs patching as a single blocking agent.
-func Run(ctx context.Context) {
+// Configure manages the background patch service.
+func Configure(ctx context.Context) {
+	select {
+	case _, ok := <-cancelC:
+		// Channel closed, enable if needed.
+		if !ok && config.OSPatchEnabled() {
+			initPatch(ctx)
+		}
+		// Channel open, disabled if needed.
+		// This should never happen as nothing should be sending on this
+		// channel.
+		if ok && !config.OSPatchEnabled() {
+			close(cancelC)
+		}
+	default:
+		// Channel open, disable if needed.
+		if !config.OSPatchEnabled() {
+			close(cancelC)
+		}
+	}
+
+}
+
+// Run runs patching as a single blocking agent, use cancel to cancel.
+func Run(ctx context.Context, cancel <-chan struct{}) {
 	savedPatchJobName := checkSavedState(ctx)
-	watcher(ctx, savedPatchJobName)
+	watcher(ctx, savedPatchJobName, cancel)
 }
 
 // Load current patch state off disk, schedule the patch if it isn't complete,

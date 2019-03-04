@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
+	"net/url"
 	"runtime"
 	"strconv"
 	"sync"
@@ -130,9 +132,29 @@ func SetConfig() error {
 		aptRepoFilePath:    aptRepoFilePath,
 	}
 
-	md, err := metadata.Get("?recursive=true&alt=json")
-	if err != nil {
-		return err
+	var md string
+	var err error
+	webError := 0
+	for {
+		md, err = metadata.Get("?recursive=true&alt=json")
+		if err == nil {
+			break
+		}
+		// Only log the third web error to avoid transient errors and
+		// not to spam the log on network failures.
+		if webError == 1 {
+			if urlErr, ok := err.(*url.Error); ok {
+				if _, ok := urlErr.Err.(*net.DNSError); ok {
+					return fmt.Errorf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file")
+				}
+				if _, ok := urlErr.Err.(*net.OpError); ok {
+					return fmt.Errorf("network error when requesting metadata, make sure your instance has an active network and can reach the metadata server")
+				}
+			}
+			return fmt.Errorf(err.Error())
+		}
+		webError++
+		time.Sleep(5 * time.Second)
 	}
 
 	var metadata metadataJSON

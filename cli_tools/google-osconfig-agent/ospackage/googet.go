@@ -48,7 +48,7 @@ func googetRepositories(repos []*osconfigpb.GooRepository, repoFile string) erro
 func googetChanges(packageInstalls, packageRemovals []*osconfigpb.Package) error {
 	var errs []string
 
-	inv := inventory.GetInventory()
+	inv := inventory.Get()
 	changes := getNecessaryChanges(inv.InstalledPackages.Apt, inv.PackageUpdates.Apt, packageInstalls, packageRemovals)
 
 	if changes.packagesToInstall != nil {

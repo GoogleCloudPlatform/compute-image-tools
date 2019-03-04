@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/attributes"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/tasker"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
@@ -47,7 +48,7 @@ type InstanceInventory struct {
 	PackageUpdates       packages.Packages
 }
 
-func writeInventory(state *InstanceInventory, url string) {
+func write(state *InstanceInventory, url string) {
 	logger.Infof("Writing instance inventory.")
 
 	if err := attributes.PostAttribute(url+"/Timestamp", strings.NewReader(time.Now().UTC().Format(time.RFC3339))); err != nil {
@@ -73,8 +74,8 @@ func writeInventory(state *InstanceInventory, url string) {
 	}
 }
 
-// GetInventory generates inventory data.
-func GetInventory() *InstanceInventory {
+// Get generates inventory data.
+func Get() *InstanceInventory {
 	logger.Infof("Gathering instance inventory.")
 
 	hs := &InstanceInventory{}
@@ -112,7 +113,7 @@ func GetInventory() *InstanceInventory {
 	return hs
 }
 
-// RunInventory gets the current inventory and writes it to guest attributes.
-func RunInventory() {
-	writeInventory(GetInventory(), inventoryURL)
+// Run gathers and records inventory information using tasker.Enqueue.
+func Run() {
+	tasker.Enqueue("Run OSInventory", func() { write(Get(), inventoryURL) })
 }
