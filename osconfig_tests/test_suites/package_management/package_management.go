@@ -198,6 +198,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
 		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
+		return
 	}
 
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
