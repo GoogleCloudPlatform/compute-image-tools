@@ -71,7 +71,6 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 	testSetup := generateAllTestSetup(testProjectConfig)
-	fmt.Sprintf("%s\n", dump.Sprint(testSetup))
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
 	for _, setup := range testSetup {
