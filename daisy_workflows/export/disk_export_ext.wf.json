@@ -39,7 +39,7 @@
     "setup-disks": {
       "CreateDisks": [
         {
-          "Name": "disk-${NAME}-os",
+          "Name": "disk-${NAME}-os-${ID}",
           "SourceImage": "${export_instance_disk_image}",
           "Type": "pd-ssd",
 	  "ExactName": true
@@ -57,7 +57,7 @@
         {
           "Name": "inst-${NAME}",
           "Disks": [
-            {"Source": "disk-${NAME}-os"},
+            {"Source": "disk-${NAME}-os-${ID}"},
             {"Source": "${source_disk}", "Mode": "READ_ONLY"},
             {"Source": "disk-${NAME}-buffer-${ID}"}
           ],
