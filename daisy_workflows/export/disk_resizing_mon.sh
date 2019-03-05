@@ -9,7 +9,7 @@ INTERVAL=10
 
 # Prepare parameters for resizing
 ZONE=$(curl "${METADATA_URL}/zone" -H "Metadata-Flavor: Google"| cut -d'/' -f4)
-if [ $? -ne 0 ]; then
+if [[ $? -ne 0 ]]; then
   echo "GCEExport: Failed to get metadata from ${METADATA_URL}/zone, will try again later."
   continue
 fi
@@ -21,7 +21,7 @@ do
   # Check whether available buffer space is lower than threshold.
   AVAILABLE_BUFFER=$(df -BG /dev/sdc --output=avail | sed -n 2p)
   AVAILABLE_BUFFER=${AVAILABLE_BUFFER%?}
-  if [ ${AVAILABLE_BUFFER} -ge ${BUFFER_MIN_SIZE} ]; then
+  if [[ ${AVAILABLE_BUFFER} -ge ${BUFFER_MIN_SIZE} ]]; then
     echo "ge!!!! ${AVAILABLE_BUFFER} vs ${BUFFER_MIN_SIZE}  "
     continue
   fi
@@ -49,7 +49,7 @@ do
   # the partition, so "df" is used instead of "lsblk" here.
   CURRENT_FILESYSTEM_SIZE=$(df -BG /dev/sdc --output=size | sed -n 2p)
   CURRENT_FILESYSTEM_SIZE=${CURRENT_FILESYSTEM_SIZE%?}
-  if [ ${CURRENT_FILESYSTEM_SIZE} -ge ${MAX_SIZE} ]; then
+  if [[ ${CURRENT_FILESYSTEM_SIZE} -ge ${MAX_SIZE} ]]; then
     echo "Buffer disk reaches max size."
     exit
   fi
