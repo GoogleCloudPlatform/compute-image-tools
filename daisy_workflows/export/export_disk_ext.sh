@@ -28,16 +28,15 @@ mkdir -p "/gs/${OUTS_PATH}"
 
 # Prepare disk size info.
 # 1. Disk image size info.
-SIZE_BYTES=$(qemu-img info --output "json" /dev/sdb | grep -m1 "virtual-size" | grep -o '[0-9]\+')
+SIZE_BYTES=$(lsblk /dev/sdb --output=size -b | sed -n 2p)
 # 2. Round up to the next GB.
-SIZE_OUTPUT_GB=$(awk "BEGIN {print int((${SIZE_BYTES}/1000000000) + 1)}")
+SIZE_OUTPUT_GB=$(awk "BEGIN {print int(((${SIZE_BYTES}-1)/1073741824) + 1)}")
 # 3. Add 5GB of additional space to max size to prevent the corner case that output
 # file is slightly larger than source disk.
 MAX_BUFFER_DISK_SIZE_GB=$(awk "BEGIN {print int(${SIZE_OUTPUT_GB} + 5)}")
 
 # Prepare buffer disk
 echo "GCEExport: Initializing buffer disk for qemu-img output..."
-sudo arted -a optimal /dev/sdc mklabel gpt
 sudo mkfs.ext4 /dev/sdc
 sudo mount /dev/sdc "/gs/${OUTS_PATH}"
 

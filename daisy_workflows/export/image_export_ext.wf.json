@@ -20,7 +20,7 @@
     },
     "buffer_disk_size": {
       "Value": "200",
-      "Description": "size of the export instances buffer disk, this disk starts from a larger size to increase PD read speed, and grows on demand"
+      "Description": "size of the export instances buffer disk, this disk starts from a fixed size which can guarantee a nice PD read speed, and grows on demand"
     },
     "export_network": {
       "Value": "global/networks/default",

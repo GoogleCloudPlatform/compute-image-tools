@@ -20,7 +20,7 @@
     },
     "buffer_disk_size": {
       "Value": "200",
-      "Description": "size of the export instances buffer disk, this disk starts from a larger size to increase PD read speed, and grows on demand"
+      "Description": "size of the export instances buffer disk, this disk starts from a fixed size which can guarantee a nice PD read speed, and grows on demand"
     },
     "export_network": {
       "Value": "global/networks/default",
@@ -41,12 +41,14 @@
         {
           "Name": "disk-${NAME}-os",
           "SourceImage": "${export_instance_disk_image}",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+	  "ExactName": true
         },
         {
-          "Name": "disk-${NAME}-buffer",
+          "Name": "disk-${NAME}-buffer-${ID}",
           "SizeGb": "${buffer_disk_size}",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+	  "ExactName": true
         }
       ]
     },
@@ -57,7 +59,7 @@
           "Disks": [
             {"Source": "disk-${NAME}-os"},
             {"Source": "${source_disk}", "Mode": "READ_ONLY"},
-            {"Source": "disk-${NAME}-buffer"}
+            {"Source": "disk-${NAME}-buffer-${ID}"}
           ],
           "MachineType": "n1-highcpu-4",
           "Metadata": {
@@ -65,7 +67,7 @@
             "gcs-path": "${OUTSPATH}/${NAME}",
             "format": "${format}",
 	    "instance-name": "inst-${NAME}",
-            "buffer-disk": "disk-${NAME}-buffer"
+            "buffer-disk": "disk-${NAME}-buffer-${ID}"
           },
           "networkInterfaces": [
             {
