@@ -151,12 +151,12 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 		case "centos":
 			image = centosImage
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uuid), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		case "rhel":
 			image = rhelImage
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uuid), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
 			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
