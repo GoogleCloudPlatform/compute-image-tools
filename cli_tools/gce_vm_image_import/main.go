@@ -121,7 +121,7 @@ func validateAndParseFlags() error {
 	}
 
 	if *sourceFile != "" {
-		_, _, err := gcevmimageimportutil.SplitGCSPath(*sourceFile)
+		_, _, err := storageutils.SplitGCSPath(*sourceFile)
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ func populateMissingParameters(mgce commondomain.MetadataGCEInterface,
 		newScratchBucketGcsPath := fmt.Sprintf("gs://%v/", scratchBucketName)
 		scratchBucketGcsPath = &newScratchBucketGcsPath
 	} else {
-		scratchBucketName, _, err := gcevmimageimportutil.SplitGCSPath(*scratchBucketGcsPath)
+		scratchBucketName, _, err := storageutils.SplitGCSPath(*scratchBucketGcsPath)
 		if err != nil {
 			return fmt.Errorf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
 		}

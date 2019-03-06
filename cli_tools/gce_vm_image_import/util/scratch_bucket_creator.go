@@ -69,7 +69,7 @@ func (c *ScratchBucketCreator) CreateScratchBucket(
 }
 
 func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string) (string, string, error) {
-	fileBucket, _, err := SplitGCSPath(fileGcsPath)
+	fileBucket, _, err := storageutils.SplitGCSPath(fileGcsPath)
 	if err != nil || fileBucket == "" {
 		return "", "", fmt.Errorf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
 	}
