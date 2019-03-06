@@ -25,9 +25,10 @@ Exactly one of these must be specified:
 + `-data_disk` Specifies that the disk has no bootable OS installed on it. 
    Imports the disk without making it bootable or installing Google tools on it.   
 + `-os=OS` Specifies the OS of the image being imported. 
-  OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, 
-  rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-2008r2, 
-  windows-2012r2, windows-2016.
+  OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, 
+  rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-10-byol, windows-2008r2, windows-2008r2-byol,
+  windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016,
+  windows-2016-byol, windows-7-byol.
   
 Exactly one of these must be specified:
 + `-source_file=SOURCE_FILE` Google Cloud Storage URI of the virtual disk file
