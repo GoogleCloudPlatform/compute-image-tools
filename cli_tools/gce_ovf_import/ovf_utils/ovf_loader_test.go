@@ -35,7 +35,15 @@ var (
 	ovfDescriptorStr = fmt.Sprintf(
 		"<Envelope><AnnotationSection ovf:required='false'><Info>%v</Info><Annotation>%v</Annotation></AnnotationSection></Envelope>",
 		infoStr, annotationStr)
-	ovfDescriptor = &ovf.Envelope{nil, &ovf.AnnotationSection{ovf.Section{&infoSectionRequired, infoStr}, annotationStr}, nil, nil, nil, nil, nil, nil, nil, nil, nil}
+	ovfDescriptor = &ovf.Envelope{
+		References: nil,
+		Annotation: &ovf.AnnotationSection{
+			Section: ovf.Section{
+				Required: &infoSectionRequired,
+				Info:     infoStr,
+			}, Annotation: annotationStr,
+		},
+	}
 )
 
 func TestOvfDescriptorLoader(t *testing.T) {

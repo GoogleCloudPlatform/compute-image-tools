@@ -28,8 +28,8 @@ func TestAddDiskImportSteps(t *testing.T) {
 	w.Vars["instance_name"] = daisy.Var{Value: "an_instance"}
 
 	diskInfos := []ovfutils.DiskInfo{
-		{"gs://abucket/apath/disk1.vmdk", 20},
-		{"gs://abucket/apath/disk2.vmdk", 1},
+		{FilePath: "gs://abucket/apath/disk1.vmdk", SizeInGB: 20},
+		{FilePath: "gs://abucket/apath/disk2.vmdk", SizeInGB: 1},
 	}
 
 	w.Steps = map[string]*daisy.Step{

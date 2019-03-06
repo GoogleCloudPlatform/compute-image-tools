@@ -65,6 +65,7 @@ type Step struct {
 	testType stepImpl
 }
 
+// NewStep creates a Step with given name and timeout  with the specified workflow
 func NewStep(name string, w *Workflow, timeout time.Duration) *Step {
 	return &Step{name: name, w: w, timeout: timeout}
 }

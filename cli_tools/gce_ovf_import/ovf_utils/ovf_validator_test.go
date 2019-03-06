@@ -111,9 +111,13 @@ func TestValidateOvfPackageMissingFirstReferenceInGcs(t *testing.T) {
 }
 
 func file(index int) ovf.File {
-	return ovf.File{fmt.Sprintf("id%v", index), fmt.Sprintf("ref%v", index), 1, nil, nil}
+	return ovf.File{
+		ID:   fmt.Sprintf("id%v", index),
+		Href: fmt.Sprintf("ref%v", index),
+		Size: 1,
+	}
 }
 
 func envelope(references []ovf.File) *ovf.Envelope {
-	return &ovf.Envelope{references, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil}
+	return &ovf.Envelope{References: references}
 }
