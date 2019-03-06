@@ -17,6 +17,7 @@ package ospatch
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -94,6 +95,18 @@ func watchMetadata(c chan watchMetadataRet) {
 	}
 }
 
+func handleError(err error) string {
+	if urlErr, ok := err.(*url.Error); ok {
+		if _, ok := urlErr.Err.(*net.DNSError); ok {
+			return fmt.Sprintf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file.")
+		}
+		if _, ok := urlErr.Err.(*net.OpError); ok {
+			return fmt.Sprintf("Network error when requesting metadata, make sure your instance has an active network and can reach the metadata server.")
+		}
+	}
+	return err.Error()
+}
+
 func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct{}, action func(context.Context, string)) {
 	currentPatchJobName = savedPatchJobName
 	webError := 0
@@ -111,16 +124,7 @@ func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct
 				// Only log the second web error to avoid transient errors and
 				// not to spam the log on network failures.
 				if webError == 1 {
-					if urlErr, ok := ret.err.(*url.Error); ok {
-						if _, ok := urlErr.Err.(*net.DNSError); ok {
-							logger.Errorf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file.")
-						}
-						if _, ok := urlErr.Err.(*net.OpError); ok {
-							logger.Errorf("Network error when requesting metadata, make sure your instance has an active network and can reach the metadata server.")
-						}
-						continue
-					}
-					logger.Errorf(ret.err.Error())
+					logger.Errorf(handleError(ret.err))
 				}
 				webError++
 				time.Sleep(5 * time.Second)
