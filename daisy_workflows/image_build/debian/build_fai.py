@@ -109,7 +109,7 @@ def main():
   utils.Execute(cmd, cwd=work_dir, capture_output=True)
 
   # Packs a gzipped tar file with disk.raw inside
-  disk_tar_gz = 'debian-%s-%s.tar.gz' % [debian_version, build_date]
+  disk_tar_gz = 'debian-{}-{}.tar.gz'.format(debian_version, build_date)
   logging.info('Compressing it into tarball %s' % disk_tar_gz)
   tar = tarfile.open(disk_tar_gz, "w:gz")
   tar.add('%s/disk.raw' % work_dir, arcname="disk.raw")
