@@ -40,9 +40,9 @@ const (
 	yumRepoFilePath    = "/etc/yum/repos.d/google_osconfig.repo"
 	aptRepoFilePath    = "/etc/apt/sources.list.d/google_osconfig.list"
 
-	osInventoryEnabled = false
-	osPackageEnabled   = false
-	osPatchEnabled     = false
+	osInventoryEnabledDefault = false
+	osPackageEnabledDefault   = false
+	osPatchEnabledDefault     = false
 )
 
 var (
@@ -67,7 +67,7 @@ func getAgentConfig() config {
 	return *agentConfig
 }
 
-func enabled(s string) bool {
+func parseBool(s string) bool {
 	enabled, err := strconv.ParseBool(s)
 	if err != nil {
 		// Bad entry returns as not enabled.
@@ -95,55 +95,55 @@ type attributesJSON struct {
 	OSPackageEnabled   string `json:"os-package-enabled"`
 }
 
-func (c *config) setFromMetadata(md metadataJSON) {
-	// Check project first then instance as instance metadata overrides project.
-	if md.Project.Attributes.OSInventoryEnabled != "" {
-		c.osInventoryEnabled = enabled(md.Project.Attributes.OSInventoryEnabled)
-	}
-	if md.Project.Attributes.OSPatchEnabled != "" {
-		c.osPatchEnabled = enabled(md.Project.Attributes.OSPatchEnabled)
-	}
-	if md.Project.Attributes.OSPackageEnabled != "" {
-		c.osPackageEnabled = enabled(md.Project.Attributes.OSPackageEnabled)
-	}
-
-	if md.Instance.Attributes.OSInventoryEnabled != "" {
-		c.osInventoryEnabled = enabled(md.Instance.Attributes.OSInventoryEnabled)
-	}
-	if md.Instance.Attributes.OSPatchEnabled != "" {
-		c.osPatchEnabled = enabled(md.Instance.Attributes.OSPatchEnabled)
-	}
-	if md.Instance.Attributes.OSPackageEnabled != "" {
-		c.osPackageEnabled = enabled(md.Instance.Attributes.OSPackageEnabled)
-	}
-}
-
-// SetConfig sets the agent config.
-func SetConfig() error {
-	agentConfigMx.Lock()
-	defer agentConfigMx.Unlock()
-	agentConfig = &config{
-		osInventoryEnabled: osInventoryEnabled,
-		osPackageEnabled:   osPackageEnabled,
-		osPatchEnabled:     osPatchEnabled,
+func createConfigFromMetadata(md metadataJSON) *config {
+	c := &config{
+		osInventoryEnabled: osInventoryEnabledDefault,
+		osPackageEnabled:   osPackageEnabledDefault,
+		osPatchEnabled:     osPatchEnabledDefault,
 		googetRepoFilePath: googetRepoFilePath,
 		zypperRepoFilePath: zypperRepoFilePath,
 		yumRepoFilePath:    yumRepoFilePath,
 		aptRepoFilePath:    aptRepoFilePath,
 	}
 
+	// Check project first then instance as instance metadata overrides project.
+	if md.Project.Attributes.OSInventoryEnabled != "" {
+		c.osInventoryEnabled = parseBool(md.Project.Attributes.OSInventoryEnabled)
+	}
+	if md.Project.Attributes.OSPatchEnabled != "" {
+		c.osPatchEnabled = parseBool(md.Project.Attributes.OSPatchEnabled)
+	}
+	if md.Project.Attributes.OSPackageEnabled != "" {
+		c.osPackageEnabled = parseBool(md.Project.Attributes.OSPackageEnabled)
+	}
+
+	if md.Instance.Attributes.OSInventoryEnabled != "" {
+		c.osInventoryEnabled = parseBool(md.Instance.Attributes.OSInventoryEnabled)
+	}
+	if md.Instance.Attributes.OSPatchEnabled != "" {
+		c.osPatchEnabled = parseBool(md.Instance.Attributes.OSPatchEnabled)
+	}
+	if md.Instance.Attributes.OSPackageEnabled != "" {
+		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
+	}
+
+	return c
+}
+
+// SetConfig sets the agent config.
+func SetConfig() error {
 	var md string
-	var err error
-	webError := 0
+	var webError error
+	webErrorCount := 0
 	for {
-		md, err = metadata.Get("?recursive=true&alt=json")
-		if err == nil {
+		md, webError = metadata.Get("?recursive=true&alt=json")
+		if webError == nil {
 			break
 		}
-		// Only log the third web error to avoid transient errors and
-		// not to spam the log on network failures.
-		if webError == 1 {
-			if urlErr, ok := err.(*url.Error); ok {
+		// Try up to 3 times to wait for slow network initialization, after
+		// that resort to using defaults and returning the error.
+		if webErrorCount == 2 {
+			if urlErr, ok := webError.(*url.Error); ok {
 				if _, ok := urlErr.Err.(*net.DNSError); ok {
 					return fmt.Errorf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file")
 				}
@@ -151,9 +151,9 @@ func SetConfig() error {
 					return fmt.Errorf("network error when requesting metadata, make sure your instance has an active network and can reach the metadata server")
 				}
 			}
-			return fmt.Errorf(err.Error())
+			break
 		}
-		webError++
+		webErrorCount++
 		time.Sleep(5 * time.Second)
 	}
 
@@ -162,9 +162,11 @@ func SetConfig() error {
 		return err
 	}
 
-	agentConfig.setFromMetadata(metadata)
+	agentConfigMx.Lock()
+	agentConfig = createConfigFromMetadata(metadata)
+	agentConfigMx.Unlock()
 
-	return nil
+	return webError
 }
 
 // SvcPollInterval returns the frequency to poll the service.

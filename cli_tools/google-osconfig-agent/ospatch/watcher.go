@@ -29,10 +29,10 @@ import (
 
 const (
 	defaultEtag = ""
-	metadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&wait_for_change=true&last_etag="
 )
 
 var (
+	metadataURL         = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&wait_for_change=true&last_etag="
 	etag                = defaultEtag
 	currentPatchJobName = ""
 )
@@ -94,7 +94,7 @@ func watchMetadata(c chan watchMetadataRet) {
 	}
 }
 
-func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct{}) {
+func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct{}, action func(context.Context, string)) {
 	currentPatchJobName = savedPatchJobName
 	webError := 0
 	for {
@@ -118,6 +118,7 @@ func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct
 						if _, ok := urlErr.Err.(*net.OpError); ok {
 							logger.Errorf("Network error when requesting metadata, make sure your instance has an active network and can reach the metadata server.")
 						}
+						continue
 					}
 					logger.Errorf(ret.err.Error())
 				}
@@ -136,7 +137,7 @@ func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct
 
 			currentPatchJobName = patchJobName
 			if patchJobName != "" {
-				ackPatch(ctx, patchJobName)
+				action(ctx, patchJobName)
 			}
 
 			webError = 0

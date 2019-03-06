@@ -90,6 +90,7 @@ func Configure(ctx context.Context) {
 		// This should never happen as nothing should be sending on this
 		// channel.
 		if ok && !config.OSPatchEnabled() {
+			logger.Errorf("Someone sent on the cancelC channel, this should not have happened")
 			close(cancelC)
 		}
 	default:
@@ -104,7 +105,7 @@ func Configure(ctx context.Context) {
 // Run runs patching as a single blocking agent, use cancel to cancel.
 func Run(ctx context.Context, cancel <-chan struct{}) {
 	savedPatchJobName := checkSavedState(ctx)
-	watcher(ctx, savedPatchJobName, cancel)
+	watcher(ctx, savedPatchJobName, cancel, ackPatch)
 }
 
 // Load current patch state off disk, schedule the patch if it isn't complete,
