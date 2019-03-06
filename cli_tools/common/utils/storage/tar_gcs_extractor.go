@@ -79,7 +79,7 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 			return errors.New("tar subdirectories not supported")
 
 		case tar.TypeReg:
-			destinationFilePath := pathutils.JoinUrl(destinationPath, header.Name)
+			destinationFilePath := pathutils.JoinURL(destinationPath, header.Name)
 			log.Printf("Extracting: %v to gs://%v", header.Name, path.Join(destinationBucketName, destinationFilePath))
 
 			if err := tge.storageClient.WriteToGCS(destinationBucketName, destinationFilePath, tarReader); err != nil {

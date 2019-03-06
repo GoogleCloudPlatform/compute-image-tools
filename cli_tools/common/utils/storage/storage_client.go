@@ -97,18 +97,22 @@ func (sc *StorageClient) GetBucketAttrs(bucket string) (*storage.BucketAttrs, er
 	return nil, fmt.Errorf("error while retrieving `%v` bucket attributes: Error %v, %v", bucket, resp.StatusCode, resp.Status)
 }
 
+// GetObjectReader creates a new Reader to read the contents of the object.
 func (sc *StorageClient) GetObjectReader(bucket string, objectPath string) (io.ReadCloser, error) {
 	return sc.GetBucket(bucket).Object(objectPath).NewReader(sc.Ctx)
 }
 
+// GetBucket returns a BucketHandle, which provides operations on the named bucket.
 func (sc *StorageClient) GetBucket(bucket string) *storage.BucketHandle {
 	return sc.StorageClient.Bucket(bucket)
 }
 
+// GetObjects returns object iterator for given bucket and path
 func (sc *StorageClient) GetObjects(bucket string, objectPath string) commondomain.ObjectIteratorInterface {
 	return sc.Oic.CreateObjectIterator(bucket, objectPath)
 }
 
+// DeleteObject deletes GCS object in given bucket and object path
 func (sc *StorageClient) DeleteObject(bucket string, objectPath string) error {
 	return sc.ObjectDeleter.DeleteObject(bucket, objectPath)
 }
@@ -178,6 +182,7 @@ func (sc *StorageClient) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]b
 	return ioutil.ReadAll(reader)
 }
 
+// WriteToGCS writes content from a reader to destination bucket and path
 func (sc *StorageClient) WriteToGCS(
 	destinationBucketName string, destinationObjectPath string, reader io.Reader) error {
 	destinationBucket := sc.GetBucket(destinationBucketName)
@@ -189,6 +194,13 @@ func (sc *StorageClient) WriteToGCS(
 
 	fileWriter.Close()
 	return nil
+}
+
+// Close closes the Client.
+//
+// Close need not be called at program exit.
+func (sc *StorageClient) Close() error {
+	return sc.StorageClient.Close()
 }
 
 // SplitGCSPath splits GCS path into bucket and object path portions
@@ -212,10 +224,12 @@ func (hc *HTTPClient) Get(url string) (resp *http.Response, err error) {
 	return hc.httpClient.Get(url)
 }
 
+// StorageObjectDeleter is responsible for deleting object
 type StorageObjectDeleter struct {
 	sc *StorageClient
 }
 
+// DeleteObject deletes GCS object in given bucket and path
 func (sod *StorageObjectDeleter) DeleteObject(bucket string, objectPath string) error {
 	return sod.sc.GetBucket(bucket).Object(objectPath).Delete(sod.sc.Ctx)
 }

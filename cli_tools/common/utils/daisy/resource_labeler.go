@@ -16,6 +16,8 @@ package daisyutils
 
 import "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 
+// ResourceLabeler is responsible for labelling GCE resources (instances, disks and images) with
+// labels used to track resource creation by import processes.
 type ResourceLabeler struct {
 	BuildID                   string
 	UserLabels                *map[string]string
@@ -25,8 +27,13 @@ type ResourceLabeler struct {
 	ImageLabelKeyRetriever    ImageLabelKeyRetrieverFunc
 }
 
+// InstanceLabelKeyRetrieverFunc returns GCE label key to be added to given instance
 type InstanceLabelKeyRetrieverFunc func(image *daisy.Instance) string
+
+// DiskLabelKeyRetrieverFunc returns GCE label key to be added to given disk
 type DiskLabelKeyRetrieverFunc func(image *daisy.Disk) string
+
+// ImageLabelKeyRetrieverFunc returns GCE label key to be added to given image
 type ImageLabelKeyRetrieverFunc func(image *daisy.Image) string
 
 // LabelResources labels workflow resources temporary and permanent resources with appropriate
@@ -40,25 +47,25 @@ func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
 		if step.CreateInstances != nil {
 			for _, instance := range *step.CreateInstances {
 				instance.Instance.Labels =
-					rl.UpdateResourceLabels(instance.Instance.Labels, rl.InstanceLabelKeyRetriever(instance))
+					rl.updateResourceLabels(instance.Instance.Labels, rl.InstanceLabelKeyRetriever(instance))
 			}
 		}
 		if step.CreateDisks != nil {
 			for _, disk := range *step.CreateDisks {
 				disk.Disk.Labels =
-					rl.UpdateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk))
+					rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk))
 			}
 		}
 		if step.CreateImages != nil {
 			for _, image := range *step.CreateImages {
 				image.Image.Labels =
-					rl.UpdateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image))
+					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image))
 			}
 		}
 	}
 }
 
-func (rl *ResourceLabeler) UpdateResourceLabels(labels map[string]string, imageTypeLabel string) map[string]string {
+func (rl *ResourceLabeler) updateResourceLabels(labels map[string]string, imageTypeLabel string) map[string]string {
 	labels = rl.extendWithImageImportLabels(labels, imageTypeLabel)
 	labels = rl.extendWithUserLabels(labels)
 	return labels

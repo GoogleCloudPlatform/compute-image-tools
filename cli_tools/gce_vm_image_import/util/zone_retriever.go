@@ -17,7 +17,7 @@ package gcevmimageimportutil
 import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
+	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 	"strings"
 )
@@ -37,11 +37,11 @@ var (
 // ZoneRetriever is responsible for retrieving GCE zone to run import in
 type ZoneRetriever struct {
 	Mgce              commondomain.MetadataGCEInterface
-	ComputeGCEService domain.ComputeServiceInterface
+	ComputeGCEService daisycompute.Client
 }
 
 // NewZoneRetriever creates a ZoneRetriever
-func NewZoneRetriever(aMgce commondomain.MetadataGCEInterface, cs domain.ComputeServiceInterface) (*ZoneRetriever, error) {
+func NewZoneRetriever(aMgce commondomain.MetadataGCEInterface, cs daisycompute.Client) (*ZoneRetriever, error) {
 	return &ZoneRetriever{Mgce: aMgce, ComputeGCEService: cs}, nil
 }
 
@@ -81,7 +81,7 @@ func (zr *ZoneRetriever) getZoneFromStorageLocation(location string, project str
 	if project == "" {
 		return "", fmt.Errorf("project cannot be empty in order to find a zone from a location")
 	}
-	zones, err := zr.ComputeGCEService.GetZones(project)
+	zones, err := zr.ComputeGCEService.ListZones(project)
 	if err != nil {
 		return "", err
 	}

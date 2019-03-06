@@ -19,22 +19,28 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
-	"strconv"
 	"time"
 )
 
-// AddDiskImportSteps updates workflow by adding steps to import any additional disks.
+const (
+	createInstanceStepName = "create-instance"
+	importerDiskSize       = "10"
+	dataDiskImportTimeout  = "3600s"
+)
+
+// AddDiskImportSteps adds Daisy steps to OVF import workflow to import disks defined in
+// dataDiskInfos.
 func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 	if dataDiskInfos == nil || len(dataDiskInfos) == 0 {
 		return
 	}
 
-	diskNames := []string{}
-	var previousDiskLastStepName string
-
+	var diskNames []string
 	w.Sources["import_image_data.sh"] = "../image_import/import_image.sh"
+
 	for i, dataDiskInfo := range dataDiskInfos {
 		dataDiskIndex := i + 1
+		dataDiskFilePath := dataDiskInfo.FilePath
 		diskNames = append(
 			diskNames,
 			fmt.Sprintf("%v-data-disk-%v", w.Vars["instance_name"].Value, dataDiskIndex))
@@ -50,14 +56,14 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					SourceImage: "projects/compute-image-tools/global/images/family/debian-9-worker",
 					Type:        "pd-ssd",
 				},
-				SizeGb: "10",
+				SizeGb: importerDiskSize,
 			},
 			{
 				Disk: compute.Disk{
 					Name: diskNames[i],
 					Type: "pd-ssd",
 				},
-				SizeGb: strconv.Itoa(dataDiskInfo.SizeInGB),
+				SizeGb: "10",
 				Resource: daisy.Resource{
 					ExactName: true,
 					NoCleanup: true,
@@ -81,7 +87,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 						Items: []*compute.MetadataItems{
 							{Key: "block-project-ssh-keys", Value: &sTrue},
 							{Key: "disk_name", Value: &diskNames[i]},
-							{Key: "source_disk_file", Value: &dataDiskInfo.FilePath},
+							{Key: "source_disk_file", Value: &dataDiskFilePath},
 						},
 					},
 					NetworkInterfaces: []*compute.NetworkInterface{
@@ -102,7 +108,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 
 		waitForDataDiskImportInstanceSignalStepName := fmt.Sprintf("wait-for-data-disk-%v-signal", dataDiskIndex)
 		waitForDataDiskImportInstanceSignalStep := daisy.NewStep(waitForDataDiskImportInstanceSignalStepName, w, time.Hour)
-		waitForDataDiskImportInstanceSignalStep.Timeout = "3600s"
+		waitForDataDiskImportInstanceSignalStep.Timeout = dataDiskImportTimeout
 		waitForDataDiskImportInstanceSignalStep.WaitForInstancesSignal = &daisy.WaitForInstancesSignal{
 			{
 				Name: dataDiskImporterInstanceName,
@@ -116,30 +122,26 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		}
 		w.Steps[waitForDataDiskImportInstanceSignalStepName] = waitForDataDiskImportInstanceSignalStep
 
-		//TODO: do disk imports in parallel to speed things up?
-
-		// wire the dependencies
-		if i == 0 {
-			w.Dependencies[setupDataDiskStepName] = []string{"create-boot-disk"}
-		} else {
-			w.Dependencies[setupDataDiskStepName] = []string{previousDiskLastStepName}
+		deleteDataDiskImportInstanceSignalStepName := fmt.Sprintf("delete-data-disk-%v-import-instance", dataDiskIndex)
+		deleteDataDiskImportInstanceSignalStep := daisy.NewStep(deleteDataDiskImportInstanceSignalStepName, w, time.Hour)
+		deleteDataDiskImportInstanceSignalStep.DeleteResources = &daisy.DeleteResources{
+			Instances: []string{dataDiskImporterInstanceName},
 		}
+		w.Steps[deleteDataDiskImportInstanceSignalStepName] = deleteDataDiskImportInstanceSignalStep
 
 		w.Dependencies[createDiskImporterInstanceStepName] = []string{setupDataDiskStepName}
 		w.Dependencies[waitForDataDiskImportInstanceSignalStepName] = []string{createDiskImporterInstanceStepName}
+		w.Dependencies[deleteDataDiskImportInstanceSignalStepName] = []string{waitForDataDiskImportInstanceSignalStepName}
 
-		if i == len(dataDiskInfos)-1 {
-			w.Dependencies["create-instance"] = []string{waitForDataDiskImportInstanceSignalStepName}
-		}
-
-		previousDiskLastStepName = waitForDataDiskImportInstanceSignalStepName
+		w.Dependencies[createInstanceStepName] = append(
+			w.Dependencies[createInstanceStepName], deleteDataDiskImportInstanceSignalStepName)
 	}
 
-	//attach newly created disks to the instance
+	// attach newly created disks to the instance
 	for _, diskName := range diskNames {
-		(*w.Steps["create-instance"].CreateInstances)[0].Disks =
+		(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks =
 			append(
-				(*w.Steps["create-instance"].CreateInstances)[0].Disks,
+				(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks,
 				&compute.AttachedDisk{Source: diskName, AutoDelete: true})
 	}
 }

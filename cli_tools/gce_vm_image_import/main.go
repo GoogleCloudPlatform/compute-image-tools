@@ -30,7 +30,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/util"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 	"log"
 	"os"
@@ -116,7 +115,7 @@ func validateAndParseFlags() error {
 	}
 
 	if *osID != "" {
-		if err := daisyutils.ValidateOs(*osID); err != nil {
+		if err := daisyutils.ValidateOS(*osID); err != nil {
 			return err
 		}
 	}
@@ -197,9 +196,6 @@ func populateMissingParameters(mgce commondomain.MetadataGCEInterface,
 	if err := populateRegion(); err != nil {
 		return err
 	}
-
-	//TODO: network, subnetwork, gcsPath (create scratch bucket including regionalization, if possible)
-
 	return nil
 }
 
@@ -242,7 +238,7 @@ func getRegion() (string, error) {
 func buildDaisyVars(translateWorkflowPath string) map[string]string {
 	varMap := map[string]string{}
 
-	varMap["image_name"] = *imageName
+	varMap["image_name"] = strings.ToLower(*imageName)
 	if translateWorkflowPath != "" {
 		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!*noGuestEnvironment)
@@ -287,28 +283,6 @@ func createComputeClient(ctx *context.Context) daisycompute.Client {
 	return computeClient
 }
 
-func updateAllInstanceNoExternalIP(workflow *daisy.Workflow) {
-	if !*noExternalIP {
-		return
-	}
-	for _, step := range workflow.Steps {
-		if step.IncludeWorkflow != nil {
-			//recurse into included workflow
-			updateAllInstanceNoExternalIP(step.IncludeWorkflow.Workflow)
-		}
-		if step.CreateInstances != nil {
-			for _, instance := range *step.CreateInstances {
-				if instance.Instance.NetworkInterfaces == nil {
-					return
-				}
-				for _, networkInterface := range instance.Instance.NetworkInterfaces {
-					networkInterface.AccessConfigs = []*compute.AccessConfig{}
-				}
-			}
-		}
-	}
-}
-
 func runImport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
 	scratchBucketCreator *gcevmimageimportutil.ScratchBucketCreator,
 	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient commondomain.StorageClientInterface) error {
@@ -343,7 +317,7 @@ func runImport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		updateAllInstanceNoExternalIP(w)
+		daisyutils.UpdateAllInstanceNoExternalIP(w, *noExternalIP)
 	}
 
 	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
@@ -363,7 +337,7 @@ func main() {
 
 	scratchBucketCreator := gcevmimageimportutil.NewScratchBucketCreator(ctx, storageClient)
 	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(
-		&metadataGCEHolder, &gcevmimageimportutil.ComputeService{Cc: createComputeClient(&ctx)})
+		&metadataGCEHolder, createComputeClient(&ctx))
 
 	if err != nil {
 		log.Fatalf(err.Error())

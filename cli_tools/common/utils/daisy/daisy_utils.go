@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"google.golang.org/api/compute/v1"
 	"reflect"
 )
 
@@ -39,13 +40,18 @@ var (
 	}
 )
 
-func ValidateOs(osId string) error {
-	if _, osValid := osChoices[osId]; !osValid {
-		return fmt.Errorf("os %v is invalid. Allowed values: %v", osId, reflect.ValueOf(osChoices).MapKeys())
+// ValidateOS validates that osID is supported by Daisy image import
+func ValidateOS(osID string) error {
+	if osID == "" {
+		return fmt.Errorf("osID is empty")
+	}
+	if _, osValid := osChoices[osID]; !osValid {
+		return fmt.Errorf("os %v is invalid. Allowed values: %v", osID, reflect.ValueOf(osChoices).MapKeys())
 	}
 	return nil
 }
 
+// GetTranslateWorkflowPath returns path to image translate workflow path for given OS
 func GetTranslateWorkflowPath(os *string) string {
 	return osChoices[*os]
 }
@@ -110,4 +116,35 @@ Loop:
 	}
 
 	return w, nil
+}
+
+// UpdateAllInstanceNoExternalIP updates all Create Instance steps in the workflow to operate
+// when no external IP access is allowed by the VPC Daisy workflow is running in.
+func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) {
+	if !noExternalIP {
+		return
+	}
+	updateAllInstanceAccessConfig(workflow, func() []*compute.AccessConfig {
+		return []*compute.AccessConfig{}
+	})
+}
+
+func updateAllInstanceAccessConfig(workflow *daisy.Workflow, accessConfigProvider func() []*compute.AccessConfig) {
+	for _, step := range workflow.Steps {
+		if step.IncludeWorkflow != nil {
+			//recurse into included workflow
+			updateAllInstanceAccessConfig(step.IncludeWorkflow.Workflow, accessConfigProvider)
+		}
+		if step.CreateInstances != nil {
+			for _, instance := range *step.CreateInstances {
+				if instance.Instance.NetworkInterfaces == nil {
+					return
+				}
+				for _, networkInterface := range instance.Instance.NetworkInterfaces {
+					networkInterface.AccessConfigs = accessConfigProvider()
+				}
+			}
+		}
+	}
+
 }

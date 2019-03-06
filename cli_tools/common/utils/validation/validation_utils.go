@@ -18,13 +18,13 @@ import (
 	"fmt"
 )
 
-// Returns error with error message stating field must be provided if value is empty string.
-// Returns nil otherwise.
+// ValidateStringFlagNotEmpty returns error with error message stating field must be provided if
+// value is empty string. Returns nil otherwise.
 func ValidateStringFlagNotEmpty(flagValue string, flagKey string) error {
 	return ValidateStringNotEmpty(flagValue, flagKey, "The flag -%v must be provided")
 }
 
-// Returns error with specific error message if string is empty. Returns nil otherwise.
+// ValidateStringNotEmpty returns error with specific error message if string is empty. Returns nil otherwise.
 func ValidateStringNotEmpty(value string, key string, errorMessage string) error {
 	if value == "" {
 		return fmt.Errorf(errorMessage, key)

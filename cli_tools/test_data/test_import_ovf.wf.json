@@ -44,43 +44,24 @@
     }
   },
   "Steps": {
-    "import-boot-disk": {
-      "IncludeWorkflow": {
-        "Path": "../image_import/import_disk.wf.json",
-        "Vars": {
-          "source_disk_file": "${boot_disk_file}",
-          "disk_name": "${translation_disk_name}",
-          "import_network": "${network}",
-          "import_subnet": "${subnet}"
-        }
-      }
-    },
-    "take-image-of-untranslated-disk": {
-      "CreateImages": [{
-        "Name": "${boot_image_name_untranslated}",
-        "Description": "Imported (untranslated) image from ${boot_disk_file}",
-        "SourceDisk": "${translation_disk_name}"
-      }]
-    },
-    "translate": {
-      "IncludeWorkflow": {
-        "Path": "${translate_workflow}",
-        "Vars": {
-          "source_disk": "${translation_disk_name}",
-          "image_name": "${boot_image_name}",
-          "install_gce_packages": "${install_gce_packages}",
-          "description": "${description}",
-          "import_network": "${network}",
-          "import_subnet": "${subnet}"
-        }
-      }
-    },
     "create-boot-disk": {
       "CreateDisks": [
         {
           "Name": "${instance_name}-boot-disk",
           "SourceImage": "${boot_image_name}",
           "Type": "pd-ssd",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "${import_disk_name}",
+          "Family": "${family}",
+          "Description": "${description}",
           "ExactName": true,
           "NoCleanup": true
         }
@@ -102,13 +83,7 @@
             {
               "network": "${network}",
               "subnetwork": "${subnet}",
-              "networkIP": "${private_network_ip}",
-              "accessConfigs": [
-                {
-                  "type": "ONE_TO_ONE_NAT",
-                  "networkTier": "${network_tier}"
-                }
-              ]
+              "networkIP": "${privateNetworkIP}"
             }
           ],
           "Description": "${description}",
@@ -125,10 +100,7 @@
     }
   },
   "Dependencies": {
-    "take-image-of-untranslated-disk": ["import-boot-disk"],
-    "translate": ["take-image-of-untranslated-disk"],
-    "create-boot-disk": ["translate"],
-    "create-instance": ["create-boot-disk"],
+    "create-instance": ["import-boot-disk"],
     "cleanup": ["create-instance"]
   }
 }

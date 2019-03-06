@@ -32,6 +32,8 @@ type StorageClientInterface interface {
 	FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error)
 	GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error)
 	WriteToGCS(destinationBucketName string, destinationObjectPath string, reader io.Reader) error
+	DeleteGcsPath(gcsPath string) error
+	Close() error
 }
 
 // BucketIteratorCreatorInterface represents GCS bucket creator
@@ -45,7 +47,7 @@ type BucketIteratorInterface interface {
 	Next() (*storage.BucketAttrs, error)
 }
 
-// BucketIteratorCreatorInterface represents GCS bucket creator
+// ObjectIteratorCreatorInterface represents GCS object iterator creator
 type ObjectIteratorCreatorInterface interface {
 	CreateObjectIterator(bucket string, objectPath string) ObjectIteratorInterface
 }
@@ -55,12 +57,13 @@ type ObjectIteratorInterface interface {
 	Next() (*storage.ObjectAttrs, error)
 }
 
-// TarGcsExtractor represents TAR GCS extractor responsible for extracting TAR archives from GCS to
+// TarGcsExtractorInterface represents TAR GCS extractor responsible for extracting TAR archives from GCS to
 // GCS
 type TarGcsExtractorInterface interface {
 	ExtractTarToGcs(tarGcsPath string, destinationGcsPath string) error
 }
 
+// StorageObjectDeleterInterface represents an object that is responsible for deleting GCS objects
 type StorageObjectDeleterInterface interface {
 	DeleteObject(bucket string, objectPath string) error
 }

@@ -20,19 +20,20 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/api/compute/v1"
 	"reflect"
 	"testing"
 )
 
 func TestValidateOsValid(t *testing.T) {
-	err := ValidateOs("ubuntu-1604")
+	err := ValidateOS("ubuntu-1604")
 	if err != nil {
 		t.Errorf("expected nil error, got `%v`", err)
 	}
 }
 
 func TestValidateOsInvalid(t *testing.T) {
-	err := ValidateOs("not-an-OS")
+	err := ValidateOS("not-an-OS")
 	if err == nil {
 		t.Errorf("expected non-nil error")
 	}
@@ -169,6 +170,34 @@ func TestParseWorkflowsInvalidPath(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestUpdateWorkflowInstancesConfiguredForNoExternalIP(t *testing.T) {
+	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
+	UpdateAllInstanceNoExternalIP(w, true)
+
+	if len((*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces[0].AccessConfigs) != 0 {
+		t.Errorf("Instance AccessConfigs not empty")
+	}
+}
+
+func TestUpdateWorkflowInstancesNotModifiedIfExternalIPAllowed(t *testing.T) {
+	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
+	UpdateAllInstanceNoExternalIP(w, false)
+
+	if len((*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces[0].AccessConfigs) != 1 {
+		t.Errorf("Instance AccessConfigs doesn't have exactly one instance")
+	}
+}
+
+func TestUpdateWorkflowInstancesNotModifiedIfNoNetworkInterfaceElement(t *testing.T) {
+	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
+	(*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces = nil
+	UpdateAllInstanceNoExternalIP(w, true)
+
+	if (*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces != nil {
+		t.Errorf("Instance NetworkInterfaces should stay nil if nil before update")
+	}
+}
+
 func assertWorkflow(t *testing.T, w *daisy.Workflow, project string, zone string, gcsPath string,
 	oauth string, dTimeout string, endpoint string, varMap map[string]string) {
 	tests := []struct {
@@ -189,4 +218,28 @@ func assertWorkflow(t *testing.T, w *daisy.Workflow, project string, zone string
 	if reflect.DeepEqual(w.Vars, varMap) {
 		t.Errorf("unexpected vars, want: %v, got: %v", varMap, w.Vars)
 	}
+}
+
+func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
+	w := daisy.New()
+	w.Steps = map[string]*daisy.Step{
+		"ci": {
+			CreateInstances: &daisy.CreateInstances{
+				{
+					Instance: compute.Instance{
+						Disks: []*compute.AttachedDisk{{Source: "key1"}},
+						NetworkInterfaces: []*compute.NetworkInterface{
+							{
+								Network: "n",
+								AccessConfigs: []*compute.AccessConfig{
+									{Type: "ONE_TO_ONE_NAT"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return w
 }

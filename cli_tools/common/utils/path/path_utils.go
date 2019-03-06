@@ -33,14 +33,15 @@ func RandString(n int) string {
 	return string(b)
 }
 
-func JoinUrl(urlStr string, pathStr string) string {
+// JoinURL extends URL with additional path
+func JoinURL(urlStr string, pathStr string) string {
 	u, _ := url.Parse(urlStr)
 	u.Path = path.Join(u.Path, pathStr)
 	return u.String()
 }
 
-// Ensures url ends with a /
-func ToDirectoryUrl(url string) string {
+// ToDirectoryURL ensures url ends with a /
+func ToDirectoryURL(url string) string {
 	if !strings.HasSuffix(url, "/") {
 		return url + "/"
 	}

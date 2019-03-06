@@ -15,7 +15,6 @@
 package domain
 
 import (
-	"google.golang.org/api/compute/v1"
 	"net/http"
 )
 
@@ -27,11 +26,6 @@ type ScratchBucketCreatorInterface interface {
 // ZoneRetrieverInterface represents Daisy GCE zone retriever
 type ZoneRetrieverInterface interface {
 	GetZone(storageRegion string, project string) (string, error)
-}
-
-// ComputeServiceInterface represents GCE compute service
-type ComputeServiceInterface interface {
-	GetZones(project string) ([]*compute.Zone, error)
 }
 
 // HTTPClientInterface represents HTTP client

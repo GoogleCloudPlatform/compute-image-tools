@@ -20,3 +20,13 @@ import "github.com/vmware/govmomi/ovf"
 type OvfDescriptorValidatorInterface interface {
 	ValidateOvfPackage(ovfDescriptor *ovf.Envelope, ovfGcsPath string) (*ovf.Envelope, error)
 }
+
+// OvfDescriptorLoaderInterface represents a loader for OVF descriptors
+type OvfDescriptorLoaderInterface interface {
+	Load(ovfGcsPath string) (*ovf.Envelope, error)
+}
+
+// MachineTypeProviderInterface is responsible for providing GCE machine type
+type MachineTypeProviderInterface interface {
+	GetMachineType() (string, error)
+}
