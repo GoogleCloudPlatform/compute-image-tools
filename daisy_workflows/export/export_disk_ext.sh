@@ -14,11 +14,10 @@
 # limitations under the License.
 set -x
 
-DISK_RESIZING_MON=disk_resizing_mon.sh
-
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 FORMAT=$(curl -f -H Metadata-Flavor:Google ${URL}/format)
+DISK_RESIZING_MON=$(curl -f -H Metadata-Flavor:Google ${URL}/resizing-script-name)
 
 # Strip gs://
 IMAGE_OUTPUT_PATH=${GS_PATH##*//}

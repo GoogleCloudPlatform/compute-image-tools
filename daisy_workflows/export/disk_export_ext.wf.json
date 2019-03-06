@@ -18,9 +18,9 @@
       "Value": "projects/compute-image-tools/global/images/family/debian-9-worker",
       "Description": "image to use for the exporter instance"
     },
-    "buffer_disk_size": {
+    "export_instance_disk_size": {
       "Value": "200",
-      "Description": "size of the export instances buffer disk, this disk starts from a fixed size which can guarantee a nice PD read speed, and grows on demand"
+      "Description": "size of the export instances buffer disk, this disk starts from a fixed size which can guarantee an acceptable PD read speed, and grows on demand"
     },
     "export_network": {
       "Value": "global/networks/default",
@@ -33,20 +33,19 @@
   },
   "Sources": {
     "${NAME}_export_disk_ext.sh": "./export_disk_ext.sh",
-    "disk_resizing_mon.sh": "./disk_resizing_mon.sh"
+    "${NAME}_disk_resizing_mon.sh": "./disk_resizing_mon.sh"
   },
   "Steps": {
     "setup-disks": {
       "CreateDisks": [
         {
-          "Name": "disk-${NAME}-os-${ID}",
+          "Name": "disk-${NAME}-os",
           "SourceImage": "${export_instance_disk_image}",
-          "Type": "pd-ssd",
-	  "ExactName": true
+          "Type": "pd-ssd"
         },
         {
           "Name": "disk-${NAME}-buffer-${ID}",
-          "SizeGb": "${buffer_disk_size}",
+          "SizeGb": "${export_instance_disk_size}",
           "Type": "pd-ssd",
 	  "ExactName": true
         }
@@ -57,7 +56,7 @@
         {
           "Name": "inst-${NAME}",
           "Disks": [
-            {"Source": "disk-${NAME}-os-${ID}"},
+            {"Source": "disk-${NAME}-os"},
             {"Source": "${source_disk}", "Mode": "READ_ONLY"},
             {"Source": "disk-${NAME}-buffer-${ID}"}
           ],
@@ -66,8 +65,8 @@
             "block-project-ssh-keys": "true",
             "gcs-path": "${OUTSPATH}/${NAME}",
             "format": "${format}",
-	    "instance-name": "inst-${NAME}",
-            "buffer-disk": "disk-${NAME}-buffer-${ID}"
+            "buffer-disk": "disk-${NAME}-buffer-${ID}",
+	    "resizing-script-name": "${NAME}_disk_resizing_mon.sh"
           },
           "networkInterfaces": [
             {
@@ -75,7 +74,7 @@
               "subnetwork": "${export_subnet}"
             }
           ],
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control", "https://www.googleapis.com/auth/cloud-platform"],
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control", "https://www.googleapis.com/auth/compute"],
           "StartupScript": "${NAME}_export_disk_ext.sh"
         }
       ]

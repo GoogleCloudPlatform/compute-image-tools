@@ -9,10 +9,6 @@ INTERVAL=10
 
 # Prepare parameters for resizing
 ZONE=$(curl "${METADATA_URL}/zone" -H "Metadata-Flavor: Google"| cut -d'/' -f4)
-if [[ $? -ne 0 ]]; then
-  echo "GCEExport: Failed to get metadata from ${METADATA_URL}/zone, will try again later."
-  continue
-fi
 BUFFER_DISK=$(curl "${METADATA_URL}/attributes/buffer-disk" -H "Metadata-Flavor: Google")
 
 echo "Max disk size ${MAX_SIZE}GB, min buffer size ${BUFFER_SIZE}GB, starting monitoring available disk buffer every ${INTERVAL}s..."
