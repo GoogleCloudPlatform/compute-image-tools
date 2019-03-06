@@ -1,3 +1,5 @@
-# To avoid entropy issues when intances boot
 PACKAGES install
+# To avoid entropy issues when intances boot
 haveged
+# used by the bootstrap script
+curl
