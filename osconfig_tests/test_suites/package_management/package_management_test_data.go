@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	api "google.golang.org/api/compute/v1"
 )
 
@@ -52,20 +53,21 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image string
+		uniqueSuffix := utils.RandString(5)
 
 		switch tuple.platform {
 		case "debian":
 			image = debianImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 		case "centos":
 			image = centosImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 		case "rhel":
 			image = rhelImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 		default:
 			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
@@ -88,29 +90,30 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
+		uniqueSuffix := utils.RandString(5)
 
 		switch tuple.platform {
 		case "debian":
 			image = debianImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
 		case "centos":
 			image = centosImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
 		case "rhel":
 			image = rhelImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
 		default:
 			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
 
-		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
-		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
+		instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
+		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
 		ss := getPackageInstallStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
@@ -137,29 +140,30 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
+		uniqueSuffix := utils.RandString(5)
 
 		switch tuple.platform {
 		case "debian":
 			image = debianImage
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		case "centos":
 			image = centosImage
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		case "rhel":
 			image = rhelImage
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
 			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
 
-		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
-		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
+		instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
+		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
 		ss := getPackageRemovalStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
@@ -186,32 +190,33 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 	for _, tuple := range tuples {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
+		uniqueSuffix := utils.RandString(5)
 
 		switch tuple.platform {
 		case "debian":
 			image = debianImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		case "centos":
 			image = centosImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		case "rhel":
 			image = rhelImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
 			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
 		}
 
-		instanceName := fmt.Sprintf("%s-%s", path.Base(image), testName)
-		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s", path.Base(image), testName), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
+		instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
+		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
 		ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
