@@ -22,10 +22,8 @@ do
   AVAILABLE_BUFFER=$(df -BG /dev/sdc --output=avail | sed -n 2p)
   AVAILABLE_BUFFER=${AVAILABLE_BUFFER%?}
   if [[ ${AVAILABLE_BUFFER} -ge ${BUFFER_MIN_SIZE} ]]; then
-    echo "ge!!!! ${AVAILABLE_BUFFER} vs ${BUFFER_MIN_SIZE}  "
     continue
   fi
-  echo "not ge!!!! ${AVAILABLE_BUFFER} vs ${BUFFER_MIN_SIZE}  "
 
   # Decide the new size of the device.
   CURRENT_DEVICE_SIZE_BYTES=$(lsblk /dev/sdc --output=size -b | sed -n 2p)
