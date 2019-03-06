@@ -97,7 +97,6 @@ type Workflow struct {
 	OAuthPath string `json:",omitempty"`
 	// Sources used by this workflow, map of destination to source.
 	Sources map[string]string `json:",omitempty"`
-	SourcesParents map[string]string `json:",omitempty"`
 
 	// Vars defines workflow variables, substitution is done at Workflow run time.
 	Vars  map[string]Var   `json:",omitempty"`
