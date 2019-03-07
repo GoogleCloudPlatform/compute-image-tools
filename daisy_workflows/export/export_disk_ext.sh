@@ -14,6 +14,7 @@
 # limitations under the License.
 set -x
 
+BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 FORMAT=$(curl -f -H Metadata-Flavor:Google ${URL}/format)
@@ -29,12 +30,12 @@ mkdir -p "/gs/${OUTS_PATH}"
 # 1. Disk image size info.
 SIZE_BYTES=$(lsblk /dev/sdb --output=size -b | sed -n 2p)
 # 2. Round up to the next GB.
-SIZE_OUTPUT_GB=$(awk "BEGIN {print int(((${SIZE_BYTES}-1)/1073741824) + 1)}")
+SIZE_OUTPUT_GB=$(awk "BEGIN {print int(((${SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 # 3. Add 5GB of additional space to max size to prevent the corner case that output
 # file is slightly larger than source disk.
 MAX_BUFFER_DISK_SIZE_GB=$(awk "BEGIN {print int(${SIZE_OUTPUT_GB} + 5)}")
 
-# Prepare buffer disk
+# Prepare buffer disk. We have confidence that it won't fail in this step.
 echo "GCEExport: Initializing buffer disk for qemu-img output..."
 sudo mkfs.ext4 /dev/sdc
 sudo mount /dev/sdc "/gs/${OUTS_PATH}"
@@ -50,7 +51,7 @@ fi
 echo ${out}
 
 echo "GCEExport: Launching disk size monitor in background..."
-bash ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
+${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
 
 echo "GCEExport: Exporting disk of size ${SIZE_OUTPUT_GB}GB and format ${FORMAT}."
 if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT 2>&1); then

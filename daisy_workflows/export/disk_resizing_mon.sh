@@ -1,5 +1,6 @@
 #!/bin/bash
 
+BYTES_1GB=1073741824
 METADATA_URL="http://metadata/computeMetadata/v1/instance"
 
 MAX_SIZE=$1
@@ -12,8 +13,7 @@ ZONE=$(curl "${METADATA_URL}/zone" -H "Metadata-Flavor: Google"| cut -d'/' -f4)
 BUFFER_DISK=$(curl "${METADATA_URL}/attributes/buffer-disk" -H "Metadata-Flavor: Google")
 
 echo "Max disk size ${MAX_SIZE}GB, min buffer size ${BUFFER_SIZE}GB, starting monitoring available disk buffer every ${INTERVAL}s..."
-while sleep ${INTERVAL};
-do
+while sleep ${INTERVAL}; do
   # Check whether available buffer space is lower than threshold.
   AVAILABLE_BUFFER=$(df -BG /dev/sdc --output=avail | sed -n 2p)
   AVAILABLE_BUFFER=${AVAILABLE_BUFFER%?}
@@ -23,7 +23,7 @@ do
 
   # Decide the new size of the device.
   CURRENT_DEVICE_SIZE_BYTES=$(lsblk /dev/sdc --output=size -b | sed -n 2p)
-  CURRENT_DEVICE_SIZE=$(awk "BEGIN {print int(((${CURRENT_DEVICE_SIZE_BYTES}-1)/1073741824) + 1)}")
+  CURRENT_DEVICE_SIZE=$(awk "BEGIN {print int(((${CURRENT_DEVICE_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
   NEXT_SIZE=$(awk "BEGIN {print int(${CURRENT_DEVICE_SIZE} + ${BUFFER_SIZE})}")
 
   echo "GCEExport: Resizing buffer disk from ${CURRENT_DEVICE_SIZE}GB to ${NEXT_SIZE}GB..."
