@@ -16,9 +16,14 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
+	"net/url"
 	"runtime"
+	"strconv"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
@@ -27,8 +32,17 @@ import (
 const (
 	// InstanceMetadata is the instance metadata URL.
 	InstanceMetadata = "http://metadata.google.internal/computeMetadata/v1/instance"
-	// ReportURL is where OS configurations are written in guest attributes.
+	// ReportURL is the guest attributes endpoint.
 	ReportURL = InstanceMetadata + "/guest-attributes"
+
+	googetRepoFilePath = "C:/ProgramData/GooGet/repos/google_osconfig.repo"
+	zypperRepoFilePath = "/etc/zypp/repos.d/google_osconfig.repo"
+	yumRepoFilePath    = "/etc/yum/repos.d/google_osconfig.repo"
+	aptRepoFilePath    = "/etc/apt/sources.list.d/google_osconfig.list"
+
+	osInventoryEnabledDefault = false
+	osPackageEnabledDefault   = false
+	osPatchEnabledDefault     = false
 )
 
 var (
@@ -37,20 +51,127 @@ var (
 	oauth            = flag.String("oauth", "", "path to oauth json file")
 	debug            = flag.Bool("debug", false, "set debug log verbosity")
 
-	googetRepoFilePath = flag.String("googet_repo_file", "C:/ProgramData/GooGet/repos/google_osconfig.repo", "googet repo file location")
-	zypperRepoFilePath = flag.String("zypper_repo_file", "/etc/zypp/repos.d/google_osconfig.repo", "zypper repo file location")
-	yumRepoFilePath    = flag.String("yum_repo_file", "/etc/yum/repos.d/google_osconfig.repo", "yum repo file location")
-	aptRepoFilePath    = flag.String("apt_repo_file", "/etc/apt/sources.list.d/google_osconfig.list", "apt repo file location")
-
-	osPackageEnabled bool
-	osPatchEnabled   bool
-
-	version string
+	agentConfig   *config
+	agentConfigMx sync.RWMutex
+	version       string
 )
 
-// ReadConfig reads and parses the osconfig config file.
-func ReadConfig() error {
-	return nil
+type config struct {
+	osInventoryEnabled, osPackageEnabled, osPatchEnabled                     bool
+	googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
+}
+
+func getAgentConfig() config {
+	agentConfigMx.RLock()
+	defer agentConfigMx.RUnlock()
+	return *agentConfig
+}
+
+func parseBool(s string) bool {
+	enabled, err := strconv.ParseBool(s)
+	if err != nil {
+		// Bad entry returns as not enabled.
+		return false
+	}
+	return enabled
+}
+
+type metadataJSON struct {
+	Instance instanceJSON
+	Project  projectJSON
+}
+
+type instanceJSON struct {
+	Attributes attributesJSON
+}
+
+type projectJSON struct {
+	Attributes attributesJSON
+}
+
+type attributesJSON struct {
+	OSInventoryEnabled string `json:"os-inventory-enabled"`
+	OSPatchEnabled     string `json:"os-patch-enabled"`
+	OSPackageEnabled   string `json:"os-package-enabled"`
+}
+
+func createConfigFromMetadata(md metadataJSON) *config {
+	c := &config{
+		osInventoryEnabled: osInventoryEnabledDefault,
+		osPackageEnabled:   osPackageEnabledDefault,
+		osPatchEnabled:     osPatchEnabledDefault,
+		googetRepoFilePath: googetRepoFilePath,
+		zypperRepoFilePath: zypperRepoFilePath,
+		yumRepoFilePath:    yumRepoFilePath,
+		aptRepoFilePath:    aptRepoFilePath,
+	}
+
+	// Check project first then instance as instance metadata overrides project.
+	if md.Project.Attributes.OSInventoryEnabled != "" {
+		c.osInventoryEnabled = parseBool(md.Project.Attributes.OSInventoryEnabled)
+	}
+	if md.Project.Attributes.OSPatchEnabled != "" {
+		c.osPatchEnabled = parseBool(md.Project.Attributes.OSPatchEnabled)
+	}
+	if md.Project.Attributes.OSPackageEnabled != "" {
+		c.osPackageEnabled = parseBool(md.Project.Attributes.OSPackageEnabled)
+	}
+
+	if md.Instance.Attributes.OSInventoryEnabled != "" {
+		c.osInventoryEnabled = parseBool(md.Instance.Attributes.OSInventoryEnabled)
+	}
+	if md.Instance.Attributes.OSPatchEnabled != "" {
+		c.osPatchEnabled = parseBool(md.Instance.Attributes.OSPatchEnabled)
+	}
+	if md.Instance.Attributes.OSPackageEnabled != "" {
+		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
+	}
+
+	return c
+}
+
+func formatError(err error) error {
+	if urlErr, ok := err.(*url.Error); ok {
+		if _, ok := urlErr.Err.(*net.DNSError); ok {
+			return fmt.Errorf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file")
+		}
+		if _, ok := urlErr.Err.(*net.OpError); ok {
+			return fmt.Errorf("network error when requesting metadata, make sure your instance has an active network and can reach the metadata server")
+		}
+	}
+	return err
+}
+
+// SetConfig sets the agent config.
+func SetConfig() error {
+	var md string
+	var webError error
+	webErrorCount := 0
+	for {
+		md, webError = metadata.Get("?recursive=true&alt=json")
+		if webError == nil {
+			break
+		}
+		// Try up to 3 times to wait for slow network initialization, after
+		// that resort to using defaults and returning the error.
+		if webErrorCount == 2 {
+			webError = formatError(webError)
+			break
+		}
+		webErrorCount++
+		time.Sleep(5 * time.Second)
+	}
+
+	var metadata metadataJSON
+	if err := json.Unmarshal([]byte(md), &metadata); err != nil {
+		return err
+	}
+
+	agentConfigMx.Lock()
+	agentConfig = createConfigFromMetadata(metadata)
+	agentConfigMx.Unlock()
+
+	return webError
 }
 
 // SvcPollInterval returns the frequency to poll the service.
@@ -98,32 +219,37 @@ func SvcEndpoint() string {
 
 // ZypperRepoFilePath is the location where the zypper repo file will be created.
 func ZypperRepoFilePath() string {
-	return *zypperRepoFilePath
+	return getAgentConfig().zypperRepoFilePath
 }
 
 // YumRepoFilePath is the location where the zypper repo file will be created.
 func YumRepoFilePath() string {
-	return *yumRepoFilePath
+	return getAgentConfig().yumRepoFilePath
 }
 
 // AptRepoFilePath is the location where the zypper repo file will be created.
 func AptRepoFilePath() string {
-	return *aptRepoFilePath
+	return getAgentConfig().aptRepoFilePath
 }
 
 // GoogetRepoFilePath is the location where the googet repo file will be created.
 func GoogetRepoFilePath() string {
-	return *googetRepoFilePath
+	return getAgentConfig().googetRepoFilePath
+}
+
+// OSInventoryEnabled indicates whether OSInventory should be enabled.
+func OSInventoryEnabled() bool {
+	return getAgentConfig().osInventoryEnabled
 }
 
 // OSPackageEnabled indicates whether OSPackage should be enabled.
 func OSPackageEnabled() bool {
-	return osPackageEnabled
+	return getAgentConfig().osPackageEnabled
 }
 
 // OSPatchEnabled indicates whether OSPatch should be enabled.
 func OSPatchEnabled() bool {
-	return osPatchEnabled
+	return getAgentConfig().osPatchEnabled
 }
 
 // Instance is the URI of the instance the agent is running on.

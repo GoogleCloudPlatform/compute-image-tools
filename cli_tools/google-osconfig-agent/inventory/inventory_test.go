@@ -41,7 +41,7 @@ func decodePackages(str string) packages.Packages {
 	return pkgs
 }
 
-func TestWriteInventory(t *testing.T) {
+func TestWrite(t *testing.T) {
 	inv := &InstanceInventory{
 		Hostname:      "Hostname",
 		LongName:      "LongName",
@@ -128,7 +128,7 @@ func TestWriteInventory(t *testing.T) {
 	}))
 	defer svr.Close()
 
-	writeInventory(inv, svr.URL)
+	write(inv, svr.URL)
 
 	for k, v := range want {
 		if v {

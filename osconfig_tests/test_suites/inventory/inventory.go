@@ -278,6 +278,10 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 					Key:   "enable-guest-attributes",
 					Value: func() *string { v := "true"; return &v }(),
 				},
+				&api.MetadataItems{
+					Key:   "os-inventory-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
