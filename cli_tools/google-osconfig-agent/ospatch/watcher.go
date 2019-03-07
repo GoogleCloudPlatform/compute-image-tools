@@ -65,7 +65,9 @@ func watchMetadata(c chan watchMetadataRet) {
 			attr: nil,
 			err:  err,
 		}
+		return
 	}
+
 	req.Header.Add("Metadata-Flavor", "Google")
 	resp, err := client.Do(req)
 	if err != nil {
@@ -73,6 +75,7 @@ func watchMetadata(c chan watchMetadataRet) {
 			attr: nil,
 			err:  err,
 		}
+		return
 	}
 
 	updateEtag(resp)
@@ -84,6 +87,7 @@ func watchMetadata(c chan watchMetadataRet) {
 			attr: nil,
 			err:  err,
 		}
+		return
 	}
 
 	var metadata attributesJSON
@@ -128,6 +132,7 @@ func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct
 				}
 				webError++
 				time.Sleep(5 * time.Second)
+				continue
 			}
 
 			patchJobName := strings.Split(ret.attr.PatchNotify, ",")[0]
