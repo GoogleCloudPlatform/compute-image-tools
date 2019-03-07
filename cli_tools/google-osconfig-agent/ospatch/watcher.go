@@ -99,7 +99,7 @@ func watchMetadata(c chan watchMetadataRet) {
 	}
 }
 
-func handleError(err error) string {
+func formatError(err error) string {
 	if urlErr, ok := err.(*url.Error); ok {
 		if _, ok := urlErr.Err.(*net.DNSError); ok {
 			return fmt.Sprintf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file.")
@@ -128,7 +128,7 @@ func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct
 				// Only log the second web error to avoid transient errors and
 				// not to spam the log on network failures.
 				if webError == 1 {
-					logger.Errorf(handleError(ret.err))
+					logger.Errorf(formatError(ret.err))
 				}
 				webError++
 				time.Sleep(5 * time.Second)

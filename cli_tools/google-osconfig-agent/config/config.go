@@ -130,7 +130,7 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	return c
 }
 
-func handleError(err error) error {
+func formatError(err error) error {
 	if urlErr, ok := err.(*url.Error); ok {
 		if _, ok := urlErr.Err.(*net.DNSError); ok {
 			return fmt.Errorf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file")
@@ -155,7 +155,7 @@ func SetConfig() error {
 		// Try up to 3 times to wait for slow network initialization, after
 		// that resort to using defaults and returning the error.
 		if webErrorCount == 2 {
-			webError = handleError(webError)
+			webError = formatError(webError)
 			break
 		}
 		webErrorCount++
