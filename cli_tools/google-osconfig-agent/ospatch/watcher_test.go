@@ -24,29 +24,6 @@ import (
 )
 
 func TestWatcher(t *testing.T) {
-	var c chan struct{}
-
-	var i int
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Close channel at second request.
-		if i == 1 {
-			close(c)
-		}
-		q := r.URL.Query()
-		if q.Get("name") == "cancel" {
-			close(c)
-		}
-		fmt.Fprintln(w, fmt.Sprintf(`{"osconfig-patch-notify":"%s"}`, q.Get("name")))
-
-		i++
-	}))
-	defer ts.Close()
-
-	var ran bool
-	action := func(_ context.Context, _ string) {
-		ran = true
-	}
-
 	ctx := context.Background()
 
 	var tests = []struct {
@@ -57,38 +34,57 @@ func TestWatcher(t *testing.T) {
 	}{
 		{
 			"normal case",
-			ts.URL + "?name=foo",
+			"?name=foo",
 			"",
 			true,
 		},
 		{
 			"no metadata",
-			ts.URL,
+			"",
 			"",
 			false,
 		},
 		{
 			"same patch run name",
-			ts.URL + "?name=foo",
+			"?name=foo",
 			"foo",
 			false,
 		},
 		{
 			"canceled case",
-			ts.URL + "?name=cancel",
+			"?name=cancel",
 			"",
 			false,
 		},
 	}
 	for _, tt := range tests {
-		metadataURL = tt.url
-		c = make(chan struct{})
-		i = 0
+		var i int
+		c := make(chan struct{})
+		var ran bool
+		action := func(_ context.Context, _ string) {
+			ran = true
+		}
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Close channel at second request.
+			if i == 1 {
+				close(c)
+			}
+			q := r.URL.Query()
+			if q.Get("name") == "cancel" {
+				close(c)
+			}
+			fmt.Fprintln(w, fmt.Sprintf(`{"osconfig-patch-notify":"%s"}`, q.Get("name")))
+
+			i++
+		}))
+
+		metadataURL = ts.URL + tt.url
 		ran = false
 		watcher(ctx, tt.name, c, action)
 		if ran != tt.wantRun {
 			t.Errorf("%s: wantRun=%t, got=%t", tt.desc, tt.wantRun, ran)
 		}
-
+		ts.Close()
 	}
 }

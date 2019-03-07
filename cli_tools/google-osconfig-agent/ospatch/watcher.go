@@ -34,18 +34,8 @@ const (
 
 var (
 	metadataURL         = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&wait_for_change=true&last_etag="
-	etag                = defaultEtag
 	currentPatchJobName = ""
 )
-
-func updateEtag(resp *http.Response) bool {
-	oldEtag := etag
-	etag = resp.Header.Get("etag")
-	if etag == "" {
-		etag = defaultEtag
-	}
-	return etag != oldEtag
-}
 
 type watchMetadataRet struct {
 	attr *attributesJSON
@@ -56,10 +46,10 @@ type attributesJSON struct {
 	PatchNotify string `json:"osconfig-patch-notify"`
 }
 
-func watchMetadata(c chan watchMetadataRet) {
+func watchMetadata(c chan watchMetadataRet, etag *string) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", metadataURL+etag, nil)
+	req, err := http.NewRequest("GET", metadataURL+*etag, nil)
 	if err != nil {
 		c <- watchMetadataRet{
 			attr: nil,
@@ -77,8 +67,7 @@ func watchMetadata(c chan watchMetadataRet) {
 		}
 		return
 	}
-
-	updateEtag(resp)
+	*etag = resp.Header.Get("etag")
 
 	md, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
@@ -114,11 +103,15 @@ func formatError(err error) string {
 func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct{}, action func(context.Context, string)) {
 	currentPatchJobName = savedPatchJobName
 	webError := 0
+	// We use a pointer so that each loops goroutine can update this.
+	// If this was a global var we would have a data race, and puting
+	// locks around it is more work than necessary.
+	etag := func() *string { e := defaultEtag; return &e }()
 	for {
 		c := make(chan watchMetadataRet)
-		go func(c chan watchMetadataRet) {
-			watchMetadata(c)
-		}(c)
+		go func(c chan watchMetadataRet, etag *string) {
+			watchMetadata(c, etag)
+		}(c, etag)
 
 		select {
 		case <-cancel:
