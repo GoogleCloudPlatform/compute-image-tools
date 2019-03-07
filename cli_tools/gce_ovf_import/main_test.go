@@ -15,21 +15,111 @@
 package main
 
 import (
+	"cloud.google.com/go/storage"
+	"context"
 	"errors"
+	"fmt"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/iterator"
 	"strconv"
 	"testing"
 )
 
-func TestSetUpWorkflowHappyPathFromOVA(t *testing.T) {
+func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
+	cliArgs := getAllCliArgs()
+	defer testutils.ClearStringFlag(cliArgs, "project", &project)()
+	defer testutils.ClearStringFlag(cliArgs, "zone", &zone)()
+	defer testutils.ClearStringFlag(cliArgs, "machine-type", &machineType)()
+	defer testutils.ClearStringFlag(cliArgs, "scratch-bucket-gcs-path", &scratchBucketGcsPath)()
+
+	defer testutils.BackupOsArgs()()
+	testutils.BuildOsArgs(cliArgs)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	ctx := context.Background()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
+	mockMetadataGce.EXPECT().ProjectID().Return("gceProject", nil)
+	mockMetadataGce.EXPECT().Zone().Return("europe-north1-b", nil)
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	createdScratchBucketName := "gceproject-ovf-import-bkt-europe-north1"
+	mockStorageClient.EXPECT().CreateBucket(createdScratchBucketName, "gceProject",
+		&storage.BucketAttrs{
+			Name:         createdScratchBucketName,
+			Location:     "europe-north1",
+			StorageClass: "REGIONAL",
+		}).Return(nil)
+
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockComputeClient.EXPECT().ListMachineTypes("gceProject", "europe-north1-b").
+		Return(machineTypes, nil).Times(1)
+
+	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+	mockOvfDescriptorLoader.EXPECT().Load(
+		fmt.Sprintf("gs://%v/ova-import-build123/ovf/", createdScratchBucketName)).Return(
+		createOVFDescriptor(), nil)
+
+	mockMockTarGcsExtractorInterface := mocks.NewMockTarGcsExtractorInterface(mockCtrl)
+	mockMockTarGcsExtractorInterface.EXPECT().ExtractTarToGcs(
+		"gs://ovfbucket/ovfpath/vmware.ova",
+		fmt.Sprintf("gs://%v/ova-import-build123/ovf", createdScratchBucketName)).
+		Return(nil).Times(1)
+
+	someBucketAttrs := &storage.BucketAttrs{
+		Name:         "some-bucket",
+		Location:     "us-west2",
+		StorageClass: "regional",
+	}
+	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
+	mockBucketIterator.EXPECT().Next().Return(someBucketAttrs, nil)
+	mockBucketIterator.EXPECT().Next().Return(nil, iterator.Done)
+
+	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
+	mockBucketIteratorCreator.EXPECT().
+		CreateBucketIterator(ctx, mockStorageClient, "gceProject").
+		Return(mockBucketIterator)
+
+	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../test_data/test_import_ovf.wf.json",
+		storageClient: mockStorageClient, computeClient: mockComputeClient, buildID: "build123",
+		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
+		ctx: ctx, bucketIteratorCreator: mockBucketIteratorCreator}
+	w, err := oi.setUpImportWorkflow()
+
+	assert.Nil(t, err)
+	assert.NotNil(t, w)
+
+	oi.modifyWorkflowPreValidate(w)
+	oi.modifyWorkflowPostValidate(w)
+	assert.Equal(t, "n1-highcpu-16", w.Vars["machine_type"].Value)
+	assert.Equal(t, "gceProject", w.Project)
+	assert.Equal(t, "europe-north1-b", w.Zone)
+	assert.Equal(t, fmt.Sprintf("gs://%v/", createdScratchBucketName), w.GCSPath)
+	assert.Equal(t, "oAuthFilePath", w.OAuthPath)
+	assert.Equal(t, "3h", w.DefaultTimeout)
+	assert.Equal(t, 3+3*3, len(w.Steps))
+	assert.Equal(t, "build123", (*w.Steps["create-instance"].CreateInstances)[0].
+		Instance.Labels["gce-ovf-import-build-id"])
+	assert.Equal(t, "uservalue1", (*w.Steps["create-instance"].CreateInstances)[0].
+		Instance.Labels["userkey1"])
+	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
+		Instance.Labels["userkey2"])
+	assert.Equal(t, fmt.Sprintf("gs://%v/ova-import-build123/ovf/", createdScratchBucketName),
+		oi.gcsPathToClean)
+}
+
+func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t *testing.T) {
 	cliArgs := getAllCliArgs()
 	defer testutils.SetStringP(&project, "aProject")()
-	defer testutils.SetStringP(&zone, "europe-north1-b")()
+	defer testutils.SetStringP(&zone, "europe-west2-b")()
 	defer testutils.ClearStringFlag(cliArgs, "machine-type", &machineType)()
 
 	defer testutils.BackupOsArgs()()
@@ -44,7 +134,7 @@ func TestSetUpWorkflowHappyPathFromOVA(t *testing.T) {
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
 	mockComputeClient := mocks.NewMockClient(mockCtrl)
-	mockComputeClient.EXPECT().ListMachineTypes("aProject", "europe-north1-b").
+	mockComputeClient.EXPECT().ListMachineTypes("aProject", "europe-west2-b").
 		Return(machineTypes, nil).Times(1)
 
 	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
@@ -68,7 +158,7 @@ func TestSetUpWorkflowHappyPathFromOVA(t *testing.T) {
 	oi.modifyWorkflowPostValidate(w)
 	assert.Equal(t, "n1-highcpu-16", w.Vars["machine_type"].Value)
 	assert.Equal(t, "aProject", w.Project)
-	assert.Equal(t, "europe-north1-b", w.Zone)
+	assert.Equal(t, "europe-west2-b", w.Zone)
 	assert.Equal(t, "gs://bucket/folder", w.GCSPath)
 	assert.Equal(t, "oAuthFilePath", w.OAuthPath)
 	assert.Equal(t, "3h", w.DefaultTimeout)

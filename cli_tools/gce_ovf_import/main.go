@@ -35,6 +35,7 @@ import (
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"log"
 	"os"
@@ -209,16 +210,17 @@ func createComputeClient(ctx *context.Context) (daisycompute.Client, error) {
 
 // OVFImporter is responsible for importing OVF into GCE
 type OVFImporter struct {
-	ctx                 context.Context
-	storageClient       commondomain.StorageClientInterface
-	computeClient       daisycompute.Client
-	tarGcsExtractor     commondomain.TarGcsExtractorInterface
-	mgce                commondomain.MetadataGCEInterface
-	ovfDescriptorLoader domain.OvfDescriptorLoaderInterface
-	gcsPathToClean      string
-	workflowPath        string
-	buildID             string
-	diskInfos           *[]ovfutils.DiskInfo
+	ctx                   context.Context
+	storageClient         commondomain.StorageClientInterface
+	computeClient         daisycompute.Client
+	tarGcsExtractor       commondomain.TarGcsExtractorInterface
+	mgce                  commondomain.MetadataGCEInterface
+	ovfDescriptorLoader   domain.OvfDescriptorLoaderInterface
+	bucketIteratorCreator commondomain.BucketIteratorCreatorInterface
+	gcsPathToClean        string
+	workflowPath          string
+	buildID               string
+	diskInfos             *[]ovfutils.DiskInfo
 }
 
 // NewOVFImporter creates an OVF importer, including automatically poulating dependencies,
@@ -243,11 +245,12 @@ func NewOVFImporter() (*OVFImporter, error) {
 		buildID = utils.RandString(5)
 	}
 	workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow)
+	bic := &storageutils.BucketIteratorCreator{}
 
 	ovfImporter := &OVFImporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
 		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, buildID: buildID,
 		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
-		mgce:                &computeutils.MetadataGCE{}}
+		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic}
 	return ovfImporter, nil
 }
 
@@ -312,10 +315,34 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 	return pathutils.ToDirectoryURL(ovfGcsPath), shouldCleanUp, err
 }
 
+func (oi *OVFImporter) createScratchBucketBucketIfDoesntExist() error {
+	bucket := strings.ToLower(
+		strings.Replace(*project, ":", "-", -1) + "-ovf-import-bkt-" + *region)
+	*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", bucket)
+	it := oi.bucketIteratorCreator.CreateBucketIterator(oi.ctx, oi.storageClient, *project)
+	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
+		if err != nil {
+			return err
+		}
+		if itBucketAttrs.Name == bucket {
+			return nil
+		}
+	}
+
+	log.Printf("Creating scratch bucket `%v` in %v region", bucket, *region)
+	if err := oi.storageClient.CreateBucket(
+		bucket, *project,
+		&storage.BucketAttrs{Name: bucket, Location: *region, StorageClass: "REGIONAL"}); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (oi *OVFImporter) buildTmpGcsPath() (string, error) {
 	if *scratchBucketGcsPath == "" {
-		//TODO
-		return "", fmt.Errorf("scratchBucketGcsPath is empty. OVA importer currently doesn't support inferring temporary bucket from project details")
+		if err := oi.createScratchBucketBucketIfDoesntExist(); err != nil {
+			return "", err
+		}
 	}
 	return pathutils.JoinURL(*scratchBucketGcsPath, fmt.Sprintf("ova-import-%v", oi.buildID)), nil
 }
