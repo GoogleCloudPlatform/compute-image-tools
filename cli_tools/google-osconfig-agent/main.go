@@ -19,6 +19,10 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
@@ -36,6 +40,21 @@ var version string
 func init() {
 	// We do this here so the -X value doesn't need the full path.
 	config.SetVersion(version)
+}
+
+func obtainLock(lockFile string) {
+	err := os.MkdirAll(filepath.Dir(lockFile), 0755)
+	if err != nil && !os.IsExist(err) {
+		logger.Fatalf("Cannot obtain agent lock: %v", err)
+	}
+	f, err := os.OpenFile(lockFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		if os.IsExist(err) {
+			logger.Fatalf("OSConfig agent lock already held, is the agent already running? Error: %v", err)
+		}
+		logger.Fatalf("Cannot obtain agent lock: %v", err)
+	}
+	f.Close()
 }
 
 type logWritter struct{}
@@ -83,6 +102,17 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
+	// TODO: move to a different locking system or move lockFile definition to config.
+	lockFile := "/etc/osconfig/lock"
+	if runtime.GOOS == "windows" {
+		lockFile = `C:\Program Files\Google\OSConfig\lock`
+	}
+
+	obtainLock(lockFile)
+	// Remove the lock file at the end of main or if logger.Fatal is called.
+	logger.DeferedFatalFuncs = append(logger.DeferedFatalFuncs, func() { os.Remove(lockFile) })
+	defer os.Remove(lockFile)
+
 	if err := config.SetConfig(); err != nil {
 		logger.Errorf(err.Error())
 	}
@@ -99,15 +129,24 @@ func main() {
 	logger.Init(ctx, proj)
 	defer logger.Close()
 
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		select {
+		case <-c:
+			logger.Fatalf("Ctrl-C caught, shutting down.")
+		}
+	}()
+
 	switch action := flag.Arg(0); action {
-	case "":
+	case "", "run":
 		if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, "run"); err != nil {
 			logger.Fatalf("service.Register error: %v", err)
 		}
 	case "noservice":
 		run(ctx)
 		return
-	case "inventory":
+	case "inventory", "osinventory":
 		inventory.Run()
 		tasker.Close()
 		return
