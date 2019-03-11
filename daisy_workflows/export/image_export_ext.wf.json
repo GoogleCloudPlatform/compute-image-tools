@@ -54,15 +54,9 @@
           "export_subnet": "${export_subnet}"
         }
       }
-    },
-    "delete-disks": {
-      "DeleteResources": {
-        "Disks": ["disk-${NAME}"]
-      }
     }
   },
   "Dependencies": {
-    "export-disk": ["setup-disks"],
-    "delete-disks": ["export-disk"]
+    "export-disk": ["setup-disks"]
   }
 }
