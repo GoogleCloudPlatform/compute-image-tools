@@ -94,7 +94,8 @@
     },
     "delete-inst": {
       "DeleteResources": {
-        "Instances": ["inst-${NAME}"]
+        "Instances": ["inst-${NAME}"],
+	"Disks": ["disk-${NAME}-os", "disk-${NAME}-buffer-${ID}"]
       }
     },
     "copy-image-object": {
