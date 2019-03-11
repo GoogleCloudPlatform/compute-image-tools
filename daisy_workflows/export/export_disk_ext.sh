@@ -35,10 +35,13 @@ SIZE_OUTPUT_GB=$(awk "BEGIN {print int(((${SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 # file is slightly larger than source disk.
 MAX_BUFFER_DISK_SIZE_GB=$(awk "BEGIN {print int(${SIZE_OUTPUT_GB} + 5)}")
 
-# Prepare buffer disk. We have confidence that it won't fail in this step.
+# Prepare buffer disk.
 echo "GCEExport: Initializing buffer disk for qemu-img output..."
-sudo mkfs.ext4 /dev/sdc
-sudo mount /dev/sdc "/gs/${OUTS_PATH}"
+mkfs.ext4 /dev/sdc
+mount /dev/sdc "/gs/${OUTS_PATH}"
+if [[ $? -ne 0 ]]; then
+  echo "ExportFailed: Failed to prepare buffer disk by mkfs + mount."
+fi
 
 # Fetch disk size monitor script from GCS1
 DISK_RESIZING_MON_GCS_PATH=gs://${OUTS_PATH%/*}/sources/${DISK_RESIZING_MON}
@@ -51,7 +54,8 @@ fi
 echo ${out}
 
 echo "GCEExport: Launching disk size monitor in background..."
-bash ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
+chmod +x ${DISK_RESIZING_MON_LOCAL_PATH}
+${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
 
 echo "GCEExport: Exporting disk of size ${SIZE_OUTPUT_GB}GB and format ${FORMAT}."
 if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT 2>&1); then
