@@ -1,5 +1,5 @@
 #!/bin/bash
-i# Copyright 2017 Google Inc. All Rights Reserved.
+i# Copyright 2019 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,12 +32,12 @@ fi
 
 echo "GCECreateDisk: Fullfilling disk of size ${SIZE}GB."
 SIZE_MB=$(awk "BEGIN {print int(${SIZE} * 1024)}")
-sudo mkfs.ext4 /dev/sdb
-sudo mkdir -p /mnt/sdb
-sudo mount /dev/sdb /mnt/sdb
-sudo dd if=/dev/zero of=/mnt/sdb/reserved.space count=${RESERVED_SPACE} bs=1M
-sudo dd if=/dev/urandom of=/mnt/sdb/random.file count=${SIZE_MB} bs=1M
-sudo rm /mnt/sdb/reserved.space
+mkfs.ext4 /dev/sdb
+mkdir -p /mnt/sdb
+mount /dev/sdb /mnt/sdb
+dd if=/dev/zero of=/mnt/sdb/reserved.space count=${RESERVED_SPACE} bs=1M
+dd if=/dev/urandom of=/mnt/sdb/random.file count=${SIZE_MB} bs=1M
+rm /mnt/sdb/reserved.space
 
 echo "create disk success"
 sync
