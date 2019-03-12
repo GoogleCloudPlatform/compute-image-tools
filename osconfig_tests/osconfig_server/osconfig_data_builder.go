@@ -79,6 +79,47 @@ func BuildZypperPackageConfig(installs, removes []*osconfigpb.Package, repos []*
 	}
 }
 
+func BuildAptRepository(archiveType osconfigpb.AptRepository_ArchiveType, uri, distribution, keyuri string, components []string) *osconfigpb.AptRepository {
+	return &osconfigpb.AptRepository{
+		ArchiveType:  archiveType,
+		Uri:          uri,
+		Distribution: distribution,
+		Components:   components,
+		KeyUri:       keyuri,
+	}
+}
+
+func BuildYumRepository(id, name, baseUrl string, gpgkeys []string) *osconfigpb.YumRepository {
+	return &osconfigpb.YumRepository{
+		Id:          id,
+		DisplayName: name,
+		BaseUrl:     baseUrl,
+		GpgKeys:     gpgkeys,
+	}
+}
+
+func BuildZypperRepository(id, name, baseUrl string, gpgkeys []string) *osconfigpb.ZypperRepository {
+	return &osconfigpb.ZypperRepository{
+		Id:          id,
+		DisplayName: name,
+		BaseUrl:     baseUrl,
+		GpgKeys:     gpgkeys,
+	}
+}
+
+func BuildGooRepository(name, url string) *osconfigpb.GooRepository {
+	return &osconfigpb.GooRepository{
+		Name: name,
+		Url:  url,
+	}
+}
+
+func BuildWindowsUpdateConfig(uri string) *osconfigpb.WindowsUpdateConfig {
+	return &osconfigpb.WindowsUpdateConfig{
+		WindowsUpdateServerUri: uri,
+	}
+}
+
 // BuildWUPackageConfig create a window update config
 func BuildWUPackageConfig(wusu string) *osconfigpb.WindowsUpdateConfig {
 	return &osconfigpb.WindowsUpdateConfig{
