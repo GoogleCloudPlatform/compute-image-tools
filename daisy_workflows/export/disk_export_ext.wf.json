@@ -20,7 +20,7 @@
     },
     "export_instance_disk_size": {
       "Value": "200",
-      "Description": "size of the export instances disk, this disk is unused for the export but a larger size increase PD read speed"
+      "Description": "size of the export instances buffer disk, this disk starts from a fixed size which can guarantee an acceptable PD read speed, and grows on demand"
     },
     "export_network": {
       "Value": "global/networks/default",
@@ -32,16 +32,22 @@
     }
   },
   "Sources": {
-    "${NAME}_export_disk_ext.sh": "./export_disk_ext.sh"
+    "${NAME}_export_disk_ext.sh": "./export_disk_ext.sh",
+    "${NAME}_disk_resizing_mon.sh": "./disk_resizing_mon.sh"
   },
   "Steps": {
     "setup-disks": {
       "CreateDisks": [
         {
-          "Name": "disk-${NAME}",
+          "Name": "disk-${NAME}-os",
           "SourceImage": "${export_instance_disk_image}",
-          "SizeGb": "${export_instance_disk_size}",
           "Type": "pd-ssd"
+        },
+        {
+          "Name": "disk-${NAME}-buffer-${ID}",
+          "SizeGb": "${export_instance_disk_size}",
+          "Type": "pd-ssd",
+	  "ExactName": true
         }
       ]
     },
@@ -49,12 +55,18 @@
       "CreateInstances": [
         {
           "Name": "inst-${NAME}",
-          "Disks": [{"Source": "disk-${NAME}"}, {"Source": "${source_disk}", "Mode": "READ_ONLY"}],
+          "Disks": [
+            {"Source": "disk-${NAME}-os"},
+            {"Source": "${source_disk}", "Mode": "READ_ONLY"},
+            {"Source": "disk-${NAME}-buffer-${ID}"}
+          ],
           "MachineType": "n1-highcpu-4",
           "Metadata": {
             "block-project-ssh-keys": "true",
             "gcs-path": "${OUTSPATH}/${NAME}",
-            "format": "${format}"
+            "format": "${format}",
+            "buffer-disk": "disk-${NAME}-buffer-${ID}",
+	    "resizing-script-name": "${NAME}_disk_resizing_mon.sh"
           },
           "networkInterfaces": [
             {
@@ -62,7 +74,7 @@
               "subnetwork": "${export_subnet}"
             }
           ],
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control"],
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control", "https://www.googleapis.com/auth/compute"],
           "StartupScript": "${NAME}_export_disk_ext.sh"
         }
       ]

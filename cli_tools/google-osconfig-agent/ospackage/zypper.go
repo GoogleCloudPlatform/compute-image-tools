@@ -69,7 +69,7 @@ func zypperRepositories(repos []*osconfigpb.ZypperRepository, repoFile string) e
 func zypperChanges(packageInstalls, packageRemovals []*osconfigpb.Package) error {
 	var errs []string
 
-	inv := inventory.GetInventory()
+	inv := inventory.Get()
 	changes := getNecessaryChanges(inv.InstalledPackages.Zypper, inv.PackageUpdates.Zypper, packageInstalls, packageRemovals)
 
 	if changes.packagesToInstall != nil {
