@@ -14,21 +14,9 @@ i# Copyright 2019 Google Inc. All Rights Reserved.
 # limitations under the License.
 set -x
 
-BYTES_1GB=1073741824
 METADATA_URL="http://metadata/computeMetadata/v1/instance"
-DISK_DATA_NAME=$(curl -f -H Metadata-Flavor:Google ${METADATA_URL}/attributes/disk-data-name)
 SIZE=$(curl -f -H Metadata-Flavor:Google ${METADATA_URL}/attributes/disk-size)
-IMAGE_DESTINATION=$(curl -f -H Metadata-Flavor:Google ${METADATA_URL}/attributes/image-destination)
-ZONE=$(curl -f -H Metadata-Flavor:Google ${METADATA_URL}/zone | cut -d'/' -f4)
 RESERVED_SPACE=50 #50MB reserved space so system can still run
-
-echo "GCECreateDisk: Checking whether image has been created."
-IMAGE_URI=$(gcloud compute images list --project compute-image-tools-test --uri --filter="name=(${IMAGE_DESTINATION})")
-echo "Image uri: ${IMAGE_URI}"
-if [[ ${IMAGE_URI} == https* ]]; then
-  echo "CreateDiskFailed: Image ${IMAGE_DESTINATION} exists. Skip creating image."
-  exit
-fi
 
 echo "GCECreateDisk: Fullfilling disk of size ${SIZE}GB."
 SIZE_MB=$(awk "BEGIN {print int(${SIZE} * 1024)}")
