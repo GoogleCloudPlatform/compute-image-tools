@@ -87,7 +87,7 @@ type win32_QuickFixEngineering struct {
 
 type (
 	IUpdateSession    = *ole.IDispatch
-	IUpdateCollection = *ole.VARIANT
+	IUpdateCollection = *ole.IDispatch
 )
 
 func getStringSlice(dis *ole.IDispatch) ([]string, error) {
@@ -168,12 +168,10 @@ func wuaUpdates(query string) ([]WUAPackage, error) {
 	}
 	defer session.Release()
 
-	updtsRaw, err := GetWUAUpdateCollection(session, query)
+	updts, err := GetWUAUpdateCollection(session, query)
 	if err != nil {
 		return nil, err
 	}
-
-	updts := updtsRaw.ToIDispatch()
 
 	count, err := updts.GetProperty("Count")
 	if err != nil {
@@ -343,7 +341,12 @@ func GetWUAUpdateCollection(session IUpdateSession, query string) (IUpdateCollec
 
 	// returns IUpdateCollection
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa386107(v=vs.85).aspx
-	return result.GetProperty("Updates")
+	updtsRaw, err := result.GetProperty("Updates")
+	if err != nil {
+		return nil, fmt.Errorf("error calling GetProperty Updates on ISearchResult: %v", err)
+	}
+
+	return updtsRaw.ToIDispatch(), nil
 }
 
 // quickFixEngineering queries the wmi object win32_QuickFixEngineering for a list of installed updates.

@@ -160,15 +160,13 @@ func (r *patchRun) saveState() (shouldStop bool) {
 	return false
 }
 
-func (r *patchRun) finishAndReportError(ctx context.Context, msg string, err error) {
+func (r *patchRun) finishAndReportError(ctx context.Context, msg string) {
 	r.Complete = true
 	r.EndedAt = time.Now()
 	r.PatchStep = completeFailed
-	errMsg := fmt.Sprintf(msg, err)
-	logger.Errorf(errMsg)
-	_, rptErr := reportPatchDetails(ctx, r.Job.PatchJobName, osconfigpb.Instance_FAILED, 0, errMsg)
-	if rptErr != nil {
-		logger.Errorf("Failed to report patch failure. Error: %v", rptErr)
+	logger.Errorf(msg)
+	if _, err := reportPatchDetails(ctx, r.Job.PatchJobName, osconfigpb.Instance_FAILED, 0, msg); err != nil {
+		logger.Errorf("Failed to report patch failure. Error: %v", err)
 		return
 	}
 	r.saveState()
@@ -207,12 +205,14 @@ func (r *patchRun) rebootIfNeeded(ctx context.Context, postUpdate bool) (shouldS
 	var err error
 	if r.Job.PatchConfig.RebootConfig == osconfigpb.PatchConfig_ALWAYS && postUpdate {
 		reboot = true
+		logger.Infof("PatchConfig dictates a reboot.")
 	} else {
 		reboot, err = systemRebootRequired()
 		if err != nil {
-			r.finishAndReportError(ctx, "Unable to check if reboot is required: %v", err)
+			r.finishAndReportError(ctx, fmt.Sprintf("Error checking if a system reboot is required: %v", err))
 			return true
 		}
+		logger.Infof("System indicates a reboot is required.")
 	}
 
 	if reboot {
@@ -220,19 +220,18 @@ func (r *patchRun) rebootIfNeeded(ctx context.Context, postUpdate bool) (shouldS
 			return true
 		}
 
+		r.PatchStep = postPatchRebooted
+		r.saveState()
+
 		if r.Job.DryRun {
 			logger.Infof("Dry run - not rebooting for patch job '%s'", r.Job.PatchJobName)
 		} else {
 			err := rebootSystem()
 			if err != nil {
-				r.finishAndReportError(ctx, "Failed to reboot system: %v", err)
+				r.finishAndReportError(ctx, fmt.Sprintf("Failed to reboot system: %v", err))
 				return true
 			}
-		}
-		r.PatchStep = postPatchRebooted
-		r.saveState()
 
-		if !r.Job.DryRun {
 			// Reboot can take a bit, shutdown the agent so other activities don't start.
 			os.Exit(0)
 			return true
@@ -244,7 +243,7 @@ func (r *patchRun) rebootIfNeeded(ctx context.Context, postUpdate bool) (shouldS
 func (r *patchRun) reportSucceeded(ctx context.Context) {
 	isFinalRebootRequired, err := systemRebootRequired()
 	if err != nil {
-		r.finishAndReportError(ctx, "Unable to check if reboot is required: %v", err)
+		r.finishAndReportError(ctx, fmt.Sprintf("Unable to check if reboot is required: %v", err))
 		return
 	}
 
@@ -301,16 +300,15 @@ func (r *patchRun) runPatch(ctx context.Context) {
 	}
 
 	if patchStepIndex[r.PatchStep] <= patchStepIndex[applyPatch] {
-		if r.reportState(ctx, osconfigpb.Instance_APPLYING_PATCHES) {
-			return
-		}
-
 		if r.Job.DryRun {
+			if r.reportState(ctx, osconfigpb.Instance_APPLYING_PATCHES) {
+				return
+			}
 			logger.Infof("Dry run - No updates applied for patch job '%s'", r.Job.PatchJobName)
 		} else {
-			err = runUpdates(r.Job.PatchConfig)
+			err = runUpdates(ctx, r)
 			if err != nil {
-				r.finishAndReportError(ctx, "Failed to apply patches: %v", err)
+				r.finishAndReportError(ctx, fmt.Sprintf("Failed to apply patches: %v", err))
 				return
 			}
 		}
@@ -362,8 +360,7 @@ func ackPatch(ctx context.Context, patchJobName string) {
 
 func reportPatchDetails(ctx context.Context, patchJobName string, patchState osconfigpb.Instance_PatchState, attemptCount int64, failureReason string) (*osconfigpb.ReportPatchJobInstanceDetailsResponse, error) {
 	// TODO: add retries. Patching shouldn't continue if we can't talk to the server.
-
-	logger.Infof("Reporting patch details name:'%s', state:'%s', failReason:'%s'", patchJobName, patchState, failureReason)
+	logger.Debugf("Reporting patch details name:'%s', state:'%s', failReason:'%s'", patchJobName, patchState, failureReason)
 
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 	if err != nil {
