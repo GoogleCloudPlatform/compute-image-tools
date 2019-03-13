@@ -16,11 +16,14 @@ package ovfutils
 
 import (
 	"cloud.google.com/go/storage"
+
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
+
 	"testing"
 )
 

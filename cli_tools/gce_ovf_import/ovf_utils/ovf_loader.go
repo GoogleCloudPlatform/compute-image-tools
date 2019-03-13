@@ -16,6 +16,7 @@ package ovfutils
 
 import (
 	"bytes"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/vmware/govmomi/ovf"

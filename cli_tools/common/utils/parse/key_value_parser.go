@@ -20,9 +20,9 @@ import (
 )
 
 // ParseKeyValues parses a comma-separated list of [key=value] pairs.
-func ParseKeyValues(keyValues *string) (*map[string]string, error) {
+func ParseKeyValues(keyValues string) (map[string]string, error) {
 	labelsMap := make(map[string]string)
-	splits := strings.Split(*keyValues, ",")
+	splits := strings.Split(keyValues, ",")
 	for _, split := range splits {
 		if len(split) == 0 {
 			continue
@@ -33,7 +33,7 @@ func ParseKeyValues(keyValues *string) (*map[string]string, error) {
 		}
 		labelsMap[key] = value
 	}
-	return &labelsMap, nil
+	return labelsMap, nil
 }
 
 func parseKeyValue(keyValueSplit string) (string, string, error) {
@@ -44,7 +44,7 @@ func parseKeyValue(keyValueSplit string) (string, string, error) {
 	key := strings.TrimSpace(splits[0])
 	value := strings.TrimSpace(splits[1])
 	if len(key) == 0 {
-		return "", "", fmt.Errorf("leu is empty string: %v", keyValueSplit)
+		return "", "", fmt.Errorf("key is empty string: %v", keyValueSplit)
 	}
 	if len(value) == 0 {
 		return "", "", fmt.Errorf("value is empty string: %v", keyValueSplit)

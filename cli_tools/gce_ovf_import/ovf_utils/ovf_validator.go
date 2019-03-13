@@ -16,6 +16,7 @@ package ovfutils
 
 import (
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/vmware/govmomi/ovf"
 )

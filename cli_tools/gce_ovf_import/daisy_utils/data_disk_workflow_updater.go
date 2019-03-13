@@ -16,9 +16,11 @@ package daisyovfutils
 
 import (
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
+
 	"time"
 )
 

@@ -16,11 +16,14 @@ package main
 
 import (
 	"cloud.google.com/go/storage"
+
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
 	"testing"
 )
 

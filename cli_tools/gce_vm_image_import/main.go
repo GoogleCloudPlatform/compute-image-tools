@@ -17,9 +17,11 @@ package main
 
 import (
 	"cloud.google.com/go/storage"
+
 	"context"
 	"flag"
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -31,6 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
+
 	"log"
 	"os"
 	"path"
@@ -79,7 +82,7 @@ var (
 	region  *string
 	buildID = os.Getenv("BUILD_ID")
 
-	userLabels            *map[string]string
+	userLabels            map[string]string
 	currentExecutablePath *string
 )
 
@@ -129,7 +132,7 @@ func validateAndParseFlags() error {
 
 	if *labels != "" {
 		var err error
-		userLabels, err = parseutils.ParseKeyValues(labels)
+		userLabels, err = parseutils.ParseKeyValues(*labels)
 		if err != nil {
 			return err
 		}

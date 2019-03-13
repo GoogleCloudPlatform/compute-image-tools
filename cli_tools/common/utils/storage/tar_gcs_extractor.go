@@ -19,8 +19,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+
 	"io"
 	"log"
 	"path"

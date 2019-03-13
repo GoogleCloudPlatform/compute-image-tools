@@ -1,5 +1,5 @@
 {
-  "Name": "import-ova",
+  "Name": "import-ovf",
   "DefaultTimeout": "240m",
   "Vars": {
     "boot_disk_file": {

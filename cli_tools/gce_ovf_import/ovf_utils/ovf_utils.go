@@ -16,8 +16,10 @@ package ovfutils
 
 import (
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/vmware/govmomi/ovf"
+
 	"math"
 	"sort"
 	"strconv"

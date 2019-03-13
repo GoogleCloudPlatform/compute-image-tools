@@ -16,16 +16,16 @@ package parseutils
 
 import (
 	"github.com/stretchr/testify/assert"
+
 	"testing"
 )
 
 func TestParseKeyValuesReturnsEmptyMap(t *testing.T) {
-	keyValueCsv := ""
-	keyValueMap, err := ParseKeyValues(&keyValueCsv)
+	keyValueMap, err := ParseKeyValues("")
 	assert.Nil(t, err)
 	assert.NotNil(t, keyValueMap)
-	if len(*keyValueMap) > 0 {
-		t.Errorf("key-values map %v should be empty, but it's size is %v.", keyValueMap, len(*keyValueMap))
+	if len(keyValueMap) > 0 {
+		t.Errorf("key-values map %v should be empty, but it's size is %v.", keyValueMap, len(keyValueMap))
 	}
 }
 
@@ -38,14 +38,14 @@ func TestParseKeyValuesWithWhiteChars(t *testing.T) {
 }
 
 func doTestParseKeyValues(keyValueStr string, t *testing.T) {
-	keyValuesMap, err := ParseKeyValues(&keyValueStr)
+	keyValuesMap, err := ParseKeyValues(keyValueStr)
 	assert.Nil(t, err)
 	assert.NotNil(t, keyValuesMap)
-	if len(*keyValuesMap) != 2 {
-		t.Errorf("key-value map %v should be have size 2, but it's %v.", keyValuesMap, len(*keyValuesMap))
+	if len(keyValuesMap) != 2 {
+		t.Errorf("key-value map %v should be have size 2, but it's %v.", keyValuesMap, len(keyValuesMap))
 	}
-	assert.Equal(t, "uservalue1", (*keyValuesMap)["userkey1"])
-	assert.Equal(t, "uservalue2", (*keyValuesMap)["userkey2"])
+	assert.Equal(t, "uservalue1", (keyValuesMap)["userkey1"])
+	assert.Equal(t, "uservalue2", (keyValuesMap)["userkey2"])
 }
 
 func TestParseKeyValuesNoEqualsSignSingleValue(t *testing.T) {
@@ -85,7 +85,7 @@ func doTestParseKeyValuesNoEqualsSign(keyValueStr string, t *testing.T) {
 }
 
 func doTestParseKeyValuesError(keyValueStr string, errorMsg string, t *testing.T) {
-	valuesMap, err := ParseKeyValues(&keyValueStr)
+	valuesMap, err := ParseKeyValues(keyValueStr)
 	if valuesMap != nil {
 		t.Errorf(errorMsg, valuesMap, keyValueStr)
 	}

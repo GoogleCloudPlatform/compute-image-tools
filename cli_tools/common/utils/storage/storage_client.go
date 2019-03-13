@@ -16,15 +16,13 @@ package storageutils
 
 import (
 	"cloud.google.com/go/storage"
+
 	"context"
-	"encoding/json"
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
 	"google.golang.org/api/iterator"
-	"google.golang.org/api/option"
-	storagev1 "google.golang.org/api/storage/v1"
-	htransport "google.golang.org/api/transport/http"
+
 	"io"
 	"io/ioutil"
 	"log"
@@ -42,20 +40,14 @@ var (
 type StorageClient struct {
 	ObjectDeleter commondomain.StorageObjectDeleterInterface
 	StorageClient *storage.Client
-	HTTPClient    domain.HTTPClientInterface
 	Ctx           context.Context
 	Oic           commondomain.ObjectIteratorCreatorInterface
 }
 
 // NewStorageClient creates a StorageClient
 func NewStorageClient(ctx context.Context, client *storage.Client) (*StorageClient, error) {
-	o := []option.ClientOption{option.WithScopes(storagev1.DevstorageReadOnlyScope)}
-	hc, _, err := htransport.NewClient(ctx, o...)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create storage HTTP client %v", err.Error())
-	}
-	sc := &StorageClient{StorageClient: client, HTTPClient: &HTTPClient{hc},
-		Ctx: ctx, Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}}
+	sc := &StorageClient{StorageClient: client, Ctx: ctx,
+		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}}
 
 	sc.ObjectDeleter = &StorageObjectDeleter{sc}
 	return sc, nil
@@ -74,27 +66,7 @@ func (sc *StorageClient) Buckets(projectID string) *storage.BucketIterator {
 
 // GetBucketAttrs returns bucket attributes for given bucket
 func (sc *StorageClient) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
-
-	resp, err := sc.HTTPClient.Get("https://www.googleapis.com/storage/v1/b/" + bucket + "?fields=location%2CstorageClass")
-	defer resp.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode == http.StatusOK {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		bucketAttrs := &storage.BucketAttrs{}
-
-		if err = json.Unmarshal(body, &bucketAttrs); err != nil {
-			return nil, err
-		}
-		return bucketAttrs, nil
-	}
-	return nil, fmt.Errorf("error while retrieving `%v` bucket attributes: Error %v, %v", bucket, resp.StatusCode, resp.Status)
+	return sc.StorageClient.Bucket(bucket).Attrs(sc.Ctx)
 }
 
 // GetObjectReader creates a new Reader to read the contents of the object.
@@ -192,8 +164,7 @@ func (sc *StorageClient) WriteToGCS(
 		return err
 	}
 
-	fileWriter.Close()
-	return nil
+	return fileWriter.Close()
 }
 
 // Close closes the Client.

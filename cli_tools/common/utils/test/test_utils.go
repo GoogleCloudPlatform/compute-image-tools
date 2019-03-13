@@ -62,6 +62,16 @@ func SetStringP(p **string, value string) func() {
 	}
 }
 
+// SetIntP sets a value for an int pointer and returns a function that restores the pointer
+// to initial state that can be used with defer
+func SetIntP(p **int, value int) func() {
+	oldValue := *p
+	*p = &value
+	return func() {
+		*p = oldValue
+	}
+}
+
 // SetBoolP sets a value for a boolean pointer and returns a function that restores the pointer
 // to initial state that can be used with defer
 func SetBoolP(p **bool, value bool) func() {
@@ -84,4 +94,12 @@ func ClearStringFlag(cliArgs map[string]interface{}, flagKey string, flag **stri
 func ClearBoolFlag(cliArgs map[string]interface{}, flagKey string, flag **bool) func() {
 	delete(cliArgs, flagKey)
 	return SetBoolP(flag, false)
+}
+
+// ClearIntFlag clears a flag from a map with CLI args as well as from a pointer holding
+// the corresponding value internally. Returns a function which restores the pointer to the previous
+// value. This function can be used with defer.
+func ClearIntFlag(cliArgs map[string]interface{}, flagKey string, flag **int) func() {
+	delete(cliArgs, flagKey)
+	return SetIntP(flag, 0)
 }

@@ -16,10 +16,12 @@ package ovfgceutils
 
 import (
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
+
 	"sort"
 )
 
@@ -27,6 +29,7 @@ import (
 // properties defined in OVF descriptor
 type MachineTypeProvider struct {
 	OvfDescriptor *ovf.Envelope
+	MachineType   string
 	ComputeClient daisycompute.Client
 	Project       string
 	Zone          string
@@ -34,6 +37,10 @@ type MachineTypeProvider struct {
 
 // GetMachineType returns machine type based on properties in OVF descriptor
 func (mp *MachineTypeProvider) GetMachineType() (string, error) {
+	if mp.MachineType != "" {
+		return mp.MachineType, nil
+	}
+
 	virtualSystem, err := ovfutils.GetVirtualSystem(mp.OvfDescriptor)
 	if err != nil {
 		return "", err

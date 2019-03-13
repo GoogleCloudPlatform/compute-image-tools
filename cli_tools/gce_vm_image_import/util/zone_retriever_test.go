@@ -16,10 +16,12 @@ package gcevmimageimportutil
 
 import (
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
 	"testing"
 )
 

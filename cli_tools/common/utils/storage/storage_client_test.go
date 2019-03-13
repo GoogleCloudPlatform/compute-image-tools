@@ -16,138 +16,16 @@ package storageutils
 
 import (
 	"cloud.google.com/go/storage"
-	"context"
+
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/iterator"
-	"io"
-	"net/http"
+
 	"testing"
 )
-
-func TestGetBucketAttrs(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	bucket := "a_bucket"
-	expected := &storage.BucketAttrs{Name: bucket, Location: "a_region"}
-	bucketAttrsStr := "{\"Name\": \"a_bucket\", \"Location\": \"a_region\"}"
-	bucketAttrsBytes := []byte(bucketAttrsStr)
-
-	mockResponseBody := mocks.NewMockReadCloser(mockCtrl)
-	mockResponseBody.EXPECT().Close()
-	mockResponseBody.EXPECT().
-		Read(gomock.Any()).
-		Return(len(bucketAttrsBytes), io.EOF).
-		Do(func(p []byte) {
-			copy(p, bucketAttrsBytes)
-		})
-
-	mockHTTPClient := mocks.NewMockHttpClientInterface(mockCtrl)
-	mockHTTPClient.EXPECT().
-		Get("https://www.googleapis.com/storage/v1/b/"+bucket+"?fields=location%2CstorageClass").
-		Return(&http.Response{Body: mockResponseBody, StatusCode: http.StatusOK}, nil)
-
-	sc := StorageClient{StorageClient: nil, HTTPClient: mockHTTPClient, Ctx: context.Background()}
-	result, err := sc.GetBucketAttrs(bucket)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, expected, result)
-}
-
-func TestGetBucketAttrsReturnsErrorWhenHttpGetReturnsError(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	bucket := "a_bucket"
-
-	mockResponseBody := mocks.NewMockReadCloser(mockCtrl)
-	mockResponseBody.EXPECT().Close()
-
-	mockHTTPClient := mocks.NewMockHttpClientInterface(mockCtrl)
-	mockHTTPClient.EXPECT().
-		Get("https://www.googleapis.com/storage/v1/b/"+bucket+"?fields=location%2CstorageClass").
-		Return(&http.Response{Body: mockResponseBody, StatusCode: http.StatusOK},
-			fmt.Errorf("some error"))
-
-	sc := StorageClient{StorageClient: nil, HTTPClient: mockHTTPClient, Ctx: context.Background()}
-	result, err := sc.GetBucketAttrs(bucket)
-	assert.NotNil(t, err)
-	assert.Nil(t, result)
-}
-
-func TestGetBucketAttrsReturnsErrorWhenHttpStatusNotOK(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	bucket := "a_bucket"
-
-	mockResponseBody := mocks.NewMockReadCloser(mockCtrl)
-	mockResponseBody.EXPECT().Close()
-
-	mockHTTPClient := mocks.NewMockHttpClientInterface(mockCtrl)
-	mockHTTPClient.EXPECT().
-		Get("https://www.googleapis.com/storage/v1/b/"+bucket+"?fields=location%2CstorageClass").
-		Return(&http.Response{Body: mockResponseBody, StatusCode: http.StatusBadRequest}, nil)
-
-	sc := StorageClient{StorageClient: nil, HTTPClient: mockHTTPClient, Ctx: context.Background()}
-	result, err := sc.GetBucketAttrs(bucket)
-	assert.NotNil(t, err)
-	assert.Nil(t, result)
-}
-
-func TestGetBucketAttrsReturnsErrorWhenReadingFails(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	bucket := "a_bucket"
-
-	mockResponseBody := mocks.NewMockReadCloser(mockCtrl)
-	mockResponseBody.EXPECT().Close()
-	mockResponseBody.EXPECT().
-		Read(gomock.Any()).
-		Return(0, fmt.Errorf("some error"))
-
-	mockHTTPClient := mocks.NewMockHttpClientInterface(mockCtrl)
-	mockHTTPClient.EXPECT().
-		Get("https://www.googleapis.com/storage/v1/b/"+bucket+"?fields=location%2CstorageClass").
-		Return(&http.Response{Body: mockResponseBody, StatusCode: http.StatusOK}, nil)
-
-	sc := StorageClient{StorageClient: nil, HTTPClient: mockHTTPClient, Ctx: context.Background()}
-	result, err := sc.GetBucketAttrs(bucket)
-	assert.NotNil(t, err)
-	assert.Nil(t, result)
-}
-
-func TestGetBucketAttrsReturnsErrorInvalidJson(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	bucket := "a_bucket"
-	bucketAttrsStr := "NOT__VALID_JSON"
-	bucketAttrsBytes := []byte(bucketAttrsStr)
-
-	mockResponseBody := mocks.NewMockReadCloser(mockCtrl)
-	mockResponseBody.EXPECT().Close()
-	mockResponseBody.EXPECT().
-		Read(gomock.Any()).
-		Return(len(bucketAttrsBytes), io.EOF).
-		Do(func(p []byte) {
-			copy(p, bucketAttrsBytes)
-		})
-
-	mockHTTPClient := mocks.NewMockHttpClientInterface(mockCtrl)
-	mockHTTPClient.EXPECT().
-		Get("https://www.googleapis.com/storage/v1/b/"+bucket+"?fields=location%2CstorageClass").
-		Return(&http.Response{Body: mockResponseBody, StatusCode: http.StatusOK}, nil)
-
-	sc := StorageClient{StorageClient: nil, HTTPClient: mockHTTPClient, Ctx: context.Background()}
-	result, err := sc.GetBucketAttrs(bucket)
-	assert.NotNil(t, err)
-	assert.Nil(t, result)
-}
 
 func TestDeleteGcsPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)

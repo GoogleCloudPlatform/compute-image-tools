@@ -16,15 +16,17 @@ package ovfgceutils
 
 import (
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
+
 	"testing"
 )
 
-func TestGetMachineTypeSuccess(t *testing.T) {
+func TestGetMachineTypeFromOVFSuccess(t *testing.T) {
 	doTestGetMachineTypeSuccess(t, 1, 0.55, "f1-micro")
 	doTestGetMachineTypeSuccess(t, 1, 0.6, "f1-micro")
 	doTestGetMachineTypeSuccess(t, 1, 0.61, "g1-small")
@@ -115,7 +117,7 @@ func TestGetMachineTypeNoMemory(t *testing.T) {
 	assert.Equal(t, "", result)
 }
 
-func TestGetMachineMultipleMemoryItemsPicksFirst(t *testing.T) {
+func TestGetMachineTypeMultipleMemoryItemsPicksFirst(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -146,7 +148,7 @@ func TestGetMachineMultipleMemoryItemsPicksFirst(t *testing.T) {
 	assert.Equal(t, "n1-highcpu-2", result)
 }
 
-func TestGetMachineMultipleCPUItemsPicksFirst(t *testing.T) {
+func TestGetMachineTypeMultipleCPUItemsPicksFirst(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -177,7 +179,7 @@ func TestGetMachineMultipleCPUItemsPicksFirst(t *testing.T) {
 	assert.Equal(t, "n1-standard-16", result)
 }
 
-func TestGetMachineErrorRetrievingMachineTypes(t *testing.T) {
+func TestGetMachineTypeErrorRetrievingMachineTypes(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -205,6 +207,14 @@ func TestGetMachineErrorRetrievingMachineTypes(t *testing.T) {
 	result, err := mtp.GetMachineType()
 	assert.NotNil(t, err)
 	assert.Equal(t, "", result)
+}
+
+func TestGetMachineTypeFromMachineTypeFlag(t *testing.T) {
+	mtp := MachineTypeProvider{MachineType: "n4-standard-2"}
+
+	result, err := mtp.GetMachineType()
+	assert.Nil(t, err)
+	assert.Equal(t, "n4-standard-2", result)
 }
 
 func doTestGetMachineTypeSuccess(t *testing.T, cpuCount uint, memoryGB float64, expectedMachineType string) {

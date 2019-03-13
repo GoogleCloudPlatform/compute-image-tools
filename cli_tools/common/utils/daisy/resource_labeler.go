@@ -20,7 +20,7 @@ import "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 // labels used to track resource creation by import processes.
 type ResourceLabeler struct {
 	BuildID                   string
-	UserLabels                *map[string]string
+	UserLabels                map[string]string
 	BuildIDLabelKey           string
 	InstanceLabelKeyRetriever InstanceLabelKeyRetrieverFunc
 	DiskLabelKeyRetriever     DiskLabelKeyRetrieverFunc
@@ -87,11 +87,11 @@ func (rl *ResourceLabeler) extendWithUserLabels(labels map[string]string) map[st
 		labels = make(map[string]string)
 	}
 
-	if rl.UserLabels == nil || len(*rl.UserLabels) == 0 {
+	if rl.UserLabels == nil || len(rl.UserLabels) == 0 {
 		return labels
 	}
 
-	for key, value := range *rl.UserLabels {
+	for key, value := range rl.UserLabels {
 		labels[key] = value
 	}
 	return labels

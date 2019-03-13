@@ -18,6 +18,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
 	"strings"
 	"testing"
 )
@@ -49,7 +50,7 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 		},
 	}
 
-	rl := createTestResourceLabeler(buildID, &userLabels)
+	rl := createTestResourceLabeler(buildID, userLabels)
 	rl.LabelResources(w)
 	validateLabels(t, &(*w.Steps["ci"].CreateInstances)[0].Instance.Labels,
 		"gce-image-import-tmp", buildID, &existingLabels)
@@ -63,7 +64,7 @@ func TestUpdateWorkflowDisksLabelled(t *testing.T) {
 	existingLabels := map[string]string{"labelKey": "labelValue"}
 	w := createWorkflowWithCreateDisksStep()
 
-	rl := createTestResourceLabeler(buildID, &userLabels)
+	rl := createTestResourceLabeler(buildID, userLabels)
 	rl.LabelResources(w)
 	validateLabels(t, &(*w.Steps["cd"].CreateDisks)[0].Disk.Labels, "gce-image-import-tmp",
 		buildID, &existingLabels)
@@ -86,7 +87,7 @@ func TestUpdateWorkflowIncludedWorkflow(t *testing.T) {
 		},
 	}
 
-	rl := createTestResourceLabeler(buildID, &userLabels)
+	rl := createTestResourceLabeler(buildID, userLabels)
 	rl.LabelResources(w)
 	validateLabels(t, &(*childWorkflow.Steps["cd"].CreateDisks)[0].Disk.Labels,
 		"gce-image-import-tmp", buildID, &existingLabels)
@@ -128,7 +129,7 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 		},
 	}
 
-	rl := createTestResourceLabeler(buildID, &userLabels)
+	rl := createTestResourceLabeler(buildID, userLabels)
 	rl.LabelResources(w)
 
 	validateLabels(t, &(*w.Steps["cimg"].CreateImages)[0].Image.Labels, "gce-image-import",
@@ -142,7 +143,7 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 		"gce-image-import-tmp", buildID)
 }
 
-func createTestResourceLabeler(buildID string, userLabels *map[string]string) *ResourceLabeler {
+func createTestResourceLabeler(buildID string, userLabels map[string]string) *ResourceLabeler {
 	return &ResourceLabeler{
 		BuildID: buildID, UserLabels: userLabels, BuildIDLabelKey: "gce-image-import-build-id",
 		InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {

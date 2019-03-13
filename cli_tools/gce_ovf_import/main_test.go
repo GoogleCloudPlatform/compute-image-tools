@@ -16,9 +16,11 @@ package main
 
 import (
 	"cloud.google.com/go/storage"
+
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
@@ -26,6 +28,7 @@ import (
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
+
 	"strconv"
 	"testing"
 )
@@ -65,13 +68,13 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 
 	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
 	mockOvfDescriptorLoader.EXPECT().Load(
-		fmt.Sprintf("gs://%v/ova-import-build123/ovf/", createdScratchBucketName)).Return(
+		fmt.Sprintf("gs://%v/ovf-import-build123/ovf/", createdScratchBucketName)).Return(
 		createOVFDescriptor(), nil)
 
 	mockMockTarGcsExtractorInterface := mocks.NewMockTarGcsExtractorInterface(mockCtrl)
 	mockMockTarGcsExtractorInterface.EXPECT().ExtractTarToGcs(
 		"gs://ovfbucket/ovfpath/vmware.ova",
-		fmt.Sprintf("gs://%v/ova-import-build123/ovf", createdScratchBucketName)).
+		fmt.Sprintf("gs://%v/ovf-import-build123/ovf", createdScratchBucketName)).
 		Return(nil).Times(1)
 
 	someBucketAttrs := &storage.BucketAttrs{
@@ -112,7 +115,7 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 		Instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["userkey2"])
-	assert.Equal(t, fmt.Sprintf("gs://%v/ova-import-build123/ovf/", createdScratchBucketName),
+	assert.Equal(t, fmt.Sprintf("gs://%v/ovf-import-build123/ovf/", createdScratchBucketName),
 		oi.gcsPathToClean)
 }
 
@@ -138,12 +141,12 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 		Return(machineTypes, nil).Times(1)
 
 	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
-	mockOvfDescriptorLoader.EXPECT().Load("gs://bucket/folder/ova-import-build123/ovf/").Return(
+	mockOvfDescriptorLoader.EXPECT().Load("gs://bucket/folder/ovf-import-build123/ovf/").Return(
 		createOVFDescriptor(), nil)
 
 	mockMockTarGcsExtractorInterface := mocks.NewMockTarGcsExtractorInterface(mockCtrl)
 	mockMockTarGcsExtractorInterface.EXPECT().ExtractTarToGcs(
-		"gs://ovfbucket/ovfpath/vmware.ova", "gs://bucket/folder/ova-import-build123/ovf").
+		"gs://ovfbucket/ovfpath/vmware.ova", "gs://bucket/folder/ovf-import-build123/ovf").
 		Return(nil).Times(1)
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../test_data/test_import_ovf.wf.json",
@@ -169,7 +172,7 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 		Instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["userkey2"])
-	assert.Equal(t, "gs://bucket/folder/ova-import-build123/ovf/", oi.gcsPathToClean)
+	assert.Equal(t, "gs://bucket/folder/ovf-import-build123/ovf/", oi.gcsPathToClean)
 }
 
 func TestSetUpWorkflowPopulateMissingParametersError(t *testing.T) {
@@ -193,7 +196,7 @@ func TestSetUpWorkflowPopulateMissingParametersError(t *testing.T) {
 
 func TestSetUpWorkflowPopulateFlagValidationFailed(t *testing.T) {
 	cliArgs := getAllCliArgs()
-	defer testutils.ClearStringFlag(cliArgs, instanceNameFlagKey, &instanceName)()
+	defer testutils.ClearStringFlag(cliArgs, instanceNameFlagKey, &instanceNames)()
 	defer testutils.BackupOsArgs()()
 	testutils.BuildOsArgs(cliArgs)
 
@@ -229,7 +232,7 @@ func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 
 	mockMockTarGcsExtractorInterface := mocks.NewMockTarGcsExtractorInterface(mockCtrl)
 	mockMockTarGcsExtractorInterface.EXPECT().ExtractTarToGcs(
-		"gs://ovfbucket/ovfpath/vmware.ova", "gs://bucket/folder/ova-import-build123/ovf").
+		"gs://ovfbucket/ovfpath/vmware.ova", "gs://bucket/folder/ovf-import-build123/ovf").
 		Return(errors.New("tar error")).Times(1)
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../test_data/test_import_ovf.wf.json",
@@ -286,7 +289,7 @@ func TestCleanUp(t *testing.T) {
 func TestFlagsInstanceNameNotProvided(t *testing.T) {
 	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
-	defer testutils.ClearStringFlag(cliArgs, instanceNameFlagKey, &instanceName)()
+	defer testutils.ClearStringFlag(cliArgs, instanceNameFlagKey, &instanceNames)()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, t)
 }
 
