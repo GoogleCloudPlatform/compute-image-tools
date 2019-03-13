@@ -103,6 +103,7 @@ func main() {
 	ctx := context.Background()
 
 	// TODO: move to a different locking system or move lockFile definition to config.
+	// This type of simple file locking can cause issues if the process crashes without cleanup.
 	lockFile := "/etc/osconfig/lock"
 	if runtime.GOOS == "windows" {
 		lockFile = `C:\Program Files\Google\OSConfig\lock`
@@ -110,7 +111,7 @@ func main() {
 
 	obtainLock(lockFile)
 	// Remove the lock file at the end of main or if logger.Fatal is called.
-	logger.DeferedFatalFuncs = append(logger.DeferedFatalFuncs, func() { os.Remove(lockFile) })
+	logger.DeferredFatalFuncs = append(logger.DeferredFatalFuncs, func() { os.Remove(lockFile) })
 	defer os.Remove(lockFile)
 
 	if err := config.SetConfig(); err != nil {
