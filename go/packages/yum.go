@@ -37,6 +37,7 @@ func init() {
 	if runtime.GOOS != "windows" {
 		yum = "/usr/bin/yum"
 	}
+	YumExists = exists(yum)
 }
 
 // InstallYumPackages installs yum packages.

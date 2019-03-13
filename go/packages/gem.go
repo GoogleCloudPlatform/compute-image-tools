@@ -31,6 +31,7 @@ func init() {
 	if runtime.GOOS != "windows" {
 		gem = "/usr/bin/gem"
 	}
+	GemExists = exists(gem)
 }
 
 func gemUpdates(run runFunc) ([]PkgInfo, error) {

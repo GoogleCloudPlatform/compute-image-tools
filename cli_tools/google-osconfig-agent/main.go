@@ -54,7 +54,7 @@ func run(ctx context.Context) {
 	ticker := time.NewTicker(config.SvcPollInterval())
 	for {
 		if err := config.SetConfig(); err != nil {
-			logger.Errorf(err.Error())
+			logger.Fatalf(err.Error())
 		}
 
 		// This sets up the patching system to run in the background.
@@ -82,6 +82,10 @@ func run(ctx context.Context) {
 func main() {
 	flag.Parse()
 	ctx := context.Background()
+
+	if err := config.SetConfig(); err != nil {
+		logger.Errorf(err.Error())
+	}
 
 	if config.Debug() {
 		packages.DebugLogger = log.New(&logWritter{}, "", 0)

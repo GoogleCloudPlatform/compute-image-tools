@@ -32,6 +32,7 @@ func init() {
 	if runtime.GOOS != "windows" {
 		pip = "/usr/bin/pip"
 	}
+	PipExists = exists(pip)
 }
 
 func pipUpdates(run runFunc) ([]PkgInfo, error) {

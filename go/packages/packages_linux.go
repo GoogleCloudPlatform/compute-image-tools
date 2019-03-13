@@ -19,14 +19,6 @@ import (
 	"strings"
 )
 
-func init() {
-	AptExists = exists(aptGet)
-	YumExists = exists(yum)
-	ZypperExists = exists(zypper)
-	GemExists = exists(gem)
-	PipExists = exists(pip)
-}
-
 // UpdatePackages installs all available package updates for all known system
 // package managers.
 func UpdatePackages() error {
