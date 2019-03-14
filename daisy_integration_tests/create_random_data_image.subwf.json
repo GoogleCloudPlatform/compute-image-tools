@@ -7,14 +7,6 @@
     "export_instance_disk_image": {
       "Value": "projects/compute-image-tools/global/images/family/debian-9-worker",
       "Description": "image to use for the worker instance"
-    },
-    "export_network": {
-      "Value": "global/networks/default",
-      "Description": "Network to use for the worker instance"
-    },
-    "export_subnet": {
-      "Value": "",
-      "Description": "SubNetwork to use for the worker instance"
     }
   },
   "Sources": {
@@ -49,6 +41,7 @@
 	    "disk-data-name": "disk-data-${NAME}-${ID}",
 	    "image-destination": "image-export-given-size-${size}gb"
           },
+<<<<<<< HEAD
           "networkInterfaces": [
             {
               "network": "${export_network}",
@@ -56,6 +49,8 @@
             }
           ],
           "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control", "https://www.googleapis.com/auth/compute"],
+=======
+>>>>>>> origin/master
           "StartupScript": "create_random_data_disk.sh"
         }
       ]

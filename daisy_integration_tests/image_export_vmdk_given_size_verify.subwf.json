@@ -33,10 +33,6 @@
           "name": "tester",
           "metadata": {
             "startup-script": "mkdir /mnt/sdb -p && sudo mount /dev/sdb /mnt/sdb && if ls /mnt/sdb/random.file 1> /dev/null 2>&1; then echo 'SUCCESS wVnWw3a41CVe3mBVvTMn'; else echo 'FAILURE wVnWw3a41CVe3mBVvTMn'; fi"
-          },
-          "Scopes": [
-            "https://www.googleapis.com/auth/devstorage.read_write"
-          ]
         }
       ]
     },

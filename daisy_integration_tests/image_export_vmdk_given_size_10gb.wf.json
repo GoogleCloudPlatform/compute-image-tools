@@ -13,8 +13,7 @@
       "SubWorkflow": {
         "Path": "image_export_vmdk_given_size.subwf.json",
         "Vars": {
-          "size": "${size}",
-          "gcs_export": "${SCRATCHPATH}/created-by-export-test-given-size-${size}gb.vmdk"
+          "size": "${size}"
         }
       }
     }

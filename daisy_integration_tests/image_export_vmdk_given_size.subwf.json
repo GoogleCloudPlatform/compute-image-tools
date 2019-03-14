@@ -5,7 +5,7 @@
       "Required": true
     },
     "gcs_export": {
-      "Value": "${SCRATCHPATH}/created-by-export-test-given-size-${size}gb.vmdk"
+      "Value": "${SCRATCHPATH}/created-by-export-test-given-size.vmdk"
     },
     "verification_disk_name": "verify-export-${ID}"
   },
@@ -15,7 +15,6 @@
         "Path": "../daisy_workflows/export/image_export_ext.wf.json",
         "Vars": {
           "destination": "${gcs_export}",
-          "export_instance_disk_image": "projects/compute-image-tools-test/global/images/family/debian-9-worker",
           "format": "vmdk",
           "source_image": "projects/compute-image-tools-test/global/images/image-export-given-size-${size}gb"
         }
