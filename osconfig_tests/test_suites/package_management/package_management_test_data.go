@@ -40,7 +40,7 @@ const (
 )
 
 var (
-	tuples = []platformPkgManagerTuple{{"debian", "apt"}, {"centos", "yum"}, {"rhel", "yum"}}
+	platformPkgManagers = []platformPkgManagerTuple{{"debian", "apt"}, {"centos", "yum"}, {"rhel", "yum"}}
 )
 
 // vf is the the vertificationFunction that is used in each testSetup during assertion of test case.
@@ -52,7 +52,7 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	testName := "createosconfigtest"
 	desc := "test osconfig creation"
 	packageName := "cowsay"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image string
 		uniqueSuffix := utils.RandString(5)
@@ -90,7 +90,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	testName := "packageinstalltest"
 	desc := "test package installation"
 	packageName := "cowsay"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
@@ -141,7 +141,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	testName := "packageremovaltest"
 	desc := "test package removal"
 	packageName := "cowsay"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
@@ -192,7 +192,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 	testName := "packageinstallremovaltest"
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
@@ -246,7 +246,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 	testName := "packageinstallfromnewrepotest"
 	desc := "test package installation from new package"
 	packageName := "osconfig-agent-test"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
