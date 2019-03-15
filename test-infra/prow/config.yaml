@@ -128,7 +128,7 @@ periodics:
       args:
       - "-out_path=/artifacts/junit.xml"
       # One project is enough for daisy tests, no test requires a write lock.
-      - "-projects=compute-image-test-pool-006"
+      - "-projects=compute-image-test-pool-001"
       - "-zone=us-central1-c"
       - "daisy_integration_tests/daisy_e2e_daily.test.gotmpl"
       env:
