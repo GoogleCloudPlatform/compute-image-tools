@@ -21,8 +21,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
@@ -40,21 +38,8 @@ var version string
 func init() {
 	// We do this here so the -X value doesn't need the full path.
 	config.SetVersion(version)
-}
 
-func obtainLock(lockFile string) {
-	err := os.MkdirAll(filepath.Dir(lockFile), 0755)
-	if err != nil && !os.IsExist(err) {
-		logger.Fatalf("Cannot obtain agent lock: %v", err)
-	}
-	f, err := os.OpenFile(lockFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-	if err != nil {
-		if os.IsExist(err) {
-			logger.Fatalf("OSConfig agent lock already held, is the agent already running? Error: %v", err)
-		}
-		logger.Fatalf("Cannot obtain agent lock: %v", err)
-	}
-	f.Close()
+	obtainLock()
 }
 
 type logWritter struct{}
@@ -98,21 +83,18 @@ func run(ctx context.Context) {
 	}
 }
 
+var deferredFuncs []func()
+
 func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	// TODO: move to a different locking system or move lockFile definition to config.
-	// This type of simple file locking can cause issues if the process crashes without cleanup.
-	lockFile := "/etc/osconfig/lock"
-	if runtime.GOOS == "windows" {
-		lockFile = `C:\Program Files\Google\OSConfig\lock`
-	}
-
-	obtainLock(lockFile)
-	// Remove the lock file at the end of main or if logger.Fatal is called.
-	logger.DeferredFatalFuncs = append(logger.DeferredFatalFuncs, func() { os.Remove(lockFile) })
-	defer os.Remove(lockFile)
+	logger.DeferredFatalFuncs = append(logger.DeferredFatalFuncs, deferredFuncs...)
+	defer func() {
+		for _, f := range deferredFuncs {
+			f()
+		}
+	}()
 
 	if err := config.SetConfig(); err != nil {
 		logger.Errorf(err.Error())
