@@ -43,7 +43,7 @@ func obtainLock() {
 	select {
 	case err := <-c:
 		if err != nil {
-			logger.Fatalf("OSConfig agent lock already held, is the agent already running? Error: %v", err)
+			logger.Fatalf("Cannot obtain agent lock, is the agent already running? Error: %v", err)
 		}
 	case <-time.After(time.Second):
 		logger.Fatalf("OSConfig agent lock already held, is the agent already running?")
