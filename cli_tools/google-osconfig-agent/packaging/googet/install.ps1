@@ -18,7 +18,7 @@ try {
   if (-not (Get-Service 'google_osconfig_agent' -ErrorAction SilentlyContinue)) {
     New-Service -DisplayName 'Google OSConfig Agent' `
                 -Name 'google_osconfig_agent' `
-                -BinaryPathName '"C:\Program Files\Google\OSConfig\google_osconfig_agent.exe" run' `
+                -BinaryPathName '"C:\Program Files\Google\OSConfig\google_osconfig_agent.exe"' `
                 -StartupType Automatic `
                 -Description 'Google OSConfig service agent'
   }
