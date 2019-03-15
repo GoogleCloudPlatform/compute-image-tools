@@ -40,6 +40,12 @@ func init() {
 	config.SetVersion(version)
 
 	obtainLock()
+	logger.DeferredFatalFuncs = append(logger.DeferredFatalFuncs, deferredFuncs...)
+	defer func() {
+		for _, f := range deferredFuncs {
+			f()
+		}
+	}()
 }
 
 type logWritter struct{}
@@ -88,13 +94,6 @@ var deferredFuncs []func()
 func main() {
 	flag.Parse()
 	ctx := context.Background()
-
-	logger.DeferredFatalFuncs = append(logger.DeferredFatalFuncs, deferredFuncs...)
-	defer func() {
-		for _, f := range deferredFuncs {
-			f()
-		}
-	}()
 
 	if err := config.SetConfig(); err != nil {
 		logger.Errorf(err.Error())
