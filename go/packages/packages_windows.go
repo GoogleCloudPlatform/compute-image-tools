@@ -21,10 +21,6 @@ import (
 	"github.com/go-ole/go-ole/oleutil"
 )
 
-func init() {
-	GooGetExists = exists(googet)
-}
-
 // GetPackageUpdates gets available package updates GooGet as well as any
 // available updates from Windows Update Agent.
 func GetPackageUpdates() (Packages, []string) {

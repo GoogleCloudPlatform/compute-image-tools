@@ -83,6 +83,10 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
+	if err := config.SetConfig(); err != nil {
+		logger.Errorf(err.Error())
+	}
+
 	if config.Debug() {
 		packages.DebugLogger = log.New(&logWritter{}, "", 0)
 	}

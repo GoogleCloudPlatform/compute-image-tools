@@ -24,6 +24,7 @@ import (
 	"hash"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	osconfig "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
@@ -101,8 +102,14 @@ func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string
 
 func setConfig(res *osconfigpb.LookupConfigsResponse) error {
 	var errs []string
-
 	if res.Goo != nil && packages.GooGetExists {
+		if _, err := os.Stat(config.GoogetRepoFilePath()); os.IsNotExist(err) {
+			logger.Debugf("Repo file does not exist, will create one...")
+			if err := os.MkdirAll(filepath.Dir(config.GoogetRepoFilePath()), 07550); err != nil {
+				logger.Errorf("Error creating repo file: %v", err)
+				errs = append(errs, fmt.Sprintf("error creating googet repo file: %v", err))
+			}
+		}
 		if err := googetRepositories(res.Goo.Repositories, config.GoogetRepoFilePath()); err != nil {
 			logger.Errorf("Error writing googet repo file: %v", err)
 			errs = append(errs, fmt.Sprintf("error writing googet repo file: %v", err))
@@ -113,6 +120,13 @@ func setConfig(res *osconfigpb.LookupConfigsResponse) error {
 	}
 
 	if res.Apt != nil && packages.AptExists {
+		if _, err := os.Stat(config.AptRepoFilePath()); os.IsNotExist(err) {
+			logger.Debugf("Repo file does not exist, will create one...")
+			if err := os.MkdirAll(filepath.Dir(config.AptRepoFilePath()), 07550); err != nil {
+				logger.Errorf("Error creating repo file: %v", err)
+				errs = append(errs, fmt.Sprintf("error creating apt repo file: %v", err))
+			}
+		}
 		if err := aptRepositories(res.Apt.Repositories, config.AptRepoFilePath()); err != nil {
 			logger.Errorf("Error writing apt repo file: %v", err)
 			errs = append(errs, fmt.Sprintf("error writing apt repo file: %v", err))
@@ -123,6 +137,13 @@ func setConfig(res *osconfigpb.LookupConfigsResponse) error {
 	}
 
 	if res.Yum != nil && packages.YumExists {
+		if _, err := os.Stat(config.YumRepoFilePath()); os.IsNotExist(err) {
+			logger.Debugf("Repo file does not exist, will create one...")
+			if err := os.MkdirAll(filepath.Dir(config.YumRepoFilePath()), 07550); err != nil {
+				logger.Errorf("Error creating repo file: %v", err)
+				errs = append(errs, fmt.Sprintf("error creating yum repo file: %v", err))
+			}
+		}
 		if err := yumRepositories(res.Yum.Repositories, config.YumRepoFilePath()); err != nil {
 			logger.Errorf("Error writing yum repo file: %v", err)
 			errs = append(errs, fmt.Sprintf("error writing yum repo file: %v", err))
@@ -133,6 +154,13 @@ func setConfig(res *osconfigpb.LookupConfigsResponse) error {
 	}
 
 	if res.Zypper != nil && packages.ZypperExists {
+		if _, err := os.Stat(config.ZypperRepoFilePath()); os.IsNotExist(err) {
+			logger.Debugf("Repo file does not exist, will create one...")
+			if err := os.MkdirAll(filepath.Dir(config.ZypperRepoFilePath()), 07550); err != nil {
+				logger.Errorf("Error creating repo file: %v", err)
+				errs = append(errs, fmt.Sprintf("error creating zypper repo file: %v", err))
+			}
+		}
 		if err := zypperRepositories(res.Zypper.Repositories, config.ZypperRepoFilePath()); err != nil {
 			logger.Errorf("Error writing zypper repo file: %v", err)
 			errs = append(errs, fmt.Sprintf("error writing zypper repo file: %v", err))
