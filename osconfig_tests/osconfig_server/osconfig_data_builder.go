@@ -79,6 +79,7 @@ func BuildZypperPackageConfig(installs, removes []*osconfigpb.Package, repos []*
 	}
 }
 
+// BuildAptRepository create an apt repository object
 func BuildAptRepository(archiveType osconfigpb.AptRepository_ArchiveType, uri, distribution, keyuri string, components []string) *osconfigpb.AptRepository {
 	return &osconfigpb.AptRepository{
 		ArchiveType:  archiveType,
@@ -89,24 +90,27 @@ func BuildAptRepository(archiveType osconfigpb.AptRepository_ArchiveType, uri, d
 	}
 }
 
-func BuildYumRepository(id, name, baseUrl string, gpgkeys []string) *osconfigpb.YumRepository {
+// BuildYumRepository create an yum repository object
+func BuildYumRepository(id, name, baseURL string, gpgkeys []string) *osconfigpb.YumRepository {
 	return &osconfigpb.YumRepository{
 		Id:          id,
 		DisplayName: name,
-		BaseUrl:     baseUrl,
+		BaseUrl:     baseURL,
 		GpgKeys:     gpgkeys,
 	}
 }
 
-func BuildZypperRepository(id, name, baseUrl string, gpgkeys []string) *osconfigpb.ZypperRepository {
+// BuildZypperRepository create an zypper repository object
+func BuildZypperRepository(id, name, baseURL string, gpgkeys []string) *osconfigpb.ZypperRepository {
 	return &osconfigpb.ZypperRepository{
 		Id:          id,
 		DisplayName: name,
-		BaseUrl:     baseUrl,
+		BaseUrl:     baseURL,
 		GpgKeys:     gpgkeys,
 	}
 }
 
+// BuildGooRepository create an googet repository object
 func BuildGooRepository(name, url string) *osconfigpb.GooRepository {
 	return &osconfigpb.GooRepository{
 		Name: name,
@@ -114,6 +118,7 @@ func BuildGooRepository(name, url string) *osconfigpb.GooRepository {
 	}
 }
 
+// BuildWindowsUpdateConfig create an windows update repository object
 func BuildWindowsUpdateConfig(uri string) *osconfigpb.WindowsUpdateConfig {
 	return &osconfigpb.WindowsUpdateConfig{
 		WindowsUpdateServerUri: uri,
