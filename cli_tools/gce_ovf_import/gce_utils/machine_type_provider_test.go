@@ -16,14 +16,13 @@ package ovfgceutils
 
 import (
 	"fmt"
+	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
-
-	"testing"
 )
 
 func TestGetMachineTypeFromOVFSuccess(t *testing.T) {

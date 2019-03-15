@@ -18,15 +18,14 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-
-	"io/ioutil"
-	"os"
-	"testing"
 )
 
 func TestExtractTarToGcs(t *testing.T) {

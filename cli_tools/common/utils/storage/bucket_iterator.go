@@ -15,10 +15,9 @@
 package storageutils
 
 import (
-	"cloud.google.com/go/storage"
-
 	"context"
 
+	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 )
 

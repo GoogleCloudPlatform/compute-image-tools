@@ -15,17 +15,15 @@
 package storageutils
 
 import (
+	"fmt"
+	"testing"
+
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-
-	"fmt"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/iterator"
-
-	"testing"
 )
 
 func TestDeleteGcsPath(t *testing.T) {

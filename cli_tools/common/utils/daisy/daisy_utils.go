@@ -16,12 +16,11 @@ package daisyutils
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
-
-	"reflect"
 )
 
 var (

@@ -15,12 +15,12 @@
 package daisyutils
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
-
-	"strings"
-	"testing"
 )
 
 var (

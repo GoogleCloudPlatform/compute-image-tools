@@ -16,12 +16,11 @@ package gcevmimageimportutil
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
-
-	"strings"
 )
 
 var (

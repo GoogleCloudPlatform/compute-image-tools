@@ -15,17 +15,15 @@
 package gcevmimageimportutil
 
 import (
-	"cloud.google.com/go/storage"
-
 	"context"
 	"fmt"
+	"log"
+	"strings"
 
+	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"google.golang.org/api/iterator"
-
-	"log"
-	"strings"
 )
 
 const (

@@ -15,21 +15,19 @@
 package storageutils
 
 import (
-	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-
 	"context"
 	"fmt"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"google.golang.org/api/iterator"
-
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"google.golang.org/api/iterator"
 )
 
 var (

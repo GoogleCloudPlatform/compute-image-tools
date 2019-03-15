@@ -15,10 +15,10 @@
 package commondomain
 
 import (
-	"cloud.google.com/go/storage"
-
 	"context"
 	"io"
+
+	"cloud.google.com/go/storage"
 )
 
 // StorageClientInterface represents GCS storage client

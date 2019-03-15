@@ -19,13 +19,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-
 	"io"
 	"path"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 )
 
 // TarGcsExtractor is responsible for extracting TAR archives from GCS to GCS

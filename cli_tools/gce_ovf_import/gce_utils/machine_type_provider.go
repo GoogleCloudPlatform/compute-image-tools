@@ -16,13 +16,12 @@ package ovfgceutils
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
-
-	"sort"
 )
 
 // MachineTypeProvider is responsible for providing GCE machine type based virtual appliance

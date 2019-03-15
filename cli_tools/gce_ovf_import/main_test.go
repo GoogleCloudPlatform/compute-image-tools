@@ -15,13 +15,14 @@
 package main
 
 import (
-	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"testing"
 
+	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
@@ -29,9 +30,6 @@ import (
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
-
-	"strconv"
-	"testing"
 )
 
 func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
