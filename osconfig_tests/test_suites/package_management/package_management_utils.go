@@ -173,7 +173,7 @@ func getPackageInstallFromNewRepoTestStartupScript(pkgManager, packageName strin
 
 	case "apt":
 		ss = "%s\n" +
-			"sleep 10;\n" +
+			"sleep 10;\n" + // allow time for the test runner create the osconfigs, assignments
 			"systemctl restart google-osconfig-agent\n" +
 			"while true;\n" +
 			"do\n" +
