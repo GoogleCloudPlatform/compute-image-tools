@@ -17,6 +17,7 @@ package main
 
 import (
 	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 
 	"context"
 	"flag"
@@ -41,7 +42,6 @@ import (
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -140,14 +140,18 @@ func validateAndParseFlags() error {
 		}
 	}
 
-	if *networkInterface != "" && (*privateNetworkIP != "" || *network != "" || *subnet != "" || *networkTier != "") {
+	if *networkInterface != "" &&
+		(*privateNetworkIP != "" || *network != "" || *subnet != "" || *networkTier != "") {
 		return fmt.Errorf("-network-interface is mutually exclusive with any of these flags: --network, --network-tier, --subnet, --private-network-ip")
 	}
 
 	return nil
 }
 
-func buildDaisyVars(translateWorkflowPath string, bootDiskGcsPath string, machineType string) map[string]string {
+func buildDaisyVars(
+	translateWorkflowPath string,
+	bootDiskGcsPath string,
+	machineType string) map[string]string {
 	varMap := map[string]string{}
 
 	varMap["instance_name"] = strings.ToLower(*instanceNames)
@@ -226,6 +230,8 @@ type OVFImporter struct {
 	mgce                  commondomain.MetadataGCEInterface
 	ovfDescriptorLoader   domain.OvfDescriptorLoaderInterface
 	bucketIteratorCreator commondomain.BucketIteratorCreatorInterface
+	logger                logging.LoggerInterface
+	zoneValidator         commondomain.ZoneValidatorInterface
 	gcsPathToClean        string
 	workflowPath          string
 	buildID               string
@@ -237,10 +243,11 @@ type OVFImporter struct {
 func NewOVFImporter() (*OVFImporter, error) {
 	ctx := context.Background()
 	sc, err := storage.NewClient(ctx)
+	logger := logging.NewLogger("[import-ovf]")
 	if err != nil {
 		return nil, err
 	}
-	storageClient, err := storageutils.NewStorageClient(ctx, sc)
+	storageClient, err := storageutils.NewStorageClient(ctx, sc, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +255,7 @@ func NewOVFImporter() (*OVFImporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient)
+	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient, logger)
 	buildID := os.Getenv("BUILD_ID")
 	if buildID == "" {
 		buildID = utils.RandString(5)
@@ -259,7 +266,8 @@ func NewOVFImporter() (*OVFImporter, error) {
 	ovfImporter := &OVFImporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
 		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, buildID: buildID,
 		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
-		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic}
+		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic, logger: logger,
+		zoneValidator: &computeutils.ZoneValidator{ComputeClient: computeClient}}
 	return ovfImporter, nil
 }
 
@@ -287,6 +295,8 @@ func (oi *OVFImporter) populateMissingParameters() error {
 			return fmt.Errorf("can't infer zone: %v", err)
 		}
 		zone = &aZone
+	} else if err := oi.zoneValidator.ZoneValid(*project, *zone); err != nil {
+		return err
 	}
 
 	if region == nil || *region == "" {
@@ -305,17 +315,22 @@ func (oi *OVFImporter) populateMissingParameters() error {
 // it extracts it to a temporary GCS folder and returns it's path.
 func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 	ovfOvaGcsPathLowered := strings.ToLower(*ovfOvaGcsPath)
+
 	var ovfGcsPath string
 	var shouldCleanUp bool
 	var err error
+
 	if strings.HasSuffix(ovfOvaGcsPathLowered, ".ova") {
 		ovfGcsPath = pathutils.JoinURL(tmpGcsPath, "ovf")
-		log.Printf("Extracting %v OVA archive to %v", *ovfOvaGcsPath, ovfGcsPath)
+		oi.logger.Log(
+			fmt.Sprintf("Extracting %v OVA archive to %v", *ovfOvaGcsPath, ovfGcsPath))
 		err = oi.tarGcsExtractor.ExtractTarToGcs(*ovfOvaGcsPath, ovfGcsPath)
 		shouldCleanUp = true
+
 	} else if strings.HasSuffix(ovfOvaGcsPathLowered, ".ovf") {
 		// ovfOvaGcsPath is pointing to OVF descriptor, no need to unpack, just extract directory path.
 		ovfGcsPath = (*ovfOvaGcsPath)[0 : strings.LastIndex(*ovfOvaGcsPath, "/")+1]
+
 	} else {
 		ovfGcsPath = *ovfOvaGcsPath
 	}
@@ -324,36 +339,38 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 	return pathutils.ToDirectoryURL(ovfGcsPath), shouldCleanUp, err
 }
 
-func (oi *OVFImporter) createScratchBucketBucketIfDoesntExist() error {
+func (oi *OVFImporter) createScratchBucketBucket() error {
 	bucket := strings.ToLower(
 		strings.Replace(*project, ":", "-", -1) + "-ovf-import-bkt-" + *region)
-	*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", bucket)
 	it := oi.bucketIteratorCreator.CreateBucketIterator(oi.ctx, oi.storageClient, *project)
 	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
 		if err != nil {
 			return err
 		}
 		if itBucketAttrs.Name == bucket {
+			*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", bucket)
 			return nil
 		}
 	}
 
-	log.Printf("Creating scratch bucket `%v` in %v region", bucket, *region)
+	oi.logger.Log(fmt.Sprintf("Creating scratch bucket `%v` in %v region", bucket, *region))
 	if err := oi.storageClient.CreateBucket(
 		bucket, *project,
-		&storage.BucketAttrs{Name: bucket, Location: *region, StorageClass: "REGIONAL"}); err != nil {
+		&storage.BucketAttrs{Name: bucket, Location: *region}); err != nil {
 		return err
 	}
+	*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", bucket)
 	return nil
 }
 
 func (oi *OVFImporter) buildTmpGcsPath() (string, error) {
 	if *scratchBucketGcsPath == "" {
-		if err := oi.createScratchBucketBucketIfDoesntExist(); err != nil {
+		if err := oi.createScratchBucketBucket(); err != nil {
 			return "", err
 		}
 	}
-	return pathutils.JoinURL(*scratchBucketGcsPath, fmt.Sprintf("ovf-import-%v", oi.buildID)), nil
+	return pathutils.JoinURL(*scratchBucketGcsPath, fmt.Sprintf("ovf-import-%v", oi.buildID)),
+		nil
 }
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
@@ -436,6 +453,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 
 // Import runs OVF import
 func (oi *OVFImporter) Import() error {
+	oi.logger.Log("Starting OVF import workflow.")
 	w, err := oi.setUpImportWorkflow()
 	if err != nil {
 		return err
@@ -453,13 +471,14 @@ func (oi *OVFImporter) CleanUp() {
 		if oi.gcsPathToClean != "" {
 			err := oi.storageClient.DeleteGcsPath(oi.gcsPathToClean)
 			if err != nil {
-				log.Printf("couldn't delete GCS path %v: %v", oi.gcsPathToClean, err.Error())
+				oi.logger.Log(
+					fmt.Sprintf("couldn't delete GCS path %v: %v", oi.gcsPathToClean, err.Error()))
 			}
 		}
 
 		err := oi.storageClient.Close()
 		if err != nil {
-			log.Printf("couldn't close storage client: %v", err.Error())
+			oi.logger.Log(fmt.Sprintf("couldn't close storage client: %v", err.Error()))
 		}
 	}
 }
@@ -468,13 +487,13 @@ func main() {
 	ovfImporter, err := NewOVFImporter()
 
 	if err != nil {
-		log.Println(err.Error())
+		ovfImporter.logger.Log(err.Error())
 		ovfImporter.CleanUp()
 		os.Exit(1)
 	}
 	err = ovfImporter.Import()
 	if err != nil {
-		log.Println(err.Error())
+		ovfImporter.logger.Log(err.Error())
 		ovfImporter.CleanUp()
 		os.Exit(1)
 	}

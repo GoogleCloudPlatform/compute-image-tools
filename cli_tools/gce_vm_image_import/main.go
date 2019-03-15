@@ -17,6 +17,7 @@ package main
 
 import (
 	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 
 	"context"
 	"flag"
@@ -333,7 +334,8 @@ func main() {
 
 	ctx := context.Background()
 	metadataGCEHolder := computeutils.MetadataGCE{}
-	storageClient, err := storageutils.NewStorageClient(ctx, createStorageClient(ctx))
+	storageClient, err := storageutils.NewStorageClient(
+		ctx, createStorageClient(ctx), logging.NewLogger("[image-import]"))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

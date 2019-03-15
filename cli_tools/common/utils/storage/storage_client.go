@@ -16,6 +16,7 @@ package storageutils
 
 import (
 	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 
 	"context"
 	"fmt"
@@ -40,14 +41,16 @@ var (
 type StorageClient struct {
 	ObjectDeleter commondomain.StorageObjectDeleterInterface
 	StorageClient *storage.Client
+	Logger        logging.LoggerInterface
 	Ctx           context.Context
 	Oic           commondomain.ObjectIteratorCreatorInterface
 }
 
 // NewStorageClient creates a StorageClient
-func NewStorageClient(ctx context.Context, client *storage.Client) (*StorageClient, error) {
+func NewStorageClient(ctx context.Context, client *storage.Client,
+	logger logging.LoggerInterface) (*StorageClient, error) {
 	sc := &StorageClient{StorageClient: client, Ctx: ctx,
-		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}}
+		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}
 
 	sc.ObjectDeleter = &StorageObjectDeleter{sc}
 	return sc, nil
@@ -107,7 +110,7 @@ func (sc *StorageClient) DeleteGcsPath(gcsPath string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Deleting gs://%v/%v\n", bucketName, attrs.Name)
+		sc.Logger.Log(fmt.Sprintf("Deleting gs://%v/%v\n", bucketName, attrs.Name))
 
 		if err := sc.DeleteObject(bucketName, attrs.Name); err != nil {
 			return err
@@ -138,11 +141,12 @@ func (sc *StorageClient) FindGcsFile(gcsDirectoryPath string, fileExtension stri
 		if !strings.HasSuffix(attrs.Name, fileExtension) {
 			continue
 		}
-		fmt.Printf("Found gs://%v/%v\n", bucketName, attrs.Name)
+		sc.Logger.Log(fmt.Sprintf("Found gs://%v/%v\n", bucketName, attrs.Name))
 
 		return sc.GetBucket(bucketName).Object(attrs.Name), nil
 	}
-	return nil, fmt.Errorf("path %v doesn't contain a file with %v extension", gcsDirectoryPath, fileExtension)
+	return nil, fmt.Errorf(
+		"path %v doesn't contain a file with %v extension", gcsDirectoryPath, fileExtension)
 }
 
 // GetGcsFileContent returns content of a GCS object as byte array

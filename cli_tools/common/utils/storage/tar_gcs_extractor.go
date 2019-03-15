@@ -19,12 +19,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 
 	"io"
-	"log"
 	"path"
 )
 
@@ -32,11 +32,12 @@ import (
 type TarGcsExtractor struct {
 	ctx           context.Context
 	storageClient commondomain.StorageClientInterface
+	logger        logging.LoggerInterface
 }
 
 // NewTarGcsExtractor creates new TarGcsExtractor
-func NewTarGcsExtractor(ctx context.Context, sc commondomain.StorageClientInterface) *TarGcsExtractor {
-	return &TarGcsExtractor{ctx: ctx, storageClient: sc}
+func NewTarGcsExtractor(ctx context.Context, sc commondomain.StorageClientInterface, logger logging.LoggerInterface) *TarGcsExtractor {
+	return &TarGcsExtractor{ctx: ctx, storageClient: sc, logger: logger}
 }
 
 // ExtractTarToGcs extracts a tar file in GCS back into GCS directory
@@ -82,7 +83,7 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 
 		case tar.TypeReg:
 			destinationFilePath := pathutils.JoinURL(destinationPath, header.Name)
-			log.Printf("Extracting: %v to gs://%v", header.Name, path.Join(destinationBucketName, destinationFilePath))
+			tge.logger.Log(fmt.Sprintf("Extracting: %v to gs://%v", header.Name, path.Join(destinationBucketName, destinationFilePath)))
 
 			if err := tge.storageClient.WriteToGCS(destinationBucketName, destinationFilePath, tarReader); err != nil {
 				return err

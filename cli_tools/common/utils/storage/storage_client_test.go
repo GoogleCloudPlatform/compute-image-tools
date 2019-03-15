@@ -16,6 +16,7 @@ package storageutils
 
 import (
 	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 
 	"fmt"
 
@@ -45,7 +46,8 @@ func TestDeleteGcsPath(t *testing.T) {
 	secondDeletion := mockStorageObjectDeleter.EXPECT().DeleteObject("sourcebucket", "sourcepath/furtherpath/afile2.txt")
 	gomock.InOrder(firstDeletion, secondDeletion)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter}
+	sc := StorageClient{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
+		Logger: logging.NewLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.Nil(t, err)
 }
@@ -67,9 +69,10 @@ func TestDeleteGcsPathErrorWhenIteratorReturnsError(t *testing.T) {
 	mockObjectIterator.EXPECT().Next().Return(nil, fmt.Errorf("iterator error"))
 
 	mockObjectIteratorCreator := mocks.NewMockObjectIteratorCreatorInterface(mockCtrl)
-	mockObjectIteratorCreator.EXPECT().CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
+	mockObjectIteratorCreator.EXPECT().CreateObjectIterator(
+		"sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator}
+	sc := StorageClient{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)
 }
@@ -79,19 +82,28 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockObjectIterator := mocks.NewMockObjectIteratorInterface(mockCtrl)
-	first := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile1.txt"}, nil)
-	second := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile2.txt"}, nil)
+	first := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile1.txt"}, nil)
+	second := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile2.txt"}, nil)
 	gomock.InOrder(first, second)
 
 	mockObjectIteratorCreator := mocks.NewMockObjectIteratorCreatorInterface(mockCtrl)
-	mockObjectIteratorCreator.EXPECT().CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
+	mockObjectIteratorCreator.EXPECT().
+		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
+		Return(mockObjectIterator)
 
 	mockStorageObjectDeleter := mocks.NewMockStorageObjectDeleterInterface(mockCtrl)
-	firstDeletion := mockStorageObjectDeleter.EXPECT().DeleteObject("sourcebucket", "sourcepath/furtherpath/afile1.txt").Return(nil)
-	secondDeletion := mockStorageObjectDeleter.EXPECT().DeleteObject("sourcebucket", "sourcepath/furtherpath/afile2.txt").Return(fmt.Errorf("can't delete second file"))
+	firstDeletion := mockStorageObjectDeleter.EXPECT().
+		DeleteObject("sourcebucket", "sourcepath/furtherpath/afile1.txt").
+		Return(nil)
+	secondDeletion := mockStorageObjectDeleter.EXPECT().
+		DeleteObject("sourcebucket", "sourcepath/furtherpath/afile2.txt").
+		Return(fmt.Errorf("can't delete second file"))
 	gomock.InOrder(firstDeletion, secondDeletion)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter}
+	sc := StorageClient{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
+		Logger: logging.NewLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)
 }
@@ -101,16 +113,22 @@ func TestFindGcsFile(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockObjectIterator := mocks.NewMockObjectIteratorInterface(mockCtrl)
-	first := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile1.txt"}, nil)
-	second := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile2.txt"}, nil)
-	third := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/bingo.ovf"}, nil)
+	first := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile1.txt"}, nil)
+	second := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile2.txt"}, nil)
+	third := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/bingo.ovf"}, nil)
 	gomock.InOrder(first, second, third)
 
 	mockObjectIteratorCreator := mocks.NewMockObjectIteratorCreatorInterface(mockCtrl)
-	mockObjectIteratorCreator.EXPECT().CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
+	mockObjectIteratorCreator.EXPECT().
+		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
+		Return(mockObjectIterator)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator}
-	objectHandle, err := sc.FindGcsFile("gs://sourcebucket/sourcepath/furtherpath", ".ovf")
+	sc := StorageClient{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	objectHandle, err := sc.FindGcsFile(
+		"gs://sourcebucket/sourcepath/furtherpath", ".ovf")
 
 	assert.NotNil(t, objectHandle)
 	assert.Equal(t, "sourcebucket", objectHandle.BucketName())
@@ -123,17 +141,23 @@ func TestFindGcsFileNoFileFound(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockObjectIterator := mocks.NewMockObjectIteratorInterface(mockCtrl)
-	first := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile1.txt"}, nil)
-	second := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile2.txt"}, nil)
-	third := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile4"}, nil)
-	fourth := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile5.txt"}, nil)
+	first := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile1.txt"}, nil)
+	second := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile2.txt"}, nil)
+	third := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile4"}, nil)
+	fourth := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile5.txt"}, nil)
 	fifth := mockObjectIterator.EXPECT().Next().Return(nil, iterator.Done)
 	gomock.InOrder(first, second, third, fourth, fifth)
 
 	mockObjectIteratorCreator := mocks.NewMockObjectIteratorCreatorInterface(mockCtrl)
-	mockObjectIteratorCreator.EXPECT().CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
+	mockObjectIteratorCreator.EXPECT().
+		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
+		Return(mockObjectIterator)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator}
+	sc := StorageClient{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
 	objectHandle, err := sc.FindGcsFile("gs://sourcebucket/sourcepath/furtherpath", ".ovf")
 	assert.Nil(t, objectHandle)
 	assert.NotNil(t, err)
@@ -154,16 +178,22 @@ func TestFindGcsFileErrorWhileIteratingThroughFilesInPath(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockObjectIterator := mocks.NewMockObjectIteratorInterface(mockCtrl)
-	first := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile1.txt"}, nil)
-	second := mockObjectIterator.EXPECT().Next().Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile2.txt"}, nil)
-	third := mockObjectIterator.EXPECT().Next().Return(nil, fmt.Errorf("error while iterating"))
+	first := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile1.txt"}, nil)
+	second := mockObjectIterator.EXPECT().Next().
+		Return(&storage.ObjectAttrs{Name: "sourcepath/furtherpath/afile2.txt"}, nil)
+	third := mockObjectIterator.EXPECT().Next().
+		Return(nil, fmt.Errorf("error while iterating"))
 	gomock.InOrder(first, second, third)
 
 	mockObjectIteratorCreator := mocks.NewMockObjectIteratorCreatorInterface(mockCtrl)
-	mockObjectIteratorCreator.EXPECT().CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
+	mockObjectIteratorCreator.EXPECT().
+		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
+		Return(mockObjectIterator)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator}
-	objectHandle, err := sc.FindGcsFile("gs://sourcebucket/sourcepath/furtherpath", ".ovf")
+	sc := StorageClient{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	objectHandle, err := sc.
+		FindGcsFile("gs://sourcebucket/sourcepath/furtherpath", ".ovf")
 	assert.Nil(t, objectHandle)
 	assert.NotNil(t, err)
 }

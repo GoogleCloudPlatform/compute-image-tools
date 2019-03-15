@@ -75,3 +75,7 @@ type MetadataGCEInterface interface {
 	Zone() (string, error)
 	ProjectID() (string, error)
 }
+
+type ZoneValidatorInterface interface {
+	ZoneValid(project string, zone string) error
+}
