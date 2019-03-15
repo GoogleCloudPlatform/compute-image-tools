@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -48,7 +48,7 @@ func lockFileEx(hFile uintptr, dwFlags, nNumberOfBytesToLockLow, nNumberOfBytesT
 	)
 	// If the function succeeds, the return value is nonzero.
 	if ret == 0 {
-		return fmt.Errorf("nonzero return code from LockFileEx: %d", ret)
+		return errors.New("LockFileEx unable to obtain lock")
 	}
 	return nil
 }
@@ -63,7 +63,7 @@ func unlockFileEx(hFile uintptr, nNumberOfBytesToLockLow, nNumberOfBytesToLockHi
 	)
 	// If the function succeeds, the return value is nonzero.
 	if ret == 0 {
-		return fmt.Errorf("nonzero return code from UnlockFileEx: %d", ret)
+		return errors.New("UnlockFileEx unable to unlock")
 	}
 	return nil
 }
