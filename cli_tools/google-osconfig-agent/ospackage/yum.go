@@ -69,7 +69,7 @@ func yumRepositories(repos []*osconfigpb.YumRepository, repoFile string) error {
 func yumChanges(packageInstalls, packageRemovals []*osconfigpb.Package) error {
 	var errs []string
 
-	inv := inventory.GetInventory()
+	inv := inventory.Get()
 	changes := getNecessaryChanges(inv.InstalledPackages.Yum, inv.PackageUpdates.Yum, packageInstalls, packageRemovals)
 
 	if changes.packagesToInstall != nil {

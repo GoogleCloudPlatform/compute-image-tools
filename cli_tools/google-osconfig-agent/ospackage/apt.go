@@ -57,7 +57,7 @@ func aptRepositories(repos []*osconfigpb.AptRepository, repoFile string) error {
 func aptChanges(packageInstalls, packageRemovals []*osconfigpb.Package) error {
 	var errs []string
 
-	inv := inventory.GetInventory()
+	inv := inventory.Get()
 	changes := getNecessaryChanges(inv.InstalledPackages.Apt, inv.PackageUpdates.Apt, packageInstalls, packageRemovals)
 
 	if changes.packagesToInstall != nil {

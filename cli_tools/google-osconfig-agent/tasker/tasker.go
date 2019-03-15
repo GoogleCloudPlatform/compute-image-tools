@@ -15,9 +15,16 @@
 // Package tasker is a task queue for the osconfig_agent.
 package tasker
 
-import "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
+import (
+	"sync"
 
-var tc chan *task
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
+)
+
+var (
+	tc chan *task
+	wg sync.WaitGroup
+)
 
 func init() {
 	tc = make(chan *task)
@@ -34,12 +41,24 @@ func Enqueue(name string, f func()) {
 	tc <- &task{name: name, run: f}
 }
 
+// Close closes the tasker queue waits for the queue to empty.
+func Close() {
+	close(tc)
+	wg.Wait()
+}
+
 func tasker() {
 	logger.Debugf("Tasker start.")
+	wg.Add(1)
+	defer wg.Done()
 	for {
 		logger.Debugf("Waiting for tasks to run.")
 		select {
-		case t := <-tc:
+		case t, ok := <-tc:
+			// Indicates an empty and closed channel.
+			if !ok {
+				return
+			}
 			logger.Debugf("Tasker running %q.", t.name)
 			t.run()
 			logger.Debugf("Finished task %q.", t.name)

@@ -40,33 +40,26 @@ import (
 
 var dump = &pretty.Config{IncludeUnexported: true}
 
-func run(ctx context.Context, res string, enqueue bool) error {
+func run(ctx context.Context, res string) {
 	client, err := osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 	if err != nil {
-		return fmt.Errorf("osconfig.NewClient Error: %v", err)
+		logger.Errorf("osconfig.NewClient Error: %v", err)
+		return
 	}
 
 	resp, err := lookupConfigs(ctx, client, res)
 	if err != nil {
-		return fmt.Errorf("LookupConfigs error: %v", err)
+		logger.Errorf("LookupConfigs error: %v", err)
+		return
 	}
 
-	if enqueue {
-		// We don't check the error from ospackage.SetConfig as all errors are already logged.
-		tasker.Enqueue("Set package config", func() { setConfig(resp) })
-		return nil
-	}
-	return setConfig(resp)
+	// We don't check the error from ospackage.SetConfig as all errors are already logged.
+	setConfig(resp)
 }
 
-// RunWithEnqueue looks up osconfigs and applies them using tasker.Enqueue.
-func RunWithEnqueue(ctx context.Context, res string) error {
-	return run(ctx, res, true)
-}
-
-// Run looks up osconfigs and applies them.
-func Run(ctx context.Context, res string) error {
-	return run(ctx, res, false)
+// Run looks up osconfigs and applies them using tasker.Enqueue.
+func Run(ctx context.Context, res string) {
+	tasker.Enqueue("Run OSPackage", func() { run(ctx, res) })
 }
 
 func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string) (*osconfigpb.LookupConfigsResponse, error) {

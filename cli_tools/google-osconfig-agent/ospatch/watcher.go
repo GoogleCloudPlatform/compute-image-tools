@@ -16,6 +16,8 @@ package ospatch
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -23,102 +25,124 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 )
 
 const (
-	defaultEtag      = ""
-	metadataURL      = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&wait_for_change=true&last_etag="
-	metadataPatchKey = "osconfig-patch-notify"
+	defaultEtag = ""
 )
 
 var (
-	etag                = defaultEtag
+	metadataURL         = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=true&wait_for_change=true&last_etag="
 	currentPatchJobName = ""
 )
 
-func updateEtag(resp *http.Response) bool {
-	oldEtag := etag
-	etag = resp.Header.Get("etag")
-	if etag == "" {
-		etag = defaultEtag
-	}
-	return etag != oldEtag
+type watchMetadataRet struct {
+	attr *attributesJSON
+	err  error
 }
 
-func watchMetadata() (string, error) {
+type attributesJSON struct {
+	PatchNotify string `json:"osconfig-patch-notify"`
+}
+
+func watchMetadata(c chan watchMetadataRet, etag *string) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", metadataURL+etag, nil)
+	req, err := http.NewRequest("GET", metadataURL+*etag, nil)
 	if err != nil {
-		return "", err
+		c <- watchMetadataRet{
+			attr: nil,
+			err:  err,
+		}
+		return
 	}
+
 	req.Header.Add("Metadata-Flavor", "Google")
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		c <- watchMetadataRet{
+			attr: nil,
+			err:  err,
+		}
+		return
 	}
-
-	updateEtag(resp)
+	*etag = resp.Header.Get("etag")
 
 	md, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
-		return "", err
+		c <- watchMetadataRet{
+			attr: nil,
+			err:  err,
+		}
+		return
 	}
 
-	return string(md), nil
+	var metadata attributesJSON
+	err = json.Unmarshal(md, &metadata)
+
+	c <- watchMetadataRet{
+		attr: &metadata,
+		err:  err,
+	}
 }
 
-func watcher(ctx context.Context, savedPatchJobName string) {
+func formatError(err error) string {
+	if urlErr, ok := err.(*url.Error); ok {
+		if _, ok := urlErr.Err.(*net.DNSError); ok {
+			return fmt.Sprintf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file.")
+		}
+		if _, ok := urlErr.Err.(*net.OpError); ok {
+			return fmt.Sprintf("Network error when requesting metadata, make sure your instance has an active network and can reach the metadata server.")
+		}
+	}
+	return err.Error()
+}
+
+func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct{}, action func(context.Context, string)) {
 	currentPatchJobName = savedPatchJobName
 	webError := 0
+	// We use a pointer so that each loops goroutine can update this.
+	// If this was a global var we would have a data race, and puting
+	// locks around it is more work than necessary.
+	etag := func() *string { e := defaultEtag; return &e }()
 	for {
-		_, err := watchMetadata()
-		if err != nil {
-			// Only log the second web error to avoid transient errors and
-			// not to spam the log on network failures.
-			if webError == 1 {
-				if urlErr, ok := err.(*url.Error); ok {
-					if _, ok := urlErr.Err.(*net.DNSError); ok {
-						logger.Errorf("DNS error when requesting metadata, check DNS settings and ensure metadata.internal.google is setup in your hosts file.")
-					}
-					if _, ok := urlErr.Err.(*net.OpError); ok {
-						logger.Errorf("Network error when requesting metadata, make sure your instance has an active network and can reach the metadata server.")
-					}
+		c := make(chan watchMetadataRet)
+		go func(c chan watchMetadataRet, etag *string) {
+			watchMetadata(c, etag)
+		}(c, etag)
+
+		select {
+		case <-cancel:
+			return
+		case ret := <-c:
+			if ret.err != nil {
+				// Only log the second web error to avoid transient errors and
+				// not to spam the log on network failures.
+				if webError == 1 {
+					logger.Errorf(formatError(ret.err))
 				}
-				logger.Errorf(err.Error())
-			}
-			webError++
-			time.Sleep(5 * time.Second)
-			continue
-		}
-
-		patchNotification, err := metadata.InstanceAttributeValue(metadataPatchKey)
-		if err != nil {
-			switch err.(type) {
-			case metadata.NotDefinedError:
-				logger.Debugf("Metadata updated but key '%s' not set.", metadataPatchKey)
-				continue
-			default:
-				logger.Errorf("Error when requesting metadata, make sure your instance has an active network and can reach the metadata server. %v", err)
+				webError++
+				time.Sleep(5 * time.Second)
 				continue
 			}
+
+			patchJobName := strings.Split(ret.attr.PatchNotify, ",")[0]
+			if patchJobName == "" {
+				continue
+			}
+			if currentPatchJobName == patchJobName {
+				logger.Debugf("Already ran patch '%s'. Ignoring notification.", patchJobName)
+				continue
+			}
+
+			currentPatchJobName = patchJobName
+			if patchJobName != "" {
+				action(ctx, patchJobName)
+			}
+
+			webError = 0
 		}
-
-		patchJobName := strings.Split(patchNotification, ",")[0]
-
-		if currentPatchJobName == patchJobName {
-			logger.Debugf("Already ran patch '%s'. Ignoring notification.", patchJobName)
-			continue
-		}
-
-		currentPatchJobName = patchJobName
-
-		if patchJobName != "" {
-			ackPatch(ctx, patchJobName)
-		}
-		webError = 0
 	}
 }
