@@ -77,13 +77,13 @@ var (
 	shieldedSecureBoot          = flag.Bool("shielded-secure-boot", false, "The instance will boot with secure boot enabled.")
 	shieldedVtpm                = flag.Bool("shielded-vtpm", false, "The instance will boot with the TPM (Trusted Platform Module) enabled. A TPM is a hardware module that can be used for different security operations such as remote attestation, encryption and sealing of keys.")
 	tags                        = flag.String("tags", "", "Specifies a list of tags to apply to the instance. These tags allow network firewall rules and routes to be applied to specified VM instances. See `gcloud compute firewall-rules create` for more details.")
-	zone                        = flag.String("zone", "", "Zone of the image to import. The zone in which to do the work of importing the image. Overrides the default compute/zone property value for this command invocation")
+	zoneFlag                    = flag.String("zone", "", "Zone of the image to import. The zone in which to do the work of importing the image. Overrides the default compute/zone property value for this command invocation")
 	bootDiskKmskey              = flag.String("boot-disk-kms-key", "", "The Cloud KMS (Key Management Service) cryptokey that will be used to protect the disk. The arguments in this group can be used to specify the attributes of this resource. ID of the key or fully qualified identifier for the key. This flag must be specified if any of the other arguments in this group are specified.")
 	bootDiskKmsKeyring          = flag.String("boot-disk-kms-keyring", "", "The KMS keyring of the key.")
 	bootDiskKmsLocation         = flag.String("boot-disk-kms-location", "", "The Cloud location for the key.")
 	bootDiskKmsProject          = flag.String("boot-disk-kms-project", "", "The Cloud project for the key.")
 	timeout                     = flag.String("timeout", "", "Maximum time a build can last before it is failed as TIMEOUT. For example, specifying 2h will fail the process after 2 hours. See `gcloud topic datetimes` for information on duration formats")
-	project                     = flag.String("project", "", "project to run in, overrides what is set in workflow")
+	projectFlag                 = flag.String("project", "", "project to run in, overrides what is set in workflow")
 	scratchBucketGcsPath        = flag.String("scratch-bucket-gcs-path", "", "GCS scratch bucket to use, overrides what is set in workflow")
 	oauth                       = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
 	ce                          = flag.String("compute-endpoint-override", "", "API endpoint to override default")
@@ -91,14 +91,12 @@ var (
 	cloudLogsDisabled           = flag.Bool("disable-cloud-logging", false, "do not stream logs to Cloud Logging")
 	stdoutLogsDisabled          = flag.Bool("disable-stdout-logging", false, "do not display individual workflow logs on stdout")
 
-	region                *string
 	userLabels            map[string]string
-	currentExecutablePath *string
+	currentExecutablePath string
 )
 
 func init() {
-	currentExecutablePathStr := string(os.Args[0])
-	currentExecutablePath = &currentExecutablePathStr
+	currentExecutablePath = string(os.Args[0])
 }
 
 func validateAndParseFlags() error {
@@ -149,7 +147,8 @@ func validateAndParseFlags() error {
 func buildDaisyVars(
 	translateWorkflowPath string,
 	bootDiskGcsPath string,
-	machineType string) map[string]string {
+	machineType string,
+	region string) map[string]string {
 	varMap := map[string]string{}
 
 	varMap["instance_name"] = strings.ToLower(*instanceNames)
@@ -164,7 +163,7 @@ func buildDaisyVars(
 		varMap["network"] = fmt.Sprintf("global/networks/%v", *network)
 	}
 	if *subnet != "" {
-		varMap["subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", *region, *subnet)
+		varMap["subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", region, *subnet)
 	}
 	if machineType != "" {
 		varMap["machine_type"] = machineType
@@ -198,7 +197,7 @@ func updateInstanceWithBooleanFlagValues(w *daisy.Workflow) {
 }
 
 func toWorkingDir(dir string) string {
-	wd, err := filepath.Abs(filepath.Dir(*currentExecutablePath))
+	wd, err := filepath.Abs(filepath.Dir(currentExecutablePath))
 	if err == nil {
 		return path.Join(wd, dir)
 	}
@@ -236,9 +235,9 @@ type OVFImporter struct {
 	diskInfos             *[]ovfutils.DiskInfo
 }
 
-// NewOVFImporter creates an OVF importer, including automatically poulating dependencies,
+// newOVFImporter creates an OVF importer, including automatically poulating dependencies,
 // such as compute/storage clients.
-func NewOVFImporter() (*OVFImporter, error) {
+func newOVFImporter() (*OVFImporter, error) {
 	ctx := context.Background()
 	sc, err := storage.NewClient(ctx)
 	logger := logging.NewLogger("[import-ovf]")
@@ -269,44 +268,46 @@ func NewOVFImporter() (*OVFImporter, error) {
 	return ovfImporter, nil
 }
 
-func (oi *OVFImporter) populateMissingParameters() error {
-	aProject := *project
-	if aProject == "" {
+func (oi *OVFImporter) getProject() (string, error) {
+	project := *projectFlag
+	if project == "" {
 		if !oi.mgce.OnGCE() {
-			return fmt.Errorf("project cannot be determined because build is not running on GCE")
+			return "", fmt.Errorf("project cannot be determined because build is not running on GCE")
 		}
 		var err error
-		aProject, err = oi.mgce.ProjectID()
-		if err != nil || aProject == "" {
-			return fmt.Errorf("project cannot be determined %v", err)
+		project, err = oi.mgce.ProjectID()
+		if err != nil || project == "" {
+			return "", fmt.Errorf("project cannot be determined %v", err)
 		}
-		project = &aProject
+	}
+	return project, nil
+}
+
+func (oi *OVFImporter) getZone(project string) (string, error) {
+	if *zoneFlag != "" {
+		if err := oi.zoneValidator.ZoneValid(project, *zoneFlag); err != nil {
+			return "", err
+		}
+		return *zoneFlag, nil
 	}
 
-	if *zone == "" {
-		if !oi.mgce.OnGCE() {
-			return fmt.Errorf("zone cannot be determined because build is not running on GCE")
-		}
-		// determine zone based on the zone Cloud Build is running in
-		aZone, err := oi.mgce.Zone()
-		if err != nil || aZone == "" {
-			return fmt.Errorf("can't infer zone: %v", err)
-		}
-		zone = &aZone
-	} else if err := oi.zoneValidator.ZoneValid(*project, *zone); err != nil {
-		return err
+	if !oi.mgce.OnGCE() {
+		return "", fmt.Errorf("zone cannot be determined because build is not running on GCE")
 	}
-
-	if region == nil || *region == "" {
-		zoneStrs := strings.Split(*zone, "-")
-		if len(zoneStrs) < 2 {
-			return fmt.Errorf("%v is not a valid zone", *zone)
-		}
-
-		aRegion := strings.Join(zoneStrs[:len(zoneStrs)-1], "-")
-		region = &aRegion
+	// determine zone based on the zone Cloud Build is running in
+	zone, err := oi.mgce.Zone()
+	if err != nil || zone == "" {
+		return "", fmt.Errorf("can't infer zone: %v", err)
 	}
-	return nil
+	return zone, nil
+}
+
+func (oi *OVFImporter) getRegion(zone string) (string, error) {
+	zoneSplits := strings.Split(zone, "-")
+	if len(zoneSplits) < 2 {
+		return "", fmt.Errorf("%v is not a valid zone", zone)
+	}
+	return strings.Join(zoneSplits[:len(zoneSplits)-1], "-"), nil
 }
 
 // Returns OVF GCS bucket and object path (director). If ovaOvaGcsPath is pointing to an OVA file,
@@ -337,10 +338,14 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 	return pathutils.ToDirectoryURL(ovfGcsPath), shouldCleanUp, err
 }
 
-func (oi *OVFImporter) createScratchBucketBucket() error {
-	bucket := strings.ToLower(
-		strings.Replace(*project, ":", "-", -1) + "-ovf-import-bkt-" + *region)
-	it := oi.bucketIteratorCreator.CreateBucketIterator(oi.ctx, oi.storageClient, *project)
+func (oi *OVFImporter) createScratchBucketBucket(project string, region string) error {
+	safeProjectName := strings.Replace(project, "google", "elgoog", -1)
+	safeProjectName = strings.Replace(safeProjectName, ":", "-", -1)
+	if strings.HasPrefix(safeProjectName, "goog") {
+		safeProjectName = strings.Replace(safeProjectName, "goog", "ggoo", 1)
+	}
+	bucket := strings.ToLower(safeProjectName + "-ovf-import-bkt-" + region)
+	it := oi.bucketIteratorCreator.CreateBucketIterator(oi.ctx, oi.storageClient, project)
 	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
 		if err != nil {
 			return err
@@ -351,19 +356,19 @@ func (oi *OVFImporter) createScratchBucketBucket() error {
 		}
 	}
 
-	oi.logger.Log(fmt.Sprintf("Creating scratch bucket `%v` in %v region", bucket, *region))
+	oi.logger.Log(fmt.Sprintf("Creating scratch bucket `%v` in %v region", bucket, region))
 	if err := oi.storageClient.CreateBucket(
-		bucket, *project,
-		&storage.BucketAttrs{Name: bucket, Location: *region}); err != nil {
+		bucket, project,
+		&storage.BucketAttrs{Name: bucket, Location: region}); err != nil {
 		return err
 	}
 	*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", bucket)
 	return nil
 }
 
-func (oi *OVFImporter) buildTmpGcsPath() (string, error) {
+func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, error) {
 	if *scratchBucketGcsPath == "" {
-		if err := oi.createScratchBucketBucket(); err != nil {
+		if err := oi.createScratchBucketBucket(project, region); err != nil {
 			return "", err
 		}
 	}
@@ -395,13 +400,14 @@ func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
 	updateInstanceWithBooleanFlagValues(w)
 }
 
-func (oi *OVFImporter) getMachineType(ovfDescriptor *ovf.Envelope) (string, error) {
+func (oi *OVFImporter) getMachineType(
+	ovfDescriptor *ovf.Envelope, project string, zone string) (string, error) {
 	machineTypeProvider := ovfgceutils.MachineTypeProvider{
 		OvfDescriptor: ovfDescriptor,
 		MachineType:   *machineType,
 		ComputeClient: oi.computeClient,
-		Project:       *project,
-		Zone:          *zone,
+		Project:       project,
+		Zone:          zone,
 	}
 	return machineTypeProvider.GetMachineType()
 }
@@ -410,10 +416,23 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	if err := validateAndParseFlags(); err != nil {
 		return nil, err
 	}
-	if err := oi.populateMissingParameters(); err != nil {
+	var (
+		project string
+		zone    string
+		region  string
+		err     error
+	)
+	if project, err = oi.getProject(); err != nil {
 		return nil, err
 	}
-	tmpGcsPath, err := oi.buildTmpGcsPath()
+	if zone, err = oi.getZone(project); err != nil {
+		return nil, err
+	}
+	if region, err = oi.getRegion(zone); err != nil {
+		return nil, err
+	}
+
+	tmpGcsPath, err := oi.buildTmpGcsPath(project, region)
 	if err != nil {
 		return nil, err
 	}
@@ -433,14 +452,14 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	}
 	oi.diskInfos = &diskInfos
 	translateWorkflowPath := "../image_import/" + daisyutils.GetTranslateWorkflowPath(osID)
-	machineTypeStr, err := oi.getMachineType(ovfDescriptor)
+	machineTypeStr, err := oi.getMachineType(ovfDescriptor, project, zone)
 	if err != nil {
 		return nil, err
 	}
-	varMap := buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr)
+	varMap := buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr, region)
 
-	workflow, err := daisyutils.ParseWorkflow(oi.mgce, oi.workflowPath, varMap, *project,
-		*zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
+	workflow, err := daisyutils.ParseWorkflow(oi.mgce, oi.workflowPath, varMap, project,
+		zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled)
 
 	if err != nil {
@@ -482,7 +501,7 @@ func (oi *OVFImporter) CleanUp() {
 }
 
 func main() {
-	ovfImporter, err := NewOVFImporter()
+	ovfImporter, err := newOVFImporter()
 
 	if err != nil {
 		ovfImporter.logger.Log(err.Error())

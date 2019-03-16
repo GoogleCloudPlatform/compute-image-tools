@@ -76,6 +76,8 @@ type MetadataGCEInterface interface {
 	ProjectID() (string, error)
 }
 
+// ZoneValidatorInterface represents zone validator which validates if a zone is valid in given
+// project
 type ZoneValidatorInterface interface {
 	ZoneValid(project string, zone string) error
 }

@@ -25,7 +25,7 @@ type LogEntry struct {
 	Message        string    `json:"message"`
 }
 
-func NewLogEntry(message string) *LogEntry {
+func newLogEntry(message string) *LogEntry {
 	return &LogEntry{LocalTimestamp: time.Now(), Message: message}
 }
 
@@ -33,18 +33,22 @@ func (e *LogEntry) String() string {
 	return fmt.Sprintf("%s %s", e.LocalTimestamp.Format("2006-01-02T15:04:05Z"), e.Message)
 }
 
+// Logger is responsible for logging to stdout
 type Logger struct {
 	Prefix string
 }
 
+// LoggerInterface is logger abstraction
 type LoggerInterface interface {
 	Log(message string)
 }
 
+// NewLogger creates a new logger which uses prefix for all messages logged
 func NewLogger(prefix string) *Logger {
 	return &Logger{Prefix: prefix}
 }
 
+// Log logs a message
 func (l *Logger) Log(message string) {
-	fmt.Printf("%s %s\n", l.Prefix, NewLogEntry(message))
+	fmt.Printf("%s %s\n", l.Prefix, newLogEntry(message))
 }

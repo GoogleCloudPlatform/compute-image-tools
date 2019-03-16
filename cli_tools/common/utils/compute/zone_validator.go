@@ -20,10 +20,13 @@ import (
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
+// ZoneValidator is responsible for validating zone name corresponds to a valid zone in a given
+// project
 type ZoneValidator struct {
 	ComputeClient daisycompute.Client
 }
 
+// ZoneValid validates zone is valid in the given project
 func (zv *ZoneValidator) ZoneValid(project string, zone string) error {
 	zl, err := zv.ComputeClient.ListZones(project)
 	if err != nil {
