@@ -258,6 +258,18 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 			repos := []*osconfigpb.AptRepository{osconfigserver.BuildAptRepository(osconfigpb.AptRepository_DEB, "http://packages.cloud.google.com/apt", osconfigTestRepo, "https://packages.cloud.google.com/apt/doc/apt-key.gpg", []string{"main"})}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(installPkg, nil, repos), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
+		case "centos":
+			image = centosImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository("google-osconfig-agent-test-repository", "Google OSConfig Agent Test Repository", "https://packages.cloud.google.com/yum/repos/osconfig-agent-test-repository", []string{"https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"})}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
+			vs = fmt.Sprintf(packageInstalledString)
+		case "rhel":
+			image = rhelImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository("google-osconfig-agent-test-repository", "Google OSConfig Agent Test Repository", "https://packages.cloud.google.com/yum/repos/osconfig-agent-test-repository", []string{"https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"})}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
+			vs = fmt.Sprintf(packageInstalledString)
 		default:
 			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
 			continue

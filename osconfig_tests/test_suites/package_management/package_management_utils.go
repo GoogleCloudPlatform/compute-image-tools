@@ -190,20 +190,20 @@ func getPackageInstallFromNewRepoTestStartupScript(pkgManager, packageName strin
 
 	case "yum":
 		ss = "%s\n" +
-			"n=0\n" +
-			"while [[ n -lt 10 ]];\n" +
+			"sleep 10;\n" + // allow time for the test runner create the osconfigs, assignments
+			"systemctl restart google-osconfig-agent\n" +
+			"while true\n" +
 			"do\n" +
 			"isinstalled=`/usr/bin/rpmquery -a %s`\n" +
-			"if [[ $isinstalled =~ ^cowsay-* ]]; then\n" +
+			"if [[ $isinstalled =~ ^%s-* ]]; then\n" +
 			"echo \"%s\"\n" +
 			"break\n" +
 			"else\n" +
-			"n=$[$n+1]\n" +
 			"sleep 5\n" +
 			"fi\n" +
 			"done\n" +
 			"echo \"%s\"\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName, packageInstalledString, packageNotInstalledString)
 
 	default:
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
