@@ -37,10 +37,14 @@ const (
 	packageInstalledString    = "package is installed"
 	packageNotInstalledString = "package is not installed"
 	osconfigTestRepo          = "osconfig-agent-test-repository"
+	yumTestRepoBaseURL        = "https://packages.cloud.google.com/yum/repos/osconfig-agent-test-repository"
+	aptTestRepoBaseURL        = "http://packages.cloud.google.com/apt"
+	aptRaptureGpgKey          = "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
 )
 
 var (
 	platformPkgManagers = []platformPkgManagerTuple{{"debian", "apt"}, {"centos", "yum"}, {"rhel", "yum"}}
+	yumRaptureGpgKeys   = []string{"https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"}
 )
 
 // vf is the the vertificationFunction that is used in each testSetup during assertion of test case.
@@ -255,19 +259,19 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 		case "debian":
 			image = debianImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			repos := []*osconfigpb.AptRepository{osconfigserver.BuildAptRepository(osconfigpb.AptRepository_DEB, "http://packages.cloud.google.com/apt", osconfigTestRepo, "https://packages.cloud.google.com/apt/doc/apt-key.gpg", []string{"main"})}
+			repos := []*osconfigpb.AptRepository{osconfigserver.BuildAptRepository(osconfigpb.AptRepository_DEB, aptTestRepoBaseURL, osconfigTestRepo, aptRaptureGpgKey, []string{"main"})}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(installPkg, nil, repos), nil, nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
 		case "centos":
 			image = centosImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository("google-osconfig-agent-test-repository", "Google OSConfig Agent Test Repository", "https://packages.cloud.google.com/yum/repos/osconfig-agent-test-repository", []string{"https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"})}
+			repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
 		case "rhel":
 			image = rhelImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository("google-osconfig-agent-test-repository", "Google OSConfig Agent Test Repository", "https://packages.cloud.google.com/yum/repos/osconfig-agent-test-repository", []string{"https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"})}
+			repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
 		default:
