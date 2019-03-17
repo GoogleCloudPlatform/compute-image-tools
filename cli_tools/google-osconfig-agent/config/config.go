@@ -43,6 +43,7 @@ const (
 	osInventoryEnabledDefault = false
 	osPackageEnabledDefault   = false
 	osPatchEnabledDefault     = false
+	debugEnabledDefault       = false
 )
 
 var (
@@ -57,7 +58,7 @@ var (
 )
 
 type config struct {
-	osInventoryEnabled, osPackageEnabled, osPatchEnabled                     bool
+	osInventoryEnabled, osPackageEnabled, osPatchEnabled, debugEnabled       bool
 	googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
 }
 
@@ -93,6 +94,7 @@ type attributesJSON struct {
 	OSInventoryEnabled string `json:"os-inventory-enabled"`
 	OSPatchEnabled     string `json:"os-patch-enabled"`
 	OSPackageEnabled   string `json:"os-package-enabled"`
+	DebugEnabled       string `json:"debug-enabled"`
 }
 
 func createConfigFromMetadata(md metadataJSON) *config {
@@ -100,6 +102,7 @@ func createConfigFromMetadata(md metadataJSON) *config {
 		osInventoryEnabled: osInventoryEnabledDefault,
 		osPackageEnabled:   osPackageEnabledDefault,
 		osPatchEnabled:     osPatchEnabledDefault,
+		debugEnabled:       debugEnabledDefault,
 		googetRepoFilePath: googetRepoFilePath,
 		zypperRepoFilePath: zypperRepoFilePath,
 		yumRepoFilePath:    yumRepoFilePath,
@@ -125,6 +128,9 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	}
 	if md.Instance.Attributes.OSPackageEnabled != "" {
 		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
+	}
+	if md.Instance.Attributes.DebugEnabled != "" {
+		c.debugEnabled = parseBool(md.Instance.Attributes.DebugEnabled)
 	}
 
 	return c
@@ -204,7 +210,7 @@ func ResourceOverride() string {
 
 // Debug sets the debug log verbosity.
 func Debug() bool {
-	return *debug
+	return (*debug || getAgentConfig().debugEnabled)
 }
 
 // OAuthPath is the local location of the OAuth credentials file.
