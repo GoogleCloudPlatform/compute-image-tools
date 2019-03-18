@@ -20,6 +20,7 @@ import (
 	"time"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
@@ -35,10 +36,15 @@ type platformPkgManagerTuple struct {
 const (
 	packageInstalledString    = "package is installed"
 	packageNotInstalledString = "package is not installed"
+	osconfigTestRepo          = "osconfig-agent-test-repository"
+	yumTestRepoBaseURL        = "https://packages.cloud.google.com/yum/repos/osconfig-agent-test-repository"
+	aptTestRepoBaseURL        = "http://packages.cloud.google.com/apt"
+	aptRaptureGpgKey          = "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
 )
 
 var (
-	tuples = []platformPkgManagerTuple{{"debian", "apt"}, {"centos", "yum"}, {"rhel", "yum"}}
+	platformPkgManagers = []platformPkgManagerTuple{{"debian", "apt"}, {"centos", "yum"}, {"rhel", "yum"}}
+	yumRaptureGpgKeys   = []string{"https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"}
 )
 
 // vf is the the vertificationFunction that is used in each testSetup during assertion of test case.
@@ -50,7 +56,7 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	testName := "createosconfigtest"
 	desc := "test osconfig creation"
 	packageName := "cowsay"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image string
 		uniqueSuffix := utils.RandString(5)
@@ -69,7 +75,8 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProje
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 		default:
-			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			continue
 		}
 		setup := packageManagementTestSetup{
 			image:      image,
@@ -87,7 +94,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	testName := "packageinstalltest"
 	desc := "test package installation"
 	packageName := "cowsay"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
@@ -109,7 +116,8 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			continue
 		}
 
 		instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
@@ -137,7 +145,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	testName := "packageremovaltest"
 	desc := "test package removal"
 	packageName := "cowsay"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
@@ -159,7 +167,8 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			continue
 		}
 
 		instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
@@ -187,7 +196,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 	testName := "packageinstallremovaltest"
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
-	for _, tuple := range tuples {
+	for _, tuple := range platformPkgManagers {
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
@@ -203,21 +212,76 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 			image = centosImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, removePkg, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		case "rhel":
 			image = rhelImage
 			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, removePkg, nil), nil, nil, nil)
 			vs = fmt.Sprintf(packageNotInstalledString)
 		default:
-			panic(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			continue
 		}
 
 		instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
 		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
 		ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
+		setup := packageManagementTestSetup{
+			image:      image,
+			name:       instanceName,
+			osconfig:   oc,
+			assignment: assign,
+			fname:      testName,
+			vf:         vf,
+			vstring:    vs,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &ss,
+			},
+		}
+		pkgTestSetup = append(pkgTestSetup, &setup)
+	}
+	return pkgTestSetup
+}
+
+func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
+	testName := "packageinstallfromnewrepotest"
+	desc := "test package installation from new package"
+	packageName := "osconfig-agent-test"
+	for _, tuple := range platformPkgManagers {
+		var oc *osconfigpb.OsConfig
+		var image, vs string
+		uniqueSuffix := utils.RandString(5)
+
+		switch tuple.platform {
+		case "debian":
+			image = debianImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			repos := []*osconfigpb.AptRepository{osconfigserver.BuildAptRepository(osconfigpb.AptRepository_DEB, aptTestRepoBaseURL, osconfigTestRepo, aptRaptureGpgKey, []string{"main"})}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildAptPackageConfig(installPkg, nil, repos), nil, nil, nil, nil)
+			vs = fmt.Sprintf(packageInstalledString)
+		case "centos":
+			image = centosImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
+			vs = fmt.Sprintf(packageInstalledString)
+		case "rhel":
+			image = rhelImage
+			installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
+			repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)}
+			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
+			vs = fmt.Sprintf(packageInstalledString)
+		default:
+			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			continue
+		}
+
+		instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
+		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
+		ss := getPackageInstallFromNewRepoTestStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
 			image:      image,
 			name:       instanceName,
@@ -242,5 +306,6 @@ func generateAllTestSetup(testProjectConfig *testconfig.Project) []*packageManag
 	pkgTestSetup = addPackageInstallTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageRemovalTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageInstallRemovalTest(pkgTestSetup, testProjectConfig)
+	pkgTestSetup = addPackageInstallFromNewRepoTest(pkgTestSetup, testProjectConfig)
 	return pkgTestSetup
 }

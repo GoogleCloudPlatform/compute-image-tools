@@ -12,23 +12,22 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package gcevmimageimportutil
+package validationutils
 
 import (
 	"fmt"
-	"regexp"
 )
 
-var (
-	gsRegex = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
-)
+// ValidateStringFlagNotEmpty returns error with error message stating field must be provided if
+// value is empty string. Returns nil otherwise.
+func ValidateStringFlagNotEmpty(flagValue string, flagKey string) error {
+	return ValidateStringNotEmpty(flagValue, flagKey, "The flag -%v must be provided")
+}
 
-// SplitGCSPath splits GCS path into: bucket, object path, error
-func SplitGCSPath(p string) (string, string, error) {
-	matches := gsRegex.FindStringSubmatch(p)
-	if matches != nil {
-		return matches[1], matches[2], nil
+// ValidateStringNotEmpty returns error with specific error message if string is empty. Returns nil otherwise.
+func ValidateStringNotEmpty(value string, key string, errorMessage string) error {
+	if value == "" {
+		return fmt.Errorf(errorMessage, key)
 	}
-
-	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
+	return nil
 }

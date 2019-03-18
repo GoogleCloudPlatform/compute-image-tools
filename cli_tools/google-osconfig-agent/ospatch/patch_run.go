@@ -69,7 +69,7 @@ var (
 		completeJobCompleted: 9,
 	}
 
-	cancelC chan struct{}
+	cancelC = make(chan struct{})
 )
 
 func initPatch(ctx context.Context) {

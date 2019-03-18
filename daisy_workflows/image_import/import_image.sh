@@ -17,10 +17,10 @@ set -x
 
 URL="http://metadata/computeMetadata/v1/instance"
 DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)"
-SOURCEURL="${DAISY_SOURCE_URL}/source_disk_file"
+SOURCE_DISK_FILE="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/source_disk_file)"
+SOURCEURL=${SOURCE_DISK_FILE}
 SOURCEBUCKET="$(echo ${SOURCEURL} | awk -F/ '{print $3}')"
 SOURCEPATH="${SOURCEURL#"gs://"}"
-SOURCE_DISK_FILE="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/source_disk_file)"
 DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk_name)"
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
 ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)

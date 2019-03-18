@@ -33,6 +33,9 @@ import (
 )
 
 var (
+	// DeferredFatalFuncs is a slice of functions that will be called prior to os.Exit in Fatal.
+	DeferredFatalFuncs []func()
+
 	port               = &serialPort{config.SerialLogPort()}
 	cloudLoggingClient *logging.Client
 	cloudLogger        *logging.Logger
@@ -184,6 +187,9 @@ func Errorf(format string, v ...interface{}) {
 func Fatal(e LogEntry) {
 	le := &logEntry{LocalTimestamp: now(), LogEntry: e, severity: logging.Critical, source: caller(e.CallDepth)}
 	log(le, io.MultiWriter(os.Stderr, port))
+	for _, f := range DeferredFatalFuncs {
+		f()
+	}
 	Close()
 	os.Exit(1)
 }

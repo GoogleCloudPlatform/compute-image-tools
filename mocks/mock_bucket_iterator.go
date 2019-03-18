@@ -16,6 +16,9 @@
 // Source: github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain (interfaces: BucketIteratorInterface)
 
 // Package mocks is a generated GoMock package.
+
+//+build !test
+
 package mocks
 
 import (

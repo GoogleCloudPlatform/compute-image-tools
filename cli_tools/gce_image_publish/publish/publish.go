@@ -226,8 +226,14 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 	if skipDuplicates && rep {
 		return nil, nil, nil, errors.New("cannot set both skipDuplicates and replace")
 	}
-	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
-	sourceName := fmt.Sprintf("%s-%s", img.Prefix, p.sourceVersion)
+	publishName := img.Prefix
+	if p.publishVersion != "" {
+		publishName = fmt.Sprintf("%s-%s", publishName, p.publishVersion)
+	}
+	sourceName := img.Prefix
+	if p.sourceVersion != "" {
+		sourceName = fmt.Sprintf("%s-%s", sourceName, p.sourceVersion)
+	}
 
 	ci := daisy.Image{
 		Image: compute.Image{

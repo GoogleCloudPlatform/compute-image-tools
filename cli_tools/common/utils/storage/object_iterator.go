@@ -12,32 +12,36 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package gcevmimageimportutil
+package storageutils
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
+
+	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 )
 
-// BucketIteratorCreator is responsible for creating GCS bucket iterator
-type BucketIteratorCreator struct {
+// ObjectIteratorCreator is responsible for creating GCS Object iterator
+type ObjectIteratorCreator struct {
+	ctx context.Context
+	sc  *storage.Client
 }
 
-// CreateBucketIterator creates GCS bucket iterator
-func (bic *BucketIteratorCreator) CreateBucketIterator(ctx context.Context,
-	storageClient domain.StorageClientInterface, projectID string) domain.BucketIteratorInterface {
-	return &BucketIterator{storageClient.Buckets(ctx, projectID)}
+// CreateObjectIterator creates GCS Object iterator
+func (bic *ObjectIteratorCreator) CreateObjectIterator(
+	bucket string, objectPath string) commondomain.ObjectIteratorInterface {
+	return &ObjectIterator{
+		it: bic.sc.Bucket(bucket).Objects(bic.ctx, &storage.Query{Prefix: objectPath})}
 }
 
-// BucketIterator is a wrapper around storage.BucketIterator. Implements BucketIteratorInterface.
-type BucketIterator struct {
-	it *storage.BucketIterator
+// ObjectIterator is a wrapper around storage.ObjectIterator. Implements ObjectIteratorInterface.
+type ObjectIterator struct {
+	it *storage.ObjectIterator
 }
 
 // Next returns the next result. Its second return value is iterator.Done if
 // there are no more results. Once Next returns iterator.Done, all subsequent
 // calls will return iterator.Done.
-func (bi *BucketIterator) Next() (*storage.BucketAttrs, error) {
+func (bi *ObjectIterator) Next() (*storage.ObjectAttrs, error) {
 	return bi.it.Next()
 }

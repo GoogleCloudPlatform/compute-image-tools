@@ -37,6 +37,7 @@ func init() {
 	if runtime.GOOS == "windows" {
 		googet = filepath.Join(os.Getenv("GooGetRoot"), "googet.exe")
 	}
+	GooGetExists = exists(googet)
 }
 
 func googetUpdates() ([]PkgInfo, error) {

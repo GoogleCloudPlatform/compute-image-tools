@@ -15,49 +15,17 @@
 package domain
 
 import (
-	"cloud.google.com/go/storage"
-	"context"
-	"google.golang.org/api/compute/v1"
 	"net/http"
 )
-
-// MetadataGCEInterface represents GCE metadata
-type MetadataGCEInterface interface {
-	OnGCE() bool
-	Zone() (string, error)
-	ProjectID() (string, error)
-}
-
-// BucketIteratorCreatorInterface represents GCS bucket creator
-type BucketIteratorCreatorInterface interface {
-	CreateBucketIterator(ctx context.Context, storageClient StorageClientInterface, projectID string) BucketIteratorInterface
-}
 
 // ScratchBucketCreatorInterface represents Daisy scratch (temporary) bucket creator
 type ScratchBucketCreatorInterface interface {
 	CreateScratchBucket(sourceFileFlag string, projectFlag string) (string, string, error)
 }
 
-// StorageClientInterface represents GCS storage client
-type StorageClientInterface interface {
-	CreateBucket(ctx context.Context, bucketName string, project string, attrs *storage.BucketAttrs) error
-	Buckets(ctx context.Context, projectID string) *storage.BucketIterator
-	GetBucketAttrs(bucket string) (*storage.BucketAttrs, error)
-}
-
-//BucketIteratorInterface represents GCS bucket iterator
-type BucketIteratorInterface interface {
-	Next() (*storage.BucketAttrs, error)
-}
-
 // ZoneRetrieverInterface represents Daisy GCE zone retriever
 type ZoneRetrieverInterface interface {
 	GetZone(storageRegion string, project string) (string, error)
-}
-
-// ComputeServiceInterface represents GCE compute service
-type ComputeServiceInterface interface {
-	GetZones(project string) ([]*compute.Zone, error)
 }
 
 // HTTPClientInterface represents HTTP client

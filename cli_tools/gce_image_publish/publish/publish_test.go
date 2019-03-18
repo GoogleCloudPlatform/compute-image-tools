@@ -147,6 +147,21 @@ func TestPublishImage(t *testing.T) {
 			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
 			false,
 		},
+		{
+			"new image from src, without version",
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project"},
+			&Image{Prefix: "foo-x", Family: "foo-family", GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
+			[]*compute.Image{
+				{Name: "bar-x", Family: "bar-family"},
+			},
+			false,
+			false,
+			&daisy.CreateImages{{GuestOsFeatures: []string{"foo-feature", "bar-feature"}, Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-x"}, Image: compute.Image{
+				Name: "foo-x", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-x"},
+			}},
+			nil,
+			false,
+		},
 	}
 	for _, tt := range tests {
 		dr, di, _, err := publishImage(tt.p, tt.img, tt.pubImgs, tt.skipDup, tt.replace)

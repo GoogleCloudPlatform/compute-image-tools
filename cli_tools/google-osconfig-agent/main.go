@@ -19,6 +19,8 @@ import (
 	"context"
 	"flag"
 	"log"
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
@@ -36,6 +38,8 @@ var version string
 func init() {
 	// We do this here so the -X value doesn't need the full path.
 	config.SetVersion(version)
+
+	obtainLock()
 }
 
 type logWritter struct{}
@@ -79,9 +83,22 @@ func run(ctx context.Context) {
 	}
 }
 
+var deferredFuncs []func()
+
 func main() {
 	flag.Parse()
 	ctx := context.Background()
+
+	logger.DeferredFatalFuncs = append(logger.DeferredFatalFuncs, deferredFuncs...)
+	defer func() {
+		for _, f := range deferredFuncs {
+			f()
+		}
+	}()
+
+	if err := config.SetConfig(); err != nil {
+		logger.Errorf(err.Error())
+	}
 
 	if config.Debug() {
 		packages.DebugLogger = log.New(&logWritter{}, "", 0)
@@ -95,15 +112,24 @@ func main() {
 	logger.Init(ctx, proj)
 	defer logger.Close()
 
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		select {
+		case <-c:
+			logger.Fatalf("Ctrl-C caught, shutting down.")
+		}
+	}()
+
 	switch action := flag.Arg(0); action {
-	case "":
+	case "", "run":
 		if err := service.Register(ctx, "google_osconfig_agent", "Google OSConfig Agent", "", run, "run"); err != nil {
 			logger.Fatalf("service.Register error: %v", err)
 		}
 	case "noservice":
 		run(ctx)
 		return
-	case "inventory":
+	case "inventory", "osinventory":
 		inventory.Run()
 		tasker.Close()
 		return
