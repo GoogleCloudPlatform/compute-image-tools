@@ -50,15 +50,15 @@ class RepoString(object):
   # url_branch: This is combined with url_root (defined in the class) and
   #   repo_version to create the repo's baseurl. You must include a string
   #   formatter '%s' to place the repo_version in your URL.
-  #   e.g. /google-cloud-compute-%s-x86_64-unstable
+  #   e.g. /google-compute-engine-%s-x86_64-unstable
   # filename: This is the location the yum.conf section file will live on the
   # image.
 
   repodict = {
-      'compute': {
-          'head': '[google-cloud-compute]',
-          'name': 'Google Cloud Compute',
-          'url_branch': '/google-cloud-compute-%s-x86_64',
+      'stable': {
+          'head': '[google-compute-engine]',
+          'name': 'Google Compute Engine',
+          'url_branch': '/google-compute-engine-%s-x86_64-stable',
           'filename': '/etc/yum.repos.d/google-cloud.repo'
       },
       'sdk': {
@@ -68,15 +68,15 @@ class RepoString(object):
           'filename': '/etc/yum.repos.d/google-cloud.repo'
       },
       'unstable': {
-          'head': '[google-cloud-compute-unstable]',
-          'name': 'Google Cloud Compute Unstable',
-          'url_branch': '/google-cloud-compute-%s-x86_64-unstable',
+          'head': '[google-compute-engine-unstable]',
+          'name': 'Google Compute Engine Unstable',
+          'url_branch': '/google-compute-engine-%s-x86_64-unstable',
           'filename': '/etc/yum.repos.d/google-cloud-unstable.repo'
       },
       'staging': {
-          'head': '[google-cloud-compute-staging]',
-          'name': 'Google Cloud Compute Staging',
-          'url_branch': '/google-cloud-compute-%s-x86_64-staging',
+          'head': '[google-compute-engine-staging]',
+          'name': 'Google Compute Engine Staging',
+          'url_branch': '/google-compute-engine-%s-x86_64-staging',
           'filename': '/etc/yum.repos.d/google-cloud-staging.repo'
       }
   }
@@ -85,7 +85,7 @@ class RepoString(object):
     """Initializes RepoString with attributes passes as arguments.
 
     Args:
-      repo_version: string; expects 'el6', or 'el7'.
+      repo_version: string; expects 'el6', 'el7', 'el8'.
 
       repo: string; used to specify which dict in repodict to use to assemble
             the yum.conf repo segment.
@@ -96,7 +96,7 @@ class RepoString(object):
     url_branch: This is combined with url_root (defined in the class) and
     repo_version to create the repo's baseurl. You must include a string
       formatter '%s' to place the repo_version in your URL.
-      e.g. /google-cloud-compute-%s-x86_64-unstable
+      e.g. /google-compute-engine-%s-x86_64-unstable
 
     Returns:
       An initialized RepoString object.
@@ -150,7 +150,7 @@ class RepoString(object):
       url_branch: string; this is combined with url_root and repo_version to
                   create the repo's baseurl. You must include a string
                   formatter '%s' to place the repo_version in your URL.
-                    e.g. /google-cloud-compute-%s-x86_64-unstable
+                    e.g. /google-compute-engine-%s-x86_64-unstable
 
     Returns:
       string; baseurl
@@ -158,8 +158,7 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
-                  uefi):
+def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
   """Builds kickstart config from shards.
 
   Args:
@@ -167,8 +166,6 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
     byol: bool; true if using a BYOL RHEL license.
     sap: bool; true if building RHEL for SAP.
-    sap_hana: bool; true if building RHEL for SAP HANA.
-    sap_apps: bool; true if building RHEL for SAP Apps.
     uefi: bool; true if building uefi image.
 
   Returns:
@@ -220,9 +217,6 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     if sap:
       logging.info('Building RHEL 7 for SAP')
       point = ''
-      if release == 'rhel-7-3':
-        logging.info('Building RHEL 7.3 for SAP')
-        point = FetchConfigPart('rhel7-3-post.cfg')
       if release == 'rhel-7-4':
         logging.info('Building RHEL 7.4 for SAP')
         point = FetchConfigPart('rhel7-4-post.cfg')
@@ -230,12 +224,6 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
         logging.info('Building RHEL 7.6 for SAP')
         point = FetchConfigPart('rhel7-6-post.cfg')
       rhel_post = '\n'.join([point, FetchConfigPart('rhel7-sap-post.cfg')])
-    elif sap_hana:
-      logging.info('Building RHEL 7 for SAP Hana')
-      rhel_post = FetchConfigPart('rhel7-sap-hana-post.cfg')
-    elif sap_apps:
-      logging.info('Building RHEL 7 for SAP Apps')
-      rhel_post = FetchConfigPart('rhel7-sap-apps-post.cfg')
     el_post = FetchConfigPart('el7-post.cfg')
     custom_post = '\n'.join([rhel_post, el_post])
     if byol:
@@ -276,6 +264,17 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
     custom_post = '\n'.join([ol_post, el_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
+  elif release == "rhel8":
+    logging.info('Building RHEL 8 image.')
+    ks_packages = FetchConfigPart('el8-packages.cfg')
+    ks_options = FetchConfigPart('el8-options.cfg')
+    if uefi:
+      ks_options = FetchConfigPart('el8-uefi-options.cfg')
+    rhel_post = FetchConfigPart('rhel8-post.cfg')
+    el_post = FetchConfigPart('el8-post.cfg')
+    custom_post = '\n'.join([rhel_post, el_post])
+    cleanup = FetchConfigPart('el8-cleanup.cfg')
+    repo_version = 'el8'
   else:
     logging.error('Unknown Image Name: %s' % release)
 
@@ -295,21 +294,17 @@ def BuildPost(custom_post, cleanup, repo_version, google_cloud_repo):
 
     cleanup: string; a kickstart %post segment for cleanup.
 
-    repo_version: string; expects 'el6', or 'el7'.
+    repo_version: string; expects 'el6', 'el7', or 'el8'.
 
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
 
   Returns:
     string; a complete %pre/post segment of a kickstart file.
   """
-  # This is used to create a synopsis of the image and should appear right
-  # before the image is pushed to GCS.
-  create_synopsis = FetchConfigPart('create-synopsis-post.cfg')
-
   # Configure repository %post section
   repo_post = BuildReposPost(repo_version, google_cloud_repo)
 
-  ks_post_list = [repo_post, custom_post, create_synopsis, cleanup]
+  ks_post_list = [repo_post, custom_post, cleanup]
   return '\n'.join(ks_post_list)
 
 
@@ -317,7 +312,7 @@ def BuildReposPost(repo_version, google_cloud_repo):
   """Creates a kickstart post macro with repos needed by GCE.
 
   Args:
-    repo_version: string; expects 'el6', or 'el7'.
+    repo_version: string; expects 'el6', 'el7', or 'el8'.
 
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'
 
@@ -347,8 +342,8 @@ def BuildReposPost(repo_version, google_cloud_repo):
   # Build a list of repos that will be returned. All images will get the
   # compute repo. EL7 images get the cloud SDK repo. The unstable, and staging
   # repos can be added to either by setting the google_cloud_repo value.
-  repolist = ['compute']
-  if repo_version == 'el7':
+  repolist = ['stable']
+  if repo_version == 'el7' or repo_version == 'el8':
     repolist.append('sdk')
   if google_cloud_repo == 'unstable':
     repolist.append('unstable')

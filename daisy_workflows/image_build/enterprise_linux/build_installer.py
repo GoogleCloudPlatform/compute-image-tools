@@ -38,18 +38,12 @@ def main():
                                     raise_on_not_found=True)
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs',
-                                        raise_on_not_found=False)
-  savelogs = savelogs == 'true'
-  byol = utils.GetMetadataAttribute('rhel_byol', raise_on_not_found=False)
-  byol = byol == 'true'
-  sap_hana = utils.GetMetadataAttribute('rhel_sap_hana',
-                                        raise_on_not_found=False)
-  sap_hana = sap_hana == 'true'
-  sap_apps = utils.GetMetadataAttribute('rhel_sap_apps',
-                                        raise_on_not_found=False)
-  sap_apps = sap_apps == 'true'
-  sap = utils.GetMetadataAttribute('rhel_sap', raise_on_not_found=False)
-  sap = sap == 'true'
+                                        raise_on_not_found=False) == 'true'
+  byol = utils.GetMetadataAttribute('rhel_byol',
+                                    raise_on_not_found=False) == 'true'
+  sap = utils.GetMetadataAttribute('rhel_sap',
+                                   raise_on_not_found=False) == 'true'
+
   logging.info('EL Release: %s' % release)
   logging.info('Google Cloud repo: %s' % repo)
   logging.info('Build working directory: %s' % os.getcwd())
@@ -60,8 +54,7 @@ def main():
   utils.AptGetInstall(['extlinux', 'rsync'])
 
   # Build the kickstart file.
-  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap, sap_hana,
-                                        sap_apps, uefi=False)
+  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap, uefi=False)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 
@@ -108,7 +101,7 @@ def main():
     cfg = re.sub(r'append initrd=initrd\.img.*', r'\g<0> %s' % args, cfg)
 
     # Change labels to explicit partitions.
-    if release.startswith(('centos7', 'rhel7', 'rhel-7', 'oraclelinux7')):
+    if release.startswith(('centos7', 'rhel7', 'rhel-7', 'oraclelinux7', 'rhel8')):
       cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.
