@@ -12,19 +12,26 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package gcevmimageimportutil
+//+build !test
 
-import (
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
-)
+package computeutils
 
-// ComputeService wraps GCE compute.Service and implements ComputeServiceInterface
-type ComputeService struct {
-	Cc daisycompute.Client
+import "cloud.google.com/go/compute/metadata"
+
+// MetadataGCE implements MetadataGCEInterface
+type MetadataGCE struct{}
+
+// OnGCE reports whether this process is running on Google Compute Engine.
+func (m *MetadataGCE) OnGCE() bool {
+	return metadata.OnGCE()
 }
 
-// GetZones returns a slice of Zones for give project
-func (cs *ComputeService) GetZones(project string) ([]*compute.Zone, error) {
-	return cs.Cc.ListZones(project)
+// Zone returns the current VM's zone, such as "us-central1-b".
+func (m *MetadataGCE) Zone() (string, error) {
+	return metadata.Zone()
+}
+
+// ProjectID returns the current instance's project ID string.
+func (m *MetadataGCE) ProjectID() (string, error) {
+	return metadata.ProjectID()
 }

@@ -12,24 +12,21 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package gcevmimageimportutil
+package domain
 
-import "cloud.google.com/go/compute/metadata"
+import "github.com/vmware/govmomi/ovf"
 
-// MetadataGCE implements MetadataGCEInterface
-type MetadataGCE struct{}
-
-// OnGCE reports whether this process is running on Google Compute Engine.
-func (m *MetadataGCE) OnGCE() bool {
-	return metadata.OnGCE()
+// OvfDescriptorValidatorInterface represents OVF descriptor validator
+type OvfDescriptorValidatorInterface interface {
+	ValidateOvfPackage(ovfDescriptor *ovf.Envelope, ovfGcsPath string) (*ovf.Envelope, error)
 }
 
-// Zone returns the current VM's zone, such as "us-central1-b".
-func (m *MetadataGCE) Zone() (string, error) {
-	return metadata.Zone()
+// OvfDescriptorLoaderInterface represents a loader for OVF descriptors
+type OvfDescriptorLoaderInterface interface {
+	Load(ovfGcsPath string) (*ovf.Envelope, error)
 }
 
-// ProjectID returns the current instance's project ID string.
-func (m *MetadataGCE) ProjectID() (string, error) {
-	return metadata.ProjectID()
+// MachineTypeProviderInterface is responsible for providing GCE machine type
+type MachineTypeProviderInterface interface {
+	GetMachineType() (string, error)
 }

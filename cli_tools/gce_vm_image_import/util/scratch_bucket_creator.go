@@ -15,13 +15,15 @@
 package gcevmimageimportutil
 
 import (
-	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
-	"google.golang.org/api/iterator"
 	"log"
 	"strings"
+
+	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"google.golang.org/api/iterator"
 )
 
 const (
@@ -31,14 +33,14 @@ const (
 
 // ScratchBucketCreator is responsible for creating Daisy scratch bucketets
 type ScratchBucketCreator struct {
-	StorageClient         domain.StorageClientInterface
+	StorageClient         commondomain.StorageClientInterface
 	Ctx                   context.Context
-	BucketIteratorCreator domain.BucketIteratorCreatorInterface
+	BucketIteratorCreator commondomain.BucketIteratorCreatorInterface
 }
 
 // NewScratchBucketCreator creates a ScratchBucketCreator
-func NewScratchBucketCreator(ctx context.Context, storageClient domain.StorageClientInterface) *ScratchBucketCreator {
-	return &ScratchBucketCreator{storageClient, ctx, &BucketIteratorCreator{}}
+func NewScratchBucketCreator(ctx context.Context, storageClient commondomain.StorageClientInterface) *ScratchBucketCreator {
+	return &ScratchBucketCreator{storageClient, ctx, &storageutils.BucketIteratorCreator{}}
 }
 
 // CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
@@ -68,7 +70,7 @@ func (c *ScratchBucketCreator) CreateScratchBucket(
 }
 
 func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string) (string, string, error) {
-	fileBucket, _, err := SplitGCSPath(fileGcsPath)
+	fileBucket, _, err := storageutils.SplitGCSPath(fileGcsPath)
 	if err != nil || fileBucket == "" {
 		return "", "", fmt.Errorf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
 	}
@@ -101,7 +103,7 @@ func (c *ScratchBucketCreator) createBucketIfNotExisting(bucket string, project 
 	}
 
 	log.Printf("Creating scratch bucket `%v` in %v region", bucket, bucketAttrs.Location)
-	if err := c.StorageClient.CreateBucket(c.Ctx, bucket, project, bucketAttrs); err != nil {
+	if err := c.StorageClient.CreateBucket(bucket, project, bucketAttrs); err != nil {
 		return "", err
 	}
 	return bucketAttrs.Location, nil

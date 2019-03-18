@@ -125,7 +125,6 @@ Loop:
 		if s.w.Sources == nil {
 			s.w.Sources = map[string]string{}
 		}
-
 		if _, _, err := splitGCSPath(v); err != nil && !filepath.IsAbs(v) {
 			v = filepath.Join(i.Workflow.workflowDir, v)
 		}
