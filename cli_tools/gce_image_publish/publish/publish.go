@@ -132,9 +132,9 @@ func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, s
 	if err := json.Unmarshal(buf.Bytes(), &p); err != nil {
 		return nil, daisy.JSONError(path, buf.Bytes(), err)
 	}
-	p.expiryDate, err = calculateExpiryDate(p.DeleteAfter)
-	if err != nil {
-		return nil, fmt.Errorf("%s: error parsing DeleteAfter: %v", path, err)
+
+	if err := p.SetExpire(); err != nil {
+		return nil, fmt.Errorf("%s: error SetExpire: %v", path, err)
 	}
 
 	if workProject != "" {
@@ -165,6 +165,16 @@ func CreatePublish(sourceVersion, publishVersion, workProject, publishProject, s
 
 	fmt.Printf("[%q] Created a publish object successfully from %s\n", p.Name, path)
 	return &p, nil
+}
+
+// SetExpire converts p.DeleteAfter into p.expiryDate
+func (p *Publish) SetExpire() error {
+	expire, err := calculateExpiryDate(p.DeleteAfter)
+	if err != nil {
+		return fmt.Errorf("error parsing DeleteAfter: %v", err)
+	}
+	p.expiryDate = expire
+	return nil
 }
 
 // CreateWorkflows creates a list of daisy workflows from the publish object
