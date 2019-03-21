@@ -18,7 +18,7 @@ FROM golang
 ENV ARTIFACTS /artifacts
 RUN mkdir -p ${ARTIFACTS}
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
-ENV CODECOV_TOKEN /etc/codecov/token
+ENV CODECOV_TOKEN /etc/codecov/codecov
 
 RUN apt-get update && apt-get -y install bash ca-certificates curl git libssl-dev wget && \
     rm -rf /var/cache/apt/archives

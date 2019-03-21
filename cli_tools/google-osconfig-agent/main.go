@@ -100,9 +100,7 @@ func main() {
 		logger.Errorf(err.Error())
 	}
 
-	if config.Debug() {
-		packages.DebugLogger = log.New(&logWritter{}, "", 0)
-	}
+	packages.DebugLogger = log.New(&logWritter{}, "", 0)
 
 	proj, err := config.Project()
 	if err != nil {
