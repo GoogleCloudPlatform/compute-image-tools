@@ -102,7 +102,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 			if err != nil {
 				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
 				if sErr != nil {
-					err = fmt.Errorf("%v, error geting InstanceStatus: %v", err, sErr)
+					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
 				} else {
 					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
 				}

@@ -53,7 +53,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 			if err != nil {
 				status, sErr := i.client.InstanceStatus(i.Project, i.Zone, i.Name)
 				if sErr != nil {
-					err = fmt.Errorf("%v, error geting InstanceStatus: %v", err, sErr)
+					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
 				} else {
 					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
 				}
