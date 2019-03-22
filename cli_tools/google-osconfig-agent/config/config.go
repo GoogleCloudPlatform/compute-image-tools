@@ -43,6 +43,7 @@ const (
 	osInventoryEnabledDefault = false
 	osPackageEnabledDefault   = false
 	osPatchEnabledDefault     = false
+	osDebugEnabledDefault     = false
 )
 
 var (
@@ -51,13 +52,13 @@ var (
 	oauth            = flag.String("oauth", "", "path to oauth json file")
 	debug            = flag.Bool("debug", false, "set debug log verbosity")
 
-	agentConfig   *config
+	agentConfig   = &config{}
 	agentConfigMx sync.RWMutex
 	version       string
 )
 
 type config struct {
-	osInventoryEnabled, osPackageEnabled, osPatchEnabled                     bool
+	osInventoryEnabled, osPackageEnabled, osPatchEnabled, osDebugEnabled     bool
 	googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
 }
 
@@ -93,6 +94,7 @@ type attributesJSON struct {
 	OSInventoryEnabled string `json:"os-inventory-enabled"`
 	OSPatchEnabled     string `json:"os-patch-enabled"`
 	OSPackageEnabled   string `json:"os-package-enabled"`
+	OSDebugEnabled     string `json:"os-debug-enabled"`
 }
 
 func createConfigFromMetadata(md metadataJSON) *config {
@@ -100,6 +102,7 @@ func createConfigFromMetadata(md metadataJSON) *config {
 		osInventoryEnabled: osInventoryEnabledDefault,
 		osPackageEnabled:   osPackageEnabledDefault,
 		osPatchEnabled:     osPatchEnabledDefault,
+		osDebugEnabled:     osDebugEnabledDefault,
 		googetRepoFilePath: googetRepoFilePath,
 		zypperRepoFilePath: zypperRepoFilePath,
 		yumRepoFilePath:    yumRepoFilePath,
@@ -125,6 +128,9 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	}
 	if md.Instance.Attributes.OSPackageEnabled != "" {
 		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
+	}
+	if md.Instance.Attributes.OSDebugEnabled != "" {
+		c.osDebugEnabled = parseBool(md.Instance.Attributes.OSDebugEnabled)
 	}
 
 	return c
@@ -204,7 +210,7 @@ func ResourceOverride() string {
 
 // Debug sets the debug log verbosity.
 func Debug() bool {
-	return *debug
+	return (*debug || getAgentConfig().osDebugEnabled)
 }
 
 // OAuthPath is the local location of the OAuth credentials file.

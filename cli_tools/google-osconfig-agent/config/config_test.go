@@ -26,7 +26,7 @@ import (
 
 func TestSetConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"project":{"attributes":{"os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"attributes":{"os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo"}}}`)
+		fmt.Fprintln(w, `{"project":{"attributes":{"os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"attributes":{"os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true"}}}`)
 	}))
 	defer ts.Close()
 
@@ -46,6 +46,7 @@ func TestSetConfig(t *testing.T) {
 		{"osinventory should be enabled (proj disabled, inst enabled)", OSInventoryEnabled, true},
 		{"ospatch should be disabled (proj enabled, inst disabled)", OSPatchEnabled, false},
 		{"ospackage should be disabled (proj enabled, inst bad value)", OSPackageEnabled, false},
+		{"debugenabled should be true (proj disabled, inst enabled)", Debug, true},
 	}
 	for _, tt := range tests {
 		if tt.op() != tt.want {
