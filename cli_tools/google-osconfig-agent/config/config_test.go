@@ -26,7 +26,7 @@ import (
 
 func TestSetConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"project":{"attributes":{"os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"attributes":{"os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true"}}}`)
+		fmt.Fprintln(w, `{"project":{"attributes":{"os-config-endpoint":"foo","os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"attributes":{"os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true"}}}`)
 	}))
 	defer ts.Close()
 

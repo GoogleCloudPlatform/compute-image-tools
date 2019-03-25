@@ -47,6 +47,7 @@ func run(ctx context.Context, res string) {
 		logger.Errorf("osconfig.NewClient Error: %v", err)
 		return
 	}
+	defer client.Close()
 
 	resp, err := lookupConfigs(ctx, client, res)
 	if err != nil {

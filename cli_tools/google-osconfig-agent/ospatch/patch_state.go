@@ -15,14 +15,9 @@
 package ospatch
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"os"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/attributes"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 )
 
 const state = "osconfig_patch.state"
@@ -48,11 +43,6 @@ func saveState(state string, w *patchRun) error {
 	d, err := json.Marshal(w)
 	if err != nil {
 		return err
-	}
-
-	// This sends state to guest attributes and isn't required for patching to work.
-	if err := attributes.PostAttribute(config.ReportURL+"/osConfig/patchRunner", bytes.NewReader(d)); err != nil {
-		logger.Debugf("postAttribute error: %v", err)
 	}
 
 	// TODO: Once we are storing more state consider atomic state save
