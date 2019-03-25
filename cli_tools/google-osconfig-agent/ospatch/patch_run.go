@@ -212,7 +212,11 @@ func (r *patchRun) rebootIfNeeded(ctx context.Context, postUpdate bool) (shouldS
 			r.finishAndReportError(ctx, fmt.Sprintf("Error checking if a system reboot is required: %v", err))
 			return true
 		}
-		logger.Infof("System indicates a reboot is required.")
+		if reboot {
+			logger.Infof("System indicates a reboot is required.")
+		} else {
+			logger.Infof("System indicates a reboot is not required.")
+		}
 	}
 
 	if reboot {
