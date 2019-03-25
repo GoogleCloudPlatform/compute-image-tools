@@ -170,12 +170,16 @@ func createConfigFromMetadata(md metadataJSON) *config {
 		c.osDebugEnabled = true
 	} else if md.Instance.Attributes.OSDebugEnabled != "" {
 		c.osDebugEnabled = parseBool(md.Instance.Attributes.OSDebugEnabled)
+	} else if md.Project.Attributes.OSDebugEnabled != "" {
+		c.osDebugEnabled = parseBool(md.Project.Attributes.OSDebugEnabled)
 	}
 
 	if *endpoint != prodEndpoint {
 		c.osConfigEndpoint = *endpoint
 	} else if md.Instance.Attributes.OSConfigEndpoint != "" {
 		c.osConfigEndpoint = md.Instance.Attributes.OSConfigEndpoint
+	} else if md.Project.Attributes.OSConfigEndpoint != "" {
+		c.osConfigEndpoint = md.Project.Attributes.OSConfigEndpoint
 	}
 
 	return c

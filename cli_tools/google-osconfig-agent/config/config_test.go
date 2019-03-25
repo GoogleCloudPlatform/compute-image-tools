@@ -26,7 +26,7 @@ import (
 
 func TestSetConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"project":{"attributes":{"os-config-endpoint":"foo","os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"attributes":{"os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true"}}}`)
+		fmt.Fprintln(w, `{"project":{"projectId":"projectId","attributes":{"os-config-endpoint":"bad!!1","os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"id":"id","name":"name","zone":"zone","attributes":{"os-config-endpoint":"SvcEndpoint","os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true"}}}`)
 	}))
 	defer ts.Close()
 
@@ -38,7 +38,25 @@ func TestSetConfig(t *testing.T) {
 		t.Fatalf("Error running SetConfig: %v", err)
 	}
 
-	tests := []struct {
+	testsString := []struct {
+		desc string
+		op   func() string
+		want string
+	}{
+		{"SvcEndpoint", SvcEndpoint, "SvcEndpoint"},
+		{"Instance", Instance, "zone/instances/name"},
+		{"ID", ID, "id"},
+		{"ProjectID", ProjectID, "projectId"},
+		{"Zone", Zone, "zone"},
+		{"Name", Name, "name"},
+	}
+	for _, tt := range testsString {
+		if tt.op() != tt.want {
+			t.Errorf("%q: got(%q) != want(%q)", tt.desc, tt.op(), tt.want)
+		}
+	}
+
+	testsBool := []struct {
 		desc string
 		op   func() bool
 		want bool
@@ -48,7 +66,7 @@ func TestSetConfig(t *testing.T) {
 		{"ospackage should be disabled (proj enabled, inst bad value)", OSPackageEnabled, false},
 		{"debugenabled should be true (proj disabled, inst enabled)", Debug, true},
 	}
-	for _, tt := range tests {
+	for _, tt := range testsBool {
 		if tt.op() != tt.want {
 			t.Errorf("%q: got(%t) != want(%t)", tt.desc, tt.op(), tt.want)
 		}
