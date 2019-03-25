@@ -478,11 +478,13 @@ func (oi *OVFImporter) Import() error {
 	if err := w.RunWithModifiers(oi.ctx, oi.modifyWorkflowPreValidate, oi.modifyWorkflowPostValidate); err != nil {
 		return fmt.Errorf("%s: %v", w.Name, err)
 	}
+	oi.logger.Log("OVF import workflow finished successfully.")
 	return nil
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import
 func (oi *OVFImporter) CleanUp() {
+	oi.logger.Log("Cleaning up.")
 	if oi.storageClient != nil {
 		if oi.gcsPathToClean != "" {
 			err := oi.storageClient.DeleteGcsPath(oi.gcsPathToClean)
