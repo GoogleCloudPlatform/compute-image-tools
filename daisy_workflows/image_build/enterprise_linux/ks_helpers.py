@@ -254,7 +254,8 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, sap_hana, sap_apps,
       ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('el7-post.cfg')
     if uefi:
-      el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg')
+      el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg').replace("redhat",
+                                                                   "centos")
       custom_post = '\n'.join([custom_post, el7_uefi_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
