@@ -371,25 +371,17 @@ func reportPatchDetails(ctx context.Context, patchJobName string, patchState osc
 		logger.Errorf("osconfig.NewClient Error: %v", err)
 		return nil, err
 	}
+	defer client.Close()
 
+	// This can't be cached.
 	identityToken, err := metadata.Get(identityTokenPath)
 	if err != nil {
 		return nil, err
 	}
 
-	fullInstanceName, err := config.Instance()
-	if err != nil {
-		return nil, err
-	}
-
-	instanceID, err := metadata.InstanceID()
-	if err != nil {
-		return nil, err
-	}
-
 	request := osconfigpb.ReportPatchJobInstanceDetailsRequest{
-		Resource:         fullInstanceName,
-		InstanceSystemId: instanceID,
+		Resource:         config.Instance(),
+		InstanceSystemId: config.ID(),
 		PatchJobName:     patchJobName,
 		InstanceIdToken:  identityToken,
 		State:            patchState,
