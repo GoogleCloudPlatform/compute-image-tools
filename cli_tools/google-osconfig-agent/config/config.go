@@ -60,10 +60,10 @@ var (
 )
 
 type config struct {
-	osInventoryEnabled, osPackageEnabled, osPatchEnabled, osDebugEnabled                       bool
-	osConfigEndpoint, googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
-	numericProjectID                                                                           int
-	projectID, instanceZone, instanceName, instanceID                                          string
+	osInventoryEnabled, osPackageEnabled, osPatchEnabled, osDebugEnabled                  bool
+	svcEndpoint, googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
+	numericProjectID                                                                      int
+	projectID, instanceZone, instanceName, instanceID                                     string
 }
 
 func getAgentConfig() config {
@@ -114,7 +114,7 @@ func createConfigFromMetadata(md metadataJSON) *config {
 		osPackageEnabled:   osPackageEnabledDefault,
 		osPatchEnabled:     osPatchEnabledDefault,
 		osDebugEnabled:     osDebugEnabledDefault,
-		osConfigEndpoint:   prodEndpoint,
+		svcEndpoint:        prodEndpoint,
 
 		googetRepoFilePath: googetRepoFilePath,
 		zypperRepoFilePath: zypperRepoFilePath,
@@ -165,7 +165,7 @@ func createConfigFromMetadata(md metadataJSON) *config {
 		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
 	}
 
-	// Flags take precidence over metadata.
+	// Flags take precedence over metadata.
 	if *debug {
 		c.osDebugEnabled = true
 	} else if md.Instance.Attributes.OSDebugEnabled != "" {
@@ -175,11 +175,11 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	}
 
 	if *endpoint != prodEndpoint {
-		c.osConfigEndpoint = *endpoint
+		c.svcEndpoint = *endpoint
 	} else if md.Instance.Attributes.OSConfigEndpoint != "" {
-		c.osConfigEndpoint = md.Instance.Attributes.OSConfigEndpoint
+		c.svcEndpoint = md.Instance.Attributes.OSConfigEndpoint
 	} else if md.Project.Attributes.OSConfigEndpoint != "" {
-		c.osConfigEndpoint = md.Project.Attributes.OSConfigEndpoint
+		c.svcEndpoint = md.Project.Attributes.OSConfigEndpoint
 	}
 
 	return c
@@ -270,7 +270,7 @@ func OAuthPath() string {
 
 // SvcEndpoint is the OS Config service endpoint.
 func SvcEndpoint() string {
-	return getAgentConfig().osConfigEndpoint
+	return getAgentConfig().svcEndpoint
 }
 
 // ZypperRepoFilePath is the location where the zypper repo file will be created.
