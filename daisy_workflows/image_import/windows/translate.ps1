@@ -61,8 +61,8 @@ function Remove-VMWareTools {
   Get-ChildItem HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall | Foreach-Object {
     if ((Get-ItemProperty $_.PSPath).DisplayName -eq 'VMWare Tools') {
       Write-Output 'Translate: Found VMWare Tools installed, removing...'
-      Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet') -Wait -ErrorAction SilentlyContinue
-      Restart-Computer
+      Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet', '/norestart') -Wait -ErrorAction SilentlyContinue
+      Restart-Computer -Force
       exit 0
     }
   }
