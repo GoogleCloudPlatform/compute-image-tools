@@ -62,8 +62,8 @@ var (
 type config struct {
 	osInventoryEnabled, osPackageEnabled, osPatchEnabled, osDebugEnabled                  bool
 	svcEndpoint, googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
-	numericProjectID, instanceID                                                          int
-	projectID, instanceZone, instanceName                                                 string
+	numericProjectID                                                                      int
+	projectID, instanceZone, instanceName, instanceID                                     string
 }
 
 func getAgentConfig() config {
@@ -90,7 +90,7 @@ type instanceJSON struct {
 	Attributes attributesJSON
 	Zone       string
 	Name       string
-	ID         int
+	ID         *json.Number
 }
 
 type projectJSON struct {
@@ -140,8 +140,8 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	if md.Instance.Name != "" {
 		c.instanceName = md.Instance.Name
 	}
-	if md.Instance.ID != 0 {
-		c.instanceID = md.Instance.ID
+	if md.Instance.ID != nil {
+		c.instanceID = md.Instance.ID.String()
 	}
 
 	// Check project first then instance as instance metadata overrides project.
@@ -339,7 +339,7 @@ func Name() string {
 }
 
 // ID is the instance id.
-func ID() int {
+func ID() string {
 	return getAgentConfig().instanceID
 }
 

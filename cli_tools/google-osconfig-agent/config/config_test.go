@@ -26,7 +26,7 @@ import (
 
 func TestSetConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"project":{"projectId":"projectId","attributes":{"os-config-endpoint":"bad!!1","os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"name":"name","zone":"zone","attributes":{"os-config-endpoint":"SvcEndpoint","os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true"}}}`)
+		fmt.Fprintln(w, `{"project":{"projectId":"projectId","attributes":{"os-config-endpoint":"bad!!1","os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"id":12345,"name":"name","zone":"zone","attributes":{"os-config-endpoint":"SvcEndpoint","os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true"}}}`)
 	}))
 	defer ts.Close()
 
@@ -45,6 +45,7 @@ func TestSetConfig(t *testing.T) {
 	}{
 		{"SvcEndpoint", SvcEndpoint, "SvcEndpoint"},
 		{"Instance", Instance, "zone/instances/name"},
+		{"ID", ID, "12345"},
 		{"ProjectID", ProjectID, "projectId"},
 		{"Zone", Zone, "zone"},
 		{"Name", Name, "name"},
