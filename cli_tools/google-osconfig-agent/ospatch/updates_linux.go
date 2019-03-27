@@ -19,10 +19,17 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
+)
+
+const (
+	systemctl = "/bin/systemctl"
+	reboot    = "/bin/reboot"
+	shutdown  = "/bin/shutdown"
 )
 
 func exists(path string) (bool, error) {
@@ -86,6 +93,22 @@ func runUpdates(ctx context.Context, r *patchRun) error {
 }
 
 func rebootSystem() error {
-	// TODO: make this work on all systems, maybe fall back to reboot(2)
-	return exec.Command("shutdown", "-r", "-t", "0").Run()
+	// Start with systemctl and work down a list of reboot methods.
+	if e, _ := exists(systemctl); e {
+		logger.Debugf("Rebooting using systemctl.")
+		return exec.Command(systemctl, "reboot").Run()
+	}
+	if e, _ := exists(reboot); e {
+		logger.Debugf("Rebooting using reboot command.")
+		return exec.Command(reboot).Run()
+	}
+	if e, _ := exists(shutdown); e {
+		logger.Debugf("Rebooting using shutdown command.")
+		return exec.Command(shutdown, "-r", "-t", "0").Run()
+	}
+
+	// Fall back to reboot(2) system call
+	logger.Debugf("No suitable reboot command found, rebooting using reboot(2).")
+	syscall.Sync()
+	return syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 }

@@ -90,7 +90,7 @@ type instanceJSON struct {
 	Attributes attributesJSON
 	Zone       string
 	Name       string
-	ID         string
+	ID         *json.Number
 }
 
 type projectJSON struct {
@@ -140,8 +140,8 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	if md.Instance.Name != "" {
 		c.instanceName = md.Instance.Name
 	}
-	if md.Instance.ID != "" {
-		c.instanceID = md.Instance.ID
+	if md.Instance.ID != nil {
+		c.instanceID = md.Instance.ID.String()
 	}
 
 	// Check project first then instance as instance metadata overrides project.
