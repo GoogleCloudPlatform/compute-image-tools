@@ -182,17 +182,19 @@ func installWUAUpdates(ctx context.Context, r *patchRun) error {
 	logger.Debugf("DEBUG: %d Windows updates available\n", count)
 
 	class := make(map[string]struct{})
-	for _, c := range r.Job.PatchConfig.WindowsUpdate.Classifications {
-		sc, ok := classifications[c]
-		if !ok {
-			return fmt.Errorf("Unknown classification: %s", c)
-		}
-		class[sc] = struct{}{}
-	}
-
 	excludes := make(map[string]struct{})
-	for _, e := range r.Job.PatchConfig.WindowsUpdate.Excludes {
-		excludes[e] = struct{}{}
+	if r.Job.PatchConfig.WindowsUpdate != nil {
+		for _, c := range r.Job.PatchConfig.WindowsUpdate.Classifications {
+			sc, ok := classifications[c]
+			if !ok {
+				return fmt.Errorf("Unknown classification: %s", c)
+			}
+			class[sc] = struct{}{}
+		}
+
+		for _, e := range r.Job.PatchConfig.WindowsUpdate.Excludes {
+			excludes[e] = struct{}{}
+		}
 	}
 
 	for i := 0; i < int(count); i++ {

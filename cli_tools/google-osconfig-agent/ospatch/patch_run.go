@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
@@ -381,7 +382,7 @@ func reportPatchDetails(ctx context.Context, patchJobName string, patchState osc
 
 	request := osconfigpb.ReportPatchJobInstanceDetailsRequest{
 		Resource:         config.Instance(),
-		InstanceSystemId: config.ID(),
+		InstanceSystemId: strconv.Itoa(config.ID()),
 		PatchJobName:     patchJobName,
 		InstanceIdToken:  identityToken,
 		State:            patchState,
