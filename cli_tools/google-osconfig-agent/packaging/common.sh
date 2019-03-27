@@ -15,7 +15,7 @@
 
 NAME="google-osconfig-agent"
 VERSION="0.5.1"
-GOLANG="go1.11.4.linux-amd64.tar.gz"
+GOLANG="go1.12.1.linux-amd64.tar.gz"
 GO=/tmp/go/bin/go
 export GOPATH=/usr/share/gocode
 
