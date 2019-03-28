@@ -30,6 +30,10 @@ func GetOsConfigClient(ctx context.Context) (*osconfig.Client, error) {
 		return osconfigClient, nil
 	}
 
-	config.SetConfig() // Ensure the configs have been loaded.
+	// Ensure the configs have been loaded.
+	if err := config.SetConfig(); err != nil {
+		return nil, err
+	}
+
 	return osconfig.NewClient(ctx, option.WithEndpoint(config.SvcEndpoint()), option.WithCredentialsFile(config.OAuthPath()))
 }
