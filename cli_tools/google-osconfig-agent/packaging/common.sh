@@ -18,6 +18,7 @@ VERSION="0.5.1"
 GOLANG="go1.12.1.linux-amd64.tar.gz"
 GO=/tmp/go/bin/go
 export GOPATH=/usr/share/gocode
+export GOCACHE=/tmp/.cache
 
 working_dir=${PWD}
 if [[ $(basename "$working_dir") != $NAME ]]; then
