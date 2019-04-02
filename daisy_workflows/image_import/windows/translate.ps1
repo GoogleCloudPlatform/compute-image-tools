@@ -291,7 +291,7 @@ try {
       Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-powershell
     }
     Write-Output 'Translate complete.'
-    Stop-Computer
+    Stop-Computer -force
     exit 0
   }
 
