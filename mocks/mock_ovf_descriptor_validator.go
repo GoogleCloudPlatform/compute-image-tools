@@ -19,8 +19,8 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	ovf "github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
+	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 )
 
