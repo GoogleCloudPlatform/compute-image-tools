@@ -40,7 +40,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
@@ -255,7 +254,7 @@ func newOVFImporter() (*OVFImporter, error) {
 	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient, logger)
 	buildID := os.Getenv("BUILD_ID")
 	if buildID == "" {
-		buildID = utils.RandString(5)
+		buildID = pathutils.RandString(5)
 	}
 	workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow)
 	bic := &storageutils.BucketIteratorCreator{}
