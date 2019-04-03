@@ -12,6 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+//+build !test
+
 package ospatch
 
 import (
@@ -19,7 +21,7 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-// disableAutoUpdates disables system auto udpdates.
+// disableAutoUpdates disables system auto updates.
 func disableAutoUpdates() {
 	k, openedExisting, err := registry.CreateKey(registry.LOCAL_MACHINE, `SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU`, registry.ALL_ACCESS)
 	if err != nil {
