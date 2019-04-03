@@ -12,6 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
+//+build !test
+
 package ospatch
 
 import (
@@ -26,8 +28,6 @@ import (
 	"github.com/go-ole/go-ole/oleutil"
 	"golang.org/x/sys/windows/registry"
 )
-
-//+build !test
 
 func systemRebootRequired() (bool, error) {
 	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired`, registry.QUERY_VALUE)
