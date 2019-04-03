@@ -20,7 +20,7 @@ package mocks
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	ovf "github.com/vmware/govmomi/ovf"
+	ovf "github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
 	reflect "reflect"
 )
 

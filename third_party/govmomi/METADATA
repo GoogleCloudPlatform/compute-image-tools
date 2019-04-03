@@ -1,0 +1,22 @@
+name: "govmomi"
+description:
+  "A Go library for interacting with VMware vSphere APIs (ESXi and/or vCenter). "
+  "The CLI located in the repository's govc/ directory is omitted from this copy, "
+  "as it contains no libraries (see "
+  "https://godoc.org/github.com/vmware/govmomi#hdr-Package_govc) and is otherwise "
+  "unused."
+
+third_party {
+  url {
+    type: GIT
+    value: "https://github.com/vmware/govmomi/"
+  }
+  last_upgrade_date {
+    year: 2019
+    month: 4
+    day: 2
+  }
+  version: "0.20.0"
+  license_type: NOTICE
+  local_modifications: "Removed all non-OVF code."
+}

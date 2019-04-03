@@ -19,7 +19,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
-	"github.com/vmware/govmomi/ovf"
+	"github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
 )
 
 // OvfDescriptorLoader is responsible for loading OVF descriptor from a GCS directory path.

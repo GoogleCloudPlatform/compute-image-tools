@@ -20,7 +20,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/vmware/govmomi/ovf"
+	"github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
 )
 
