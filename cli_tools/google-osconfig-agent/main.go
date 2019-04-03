@@ -50,11 +50,6 @@ func (l *logWritter) Write(b []byte) (int, error) {
 }
 
 func run(ctx context.Context) {
-	res, err := config.Instance()
-	if err != nil {
-		logger.Fatalf("get instance error: %v", err)
-	}
-
 	ticker := time.NewTicker(config.SvcPollInterval())
 	for {
 		if err := config.SetConfig(); err != nil {
@@ -65,7 +60,7 @@ func run(ctx context.Context) {
 		ospatch.Configure(ctx)
 
 		if config.OSPackageEnabled() {
-			ospackage.Run(ctx, res)
+			ospackage.Run(ctx, config.Instance())
 		}
 
 		if config.OSInventoryEnabled() {
@@ -96,20 +91,14 @@ func main() {
 		}
 	}()
 
+	// If this call to SetConfig fails (like a metadata error) we can't continue.
 	if err := config.SetConfig(); err != nil {
-		logger.Errorf(err.Error())
-	}
-
-	if config.Debug() {
-		packages.DebugLogger = log.New(&logWritter{}, "", 0)
-	}
-
-	proj, err := config.Project()
-	if err != nil {
 		logger.Fatalf(err.Error())
 	}
 
-	logger.Init(ctx, proj)
+	packages.DebugLogger = log.New(&logWritter{}, "", 0)
+
+	logger.Init(ctx, config.ProjectID())
 	defer logger.Close()
 
 	c := make(chan os.Signal, 1)
@@ -134,11 +123,7 @@ func main() {
 		tasker.Close()
 		return
 	case "ospackage":
-		res, err := config.Instance()
-		if err != nil {
-			logger.Fatalf("get instance error: %v", err)
-		}
-		ospackage.Run(ctx, res)
+		ospackage.Run(ctx, config.Instance())
 		tasker.Close()
 		return
 	case "ospatch":

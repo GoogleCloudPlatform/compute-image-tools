@@ -40,7 +40,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
@@ -255,7 +254,7 @@ func newOVFImporter() (*OVFImporter, error) {
 	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient, logger)
 	buildID := os.Getenv("BUILD_ID")
 	if buildID == "" {
-		buildID = utils.RandString(5)
+		buildID = pathutils.RandString(5)
 	}
 	workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow)
 	bic := &storageutils.BucketIteratorCreator{}
@@ -479,11 +478,13 @@ func (oi *OVFImporter) Import() error {
 	if err := w.RunWithModifiers(oi.ctx, oi.modifyWorkflowPreValidate, oi.modifyWorkflowPostValidate); err != nil {
 		return fmt.Errorf("%s: %v", w.Name, err)
 	}
+	oi.logger.Log("OVF import workflow finished successfully.")
 	return nil
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import
 func (oi *OVFImporter) CleanUp() {
+	oi.logger.Log("Cleaning up.")
 	if oi.storageClient != nil {
 		if oi.gcsPathToClean != "" {
 			err := oi.storageClient.DeleteGcsPath(oi.gcsPathToClean)

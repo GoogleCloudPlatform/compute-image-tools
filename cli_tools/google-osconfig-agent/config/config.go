@@ -40,25 +40,30 @@ const (
 	yumRepoFilePath    = "/etc/yum/repos.d/google_osconfig.repo"
 	aptRepoFilePath    = "/etc/apt/sources.list.d/google_osconfig.list"
 
+	prodEndpoint = "osconfig.googleapis.com:443"
+
 	osInventoryEnabledDefault = false
 	osPackageEnabledDefault   = false
 	osPatchEnabledDefault     = false
+	osDebugEnabledDefault     = false
 )
 
 var (
 	resourceOverride = flag.String("resource_override", "", "The URI of the instance this agent is running on in the form of `projects/*/zones/*/instances/*`. If omitted, the name will be determined by querying the metadata service.")
-	endpoint         = flag.String("endpoint", "osconfig.googleapis.com:443", "osconfig endpoint override")
+	endpoint         = flag.String("endpoint", prodEndpoint, "osconfig endpoint override")
 	oauth            = flag.String("oauth", "", "path to oauth json file")
 	debug            = flag.Bool("debug", false, "set debug log verbosity")
 
-	agentConfig   *config
+	agentConfig   = &config{}
 	agentConfigMx sync.RWMutex
 	version       string
 )
 
 type config struct {
-	osInventoryEnabled, osPackageEnabled, osPatchEnabled                     bool
-	googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
+	osInventoryEnabled, osPackageEnabled, osPatchEnabled, osDebugEnabled                  bool
+	svcEndpoint, googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
+	numericProjectID                                                                      int
+	projectID, instanceZone, instanceName, instanceID                                     string
 }
 
 func getAgentConfig() config {
@@ -83,27 +88,60 @@ type metadataJSON struct {
 
 type instanceJSON struct {
 	Attributes attributesJSON
+	Zone       string
+	Name       string
+	ID         *json.Number
 }
 
 type projectJSON struct {
-	Attributes attributesJSON
+	Attributes       attributesJSON
+	ProjectID        string
+	NumericProjectID int
 }
 
 type attributesJSON struct {
 	OSInventoryEnabled string `json:"os-inventory-enabled"`
 	OSPatchEnabled     string `json:"os-patch-enabled"`
 	OSPackageEnabled   string `json:"os-package-enabled"`
+	OSDebugEnabled     string `json:"os-debug-enabled"`
+	OSConfigEndpoint   string `json:"os-config-endpoint"`
 }
 
 func createConfigFromMetadata(md metadataJSON) *config {
+	old := getAgentConfig()
 	c := &config{
 		osInventoryEnabled: osInventoryEnabledDefault,
 		osPackageEnabled:   osPackageEnabledDefault,
 		osPatchEnabled:     osPatchEnabledDefault,
+		osDebugEnabled:     osDebugEnabledDefault,
+		svcEndpoint:        prodEndpoint,
+
 		googetRepoFilePath: googetRepoFilePath,
 		zypperRepoFilePath: zypperRepoFilePath,
 		yumRepoFilePath:    yumRepoFilePath,
 		aptRepoFilePath:    aptRepoFilePath,
+
+		projectID:        old.projectID,
+		numericProjectID: old.numericProjectID,
+		instanceZone:     old.instanceZone,
+		instanceName:     old.instanceName,
+		instanceID:       old.instanceID,
+	}
+
+	if md.Project.ProjectID != "" {
+		c.projectID = md.Project.ProjectID
+	}
+	if md.Project.NumericProjectID != 0 {
+		c.numericProjectID = md.Project.NumericProjectID
+	}
+	if md.Instance.Zone != "" {
+		c.instanceZone = md.Instance.Zone
+	}
+	if md.Instance.Name != "" {
+		c.instanceName = md.Instance.Name
+	}
+	if md.Instance.ID != nil {
+		c.instanceID = md.Instance.ID.String()
 	}
 
 	// Check project first then instance as instance metadata overrides project.
@@ -125,6 +163,23 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	}
 	if md.Instance.Attributes.OSPackageEnabled != "" {
 		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
+	}
+
+	// Flags take precedence over metadata.
+	if *debug {
+		c.osDebugEnabled = true
+	} else if md.Instance.Attributes.OSDebugEnabled != "" {
+		c.osDebugEnabled = parseBool(md.Instance.Attributes.OSDebugEnabled)
+	} else if md.Project.Attributes.OSDebugEnabled != "" {
+		c.osDebugEnabled = parseBool(md.Project.Attributes.OSDebugEnabled)
+	}
+
+	if *endpoint != prodEndpoint {
+		c.svcEndpoint = *endpoint
+	} else if md.Instance.Attributes.OSConfigEndpoint != "" {
+		c.svcEndpoint = md.Instance.Attributes.OSConfigEndpoint
+	} else if md.Project.Attributes.OSConfigEndpoint != "" {
+		c.svcEndpoint = md.Project.Attributes.OSConfigEndpoint
 	}
 
 	return c
@@ -167,8 +222,9 @@ func SetConfig() error {
 		return err
 	}
 
+	new := createConfigFromMetadata(metadata)
 	agentConfigMx.Lock()
-	agentConfig = createConfigFromMetadata(metadata)
+	agentConfig = new
 	agentConfigMx.Unlock()
 
 	return webError
@@ -204,7 +260,7 @@ func ResourceOverride() string {
 
 // Debug sets the debug log verbosity.
 func Debug() bool {
-	return *debug
+	return (*debug || getAgentConfig().osDebugEnabled)
 }
 
 // OAuthPath is the local location of the OAuth credentials file.
@@ -214,7 +270,7 @@ func OAuthPath() string {
 
 // SvcEndpoint is the OS Config service endpoint.
 func SvcEndpoint() string {
-	return *endpoint
+	return getAgentConfig().svcEndpoint
 }
 
 // ZypperRepoFilePath is the location where the zypper repo file will be created.
@@ -253,35 +309,38 @@ func OSPatchEnabled() bool {
 }
 
 // Instance is the URI of the instance the agent is running on.
-func Instance() (string, error) {
+func Instance() string {
 	if ResourceOverride() != "" {
-		return ResourceOverride(), nil
+		return ResourceOverride()
 	}
 
-	project, err := metadata.ProjectID()
-	if err != nil {
-		return "", err
-	}
-
-	zone, err := metadata.Zone()
-	if err != nil {
-		return "", err
-	}
-
-	name, err := metadata.InstanceName()
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("projects/%s/zones/%s/instances/%s", project, zone, name), nil
+	// Zone contains 'projects/project-id/zones' as a prefix.
+	return fmt.Sprintf("%s/instances/%s", Zone(), Name())
 }
 
-// Project is the URI of the instance the agent is running on.
-func Project() (string, error) {
-	proj, err := metadata.ProjectID()
-	if err != nil {
-		return "", fmt.Errorf("unable to resolve project, are you running in GCE? error: %v", err)
-	}
-	return proj, nil
+// NumericProjectID is the numeric project ID of the instance.
+func NumericProjectID() int {
+	return getAgentConfig().numericProjectID
+}
+
+// ProjectID is the project ID of the instance.
+func ProjectID() string {
+	return getAgentConfig().projectID
+}
+
+// Zone is the zone the instance is running in.
+func Zone() string {
+	return getAgentConfig().instanceZone
+}
+
+// Name is the instance name.
+func Name() string {
+	return getAgentConfig().instanceName
+}
+
+// ID is the instance id.
+func ID() string {
+	return getAgentConfig().instanceID
 }
 
 // Version is the agent version.

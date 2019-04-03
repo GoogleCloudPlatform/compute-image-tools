@@ -61,8 +61,8 @@ function Remove-VMWareTools {
   Get-ChildItem HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall | Foreach-Object {
     if ((Get-ItemProperty $_.PSPath).DisplayName -eq 'VMWare Tools') {
       Write-Output 'Translate: Found VMWare Tools installed, removing...'
-      Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet') -Wait -ErrorAction SilentlyContinue
-      Restart-Computer
+      Start-Process msiexec.exe -ArgumentList @('/x', $_.PSChildName, '/quiet', '/norestart') -Wait -ErrorAction SilentlyContinue
+      Restart-Computer -Force
       exit 0
     }
   }
@@ -241,9 +241,6 @@ function Enable-RemoteDesktop {
 
   Write-Output 'Enable RDP firewall rules.'
   Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
-
-  Write-Output 'Translate: Restarting Terminal Service services, to enable RDP.'
-  Restart-Service UmRdpService,TermService -Force
 }
 
 function Install-Packages {
@@ -294,7 +291,7 @@ try {
       Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-powershell
     }
     Write-Output 'Translate complete.'
-    Stop-Computer
+    Stop-Computer -force
     exit 0
   }
 

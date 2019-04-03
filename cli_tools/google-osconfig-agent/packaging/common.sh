@@ -14,10 +14,11 @@
 # limitations under the License.
 
 NAME="google-osconfig-agent"
-VERSION="0.5.0"
-GOLANG="go1.11.4.linux-amd64.tar.gz"
+VERSION="0.5.1"
+GOLANG="go1.12.1.linux-amd64.tar.gz"
 GO=/tmp/go/bin/go
 export GOPATH=/usr/share/gocode
+export GOCACHE=/tmp/.cache
 
 working_dir=${PWD}
 if [[ $(basename "$working_dir") != $NAME ]]; then

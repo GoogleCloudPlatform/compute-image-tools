@@ -16,6 +16,7 @@ package packages
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -80,7 +81,11 @@ func aptUpgrade(run runFunc) error {
 		return err
 	}
 
-	if _, err := run(exec.Command(aptGet, aptGetUpgradeArgs...)); err != nil {
+	upgrade := exec.Command(aptGet, aptGetUpgradeArgs...)
+	upgrade.Env = append(os.Environ(),
+		"DEBIAN_FRONTEND=noninteractive",
+	)
+	if _, err := run(upgrade); err != nil {
 		return err
 	}
 
