@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
+	"github.com/vmware/govmomi/ovf"
 )
 
 const (

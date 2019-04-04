@@ -20,9 +20,9 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
-	"github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/vmware/govmomi/ovf"
 )
 
 var (

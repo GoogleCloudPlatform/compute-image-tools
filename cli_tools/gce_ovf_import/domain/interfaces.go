@@ -14,7 +14,7 @@
 
 package domain
 
-import "github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
+import "github.com/vmware/govmomi/ovf"
 
 // OvfDescriptorValidatorInterface represents OVF descriptor validator
 type OvfDescriptorValidatorInterface interface {

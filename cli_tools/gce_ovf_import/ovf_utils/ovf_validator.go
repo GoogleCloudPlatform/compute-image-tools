@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/third_party/govmomi/ovf"
+	"github.com/vmware/govmomi/ovf"
 )
 
 // OvfValidator is responsible for validating OVF packages
