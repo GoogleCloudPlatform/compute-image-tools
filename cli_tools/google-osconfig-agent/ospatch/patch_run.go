@@ -97,7 +97,7 @@ func Configure(ctx context.Context) {
 			// initPatch has not run yet.
 			logger.Debugf("Enabling OSPatch")
 			initPatch(ctx)
-		} else if !config.OSPatchEnabled() {
+		} else if cancelC != nil && !config.OSPatchEnabled() {
 			// Patch currently running, we need to stop it.
 			logger.Debugf("Disabling OSPatch")
 			close(cancelC)
