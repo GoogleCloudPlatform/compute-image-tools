@@ -82,6 +82,10 @@ type serialPort struct {
 }
 
 func (s *serialPort) Write(b []byte) (int, error) {
+	if s.port == "" {
+		return 0, nil
+	}
+
 	c := &serial.Config{Name: s.port, Baud: 115200}
 	p, err := serial.OpenPort(c)
 	if err != nil {

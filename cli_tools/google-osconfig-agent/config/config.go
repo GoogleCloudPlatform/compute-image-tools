@@ -250,7 +250,8 @@ func SerialLogPort() string {
 	if runtime.GOOS == "windows" {
 		return "COM1"
 	}
-	return "/dev/ttyS0"
+	// Don't write directly to the serial port on Linux as syslog already writes there.
+	return ""
 }
 
 // ResourceOverride is the URI of the resource.
