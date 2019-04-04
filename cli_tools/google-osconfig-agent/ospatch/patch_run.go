@@ -69,7 +69,7 @@ var (
 		completeJobCompleted: 9,
 	}
 
-	cancelC = make(chan struct{})
+	cancelC chan struct{}
 )
 
 func initPatch(ctx context.Context) {
@@ -82,30 +82,35 @@ func initPatch(ctx context.Context) {
 func Configure(ctx context.Context) {
 	select {
 	case _, ok := <-cancelC:
-		// Channel closed, enable if needed.
 		if !ok && config.OSPatchEnabled() {
+			// Patch currently stopped, reenable.
+			logger.Debugf("Enabling OSPatch")
 			initPatch(ctx)
-		}
-		// Channel open, disabled if needed.
-		// This should never happen as nothing should be sending on this
-		// channel.
-		if ok && !config.OSPatchEnabled() {
+		} else if ok && !config.OSPatchEnabled() {
+			// This should never happen as nothing should be sending on this
+			// channel.
 			logger.Errorf("Someone sent on the cancelC channel, this should not have happened")
 			close(cancelC)
 		}
 	default:
-		// Channel open, disable if needed.
-		if !config.OSPatchEnabled() {
+		if cancelC == nil && config.OSPatchEnabled() {
+			// initPatch has not run yet.
+			logger.Debugf("Enabling OSPatch")
+			initPatch(ctx)
+		} else if !config.OSPatchEnabled() {
+			// Patch currently running, we need to stop it.
+			logger.Debugf("Disabling OSPatch")
 			close(cancelC)
 		}
 	}
-
 }
 
 // Run runs patching as a single blocking agent, use cancel to cancel.
 func Run(ctx context.Context, cancel <-chan struct{}) {
+	logger.Debugf("Running OSPatch background task.")
 	savedPatchJobName := checkSavedState(ctx)
 	watcher(ctx, savedPatchJobName, cancel, ackPatch)
+	logger.Debugf("OSPatch background task stopping.")
 }
 
 // Load current patch state off disk, schedule the patch if it isn't complete,
