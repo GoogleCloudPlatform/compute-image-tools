@@ -230,8 +230,8 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 func isGoogleApiForbiddenError(err dErr) bool {
 	dErrConcrete, isDErrConcrete := err.(*dErrImpl)
 	if isDErrConcrete && len(dErrConcrete.errs) > 0 {
-		gApiErr, isGApiErr := dErrConcrete.errs[0].(*googleapi.Error)
-		if isGApiErr && gApiErr.Code == 403 {
+		gAPIErr, isGAPIErr := dErrConcrete.errs[0].(*googleapi.Error)
+		if isGAPIErr && gAPIErr.Code == 403 {
 			return true
 		}
 	}
