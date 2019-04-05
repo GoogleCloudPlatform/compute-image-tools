@@ -214,7 +214,7 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	for _, l := range i.Licenses {
 		result := namedSubexp(licenseURLRegex, l)
 		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
-			if !(isGoogleApiForbiddenError(err) && i.IgnoreLicenseValidationIfForbidden) {
+			if !(isGoogleAPIForbiddenError(err) && i.IgnoreLicenseValidationIfForbidden) {
 				errs = addErrs(errs, errf("%s: bad license lookup: %q, error: %v", pre, l, err))
 			}
 		} else if !exists {
@@ -227,7 +227,7 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
-func isGoogleApiForbiddenError(err dErr) bool {
+func isGoogleAPIForbiddenError(err dErr) bool {
 	dErrConcrete, isDErrConcrete := err.(*dErrImpl)
 	if isDErrConcrete && len(dErrConcrete.errs) > 0 {
 		gAPIErr, isGAPIErr := dErrConcrete.errs[0].(*googleapi.Error)
