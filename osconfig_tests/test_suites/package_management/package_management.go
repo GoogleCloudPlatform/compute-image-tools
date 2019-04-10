@@ -56,6 +56,7 @@ type packageManagementTestSetup struct {
 	assignment *osconfigpb.Assignment
 	startup    *api.MetadataItems
 	vstring    string
+	assertTimeout time.Duration
 	vf         func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
@@ -133,7 +134,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	//TODO: move instance definition to a common method
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -188,7 +189,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 600*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 		return
 	}
@@ -221,7 +222,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -274,7 +275,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 60*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
@@ -304,7 +305,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -361,7 +362,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 1200*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
@@ -391,7 +392,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -448,7 +449,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 1200*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }

@@ -102,6 +102,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
+		assertTimeout := 60 * time.Second
 
 		switch tuple.platform {
 		case "debian":
@@ -124,6 +125,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 			pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, nil, osconfigserver.BuildGooPackageConfig(pkgs, nil, nil), nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
+			assertTimeout = 1200 * time.Second
 		default:
 			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
 			continue
@@ -139,6 +141,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 			assignment: assign,
 			fname:      testName,
 			vf:         vf,
+			assertTimeout: assertTimeout,
 			vstring:    vs,
 			startup: ss,
 		}
@@ -155,6 +158,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
+		assertTimeout := 600 * time.Second
 
 		switch tuple.platform {
 		case "debian":
@@ -192,6 +196,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 			assignment: assign,
 			fname:      testName,
 			vf:         vf,
+			assertTimeout: assertTimeout,
 			vstring:    vs,
 			startup: ss,
 		}
@@ -208,6 +213,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
+		assertTimeout := 60 * time.Second
 
 		switch tuple.platform {
 		case "debian":
@@ -250,6 +256,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 			assignment: assign,
 			fname:      testName,
 			vf:         vf,
+			assertTimeout: assertTimeout,
 			vstring:    vs,
 			startup: ss,
 		}
@@ -266,6 +273,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 		var oc *osconfigpb.OsConfig
 		var image, vs string
 		uniqueSuffix := utils.RandString(5)
+		assertTimeout := 60 * time.Second
 
 		switch tuple.platform {
 		case "debian":
@@ -292,6 +300,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 			repos := []*osconfigpb.GooRepository{osconfigserver.BuildGooRepository("Google OSConfig Agent Test Repository", gooTestRepoURL)}
 			oc = osconfigserver.BuildOsConfig(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, nil, nil, osconfigserver.BuildGooPackageConfig(installPkg, nil, repos), nil, nil)
 			vs = fmt.Sprintf(packageInstalledString)
+			assertTimeout = 1200 * time.Second
 		default:
 			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
 			continue
@@ -307,6 +316,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 			assignment: assign,
 			fname:      testName,
 			vf:         vf,
+			assertTimeout: assertTimeout,
 			vstring:    vs,
 			startup: ss,
 		}
