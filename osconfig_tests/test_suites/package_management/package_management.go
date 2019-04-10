@@ -36,12 +36,12 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 )
 
-const (
+var (
 	testSuiteName = "PackageManagementTests"
-	debianImage   = "projects/debian-cloud/global/images/family/debian-9"
-	centosImage   = "projects/centos-cloud/global/images/family/centos-7"
-	rhelImage     = "projects/rhel-cloud/global/images/family/rhel-7"
-	windowsImage  = "projects/windows-cloud/global/images/family/windows-2016"
+	debianImages  = []string{"projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts", "projects/debian-cloud/global/images/family/debian-9"}
+	centosImages  = []string{"projects/centos-cloud/global/images/family/centos-6", "projects/centos-cloud/global/images/family/centos-7"}
+	rhelImages    = []string{"projects/rhel-cloud/global/images/family/rhel-6", "projects/rhel-cloud/global/images/family/rhel-7"}
+	windowsImages = []string{"projects/windows-cloud/global/images/family/windows-2016"}
 )
 
 var (
@@ -58,6 +58,19 @@ type packageManagementTestSetup struct {
 	vstring       string
 	assertTimeout time.Duration
 	vf            func(*compute.Instance, string, int64, time.Duration, time.Duration) error
+}
+
+func NewPackageManagementTestSetup(image, name, fname, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) *packageManagementTestSetup {
+	return &packageManagementTestSetup{
+		image:      image,
+		name:       name,
+		osconfig:   oc,
+		assignment: assignment,
+		fname:      fname,
+		vf:         vf,
+		vstring: 		vs,
+		startup: startup,
+	}
 }
 
 // TestSuite is a PackageManagementTests test suite.
