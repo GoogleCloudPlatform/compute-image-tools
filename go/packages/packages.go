@@ -26,8 +26,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
 )
 
-type runFunc func(*exec.Cmd) ([]byte, error)
-
 var (
 	// AptExists indicates whether apt is installed.
 	AptExists bool
@@ -85,7 +83,7 @@ type QFEPackage struct {
 	Caption, Description, HotFixID, InstalledOn string
 }
 
-var run runFunc = func(cmd *exec.Cmd) ([]byte, error) {
+var run = func(cmd *exec.Cmd) ([]byte, error) {
 	DebugLogger.Printf("Running %q with args %q\n", cmd.Path, cmd.Args[1:])
 	out, err := cmd.CombinedOutput()
 	if err != nil {

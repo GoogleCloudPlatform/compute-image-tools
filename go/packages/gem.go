@@ -34,7 +34,8 @@ func init() {
 	GemExists = exists(gem)
 }
 
-func gemUpdates(run runFunc) ([]PkgInfo, error) {
+// GemUpdates queries for all available gem updates.
+func GemUpdates() ([]PkgInfo, error) {
 	out, err := run(exec.Command(gem, gemOutdatedArgs...))
 	if err != nil {
 		return nil, err
@@ -63,7 +64,8 @@ func gemUpdates(run runFunc) ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func installedGEM(run runFunc) ([]PkgInfo, error) {
+// InstalledGemPackages queries for all installed gem packages.
+func InstalledGemPackages() ([]PkgInfo, error) {
 	out, err := run(exec.Command(gem, gemListArgs...))
 	if err != nil {
 		return nil, err

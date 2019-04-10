@@ -22,7 +22,7 @@ import (
 
 var pkgs = []string{"pkg1", "pkg2"}
 
-func getMockRun(content []byte, err error) runFunc {
+func getMockRun(content []byte, err error) func(cmd *exec.Cmd) ([]byte, error) {
 	return func(cmd *exec.Cmd) ([]byte, error) {
 		return content, err
 	}
