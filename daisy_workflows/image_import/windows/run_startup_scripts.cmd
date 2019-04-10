@@ -33,6 +33,8 @@ for /f "tokens=2 delims=:" %%a in (
   netsh interface ipv4 set dnsservers "Local Area Connection 3" static address=%%a primary
 )
 
+w32tm /resync
+
 C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install googet > COM1:
 REM Install google-compute-engine-metadata-scripts and then run the task.
 REM This needs to be on one line as this file will get overwritten.
