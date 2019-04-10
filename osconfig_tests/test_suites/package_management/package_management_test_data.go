@@ -52,7 +52,7 @@ var vf = func(inst *compute.Instance, vfString string, port int64, interval, tim
 	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
-func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
+func addCreateOsConfigTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
 	testName := "createosconfigtest"
 	desc := "test osconfig creation"
 	packageName := "cowsay"
@@ -96,7 +96,7 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	}
 	return pkgTestSetup
 }
-func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
+func addPackageInstallTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
 	testName := "packageinstalltest"
 	desc := "test package installation"
 	packageName := "cowsay"
@@ -159,7 +159,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	return pkgTestSetup
 }
 
-func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
+func addPackageRemovalTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
 	testName := "packageremovaltest"
 	desc := "test package removal"
 	packageName := "cowsay"
@@ -222,7 +222,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	return pkgTestSetup
 }
 
-func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
+func addPackageInstallRemovalTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
 	testName := "packageinstallremovaltest"
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
@@ -290,7 +290,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 	return pkgTestSetup
 }
 
-func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
+func addPackageInstallFromNewRepoTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
 	testName := "packageinstallfromnewrepotest"
 	desc := "test package installation from new package"
 	packageName := "osconfig-agent-test"
@@ -357,8 +357,8 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 	return pkgTestSetup
 }
 
-func generateAllTestSetup(testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	pkgTestSetup := []*packageManagementTestSetup{}
+func generateAllTestSetup(testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
+	pkgTestSetup := []*PackageManagementTestSetup{}
 	pkgTestSetup = addCreateOsConfigTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageInstallTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageRemovalTest(pkgTestSetup, testProjectConfig)
