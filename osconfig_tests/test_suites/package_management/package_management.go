@@ -32,8 +32,8 @@ import (
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 )
 
 const (
@@ -164,6 +164,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: testSetup.image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 				},
 			},
 		},
@@ -248,6 +249,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: testSetup.image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 				},
 			},
 		},
@@ -335,6 +337,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: testSetup.image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 				},
 			},
 		},
@@ -422,6 +425,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: testSetup.image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 				},
 			},
 		},
