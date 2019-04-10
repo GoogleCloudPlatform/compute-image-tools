@@ -135,15 +135,15 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
 		ss := getPackageInstallStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
-			image:      image,
-			name:       instanceName,
-			osconfig:   oc,
-			assignment: assign,
-			fname:      testName,
-			vf:         vf,
+			image:         image,
+			name:          instanceName,
+			osconfig:      oc,
+			assignment:    assign,
+			fname:         testName,
+			vf:            vf,
 			assertTimeout: assertTimeout,
-			vstring:    vs,
-			startup: ss,
+			vstring:       vs,
+			startup:       ss,
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
 	}
@@ -190,15 +190,15 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
 		ss := getPackageRemovalStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
-			image:      image,
-			name:       instanceName,
-			osconfig:   oc,
-			assignment: assign,
-			fname:      testName,
-			vf:         vf,
+			image:         image,
+			name:          instanceName,
+			osconfig:      oc,
+			assignment:    assign,
+			fname:         testName,
+			vf:            vf,
 			assertTimeout: assertTimeout,
-			vstring:    vs,
-			startup: ss,
+			vstring:       vs,
+			startup:       ss,
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
 	}
@@ -250,15 +250,15 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
 		ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
-			image:      image,
-			name:       instanceName,
-			osconfig:   oc,
-			assignment: assign,
-			fname:      testName,
-			vf:         vf,
+			image:         image,
+			name:          instanceName,
+			osconfig:      oc,
+			assignment:    assign,
+			fname:         testName,
+			vf:            vf,
 			assertTimeout: assertTimeout,
-			vstring:    vs,
-			startup: ss,
+			vstring:       vs,
+			startup:       ss,
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
 	}
@@ -310,15 +310,15 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 		assign := osconfigserver.BuildAssignment(fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix), desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
 		ss := getPackageInstallFromNewRepoTestStartupScript(tuple.pkgManager, packageName)
 		setup := packageManagementTestSetup{
-			image:      image,
-			name:       instanceName,
-			osconfig:   oc,
-			assignment: assign,
-			fname:      testName,
-			vf:         vf,
+			image:         image,
+			name:          instanceName,
+			osconfig:      oc,
+			assignment:    assign,
+			fname:         testName,
+			vf:            vf,
 			assertTimeout: assertTimeout,
-			vstring:    vs,
-			startup: ss,
+			vstring:       vs,
+			startup:       ss,
 		}
 		pkgTestSetup = append(pkgTestSetup, &setup)
 	}

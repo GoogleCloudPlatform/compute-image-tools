@@ -49,15 +49,15 @@ var (
 )
 
 type packageManagementTestSetup struct {
-	image      string
-	name       string
-	fname      string
-	osconfig   *osconfigpb.OsConfig
-	assignment *osconfigpb.Assignment
-	startup    *api.MetadataItems
-	vstring    string
+	image         string
+	name          string
+	fname         string
+	osconfig      *osconfigpb.OsConfig
+	assignment    *osconfigpb.Assignment
+	startup       *api.MetadataItems
+	vstring       string
 	assertTimeout time.Duration
-	vf         func(*compute.Instance, string, int64, time.Duration, time.Duration) error
+	vf            func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
 // TestSuite is a PackageManagementTests test suite.
