@@ -41,6 +41,7 @@ const (
 	debianImage   = "projects/debian-cloud/global/images/family/debian-9"
 	centosImage   = "projects/centos-cloud/global/images/family/centos-7"
 	rhelImage     = "projects/rhel-cloud/global/images/family/rhel-7"
+	windowsImage  = "projects/windows-cloud/global/images/family/windows-2016"
 )
 
 var (
@@ -148,6 +149,10 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 				testSetup.startup,
 				&api.MetadataItems{
 					Key:   "os-package-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
+				&api.MetadataItems{
+					Key:   "os-debug-enabled",
 					Value: func() *string { v := "true"; return &v }(),
 				},
 			},
@@ -317,6 +322,10 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 					Key:   "os-package-enabled",
 					Value: func() *string { v := "true"; return &v }(),
 				},
+				&api.MetadataItems{
+					Key:   "os-debug-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
@@ -352,7 +361,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 60*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 1200*time.Second); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
@@ -400,6 +409,10 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 					Key:   "os-package-enabled",
 					Value: func() *string { v := "true"; return &v }(),
 				},
+				&api.MetadataItems{
+					Key:   "os-debug-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
@@ -435,7 +448,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 60*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 1200*time.Second); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
