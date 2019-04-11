@@ -83,15 +83,6 @@ func parseBool(s string) bool {
 	return enabled
 }
 
-func parseInt(s string) int {
-	val, err := strconv.Atoi(s)
-	if err != nil {
-		// Bad entry returns default
-		return 0
-	}
-	return val
-}
-
 type metadataJSON struct {
 	Instance instanceJSON
 	Project  projectJSON
@@ -111,12 +102,12 @@ type projectJSON struct {
 }
 
 type attributesJSON struct {
-	OSInventoryEnabled   string `json:"os-inventory-enabled"`
-	OSPatchEnabled       string `json:"os-patch-enabled"`
-	OSPackageEnabled     string `json:"os-package-enabled"`
-	OSDebugEnabled       string `json:"os-debug-enabled"`
-	OSConfigEndpoint     string `json:"os-config-endpoint"`
-	OSConfigPollInterval string `json:"os-config-poll-interval"`
+	OSInventoryEnabled   string       `json:"os-inventory-enabled"`
+	OSPatchEnabled       string       `json:"os-patch-enabled"`
+	OSPackageEnabled     string       `json:"os-package-enabled"`
+	OSDebugEnabled       string       `json:"os-debug-enabled"`
+	OSConfigEndpoint     string       `json:"os-config-endpoint"`
+	OSConfigPollInterval *json.Number `json:"os-config-poll-interval"`
 }
 
 func createConfigFromMetadata(md metadataJSON) *config {
@@ -178,11 +169,8 @@ func createConfigFromMetadata(md metadataJSON) *config {
 		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
 	}
 
-	if md.Instance.Attributes.OSConfigPollInterval != "" {
-		val := parseInt(md.Instance.Attributes.OSConfigPollInterval)
-		if val > 0 {
-			c.osConfigPollInterval = val
-		}
+	if val, err := md.Instance.Attributes.OSConfigPollInterval.Int64(); err == nil {
+		c.osConfigPollInterval = int(val)
 	}
 
 	// Flags take precedence over metadata.
