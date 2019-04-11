@@ -76,7 +76,7 @@ func RemoveAptPackages(pkgs []string) error {
 }
 
 // update apt packages
-func aptUpgrade(run runFunc) error {
+func aptUpgrade() error {
 	if _, err := run(exec.Command(aptGet, aptGetUpdateArgs...)); err != nil {
 		return err
 	}
@@ -92,7 +92,8 @@ func aptUpgrade(run runFunc) error {
 	return nil
 }
 
-func aptUpdates(run runFunc) ([]PkgInfo, error) {
+// AptUpdates queries for all available apt updates.
+func AptUpdates() ([]PkgInfo, error) {
 	out, err := run(exec.Command(aptGet, aptGetUpdateArgs...))
 	if err != nil {
 		return nil, err
@@ -141,7 +142,8 @@ func aptUpdates(run runFunc) ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func installedDEB(run runFunc) ([]PkgInfo, error) {
+// InstalledDebPackages queries for all installed deb packages.
+func InstalledDebPackages() ([]PkgInfo, error) {
 	out, err := run(exec.Command(dpkgquery, dpkgqueryArgs...))
 	if err != nil {
 		return nil, err

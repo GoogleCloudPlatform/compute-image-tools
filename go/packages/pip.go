@@ -35,7 +35,8 @@ func init() {
 	PipExists = exists(pip)
 }
 
-func pipUpdates(run runFunc) ([]PkgInfo, error) {
+// PipUpdates queries for all available pip updates.
+func PipUpdates() ([]PkgInfo, error) {
 	out, err := run(exec.Command(pip, pipOutdatedArgs...))
 	if err != nil {
 		return nil, err
@@ -63,7 +64,8 @@ func pipUpdates(run runFunc) ([]PkgInfo, error) {
 	return pkgs, nil
 }
 
-func installedPIP(run runFunc) ([]PkgInfo, error) {
+// InstalledPipPackages queries for all installed pip packages.
+func InstalledPipPackages() ([]PkgInfo, error) {
 	out, err := run(exec.Command(pip, pipListArgs...))
 	if err != nil {
 		return nil, err

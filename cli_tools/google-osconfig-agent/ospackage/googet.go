@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
@@ -48,8 +47,15 @@ func googetRepositories(repos []*osconfigpb.GooRepository, repoFile string) erro
 func googetChanges(packageInstalls, packageRemovals []*osconfigpb.Package) error {
 	var errs []string
 
-	inv := inventory.Get()
-	changes := getNecessaryChanges(inv.InstalledPackages.Apt, inv.PackageUpdates.Apt, packageInstalls, packageRemovals)
+	installed, err := packages.InstalledGooGetPackages()
+	if err != nil {
+		return err
+	}
+	updates, err := packages.GooGetUpdates()
+	if err != nil {
+		return err
+	}
+	changes := getNecessaryChanges(installed, updates, packageInstalls, packageRemovals)
 
 	if changes.packagesToInstall != nil {
 		logger.Infof("Installing packages %s", changes.packagesToInstall)

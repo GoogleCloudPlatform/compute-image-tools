@@ -24,17 +24,17 @@ import (
 func UpdatePackages() error {
 	var errs []string
 	if AptExists {
-		if err := aptUpgrade(run); err != nil {
+		if err := aptUpgrade(); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
 	if YumExists {
-		if err := yumUpdate(run); err != nil {
+		if err := yumUpdate(); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
 	if ZypperExists {
-		if err := zypperUpdate(run); err != nil {
+		if err := zypperUpdate(); err != nil {
 			errs = append(errs, err.Error())
 		}
 	}
@@ -50,7 +50,7 @@ func GetPackageUpdates() (Packages, []string) {
 	pkgs := Packages{}
 	var errs []string
 	if AptExists {
-		apt, err := aptUpdates(run)
+		apt, err := AptUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting apt updates: %v", err)
 			DebugLogger.Println("Error:", msg)
@@ -60,7 +60,7 @@ func GetPackageUpdates() (Packages, []string) {
 		}
 	}
 	if YumExists {
-		yum, err := yumUpdates()
+		yum, err := YumUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting yum updates: %v", err)
 			DebugLogger.Println("Error:", msg)
@@ -70,7 +70,7 @@ func GetPackageUpdates() (Packages, []string) {
 		}
 	}
 	if ZypperExists {
-		zypper, err := zypperUpdates(run)
+		zypper, err := ZypperUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting zypper updates: %v", err)
 			DebugLogger.Println("Error:", msg)
@@ -80,7 +80,7 @@ func GetPackageUpdates() (Packages, []string) {
 		}
 	}
 	if GemExists {
-		gem, err := gemUpdates(run)
+		gem, err := GemUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting gem updates: %v", err)
 			DebugLogger.Println("Error:", msg)
@@ -90,7 +90,7 @@ func GetPackageUpdates() (Packages, []string) {
 		}
 	}
 	if PipExists {
-		pip, err := pipUpdates(run)
+		pip, err := PipUpdates()
 		if err != nil {
 			msg := fmt.Sprintf("error getting pip updates: %v", err)
 			DebugLogger.Println("Error:", msg)
@@ -108,7 +108,7 @@ func GetInstalledPackages() (Packages, []string) {
 	pkgs := Packages{}
 	var errs []string
 	if exists(rpmquery) {
-		rpm, err := installedRPM(run)
+		rpm, err := InstalledRPMPackages()
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed rpm packages: %v", err)
 			DebugLogger.Println("Error:", msg)
@@ -118,7 +118,7 @@ func GetInstalledPackages() (Packages, []string) {
 		}
 	}
 	if exists(dpkgquery) {
-		deb, err := installedDEB(run)
+		deb, err := InstalledDebPackages()
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed deb packages: %v", err)
 			DebugLogger.Println("Error:", msg)
@@ -128,7 +128,7 @@ func GetInstalledPackages() (Packages, []string) {
 		}
 	}
 	if exists(gem) {
-		gem, err := installedGEM(run)
+		gem, err := InstalledGemPackages()
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed gem packages: %v", err)
 			DebugLogger.Println("Error:", msg)
@@ -138,7 +138,7 @@ func GetInstalledPackages() (Packages, []string) {
 		}
 	}
 	if exists(pip) {
-		pip, err := installedPIP(run)
+		pip, err := InstalledPipPackages()
 		if err != nil {
 			msg := fmt.Sprintf("error listing installed pip packages: %v", err)
 			DebugLogger.Println("Error:", msg)
