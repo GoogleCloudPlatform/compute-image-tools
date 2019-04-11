@@ -33,6 +33,7 @@ for /f "tokens=2 delims=:" %%a in (
   netsh interface ipv4 set dnsservers "Local Area Connection 3" static address=%%a primary
 )
 
+tzutil /s 'UTC'
 w32tm /resync
 
 C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install googet > COM1:
