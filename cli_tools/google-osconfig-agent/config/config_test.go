@@ -26,7 +26,7 @@ import (
 
 func TestSetConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"project":{"projectId":"projectId","attributes":{"os-config-endpoint":"bad!!1","os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"id":12345,"name":"name","zone":"zone","attributes":{"os-config-endpoint":"SvcEndpoint","os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true"}}}`)
+		fmt.Fprintln(w, `{"project":{"projectId":"projectId","attributes":{"os-config-endpoint":"bad!!1","os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"id":12345,"name":"name","zone":"zone","attributes":{"os-config-endpoint":"SvcEndpoint","os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true", "os-config-poll-interval":"3"}}}`)
 	}))
 	defer ts.Close()
 
@@ -70,5 +70,9 @@ func TestSetConfig(t *testing.T) {
 		if tt.op() != tt.want {
 			t.Errorf("%q: got(%t) != want(%t)", tt.desc, tt.op(), tt.want)
 		}
+	}
+
+	if SvcPollInterval().Minutes() != float64(3) {
+		t.Errorf("Default poll interval: got(%f) != want(%d)", SvcPollInterval().Minutes(), 3)
 	}
 }
