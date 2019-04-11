@@ -49,7 +49,7 @@ func googetChanges(packageInstalls, packageRemovals []*osconfigpb.Package) error
 	var errs []string
 
 	inv := inventory.Get()
-	changes := getNecessaryChanges(inv.InstalledPackages.Apt, inv.PackageUpdates.Apt, packageInstalls, packageRemovals)
+	changes := getNecessaryChanges(inv.InstalledPackages.GooGet, inv.PackageUpdates.GooGet, packageInstalls, packageRemovals)
 
 	if changes.packagesToInstall != nil {
 		logger.Infof("Installing packages %s", changes.packagesToInstall)
