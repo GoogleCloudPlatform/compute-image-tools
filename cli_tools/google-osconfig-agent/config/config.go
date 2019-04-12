@@ -169,8 +169,10 @@ func createConfigFromMetadata(md metadataJSON) *config {
 		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
 	}
 
-	if val, err := md.Instance.Attributes.OSConfigPollInterval.Int64(); err == nil {
-		c.osConfigPollInterval = int(val)
+	if md.Instance.Attributes.OSConfigPollInterval != nil {
+		if val, err := md.Instance.Attributes.OSConfigPollInterval.Int64(); err == nil {
+			c.osConfigPollInterval = int(val)
+		}
 	}
 
 	// Flags take precedence over metadata.
