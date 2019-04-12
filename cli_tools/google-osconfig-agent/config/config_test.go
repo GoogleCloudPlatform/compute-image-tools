@@ -79,7 +79,7 @@ func TestSetConfig(t *testing.T) {
 
 func TestSetConfigDefaultValues(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"instance":{"id":12345,"name":"name","zone":"zone","attributes":{"os-config-endpoint":"SvcEndpoint"}}}`)
+		fmt.Fprintln(w, `{"instance":{"id":12345,"name":"name","zone":"zone"}}`)
 	}))
 	defer ts.Close()
 
@@ -96,7 +96,6 @@ func TestSetConfigDefaultValues(t *testing.T) {
 		op   func() string
 		want string
 	}{
-		{"SvcEndpoint", SvcEndpoint, "SvcEndpoint"},
 		{"Instance", Instance, "zone/instances/name"},
 		{"ID", ID, "12345"},
 		{"ProjectID", ProjectID, "projectId"},
@@ -127,5 +126,9 @@ func TestSetConfigDefaultValues(t *testing.T) {
 
 	if SvcPollInterval().Minutes() != float64(osConfigPollIntervalDefault) {
 		t.Errorf("Default poll interval: got(%f) != want(%d)", SvcPollInterval().Minutes(), osConfigPollIntervalDefault)
+	}
+
+	if SvcEndpoint() != prodEndpoint {
+		t.Errorf("Default endpoint: got(%s) != want(%s)", SvcEndpoint(), prodEndpoint)
 	}
 }
