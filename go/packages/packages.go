@@ -16,7 +16,6 @@ limitations under the License.
 package packages
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -87,7 +86,8 @@ var run = func(cmd *exec.Cmd) ([]byte, error) {
 	DebugLogger.Printf("Running %q with args %q\n", cmd.Path, cmd.Args[1:])
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("error running %q with args %q: %v, stdout: %s", cmd.Path, cmd.Args, err, out)
+		DebugLogger.Printf("error running %q with args %q: %v, stdout: %s", cmd.Path, cmd.Args, err, out)
+		return nil, err
 	}
 	return out, nil
 }
