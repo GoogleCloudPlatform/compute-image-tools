@@ -40,7 +40,8 @@ func init() {
 	GooGetExists = exists(googet)
 }
 
-func googetUpdates() ([]PkgInfo, error) {
+// GooGetUpdates queries for all available googet updates.
+func GooGetUpdates() ([]PkgInfo, error) {
 	out, err := run(exec.Command(googet, googetUpdateQueryArgs...))
 	if err != nil {
 		return nil, err
@@ -115,7 +116,8 @@ func InstallGooGetUpdates() error {
 	return nil
 }
 
-func installedGooGetPackages() ([]PkgInfo, error) {
+// InstalledGooGetPackages queries for all installed googet packages.
+func InstalledGooGetPackages() ([]PkgInfo, error) {
 	out, err := run(exec.Command(googet, googetInstalledQueryArgs...))
 	if err != nil {
 		return nil, err

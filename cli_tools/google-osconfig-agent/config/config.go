@@ -46,6 +46,8 @@ const (
 	osPackageEnabledDefault   = false
 	osPatchEnabledDefault     = false
 	osDebugEnabledDefault     = false
+
+	osConfigPollIntervalDefault = 10
 )
 
 var (
@@ -62,7 +64,7 @@ var (
 type config struct {
 	osInventoryEnabled, osPackageEnabled, osPatchEnabled, osDebugEnabled                  bool
 	svcEndpoint, googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
-	numericProjectID                                                                      int
+	numericProjectID, osConfigPollInterval                                                int
 	projectID, instanceZone, instanceName, instanceID                                     string
 }
 
@@ -100,21 +102,23 @@ type projectJSON struct {
 }
 
 type attributesJSON struct {
-	OSInventoryEnabled string `json:"os-inventory-enabled"`
-	OSPatchEnabled     string `json:"os-patch-enabled"`
-	OSPackageEnabled   string `json:"os-package-enabled"`
-	OSDebugEnabled     string `json:"os-debug-enabled"`
-	OSConfigEndpoint   string `json:"os-config-endpoint"`
+	OSInventoryEnabled   string       `json:"os-inventory-enabled"`
+	OSPatchEnabled       string       `json:"os-patch-enabled"`
+	OSPackageEnabled     string       `json:"os-package-enabled"`
+	OSDebugEnabled       string       `json:"os-debug-enabled"`
+	OSConfigEndpoint     string       `json:"os-config-endpoint"`
+	OSConfigPollInterval *json.Number `json:"os-config-poll-interval"`
 }
 
 func createConfigFromMetadata(md metadataJSON) *config {
 	old := getAgentConfig()
 	c := &config{
-		osInventoryEnabled: osInventoryEnabledDefault,
-		osPackageEnabled:   osPackageEnabledDefault,
-		osPatchEnabled:     osPatchEnabledDefault,
-		osDebugEnabled:     osDebugEnabledDefault,
-		svcEndpoint:        prodEndpoint,
+		osInventoryEnabled:   osInventoryEnabledDefault,
+		osPackageEnabled:     osPackageEnabledDefault,
+		osPatchEnabled:       osPatchEnabledDefault,
+		osDebugEnabled:       osDebugEnabledDefault,
+		svcEndpoint:          prodEndpoint,
+		osConfigPollInterval: osConfigPollIntervalDefault,
 
 		googetRepoFilePath: googetRepoFilePath,
 		zypperRepoFilePath: zypperRepoFilePath,
@@ -163,6 +167,12 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	}
 	if md.Instance.Attributes.OSPackageEnabled != "" {
 		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
+	}
+
+	if md.Instance.Attributes.OSConfigPollInterval != nil {
+		if val, err := md.Instance.Attributes.OSConfigPollInterval.Int64(); err == nil {
+			c.osConfigPollInterval = int(val)
+		}
 	}
 
 	// Flags take precedence over metadata.
@@ -232,7 +242,7 @@ func SetConfig() error {
 
 // SvcPollInterval returns the frequency to poll the service.
 func SvcPollInterval() time.Duration {
-	return 10 * time.Minute
+	return time.Duration(getAgentConfig().osConfigPollInterval) * time.Minute
 }
 
 // MaxMetadataRetryDelay is the maximum retry delay when getting data from the metadata server.
@@ -250,7 +260,8 @@ func SerialLogPort() string {
 	if runtime.GOOS == "windows" {
 		return "COM1"
 	}
-	return "/dev/ttyS0"
+	// Don't write directly to the serial port on Linux as syslog already writes there.
+	return ""
 }
 
 // ResourceOverride is the URI of the resource.

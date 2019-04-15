@@ -34,7 +34,8 @@ func init() {
 	}
 }
 
-func installedRPM(run runFunc) ([]PkgInfo, error) {
+// InstalledRPMPackages queries for all installed rpm packages.
+func InstalledRPMPackages() ([]PkgInfo, error) {
 	out, err := run(exec.Command(rpmquery, rpmqueryArgs...))
 	if err != nil {
 		return nil, err

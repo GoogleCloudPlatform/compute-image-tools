@@ -111,6 +111,9 @@ type Image struct {
 	// Should an existing image of the same name be deleted, defaults to false
 	// which will fail validation.
 	OverWrite bool `json:",omitempty"`
+
+	//Ignores license validation if 403/forbidden returned
+	IgnoreLicenseValidationIfForbidden bool `json:",omitempty"`
 }
 
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
@@ -211,7 +214,9 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	for _, l := range i.Licenses {
 		result := namedSubexp(licenseURLRegex, l)
 		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
-			errs = addErrs(errs, errf("%s: bad license lookup: %q, error: %v", pre, l, err))
+			if !(isGoogleAPIForbiddenError(err) && i.IgnoreLicenseValidationIfForbidden) {
+				errs = addErrs(errs, errf("%s: bad license lookup: %q, error: %v", pre, l, err))
+			}
 		} else if !exists {
 			errs = addErrs(errs, errf("%s: license does not exist: %q", pre, l))
 		}
@@ -220,6 +225,17 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	// Register image creation.
 	errs = addErrs(errs, s.w.images.regCreate(i.daisyName, &i.Resource, s, i.OverWrite))
 	return errs
+}
+
+func isGoogleAPIForbiddenError(err dErr) bool {
+	dErrConcrete, isDErrConcrete := err.(*dErrImpl)
+	if isDErrConcrete && len(dErrConcrete.errs) > 0 {
+		gAPIErr, isGAPIErr := dErrConcrete.errs[0].(*googleapi.Error)
+		if isGAPIErr && gAPIErr.Code == 403 {
+			return true
+		}
+	}
+	return false
 }
 
 type imageRegistry struct {

@@ -71,15 +71,16 @@ func RemoveYumPackages(pkgs []string) error {
 }
 
 // update yum packages
-func yumUpdate(run runFunc) error {
+func yumUpdate() error {
 	if _, err := run(exec.Command(yum, yumUpdateArgs...)); err != nil {
 		return err
 	}
 	return nil
 }
 
-func yumUpdates() ([]PkgInfo, error) {
-	out, err := exec.Command(yum, yumCheckUpdateArgs...).CombinedOutput()
+// YumUpdates queries for all available yum updates.
+func YumUpdates() ([]PkgInfo, error) {
+	out, err := run(exec.Command(yum, yumCheckUpdateArgs...))
 	// Exit code 0 means no updates, 100 means there are updates.
 	if err == nil {
 		return nil, nil
