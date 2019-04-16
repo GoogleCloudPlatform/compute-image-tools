@@ -30,7 +30,7 @@ var (
 	yumInstallArgs     = []string{"install", "-y"}
 	yumRemoveArgs      = []string{"remove", "-y"}
 	yumUpdateArgs      = []string{"update", "-y"}
-	yumCheckUpdateArgs = []string{"check-update", "--quiet"}
+	yumCheckUpdateArgs = []string{"-y", "check-update", "--quiet"}
 )
 
 func init() {
