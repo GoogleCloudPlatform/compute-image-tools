@@ -32,8 +32,8 @@ import (
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 )
 
 const (
@@ -41,6 +41,7 @@ const (
 	debianImage   = "projects/debian-cloud/global/images/family/debian-9"
 	centosImage   = "projects/centos-cloud/global/images/family/centos-7"
 	rhelImage     = "projects/rhel-cloud/global/images/family/rhel-7"
+	windowsImage  = "projects/windows-cloud/global/images/family/windows-2016"
 )
 
 var (
@@ -48,14 +49,15 @@ var (
 )
 
 type packageManagementTestSetup struct {
-	image      string
-	name       string
-	fname      string
-	osconfig   *osconfigpb.OsConfig
-	assignment *osconfigpb.Assignment
-	startup    *api.MetadataItems
-	vstring    string
-	vf         func(*compute.Instance, string, int64, time.Duration, time.Duration) error
+	image         string
+	name          string
+	fname         string
+	osconfig      *osconfigpb.OsConfig
+	assignment    *osconfigpb.Assignment
+	startup       *api.MetadataItems
+	vstring       string
+	assertTimeout time.Duration
+	vf            func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
 // TestSuite is a PackageManagementTests test suite.
@@ -132,7 +134,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	//TODO: move instance definition to a common method
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -150,6 +152,10 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 					Key:   "os-package-enabled",
 					Value: func() *string { v := "true"; return &v }(),
 				},
+				&api.MetadataItems{
+					Key:   "os-debug-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
@@ -158,6 +164,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: testSetup.image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 				},
 			},
 		},
@@ -183,7 +190,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 600*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 		return
 	}
@@ -216,7 +223,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -242,6 +249,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: testSetup.image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 				},
 			},
 		},
@@ -269,7 +277,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 60*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
@@ -299,7 +307,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -317,6 +325,10 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 					Key:   "os-package-enabled",
 					Value: func() *string { v := "true"; return &v }(),
 				},
+				&api.MetadataItems{
+					Key:   "os-debug-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
@@ -325,6 +337,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: testSetup.image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 				},
 			},
 		},
@@ -352,7 +365,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 60*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
@@ -382,7 +395,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	i := &api.Instance{
 		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-1", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -400,6 +413,10 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 					Key:   "os-package-enabled",
 					Value: func() *string { v := "true"; return &v }(),
 				},
+				&api.MetadataItems{
+					Key:   "os-debug-enabled",
+					Value: func() *string { v := "true"; return &v }(),
+				},
 			},
 		},
 		Disks: []*api.AttachedDisk{
@@ -408,6 +425,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: testSetup.image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
 				},
 			},
 		},
@@ -435,7 +453,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, 60*time.Second); err != nil {
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("error while asserting: %v", err)
 	}
 }
