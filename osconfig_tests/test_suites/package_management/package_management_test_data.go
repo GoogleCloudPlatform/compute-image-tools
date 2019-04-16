@@ -53,7 +53,7 @@ var vf = func(inst *compute.Instance, vfString string, port int64, interval, tim
 	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
-func addCreateOsConfigTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
+func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
 	testName := "createosconfigtest"
 	desc := "test osconfig creation"
 	packageName := "cowsay"
@@ -97,7 +97,7 @@ func addCreateOsConfigTest(pkgTestSetup []*PackageManagementTestSetup, testProje
 	}
 	return pkgTestSetup
 }
-func addPackageInstallTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
+func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
 	testName := "packageinstalltest"
 	desc := "test package installation"
 	packageName := "cowsay"
@@ -156,7 +156,7 @@ func addPackageInstallTest(pkgTestSetup []*PackageManagementTestSetup, testProje
 	return pkgTestSetup
 }
 
-func addPackageRemovalTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
+func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
 	testName := "packageremovaltest"
 	desc := "test package removal"
 	packageName := "cowsay"
@@ -215,7 +215,7 @@ func addPackageRemovalTest(pkgTestSetup []*PackageManagementTestSetup, testProje
 	return pkgTestSetup
 }
 
-func addPackageInstallRemovalTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
+func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
 	testName := "packageinstallremovaltest"
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
@@ -279,7 +279,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*PackageManagementTestSetup, te
 	return pkgTestSetup
 }
 
-func addPackageInstallFromNewRepoTest(pkgTestSetup []*PackageManagementTestSetup, testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
+func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
 	testName := "packageinstallfromnewrepotest"
 	desc := "test package installation from new package"
 	packageName := "osconfig-agent-test"
@@ -342,14 +342,15 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*PackageManagementTestSetup
 	return pkgTestSetup
 }
 
-func createAndAppendSetup(pkgTestSetup []*PackageManagementTestSetup, image, name, fname, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) []*PackageManagementTestSetup {
-	setup := NewPackageManagementTestSetup(image, name, fname, vs, oc, assignment, startup, vf)
+func createAndAppendSetup(pkgTestSetup []*packageManagementTestSetup, image, name, fname, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) []*packageManagementTestSetup {
+	var setup *packageManagementTestSetup
+	newPackageManagementTestSetup(&setup, image, name, fname, vs, oc, assignment, startup, vf)
 	pkgTestSetup = append(pkgTestSetup, setup)
 	return pkgTestSetup
 }
 
-func generateAllTestSetup(testProjectConfig *testconfig.Project) []*PackageManagementTestSetup {
-	pkgTestSetup := []*PackageManagementTestSetup{}
+func generateAllTestSetup(testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
+	pkgTestSetup := []*packageManagementTestSetup{}
 	pkgTestSetup = addCreateOsConfigTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageInstallTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageRemovalTest(pkgTestSetup, testProjectConfig)
