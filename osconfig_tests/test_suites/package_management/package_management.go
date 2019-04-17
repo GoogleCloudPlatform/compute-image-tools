@@ -60,16 +60,17 @@ type packageManagementTestSetup struct {
 	vf            func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
-func newPackageManagementTestSetup(setup **packageManagementTestSetup, image, name, fname, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) {
+func newPackageManagementTestSetup(setup **packageManagementTestSetup, image, name, fname, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, assertTimeout time.Duration, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) {
 	*setup = &packageManagementTestSetup{
-		image:      image,
-		name:       name,
-		osconfig:   oc,
-		assignment: assignment,
-		fname:      fname,
-		vf:         vf,
-		vstring:    vs,
-		startup:    startup,
+		image:         image,
+		name:          name,
+		osconfig:      oc,
+		assignment:    assignment,
+		fname:         fname,
+		vf:            vf,
+		vstring:       vs,
+		assertTimeout: assertTimeout,
+		startup:       startup,
 	}
 }
 
