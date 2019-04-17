@@ -149,14 +149,14 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) *api.Metadat
 			"c:\\programdata\\Googet\\googet.exe addrepo osconfig-agent-test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository\n" +
 			"$n = 0\n" +
 			"while (1) {\n" +
-			"googet install -noconfirm %s\n" +
+			"googet -noconfirm install %s\n" +
 			"if ($?) {\n" +
 			"break\n" +
 			"} else {\n" +
 			"$n = $n + 1\n" +
 			"if ($n -eq 3) {\n" +
 			"exit 1\n" +
-			"}\n" +
+			"}}}\n" +
 			"sleep 10\n" +
 			"Restart-Service google_osconfig_agent\n" +
 			"while(1) {\n" +
