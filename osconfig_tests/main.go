@@ -20,6 +20,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
 	"io/ioutil"
 	"log"
 	"os"
@@ -29,9 +30,9 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
-	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 )
 
 var (
@@ -43,6 +44,7 @@ var (
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
+	patch.TestSuite,
 	packagemanagement.TestSuite,
 	inventory.TestSuite,
 }
