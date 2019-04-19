@@ -40,9 +40,8 @@ export GOCACHE=/tmp/.cache
 
 apt-get install -y git-core
 echo "cloning package"
-git clone "https://github.com/${BASE_REPO}/compute-image-tools.git"
+git clone --branch ${REPO_BRANCH} "https://github.com/${BASE_REPO}/compute-image-tools.git"
 cd compute-image-tools
-git checkout ${REPO_BRANCH}
 
 # Golang setup
 [[ -d /tmp/go ]] && rm -rf /tmp/go
@@ -51,6 +50,10 @@ echo "Downloading Go"
 curl -s "https://dl.google.com/go/${GOLANG}" -o /tmp/go/go.tar.gz
 echo "Extracting Go"
 tar -C /tmp/go/ --strip-components=1 -xf /tmp/go/go.tar.gz
+
+echo "Copy local code to GOPATH"
+sudo install -d ${GOPATH}/github.com/GoogleCloudPlatform/compute-image-tools
+sudo cp -r . ${GOPATH}/github.com/GoogleCloudPlatform/compute-image-tools
 
 echo "Pulling dependencies"
 sudo su -c "GOPATH=${GOPATH} ${GO} get -d ./..."
