@@ -43,6 +43,7 @@ type patchTestSetup struct {
 	vf            func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
+// TestSuite is a PatchTests test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer tswg.Done()
 

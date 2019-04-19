@@ -115,7 +115,8 @@ func GetStatusFromError(err error) string {
 	return fmt.Sprintf("%v", err)
 }
 
-func CreateTestInstance(metadataitems []*api.MetadataItems, client daisyCompute.Client, machineType, image, name, projectId, zone, serviceAccountEmail string, serviceAccountScopes []string) (*compute.Instance, error) {
+// CreateTestInstance is an utility function to create gce instance
+func CreateTestInstance(metadataitems []*api.MetadataItems, client daisyCompute.Client, machineType, image, name, projectID, zone, serviceAccountEmail string, serviceAccountScopes []string) (*compute.Instance, error) {
 	var items []*api.MetadataItems
 
 	// enable debug logging for all test instances
@@ -127,7 +128,7 @@ func CreateTestInstance(metadataitems []*api.MetadataItems, client daisyCompute.
 
 	i := &api.Instance{
 		Name:        name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", projectId, zone, machineType),
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", projectID, zone, machineType),
 		NetworkInterfaces: []*api.NetworkInterface{
 			&api.NetworkInterface{
 				Network: "global/networks/default",
@@ -147,7 +148,7 @@ func CreateTestInstance(metadataitems []*api.MetadataItems, client daisyCompute.
 				Boot:       true,
 				InitializeParams: &api.AttachedDiskInitializeParams{
 					SourceImage: image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", projectId, zone),
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", projectID, zone),
 				},
 			},
 		},
@@ -159,7 +160,7 @@ func CreateTestInstance(metadataitems []*api.MetadataItems, client daisyCompute.
 		},
 	}
 
-	inst, err := compute.CreateInstance(client, projectId, zone, i)
+	inst, err := compute.CreateInstance(client, projectID, zone, i)
 	if err != nil {
 		return nil, err
 	}
