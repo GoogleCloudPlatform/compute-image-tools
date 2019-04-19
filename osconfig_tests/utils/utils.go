@@ -17,9 +17,12 @@ package utils
 
 import (
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"math/rand"
 	"time"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	api "google.golang.org/api/compute/v1"
 	"google.golang.org/grpc/status"
 )
 
@@ -110,4 +113,56 @@ func GetStatusFromError(err error) string {
 		return fmt.Sprintf("code: %q, message: %q, details: %q", s.Code(), s.Message(), s.Details())
 	}
 	return fmt.Sprintf("%v", err)
+}
+
+func CreateTestInstance(metadataitems []*api.MetadataItems, client daisyCompute.Client, machineType, image, name, projectId, zone, serviceAccountEmail string, serviceAccountScopes []string) (*compute.Instance, error) {
+	var items []*api.MetadataItems
+
+	// enable debug logging for all test instances
+	items = append(items, compute.BuildInstanceMetadataItem("os-debug-enabled", "true"))
+
+	for _, item := range metadataitems {
+		items = append(items, item)
+	}
+
+	i := &api.Instance{
+		Name:        name,
+		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", projectId, zone, machineType),
+		NetworkInterfaces: []*api.NetworkInterface{
+			&api.NetworkInterface{
+				Network: "global/networks/default",
+				AccessConfigs: []*api.AccessConfig{
+					&api.AccessConfig{
+						Type: "ONE_TO_ONE_NAT",
+					},
+				},
+			},
+		},
+		Metadata: &api.Metadata{
+			Items: items,
+		},
+		Disks: []*api.AttachedDisk{
+			&api.AttachedDisk{
+				AutoDelete: true,
+				Boot:       true,
+				InitializeParams: &api.AttachedDiskInitializeParams{
+					SourceImage: image,
+					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", projectId, zone),
+				},
+			},
+		},
+		ServiceAccounts: []*api.ServiceAccount{
+			&api.ServiceAccount{
+				Email:  serviceAccountEmail,
+				Scopes: serviceAccountScopes,
+			},
+		},
+	}
+
+	inst, err := compute.CreateInstance(client, projectId, zone, i)
+	if err != nil {
+		return nil, err
+	}
+
+	return inst, nil
 }
