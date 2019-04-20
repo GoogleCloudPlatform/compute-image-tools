@@ -6,6 +6,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/googleapis/google-api-go-client/iterator"
 	"github.com/kylelemons/godebug/pretty"
 	"log"
 	"path"
@@ -93,7 +94,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runCreatePatchTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -105,7 +106,7 @@ func runCreatePatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-patch-enabled", "true"))
-	inst, err := utils.CreateTestInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -150,17 +151,24 @@ func runCreatePatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 			testCase.WriteFailure("Patching timed out")
 			return
 		case <-tick:
-			req := &osconfigpb.GetPatchJobRequest{
-				Name: job.Name,
+
+			req := &osconfigpb.ListPatchJobInstanceDetailsRequest{
+				Parent: parent,
 			}
-			res, err := osconfigClient.GetPatchJob(ctx, req)
-			if err != nil {
-				testCase.WriteFailure("error while fetching patch job: \n%s\n", utils.GetStatusFromError(err))
-				return
-			}
-			logger.Printf("%v\n", res)
-			if res.State > osconfigpb.PatchJob_PATCHING {
-				return
+
+			patchJobIterator := osconfigClient.ListPatchJobInstanceDetails(ctx, req)
+			for {
+				item, err := patchJobIterator.Next()
+				if err == iterator.Done {
+					break
+				}
+				if item.Name == inst.Name {
+					if item.State == osconfigpb.Instance_SUCCEEDED {
+						return
+					}
+					testCase.WriteFailure("Instance patching failed, patch status: %s\n", item.State)
+					return
+				}
 			}
 		}
 	}
@@ -169,10 +177,10 @@ func runCreatePatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	createPatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/CreatePatchJob] Create PatchJob", testSetup.image))
+	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/CreatePatchJob] Create PatchJob", testSetup.image))
 
 	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *patchTestSetup, *log.Logger, *testconfig.Project){
-		createPatchTest: runCreatePatchTest,
+		executePatchTest: runExecutePatchTest,
 	} {
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)

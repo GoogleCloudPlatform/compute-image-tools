@@ -115,8 +115,8 @@ func GetStatusFromError(err error) string {
 	return fmt.Sprintf("%v", err)
 }
 
-// CreateTestInstance is an utility function to create gce instance
-func CreateTestInstance(metadataitems []*api.MetadataItems, client daisyCompute.Client, machineType, image, name, projectID, zone, serviceAccountEmail string, serviceAccountScopes []string) (*compute.Instance, error) {
+// CreateComputeInstance is an utility function to create gce instance
+func CreateComputeInstance(metadataitems []*api.MetadataItems, client daisyCompute.Client, machineType, image, name, projectID, zone, serviceAccountEmail string, serviceAccountScopes []string) (*compute.Instance, error) {
 	var items []*api.MetadataItems
 
 	// enable debug logging for all test instances
