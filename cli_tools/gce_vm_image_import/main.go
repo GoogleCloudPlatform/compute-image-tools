@@ -55,6 +55,7 @@ var (
 	clientID             = flag.String(clientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
 	dataDisk             = flag.Bool("data_disk", false, "Specifies that the disk has no bootable OS installed on it.	Imports the disk without making it bootable or installing Google tools on it. ")
 	osID                 = flag.String("os", "", "Specifies the OS of the image being imported. OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-10-byol, windows-2008r2, windows-2008r2-byol, windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016, windows-2016-byol, windows-7-byol.")
+	customTranWorkflow   = flag.String("custom_translate_workflow", "", "Specifies the custom workflow used to do translation")
 	sourceFile           = flag.String("source_file", "", "Google Cloud Storage URI of the virtual disk file	to import. For example: gs://my-bucket/my-image.vmdk")
 	sourceImage          = flag.String("source_image", "", "Compute Engine image from which to import")
 	noGuestEnvironment   = flag.Bool("no_guest_environment", false, "Google Guest Environment will not be installed on the image.")
@@ -108,6 +109,10 @@ func validateAndParseFlags() error {
 		return fmt.Errorf("either -data_disk or -os has to be specified, but not both")
 	}
 
+	if *osID == "" && *customTranWorkflow != "" {
+		return fmt.Errorf("-custom_translate_workflow can't be specified when -osID is not specified")
+	}
+
 	if *sourceFile == "" && *sourceImage == "" {
 		return fmt.Errorf("-source_file or -source_image has to be specified")
 	}
@@ -142,12 +147,24 @@ func validateAndParseFlags() error {
 //Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return toWorkingDir(importFromImageWorkflow), daisyutils.GetTranslateWorkflowPath(osID)
+		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath(
+			osID,
+			customTranWorkflow)
 	}
 	if *dataDisk {
 		return toWorkingDir(importWorkflow), ""
 	}
-	return toWorkingDir(importAndTranslateWorkflow), daisyutils.GetTranslateWorkflowPath(osID)
+	return toWorkingDir(importAndTranslateWorkflow), getTranslateWorkflowPath(
+		osID,
+		customTranWorkflow)
+}
+
+func getTranslateWorkflowPath(osID *string, customTranWorkflow *string) string {
+	if *customTranWorkflow != "" {
+		return *customTranWorkflow
+	} else {
+		return daisyutils.GetTranslateWorkflowPath(osID)
+	}
 }
 
 func toWorkingDir(dir string) string {

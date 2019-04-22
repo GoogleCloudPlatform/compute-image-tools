@@ -79,7 +79,7 @@ func TestGetWorkflowPathsFromImage(t *testing.T) {
 	defer testutils.SetStringP(&sourceImage, "image-1")()
 	defer testutils.SetStringP(&osID, "ubuntu-1404")()
 	workflow, translate := getWorkflowPaths()
-	if workflow != importFromImageWorkflow && translate != "ubuntu/translate_ubuntu_1404.wf.json" {
+	if workflow != toWorkingDir(importFromImageWorkflow) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
 	}
 }
@@ -87,8 +87,35 @@ func TestGetWorkflowPathsFromImage(t *testing.T) {
 func TestGetWorkflowPathsDataDisk(t *testing.T) {
 	defer testutils.SetBoolP(&dataDisk, true)()
 	workflow, translate := getWorkflowPaths()
-	if workflow != importWorkflow && translate != "" {
+	if workflow != toWorkingDir(importWorkflow) || translate != "" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importWorkflow)
+	}
+}
+
+func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
+	defer testutils.SetStringP(&imageName, "image-a")()
+	defer testutils.SetStringP(&clientID, "gcloud")()
+	defer testutils.SetStringP(&sourceImage, "image-1")()
+	defer testutils.SetStringP(&osID, "ubuntu-1404")()
+	defer testutils.SetStringP(&customTranWorkflow, "custom.wf")()
+	if err := validateAndParseFlags(); err != nil {
+		t.Errorf("Unexpected flags error: %v", err)
+	}
+	workflow, translate := getWorkflowPaths()
+	if  workflow != toWorkingDir(importFromImageWorkflow) || translate != "custom.wf" {
+		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
+	}
+}
+
+func TestFlagsUnexpectedCustomTranslateWorkflow(t *testing.T) {
+	defer testutils.SetStringP(&imageName, "image-a")()
+	defer testutils.SetStringP(&clientID, "gcloud")()
+	defer testutils.SetBoolP(&dataDisk, true)()
+	defer testutils.SetStringP(&customTranWorkflow, "custom.wf")()
+	err := validateAndParseFlags()
+	expected := fmt.Errorf("-custom_translate_workflow can't be specified when -osID is not specified")
+	if err != expected  && err.Error() != expected.Error() {
+		t.Errorf("%v != %v", err, expected)
 	}
 }
 
