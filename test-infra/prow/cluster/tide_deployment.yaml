@@ -29,7 +29,7 @@ spec:
       - name: tide
         image: gcr.io/k8s-prow/tide:v20180830-eabe43164
         args:
-        - --dry-run=false
+        - --dry-run=true
         ports:
           - name: http
             containerPort: 8888

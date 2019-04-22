@@ -1,3 +1,23 @@
+tide:
+  merge_method:
+    GoogleCloudPlatform/compute-image-tools: squash
+
+  queries:
+  - repos:
+    - GoogleCloudPlatform/compute-image-tools
+    labels:
+    - lgtm
+    - approved
+    missingLabels:
+    - do-not-merge
+    - do-not-merge/hold
+    - do-not-merge/work-in-progress
+    - needs-ok-to-test
+    - needs-rebase
+    includedBranches:
+    - tide-test
+
+
 plank:
  job_url_template: 'https://k8s-gubernator.appspot.com/build/compute-image-tools-test/{{if eq .Spec.Type "presubmit"}}pr-logs/pull/{{.Spec.Refs.Org}}_{{.Spec.Refs.Repo}}/{{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}{{else if eq .Spec.Type "batch"}}pr-logs/pull/batch{{else}}logs{{end}}/{{.Spec.Job}}/{{.Status.BuildID}}/'
  report_template: '[Full PR test history](https://k8s-gubernator.appspot.com/pr/{{.Spec.Refs.Org}}_{{.Spec.Refs.Repo}}/{{with index .Spec.Refs.Pulls 0}}{{.Number}}{{end}}). [Your PR dashboard](https://k8s-gubernator.appspot.com/pr/{{with index .Spec.Refs.Pulls 0}}{{.Author}}{{end}}).'
