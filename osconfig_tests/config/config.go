@@ -7,12 +7,11 @@ import (
 
 var (
 	// TODO: allow this to be configurable through flag to test against staging
-	prodEndpoint    = "osconfig.googleapis.com:443"
-	oauthDefault    = ""
-	bucketDefault   = "osconfig-agent-end2end-tests"
-	logsPathDefault = "logs"
+	prodEndpoint           = "osconfig.googleapis.com:443"
+	oauthDefault           = ""
+	bucketDefault          = "osconfig-agent-end2end-tests"
+	logsPathDefault        = "logs"
 	logPushIntervalDefault = 3 * time.Second
-
 )
 
 // SvcEndpoint returns the svcEndpoint

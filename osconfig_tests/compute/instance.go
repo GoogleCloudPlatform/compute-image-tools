@@ -89,7 +89,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 }
 
 // StreamSerialOutput stores the serial output of an instance to GCS bucket
-func (i *Instance)StreamSerialOutput(ctx context.Context, storageClient *storage.Client, logsPath, bucket string, wg *sync.WaitGroup, port int64, interval time.Duration) {
+func (i *Instance) StreamSerialOutput(ctx context.Context, storageClient *storage.Client, logsPath, bucket string, wg *sync.WaitGroup, port int64, interval time.Duration) {
 	defer wg.Done()
 
 	logsObj := path.Join(logsPath, fmt.Sprintf("%s-serial-port%d.log", i.Name, port))
