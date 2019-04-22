@@ -21,10 +21,12 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/google/logger"
+
+	api "google.golang.org/api/compute/v1"
 )
 
-func getPackageInstallStartupScript(pkgManager, packageName string) string {
-	var ss string
+func getPackageInstallStartupScript(pkgManager, packageName string) *api.MetadataItems {
+	var ss, key string
 
 	switch pkgManager {
 	case "apt":
@@ -41,6 +43,7 @@ func getPackageInstallStartupScript(pkgManager, packageName string) string {
 			"done;\n"
 
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageInstalledString, packageNotInstalledString)
+		key = "startup-script"
 
 	case "yum":
 		ss = "%s\n" +
@@ -55,16 +58,36 @@ func getPackageInstallStartupScript(pkgManager, packageName string) string {
 			"sleep 5\n" +
 			"done\n"
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageInstalledString, packageNotInstalledString)
+		key = "startup-script"
+
+	case "googet":
+		ss = "%s\n" +
+			"c:\\programdata\\Googet\\googet.exe addrepo osconfig-agent-test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository\n" +
+			"while(1) {\n" +
+			"$installed_packages = googet installed\n" +
+			"Write-Host $installed_packages\n" +
+			"if ($installed_packages -like \"*%s*\") {\n" +
+			"Write-Host \"%s\"\n" +
+			"} else {\n" +
+			"Write-Host \"%s\"\n" +
+			"}\n" +
+			"sleep 5\n" +
+			"}\n"
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet, packageName, packageInstalledString, packageNotInstalledString)
+		key = "windows-startup-script-ps1"
 
 	default:
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
 
-	return ss
+	return &api.MetadataItems{
+		Key:   key,
+		Value: &ss,
+	}
 }
 
-func getPackageRemovalStartupScript(pkgManager, packageName string) string {
-	var ss string
+func getPackageRemovalStartupScript(pkgManager, packageName string) *api.MetadataItems {
+	var ss, key string
 
 	switch pkgManager {
 	case "apt":
@@ -95,6 +118,7 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) string {
 			"done;\n"
 
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName, packageName, packageNotInstalledString, packageInstalledString)
+		key = "startup-script"
 
 	case "yum":
 		ss = "%s\n" +
@@ -118,16 +142,48 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) string {
 			"sleep 5\n" +
 			"done\n"
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		key = "startup-script"
+
+	case "googet":
+		ss = "%s\n" +
+			"c:\\programdata\\Googet\\googet.exe addrepo osconfig-agent-test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository\n" +
+			"$n = 0\n" +
+			"while (1) {\n" +
+			"googet -noconfirm install %s\n" +
+			"if ($?) {\n" +
+			"break\n" +
+			"} else {\n" +
+			"$n = $n + 1\n" +
+			"if ($n -eq 3) {\n" +
+			"exit 1\n" +
+			"}}}\n" +
+			"sleep 10\n" +
+			"Restart-Service google_osconfig_agent\n" +
+			"while(1) {\n" +
+			"$installed_packages = googet installed\n" +
+			"Write-Host $installed_packages\n" +
+			"if ($installed_packages -like \"*%s*\") {\n" +
+			"Write-Host %s\n" +
+			"} else {\n" +
+			"Write-Host %s\n" +
+			"}\n" +
+			"sleep 5\n" +
+			"}\n"
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		key = "windows-startup-script-ps1"
 
 	default:
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
 
-	return ss
+	return &api.MetadataItems{
+		Key:   key,
+		Value: &ss,
+	}
 }
 
-func getPackageInstallRemovalStartupScript(pkgManager, packageName string) string {
-	var ss string
+func getPackageInstallRemovalStartupScript(pkgManager, packageName string) *api.MetadataItems {
+	var ss, key string
 
 	switch pkgManager {
 	case "apt":
@@ -144,6 +200,7 @@ func getPackageInstallRemovalStartupScript(pkgManager, packageName string) strin
 			"done;\n"
 
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName, packageNotInstalledString, packageInstalledString)
+		key = "startup-script"
 
 	case "yum":
 		ss = "%s\n" +
@@ -158,16 +215,35 @@ func getPackageInstallRemovalStartupScript(pkgManager, packageName string) strin
 			"sleep 5\n" +
 			"done\n"
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageInstalledString, packageNotInstalledString)
+		key = "startup-script"
+
+	case "googet":
+		ss = "%s\n" +
+			"while(1) {\n" +
+			"$installed_packages = googet installed\n" +
+			"Write-Host $installed_packages\n" +
+			"if ($installed_packages -like \"*%s*\") {\n" +
+			"Write-Host %s\n" +
+			"} else {\n" +
+			"Write-Host %s\n" +
+			"}\n" +
+			"sleep 5\n" +
+			"}\n"
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet, packageName, packageInstalledString, packageNotInstalledString)
+		key = "windows-startup-script-ps1"
 
 	default:
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
 
-	return ss
+	return &api.MetadataItems{
+		Key:   key,
+		Value: &ss,
+	}
 }
 
-func getPackageInstallFromNewRepoTestStartupScript(pkgManager, packageName string) string {
-	var ss string
+func getPackageInstallFromNewRepoTestStartupScript(pkgManager, packageName string) *api.MetadataItems {
+	var ss, key string
 
 	switch pkgManager {
 
@@ -187,6 +263,7 @@ func getPackageInstallFromNewRepoTestStartupScript(pkgManager, packageName strin
 			"done;\n"
 
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageInstalledString, packageNotInstalledString)
+		key = "startup-script"
 
 	case "yum":
 		ss = "%s\n" +
@@ -204,10 +281,29 @@ func getPackageInstallFromNewRepoTestStartupScript(pkgManager, packageName strin
 			"done\n" +
 			"echo \"%s\"\n"
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		key = "startup-script"
+
+	case "googet":
+		ss = "%s\n" +
+			"while(1) {\n" +
+			"$installed_packages = googet installed\n" +
+			"Write-Host $installed_packages\n" +
+			"if ($installed_packages -like \"*%s*\") {\n" +
+			"Write-Host %s\n" +
+			"} else {\n" +
+			"Write-Host %s\n" +
+			"}\n" +
+			"sleep 5\n" +
+			"}\n"
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet, packageName, packageInstalledString, packageNotInstalledString)
+		key = "windows-startup-script-ps1"
 
 	default:
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
 
-	return ss
+	return &api.MetadataItems{
+		Key:   key,
+		Value: &ss,
+	}
 }
