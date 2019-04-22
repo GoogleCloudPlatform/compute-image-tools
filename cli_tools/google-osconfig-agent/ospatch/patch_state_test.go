@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
@@ -25,7 +26,7 @@ import (
 )
 
 var (
-	testPatchRunJSON = "{\"Job\":{\"ReportPatchJobInstanceDetailsResponse\":{\"patchJob\":\"flipyflappy\",\"patchConfig\":{\"rebootConfig\":\"ALWAYS\"}}},\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false,\"PatchStep\":\"\",\"RebootCount\":0}"
+	testPatchRunJSON = "{\"PatchRuns\":[{\"Job\":{\"ReportPatchJobInstanceDetailsResponse\":{\"patchJob\":\"flipyflappy\",\"patchConfig\":{\"rebootConfig\":\"ALWAYS\"}}},\"StartedAt\":\"0001-01-01T00:00:00Z\",\"EndedAt\":\"0001-01-01T00:00:00Z\",\"Complete\":false,\"PatchStep\":\"\",\"RebootCount\":0}],\"PastJobs\":null}"
 	testPatchRun     = &patchRun{
 		Job: &patchJob{
 			&osconfigpb.ReportPatchJobInstanceDetailsResponse{
@@ -47,7 +48,7 @@ func TestLoadState(t *testing.T) {
 	testState := filepath.Join(td, "testState")
 
 	// test no state file
-	if _, err := loadState(testState); err != nil {
+	if err := loadState(testState); err != nil {
 		t.Errorf("no state file: unexpected error: %v", err)
 	}
 
@@ -55,25 +56,25 @@ func TestLoadState(t *testing.T) {
 		desc    string
 		state   []byte
 		wantErr bool
-		want    *patchRun
+		want    *state
 	}{
 		{
 			"blank state",
 			[]byte("{}"),
 			false,
-			&patchRun{},
+			&state{},
 		},
 		{
 			"bad state",
 			[]byte("foo"),
 			true,
-			&patchRun{},
+			&state{},
 		},
 		{
 			"test patchRun",
 			[]byte(testPatchRunJSON),
 			false,
-			testPatchRun,
+			&state{PatchRuns: []*patchRun{testPatchRun}},
 		},
 	}
 	for _, tt := range tests {
@@ -82,7 +83,7 @@ func TestLoadState(t *testing.T) {
 			continue
 		}
 
-		got, err := loadState(testState)
+		err := loadState(testState)
 		if err != nil && !tt.wantErr {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 			continue
@@ -91,13 +92,13 @@ func TestLoadState(t *testing.T) {
 			t.Errorf("%s: expected error", tt.desc)
 			continue
 		}
-		if diff := pretty.Compare(tt.want, got); diff != "" {
+		if diff := pretty.Compare(tt.want, &liveState); diff != "" {
 			t.Errorf("%s: patchWindow does not match expectation: (-got +want)\n%s", tt.desc, diff)
 		}
 	}
 }
 
-func TestSaveState(t *testing.T) {
+func TestStateSave(t *testing.T) {
 	td, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatalf("error creating temp dir: %v", err)
@@ -107,24 +108,24 @@ func TestSaveState(t *testing.T) {
 
 	var tests = []struct {
 		desc  string
-		state *patchRun
+		state *state
 		want  string
 	}{
 		{
 			"blank state",
-			nil,
-			"{}",
+			&state{},
+			"{\"PatchRuns\":null,\"PastJobs\":null}",
 		},
 		{
 			"test patchWindow",
-			testPatchRun,
+			&state{PatchRuns: []*patchRun{testPatchRun}},
 			testPatchRunJSON,
 		},
 	}
 	for _, tt := range tests {
-		err := saveState(testState, tt.state)
+		err := tt.state.save(testState)
 		if err != nil {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+			t.Errorf("%s: unexpected save error: %v", tt.desc, err)
 			continue
 		}
 
@@ -135,7 +136,151 @@ func TestSaveState(t *testing.T) {
 		}
 
 		if string(got) != tt.want {
-			t.Errorf("%s: got:\n%q\nwant:\n %q", tt.desc, got, tt.want)
+			t.Errorf("%s:\ngot:\n%q\nwant:\n%q", tt.desc, got, tt.want)
+		}
+	}
+}
+
+func TestStateAdd(t *testing.T) {
+	pr1 := &patchRun{
+		Job: &patchJob{
+			&osconfigpb.ReportPatchJobInstanceDetailsResponse{
+				PatchJob: "pr1",
+			},
+		},
+	}
+	pr2 := &patchRun{
+		Job: &patchJob{
+			&osconfigpb.ReportPatchJobInstanceDetailsResponse{
+				PatchJob: "prw",
+			},
+		},
+	}
+
+	want := &state{
+		PatchRuns: []*patchRun{pr1, pr2},
+	}
+
+	st := &state{
+		PatchRuns: []*patchRun{pr1},
+	}
+
+	st.addPatchRun(pr2)
+
+	if !reflect.DeepEqual(want, st) {
+		t.Errorf("state does not match expectations afer add:\ngot:\n%+v\nwant:\n%+v", st, want)
+	}
+}
+
+func TestStateRemove(t *testing.T) {
+	pr1 := &patchRun{
+		Job: &patchJob{
+			&osconfigpb.ReportPatchJobInstanceDetailsResponse{
+				PatchJob: "pr1",
+			},
+		},
+	}
+	pr2 := &patchRun{
+		Job: &patchJob{
+			&osconfigpb.ReportPatchJobInstanceDetailsResponse{
+				PatchJob: "prw",
+			},
+		},
+	}
+
+	want := &state{
+		PatchRuns: []*patchRun{pr1},
+	}
+
+	st := &state{
+		PatchRuns: []*patchRun{pr1, pr2},
+	}
+
+	st.removePatchRun(pr2)
+
+	if !reflect.DeepEqual(want, st) {
+		t.Errorf("state does not match expectations after add:\ngot:\n%+v\nwant:\n%+v", st, want)
+	}
+}
+
+func TestAckedJob(t *testing.T) {
+	job := "ackedJob"
+	pr := &patchRun{
+		Job: &patchJob{
+			&osconfigpb.ReportPatchJobInstanceDetailsResponse{
+				PatchJob: "pr1",
+			},
+		},
+	}
+	var tests = []struct {
+		desc  string
+		state *state
+		want  bool
+	}{
+		{
+			"not acked, not complete",
+			&state{
+				PatchRuns: []*patchRun{pr},
+				PastJobs:  []string{"job1"},
+			},
+			false,
+		},
+		{
+			"already acked",
+			&state{
+				PatchRuns: []*patchRun{
+					pr,
+					&patchRun{
+						Job: &patchJob{
+							&osconfigpb.ReportPatchJobInstanceDetailsResponse{
+								PatchJob: job,
+							},
+						},
+					},
+				},
+				PastJobs: []string{"job1"},
+			},
+			true,
+		},
+		{
+			"job complete",
+			&state{
+				PatchRuns: []*patchRun{pr},
+				PastJobs:  []string{"job1", job},
+			},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		got := tt.state.alreadyAckedJob(job)
+		if got != tt.want {
+			t.Errorf("%s: want(%v) got(%v)", tt.desc, tt.want, got)
+		}
+	}
+}
+
+func TestJobComplete(t *testing.T) {
+	newjob := "newJob"
+	var tests = []struct {
+		desc  string
+		state *state
+		want  []string
+	}{
+		{
+			"add 1 job",
+			&state{PastJobs: []string{"job1"}},
+			[]string{"job1", newjob},
+		},
+		{
+			"add 1 job, remove 2 first jobs",
+			&state{PastJobs: []string{"job1", "job2", "job3", "job4", "job5", "job6", "job7", "job8", "job9", "job10", "job11"}},
+			[]string{"job3", "job4", "job5", "job6", "job7", "job8", "job9", "job10", "job11", newjob},
+		},
+	}
+	for _, tt := range tests {
+		tt.state.jobComplete(newjob)
+		if !reflect.DeepEqual(tt.state.PastJobs, tt.want) {
+			t.Errorf("PastJobs do not match expectations after jobComplete: got: %q, want: %q", tt.state.PastJobs, tt.want)
 		}
 	}
 }

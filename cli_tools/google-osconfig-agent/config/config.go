@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -47,6 +48,8 @@ const (
 	osPackageEnabledDefault   = false
 	osPatchEnabledDefault     = false
 	debugEnabledDefault       = false
+
+	osPatchStateFile = "osconfig_patch.state"
 
 	osConfigPollIntervalDefault = 10
 )
@@ -364,4 +367,13 @@ func Version() string {
 // SetVersion sets the agent version.
 func SetVersion(v string) {
 	version = v
+}
+
+// PatchStateFile is the location of the patch state file.
+func PatchStateFile() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(`C:\Program Files\Google\OSConfig`, osPatchStateFile)
+	}
+
+	return filepath.Join(`/etc/osconfig`, osPatchStateFile)
 }

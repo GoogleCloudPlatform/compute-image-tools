@@ -100,8 +100,7 @@ func formatError(err error) string {
 	return err.Error()
 }
 
-func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct{}, action func(context.Context, string)) {
-	currentPatchJobName = savedPatchJobName
+func watcher(ctx context.Context, cancel <-chan struct{}, action func(context.Context, string)) {
 	webError := 0
 	// We use a pointer so that each loops goroutine can update this.
 	// If this was a global var we would have a data race, and puting
@@ -132,15 +131,7 @@ func watcher(ctx context.Context, savedPatchJobName string, cancel <-chan struct
 			if patchJobName == "" {
 				continue
 			}
-			if currentPatchJobName == patchJobName {
-				logger.Debugf("Already ran patch '%s'. Ignoring notification.", patchJobName)
-				continue
-			}
-
-			currentPatchJobName = patchJobName
-			if patchJobName != "" {
-				action(ctx, patchJobName)
-			}
+			action(ctx, patchJobName)
 
 			webError = 0
 		}

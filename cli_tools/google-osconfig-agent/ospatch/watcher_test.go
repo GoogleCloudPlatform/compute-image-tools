@@ -45,12 +45,6 @@ func TestWatcher(t *testing.T) {
 			false,
 		},
 		{
-			"same patch run name",
-			"?name=foo",
-			"foo",
-			false,
-		},
-		{
 			"canceled case",
 			"?name=cancel",
 			"",
@@ -81,7 +75,7 @@ func TestWatcher(t *testing.T) {
 
 		metadataURL = ts.URL + tt.url
 		ran = false
-		watcher(ctx, tt.name, c, action)
+		watcher(ctx, c, action)
 		if ran != tt.wantRun {
 			t.Errorf("%s: wantRun=%t, got=%t", tt.desc, tt.wantRun, ran)
 		}
