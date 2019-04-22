@@ -113,7 +113,7 @@ func TestFlagsUnexpectedCustomTranslateWorkflow(t *testing.T) {
 	defer testutils.SetBoolP(&dataDisk, true)()
 	defer testutils.SetStringP(&customTranWorkflow, "custom.wf")()
 	err := validateAndParseFlags()
-	expected := fmt.Errorf("-custom_translate_workflow can't be specified when -osID is not specified")
+	expected := fmt.Errorf("-custom_translate_workflow can't be specified when -os is not specified")
 	if err != expected  && err.Error() != expected.Error() {
 		t.Errorf("%v != %v", err, expected)
 	}

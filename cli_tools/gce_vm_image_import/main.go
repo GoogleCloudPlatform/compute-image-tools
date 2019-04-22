@@ -110,7 +110,7 @@ func validateAndParseFlags() error {
 	}
 
 	if *osID == "" && *customTranWorkflow != "" {
-		return fmt.Errorf("-custom_translate_workflow can't be specified when -osID is not specified")
+		return fmt.Errorf("-custom_translate_workflow can't be specified when -os is not specified")
 	}
 
 	if *sourceFile == "" && *sourceImage == "" {
