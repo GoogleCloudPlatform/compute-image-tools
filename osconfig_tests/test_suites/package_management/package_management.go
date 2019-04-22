@@ -162,7 +162,8 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
-	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -216,7 +217,8 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
-	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -269,7 +271,8 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
-	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -322,7 +325,8 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
-	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -370,6 +374,7 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}
 	}
+	logwg.Wait()
 }
 
 func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig, testProjectConfig *testconfig.Project) {

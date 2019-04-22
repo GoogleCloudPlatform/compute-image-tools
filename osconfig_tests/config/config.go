@@ -11,42 +11,31 @@ var (
 	oauthDefault    = ""
 	bucketDefault   = "osconfig-agent-end2end-tests"
 	logsPathDefault = "logs"
+	logPushIntervalDefault = 3 * time.Second
 
-	TestConfig *config
 )
-
-type config struct {
-	svcEndpoint, oauthPath, logsBucket, logsPath string
-}
-
-// SetConfig sets the test configs
-func SetConfig() error {
-	TestConfig = &config{
-		svcEndpoint: prodEndpoint,
-		oauthPath:   oauthDefault,
-		logsBucket:  bucketDefault,
-		logsPath:    logsPathDefault,
-	}
-	TestConfig.logsPath = fmt.Sprintf("%s-%s", TestConfig.logsPath, time.Now().Format("2006-01-02-15:04:05"))
-	return nil
-}
 
 // SvcEndpoint returns the svcEndpoint
 func SvcEndpoint() string {
-	return TestConfig.svcEndpoint
+	return prodEndpoint
 }
 
 // OauthPath returns the oauthPath file path
 func OauthPath() string {
-	return TestConfig.oauthPath
+	return oauthDefault
 }
 
 // LogBucket returns the oauthPath file path
 func LogBucket() string {
-	return TestConfig.logsBucket
+	return bucketDefault
 }
 
 // LogsPath returns the oauthPath file path
 func LogsPath() string {
-	return TestConfig.logsPath
+	return fmt.Sprintf("%s-%s", logsPathDefault, time.Now().Format("2006-01-02-15:04:05"))
+}
+
+// LogPushInterval returns the interval at which the serial console logs are written to GCS
+func LogPushInterval() time.Duration {
+	return logPushIntervalDefault
 }

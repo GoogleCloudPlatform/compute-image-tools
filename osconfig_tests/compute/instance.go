@@ -16,8 +16,14 @@
 package compute
 
 import (
+	"bytes"
+	"cloud.google.com/go/storage"
+	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
+	"path"
 	"strings"
+	"sync"
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -27,13 +33,13 @@ import (
 // Instance is a compute instance.
 type Instance struct {
 	*api.Instance
-	Client        daisyCompute.Client
+	client        daisyCompute.Client
 	Project, Zone string
 }
 
 // Cleanup deletes the Instance.
 func (i *Instance) Cleanup() {
-	if err := i.Client.DeleteInstance(i.Project, i.Zone, i.Name); err != nil {
+	if err := i.client.DeleteInstance(i.Project, i.Zone, i.Name); err != nil {
 		fmt.Printf("Error deleting instance: %v\n", err)
 	}
 }
@@ -49,9 +55,9 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 		case <-timedout:
 			return fmt.Errorf("timed out waiting for %q", match)
 		case <-tick:
-			resp, err := i.Client.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
+			resp, err := i.client.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
 			if err != nil {
-				status, sErr := i.Client.InstanceStatus(i.Project, i.Zone, i.Name)
+				status, sErr := i.client.InstanceStatus(i.Project, i.Zone, i.Name)
 				if sErr != nil {
 					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
 				} else {
@@ -82,12 +88,58 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 	}
 }
 
+// StreamSerialOutput stores the serial output of an instance to GCS bucket
+func (i *Instance)StreamSerialOutput(ctx context.Context, storageClient *storage.Client, logsPath, bucket string, wg *sync.WaitGroup, port int64, interval time.Duration) {
+	defer wg.Done()
+
+	logsObj := path.Join(logsPath, fmt.Sprintf("%s-serial-port%d.log", i.Name, port))
+	logger.Infof("Streaming instance %q serial port %d output to https: //storage.cloud.google.com/%s/%s", i.Name, port, bucket, logsObj)
+	var start int64
+	var buf bytes.Buffer
+	var gcsErr bool
+	tick := time.Tick(interval)
+
+Loop:
+	for {
+		select {
+		case <-tick:
+			resp, err := i.client.GetSerialPortOutput(path.Base(i.Project), path.Base(i.Zone), i.Name, port, start)
+			if err != nil {
+				// Instance is stopped or stopping.
+				status, sErr := i.client.InstanceStatus(path.Base(i.Project), path.Base(i.Zone), i.Name)
+				switch status {
+				case "TERMINATED", "STOPPED", "STOPPING":
+					if sErr == nil {
+						break Loop
+					}
+				}
+				logger.Errorf("Instance %q: error getting serial port: %v", i.Name, err)
+				break Loop
+			}
+			start = resp.Next
+			buf.WriteString(resp.Contents)
+			wc := storageClient.Bucket(bucket).Object(logsObj).NewWriter(ctx)
+			wc.ContentType = "text/plain"
+			if _, err := wc.Write(buf.Bytes()); err != nil && !gcsErr {
+				gcsErr = true
+				logger.Errorf("Instance %q: error writing log to GCS: %v", i.Name, err)
+				continue
+			}
+			if err := wc.Close(); err != nil && !gcsErr {
+				gcsErr = true
+				logger.Errorf("Instance %q: error saving log to GCS: %v", i.Name, err)
+				continue
+			}
+		}
+	}
+}
+
 // CreateInstance creates a compute instance.
 func CreateInstance(client daisyCompute.Client, project, zone string, i *api.Instance) (*Instance, error) {
 	if err := client.CreateInstance(project, zone, i); err != nil {
 		return nil, err
 	}
-	return &Instance{Instance: i, Client: client, Project: project, Zone: zone}, nil
+	return &Instance{Instance: i, client: client, Project: project, Zone: zone}, nil
 }
 
 // BuildInstanceMetadataItem create an metadata item

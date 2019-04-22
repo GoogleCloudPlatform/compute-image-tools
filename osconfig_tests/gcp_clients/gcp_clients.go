@@ -13,6 +13,7 @@ var (
 	osconfigClient *osconfig.Client
 )
 
+// GetStorageClient returns a singleton GCP client for osconfig tests
 func GetStorageClient(ctx context.Context) (*storage.Client, error) {
 	if storageClient != nil {
 		return storageClient, nil
@@ -21,6 +22,7 @@ func GetStorageClient(ctx context.Context) (*storage.Client, error) {
 	return storage.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
 }
 
+// GetOsConfigClient returns a singleton GCP client for osconfig tests
 func GetOsConfigClient(ctx context.Context) (*osconfig.Client, error) {
 	if osconfigClient != nil {
 		return osconfigClient, nil

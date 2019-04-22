@@ -276,7 +276,8 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
-	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 7*time.Minute); err != nil {
@@ -474,5 +475,6 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 			logger.Printf("TestCase '%s.%q' finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}
 	}
+	logwg.Wait()
 
 }
