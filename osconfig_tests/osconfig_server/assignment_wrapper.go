@@ -18,6 +18,7 @@ package osconfigserver
 import (
 	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/kylelemons/godebug/pretty"
@@ -32,7 +33,7 @@ type Assignment struct {
 
 // CreateAssignment is a wrapper around createAssignment API
 func CreateAssignment(ctx context.Context, assignment *osconfigpb.Assignment, parent string) (*Assignment, error) {
-	client, err := GetOsConfigClient(ctx)
+	client, err := gcpclients.GetOsConfigClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func CreateAssignment(ctx context.Context, assignment *osconfigpb.Assignment, pa
 
 // Cleanup function will cleanup the assignment created under project
 func (a *Assignment) Cleanup(ctx context.Context, projectID string) error {
-	client, err := GetOsConfigClient(ctx)
+	client, err := gcpclients.GetOsConfigClient(ctx)
 	if err != nil {
 		return err
 	}

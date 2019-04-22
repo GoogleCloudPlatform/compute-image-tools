@@ -21,6 +21,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"io"
 	"log"
 	"path"
@@ -247,7 +249,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) (*apiBeta.GuestAttributes, bool) {
+func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) (*apiBeta.GuestAttributes, bool) {
 	testCase.Logf("Creating compute client")
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -269,6 +271,12 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 		return nil, false
 	}
 	defer inst.Cleanup()
+
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 7*time.Minute); err != nil {
@@ -420,6 +428,7 @@ func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
+	var logwg sync.WaitGroup
 	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Gather Inventory", testSetup.image))
 	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check Hostname", testSetup.image))
 	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check ShortName", testSetup.image))
@@ -438,7 +447,7 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 	}
 
 	logger.Printf("Running TestCase '%s.%q'", gatherInventoryTest.Classname, gatherInventoryTest.Name)
-	ga, ok := runGatherInventoryTest(ctx, testSetup, gatherInventoryTest, testProjectConfig)
+	ga, ok := runGatherInventoryTest(ctx, testSetup, gatherInventoryTest, &logwg, testProjectConfig)
 	gatherInventoryTest.Finish(tests)
 	logger.Printf("TestCase '%s.%q' finished", gatherInventoryTest.Classname, gatherInventoryTest.Name)
 	if !ok {

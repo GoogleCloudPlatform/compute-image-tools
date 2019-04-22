@@ -18,8 +18,9 @@ package osconfigserver
 import (
 	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 
-	osconfig "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	"github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
@@ -35,7 +36,7 @@ type OsConfigIterator struct {
 
 // CreateOsConfig is a wrapper around createOsConfig API
 func CreateOsConfig(ctx context.Context, oc *osconfigpb.OsConfig, parent string) (*OsConfig, error) {
-	client, err := GetOsConfigClient(ctx)
+	client, err := gcpclients.GetOsConfigClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +55,7 @@ func CreateOsConfig(ctx context.Context, oc *osconfigpb.OsConfig, parent string)
 
 // ListOsConfigs is a wrapper around listOsConfigs API
 func ListOsConfigs(ctx context.Context, req *osconfigpb.ListOsConfigsRequest) *OsConfigIterator {
-	client, err := GetOsConfigClient(ctx)
+	client, err := gcpclients.GetOsConfigClient(ctx)
 	if err != nil {
 		return nil
 	}
@@ -66,7 +67,7 @@ func ListOsConfigs(ctx context.Context, req *osconfigpb.ListOsConfigsRequest) *O
 
 // Cleanup function will cleanup the osconfig created under project
 func (o *OsConfig) Cleanup(ctx context.Context, projectID string) error {
-	client, err := GetOsConfigClient(ctx)
+	client, err := gcpclients.GetOsConfigClient(ctx)
 	if err != nil {
 		return err
 	}

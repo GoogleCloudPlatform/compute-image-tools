@@ -17,7 +17,10 @@ package packagemanagement
 import (
 	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"log"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -106,7 +109,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
@@ -118,7 +121,7 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
 }
 
-func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
@@ -155,6 +158,12 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 	defer inst.Cleanup()
 
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
+
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
@@ -168,7 +177,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 }
 
-func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
@@ -203,52 +212,11 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	}
 	defer inst.Cleanup()
 
-	testCase.Logf("Waiting for agent install to complete")
-	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
-		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
-		return
-	}
-
-	testCase.Logf("Agent installed successfully")
-
-	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
-		testCase.WriteFailure("error while asserting: %v", err)
-	}
-}
-
-func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
-	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
-	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
+	storageClient, err := gcpclients.GetStorageClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
-		return
+		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
-	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
-
-	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
-	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
-		return
-	}
-	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
-
-	client, err := daisyCompute.NewClient(ctx)
-	if err != nil {
-		testCase.WriteFailure("error creating client: %v", err)
-		return
-	}
-
-	testCase.Logf("Creating instance with image %q", testSetup.image)
-	var metadataItems []*api.MetadataItems
-	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
-	if err != nil {
-		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
-		return
-	}
-	defer inst.Cleanup()
+	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -264,7 +232,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 }
 
-func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
@@ -296,6 +264,65 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 		return
 	}
 	defer inst.Cleanup()
+
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
+
+	testCase.Logf("Waiting for agent install to complete")
+	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
+		return
+	}
+
+	testCase.Logf("Agent installed successfully")
+
+	// read the serial console once
+	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
+		testCase.WriteFailure("error while asserting: %v", err)
+	}
+}
+
+func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
+	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
+	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
+	if err != nil {
+		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
+		return
+	}
+	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
+
+	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
+	if err != nil {
+		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
+		return
+	}
+	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
+
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("error creating client: %v", err)
+		return
+	}
+
+	testCase.Logf("Creating instance with image %q", testSetup.image)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	if err != nil {
+		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
+		return
+	}
+	defer inst.Cleanup()
+
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	go utils.StreamSerialOutput(ctx, inst, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, utils.LogPushInterval)
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -320,7 +347,9 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallRemoval] Package no change", testSetup.image))
 	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallFromNewRepo] Add a new package from new repository", testSetup.image))
 
-	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *testconfig.Project){
+	var logwg sync.WaitGroup
+
+	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project){
 		createOsConfigTest:            runCreateOsConfigTest,
 		packageInstallTest:            runPackageInstallTest,
 		packageRemovalTest:            runPackageRemovalTest,
@@ -336,7 +365,7 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 			tc.Finish(tests)
 		} else {
 			logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
-			f(ctx, tc, testSetup, logger, testProjectConfig)
+			f(ctx, tc, testSetup, logger, &logwg, testProjectConfig)
 			tc.Finish(tests)
 			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}

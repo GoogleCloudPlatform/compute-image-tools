@@ -27,6 +27,8 @@ import (
 )
 
 var (
+	LogPushInterval = 3 * time.Second
+
 	// TODO: the startup script installs the osconfig agent and then keeps querying
 	// for list of installed packages. Though, this is required for package
 	// management tests, it is not required for inventory tests.

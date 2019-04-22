@@ -27,13 +27,13 @@ import (
 // Instance is a compute instance.
 type Instance struct {
 	*api.Instance
-	client        daisyCompute.Client
+	Client        daisyCompute.Client
 	Project, Zone string
 }
 
 // Cleanup deletes the Instance.
 func (i *Instance) Cleanup() {
-	if err := i.client.DeleteInstance(i.Project, i.Zone, i.Name); err != nil {
+	if err := i.Client.DeleteInstance(i.Project, i.Zone, i.Name); err != nil {
 		fmt.Printf("Error deleting instance: %v\n", err)
 	}
 }
@@ -49,9 +49,9 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 		case <-timedout:
 			return fmt.Errorf("timed out waiting for %q", match)
 		case <-tick:
-			resp, err := i.client.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
+			resp, err := i.Client.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
 			if err != nil {
-				status, sErr := i.client.InstanceStatus(i.Project, i.Zone, i.Name)
+				status, sErr := i.Client.InstanceStatus(i.Project, i.Zone, i.Name)
 				if sErr != nil {
 					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
 				} else {
@@ -87,7 +87,7 @@ func CreateInstance(client daisyCompute.Client, project, zone string, i *api.Ins
 	if err := client.CreateInstance(project, zone, i); err != nil {
 		return nil, err
 	}
-	return &Instance{Instance: i, client: client, Project: project, Zone: zone}, nil
+	return &Instance{Instance: i, Client: client, Project: project, Zone: zone}, nil
 }
 
 // BuildInstanceMetadataItem create an metadata item
