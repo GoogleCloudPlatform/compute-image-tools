@@ -48,6 +48,7 @@ func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
 			for _, instance := range *step.CreateInstances {
 				instance.Instance.Labels =
 					rl.updateResourceLabels(instance.Instance.Labels, rl.InstanceLabelKeyRetriever(instance))
+
 			}
 		}
 		if step.CreateDisks != nil {
@@ -58,6 +59,7 @@ func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
 		}
 		if step.CreateImages != nil {
 			for _, image := range *step.CreateImages {
+				image.Image.StorageLocations=[]string{"europe-west1"}
 				image.Image.Labels =
 					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image))
 			}

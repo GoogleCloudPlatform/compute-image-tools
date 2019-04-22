@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -37,7 +38,7 @@ type Client interface {
 	CreateDisk(project, zone string, d *compute.Disk) error
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRule(project string, i *compute.Firewall) error
-	CreateImage(project string, i *compute.Image) error
+	CreateImage(project string, i *computeAlpha.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
 	CreateSubnetwork(project, region string, n *compute.Subnetwork) error
@@ -61,8 +62,8 @@ type Client interface {
 	GetDisk(project, zone, name string) (*compute.Disk, error)
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
-	GetImage(project, name string) (*compute.Image, error)
-	GetImageFromFamily(project, family string) (*compute.Image, error)
+	GetImage(project, name string) (*computeAlpha.Image, error)
+	GetImageFromFamily(project, family string) (*computeAlpha.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
 	GetNetwork(project, name string) (*compute.Network, error)
 	GetSubnetwork(project, region, name string) (*compute.Subnetwork, error)
@@ -76,7 +77,7 @@ type Client interface {
 	ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	ListForwardingRules(project, zone string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
-	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
+	ListImages(project string, opts ...ListCallOption) ([]*computeAlpha.Image, error)
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
@@ -162,6 +163,7 @@ type client struct {
 	hc      *http.Client
 	raw     *compute.Service
 	rawBeta *computeBeta.Service
+	rawAlpha *computeAlpha.Service
 }
 
 // shouldRetryWithWait returns true if the HTTP response / error indicates
@@ -224,7 +226,15 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error)
 	if ep != "" {
 		rawBetaService.BasePath = ep
 	}
-	c := &client{hc: hc, raw: rawService, rawBeta: rawBetaService}
+	rawAlphaService, err := computeAlpha.New(hc)
+	if err != nil {
+		return nil, fmt.Errorf("alpha compute client: %v", err)
+	}
+	if ep != "" {
+		rawAlphaService.BasePath = ep
+	}
+
+	c := &client{hc: hc, raw: rawService, rawBeta: rawBetaService, rawAlpha: rawAlphaService}
 	c.i = c
 
 	return c, nil
@@ -297,6 +307,22 @@ func (c *client) operationsWaitHelper(project, name string, getOperation operati
 // status response indicates the request should be attempted again or the
 // oauth Token is no longer valid.
 func (c *client) Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error) {
+	for i := 1; i < 4; i++ {
+		op, err = f(opts...)
+		if err == nil {
+			return op, nil
+		}
+		if !shouldRetryWithWait(c.hc.Transport, err, i) {
+			return nil, err
+		}
+	}
+	return
+}
+
+// Retry invokes the given function, retrying it multiple times if the HTTP
+// status response indicates the request should be attempted again or the
+// oauth Token is no longer valid.
+func (c *client) RetryAlpha(f func(opts ...googleapi.CallOption) (*computeAlpha.Operation, error), opts ...googleapi.CallOption) (op *computeAlpha.Operation, err error) {
 	for i := 1; i < 4; i++ {
 		op, err = f(opts...)
 		if err == nil {
@@ -389,8 +415,8 @@ func (c *client) CreateFirewallRule(project string, i *compute.Firewall) error {
 // Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
 // url (full or partial) to the source disk, sourceFile is the full Google
 // Cloud Storage URL where the disk image is stored.
-func (c *client) CreateImage(project string, i *compute.Image) error {
-	op, err := c.Retry(c.raw.Images.Insert(project, i).Do)
+func (c *client) CreateImage(project string, i *computeAlpha.Image) error {
+	op, err := c.RetryAlpha(c.rawAlpha.Images.Insert(project, i).Do)
 	if err != nil {
 		return err
 	}
@@ -399,7 +425,7 @@ func (c *client) CreateImage(project string, i *compute.Image) error {
 		return err
 	}
 
-	var createdImage *compute.Image
+	var createdImage *computeAlpha.Image
 	if createdImage, err = c.i.GetImage(project, i.Name); err != nil {
 		return err
 	}
@@ -832,30 +858,30 @@ func (c *client) ListFirewallRules(project string, opts ...ListCallOption) ([]*c
 }
 
 // GetImage gets a GCE Image.
-func (c *client) GetImage(project, name string) (*compute.Image, error) {
-	i, err := c.raw.Images.Get(project, name).Do()
+func (c *client) GetImage(project, name string) (*computeAlpha.Image, error) {
+	i, err := c.rawAlpha.Images.Get(project, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.raw.Images.Get(project, name).Do()
+		return c.rawAlpha.Images.Get(project, name).Do()
 	}
 	return i, err
 }
 
 // GetImageFromFamily gets a GCE Image from an image family.
-func (c *client) GetImageFromFamily(project, family string) (*compute.Image, error) {
-	i, err := c.raw.Images.GetFromFamily(project, family).Do()
+func (c *client) GetImageFromFamily(project, family string) (*computeAlpha.Image, error) {
+	i, err := c.rawAlpha.Images.GetFromFamily(project, family).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
-		return c.raw.Images.GetFromFamily(project, family).Do()
+		return c.rawAlpha.Images.GetFromFamily(project, family).Do()
 	}
 	return i, err
 }
 
 // ListImages gets a list of GCE Images.
-func (c *client) ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error) {
-	var is []*compute.Image
+func (c *client) ListImages(project string, opts ...ListCallOption) ([]*computeAlpha.Image, error) {
+	var is []*computeAlpha.Image
 	var pt string
-	call := c.raw.Images.List(project)
+	call := c.rawAlpha.Images.List(project)
 	for _, opt := range opts {
-		call = opt.listCallOptionApply(call).(*compute.ImagesListCall)
+		call = opt.listCallOptionApply(call).(*computeAlpha.ImagesListCall)
 	}
 	for il, err := call.PageToken(pt).Do(); ; il, err = call.PageToken(pt).Do() {
 		if shouldRetryWithWait(c.hc.Transport, err, 2) {

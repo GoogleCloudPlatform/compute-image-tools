@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -53,7 +54,7 @@ type TestClient struct {
 	CreateDiskFn                func(project, zone string, d *compute.Disk) error
 	CreateForwardingRuleFn      func(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRuleFn        func(project string, i *compute.Firewall) error
-	CreateImageFn               func(project string, i *compute.Image) error
+	CreateImageFn               func(project string, i *computeAlpha.Image) error
 	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn             func(project string, n *compute.Network) error
 	CreateSubnetworkFn          func(project, region string, n *compute.Subnetwork) error
@@ -83,9 +84,9 @@ type TestClient struct {
 	ListForwardingRulesFn       func(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	GetFirewallRuleFn           func(project, name string) (*compute.Firewall, error)
 	ListFirewallRulesFn         func(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
-	GetImageFn                  func(project, name string) (*compute.Image, error)
-	GetImageFromFamilyFn        func(project, family string) (*compute.Image, error)
-	ListImagesFn                func(project string, opts ...ListCallOption) ([]*compute.Image, error)
+	GetImageFn                  func(project, name string) (*computeAlpha.Image, error)
+	GetImageFromFamilyFn        func(project, family string) (*computeAlpha.Image, error)
+	ListImagesFn                func(project string, opts ...ListCallOption) ([]*computeAlpha.Image, error)
 	GetLicenseFn                func(project, name string) (*compute.License, error)
 	GetNetworkFn                func(project, name string) (*compute.Network, error)
 	ListNetworksFn              func(project string, opts ...ListCallOption) ([]*compute.Network, error)
@@ -157,7 +158,7 @@ func (c *TestClient) CreateFirewallRule(project string, i *compute.Firewall) err
 }
 
 // CreateImage uses the override method CreateImageFn or the real implementation.
-func (c *TestClient) CreateImage(project string, i *compute.Image) error {
+func (c *TestClient) CreateImage(project string, i *computeAlpha.Image) error {
 	if c.CreateImageFn != nil {
 		return c.CreateImageFn(project, i)
 	}
@@ -389,7 +390,7 @@ func (c *TestClient) ListFirewallRules(project string, opts ...ListCallOption) (
 }
 
 // GetImage uses the override method GetImageFn or the real implementation.
-func (c *TestClient) GetImage(project, name string) (*compute.Image, error) {
+func (c *TestClient) GetImage(project, name string) (*computeAlpha.Image, error) {
 	if c.GetImageFn != nil {
 		return c.GetImageFn(project, name)
 	}
@@ -397,7 +398,7 @@ func (c *TestClient) GetImage(project, name string) (*compute.Image, error) {
 }
 
 // GetImageFromFamily uses the override method GetImageFromFamilyFn or the real implementation.
-func (c *TestClient) GetImageFromFamily(project, family string) (*compute.Image, error) {
+func (c *TestClient) GetImageFromFamily(project, family string) (*computeAlpha.Image, error) {
 	if c.GetImageFromFamilyFn != nil {
 		return c.GetImageFromFamilyFn(project, family)
 	}
@@ -405,7 +406,7 @@ func (c *TestClient) GetImageFromFamily(project, family string) (*compute.Image,
 }
 
 // ListImages uses the override method ListImagesFn or the real implementation.
-func (c *TestClient) ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error) {
+func (c *TestClient) ListImages(project string, opts ...ListCallOption) ([]*computeAlpha.Image, error) {
 	if c.ListImagesFn != nil {
 		return c.ListImagesFn(project, opts...)
 	}

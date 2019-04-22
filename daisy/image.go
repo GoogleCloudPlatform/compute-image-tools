@@ -24,13 +24,14 @@ import (
 	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
 var (
 	imageCache struct {
-		exists map[string][]*compute.Image
+		exists map[string][]*computeAlpha.Image
 		mu     sync.Mutex
 	}
 	imageFamilyCache struct {
@@ -78,7 +79,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	imageCache.mu.Lock()
 	defer imageCache.mu.Unlock()
 	if imageCache.exists == nil {
-		imageCache.exists = map[string][]*compute.Image{}
+		imageCache.exists = map[string][]*computeAlpha.Image{}
 	}
 	if _, ok := imageCache.exists[project]; !ok {
 		il, err := client.ListImages(project)
@@ -103,7 +104,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 // Image is used to create a GCE image.
 // Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
 type Image struct {
-	compute.Image
+	computeAlpha.Image
 	Resource
 
 	// GuestOsFeatures to set for the image.
@@ -171,7 +172,7 @@ func (i *Image) populateGuestOSFeatures(w *Workflow) {
 		return
 	}
 	for _, f := range i.GuestOsFeatures {
-		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: f})
+		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeAlpha.GuestOsFeature{Type: f})
 	}
 	return
 }
