@@ -59,22 +59,25 @@ echo "Import: Importing ${SOURCEPATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${Z
 
 # Resize the disk if its bigger than 10GB and attach it.
 if [[ ${SIZE_GB} -gt 10 ]]; then
-  gcloud -q compute disks resize ${DISKNAME} --size=${SIZE_GB}GB --zone=${ZONE}
-  if [ $? -ne 0 ]; then
-    echo "ImportFailed: Failed to resize ${DISKNAME} to ${SIZE_GB}GB in ${ZONE}" 2> /dev/null
+  if ! out=$(gcloud -q compute disks resize ${DISKNAME} --size=${SIZE_GB}GB --zone=${ZONE} 2>&1); then
+    echo "ImportFailed: Failed to resize ${DISKNAME} to ${SIZE_GB}GB in ${ZONE}, error: ${out}"
+    exit
   fi
 fi
+echo ${out}
 
-gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE}
-if [ $? -ne 0 ]; then
-  echo "ImportFailed: Failed to attach ${DISKNAME} to ${ME}" 2> /dev/null
+if ! out=$(gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE} 2>&1); then
+  echo "ImportFailed: Failed to attach ${DISKNAME} to ${ME}, error: ${out}"
+  exit
 fi
+echo ${out}
 
 # Write imported disk to GCE disk.
-qemu-img convert /gcs/${SOURCEPATH} -p -O raw -S 512b /dev/sdb
-if [ $? -ne 0 ]; then
-  echo "ImportFailed: Failed to convert source to raw." 2> /dev/null
+if ! out=$(qemu-img convert /gcs/${SOURCEPATH} -p -O raw -S 512b /dev/sdb 2>&1); then
+  echo "ImportFailed: Failed to convert source to raw, error: ${out}"
+  exit
 fi
+echo ${out}
 
 sync
 gcloud -q compute instances detach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE}
