@@ -162,9 +162,8 @@ func getWorkflowPaths() (string, string) {
 func getTranslateWorkflowPath(osID *string, customTranWorkflow *string) string {
 	if *customTranWorkflow != "" {
 		return *customTranWorkflow
-	} else {
-		return daisyutils.GetTranslateWorkflowPath(osID)
 	}
+	return daisyutils.GetTranslateWorkflowPath(osID)
 }
 
 func toWorkingDir(dir string) string {
