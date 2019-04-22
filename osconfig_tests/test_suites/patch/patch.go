@@ -6,7 +6,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/googleapis/google-api-go-client/iterator"
 	"github.com/kylelemons/godebug/pretty"
 	"log"
 	"path"
@@ -151,24 +150,19 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 			testCase.WriteFailure("Patching timed out")
 			return
 		case <-tick:
-
-			req := &osconfigpb.ListPatchJobInstanceDetailsRequest{
-				Parent: parent,
+			req := &osconfigpb.GetPatchJobRequest{
+				Name: job.Name,
 			}
-
-			patchJobIterator := osconfigClient.ListPatchJobInstanceDetails(ctx, req)
-			for {
-				item, err := patchJobIterator.Next()
-				if err == iterator.Done {
-					break
+			res, err := osconfigClient.GetPatchJob(ctx, req)
+			if err != nil {
+				testCase.WriteFailure("error while fetching patch job: \n%s\n", utils.GetStatusFromError(err))
+				return
+			}
+			if res.State == osconfigpb.PatchJob_SUCCEEDED {
+				if res.InstanceDetailsSummary.GetInstancesFinished() < 1 {
+					testCase.WriteFailure("no instance patched")
 				}
-				if item.Name == inst.Name {
-					if item.State == osconfigpb.Instance_SUCCEEDED {
-						return
-					}
-					testCase.WriteFailure("Instance patching failed, patch status: %s\n", item.State)
-					return
-				}
+				return
 			}
 		}
 	}
