@@ -102,7 +102,7 @@ func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
 		t.Errorf("Unexpected flags error: %v", err)
 	}
 	workflow, translate := getWorkflowPaths()
-	if  workflow != toWorkingDir(importFromImageWorkflow) || translate != "custom.wf" {
+	if workflow != toWorkingDir(importFromImageWorkflow) || translate != "custom.wf" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
 	}
 }
@@ -114,7 +114,7 @@ func TestFlagsUnexpectedCustomTranslateWorkflow(t *testing.T) {
 	defer testutils.SetStringP(&customTranWorkflow, "custom.wf")()
 	err := validateAndParseFlags()
 	expected := fmt.Errorf("-custom_translate_workflow can't be specified when -os is not specified")
-	if err != expected  && err.Error() != expected.Error() {
+	if err != expected && err.Error() != expected.Error() {
 		t.Errorf("%v != %v", err, expected)
 	}
 }
