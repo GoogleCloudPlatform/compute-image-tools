@@ -89,32 +89,30 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 }
 
 // StreamSerialOutput stores the serial output of an instance to GCS bucket
-func (i *Instance) StreamSerialOutput(ctx context.Context, storageClient *storage.Client, logsPath, bucket string, wg *sync.WaitGroup, port int64, interval time.Duration) {
-	defer wg.Done()
+func (i *Instance) StreamSerialOutput(ctx context.Context, storageClient *storage.Client, logsPath, bucket string, logwg *sync.WaitGroup, port int64, interval time.Duration) {
+	defer logwg.Done()
 
 	logsObj := path.Join(logsPath, fmt.Sprintf("%s-serial-port%d.log", i.Name, port))
 	logger.Infof("Streaming instance %q serial port %d output to https: //storage.cloud.google.com/%s/%s", i.Name, port, bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
-	var gcsErr bool
+	var gcsErr, isTerminalStatus bool
 	tick := time.Tick(interval)
 
-Loop:
-	for {
+
+	isTerminalStatus = false
+	for !isTerminalStatus {
 		select {
 		case <-tick:
 			resp, err := i.client.GetSerialPortOutput(path.Base(i.Project), path.Base(i.Zone), i.Name, port, start)
 			if err != nil {
 				// Instance is stopped or stopping.
-				status, sErr := i.client.InstanceStatus(path.Base(i.Project), path.Base(i.Zone), i.Name)
-				switch status {
-				case "TERMINATED", "STOPPED", "STOPPING":
-					if sErr == nil {
-						break Loop
-					}
+				status,_ := i.client.InstanceStatus(path.Base(i.Project), path.Base(i.Zone), i.Name)
+				if !isTerminal(status) {
+						logger.Errorf("Instance %q: error getting serial port: %v", i.Name, err)
 				}
-				logger.Errorf("Instance %q: error getting serial port: %v", i.Name, err)
-				break Loop
+				isTerminalStatus = true
+				continue
 			}
 			start = resp.Next
 			buf.WriteString(resp.Contents)
@@ -132,6 +130,10 @@ Loop:
 			}
 		}
 	}
+}
+
+func isTerminal(status string) bool {
+	return status == "TERMINATED" || status == "STOPPED" || status == "STOPPING"
 }
 
 // CreateInstance creates a compute instance.
