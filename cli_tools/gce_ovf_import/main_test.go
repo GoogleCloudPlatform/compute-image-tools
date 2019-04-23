@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"strconv"
 	"testing"
 
@@ -289,6 +290,96 @@ func TestSetUpWorkflowErrorLoadingDescriptor(t *testing.T) {
 	assert.Equal(t, "", oi.gcsPathToClean)
 }
 
+func TestSetUpWorkOSIdFromOVFDescriptor(t *testing.T) {
+	cliArgs := getAllCliArgs()
+	defer testutils.ClearStringFlag(cliArgs, "os", &osID)()
+	defer testutils.SetStringP(&ovfOvaGcsPath, "gs://ovfbucket/ovffolder/")()
+	defer testutils.BackupOsArgs()()
+	testutils.BuildOsArgs(cliArgs)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	w, err := setupMocksForOSIdTesting(mockCtrl, "rhel7_64Guest")
+
+	assert.Nil(t, err)
+	assert.NotNil(t, w)
+	assert.Equal(t, "../image_import/enterprise_linux/translate_rhel_7_licensed.wf.json", w.Vars["translate_workflow"].Value)
+}
+
+func TestSetUpWorkOSIdFromDescriptorInvalidAndOSFlagNotSpecified(t *testing.T) {
+	cliArgs := getAllCliArgs()
+	defer testutils.ClearStringFlag(cliArgs, "os", &osID)()
+	defer testutils.SetStringP(&ovfOvaGcsPath, "gs://ovfbucket/ovffolder/")()
+	defer testutils.BackupOsArgs()()
+	testutils.BuildOsArgs(cliArgs)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	w, err := setupMocksForOSIdTesting(mockCtrl, "no-OS-ID")
+
+	assert.Nil(t, w)
+	assert.NotNil(t, err)
+}
+
+func TestSetUpWorkOSIdFromDescriptorNonDeterministicAndOSFlagNotSpecified(t *testing.T) {
+	cliArgs := getAllCliArgs()
+	defer testutils.ClearStringFlag(cliArgs, "os", &osID)()
+	defer testutils.SetStringP(&ovfOvaGcsPath, "gs://ovfbucket/ovffolder/")()
+	defer testutils.BackupOsArgs()()
+	testutils.BuildOsArgs(cliArgs)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	w, err := setupMocksForOSIdTesting(mockCtrl, "ubuntu64Guest")
+
+	assert.Nil(t, w)
+	assert.NotNil(t, err)
+}
+
+func TestSetUpWorkOSFlagInvalid(t *testing.T) {
+	cliArgs := getAllCliArgs()
+	defer testutils.SetStringP(&osID, "not-OS-ID")()
+	defer testutils.SetStringP(&ovfOvaGcsPath, "gs://ovfbucket/ovffolder/")()
+	defer testutils.BackupOsArgs()()
+	testutils.BuildOsArgs(cliArgs)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	w, err := setupMocksForOSIdTesting(mockCtrl, "")
+
+	assert.Nil(t, w)
+	assert.NotNil(t, err)
+}
+
+func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string) (*daisy.Workflow, error) {
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+
+	descriptor := createOVFDescriptor()
+	if osType != "" {
+		descriptor.VirtualSystem.OperatingSystem = []ovf.OperatingSystemSection{{OSType: &osType}}
+	}
+	mockOvfDescriptorLoader.EXPECT().Load("gs://ovfbucket/ovffolder/").Return(
+		descriptor, nil)
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid("aProject", "us-central1-c").Return(nil)
+
+	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../test_data/test_import_ovf.wf.json",
+		storageClient: mockStorageClient, buildID: "build123",
+		ovfDescriptorLoader: mockOvfDescriptorLoader, logger: logging.NewLogger("test"),
+		zoneValidator: mockZoneValidator}
+	return oi.setUpImportWorkflow()
+}
+
 func TestCleanUp(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -327,20 +418,6 @@ func TestFlagsClientIdNotProvided(t *testing.T) {
 	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
 	defer testutils.ClearStringFlag(cliArgs, clientIDFlagKey, &clientID)()
-	buildOsArgsAndAssertErrorOnValidate(cliArgs, t)
-}
-
-func TestFlagsOsIDNotProvided(t *testing.T) {
-	defer testutils.BackupOsArgs()()
-	cliArgs := getAllCliArgs()
-	defer testutils.ClearStringFlag(cliArgs, "os", &osID)()
-	buildOsArgsAndAssertErrorOnValidate(cliArgs, t)
-}
-
-func TestFlagsOsIDInvalid(t *testing.T) {
-	defer testutils.BackupOsArgs()()
-	cliArgs := getAllCliArgs()
-	cliArgs["os"] = "INVALID_OS"
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, t)
 }
 

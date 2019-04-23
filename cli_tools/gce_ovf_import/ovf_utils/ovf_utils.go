@@ -36,6 +36,36 @@ const (
 	usbController          uint16 = 23
 )
 
+//TODO: add Windows 7 and 10 once BYOL is supported
+//Full list: https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+
+// Mapping OVF osType attribute to importer OS ID
+var ovfOSTypeToOSID = map[string]string{
+	"debian8Guest":          "debian-8",
+	"debian8_64Guest":       "debian-8",
+	"debian9Guest":          "debian-9",
+	"debian9_64Guest":       "debian-9",
+	"centos6Guest":          "centos-6",
+	"centos6_64Guest":       "centos-6",
+	"centos7Guest":          "centos-7",
+	"centos7_64Guest":       "centos-7",
+	"rhel6Guest":            "rhel-6",
+	"rhel6_64Guest":         "rhel-6",
+	"rhel7Guest":            "rhel-7",
+	"rhel7_64Guest":         "rhel-7",
+	"windows7Server64Guest": "windows-2008r2",
+}
+
+// Mapping potentially supported OVF osType values to possible importer OS ID values
+// Some might have only one option but we can't select it automatically as we cannot guarantee
+// correctness.
+var noMappingOSTypes = map[string][]string{
+	"ubuntuGuest":           {"ubuntu-1404"},
+	"ubuntu64Guest":         {"ubuntu-1404", "ubuntu-1604"},
+	"windows8Server64Guest": {"windows-2012", "windows-2012r2"},
+	"windows9Server64Guest": {"windows-2016"}, //TODO: this will also be Windows 2019 unless VMWare introduces a separate key for it.
+}
+
 // DiskInfo holds information about virtual disks in an OVF package
 type DiskInfo struct {
 	FilePath string
@@ -197,6 +227,34 @@ func GetOVFDescriptorAndDiskPaths(ovfDescriptorLoader domain.OvfDescriptorLoader
 		diskInfos[i].FilePath = ovfGcsPath + d.FilePath
 	}
 	return ovfDescriptor, diskInfos, nil
+}
+
+// GetOS returns OS ID from OVF descriptor, or error if OS ID could not be retrieved.
+func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
+
+	if ovfDescriptor.VirtualSystem == nil {
+		return "", fmt.Errorf("VirtualSystem must be defined to retrieve OS info")
+	}
+	if ovfDescriptor.VirtualSystem.OperatingSystem == nil ||
+		len(ovfDescriptor.VirtualSystem.OperatingSystem) == 0 {
+		return "", fmt.Errorf("OperatingSystemSection must be defined to retrieve OS info")
+	}
+	var osID string
+	var validOSType bool
+	osType := *ovfDescriptor.VirtualSystem.OperatingSystem[0].OSType
+	if osID, validOSType = ovfOSTypeToOSID[osType]; !validOSType {
+		if osIDCandidates, hasOSIDCandidates := noMappingOSTypes[osType]; hasOSIDCandidates {
+			return "",
+				fmt.Errorf(
+					"cannot determine OS from osType attribute value `%v` found in OVF descriptor. Use --os flag to specify OS for this VM. Potential valid values for given osType attribute are: %v",
+					osType,
+					strings.Join(osIDCandidates, ", "),
+				)
+		}
+		return "", fmt.Errorf("osType attribute value `%v` found in OVF descriptor cannot be mapped to an OS supported by Google Compute Engine. Use --os flag to specify OS for this VM", osType)
+	}
+
+	return osID, nil
 }
 
 // Returns capacity in GB taking into account allocation units which should be in `bytes * 2^x`
