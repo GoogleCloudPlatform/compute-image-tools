@@ -101,16 +101,16 @@ func validateAndParseFlags() error {
 		return err
 	}
 
-	if !*dataDisk && *osID == "" {
-		return fmt.Errorf("-data_disk or -os has to be specified")
+	if !*dataDisk && *osID == "" && *customTranWorkflow == "" {
+		return fmt.Errorf("-data_disk, or -os, or -custom_translate_workflow has to be specified")
 	}
 
-	if *dataDisk && *osID != "" {
-		return fmt.Errorf("either -data_disk or -os has to be specified, but not both")
+	if *dataDisk && (*osID != "" || *customTranWorkflow != "") {
+		return fmt.Errorf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
 	}
 
-	if *osID == "" && *customTranWorkflow != "" {
-		return fmt.Errorf("-custom_translate_workflow can't be specified when -os is not specified")
+	if *osID != "" && *customTranWorkflow != "" {
+		return fmt.Errorf("-os and -custom_translate_workflow can't be both specified")
 	}
 
 	if *sourceFile == "" && *sourceImage == "" {
@@ -147,19 +147,15 @@ func validateAndParseFlags() error {
 //Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath(
-			osID,
-			customTranWorkflow)
+		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath()
 	}
 	if *dataDisk {
 		return toWorkingDir(importWorkflow), ""
 	}
-	return toWorkingDir(importAndTranslateWorkflow), getTranslateWorkflowPath(
-		osID,
-		customTranWorkflow)
+	return toWorkingDir(importAndTranslateWorkflow), getTranslateWorkflowPath()
 }
 
-func getTranslateWorkflowPath(osID *string, customTranWorkflow *string) string {
+func getTranslateWorkflowPath() string {
 	if *customTranWorkflow != "" {
 		return *customTranWorkflow
 	}
