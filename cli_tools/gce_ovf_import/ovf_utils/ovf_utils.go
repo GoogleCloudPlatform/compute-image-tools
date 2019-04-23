@@ -229,7 +229,7 @@ func GetOVFDescriptorAndDiskPaths(ovfDescriptorLoader domain.OvfDescriptorLoader
 	return ovfDescriptor, diskInfos, nil
 }
 
-// GetOS returns OS ID from OVF descriptor, or error if OS ID could not be retrieved.
+// GetOSId returns OS ID from OVF descriptor, or error if OS ID could not be retrieved.
 func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 
 	if ovfDescriptor.VirtualSystem == nil {
