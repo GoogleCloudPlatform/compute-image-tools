@@ -20,7 +20,6 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
 	"io/ioutil"
 	"log"
 	"os"
@@ -33,6 +32,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
 )
 
 var (

@@ -3,10 +3,6 @@ package patch
 import (
 	"context"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/kylelemons/godebug/pretty"
 	"log"
 	"path"
 	"regexp"
@@ -17,9 +13,12 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	api "google.golang.org/api/compute/v1"
-
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/kylelemons/godebug/pretty"
+	api "google.golang.org/api/compute/v1"
 )
 
 const (

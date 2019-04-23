@@ -17,11 +17,11 @@ package utils
 
 import (
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"math/rand"
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	api "google.golang.org/api/compute/v1"
 	"google.golang.org/grpc/status"
 )
