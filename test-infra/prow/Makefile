@@ -62,6 +62,9 @@ plank-deployment: get-cluster-credentials
 tide-deployment: get-cluster-credentials
 	kubectl apply -f cluster/tide_deployment.yaml
 
-.PHONY: hook-deployment hook-service sinker-deployment deck-deployment deck-service horologium-deployment plank-deployment tide-deployment
+tide-service: get-cluster-credentials
+	kubectl apply -f cluster/tide_service.yaml
 
-update-all: update-config update-plugins hook-deployment hook-service sinker-deployment deck-deployment deck-service horologium-deployment plank-deployment tide-deployment
+.PHONY: hook-deployment hook-service sinker-deployment deck-deployment deck-service horologium-deployment plank-deployment tide-deployment tide-service
+
+update-all: update-config update-plugins hook-deployment hook-service sinker-deployment deck-deployment deck-service horologium-deployment plank-deployment tide-deployment tide-service
