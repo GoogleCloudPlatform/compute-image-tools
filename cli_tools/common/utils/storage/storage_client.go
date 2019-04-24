@@ -32,7 +32,7 @@ import (
 
 var (
 	bucket = `([a-z0-9][-_.a-z0-9]*)`
-	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/?$`, bucket))
+	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.*)$`, bucket))
 	gsRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.+)$`, bucket))
 )
 
