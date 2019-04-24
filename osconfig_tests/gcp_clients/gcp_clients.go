@@ -17,6 +17,7 @@ package gcpclients
 import (
 	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/logger"
 	"sync"
 
 	"cloud.google.com/go/storage"
@@ -32,6 +33,7 @@ var (
 	populateClientOnce sync.Once
 )
 
+// PopulateClients creates singleton clients for various services
 func PopulateClients(ctx context.Context) {
 	populateClientOnce.Do(func() {
 		createOsConfigClient(ctx)
@@ -40,27 +42,23 @@ func PopulateClients(ctx context.Context) {
 }
 
 func createStorageClient(ctx context.Context) {
-	fmt.Printf("creating instance")
+	logger.Debugf("creating storage client\n")
 	storageClient, _ = storage.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
-	fmt.Printf("accessing storage client: %s\n", func(client *storage.Client) string {
-		if client == nil {
-			return "false"
-		} else {
-			return "true"
-		}
-	}(storageClient))
+	if storageClient != nil {
+		logger.Debugf("Created storage client\n")
+	} else {
+		logger.Debugf("No storage client\n")
+	}
 }
 
 func createOsConfigClient(ctx context.Context) {
-	fmt.Printf("creating instance")
+	logger.Debugf("creating osconfig client\n")
 	osconfigClient, _ = osconfig.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()), option.WithEndpoint(config.SvcEndpoint()))
-	fmt.Printf("accessing storage client: %s\n", func(client *osconfig.Client) string {
-		if client == nil {
-			return "false"
-		} else {
-			return "true"
-		}
-	}(osconfigClient))
+	if osconfigClient != nil {
+		logger.Debugf("Created osconfig client\n")
+	} else {
+		logger.Debugf("No osconfig client\n")
+	}
 }
 
 // GetStorageClient returns a singleton GCP client for osconfig tests
@@ -73,6 +71,7 @@ func GetStorageClient(ctx context.Context) (*storage.Client, error) {
 
 // GetOsConfigClient returns a singleton GCP client for osconfig tests
 func GetOsConfigClient(ctx context.Context) (*osconfig.Client, error) {
+	PopulateClients(ctx)
 	if osconfigClient == nil {
 		return nil, fmt.Errorf("osconfig client was not initialized")
 	}

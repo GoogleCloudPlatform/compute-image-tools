@@ -35,6 +35,7 @@ type config struct {
 	logPushInterval                             time.Duration
 }
 
+// SetConfig sets the configurations used by test runner
 func SetConfig() {
 	testConfig = &config{
 		svcendpoint:     prodEndpoint,

@@ -97,11 +97,9 @@ func (i *Instance) StreamSerialOutput(ctx context.Context, storageClient *storag
 	logger.Infof("Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", i.Name, port, bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
-	var isTerminalStatus bool
 	tick := time.Tick(interval)
 
-	isTerminalStatus = false
-	for !isTerminalStatus {
+	for {
 		select {
 		case <-tick:
 			resp, err := i.client.GetSerialPortOutput(path.Base(i.Project), path.Base(i.Zone), i.Name, port, start)
