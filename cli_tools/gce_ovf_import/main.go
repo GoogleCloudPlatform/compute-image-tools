@@ -122,11 +122,6 @@ func validateAndParseFlags() error {
 		return fmt.Errorf("%v should be a path to OVF or OVA package in GCS", ovfGcsPathFlagKey)
 	}
 
-	//TODO: extract OS info from OVF making `-os` flag optional
-	if err := daisyutils.ValidateOS(*osID); err != nil {
-		return err
-	}
-
 	if *labels != "" {
 		var err error
 		userLabels, err = parseutils.ParseKeyValues(*labels)
@@ -450,7 +445,22 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		return nil, err
 	}
 	oi.diskInfos = &diskInfos
-	translateWorkflowPath := "../image_import/" + daisyutils.GetTranslateWorkflowPath(osID)
+
+	var osIDValue string
+	if *osID == "" {
+		if osIDValue, err = ovfutils.GetOSId(ovfDescriptor); err != nil {
+			return nil, err
+		}
+		oi.logger.Log(
+			fmt.Sprintf("Found valid osType in OVF descriptor, importing VM with `%v` as OS.",
+				osIDValue))
+	} else if err = daisyutils.ValidateOS(*osID); err != nil {
+		return nil, err
+	} else {
+		osIDValue = *osID
+	}
+
+	translateWorkflowPath := "../image_import/" + daisyutils.GetTranslateWorkflowPath(&osIDValue)
 	machineTypeStr, err := oi.getMachineType(ovfDescriptor, project, zone)
 	if err != nil {
 		return nil, err

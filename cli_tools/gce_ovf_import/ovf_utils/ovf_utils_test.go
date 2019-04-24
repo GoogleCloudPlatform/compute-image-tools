@@ -563,6 +563,58 @@ func TestGetOVFDescriptorAndDiskPathsErrorWhenNoReferences(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestGetOSIdSingleMapping(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOSType("windows7Server64Guest"))
+	assert.Equal(t, "windows-2008r2", osID)
+	assert.Nil(t, err)
+}
+
+func TestGetOSIdMultiMapping(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOSType("rhel6_64Guest"))
+	assert.Equal(t, "rhel-6", osID)
+	assert.Nil(t, err)
+}
+
+func TestGetOSIdInvalidOSType(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOSType("not-an-OS"))
+	assert.Equal(t, "", osID)
+	assert.NotNil(t, err)
+	assert.Equal(t,
+		"osType attribute value `not-an-OS` found in OVF descriptor cannot be mapped to an OS supported by Google Compute Engine. Use --os flag to specify OS for this VM",
+		err.Error())
+
+}
+
+func TestGetOSIdNonDeterministicSingleOption(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOSType("ubuntuGuest"))
+	assert.Equal(t, "", osID)
+	assert.NotNil(t, err)
+	assert.Equal(t,
+		"cannot determine OS from osType attribute value `ubuntuGuest` found in OVF descriptor. Use --os flag to specify OS for this VM. Potential valid values for given osType attribute are: ubuntu-1404",
+		err.Error())
+}
+
+func TestGetOSIdNonDeterministicMultiOption(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOSType("windows8Server64Guest"))
+	assert.Equal(t, "", osID)
+	assert.NotNil(t, err)
+	assert.Equal(t,
+		"cannot determine OS from osType attribute value `windows8Server64Guest` found in OVF descriptor. Use --os flag to specify OS for this VM. Potential valid values for given osType attribute are: windows-2012, windows-2012r2",
+		err.Error())
+}
+
+func createOVFDescriptorWithOSType(osType string) *ovf.Envelope {
+	return &ovf.Envelope{
+		VirtualSystem: &ovf.VirtualSystem{
+			OperatingSystem: []ovf.OperatingSystemSection{
+				{
+					OSType: &osType,
+				},
+			},
+		},
+	}
+}
+
 func createVirtualHardwareSectionWithMemoryItem(quantity uint, allocationUnit string) *ovf.VirtualHardwareSection {
 	memoryItem := createMemoryItem("1", quantity)
 	memoryItem.AllocationUnits = &allocationUnit
