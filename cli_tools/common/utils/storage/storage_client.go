@@ -31,6 +31,7 @@ import (
 )
 
 var (
+	bucketRegex = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/?$`)
 	gsRegex = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
 )
 
@@ -184,6 +185,16 @@ func SplitGCSPath(p string) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
+}
+
+// SplitGCSPath splits GCS path to get bucket name
+func SplitBucketGCSPath(p string) (string, error) {
+	matches := bucketRegex.FindStringSubmatch(p)
+	if matches != nil {
+		return matches[1], nil
+	}
+
+	return "", fmt.Errorf("%q is not a valid GCS bucket", p)
 }
 
 // HTTPClient implements domain.HTTPClientInterface which abstracts HTTP functionality used by
