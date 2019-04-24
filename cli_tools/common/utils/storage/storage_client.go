@@ -31,9 +31,9 @@ import (
 )
 
 var (
-	bucket = `([a-z0-9][-_.a-z0-9]*)`
+	bucket      = `([a-z0-9][-_.a-z0-9]*)`
 	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.*)$`, bucket))
-	gsRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.+)$`, bucket))
+	gsRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.+)$`, bucket))
 )
 
 // StorageClient implements domain.StorageClientInterface. It implements main Storage functions
