@@ -24,49 +24,37 @@ var (
 	prodEndpoint           = "osconfig.googleapis.com:443"
 	oauthDefault           = ""
 	bucketDefault          = "osconfig-agent-end2end-tests"
-	logsPathDefault        = "logs"
+	logsPathFormatDefault       = "logs-%s"
 	logPushIntervalDefault = 3 * time.Second
 
-	testConfig *config
+	logsPath string
 )
 
-type config struct {
-	svcendpoint, oauthPath, logBucket, logsPath string
-	logPushInterval                             time.Duration
-}
-
-// SetConfig sets the configurations used by test runner
-func SetConfig() {
-	testConfig = &config{
-		svcendpoint:     prodEndpoint,
-		oauthPath:       oauthDefault,
-		logBucket:       bucketDefault,
-		logsPath:        fmt.Sprintf("%s-%s", logsPathDefault, time.Now().Format("2006-01-02-15:04:05")),
-		logPushInterval: logPushIntervalDefault,
-	}
+func init() {
+	logsPath = fmt.Sprintf(logsPathFormatDefault, time.Now().Format("2006-01-02-15:04:05"))
 }
 
 // SvcEndpoint returns the svcEndpoint
 func SvcEndpoint() string {
-	return testConfig.svcendpoint
+	return prodEndpoint
 }
 
 // OauthPath returns the oauthPath file path
 func OauthPath() string {
-	return testConfig.oauthPath
+	return oauthDefault
 }
 
 // LogBucket returns the oauthPath file path
 func LogBucket() string {
-	return testConfig.logBucket
+	return bucketDefault
 }
 
 // LogsPath returns the oauthPath file path
 func LogsPath() string {
-	return testConfig.logsPath
+	return logsPath
 }
 
 // LogPushInterval returns the interval at which the serial console logs are written to GCS
 func LogPushInterval() time.Duration {
-	return testConfig.logPushInterval
+	return logPushIntervalDefault
 }

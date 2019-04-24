@@ -28,7 +28,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
@@ -54,7 +53,6 @@ func main() {
 	flag.Parse()
 	ctx := context.Background()
 
-	config.SetConfig()
 	gcpclients.PopulateClients(ctx)
 
 	if len(strings.TrimSpace(*testProjectID)) == 0 {
