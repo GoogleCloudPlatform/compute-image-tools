@@ -31,9 +31,9 @@ import (
 )
 
 var (
-	bucket      = `([a-z0-9][-_.a-z0-9]*)`
-	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.*)$`, bucket))
-	gsRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.+)$`, bucket))
+	bucketNameRegex = `([a-z0-9][-_.a-z0-9]*)`
+	bucketPathRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.*)$`, bucketNameRegex))
+	gsPathRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.+)$`, bucketNameRegex))
 )
 
 // StorageClient implements domain.StorageClientInterface. It implements main Storage functions
@@ -180,7 +180,7 @@ func (sc *StorageClient) Close() error {
 
 // SplitGCSPath splits GCS path into bucket and object path portions
 func SplitGCSPath(p string) (string, string, error) {
-	matches := gsRegex.FindStringSubmatch(p)
+	matches := gsPathRegex.FindStringSubmatch(p)
 	if matches != nil {
 		return matches[1], matches[2], nil
 	}
@@ -190,7 +190,7 @@ func SplitGCSPath(p string) (string, string, error) {
 
 // GetBucketNameFromGCSPath splits GCS path to get bucket name
 func GetBucketNameFromGCSPath(p string) (string, error) {
-	matches := bucketRegex.FindStringSubmatch(p)
+	matches := bucketPathRegex.FindStringSubmatch(p)
 	if matches != nil {
 		return matches[1], nil
 	}
