@@ -54,7 +54,7 @@ func ValidateOS(osID string) error {
 		return fmt.Errorf("osID is empty")
 	}
 	if _, osValid := osChoices[osID]; !osValid {
-		return fmt.Errorf("os %v is invalid. Allowed values: %v", osID, reflect.ValueOf(osChoices).MapKeys())
+		return fmt.Errorf("os `%v` is invalid. Allowed values: %v", osID, reflect.ValueOf(osChoices).MapKeys())
 	}
 	return nil
 }
