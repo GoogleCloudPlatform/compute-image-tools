@@ -187,7 +187,7 @@ func SplitGCSPath(p string) (string, string, error) {
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
-// SplitGCSPath splits GCS path to get bucket name
+// SplitBucketGCSPath splits GCS path to get bucket name
 func SplitBucketGCSPath(p string) (string, error) {
 	matches := bucketRegex.FindStringSubmatch(p)
 	if matches != nil {
