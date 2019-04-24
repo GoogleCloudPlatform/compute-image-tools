@@ -189,7 +189,7 @@ func populateMissingParameters(mgce commondomain.MetadataGCEInterface,
 		newScratchBucketGcsPath := fmt.Sprintf("gs://%v/", scratchBucketName)
 		scratchBucketGcsPath = &newScratchBucketGcsPath
 	} else {
-		scratchBucketName, err := storageutils.SplitBucketGCSPath(*scratchBucketGcsPath)
+		scratchBucketName, err := storageutils.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
 		if err != nil {
 			return fmt.Errorf("invalid scratch bucket GCS path %v", *scratchBucketGcsPath)
 		}

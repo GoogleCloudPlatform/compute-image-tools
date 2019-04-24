@@ -31,8 +31,9 @@ import (
 )
 
 var (
-	bucketRegex = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/?$`)
-	gsRegex = regexp.MustCompile(`^gs://([a-z0-9][-_.a-z0-9]*)/(.+)$`)
+	bucket = `([a-z0-9][-_.a-z0-9]*)`
+	bucketRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/?$`, bucket))
+	gsRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.+)$`, bucket))
 )
 
 // StorageClient implements domain.StorageClientInterface. It implements main Storage functions
@@ -187,14 +188,14 @@ func SplitGCSPath(p string) (string, string, error) {
 	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
 }
 
-// SplitBucketGCSPath splits GCS path to get bucket name
-func SplitBucketGCSPath(p string) (string, error) {
+// GetBucketNameFromGCSPath splits GCS path to get bucket name
+func GetBucketNameFromGCSPath(p string) (string, error) {
 	matches := bucketRegex.FindStringSubmatch(p)
 	if matches != nil {
 		return matches[1], nil
 	}
 
-	return "", fmt.Errorf("%q is not a valid GCS bucket", p)
+	return "", fmt.Errorf("%q is not a valid GCS bucket path", p)
 }
 
 // HTTPClient implements domain.HTTPClientInterface which abstracts HTTP functionality used by
