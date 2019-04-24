@@ -28,6 +28,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
@@ -50,6 +53,9 @@ var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.Test
 func main() {
 	flag.Parse()
 	ctx := context.Background()
+
+	config.SetConfig()
+	gcpclients.PopulateClients(ctx)
 
 	if len(strings.TrimSpace(*testProjectID)) == 0 {
 		fmt.Println("-test_project_id is invalid")
