@@ -2,6 +2,8 @@ tide:
   merge_method:
     GoogleCloudPlatform/compute-image-tools: squash
 
+  target_url: http://35.244.198.104/tide
+
   queries:
   - repos:
     - GoogleCloudPlatform/compute-image-tools
@@ -12,7 +14,6 @@ tide:
     - do-not-merge
     - do-not-merge/hold
     - do-not-merge/work-in-progress
-    - needs-ok-to-test
     - needs-rebase
     includedBranches:
     - tide-test
