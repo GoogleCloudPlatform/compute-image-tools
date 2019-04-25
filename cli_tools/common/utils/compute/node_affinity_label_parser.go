@@ -20,11 +20,11 @@ import (
 	"strings"
 )
 
-// ParseNodeAffinities parses sole tenant affinities
+// ParseNodeAffinityLabels parses sole tenant affinities
 // labels - array of strings with node affinity label info. Each label is of the following format:
 // <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT.
 // For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'
-func ParseNodeAffinities(labels []string) ([]*compute.SchedulingNodeAffinity, error) {
+func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity, error) {
 	var nodeAffinities []*compute.SchedulingNodeAffinity
 	nodeAffinities = []*compute.SchedulingNodeAffinity{}
 

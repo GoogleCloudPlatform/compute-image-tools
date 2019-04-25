@@ -141,7 +141,7 @@ func validateAndParseFlags() error {
 
 	if nodeAffinityLabelsFlag != nil {
 		var err error
-		nodeAffinities, err = computeutils.ParseNodeAffinities(nodeAffinityLabelsFlag)
+		nodeAffinities, err = computeutils.ParseNodeAffinityLabels(nodeAffinityLabelsFlag)
 		if err != nil {
 			return err
 		}
@@ -478,6 +478,9 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	oi.logger.Log(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
+
 	varMap := buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr, region)
 
 	workflow, err := daisyutils.ParseWorkflow(oi.mgce, oi.workflowPath, varMap, project,
