@@ -16,8 +16,9 @@ package computeutils
 
 import (
 	"fmt"
-	"google.golang.org/api/compute/v1"
 	"strings"
+
+	"google.golang.org/api/compute/v1"
 )
 
 // ParseNodeAffinityLabels parses sole tenant affinities
