@@ -26,7 +26,6 @@ import (
 // For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'
 func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity, error) {
 	var nodeAffinities []*compute.SchedulingNodeAffinity
-	nodeAffinities = []*compute.SchedulingNodeAffinity{}
 
 	if labels == nil || len(labels) == 0 {
 		return nodeAffinities, nil
