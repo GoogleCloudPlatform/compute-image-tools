@@ -24,10 +24,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
@@ -136,7 +136,7 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 
 	// create patch job
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
-	osconfigClient, err := osconfigserver.GetOsConfigClient(ctx)
+	osconfigClient, err := gcpclients.GetOsConfigClient(ctx)
 
 	assertTimeout := testSetup.assertTimeout
 

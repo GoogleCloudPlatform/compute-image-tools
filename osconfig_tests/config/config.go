@@ -24,15 +24,9 @@ var (
 	prodEndpoint           = "osconfig.googleapis.com:443"
 	oauthDefault           = ""
 	bucketDefault          = "osconfig-agent-end2end-tests"
-	logsPathFormatDefault  = "logs-%s"
 	logPushIntervalDefault = 3 * time.Second
-
-	logsPath string
+	logsPath               = fmt.Sprintf("logs-%s", time.Now().Format("2006-01-02-15:04:05"))
 )
-
-func init() {
-	logsPath = fmt.Sprintf(logsPathFormatDefault, time.Now().Format("2006-01-02-15:04:05"))
-}
 
 // SvcEndpoint returns the svcEndpoint
 func SvcEndpoint() string {
