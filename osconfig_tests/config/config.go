@@ -24,7 +24,7 @@ var (
 	prodEndpoint           = "osconfig.googleapis.com:443"
 	oauthDefault           = ""
 	bucketDefault          = "osconfig-agent-end2end-tests"
-	logsPathFormatDefault       = "logs-%s"
+	logsPathFormatDefault  = "logs-%s"
 	logPushIntervalDefault = 3 * time.Second
 
 	logsPath string
