@@ -52,7 +52,8 @@
       "CreateImages": [{
         "Name": "${image_name}-untranslated",
         "Description": "Imported (untranslated) image from ${source_disk_file}",
-        "SourceDisk": "${translation-disk-name}"
+        "SourceDisk": "${translation-disk-name}",
+        "NoCleanup": true
       }]
     },
     "translate": {
