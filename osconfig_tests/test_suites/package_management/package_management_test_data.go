@@ -115,7 +115,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
 				vs = fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "centos":
@@ -125,7 +125,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 				vs = fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "rhel":
@@ -135,7 +135,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
 				vs = fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "windows":
@@ -145,7 +145,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(pkgs, nil, nil), nil, nil)
 				vs = fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		default:
@@ -174,7 +174,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
 				vs = fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageRemovalStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "centos":
@@ -184,7 +184,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 				vs = fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageRemovalStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "rhel":
@@ -194,7 +194,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
 				vs = fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageRemovalStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "windows":
@@ -204,7 +204,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(nil, removePkg, nil), nil, nil)
 				vs = fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageRemovalStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		default:
@@ -234,7 +234,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
 				vs = fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "centos":
@@ -245,7 +245,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, removePkg, nil), nil, nil, nil)
 				vs = fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "rhel":
@@ -256,7 +256,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, removePkg, nil), nil, nil, nil)
 				vs = fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "windows":
@@ -267,7 +267,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(installPkg, removePkg, nil), nil, nil)
 				vs = fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallRemovalStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 
@@ -298,7 +298,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(installPkg, nil, repos), nil, nil, nil, nil)
 				vs = fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallFromNewRepoTestStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallFromNewRepoTestStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout,
 					vf)
 			}
@@ -310,7 +310,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
 				vs = fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallFromNewRepoTestStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallFromNewRepoTestStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "rhel":
@@ -321,7 +321,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
 				vs = fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallFromNewRepoTestStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallFromNewRepoTestStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		case "windows":
@@ -332,7 +332,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(installPkg, nil, repos), nil, nil)
 				vs = fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallFromNewRepoTestStartupScript(tuple.pkgManager, packageName)
+				ss := getPackageInstallFromNewRepoTestStartupScript(path.Base(image), tuple.pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		default:
