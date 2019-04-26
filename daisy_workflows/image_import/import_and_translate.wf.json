@@ -64,8 +64,7 @@
     },
     "cleanup": {
       "DeleteResources": {
-        "Disks": ["${translation-disk-name}"],
-        "Images": ["${image_name}-untranslated"]
+        "Disks": ["${translation-disk-name}"]
       }
     }
   },
