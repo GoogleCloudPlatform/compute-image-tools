@@ -89,3 +89,11 @@ func CreateInstance(client daisyCompute.Client, project, zone string, i *api.Ins
 	}
 	return &Instance{Instance: i, client: client, Project: project, Zone: zone}, nil
 }
+
+// BuildInstanceMetadataItem create an metadata item
+func BuildInstanceMetadataItem(key, value string) *api.MetadataItems {
+	return &api.MetadataItems{
+		Key:   key,
+		Value: func() *string { v := value; return &v }(),
+	}
+}

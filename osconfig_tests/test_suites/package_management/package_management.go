@@ -145,52 +145,10 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	//TODO: move instance definition to a common method
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "os-package-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-				&api.MetadataItems{
-					Key:   "os-debug-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-				},
-			},
-		},
-		ServiceAccounts: []*api.ServiceAccount{
-			&api.ServiceAccount{
-				Email:  testProjectConfig.ServiceAccountEmail,
-				Scopes: testProjectConfig.ServiceAccountScopes,
-			},
-		},
-	}
-
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
 		return
@@ -235,47 +193,10 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "os-package-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-				},
-			},
-		},
-		ServiceAccounts: []*api.ServiceAccount{
-			&api.ServiceAccount{
-				Email:  testProjectConfig.ServiceAccountEmail,
-				Scopes: testProjectConfig.ServiceAccountScopes,
-			},
-		},
-	}
-
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -319,51 +240,10 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "os-package-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-				&api.MetadataItems{
-					Key:   "os-debug-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-				},
-			},
-		},
-		ServiceAccounts: []*api.ServiceAccount{
-			&api.ServiceAccount{
-				Email:  testProjectConfig.ServiceAccountEmail,
-				Scopes: testProjectConfig.ServiceAccountScopes,
-			},
-		},
-	}
-
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -407,51 +287,10 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "os-package-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-				&api.MetadataItems{
-					Key:   "os-debug-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-				},
-			},
-		},
-		ServiceAccounts: []*api.ServiceAccount{
-			&api.ServiceAccount{
-				Email:  testProjectConfig.ServiceAccountEmail,
-				Scopes: testProjectConfig.ServiceAccountScopes,
-			},
-		},
-	}
-
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return

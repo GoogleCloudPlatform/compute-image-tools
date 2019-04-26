@@ -32,7 +32,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
@@ -258,43 +258,12 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	testSetup.name = fmt.Sprintf("inventory-test-%s-%s", path.Base(testSetup.image), utils.RandString(5))
 
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-2", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "enable-guest-attributes",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-				&api.MetadataItems{
-					Key:   "os-inventory-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-				},
-			},
-		},
-	}
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("enable-guest-attributes", "true"))
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-inventory-enabled", "true"))
+
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", err)
 		return nil, false
