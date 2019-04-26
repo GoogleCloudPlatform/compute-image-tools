@@ -48,14 +48,6 @@
         }
       }
     },
-    "take-image-of-untranslated-disk": {
-      "CreateImages": [{
-        "Name": "${image_name}-untranslated",
-        "Description": "Imported (untranslated) image from ${source_disk_file}",
-        "SourceDisk": "${translation-disk-name}",
-        "NoCleanup": true
-      }]
-    },
     "translate": {
       "IncludeWorkflow": {
         "Path": "${translate_workflow}",
@@ -78,8 +70,7 @@
     }
   },
   "Dependencies": {
-    "take-image-of-untranslated-disk": ["import"],
-    "translate": ["take-image-of-untranslated-disk"],
+    "translate": ["import"],
     "cleanup": ["translate"]
   }
 }
