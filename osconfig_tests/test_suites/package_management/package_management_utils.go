@@ -25,9 +25,9 @@ import (
 )
 
 var (
-	yumImageToStartupScriptMap = map[string]string {
-		"rhel-6": utils.InstallOSConfigYumEL6,
-		"rhel-7": utils.InstallOSConfigYumEL7,
+	yumStartupScripts = map[string]string{
+		"rhel-6":   utils.InstallOSConfigYumEL6,
+		"rhel-7":   utils.InstallOSConfigYumEL7,
 		"centos-6": utils.InstallOSConfigYumEL6,
 		"centos-7": utils.InstallOSConfigYumEL7,
 	}
@@ -65,7 +65,7 @@ func getPackageInstallStartupScript(image, pkgManager, packageName string) *api.
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, yumImageToStartupScriptMap[image], packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
@@ -149,7 +149,7 @@ func getPackageRemovalStartupScript(image, pkgManager, packageName string) *api.
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, yumImageToStartupScriptMap[image], packageName, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
@@ -222,7 +222,7 @@ func getPackageInstallRemovalStartupScript(image, pkgManager, packageName string
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, yumImageToStartupScriptMap[image], packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
@@ -288,7 +288,7 @@ func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageNam
 			"fi\n" +
 			"done\n" +
 			"echo \"%s\"\n"
-		ss = fmt.Sprintf(ss, yumImageToStartupScriptMap[image], packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
