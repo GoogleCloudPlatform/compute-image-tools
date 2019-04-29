@@ -513,5 +513,6 @@ func getAllCliArgs() map[string]interface{} {
 		"kms_location":              "aKmsLocation",
 		"kms_project":               "aKmsProject",
 		"labels":                    "userkey1=uservalue1,userkey2=uservalue2",
+		"storage_location":          "Location for the imported image which can be any GCS location. If the location parameter is not included, images are created in the multi-region associated with the source disk, image, snapshot or GCS bucket.",
 	}
 }

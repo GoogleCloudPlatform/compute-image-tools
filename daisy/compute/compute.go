@@ -159,10 +159,10 @@ type clientImpl interface {
 }
 
 type client struct {
-	i       clientImpl
-	hc      *http.Client
-	raw     *compute.Service
-	rawBeta *computeBeta.Service
+	i        clientImpl
+	hc       *http.Client
+	raw      *compute.Service
+	rawBeta  *computeBeta.Service
 	rawAlpha *computeAlpha.Service
 }
 

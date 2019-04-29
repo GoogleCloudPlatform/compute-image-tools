@@ -20,6 +20,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -104,24 +105,24 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 		"cimg": {
 			CreateImages: &daisy.CreateImages{
 				{
-					Image: compute.Image{
+					Image: computeAlpha.Image{
 						Name:   "final-image-1",
 						Labels: map[string]string{"labelKey": "labelValue"},
 					},
 				},
 				{
-					Image: compute.Image{
+					Image: computeAlpha.Image{
 						Name: "final-image-2",
 					},
 				},
 				{
-					Image: compute.Image{
+					Image: computeAlpha.Image{
 						Name:   "untranslated-image-1",
 						Labels: map[string]string{"labelKey": "labelValue"},
 					},
 				},
 				{
-					Image: compute.Image{
+					Image: computeAlpha.Image{
 						Name: "untranslated-image-2",
 					},
 				},

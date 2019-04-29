@@ -18,7 +18,7 @@ import (
 	"context"
 	"testing"
 
-	"google.golang.org/api/compute/v1"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 )
 
 func TestCreateImagesRun(t *testing.T) {
@@ -33,10 +33,10 @@ func TestCreateImagesRun(t *testing.T) {
 		ci        *Image
 		shouldErr bool
 	}{
-		{"source disk with overwrite case", &Image{Resource: Resource{Project: testProject}, Image: compute.Image{Name: testImage, SourceDisk: testDisk}, OverWrite: true}, false},
-		{"raw image case", &Image{Resource: Resource{Project: testProject}, Image: compute.Image{Name: testImage, RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}}, false},
-		{"bad disk case", &Image{Resource: Resource{Project: testProject}, Image: compute.Image{Name: testImage, SourceDisk: "bad"}}, true},
-		{"bad overwrite case", &Image{Resource: Resource{Project: testProject}, Image: compute.Image{Name: "bad", SourceDisk: testDisk}, OverWrite: true}, true},
+		{"source disk with overwrite case", &Image{Resource: Resource{Project: testProject}, Image: computeAlpha.Image{Name: testImage, SourceDisk: testDisk}, OverWrite: true}, false},
+		{"raw image case", &Image{Resource: Resource{Project: testProject}, Image: computeAlpha.Image{Name: testImage, RawDisk: &computeAlpha.ImageRawDisk{Source: "gs://bucket/object"}}}, false},
+		{"bad disk case", &Image{Resource: Resource{Project: testProject}, Image: computeAlpha.Image{Name: testImage, SourceDisk: "bad"}}, true},
+		{"bad overwrite case", &Image{Resource: Resource{Project: testProject}, Image: computeAlpha.Image{Name: "bad", SourceDisk: testDisk}, OverWrite: true}, true},
 	}
 
 	for _, tt := range tests {

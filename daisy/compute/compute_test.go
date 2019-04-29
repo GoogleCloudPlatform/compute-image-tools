@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -116,7 +117,7 @@ func TestCreates(t *testing.T) {
 	d := &compute.Disk{Name: testDisk}
 	fr := &compute.ForwardingRule{Name: testForwardingRule}
 	fir := &compute.Firewall{Name: testFirewallRule}
-	im := &compute.Image{Name: testImage}
+	im := &computeAlpha.Image{Name: testImage}
 	in := &compute.Instance{Name: testInstance}
 	n := &compute.Network{Name: testNetwork}
 	sn := &compute.Subnetwork{Name: testSubnetwork}
@@ -156,7 +157,7 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateImage(testProject, im) },
 			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImage),
 			fmt.Sprintf("/%s/global/images?alt=json&prettyPrint=false", testProject),
-			&compute.Image{Name: testImage, SelfLink: "foo"},
+			&computeAlpha.Image{Name: testImage, SelfLink: "foo", StorageLocations: []string{}},
 			im,
 		},
 		{

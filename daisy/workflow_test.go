@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
@@ -293,7 +294,7 @@ func TestNewFromFile(t *testing.T) {
 		},
 		"create-image": {
 			name:         "create-image",
-			CreateImages: &CreateImages{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}},
+			CreateImages: &CreateImages{{Image: computeAlpha.Image{Name: "image-from-disk", SourceDisk: "image"}}},
 		},
 		"include-workflow": {
 			name: "include-workflow",

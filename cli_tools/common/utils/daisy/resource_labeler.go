@@ -22,6 +22,7 @@ type ResourceLabeler struct {
 	BuildID                   string
 	UserLabels                map[string]string
 	BuildIDLabelKey           string
+	ImageLocation             string
 	InstanceLabelKeyRetriever InstanceLabelKeyRetrieverFunc
 	DiskLabelKeyRetriever     DiskLabelKeyRetrieverFunc
 	ImageLabelKeyRetriever    ImageLabelKeyRetrieverFunc
@@ -59,7 +60,9 @@ func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
 		}
 		if step.CreateImages != nil {
 			for _, image := range *step.CreateImages {
-				image.Image.StorageLocations=[]string{"europe-west1"}
+				if rl.ImageLocation != "" {
+					image.Image.StorageLocations = []string{rl.ImageLocation}
+				}
 				image.Image.Labels =
 					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image))
 			}

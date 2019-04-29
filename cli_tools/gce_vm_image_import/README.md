@@ -68,6 +68,7 @@ Exactly one of these must be specified:
 + `-labels=[KEY=VALUE,...]` labels: List of label KEY=VALUE pairs to add. Keys must start with a
   lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and 
   numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.
++ `-storage_location` Location for the imported image which can be any GCS location. If the location parameter is not included, images are created in the multi-region associated with the source disk, image, snapshot or GCS bucket.
   
 ### Usage
 

@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"testing"
 
-	"google.golang.org/api/compute/v1"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 )
 
 func TestUnmarshalJSON(t *testing.T) {
@@ -59,61 +59,61 @@ func TestImagePopulate(t *testing.T) {
 	}{
 		{
 			"SourceDisk case",
-			&Image{Image: compute.Image{SourceDisk: "d"}},
-			&Image{Image: compute.Image{SourceDisk: "d"}},
+			&Image{Image: computeAlpha.Image{SourceDisk: "d"}},
+			&Image{Image: computeAlpha.Image{SourceDisk: "d"}},
 			false,
 		},
 		{
 			"SourceDisk URL case",
-			&Image{Image: compute.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
-			&Image{Image: compute.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			&Image{Image: computeAlpha.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			&Image{Image: computeAlpha.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
 			false,
 		},
 		{
 			"extend SourceDisk URL case",
-			&Image{Resource: Resource{Project: "p"}, Image: compute.Image{SourceDisk: "zones/z/disks/d"}},
-			&Image{Image: compute.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			&Image{Resource: Resource{Project: "p"}, Image: computeAlpha.Image{SourceDisk: "zones/z/disks/d"}},
+			&Image{Image: computeAlpha.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
 			false,
 		},
 		{
 			"SourceImage case",
-			&Image{Image: compute.Image{SourceImage: "i"}},
-			&Image{Image: compute.Image{SourceImage: "i"}},
+			&Image{Image: computeAlpha.Image{SourceImage: "i"}},
+			&Image{Image: computeAlpha.Image{SourceImage: "i"}},
 			false,
 		},
 		{
 			"SourceImage URL case",
-			&Image{Image: compute.Image{SourceImage: "projects/p/global/images/i"}},
-			&Image{Image: compute.Image{SourceImage: "projects/p/global/images/i"}},
+			&Image{Image: computeAlpha.Image{SourceImage: "projects/p/global/images/i"}},
+			&Image{Image: computeAlpha.Image{SourceImage: "projects/p/global/images/i"}},
 			false,
 		},
 		{
 			"extend SourceImage URL case",
-			&Image{Resource: Resource{Project: "p"}, Image: compute.Image{SourceImage: "global/images/i"}},
-			&Image{Image: compute.Image{SourceImage: "projects/p/global/images/i"}},
+			&Image{Resource: Resource{Project: "p"}, Image: computeAlpha.Image{SourceImage: "global/images/i"}},
+			&Image{Image: computeAlpha.Image{SourceImage: "projects/p/global/images/i"}},
 			false,
 		},
 		{
 			"RawDisk.Source from Sources case",
-			&Image{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "d"}}},
-			&Image{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: w.getSourceGCSAPIPath("d")}}},
+			&Image{Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: "d"}}},
+			&Image{Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: w.getSourceGCSAPIPath("d")}}},
 			false,
 		},
 		{
 			"RawDisk.Source GCS URL case",
-			&Image{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/d"}}},
-			&Image{Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: gcsAPIPath}}},
+			&Image{Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: "gs://bucket/d"}}},
+			&Image{Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: gcsAPIPath}}},
 			false,
 		},
 		{
 			"GuestOsFeatures",
-			&Image{Image: compute.Image{SourceImage: "i"}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
-			&Image{Image: compute.Image{SourceImage: "i", GuestOsFeatures: []*compute.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			&Image{Image: computeAlpha.Image{SourceImage: "i"}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			&Image{Image: computeAlpha.Image{SourceImage: "i", GuestOsFeatures: []*computeAlpha.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
 			false,
 		},
 		{
 			"Bad RawDisk.Source case",
-			&Image{Resource: Resource{}, Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "blah"}}},
+			&Image{Resource: Resource{}, Image: computeAlpha.Image{RawDisk: &computeAlpha.ImageRawDisk{Source: "blah"}}},
 			nil,
 			true,
 		},
@@ -168,20 +168,20 @@ func TestImageValidate(t *testing.T) {
 		i         *Image
 		shouldErr bool
 	}{
-		{"good disk case", &Image{Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, false},
-		{"good licenses case", &Image{Image: compute.Image{Name: "i2", SourceDisk: "d1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/%s", w.Project, testLicense)}}}, false},
-		{"good image case", &Image{Image: compute.Image{Name: "i3", SourceImage: "si1"}}, false},
-		{"good raw disk case", &Image{Image: compute.Image{Name: "i4", RawDisk: &compute.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, false},
-		{"good disk url case ", &Image{Image: compute.Image{Name: "i5", SourceDisk: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, false},
-		{"bad license case", &Image{Image: compute.Image{Name: "i6", SourceDisk: "d1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/bad", testProject)}}}, true},
-		{"bad dupe name case", &Image{Image: compute.Image{Name: "i1", SourceDisk: "d1"}}, true},
-		{"bad missing dep on disk creator case", &Image{Image: compute.Image{Name: "i5", SourceDisk: "d3"}}, true},
-		{"bad disk deleted case", &Image{Image: compute.Image{Name: "i6", SourceDisk: "d2"}}, true},
-		{"bad image case", &Image{Image: compute.Image{Name: "i6", SourceImage: "si2"}}, true},
-		{"bad raw disk URL dne case", &Image{Image: compute.Image{Name: "i6", RawDisk: &compute.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/dne"}}}, true},
-		{"bad raw disk case", &Image{Image: compute.Image{Name: "i6", RawDisk: &compute.ImageRawDisk{Source: "not/a/gcs/url"}}}, true},
-		{"bad using disk and raw disk case", &Image{Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, true},
-		{"bad using disk and raw disk and image case", &Image{Image: compute.Image{Name: "i6", SourceDisk: "d1", RawDisk: &compute.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, true},
+		{"good disk case", &Image{Image: computeAlpha.Image{Name: "i1", SourceDisk: "d1"}}, false},
+		{"good licenses case", &Image{Image: computeAlpha.Image{Name: "i2", SourceDisk: "d1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/%s", w.Project, testLicense)}}}, false},
+		{"good image case", &Image{Image: computeAlpha.Image{Name: "i3", SourceImage: "si1"}}, false},
+		{"good raw disk case", &Image{Image: computeAlpha.Image{Name: "i4", RawDisk: &computeAlpha.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, false},
+		{"good disk url case ", &Image{Image: computeAlpha.Image{Name: "i5", SourceDisk: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, false},
+		{"bad license case", &Image{Image: computeAlpha.Image{Name: "i6", SourceDisk: "d1", Licenses: []string{fmt.Sprintf("projects/%s/global/licenses/bad", testProject)}}}, true},
+		{"bad dupe name case", &Image{Image: computeAlpha.Image{Name: "i1", SourceDisk: "d1"}}, true},
+		{"bad missing dep on disk creator case", &Image{Image: computeAlpha.Image{Name: "i5", SourceDisk: "d3"}}, true},
+		{"bad disk deleted case", &Image{Image: computeAlpha.Image{Name: "i6", SourceDisk: "d2"}}, true},
+		{"bad image case", &Image{Image: computeAlpha.Image{Name: "i6", SourceImage: "si2"}}, true},
+		{"bad raw disk URL dne case", &Image{Image: computeAlpha.Image{Name: "i6", RawDisk: &computeAlpha.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/dne"}}}, true},
+		{"bad raw disk case", &Image{Image: computeAlpha.Image{Name: "i6", RawDisk: &computeAlpha.ImageRawDisk{Source: "not/a/gcs/url"}}}, true},
+		{"bad using disk and raw disk case", &Image{Image: computeAlpha.Image{Name: "i6", SourceDisk: "d1", RawDisk: &computeAlpha.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, true},
+		{"bad using disk and raw disk and image case", &Image{Image: computeAlpha.Image{Name: "i6", SourceDisk: "d1", RawDisk: &computeAlpha.ImageRawDisk{Source: "https://storage.cloud.google.com/bucket/object"}}}, true},
 	}
 
 	for testNum, tt := range tests {

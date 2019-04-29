@@ -33,6 +33,7 @@ import (
 	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -232,7 +233,7 @@ func (p *Publish) CreateWorkflows(ctx context.Context, varMap map[string]string,
 
 const gcsImageObj = "root.tar.gz"
 
-func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicates, rep bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
+func publishImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image, skipDuplicates, rep bool) (*daisy.CreateImages, *daisy.DeprecateImages, *daisy.DeleteResources, error) {
 	if skipDuplicates && rep {
 		return nil, nil, nil, errors.New("cannot set both skipDuplicates and replace")
 	}
@@ -246,7 +247,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 	}
 
 	ci := daisy.Image{
-		Image: compute.Image{
+		Image: computeAlpha.Image{
 			Name:        publishName,
 			Description: img.Description,
 			Licenses:    img.Licenses,
@@ -269,7 +270,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 		ci.Image.SourceImage = source
 	} else if p.SourceGCSPath != "" {
 		source = fmt.Sprintf("%s/%s/%s", p.SourceGCSPath, sourceName, gcsImageObj)
-		ci.Image.RawDisk = &compute.ImageRawDisk{Source: source}
+		ci.Image.RawDisk = &computeAlpha.ImageRawDisk{Source: source}
 	} else {
 		return nil, nil, nil, errors.New("neither SourceProject or SourceGCSPath was set")
 	}
@@ -330,7 +331,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 	return cis, dis, drs, nil
 }
 
-func rollbackImage(p *Publish, img *Image, pubImgs []*compute.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
+func rollbackImage(p *Publish, img *Image, pubImgs []*computeAlpha.Image) (*daisy.DeleteResources, *daisy.DeprecateImages) {
 	publishName := fmt.Sprintf("%s-%s", img.Prefix, p.publishVersion)
 	dr := &daisy.DeleteResources{}
 	dis := &daisy.DeprecateImages{}
@@ -452,7 +453,7 @@ func (p *Publish) deprecatePrintOut(deprecateImages *daisy.DeprecateImages) {
 	}
 }
 
-func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*compute.Image, img *Image, rb, sd, rep bool) error {
+func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubImgs []*computeAlpha.Image, img *Image, rb, sd, rep bool) error {
 	var err error
 	var createImages *daisy.CreateImages
 	var deprecateImages *daisy.DeprecateImages
@@ -477,7 +478,7 @@ func (p *Publish) populateWorkflow(ctx context.Context, w *daisy.Workflow, pubIm
 	return nil
 }
 
-var imagesCache map[string][]*compute.Image
+var imagesCache map[string][]*computeAlpha.Image
 
 func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[string]string, rb, sd, rep bool, oauth string) (*daisy.Workflow, error) {
 	fmt.Printf("  - Creating publish workflow for %q\n", img.Prefix)
@@ -510,7 +511,7 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 			return nil, err
 		}
 		if imagesCache == nil {
-			imagesCache = map[string][]*compute.Image{}
+			imagesCache = map[string][]*computeAlpha.Image{}
 		}
 		imagesCache[cacheKey] = pubImgs
 	}

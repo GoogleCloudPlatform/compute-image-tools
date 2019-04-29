@@ -21,6 +21,7 @@ package mocks
 import (
 	compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	gomock "github.com/golang/mock/gomock"
+	v0_alpha "google.golang.org/api/compute/v0.alpha"
 	v0_beta "google.golang.org/api/compute/v0.beta"
 	v1 "google.golang.org/api/compute/v1"
 	googleapi "google.golang.org/api/googleapi"
@@ -121,7 +122,7 @@ func (mr *MockClientMockRecorder) CreateForwardingRule(arg0, arg1, arg2 interfac
 }
 
 // CreateImage mocks base method
-func (m *MockClient) CreateImage(arg0 string, arg1 *v1.Image) error {
+func (m *MockClient) CreateImage(arg0 string, arg1 *v0_alpha.Image) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateImage", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -391,10 +392,10 @@ func (mr *MockClientMockRecorder) GetGuestAttributes(arg0, arg1, arg2, arg3, arg
 }
 
 // GetImage mocks base method
-func (m *MockClient) GetImage(arg0, arg1 string) (*v1.Image, error) {
+func (m *MockClient) GetImage(arg0, arg1 string) (*v0_alpha.Image, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetImage", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Image)
+	ret0, _ := ret[0].(*v0_alpha.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -406,10 +407,10 @@ func (mr *MockClientMockRecorder) GetImage(arg0, arg1 interface{}) *gomock.Call 
 }
 
 // GetImageFromFamily mocks base method
-func (m *MockClient) GetImageFromFamily(arg0, arg1 string) (*v1.Image, error) {
+func (m *MockClient) GetImageFromFamily(arg0, arg1 string) (*v0_alpha.Image, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetImageFromFamily", arg0, arg1)
-	ret0, _ := ret[0].(*v1.Image)
+	ret0, _ := ret[0].(*v0_alpha.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -646,14 +647,14 @@ func (mr *MockClientMockRecorder) ListForwardingRules(arg0, arg1 interface{}, ar
 }
 
 // ListImages mocks base method
-func (m *MockClient) ListImages(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.Image, error) {
+func (m *MockClient) ListImages(arg0 string, arg1 ...compute.ListCallOption) ([]*v0_alpha.Image, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0}
 	for _, a := range arg1 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListImages", varargs...)
-	ret0, _ := ret[0].([]*v1.Image)
+	ret0, _ := ret[0].([]*v0_alpha.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -33,6 +33,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	emptypb "github.com/golang/protobuf/ptypes/empty"
 	godebugDiff "github.com/kylelemons/godebug/diff"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
@@ -178,11 +179,11 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return []*compute.Firewall{{Name: testFirewallRule}}, nil
 	}
-	c.ListImagesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Image, error) {
+	c.ListImagesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*computeAlpha.Image, error) {
 		if p == testProject {
-			return []*compute.Image{{Name: testImage}}, nil
+			return []*computeAlpha.Image{{Name: testImage}}, nil
 		}
-		return []*compute.Image{{Name: testImage, Deprecated: &compute.DeprecationStatus{State: "OBSOLETE"}}}, nil
+		return []*computeAlpha.Image{{Name: testImage, Deprecated: &computeAlpha.DeprecationStatus{State: "OBSOLETE"}}}, nil
 	}
 	c.ListDisksFn = func(p, z string, _ ...daisyCompute.ListCallOption) ([]*compute.Disk, error) {
 		if p != testProject {
@@ -244,7 +245,7 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil
 	}
-	c.CreateImageFn = func(p string, i *compute.Image) error {
+	c.CreateImageFn = func(p string, i *computeAlpha.Image) error {
 		if p != testProject {
 			return errors.New("bad project: " + p)
 		}
@@ -256,11 +257,11 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil
 	}
-	c.GetImageFromFamilyFn = func(_, f string) (*compute.Image, error) {
+	c.GetImageFromFamilyFn = func(_, f string) (*computeAlpha.Image, error) {
 		if f == testFamily {
-			return &compute.Image{Name: testImage}, nil
+			return &computeAlpha.Image{Name: testImage}, nil
 		}
-		return &compute.Image{Name: testImage, Deprecated: &compute.DeprecationStatus{State: "OBSOLETE"}}, nil
+		return &computeAlpha.Image{Name: testImage, Deprecated: &computeAlpha.DeprecationStatus{State: "OBSOLETE"}}, nil
 	}
 	c.AttachDiskFn = func(p, z, i string, _ *compute.AttachedDisk) error {
 		if i == "bad" {
