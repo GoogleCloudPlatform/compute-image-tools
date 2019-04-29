@@ -28,9 +28,6 @@ import (
 func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity, error) {
 	var nodeAffinities []*compute.SchedulingNodeAffinity
 
-	if labels == nil || len(labels) == 0 {
-		return nodeAffinities, nil
-	}
 	for _, label := range labels {
 		labelParts := strings.Split(label, ",")
 		if len(labelParts) < 3 {

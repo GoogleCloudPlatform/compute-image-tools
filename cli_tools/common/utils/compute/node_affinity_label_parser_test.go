@@ -138,3 +138,17 @@ func TestParseNodeAffinitiesWhiteSpacesKey(t *testing.T) {
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
+
+func TestParseNodeAffinitiesEmptyString(t *testing.T) {
+	affinities, err := ParseNodeAffinityLabels([]string{})
+
+	assert.Equal(t, 0, len(affinities))
+	assert.Nil(t, err)
+}
+
+func TestParseNodeAffinitiesNilLabels(t *testing.T) {
+	affinities, err := ParseNodeAffinityLabels(nil)
+
+	assert.Equal(t, 0, len(affinities))
+	assert.Nil(t, err)
+}
