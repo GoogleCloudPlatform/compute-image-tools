@@ -29,6 +29,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/parse"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
@@ -90,12 +91,15 @@ var (
 	cloudLogsDisabled           = flag.Bool("disable-cloud-logging", false, "do not stream logs to Cloud Logging")
 	stdoutLogsDisabled          = flag.Bool("disable-stdout-logging", false, "do not display individual workflow logs on stdout")
 
-	userLabels            map[string]string
-	currentExecutablePath string
+	userLabels             map[string]string
+	nodeAffinityLabelsFlag flags.StringArrayFlag
+	nodeAffinities         []*compute.SchedulingNodeAffinity
+	currentExecutablePath  string
 )
 
 func init() {
 	currentExecutablePath = string(os.Args[0])
+	flag.Var(&nodeAffinityLabelsFlag, "node-affinity-label", "Node affinity label used to determine sole tenant node to schedule this instance on. Label is of the format: <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'. This flag can be specified multiple times for multiple labels.")
 }
 
 func validateAndParseFlags() error {
@@ -135,6 +139,14 @@ func validateAndParseFlags() error {
 		return fmt.Errorf("-network-interface is mutually exclusive with any of these flags: --network, --network-tier, --subnet, --private-network-ip")
 	}
 
+	if nodeAffinityLabelsFlag != nil {
+		var err error
+		nodeAffinities, err = computeutils.ParseNodeAffinityLabels(nodeAffinityLabelsFlag)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -172,12 +184,10 @@ func buildDaisyVars(
 	if *networkTier != "" {
 		varMap["network_tier"] = *networkTier
 	}
-	//TODO: networkInterface
 	return varMap
 }
 
-// Daisy workflow files don't support boolean variables so we have to do it here.
-func updateInstanceWithBooleanFlagValues(w *daisy.Workflow) {
+func updateInstance(w *daisy.Workflow) {
 	instance := (*w.Steps["create-instance"].CreateInstances)[0]
 	instance.CanIpForward = *canIPForward
 	instance.DeletionProtection = *deletionProtection
@@ -187,6 +197,9 @@ func updateInstanceWithBooleanFlagValues(w *daisy.Workflow) {
 	if *noRestartOnFailure {
 		vFalse := false
 		instance.Scheduling.AutomaticRestart = &vFalse
+	}
+	if nodeAffinities != nil {
+		instance.Scheduling.NodeAffinities = nodeAffinities
 	}
 }
 
@@ -391,7 +404,7 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 
 func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
 	daisyovfutils.AddDiskImportSteps(w, (*oi.diskInfos)[1:])
-	updateInstanceWithBooleanFlagValues(w)
+	updateInstance(w)
 }
 
 func (oi *OVFImporter) getMachineType(
@@ -465,6 +478,9 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	oi.logger.Log(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
+
 	varMap := buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr, region)
 
 	workflow, err := daisyutils.ParseWorkflow(oi.mgce, oi.workflowPath, varMap, project,
