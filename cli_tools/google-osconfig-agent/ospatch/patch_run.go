@@ -338,7 +338,7 @@ func ackPatch(ctx context.Context, patchJobName string) {
 		return
 	}
 
-	// Notify the server if we haven't yet. If we've already been notified about this Job,
+	// Ack if we haven't yet. If we've already been notified about this Job,
 	// the server may have inadvertantly notified us twice (at least once deliver) so we
 	// can ignore it.
 	if currentPatchJob == nil || currentPatchJob.Job.PatchJob != patchJobName {
@@ -347,7 +347,7 @@ func ackPatch(ctx context.Context, patchJobName string) {
 		if err := pr.createClient(); err != nil {
 			logger.Errorf("Error creating osconfig client: %v", err)
 		}
-		if err := pr.reportPatchDetails(osconfigpb.Instance_NOTIFIED, 0, ""); err != nil {
+		if err := pr.reportPatchDetails(osconfigpb.Instance_ACKED, 0, ""); err != nil {
 			logger.Errorf("reportPatchDetails Error: %v", err)
 			pr.close()
 			return
