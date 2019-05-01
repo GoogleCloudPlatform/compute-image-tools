@@ -17,7 +17,6 @@
 package ospatch
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -87,8 +86,8 @@ func systemRebootRequired() (bool, error) {
 	return false, fmt.Errorf("no recognized package manager installed, can't if reboot is required")
 }
 
-func runUpdates(ctx context.Context, r *patchRun) error {
-	if r.reportState(ctx, osconfigpb.Instance_APPLYING_PATCHES) {
+func runUpdates(r *patchRun) error {
+	if r.reportState(osconfigpb.Instance_APPLYING_PATCHES) {
 		return nil
 	}
 	return packages.UpdatePackages()
