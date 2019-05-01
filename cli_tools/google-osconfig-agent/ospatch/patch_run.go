@@ -121,7 +121,7 @@ func checkSavedState(ctx context.Context) string {
 	if err != nil {
 		logger.Errorf("loadState error: %v", err)
 	} else if pr != nil && !pr.Complete {
-		savedPatchJobName = pr.Job.PatchJobName
+		savedPatchJobName = pr.Job.PatchJob
 		logger.Infof("Loaded State, running patch: '%s'...", savedPatchJobName)
 		tasker.Enqueue("Run patch", func() { patchRunner(ctx, pr) })
 	}
@@ -170,7 +170,7 @@ func (r *patchRun) finishAndReportError(ctx context.Context, msg string) {
 	r.EndedAt = time.Now()
 	r.PatchStep = completeFailed
 	logger.Errorf(msg)
-	if _, err := reportPatchDetails(ctx, r.Job.PatchJobName, osconfigpb.Instance_FAILED, 0, msg); err != nil {
+	if _, err := reportPatchDetails(ctx, r.Job.PatchJob, osconfigpb.Instance_FAILED, 0, msg); err != nil {
 		logger.Errorf("Failed to report patch failure. Error: %v", err)
 		return
 	}
@@ -181,12 +181,12 @@ func (r *patchRun) finishJobComplete() {
 	r.Complete = true
 	r.EndedAt = time.Now()
 	r.PatchStep = completeJobCompleted
-	logger.Infof("PatchJob %s is complete. Canceling patch execution.", r.Job.PatchJobName)
+	logger.Infof("PatchJob %s is complete. Canceling patch execution.", r.Job.PatchJob)
 	r.saveState()
 }
 
 func (r *patchRun) reportState(ctx context.Context, patchState osconfigpb.Instance_PatchState) (shouldStop bool) {
-	patchJob, err := reportPatchDetails(ctx, r.Job.PatchJobName, patchState, 0, "")
+	patchJob, err := reportPatchDetails(ctx, r.Job.PatchJob, patchState, 0, "")
 	if err != nil {
 		// If we fail to report state, we can't report that we failed.
 		logger.Errorf("Failed to report state %s. Error: %v", patchState, err)
@@ -233,7 +233,7 @@ func (r *patchRun) rebootIfNeeded(ctx context.Context, postUpdate bool) (shouldS
 		r.saveState()
 
 		if r.Job.DryRun {
-			logger.Infof("Dry run - not rebooting for patch job '%s'", r.Job.PatchJobName)
+			logger.Infof("Dry run - not rebooting for patch job '%s'", r.Job.PatchJob)
 		} else {
 			err := rebootSystem()
 			if err != nil {
@@ -261,7 +261,7 @@ func (r *patchRun) reportSucceeded(ctx context.Context) {
 
 	finalState := osconfigpb.Instance_SUCCEEDED
 	if isFinalRebootRequired {
-		finalState = osconfigpb.Instance_REBOOT_REQUIRED
+		finalState = osconfigpb.Instance_SUCCEEDED_REBOOT_REQUIRED
 	}
 
 	if r.reportState(ctx, finalState) {
@@ -284,7 +284,7 @@ func (r *patchRun) runPatch(ctx context.Context) {
 		return
 	}
 
-	if savedPatchState != nil && savedPatchState.Job.PatchJobName == r.Job.PatchJobName {
+	if savedPatchState != nil && savedPatchState.Job.PatchJob == r.Job.PatchJob {
 		// continue from previous patch step
 		r.PatchStep = savedPatchState.PatchStep
 	} else {
@@ -313,7 +313,7 @@ func (r *patchRun) runPatch(ctx context.Context) {
 			if r.reportState(ctx, osconfigpb.Instance_APPLYING_PATCHES) {
 				return
 			}
-			logger.Infof("Dry run - No updates applied for patch job '%s'", r.Job.PatchJobName)
+			logger.Infof("Dry run - No updates applied for patch job '%s'", r.Job.PatchJob)
 		} else {
 			err = runUpdates(ctx, r)
 			if err != nil {
@@ -338,9 +338,9 @@ func (r *patchRun) runPatch(ctx context.Context) {
 }
 
 func patchRunner(ctx context.Context, pr *patchRun) {
-	logger.Debugf("Running patch job %s", pr.Job.PatchJobName)
+	logger.Debugf("Running patch job %s", pr.Job.PatchJob)
 	pr.runPatch(ctx)
-	logger.Debugf("Finished patch job %s", pr.Job.PatchJobName)
+	logger.Debugf("Finished patch job %s", pr.Job.PatchJob)
 }
 
 func ackPatch(ctx context.Context, patchJobName string) {
@@ -355,7 +355,7 @@ func ackPatch(ctx context.Context, patchJobName string) {
 	// Notify the server if we haven't yet. If we've already been notified about this Job,
 	// the server may have inadvertantly notified us twice (at least once deliver) so we
 	// can ignore it.
-	if currentPatchJob == nil || currentPatchJob.Job.PatchJobName != patchJobName {
+	if currentPatchJob == nil || currentPatchJob.Job.PatchJob != patchJobName {
 		res, err := reportPatchDetails(ctx, patchJobName, osconfigpb.Instance_NOTIFIED, 0, "")
 		if err != nil {
 			logger.Errorf("reportPatchDetails Error: %v", err)
@@ -387,7 +387,7 @@ func reportPatchDetails(ctx context.Context, patchJobName string, patchState osc
 	request := osconfigpb.ReportPatchJobInstanceDetailsRequest{
 		Resource:         config.Instance(),
 		InstanceSystemId: config.ID(),
-		PatchJobName:     patchJobName,
+		PatchJob:         patchJobName,
 		InstanceIdToken:  identityToken,
 		State:            patchState,
 		AttemptCount:     attemptCount,

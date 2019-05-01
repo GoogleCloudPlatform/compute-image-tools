@@ -28,8 +28,8 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/kylelemons/godebug/pretty"
@@ -173,7 +173,7 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 				return
 			}
 			if res.State == osconfigpb.PatchJob_SUCCEEDED {
-				if res.InstanceDetailsSummary.GetInstancesFinished() < 1 {
+				if res.InstanceDetailsSummary.GetInstancesSucceeded() < 1 {
 					testCase.WriteFailure("no instance patched")
 				}
 				return
