@@ -1,0 +1,37 @@
+timeout: 600s
+steps:
+# Setup workspace
+- name: 'alpine'
+  args: ['mkdir', '-p', './src/github.com/GoogleCloudPlatform/compute-image-tools']
+- name: 'alpine'
+  args: ['mv', './daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy']
+- name: 'alpine'
+  args: ['mv', './cli_tools', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools']
+- name: 'alpine'
+  args: ['mv', './go', './src/github.com/GoogleCloudPlatform/compute-image-tools/go']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/...']
+  env: ['GOPATH=./']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/...']
+  env: ['GOPATH=./', 'GOOS=windows']
+
+# Build Linux binaries.
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/gce_vm_image_import', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import']
+  env: ['CGO_ENABLED=0']
+
+# Copy Linux binaries to GS
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './linux/*', 'gs://compute-image-tools/image_locality/linux/']
+
+# Build Linux containers.
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_import:image_locality', '--file=Dockerfile.gce_vm_image_import', '.']
+
+# Make binaries world-readable.
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/image_locality/*']
+
+images:
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_import:image_locality'
