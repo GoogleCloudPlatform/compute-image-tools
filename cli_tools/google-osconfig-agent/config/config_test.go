@@ -20,13 +20,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
 
 func TestSetConfig(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"project":{"projectId":"projectId","attributes":{"os-config-endpoint":"bad!!1","os-inventory-enabled":"false","os-patch-enabled":"true","os-package-enabled":"true"}},"instance":{"id":12345,"name":"name","zone":"zone","attributes":{"os-config-endpoint":"SvcEndpoint","os-inventory-enabled":"1","os-patch-enabled":"false","os-package-enabled":"foo", "os-debug-enabled":"true", "os-config-poll-interval":"3"}}}`)
+		fmt.Fprintln(w, `{"project":{"numericProjectID":12345,"projectId":"projectId","attributes":{"os-config-endpoint":"bad!!1","os-inventory-enabled":"false"}},"instance":{"id":12345,"name":"name","zone":"zone","attributes":{"os-config-endpoint":"SvcEndpoint","os-inventory-enabled":"1","os-config-debug-enabled":"true","os-config-enabled-prerelease-features":"ospackage,ospatch", "os-config-poll-interval":"3"}}}`)
 	}))
 	defer ts.Close()
 
@@ -62,8 +65,8 @@ func TestSetConfig(t *testing.T) {
 		want bool
 	}{
 		{"osinventory should be enabled (proj disabled, inst enabled)", OSInventoryEnabled, true},
-		{"ospatch should be disabled (proj enabled, inst disabled)", OSPatchEnabled, false},
-		{"ospackage should be disabled (proj enabled, inst bad value)", OSPackageEnabled, false},
+		{"ospatch should be enabled (inst enabled)", OSPatchEnabled, true},
+		{"ospackage should be enabled (proj enabled)", OSPackageEnabled, true},
 		{"debugenabled should be true (proj disabled, inst enabled)", Debug, true},
 	}
 	for _, tt := range testsBool {
@@ -75,11 +78,14 @@ func TestSetConfig(t *testing.T) {
 	if SvcPollInterval().Minutes() != float64(3) {
 		t.Errorf("Default poll interval: got(%f) != want(%d)", SvcPollInterval().Minutes(), 3)
 	}
+	if NumericProjectID() != 12345 {
+		t.Errorf("NumericProjectID: got(%v) != want(%d)", NumericProjectID(), 12345)
+	}
 }
 
 func TestSetConfigDefaultValues(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, `{"instance":{"id":12345,"name":"name","zone":"zone"}}`)
+		fmt.Fprintln(w, `{}`)
 	}))
 	defer ts.Close()
 
@@ -92,35 +98,34 @@ func TestSetConfigDefaultValues(t *testing.T) {
 	}
 
 	testsString := []struct {
-		desc string
 		op   func() string
 		want string
 	}{
-		{"Instance", Instance, "zone/instances/name"},
-		{"ID", ID, "12345"},
-		{"ProjectID", ProjectID, "projectId"},
-		{"Zone", Zone, "zone"},
-		{"Name", Name, "name"},
+		{AptRepoFilePath, aptRepoFilePath},
+		{YumRepoFilePath, yumRepoFilePath},
+		{ZypperRepoFilePath, zypperRepoFilePath},
+		{GooGetRepoFilePath, googetRepoFilePath},
 	}
 	for _, tt := range testsString {
 		if tt.op() != tt.want {
-			t.Errorf("%q: got(%q) != want(%q)", tt.desc, tt.op(), tt.want)
+			f := filepath.Base(runtime.FuncForPC(reflect.ValueOf(tt.op).Pointer()).Name())
+			t.Errorf("%q: got(%q) != want(%q)", f, tt.op(), tt.want)
 		}
 	}
 
 	testsBool := []struct {
-		desc string
 		op   func() bool
 		want bool
 	}{
-		{"osinventory should be enabled (proj disabled, inst enabled)", OSInventoryEnabled, osInventoryEnabledDefault},
-		{"ospatch should be disabled (proj enabled, inst disabled)", OSPatchEnabled, osPatchEnabledDefault},
-		{"ospackage should be disabled (proj enabled, inst bad value)", OSPackageEnabled, osPackageEnabledDefault},
-		{"debugenabled should be true (proj disabled, inst enabled)", Debug, osDebugEnabledDefault},
+		{OSInventoryEnabled, osInventoryEnabledDefault},
+		{OSPatchEnabled, osPatchEnabledDefault},
+		{OSPackageEnabled, osPackageEnabledDefault},
+		{Debug, debugEnabledDefault},
 	}
 	for _, tt := range testsBool {
 		if tt.op() != tt.want {
-			t.Errorf("%q: got(%t) != want(%t)", tt.desc, tt.op(), tt.want)
+			f := filepath.Base(runtime.FuncForPC(reflect.ValueOf(tt.op).Pointer()).Name())
+			t.Errorf("%q: got(%t) != want(%t)", f, tt.op(), tt.want)
 		}
 	}
 
@@ -130,5 +135,16 @@ func TestSetConfigDefaultValues(t *testing.T) {
 
 	if SvcEndpoint() != prodEndpoint {
 		t.Errorf("Default endpoint: got(%s) != want(%s)", SvcEndpoint(), prodEndpoint)
+	}
+}
+
+func TestVersion(t *testing.T) {
+	if Version() != "" {
+		t.Errorf("Unexpected version %q, want \"\"", Version())
+	}
+	var v = "1"
+	SetVersion(v)
+	if Version() != v {
+		t.Errorf("Unexpected version %q, want %q", Version(), v)
 	}
 }

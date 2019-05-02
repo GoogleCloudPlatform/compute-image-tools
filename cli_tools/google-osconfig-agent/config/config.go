@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,7 +46,7 @@ const (
 	osInventoryEnabledDefault = false
 	osPackageEnabledDefault   = false
 	osPatchEnabledDefault     = false
-	osDebugEnabledDefault     = false
+	debugEnabledDefault       = false
 
 	osConfigPollIntervalDefault = 10
 )
@@ -62,10 +63,22 @@ var (
 )
 
 type config struct {
-	osInventoryEnabled, osPackageEnabled, osPatchEnabled, osDebugEnabled                  bool
+	osInventoryEnabled, osPackageEnabled, osPatchEnabled, debugEnabled                    bool
 	svcEndpoint, googetRepoFilePath, zypperRepoFilePath, yumRepoFilePath, aptRepoFilePath string
 	numericProjectID, osConfigPollInterval                                                int
 	projectID, instanceZone, instanceName, instanceID                                     string
+}
+
+func (c *config) parsePreRelease(features string) {
+	for _, f := range strings.Split(features, ",") {
+		f = strings.TrimSpace(f)
+		switch f {
+		case "ospatch":
+			c.osPatchEnabled = true
+		case "ospackage":
+			c.osPackageEnabled = true
+		}
+	}
 }
 
 func getAgentConfig() config {
@@ -102,12 +115,11 @@ type projectJSON struct {
 }
 
 type attributesJSON struct {
-	OSInventoryEnabled   string       `json:"os-inventory-enabled"`
-	OSPatchEnabled       string       `json:"os-patch-enabled"`
-	OSPackageEnabled     string       `json:"os-package-enabled"`
-	OSDebugEnabled       string       `json:"os-debug-enabled"`
-	OSConfigEndpoint     string       `json:"os-config-endpoint"`
-	OSConfigPollInterval *json.Number `json:"os-config-poll-interval"`
+	InventoryEnabled   string       `json:"os-inventory-enabled"`
+	PreReleaseFeatures string       `json:"os-config-enabled-prerelease-features"`
+	DebugEnabled       string       `json:"os-config-debug-enabled"`
+	OSConfigEndpoint   string       `json:"os-config-endpoint"`
+	PollInterval       *json.Number `json:"os-config-poll-interval"`
 }
 
 func createConfigFromMetadata(md metadataJSON) *config {
@@ -116,7 +128,7 @@ func createConfigFromMetadata(md metadataJSON) *config {
 		osInventoryEnabled:   osInventoryEnabledDefault,
 		osPackageEnabled:     osPackageEnabledDefault,
 		osPatchEnabled:       osPatchEnabledDefault,
-		osDebugEnabled:       osDebugEnabledDefault,
+		debugEnabled:         debugEnabledDefault,
 		svcEndpoint:          prodEndpoint,
 		osConfigPollInterval: osConfigPollIntervalDefault,
 
@@ -149,39 +161,29 @@ func createConfigFromMetadata(md metadataJSON) *config {
 	}
 
 	// Check project first then instance as instance metadata overrides project.
-	if md.Project.Attributes.OSInventoryEnabled != "" {
-		c.osInventoryEnabled = parseBool(md.Project.Attributes.OSInventoryEnabled)
+	if md.Project.Attributes.InventoryEnabled != "" {
+		c.osInventoryEnabled = parseBool(md.Project.Attributes.InventoryEnabled)
 	}
-	if md.Project.Attributes.OSPatchEnabled != "" {
-		c.osPatchEnabled = parseBool(md.Project.Attributes.OSPatchEnabled)
-	}
-	if md.Project.Attributes.OSPackageEnabled != "" {
-		c.osPackageEnabled = parseBool(md.Project.Attributes.OSPackageEnabled)
-	}
+	c.parsePreRelease(md.Project.Attributes.PreReleaseFeatures)
 
-	if md.Instance.Attributes.OSInventoryEnabled != "" {
-		c.osInventoryEnabled = parseBool(md.Instance.Attributes.OSInventoryEnabled)
+	if md.Instance.Attributes.InventoryEnabled != "" {
+		c.osInventoryEnabled = parseBool(md.Instance.Attributes.InventoryEnabled)
 	}
-	if md.Instance.Attributes.OSPatchEnabled != "" {
-		c.osPatchEnabled = parseBool(md.Instance.Attributes.OSPatchEnabled)
-	}
-	if md.Instance.Attributes.OSPackageEnabled != "" {
-		c.osPackageEnabled = parseBool(md.Instance.Attributes.OSPackageEnabled)
-	}
+	c.parsePreRelease(md.Instance.Attributes.PreReleaseFeatures)
 
-	if md.Instance.Attributes.OSConfigPollInterval != nil {
-		if val, err := md.Instance.Attributes.OSConfigPollInterval.Int64(); err == nil {
+	if md.Instance.Attributes.PollInterval != nil {
+		if val, err := md.Instance.Attributes.PollInterval.Int64(); err == nil {
 			c.osConfigPollInterval = int(val)
 		}
 	}
 
 	// Flags take precedence over metadata.
 	if *debug {
-		c.osDebugEnabled = true
-	} else if md.Instance.Attributes.OSDebugEnabled != "" {
-		c.osDebugEnabled = parseBool(md.Instance.Attributes.OSDebugEnabled)
-	} else if md.Project.Attributes.OSDebugEnabled != "" {
-		c.osDebugEnabled = parseBool(md.Project.Attributes.OSDebugEnabled)
+		c.debugEnabled = true
+	} else if md.Instance.Attributes.DebugEnabled != "" {
+		c.debugEnabled = parseBool(md.Instance.Attributes.DebugEnabled)
+	} else if md.Project.Attributes.DebugEnabled != "" {
+		c.debugEnabled = parseBool(md.Project.Attributes.DebugEnabled)
 	}
 
 	if *endpoint != prodEndpoint {
@@ -271,7 +273,7 @@ func ResourceOverride() string {
 
 // Debug sets the debug log verbosity.
 func Debug() bool {
-	return (*debug || getAgentConfig().osDebugEnabled)
+	return (*debug || getAgentConfig().debugEnabled)
 }
 
 // OAuthPath is the local location of the OAuth credentials file.
@@ -299,8 +301,8 @@ func AptRepoFilePath() string {
 	return getAgentConfig().aptRepoFilePath
 }
 
-// GoogetRepoFilePath is the location where the googet repo file will be created.
-func GoogetRepoFilePath() string {
+// GooGetRepoFilePath is the location where the googet repo file will be created.
+func GooGetRepoFilePath() string {
 	return getAgentConfig().googetRepoFilePath
 }
 
