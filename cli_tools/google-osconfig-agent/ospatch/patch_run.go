@@ -41,7 +41,7 @@ const (
 	acked          = "acked"
 	prePatchReboot = "prePatchReboot"
 	patching       = "patching"
-	complete       = "completed"
+	complete       = "complete"
 )
 
 var (
