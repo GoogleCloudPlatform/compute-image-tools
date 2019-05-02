@@ -308,6 +308,10 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 			}
 		}
 
+		if pubImg.Family == "" {
+			continue
+		}
+
 		// Deprecate all images in the same family.
 		if pubImg.Deprecated == nil || pubImg.Deprecated.State == "" {
 			*dis = append(*dis, &daisy.DeprecateImage{
