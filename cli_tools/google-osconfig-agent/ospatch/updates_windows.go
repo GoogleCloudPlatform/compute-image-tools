@@ -131,7 +131,7 @@ func installUpdate(r *patchRun, classFilter, excludes map[string]struct{}, sessi
 		return fmt.Errorf(`updateColl.CallMethod("Add", updt): %v`, err)
 	}
 
-	if err := r.recordContinuingState(osconfigpb.Instance_DOWNLOADING_PATCHES); err != nil {
+	if err := r.reportContinuingState(osconfigpb.Instance_DOWNLOADING_PATCHES); err != nil {
 		return err
 	}
 
@@ -139,7 +139,7 @@ func installUpdate(r *patchRun, classFilter, excludes map[string]struct{}, sessi
 		return fmt.Errorf("DownloadWUAUpdateCollection error: %v", err)
 	}
 
-	if err := r.recordContinuingState(osconfigpb.Instance_APPLYING_PATCHES); err != nil {
+	if err := r.reportContinuingState(osconfigpb.Instance_APPLYING_PATCHES); err != nil {
 		return err
 	}
 
@@ -236,7 +236,7 @@ func runUpdates(r *patchRun) error {
 	}
 
 	if packages.GooGetExists {
-		if err := r.recordContinuingState(osconfigpb.Instance_APPLYING_PATCHES); err != nil {
+		if err := r.reportContinuingState(osconfigpb.Instance_APPLYING_PATCHES); err != nil {
 			return err
 		}
 
