@@ -112,15 +112,22 @@ type logEntry struct {
 }
 
 func (e logEntry) String() string {
-	// INFO: 2006-01-02T15:04:05.999999Z07:00 file.go:82: This is a log message.
-	return fmt.Sprintf("%s: %s %s:%d: %s", e.severity, e.LocalTimestamp, e.source.File, e.source.Line, e.Message)
+	if e.severity == logging.Error || e.severity == logging.Critical {
+		// 2006-01-02T15:04:05.999999Z07:00 OSConfig Agent ERROR file.go:82: This is a log message.
+		return fmt.Sprintf("%s OSConfig Agent %s %s:%d: %s", e.LocalTimestamp, e.severity, e.source.File, e.source.Line, e.Message)
+	}
+	// 2006-01-02T15:04:05.999999Z07:00 OSConfig Agent INFO: This is a log message.
+	return fmt.Sprintf("%s OSConfig Agent %s: %s", e.LocalTimestamp, e.severity, e.Message)
 }
 
-func log(e *logEntry, out io.Writer) {
+func log(e *logEntry, outs ...io.Writer) {
 	if cloudLogger != nil {
 		cloudLogger.Log(logging.Entry{Severity: e.severity, SourceLocation: e.source, Payload: e, Labels: e.Labels})
 	}
-	out.Write([]byte(strings.TrimSpace(e.String()) + "\n"))
+	msg := []byte(strings.TrimSpace(e.String()) + "\n")
+	for _, out := range outs {
+		out.Write(msg)
+	}
 }
 
 func now() string {
@@ -146,7 +153,7 @@ func Debug(e LogEntry) {
 	}
 
 	le := &logEntry{LocalTimestamp: now(), LogEntry: e, severity: logging.Debug, source: caller(e.CallDepth)}
-	log(le, io.MultiWriter(os.Stdout, port))
+	log(le, port, os.Stdout)
 }
 
 // Debugf logs debug information.
@@ -157,7 +164,7 @@ func Debugf(format string, v ...interface{}) {
 // Info logs a general log entry.
 func Info(e LogEntry) {
 	le := &logEntry{LocalTimestamp: now(), LogEntry: e, severity: logging.Info, source: caller(e.CallDepth)}
-	log(le, io.MultiWriter(os.Stdout, port))
+	log(le, port, os.Stdout)
 }
 
 // Infof logs general information.
@@ -168,7 +175,7 @@ func Infof(format string, v ...interface{}) {
 // Warning logs a warning entry.
 func Warning(e LogEntry) {
 	le := &logEntry{LocalTimestamp: now(), LogEntry: e, severity: logging.Warning, source: caller(e.CallDepth)}
-	log(le, io.MultiWriter(os.Stderr, port))
+	log(le, port, os.Stdout)
 }
 
 // Warningf logs warning information.
@@ -179,7 +186,7 @@ func Warningf(format string, v ...interface{}) {
 // Error logs an error entry.
 func Error(e LogEntry) {
 	le := &logEntry{LocalTimestamp: now(), LogEntry: e, severity: logging.Error, source: caller(e.CallDepth)}
-	log(le, io.MultiWriter(os.Stderr, port))
+	log(le, port, os.Stdout)
 }
 
 // Errorf logs error information.
@@ -190,7 +197,7 @@ func Errorf(format string, v ...interface{}) {
 // Fatal logs an error entry and exits.
 func Fatal(e LogEntry) {
 	le := &logEntry{LocalTimestamp: now(), LogEntry: e, severity: logging.Critical, source: caller(e.CallDepth)}
-	log(le, io.MultiWriter(os.Stderr, port))
+	log(le, port, os.Stdout)
 	for _, f := range DeferredFatalFuncs {
 		f()
 	}
