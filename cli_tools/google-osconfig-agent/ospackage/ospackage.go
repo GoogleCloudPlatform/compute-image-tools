@@ -104,14 +104,14 @@ func lookupConfigs(ctx context.Context, client *osconfig.Client, resource string
 func setConfig(res *osconfigpb.LookupConfigsResponse) error {
 	var errs []string
 	if res.Goo != nil && packages.GooGetExists {
-		if _, err := os.Stat(config.GoogetRepoFilePath()); os.IsNotExist(err) {
+		if _, err := os.Stat(config.GooGetRepoFilePath()); os.IsNotExist(err) {
 			logger.Debugf("Repo file does not exist, will create one...")
-			if err := os.MkdirAll(filepath.Dir(config.GoogetRepoFilePath()), 07550); err != nil {
+			if err := os.MkdirAll(filepath.Dir(config.GooGetRepoFilePath()), 07550); err != nil {
 				logger.Errorf("Error creating repo file: %v", err)
 				errs = append(errs, fmt.Sprintf("error creating googet repo file: %v", err))
 			}
 		}
-		if err := googetRepositories(res.Goo.Repositories, config.GoogetRepoFilePath()); err != nil {
+		if err := googetRepositories(res.Goo.Repositories, config.GooGetRepoFilePath()); err != nil {
 			logger.Errorf("Error writing googet repo file: %v", err)
 			errs = append(errs, fmt.Sprintf("error writing googet repo file: %v", err))
 		}
