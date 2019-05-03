@@ -51,7 +51,7 @@ type InstanceInventory struct {
 func write(state *InstanceInventory, url string) {
 	logger.Infof("Writing instance inventory.")
 
-	if err := attributes.PostAttribute(url+"/Timestamp", strings.NewReader(time.Now().UTC().Format(time.RFC3339))); err != nil {
+	if err := attributes.PostAttribute(url+"/LastUpdated", strings.NewReader(time.Now().UTC().Format(time.RFC3339))); err != nil {
 		logger.Errorf("postAttribute error: %v", err)
 	}
 
