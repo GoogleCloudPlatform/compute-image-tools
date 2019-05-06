@@ -26,6 +26,8 @@ import (
 
 var liveState state
 
+const pastJobsNum = 10
+
 type state struct {
 	PatchRuns []*patchRun
 	PastJobs  []string
@@ -38,7 +40,7 @@ func (s *state) jobComplete(job string) {
 	defer s.Unlock()
 	s.PastJobs = append(s.PastJobs, job)
 	for {
-		if len(s.PastJobs) <= 10 {
+		if len(s.PastJobs) <= pastJobsNum {
 			return
 		}
 		s.PastJobs = s.PastJobs[1:]

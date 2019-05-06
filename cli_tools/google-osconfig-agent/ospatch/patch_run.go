@@ -318,14 +318,14 @@ func (r *patchRun) runPatch() {
 				r.reportFailedState(fmt.Sprintf("Error saving agent step: %v", err))
 			}
 		case complete:
-			isFinalRebootRequired, err := systemRebootRequired()
+			isRebootRequired, err := systemRebootRequired()
 			if err != nil {
-				r.reportFailedState(fmt.Sprintf("Unable to check if reboot is required: %v", err))
+				r.reportFailedState(fmt.Sprintf("Error checking if system reboot is required: %v", err))
 				return
 			}
 
 			finalState := osconfigpb.Instance_SUCCEEDED
-			if isFinalRebootRequired {
+			if isRebootRequired {
 				finalState = osconfigpb.Instance_SUCCEEDED_REBOOT_REQUIRED
 			}
 

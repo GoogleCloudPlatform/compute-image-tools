@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -49,7 +48,8 @@ const (
 	osPatchEnabledDefault     = false
 	debugEnabledDefault       = false
 
-	osPatchStateFile = "osconfig_patch.state"
+	osPatchStateFileWindows = `C:\Program Files\Google\OSConfig\osconfig_patch.state`
+	osPatchStateFileLinux   = "/etc/osconfig/osconfig_patch.state"
 
 	osConfigPollIntervalDefault = 10
 )
@@ -372,8 +372,8 @@ func SetVersion(v string) {
 // PatchStateFile is the location of the patch state file.
 func PatchStateFile() string {
 	if runtime.GOOS == "windows" {
-		return filepath.Join(`C:\Program Files\Google\OSConfig`, osPatchStateFile)
+		return osPatchStateFileWindows
 	}
 
-	return filepath.Join(`/etc/osconfig`, osPatchStateFile)
+	return osPatchStateFileLinux
 }
