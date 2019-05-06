@@ -16,6 +16,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"flag"
 	"fmt"
@@ -84,6 +85,9 @@ var (
 
 	userLabels            map[string]string
 	currentExecutablePath *string
+
+	sourceBucketName *string
+	sourceObjectName *string
 )
 
 func init() {
@@ -128,10 +132,13 @@ func validateAndParseFlags() error {
 	}
 
 	if *sourceFile != "" {
-		_, _, err := storageutils.SplitGCSPath(*sourceFile)
+		bucketName, objectName, err := storageutils.SplitGCSPath(*sourceFile)
 		if err != nil {
 			return err
 		}
+
+		sourceBucketName = &bucketName
+		sourceObjectName = &objectName
 	}
 
 	if *labels != "" {
@@ -141,10 +148,32 @@ func validateAndParseFlags() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
-//Returns main workflow and translate workflow paths (if any)
+// Validate source file is not a compression file by checking file header.
+func validateSourceFile(storageClient commondomain.StorageClientInterface) (error) {
+	if sourceFile == nil {
+		return nil
+	}
+
+	rc, err := storageClient.GetObjectReader(*sourceBucketName, *sourceObjectName)
+	if err != nil {
+		return fmt.Errorf("readFile: unable to open file from bucket %q, file %q: %v", *sourceBucketName, *sourceObjectName, err)
+	}
+	defer rc.Close()
+
+	// Try to extract compression file header of the source file.
+	_, err = gzip.NewReader(rc)
+	if err == nil {
+		return fmt.Errorf("source file is a compression file! You may use 'image create' other than 'image import'")
+	}
+
+	return nil
+}
+
+// Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
 		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath()
@@ -346,9 +375,16 @@ func main() {
 	metadataGCEHolder := computeutils.MetadataGCE{}
 	storageClient, err := storageutils.NewStorageClient(
 		ctx, createStorageClient(ctx), logging.NewLogger("[image-import]"))
+	defer storageClient.Close()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+
+	err = validateSourceFile(storageClient)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
 
 	scratchBucketCreator := gcevmimageimportutil.NewScratchBucketCreator(ctx, storageClient)
 	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(
