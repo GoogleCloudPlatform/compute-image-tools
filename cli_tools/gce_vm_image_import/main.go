@@ -167,7 +167,7 @@ func validateSourceFile(storageClient commondomain.StorageClientInterface) (erro
 	// Try to extract compression file header of the source file.
 	_, err = gzip.NewReader(rc)
 	if err == nil {
-		return fmt.Errorf("source file is a compression file! You may use 'image create' other than 'image import'")
+		return fmt.Errorf("source file is a compression file. You may try 'image create' instead of 'image import'")
 	}
 
 	return nil
