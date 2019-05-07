@@ -37,11 +37,8 @@ def main():
   repo = utils.GetMetadataAttribute('google_cloud_repo',
                     raise_on_not_found=True)
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
-
   savelogs = utils.GetMetadataAttribute('el_savelogs') == 'true'
   byol = utils.GetMetadataAttribute('rhel_byol') == 'true'
-  sap_hana = utils.GetMetadataAttribute('rhel_sap_hana') == 'true'
-  sap_apps = utils.GetMetadataAttribute('rhel_sap_apps') == 'true'
   sap = utils.GetMetadataAttribute('rhel_sap') == 'true'
   uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
 
@@ -55,8 +52,7 @@ def main():
   utils.AptGetInstall(['dosfstools', 'rsync'])
 
   # Build the kickstart file.
-  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap, sap_hana,
-                      sap_apps, uefi)
+  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap, uefi)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 
@@ -66,9 +62,9 @@ def main():
   utils.Execute(['parted', '/dev/sdb', 'mklabel', 'gpt'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'fat32', '1MB',
-                 '201MB'])
+                 '601MB'])
   utils.Execute(['sync'])
-  utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'ext2', '201MB',
+  utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'ext2', '601MB',
                  '100%'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'set', '1', 'boot', 'on'])
@@ -104,7 +100,7 @@ def main():
     # Change boot args.
     args = ' '.join([
       'text', 'ks=hd:LABEL=INSTALLER:/%s' % ks_cfg,
-      'console=ttyS0,38400n8', 'inst.sshd=1', 'inst.gpt'
+      'console=ttyS0,38400n8', 'inst.gpt', 'loglevel=debug'
     ])
 
     # Tell Anaconda not to store its logs in the installed image,
@@ -113,7 +109,7 @@ def main():
       args += ' inst.nosave=all'
     cfg = re.sub(r'inst\.stage2.*', r'\g<0> %s' % args, cfg)
 
-    if release in ['centos7', 'rhel7', 'oraclelinux7']:
+    if release in ['centos7', 'rhel7', 'oraclelinux7', 'rhel8']:
       cfg = re.sub(r'LABEL=[^ :]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.

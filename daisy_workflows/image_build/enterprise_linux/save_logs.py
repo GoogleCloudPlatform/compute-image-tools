@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Saves the build logs and synopsis files to GCS from an EL install."""
+"""Saves the build logs to GCS from an EL install."""
 
 import logging
 import os
@@ -24,7 +24,6 @@ import utils
 def main():
   raise_on_not_found = True
   logs_path = utils.GetMetadataAttribute('daisy-logs-path', raise_on_not_found)
-  outs_path = utils.GetMetadataAttribute('daisy-outs-path', raise_on_not_found)
   uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
 
   # Mount the installer disk.
@@ -42,8 +41,6 @@ def main():
     if os.path.isfile(log):
       utils.UploadFile(
           os.path.join(directory, log), '%s/%s' % (logs_path, log))
-  utils.UploadFile(
-      '/mnt/build-logs/synopsis.json', '%s/synopsis.json' % outs_path)
 
   utils.Execute(['umount', '-l', '/mnt'])
 
