@@ -16,6 +16,7 @@ package ospatch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
@@ -40,7 +41,7 @@ const (
 	acked          = "acked"
 	prePatchReboot = "prePatchReboot"
 	patching       = "patching"
-	completed      = "completed"
+	complete       = "complete"
 )
 
 var (
@@ -83,25 +84,19 @@ func Configure(ctx context.Context) {
 // Run runs patching as a single blocking agent, use cancel to cancel.
 func Run(ctx context.Context, cancel <-chan struct{}) {
 	logger.Debugf("Running OSPatch background task.")
-	savedPatchJobName := checkSavedState(ctx)
-	watcher(ctx, savedPatchJobName, cancel, ackPatch)
-	logger.Debugf("OSPatch background task stopping.")
-}
 
-// Load current patch state off disk, schedule the patch if it isn't complete,
-// and return its name.
-func checkSavedState(ctx context.Context) string {
-	savedPatchJobName := ""
-	pr, err := loadState(state)
-	if err != nil {
+	if err := loadState(config.PatchStateFile()); err != nil {
 		logger.Errorf("loadState error: %v", err)
-	} else if pr != nil && !pr.Complete {
-		savedPatchJobName = pr.Job.PatchJob
-		logger.Infof("Loaded State, running patch: '%s'...", savedPatchJobName)
-		pr.ctx = ctx
+	}
+
+	liveState.RLock()
+	for _, pr := range liveState.PatchRuns {
 		tasker.Enqueue("Run patch", pr.runPatch)
 	}
-	return savedPatchJobName
+	liveState.RUnlock()
+
+	watcher(ctx, cancel, ackPatch)
+	logger.Debugf("OSPatch background task stopping.")
 }
 
 type patchRun struct {
@@ -142,60 +137,70 @@ func (r *patchRun) close() {
 	}
 }
 
-func (r *patchRun) saveState() (shouldStop bool) {
-	if err := saveState(state, r); err != nil {
-		logger.Errorf("saveState error: %v", err)
-		return true
+func (r *patchRun) setStep(step patchStep) error {
+	r.PatchStep = step
+	if err := saveState(); err != nil {
+		return fmt.Errorf("error saving state: %v", err)
 	}
-	return false
+	return nil
 }
 
-func (r *patchRun) finishAndReportError(msg string) {
-	r.Complete = true
-	r.EndedAt = time.Now()
+func (r *patchRun) handleErrorState(msg string, err error) {
+	if err == errServerCancel {
+		r.reportCanceledState()
+	} else {
+		r.reportFailedState(msg)
+	}
+}
+
+func (r *patchRun) reportFailedState(msg string) {
 	logger.Errorf(msg)
 	if err := r.reportPatchDetails(osconfigpb.Instance_FAILED, 0, msg); err != nil {
-		logger.Errorf("Failed to report patch failure. Error: %v", err)
-		return
+		logger.Errorf("Failed to report patch failure: %v", err)
 	}
-	r.saveState()
 }
 
-func (r *patchRun) finishJobComplete() {
-	r.Complete = true
-	r.EndedAt = time.Now()
-	logger.Infof("PatchJob %s is complete. Canceling patch execution.", r.Job.PatchJob)
-	r.saveState()
+func (r *patchRun) reportCanceledState() {
+	logger.Infof("Canceling patch execution for PatchJob %q: %s", r.Job.PatchJob, errServerCancel)
+	if err := r.reportPatchDetails(osconfigpb.Instance_FAILED, 0, errServerCancel.Error()); err != nil {
+		logger.Errorf("Failed to report patch cancelation: %v", err)
+	}
 }
 
-func (r *patchRun) reportState(patchState osconfigpb.Instance_PatchState) (shouldStop bool) {
+var errServerCancel = errors.New("service marked PatchJob as completed")
+
+func (r *patchRun) reportContinuingState(patchState osconfigpb.Instance_PatchState) error {
 	if err := r.reportPatchDetails(patchState, 0, ""); err != nil {
-		// If we fail to report state, we can't report that we failed.
-		logger.Errorf("Failed to report state %s. Error: %v", patchState, err)
-		return true
+		return fmt.Errorf("error reporting state %s: %v", patchState, err)
 	}
 	if r.Job.PatchJobState == osconfigpb.ReportPatchJobInstanceDetailsResponse_COMPLETED {
-		r.finishJobComplete()
-		return true
+		return errServerCancel
 	}
-	r.saveState()
-	return false
+	return saveState()
 }
 
-// TODO: Replace the shouldStop returns with something easier to follow.
+func (r *patchRun) complete() {
+	liveState.removePatchRun(r)
+	liveState.jobComplete(r.Job.PatchJob)
+	if err := saveState(); err != nil {
+		logger.Errorf("Error saving state: %v", err)
+	}
+	r.close()
+}
+
 // TODO: Add MaxRebootCount so we don't loop endlessly.
 
-func (r *patchRun) prePatchReboot() (shouldStop bool) {
+func (r *patchRun) prePatchReboot() error {
 	return r.rebootIfNeeded(true)
 }
 
-func (r *patchRun) postPatchReboot() (shouldStop bool) {
+func (r *patchRun) postPatchReboot() error {
 	return r.rebootIfNeeded(false)
 }
 
-func (r *patchRun) rebootIfNeeded(prePatch bool) (shouldStop bool) {
+func (r *patchRun) rebootIfNeeded(prePatch bool) error {
 	if r.Job.PatchConfig.RebootConfig == osconfigpb.PatchConfig_NEVER {
-		return false
+		return nil
 	}
 
 	var reboot bool
@@ -206,8 +211,7 @@ func (r *patchRun) rebootIfNeeded(prePatch bool) (shouldStop bool) {
 	} else {
 		reboot, err = systemRebootRequired()
 		if err != nil {
-			r.finishAndReportError(fmt.Sprintf("Error checking if a system reboot is required: %v", err))
-			return true
+			return fmt.Errorf("error checking if a system reboot is required: %v", err)
 		}
 		if reboot {
 			logger.Infof("System indicates a reboot is required.")
@@ -217,22 +221,21 @@ func (r *patchRun) rebootIfNeeded(prePatch bool) (shouldStop bool) {
 	}
 
 	if !reboot {
-		return false
+		return nil
 	}
 
-	if r.reportState(osconfigpb.Instance_REBOOTING) {
-		return true
+	if err := r.reportContinuingState(osconfigpb.Instance_REBOOTING); err != nil {
+		return err
 	}
 
 	if r.Job.DryRun {
 		logger.Infof("Dry run - not rebooting for patch job '%s'", r.Job.PatchJob)
-		return false
+		return nil
 	}
 
 	r.RebootCount++
 	if err := rebootSystem(); err != nil {
-		r.finishAndReportError(fmt.Sprintf("Failed to reboot system: %v", err))
-		return true
+		return fmt.Errorf("failed to reboot system: %v", err)
 	}
 
 	// Reboot can take a bit, pause here so other activities don't start.
@@ -240,24 +243,6 @@ func (r *patchRun) rebootIfNeeded(prePatch bool) (shouldStop bool) {
 		logger.Debugf("Waiting for system reboot.")
 		time.Sleep(1 * time.Minute)
 	}
-}
-
-func (r *patchRun) reportSucceeded() {
-	isFinalRebootRequired, err := systemRebootRequired()
-	if err != nil {
-		r.finishAndReportError(fmt.Sprintf("Unable to check if reboot is required: %v", err))
-		return
-	}
-
-	r.Complete = true
-	r.EndedAt = time.Now()
-
-	finalState := osconfigpb.Instance_SUCCEEDED
-	if isFinalRebootRequired {
-		finalState = osconfigpb.Instance_SUCCEEDED_REBOOT_REQUIRED
-	}
-
-	r.reportState(finalState)
 }
 
 func (r *patchRun) createClient() error {
@@ -284,64 +269,80 @@ func (r *patchRun) runPatch() {
 	if err := r.createClient(); err != nil {
 		logger.Errorf("Error creating osconfig client: %v", err)
 	}
-	defer r.close()
+	defer r.complete()
 
 	for {
 		switch r.PatchStep {
 		default:
-			r.finishAndReportError(fmt.Sprintf("Unknown step: %q", r.PatchStep))
+			r.reportFailedState(fmt.Sprintf("unknown step: %q", r.PatchStep))
 			return
 		case acked:
 			logger.Debugf("Starting patchJob %s", r.Job)
 			r.StartedAt = time.Now()
-			r.PatchStep = prePatchReboot
+			if err := r.setStep(prePatchReboot); err != nil {
+				r.reportFailedState(fmt.Sprintf("Error saving agent step: %v", err))
+			}
 
-			if r.reportState(osconfigpb.Instance_STARTED) {
+			if err := r.reportContinuingState(osconfigpb.Instance_STARTED); err != nil {
+				r.handleErrorState(err.Error(), err)
 				return
 			}
 		case prePatchReboot:
-			if r.prePatchReboot() {
+			// We do this now to avoid a reboot loop prior to patching.
+			if err := r.setStep(patching); err != nil {
+				r.reportFailedState(fmt.Sprintf("Error saving agent step: %v", err))
+			}
+			if err := r.prePatchReboot(); err != nil {
+				r.handleErrorState(fmt.Sprintf("Error runnning prePatchReboot: %v", err), err)
 				return
 			}
-			r.PatchStep = patching
 		case patching:
 			if r.Job.DryRun {
-				if r.reportState(osconfigpb.Instance_APPLYING_PATCHES) {
+				if err := r.reportContinuingState(osconfigpb.Instance_APPLYING_PATCHES); err != nil {
+					r.handleErrorState(err.Error(), err)
 					return
 				}
 				logger.Infof("Dry run - No updates applied for patch job '%s'", r.Job.PatchJob)
 			} else {
 				if err := runUpdates(r); err != nil {
-					r.finishAndReportError(fmt.Sprintf("Failed to apply patches: %v", err))
+					r.handleErrorState(fmt.Sprintf("Failed to apply patches: %v", err), err)
 					return
 				}
 			}
-			if r.postPatchReboot() {
+			if err := r.postPatchReboot(); err != nil {
+				r.handleErrorState(fmt.Sprintf("Error runnning postPatchReboot: %v", err), err)
 				return
 			}
-			// We have not rebooted so no need to rerun updates.
-			r.PatchStep = completed
-		case completed:
-			r.reportSucceeded()
-			logger.Debugf("Completed patchJob %s", r.Job)
+			// We have not rebooted so patching is complete.
+			if err := r.setStep(complete); err != nil {
+				r.reportFailedState(fmt.Sprintf("Error saving agent step: %v", err))
+			}
+		case complete:
+			isRebootRequired, err := systemRebootRequired()
+			if err != nil {
+				r.reportFailedState(fmt.Sprintf("Error checking if system reboot is required: %v", err))
+				return
+			}
+
+			finalState := osconfigpb.Instance_SUCCEEDED
+			if isRebootRequired {
+				finalState = osconfigpb.Instance_SUCCEEDED_REBOOT_REQUIRED
+			}
+
+			if err := r.reportPatchDetails(finalState, 0, ""); err != nil {
+				logger.Errorf("Failed to report state %s. Error: %v", finalState, err)
+			}
+			logger.Debugf("Successfully completed patchJob %s", r.Job)
 			return
 		}
 	}
 }
 
 func ackPatch(ctx context.Context, patchJobName string) {
-	// TODO: Don't load the state off disk. This should be cached in memory with its access
-	// blocked by a mutex.
-	currentPatchJob, err := loadState(state)
-	if err != nil {
-		logger.Errorf("Unable to load state to ack notification. Error: %v", err)
-		return
-	}
-
-	// Ack if we haven't yet. If we've already been notified about this Job,
+	// Notify the server if we haven't yet. If we've already been notified about this Job,
 	// the server may have inadvertantly notified us twice (at least once deliver) so we
 	// can ignore it.
-	if currentPatchJob == nil || currentPatchJob.Job.PatchJob != patchJobName {
+	if !liveState.alreadyAckedJob(patchJobName) {
 		j := &patchJob{&osconfigpb.ReportPatchJobInstanceDetailsResponse{PatchJob: patchJobName}}
 		pr := &patchRun{ctx: ctx, Job: j}
 		if err := pr.createClient(); err != nil {
@@ -349,10 +350,10 @@ func ackPatch(ctx context.Context, patchJobName string) {
 		}
 		if err := pr.reportPatchDetails(osconfigpb.Instance_ACKED, 0, ""); err != nil {
 			logger.Errorf("reportPatchDetails Error: %v", err)
-			pr.close()
+			pr.complete()
 			return
 		}
-		pr.PatchStep = acked
+		pr.setStep(acked)
 		tasker.Enqueue("Run patch", pr.runPatch)
 	}
 }

@@ -87,8 +87,8 @@ func systemRebootRequired() (bool, error) {
 }
 
 func runUpdates(r *patchRun) error {
-	if r.reportState(osconfigpb.Instance_APPLYING_PATCHES) {
-		return nil
+	if err := r.reportContinuingState(osconfigpb.Instance_APPLYING_PATCHES); err != nil {
+		return err
 	}
 	return packages.UpdatePackages()
 }

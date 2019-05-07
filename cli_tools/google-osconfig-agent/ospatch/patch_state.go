@@ -18,34 +18,122 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"sync"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/config"
 )
 
-const state = "osconfig_patch.state"
+var liveState state
 
-func loadState(state string) (*patchRun, error) {
-	d, err := ioutil.ReadFile(state)
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
+const pastJobsNum = 10
 
-	var pw patchRun
-	return &pw, json.Unmarshal(d, &pw)
+type state struct {
+	PatchRuns []*patchRun
+	PastJobs  []string
+
+	sync.RWMutex `json:"-"`
 }
 
-func saveState(state string, w *patchRun) error {
-	if w == nil {
-		return ioutil.WriteFile(state, []byte("{}"), 0600)
+func (s *state) jobComplete(job string) {
+	s.Lock()
+	defer s.Unlock()
+	s.PastJobs = append(s.PastJobs, job)
+	if len(s.PastJobs) > pastJobsNum {
+		s.PastJobs = s.PastJobs[len(s.PastJobs)-pastJobsNum : len(s.PastJobs)]
+	}
+}
+
+func (s *state) addPatchRun(pr *patchRun) {
+	s.Lock()
+	defer s.Unlock()
+	(*s).PatchRuns = append((*s).PatchRuns, pr)
+}
+
+func (s *state) removePatchRun(pr *patchRun) {
+	s.Lock()
+	defer s.Unlock()
+
+	for i, r := range s.PatchRuns {
+		if r.Job.PatchJob == pr.Job.PatchJob {
+			copy(s.PatchRuns[i:], s.PatchRuns[i+1:])
+			s.PatchRuns[len(s.PatchRuns)-1] = nil
+			s.PatchRuns = s.PatchRuns[:len(s.PatchRuns)-1]
+			return
+		}
+	}
+}
+
+func (s *state) alreadyAckedJob(job string) bool {
+	s.RLock()
+	defer s.RUnlock()
+	for _, r := range s.PatchRuns {
+		if r.Job.PatchJob == job {
+			return true
+		}
+	}
+	for _, j := range s.PastJobs {
+		if j == job {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *state) save(path string) error {
+	s.RLock()
+	defer s.RUnlock()
+
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
 	}
 
-	d, err := json.Marshal(w)
+	if s == nil {
+		return writeFile(path, []byte("{}"))
+	}
+
+	d, err := json.Marshal(s)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Once we are storing more state consider atomic state save
-	// operations.
-	return ioutil.WriteFile(state, d, 0600)
+	return writeFile(path, d)
+}
+
+func saveState() error {
+	return liveState.save(config.PatchStateFile())
+}
+
+func loadState(path string) error {
+	liveState.Lock()
+	defer liveState.Unlock()
+
+	d, err := ioutil.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(d, &liveState)
+}
+
+func writeFile(path string, data []byte) error {
+	// Write state to a temporary file first.
+	tmp, err := ioutil.TempFile(filepath.Dir(path), "")
+	if err != nil {
+		return err
+	}
+	newStateFile := tmp.Name()
+
+	if _, err = tmp.Write(data); err != nil {
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+
+	// Move the new temp file to the live path.
+	return os.Rename(newStateFile, path)
 }

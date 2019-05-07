@@ -48,6 +48,9 @@ const (
 	osPatchEnabledDefault     = false
 	debugEnabledDefault       = false
 
+	osPatchStateFileWindows = `C:\Program Files\Google\OSConfig\osconfig_patch.state`
+	osPatchStateFileLinux   = "/etc/osconfig/osconfig_patch.state"
+
 	osConfigPollIntervalDefault = 10
 )
 
@@ -364,4 +367,13 @@ func Version() string {
 // SetVersion sets the agent version.
 func SetVersion(v string) {
 	version = v
+}
+
+// PatchStateFile is the location of the patch state file.
+func PatchStateFile() string {
+	if runtime.GOOS == "windows" {
+		return osPatchStateFileWindows
+	}
+
+	return osPatchStateFileLinux
 }
