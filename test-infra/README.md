@@ -20,7 +20,7 @@ https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#ci-daisy-e2e
 ## Layout of test-infra/
 
 | Path | Description |
-| - | - |
+| --- | --- |
 | `prow/` | Configuration for the Prow cluster. |
 | `prow/config.yaml` | Configuration describing Prow events and the associated Prow job containers. |
 | `prow/plugins.yaml` | Configuration for Prow plugins. |
