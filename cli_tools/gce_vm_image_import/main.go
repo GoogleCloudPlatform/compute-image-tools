@@ -167,7 +167,7 @@ func validateSourceFile(storageClient commondomain.StorageClientInterface) error
 	// Try to extract compression file header of the source file.
 	_, err = gzip.NewReader(rc)
 	if err == nil {
-		return fmt.Errorf("source file is a compressed file. Please use 'images create' instead of 'images import'")
+		return fmt.Errorf("cannot import an image from a compressed file. Please provide a path to an uncompressed image file. If the compressed file is a exported image, please use 'image create' instead")
 	}
 
 	return nil
@@ -384,7 +384,6 @@ func main() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-
 
 	scratchBucketCreator := gcevmimageimportutil.NewScratchBucketCreator(ctx, storageClient)
 	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(
