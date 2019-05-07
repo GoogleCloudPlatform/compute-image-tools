@@ -268,8 +268,13 @@ func TestJobComplete(t *testing.T) {
 	}{
 		{
 			"add 1 job",
-			&state{PastJobs: []string{"job1"}},
-			[]string{"job1", newjob},
+			&state{PastJobs: []string{"job1", "job2", "job3", "job4", "job5", "job6", "job7", "job8", "job9"}},
+			[]string{"job1", "job2", "job3", "job4", "job5", "job6", "job7", "job8", "job9", newjob},
+		},
+		{
+			"add 1 job, remove first job",
+			&state{PastJobs: []string{"job1", "job2", "job3", "job4", "job5", "job6", "job7", "job8", "job9", "job10"}},
+			[]string{"job2", "job3", "job4", "job5", "job6", "job7", "job8", "job9", "job10", newjob},
 		},
 		{
 			"add 1 job, remove 2 first jobs",

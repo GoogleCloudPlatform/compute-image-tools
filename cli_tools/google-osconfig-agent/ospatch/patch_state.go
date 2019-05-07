@@ -39,11 +39,8 @@ func (s *state) jobComplete(job string) {
 	s.Lock()
 	defer s.Unlock()
 	s.PastJobs = append(s.PastJobs, job)
-	for {
-		if len(s.PastJobs) <= pastJobsNum {
-			return
-		}
-		s.PastJobs = s.PastJobs[1:]
+	if len(s.PastJobs) > pastJobsNum {
+		s.PastJobs = s.PastJobs[len(s.PastJobs)-pastJobsNum : len(s.PastJobs)]
 	}
 }
 
