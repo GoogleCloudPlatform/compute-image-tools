@@ -24,7 +24,6 @@ import utils
 def main():
   raise_on_not_found = True
   logs_path = utils.GetMetadataAttribute('daisy-logs-path', raise_on_not_found)
-  outs_path = utils.GetMetadataAttribute('daisy-outs-path', raise_on_not_found)
   uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
 
   # Mount the installer disk.

@@ -101,7 +101,8 @@ def main():
     cfg = re.sub(r'append initrd=initrd\.img.*', r'\g<0> %s' % args, cfg)
 
     # Change labels to explicit partitions.
-    if release.startswith(('centos7', 'rhel7', 'rhel-7', 'oraclelinux7', 'rhel8')):
+    if release.startswith(('centos7', 'rhel7', 'rhel-7', 'oraclelinux7',
+                           'rhel8')):
       cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.
