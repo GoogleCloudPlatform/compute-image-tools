@@ -12,7 +12,7 @@ Specifically, we publish test data/logs
 to the publicly readable GCS bucket, `compute-image-tools-test`.
 
 Links:
-* Prow dashboard http://35.227.234.167/
+* Prow dashboard http://35.244.198.104/
 * Testgrid dashboard for periodic Daisy e2e tests
 https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#ci-daisy-e2e
 * Gubenator dashboard https://k8s-gubernator.appspot.com/
