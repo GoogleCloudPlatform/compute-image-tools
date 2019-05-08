@@ -15,6 +15,7 @@
 package config
 
 import (
+	"flag"
 	"fmt"
 	"time"
 )
@@ -22,7 +23,7 @@ import (
 var (
 	// TODO: allow this to be configurable through flag to test against staging
 	prodEndpoint           = "osconfig.googleapis.com:443"
-	oauthDefault           = ""
+	oauthDefault           = flag.String("local_oauth", "", "path to service creds file")
 	bucketDefault          = "osconfig-agent-end2end-tests"
 	logPushIntervalDefault = 3 * time.Second
 	logsPath               = fmt.Sprintf("logs-%s", time.Now().Format("2006-01-02-15:04:05"))
@@ -35,7 +36,7 @@ func SvcEndpoint() string {
 
 // OauthPath returns the oauthPath file path
 func OauthPath() string {
-	return oauthDefault
+	return *oauthDefault
 }
 
 // LogBucket returns the oauthPath file path
