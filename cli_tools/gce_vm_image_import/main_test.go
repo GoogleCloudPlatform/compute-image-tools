@@ -214,6 +214,20 @@ func TestFlagsSourceFile(t *testing.T) {
 	}
 }
 
+func TestFlagSourceFileCompressed(t *testing.T) {
+	defer testutils.SetStringP(&sourceBucketName, "source_bucket")()
+	defer testutils.SetStringP(&sourceObjectName, "source_file")()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetObjectReader("source_bucket", "source_file").Return(nil, fmt.Errorf("mock error"))
+
+	if err := validateSourceFile(mockStorageClient); err == nil {
+		t.Errorf("Expected error")
+	}
+}
+
 func TestFlagsInvalidSourceFile(t *testing.T) {
 	defer testutils.BackupOsArgs()()
 

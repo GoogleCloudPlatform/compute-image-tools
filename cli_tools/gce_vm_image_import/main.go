@@ -375,10 +375,10 @@ func main() {
 	metadataGCEHolder := computeutils.MetadataGCE{}
 	storageClient, err := storageutils.NewStorageClient(
 		ctx, createStorageClient(ctx), logging.NewLogger("[image-import]"))
-	defer storageClient.Close()
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+	defer storageClient.Close()
 
 	err = validateSourceFile(storageClient)
 	if err != nil {
