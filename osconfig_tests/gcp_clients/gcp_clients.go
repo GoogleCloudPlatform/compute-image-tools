@@ -20,9 +20,9 @@ import (
 	"sync"
 
 	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	"github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"github.com/GoogleCloudPlatform/osconfig/logger"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	"google.golang.org/api/option"
 )
 
