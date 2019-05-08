@@ -28,11 +28,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
 )
 
 var (
@@ -44,7 +45,6 @@ var (
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
-	patch.TestSuite,
 	packagemanagement.TestSuite,
 	inventory.TestSuite,
 }
@@ -52,6 +52,8 @@ var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.Test
 func main() {
 	flag.Parse()
 	ctx := context.Background()
+
+	gcpclients.PopulateClients(ctx)
 
 	if len(strings.TrimSpace(*testProjectID)) == 0 {
 		fmt.Println("-test_project_id is invalid")

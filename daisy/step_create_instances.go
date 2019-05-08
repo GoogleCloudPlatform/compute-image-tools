@@ -65,6 +65,8 @@ Loop:
 				gcsErr = true
 				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", i.Name, err)
 				continue
+			} else if err != nil { // dont try to close the writer
+				continue
 			}
 			if err := wc.Close(); err != nil && !gcsErr {
 				gcsErr = true
