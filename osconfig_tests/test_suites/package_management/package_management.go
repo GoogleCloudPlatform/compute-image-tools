@@ -44,7 +44,16 @@ var (
 	debianImages  = []string{"projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts", "projects/debian-cloud/global/images/family/debian-9"}
 	centosImages  = []string{"projects/centos-cloud/global/images/family/centos-6", "projects/centos-cloud/global/images/family/centos-7"}
 	rhelImages    = []string{"projects/rhel-cloud/global/images/family/rhel-6", "projects/rhel-cloud/global/images/family/rhel-7"}
-	windowsImages = []string{"projects/windows-cloud/global/images/family/windows-2016"}
+	windowsImages = []string{"projects/windows-cloud/global/images/family/windows-2008-r2",
+		"projects/windows-cloud/global/images/family/windows-2012-r2",
+		"projects/windows-cloud/global/images/family/windows-2012-r2-core",
+		"projects/windows-cloud/global/images/family/windows-2016",
+		"projects/windows-cloud/global/images/family/windows-2016-core",
+		"projects/windows-cloud/global/images/family/windows-1709-core",
+		"projects/windows-cloud/global/images/family/windows-1803-core",
+		"projects/windows-cloud/global/images/family/windows-1809-core",
+		"projects/windows-cloud/global/images/family/windows-2019-core",
+		"projects/windows-cloud/global/images/family/windows-2019"}
 )
 
 var (
