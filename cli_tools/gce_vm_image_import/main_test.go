@@ -16,6 +16,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"strings"
 	"testing"
 
 	"cloud.google.com/go/storage"
@@ -212,6 +214,30 @@ func TestFlagsSourceFile(t *testing.T) {
 	if err := validateAndParseFlags(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
+}
+
+func TestFlagSourceFileCompressed(t *testing.T) {
+	fileString := testutils.CreateCompressedFile()
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(fileString)), nil)
+
+	err := validateSourceFile(mockStorageClient)
+	assert.NotNil(t, err, "Expected error")
+}
+
+func TestFlagSourceFileUncompressed(t *testing.T) {
+	fileString := "random content"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(fileString)), nil)
+
+	err := validateSourceFile(mockStorageClient)
+	assert.Nil(t, err, "Unexpected error")
 }
 
 func TestFlagsInvalidSourceFile(t *testing.T) {

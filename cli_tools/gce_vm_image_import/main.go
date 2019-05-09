@@ -16,6 +16,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"flag"
 	"fmt"
@@ -84,6 +85,9 @@ var (
 
 	userLabels            map[string]string
 	currentExecutablePath *string
+
+	sourceBucketName string
+	sourceObjectName string
 )
 
 func init() {
@@ -128,7 +132,8 @@ func validateAndParseFlags() error {
 	}
 
 	if *sourceFile != "" {
-		_, _, err := storageutils.SplitGCSPath(*sourceFile)
+		var err error
+		sourceBucketName, sourceObjectName, err = storageutils.SplitGCSPath(*sourceFile)
 		if err != nil {
 			return err
 		}
@@ -141,10 +146,31 @@ func validateAndParseFlags() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
-//Returns main workflow and translate workflow paths (if any)
+// Validate source file is not a compression file by checking file header.
+func validateSourceFile(storageClient commondomain.StorageClientInterface) error {
+	if sourceFile == nil {
+		return nil
+	}
+
+	rc, err := storageClient.GetObjectReader(sourceBucketName, sourceObjectName)
+	if err != nil {
+		return fmt.Errorf("readFile: unable to open file from bucket %q, file %q: %v", sourceBucketName, sourceObjectName, err)
+	}
+	defer rc.Close()
+
+	// Detect whether it's a compressed file by extracting compressed file header
+	if _, err = gzip.NewReader(rc); err == nil {
+		return fmt.Errorf("cannot import an image from a compressed file. Please provide a path to an uncompressed image file. If the compressed file is an image exported from Google Compute Engine, please use 'images create' instead")
+	}
+
+	return nil
+}
+
+// Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
 		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath()
@@ -346,6 +372,12 @@ func main() {
 	metadataGCEHolder := computeutils.MetadataGCE{}
 	storageClient, err := storageutils.NewStorageClient(
 		ctx, createStorageClient(ctx), logging.NewLogger("[image-import]"))
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	defer storageClient.Close()
+
+	err = validateSourceFile(storageClient)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
