@@ -86,8 +86,8 @@ var (
 	userLabels            map[string]string
 	currentExecutablePath *string
 
-	sourceBucketName *string
-	sourceObjectName *string
+	sourceBucketName string
+	sourceObjectName string
 )
 
 func init() {
@@ -132,13 +132,11 @@ func validateAndParseFlags() error {
 	}
 
 	if *sourceFile != "" {
-		bucketName, objectName, err := storageutils.SplitGCSPath(*sourceFile)
+		var err error
+		sourceBucketName, sourceObjectName, err = storageutils.SplitGCSPath(*sourceFile)
 		if err != nil {
 			return err
 		}
-
-		sourceBucketName = &bucketName
-		sourceObjectName = &objectName
 	}
 
 	if *labels != "" {
@@ -158,9 +156,9 @@ func validateSourceFile(storageClient commondomain.StorageClientInterface) error
 		return nil
 	}
 
-	rc, err := storageClient.GetObjectReader(*sourceBucketName, *sourceObjectName)
+	rc, err := storageClient.GetObjectReader(sourceBucketName, sourceObjectName)
 	if err != nil {
-		return fmt.Errorf("readFile: unable to open file from bucket %q, file %q: %v", *sourceBucketName, *sourceObjectName, err)
+		return fmt.Errorf("readFile: unable to open file from bucket %q, file %q: %v", sourceBucketName, sourceObjectName, err)
 	}
 	defer rc.Close()
 

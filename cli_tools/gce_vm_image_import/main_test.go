@@ -15,12 +15,12 @@
 package main
 
 import (
-	"cloud.google.com/go/storage"
 	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
 
+	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
@@ -217,9 +217,6 @@ func TestFlagsSourceFile(t *testing.T) {
 }
 
 func TestFlagSourceFileCompressed(t *testing.T) {
-	defer testutils.SetStringP(&sourceBucketName, "source_bucket")()
-	defer testutils.SetStringP(&sourceObjectName, "source_file")()
-
 	fileString := testutils.CreateCompressedFile()
 
 	mockCtrl := gomock.NewController(t)
@@ -232,9 +229,6 @@ func TestFlagSourceFileCompressed(t *testing.T) {
 }
 
 func TestFlagSourceFileUncompressed(t *testing.T) {
-	defer testutils.SetStringP(&sourceBucketName, "source_bucket")()
-	defer testutils.SetStringP(&sourceObjectName, "source_file")()
-
 	fileString := "random content"
 
 	mockCtrl := gomock.NewController(t)
