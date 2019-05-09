@@ -21,6 +21,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"io"
 	"log"
 	"path"
@@ -32,7 +34,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
@@ -247,7 +249,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) (*apiBeta.GuestAttributes, bool) {
+func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) (*apiBeta.GuestAttributes, bool) {
 	testCase.Logf("Creating compute client")
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -258,48 +260,24 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	testSetup.name = fmt.Sprintf("inventory-test-%s-%s", path.Base(testSetup.image), utils.RandString(5))
 
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-2", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "enable-guest-attributes",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-				&api.MetadataItems{
-					Key:   "os-inventory-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-				},
-			},
-		},
-	}
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("enable-guest-attributes", "true"))
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-inventory-enabled", "true"))
+
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", err)
 		return nil, false
 	}
 	defer inst.Cleanup()
+
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 7*time.Minute); err != nil {
@@ -451,6 +429,7 @@ func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
+	var logwg sync.WaitGroup
 	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Gather Inventory", testSetup.image))
 	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check Hostname", testSetup.image))
 	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check ShortName", testSetup.image))
@@ -469,7 +448,7 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 	}
 
 	logger.Printf("Running TestCase '%s.%q'", gatherInventoryTest.Classname, gatherInventoryTest.Name)
-	ga, ok := runGatherInventoryTest(ctx, testSetup, gatherInventoryTest, testProjectConfig)
+	ga, ok := runGatherInventoryTest(ctx, testSetup, gatherInventoryTest, &logwg, testProjectConfig)
 	gatherInventoryTest.Finish(tests)
 	logger.Printf("TestCase '%s.%q' finished", gatherInventoryTest.Classname, gatherInventoryTest.Name)
 	if !ok {
@@ -496,5 +475,6 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 			logger.Printf("TestCase '%s.%q' finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}
 	}
+	logwg.Wait()
 
 }

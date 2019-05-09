@@ -17,7 +17,10 @@ package packagemanagement
 import (
 	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"log"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -30,10 +33,10 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
 
-	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/google-osconfig-agent/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
 var (
@@ -41,7 +44,16 @@ var (
 	debianImages  = []string{"projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts", "projects/debian-cloud/global/images/family/debian-9"}
 	centosImages  = []string{"projects/centos-cloud/global/images/family/centos-6", "projects/centos-cloud/global/images/family/centos-7"}
 	rhelImages    = []string{"projects/rhel-cloud/global/images/family/rhel-6", "projects/rhel-cloud/global/images/family/rhel-7"}
-	windowsImages = []string{"projects/windows-cloud/global/images/family/windows-2016"}
+	windowsImages = []string{"projects/windows-cloud/global/images/family/windows-2008-r2",
+		"projects/windows-cloud/global/images/family/windows-2012-r2",
+		"projects/windows-cloud/global/images/family/windows-2012-r2-core",
+		"projects/windows-cloud/global/images/family/windows-2016",
+		"projects/windows-cloud/global/images/family/windows-2016-core",
+		"projects/windows-cloud/global/images/family/windows-1709-core",
+		"projects/windows-cloud/global/images/family/windows-1803-core",
+		"projects/windows-cloud/global/images/family/windows-1809-core",
+		"projects/windows-cloud/global/images/family/windows-2019-core",
+		"projects/windows-cloud/global/images/family/windows-2019"}
 )
 
 var (
@@ -106,7 +118,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
@@ -118,7 +130,7 @@ func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
 }
 
-func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
@@ -145,58 +157,23 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	//TODO: move instance definition to a common method
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "os-package-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-				&api.MetadataItems{
-					Key:   "os-debug-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-				},
-			},
-		},
-		ServiceAccounts: []*api.ServiceAccount{
-			&api.ServiceAccount{
-				Email:  testProjectConfig.ServiceAccountEmail,
-				Scopes: testProjectConfig.ServiceAccountScopes,
-			},
-		},
-	}
-
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
 
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
+
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
@@ -210,7 +187,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 }
 
-func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
@@ -235,52 +212,22 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "os-package-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-				},
-			},
-		},
-		ServiceAccounts: []*api.ServiceAccount{
-			&api.ServiceAccount{
-				Email:  testProjectConfig.ServiceAccountEmail,
-				Scopes: testProjectConfig.ServiceAccountScopes,
-			},
-		},
-	}
-
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
+
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -296,7 +243,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	}
 }
 
-func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
@@ -319,56 +266,22 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "os-package-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-				&api.MetadataItems{
-					Key:   "os-debug-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-				},
-			},
-		},
-		ServiceAccounts: []*api.ServiceAccount{
-			&api.ServiceAccount{
-				Email:  testProjectConfig.ServiceAccountEmail,
-				Scopes: testProjectConfig.ServiceAccountScopes,
-			},
-		},
-	}
-
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
+
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -384,7 +297,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 }
 
-func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
@@ -407,56 +320,22 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	i := &api.Instance{
-		Name:        testSetup.name,
-		MachineType: fmt.Sprintf("projects/%s/zones/%s/machineTypes/n1-standard-4", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-		NetworkInterfaces: []*api.NetworkInterface{
-			&api.NetworkInterface{
-				Network: "global/networks/default",
-				AccessConfigs: []*api.AccessConfig{
-					&api.AccessConfig{
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
-			},
-		},
-		Metadata: &api.Metadata{
-			Items: []*api.MetadataItems{
-				testSetup.startup,
-				&api.MetadataItems{
-					Key:   "os-package-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-				&api.MetadataItems{
-					Key:   "os-debug-enabled",
-					Value: func() *string { v := "true"; return &v }(),
-				},
-			},
-		},
-		Disks: []*api.AttachedDisk{
-			&api.AttachedDisk{
-				AutoDelete: true,
-				Boot:       true,
-				InitializeParams: &api.AttachedDiskInitializeParams{
-					SourceImage: testSetup.image,
-					DiskType:    fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-ssd", testProjectConfig.TestProjectID, testProjectConfig.TestZone),
-				},
-			},
-		},
-		ServiceAccounts: []*api.ServiceAccount{
-			&api.ServiceAccount{
-				Email:  testProjectConfig.ServiceAccountEmail,
-				Scopes: testProjectConfig.ServiceAccountScopes,
-			},
-		},
-	}
-
-	inst, err := compute.CreateInstance(client, testProjectConfig.TestProjectID, testProjectConfig.TestZone, i)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
 	}
 	defer inst.Cleanup()
+
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -481,7 +360,9 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallRemoval] Package no change", testSetup.image))
 	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallFromNewRepo] Add a new package from new repository", testSetup.image))
 
-	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *testconfig.Project){
+	var logwg sync.WaitGroup
+
+	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project){
 		createOsConfigTest:            runCreateOsConfigTest,
 		packageInstallTest:            runPackageInstallTest,
 		packageRemovalTest:            runPackageRemovalTest,
@@ -497,11 +378,12 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 			tc.Finish(tests)
 		} else {
 			logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
-			f(ctx, tc, testSetup, logger, testProjectConfig)
+			f(ctx, tc, testSetup, logger, &logwg, testProjectConfig)
 			tc.Finish(tests)
 			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
 		}
 	}
+	logwg.Wait()
 }
 
 func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig, testProjectConfig *testconfig.Project) {

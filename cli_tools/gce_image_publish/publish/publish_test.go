@@ -162,6 +162,22 @@ func TestPublishImage(t *testing.T) {
 			nil,
 			false,
 		},
+		{
+			"no image family, don't deprecate",
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family"},
+			[]*compute.Image{
+				{Name: "foo-2", Family: ""},
+				{Name: "foo-1", Family: "", Deprecated: &compute.DeprecationStatus{State: "DEPRECATED"}},
+			},
+			false,
+			false,
+			&daisy.CreateImages{{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, Image: compute.Image{
+				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"},
+			}},
+			nil,
+			false,
+		},
 	}
 	for _, tt := range tests {
 		dr, di, _, err := publishImage(tt.p, tt.img, tt.pubImgs, tt.skipDup, tt.replace)

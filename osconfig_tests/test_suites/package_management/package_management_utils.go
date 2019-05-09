@@ -21,11 +21,19 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/google/logger"
-
 	api "google.golang.org/api/compute/v1"
 )
 
-func getPackageInstallStartupScript(pkgManager, packageName string) *api.MetadataItems {
+var (
+	yumStartupScripts = map[string]string{
+		"rhel-6":   utils.InstallOSConfigYumEL6,
+		"rhel-7":   utils.InstallOSConfigYumEL7,
+		"centos-6": utils.InstallOSConfigYumEL6,
+		"centos-7": utils.InstallOSConfigYumEL7,
+	}
+)
+
+func getPackageInstallStartupScript(image, pkgManager, packageName string) *api.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
@@ -57,7 +65,7 @@ func getPackageInstallStartupScript(pkgManager, packageName string) *api.Metadat
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
@@ -86,7 +94,7 @@ func getPackageInstallStartupScript(pkgManager, packageName string) *api.Metadat
 	}
 }
 
-func getPackageRemovalStartupScript(pkgManager, packageName string) *api.MetadataItems {
+func getPackageRemovalStartupScript(image, pkgManager, packageName string) *api.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
@@ -141,7 +149,7 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) *api.Metadat
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
@@ -182,7 +190,7 @@ func getPackageRemovalStartupScript(pkgManager, packageName string) *api.Metadat
 	}
 }
 
-func getPackageInstallRemovalStartupScript(pkgManager, packageName string) *api.MetadataItems {
+func getPackageInstallRemovalStartupScript(image, pkgManager, packageName string) *api.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
@@ -214,7 +222,7 @@ func getPackageInstallRemovalStartupScript(pkgManager, packageName string) *api.
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
@@ -242,7 +250,7 @@ func getPackageInstallRemovalStartupScript(pkgManager, packageName string) *api.
 	}
 }
 
-func getPackageInstallFromNewRepoTestStartupScript(pkgManager, packageName string) *api.MetadataItems {
+func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageName string) *api.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
@@ -280,7 +288,7 @@ func getPackageInstallFromNewRepoTestStartupScript(pkgManager, packageName strin
 			"fi\n" +
 			"done\n" +
 			"echo \"%s\"\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigYumEL7, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":

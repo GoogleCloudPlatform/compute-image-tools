@@ -110,12 +110,18 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, "oAuthFilePath", w.OAuthPath)
 	assert.Equal(t, "3h", w.DefaultTimeout)
 	assert.Equal(t, 3+3*3, len(w.Steps))
-	assert.Equal(t, "build123", (*w.Steps["create-instance"].CreateInstances)[0].
-		Instance.Labels["gce-ovf-import-build-id"])
-	assert.Equal(t, "uservalue1", (*w.Steps["create-instance"].CreateInstances)[0].
-		Instance.Labels["userkey1"])
-	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
-		Instance.Labels["userkey2"])
+	instance := (*w.Steps["create-instance"].CreateInstances)[0].Instance
+	assert.Equal(t, "build123", instance.Labels["gce-ovf-import-build-id"])
+	assert.Equal(t, "uservalue1", instance.Labels["userkey1"])
+	assert.Equal(t, "uservalue2", instance.Labels["userkey2"])
+	assert.Equal(t, false, *instance.Scheduling.AutomaticRestart)
+	assert.Equal(t, 1, len(instance.Scheduling.NodeAffinities))
+	assert.Equal(t, "env", instance.Scheduling.NodeAffinities[0].Key)
+	assert.Equal(t, "IN", instance.Scheduling.NodeAffinities[0].Operator)
+	assert.Equal(t, 2, len(instance.Scheduling.NodeAffinities[0].Values))
+	assert.Equal(t, "prod", instance.Scheduling.NodeAffinities[0].Values[0])
+	assert.Equal(t, "test", instance.Scheduling.NodeAffinities[0].Values[1])
+
 	assert.Equal(t, fmt.Sprintf("gs://%v/ovf-import-build123/ovf/", createdScratchBucketName),
 		oi.gcsPathToClean)
 }
@@ -799,6 +805,7 @@ func getAllCliArgs() map[string]interface{} {
 		"disable-gcs-logging":           true,
 		"disable-cloud-logging":         true,
 		"disable-stdout-logging":        true,
+		"node-affinity-label":           "env,IN,prod,test",
 	}
 }
 

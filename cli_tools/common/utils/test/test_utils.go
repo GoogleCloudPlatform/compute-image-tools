@@ -17,6 +17,8 @@
 package testutils
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"os"
 )
@@ -102,4 +104,14 @@ func ClearBoolFlag(cliArgs map[string]interface{}, flagKey string, flag **bool) 
 func ClearIntFlag(cliArgs map[string]interface{}, flagKey string, flag **int) func() {
 	delete(cliArgs, flagKey)
 	return SetIntP(flag, 0)
+}
+
+// CreateCompressedFile creates a valid compressed file in memory
+func CreateCompressedFile() string {
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	zw.Name = "dummy.txt"
+	zw.Write([]byte("some content"))
+	zw.Close()
+	return buf.String()
 }
