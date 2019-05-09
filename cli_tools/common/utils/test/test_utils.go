@@ -106,7 +106,7 @@ func ClearIntFlag(cliArgs map[string]interface{}, flagKey string, flag **int) fu
 	return SetIntP(flag, 0)
 }
 
-// Create a valid compressed file in memory
+// CreateCompressedFile creates a valid compressed file in memory
 func CreateCompressedFile() string {
 	var buf bytes.Buffer
 	zw := gzip.NewWriter(&buf)
