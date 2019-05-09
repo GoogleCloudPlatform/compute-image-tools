@@ -29,14 +29,13 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/arg"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/parse"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/util"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
@@ -141,7 +140,7 @@ func validateAndParseFlags() error {
 
 	if *labels != "" {
 		var err error
-		userLabels, err = parseutils.ParseKeyValues(*labels)
+		userLabels, err = argutils.ParseKeyValues(*labels)
 		if err != nil {
 			return err
 		}
@@ -240,19 +239,9 @@ func populateMissingParameters(mgce commondomain.MetadataGCEInterface,
 }
 
 func populateProjectIfMissing(mgce commondomain.MetadataGCEInterface) error {
-	aProject := *project
-	if aProject == "" {
-		if !mgce.OnGCE() {
-			return fmt.Errorf("project cannot be determined because build is not running on GCE")
-		}
-		var err error
-		aProject, err = mgce.ProjectID()
-		if err != nil || aProject == "" {
-			return fmt.Errorf("project cannot be determined %v", err)
-		}
-		project = &aProject
-	}
-	return nil
+	var err error
+	project, err = argutils.GetProjectID(mgce, project)
+	return err
 }
 
 func populateRegion() error {
@@ -324,8 +313,8 @@ func createComputeClient(ctx *context.Context) daisycompute.Client {
 }
 
 func runImport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
-	scratchBucketCreator *gcevmimageimportutil.ScratchBucketCreator,
-	zoneRetriever *gcevmimageimportutil.ZoneRetriever, storageClient commondomain.StorageClientInterface) error {
+	scratchBucketCreator *storageutils.ScratchBucketCreator,
+	zoneRetriever *storageutils.ZoneRetriever, storageClient commondomain.StorageClientInterface) error {
 
 	err := populateMissingParameters(&metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
@@ -382,8 +371,8 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	scratchBucketCreator := gcevmimageimportutil.NewScratchBucketCreator(ctx, storageClient)
-	zoneRetriever, err := gcevmimageimportutil.NewZoneRetriever(
+	scratchBucketCreator := storageutils.NewScratchBucketCreator(ctx, storageClient)
+	zoneRetriever, err := storageutils.NewZoneRetriever(
 		&metadataGCEHolder, createComputeClient(&ctx))
 
 	if err != nil {
