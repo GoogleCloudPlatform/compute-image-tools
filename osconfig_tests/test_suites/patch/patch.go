@@ -26,7 +26,7 @@ import (
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
+	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
@@ -41,20 +41,14 @@ const (
 )
 
 var (
-	dump = &pretty.Config{IncludeUnexported: true}
+	dump   = &pretty.Config{IncludeUnexported: true}
+	suffix = utils.RandString(5)
 )
-
-var vf = func(inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
-	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
-}
 
 type patchTestSetup struct {
 	image         string
-	name          string
 	startup       *api.MetadataItems
-	vstring       string
 	assertTimeout time.Duration
-	vf            func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
 // TestSuite is a PatchTests test suite.
@@ -70,21 +64,151 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 
-	suffix := utils.RandString(5)
-	image := "projects/debian-cloud/global/images/family/debian-9"
-
 	testSetup := []*patchTestSetup{
 		// Windows images.
 		&patchTestSetup{
-			image:   image,
-			name:    fmt.Sprintf("patch-test-%s-%s", path.Base(image), suffix),
-			vstring: "Finished patch job",
+			image:         "projects/windows-cloud/global/images/family/windows-2008-r2",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-2012-r2",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-2012-r2-core",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-2016",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-2016-core",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-1709-core",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-1803-core",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-1809-core",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-2019-core",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/windows-cloud/global/images/family/windows-2019",
+			assertTimeout: 10 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "windows-startup-script-ps1",
+				Value: &utils.InstallOSConfigGooGet,
+			},
+		},
+
+		// Debian images.
+		&patchTestSetup{
+			image:         "projects/debian-cloud/global/images/family/debian-9",
+			assertTimeout: 5 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "startup-script",
 				Value: &utils.InstallOSConfigDeb,
 			},
-			vf:            vf,
-			assertTimeout: 1200 * time.Second,
+		},
+
+		// Centos images.
+		&patchTestSetup{
+			image:         "projects/centos-cloud/global/images/family/centos-6",
+			assertTimeout: 5 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigYumEL6,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/centos-cloud/global/images/family/centos-7",
+			assertTimeout: 5 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigYumEL7,
+			},
+		},
+
+		// RHEL images.
+		&patchTestSetup{
+			image:         "projects/rhel-cloud/global/images/family/rhel-6",
+			assertTimeout: 5 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigYumEL6,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/rhel-cloud/global/images/family/rhel-7",
+			assertTimeout: 5 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigYumEL7,
+			},
+		},
+
+		// Ubuntu images
+		&patchTestSetup{
+			image:         "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
+			assertTimeout: 5 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigDeb,
+			},
+		},
+		&patchTestSetup{
+			image:         "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts",
+			assertTimeout: 5 * time.Minute,
+			startup: &api.MetadataItems{
+				Key:   "startup-script",
+				Value: &utils.InstallOSConfigDeb,
+			},
 		},
 	}
 
@@ -119,7 +243,8 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-patch-enabled", "true"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	testSetupName := fmt.Sprintf("patch-test-%s-%s", path.Base(testSetup.image), suffix)
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetupName, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -143,7 +268,7 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	req := &osconfigpb.ExecutePatchJobRequest{
 		Parent:      parent,
 		Description: "testing default patch job run",
-		Filter:      fmt.Sprintf("name=\"%s\"", testSetup.name),
+		Filter:      fmt.Sprintf("name=\"%s\"", testSetupName),
 		Duration:    &duration.Duration{Seconds: int64(assertTimeout / time.Second)},
 	}
 	job, err := osconfigClient.ExecutePatchJob(ctx, req)
@@ -152,6 +277,8 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 		testCase.WriteFailure("error while executing patch job: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
+
+	testCase.Logf("Started patch job '%s'", job.GetName())
 
 	logger.Printf("%v\n", job)
 
@@ -172,6 +299,12 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 				testCase.WriteFailure("error while fetching patch job: \n%s\n", utils.GetStatusFromError(err))
 				return
 			}
+
+			if isPatchJobFailureState(res.State) {
+				testCase.WriteFailure("Patch job completed with status %v", res.State)
+				return
+			}
+
 			if res.State == osconfigpb.PatchJob_SUCCEEDED {
 				if res.InstanceDetailsSummary.GetInstancesSucceeded() < 1 {
 					testCase.WriteFailure("no instance patched")
@@ -182,10 +315,16 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	}
 }
 
+func isPatchJobFailureState(state osconfigpb.PatchJob_State) bool {
+	return state == osconfigpb.PatchJob_COMPLETED_WITH_ERRORS ||
+		state == osconfigpb.PatchJob_TIMED_OUT ||
+		state == osconfigpb.PatchJob_CANCELED
+}
+
 func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/CreatePatchJob] Create PatchJob", testSetup.image))
+	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Execute PatchJob", testSetup.image))
 
 	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *patchTestSetup, *log.Logger, *testconfig.Project){
 		executePatchTest: runExecutePatchTest,

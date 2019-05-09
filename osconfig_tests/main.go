@@ -28,12 +28,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
+
+	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 )
 
 var (
@@ -47,6 +48,7 @@ var (
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
 	packagemanagement.TestSuite,
 	inventory.TestSuite,
+	patch.TestSuite,
 }
 
 func main() {
