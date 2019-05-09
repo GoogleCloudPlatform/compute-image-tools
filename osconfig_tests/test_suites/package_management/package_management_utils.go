@@ -18,6 +18,7 @@ package packagemanagement
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/google/logger"
@@ -129,13 +130,17 @@ func getPackageRemovalStartupScript(image, pkgManager, packageName string) *api.
 		key = "startup-script"
 
 	case "yum":
+		restartAgent := "systemctl restart google-osconfig-agent"
+		if strings.HasSuffix(image, "-6") {
+			restartAgent = "restart -q -n google-osconfig-agent"
+		}
 		ss = "%s\n" +
 			"yum -y install %s\n" +
 			"if [[ $? != 0 ]]; then\n" +
 			"echo \"could not install package\"\n" +
 			"exit 1\n" +
 			"fi\n" +
-			"systemctl restart google-osconfig-agent\n" +
+			restartAgent + "\n" +
 			"if [[ $? != 0 ]]; then\n" +
 			"echo \"Error restarting google-osconfig-agent\"\n" +
 			"exit 1\n" +
@@ -274,9 +279,13 @@ func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageNam
 		key = "startup-script"
 
 	case "yum":
+		restartAgent := "systemctl restart google-osconfig-agent"
+		if strings.HasSuffix(image, "-6") {
+			restartAgent = "restart -q -n google-osconfig-agent"
+		}
 		ss = "%s\n" +
 			"sleep 10;\n" + // allow time for the test runner create the osconfigs, assignments
-			"systemctl restart google-osconfig-agent\n" +
+			restartAgent + "\n" +
 			"while true\n" +
 			"do\n" +
 			"isinstalled=`/usr/bin/rpmquery -a %s`\n" +
