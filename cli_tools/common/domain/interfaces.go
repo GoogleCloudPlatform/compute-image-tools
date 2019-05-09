@@ -81,3 +81,8 @@ type MetadataGCEInterface interface {
 type ZoneValidatorInterface interface {
 	ZoneValid(project string, zone string) error
 }
+
+// GzipOperatorInterface represents operations towards gzip file
+type GzipOperatorInterface interface {
+	IsCompressedFile(r io.Reader) bool
+}

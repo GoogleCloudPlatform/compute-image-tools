@@ -164,9 +164,8 @@ func validateSourceFile(storageClient commondomain.StorageClientInterface) error
 	}
 	defer rc.Close()
 
-	// Try to extract compression file header of the source file.
-	_, err = gzip.NewReader(rc)
-	if err == nil {
+	// Detect whether it's a compressed file by extracting compressed file header
+	if _, err = gzip.NewReader(rc); err == nil {
 		return fmt.Errorf("cannot import an image from a compressed file. Please provide a path to an uncompressed image file. If the compressed file is an image exported from Google Compute Engine, please use 'images create' instead")
 	}
 

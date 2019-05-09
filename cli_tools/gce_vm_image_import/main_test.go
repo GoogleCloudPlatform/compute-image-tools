@@ -15,14 +15,17 @@
 package main
 
 import (
-	"fmt"
-	"testing"
-
+	"bytes"
 	"cloud.google.com/go/storage"
+	"compress/gzip"
+	"fmt"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"strings"
+	"testing"
 )
 
 func TestGetRegion(t *testing.T) {
@@ -218,14 +221,41 @@ func TestFlagSourceFileCompressed(t *testing.T) {
 	defer testutils.SetStringP(&sourceBucketName, "source_bucket")()
 	defer testutils.SetStringP(&sourceObjectName, "source_file")()
 
+	fileString := CreateCompressedFile()
+
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader("source_bucket", "source_file").Return(nil, fmt.Errorf("mock error"))
+	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(fileString)), nil)
 
 	if err := validateSourceFile(mockStorageClient); err == nil {
 		t.Errorf("Expected error")
 	}
+}
+
+func TestFlagSourceFileUncompressed(t *testing.T) {
+	defer testutils.SetStringP(&sourceBucketName, "source_bucket")()
+	defer testutils.SetStringP(&sourceObjectName, "source_file")()
+
+	fileString := "random content"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(fileString)), nil)
+
+	if err := validateSourceFile(mockStorageClient); err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func CreateCompressedFile() string {
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	zw.Name = "dummy.txt"
+	zw.Write([]byte("some content"))
+	zw.Close()
+	return buf.String()
 }
 
 func TestFlagsInvalidSourceFile(t *testing.T) {
