@@ -20,25 +20,20 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"log"
 	"os"
-	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 
-	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/arg"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/option"
 )
 
 const (
@@ -140,7 +135,7 @@ func validateAndParseFlags() error {
 
 	if *labels != "" {
 		var err error
-		userLabels, err = argutils.ParseKeyValues(*labels)
+		userLabels, err = paramutils.ParseKeyValues(*labels)
 		if err != nil {
 			return err
 		}
@@ -172,12 +167,12 @@ func validateSourceFile(storageClient commondomain.StorageClientInterface) error
 // Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return toWorkingDir(importFromImageWorkflow), getTranslateWorkflowPath()
+		return pathutils.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath), getTranslateWorkflowPath()
 	}
 	if *dataDisk {
-		return toWorkingDir(importWorkflow), ""
+		return pathutils.ToWorkingDir(importWorkflow, *currentExecutablePath), ""
 	}
-	return toWorkingDir(importAndTranslateWorkflow), getTranslateWorkflowPath()
+	return pathutils.ToWorkingDir(importAndTranslateWorkflow, *currentExecutablePath), getTranslateWorkflowPath()
 }
 
 func getTranslateWorkflowPath() string {
@@ -185,83 +180,6 @@ func getTranslateWorkflowPath() string {
 		return *customTranWorkflow
 	}
 	return daisyutils.GetTranslateWorkflowPath(osID)
-}
-
-func toWorkingDir(dir string) string {
-	wd, err := filepath.Abs(filepath.Dir(*currentExecutablePath))
-	if err == nil {
-		return path.Join(wd, dir)
-	}
-	return dir
-}
-
-func populateMissingParameters(mgce commondomain.MetadataGCEInterface,
-	scratchBucketCreator domain.ScratchBucketCreatorInterface,
-	zoneRetriever domain.ZoneRetrieverInterface, storageClient commondomain.StorageClientInterface) error {
-
-	if err := populateProjectIfMissing(mgce); err != nil {
-		return err
-	}
-
-	scratchBucketRegion := ""
-	if *scratchBucketGcsPath == "" {
-		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(*sourceFile, *project)
-		scratchBucketRegion = sbr
-		if err != nil {
-			return err
-		}
-
-		newScratchBucketGcsPath := fmt.Sprintf("gs://%v/", scratchBucketName)
-		scratchBucketGcsPath = &newScratchBucketGcsPath
-	} else {
-		scratchBucketName, err := storageutils.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
-		if err != nil {
-			return fmt.Errorf("invalid scratch bucket GCS path %v", *scratchBucketGcsPath)
-		}
-		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
-		if err == nil {
-			scratchBucketRegion = scratchBucketAttrs.Location
-		}
-	}
-
-	if *zone == "" {
-		if aZone, err := zoneRetriever.GetZone(scratchBucketRegion, *project); err == nil {
-			zone = &aZone
-		} else {
-			return err
-		}
-	}
-
-	if err := populateRegion(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func populateProjectIfMissing(mgce commondomain.MetadataGCEInterface) error {
-	var err error
-	project, err = argutils.GetProjectID(mgce, project)
-	return err
-}
-
-func populateRegion() error {
-	aRegion, err := getRegion()
-	if err != nil {
-		return err
-	}
-	region = &aRegion
-	return nil
-}
-
-func getRegion() (string, error) {
-	if *zone == "" {
-		return "", fmt.Errorf("zone is empty. Can't determine region")
-	}
-	zoneStrs := strings.Split(*zone, "-")
-	if len(zoneStrs) < 2 {
-		return "", fmt.Errorf("%v is not a valid zone", *zone)
-	}
-	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
 }
 
 func buildDaisyVars(translateWorkflowPath string) map[string]string {
@@ -289,37 +207,7 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 	return varMap
 }
 
-func createStorageClient(ctx context.Context) *storage.Client {
-	storageOptions := []option.ClientOption{option.WithCredentialsFile(*oauth)}
-	storageClient, err := storage.NewClient(ctx, storageOptions...)
-	if err != nil {
-		log.Fatalf("error creating storage client %v", err)
-	}
-	return storageClient
-}
-
-// creates a new Daisy Compute client
-func createComputeClient(ctx *context.Context) daisycompute.Client {
-	computeOptions := []option.ClientOption{option.WithCredentialsFile(*oauth)}
-	if *ce != "" {
-		computeOptions = append(computeOptions, option.WithEndpoint(*ce))
-	}
-
-	computeClient, err := daisycompute.NewClient(*ctx, computeOptions...)
-	if err != nil {
-		log.Fatalf("compute client: %v", err)
-	}
-	return computeClient
-}
-
-func runImport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
-	scratchBucketCreator *storageutils.ScratchBucketCreator,
-	zoneRetriever *storageutils.ZoneRetriever, storageClient commondomain.StorageClientInterface) error {
-
-	err := populateMissingParameters(&metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient)
-	if err != nil {
-		return err
-	}
+func runImport(ctx context.Context) error {
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
 	varMap := buildDaisyVars(translateWorkflowPath)
 	workflow, err := daisyutils.ParseWorkflow(&computeutils.MetadataGCE{}, importWorkflowPath, varMap,
@@ -358,28 +246,32 @@ func main() {
 	}
 
 	ctx := context.Background()
-	metadataGCEHolder := computeutils.MetadataGCE{}
+	metadataGCE := &computeutils.MetadataGCE{}
 	storageClient, err := storageutils.NewStorageClient(
-		ctx, createStorageClient(ctx), logging.NewLogger("[image-import]"))
+		ctx, logging.NewLogger("[image-import]"), oauth)
+	if err != nil {
+		log.Fatalf("error creating storage client %v", err)
+	}
+	defer storageClient.Close()
+
+	scratchBucketCreator := storageutils.NewScratchBucketCreator(ctx, storageClient)
+	zoneRetriever, err := storageutils.NewZoneRetriever(metadataGCE, paramutils.CreateComputeClient(&ctx, *oauth, *ce))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	defer storageClient.Close()
+
+	err = paramutils.PopulateMissingParameters(project, zone, &region, scratchBucketGcsPath,
+		*sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 
 	err = validateSourceFile(storageClient)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 
-	scratchBucketCreator := storageutils.NewScratchBucketCreator(ctx, storageClient)
-	zoneRetriever, err := storageutils.NewZoneRetriever(
-		&metadataGCEHolder, createComputeClient(&ctx))
-
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	if err := runImport(ctx, metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient); err != nil {
+	if err := runImport(ctx); err != nil {
 		log.Fatalf(err.Error())
 	}
 }

@@ -49,7 +49,11 @@ type StorageClient struct {
 
 // NewStorageClient creates a StorageClient
 func NewStorageClient(ctx context.Context,
+<<<<<<< HEAD
 		logger logging.LoggerInterface, oauth *string) (*StorageClient, error) {
+=======
+	logger logging.LoggerInterface, oauth *string) (*StorageClient, error) {
+>>>>>>> refactor import/export wrapper
 
 	storageOptions := []option.ClientOption{}
 	if oauth != nil {
@@ -59,6 +63,10 @@ func NewStorageClient(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+<<<<<<< HEAD
+=======
+
+>>>>>>> refactor import/export wrapper
 	sc := &StorageClient{StorageClient: client, Ctx: ctx,
 		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}
 

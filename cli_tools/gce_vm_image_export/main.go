@@ -19,24 +19,18 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/arg"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
-	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/option"
 )
 
 const (
@@ -71,9 +65,6 @@ var (
 
 	userLabels            map[string]string
 	currentExecutablePath *string
-
-	destinationBucketName *string
-	destinationObjectName *string
 )
 
 func init() {
@@ -99,20 +90,9 @@ func validateAndParseFlags() error {
 		return fmt.Errorf("-image and -image_family can't be both specified")
 	}
 
-
-	if *destinationUri != "" {
-		bucketName, objectName, err := storageutils.SplitGCSPath(*destinationUri)
-		if err != nil {
-			return err
-		}
-
-		destinationBucketName = &bucketName
-		destinationObjectName = &objectName
-	}
-
 	if *labels != "" {
 		var err error
-		userLabels, err = argutils.ParseKeyValues(*labels)
+		userLabels, err = paramutils.ParseKeyValues(*labels)
 		if err != nil {
 			return err
 		}
@@ -120,7 +100,6 @@ func validateAndParseFlags() error {
 
 	return nil
 }
-
 
 func getWorkflowPath() string {
 	if *format == "" {
@@ -130,132 +109,32 @@ func getWorkflowPath() string {
 	}
 }
 
-
-func populateMissingParameters(mgce commondomain.MetadataGCEInterface,
-	scratchBucketCreator domain.ScratchBucketCreatorInterface,
-	zoneRetriever domain.ZoneRetrieverInterface, storageClient commondomain.StorageClientInterface) error {
-
-	if err := populateProjectIfMissing(mgce); err != nil {
-		return err
-	}
-
-	scratchBucketRegion := ""
-	if *scratchBucketGcsPath == "" {
-		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(*sourceFile, *project)
-		scratchBucketRegion = sbr
-		if err != nil {
-			return err
-		}
-
-		newScratchBucketGcsPath := fmt.Sprintf("gs://%v/", scratchBucketName)
-		scratchBucketGcsPath = &newScratchBucketGcsPath
-	} else {
-		scratchBucketName, err := storageutils.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
-		if err != nil {
-			return fmt.Errorf("invalid scratch bucket GCS path %v", *scratchBucketGcsPath)
-		}
-		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
-		if err == nil {
-			scratchBucketRegion = scratchBucketAttrs.Location
-		}
-	}
-
-	if *zone == "" {
-		if aZone, err := zoneRetriever.GetZone(scratchBucketRegion, *project); err == nil {
-			zone = &aZone
-		} else {
-			return err
-		}
-	}
-
-	if err := populateRegion(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func populateProjectIfMissing(mgce commondomain.MetadataGCEInterface) error {
-	var err error
-	project, err = argutils.GetProjectID(mgce, project)
-	return err
-}
-
-func populateRegion() error {
-	aRegion, err := getRegion()
-	if err != nil {
-		return err
-	}
-	region = &aRegion
-	return nil
-}
-
-func getRegion() (string, error) {
-	if *zone == "" {
-		return "", fmt.Errorf("zone is empty. Can't determine region")
-	}
-	zoneStrs := strings.Split(*zone, "-")
-	if len(zoneStrs) < 2 {
-		return "", fmt.Errorf("%v is not a valid zone", *zone)
-	}
-	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
-}
-
-func buildDaisyVars(translateWorkflowPath string) map[string]string {
+func buildDaisyVars() map[string]string {
 	varMap := map[string]string{}
 
-	varMap["image_name"] = strings.ToLower(*imageName)
-	if translateWorkflowPath != "" {
-		varMap["translate_workflow"] = translateWorkflowPath
-		varMap["install_gce_packages"] = strconv.FormatBool(!*noGuestEnvironment)
+	varMap["destination"] = *destinationUri
+
+	// TODO: get source_image by image or image_family
+	varMap["source_image"] = strings.ToLower(*image)
+	if *image != "" {
+		varMap["source_image"] = fmt.Sprintf("global/images/%v", *image)
+	} else {
+		varMap["family"] = *family
 	}
-	if *sourceFile != "" {
-		varMap["source_disk_file"] = *sourceFile
+
+	if *format != "" {
+		varMap["format"] = fmt.Sprintf("global/images/%v", *format)
 	}
-	if *sourceImage != "" {
-		varMap["source_image"] = fmt.Sprintf("global/images/%v", *sourceImage)
-	}
-	varMap["family"] = *family
-	varMap["description"] = *description
 	if *network != "" {
-		varMap["import_network"] = fmt.Sprintf("global/networks/%v", *network)
+		varMap["export_network"] = fmt.Sprintf("global/networks/%v", *network)
 	}
 	if *subnet != "" {
-		varMap["import_subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", *region, *subnet)
+		varMap["export_subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", *region, *subnet)
 	}
 	return varMap
 }
 
-func createStorageClient(ctx context.Context) *storage.Client {
-	storageOptions := []option.ClientOption{option.WithCredentialsFile(*oauth)}
-	storageClient, err := storage.NewClient(ctx, storageOptions...)
-	if err != nil {
-		log.Fatalf("error creating storage client %v", err)
-	}
-	return storageClient
-}
-
-// creates a new Daisy Compute client
-func createComputeClient(ctx *context.Context) daisycompute.Client {
-	computeOptions := []option.ClientOption{option.WithCredentialsFile(*oauth)}
-	if *ce != "" {
-		computeOptions = append(computeOptions, option.WithEndpoint(*ce))
-	}
-
-	computeClient, err := daisycompute.NewClient(*ctx, computeOptions...)
-	if err != nil {
-		log.Fatalf("compute client: %v", err)
-	}
-	return computeClient
-}
-
-func runExport(ctx context.Context, metadataGCEHolder computeutils.MetadataGCE,
-	scratchBucketCreator *storageutils.ScratchBucketCreator,
-	zoneRetriever *storageutils.ZoneRetriever, storageClient commondomain.StorageClientInterface) error {
-
-	err := populateMissingParameters(&metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient)
-	if err != nil {
-		return err
-	}
+func runExport(ctx context.Context) error {
 	exportWorkflowPath := getWorkflowPath()
 	varMap := buildDaisyVars()
 	workflow, err := daisyutils.ParseWorkflow(&computeutils.MetadataGCE{}, exportWorkflowPath, varMap,
@@ -289,23 +168,27 @@ func main() {
 	}
 
 	ctx := context.Background()
-	metadataGCEHolder := computeutils.MetadataGCE{}
+	metadataGCE := &computeutils.MetadataGCE{}
 	storageClient, err := storageutils.NewStorageClient(
-		ctx, createStorageClient(ctx), logging.NewLogger("[image-import]"))
+		ctx, logging.NewLogger("[image-export]"), oauth)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("error creating storage client %v", err)
 	}
 	defer storageClient.Close()
 
 	scratchBucketCreator := storageutils.NewScratchBucketCreator(ctx, storageClient)
-	zoneRetriever, err := storageutils.NewZoneRetriever(
-		&metadataGCEHolder, createComputeClient(&ctx))
-
+	zoneRetriever, err := storageutils.NewZoneRetriever(metadataGCE, paramutils.CreateComputeClient(&ctx, *oauth, *ce))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 
-	if err := runExport(ctx, metadataGCEHolder, scratchBucketCreator, zoneRetriever, storageClient); err != nil {
+	err = paramutils.PopulateMissingParameters(project, zone, &region, scratchBucketGcsPath,
+		*destinationUri, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	if err := runExport(ctx); err != nil {
 		log.Fatalf(err.Error())
 	}
 }

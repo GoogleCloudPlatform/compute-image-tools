@@ -39,7 +39,7 @@ type ScratchBucketCreator struct {
 
 // NewScratchBucketCreator creates a ScratchBucketCreator
 func NewScratchBucketCreator(ctx context.Context, storageClient commondomain.StorageClientInterface) *ScratchBucketCreator {
-	return &ScratchBucketCreator{storageClient, ctx, &storageutils.BucketIteratorCreator{}}
+	return &ScratchBucketCreator{storageClient, ctx, &BucketIteratorCreator{}}
 }
 
 // CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
