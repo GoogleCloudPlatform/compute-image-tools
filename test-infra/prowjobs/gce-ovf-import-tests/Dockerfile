@@ -13,7 +13,6 @@
 # limitations under the License.
 FROM golang:alpine
 
-ENV GOPATH=/usr/local/google/home/zoranl/go/
 RUN apk add --no-cache git
 
 WORKDIR /tmp
@@ -27,4 +26,5 @@ ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account
 
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /gce_ovf_import_test_runner gce_ovf_import_test_runner
+COPY gce_ovf_import_tests/scripts/ /gce_ovf_import_tests/scripts/
 ENTRYPOINT ["./wrapper", "./gce_ovf_import_test_runner"]

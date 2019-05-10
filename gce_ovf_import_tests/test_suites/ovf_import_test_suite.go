@@ -71,7 +71,6 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	suffix := utils.RandString(5)
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 
-	//startupScript := "echo 'SUCCESS wVnWw3a41CVe3mBVvTMn'"
 	startupScript, err := ioutil.ReadFile("gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh")
 	if err != nil {
 		os.Exit(1)
@@ -81,14 +80,14 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-instance-ubuntu-3mounteddisks-%v", suffix),
-				OvfOvaGcsPath: "gs://zoran-playground/ova/Ubuntu_for_Horizon_three_disks_mounted.ova",
+				OvfOvaGcsPath: "gs://compute-image-tools-test-resources/ova/Ubuntu_for_Horizon_three_disks_mounted.ova",
 				OsID:          "ubuntu-1404",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-2",
 			},
-			name:          fmt.Sprintf("ovf-import-test-%s", suffix),
+			name:          fmt.Sprintf("ovf-import-test-ubuntu-3-disks-%s", suffix),
 			startup:       computeUtils.BuildInstanceMetadataItem("startup-script", string(startupScript)),
 			assertTimeout: 7200 * time.Second,
 		},
@@ -160,7 +159,6 @@ func runOvfImportTest(ctx context.Context, testCase *junitxml.TestCase, testSetu
 	}
 
 	instanceName := testSetup.importParams.InstanceNames
-	//instanceName := "test-instance-ubuntu-3mounteddisks-v0352"
 
 	instance, err := client.GetInstance(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 	if !strings.HasSuffix(instance.MachineType, testSetup.importParams.MachineType) {
@@ -204,5 +202,6 @@ func runOvfImportTest(ctx context.Context, testCase *junitxml.TestCase, testSetu
 		return
 	}
 
+	logger.Printf("Deleting instance `%v`", instanceName)
 	inst.Cleanup()
 }
