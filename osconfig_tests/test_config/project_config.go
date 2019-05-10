@@ -30,6 +30,7 @@ func GetProject(projectID, testZone string) *Project {
 		ServiceAccountEmail: "default",
 		ServiceAccountScopes: []string{
 			"https://www.googleapis.com/auth/cloud-platform",
+			"https://www.googleapis.com/auth/devstorage.full_control",
 		},
 	}
 }
