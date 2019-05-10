@@ -288,26 +288,26 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	for {
 		select {
 		case <-timedout:
-			testCase.WriteFailure("Patching timed out")
+			testCase.WriteFailure("Patch job '%s' timed out", job.GetName())
 			return
 		case <-tick:
 			req := &osconfigpb.GetPatchJobRequest{
-				Name: job.Name,
+				Name: job.GetName(),
 			}
 			res, err := osconfigClient.GetPatchJob(ctx, req)
 			if err != nil {
-				testCase.WriteFailure("error while fetching patch job: \n%s\n", utils.GetStatusFromError(err))
+				testCase.WriteFailure("Error while fetching patch job: \n%s\n", utils.GetStatusFromError(err))
 				return
 			}
 
 			if isPatchJobFailureState(res.State) {
-				testCase.WriteFailure("Patch job completed with status %v", res.State)
+				testCase.WriteFailure("Patch job '%s' completed with status %v and message '%s'", job.GetName(), res.State, job.GetErrorMessage())
 				return
 			}
 
 			if res.State == osconfigpb.PatchJob_SUCCEEDED {
 				if res.InstanceDetailsSummary.GetInstancesSucceeded() < 1 {
-					testCase.WriteFailure("no instance patched")
+					testCase.WriteFailure("Patch job '%s' completed with no instances patched", job.GetName())
 				}
 				return
 			}
