@@ -42,7 +42,7 @@ var (
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
-	ovf_test_suites.TestSuite,
+	ovftestsuite.TestSuite,
 }
 
 func main() {

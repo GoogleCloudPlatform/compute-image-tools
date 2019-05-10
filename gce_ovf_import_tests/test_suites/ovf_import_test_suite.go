@@ -12,8 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package main contains e2e tests for OVF import
-package ovf_test_suites
+// Package ovftestsuite contains e2e tests for OVF import
+package ovftestsuite
 
 import (
 	"context"
