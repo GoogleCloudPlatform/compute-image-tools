@@ -17,8 +17,6 @@ package packagemanagement
 import (
 	"context"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"log"
 	"path"
 	"path/filepath"
@@ -27,6 +25,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
@@ -34,8 +35,8 @@ import (
 	api "google.golang.org/api/compute/v1"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
@@ -159,7 +160,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
 	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
@@ -214,7 +215,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
 	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
@@ -268,7 +269,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
 	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
@@ -322,7 +323,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
 	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))

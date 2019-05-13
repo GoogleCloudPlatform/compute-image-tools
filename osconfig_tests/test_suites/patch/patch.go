@@ -242,7 +242,7 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-patch-enabled", "true"))
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch"))
 	testSetupName := fmt.Sprintf("patch-test-%s-%s", path.Base(testSetup.image), suffix)
 	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetupName, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
