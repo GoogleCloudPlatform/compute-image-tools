@@ -82,7 +82,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	pr := testconfig.GetProject(*testProjectID, &zones)
+	pr := testconfig.GetProject(*testProjectID, zones)
 
 	var testSuiteRegex *regexp.Regexp
 	if *testSuiteFilter != "" {

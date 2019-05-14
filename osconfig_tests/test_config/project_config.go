@@ -32,18 +32,18 @@ type Project struct {
 }
 
 // GetProject ...
-func GetProject(projectID string, testZones *map[string]int) *Project {
-	zoneIndices := make(map[int]string, len(*testZones))
+func GetProject(projectID string, testZones map[string]int) *Project {
+	zoneIndices := make(map[int]string, len(testZones))
 
 	i := 0
-	for z := range *testZones {
+	for z := range testZones {
 		zoneIndices[i] = z
 		i++
 	}
 
 	return &Project{
 		TestProjectID:       projectID,
-		testZones:           *testZones,
+		testZones:           testZones,
 		zoneIndices:         zoneIndices,
 		ServiceAccountEmail: "default",
 		ServiceAccountScopes: []string{
@@ -60,6 +60,7 @@ func (p *Project) GetZone() string {
 
 	zc := len(p.zoneIndices)
 	if zc == 0 {
+		// TODO: return an error instead of stopping the process.
 		fmt.Println("Not enough zone quota sepcified. Specify additional quota in `test_zones`.")
 		os.Exit(1)
 	}
