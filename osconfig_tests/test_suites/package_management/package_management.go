@@ -377,10 +377,10 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
-			logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
+			logger.Printf("Running TestCase %q", tc.Name)
 			f(ctx, tc, testSetup, logger, &logwg, testProjectConfig)
 			tc.Finish(tests)
-			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
+			logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
 		}
 	}
 	logwg.Wait()

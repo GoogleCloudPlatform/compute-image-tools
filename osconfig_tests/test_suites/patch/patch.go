@@ -336,7 +336,7 @@ func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *j
 			logger.Printf("Running TestCase %q", tc.Name)
 			f(ctx, tc, testSetup, logger, testProjectConfig)
 			tc.Finish(tests)
-			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
+			logger.Printf("TestCase c%q finished in %fs", tc.Name, tc.Time)
 		}
 	}
 }
