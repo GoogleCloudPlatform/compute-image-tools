@@ -72,7 +72,7 @@ func main() {
 	} else {
 		err := json.Unmarshal([]byte(*testZones), &zones)
 		if err != nil {
-			fmt.Printf("Error parsing zones `%s`\n", testZones)
+			fmt.Printf("Error parsing zones `%s`\n", *testZones)
 			os.Exit(1)
 		}
 	}
