@@ -354,11 +354,11 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/CreateOsConfig] Create OsConfig", testSetup.image))
-	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstall] Package installation", testSetup.image))
-	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageRemoval] Package removal", testSetup.image))
-	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallRemoval] Package no change", testSetup.image))
-	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallFromNewRepo] Add a new package from new repository", testSetup.image))
+	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[createosconfig] [%s] Create OsConfig", testSetup.image))
+	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageinstall] [%s] Package installation", testSetup.image))
+	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageremoval] [%s] Package removal", testSetup.image))
+	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageinstallremoval] [%s] Package no change", testSetup.image))
+	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageinstallfromnewrepo] [%s] Add a new package from new repository", testSetup.image))
 
 	var logwg sync.WaitGroup
 
@@ -369,7 +369,7 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 		packageInstallRemovalTest:     runPackageInstallRemovalTest,
 		packageInstallFromNewRepoTest: runPackageInstallFromNewRepoTest,
 	} {
-		tfname := strings.ToLower(strings.Replace(testSetup.fname, "test", "", 1))
+		tfname := strings.ToLower(testSetup.fname)
 		ttc := strings.ToLower(getTestNameFromTestCase(tc.Name))
 		if strings.Compare(tfname, ttc) != 0 {
 			continue
