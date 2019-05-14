@@ -17,11 +17,13 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -43,6 +45,7 @@ var (
 	outDir          = flag.String("out_dir", "/tmp", "junit xml directory")
 	testProjectID   = flag.String("test_project_id", "", "test project id")
 	testZone        = flag.String("test_zone", "", "test zone")
+	testZones       = flag.String("test_zones", "{}", "test zones")
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
@@ -62,13 +65,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: check if the zone is valid, fail fast
-	if len(strings.TrimSpace(*testZone)) == 0 {
-		fmt.Println("-test_zone is invalid")
+	zones := make(map[string]int)
+
+	if len(strings.TrimSpace(*testZone)) != 0 {
+		zones[*testZone] = math.MaxInt32
+	} else {
+		err := json.Unmarshal([]byte(*testZones), &zones)
+		if err != nil {
+			fmt.Printf("Error parsing zones `%s`\n", *testZones)
+			os.Exit(1)
+		}
+	}
+
+	if len(zones) == 0 {
+		fmt.Println("Error, no zones specified")
 		os.Exit(1)
 	}
 
-	pr := testconfig.GetProject(*testProjectID, *testZone)
+	pr := testconfig.GetProject(*testProjectID, zones)
 
 	var testSuiteRegex *regexp.Regexp
 	if *testSuiteFilter != "" {
