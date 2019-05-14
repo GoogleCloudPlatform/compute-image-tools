@@ -190,7 +190,7 @@ periodics:
       secret:
        secretName: compute-image-tools-test-service-account
  - name: osconfig-tests
-   interval: 2h
+   interval: 1h
    agent: kubernetes
    spec:
     containers:
