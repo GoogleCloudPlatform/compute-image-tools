@@ -1,3 +1,4 @@
+timeout: 600s
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/wrapper:latest', '--tag=gcr.io/$PROJECT_ID/wrapper:$COMMIT_SHA', './test-infra/prowjobs/wrapper']
