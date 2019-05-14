@@ -14,7 +14,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/osconfig-tests:latest', '--tag=gcr.io/$PROJECT_ID/osconfig-tests:$COMMIT_SHA', './test-infra/prowjobs/osconfig-tests']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce-ovf-import-tests:latest', '--tag=gcr.io/$PROJECT_ID/gce-ovf-import-tests:$COMMIT_SHA', './test-infra/prowjobs/gce-ovf-import-tests']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce-ovf-import-tests:latest', '--tag=gcr.io/$PROJECT_ID/gce-ovf-import-tests:$COMMIT_SHA', '--file=./test-infra/prowjobs/gce-ovf-import-tests/Dockerfile', '.']
 
 images:
   - 'gcr.io/$PROJECT_ID/wrapper:latest'
