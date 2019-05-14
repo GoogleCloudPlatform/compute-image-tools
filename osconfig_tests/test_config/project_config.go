@@ -25,9 +25,9 @@ import (
 type Project struct {
 	TestProjectID        string
 	ServiceAccountEmail  string
-	TestZones            *map[string]int
-	zoneIndices          *map[int]string
 	ServiceAccountScopes []string
+	testZones            map[string]int
+	zoneIndices          map[int]string
 	mux                  sync.Mutex
 }
 
@@ -43,8 +43,8 @@ func GetProject(projectID string, testZones *map[string]int) *Project {
 
 	return &Project{
 		TestProjectID:       projectID,
-		TestZones:           testZones,
-		zoneIndices:         &zoneIndices,
+		testZones:           *testZones,
+		zoneIndices:         zoneIndices,
 		ServiceAccountEmail: "default",
 		ServiceAccountScopes: []string{
 			"https://www.googleapis.com/auth/cloud-platform",
@@ -58,19 +58,19 @@ func (p *Project) GetZone() string {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	zc := len(*p.zoneIndices)
+	zc := len(p.zoneIndices)
 	if zc == 0 {
 		fmt.Println("Not enough zone quota sepcified. Specify additional quota in `test_zones`.")
 		os.Exit(1)
 	}
 
 	zi := rand.Intn(zc)
-	z := (*p.zoneIndices)[zi]
+	z := p.zoneIndices[zi]
 
-	(*p.TestZones)[z]--
+	p.testZones[z]--
 
-	if (*p.TestZones)[z] == 0 {
-		delete(*p.zoneIndices, zi)
+	if p.testZones[z] == 0 {
+		delete(p.zoneIndices, zi)
 	}
 
 	return z

@@ -133,6 +133,7 @@ func isTerminal(status string) bool {
 
 // CreateInstance creates a compute instance.
 func CreateInstance(client daisyCompute.Client, project, zone string, i *api.Instance) (*Instance, error) {
+	logger.Infof("Creating instance %s in zone %s", i.Name, zone)
 	if err := client.CreateInstance(project, zone, i); err != nil {
 		return nil, err
 	}
