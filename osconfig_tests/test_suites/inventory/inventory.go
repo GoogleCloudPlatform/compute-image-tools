@@ -431,10 +431,10 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 	defer wg.Done()
 
 	var logwg sync.WaitGroup
-	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Gather Inventory", testSetup.image))
-	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check Hostname", testSetup.image))
-	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check ShortName", testSetup.image))
-	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check InstalledPackages", testSetup.image))
+	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[gatherInventoryTest] [%s] Gather Inventory", testSetup.image))
+	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[hostnameTest] [%s] Check Hostname", testSetup.image))
+	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[shortNameTest] [%s] Check ShortName", testSetup.image))
+	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageTest] [%s] Check InstalledPackages", testSetup.image))
 
 	if gatherInventoryTest.FilterTestCase(regex) {
 		gatherInventoryTest.Finish(tests)
@@ -470,10 +470,10 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
-			logger.Printf("Running TestCase '%s.%q'", tc.Classname, tc.Name)
+			logger.Printf("Running TestCase '%q'", tc.Name)
 			f(ga, testSetup, tc, testProjectConfig)
 			tc.Finish(tests)
-			logger.Printf("TestCase '%s.%q' finished in %fs", tc.Classname, tc.Name, tc.Time)
+			logger.Printf("TestCase '%q' finished in %fs", tc.Name, tc.Time)
 		}
 	}
 	logwg.Wait()

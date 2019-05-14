@@ -325,7 +325,7 @@ func isPatchJobFailureState(state osconfigpb.PatchJob_State) bool {
 func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Execute PatchJob", testSetup.image))
+	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[executePatchTest] [%s] Execute PatchJob", testSetup.image))
 
 	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *patchTestSetup, *log.Logger, *testconfig.Project){
 		executePatchTest: runExecutePatchTest,
@@ -333,10 +333,10 @@ func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *j
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
-			logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
+			logger.Printf("Running TestCase %q", tc.Name)
 			f(ctx, tc, testSetup, logger, testProjectConfig)
 			tc.Finish(tests)
-			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
+			logger.Printf("TestCase c%q finished in %fs", tc.Name, tc.Time)
 		}
 	}
 }
