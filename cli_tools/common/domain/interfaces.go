@@ -17,6 +17,7 @@ package commondomain
 import (
 	"context"
 	"io"
+	"net/http"
 
 	"cloud.google.com/go/storage"
 )
@@ -80,4 +81,19 @@ type MetadataGCEInterface interface {
 // project
 type ZoneValidatorInterface interface {
 	ZoneValid(project string, zone string) error
+}
+
+// ScratchBucketCreatorInterface represents Daisy scratch (temporary) bucket creator
+type ScratchBucketCreatorInterface interface {
+	CreateScratchBucket(sourceFileFlag string, projectFlag string) (string, string, error)
+}
+
+// ZoneRetrieverInterface represents Daisy GCE zone retriever
+type ZoneRetrieverInterface interface {
+	GetZone(storageRegion string, project string) (string, error)
+}
+
+// HTTPClientInterface represents HTTP client
+type HTTPClientInterface interface {
+	Get(url string) (resp *http.Response, err error)
 }

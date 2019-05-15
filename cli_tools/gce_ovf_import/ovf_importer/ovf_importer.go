@@ -28,6 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
@@ -70,12 +71,8 @@ type OVFImporter struct {
 // such as compute/storage clients.
 func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, error) {
 	ctx := context.Background()
-	sc, err := storage.NewClient(ctx)
 	logger := logging.NewLogger("[import-ovf]")
-	if err != nil {
-		return nil, err
-	}
-	storageClient, err := storageutils.NewStorageClient(ctx, sc, logger)
+	storageClient, err := storageutils.NewStorageClient(ctx, logger, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -175,18 +172,7 @@ func createComputeClient(ctx *context.Context, params *ovfimportparams.OVFImport
 }
 
 func (oi *OVFImporter) getProject() (string, error) {
-	project := oi.params.Project
-	if project == "" {
-		if !oi.mgce.OnGCE() {
-			return "", fmt.Errorf("project cannot be determined because build is not running on GCE")
-		}
-		var err error
-		project, err = oi.mgce.ProjectID()
-		if err != nil || project == "" {
-			return "", fmt.Errorf("project cannot be determined %v", err)
-		}
-	}
-	return project, nil
+	return paramutils.GetProjectID(oi.mgce, oi.params.Project)
 }
 
 func (oi *OVFImporter) getZone(project string) (string, error) {

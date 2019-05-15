@@ -90,7 +90,6 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 func runImport() {
 	logger := log.New(os.Stdout, "[OVF Import] ", log.LstdFlags)
 	ovfImporter, err := ovfimporter.NewOVFImporter(buildImportParams())
-
 	if err != nil {
 		logger.Println(err.Error())
 		return
