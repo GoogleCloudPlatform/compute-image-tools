@@ -216,7 +216,7 @@ periodics:
       args:
       - "-out_dir=/artifacts"
       - "-test_project_id=compute-image-osconfig-agent"
-      - "-test_zones={\"us-central1-c\":120,\"us-west1-a\":20,\"us-west1-b\":20,\"us-west1-c\":20,\"us-east1-b\":20,\"us-east1-c\":20,\"us-east1-d\":20}"
+      - "-test_zones={\"us-central1-a\":30,\"us-central1-b\":30,\"us-central1-c\":30,\"us-central1-f\":30,\"us-west1-a\":6,\"us-west1-b\":6,\"us-west1-c\":6,\"us-east1-b\":6,\"us-east1-c\":6,\"us-east1-d\":6,\"us-east4-a\":6,\"us-east4-b\":6,\"us-east4-c\":6}"
       volumeMounts:
       - name: compute-image-tools-test-service-account
         mountPath: /etc/compute-image-tools-test-service-account
