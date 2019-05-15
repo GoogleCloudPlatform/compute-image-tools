@@ -120,7 +120,7 @@ func CreateComputeInstance(metadataitems []*api.MetadataItems, client daisyCompu
 	var items []*api.MetadataItems
 
 	// enable debug logging for all test instances
-	items = append(items, compute.BuildInstanceMetadataItem("os-debug-enabled", "true"))
+	items = append(items, compute.BuildInstanceMetadataItem("os-config-debug-enabled", "true"))
 
 	for _, item := range metadataitems {
 		items = append(items, item)
