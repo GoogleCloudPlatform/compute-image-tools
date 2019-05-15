@@ -118,7 +118,7 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 	err :=
 			paramutils.RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
 				t, zone, region, scratchBucketGcsPath, destinationUri, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
-
+	storage_client.go
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", *zone)
 	assert.Equal(t, "europe-north1", *region)

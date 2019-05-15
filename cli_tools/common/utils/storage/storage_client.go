@@ -17,7 +17,6 @@ package storageutils
 import (
 	"context"
 	"fmt"
-	"google.golang.org/api/option"
 	"io"
 	"io/ioutil"
 	"log"
@@ -29,6 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 )
 
 var (
