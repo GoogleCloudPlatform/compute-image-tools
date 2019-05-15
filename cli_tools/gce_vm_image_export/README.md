@@ -19,12 +19,9 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 + `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
   `pantheon`.
 + `-destination_uri=DESTINATION_URI` The Google Cloud Storage URI destination for the exported
-   virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.
-
-Exactly one of these must be specified:
-+ `-image=IMAGE` The name of the disk image to export.
-+ `-image_family=IMAGE_FAMILY` The family of the disk image to be exported. When a family is used instead of an
-   image, the latest non-deprecated image associated with that family is used.
+  virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.
++ `-source_image=SOURCE_IMAGE` An existing Compute Engine image from which to 
+  export.
 
 #### Optional flags  
 + `-format=FORMAT` Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.
@@ -54,9 +51,8 @@ Exactly one of these must be specified:
 
 ```
 gce_vm_image_export -client_id=CLIENT_ID -destionation_uri=DESTINATION_URI
-        (-image=IMAGE | -image_family=IMAGE_FAMILY) [-format=FORMAT] [-project=PROJECT]
-        [-network=NETWORK] [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT]
-        [-scratch_bucket_gcs_path=PATH] [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT]
-        [-disable_gcs_logging] [-disable_cloud_logging] [-disable_stdout_logging]
-        [-labels=KEY=VALUE,...]
+        -source_image=SOURCE_IMAGE [-format=FORMAT] [-project=PROJECT] [-network=NETWORK]
+        [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-scratch_bucket_gcs_path=PATH]
+        [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
+        [-disable_cloud_logging] [-disable_stdout_logging] [-labels=KEY=VALUE,...]
 ```

@@ -87,6 +87,8 @@ var (
 func init() {
 	currentExecutablePathStr := string(os.Args[0])
 	currentExecutablePath = &currentExecutablePathStr
+	str := ""
+	region = &str
 }
 
 func validateAndParseFlags() error {
@@ -260,7 +262,7 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	err = paramutils.PopulateMissingParameters(project, zone, &region, scratchBucketGcsPath,
+	err = paramutils.PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
 		*sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
 		log.Fatalf(err.Error())

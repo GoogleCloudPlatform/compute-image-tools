@@ -44,7 +44,7 @@ func GetProjectID(mgce commondomain.MetadataGCEInterface, projectFlag string) (s
 }
 
 
-func PopulateMissingParameters(project *string, zone *string, regionFlagPointer **string, scratchBucketGcsPath *string, file string, mgce commondomain.MetadataGCEInterface,
+func PopulateMissingParameters(project *string, zone *string, region *string, scratchBucketGcsPath *string, file string, mgce commondomain.MetadataGCEInterface,
 		scratchBucketCreator commondomain.ScratchBucketCreatorInterface,
 		zoneRetriever commondomain.ZoneRetrieverInterface, storageClient commondomain.StorageClientInterface) error {
 
@@ -80,7 +80,7 @@ func PopulateMissingParameters(project *string, zone *string, regionFlagPointer 
 		}
 	}
 
-	if err := PopulateRegion(regionFlagPointer, *zone); err != nil {
+	if err := PopulateRegion(region, *zone); err != nil {
 		return err
 	}
 	return nil
@@ -92,12 +92,12 @@ func PopulateProjectIfMissing(mgce commondomain.MetadataGCEInterface, projectFla
 	return err
 }
 
-func PopulateRegion(regionFlagPointer **string, zone string) error {
+func PopulateRegion(region *string, zone string) error {
 	aRegion, err := GetRegion(zone)
 	if err != nil {
 		return err
 	}
-	*regionFlagPointer = &aRegion
+	*region = aRegion
 	return nil
 }
 

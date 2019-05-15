@@ -19,10 +19,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
-	"os"
-	"strings"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -31,6 +27,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"log"
+	"os"
 )
 
 const (
@@ -39,13 +37,13 @@ const (
 	exportAndConvertWorkflow   = workflowDir + "image_export_ext.wf.json"
 	clientIDFlagKey            = "client_id"
 	destinationUriFlagKey      = "destination_uri"
+	sourceImageFlagKey         = "source_IMAGE"
 )
 
 var (
 	clientID             = flag.String(clientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`.")
 	destinationUri       = flag.String(destinationUriFlagKey, "", "The Google Cloud Storage URI destination for the exported virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.")
-	image                = flag.String("image", "", "The name of the disk image to export")
-	imageFamily          = flag.String("image_family", "", "The family of the disk image to be exported. When a family is used instead of an image, the latest non-deprecated image associated with that family is used.")
+	sourceImage          = flag.String(sourceImageFlagKey, "", "Compute Engine image from which to export")
 	format               = flag.String("format", "", "Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.")
 	project              = flag.String("project", "", "Project to run in, overrides what is set in workflow.")
 	network              = flag.String("network", "", "Name of the network in your project to use for the image import. The network must have access to Google Cloud Storage. If not specified, the network named default is used.")
@@ -70,6 +68,8 @@ var (
 func init() {
 	currentExecutablePathStr := string(os.Args[0])
 	currentExecutablePath = &currentExecutablePathStr
+	str := ""
+	region = &str
 }
 
 func validateAndParseFlags() error {
@@ -81,13 +81,8 @@ func validateAndParseFlags() error {
 	if err := validationutils.ValidateStringFlagNotEmpty(*destinationUri, destinationUriFlagKey); err != nil {
 		return err
 	}
-
-	if *image == "" && *imageFamily == "" {
-		return fmt.Errorf("-image or -image_family has to be specified")
-	}
-
-	if *image != "" && *imageFamily != "" {
-		return fmt.Errorf("-image and -image_family can't be both specified")
+	if err := validationutils.ValidateStringFlagNotEmpty(*sourceImage, sourceImageFlagKey); err != nil {
+		return err
 	}
 
 	if *labels != "" {
@@ -114,16 +109,10 @@ func buildDaisyVars() map[string]string {
 
 	varMap["destination"] = *destinationUri
 
-	// TODO: get source_image by image or image_family
-	varMap["source_image"] = strings.ToLower(*image)
-	if *image != "" {
-		varMap["source_image"] = fmt.Sprintf("global/images/%v", *image)
-	} else {
-		varMap["family"] = *family
-	}
+	varMap["source_image"] = fmt.Sprintf("global/images/%v", *sourceImage)
 
 	if *format != "" {
-		varMap["format"] = fmt.Sprintf("global/images/%v", *format)
+		varMap["format"] = *format
 	}
 	if *network != "" {
 		varMap["export_network"] = fmt.Sprintf("global/networks/%v", *network)
@@ -182,7 +171,7 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	err = paramutils.PopulateMissingParameters(project, zone, &region, scratchBucketGcsPath,
+	err = paramutils.PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
 		*destinationUri, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
 		log.Fatalf(err.Error())
