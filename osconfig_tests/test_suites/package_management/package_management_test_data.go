@@ -54,7 +54,7 @@ var vf = func(inst *compute.Instance, vfString string, port int64, interval, tim
 }
 
 func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "createosconfigtest"
+	testName := "createosconfig"
 	desc := "test osconfig creation"
 	packageName := "cowsay"
 	for _, tuple := range platformPkgManagers {
@@ -98,7 +98,7 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	return pkgTestSetup
 }
 func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "packageinstalltest"
+	testName := "packageinstall"
 	desc := "test package installation"
 	packageName := "cowsay"
 	for _, tuple := range platformPkgManagers {
@@ -157,7 +157,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 }
 
 func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "packageremovaltest"
+	testName := "packageremoval"
 	desc := "test package removal"
 	packageName := "cowsay"
 	for _, tuple := range platformPkgManagers {
@@ -216,7 +216,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 }
 
 func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "packageinstallremovaltest"
+	testName := "packageinstallremoval"
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
 	for _, tuple := range platformPkgManagers {
@@ -280,7 +280,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 }
 
 func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "packageinstallfromnewrepotest"
+	testName := "packageinstallfromnewrepo"
 	desc := "test package installation from new package"
 	packageName := "osconfig-agent-test"
 	for _, tuple := range platformPkgManagers {

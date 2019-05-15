@@ -21,8 +21,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"io"
 	"log"
 	"path"
@@ -30,11 +28,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
+
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
@@ -265,7 +266,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("enable-guest-attributes", "true"))
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-inventory-enabled", "true"))
 
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", err)
 		return nil, false
@@ -430,10 +431,10 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 	defer wg.Done()
 
 	var logwg sync.WaitGroup
-	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Gather Inventory", testSetup.image))
-	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check Hostname", testSetup.image))
-	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check ShortName", testSetup.image))
-	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Check InstalledPackages", testSetup.image))
+	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[gatherInventoryTest] [%s] Gather Inventory", testSetup.image))
+	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[hostnameTest] [%s] Check Hostname", testSetup.image))
+	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[shortNameTest] [%s] Check ShortName", testSetup.image))
+	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageTest] [%s] Check InstalledPackages", testSetup.image))
 
 	if gatherInventoryTest.FilterTestCase(regex) {
 		gatherInventoryTest.Finish(tests)
@@ -469,10 +470,10 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
-			logger.Printf("Running TestCase '%s.%q'", tc.Classname, tc.Name)
+			logger.Printf("Running TestCase '%q'", tc.Name)
 			f(ga, testSetup, tc, testProjectConfig)
 			tc.Finish(tests)
-			logger.Printf("TestCase '%s.%q' finished in %fs", tc.Classname, tc.Name, tc.Time)
+			logger.Printf("TestCase '%q' finished in %fs", tc.Name, tc.Time)
 		}
 	}
 	logwg.Wait()

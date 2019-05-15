@@ -189,8 +189,26 @@ periodics:
     - name: compute-image-tools-test-service-account
       secret:
        secretName: compute-image-tools-test-service-account
+ - name: ci-ovf-import-e2e-tests-daily
+   interval: 24h
+   agent: kubernetes
+   spec:
+     containers:
+       - image: gcr.io/compute-image-tools-test/gce-ovf-import-tests:latest
+         args:
+           - "-out_dir=/artifacts"
+           - "-test_project_id=compute-image-test-pool-001"
+           - "-test_zone=us-central1-c"
+         volumeMounts:
+           - name: compute-image-tools-test-service-account
+             mountPath: /etc/compute-image-tools-test-service-account
+             readOnly: true
+     volumes:
+       - name: compute-image-tools-test-service-account
+         secret:
+           secretName: compute-image-tools-test-service-account
  - name: osconfig-tests
-   interval: 3h
+   interval: 1h
    agent: kubernetes
    spec:
     containers:
@@ -198,7 +216,7 @@ periodics:
       args:
       - "-out_dir=/artifacts"
       - "-test_project_id=compute-image-osconfig-agent"
-      - "-test_zone=us-central1-c"
+      - "-test_zones={\"us-central1-a\":30,\"us-central1-b\":30,\"us-central1-c\":30,\"us-central1-f\":30,\"us-west1-a\":6,\"us-west1-b\":6,\"us-west1-c\":6,\"us-east1-b\":6,\"us-east1-c\":6,\"us-east1-d\":6,\"us-east4-a\":6,\"us-east4-b\":6,\"us-east4-c\":6}"
       volumeMounts:
       - name: compute-image-tools-test-service-account
         mountPath: /etc/compute-image-tools-test-service-account

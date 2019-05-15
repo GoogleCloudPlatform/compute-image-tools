@@ -17,8 +17,6 @@ package packagemanagement
 import (
 	"context"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"log"
 	"path"
 	"path/filepath"
@@ -27,15 +25,17 @@ import (
 	"sync"
 	"time"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
+	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
 
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
@@ -159,8 +159,8 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
 		return
@@ -214,8 +214,8 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -268,8 +268,8 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -322,8 +322,8 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-package-enabled", "true"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -354,11 +354,11 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/CreateOsConfig] Create OsConfig", testSetup.image))
-	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstall] Package installation", testSetup.image))
-	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageRemoval] Package removal", testSetup.image))
-	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallRemoval] Package no change", testSetup.image))
-	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s/PackageInstallFromNewRepo] Add a new package from new repository", testSetup.image))
+	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[createOsConfigTest] [%s] Create OsConfig", testSetup.image))
+	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallTest] [%s] Package installation", testSetup.image))
+	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageRemovalTest] [%s] Package removal", testSetup.image))
+	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallRemovalTest] [%s] Package no change", testSetup.image))
+	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallFromNewRepoTest] [%s] Add a new package from new repository", testSetup.image))
 
 	var logwg sync.WaitGroup
 
@@ -369,18 +369,18 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 		packageInstallRemovalTest:     runPackageInstallRemovalTest,
 		packageInstallFromNewRepoTest: runPackageInstallFromNewRepoTest,
 	} {
-		tfname := strings.ToLower(strings.Replace(testSetup.fname, "test", "", 1))
-		ttc := strings.ToLower(getTestNameFromTestCase(tc.Name))
+		tfname := strings.ToLower(testSetup.fname)
+		ttc := strings.ToLower(strings.Replace(getTestNameFromTestCase(tc.Name), "Test", "", -1))
 		if strings.Compare(tfname, ttc) != 0 {
 			continue
 		}
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
-			logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
+			logger.Printf("Running TestCase %q", tc.Name)
 			f(ctx, tc, testSetup, logger, &logwg, testProjectConfig)
 			tc.Finish(tests)
-			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
+			logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
 		}
 	}
 	logwg.Wait()

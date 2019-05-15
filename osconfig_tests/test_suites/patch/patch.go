@@ -30,10 +30,11 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
-	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
+
+	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
 const (
@@ -242,9 +243,9 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-patch-enabled", "true"))
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch"))
 	testSetupName := fmt.Sprintf("patch-test-%s-%s", path.Base(testSetup.image), suffix)
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetupName, testProjectConfig.TestProjectID, testProjectConfig.TestZone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetupName, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -288,26 +289,26 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	for {
 		select {
 		case <-timedout:
-			testCase.WriteFailure("Patching timed out")
+			testCase.WriteFailure("Patch job '%s' timed out", job.GetName())
 			return
 		case <-tick:
 			req := &osconfigpb.GetPatchJobRequest{
-				Name: job.Name,
+				Name: job.GetName(),
 			}
 			res, err := osconfigClient.GetPatchJob(ctx, req)
 			if err != nil {
-				testCase.WriteFailure("error while fetching patch job: \n%s\n", utils.GetStatusFromError(err))
+				testCase.WriteFailure("Error while fetching patch job: \n%s\n", utils.GetStatusFromError(err))
 				return
 			}
 
 			if isPatchJobFailureState(res.State) {
-				testCase.WriteFailure("Patch job completed with status %v", res.State)
+				testCase.WriteFailure("Patch job '%s' completed with status %v and message '%s'", job.GetName(), res.State, job.GetErrorMessage())
 				return
 			}
 
 			if res.State == osconfigpb.PatchJob_SUCCEEDED {
 				if res.InstanceDetailsSummary.GetInstancesSucceeded() < 1 {
-					testCase.WriteFailure("no instance patched")
+					testCase.WriteFailure("Patch job '%s' completed with no instances patched", job.GetName())
 				}
 				return
 			}
@@ -324,7 +325,7 @@ func isPatchJobFailureState(state osconfigpb.PatchJob_State) bool {
 func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[%s] Execute PatchJob", testSetup.image))
+	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[executePatchTest] [%s] Execute PatchJob", testSetup.image))
 
 	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *patchTestSetup, *log.Logger, *testconfig.Project){
 		executePatchTest: runExecutePatchTest,
@@ -332,10 +333,10 @@ func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *j
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
-			logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
+			logger.Printf("Running TestCase %q", tc.Name)
 			f(ctx, tc, testSetup, logger, testProjectConfig)
 			tc.Finish(tests)
-			logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
+			logger.Printf("TestCase c%q finished in %fs", tc.Name, tc.Time)
 		}
 	}
 }

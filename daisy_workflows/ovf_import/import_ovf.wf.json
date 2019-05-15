@@ -24,7 +24,6 @@
     },
     "translation_disk_name": "temp-translation-disk-${ID}",
     "boot_image_name": "boot-image-${ID}",
-    "boot_image_name_untranslated": "boot-image-untranslated-${ID}",
     "machine_type": "n1-standard-1",
     "network": {
       "Value": "global/networks/default",
@@ -54,13 +53,6 @@
           "import_subnet": "${subnet}"
         }
       }
-    },
-    "take-image-of-untranslated-disk": {
-      "CreateImages": [{
-        "Name": "${boot_image_name_untranslated}",
-        "Description": "Imported (untranslated) image from ${boot_disk_file}",
-        "SourceDisk": "${translation_disk_name}"
-      }]
     },
     "translate": {
       "IncludeWorkflow": {
@@ -120,13 +112,12 @@
     "cleanup": {
       "DeleteResources": {
         "Disks": ["${translation_disk_name}"],
-        "Images": ["${boot_image_name_untranslated}", "${boot_image_name}"]
+        "Images": ["${boot_image_name}"]
       }
     }
   },
   "Dependencies": {
-    "take-image-of-untranslated-disk": ["import-boot-disk"],
-    "translate": ["take-image-of-untranslated-disk"],
+    "translate": ["import-boot-disk"],
     "create-boot-disk": ["translate"],
     "create-instance": ["create-boot-disk"],
     "cleanup": ["create-instance"]
