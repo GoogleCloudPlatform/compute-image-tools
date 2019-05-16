@@ -68,7 +68,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	testSetup := []*patchTestSetup{
 		// Windows images.
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2008-r2",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2008-r2-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -76,7 +76,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2012-r2",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2012-r2-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -84,7 +84,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2012-r2-core",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2012-r2-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -92,7 +92,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2016",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2016-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -100,7 +100,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2016-core",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2016-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -108,7 +108,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-1709-core",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-1803-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -116,7 +116,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-1803-core",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-1809-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -124,7 +124,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-1809-core",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2019-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -132,15 +132,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2019-core",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2019",
+			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2019-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
