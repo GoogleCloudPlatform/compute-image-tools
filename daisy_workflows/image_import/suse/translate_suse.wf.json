@@ -42,7 +42,7 @@
       "CreateDisks": [
         {
           "Name": "disk-translator",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker",
           "SizeGb": "10",
           "Type": "pd-ssd"
         }

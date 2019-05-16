@@ -30,9 +30,9 @@ import utils.diskutils as diskutils
 
 
 repo_compute = '''
-[google-cloud-compute]
-name=Google Cloud Compute
-baseurl=https://packages.cloud.google.com/yum/repos/google-cloud-compute-el%s-x86_64
+[google-compute-engine]
+name=Google Compute Engine
+baseurl=https://packages.cloud.google.com/yum/repos/google-compute-engine-el%s-x86_64
 enabled=1
 gpgcheck=1
 repo_gpgcheck=1
