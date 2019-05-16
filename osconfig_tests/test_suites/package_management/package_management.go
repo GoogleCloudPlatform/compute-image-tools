@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	testSuiteName = "PackageManagementTests"
+	testSuiteName = "OSPackage"
 	debianImages  = []string{"projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts", "projects/debian-cloud/global/images/family/debian-9"}
 	centosImages  = []string{"projects/centos-cloud/global/images/family/centos-6", "projects/centos-cloud/global/images/family/centos-7"}
 	rhelImages    = []string{"projects/rhel-cloud/global/images/family/rhel-6", "projects/rhel-cloud/global/images/family/rhel-7"}
@@ -86,7 +86,7 @@ func newPackageManagementTestSetup(setup **packageManagementTestSetup, image, na
 	}
 }
 
-// TestSuite is a PackageManagementTests test suite.
+// TestSuite is a OSPackage test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer tswg.Done()
 
@@ -354,11 +354,11 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[createOsConfigTest] [%s] Create OsConfig", testSetup.image))
-	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallTest] [%s] Package installation", testSetup.image))
-	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageRemovalTest] [%s] Package removal", testSetup.image))
-	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallRemovalTest] [%s] Package no change", testSetup.image))
-	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallFromNewRepoTest] [%s] Add a new package from new repository", testSetup.image))
+	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Create OsConfig] [%s]", path.Base(testSetup.image)))
+	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package installation] [%s]", path.Base(testSetup.image)))
+	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package removal] [%s]", path.Base(testSetup.image)))
+	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package no change] [%s]", path.Base(testSetup.image)))
+	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Add a new package from new repository] [%s]", path.Base(testSetup.image)))
 
 	var logwg sync.WaitGroup
 

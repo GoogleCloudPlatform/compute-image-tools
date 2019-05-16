@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	testSuiteName = "PatchTests"
+	testSuiteName = "OSPatch"
 )
 
 var (
@@ -46,13 +46,7 @@ var (
 	suffix = utils.RandString(5)
 )
 
-type patchTestSetup struct {
-	image         string
-	startup       *api.MetadataItems
-	assertTimeout time.Duration
-}
-
-// TestSuite is a PatchTests test suite.
+// TestSuite is a OSPatch test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer tswg.Done()
 
@@ -65,159 +59,11 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 
-	testSetup := []*patchTestSetup{
-		// Windows images.
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2008-r2",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2012-r2",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2012-r2-core",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2016",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2016-core",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-1709-core",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-1803-core",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-1809-core",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2019-core",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/windows-cloud/global/images/family/windows-2019",
-			assertTimeout: 10 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-
-		// Debian images.
-		&patchTestSetup{
-			image:         "projects/debian-cloud/global/images/family/debian-9",
-			assertTimeout: 5 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
-			},
-		},
-
-		// Centos images.
-		&patchTestSetup{
-			image:         "projects/centos-cloud/global/images/family/centos-6",
-			assertTimeout: 5 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigYumEL6,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/centos-cloud/global/images/family/centos-7",
-			assertTimeout: 5 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigYumEL7,
-			},
-		},
-
-		// RHEL images.
-		&patchTestSetup{
-			image:         "projects/rhel-cloud/global/images/family/rhel-6",
-			assertTimeout: 5 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigYumEL6,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/rhel-cloud/global/images/family/rhel-7",
-			assertTimeout: 5 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigYumEL7,
-			},
-		},
-
-		// Ubuntu images
-		&patchTestSetup{
-			image:         "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
-			assertTimeout: 5 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
-			},
-		},
-		&patchTestSetup{
-			image:         "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts",
-			assertTimeout: 5 * time.Minute,
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
-			},
-		},
-	}
-
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
-	for _, setup := range testSetup {
+	for _, setup := range headImageTestSetup() {
 		wg.Add(1)
-		go patchTestCase(ctx, setup, tests, &wg, logger, testCaseRegex, testProjectConfig)
+		go executePatchJobTestCase(ctx, setup, tests, &wg, logger, testCaseRegex, testProjectConfig)
 	}
 
 	go func() {
@@ -232,8 +78,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
-
+func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		testCase.WriteFailure("error creating client: %v", err)
@@ -244,8 +89,8 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch"))
-	testSetupName := fmt.Sprintf("patch-test-%s-%s", path.Base(testSetup.image), suffix)
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetupName, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	name := fmt.Sprintf("patch-test-%s-%s", path.Base(testSetup.testName), suffix)
+	inst, err := utils.CreateComputeInstance(metadataItems, client, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -269,7 +114,7 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	req := &osconfigpb.ExecutePatchJobRequest{
 		Parent:      parent,
 		Description: "testing default patch job run",
-		Filter:      fmt.Sprintf("name=\"%s\"", testSetupName),
+		Filter:      fmt.Sprintf("name=\"%s\"", name),
 		Duration:    &duration.Duration{Seconds: int64(assertTimeout / time.Second)},
 	}
 	job, err := osconfigClient.ExecutePatchJob(ctx, req)
@@ -284,7 +129,7 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	logger.Printf("%v\n", job)
 
 	// assertion
-	tick := time.Tick(5 * time.Second)
+	tick := time.Tick(10 * time.Second)
 	timedout := time.Tick(testSetup.assertTimeout)
 	for {
 		select {
@@ -322,13 +167,13 @@ func isPatchJobFailureState(state osconfigpb.PatchJob_State) bool {
 		state == osconfigpb.PatchJob_CANCELED
 }
 
-func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
+func executePatchJobTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[executePatchTest] [%s] Execute PatchJob", testSetup.image))
+	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Execute PatchJob] [%s]", testSetup.testName))
 
 	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *patchTestSetup, *log.Logger, *testconfig.Project){
-		executePatchTest: runExecutePatchTest,
+		executePatchTest: runExecutePatchJobTest,
 	} {
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
@@ -336,7 +181,7 @@ func patchTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *j
 			logger.Printf("Running TestCase %q", tc.Name)
 			f(ctx, tc, testSetup, logger, testProjectConfig)
 			tc.Finish(tests)
-			logger.Printf("TestCase c%q finished in %fs", tc.Name, tc.Time)
+			logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
 		}
 	}
 }
