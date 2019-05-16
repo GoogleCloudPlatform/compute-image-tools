@@ -68,7 +68,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	testSetup := []*patchTestSetup{
 		// Windows images.
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2008-r2-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-2008-r2-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -76,7 +76,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2012-r2-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -84,7 +84,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2012-r2-core-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -92,7 +92,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2016-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-2016-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -100,7 +100,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2016-core-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-2016-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -108,7 +108,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-1803-core-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-1803-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -116,7 +116,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-1809-core-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-1809-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -124,7 +124,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2019-core-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-2019-core-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -132,7 +132,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			},
 		},
 		&patchTestSetup{
-			image:         "projects/compute-image-osconfig-agent/global/images/family/windows-2019-v20190515",
+			image:         "projects/compute-image-osconfig-agent/global/images/windows-2019-v20190515",
 			assertTimeout: 10 * time.Minute,
 			startup: &api.MetadataItems{
 				Key:   "windows-startup-script-ps1",
@@ -237,7 +237,7 @@ func runExecutePatchTest(ctx context.Context, testCase *junitxml.TestCase, testS
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch"))
 	testSetupName := fmt.Sprintf("patch-test-%s-%s", path.Base(testSetup.image), suffix)
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetupName, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetupName, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
