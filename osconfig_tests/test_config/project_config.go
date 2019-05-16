@@ -27,18 +27,16 @@ type Project struct {
 	ServiceAccountEmail  string
 	ServiceAccountScopes []string
 	testZones            map[string]int
-	zoneIndices          map[int]string
+	zoneIndices          []string
 	mux                  sync.Mutex
 }
 
 // GetProject ...
 func GetProject(projectID string, testZones map[string]int) *Project {
-	zoneIndices := make(map[int]string, len(testZones))
+	var zoneIndices []string
 
-	i := 0
 	for z := range testZones {
-		zoneIndices[i] = z
-		i++
+		zoneIndices = append(zoneIndices, z)
 	}
 
 	return &Project{
@@ -69,9 +67,8 @@ func (p *Project) GetZone() string {
 	z := p.zoneIndices[zi]
 
 	p.testZones[z]--
-
 	if p.testZones[z] == 0 {
-		delete(p.zoneIndices, zi)
+		p.zoneIndices = append(p.zoneIndices[:zi], p.zoneIndices[zi+1:]...)
 	}
 
 	return z
