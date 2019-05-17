@@ -47,7 +47,7 @@
       "CreateDisks": [
         {
           "Name": "disk-installerprep",
-          "SourceImage": "projects/debian-cloud/global/images/family/debian-9",
+          "SourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker",
           "SizeGb": "50",
           "Type": "pd-ssd"
         },
