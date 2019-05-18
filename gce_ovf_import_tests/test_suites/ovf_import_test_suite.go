@@ -46,20 +46,27 @@ var (
 	dump = &pretty.Config{IncludeUnexported: true}
 )
 
-var vf = func(inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
+var vf = func(
+		inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
 	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
 type ovfImportTestSetup struct {
-	importParams  *ovfimportparams.OVFImportParams
-	name          string
-	startup       *api.MetadataItems
-	assertTimeout time.Duration
-	vf            func(*compute.Instance, string, int64, time.Duration, time.Duration) error
+	importParams        *ovfimportparams.OVFImportParams
+	name                string
+	description         string
+	startup             *api.MetadataItems
+	assertTimeout       time.Duration
+	vf                  func(*compute.Instance, string, int64, time.Duration, time.Duration) error
+	expectedMachineType string
 }
 
 // TestSuite is OVF import test suite.
-func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
+func TestSuite(
+		ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
+		logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
+		testProjectConfig *testconfig.Project) {
+
 	defer tswg.Done()
 
 	if testSuiteRegex != nil && !testSuiteRegex.MatchString(testSuiteName) {
@@ -71,10 +78,27 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	suffix := utils.RandString(5)
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 
-	startupScript, err := ioutil.ReadFile("gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh")
+	startupScriptUbuntu3disks, err := ioutil.ReadFile(
+		"gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh")
 	if err != nil {
 		os.Exit(1)
 	}
+	startupScriptLinuxSingleDisk, err := ioutil.ReadFile(
+		"daisy_integration_tests/scripts/post_translate_test.sh")
+	if err != nil {
+		os.Exit(1)
+	}
+	startupScriptWindowsSingleDisk, err := ioutil.ReadFile(
+		"daisy_integration_tests/scripts/post_translate_test.ps1")
+	if err != nil {
+		os.Exit(1)
+	}
+	startupScriptWindowsTwoDisks, err := ioutil.ReadFile(
+		"gce_ovf_import_tests/scripts/ovf_import_test_windows_2k12_r2_two_disks.ps1")
+	if err != nil {
+		os.Exit(1)
+	}
+
 	testSetup := []*ovfImportTestSetup{
 		{
 			importParams: &ovfimportparams.OVFImportParams{
@@ -85,11 +109,67 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
 				Zone:          testProjectConfig.TestZone,
-				MachineType:   "n1-standard-2",
+				MachineType:   "n1-standard-1",
 			},
-			name:          fmt.Sprintf("ovf-import-test-ubuntu-3-disks-%s", suffix),
-			startup:       computeUtils.BuildInstanceMetadataItem("startup-script", string(startupScript)),
+			name:        fmt.Sprintf("ovf-import-test-ubuntu-3-disks-%s", suffix),
+			description: "Ubuntu 3 disks mounted",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", string(startupScriptUbuntu3disks)),
 			assertTimeout: 7200 * time.Second,
+			expectedMachineType: "n1-standard-1",
+		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-centos-6-%v", suffix),
+				OvfOvaGcsPath: "gs://compute-image-tools-test-resources/ova/centos-6.8",
+				OsID:          "centos-6",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+			},
+			name:        fmt.Sprintf("ovf-import-test-centos-6-%s", suffix),
+			description: "Centos 6.8",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", string(startupScriptLinuxSingleDisk)),
+			assertTimeout: 7200 * time.Second,
+			expectedMachineType: "n1-standard-4",
+		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-w2k12-r2-%v", suffix),
+				OvfOvaGcsPath: "gs://compute-image-tools-test-resources/ova/w2k12-r2",
+				OsID:          "windows-2012r2",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-8",
+			},
+			name:        fmt.Sprintf("ovf-import-test-w2k12-r2-%s", suffix),
+			description: "Windows 2012 R2 two disks",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", string(startupScriptWindowsTwoDisks)),
+			assertTimeout: 7200 * time.Second,
+			expectedMachineType: "n1-standard-8",
+		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-w2k16-%v", suffix),
+				OvfOvaGcsPath: "gs://compute-image-tools-test-resources/ova/w2k16/w2k16.ovf",
+				OsID:          "windows-2016",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+			},
+			name:        fmt.Sprintf("ovf-import-test-w2k16-%s", suffix),
+			description: "Windows 2016",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", string(startupScriptWindowsSingleDisk)),
+			assertTimeout: 7200 * time.Second,
+			expectedMachineType: "n1-standard-2",
 		},
 	}
 
@@ -112,12 +192,18 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func ovfImportTestCase(ctx context.Context, testSetup *ovfImportTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
+func ovfImportTestCase(
+		ctx context.Context, testSetup *ovfImportTestSetup, tests chan *junitxml.TestCase,
+		wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp,
+		testProjectConfig *testconfig.Project) {
+
 	defer wg.Done()
 
-	ovfImportTestCase := junitxml.NewTestCase(testSuiteName, "[OVFImport] Import OVF")
+	ovfImportTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[OVFImport] %v", testSetup.description))
 
-	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *ovfImportTestSetup, *log.Logger, *testconfig.Project){
+	for tc, f := range map[*junitxml.TestCase]func(
+			context.Context, *junitxml.TestCase, *ovfImportTestSetup, *log.Logger, *testconfig.Project){
 		ovfImportTestCase: runOvfImportTest,
 	} {
 		if tc.FilterTestCase(regex) {
@@ -131,7 +217,10 @@ func ovfImportTestCase(ctx context.Context, testSetup *ovfImportTestSetup, tests
 	}
 }
 
-func runOvfImportTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *ovfImportTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runOvfImportTest(
+		ctx context.Context, testCase *junitxml.TestCase, testSetup *ovfImportTestSetup,
+		logger *log.Logger, testProjectConfig *testconfig.Project) {
+
 	logger.Printf("Creating OVF importer")
 	ovfImporter, err := ovfimporter.NewOVFImporter(testSetup.importParams)
 
@@ -160,19 +249,24 @@ func runOvfImportTest(ctx context.Context, testCase *junitxml.TestCase, testSetu
 
 	instanceName := testSetup.importParams.InstanceNames
 
-	instance, err := client.GetInstance(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
-	if !strings.HasSuffix(instance.MachineType, testSetup.importParams.MachineType) {
-		testCase.WriteFailure("Instance machine type `%v` doesn't match requested machine type `%v`", instance.MachineType, testSetup.importParams.MachineType)
+	instance, err := client.GetInstance(
+		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
+	if !strings.HasSuffix(instance.MachineType, testSetup.expectedMachineType) {
+		testCase.WriteFailure(
+			"Instance machine type `%v` doesn't match the expected machine type `%v`",
+			instance.MachineType, testSetup.expectedMachineType)
 		return
 	}
 
 	if !strings.HasSuffix(instance.Zone, testSetup.importParams.Zone) {
-		testCase.WriteFailure("Instance zone `%v` doesn't match requested zone `%v`", instance.Zone, testSetup.importParams.Zone)
+		testCase.WriteFailure("Instance zone `%v` doesn't match requested zone `%v`",
+			instance.Zone, testSetup.importParams.Zone)
 		return
 	}
 
 	logger.Printf("Stopping instance before restarting with test startup script")
-	err = client.StopInstance(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
+	err = client.StopInstance(
+		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
 	if err != nil {
 		testCase.WriteFailure("Error stopping imported instance: %v", err)
@@ -181,14 +275,17 @@ func runOvfImportTest(ctx context.Context, testCase *junitxml.TestCase, testSetu
 
 	logger.Printf("Setting instance metadata with test startup script")
 	err = client.SetInstanceMetadata(testProjectConfig.TestProjectID, testProjectConfig.TestZone,
-		instanceName, &api.Metadata{Items: []*api.MetadataItems{testSetup.startup}, Fingerprint: instance.Metadata.Fingerprint})
+		instanceName, &api.Metadata{Items: []*api.MetadataItems{testSetup.startup},
+			Fingerprint: instance.Metadata.Fingerprint})
+
 	if err != nil {
 		testCase.WriteFailure("Couldn't set instance metadata to verify OVF import: %v", err)
 		return
 	}
 
 	logger.Printf("Starting instance with test startup script")
-	err = client.StartInstance(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
+	err = client.StartInstance(
+		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 	if err != nil {
 		testCase.WriteFailure("Couldn't start instance to verify OVF import: %v", err)
 		return
@@ -197,7 +294,8 @@ func runOvfImportTest(ctx context.Context, testCase *junitxml.TestCase, testSetu
 	inst := computeUtils.Instance{Instance: instance, Client: client,
 		Project: testProjectConfig.TestProjectID, Zone: testProjectConfig.TestZone}
 
-	if err := inst.WaitForSerialOutput("PASSED: All tests passed!", 1, 5*time.Second, 7*time.Minute); err != nil {
+	if err := inst.WaitForSerialOutput(
+		"All tests passed", 1, 5*time.Second, 7*time.Minute); err != nil {
 		testCase.WriteFailure("Error during VM validation: %v", err)
 		return
 	}
