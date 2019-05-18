@@ -115,7 +115,7 @@ func TestSuite(
 			description: "Ubuntu 3 disks mounted",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", string(startupScriptUbuntu3disks)),
-			assertTimeout: 7200 * time.Second,
+			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-standard-1",
 		},
 		{
@@ -133,7 +133,7 @@ func TestSuite(
 			description: "Centos 6.8",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", string(startupScriptLinuxSingleDisk)),
-			assertTimeout: 7200 * time.Second,
+			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-standard-4",
 		},
 		{
@@ -151,7 +151,7 @@ func TestSuite(
 			description: "Windows 2012 R2 two disks",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", string(startupScriptWindowsTwoDisks)),
-			assertTimeout: 7200 * time.Second,
+			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-standard-8",
 		},
 		{
@@ -168,7 +168,7 @@ func TestSuite(
 			description: "Windows 2016",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", string(startupScriptWindowsSingleDisk)),
-			assertTimeout: 7200 * time.Second,
+			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-standard-2",
 		},
 	}
