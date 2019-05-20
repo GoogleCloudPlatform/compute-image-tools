@@ -301,11 +301,7 @@ func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRe
 
 	err :=
 		paramutils.RunTestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(
-<<<<<<< HEAD
-			t, zone, region, scratchBucketGcsPath, sourceFile, project, "scratchbucket",  "europe-north1", "europe-north1-b")
-=======
 			t, zone, region, scratchBucketGcsPath, sourceFile, project, "scratchbucket", "europe-north1", "europe-north1-b")
->>>>>>> 824d2e122a392cf834ec77f256cf52877be3f602
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-b", *zone)
@@ -320,14 +316,8 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
 	defer testutils.SetStringP(&project, "a_project")()
 
-<<<<<<< HEAD
-	err :=
-			paramutils.RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
-				t, zone, region, scratchBucketGcsPath, sourceFile, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
-=======
 	err := paramutils.RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
 		t, zone, region, scratchBucketGcsPath, sourceFile, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
->>>>>>> 824d2e122a392cf834ec77f256cf52877be3f602
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", *zone)
@@ -339,11 +329,7 @@ func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
 	defer testutils.SetStringP(&project, "")()
 
 	err :=
-<<<<<<< HEAD
-			paramutils.RunTestPopulateProjectIfMissingProjectPopulatedFromGCE(t, project, "gce_project")
-=======
 		paramutils.RunTestPopulateProjectIfMissingProjectPopulatedFromGCE(t, project, "gce_project")
->>>>>>> 824d2e122a392cf834ec77f256cf52877be3f602
 
 	assert.Nil(t, err)
 	assert.Equal(t, "gce_project", *project)
