@@ -57,7 +57,11 @@ func TestFlagsClientIdNotProvided(t *testing.T) {
 func TestFlagsDestinationUriNotProvided(t *testing.T) {
 	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
+<<<<<<< HEAD
 	defer testutils.ClearStringFlag(cliArgs, destinationURIFlagKey, &clientID)()
+=======
+	defer testutils.ClearStringFlag(cliArgs, destinationUriFlagKey, &clientID)()
+>>>>>>> 824d2e122a392cf834ec77f256cf52877be3f602
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing destination_uri flag", t)
 }
 
@@ -96,12 +100,21 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
 	defer testutils.SetStringP(&zone, "")()
 	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
+<<<<<<< HEAD
 	defer testutils.SetStringP(&destinationURI, "gs://destbucket/destfile")()
 	defer testutils.SetStringP(&project, "a_project")()
 
 	err :=
 			paramutils.RunTestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(
 				t, zone, region, scratchBucketGcsPath, destinationURI, project, "scratchbucket",  "europe-north1", "europe-north1-b")
+=======
+	defer testutils.SetStringP(&destinationUri, "gs://destbucket/destfile")()
+	defer testutils.SetStringP(&project, "a_project")()
+
+	err :=
+		paramutils.RunTestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(
+			t, zone, region, scratchBucketGcsPath, destinationUri, project, "scratchbucket", "europe-north1", "europe-north1-b")
+>>>>>>> 824d2e122a392cf834ec77f256cf52877be3f602
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-b", *zone)
@@ -112,12 +125,21 @@ func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRe
 func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
 	defer testutils.SetStringP(&zone, "")()
 	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
+<<<<<<< HEAD
 	defer testutils.SetStringP(&destinationURI, "gs://destbucket/destfile")()
 	defer testutils.SetStringP(&project, "a_project")()
 
 	err :=
 			paramutils.RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
 				t, zone, region, scratchBucketGcsPath, destinationURI, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
+=======
+	defer testutils.SetStringP(&destinationUri, "gs://destbucket/destfile")()
+	defer testutils.SetStringP(&project, "a_project")()
+
+	err :=
+		paramutils.RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
+			t, zone, region, scratchBucketGcsPath, destinationUri, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
+>>>>>>> 824d2e122a392cf834ec77f256cf52877be3f602
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", *zone)
@@ -129,7 +151,11 @@ func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
 	defer testutils.SetStringP(&project, "")()
 
 	err :=
+<<<<<<< HEAD
 			paramutils.RunTestPopulateProjectIfMissingProjectPopulatedFromGCE(t, project, "gce_project")
+=======
+		paramutils.RunTestPopulateProjectIfMissingProjectPopulatedFromGCE(t, project, "gce_project")
+>>>>>>> 824d2e122a392cf834ec77f256cf52877be3f602
 
 	assert.Nil(t, err)
 	assert.Equal(t, "gce_project", *project)
@@ -138,7 +164,11 @@ func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
 func getAllCliArgs() map[string]interface{} {
 	return map[string]interface{}{
 		clientIDFlagKey:             "aClient",
+<<<<<<< HEAD
 		destinationURIFlagKey:       "gs://bucket/exported_image",
+=======
+		destinationUriFlagKey:       "gs://bucket/exported_image",
+>>>>>>> 824d2e122a392cf834ec77f256cf52877be3f602
 		sourceImageFlagKey:          "anImage",
 		"format":                    "",
 		"project":                   "aProject",

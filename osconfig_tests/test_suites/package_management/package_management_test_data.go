@@ -23,8 +23,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
+	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
-	"github.com/GoogleCloudPlatform/osconfig/logger"
 	api "google.golang.org/api/compute/v1"
 )
 

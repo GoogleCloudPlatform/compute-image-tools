@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/parse"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 )
@@ -62,7 +62,7 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 
 	if params.Labels != "" {
 		var err error
-		params.UserLabels, err = parseutils.ParseKeyValues(params.Labels)
+		params.UserLabels, err = paramutils.ParseKeyValues(params.Labels)
 		if err != nil {
 			return err
 		}
