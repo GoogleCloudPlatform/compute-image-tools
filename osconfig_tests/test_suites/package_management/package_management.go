@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log"
 	"path"
-	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
@@ -422,14 +421,4 @@ func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignm
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", utils.GetStatusFromError(err)))
 	}
-}
-
-func getTestNameFromTestCase(tc string) string {
-	re := regexp.MustCompile(`\[[^]]*\]`)
-	ss := re.FindAllString(tc, -1)
-	var ret []string
-	for _, s := range ss {
-		ret = append(ret, s[1:len(s)-1])
-	}
-	return filepath.Base(ret[1])
 }
