@@ -28,7 +28,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-// Get project id from either current project or flag
+// GetProjectID gets project id from either current project or flag
 func GetProjectID(mgce commondomain.MetadataGCEInterface, projectFlag string) (string, error) {
 	if projectFlag == "" {
 		if !mgce.OnGCE() {
@@ -43,7 +43,7 @@ func GetProjectID(mgce commondomain.MetadataGCEInterface, projectFlag string) (s
 	return projectFlag, nil
 }
 
-
+// PopulateMissingParameters populate missing params for import/export cli tools
 func PopulateMissingParameters(project *string, zone *string, region *string, scratchBucketGcsPath *string, file string, mgce commondomain.MetadataGCEInterface,
 		scratchBucketCreator commondomain.ScratchBucketCreatorInterface,
 		zoneRetriever commondomain.ZoneRetrieverInterface, storageClient commondomain.StorageClientInterface) error {
@@ -86,12 +86,14 @@ func PopulateMissingParameters(project *string, zone *string, region *string, sc
 	return nil
 }
 
+// PopulateProjectIfMissing populates project id for cli tools
 func PopulateProjectIfMissing(mgce commondomain.MetadataGCEInterface, projectFlag *string) error {
 	var err error
 	*projectFlag, err = GetProjectID(mgce, *projectFlag)
 	return err
 }
 
+// PopulateRegion populates region for cli tools
 func PopulateRegion(region *string, zone string) error {
 	aRegion, err := GetRegion(zone)
 	if err != nil {
@@ -101,6 +103,7 @@ func PopulateRegion(region *string, zone string) error {
 	return nil
 }
 
+// GetRegion gets region by zone
 func GetRegion(zone string) (string, error) {
 	if zone == "" {
 		return "", fmt.Errorf("zone is empty. Can't determine region")
@@ -112,7 +115,7 @@ func GetRegion(zone string) (string, error) {
 	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
 }
 
-// creates a new Daisy Compute client
+// CreateComputeClient creates a new Daisy Compute client
 func CreateComputeClient(ctx *context.Context, oauth string, ce string) compute.Client {
 	computeOptions := []option.ClientOption{option.WithCredentialsFile(oauth)}
 	if ce != "" {

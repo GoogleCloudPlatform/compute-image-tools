@@ -57,7 +57,7 @@ func TestFlagsClientIdNotProvided(t *testing.T) {
 func TestFlagsDestinationUriNotProvided(t *testing.T) {
 	defer testutils.BackupOsArgs()()
 	cliArgs := getAllCliArgs()
-	defer testutils.ClearStringFlag(cliArgs, destinationUriFlagKey, &clientID)()
+	defer testutils.ClearStringFlag(cliArgs, destinationURIFlagKey, &clientID)()
 	buildOsArgsAndAssertErrorOnValidate(cliArgs, "Expected error for missing destination_uri flag", t)
 }
 
@@ -96,12 +96,12 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
 	defer testutils.SetStringP(&zone, "")()
 	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer testutils.SetStringP(&destinationUri, "gs://destbucket/destfile")()
+	defer testutils.SetStringP(&destinationURI, "gs://destbucket/destfile")()
 	defer testutils.SetStringP(&project, "a_project")()
 
 	err :=
 			paramutils.RunTestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(
-				t, zone, region, scratchBucketGcsPath, destinationUri, project, "scratchbucket",  "europe-north1", "europe-north1-b")
+				t, zone, region, scratchBucketGcsPath, destinationURI, project, "scratchbucket",  "europe-north1", "europe-north1-b")
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-b", *zone)
@@ -112,13 +112,13 @@ func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRe
 func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
 	defer testutils.SetStringP(&zone, "")()
 	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
-	defer testutils.SetStringP(&destinationUri, "gs://destbucket/destfile")()
+	defer testutils.SetStringP(&destinationURI, "gs://destbucket/destfile")()
 	defer testutils.SetStringP(&project, "a_project")()
 
 	err :=
 			paramutils.RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
-				t, zone, region, scratchBucketGcsPath, destinationUri, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
-	storage_client.go
+				t, zone, region, scratchBucketGcsPath, destinationURI, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
+
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", *zone)
 	assert.Equal(t, "europe-north1", *region)
@@ -138,7 +138,7 @@ func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
 func getAllCliArgs() map[string]interface{} {
 	return map[string]interface{}{
 		clientIDFlagKey:             "aClient",
-		destinationUriFlagKey:       "gs://bucket/exported_image",
+		destinationURIFlagKey:       "gs://bucket/exported_image",
 		sourceImageFlagKey:          "anImage",
 		"format":                    "",
 		"project":                   "aProject",

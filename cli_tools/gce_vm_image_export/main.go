@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -32,17 +32,17 @@ import (
 )
 
 const (
-	workflowDir                = "daisy_workflows/export/"
-	exportWorkflow             = workflowDir + "image_export.wf.json"
-	exportAndConvertWorkflow   = workflowDir + "image_export_ext.wf.json"
-	clientIDFlagKey            = "client_id"
-	destinationUriFlagKey      = "destination_uri"
-	sourceImageFlagKey         = "source_IMAGE"
+	workflowDir              = "daisy_workflows/export/"
+	exportWorkflow           = workflowDir + "image_export.wf.json"
+	exportAndConvertWorkflow = workflowDir + "image_export_ext.wf.json"
+	clientIDFlagKey          = "client_id"
+	destinationURIFlagKey    = "destination_uri"
+	sourceImageFlagKey       = "source_IMAGE"
 )
 
 var (
 	clientID             = flag.String(clientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`.")
-	destinationUri       = flag.String(destinationUriFlagKey, "", "The Google Cloud Storage URI destination for the exported virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.")
+	destinationURI       = flag.String(destinationURIFlagKey, "", "The Google Cloud Storage URI destination for the exported virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.")
 	sourceImage          = flag.String(sourceImageFlagKey, "", "Compute Engine image from which to export")
 	format               = flag.String("format", "", "Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.")
 	project              = flag.String("project", "", "Project to run in, overrides what is set in workflow.")
@@ -78,7 +78,7 @@ func validateAndParseFlags() error {
 	if err := validationutils.ValidateStringFlagNotEmpty(*clientID, clientIDFlagKey); err != nil {
 		return err
 	}
-	if err := validationutils.ValidateStringFlagNotEmpty(*destinationUri, destinationUriFlagKey); err != nil {
+	if err := validationutils.ValidateStringFlagNotEmpty(*destinationURI, destinationURIFlagKey); err != nil {
 		return err
 	}
 	if err := validationutils.ValidateStringFlagNotEmpty(*sourceImage, sourceImageFlagKey); err != nil {
@@ -99,15 +99,15 @@ func validateAndParseFlags() error {
 func getWorkflowPath() string {
 	if *format == "" {
 		return pathutils.ToWorkingDir(exportWorkflow, *currentExecutablePath)
-	} else {
-		return pathutils.ToWorkingDir(exportAndConvertWorkflow, *currentExecutablePath)
 	}
+
+	return pathutils.ToWorkingDir(exportAndConvertWorkflow, *currentExecutablePath)
 }
 
 func buildDaisyVars() map[string]string {
 	varMap := map[string]string{}
 
-	varMap["destination"] = *destinationUri
+	varMap["destination"] = *destinationURI
 
 	varMap["source_image"] = fmt.Sprintf("global/images/%v", *sourceImage)
 
@@ -172,7 +172,7 @@ func main() {
 	}
 
 	err = paramutils.PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
-		*destinationUri, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
+		*destinationURI, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
