@@ -24,8 +24,8 @@ import (
 
 // RunTestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion is a test helper function
 func RunTestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(
-		t *testing.T, zone *string, region *string, scratchBucketGcsPath *string, file *string,
-		project *string, expectedBucketName string, expectedRegion string, expectedZone string) error {
+	t *testing.T, zone *string, region *string, scratchBucketGcsPath *string, file *string,
+	project *string, expectedBucketName string, expectedRegion string, expectedZone string) error {
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -61,11 +61,11 @@ func RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
 	mockZoneRetriever.EXPECT().GetZone(expectedRegion, expectedProject).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	return PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
-		*file, mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+	return PopulateMissingParameters(project, zone, region, scratchBucketGcsPath, *file,
+		mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 }
 
-	// RunTestPopulateProjectIfMissingProjectPopulatedFromGCE is a test helper function
+// RunTestPopulateProjectIfMissingProjectPopulatedFromGCE is a test helper function
 func RunTestPopulateProjectIfMissingProjectPopulatedFromGCE(
 	t *testing.T, project *string, expectedProject string) error {
 

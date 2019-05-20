@@ -309,7 +309,6 @@ func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRe
 	assert.Equal(t, "gs://scratchbucket/scratchpath", *scratchBucketGcsPath)
 }
 
-
 func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
 	defer testutils.SetStringP(&zone, "")()
 	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
