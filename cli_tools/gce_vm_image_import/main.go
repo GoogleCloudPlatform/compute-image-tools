@@ -212,7 +212,7 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 func runImport(ctx context.Context) error {
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
 	varMap := buildDaisyVars(translateWorkflowPath)
-	workflow, err := daisyutils.ParseWorkflow(&computeutils.MetadataGCE{}, importWorkflowPath, varMap,
+	workflow, err := daisyutils.ParseWorkflow(importWorkflowPath, varMap,
 		*project, *zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled)
 	if err != nil {

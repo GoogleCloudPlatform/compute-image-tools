@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
@@ -65,9 +64,8 @@ func GetTranslateWorkflowPath(os *string) string {
 }
 
 // ParseWorkflow parses Daisy workflow file and returns Daisy workflow object or error in case of failure
-func ParseWorkflow(metadataGCE commondomain.MetadataGCEInterface, path string,
-	varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string,
-	disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
+func ParseWorkflow(path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout,
+	cEndpoint string, disableGCSLogs, disableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
 	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
@@ -83,22 +81,8 @@ Loop:
 		return nil, fmt.Errorf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
 	}
 
-	if project != "" {
-		w.Project = project
-	} else if w.Project == "" && metadataGCE.OnGCE() {
-		w.Project, err = metadataGCE.ProjectID()
-		if err != nil {
-			return nil, err
-		}
-	}
-	if zone != "" {
-		w.Zone = zone
-	} else if w.Zone == "" && metadataGCE.OnGCE() {
-		w.Zone, err = metadataGCE.Zone()
-		if err != nil {
-			return nil, err
-		}
-	}
+	w.Project = project
+	w.Zone = zone
 	if gcsPath != "" {
 		w.GCSPath = gcsPath
 	}
@@ -116,7 +100,7 @@ Loop:
 	if disableGCSLogs {
 		w.DisableGCSLogging()
 	}
-	if diableCloudLogs {
+	if disableCloudLogs {
 		w.DisableCloudLogging()
 	}
 	if disableStdoutLogs {

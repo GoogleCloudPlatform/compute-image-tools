@@ -127,7 +127,7 @@ func buildDaisyVars() map[string]string {
 func runExport(ctx context.Context) error {
 	exportWorkflowPath := getWorkflowPath()
 	varMap := buildDaisyVars()
-	workflow, err := daisyutils.ParseWorkflow(&computeutils.MetadataGCE{}, exportWorkflowPath, varMap,
+	workflow, err := daisyutils.ParseWorkflow(exportWorkflowPath, varMap,
 		*project, *zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled)
 	if err != nil {

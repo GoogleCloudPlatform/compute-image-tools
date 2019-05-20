@@ -15,13 +15,10 @@
 package daisyutils
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 )
@@ -58,9 +55,6 @@ func TestGetTranslateWorkflowPathInvalid(t *testing.T) {
 }
 
 func TestParseWorkflows(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	path := "../../../../daisy/test_data/test.wf.json"
 	varMap := map[string]string{"key1": "var1", "key2": "var2"}
 	project := "project"
@@ -69,8 +63,8 @@ func TestParseWorkflows(t *testing.T) {
 	oauth := "oauthpath"
 	dTimeout := "10m"
 	endpoint := "endpoint"
-	w, err := ParseWorkflow(mocks.NewMockMetadataGCEInterface(mockCtrl), path, varMap, project, zone,
-		gcsPath, oauth, dTimeout, endpoint, true, true, true)
+	w, err := ParseWorkflow(path, varMap, project, zone, gcsPath, oauth, dTimeout, endpoint, true,
+		true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,86 +72,7 @@ func TestParseWorkflows(t *testing.T) {
 	assertWorkflow(t, w, project, zone, gcsPath, oauth, dTimeout, endpoint, varMap)
 }
 
-func TestParseWorkflowsProjectAndZoneFromMetadataGCE(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	path := "../../../../daisy/test_data/test_no_project_no_zone.wf.json"
-	varMap := map[string]string{"key1": "var1", "key2": "var2"}
-	project := ""
-	zone := ""
-	gcsPath := "gcspath"
-	oauth := "oauthpath"
-	dTimeout := "10m"
-	endpoint := "endpoint"
-
-	projectFromMetadata := "project_from_metadata"
-	zoneFromMetadata := "zone_from_metadata"
-
-	mockMetadataGCE := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGCE.EXPECT().OnGCE().Return(true).AnyTimes()
-	mockMetadataGCE.EXPECT().ProjectID().Return(projectFromMetadata, nil)
-	mockMetadataGCE.EXPECT().Zone().Return(zoneFromMetadata, nil)
-
-	w, err := ParseWorkflow(mockMetadataGCE, path, varMap, project, zone,
-		gcsPath, oauth, dTimeout, endpoint, true, true, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assertWorkflow(t, w, projectFromMetadata, zoneFromMetadata, gcsPath, oauth, dTimeout, endpoint, varMap)
-}
-
-func TestParseWorkflowsReturnsErrorWhenMetadataProjectIDReturnsError(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	path := "../../../../daisy/test_data/test_no_project_no_zone.wf.json"
-	varMap := map[string]string{"key1": "var1", "key2": "var2"}
-	project := ""
-	zone := ""
-	gcsPath := "gcspath"
-	oauth := "oauthpath"
-	dTimeout := "10m"
-	endpoint := "endpoint"
-
-	mockMetadataGCE := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGCE.EXPECT().OnGCE().Return(true).AnyTimes()
-	mockMetadataGCE.EXPECT().ProjectID().Return("", fmt.Errorf("projectID error"))
-
-	w, err := ParseWorkflow(mockMetadataGCE, path, varMap, project, zone,
-		gcsPath, oauth, dTimeout, endpoint, true, true, true)
-	assert.NotNil(t, err)
-	assert.Nil(t, w)
-}
-
-func TestParseWorkflowsReturnsErrorWhenMetadataZoneReturnsError(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	path := "../../../../daisy/test_data/test_no_project_no_zone.wf.json"
-	varMap := map[string]string{"key1": "var1", "key2": "var2"}
-	project := ""
-	zone := ""
-	gcsPath := "gcspath"
-	oauth := "oauthpath"
-	dTimeout := "10m"
-	endpoint := "endpoint"
-
-	projectFromMetadata := "project_from_metadata"
-
-	mockMetadataGCE := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGCE.EXPECT().OnGCE().Return(true).AnyTimes()
-	mockMetadataGCE.EXPECT().ProjectID().Return(projectFromMetadata, nil)
-	mockMetadataGCE.EXPECT().Zone().Return("", fmt.Errorf("zone error"))
-
-	w, err := ParseWorkflow(mockMetadataGCE, path, varMap, project, zone,
-		gcsPath, oauth, dTimeout, endpoint, true, true, true)
-	assert.NotNil(t, err)
-	assert.Nil(t, w)
-}
-
 func TestParseWorkflowsInvalidPath(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
 	varMap := map[string]string{"key1": "var1", "key2": "var2"}
 	project := "project"
 	zone := "zone"
@@ -165,8 +80,8 @@ func TestParseWorkflowsInvalidPath(t *testing.T) {
 	oauth := "oauthpath"
 	dTimeout := "10m"
 	endpoint := "endpoint"
-	w, err := ParseWorkflow(mocks.NewMockMetadataGCEInterface(mockCtrl), "NOT_VALID_PATH",
-		varMap, project, zone, gcsPath, oauth, dTimeout, endpoint, true, true, true)
+	w, err := ParseWorkflow("NOT_VALID_PATH", varMap, project, zone, gcsPath, oauth, dTimeout, endpoint,
+		true, true, true)
 	assert.Nil(t, w)
 	assert.NotNil(t, err)
 }

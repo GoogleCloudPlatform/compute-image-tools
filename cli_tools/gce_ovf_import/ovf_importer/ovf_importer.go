@@ -368,7 +368,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 
 	varMap := oi.buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr, region)
 
-	workflow, err := daisyutils.ParseWorkflow(oi.mgce, oi.workflowPath, varMap, project,
+	workflow, err := daisyutils.ParseWorkflow(oi.workflowPath, varMap, project,
 		zone, oi.params.ScratchBucketGcsPath, oi.params.Oauth, oi.params.Timeout, oi.params.Ce, oi.params.GcsLogsDisabled, oi.params.CloudLogsDisabled,
 		oi.params.StdoutLogsDisabled)
 
