@@ -365,7 +365,11 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 
 	var logwg sync.WaitGroup
 
-	tc, f := getTestCaseFromTestSetUp(testSetup)
+	tc, f, err := getTestCaseFromTestSetUp(testSetup)
+	if err != nil {
+		logger.Fatalf("invalid testcase: %+v", err)
+		return
+	}
 	if tc.FilterTestCase(regex) {
 		tc.Finish(tests)
 	} else {
@@ -379,7 +383,7 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 }
 
 // factory method to get testcase from the testsetup
-func getTestCaseFromTestSetUp(testSetup *packageManagementTestSetup) (*junitxml.TestCase, func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project)) {
+func getTestCaseFromTestSetUp(testSetup *packageManagementTestSetup) (*junitxml.TestCase, func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project), error) {
 	var tc *junitxml.TestCase
 	var f func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project)
 
@@ -399,9 +403,11 @@ func getTestCaseFromTestSetUp(testSetup *packageManagementTestSetup) (*junitxml.
 	case packageInstallFromNewRepoFunction:
 		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Add a new package from new repository] [%s]", path.Base(testSetup.image)))
 		f = runPackageInstallFromNewRepoTest
+	default:
+		return nil, nil, fmt.Errorf("unknown test function name: %s", testSetup.fname)
 	}
 
-	return tc, f
+	return tc, f, nil
 }
 
 func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig, testProjectConfig *testconfig.Project) {
