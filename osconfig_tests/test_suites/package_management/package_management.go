@@ -378,6 +378,7 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 	logwg.Wait()
 }
 
+// factory method to get testcase from the testsetup
 func getTestCaseFromTestSetUp(testSetup *packageManagementTestSetup) (*junitxml.TestCase, func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project)) {
 	var tc *junitxml.TestCase
 	var f func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project)
