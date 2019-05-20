@@ -47,7 +47,7 @@ var (
 )
 
 var vf = func(
-		inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
+	inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
 	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
@@ -63,9 +63,9 @@ type ovfImportTestSetup struct {
 
 // TestSuite is OVF import test suite.
 func TestSuite(
-		ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
-		logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-		testProjectConfig *testconfig.Project) {
+	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
+	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
+	testProjectConfig *testconfig.Project) {
 
 	defer tswg.Done()
 
@@ -193,9 +193,9 @@ func TestSuite(
 }
 
 func ovfImportTestCase(
-		ctx context.Context, testSetup *ovfImportTestSetup, tests chan *junitxml.TestCase,
-		wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp,
-		testProjectConfig *testconfig.Project) {
+	ctx context.Context, testSetup *ovfImportTestSetup, tests chan *junitxml.TestCase,
+	wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp,
+	testProjectConfig *testconfig.Project) {
 
 	defer wg.Done()
 
@@ -203,7 +203,7 @@ func ovfImportTestCase(
 		testSuiteName, fmt.Sprintf("[OVFImport] %v", testSetup.description))
 
 	for tc, f := range map[*junitxml.TestCase]func(
-			context.Context, *junitxml.TestCase, *ovfImportTestSetup, *log.Logger, *testconfig.Project){
+		context.Context, *junitxml.TestCase, *ovfImportTestSetup, *log.Logger, *testconfig.Project){
 		ovfImportTestCase: runOvfImportTest,
 	} {
 		if tc.FilterTestCase(regex) {
@@ -218,8 +218,8 @@ func ovfImportTestCase(
 }
 
 func runOvfImportTest(
-		ctx context.Context, testCase *junitxml.TestCase, testSetup *ovfImportTestSetup,
-		logger *log.Logger, testProjectConfig *testconfig.Project) {
+	ctx context.Context, testCase *junitxml.TestCase, testSetup *ovfImportTestSetup,
+	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
 	logger.Printf("Creating OVF importer")
 	ovfImporter, err := ovfimporter.NewOVFImporter(testSetup.importParams)
