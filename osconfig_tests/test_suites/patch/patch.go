@@ -26,6 +26,7 @@ import (
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
@@ -78,7 +79,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		testCase.WriteFailure("error creating client: %v", err)
@@ -96,6 +97,13 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 		return
 	}
 	defer inst.Cleanup()
+
+	storageClient, err := gcpclients.GetStorageClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("Error getting storage client: %v", err)
+	}
+	logwg.Add(1)
+	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
 	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
@@ -170,18 +178,21 @@ func isPatchJobFailureState(state osconfigpb.PatchJob_State) bool {
 func executePatchJobTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
+	var logwg sync.WaitGroup
 	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Execute PatchJob] [%s]", testSetup.testName))
 
-	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *patchTestSetup, *log.Logger, *testconfig.Project){
+	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *patchTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project){
 		executePatchTest: runExecutePatchJobTest,
 	} {
 		if tc.FilterTestCase(regex) {
 			tc.Finish(tests)
 		} else {
 			logger.Printf("Running TestCase %q", tc.Name)
-			f(ctx, tc, testSetup, logger, testProjectConfig)
+			f(ctx, tc, testSetup, logger, &logwg, testProjectConfig)
 			tc.Finish(tests)
 			logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
 		}
 	}
+
+	logwg.Wait()
 }
