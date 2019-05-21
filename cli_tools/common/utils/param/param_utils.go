@@ -12,8 +12,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-//+build !test
-
 package paramutils
 
 import (
@@ -28,7 +26,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-// GetProjectID gets project id from either current project or flag
+// GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
 func GetProjectID(mgce commondomain.MetadataGCEInterface, projectFlag string) (string, error) {
 	if projectFlag == "" {
 		if !mgce.OnGCE() {

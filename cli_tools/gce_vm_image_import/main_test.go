@@ -20,7 +20,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
@@ -291,47 +290,6 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 	assert.Equal(t, got["import_network"], "global/networks/a-network")
 	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
 	assert.Equal(t, len(got), 8)
-}
-
-func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
-	defer testutils.SetStringP(&zone, "")()
-	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer testutils.SetStringP(&project, "a_project")()
-
-	err :=
-		paramutils.RunTestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(
-			t, zone, region, scratchBucketGcsPath, sourceFile, project, "scratchbucket", "europe-north1", "europe-north1-b")
-
-	assert.Nil(t, err)
-	assert.Equal(t, "europe-north1-b", *zone)
-	assert.Equal(t, "europe-north1", *region)
-	assert.Equal(t, "gs://scratchbucket/scratchpath", *scratchBucketGcsPath)
-}
-
-func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
-	defer testutils.SetStringP(&zone, "")()
-	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
-	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer testutils.SetStringP(&project, "a_project")()
-
-	err := paramutils.RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
-		t, zone, region, scratchBucketGcsPath, sourceFile, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
-
-	assert.Nil(t, err)
-	assert.Equal(t, "europe-north1-c", *zone)
-	assert.Equal(t, "europe-north1", *region)
-	assert.Equal(t, "gs://new_scratch_bucket/", *scratchBucketGcsPath)
-}
-
-func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
-	defer testutils.SetStringP(&project, "")()
-
-	err :=
-		paramutils.RunTestPopulateProjectIfMissingProjectPopulatedFromGCE(t, project, "gce_project")
-
-	assert.Nil(t, err)
-	assert.Equal(t, "gce_project", *project)
 }
 
 func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {

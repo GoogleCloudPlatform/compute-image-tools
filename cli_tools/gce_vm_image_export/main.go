@@ -59,7 +59,7 @@ var (
 	stdoutLogsDisabled   = flag.Bool("disable_stdout_logging", false, "do not display individual workflow logs on stdout.")
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 
-	region  *string
+	region  = new(string)
 	buildID = os.Getenv("BUILD_ID")
 
 	userLabels            map[string]string
@@ -69,8 +69,6 @@ var (
 func init() {
 	currentExecutablePathStr := string(os.Args[0])
 	currentExecutablePath = &currentExecutablePathStr
-	str := ""
-	region = &str
 }
 
 func validateAndParseFlags() error {

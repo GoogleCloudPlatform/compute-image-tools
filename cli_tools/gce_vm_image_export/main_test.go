@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -15,10 +15,9 @@
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/stretchr/testify/assert"
 )
@@ -91,48 +90,6 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 	assert.Equal(t, "global/networks/aNetwork", got["export_network"])
 	assert.Equal(t, "regions/aRegion/subnetworks/aSubnet", got["export_subnet"])
 	assert.Equal(t, 5, len(got))
-}
-
-func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
-	defer testutils.SetStringP(&zone, "")()
-	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer testutils.SetStringP(&destinationURI, "gs://destbucket/destfile")()
-	defer testutils.SetStringP(&project, "a_project")()
-
-	err :=
-		paramutils.RunTestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(
-			t, zone, region, scratchBucketGcsPath, destinationURI, project, "scratchbucket", "europe-north1", "europe-north1-b")
-
-	assert.Nil(t, err)
-	assert.Equal(t, "europe-north1-b", *zone)
-	assert.Equal(t, "europe-north1", *region)
-	assert.Equal(t, "gs://scratchbucket/scratchpath", *scratchBucketGcsPath)
-}
-
-func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
-	defer testutils.SetStringP(&zone, "")()
-	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
-	defer testutils.SetStringP(&destinationURI, "gs://destbucket/destfile")()
-	defer testutils.SetStringP(&project, "a_project")()
-
-	err :=
-		paramutils.RunTestPopulateMissingParametersCreatesScratchBucketIfNotProvided(
-			t, zone, region, scratchBucketGcsPath, destinationURI, project, "a_project", "new_scratch_bucket", "europe-north1", "europe-north1-c")
-
-	assert.Nil(t, err)
-	assert.Equal(t, "europe-north1-c", *zone)
-	assert.Equal(t, "europe-north1", *region)
-	assert.Equal(t, "gs://new_scratch_bucket/", *scratchBucketGcsPath)
-}
-
-func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
-	defer testutils.SetStringP(&project, "")()
-
-	err :=
-		paramutils.RunTestPopulateProjectIfMissingProjectPopulatedFromGCE(t, project, "gce_project")
-
-	assert.Nil(t, err)
-	assert.Equal(t, "gce_project", *project)
 }
 
 func getAllCliArgs() map[string]interface{} {
