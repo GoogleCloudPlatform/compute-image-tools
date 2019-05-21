@@ -94,7 +94,7 @@ func TestSuite(
 		os.Exit(1)
 	}
 	startupScriptWindowsTwoDisks, err := ioutil.ReadFile(
-		"gce_ovf_import_tests/scripts/ovf_import_test_windows_2k12_r2_two_disks.ps1")
+		"gce_ovf_import_tests/scripts/ovf_import_test_windows_two_disks.ps1")
 	if err != nil {
 		os.Exit(1)
 	}
