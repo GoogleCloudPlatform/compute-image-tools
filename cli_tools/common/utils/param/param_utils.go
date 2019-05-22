@@ -93,7 +93,7 @@ func PopulateProjectIfMissing(mgce commondomain.MetadataGCEInterface, projectFla
 	return err
 }
 
-// PopulateRegion populates region for cli tools
+// PopulateRegion populates region based on the value extracted from zone param
 func PopulateRegion(region *string, zone string) error {
 	aRegion, err := GetRegion(zone)
 	if err != nil {
@@ -103,7 +103,7 @@ func PopulateRegion(region *string, zone string) error {
 	return nil
 }
 
-// GetRegion gets region by zone
+// GetRegion extracts region from a zones
 func GetRegion(zone string) (string, error) {
 	if zone == "" {
 		return "", fmt.Errorf("zone is empty. Can't determine region")
