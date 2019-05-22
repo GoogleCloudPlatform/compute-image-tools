@@ -54,7 +54,7 @@ var vf = func(inst *compute.Instance, vfString string, port int64, interval, tim
 }
 
 func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "createosconfig"
+	const testName = createOsConfigFunction
 	desc := "test osconfig creation"
 	packageName := "cowsay"
 	for _, tuple := range platformPkgManagers {
@@ -98,7 +98,7 @@ func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	return pkgTestSetup
 }
 func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "packageinstall"
+	const testName = packageInstallFunction
 	desc := "test package installation"
 	packageName := "cowsay"
 	for _, tuple := range platformPkgManagers {
@@ -157,7 +157,7 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 }
 
 func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "packageremoval"
+	const testName = packageRemovalFunction
 	desc := "test package removal"
 	packageName := "cowsay"
 	for _, tuple := range platformPkgManagers {
@@ -216,7 +216,7 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 }
 
 func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "packageinstallremoval"
+	const testName = packageInstallRemovalFunction
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
 	for _, tuple := range platformPkgManagers {
@@ -280,7 +280,7 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 }
 
 func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	testName := "packageinstallfromnewrepo"
+	const testName = packageInstallFromNewRepoFunction
 	desc := "test package installation from new package"
 	packageName := "osconfig-agent-test"
 	for _, tuple := range platformPkgManagers {
@@ -343,7 +343,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 	return pkgTestSetup
 }
 
-func createAndAppendSetup(pkgTestSetup []*packageManagementTestSetup, image, name, fname, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, assertTimeout time.Duration, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) []*packageManagementTestSetup {
+func createAndAppendSetup(pkgTestSetup []*packageManagementTestSetup, image, name string, fname packageMangementTestFunctionName, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, assertTimeout time.Duration, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) []*packageManagementTestSetup {
 	var setup *packageManagementTestSetup
 	newPackageManagementTestSetup(&setup, image, name, fname, vs, oc, assignment, startup, assertTimeout, vf)
 	pkgTestSetup = append(pkgTestSetup, setup)

@@ -95,6 +95,54 @@ done
 echo 'osconfig install done'`
 )
 
+// HeadAptImages is a map of names to image paths for public image families that use APT.
+var HeadAptImages = map[string]string{
+	// Debian images.
+	"debian-cloud/debian-9": "projects/debian-cloud/global/images/family/debian-9",
+
+	// Ubuntu images.
+	"ubuntu-os-cloud/ubuntu-1604-lts": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
+	"ubuntu-os-cloud/ubuntu-1804-lts": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts",
+}
+
+// HeadEL6Images is a map of names to image paths for public EL6 image families.
+var HeadEL6Images = map[string]string{
+	"centos-cloud/centos-6": "projects/centos-cloud/global/images/family/centos-6",
+	"rhel-cloud/rhel-6":     "projects/rhel-cloud/global/images/family/rhel-6",
+}
+
+// HeadEL7Images is a map of names to image paths for public EL7 image families.
+var HeadEL7Images = map[string]string{
+	"centos-cloud/centos-7": "projects/centos-cloud/global/images/family/centos-7",
+	"rhel-cloud/rhel-7":     "projects/rhel-cloud/global/images/family/rhel-7",
+}
+
+// HeadWindowsImages is a map of names to image paths for public Windows image families.
+var HeadWindowsImages = map[string]string{
+	"windows-cloud/windows-2008-r2":      "projects/windows-cloud/global/images/family/windows-2008-r2",
+	"windows-cloud/windows-2012-r2":      "projects/windows-cloud/global/images/family/windows-2012-r2",
+	"windows-cloud/windows-2012-r2-core": "projects/windows-cloud/global/images/family/windows-2012-r2-core",
+	"windows-cloud/windows-2016":         "projects/windows-cloud/global/images/family/windows-2016",
+	"windows-cloud/windows-2016-core":    "projects/windows-cloud/global/images/family/windows-2016-core",
+	"windows-cloud/windows-2019":         "projects/windows-cloud/global/images/family/windows-2019",
+	"windows-cloud/windows-2019-core":    "projects/windows-cloud/global/images/family/windows-2019-core",
+	"windows-cloud/windows-1803-core":    "projects/windows-cloud/global/images/family/windows-1803-core",
+	"windows-cloud/windows-1809-core":    "projects/windows-cloud/global/images/family/windows-1809-core",
+}
+
+// CustomWindowsImages is a map of names to image paths for custom Windows images prepped for tests.
+var CustomWindowsImages = map[string]string{
+	"windows-2008-r2":      "projects/compute-image-osconfig-agent/global/images/windows-2008-r2-v20190515",
+	"windows-2012-r2":      "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-v20190515",
+	"windows-2012-r2-core": "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-core-v20190515",
+	"windows-2016":         "projects/compute-image-osconfig-agent/global/images/windows-2016-v20190515",
+	"windows-2016-core":    "projects/compute-image-osconfig-agent/global/images/windows-2016-core-v20190515",
+	"windows-2019":         "projects/compute-image-osconfig-agent/global/images/windows-2019-v20190515",
+	"windows-2019-core":    "projects/compute-image-osconfig-agent/global/images/windows-2019-core-v20190515",
+	"windows-1803-core":    "projects/compute-image-osconfig-agent/global/images/windows-1803-core-v20190515",
+	"windows-1809-core":    "projects/compute-image-osconfig-agent/global/images/windows-1809-core-v20190515",
+}
+
 // RandString generates a random string of n length.
 func RandString(n int) string {
 	gen := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -120,7 +168,7 @@ func CreateComputeInstance(metadataitems []*api.MetadataItems, client daisyCompu
 	var items []*api.MetadataItems
 
 	// enable debug logging for all test instances
-	items = append(items, compute.BuildInstanceMetadataItem("os-debug-enabled", "true"))
+	items = append(items, compute.BuildInstanceMetadataItem("os-config-debug-enabled", "true"))
 
 	for _, item := range metadataitems {
 		items = append(items, item)

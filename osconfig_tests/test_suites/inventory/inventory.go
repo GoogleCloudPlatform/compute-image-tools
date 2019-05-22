@@ -42,18 +42,10 @@ import (
 )
 
 const (
-	testSuiteName = "InventoryTests"
+	testSuiteName = "OSInventory"
 )
 
-type inventoryTestSetup struct {
-	image       string
-	name        string
-	packageType []string
-	shortName   string
-	startup     *api.MetadataItems
-}
-
-// TestSuite is a InventoryTests test suite.
+// TestSuite is a OSInventory test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer tswg.Done()
 
@@ -66,174 +58,9 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 
-	testSetup := []*inventoryTestSetup{
-		// Windows images.
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-2008-r2",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-2012-r2",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-2012-r2-core",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-2016",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-2016-core",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-1709-core",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-1803-core",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-1809-core",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-2019-core",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/windows-cloud/global/images/family/windows-2019",
-			packageType: []string{"googet", "wua", "qfe"},
-			shortName:   "windows",
-			startup: &api.MetadataItems{
-				Key:   "windows-startup-script-ps1",
-				Value: &utils.InstallOSConfigGooGet,
-			},
-		},
-
-		// Debian images.
-		&inventoryTestSetup{
-			image:       "projects/debian-cloud/global/images/family/debian-9",
-			packageType: []string{"deb"},
-			shortName:   "debian",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
-			},
-		},
-
-		// Centos images.
-		&inventoryTestSetup{
-			image:       "projects/centos-cloud/global/images/family/centos-6",
-			packageType: []string{"rpm"},
-			shortName:   "centos",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigYumEL6,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/centos-cloud/global/images/family/centos-7",
-			packageType: []string{"rpm"},
-			shortName:   "centos",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigYumEL7,
-			},
-		},
-
-		// RHEL images.
-		&inventoryTestSetup{
-			image:       "projects/rhel-cloud/global/images/family/rhel-6",
-			packageType: []string{"rpm"},
-			shortName:   "rhel",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigYumEL6,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/rhel-cloud/global/images/family/rhel-7",
-			packageType: []string{"rpm"},
-			shortName:   "rhel",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigYumEL7,
-			},
-		},
-
-		// Ubuntu images
-		&inventoryTestSetup{
-			image:       "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
-			packageType: []string{"deb"},
-			shortName:   "ubuntu",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
-			},
-		},
-		&inventoryTestSetup{
-			image:       "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts",
-			packageType: []string{"deb"},
-			shortName:   "ubuntu",
-			startup: &api.MetadataItems{
-				Key:   "startup-script",
-				Value: &utils.InstallOSConfigDeb,
-			},
-		},
-	}
-
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
-	for _, setup := range testSetup {
+	for _, setup := range headImageTestSetup() {
 		wg.Add(1)
 		go inventoryTestCase(ctx, setup, tests, &wg, logger, testCaseRegex, testProjectConfig)
 	}
@@ -259,14 +86,14 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
-	testSetup.name = fmt.Sprintf("inventory-test-%s-%s", path.Base(testSetup.image), utils.RandString(5))
+	testSetup.hostname = fmt.Sprintf("inventory-test-%s-%s", path.Base(testSetup.testName), utils.RandString(5))
 
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("enable-guest-attributes", "true"))
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-inventory-enabled", "true"))
 
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetup.hostname, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", err)
 		return nil, false
@@ -323,8 +150,8 @@ func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 		return
 	}
 
-	if hostname != testSetup.name {
-		testCase.WriteFailure("Hostname does not match expectation: got: %q, want: %q", hostname, testSetup.name)
+	if hostname != testSetup.hostname {
+		testCase.WriteFailure("Hostname does not match expectation: got: %q, want: %q", hostname, testSetup.hostname)
 	}
 }
 
@@ -431,10 +258,10 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 	defer wg.Done()
 
 	var logwg sync.WaitGroup
-	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[gatherInventoryTest] [%s] Gather Inventory", testSetup.image))
-	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[hostnameTest] [%s] Check Hostname", testSetup.image))
-	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[shortNameTest] [%s] Check ShortName", testSetup.image))
-	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageTest] [%s] Check InstalledPackages", testSetup.image))
+	gatherInventoryTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Gather inventory] [%s]", testSetup.testName))
+	hostnameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Check Hostname] [%s]", testSetup.testName))
+	shortNameTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Check ShortName] [%s]", testSetup.testName))
+	packageTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Check InstalledPackages] [%s]", testSetup.testName))
 
 	if gatherInventoryTest.FilterTestCase(regex) {
 		gatherInventoryTest.Finish(tests)

@@ -19,19 +19,17 @@ import (
 	"fmt"
 	"log"
 	"path"
-	"path/filepath"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
-	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
@@ -40,7 +38,7 @@ import (
 )
 
 var (
-	testSuiteName = "PackageManagementTests"
+	testSuiteName = "OSPackage"
 	debianImages  = []string{"projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts", "projects/debian-cloud/global/images/family/debian-9"}
 	centosImages  = []string{"projects/centos-cloud/global/images/family/centos-6", "projects/centos-cloud/global/images/family/centos-7"}
 	rhelImages    = []string{"projects/rhel-cloud/global/images/family/rhel-6", "projects/rhel-cloud/global/images/family/rhel-7"}
@@ -60,10 +58,20 @@ var (
 	dump = &pretty.Config{IncludeUnexported: true}
 )
 
+type packageMangementTestFunctionName string
+
+const (
+	createOsConfigFunction            = "createosconfig"
+	packageInstallFunction            = "packageinstall"
+	packageRemovalFunction            = "packageremoval"
+	packageInstallRemovalFunction     = "packageinstallremoval"
+	packageInstallFromNewRepoFunction = "packageinstallfromnewrepo"
+)
+
 type packageManagementTestSetup struct {
 	image         string
 	name          string
-	fname         string
+	fname         packageMangementTestFunctionName // this is used to identify the test case for this test setup
 	osconfig      *osconfigpb.OsConfig
 	assignment    *osconfigpb.Assignment
 	startup       *api.MetadataItems
@@ -72,7 +80,7 @@ type packageManagementTestSetup struct {
 	vf            func(*compute.Instance, string, int64, time.Duration, time.Duration) error
 }
 
-func newPackageManagementTestSetup(setup **packageManagementTestSetup, image, name, fname, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, assertTimeout time.Duration, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) {
+func newPackageManagementTestSetup(setup **packageManagementTestSetup, image, name string, fname packageMangementTestFunctionName, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, assertTimeout time.Duration, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) {
 	*setup = &packageManagementTestSetup{
 		image:         image,
 		name:          name,
@@ -86,7 +94,7 @@ func newPackageManagementTestSetup(setup **packageManagementTestSetup, image, na
 	}
 }
 
-// TestSuite is a PackageManagementTests test suite.
+// TestSuite is a OSPackage test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite, logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer tswg.Done()
 
@@ -354,36 +362,51 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
-	createOsConfigTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[createOsConfigTest] [%s] Create OsConfig", testSetup.image))
-	packageInstallTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallTest] [%s] Package installation", testSetup.image))
-	packageRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageRemovalTest] [%s] Package removal", testSetup.image))
-	packageInstallRemovalTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallRemovalTest] [%s] Package no change", testSetup.image))
-	packageInstallFromNewRepoTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[packageInstallFromNewRepoTest] [%s] Add a new package from new repository", testSetup.image))
-
 	var logwg sync.WaitGroup
 
-	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project){
-		createOsConfigTest:            runCreateOsConfigTest,
-		packageInstallTest:            runPackageInstallTest,
-		packageRemovalTest:            runPackageRemovalTest,
-		packageInstallRemovalTest:     runPackageInstallRemovalTest,
-		packageInstallFromNewRepoTest: runPackageInstallFromNewRepoTest,
-	} {
-		tfname := strings.ToLower(testSetup.fname)
-		ttc := strings.ToLower(strings.Replace(getTestNameFromTestCase(tc.Name), "Test", "", -1))
-		if strings.Compare(tfname, ttc) != 0 {
-			continue
-		}
-		if tc.FilterTestCase(regex) {
-			tc.Finish(tests)
-		} else {
-			logger.Printf("Running TestCase %q", tc.Name)
-			f(ctx, tc, testSetup, logger, &logwg, testProjectConfig)
-			tc.Finish(tests)
-			logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
-		}
+	tc, f, err := getTestCaseFromTestSetUp(testSetup)
+	if err != nil {
+		logger.Fatalf("invalid testcase: %+v", err)
+		return
 	}
+	if tc.FilterTestCase(regex) {
+		tc.Finish(tests)
+	} else {
+		logger.Printf("Running TestCase %q", tc.Name)
+		f(ctx, tc, testSetup, logger, &logwg, testProjectConfig)
+		tc.Finish(tests)
+		logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
+	}
+
 	logwg.Wait()
+}
+
+// factory method to get testcase from the testsetup
+func getTestCaseFromTestSetUp(testSetup *packageManagementTestSetup) (*junitxml.TestCase, func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project), error) {
+	var tc *junitxml.TestCase
+	var f func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project)
+
+	switch testSetup.fname {
+	case createOsConfigFunction:
+		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Create OsConfig] [%s]", path.Base(testSetup.image)))
+		f = runCreateOsConfigTest
+	case packageInstallFunction:
+		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package installation] [%s]", path.Base(testSetup.image)))
+		f = runPackageInstallTest
+	case packageRemovalFunction:
+		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package removal] [%s]", path.Base(testSetup.image)))
+		f = runPackageRemovalTest
+	case packageInstallRemovalFunction:
+		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package no change] [%s]", path.Base(testSetup.image)))
+		f = runPackageInstallRemovalTest
+	case packageInstallFromNewRepoFunction:
+		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Add a new package from new repository] [%s]", path.Base(testSetup.image)))
+		f = runPackageInstallFromNewRepoTest
+	default:
+		return nil, nil, fmt.Errorf("unknown test function name: %s", testSetup.fname)
+	}
+
+	return tc, f, nil
 }
 
 func cleanupOsConfig(ctx context.Context, testCase *junitxml.TestCase, oc *osconfigserver.OsConfig, testProjectConfig *testconfig.Project) {
@@ -398,14 +421,4 @@ func cleanupAssignment(ctx context.Context, testCase *junitxml.TestCase, assignm
 	if err != nil {
 		testCase.WriteFailure(fmt.Sprintf("error while deleting assignment: %s", utils.GetStatusFromError(err)))
 	}
-}
-
-func getTestNameFromTestCase(tc string) string {
-	re := regexp.MustCompile(`\[[^]]*\]`)
-	ss := re.FindAllString(tc, -1)
-	var ret []string
-	for _, s := range ss {
-		ret = append(ret, s[1:len(s)-1])
-	}
-	return filepath.Base(ret[1])
 }
