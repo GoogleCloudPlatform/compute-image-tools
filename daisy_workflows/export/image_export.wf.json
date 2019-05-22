@@ -52,7 +52,7 @@
           "destination": "${destination}",
           "export_instance_disk_image": "${export_instance_disk_image}",
           "export_instance_disk_size": "${export_instance_disk_size}",
-          "buffer_disk_type": "${export_instance_disk_type}",
+          "export_instance_disk_type": "${export_instance_disk_type}",
           "licenses": "${licenses}",
           "export_network": "${export_network}",
           "export_subnet": "${export_subnet}"
