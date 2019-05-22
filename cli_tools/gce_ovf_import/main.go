@@ -95,10 +95,7 @@ func runImport() {
 		logger.Println(err.Error())
 		return
 	}
-	err = ovfImporter.Import()
-	if err != nil {
-		logger.Println(err.Error())
-	}
+	ovfImporter.Import()
 	ovfImporter.CleanUp()
 }
 
