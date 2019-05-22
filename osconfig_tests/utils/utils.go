@@ -39,17 +39,31 @@ var (
 	// The only caveat is that it requires a reboot which would ultimately increase
 	// test running time.
 
+	yumInstallAgent = `
+while ! yum install -y google-osconfig-agent; do
+if [[ n -gt 3 ]]; then
+  exit 1
+fi
+n=$[$n+1]
+sleep 5
+done
+`
+	curlPost = `
+uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done
+curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
+`
+
 	// InstallOSConfigDeb installs the osconfig agent on deb based systems.
-	InstallOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
+	InstallOSConfigDeb = `#apt-get remove -y unattended-upgrades
+echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
-apt-get install -y google-osconfig-agent
-echo 'osconfig install done'`
+apt-get install -y google-osconfig-agent` + curlPost
 
 	// InstallOSConfigGooGet installs the osconfig agent on googet based systems.
-	InstallOSConfigGooGet = `Start-Sleep 10
-c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
-Write-Host 'osconfig install done'`
+	InstallOSConfigGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
+$uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done'
+Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body 1`
 
 	// InstallOSConfigYumEL7 installs the osconfig agent on el7 based systems.
 	InstallOSConfigYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
@@ -61,16 +75,7 @@ gpgcheck=0
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM
-n=0
-while ! yum install -y google-osconfig-agent; do
-  if [[ n -gt 3 ]]; then
-    exit 1
-  fi
-  n=$[$n+1]
-  sleep 5
-done
-echo 'osconfig install done'`
+EOM` + yumInstallAgent + curlPost
 
 	// InstallOSConfigYumEL6 installs the osconfig agent on el6 based systems.
 	InstallOSConfigYumEL6 = `sleep 10
@@ -83,16 +88,7 @@ gpgcheck=0
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM
-n=0
-while ! yum install -y google-osconfig-agent; do
-  if [[ n -gt 3 ]]; then
-    exit 1
-  fi
-  n=$[$n+1]
-  sleep 5
-done
-echo 'osconfig install done'`
+EOM` + yumInstallAgent + curlPost
 )
 
 // HeadAptImages is a map of names to image paths for public image families that use APT.
@@ -105,16 +101,38 @@ var HeadAptImages = map[string]string{
 	"ubuntu-os-cloud/ubuntu-1804-lts": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts",
 }
 
+// OldAptImages is a map of names to image paths for old images that use APT.
+var OldAptImages = map[string]string{
+	// Debian images.
+	"old/debian-9": "projects/debian-cloud/global/images/debian-9-stretch-v20190116",
+
+	// Ubuntu images.
+	"old/ubuntu-1604-lts": "projects/ubuntu-os-cloud/global/images/ubuntu-1604-xenial-v20190122a",
+	"old/ubuntu-1804-lts": "projects/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20190122",
+}
+
 // HeadEL6Images is a map of names to image paths for public EL6 image families.
 var HeadEL6Images = map[string]string{
 	"centos-cloud/centos-6": "projects/centos-cloud/global/images/family/centos-6",
 	"rhel-cloud/rhel-6":     "projects/rhel-cloud/global/images/family/rhel-6",
 }
 
+// OldEL6Images is a map of names to image paths for old EL6 images.
+var OldEL6Images = map[string]string{
+	"old/centos-6": "projects/centos-cloud/global/images/centos-6-v20181113",
+	"old/rhel-6":   "projects/rhel-cloud/global/images/rhel-6-v20181113",
+}
+
 // HeadEL7Images is a map of names to image paths for public EL7 image families.
 var HeadEL7Images = map[string]string{
 	"centos-cloud/centos-7": "projects/centos-cloud/global/images/family/centos-7",
 	"rhel-cloud/rhel-7":     "projects/rhel-cloud/global/images/family/rhel-7",
+}
+
+// OldEL7Images is a map of names to image paths for old EL7 images.
+var OldEL7Images = map[string]string{
+	"old/centos-7": "projects/centos-cloud/global/images/centos-7-v20190116",
+	"old/rhel-7":   "projects/rhel-cloud/global/images/rhel-7-v20190116",
 }
 
 // HeadWindowsImages is a map of names to image paths for public Windows image families.
@@ -130,17 +148,17 @@ var HeadWindowsImages = map[string]string{
 	"windows-cloud/windows-1809-core":    "projects/windows-cloud/global/images/family/windows-1809-core",
 }
 
-// CustomWindowsImages is a map of names to image paths for custom Windows images prepped for tests.
-var CustomWindowsImages = map[string]string{
-	"windows-2008-r2":      "projects/compute-image-osconfig-agent/global/images/windows-2008-r2-v20190515",
-	"windows-2012-r2":      "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-v20190515",
-	"windows-2012-r2-core": "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-core-v20190515",
-	"windows-2016":         "projects/compute-image-osconfig-agent/global/images/windows-2016-v20190515",
-	"windows-2016-core":    "projects/compute-image-osconfig-agent/global/images/windows-2016-core-v20190515",
-	"windows-2019":         "projects/compute-image-osconfig-agent/global/images/windows-2019-v20190515",
-	"windows-2019-core":    "projects/compute-image-osconfig-agent/global/images/windows-2019-core-v20190515",
-	"windows-1803-core":    "projects/compute-image-osconfig-agent/global/images/windows-1803-core-v20190515",
-	"windows-1809-core":    "projects/compute-image-osconfig-agent/global/images/windows-1809-core-v20190515",
+// OldWindowsImages is a map of names to image paths for old Windows images prepped for tests.
+var OldWindowsImages = map[string]string{
+	"old/windows-2008-r2":      "projects/compute-image-osconfig-agent/global/images/windows-2008-r2-v20190515",
+	"old/windows-2012-r2":      "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-v20190515",
+	"old/windows-2012-r2-core": "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-core-v20190515",
+	"old/windows-2016":         "projects/compute-image-osconfig-agent/global/images/windows-2016-v20190515",
+	"old/windows-2016-core":    "projects/compute-image-osconfig-agent/global/images/windows-2016-core-v20190515",
+	"old/windows-2019":         "projects/compute-image-osconfig-agent/global/images/windows-2019-v20190515",
+	"old/windows-2019-core":    "projects/compute-image-osconfig-agent/global/images/windows-2019-core-v20190515",
+	"old/windows-1803-core":    "projects/compute-image-osconfig-agent/global/images/windows-1803-core-v20190515",
+	"old/windows-1809-core":    "projects/compute-image-osconfig-agent/global/images/windows-1809-core-v20190515",
 }
 
 // RandString generates a random string of n length.
@@ -167,8 +185,9 @@ func GetStatusFromError(err error) string {
 func CreateComputeInstance(metadataitems []*api.MetadataItems, client daisyCompute.Client, machineType, image, name, projectID, zone, serviceAccountEmail string, serviceAccountScopes []string) (*compute.Instance, error) {
 	var items []*api.MetadataItems
 
-	// enable debug logging for all test instances
+	// enable debug logging and guest-attributes for all test instances
 	items = append(items, compute.BuildInstanceMetadataItem("os-config-debug-enabled", "true"))
+	items = append(items, compute.BuildInstanceMetadataItem("enable-guest-attributes", "true"))
 
 	for _, item := range metadataitems {
 		items = append(items, item)

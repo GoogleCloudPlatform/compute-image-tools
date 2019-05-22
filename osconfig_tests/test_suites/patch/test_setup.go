@@ -29,52 +29,59 @@ type patchTestSetup struct {
 	machineType   string
 }
 
-var windowsSetup = &patchTestSetup{
-	assertTimeout: 15 * time.Minute,
-	startup: &compute.MetadataItems{
-		Key:   "windows-startup-script-ps1",
-		Value: &utils.InstallOSConfigGooGet,
-	},
-	machineType: "n1-standard-4",
-}
+var (
+	windowsRecordBoot = `
+$uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done'
+$old = Invoke-RestMethod -Method GET -Uri $uri -Headers @{"Metadata-Flavor" = "Google"}
+$new = $old+1
+Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body $new`
+	windowsStartup = utils.InstallOSConfigGooGet + windowsRecordBoot
 
-var aptSetup = &patchTestSetup{
-	assertTimeout: 5 * time.Minute,
-	startup: &compute.MetadataItems{
-		Key:   "startup-script",
-		Value: &utils.InstallOSConfigDeb,
-	},
-	machineType: "n1-standard-2",
-}
+	linuxRecordBoot = `
+uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/boot_count
+old=$(curl $uri -H "Metadata-Flavor: Google" -f)
+new=$(($old + 1))
+curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"`
+	aptStartup = utils.InstallOSConfigDeb + linuxRecordBoot
+	el6Startup = utils.InstallOSConfigYumEL6 + linuxRecordBoot
+	el7Startup = utils.InstallOSConfigYumEL7 + linuxRecordBoot
 
-var el6Setup = &patchTestSetup{
-	assertTimeout: 5 * time.Minute,
-	startup: &compute.MetadataItems{
-		Key:   "startup-script",
-		Value: &utils.InstallOSConfigYumEL6,
-	},
-	machineType: "n1-standard-2",
-}
-
-var el7Setup = &patchTestSetup{
-	assertTimeout: 5 * time.Minute,
-	startup: &compute.MetadataItems{
-		Key:   "startup-script",
-		Value: &utils.InstallOSConfigYumEL7,
-	},
-	machineType: "n1-standard-2",
-}
-
-func headImageTestSetup() (setup []*patchTestSetup) {
-	// This maps a specific patchTestSetup to test setup names and associated images.
-	headTestSetupMapping := map[*patchTestSetup]map[string]string{
-		windowsSetup: utils.HeadWindowsImages,
-		el6Setup:     utils.HeadEL6Images,
-		el7Setup:     utils.HeadEL7Images,
-		aptSetup:     utils.HeadAptImages,
+	windowsSetup = &patchTestSetup{
+		assertTimeout: 30 * time.Minute,
+		startup: &compute.MetadataItems{
+			Key:   "windows-startup-script-ps1",
+			Value: &windowsStartup,
+		},
+		machineType: "n1-standard-4",
 	}
+	aptSetup = &patchTestSetup{
+		assertTimeout: 5 * time.Minute,
+		startup: &compute.MetadataItems{
+			Key:   "startup-script",
+			Value: &aptStartup,
+		},
+		machineType: "n1-standard-2",
+	}
+	el6Setup = &patchTestSetup{
+		assertTimeout: 5 * time.Minute,
+		startup: &compute.MetadataItems{
+			Key:   "startup-script",
+			Value: &el6Startup,
+		},
+		machineType: "n1-standard-2",
+	}
+	el7Setup = &patchTestSetup{
+		assertTimeout: 5 * time.Minute,
+		startup: &compute.MetadataItems{
+			Key:   "startup-script",
+			Value: &el7Startup,
+		},
+		machineType: "n1-standard-2",
+	}
+)
 
-	for s, m := range headTestSetupMapping {
+func imageTestSetup(mapping map[*patchTestSetup]map[string]string) (setup []*patchTestSetup) {
+	for s, m := range mapping {
 		for name, image := range m {
 			new := patchTestSetup(*s)
 			new.testName = name
@@ -83,4 +90,47 @@ func headImageTestSetup() (setup []*patchTestSetup) {
 		}
 	}
 	return
+}
+
+func headImageTestSetup() []*patchTestSetup {
+	// This maps a specific patchTestSetup to test setup names and associated images.
+	mapping := map[*patchTestSetup]map[string]string{
+		windowsSetup: utils.HeadWindowsImages,
+		el6Setup:     utils.HeadEL6Images,
+		el7Setup:     utils.HeadEL7Images,
+		aptSetup:     utils.HeadAptImages,
+	}
+
+	return imageTestSetup(mapping)
+}
+
+func oldImageTestSetup() []*patchTestSetup {
+	// This maps a specific patchTestSetup to test setup names and associated images.
+	mapping := map[*patchTestSetup]map[string]string{
+		windowsSetup: utils.OldWindowsImages,
+		el6Setup:     utils.OldEL6Images,
+		el7Setup:     utils.OldEL7Images,
+		aptSetup:     utils.OldAptImages,
+	}
+
+	return imageTestSetup(mapping)
+}
+
+func aptHeadImageTestSetup() []*patchTestSetup {
+	// This maps a specific patchTestSetup to test setup names and associated images.
+	mapping := map[*patchTestSetup]map[string]string{
+		aptSetup: utils.HeadAptImages,
+	}
+
+	return imageTestSetup(mapping)
+}
+
+func yumHeadImageTestSetup() []*patchTestSetup {
+	// This maps a specific patchTestSetup to test setup names and associated images.
+	mapping := map[*patchTestSetup]map[string]string{
+		el6Setup: utils.HeadEL6Images,
+		el7Setup: utils.HeadEL7Images,
+	}
+
+	return imageTestSetup(mapping)
 }
