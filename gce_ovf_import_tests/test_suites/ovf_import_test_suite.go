@@ -138,7 +138,7 @@ func TestSuite(
 			name:        fmt.Sprintf("ovf-import-test-w2k12-r2-%s", suffix),
 			description: "Windows 2012 R2 two disks",
 			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", startupScriptWindowsTwoDisks),
+				"windows-startup-script-ps1", startupScriptWindowsTwoDisks),
 			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-standard-8",
 		},
@@ -155,7 +155,7 @@ func TestSuite(
 			name:        fmt.Sprintf("ovf-import-test-w2k16-%s", suffix),
 			description: "Windows 2016",
 			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", startupScriptWindowsSingleDisk),
+				"windows-startup-script-ps1", startupScriptWindowsSingleDisk),
 			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-highmem-2",
 		},
