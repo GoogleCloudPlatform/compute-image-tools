@@ -397,11 +397,13 @@ func (oi *OVFImporter) Import() error {
 	oi.Logger.Log("Starting OVF import workflow.")
 	w, err := oi.setUpImportWorkflow()
 	if err != nil {
+		oi.Logger.Log(err.Error())
 		return err
 	}
 
 	if err := w.RunWithModifiers(oi.ctx, oi.modifyWorkflowPreValidate, oi.modifyWorkflowPostValidate); err != nil {
-		return fmt.Errorf("%s: %v", w.Name, err)
+		oi.Logger.Log(err.Error())
+		return err
 	}
 	oi.Logger.Log("OVF import workflow finished successfully.")
 	return nil

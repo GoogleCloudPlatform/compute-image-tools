@@ -87,21 +87,28 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		NodeAffinityLabelsFlag: nodeAffinityLabelsFlag, CurrentExecutablePath: currentExecutablePath}
 }
 
-func runImport() {
+func runImport() error {
 	logger := log.New(os.Stdout, "[OVF Import] ", log.LstdFlags)
 	ovfImporter, err := ovfimporter.NewOVFImporter(buildImportParams())
 
 	if err != nil {
 		logger.Println(err.Error())
-		return
+		ovfImporter.CleanUp()
+		return err
 	}
 	err = ovfImporter.Import()
 	if err != nil {
-		logger.Println(err.Error())
+		ovfImporter.CleanUp()
+		return err
 	}
+
 	ovfImporter.CleanUp()
+	return nil
 }
 
 func main() {
-	runImport()
+	err := runImport()
+	if err != nil {
+		os.Exit(1)
+	}
 }
