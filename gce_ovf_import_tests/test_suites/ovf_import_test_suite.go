@@ -26,14 +26,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/compute"
 	computeUtils "github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/test_config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
 )
@@ -75,29 +75,17 @@ func TestSuite(
 
 	testSuite := junitxml.NewTestSuite(testSuiteName)
 	defer testSuite.Finish(testSuites)
-	suffix := utils.RandString(5)
+	suffix := pathutils.RandString(5)
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 
-	startupScriptUbuntu3disks, err := ioutil.ReadFile(
-		"gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh")
-	if err != nil {
-		os.Exit(1)
-	}
-	startupScriptLinuxSingleDisk, err := ioutil.ReadFile(
-		"daisy_integration_tests/scripts/post_translate_test.sh")
-	if err != nil {
-		os.Exit(1)
-	}
-	startupScriptWindowsSingleDisk, err := ioutil.ReadFile(
-		"daisy_integration_tests/scripts/post_translate_test.ps1")
-	if err != nil {
-		os.Exit(1)
-	}
-	startupScriptWindowsTwoDisks, err := ioutil.ReadFile(
-		"gce_ovf_import_tests/scripts/ovf_import_test_windows_two_disks.ps1")
-	if err != nil {
-		os.Exit(1)
-	}
+	startupScriptUbuntu3disks := loadScriptContent(
+		"gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh", logger)
+	startupScriptLinuxSingleDisk := loadScriptContent(
+		"daisy_integration_tests/scripts/post_translate_test.sh", logger)
+	startupScriptWindowsSingleDisk := loadScriptContent(
+		"daisy_integration_tests/scripts/post_translate_test.ps1", logger)
+	startupScriptWindowsTwoDisks := loadScriptContent(
+		"gce_ovf_import_tests/scripts/ovf_import_test_windows_two_disks.ps1", logger)
 
 	testSetup := []*ovfImportTestSetup{
 		{
@@ -114,7 +102,7 @@ func TestSuite(
 			name:        fmt.Sprintf("ovf-import-test-ubuntu-3-disks-%s", suffix),
 			description: "Ubuntu 3 disks mounted",
 			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", string(startupScriptUbuntu3disks)),
+				"startup-script", startupScriptUbuntu3disks),
 			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-standard-1",
 		},
@@ -132,7 +120,7 @@ func TestSuite(
 			name:        fmt.Sprintf("ovf-import-test-centos-6-%s", suffix),
 			description: "Centos 6.8",
 			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", string(startupScriptLinuxSingleDisk)),
+				"startup-script", startupScriptLinuxSingleDisk),
 			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-standard-4",
 		},
@@ -150,7 +138,7 @@ func TestSuite(
 			name:        fmt.Sprintf("ovf-import-test-w2k12-r2-%s", suffix),
 			description: "Windows 2012 R2 two disks",
 			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", string(startupScriptWindowsTwoDisks)),
+				"startup-script", startupScriptWindowsTwoDisks),
 			assertTimeout:       7200 * time.Second,
 			expectedMachineType: "n1-standard-8",
 		},
@@ -167,9 +155,9 @@ func TestSuite(
 			name:        fmt.Sprintf("ovf-import-test-w2k16-%s", suffix),
 			description: "Windows 2016",
 			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", string(startupScriptWindowsSingleDisk)),
+				"startup-script", startupScriptWindowsSingleDisk),
 			assertTimeout:       7200 * time.Second,
-			expectedMachineType: "n1-standard-2",
+			expectedMachineType: "n1-highmem-2",
 		},
 	}
 
@@ -221,23 +209,25 @@ func runOvfImportTest(
 	ctx context.Context, testCase *junitxml.TestCase, testSetup *ovfImportTestSetup,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	logger.Printf("Creating OVF importer")
+	logger.Printf("[%v] Creating OVF importer", testSetup.name)
 	ovfImporter, err := ovfimporter.NewOVFImporter(testSetup.importParams)
 
 	if err != nil {
+		logger.Printf("[%v] error creating OVF importer: %v", testSetup.name, err)
 		testCase.WriteFailure("error creating OVF importer: %v", err)
 		return
 	}
 
-	logger.Printf("Starting OVF import")
+	logger.Printf("[%v] Starting OVF import", testSetup.name)
 	err = ovfImporter.Import()
 	if err != nil {
+		logger.Printf("[%v] error while performing OVF import: %v", testSetup.name, err)
 		testCase.WriteFailure("error while performing OVF import: %v", err)
 		ovfImporter.CleanUp()
 		return
 	}
 
-	logger.Printf("OVF import finished")
+	logger.Printf("[%v] OVF import finished", testSetup.name)
 	ovfImporter.CleanUp()
 
 	// assertion
@@ -251,6 +241,14 @@ func runOvfImportTest(
 
 	instance, err := client.GetInstance(
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
+	if err != nil {
+		testCase.WriteFailure("Error retrieving instance `%v` in `%v` zone: %v", instanceName,
+			testProjectConfig.TestZone, err)
+		return
+	}
+
+	instanceWrapper := computeUtils.Instance{Instance: instance, Client: client,
+		Project: testProjectConfig.TestProjectID, Zone: testProjectConfig.TestZone}
 	if !strings.HasSuffix(instance.MachineType, testSetup.expectedMachineType) {
 		testCase.WriteFailure(
 			"Instance machine type `%v` doesn't match the expected machine type `%v`",
@@ -264,7 +262,7 @@ func runOvfImportTest(
 		return
 	}
 
-	logger.Printf("Stopping instance before restarting with test startup script")
+	logger.Printf("[%v] Stopping instance before restarting with test startup script", testSetup.name)
 	err = client.StopInstance(
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
@@ -273,7 +271,7 @@ func runOvfImportTest(
 		return
 	}
 
-	logger.Printf("Setting instance metadata with test startup script")
+	logger.Printf("[%v] Setting instance metadata with test startup script", testSetup.name)
 	err = client.SetInstanceMetadata(testProjectConfig.TestProjectID, testProjectConfig.TestZone,
 		instanceName, &api.Metadata{Items: []*api.MetadataItems{testSetup.startup},
 			Fingerprint: instance.Metadata.Fingerprint})
@@ -283,7 +281,7 @@ func runOvfImportTest(
 		return
 	}
 
-	logger.Printf("Starting instance with test startup script")
+	logger.Printf("[%v] Starting instance with test startup script", testSetup.name)
 	err = client.StartInstance(
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 	if err != nil {
@@ -291,15 +289,22 @@ func runOvfImportTest(
 		return
 	}
 
-	inst := computeUtils.Instance{Instance: instance, Client: client,
-		Project: testProjectConfig.TestProjectID, Zone: testProjectConfig.TestZone}
-
-	if err := inst.WaitForSerialOutput(
+	logger.Printf("[%v] Waiting for `All tests passed` in instance serial console.", testSetup.name)
+	if err := instanceWrapper.WaitForSerialOutput(
 		"All tests passed", 1, 5*time.Second, 7*time.Minute); err != nil {
 		testCase.WriteFailure("Error during VM validation: %v", err)
 		return
 	}
 
-	logger.Printf("Deleting instance `%v`", instanceName)
-	inst.Cleanup()
+	logger.Printf("[%v] Deleting instance `%v`", testSetup.name, instanceName)
+	instanceWrapper.Cleanup()
+}
+
+func loadScriptContent(scriptPath string, logger *log.Logger) string {
+	scriptContent, err := ioutil.ReadFile(scriptPath)
+	if err != nil {
+		logger.Printf("Error loading script `%v`: %v", scriptPath, err)
+		os.Exit(1)
+	}
+	return string(scriptContent)
 }

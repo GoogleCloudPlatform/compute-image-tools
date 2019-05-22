@@ -81,7 +81,7 @@ func main() {
 		}
 	}
 
-	logger := log.New(os.Stdout, "[OvfImportTests] ", 0)
+	logger := log.New(os.Stdout, "[OvfImportTests] ", log.LstdFlags)
 	logger.Println("Starting...")
 
 	tests := make(chan *junitxml.TestSuite)
