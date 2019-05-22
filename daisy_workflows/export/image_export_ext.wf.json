@@ -22,7 +22,7 @@
       "Value": "200",
       "Description": "size of the export instances buffer disk, this disk starts from a fixed size which can guarantee an acceptable PD read speed, and grows on demand"
     },
-    "buffer_disk_type": {
+    "export_instance_disk_type": {
       "Value": "pd-ssd",
       "Description": "Disk type of the buffer. By default it's pd-ssd for higher speed. pd-standard can be used when pd-ssd quota is not enough"
     },
@@ -41,7 +41,7 @@
         {
           "Name": "disk-${NAME}",
           "SourceImage": "${source_image}",
-          "Type": "${buffer_disk_type}"
+          "Type": "${export_instance_disk_type}"
         }
       ]
     },
@@ -54,7 +54,7 @@
           "format": "${format}",
           "export_instance_disk_image": "${export_instance_disk_image}",
           "export_instance_disk_size": "${export_instance_disk_size}",
-          "buffer_disk_type": "${buffer_disk_type}",
+          "buffer_disk_type": "${export_instance_disk_type}",
           "export_network": "${export_network}",
           "export_subnet": "${export_subnet}"
         }
