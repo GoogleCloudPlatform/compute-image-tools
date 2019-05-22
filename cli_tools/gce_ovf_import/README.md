@@ -94,6 +94,7 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_impo
 + `-disable-cloud-logging` do not stream logs to Cloud Logging
 + `-disable-stdout-logging` do not display individual workflow logs on stdout
 + `-no-guest-environment` Google Guest Environment will not be installed on the image
++ `-node-affinity-label` Node affinity label used to determine sole tenant node to schedule this instance on. Label is of the format: <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'. This flag can be specified multiple times for multiple labels.
   
 ### Usage
 
