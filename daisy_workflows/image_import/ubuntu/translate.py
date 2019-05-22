@@ -161,7 +161,6 @@ def DistroSpecific(g):
 
 
 def main():
-  utils.AptGetInstall(['tinyproxy'])
   g = diskutils.MountDisk('/dev/sdb')
   DistroSpecific(g)
   utils.CommonRoutines(g)
