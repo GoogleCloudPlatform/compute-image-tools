@@ -52,13 +52,14 @@ var vf = func(
 }
 
 type ovfImportTestSetup struct {
-	importParams        *ovfimportparams.OVFImportParams
-	name                string
-	description         string
-	startup             *api.MetadataItems
-	assertTimeout       time.Duration
-	vf                  func(*compute.Instance, string, int64, time.Duration, time.Duration) error
-	expectedMachineType string
+	importParams          *ovfimportparams.OVFImportParams
+	name                  string
+	description           string
+	startup               *api.MetadataItems
+	assertTimeout         time.Duration
+	vf                    func(*compute.Instance, string, int64, time.Duration, time.Duration) error
+	expectedMachineType   string
+	expectedStartupOutput string
 }
 
 // TestSuite is OVF import test suite.
@@ -103,8 +104,9 @@ func TestSuite(
 			description: "Ubuntu 3 disks mounted",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", startupScriptUbuntu3disks),
-			assertTimeout:       7200 * time.Second,
-			expectedMachineType: "n1-standard-1",
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-standard-1",
+			expectedStartupOutput: "All tests passed!",
 		},
 		{
 			importParams: &ovfimportparams.OVFImportParams{
@@ -121,8 +123,9 @@ func TestSuite(
 			description: "Centos 6.8",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", startupScriptLinuxSingleDisk),
-			assertTimeout:       7200 * time.Second,
-			expectedMachineType: "n1-standard-4",
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-standard-4",
+			expectedStartupOutput: "All tests passed!",
 		},
 		{
 			importParams: &ovfimportparams.OVFImportParams{
@@ -138,9 +141,10 @@ func TestSuite(
 			name:        fmt.Sprintf("ovf-import-test-w2k12-r2-%s", suffix),
 			description: "Windows 2012 R2 two disks",
 			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", startupScriptWindowsTwoDisks),
-			assertTimeout:       7200 * time.Second,
-			expectedMachineType: "n1-standard-8",
+				"windows-startup-script-ps1", startupScriptWindowsTwoDisks),
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-standard-8",
+			expectedStartupOutput: "All Tests Passed",
 		},
 		{
 			importParams: &ovfimportparams.OVFImportParams{
@@ -155,9 +159,10 @@ func TestSuite(
 			name:        fmt.Sprintf("ovf-import-test-w2k16-%s", suffix),
 			description: "Windows 2016",
 			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", startupScriptWindowsSingleDisk),
-			assertTimeout:       7200 * time.Second,
-			expectedMachineType: "n1-highmem-2",
+				"windows-startup-script-ps1", startupScriptWindowsSingleDisk),
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-highmem-2",
+			expectedStartupOutput: "All Tests Passed",
 		},
 	}
 
@@ -289,9 +294,10 @@ func runOvfImportTest(
 		return
 	}
 
-	logger.Printf("[%v] Waiting for `All tests passed` in instance serial console.", testSetup.name)
+	logger.Printf("[%v] Waiting for `%v` in instance serial console.", testSetup.name,
+		testSetup.expectedStartupOutput)
 	if err := instanceWrapper.WaitForSerialOutput(
-		"All tests passed", 1, 5*time.Second, 7*time.Minute); err != nil {
+		testSetup.expectedStartupOutput, 1, 5*time.Second, 7*time.Minute); err != nil {
 		testCase.WriteFailure("Error during VM validation: %v", err)
 		return
 	}
