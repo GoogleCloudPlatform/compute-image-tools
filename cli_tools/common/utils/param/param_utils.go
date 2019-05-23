@@ -115,7 +115,7 @@ func GetRegion(zone string) (string, error) {
 	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
 }
 
-// CreateComputeClient creates a new Daisy Compute client
+// CreateComputeClient creates a new compute client
 func CreateComputeClient(ctx *context.Context, oauth string, ce string) compute.Client {
 	computeOptions := []option.ClientOption{option.WithCredentialsFile(oauth)}
 	if ce != "" {

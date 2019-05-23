@@ -394,24 +394,6 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	assert.Equal(t, len(varMap), 10)
 }
 
-func TestProjectFromGCE(t *testing.T) {
-	params := GetAllParams()
-	params.Project = ""
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
-	mockMetadataGce.EXPECT().ProjectID().Return("aProject", nil)
-
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
-	project, err := oi.getProject()
-
-	assert.Nil(t, err)
-	assert.Equal(t, "aProject", project)
-}
-
 func TestGetZoneFromGCE(t *testing.T) {
 	params := GetAllParams()
 	params.Zone = ""
@@ -441,24 +423,6 @@ func TestGetRegionE(t *testing.T) {
 	assert.Equal(t, "europe-north1", region)
 }
 
-func TestGetProjectFromFlagEvenIfOnGCE(t *testing.T) {
-	params := GetAllParams()
-	params.Project = "aProject123"
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
-	mockMetadataGce.EXPECT().ProjectID().Return("aProject", nil).AnyTimes()
-
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
-	project, err := oi.getProject()
-
-	assert.Nil(t, err)
-	assert.Equal(t, "aProject123", project)
-}
-
 func TestGetZoneFromFlagEvenIfOnGCE(t *testing.T) {
 	params := GetAllParams()
 	params.Zone = "aZone123"
@@ -480,39 +444,6 @@ func TestGetZoneFromFlagEvenIfOnGCE(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, "aZone123", zone)
-}
-
-func TestPopulateMissingParametersProjectEmptyNotOnGCE(t *testing.T) {
-	params := GetAllParams()
-	params.Project = ""
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
-
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
-	project, err := oi.getProject()
-	assert.NotNil(t, err)
-	assert.Equal(t, "", project)
-}
-
-func TestPopulateMissingParametersErrorRetrievingProjectIDFromGCE(t *testing.T) {
-	params := GetAllParams()
-	params.Project = ""
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
-	mockMetadataGce.EXPECT().ProjectID().Return("", errors.New("err"))
-
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
-	project, err := oi.getProject()
-	assert.NotNil(t, err)
-	assert.Equal(t, "", project)
 }
 
 func TestGetZoneWhenZoneFlagNotSetNotOnGCE(t *testing.T) {

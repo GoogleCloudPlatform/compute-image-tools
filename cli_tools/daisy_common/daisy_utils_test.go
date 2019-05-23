@@ -15,9 +15,11 @@
 package daisycommon
 
 import (
-	"context"
 	"reflect"
 	"testing"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseWorkflows(t *testing.T) {
@@ -29,11 +31,31 @@ func TestParseWorkflows(t *testing.T) {
 	oauth := "oauthpath"
 	dTimeout := "10m"
 	endpoint := "endpoint"
-	w, err := ParseWorkflow(context.Background(), path, varMap, project, zone, gcsPath, oauth, dTimeout, endpoint, true, true, true)
+	w, err := ParseWorkflow(path, varMap, project, zone, gcsPath, oauth, dTimeout, endpoint, true,
+		true, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	assertWorkflow(t, w, project, zone, gcsPath, oauth, dTimeout, endpoint, varMap)
+}
+
+func TestParseWorkflowsInvalidPath(t *testing.T) {
+	varMap := map[string]string{"key1": "var1", "key2": "var2"}
+	project := "project"
+	zone := "zone"
+	gcsPath := "gcspath"
+	oauth := "oauthpath"
+	dTimeout := "10m"
+	endpoint := "endpoint"
+	w, err := ParseWorkflow("NOT_VALID_PATH", varMap, project, zone, gcsPath, oauth, dTimeout, endpoint,
+		true, true, true)
+	assert.Nil(t, w)
+	assert.NotNil(t, err)
+}
+
+func assertWorkflow(t *testing.T, w *daisy.Workflow, project string, zone string, gcsPath string,
+	oauth string, dTimeout string, endpoint string, varMap map[string]string) {
 	tests := []struct {
 		want, got interface{}
 	}{
@@ -44,13 +66,11 @@ func TestParseWorkflows(t *testing.T) {
 		{w.DefaultTimeout, dTimeout},
 		{w.ComputeEndpoint, endpoint},
 	}
-
 	for _, tt := range tests {
 		if tt.want != tt.got {
 			t.Errorf("%v != %v", tt.want, tt.got)
 		}
 	}
-
 	if reflect.DeepEqual(w.Vars, varMap) {
 		t.Errorf("unexpected vars, want: %v, got: %v", varMap, w.Vars)
 	}

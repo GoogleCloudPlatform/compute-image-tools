@@ -31,6 +31,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/gce_utils"
@@ -314,7 +315,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		region  string
 		err     error
 	)
-	if project, err = oi.getProject(); err != nil {
+	if project, err = paramutils.GetProjectID(oi.mgce, oi.params.Project); err != nil {
 		return nil, err
 	}
 	if zone, err = oi.getZone(project); err != nil {
@@ -368,7 +369,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 
 	varMap := oi.buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr, region)
 
-	workflow, err := daisyutils.ParseWorkflow(oi.workflowPath, varMap, project,
+	workflow, err := daisycommon.ParseWorkflow(oi.workflowPath, varMap, project,
 		zone, oi.params.ScratchBucketGcsPath, oi.params.Oauth, oi.params.Timeout, oi.params.Ce, oi.params.GcsLogsDisabled, oi.params.CloudLogsDisabled,
 		oi.params.StdoutLogsDisabled)
 

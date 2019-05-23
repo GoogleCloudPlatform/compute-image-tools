@@ -309,3 +309,51 @@ func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedProject, project)
 }
+
+func TestPopulateProjectIfMissingProjectNotOnGCE(t *testing.T) {
+	project := ""
+	expectedProject := ""
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false)
+
+	err := PopulateProjectIfMissing(mockMetadataGce, &project)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, expectedProject, project)
+}
+
+func TestPopulateProjectIfNotMissingProject(t *testing.T) {
+	project := "aProject"
+	expectedProject := "aProject"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+
+	err := PopulateProjectIfMissing(mockMetadataGce, &project)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedProject, project)
+}
+
+func TestPopulateProjectIfMissingProjectWithErrorRetrievingFromGCE(t *testing.T) {
+	project := ""
+	expectedProject := ""
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(true)
+	mockMetadataGce.EXPECT().ProjectID().Return("", fmt.Errorf("gce error"))
+
+	err := PopulateProjectIfMissing(mockMetadataGce, &project)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, expectedProject, project)
+}

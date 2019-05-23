@@ -33,6 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -210,7 +211,7 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 func runImport(ctx context.Context) error {
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
 	varMap := buildDaisyVars(translateWorkflowPath)
-	workflow, err := daisyutils.ParseWorkflow(importWorkflowPath, varMap,
+	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
 		*project, *zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled)
 	if err != nil {
