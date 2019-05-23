@@ -68,12 +68,22 @@ var el7Setup = &inventoryTestSetup{
 	machineType: "n1-standard-2",
 }
 
+var el8Setup = &inventoryTestSetup{
+	packageType: []string{"rpm"},
+	startup: &compute.MetadataItems{
+		Key:   "startup-script",
+		Value: &utils.InstallOSConfigYumEL7,
+	},
+	machineType: "n1-standard-2",
+}
+
 func headImageTestSetup() (setup []*inventoryTestSetup) {
 	// This maps a specific inventoryTestSetup to test setup names and associated images.
 	headTestSetupMapping := map[*inventoryTestSetup]map[string]string{
 		windowsSetup: utils.HeadWindowsImages,
 		el6Setup:     utils.HeadEL6Images,
 		el7Setup:     utils.HeadEL7Images,
+		el8Setup:     utils.HeadEL8Images,
 		aptSetup:     utils.HeadAptImages,
 	}
 

@@ -129,6 +129,11 @@ var HeadEL7Images = map[string]string{
 	"rhel-cloud/rhel-7":     "projects/rhel-cloud/global/images/family/rhel-7",
 }
 
+// HeadEL8Images is a map of names to image paths for public EL8 image families.
+var HeadEL8Images = map[string]string{
+	"rhel-cloud/rhel-8": "projects/rhel-cloud/global/images/family/rhel-8",
+}
+
 // OldEL7Images is a map of names to image paths for old EL7 images.
 var OldEL7Images = map[string]string{
 	"old/centos-7": "projects/centos-cloud/global/images/centos-7-v20190116",

@@ -78,6 +78,14 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"`
 		},
 		machineType: "n1-standard-2",
 	}
+	el8Setup = &patchTestSetup{
+		assertTimeout: 5 * time.Minute,
+		startup: &compute.MetadataItems{
+			Key:   "startup-script",
+			Value: &el7Startup,
+		},
+		machineType: "n1-standard-2",
+	}
 )
 
 func imageTestSetup(mapping map[*patchTestSetup]map[string]string) (setup []*patchTestSetup) {
@@ -130,6 +138,7 @@ func yumHeadImageTestSetup() []*patchTestSetup {
 	mapping := map[*patchTestSetup]map[string]string{
 		el6Setup: utils.HeadEL6Images,
 		el7Setup: utils.HeadEL7Images,
+		el8Setup: utils.HeadEL8Images,
 	}
 
 	return imageTestSetup(mapping)
