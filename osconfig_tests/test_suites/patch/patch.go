@@ -28,7 +28,6 @@ import (
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
@@ -177,12 +176,13 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	}
 	defer inst.Cleanup()
 
-	storageClient, err := gcpclients.GetStorageClient(ctx)
-	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
-	}
-	logwg.Add(1)
-	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
+	/*
+		storageClient, err := gcpclients.GetStorageClient(ctx)
+		if err != nil {
+			testCase.WriteFailure("Error getting storage client: %v", err)
+		}
+		go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
+	*/
 
 	testCase.Logf("Waiting for agent install to complete")
 	if _, err := inst.WaitForGuestAttribute("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
@@ -298,6 +298,4 @@ func runTestCase(tc *junitxml.TestCase, f func(), tests chan *junitxml.TestCase,
 		tc.Finish(tests)
 		logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
 	}
-
-	logwg.Wait()
 }
