@@ -130,6 +130,7 @@ func yumHeadImageTestSetup() []*patchTestSetup {
 	mapping := map[*patchTestSetup]map[string]string{
 		el6Setup: utils.HeadEL6Images,
 		el7Setup: utils.HeadEL7Images,
+		el7Setup: utils.HeadEL8Images,
 	}
 
 	return imageTestSetup(mapping)

@@ -74,6 +74,7 @@ func headImageTestSetup() (setup []*inventoryTestSetup) {
 		windowsSetup: utils.HeadWindowsImages,
 		el6Setup:     utils.HeadEL6Images,
 		el7Setup:     utils.HeadEL7Images,
+		el7Setup:     utils.HeadEL8Images,
 		aptSetup:     utils.HeadAptImages,
 	}
 

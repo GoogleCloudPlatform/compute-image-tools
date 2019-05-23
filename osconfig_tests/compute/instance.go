@@ -92,22 +92,22 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 	}
 }
 
-// WaitForGuestAttribute waits to a guest attribute to appear.
-func (i *Instance) WaitForGuestAttribute(queryPath, variableKey string, interval, timeout time.Duration) (string, error) {
+// WaitForGuestAttributes waits for guest attribute (queryPath, variableKey) to appear.
+func (i *Instance) WaitForGuestAttributes(queryPath, variableKey string, interval, timeout time.Duration) ([]*computeBeta.GuestAttributesEntry, error) {
 	tick := time.Tick(interval)
 	timedout := time.Tick(timeout)
 	for {
 		select {
 		case <-timedout:
-			return "", fmt.Errorf("timed out waiting for guest attribute %q", path.Join(queryPath, variableKey))
+			return nil, fmt.Errorf("timed out waiting for guest attribute %q", path.Join(queryPath, variableKey))
 		case <-tick:
-			attr, err := i.GetGuestAttribute(queryPath, variableKey)
+			attr, err := i.GetGuestAttributes(queryPath, variableKey)
 			if err != nil {
 				apiErr, ok := err.(*googleapi.Error)
 				if ok && apiErr.Code == http.StatusNotFound {
 					continue
 				}
-				return "", err
+				return nil, err
 			}
 			return attr, nil
 		}
@@ -115,21 +115,16 @@ func (i *Instance) WaitForGuestAttribute(queryPath, variableKey string, interval
 }
 
 // GetGuestAttributes gets guest attributes for an instance.
-func (i *Instance) GetGuestAttributes(queryPath, variableKey string) (*computeBeta.GuestAttributes, error) {
-	return i.client.GetGuestAttributes(i.Project, i.Zone, i.Name, queryPath, variableKey)
-}
-
-// GetGuestAttribute returns a single guest attribute VariableValue.
-func (i *Instance) GetGuestAttribute(queryPath, variableKey string) (string, error) {
-	resp, err := i.GetGuestAttributes(queryPath, variableKey)
+func (i *Instance) GetGuestAttributes(queryPath, variableKey string) ([]*computeBeta.GuestAttributesEntry, error) {
+	resp, err := i.client.GetGuestAttributes(i.Project, i.Zone, i.Name, queryPath, variableKey)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if resp.QueryValue == nil || resp.QueryValue.Items[0] == nil {
-		return "", nil
+	if resp.QueryValue == nil {
+		return nil, nil
 	}
 
-	return resp.QueryValue.Items[0].Value, nil
+	return resp.QueryValue.Items, nil
 }
 
 // StreamSerialOutput stores the serial output of an instance to GCS bucket

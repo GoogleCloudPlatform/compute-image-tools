@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
@@ -53,50 +53,6 @@ var vf = func(inst *compute.Instance, vfString string, port int64, interval, tim
 	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
-func addCreateOsConfigTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
-	const testName = createOsConfigFunction
-	desc := "test osconfig creation"
-	packageName := "cowsay"
-	for _, tuple := range platformPkgManagers {
-		var oc *osconfigpb.OsConfig
-		uniqueSuffix := utils.RandString(5)
-
-		switch tuple.platform {
-		case "debian":
-			for _, image := range debianImages {
-				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
-				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, "", oc, nil, nil, time.Duration(0), vf)
-			}
-		case "centos":
-			for _, image := range centosImages {
-				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
-				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, "", oc, nil, nil, time.Duration(0), vf)
-			}
-		case "rhel":
-			for _, image := range rhelImages {
-				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
-				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, "", oc, nil, nil, time.Duration(0), vf)
-			}
-		case "windows":
-			for _, image := range windowsImages {
-				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(pkgs, nil, nil), nil, nil)
-				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, "", oc, nil, nil, time.Duration(0), vf)
-			}
-		default:
-			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
-			continue
-		}
-	}
-	return pkgTestSetup
-}
 func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
 	const testName = packageInstallFunction
 	desc := "test package installation"
@@ -352,7 +308,6 @@ func createAndAppendSetup(pkgTestSetup []*packageManagementTestSetup, image, nam
 
 func generateAllTestSetup(testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
 	pkgTestSetup := []*packageManagementTestSetup{}
-	pkgTestSetup = addCreateOsConfigTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageInstallTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageRemovalTest(pkgTestSetup, testProjectConfig)
 	pkgTestSetup = addPackageInstallRemovalTest(pkgTestSetup, testProjectConfig)

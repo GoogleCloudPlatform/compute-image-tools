@@ -26,10 +26,10 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
+	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
@@ -61,7 +61,6 @@ var (
 type packageMangementTestFunctionName string
 
 const (
-	createOsConfigFunction            = "createosconfig"
 	packageInstallFunction            = "packageinstall"
 	packageRemovalFunction            = "packageremoval"
 	packageInstallRemovalFunction     = "packageinstallremoval"
@@ -126,18 +125,6 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runCreateOsConfigTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
-
-	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
-	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
-	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
-		return
-	}
-
-	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
-}
-
 func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
@@ -183,7 +170,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
-	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return
 	}
@@ -238,7 +225,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
-	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return
 	}
@@ -292,7 +279,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
-	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return
 	}
@@ -346,7 +333,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
-	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return
 	}
@@ -387,9 +374,6 @@ func getTestCaseFromTestSetUp(testSetup *packageManagementTestSetup) (*junitxml.
 	var f func(context.Context, *junitxml.TestCase, *packageManagementTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project)
 
 	switch testSetup.fname {
-	case createOsConfigFunction:
-		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Create OsConfig] [%s]", path.Base(testSetup.image)))
-		f = runCreateOsConfigTest
 	case packageInstallFunction:
 		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package installation] [%s]", path.Base(testSetup.image)))
 		f = runPackageInstallTest

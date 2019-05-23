@@ -76,7 +76,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) (*apiBeta.GuestAttributes, bool) {
+func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) ([]*apiBeta.GuestAttributesEntry, bool) {
 	testCase.Logf("Creating compute client")
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -106,7 +106,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
-	if _, err := inst.WaitForGuestAttribute("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return nil, false
 	}
@@ -114,29 +114,20 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	return gatherInventory(testCase, inst)
 }
 
-func gatherInventory(testCase *junitxml.TestCase, inst *compute.Instance) (*apiBeta.GuestAttributes, bool) {
+func gatherInventory(testCase *junitxml.TestCase, inst *compute.Instance) ([]*apiBeta.GuestAttributesEntry, bool) {
 	testCase.Logf("Checking inventory data")
 	// It can take a long time to start collecting data, especially on Windows.
-	var retryTime = 10 * time.Second
-	for i := 0; ; i++ {
-		time.Sleep(retryTime)
-
-		ga, err := inst.GetGuestAttributes("guestInventory/", "")
-		totalRetryTime := time.Duration(i) * retryTime
-		if err != nil && totalRetryTime > 25*time.Minute {
-			testCase.WriteFailure("Error getting guest attributes: %v", err)
-			return nil, false
-		}
-		if ga != nil {
-			return ga, true
-		}
-		continue
+	ga, err := inst.WaitForGuestAttributes("guestInventory/", "", 10*time.Second, 25*time.Minute)
+	if err != nil {
+		testCase.WriteFailure("Error getting guest attributes: %v", err)
+		return nil, false
 	}
+	return ga, true
 }
 
-func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
+func runHostnameTest(ga []*apiBeta.GuestAttributesEntry, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
 	var hostname string
-	for _, item := range ga.QueryValue.Items {
+	for _, item := range ga {
 		if item.Key == "Hostname" {
 			hostname = item.Value
 			break
@@ -144,7 +135,7 @@ func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 	}
 
 	if hostname == "" {
-		testCase.WriteFailure("Hostname not found in GuestAttributes, QueryPath: %q", ga.QueryPath)
+		testCase.WriteFailure("Hostname not found in guestInventory: %+v", ga)
 		return
 	}
 
@@ -153,9 +144,9 @@ func runHostnameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 	}
 }
 
-func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
+func runShortNameTest(ga []*apiBeta.GuestAttributesEntry, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
 	var shortName string
-	for _, item := range ga.QueryValue.Items {
+	for _, item := range ga {
 		if item.Key == "ShortName" {
 			shortName = item.Value
 			break
@@ -163,7 +154,7 @@ func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup
 	}
 
 	if shortName == "" {
-		testCase.WriteFailure("ShortName not found in GuestAttributes, QueryPath: %q", ga.QueryPath)
+		testCase.WriteFailure("ShortName not found in guestInventory: %+v", ga)
 		return
 	}
 
@@ -172,9 +163,9 @@ func runShortNameTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup
 	}
 }
 
-func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
+func runPackagesTest(ga []*apiBeta.GuestAttributesEntry, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project) {
 	var packagesEncoded string
-	for _, item := range ga.QueryValue.Items {
+	for _, item := range ga {
 		if item.Key == "InstalledPackages" {
 			packagesEncoded = item.Value
 			break
@@ -182,7 +173,7 @@ func runPackagesTest(ga *apiBeta.GuestAttributes, testSetup *inventoryTestSetup,
 	}
 
 	if packagesEncoded == "" {
-		testCase.WriteFailure("InstalledPackages not found in GuestAttributes, QueryPath: %q", ga.QueryPath)
+		testCase.WriteFailure("InstalledPackages not found in guestInventory: %+v", ga)
 		return
 	}
 
@@ -287,7 +278,7 @@ func inventoryTestCase(ctx context.Context, testSetup *inventoryTestSetup, tests
 		return
 	}
 
-	for tc, f := range map[*junitxml.TestCase]func(*apiBeta.GuestAttributes, *inventoryTestSetup, *junitxml.TestCase, *testconfig.Project){
+	for tc, f := range map[*junitxml.TestCase]func([]*apiBeta.GuestAttributesEntry, *inventoryTestSetup, *junitxml.TestCase, *testconfig.Project){
 		hostnameTest:  runHostnameTest,
 		shortNameTest: runShortNameTest,
 		packageTest:   runPackagesTest,
