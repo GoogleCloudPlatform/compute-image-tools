@@ -77,7 +77,9 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		s := setup
 		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PatchJob triggers reboot] [%s]", s.testName))
 		f := func() {
-			runRebootPatchTest(ctx, tc, s, testProjectConfig, &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}}, 2, 5)
+			minBootCount := 2
+			maxBootCount := 5
+			runRebootPatchTest(ctx, tc, s, testProjectConfig, &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}}, minBootCount, maxBootCount)
 		}
 		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
 	}
@@ -123,7 +125,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func waitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.Duration) error {
+func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.Duration) error {
 	client, err := gcpclients.GetOsConfigClient(ctx)
 	if err != nil {
 		return err
@@ -176,14 +178,6 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	}
 	defer inst.Cleanup()
 
-	/*
-		storageClient, err := gcpclients.GetStorageClient(ctx)
-		if err != nil {
-			testCase.WriteFailure("Error getting storage client: %v", err)
-		}
-		go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
-	*/
-
 	testCase.Logf("Waiting for agent install to complete")
 	if _, err := inst.WaitForGuestAttribute("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
@@ -197,7 +191,7 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 
 	req := &osconfigpb.ExecutePatchJobRequest{
 		Parent:      parent,
-		Description: "testing reboot patch job run",
+		Description: "testing patch job run",
 		Filter:      fmt.Sprintf("name=\"%s\"", name),
 		Duration:    &duration.Duration{Seconds: int64(testSetup.assertTimeout / time.Second)},
 		PatchConfig: pc,
@@ -210,7 +204,7 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	}
 
 	testCase.Logf("Started patch job '%s'", job.GetName())
-	if err := waitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
+	if err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("Patch job '%s' error: %v", job.GetName(), err)
 	}
 }
@@ -247,7 +241,7 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 
 	req := &osconfigpb.ExecutePatchJobRequest{
 		Parent:      parent,
-		Description: "testing reboot patch job run",
+		Description: "testing patch job reboot",
 		Filter:      fmt.Sprintf("name=\"%s\"", name),
 		Duration:    &duration.Duration{Seconds: int64(testSetup.assertTimeout / time.Second)},
 		PatchConfig: &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}},
@@ -260,7 +254,7 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	}
 
 	testCase.Logf("Started patch job '%s'", job.GetName())
-	if err := waitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
+	if err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("Patch job '%s' error: %v", job.GetName(), err)
 	}
 
