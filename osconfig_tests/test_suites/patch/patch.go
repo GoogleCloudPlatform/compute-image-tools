@@ -17,16 +17,17 @@ package patch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"path"
 	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
@@ -62,9 +63,54 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
+	// Basic functionality smoke test against all latest images.
 	for _, setup := range headImageTestSetup() {
 		wg.Add(1)
-		go executePatchJobTestCase(ctx, setup, tests, &wg, logger, testCaseRegex, testProjectConfig)
+		s := setup
+		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Execute PatchJob] [%s]", s.testName))
+		f := func() { runExecutePatchJobTest(ctx, tc, s, testProjectConfig, nil) }
+		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
+	}
+	// Test that updates trigger reboot as expected.
+	for _, setup := range oldImageTestSetup() {
+		wg.Add(1)
+		s := setup
+		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PatchJob triggers reboot] [%s]", s.testName))
+		f := func() {
+			minBootCount := 2
+			maxBootCount := 5
+			runRebootPatchTest(ctx, tc, s, testProjectConfig, &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}}, minBootCount, maxBootCount)
+		}
+		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
+	}
+	// Test that PatchConfig_NEVER prevents reboot.
+	for _, setup := range oldImageTestSetup() {
+		wg.Add(1)
+		s := setup
+		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PatchJob does not reboot] [%s]", s.testName))
+		pc := &osconfigpb.PatchConfig{RebootConfig: osconfigpb.PatchConfig_NEVER, Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}}
+		f := func() { runRebootPatchTest(ctx, tc, s, testProjectConfig, pc, 1, 1) }
+		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
+	}
+	// Test APT specific functionality, this just tests that using these settings doesn't break anything.
+	for _, setup := range aptHeadImageTestSetup() {
+		wg.Add(1)
+		s := setup
+		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[APT dist-upgrade] [%s]", s.testName))
+		f := func() {
+			runExecutePatchJobTest(ctx, tc, s, testProjectConfig, &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}})
+		}
+		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
+	}
+	// Test YUM specific functionality, this just tests that using these settings doesn't break anything.
+	for _, setup := range yumHeadImageTestSetup() {
+		wg.Add(1)
+		s := setup
+		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[YUM security, minimal and excludes] [%s]", s.testName))
+		f := func() {
+			runExecutePatchJobTest(ctx, tc, s, testProjectConfig, &osconfigpb.PatchConfig{Yum: &osconfigpb.YumSettings{Security: true, Minimal: true, Excludes: []string{"pkg1", "pkg2"}}})
+		}
+		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
 	}
 
 	go func() {
@@ -79,7 +125,41 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
+func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.Duration) error {
+	client, err := gcpclients.GetOsConfigClient(ctx)
+	if err != nil {
+		return err
+	}
+	tick := time.Tick(10 * time.Second)
+	timedout := time.Tick(timeout)
+	for {
+		select {
+		case <-timedout:
+			return errors.New("timed out")
+		case <-tick:
+			req := &osconfigpb.GetPatchJobRequest{
+				Name: job.GetName(),
+			}
+			res, err := client.GetPatchJob(ctx, req)
+			if err != nil {
+				return fmt.Errorf("error while fetching patch job: %s", utils.GetStatusFromError(err))
+			}
+
+			if isPatchJobFailureState(res.State) {
+				return fmt.Errorf("failure status %v with message '%s'", res.State, job.GetErrorMessage())
+			}
+
+			if res.State == osconfigpb.PatchJob_SUCCEEDED {
+				if res.InstanceDetailsSummary.GetInstancesSucceeded() < 1 {
+					return errors.New("completed with no instances patched")
+				}
+				return nil
+			}
+		}
+	}
+}
+
+func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, testProjectConfig *testconfig.Project, pc *osconfigpb.PatchConfig) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		testCase.WriteFailure("error creating client: %v", err)
@@ -98,32 +178,23 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	}
 	defer inst.Cleanup()
 
-	storageClient, err := gcpclients.GetStorageClient(ctx)
-	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
-	}
-	logwg.Add(1)
-	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
-
 	testCase.Logf("Waiting for agent install to complete")
-	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttribute("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return
 	}
 
 	testCase.Logf("Agent installed successfully")
 
-	// create patch job
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	osconfigClient, err := gcpclients.GetOsConfigClient(ctx)
 
-	assertTimeout := testSetup.assertTimeout
-
 	req := &osconfigpb.ExecutePatchJobRequest{
 		Parent:      parent,
-		Description: "testing default patch job run",
+		Description: "testing patch job run",
 		Filter:      fmt.Sprintf("name=\"%s\"", name),
-		Duration:    &duration.Duration{Seconds: int64(assertTimeout / time.Second)},
+		Duration:    &duration.Duration{Seconds: int64(testSetup.assertTimeout / time.Second)},
+		PatchConfig: pc,
 	}
 	job, err := osconfigClient.ExecutePatchJob(ctx, req)
 
@@ -133,39 +204,74 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	}
 
 	testCase.Logf("Started patch job '%s'", job.GetName())
+	if err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
+		testCase.WriteFailure("Patch job '%s' error: %v", job.GetName(), err)
+	}
+}
 
-	logger.Printf("%v\n", job)
+func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, testProjectConfig *testconfig.Project, pc *osconfigpb.PatchConfig, minBootCount, maxBootCount int) {
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("error creating client: %v", err)
+		return
+	}
 
-	// assertion
-	tick := time.Tick(10 * time.Second)
-	timedout := time.Tick(testSetup.assertTimeout)
-	for {
-		select {
-		case <-timedout:
-			testCase.WriteFailure("Patch job '%s' timed out", job.GetName())
-			return
-		case <-tick:
-			req := &osconfigpb.GetPatchJobRequest{
-				Name: job.GetName(),
-			}
-			res, err := osconfigClient.GetPatchJob(ctx, req)
-			if err != nil {
-				testCase.WriteFailure("Error while fetching patch job: \n%s\n", utils.GetStatusFromError(err))
-				return
-			}
+	testCase.Logf("Creating instance with image %q", testSetup.image)
+	var metadataItems []*api.MetadataItems
+	metadataItems = append(metadataItems, testSetup.startup)
+	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch"))
+	name := fmt.Sprintf("patch-reboot-%s-%s", path.Base(testSetup.testName), suffix)
+	inst, err := utils.CreateComputeInstance(metadataItems, client, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	if err != nil {
+		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
+		return
+	}
+	defer inst.Cleanup()
 
-			if isPatchJobFailureState(res.State) {
-				testCase.WriteFailure("Patch job '%s' completed with status %v and message '%s'", job.GetName(), res.State, job.GetErrorMessage())
-				return
-			}
+	testCase.Logf("Waiting for agent install to complete")
+	if _, err := inst.WaitForGuestAttribute("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
+		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
+		return
+	}
 
-			if res.State == osconfigpb.PatchJob_SUCCEEDED {
-				if res.InstanceDetailsSummary.GetInstancesSucceeded() < 1 {
-					testCase.WriteFailure("Patch job '%s' completed with no instances patched", job.GetName())
-				}
-				return
-			}
-		}
+	testCase.Logf("Agent installed successfully")
+
+	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
+	osconfigClient, err := gcpclients.GetOsConfigClient(ctx)
+
+	req := &osconfigpb.ExecutePatchJobRequest{
+		Parent:      parent,
+		Description: "testing patch job reboot",
+		Filter:      fmt.Sprintf("name=\"%s\"", name),
+		Duration:    &duration.Duration{Seconds: int64(testSetup.assertTimeout / time.Second)},
+		PatchConfig: &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}},
+	}
+	job, err := osconfigClient.ExecutePatchJob(ctx, req)
+
+	if err != nil {
+		testCase.WriteFailure("error while executing patch job: \n%s\n", utils.GetStatusFromError(err))
+		return
+	}
+
+	testCase.Logf("Started patch job '%s'", job.GetName())
+	if err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
+		testCase.WriteFailure("Patch job '%s' error: %v", job.GetName(), err)
+	}
+
+	testCase.Logf("Checking reboot count")
+	attr, err := inst.GetGuestAttribute("osconfig_tests/", "boot_count")
+	if err != nil {
+		testCase.WriteFailure("Error retrieving boot count: %v", err)
+		return
+	}
+	num, err := strconv.Atoi(attr)
+	if err != nil {
+		testCase.WriteFailure("Error parsing boot count: %v", err)
+		return
+	}
+	if num < minBootCount || num > maxBootCount {
+		testCase.WriteFailure("Instance rebooted %d times, minBootCount: %d, maxBootCount: %d", num, minBootCount, maxBootCount)
+		return
 	}
 }
 
@@ -175,24 +281,15 @@ func isPatchJobFailureState(state osconfigpb.PatchJob_State) bool {
 		state == osconfigpb.PatchJob_CANCELED
 }
 
-func executePatchJobTestCase(ctx context.Context, testSetup *patchTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
+func runTestCase(tc *junitxml.TestCase, f func(), tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp) {
 	defer wg.Done()
 
-	var logwg sync.WaitGroup
-	executePatchTest := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Execute PatchJob] [%s]", testSetup.testName))
-
-	for tc, f := range map[*junitxml.TestCase]func(context.Context, *junitxml.TestCase, *patchTestSetup, *log.Logger, *sync.WaitGroup, *testconfig.Project){
-		executePatchTest: runExecutePatchJobTest,
-	} {
-		if tc.FilterTestCase(regex) {
-			tc.Finish(tests)
-		} else {
-			logger.Printf("Running TestCase %q", tc.Name)
-			f(ctx, tc, testSetup, logger, &logwg, testProjectConfig)
-			tc.Finish(tests)
-			logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
-		}
+	if tc.FilterTestCase(regex) {
+		tc.Finish(tests)
+	} else {
+		logger.Printf("Running TestCase %q", tc.Name)
+		f()
+		tc.Finish(tests)
+		logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
 	}
-
-	logwg.Wait()
 }

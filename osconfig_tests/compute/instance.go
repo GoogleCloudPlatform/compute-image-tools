@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 	"sync"
@@ -28,12 +29,14 @@ import (
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	api "google.golang.org/api/compute/v1"
+	computeBeta "google.golang.org/api/compute/v0.beta"
+	compute "google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 // Instance is a compute instance.
 type Instance struct {
-	*api.Instance
+	*compute.Instance
 	client        daisyCompute.Client
 	Project, Zone string
 }
@@ -89,6 +92,46 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 	}
 }
 
+// WaitForGuestAttribute waits to a guest attribute to appear.
+func (i *Instance) WaitForGuestAttribute(queryPath, variableKey string, interval, timeout time.Duration) (string, error) {
+	tick := time.Tick(interval)
+	timedout := time.Tick(timeout)
+	for {
+		select {
+		case <-timedout:
+			return "", fmt.Errorf("timed out waiting for guest attribute %q", path.Join(queryPath, variableKey))
+		case <-tick:
+			attr, err := i.GetGuestAttribute(queryPath, variableKey)
+			if err != nil {
+				apiErr, ok := err.(*googleapi.Error)
+				if ok && apiErr.Code == http.StatusNotFound {
+					continue
+				}
+				return "", err
+			}
+			return attr, nil
+		}
+	}
+}
+
+// GetGuestAttributes gets guest attributes for an instance.
+func (i *Instance) GetGuestAttributes(queryPath, variableKey string) (*computeBeta.GuestAttributes, error) {
+	return i.client.GetGuestAttributes(i.Project, i.Zone, i.Name, queryPath, variableKey)
+}
+
+// GetGuestAttribute returns a single guest attribute VariableValue.
+func (i *Instance) GetGuestAttribute(queryPath, variableKey string) (string, error) {
+	resp, err := i.GetGuestAttributes(queryPath, variableKey)
+	if err != nil {
+		return "", err
+	}
+	if resp.QueryValue == nil || resp.QueryValue.Items[0] == nil {
+		return "", nil
+	}
+
+	return resp.QueryValue.Items[0].Value, nil
+}
+
 // StreamSerialOutput stores the serial output of an instance to GCS bucket
 func (i *Instance) StreamSerialOutput(ctx context.Context, storageClient *storage.Client, logsPath, bucket string, logwg *sync.WaitGroup, port int64, interval time.Duration) {
 	defer logwg.Done()
@@ -132,7 +175,7 @@ func isTerminal(status string) bool {
 }
 
 // CreateInstance creates a compute instance.
-func CreateInstance(client daisyCompute.Client, project, zone string, i *api.Instance) (*Instance, error) {
+func CreateInstance(client daisyCompute.Client, project, zone string, i *compute.Instance) (*Instance, error) {
 	logger.Infof("Creating instance %s in zone %s", i.Name, zone)
 	if err := client.CreateInstance(project, zone, i); err != nil {
 		return nil, err
@@ -141,8 +184,8 @@ func CreateInstance(client daisyCompute.Client, project, zone string, i *api.Ins
 }
 
 // BuildInstanceMetadataItem create an metadata item
-func BuildInstanceMetadataItem(key, value string) *api.MetadataItems {
-	return &api.MetadataItems{
+func BuildInstanceMetadataItem(key, value string) *compute.MetadataItems {
+	return &compute.MetadataItems{
 		Key:   key,
 		Value: func() *string { v := value; return &v }(),
 	}

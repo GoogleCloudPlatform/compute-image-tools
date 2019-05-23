@@ -28,12 +28,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
-	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
-
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
@@ -90,7 +89,6 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
-	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("enable-guest-attributes", "true"))
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-inventory-enabled", "true"))
 
 	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetup.hostname, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
@@ -108,22 +106,22 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
-	if err := inst.WaitForSerialOutput("osconfig install done", 1, 5*time.Second, 7*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttribute("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return nil, false
 	}
 
-	return gatherInventory(client, testCase, inst.Project, inst.Zone, inst.Name)
+	return gatherInventory(testCase, inst)
 }
 
-func gatherInventory(client daisyCompute.Client, testCase *junitxml.TestCase, project, zone, name string) (*apiBeta.GuestAttributes, bool) {
+func gatherInventory(testCase *junitxml.TestCase, inst *compute.Instance) (*apiBeta.GuestAttributes, bool) {
 	testCase.Logf("Checking inventory data")
 	// It can take a long time to start collecting data, especially on Windows.
 	var retryTime = 10 * time.Second
 	for i := 0; ; i++ {
 		time.Sleep(retryTime)
 
-		ga, err := client.GetGuestAttributes(project, zone, name, "guestInventory/", "")
+		ga, err := inst.GetGuestAttributes("guestInventory/", "")
 		totalRetryTime := time.Duration(i) * retryTime
 		if err != nil && totalRetryTime > 25*time.Minute {
 			testCase.WriteFailure("Error getting guest attributes: %v", err)

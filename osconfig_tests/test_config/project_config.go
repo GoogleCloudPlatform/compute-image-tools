@@ -17,7 +17,6 @@ package testconfig
 import (
 	"fmt"
 	"math/rand"
-	"os"
 	"sync"
 )
 
@@ -59,8 +58,9 @@ func (p *Project) GetZone() string {
 	zc := len(p.zoneIndices)
 	if zc == 0 {
 		// TODO: return an error instead of stopping the process.
-		fmt.Println("Not enough zone quota sepcified. Specify additional quota in `test_zones`.")
-		os.Exit(1)
+		msg := "Not enough zone quota sepcified. Specify additional quota in `test_zones`."
+		fmt.Println(msg)
+		return msg
 	}
 
 	zi := rand.Intn(zc)
