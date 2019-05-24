@@ -33,6 +33,9 @@ steps:
   args: ['build', '-o=linux/gce_vm_image_import', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import']
   env: ['CGO_ENABLED=0']
 - name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/gce_vm_image_export', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/cloud-builders/go'
   args: ['build', '-o=linux/gce_ovf_import', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import']
   env: ['CGO_ENABLED=0']
 
@@ -49,6 +52,8 @@ steps:
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_export:release', '--tag=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA', '--file=Dockerfile.gce_export', '.']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_import:release', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA', '--file=Dockerfile.gce_vm_image_import', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_export:release', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_export:$COMMIT_SHA', '--file=Dockerfile.gce_vm_image_export', '.']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_ovf_import:release', '--tag=gcr.io/$PROJECT_ID/gce_ovf_import:$COMMIT_SHA', '--file=Dockerfile.gce_ovf_import', '.']
 
@@ -95,5 +100,7 @@ images:
   - 'gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/gce_vm_image_import:release'
   - 'gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_export:release'
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_export:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/gce_ovf_import:release'
   - 'gcr.io/$PROJECT_ID/gce_ovf_import:$COMMIT_SHA'
