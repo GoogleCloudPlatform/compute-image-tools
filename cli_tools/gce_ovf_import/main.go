@@ -16,13 +16,13 @@
 package main
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
-
 	"flag"
 	"log"
 	"os"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 )
 
 var (
@@ -90,7 +90,6 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 func runImport() error {
 	logger := log.New(os.Stdout, "[OVF Import] ", log.LstdFlags)
 	ovfImporter, err := ovfimporter.NewOVFImporter(buildImportParams())
-
 	if err != nil {
 		logger.Println(err.Error())
 		ovfImporter.CleanUp()

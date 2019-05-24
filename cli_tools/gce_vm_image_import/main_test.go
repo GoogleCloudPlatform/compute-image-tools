@@ -20,68 +20,18 @@ import (
 	"strings"
 	"testing"
 
-	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetRegion(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-		err   error
-	}{
-		{"us-central1-c", "us-central1", nil},
-		{"europe-north1-a", "europe-north1", nil},
-		{"europe", "", fmt.Errorf("%v is not a valid zone", "europe")},
-		{"", "", fmt.Errorf("zone is empty. Can't determine region")},
-	}
-
-	oldZone := zone
-	for _, test := range tests {
-		zone = &test.input
-		got, err := getRegion()
-		if test.want != got {
-			t.Errorf("%v != %v", test.want, got)
-		} else if err != test.err && test.err.Error() != err.Error() {
-			t.Errorf("%v != %v", test.err, err)
-		}
-	}
-	zone = oldZone
-}
-
-func TestPopulateRegion(t *testing.T) {
-	tests := []struct {
-		input string
-		want  string
-		err   error
-	}{
-		{"us-central1-c", "us-central1", nil},
-		{"europe", "", fmt.Errorf("%v is not a valid zone", "europe")},
-		{"", "", fmt.Errorf("zone is empty. Can't determine region")},
-	}
-
-	oldZone := zone
-	for _, test := range tests {
-		zone = &test.input
-		region = nil
-		err := populateRegion()
-		if err != test.err && test.err.Error() != err.Error() {
-			t.Errorf("%v != %v", test.err, err)
-		} else if region != nil && test.want != *region {
-			t.Errorf("%v != %v", test.want, *region)
-		}
-	}
-	zone = oldZone
-}
-
 func TestGetWorkflowPathsFromImage(t *testing.T) {
 	defer testutils.SetStringP(&sourceImage, "image-1")()
 	defer testutils.SetStringP(&osID, "ubuntu-1404")()
 	workflow, translate := getWorkflowPaths()
-	if workflow != toWorkingDir(importFromImageWorkflow) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
+	if workflow != pathutils.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
 	}
 }
@@ -89,7 +39,7 @@ func TestGetWorkflowPathsFromImage(t *testing.T) {
 func TestGetWorkflowPathsDataDisk(t *testing.T) {
 	defer testutils.SetBoolP(&dataDisk, true)()
 	workflow, translate := getWorkflowPaths()
-	if workflow != toWorkingDir(importWorkflow) || translate != "" {
+	if workflow != pathutils.ToWorkingDir(importWorkflow, *currentExecutablePath) || translate != "" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importWorkflow)
 	}
 }
@@ -103,7 +53,7 @@ func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
 		t.Errorf("Unexpected flags error: %v", err)
 	}
 	workflow, translate := getWorkflowPaths()
-	if workflow != toWorkingDir(importFromImageWorkflow) || translate != "custom.wf" {
+	if workflow != pathutils.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath) || translate != "custom.wf" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
 	}
 }
@@ -340,206 +290,6 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 	assert.Equal(t, got["import_network"], "global/networks/a-network")
 	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
 	assert.Equal(t, len(got), 8)
-}
-
-func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
-	defer testutils.SetStringP(&zone, "")()
-	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer testutils.SetStringP(&project, "a_project")()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	storageRegion := "europe-north1"
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockZoneRetriever.EXPECT().GetZone(storageRegion, *project).Return("europe-north1-b", nil).Times(1)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: storageRegion}, nil)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.Nil(t, err)
-	assert.Equal(t, "europe-north1-b", *zone)
-	assert.Equal(t, "europe-north1", *region)
-	assert.Equal(t, "gs://scratchbucket/scratchpath", *scratchBucketGcsPath)
-}
-
-func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
-	projectID := "a_project"
-	defer testutils.SetStringP(&zone, "")()
-	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
-	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer testutils.SetStringP(&project, projectID)()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockScratchBucketCreator.EXPECT().
-		CreateScratchBucket(*sourceFile, *project).
-		Return("new_scratch_bucket", "europe-north1", nil).
-		Times(1)
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockZoneRetriever.EXPECT().GetZone("europe-north1", projectID).Return("europe-north1-c", nil).Times(1)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.Nil(t, err)
-	assert.Equal(t, "europe-north1-c", *zone)
-	assert.Equal(t, "europe-north1", *region)
-	assert.Equal(t, "gs://new_scratch_bucket/", *scratchBucketGcsPath)
-}
-
-func TestPopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing.T) {
-	projectID := "a_project"
-	defer testutils.SetStringP(&zone, "")()
-	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer testutils.SetStringP(&project, projectID)()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockZoneRetriever.EXPECT().GetZone("us-west2", projectID).Return("", fmt.Errorf("err")).Times(1)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.NotNil(t, err)
-}
-
-func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNotRunningOnGCE(t *testing.T) {
-	defer testutils.SetStringP(&project, "")()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(false)
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.NotNil(t, err)
-}
-
-func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCEProjectIdEmpty(t *testing.T) {
-	defer testutils.SetStringP(&project, "")()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(true)
-	mockMetadataGce.EXPECT().ProjectID().Return("", nil)
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.NotNil(t, err)
-}
-
-func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
-	defer testutils.SetStringP(&project, "")()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(true)
-	mockMetadataGce.EXPECT().ProjectID().Return("gce_project", nil)
-
-	err := populateProjectIfMissing(mockMetadataGce)
-
-	assert.Nil(t, err)
-	assert.Equal(t, "gce_project", *project)
-}
-
-func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMetadataReturnsError(t *testing.T) {
-	defer testutils.SetStringP(&project, "")()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(true)
-	mockMetadataGce.EXPECT().ProjectID().Return("pr", fmt.Errorf("Err"))
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.NotNil(t, err)
-}
-
-func TestPopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *testing.T) {
-	defer testutils.SetStringP(&scratchBucketGcsPath, "")()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockScratchBucketCreator.EXPECT().CreateScratchBucket(*sourceFile, *project).Return("", "", fmt.Errorf("err"))
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.NotNil(t, err)
-}
-
-func TestPopulateMissingParametersReturnsErrorWhenScratchBucketInvalidFormat(t *testing.T) {
-	defer testutils.SetStringP(&scratchBucketGcsPath, "NOT_GCS_PATH")()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.NotNil(t, err)
-}
-
-func TestPopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *testing.T) {
-	defer testutils.SetStringP(&zone, "NOT_ZONE")()
-	defer testutils.SetStringP(&scratchBucketGcsPath, "gs://scratchbucket/scratchpath")()
-	defer testutils.SetStringP(&sourceFile, "gs://sourcebucket/sourcefile")()
-	defer testutils.SetStringP(&project, "a_project")()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	storageRegion := "NOT_REGION"
-
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: storageRegion}, nil)
-
-	err := populateMissingParameters(mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
-
-	assert.NotNil(t, err)
 }
 
 func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {

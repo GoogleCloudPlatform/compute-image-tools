@@ -15,15 +15,13 @@
 package daisycommon
 
 import (
-	"context"
 	"fmt"
 
-	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // ParseWorkflow parses Daisy workflow file and returns Daisy workflow object or error in case of failure
-func ParseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
+func ParseWorkflow(path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
 	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
@@ -39,22 +37,8 @@ Loop:
 		return nil, fmt.Errorf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
 	}
 
-	if project != "" {
-		w.Project = project
-	} else if w.Project == "" && metadata.OnGCE() {
-		w.Project, err = metadata.ProjectID()
-		if err != nil {
-			return nil, err
-		}
-	}
-	if zone != "" {
-		w.Zone = zone
-	} else if w.Zone == "" && metadata.OnGCE() {
-		w.Zone, err = metadata.Zone()
-		if err != nil {
-			return nil, err
-		}
-	}
+	w.Project = project
+	w.Zone = zone
 	if gcsPath != "" {
 		w.GCSPath = gcsPath
 	}

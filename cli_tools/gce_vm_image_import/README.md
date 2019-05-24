@@ -17,8 +17,8 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 ### Flags
 
 #### Required flags
-+ `-image_name` Name of the disk image to create.
-+ `-client_id` Identifies the client of the importer. For example: `gcloud` or
++ `-image_name=IMAGE_NAME` Name of the disk image to create.
++ `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
   `pantheon`.
   
 Exactly one of these must be specified:
@@ -49,9 +49,8 @@ Exactly one of these must be specified:
 + `-zone=ZONE` Zone of the image to import. The zone in which to do the work of
   importing the image. Overrides the default compute/zone property value for
   this command invocation.  
-+ `-timeout=TIMEOUT; default="2h"` Maximum time a build can last before it is
-  failed as "TIMEOUT". For example, specifying 2h will fail the process after 
-  2 hours. See $ gcloud topic datetimes for information on duration formats.
++ `-timeout=TIMEOUT` Maximum time a build can last before it is failed as "TIMEOUT". For example,
+  specifying 2h will fail the process after 2 hours.
 + `-project=PROJECT` Project to run in, overrides what is set in workflow.
 + `-scratch_bucket_gcs_path=PATH` GCS scratch bucket to use, overrides default set in Daisy.
 + `-oauth=OAUTH_PATH` Path to oauth json file, overrides what is set in workflow.
@@ -72,12 +71,12 @@ Exactly one of these must be specified:
 ### Usage
 
 ```
-gce_vm_image_import -image_name IMAGE_NAME -client_id CLIENT_ID (-data-disk | -os=OS)
+gce_vm_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID (-data-disk | -os=OS)
         (-source-file=SOURCE_FILE | -source-image=SOURCE_IMAGE) [-no-guest-environment] 
-        [-log-location=LOG_LOCATION] [-family=FAMILY] [-description=DESCRIPTION]
-        [-network=NETWORK] [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT; default="2h"]
-        [-project=PROJECT] [-scratch_bucket_gcs_path=PATH] [-oauth=OAUTH_PATH]
-        [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging] [-disable_cloud_logging]
-        [-disable_stdout_logging] [-kms-key=KMS_KEY -kms-keyring=KMS_KEYRING
-        -kms-location=KMS_LOCATION -kms-project=KMS_PROJECT] [-labels=KEY=VALUE,...]
+        [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK] [-subnet=SUBNET]
+        [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT] [-scratch_bucket_gcs_path=PATH]
+        [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
+        [-disable_cloud_logging] [-disable_stdout_logging]
+        [-kms-key=KMS_KEY -kms-keyring=KMS_KEYRING -kms-location=KMS_LOCATION
+        -kms-project=KMS_PROJECT] [-labels=KEY=VALUE,...]
 ```

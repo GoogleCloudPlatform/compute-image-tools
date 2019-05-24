@@ -28,8 +28,10 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/gce_utils"
@@ -70,12 +72,8 @@ type OVFImporter struct {
 // such as compute/storage clients.
 func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, error) {
 	ctx := context.Background()
-	sc, err := storage.NewClient(ctx)
 	logger := logging.NewLogger("[import-ovf]")
-	if err != nil {
-		return nil, err
-	}
-	storageClient, err := storageutils.NewStorageClient(ctx, sc, logger)
+	storageClient, err := storageutils.NewStorageClient(ctx, logger, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -175,18 +173,7 @@ func createComputeClient(ctx *context.Context, params *ovfimportparams.OVFImport
 }
 
 func (oi *OVFImporter) getProject() (string, error) {
-	project := oi.params.Project
-	if project == "" {
-		if !oi.mgce.OnGCE() {
-			return "", fmt.Errorf("project cannot be determined because build is not running on GCE")
-		}
-		var err error
-		project, err = oi.mgce.ProjectID()
-		if err != nil || project == "" {
-			return "", fmt.Errorf("project cannot be determined %v", err)
-		}
-	}
-	return project, nil
+	return paramutils.GetProjectID(oi.mgce, oi.params.Project)
 }
 
 func (oi *OVFImporter) getZone(project string) (string, error) {
@@ -328,7 +315,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		region  string
 		err     error
 	)
-	if project, err = oi.getProject(); err != nil {
+	if project, err = paramutils.GetProjectID(oi.mgce, oi.params.Project); err != nil {
 		return nil, err
 	}
 	if zone, err = oi.getZone(project); err != nil {
@@ -382,7 +369,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 
 	varMap := oi.buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr, region)
 
-	workflow, err := daisyutils.ParseWorkflow(oi.mgce, oi.workflowPath, varMap, project,
+	workflow, err := daisycommon.ParseWorkflow(oi.workflowPath, varMap, project,
 		zone, oi.params.ScratchBucketGcsPath, oi.params.Oauth, oi.params.Timeout, oi.params.Ce, oi.params.GcsLogsDisabled, oi.params.CloudLogsDisabled,
 		oi.params.StdoutLogsDisabled)
 

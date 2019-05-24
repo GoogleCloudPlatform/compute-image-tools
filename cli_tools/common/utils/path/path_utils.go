@@ -18,6 +18,7 @@ import (
 	"math/rand"
 	"net/url"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -46,4 +47,13 @@ func ToDirectoryURL(url string) string {
 		return url + "/"
 	}
 	return url
+}
+
+// ToWorkingDir gets absolute path from given relative path of the directory
+func ToWorkingDir(relDir string, currentExecutablePath string) string {
+	wd, err := filepath.Abs(filepath.Dir(currentExecutablePath))
+	if err == nil {
+		return path.Join(wd, relDir)
+	}
+	return relDir
 }

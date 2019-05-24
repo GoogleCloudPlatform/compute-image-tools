@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
@@ -62,68 +61,6 @@ func ValidateOS(osID string) error {
 // GetTranslateWorkflowPath returns path to image translate workflow path for given OS
 func GetTranslateWorkflowPath(os *string) string {
 	return osChoices[*os]
-}
-
-// ParseWorkflow parses Daisy workflow file and returns Daisy workflow object or error in case of failure
-func ParseWorkflow(metadataGCE commondomain.MetadataGCEInterface, path string,
-	varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string,
-	disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
-	w, err := daisy.NewFromFile(path)
-	if err != nil {
-		return nil, err
-	}
-Loop:
-	for k, v := range varMap {
-		for wv := range w.Vars {
-			if k == wv {
-				w.AddVar(k, v)
-				continue Loop
-			}
-		}
-		return nil, fmt.Errorf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
-	}
-
-	if project != "" {
-		w.Project = project
-	} else if w.Project == "" && metadataGCE.OnGCE() {
-		w.Project, err = metadataGCE.ProjectID()
-		if err != nil {
-			return nil, err
-		}
-	}
-	if zone != "" {
-		w.Zone = zone
-	} else if w.Zone == "" && metadataGCE.OnGCE() {
-		w.Zone, err = metadataGCE.Zone()
-		if err != nil {
-			return nil, err
-		}
-	}
-	if gcsPath != "" {
-		w.GCSPath = gcsPath
-	}
-	if oauth != "" {
-		w.OAuthPath = oauth
-	}
-	if dTimeout != "" {
-		w.DefaultTimeout = dTimeout
-	}
-
-	if cEndpoint != "" {
-		w.ComputeEndpoint = cEndpoint
-	}
-
-	if disableGCSLogs {
-		w.DisableGCSLogging()
-	}
-	if diableCloudLogs {
-		w.DisableCloudLogging()
-	}
-	if disableStdoutLogs {
-		w.DisableStdoutLogging()
-	}
-
-	return w, nil
 }
 
 // UpdateAllInstanceNoExternalIP updates all Create Instance steps in the workflow to operate

@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package gcevmimageimportutil
+package storageutils
 
 import (
 	"context"
@@ -22,7 +22,6 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"google.golang.org/api/iterator"
 )
 
@@ -40,7 +39,7 @@ type ScratchBucketCreator struct {
 
 // NewScratchBucketCreator creates a ScratchBucketCreator
 func NewScratchBucketCreator(ctx context.Context, storageClient commondomain.StorageClientInterface) *ScratchBucketCreator {
-	return &ScratchBucketCreator{storageClient, ctx, &storageutils.BucketIteratorCreator{}}
+	return &ScratchBucketCreator{storageClient, ctx, &BucketIteratorCreator{}}
 }
 
 // CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
@@ -70,7 +69,7 @@ func (c *ScratchBucketCreator) CreateScratchBucket(
 }
 
 func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string) (string, string, error) {
-	fileBucket, _, err := storageutils.SplitGCSPath(fileGcsPath)
+	fileBucket, _, err := SplitGCSPath(fileGcsPath)
 	if err != nil || fileBucket == "" {
 		return "", "", fmt.Errorf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
 	}

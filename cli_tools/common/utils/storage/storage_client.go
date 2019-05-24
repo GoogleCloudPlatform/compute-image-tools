@@ -28,6 +28,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"google.golang.org/api/iterator"
+	"google.golang.org/api/option"
 )
 
 var (
@@ -47,8 +48,17 @@ type StorageClient struct {
 }
 
 // NewStorageClient creates a StorageClient
-func NewStorageClient(ctx context.Context, client *storage.Client,
-	logger logging.LoggerInterface) (*StorageClient, error) {
+func NewStorageClient(ctx context.Context,
+	logger logging.LoggerInterface, oauth *string) (*StorageClient, error) {
+
+	storageOptions := []option.ClientOption{}
+	if oauth != nil {
+		storageOptions = append(storageOptions, option.WithCredentialsFile(*oauth))
+	}
+	client, err := storage.NewClient(ctx, storageOptions...)
+	if err != nil {
+		return nil, err
+	}
 	sc := &StorageClient{StorageClient: client, Ctx: ctx,
 		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}
 
