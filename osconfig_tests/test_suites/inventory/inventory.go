@@ -117,7 +117,14 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 func gatherInventory(testCase *junitxml.TestCase, inst *compute.Instance) ([]*apiBeta.GuestAttributesEntry, bool) {
 	testCase.Logf("Checking inventory data")
 	// It can take a long time to start collecting data, especially on Windows.
-	ga, err := inst.WaitForGuestAttributes("guestInventory/", "", 10*time.Second, 25*time.Minute)
+	// LastUpdated is the last entry written by the agent, so wait on that.
+	_, err := inst.WaitForGuestAttributes("guestInventory/", "LastUpdated", 10*time.Second, 25*time.Minute)
+	if err != nil {
+		testCase.WriteFailure("Error waiting for guest attributes: %v", err)
+		return nil, false
+	}
+
+	ga, err := inst.GetGuestAttributes("guestInventory/", "")
 	if err != nil {
 		testCase.WriteFailure("Error getting guest attributes: %v", err)
 		return nil, false
@@ -135,7 +142,8 @@ func runHostnameTest(ga []*apiBeta.GuestAttributesEntry, testSetup *inventoryTes
 	}
 
 	if hostname == "" {
-		testCase.WriteFailure("Hostname not found in guestInventory: %+v", ga)
+		s, _ := json.MarshalIndent(ga, "", "  ")
+		testCase.WriteFailure("Hostname not found in guestInventory: %s", s)
 		return
 	}
 
@@ -154,7 +162,8 @@ func runShortNameTest(ga []*apiBeta.GuestAttributesEntry, testSetup *inventoryTe
 	}
 
 	if shortName == "" {
-		testCase.WriteFailure("ShortName not found in guestInventory: %+v", ga)
+		s, _ := json.MarshalIndent(ga, "", "  ")
+		testCase.WriteFailure("ShortName not found in guestInventory: %s", s)
 		return
 	}
 
@@ -173,7 +182,8 @@ func runPackagesTest(ga []*apiBeta.GuestAttributesEntry, testSetup *inventoryTes
 	}
 
 	if packagesEncoded == "" {
-		testCase.WriteFailure("InstalledPackages not found in guestInventory: %+v", ga)
+		s, _ := json.MarshalIndent(ga, "", "  ")
+		testCase.WriteFailure("InstalledPackages not found in guestInventory: %s", s)
 		return
 	}
 
