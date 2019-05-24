@@ -78,14 +78,7 @@ function Setup-NTP {
   # Set up time sync...
   # Stop in case it's running; it probably won't be.
   Stop-Service W32time
-  # w32tm /unregister is flaky, but using sc delete first helps to clean up
-  # the service reliably.
-  Run-Command $env:windir\system32\sc.exe delete W32Time
-
-  # Unregister and re-register the service.
   $w32tm = "$env:windir\System32\w32tm.exe"
-  Run-Command $w32tm /unregister
-  Run-Command $w32tm /register
 
   # Get time from GCE NTP server every 15 minutes.
   Run-Command $w32tm /config '/manualpeerlist:metadata.google.internal,0x1' /syncfromflags:manual
@@ -99,17 +92,8 @@ function Setup-NTP {
   Set-ItemProperty -Path $server_key -Name '(Default)' -Value $server_num
   # Configure to run automatically on every start.
   Set-Service W32Time -StartupType Automatic
-  Run-Command $env:windir\system32\sc.exe triggerinfo w32time start/networkon stop/networkoff
+  Run-Command $env:windir\system32\sc.exe triggerinfo w32time start/networkon
   Write-Output 'Configured W32Time to use GCE NTP server.'
-
-  # Verify that the W32Time service is correctly installed. This has been
-  # a source of flakiness in the past.
-  try {
-    Get-Service W32Time
-  }
-  catch {
-    throw "Failed to configure NTP. Cannot complete image build: $($_.Exception.Message)"
-  }
 
   # Sync time now.
   Start-Service W32time
