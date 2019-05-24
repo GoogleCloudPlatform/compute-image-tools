@@ -44,8 +44,7 @@ const (
 )
 
 var (
-	dump   = &pretty.Config{IncludeUnexported: true}
-	suffix = utils.RandString(5)
+	dump = &pretty.Config{IncludeUnexported: true}
 )
 
 // TestSuite is a OSPatch test suite.
@@ -170,7 +169,7 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch"))
-	name := fmt.Sprintf("patch-test-%s-%s", path.Base(testSetup.testName), suffix)
+	name := fmt.Sprintf("patch-test-%s-%s", path.Base(testSetup.testName), utils.RandString(5))
 	inst, err := utils.CreateComputeInstance(metadataItems, client, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
@@ -220,7 +219,7 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	var metadataItems []*api.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch"))
-	name := fmt.Sprintf("patch-reboot-%s-%s", path.Base(testSetup.testName), suffix)
+	name := fmt.Sprintf("patch-reboot-%s-%s", path.Base(testSetup.testName), utils.RandString(5))
 	inst, err := utils.CreateComputeInstance(metadataItems, client, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
