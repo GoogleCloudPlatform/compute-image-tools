@@ -22,6 +22,10 @@
       "Value": "200",
       "Description": "size of the export instances buffer disk, this disk starts from a fixed size which can guarantee an acceptable PD read speed, and grows on demand"
     },
+    "export_instance_disk_type": {
+      "Value": "pd-ssd",
+      "Description": "Disk type of the buffer. By default it's pd-ssd for higher speed. pd-standard can be used when pd-ssd quota is not enough"
+    },
     "export_network": {
       "Value": "global/networks/default",
       "Description": "Network to use for the export instance"
@@ -41,12 +45,12 @@
         {
           "Name": "disk-${NAME}-os",
           "SourceImage": "${export_instance_disk_image}",
-          "Type": "pd-ssd"
+          "Type": "${export_instance_disk_type}"
         },
         {
           "Name": "disk-${NAME}-buffer-${ID}",
           "SizeGb": "${export_instance_disk_size}",
-          "Type": "pd-ssd",
+          "Type": "${export_instance_disk_type}",
 	  "ExactName": true
         }
       ]
@@ -66,7 +70,7 @@
             "gcs-path": "${OUTSPATH}/${NAME}",
             "format": "${format}",
             "buffer-disk": "disk-${NAME}-buffer-${ID}",
-	    "resizing-script-name": "${NAME}_disk_resizing_mon.sh"
+            "resizing-script-name": "${NAME}_disk_resizing_mon.sh"
           },
           "networkInterfaces": [
             {
