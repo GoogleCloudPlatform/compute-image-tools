@@ -137,8 +137,8 @@ var HeadEL8Images = map[string]string{
 
 // OldEL7Images is a map of names to image paths for old EL7 images.
 var OldEL7Images = map[string]string{
-	"old/centos-7": "projects/centos-cloud/global/images/centos-7-v20190116",
-	"old/rhel-7":   "projects/rhel-cloud/global/images/rhel-7-v20190116",
+	"old/centos-7": "projects/centos-cloud/global/images/centos-7-v20181113",
+	"old/rhel-7":   "projects/rhel-cloud/global/images/rhel-7-v20181113",
 }
 
 // HeadWindowsImages is a map of names to image paths for public Windows image families.
