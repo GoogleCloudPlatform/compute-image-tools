@@ -44,7 +44,7 @@ new=$(($old + 1))
 curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"`
 	aptStartup = utils.InstallOSConfigDeb + linuxRecordBoot
 	el6Startup = utils.InstallOSConfigYumEL6 + linuxRecordBoot
-	el7Startup = utils.InstallOSConfigYumEL7 + linuxRecordBoot
+	el7Startup = "yum install -y yum-utils\n" + utils.InstallOSConfigYumEL7 + linuxRecordBoot
 
 	windowsSetup = &patchTestSetup{
 		assertTimeout: 30 * time.Minute,
@@ -106,6 +106,7 @@ func headImageTestSetup() []*patchTestSetup {
 		windowsSetup: utils.HeadWindowsImages,
 		el6Setup:     utils.HeadEL6Images,
 		el7Setup:     utils.HeadEL7Images,
+		el8Setup:     utils.HeadEL8Images,
 		aptSetup:     utils.HeadAptImages,
 	}
 
