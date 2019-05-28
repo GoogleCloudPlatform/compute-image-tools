@@ -260,12 +260,12 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	}
 
 	// If shouldReboot is true that instance should not report a pending reboot.
-	if shouldReboot && pj.InstanceDetailsSummary.GetInstancesSucceededRebootRequired() > 0 {
+	if shouldReboot && pj.GetInstanceDetailsSummary().GetInstancesSucceededRebootRequired() > 0 {
 		testCase.WriteFailure("PatchJob finished with status InstancesSucceededRebootRequired.")
 		return
 	}
 	// If shouldReboot is false that instance should report a pending reboot.
-	if !shouldReboot && pj.InstanceDetailsSummary.GetInstancesSucceededRebootRequired() == 0 {
+	if !shouldReboot && pj.GetInstanceDetailsSummary().GetInstancesSucceededRebootRequired() == 0 {
 		testCase.WriteFailure("PatchJob should have finished with status InstancesSucceededRebootRequired.")
 		return
 	}
