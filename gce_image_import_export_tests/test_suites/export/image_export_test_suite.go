@@ -13,7 +13,7 @@
 //  limitations under the License.
 
 // Package ovftestsuite contains e2e tests for OVF import
-package ovftestsuite
+package exporttestsuites
 
 import (
 	"context"
@@ -32,8 +32,8 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/compute"
 	computeUtils "github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_config"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
 )
@@ -48,7 +48,7 @@ var (
 
 var vf = func(
 	inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
-	return inst. WaitForSerialOutput(vfString, port, interval, timeout)
+	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
 type ovfImportTestSetup struct {
