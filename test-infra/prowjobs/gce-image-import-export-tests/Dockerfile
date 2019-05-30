@@ -37,4 +37,6 @@ COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.
 COPY --from=0 /gce_image_import_export_test_runner gce_image_import_export_test_runner
 COPY --from=0 /gce_vm_image_import gce_vm_image_import
 COPY --from=0 /gce_vm_image_export gce_vm_image_export
+COPY /daisy_workflows/ /daisy_workflows/
+
 ENTRYPOINT ["./wrapper", "./gce_image_import_export_test_runner"]

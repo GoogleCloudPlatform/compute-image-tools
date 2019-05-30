@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -63,6 +64,7 @@ func runTestCases(
 
 	imageImportDataDiskTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import data disk"))
+	/*
 	imageImportOSTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS"))
 	imageImportOSFromImageTestCase := junitxml.NewTestCase(
@@ -71,14 +73,14 @@ func runTestCases(
 		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export Raw"))
 	imageExportVMDKTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export VMDK"))
-
+*/
 	testsMap := map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project){
 		imageImportDataDiskTestCase: runImageImportDataDiskTest,
-		imageImportOSTestCase: runImageImportOSTest,
-		imageImportOSFromImageTestCase: runImageImportOSFromImageTest,
-		imageExportRawTestCase: runImageExportRawTest,
-		imageExportVMDKTestCase: runImageExportVMDKTest,
+//		imageImportOSTestCase: runImageImportOSTest,
+//		imageImportOSFromImageTestCase: runImageImportOSFromImageTest,
+//		imageExportRawTestCase: runImageExportRawTest,
+//		imageExportVMDKTestCase: runImageExportVMDKTest,
 	}
 
 	var wg sync.WaitGroup
@@ -113,7 +115,7 @@ func runImageImportDataDiskTest(
 
 	suffix := pathutils.RandString(5)
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", "-image_name=e2e_test_image_import_data_disk_" + suffix, "-data_disk", "-source_image=image1"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-image_name=e2e-test-image-import-data-disk-" + suffix, "-data_disk", "-source_file=gs://compute-image-test-pool-001-test-image/image-file-10g-vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
 	// Verify the result
@@ -177,14 +179,13 @@ func runImageExportVMDKTest(
 
 }
 
-func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmd string, args []string) {
+func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) {
 	// Execute cli tool
-	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmd, strings.Join(args, " "))
-	command := exec.Command(cmd, args...)
-	command.Dir = "."
-	out, err := command.CombinedOutput()
-	logger.Printf("Output: %v\n", string(out))
-	if err != nil {
+	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmdString, strings.Join(args, " "))
+	cmd := exec.Command(fmt.Sprintf("./%s", cmdString), args...)
+	cmd.Stdout = os.Stdout
+
+	if err := cmd.Run(); err != nil {
 		logger.Printf("Error running cmd: %v\n", err.Error())
 	}
 }
