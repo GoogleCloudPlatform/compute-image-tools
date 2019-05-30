@@ -17,6 +17,7 @@ package packagemanagement
 import (
 	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
 	"log"
 	"path"
 	"regexp"
@@ -27,10 +28,9 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
 
