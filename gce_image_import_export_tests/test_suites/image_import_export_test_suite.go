@@ -132,6 +132,8 @@ func runImageImportDataDiskTest(
 	err = image.Exists()
 	if err != nil {
 		logger.Fatalf("Image '%v' doesn't exist after import: %v", imageName, err)
+	} else {
+		logger.Printf("Image '%v' exists! Import success.", imageName)
 	}
 }
 
