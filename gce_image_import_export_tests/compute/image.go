@@ -25,6 +25,7 @@ import (
 type Image struct {
 	*api.Image
 	Client  daisyCompute.Client
+	Project string
 }
 
 // Cleanup deletes the image.
@@ -44,7 +45,7 @@ func (i *Image) Exists() error {
 }
 
 // CreateImageObject creates an image object to be operated by API client
-func CreateImageObject(client daisyCompute.Client, name string) *Image {
+func CreateImageObject(client daisyCompute.Client, project string, name string) *Image {
 	apiImage := &api.Image{Name:name};
-	return &Image{apiImage, client}
+	return &Image{apiImage, client, project}
 }

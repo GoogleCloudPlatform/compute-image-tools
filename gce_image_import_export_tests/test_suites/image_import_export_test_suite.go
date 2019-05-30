@@ -128,7 +128,7 @@ func runImageImportDataDiskTest(
 		testCase.WriteFailure("error creating client: %v", err)
 		return
 	}
-	image := compute.CreateImageObject(client, imageName)
+	image := compute.CreateImageObject(client, testProjectConfig.TestProjectID, imageName)
 	err = image.Exists()
 	if err != nil {
 		logger.Fatalf("Image '%v' doesn't exist after import: %v", imageName, err)
