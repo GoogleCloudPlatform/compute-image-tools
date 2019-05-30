@@ -180,7 +180,9 @@ func runImageExportVMDKTest(
 func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmd string, args []string) {
 	// Execute cli tool
 	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmd, strings.Join(args, " "))
-	out, err := exec.Command(cmd, args...).CombinedOutput()
+	command := exec.Command(cmd, args...)
+	command.Dir = "."
+	out, err := command.CombinedOutput()
 	logger.Printf("Output: %v\n", string(out))
 	if err != nil {
 		logger.Printf("Error running cmd: %v\n", err.Error())
