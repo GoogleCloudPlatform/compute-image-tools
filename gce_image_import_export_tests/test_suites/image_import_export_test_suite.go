@@ -26,6 +26,8 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
 )
@@ -114,13 +116,23 @@ func runImageImportDataDiskTest(
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
 	suffix := pathutils.RandString(5)
+	imageName := "e2e-test-image-import-data-disk-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-image_name=e2e-test-image-import-data-disk-" + suffix, "-data_disk", "-source_file=gs://compute-image-test-pool-001-test-image/image-file-10g-vmdk"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-data_disk", "-source_file=gs://compute-image-test-pool-001-test-image/image-file-10g-vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
 	// Verify the result
 	// TODO: get image
-
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		testCase.WriteFailure("error creating client: %v", err)
+		return
+	}
+	image := compute.CreateImageObject(client, imageName)
+	err = image.Exists()
+	if err != nil {
+		logger.Fatalf("Image '%v' doesn't exist after import: %v", imageName, err)
+	}
 }
 
 func runImageImportOSTest(
@@ -186,6 +198,6 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 	cmd.Stdout = os.Stdout
 
 	if err := cmd.Run(); err != nil {
-		logger.Printf("Error running cmd: %v\n", err.Error())
+		logger.Fatalf("Error running cmd: %v\n", err.Error())
 	}
 }
