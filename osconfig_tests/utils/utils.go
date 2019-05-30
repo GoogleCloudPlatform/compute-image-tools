@@ -54,8 +54,7 @@ curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
 `
 
 	// InstallOSConfigDeb installs the osconfig agent on deb based systems.
-	InstallOSConfigDeb = `#apt-get remove -y unattended-upgrades
-echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
+	InstallOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-osconfig-agent` + curlPost
@@ -140,6 +139,21 @@ var OldEL7Images = map[string]string{
 	"old/centos-7": "projects/centos-cloud/global/images/centos-7-v20181113",
 	"old/rhel-7":   "projects/rhel-cloud/global/images/rhel-7-v20181113",
 }
+
+// HeadELImages is a map of names to image paths for public EL image families.
+var HeadELImages = func() (newMap map[string]string) {
+	newMap = make(map[string]string)
+	for k, v := range HeadEL6Images {
+		newMap[k] = v
+	}
+	for k, v := range HeadEL7Images {
+		newMap[k] = v
+	}
+	for k, v := range HeadEL8Images {
+		newMap[k] = v
+	}
+	return
+}()
 
 // HeadWindowsImages is a map of names to image paths for public Windows image families.
 var HeadWindowsImages = map[string]string{

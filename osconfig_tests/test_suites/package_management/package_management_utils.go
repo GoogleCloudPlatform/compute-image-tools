@@ -18,6 +18,7 @@ package packagemanagement
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
@@ -29,6 +30,7 @@ var (
 	yumStartupScripts = map[string]string{
 		"rhel-6":   utils.InstallOSConfigYumEL6,
 		"rhel-7":   utils.InstallOSConfigYumEL7,
+		"rhel-8":   utils.InstallOSConfigYumEL7,
 		"centos-6": utils.InstallOSConfigYumEL6,
 		"centos-7": utils.InstallOSConfigYumEL7,
 	}
@@ -59,19 +61,20 @@ func getPackageInstallStartupScript(image, pkgManager, packageName string) *api.
 			"while true;\n" +
 			"do\n" +
 			"isinstalled=`/usr/bin/rpmquery -a %s`\n" +
-			"if [[ $isinstalled =~ ^cowsay-* ]]; then\n" +
+			"if [[ $isinstalled =~ ^%s-* ]]; then\n" +
 			"echo \"%s\"\n" +
 			"else\n" +
 			"echo \"%s\"\n" +
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
 		ss = "%s\n" +
 			"c:\\programdata\\Googet\\googet.exe addrepo osconfig-agent-test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository\n" +
+			"Restart-Service google_osconfig_agent\n" +
 			"while(1) {\n" +
 			"$installed_packages = googet installed\n" +
 			"Write-Host $installed_packages\n" +
@@ -154,15 +157,14 @@ func getPackageRemovalStartupScript(image, pkgManager, packageName string) *api.
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
 		ss = "%s\n" +
-			"c:\\programdata\\Googet\\googet.exe addrepo osconfig-agent-test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository\n" +
 			"$n = 0\n" +
 			"while (1) {\n" +
-			"googet -noconfirm install %s\n" +
+			"googet -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository %s\n" +
 			"if ($?) {\n" +
 			"break\n" +
 			"} else {\n" +
@@ -220,18 +222,19 @@ func getPackageInstallRemovalStartupScript(image, pkgManager, packageName string
 			"while true;\n" +
 			"do\n" +
 			"isinstalled=`/usr/bin/rpmquery -a %s`\n" +
-			"if [[ $isinstalled =~ ^cowsay-* ]]; then\n" +
+			"if [[ $isinstalled =~ ^%s-* ]]; then\n" +
 			"echo \"%s\"\n" +
 			"else\n" +
 			"echo \"%s\"\n" +
 			"fi\n" +
 			"sleep 5\n" +
 			"done\n"
-		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
 		ss = "%s\n" +
+			"Restart-Service google_osconfig_agent\n" +
 			"while(1) {\n" +
 			"$installed_packages = googet installed\n" +
 			"Write-Host $installed_packages\n" +
@@ -262,7 +265,6 @@ func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageNam
 
 	case "apt":
 		ss = "%s\n" +
-			"sleep 10;\n" + // allow time for the test runner create the osconfigs, assignments
 			"systemctl restart google-osconfig-agent\n" +
 			"while true;\n" +
 			"do\n" +
@@ -284,7 +286,6 @@ func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageNam
 			restartAgent = "restart -q -n google-osconfig-agent"
 		}
 		ss = "%s\n" +
-			"sleep 10;\n" + // allow time for the test runner create the osconfigs, assignments
 			restartAgent + "\n" +
 			"while true\n" +
 			"do\n" +
@@ -297,11 +298,12 @@ func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageNam
 			"fi\n" +
 			"done\n" +
 			"echo \"%s\"\n"
-		ss = fmt.Sprintf(ss, yumStartupScripts[image], packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "googet":
 		ss = "%s\n" +
+			"Restart-Service google_osconfig_agent\n" +
 			"while(1) {\n" +
 			"$installed_packages = googet installed\n" +
 			"Write-Host $installed_packages\n" +

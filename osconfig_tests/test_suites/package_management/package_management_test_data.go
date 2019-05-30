@@ -24,8 +24,9 @@ import (
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
-	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	api "google.golang.org/api/compute/v1"
+
+	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
 
 type platformPkgManagerTuple struct {
@@ -44,7 +45,7 @@ const (
 )
 
 var (
-	platformPkgManagers = []platformPkgManagerTuple{{"debian", "apt"}, {"centos", "yum"}, {"rhel", "yum"}, {"windows", "googet"}}
+	platformPkgManagers = []string{"apt", "yum", "googet"}
 	yumRaptureGpgKeys   = []string{"https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"}
 )
 
@@ -57,55 +58,41 @@ func addPackageInstallTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	const testName = packageInstallFunction
 	desc := "test package installation"
 	packageName := "cowsay"
-	for _, tuple := range platformPkgManagers {
-		var oc *osconfigpb.OsConfig
-		var vs string
-		uniqueSuffix := utils.RandString(5)
-		assertTimeout := 60 * time.Second
-
-		switch tuple.platform {
-		case "debian":
-			for _, image := range debianImages {
+	assertTimeout := 60 * time.Second
+	for _, pkgManager := range platformPkgManagers {
+		switch pkgManager {
+		case "apt":
+			for name, image := range utils.HeadAptImages {
 				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
-				vs = fmt.Sprintf(packageInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(pkgs, nil, nil), nil, nil, nil, nil)
+				vs := fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
-		case "centos":
-			for _, image := range centosImages {
+		case "yum":
+			for name, image := range utils.HeadELImages {
 				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
-				vs = fmt.Sprintf(packageInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
+				vs := fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
-		case "rhel":
-			for _, image := range rhelImages {
+		case "googet":
+			for name, image := range utils.HeadWindowsImages {
 				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(pkgs, nil, nil), nil, nil, nil)
-				vs = fmt.Sprintf(packageInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(pkgs, nil, nil), nil, nil)
+				vs := fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallStartupScript(path.Base(image), tuple.pkgManager, packageName)
-				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
-			}
-		case "windows":
-			for _, image := range windowsImages {
-				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(pkgs, nil, nil), nil, nil)
-				vs = fmt.Sprintf(packageInstalledString)
-				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		default:
-			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			logger.Errorf(fmt.Sprintf("non existent package manager: %s", pkgManager))
 			continue
 		}
 	}
@@ -116,55 +103,41 @@ func addPackageRemovalTest(pkgTestSetup []*packageManagementTestSetup, testProje
 	const testName = packageRemovalFunction
 	desc := "test package removal"
 	packageName := "cowsay"
-	for _, tuple := range platformPkgManagers {
-		var oc *osconfigpb.OsConfig
-		var vs string
-		uniqueSuffix := utils.RandString(5)
-		assertTimeout := 600 * time.Second
-
-		switch tuple.platform {
-		case "debian":
-			for _, image := range debianImages {
+	assertTimeout := 60 * time.Second
+	for _, pkgManager := range platformPkgManagers {
+		switch pkgManager {
+		case "apt":
+			for name, image := range utils.HeadAptImages {
 				pkgs := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
-				vs = fmt.Sprintf(packageNotInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(nil, pkgs, nil), nil, nil, nil, nil)
+				vs := fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageRemovalStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
-		case "centos":
-			for _, image := range centosImages {
+		case "yum":
+			for name, image := range utils.HeadELImages {
 				removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
-				vs = fmt.Sprintf(packageNotInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
+				vs := fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageRemovalStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
-		case "rhel":
-			for _, image := range rhelImages {
+		case "googet":
+			for name, image := range utils.HeadWindowsImages {
 				removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(nil, removePkg, nil), nil, nil, nil)
-				vs = fmt.Sprintf(packageNotInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(nil, removePkg, nil), nil, nil)
+				vs := fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
-				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
-			}
-		case "windows":
-			for _, image := range windowsImages {
-				removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(nil, removePkg, nil), nil, nil)
-				vs = fmt.Sprintf(packageNotInstalledString)
-				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageRemovalStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		default:
-			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			logger.Errorf(fmt.Sprintf("non existent platform: %s", pkgManager))
 			continue
 		}
 	}
@@ -175,60 +148,45 @@ func addPackageInstallRemovalTest(pkgTestSetup []*packageManagementTestSetup, te
 	const testName = packageInstallRemovalFunction
 	desc := "test package removal takes precedence over package installation"
 	packageName := "cowsay"
-	for _, tuple := range platformPkgManagers {
-		var oc *osconfigpb.OsConfig
-		var vs string
-		uniqueSuffix := utils.RandString(5)
-		assertTimeout := 60 * time.Second
-
-		switch tuple.platform {
-		case "debian":
-			for _, image := range debianImages {
+	assertTimeout := 60 * time.Second
+	for _, pkgManager := range platformPkgManagers {
+		switch pkgManager {
+		case "apt":
+			for name, image := range utils.HeadAptImages {
 				installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 				removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
-				vs = fmt.Sprintf(packageNotInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(installPkg, removePkg, nil), nil, nil, nil, nil)
+				vs := fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallRemovalStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
-		case "centos":
-			for _, image := range centosImages {
+		case "yum":
+			for name, image := range utils.HeadELImages {
 				installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 				removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, removePkg, nil), nil, nil, nil)
-				vs = fmt.Sprintf(packageNotInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, removePkg, nil), nil, nil, nil)
+				vs := fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallRemovalStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
-		case "rhel":
-			for _, image := range rhelImages {
+		case "googet":
+			for name, image := range utils.HeadWindowsImages {
 				installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
 				removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, removePkg, nil), nil, nil, nil)
-				vs = fmt.Sprintf(packageNotInstalledString)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(installPkg, removePkg, nil), nil, nil)
+				vs := fmt.Sprintf(packageNotInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
-				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
-			}
-		case "windows":
-			for _, image := range windowsImages {
-				installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				removePkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(installPkg, removePkg, nil), nil, nil)
-				vs = fmt.Sprintf(packageNotInstalledString)
-				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallRemovalStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallRemovalStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 
 		default:
-			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			logger.Errorf(fmt.Sprintf("non existent platform: %s", pkgManager))
 			continue
 		}
 	}
@@ -239,60 +197,45 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 	const testName = packageInstallFromNewRepoFunction
 	desc := "test package installation from new package"
 	packageName := "osconfig-agent-test"
-	for _, tuple := range platformPkgManagers {
-		var oc *osconfigpb.OsConfig
-		var vs string
-		uniqueSuffix := utils.RandString(5)
-		assertTimeout := 60 * time.Second
-
-		switch tuple.platform {
-		case "debian":
-			for _, image := range debianImages {
+	assertTimeout := 60 * time.Second
+	for _, pkgManager := range platformPkgManagers {
+		switch pkgManager {
+		case "apt":
+			for name, image := range utils.HeadAptImages {
 				installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
 				repos := []*osconfigpb.AptRepository{osconfigserver.BuildAptRepository(osconfigpb.AptRepository_DEB, aptTestRepoBaseURL, osconfigTestRepo, aptRaptureGpgKey, []string{"main"})}
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(installPkg, nil, repos), nil, nil, nil, nil)
-				vs = fmt.Sprintf(packageInstalledString)
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, osconfigserver.BuildAptPackageConfig(installPkg, nil, repos), nil, nil, nil, nil)
+				vs := fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallFromNewRepoTestStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallFromNewRepoTestStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout,
 					vf)
 			}
-		case "centos":
-			for _, image := range centosImages {
+		case "yum":
+			for name, image := range utils.HeadELImages {
 				installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
 				repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)}
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
-				vs = fmt.Sprintf(packageInstalledString)
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
+				vs := fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallFromNewRepoTestStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallFromNewRepoTestStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
-		case "rhel":
-			for _, image := range rhelImages {
+		case "googet":
+			for name, image := range utils.HeadWindowsImages {
 				installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
-				repos := []*osconfigpb.YumRepository{osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)}
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, osconfigserver.BuildYumPackageConfig(installPkg, nil, repos), nil, nil, nil)
-				vs = fmt.Sprintf(packageInstalledString)
-				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallFromNewRepoTestStartupScript(path.Base(image), tuple.pkgManager, packageName)
-				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
-			}
-		case "windows":
-			for _, image := range windowsImages {
-				installPkg := []*osconfigpb.Package{osconfigserver.BuildPackage(packageName)}
-				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(image), testName, uniqueSuffix)
+				instanceName := fmt.Sprintf("%s-%s-%s", path.Base(name), testName, utils.RandString(5))
 				repos := []*osconfigpb.GooRepository{osconfigserver.BuildGooRepository("Google OSConfig Agent Test Repository", gooTestRepoURL)}
-				oc = osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(installPkg, nil, repos), nil, nil)
-				vs = fmt.Sprintf(packageInstalledString)
+				oc := osconfigserver.BuildOsConfig(instanceName, desc, nil, nil, osconfigserver.BuildGooPackageConfig(installPkg, nil, repos), nil, nil)
+				vs := fmt.Sprintf(packageInstalledString)
 				assign := osconfigserver.BuildAssignment(instanceName, desc, osconfigserver.BuildInstanceFilterExpression(instanceName), []string{fmt.Sprintf("projects/%s/osConfigs/%s", testProjectConfig.TestProjectID, oc.Name)})
-				ss := getPackageInstallFromNewRepoTestStartupScript(path.Base(image), tuple.pkgManager, packageName)
+				ss := getPackageInstallFromNewRepoTestStartupScript(name, pkgManager, packageName)
 				pkgTestSetup = createAndAppendSetup(pkgTestSetup, image, instanceName, testName, vs, oc, assign, ss, assertTimeout, vf)
 			}
 		default:
-			logger.Errorf(fmt.Sprintf("non existent platform: %s", tuple.platform))
+			logger.Errorf(fmt.Sprintf("non existent platform: %s", pkgManager))
 			continue
 		}
 	}
