@@ -121,20 +121,7 @@ func runImageImportDataDiskTest(
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-data_disk", "-source_file=gs://compute-image-test-pool-001-test-image/image-file-10g-vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
-	// Verify the result
-	// TODO: get image
-	client, err := daisyCompute.NewClient(ctx)
-	if err != nil {
-		testCase.WriteFailure("error creating client: %v", err)
-		return
-	}
-	image := compute.CreateImageObject(client, testProjectConfig.TestProjectID, imageName)
-	err = image.Exists()
-	if err != nil {
-		logger.Fatalf("Image '%v' doesn't exist after import: %v", imageName, err)
-	} else {
-		logger.Printf("Image '%v' exists! Import success.", imageName)
-	}
+	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
 }
 
 func runImageImportOSTest(
@@ -148,7 +135,6 @@ func runImageImportOSTest(
 
 	// Verify the result
 	// TODO: get image
-
 }
 
 func runImageImportOSFromImageTest(
@@ -202,4 +188,21 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 	if err := cmd.Run(); err != nil {
 		logger.Fatalf("Error running cmd: %v\n", err.Error())
 	}
+}
+
+func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project, imageName string, logger *log.Logger) {
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		//TODO: test fail msg: which? logger? or tihs? or log.fatal? or fmt.fatal?
+		testCase.WriteFailure("error creating client: %v", err)
+		return
+	}
+	image := compute.CreateImageObject(client, testProjectConfig.TestProjectID, imageName+"1")
+	err = image.Exists()
+	if err != nil {
+		logger.Fatalf("Image '%v' doesn't exist after import: %v", imageName, err)
+	} else {
+		logger.Printf("Image '%v' exists! Import success.", imageName)
+	}
+	image.Cleanup()
 }
