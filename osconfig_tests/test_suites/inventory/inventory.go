@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
 	"io"
 	"log"
 	"path"
@@ -33,9 +34,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/junitxml"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
 	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
 )

@@ -21,8 +21,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
+	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 	api "google.golang.org/api/compute/v1"
