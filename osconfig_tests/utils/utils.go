@@ -54,14 +54,14 @@ curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
 `
 
 	// InstallOSConfigDeb installs the osconfig agent on deb based systems.
-	InstallOSConfigDeb = `#apt-get remove -y unattended-upgrades
-echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
+	InstallOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
 apt-get install -y google-osconfig-agent` + curlPost
 
 	// InstallOSConfigGooGet installs the osconfig agent on googet based systems.
-	InstallOSConfigGooGet = `c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
+	InstallOSConfigGooGet = `Start-Sleep 10
+c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
 $uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done'
 Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body 1`
 
@@ -136,9 +136,24 @@ var HeadEL8Images = map[string]string{
 
 // OldEL7Images is a map of names to image paths for old EL7 images.
 var OldEL7Images = map[string]string{
-	"old/centos-7": "projects/centos-cloud/global/images/centos-7-v20190116",
-	"old/rhel-7":   "projects/rhel-cloud/global/images/rhel-7-v20190116",
+	"old/centos-7": "projects/centos-cloud/global/images/centos-7-v20181113",
+	"old/rhel-7":   "projects/rhel-cloud/global/images/rhel-7-v20181113",
 }
+
+// HeadELImages is a map of names to image paths for public EL image families.
+var HeadELImages = func() (newMap map[string]string) {
+	newMap = make(map[string]string)
+	for k, v := range HeadEL6Images {
+		newMap[k] = v
+	}
+	for k, v := range HeadEL7Images {
+		newMap[k] = v
+	}
+	for k, v := range HeadEL8Images {
+		newMap[k] = v
+	}
+	return
+}()
 
 // HeadWindowsImages is a map of names to image paths for public Windows image families.
 var HeadWindowsImages = map[string]string{
@@ -191,7 +206,7 @@ func CreateComputeInstance(metadataitems []*api.MetadataItems, client daisyCompu
 	var items []*api.MetadataItems
 
 	// enable debug logging and guest-attributes for all test instances
-	items = append(items, compute.BuildInstanceMetadataItem("os-config-debug-enabled", "true"))
+	items = append(items, compute.BuildInstanceMetadataItem("enable-os-config-debug", "true"))
 	items = append(items, compute.BuildInstanceMetadataItem("enable-guest-attributes", "true"))
 
 	for _, item := range metadataitems {

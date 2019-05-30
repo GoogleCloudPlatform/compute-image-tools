@@ -76,10 +76,9 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		wg.Add(1)
 		s := setup
 		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PatchJob triggers reboot] [%s]", s.testName))
+		shouldReboot := true
 		f := func() {
-			minBootCount := 2
-			maxBootCount := 5
-			runRebootPatchTest(ctx, tc, s, testProjectConfig, &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}}, minBootCount, maxBootCount)
+			runRebootPatchTest(ctx, tc, s, testProjectConfig, &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}}, shouldReboot)
 		}
 		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
 	}
@@ -89,7 +88,8 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		s := setup
 		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PatchJob does not reboot] [%s]", s.testName))
 		pc := &osconfigpb.PatchConfig{RebootConfig: osconfigpb.PatchConfig_NEVER, Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}}
-		f := func() { runRebootPatchTest(ctx, tc, s, testProjectConfig, pc, 1, 1) }
+		shouldReboot := false
+		f := func() { runRebootPatchTest(ctx, tc, s, testProjectConfig, pc, shouldReboot) }
 		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
 	}
 	// Test APT specific functionality, this just tests that using these settings doesn't break anything.
@@ -125,35 +125,35 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.Duration) error {
+func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.Duration) (*osconfigpb.PatchJob, error) {
 	client, err := gcpclients.GetOsConfigClient(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	tick := time.Tick(10 * time.Second)
 	timedout := time.Tick(timeout)
 	for {
 		select {
 		case <-timedout:
-			return errors.New("timed out")
+			return nil, errors.New("timed out")
 		case <-tick:
 			req := &osconfigpb.GetPatchJobRequest{
 				Name: job.GetName(),
 			}
 			res, err := client.GetPatchJob(ctx, req)
 			if err != nil {
-				return fmt.Errorf("error while fetching patch job: %s", utils.GetStatusFromError(err))
+				return nil, fmt.Errorf("error while fetching patch job: %s", utils.GetStatusFromError(err))
 			}
 
 			if isPatchJobFailureState(res.State) {
-				return fmt.Errorf("failure status %v with message '%s'", res.State, job.GetErrorMessage())
+				return nil, fmt.Errorf("failure status %v with message '%s'", res.State, job.GetErrorMessage())
 			}
 
 			if res.State == osconfigpb.PatchJob_SUCCEEDED {
-				if res.InstanceDetailsSummary.GetInstancesSucceeded() < 1 {
-					return errors.New("completed with no instances patched")
+				if res.InstanceDetailsSummary.GetInstancesSucceeded() < 1 && res.InstanceDetailsSummary.GetInstancesSucceededRebootRequired() < 1 {
+					return nil, errors.New("completed with no instances patched")
 				}
-				return nil
+				return res, nil
 			}
 		}
 	}
@@ -204,12 +204,12 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	}
 
 	testCase.Logf("Started patch job '%s'", job.GetName())
-	if err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
+	if _, err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("Patch job '%s' error: %v", job.GetName(), err)
 	}
 }
 
-func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, testProjectConfig *testconfig.Project, pc *osconfigpb.PatchConfig, minBootCount, maxBootCount int) {
+func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, testProjectConfig *testconfig.Project, pc *osconfigpb.PatchConfig, shouldReboot bool) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		testCase.WriteFailure("error creating client: %v", err)
@@ -244,7 +244,7 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 		Description: "testing patch job reboot",
 		Filter:      fmt.Sprintf("name=\"%s\"", name),
 		Duration:    &duration.Duration{Seconds: int64(testSetup.assertTimeout / time.Second)},
-		PatchConfig: &osconfigpb.PatchConfig{Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}},
+		PatchConfig: pc,
 	}
 	job, err := osconfigClient.ExecutePatchJob(ctx, req)
 
@@ -254,8 +254,20 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	}
 
 	testCase.Logf("Started patch job '%s'", job.GetName())
-	if err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
+	pj, err := awaitPatchJob(ctx, job, testSetup.assertTimeout)
+	if err != nil {
 		testCase.WriteFailure("Patch job '%s' error: %v", job.GetName(), err)
+	}
+
+	// If shouldReboot is true that instance should not report a pending reboot.
+	if shouldReboot && pj.GetInstanceDetailsSummary().GetInstancesSucceededRebootRequired() > 0 {
+		testCase.WriteFailure("PatchJob finished with status InstancesSucceededRebootRequired.")
+		return
+	}
+	// If shouldReboot is false that instance should report a pending reboot.
+	if !shouldReboot && pj.GetInstanceDetailsSummary().GetInstancesSucceededRebootRequired() == 0 {
+		testCase.WriteFailure("PatchJob should have finished with status InstancesSucceededRebootRequired.")
+		return
 	}
 
 	testCase.Logf("Checking reboot count")
@@ -273,8 +285,12 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 		testCase.WriteFailure("Error parsing boot count: %v", err)
 		return
 	}
-	if num < minBootCount || num > maxBootCount {
-		testCase.WriteFailure("Instance rebooted %d times, minBootCount: %d, maxBootCount: %d", num, minBootCount, maxBootCount)
+	if shouldReboot && num < 2 {
+		testCase.WriteFailure("Instance should have booted at least 2 times, boot num: %d.", num)
+		return
+	}
+	if !shouldReboot && num > 1 {
+		testCase.WriteFailure("Instance should not have booted more that 1 time, boot num: %d.", num)
 		return
 	}
 }

@@ -39,19 +39,6 @@ import (
 
 var (
 	testSuiteName = "OSPackage"
-	debianImages  = []string{"projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts", "projects/ubuntu-os-cloud/global/images/family/ubuntu-1804-lts", "projects/debian-cloud/global/images/family/debian-9"}
-	centosImages  = []string{"projects/centos-cloud/global/images/family/centos-6", "projects/centos-cloud/global/images/family/centos-7"}
-	rhelImages    = []string{"projects/rhel-cloud/global/images/family/rhel-6", "projects/rhel-cloud/global/images/family/rhel-7"}
-	windowsImages = []string{"projects/windows-cloud/global/images/family/windows-2008-r2",
-		"projects/windows-cloud/global/images/family/windows-2012-r2",
-		"projects/windows-cloud/global/images/family/windows-2012-r2-core",
-		"projects/windows-cloud/global/images/family/windows-2016",
-		"projects/windows-cloud/global/images/family/windows-2016-core",
-		"projects/windows-cloud/global/images/family/windows-1709-core",
-		"projects/windows-cloud/global/images/family/windows-1803-core",
-		"projects/windows-cloud/global/images/family/windows-1809-core",
-		"projects/windows-cloud/global/images/family/windows-2019-core",
-		"projects/windows-cloud/global/images/family/windows-2019"}
 )
 
 var (
@@ -126,12 +113,11 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 }
 
 func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
-
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
@@ -139,7 +125,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
@@ -147,7 +133,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("error creating client: %v", err)
+		testCase.WriteFailure("Error creating client: %v", err)
 		return
 	}
 
@@ -186,7 +172,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
@@ -194,7 +180,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 
@@ -202,7 +188,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("error creating client: %v", err)
+		testCase.WriteFailure("Error creating client: %v", err)
 		return
 	}
 
@@ -242,21 +228,21 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("error creating client: %v", err)
+		testCase.WriteFailure("Error creating client: %v", err)
 		return
 	}
 
@@ -287,8 +273,8 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	testCase.Logf("Agent installed successfully")
 
 	// read the serial console once
-	if err = testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
-		testCase.WriteFailure("error while asserting: %v", err)
+	if err := testSetup.vf(inst, testSetup.vstring, 1, 10*time.Second, testSetup.assertTimeout); err != nil {
+		testCase.WriteFailure("Error while asserting: %v", err)
 	}
 }
 
@@ -296,21 +282,21 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	oc, err := osconfigserver.CreateOsConfig(ctx, testSetup.osconfig, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error while creating osconfig: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 	defer cleanupOsConfig(ctx, testCase, oc, testProjectConfig)
 
 	assign, err := osconfigserver.CreateAssignment(ctx, testSetup.assignment, parent)
 	if err != nil {
-		testCase.WriteFailure("error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error while creating assignment: \n%s\n", utils.GetStatusFromError(err))
 		return
 	}
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("error creating client: %v", err)
+		testCase.WriteFailure("Error creating client: %v", err)
 		return
 	}
 

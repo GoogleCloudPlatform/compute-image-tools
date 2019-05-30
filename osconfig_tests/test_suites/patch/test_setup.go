@@ -31,23 +31,35 @@ type patchTestSetup struct {
 
 var (
 	windowsRecordBoot = `
-$uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done'
-$old = Invoke-RestMethod -Method GET -Uri $uri -Headers @{"Metadata-Flavor" = "Google"}
-$new = $old+1
-Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body $new`
-	windowsStartup = utils.InstallOSConfigGooGet + windowsRecordBoot
+while ($true) {
+  $uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/boot_count'
+  $old = Invoke-RestMethod -Method GET -Uri $uri -Headers @{"Metadata-Flavor" = "Google"}
+  $new = $old+1
+  try {
+	Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body $new -ErrorAction Stop
+  }
+  catch {
+	Write-Output $_.Exception.Message
+	Start-Sleep 1
+    continue
+  }
+  break
+}
+`
+	windowsStartup = windowsRecordBoot + utils.InstallOSConfigGooGet
 
 	linuxRecordBoot = `
 uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/boot_count
 old=$(curl $uri -H "Metadata-Flavor: Google" -f)
 new=$(($old + 1))
-curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"`
-	aptStartup = utils.InstallOSConfigDeb + linuxRecordBoot
-	el6Startup = utils.InstallOSConfigYumEL6 + linuxRecordBoot
-	el7Startup = utils.InstallOSConfigYumEL7 + linuxRecordBoot
+curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
+`
+	aptStartup = linuxRecordBoot + utils.InstallOSConfigDeb
+	el6Startup = linuxRecordBoot + utils.InstallOSConfigYumEL6
+	el7Startup = linuxRecordBoot + "yum install -y yum-utils\n" + utils.InstallOSConfigYumEL7
 
 	windowsSetup = &patchTestSetup{
-		assertTimeout: 30 * time.Minute,
+		assertTimeout: 60 * time.Minute,
 		startup: &compute.MetadataItems{
 			Key:   "windows-startup-script-ps1",
 			Value: &windowsStartup,
@@ -106,6 +118,7 @@ func headImageTestSetup() []*patchTestSetup {
 		windowsSetup: utils.HeadWindowsImages,
 		el6Setup:     utils.HeadEL6Images,
 		el7Setup:     utils.HeadEL7Images,
+		el8Setup:     utils.HeadEL8Images,
 		aptSetup:     utils.HeadAptImages,
 	}
 
