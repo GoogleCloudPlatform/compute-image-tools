@@ -44,6 +44,7 @@ var (
 	testZones       = flag.String("test_zones", "{}", "test zones")
 )
 
+// LaunchTests launches tests by the test framework
 func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
 	loggerPrefix string) {
 	flag.Parse()
@@ -54,7 +55,7 @@ func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *ju
 	logger := log.New(os.Stdout, loggerPrefix + " ", 0)
 	logger.Println("Starting...")
 
-	testResultChan := runTests(testFunctions, ctx, logger, testSuiteRegex, testCaseRegex, pr)
+	testResultChan := runTests(ctx, testFunctions, logger, testSuiteRegex, testCaseRegex, pr)
 
 	testSuites := outputTestResultToFile(testResultChan, logger)
 	outputTestResultToLogger(testSuites, logger)
@@ -107,8 +108,8 @@ func getTestRegex() (*regexp.Regexp, *regexp.Regexp) {
 	return testSuiteRegex, testCaseRegex
 }
 
-func runTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
-	ctx context.Context, logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project) chan *junitxml.TestSuite {
+func runTests(ctx context.Context, testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
+	logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project) chan *junitxml.TestSuite {
 	tests := make(chan *junitxml.TestSuite)
 	var wg sync.WaitGroup
 	for _, tf := range testFunctions {

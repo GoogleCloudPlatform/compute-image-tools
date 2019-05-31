@@ -156,9 +156,9 @@ func runImageExportRawTest(
 	suffix := pathutils.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
-	fileUri := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
+	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileUri)}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI)}
 	runCliTool(logger, testCase, cmd, args)
 
 	verifyExportedImageFile(ctx, testCase, testProjectConfig, bucketName, objectName, logger)
@@ -171,9 +171,9 @@ func runImageExportVMDKTest(
 	suffix := pathutils.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-vmdk-test-%v", suffix)
-	fileUri := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
+	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileUri), "-format=vmdk"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
 	verifyExportedImageFile(ctx, testCase, testProjectConfig, bucketName, objectName, logger)
@@ -204,9 +204,8 @@ func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase, testP
 		testCase.WriteFailure("Image '%v' doesn't exist after import: %v", imageName, err)
 		logger.Printf("Image '%v' doesn't exist after import: %v", imageName, err)
 		return
-	} else {
-		logger.Printf("Image '%v' exists! Import success.", imageName)
 	}
+	logger.Printf("Image '%v' exists! Import success.", imageName)
 
 	if err := image.Cleanup(); err != nil {
 		logger.Printf("Image '%v' failed to clean up.", imageName)
@@ -228,9 +227,8 @@ func verifyExportedImageFile(ctx context.Context, testCase *junitxml.TestCase, t
 		testCase.WriteFailure("File '%v' doesn't exist after export: %v", objectName, err)
 		logger.Printf("File '%v' doesn't exist after export: %v", objectName, err)
 		return
-	} else {
-		logger.Printf("File '%v' exists! Export success.", objectName)
 	}
+	logger.Printf("File '%v' exists! Export success.", objectName)
 
 	if err := file.Cleanup(); err != nil {
 		logger.Printf("File '%v' failed to clean up.", objectName)
