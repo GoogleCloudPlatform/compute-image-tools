@@ -46,7 +46,21 @@ while ($true) {
   break
 }
 `
-	windowsStartup = windowsRecordBoot + utils.InstallOSConfigGooGet
+	windowsSetWsus = `
+$wu_server = 'wsus-server.c.compute-image-osconfig-agent.internal'
+$windows_update_path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+$windows_update_au_path = "$windows_update_path\AU"
+
+if (-not (Test-Path $windows_update_path)) {
+  New-Item -Path $windows_update_path -Value ""
+  New-Item -Path $windows_update_au_path -Value ""
+}
+Set-ItemProperty -Path $windows_update_path -Name WUServer -Value "http://${wu_server}:8530"
+Set-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "http://${wu_server}:8530"
+Set-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1
+Restart-Service wuauserv
+`
+	windowsStartup = windowsRecordBoot + windowsSetWsus + utils.InstallOSConfigGooGet
 
 	linuxRecordBoot = `
 uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/boot_count
