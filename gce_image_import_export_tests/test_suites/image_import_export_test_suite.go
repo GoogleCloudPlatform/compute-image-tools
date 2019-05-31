@@ -144,7 +144,7 @@ func runImageImportOSFromImageTest(
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-os-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-os=debian-9", "-source_image=projects/compute-image-tools-test/global/images/e2e-test-image-10g-vmdk"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g-vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
@@ -183,6 +183,7 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmdString, strings.Join(args, " "))
 	cmd := exec.Command(fmt.Sprintf("./%s", cmdString), args...)
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
 		logger.Fatalf("Error running cmd: %v\n", err.Error())
