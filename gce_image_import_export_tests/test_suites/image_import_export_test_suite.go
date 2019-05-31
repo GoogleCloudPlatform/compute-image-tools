@@ -62,7 +62,7 @@ func TestSuite(
 
 func runTestCases(
 	ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
-	testProjectConfig *testconfig.Project) chan *junitxml.TestCase{
+	testProjectConfig *testconfig.Project) chan *junitxml.TestCase {
 
 	imageImportDataDiskTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import data disk"))
@@ -77,11 +77,11 @@ func runTestCases(
 
 	testsMap := map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project){
-		imageImportDataDiskTestCase: runImageImportDataDiskTest,
-		imageImportOSTestCase: runImageImportOSTest,
+		imageImportDataDiskTestCase:    runImageImportDataDiskTest,
+		imageImportOSTestCase:          runImageImportOSTest,
 		imageImportOSFromImageTestCase: runImageImportOSFromImageTest,
-		imageExportRawTestCase: runImageExportRawTest,
-		imageExportVMDKTestCase: runImageExportVMDKTest,
+		imageExportRawTestCase:         runImageExportRawTest,
+		imageExportVMDKTestCase:        runImageExportVMDKTest,
 	}
 
 	var wg sync.WaitGroup

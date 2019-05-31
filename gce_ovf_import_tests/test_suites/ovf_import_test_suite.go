@@ -48,7 +48,7 @@ var (
 
 var vf = func(
 	inst *compute.Instance, vfString string, port int64, interval, timeout time.Duration) error {
-	return inst. WaitForSerialOutput(vfString, port, interval, timeout)
+	return inst.WaitForSerialOutput(vfString, port, interval, timeout)
 }
 
 type ovfImportTestSetup struct {

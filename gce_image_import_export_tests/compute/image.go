@@ -47,7 +47,6 @@ func CreateImageObject(ctx context.Context, project string, name string) (*Image
 		return nil, err
 	}
 
-	apiImage := &api.Image{Name:name};
+	apiImage := &api.Image{Name: name}
 	return &Image{apiImage, client, project}, nil
 }
-

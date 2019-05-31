@@ -52,7 +52,7 @@ func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *ju
 	pr := getProject(ctx)
 	testSuiteRegex, testCaseRegex := getTestRegex()
 
-	logger := log.New(os.Stdout, loggerPrefix + " ", 0)
+	logger := log.New(os.Stdout, loggerPrefix+" ", 0)
 	logger.Println("Starting...")
 
 	testResultChan := runTests(ctx, testFunctions, logger, testSuiteRegex, testCaseRegex, pr)
