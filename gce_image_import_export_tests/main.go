@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,24 +16,20 @@ package main
 
 import (
 	"context"
-	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
 	"log"
 	"regexp"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites"
 	"github.com/GoogleCloudPlatform/compute-image-tools/test_common"
+	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
-	packagemanagement.TestSuite,
-	inventory.TestSuite,
-	patch.TestSuite,
+	importexporttestsuites.TestSuite,
 }
 
 func main() {
-	testcommon.LaunchTests(testFunctions, "[OsConfigTests]")
+	testcommon.LaunchTests(testFunctions, "[ImageImportExportTests]")
 }
