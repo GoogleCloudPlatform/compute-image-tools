@@ -66,11 +66,11 @@ func runTestCases(
 
 	imageImportDataDiskTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import data disk"))
-	/*
 	imageImportOSTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS"))
 	imageImportOSFromImageTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS from image"))
+	/*
 	imageExportRawTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export Raw"))
 	imageExportVMDKTestCase := junitxml.NewTestCase(
@@ -79,8 +79,8 @@ func runTestCases(
 	testsMap := map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project){
 		imageImportDataDiskTestCase: runImageImportDataDiskTest,
-//		imageImportOSTestCase: runImageImportOSTest,
-//		imageImportOSFromImageTestCase: runImageImportOSFromImageTest,
+		imageImportOSTestCase: runImageImportOSTest,
+		imageImportOSFromImageTestCase: runImageImportOSFromImageTest,
 //		imageExportRawTestCase: runImageExportRawTest,
 //		imageExportVMDKTestCase: runImageExportVMDKTest,
 	}
@@ -129,12 +129,12 @@ func runImageImportOSTest(
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
 	suffix := pathutils.RandString(5)
+	imageName := "e2e-test-image-import-os-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", "-image_name=e2e_test_image_import_os_" + suffix, "-data_disk", "-source_image=image1"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-os=debian-9", "-source_file=gs://compute-image-test-pool-001-test-image/image-file-10g-vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
-	// Verify the result
-	// TODO: get image
+	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
 }
 
 func runImageImportOSFromImageTest(
@@ -142,13 +142,12 @@ func runImageImportOSFromImageTest(
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
 	suffix := pathutils.RandString(5)
+	imageName := "e2e-test-image-import-os-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", "-image_name=e2e_test_image_import_os_from_image_" + suffix, "-data_disk", "-source_image=image1"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-os=debian-9", "-source_image=projects/compute-image-tools-test/global/images/e2e-test-image-10g-vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
-	// Verify the result
-	// TODO: get image
-
+	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
 }
 
 func runImageExportRawTest(
