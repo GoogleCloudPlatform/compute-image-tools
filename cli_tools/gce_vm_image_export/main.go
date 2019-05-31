@@ -39,7 +39,7 @@ const (
 	exportAndConvertWorkflow = workflowDir + "image_export_ext.wf.json"
 	clientIDFlagKey          = "client_id"
 	destinationURIFlagKey    = "destination_uri"
-	sourceImageFlagKey       = "source_IMAGE"
+	sourceImageFlagKey       = "source_image"
 )
 
 var (

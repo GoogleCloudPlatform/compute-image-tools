@@ -16,36 +16,37 @@
 package compute
 
 import (
-	"fmt"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"context"
+
+	computeApi "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	api "google.golang.org/api/compute/v1"
 )
 
 // Image is a compute image.
 type Image struct {
 	*api.Image
-	Client  daisyCompute.Client
+	Client  computeApi.Client
 	Project string
 }
 
 // Cleanup deletes the image.
-func (i *Image) Cleanup() {
-	if err := i.Client.DeleteImage(i.Project, i.Name); err != nil {
-		fmt.Printf("Error deleting image: %v\n", err)
-	}
+func (i *Image) Cleanup() error {
+	return i.Client.DeleteImage(i.Project, i.Name)
 }
 
 // Exists checks whether the image exists.
 func (i *Image) Exists() error {
-	if _, err := i.Client.GetImage(i.Project, i.Name); err != nil {
-		fmt.Printf("Image doesn't exist: %v\n", err)
-		return err
-	}
-	return nil
+	_, err := i.Client.GetImage(i.Project, i.Name)
+	return err
 }
 
 // CreateImageObject creates an image object to be operated by API client
-func CreateImageObject(client daisyCompute.Client, project string, name string) *Image {
+func CreateImageObject(ctx context.Context, project string, name string) (*Image, error) {
+	client, err := computeApi.NewClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	apiImage := &api.Image{Name:name};
-	return &Image{apiImage, client, project}
+	return &Image{apiImage, client, project}, nil
 }

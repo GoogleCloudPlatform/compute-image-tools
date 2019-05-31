@@ -26,8 +26,8 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
 )
@@ -70,26 +70,25 @@ func runTestCases(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS"))
 	imageImportOSFromImageTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS from image"))
-	/*
 	imageExportRawTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export Raw"))
 	imageExportVMDKTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export VMDK"))
-*/
+
 	testsMap := map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project){
 		imageImportDataDiskTestCase: runImageImportDataDiskTest,
 		imageImportOSTestCase: runImageImportOSTest,
 		imageImportOSFromImageTestCase: runImageImportOSFromImageTest,
-//		imageExportRawTestCase: runImageExportRawTest,
-//		imageExportVMDKTestCase: runImageExportVMDKTest,
+		imageExportRawTestCase: runImageExportRawTest,
+		imageExportVMDKTestCase: runImageExportVMDKTest,
 	}
 
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
 	for tc, f := range testsMap {
 		wg.Add(1)
-		go func(wg *sync.WaitGroup, tc *junitxml.TestCase, f func(
+		go func(ctx context.Context, wg *sync.WaitGroup, tc *junitxml.TestCase, f func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project)) {
 			defer wg.Done()
 			if tc.FilterTestCase(regex) {
@@ -100,7 +99,7 @@ func runTestCases(
 				tc.Finish(tests)
 				logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
 			}
-		}(&wg, tc, f)
+		}(ctx, &wg, tc, f)
 	}
 
 	go func() {
@@ -118,7 +117,7 @@ func runImageImportDataDiskTest(
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-data-disk-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-data_disk", "-source_file=gs://compute-image-test-pool-001-test-image/image-file-10g-vmdk"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
 	runCliTool(logger, testCase, cmd, args)
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
@@ -131,7 +130,7 @@ func runImageImportOSTest(
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-os-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-os=debian-9", "-source_file=gs://compute-image-test-pool-001-test-image/image-file-10g-vmdk"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
 	runCliTool(logger, testCase, cmd, args)
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
@@ -144,7 +143,7 @@ func runImageImportOSFromImageTest(
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-os-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g-vmdk"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g-vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
@@ -155,13 +154,14 @@ func runImageExportRawTest(
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
 	suffix := pathutils.RandString(5)
+	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
+	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
+	fileUri := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", "-image_name=e2e_test_image_export_raw_" + suffix, "-data_disk", "-source_image=image1"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileUri)}
 	runCliTool(logger, testCase, cmd, args)
 
-	// Verify the result
-	// TODO: get file
-
+	verifyExportedImageFile(ctx, testCase, testProjectConfig, bucketName, objectName, logger)
 }
 
 func runImageExportVMDKTest(
@@ -169,13 +169,14 @@ func runImageExportVMDKTest(
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
 	suffix := pathutils.RandString(5)
+	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
+	objectName := fmt.Sprintf("e2e-export-vmdk-test-%v", suffix)
+	fileUri := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", "-image_name=e2e_test_image_export_vmdk_" + suffix, "-data_disk", "-source_image=image1"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileUri), "-format=vmdk"}
 	runCliTool(logger, testCase, cmd, args)
 
-	// Verify the result
-	// TODO: get file
-
+	verifyExportedImageFile(ctx, testCase, testProjectConfig, bucketName, objectName, logger)
 }
 
 func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) {
@@ -191,18 +192,41 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 }
 
 func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project, imageName string, logger *log.Logger) {
-	client, err := daisyCompute.NewClient(ctx)
+	image, err := compute.CreateImageObject(ctx, testProjectConfig.TestProjectID, imageName)
 	if err != nil {
-		//TODO: test fail msg: which? logger? or tihs? or log.fatal? or fmt.fatal?
-		testCase.WriteFailure("error creating client: %v", err)
+		testCase.WriteFailure("Error creating compute api client: %v", err)
 		return
 	}
-	image := compute.CreateImageObject(client, testProjectConfig.TestProjectID, imageName+"1")
-	err = image.Exists()
-	if err != nil {
-		logger.Fatalf("Image '%v' doesn't exist after import: %v", imageName, err)
+
+	if err := image.Exists(); err != nil {
+		testCase.WriteFailure("Image '%v' doesn't exist after import: %v", imageName, err)
 	} else {
 		logger.Printf("Image '%v' exists! Import success.", imageName)
 	}
-	image.Cleanup()
+
+	if err := image.Cleanup(); err != nil {
+		logger.Printf("Image '%v' failed to clean up.", imageName)
+	} else {
+		logger.Printf("Image '%v' cleaned up.", imageName)
+	}
+}
+
+func verifyExportedImageFile(ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project, bucketName string, objectName string, logger *log.Logger) {
+	file, err := storage.CreateFileObject(ctx, bucketName, objectName)
+	if err != nil {
+		testCase.WriteFailure("Error creating compute api client: %v", err)
+		return
+	}
+
+	if err := file.Exists(); err != nil {
+		testCase.WriteFailure("File '%v' doesn't exist after export: %v", objectName, err)
+	} else {
+		logger.Printf("File '%v' exists! Export success.", objectName)
+	}
+
+	if err := file.Cleanup(); err != nil {
+		logger.Printf("File '%v' failed to clean up.", objectName)
+	} else {
+		logger.Printf("File '%v' cleaned up.", objectName)
+	}
 }
