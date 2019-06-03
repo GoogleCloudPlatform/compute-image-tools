@@ -259,7 +259,7 @@ func (w *Workflow) cleanup() {
 			w.LogWorkflowInfo("Error returned from cleanup hook: %s", err)
 		}
 	}
-	w.LogWorkflowInfo("Workflow %q finished clean up.", w.Name)
+	w.LogWorkflowInfo("Workflow %q finished cleanup.", w.Name)
 }
 
 func (w *Workflow) genName(n string) string {
