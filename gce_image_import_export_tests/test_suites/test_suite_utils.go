@@ -13,7 +13,7 @@
 //  limitations under the License.
 
 // Package importexporttestsuites contains e2e tests for image import/export cli tools
-package importexporttestsuites
+package _import
 
 import (
 	"context"

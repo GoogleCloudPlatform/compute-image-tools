@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package testcommon
+package e2e_test_utils
 
 import (
 	"bytes"
@@ -21,7 +21,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"io/ioutil"
 	"log"
 	"math"
@@ -32,7 +32,7 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
-	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 var (
