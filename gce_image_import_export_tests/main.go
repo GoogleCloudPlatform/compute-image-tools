@@ -16,15 +16,15 @@ package main
 
 import (
 	"context"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils"
 	"log"
 	"regexp"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites/export"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites/import"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,

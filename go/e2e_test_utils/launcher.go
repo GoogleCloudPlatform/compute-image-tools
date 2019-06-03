@@ -17,21 +17,19 @@ package e2etestutils
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"encoding/xml"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 )
 
@@ -41,7 +39,6 @@ var (
 	outDir          = flag.String("out_dir", "/tmp", "junit xml directory")
 	testProjectID   = flag.String("test_project_id", "", "test project id")
 	testZone        = flag.String("test_zone", "", "test zone")
-	testZones       = flag.String("test_zones", "{}", "test zones")
 )
 
 // LaunchTests launches tests by the test framework
@@ -68,21 +65,11 @@ func getProject(ctx context.Context) *testconfig.Project {
 		fmt.Println("-test_project_id is invalid")
 		os.Exit(1)
 	}
-	zones := make(map[string]int)
-	if len(strings.TrimSpace(*testZone)) != 0 {
-		zones[*testZone] = math.MaxInt32
-	} else {
-		err := json.Unmarshal([]byte(*testZones), &zones)
-		if err != nil {
-			fmt.Printf("Error parsing zones `%s`\n", *testZones)
-			os.Exit(1)
-		}
-	}
-	if len(zones) == 0 {
-		fmt.Println("Error, no zones specified")
+	if len(strings.TrimSpace(*testZone)) == 0 {
+		fmt.Println("-test_zone is invalid")
 		os.Exit(1)
 	}
-	pr := testconfig.GetProject(*testProjectID, zones)
+	pr := testconfig.GetProject(*testProjectID, *testZone)
 	return pr
 }
 

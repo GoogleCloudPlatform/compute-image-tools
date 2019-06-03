@@ -30,7 +30,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
 

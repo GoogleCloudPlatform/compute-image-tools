@@ -21,9 +21,9 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/test_suites"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){

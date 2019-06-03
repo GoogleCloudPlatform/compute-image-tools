@@ -18,15 +18,15 @@ package exporttestsuites
 import (
 	"context"
 	"fmt"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites"
 	"log"
 	"regexp"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 const (
