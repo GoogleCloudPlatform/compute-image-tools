@@ -31,5 +31,5 @@ var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.Test
 }
 
 func main() {
-	e2e_test_utils.LaunchTests(testFunctions, "[OvfImportTests]")
+	e2etestutils.LaunchTests(testFunctions, "[OvfImportTests]")
 }

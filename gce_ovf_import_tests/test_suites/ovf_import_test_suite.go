@@ -97,7 +97,7 @@ func TestSuite(
 				OsID:          "ubuntu-1404",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
-				Zone:          testProjectConfig.GetZone(),
+				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-1",
 			},
 			name:        fmt.Sprintf("ovf-import-test-ubuntu-3-disks-%s", suffix),
@@ -116,7 +116,7 @@ func TestSuite(
 				OsID:          "centos-6",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
-				Zone:          testProjectConfig.GetZone(),
+				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-4",
 			},
 			name:        fmt.Sprintf("ovf-import-test-centos-6-%s", suffix),
@@ -135,7 +135,7 @@ func TestSuite(
 				OsID:          "windows-2012r2",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
-				Zone:          testProjectConfig.GetZone(),
+				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-8",
 			},
 			name:        fmt.Sprintf("ovf-import-test-w2k12-r2-%s", suffix),
@@ -154,7 +154,7 @@ func TestSuite(
 				OsID:          "windows-2016",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
-				Zone:          testProjectConfig.GetZone(),
+				Zone:          testProjectConfig.TestZone,
 			},
 			name:        fmt.Sprintf("ovf-import-test-w2k16-%s", suffix),
 			description: "Windows 2016",
@@ -245,15 +245,15 @@ func runOvfImportTest(
 	instanceName := testSetup.importParams.InstanceNames
 
 	instance, err := client.GetInstance(
-		testProjectConfig.TestProjectID, testProjectConfig.GetZone(), instanceName)
+		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 	if err != nil {
 		testCase.WriteFailure("Error retrieving instance `%v` in `%v` zone: %v", instanceName,
-			testProjectConfig.GetZone(), err)
+			testProjectConfig.TestZone, err)
 		return
 	}
 
 	instanceWrapper := computeUtils.Instance{Instance: instance, Client: client,
-		Project: testProjectConfig.TestProjectID, Zone: testProjectConfig.GetZone()}
+		Project: testProjectConfig.TestProjectID, Zone: testProjectConfig.TestZone}
 	if !strings.HasSuffix(instance.MachineType, testSetup.expectedMachineType) {
 		testCase.WriteFailure(
 			"Instance machine type `%v` doesn't match the expected machine type `%v`",
@@ -269,7 +269,7 @@ func runOvfImportTest(
 
 	logger.Printf("[%v] Stopping instance before restarting with test startup script", testSetup.name)
 	err = client.StopInstance(
-		testProjectConfig.TestProjectID, testProjectConfig.GetZone(), instanceName)
+		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
 	if err != nil {
 		testCase.WriteFailure("Error stopping imported instance: %v", err)
@@ -277,7 +277,7 @@ func runOvfImportTest(
 	}
 
 	logger.Printf("[%v] Setting instance metadata with test startup script", testSetup.name)
-	err = client.SetInstanceMetadata(testProjectConfig.TestProjectID, testProjectConfig.GetZone(),
+	err = client.SetInstanceMetadata(testProjectConfig.TestProjectID, testProjectConfig.TestZone,
 		instanceName, &api.Metadata{Items: []*api.MetadataItems{testSetup.startup},
 			Fingerprint: instance.Metadata.Fingerprint})
 
@@ -288,7 +288,7 @@ func runOvfImportTest(
 
 	logger.Printf("[%v] Starting instance with test startup script", testSetup.name)
 	err = client.StartInstance(
-		testProjectConfig.TestProjectID, testProjectConfig.GetZone(), instanceName)
+		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 	if err != nil {
 		testCase.WriteFailure("Couldn't start instance to verify OVF import: %v", err)
 		return
