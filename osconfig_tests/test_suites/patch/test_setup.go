@@ -55,10 +55,12 @@ if (-not (Test-Path $windows_update_path)) {
   New-Item -Path $windows_update_path -Value ""
   New-Item -Path $windows_update_au_path -Value ""
 }
-Set-ItemProperty -Path $windows_update_path -Name WUServer -Value "http://${wu_server}:8530"
-Set-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "http://${wu_server}:8530"
-Set-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1
-Restart-Service wuauserv
+if (-not (Get-ItemProperty -Path $windows_update_path -Name WUServer)) {
+  Set-ItemProperty -Path $windows_update_path -Name WUServer -Value "http://${wu_server}:8530"
+  Set-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "http://${wu_server}:8530"
+  Set-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1
+  Restart-Service wuauserv
+}
 `
 	windowsStartup = windowsRecordBoot + windowsSetWsus + utils.InstallOSConfigGooGet
 
