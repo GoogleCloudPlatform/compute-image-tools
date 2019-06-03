@@ -12,8 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package importexporttestsuites contains e2e tests for image import/export cli tools
-package _import
+// Package testsuiteutils contains e2e tests utils for image import/export cli tools
+package testsuiteutils
 
 import (
 	"context"
@@ -25,22 +25,16 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
-)
-
-const (
-	testSuiteName = "ImageImportExportTests"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/test_config"
 )
 
 // TestSuite is image import test suite.
 func TestSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project) {
+	testProjectConfig *testconfig.Project, testSuiteName string, testsMap map[*junitxml.TestCase]func(
+		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project)) {
 
 	defer tswg.Done()
 
@@ -51,7 +45,7 @@ func TestSuite(
 	testSuite := junitxml.NewTestSuite(testSuiteName)
 	defer testSuite.Finish(testSuites)
 	logger.Printf("Running TestSuite %q", testSuite.Name)
-	tests := runTestCases(ctx, logger, testCaseRegex, testProjectConfig)
+	tests := runTestCases(ctx, logger, testCaseRegex, testProjectConfig, testsMap)
 
 	for ret := range tests {
 		testSuite.TestCase = append(testSuite.TestCase, ret)
@@ -62,27 +56,8 @@ func TestSuite(
 
 func runTestCases(
 	ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
-	testProjectConfig *testconfig.Project) chan *junitxml.TestCase {
-
-	imageImportDataDiskTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import data disk"))
-	imageImportOSTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS"))
-	imageImportOSFromImageTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS from image"))
-	imageExportRawTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export Raw"))
-	imageExportVMDKTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export VMDK"))
-
-	testsMap := map[*junitxml.TestCase]func(
-		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project){
-		imageImportDataDiskTestCase:    runImageImportDataDiskTest,
-		imageImportOSTestCase:          runImageImportOSTest,
-		imageImportOSFromImageTestCase: runImageImportOSFromImageTest,
-		imageExportRawTestCase:         runImageExportRawTest,
-		imageExportVMDKTestCase:        runImageExportVMDKTest,
-	}
+	testProjectConfig *testconfig.Project, testsMap map[*junitxml.TestCase]func(
+		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project)) chan *junitxml.TestCase {
 
 	var wg sync.WaitGroup
 	tests := make(chan *junitxml.TestCase)
@@ -110,77 +85,8 @@ func runTestCases(
 	return tests
 }
 
-func runImageImportDataDiskTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
-
-	suffix := pathutils.RandString(5)
-	imageName := "e2e-test-image-import-data-disk-" + suffix
-	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
-	runCliTool(logger, testCase, cmd, args)
-
-	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
-}
-
-func runImageImportOSTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
-
-	suffix := pathutils.RandString(5)
-	imageName := "e2e-test-image-import-os-" + suffix
-	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
-	runCliTool(logger, testCase, cmd, args)
-
-	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
-}
-
-func runImageImportOSFromImageTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
-
-	suffix := pathutils.RandString(5)
-	imageName := "e2e-test-image-import-os-from-image-" + suffix
-	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g"}
-	runCliTool(logger, testCase, cmd, args)
-
-	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
-}
-
-func runImageExportRawTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
-
-	suffix := pathutils.RandString(5)
-	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
-	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
-	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
-	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI)}
-	runCliTool(logger, testCase, cmd, args)
-
-	verifyExportedImageFile(ctx, testCase, testProjectConfig, bucketName, objectName, logger)
-}
-
-func runImageExportVMDKTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
-
-	suffix := pathutils.RandString(5)
-	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
-	objectName := fmt.Sprintf("e2e-export-vmdk-test-%v", suffix)
-	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
-	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk"}
-	runCliTool(logger, testCase, cmd, args)
-
-	verifyExportedImageFile(ctx, testCase, testProjectConfig, bucketName, objectName, logger)
-}
-
-func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) {
-	// Execute cli tool
+// RunCliTool executes cli tool with params
+func RunCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) {
 	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmdString, strings.Join(args, " "))
 	cmd := exec.Command(fmt.Sprintf("./%s", cmdString), args...)
 	cmd.Stdout = os.Stdout
@@ -188,51 +94,5 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 
 	if err := cmd.Run(); err != nil {
 		logger.Fatalf("Error running cmd: %v\n", err.Error())
-	}
-}
-
-func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project, imageName string, logger *log.Logger) {
-	logger.Printf("Verifying imported image...")
-	image, err := compute.CreateImageObject(ctx, testProjectConfig.TestProjectID, imageName)
-	if err != nil {
-		testCase.WriteFailure("Error creating compute api client: %v", err)
-		logger.Printf("Error creating compute api client: %v", err)
-		return
-	}
-
-	if err := image.Exists(); err != nil {
-		testCase.WriteFailure("Image '%v' doesn't exist after import: %v", imageName, err)
-		logger.Printf("Image '%v' doesn't exist after import: %v", imageName, err)
-		return
-	}
-	logger.Printf("Image '%v' exists! Import success.", imageName)
-
-	if err := image.Cleanup(); err != nil {
-		logger.Printf("Image '%v' failed to clean up.", imageName)
-	} else {
-		logger.Printf("Image '%v' cleaned up.", imageName)
-	}
-}
-
-func verifyExportedImageFile(ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project, bucketName string, objectName string, logger *log.Logger) {
-	logger.Printf("Verifying exported file...")
-	file, err := storage.CreateFileObject(ctx, bucketName, objectName)
-	if err != nil {
-		testCase.WriteFailure("Error creating compute api client: %v", err)
-		logger.Printf("Error creating compute api client: %v", err)
-		return
-	}
-
-	if err := file.Exists(); err != nil {
-		testCase.WriteFailure("File '%v' doesn't exist after export: %v", objectName, err)
-		logger.Printf("File '%v' doesn't exist after export: %v", objectName, err)
-		return
-	}
-	logger.Printf("File '%v' exists! Export success.", objectName)
-
-	if err := file.Cleanup(); err != nil {
-		logger.Printf("File '%v' failed to clean up.", objectName)
-	} else {
-		logger.Printf("File '%v' cleaned up.", objectName)
 	}
 }

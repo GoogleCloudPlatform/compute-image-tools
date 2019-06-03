@@ -16,20 +16,23 @@ package main
 
 import (
 	"context"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils"
 	"log"
 	"regexp"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites"
-	"github.com/GoogleCloudPlatform/compute-image-tools/test_common"
-	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/test_common/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites/export"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites/import"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2etestutils/test_config"
 )
 
-var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
-	importexporttestsuites.TestSuite,
+var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+	*regexp.Regexp, *regexp.Regexp, *testconfig.Project){
+	importtestsuites.TestSuite,
+	exporttestsuites.TestSuite,
 }
 
 func main() {
-	testcommon.LaunchTests(testFunctions, "[ImageImportExportTests]")
+	e2etestutils.LaunchTests(testFunctions, "[ImageImportExportTests]")
 }
