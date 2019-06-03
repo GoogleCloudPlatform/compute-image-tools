@@ -60,8 +60,9 @@ apt-get update
 apt-get install -y google-osconfig-agent` + curlPost
 
 	// InstallOSConfigGooGet installs the osconfig agent on googet based systems.
-	InstallOSConfigGooGet = `Start-Sleep 10
+	InstallOSConfigGooGet = `
 c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
+Start-Sleep 10
 $uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done'
 Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body 1`
 
@@ -168,17 +169,17 @@ var HeadWindowsImages = map[string]string{
 	"windows-cloud/windows-1809-core":    "projects/windows-cloud/global/images/family/windows-1809-core",
 }
 
-// OldWindowsImages is a map of names to image paths for old Windows images prepped for tests.
+// OldWindowsImages is a map of names to image paths for old Windows images.
 var OldWindowsImages = map[string]string{
-	"old/windows-2008-r2":      "projects/compute-image-osconfig-agent/global/images/windows-2008-r2-v20190515",
-	"old/windows-2012-r2":      "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-v20190515",
-	"old/windows-2012-r2-core": "projects/compute-image-osconfig-agent/global/images/windows-2012-r2-core-v20190515",
-	"old/windows-2016":         "projects/compute-image-osconfig-agent/global/images/windows-2016-v20190515",
-	"old/windows-2016-core":    "projects/compute-image-osconfig-agent/global/images/windows-2016-core-v20190515",
-	"old/windows-2019":         "projects/compute-image-osconfig-agent/global/images/windows-2019-v20190515",
-	"old/windows-2019-core":    "projects/compute-image-osconfig-agent/global/images/windows-2019-core-v20190515",
-	"old/windows-1803-core":    "projects/compute-image-osconfig-agent/global/images/windows-1803-core-v20190515",
-	"old/windows-1809-core":    "projects/compute-image-osconfig-agent/global/images/windows-1809-core-v20190515",
+	"old/windows-2008-r2":      "projects/windows-cloud/global/images/windows-server-2008-r2-dc-v20190411",
+	"old/windows-2012-r2":      "projects/windows-cloud/global/images/windows-server-2012-r2-dc-v20190411",
+	"old/windows-2012-r2-core": "projects/windows-cloud/global/images/windows-server-2012-r2-dc-core-v20190411",
+	"old/windows-2016":         "projects/windows-cloud/global/images/windows-server-2016-dc-v20190411",
+	"old/windows-2016-core":    "projects/windows-cloud/global/images/windows-server-2016-dc-core-v20190411",
+	"old/windows-2019":         "projects/windows-cloud/global/images/windows-server-2019-dc-v20190411",
+	"old/windows-2019-core":    "projects/windows-cloud/global/images/windows-server-2019-dc-core-v20190411",
+	"old/windows-1803-core":    "projects/windows-cloud/global/images/windows-server-1803-dc-core-v20190411",
+	"old/windows-1809-core":    "projects/windows-cloud/global/images/windows-server-1809-dc-core-v20190411",
 }
 
 // RandString generates a random string of n length.
