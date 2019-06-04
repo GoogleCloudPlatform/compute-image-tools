@@ -32,8 +32,8 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/compute"
 	computeUtils "github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 	"github.com/kylelemons/godebug/pretty"
 	api "google.golang.org/api/compute/v1"
 )

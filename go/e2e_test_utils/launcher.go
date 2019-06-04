@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,18 +12,16 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package main
+package e2etestutils
 
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"encoding/xml"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,12 +29,7 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
-
-	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
-	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
-	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
+	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 var (
@@ -45,45 +38,40 @@ var (
 	outDir          = flag.String("out_dir", "/tmp", "junit xml directory")
 	testProjectID   = flag.String("test_project_id", "", "test project id")
 	testZone        = flag.String("test_zone", "", "test zone")
-	testZones       = flag.String("test_zones", "{}", "test zones")
 )
 
-var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
-	packagemanagement.TestSuite,
-	inventory.TestSuite,
-	patch.TestSuite,
-}
-
-func main() {
+// LaunchTests launches tests by the test framework
+func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
+	loggerPrefix string) {
 	flag.Parse()
 	ctx := context.Background()
+	pr := getProject(ctx)
+	testSuiteRegex, testCaseRegex := getTestRegex()
 
-	gcpclients.PopulateClients(ctx)
+	logger := log.New(os.Stdout, loggerPrefix+" ", 0)
+	logger.Println("Starting...")
 
+	testResultChan := runTests(ctx, testFunctions, logger, testSuiteRegex, testCaseRegex, pr)
+
+	testSuites := outputTestResultToFile(testResultChan, logger)
+	outputTestResultToLogger(testSuites, logger)
+	logger.Print("All test cases completed successfully.")
+}
+
+func getProject(ctx context.Context) *testconfig.Project {
 	if len(strings.TrimSpace(*testProjectID)) == 0 {
 		fmt.Println("-test_project_id is invalid")
 		os.Exit(1)
 	}
-
-	zones := make(map[string]int)
-
-	if len(strings.TrimSpace(*testZone)) != 0 {
-		zones[*testZone] = math.MaxInt32
-	} else {
-		err := json.Unmarshal([]byte(*testZones), &zones)
-		if err != nil {
-			fmt.Printf("Error parsing zones `%s`\n", *testZones)
-			os.Exit(1)
-		}
-	}
-
-	if len(zones) == 0 {
-		fmt.Println("Error, no zones specified")
+	if len(strings.TrimSpace(*testZone)) == 0 {
+		fmt.Println("-test_zone is invalid")
 		os.Exit(1)
 	}
+	pr := testconfig.GetProject(*testProjectID, *testZone)
+	return pr
+}
 
-	pr := testconfig.GetProject(*testProjectID, zones)
-
+func getTestRegex() (*regexp.Regexp, *regexp.Regexp) {
 	var testSuiteRegex *regexp.Regexp
 	if *testSuiteFilter != "" {
 		var err error
@@ -93,7 +81,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-
 	var testCaseRegex *regexp.Regexp
 	if *testCaseFilter != "" {
 		var err error
@@ -103,10 +90,11 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	return testSuiteRegex, testCaseRegex
+}
 
-	logger := log.New(os.Stdout, "[OsConfigTests] ", 0)
-	logger.Println("Starting...")
-
+func runTests(ctx context.Context, testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
+	logger *log.Logger, testSuiteRegex *regexp.Regexp, testCaseRegex *regexp.Regexp, pr *testconfig.Project) chan *junitxml.TestSuite {
 	tests := make(chan *junitxml.TestSuite)
 	var wg sync.WaitGroup
 	for _, tf := range testFunctions {
@@ -117,7 +105,10 @@ func main() {
 		wg.Wait()
 		close(tests)
 	}()
+	return tests
+}
 
+func outputTestResultToFile(tests chan *junitxml.TestSuite, logger *log.Logger) []*junitxml.TestSuite {
 	var testSuites []*junitxml.TestSuite
 	for ret := range tests {
 		testSuites = append(testSuites, ret)
@@ -136,7 +127,10 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+	return testSuites
+}
 
+func outputTestResultToLogger(testSuites []*junitxml.TestSuite, logger *log.Logger) {
 	var buf bytes.Buffer
 	for _, ts := range testSuites {
 		if ts.Failures > 0 {
@@ -149,9 +143,7 @@ func main() {
 
 		}
 	}
-
 	if buf.Len() > 0 {
 		logger.Fatalf("%sExiting with exit code 1", buf.String())
 	}
-	logger.Print("All test cases completed successfully.")
 }

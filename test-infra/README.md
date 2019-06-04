@@ -26,6 +26,7 @@ https://k8s-testgrid.appspot.com/google-gce-compute-image-tools#ci-daisy-e2e
 | `prow/plugins.yaml` | Configuration for Prow plugins. |
 | `prowjobs/` | Prow job containers. |
 | `prowjobs/daisy-e2e/` | Runs workflows in `daisy_workflows` against the latest (master:HEAD) Daisy binary. |
+| `prowjobs/gce-image-import-export-tests/` | Runs image importer/exporter tests against the latest (master:HEAD) Image Importer/Exporter binary. |
 | `prowjobs/gce-ovf-import-tests/` | Runs OVF importer tests against the latest (master:HEAD) OVF Importer binary. |
 | `prowjobs/gocheck/` | Runs `go fmt`, `golint`, `go vet` against Go code in the repo. |
 | `prowjobs/osconfig-tests/` | Runs OS Config tests. |
@@ -55,6 +56,18 @@ daisy-e2e invokes our latest Daisy binary against the
 `compute-image-tools-test` GCP project. It runs the workflows matching
 `daisy_worklows/e2e_tests/*.wf.json`.
 Each matching workflow is run as a test case.
+
+## Prow job: gce-image-import-export-tests
+
+gce-image-import-export-tests invokes our latest Image Importer/Exporter
+ binary against the `compute-image-tools-test` GCP project. It runs the
+ tests defined in `gce_image_import_export_tests`.
+
+## Prow job: gce-ovf-import-tests
+
+gce-ovf-import-tests invokes our latest OVF Importer binary against the
+`compute-image-tools-test` GCP project. It runs the tests defined in
+`gce_ovf_import_tests`.
 
 ### Periodic runs and testgrid
 
