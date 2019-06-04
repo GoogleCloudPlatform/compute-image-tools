@@ -30,7 +30,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 )
 
 var (
@@ -60,7 +59,6 @@ func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *ju
 }
 
 func getProject(ctx context.Context) *testconfig.Project {
-	gcpclients.PopulateClients(ctx)
 	if len(strings.TrimSpace(*testProjectID)) == 0 {
 		fmt.Println("-test_project_id is invalid")
 		os.Exit(1)
