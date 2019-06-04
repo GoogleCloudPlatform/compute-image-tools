@@ -29,9 +29,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
-// TestSuite is image import test suite.
-func TestSuite(
-	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
+// TestSuite executes given test suite.
+func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
 	testProjectConfig *testconfig.Project, testSuiteName string, testsMap map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project)) {
@@ -54,8 +53,7 @@ func TestSuite(
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runTestCases(
-	ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
+func runTestCases(ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
 	testProjectConfig *testconfig.Project, testsMap map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project)) chan *junitxml.TestCase {
 

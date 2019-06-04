@@ -64,7 +64,8 @@ func runImageImportDataDiskTest(
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-data-disk-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
 	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
@@ -77,7 +78,8 @@ func runImageImportOSTest(
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-os-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
 	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
@@ -90,13 +92,15 @@ func runImageImportOSFromImageTest(
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-os-from-image-" + suffix
 	cmd := "gce_vm_image_import"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g"}
 	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
 }
 
-func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project, imageName string, logger *log.Logger) {
+func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
+	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger) {
 	logger.Printf("Verifying imported image...")
 	image, err := compute.CreateImageObject(ctx, testProjectConfig.TestProjectID, imageName)
 	if err != nil {

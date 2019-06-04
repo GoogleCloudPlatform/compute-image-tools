@@ -33,7 +33,7 @@ const (
 	testSuiteName = "ImageExportTests"
 )
 
-// TestSuite is image import test suite.
+// TestSuite is image export test suite.
 func TestSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
@@ -63,10 +63,11 @@ func runImageExportRawTest(
 	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI)}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+		"-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI)}
 	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
 
-	verifyExportedImageFile(ctx, testCase, testProjectConfig, bucketName, objectName, logger)
+	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
 }
 
 func runImageExportVMDKTest(
@@ -78,13 +79,15 @@ func runImageExportVMDKTest(
 	objectName := fmt.Sprintf("e2e-export-vmdk-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID), "-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk"}
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+		"-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk"}
 	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
 
-	verifyExportedImageFile(ctx, testCase, testProjectConfig, bucketName, objectName, logger)
+	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
 }
 
-func verifyExportedImageFile(ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project, bucketName string, objectName string, logger *log.Logger) {
+func verifyExportedImageFile(ctx context.Context, testCase *junitxml.TestCase, bucketName string,
+	objectName string, logger *log.Logger) {
 	logger.Printf("Verifying exported file...")
 	file, err := storage.CreateFileObject(ctx, bucketName, objectName)
 	if err != nil {
