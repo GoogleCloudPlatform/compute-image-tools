@@ -1,0 +1,3 @@
+#!/bin/sh
+set -eu
+fcopy -SBMi -v /etc/apt/sources.list.d/gce_unstable.list
