@@ -91,8 +91,8 @@ func runImageExportVMDKTest(
 
 // Test most of params except -oauth, -compute_endpoint_override, and -scratch_bucket_gcs_path
 func runImageExportWithRichParamsTest(
-		ctx context.Context, testCase *junitxml.TestCase,
-		logger *log.Logger, testProjectConfig *testconfig.Project) {
+	ctx context.Context, testCase *junitxml.TestCase,
+	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
 	suffix := pathutils.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)

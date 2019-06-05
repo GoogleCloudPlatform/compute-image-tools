@@ -18,12 +18,13 @@ package importtestsuites
 import (
 	"context"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/compute"
 	"log"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
@@ -104,25 +105,37 @@ func runImageImportOSFromImageTest(
 
 // Test most of params except -oauth, -compute_endpoint_override, and -scratch_bucket_gcs_path
 func runImageImportWithRichParamsTest(
-		ctx context.Context, testCase *junitxml.TestCase,
-		logger *log.Logger, testProjectConfig *testconfig.Project) {
+	ctx context.Context, testCase *junitxml.TestCase,
+	logger *log.Logger, testProjectConfig *testconfig.Project) {
+
+	family := "test-family"
+	description := "test-description"
+	labels := "key1=value1,key2=value"
 
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-data-disk-" + suffix
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-		"-no_guest_environment", "-family=test-family", "-description=test-description",
+		"-no_guest_environment", fmt.Sprintf("-family=test-family", family), fmt.Sprintf("-description=test-description", description),
 		"-network=default", "-subnet=default", fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
-	  "-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
-	  "-no_external_ip", "-labels=key1=value1,key2=value"}
+		"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
+		"-no_external_ip", fmt.Sprintf("-labels=%v", labels)}
 	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
 
-	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
+	verifyImportedImageWithParams(ctx, testCase, testProjectConfig, imageName, logger, family, description, labels)
 }
 
 func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
 	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger) {
+
+	verifyImportedImageWithParams(ctx, testCase, testProjectConfig, imageName, logger, "", "", "")
+}
+
+func verifyImportedImageWithParams(ctx context.Context, testCase *junitxml.TestCase,
+	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger,
+	expectedFamily string, expectedDescription string, expectedLabels string) {
+
 	logger.Printf("Verifying imported image...")
 	image, err := compute.CreateImageObject(ctx, testProjectConfig.TestProjectID, imageName)
 	if err != nil {
@@ -138,9 +151,32 @@ func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
 	}
 	logger.Printf("Image '%v' exists! Import success.", imageName)
 
+	if expectedFamily != "" && image.Family != expectedFamily {
+		testCase.WriteFailure("Image '%v' family expect: %v, actual: %v", imageName, expectedFamily, image.Family)
+		logger.Printf("Image '%v' family expect: %v, actual: %v", imageName, expectedFamily, image.Family)
+	}
+
+	if expectedDescription != "" && image.Description != expectedDescription {
+		testCase.WriteFailure("Image '%v' description expect: %v, actual: %v", imageName, expectedDescription, image.Description)
+		logger.Printf("Image '%v' description expect: %v, actual: %v", imageName, expectedDescription, image.Description)
+	}
+
+	if expectedLabels != "" {
+		pairs := make([]string, 0, len(image.Labels))
+		for k, v := range image.Labels {
+			pairs = append(pairs, k+"="+v)
+		}
+		imageLabels := strings.Join(pairs, ",")
+		if imageLabels != expectedLabels {
+			testCase.WriteFailure("Image '%v' labels expect: %v, actual: %v", imageName, expectedLabels, imageLabels)
+			logger.Printf("Image '%v' labels expect: %v, actual: %v", imageName, expectedLabels, imageLabels)
+		}
+	}
+
 	if err := image.Cleanup(); err != nil {
 		logger.Printf("Image '%v' failed to clean up.", imageName)
 	} else {
 		logger.Printf("Image '%v' cleaned up.", imageName)
 	}
+
 }
