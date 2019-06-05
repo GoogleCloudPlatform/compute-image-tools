@@ -117,7 +117,7 @@ func runImageImportWithRichParamsTest(
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-		"-no_guest_environment", fmt.Sprintf("-family=test-family", family), fmt.Sprintf("-description=test-description", description),
+		"-no_guest_environment", fmt.Sprintf("-family=%v", family), fmt.Sprintf("-description=%v", description),
 		"-network=default", "-subnet=default", fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
 		"-no_external_ip", fmt.Sprintf("-labels=%v", labels)}
