@@ -45,12 +45,15 @@ func TestSuite(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS"))
 	imageImportOSFromImageTestCase := junitxml.NewTestCase(
 		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import OS from image"))
+	imageImportWithRichParamsTestCase := junitxml.NewTestCase(
+		testSuiteName, fmt.Sprintf("[ImageImport] %v", "Import with rich params"))
 
 	testsMap := map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project){
-		imageImportDataDiskTestCase:    runImageImportDataDiskTest,
-		imageImportOSTestCase:          runImageImportOSTest,
-		imageImportOSFromImageTestCase: runImageImportOSFromImageTest,
+		imageImportDataDiskTestCase:       runImageImportDataDiskTest,
+		imageImportOSTestCase:             runImageImportOSTest,
+		imageImportOSFromImageTestCase:    runImageImportOSFromImageTest,
+		imageImportWithRichParamsTestCase: runImageImportWithRichParamsTest,
 	}
 
 	testsuiteutils.TestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
@@ -94,6 +97,25 @@ func runImageImportOSFromImageTest(
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g"}
+	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
+
+	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
+}
+
+// Test most of params except -oauth, -compute_endpoint_override, and -scratch_bucket_gcs_path
+func runImageImportWithRichParamsTest(
+		ctx context.Context, testCase *junitxml.TestCase,
+		logger *log.Logger, testProjectConfig *testconfig.Project) {
+
+	suffix := pathutils.RandString(5)
+	imageName := "e2e-test-image-import-data-disk-" + suffix
+	cmd := "gce_vm_image_import"
+	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+		fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+		"-no_guest_environment", "-family=test-family", "-description=test-description",
+		"-network=default", "-subnet=default", fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+	  "-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
+	  "-no_external_ip", "-labels=key1=value1,key2=value"}
 	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
