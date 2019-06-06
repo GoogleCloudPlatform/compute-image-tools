@@ -77,6 +77,7 @@ func TestSuite(
 	testSuite := junitxml.NewTestSuite(testSuiteName)
 	defer testSuite.Finish(testSuites)
 	suffix := pathutils.RandString(5)
+	ovaBucket := "compute-image-tools-test-resources"
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 
 	startupScriptUbuntu3disks := loadScriptContent(
@@ -93,7 +94,7 @@ func TestSuite(
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-instance-ubuntu-3mounteddisks-%v", suffix),
-				OvfOvaGcsPath: "gs://compute-image-tools-test-resources/ova/Ubuntu_for_Horizon_three_disks_mounted.ova",
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/Ubuntu_for_Horizon_three_disks_mounted.ova", ovaBucket),
 				OsID:          "ubuntu-1404",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
@@ -112,7 +113,7 @@ func TestSuite(
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-instance-centos-6-%v", suffix),
-				OvfOvaGcsPath: "gs://compute-image-tools-test-resources/ova/centos-6.8",
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/centos-6.8", ovaBucket),
 				OsID:          "centos-6",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
@@ -131,7 +132,7 @@ func TestSuite(
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-instance-w2k12-r2-%v", suffix),
-				OvfOvaGcsPath: "gs://compute-image-tools-test-resources/ova/w2k12-r2",
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/w2k12-r2", ovaBucket),
 				OsID:          "windows-2012r2",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
@@ -150,7 +151,7 @@ func TestSuite(
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-instance-w2k16-%v", suffix),
-				OvfOvaGcsPath: "gs://compute-image-tools-test-resources/ova/w2k16/w2k16.ovf",
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/w2k16/w2k16.ovf", ovaBucket),
 				OsID:          "windows-2016",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       testProjectConfig.TestProjectID,
