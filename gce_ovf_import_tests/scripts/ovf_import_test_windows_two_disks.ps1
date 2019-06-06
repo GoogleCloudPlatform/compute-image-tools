@@ -80,8 +80,8 @@ function Check-SkipActivation {
 
 function Check-ThreeVolumes {
   $line_info = Get-Volume | Measure-Object -Line
-  $volume_count = $lineCount.Lines
-   if ($volume_count -ne 3) {
+  $volume_count = $line_info.Lines
+  if ($volume_count -ne 3) {
     throw "Number of disk volumes should be 3 but is: $volume_count"
   }
 }
