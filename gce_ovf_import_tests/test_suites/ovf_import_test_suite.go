@@ -255,6 +255,12 @@ func runOvfImportTest(
 
 	instanceWrapper := computeUtils.Instance{Instance: instance, Client: client,
 		Project: testProjectConfig.TestProjectID, Zone: testProjectConfig.TestZone}
+
+	defer func() {
+		logger.Printf("[%v] Deleting instance `%v`", testSetup.name, instanceName)
+		instanceWrapper.Cleanup()
+	}()
+
 	if !strings.HasSuffix(instance.MachineType, testSetup.expectedMachineType) {
 		testCase.WriteFailure(
 			"Instance machine type `%v` doesn't match the expected machine type `%v`",
@@ -302,9 +308,6 @@ func runOvfImportTest(
 		testCase.WriteFailure("Error during VM validation: %v", err)
 		return
 	}
-
-	logger.Printf("[%v] Deleting instance `%v`", testSetup.name, instanceName)
-	instanceWrapper.Cleanup()
 }
 
 func loadScriptContent(scriptPath string, logger *log.Logger) string {
