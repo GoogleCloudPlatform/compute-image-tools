@@ -17,7 +17,7 @@ RUN apk add --no-cache git
 
 # Build test runner
 WORKDIR /
-#RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests
+RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests
 RUN CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests
 RUN chmod +x /gce_image_import_export_test_runner
 
