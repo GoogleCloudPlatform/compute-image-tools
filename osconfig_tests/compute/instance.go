@@ -93,15 +93,15 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 }
 
 // WaitForGuestAttributes waits for guest attribute (queryPath, variableKey) to appear.
-func (i *Instance) WaitForGuestAttributes(queryPath, variableKey string, interval, timeout time.Duration) ([]*computeBeta.GuestAttributesEntry, error) {
+func (i *Instance) WaitForGuestAttributes(queryPath string, interval, timeout time.Duration) ([]*computeBeta.GuestAttributesEntry, error) {
 	tick := time.Tick(interval)
 	timedout := time.Tick(timeout)
 	for {
 		select {
 		case <-timedout:
-			return nil, fmt.Errorf("timed out waiting for guest attribute %q", path.Join(queryPath, variableKey))
+			return nil, fmt.Errorf("timed out waiting for guest attribute %q", queryPath)
 		case <-tick:
-			attr, err := i.GetGuestAttributes(queryPath, variableKey)
+			attr, err := i.GetGuestAttributes(queryPath)
 			if err != nil {
 				apiErr, ok := err.(*googleapi.Error)
 				if ok && apiErr.Code == http.StatusNotFound {
@@ -115,8 +115,8 @@ func (i *Instance) WaitForGuestAttributes(queryPath, variableKey string, interva
 }
 
 // GetGuestAttributes gets guest attributes for an instance.
-func (i *Instance) GetGuestAttributes(queryPath, variableKey string) ([]*computeBeta.GuestAttributesEntry, error) {
-	resp, err := i.client.GetGuestAttributes(i.Project, i.Zone, i.Name, queryPath, variableKey)
+func (i *Instance) GetGuestAttributes(queryPath string) ([]*computeBeta.GuestAttributesEntry, error) {
+	resp, err := i.client.GetGuestAttributes(i.Project, i.Zone, i.Name, queryPath, "")
 	if err != nil {
 		return nil, err
 	}

@@ -106,7 +106,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
-	if _, err := inst.WaitForGuestAttributes("osconfig_tests/", "install_done", 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/install_done", 5*time.Second, 5*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return nil, false
 	}
@@ -118,13 +118,13 @@ func gatherInventory(testCase *junitxml.TestCase, inst *compute.Instance) ([]*ap
 	testCase.Logf("Checking inventory data")
 	// It can take a long time to start collecting data, especially on Windows.
 	// LastUpdated is the last entry written by the agent, so wait on that.
-	_, err := inst.WaitForGuestAttributes("guestInventory/", "LastUpdated", 10*time.Second, 25*time.Minute)
+	_, err := inst.WaitForGuestAttributes("guestInventory/LastUpdated", 10*time.Second, 25*time.Minute)
 	if err != nil {
 		testCase.WriteFailure("Error waiting for guest attributes: %v", err)
 		return nil, false
 	}
 
-	ga, err := inst.GetGuestAttributes("guestInventory/", "")
+	ga, err := inst.GetGuestAttributes("guestInventory/")
 	if err != nil {
 		testCase.WriteFailure("Error getting guest attributes: %v", err)
 		return nil, false
