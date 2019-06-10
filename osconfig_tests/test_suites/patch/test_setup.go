@@ -17,14 +17,15 @@ package patch
 import (
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
-	"google.golang.org/api/compute/v1"
+	api "google.golang.org/api/compute/v1"
 )
 
 type patchTestSetup struct {
 	testName      string
 	image         string
-	startup       *compute.MetadataItems
+	metadata      []*api.MetadataItems
 	assertTimeout time.Duration
 	machineType   string
 }
@@ -55,14 +56,10 @@ if (-not (Test-Path $windows_update_path)) {
   New-Item -Path $windows_update_path -Value ""
   New-Item -Path $windows_update_au_path -Value ""
 }
-if (-not (Get-ItemProperty -Path $windows_update_path -Name WUServer)) {
-  Set-ItemProperty -Path $windows_update_path -Name WUServer -Value "http://${wu_server}:8530"
-  Set-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "http://${wu_server}:8530"
-  Set-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1
-  Restart-Service wuauserv
-}
+Set-ItemProperty -Path $windows_update_path -Name WUServer -Value "http://${wu_server}:8530"
+Set-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "http://${wu_server}:8530"
+Set-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1
 `
-	windowsStartup = windowsRecordBoot + windowsSetWsus + utils.InstallOSConfigGooGet
 
 	linuxRecordBoot = `
 uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/boot_count
@@ -70,47 +67,49 @@ old=$(curl $uri -H "Metadata-Flavor: Google" -f)
 new=$(($old + 1))
 curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 `
-	aptStartup = linuxRecordBoot + utils.InstallOSConfigDeb
-	el6Startup = linuxRecordBoot + utils.InstallOSConfigYumEL6
-	el7Startup = linuxRecordBoot + "yum install -y yum-utils\n" + utils.InstallOSConfigYumEL7
+
+	el78Startup = linuxRecordBoot + "yum install -y yum-utils\n" + utils.InstallOSConfigYumEL7
+
+	enablePatch = compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch")
 
 	windowsSetup = &patchTestSetup{
 		assertTimeout: 60 * time.Minute,
-		startup: &compute.MetadataItems{
-			Key:   "windows-startup-script-ps1",
-			Value: &windowsStartup,
+		metadata: []*api.MetadataItems{
+			compute.BuildInstanceMetadataItem("sysprep-specialize-script-ps1", windowsSetWsus),
+			compute.BuildInstanceMetadataItem("windows-startup-script-ps1", windowsRecordBoot+utils.InstallOSConfigGooGet),
+			enablePatch,
 		},
 		machineType: "n1-standard-4",
 	}
 	aptSetup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
-		startup: &compute.MetadataItems{
-			Key:   "startup-script",
-			Value: &aptStartup,
+		metadata: []*api.MetadataItems{
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigDeb),
+			enablePatch,
 		},
 		machineType: "n1-standard-2",
 	}
 	el6Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
-		startup: &compute.MetadataItems{
-			Key:   "startup-script",
-			Value: &el6Startup,
+		metadata: []*api.MetadataItems{
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigYumEL6),
+			enablePatch,
 		},
 		machineType: "n1-standard-2",
 	}
 	el7Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
-		startup: &compute.MetadataItems{
-			Key:   "startup-script",
-			Value: &el7Startup,
+		metadata: []*api.MetadataItems{
+			compute.BuildInstanceMetadataItem("startup-script", el78Startup),
+			enablePatch,
 		},
 		machineType: "n1-standard-2",
 	}
 	el8Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
-		startup: &compute.MetadataItems{
-			Key:   "startup-script",
-			Value: &el7Startup,
+		metadata: []*api.MetadataItems{
+			compute.BuildInstanceMetadataItem("startup-script", el78Startup),
+			enablePatch,
 		},
 		machineType: "n1-standard-2",
 	}
