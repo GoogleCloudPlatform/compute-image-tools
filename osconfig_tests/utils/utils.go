@@ -46,8 +46,8 @@ if [[ n -gt 3 ]]; then
 fi
 n=$[$n+1]
 sleep 5
-done
-`
+done` + curlPost
+
 	curlPost = `
 uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done
 curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
@@ -76,7 +76,7 @@ gpgcheck=0
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM` + yumInstallAgent + curlPost
+EOM` + yumInstallAgent
 
 	// InstallOSConfigYumEL6 installs the osconfig agent on el6 based systems.
 	InstallOSConfigYumEL6 = `sleep 10
@@ -89,7 +89,7 @@ gpgcheck=0
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
        https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM` + yumInstallAgent + curlPost
+EOM` + yumInstallAgent
 )
 
 // HeadAptImages is a map of names to image paths for public image families that use APT.
