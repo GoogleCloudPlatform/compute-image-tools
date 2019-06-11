@@ -24,7 +24,7 @@ import (
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
-	api "google.golang.org/api/compute/v1"
+	computeApi "google.golang.org/api/compute/v1"
 
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
 )
@@ -242,7 +242,7 @@ func addPackageInstallFromNewRepoTest(pkgTestSetup []*packageManagementTestSetup
 	return pkgTestSetup
 }
 
-func createAndAppendSetup(pkgTestSetup []*packageManagementTestSetup, image, name string, fname packageMangementTestFunctionName, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *api.MetadataItems, assertTimeout time.Duration, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) []*packageManagementTestSetup {
+func createAndAppendSetup(pkgTestSetup []*packageManagementTestSetup, image, name string, fname packageMangementTestFunctionName, vs string, oc *osconfigpb.OsConfig, assignment *osconfigpb.Assignment, startup *computeApi.MetadataItems, assertTimeout time.Duration, vf func(*compute.Instance, string, int64, time.Duration, time.Duration) error) []*packageManagementTestSetup {
 	var setup *packageManagementTestSetup
 	newPackageManagementTestSetup(&setup, image, name, fname, vs, oc, assignment, startup, assertTimeout, vf)
 	pkgTestSetup = append(pkgTestSetup, setup)

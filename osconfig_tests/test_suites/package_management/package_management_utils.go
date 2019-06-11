@@ -23,7 +23,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/google/logger"
-	api "google.golang.org/api/compute/v1"
+	computeApi "google.golang.org/api/compute/v1"
 )
 
 var (
@@ -36,7 +36,7 @@ var (
 	}
 )
 
-func getPackageInstallStartupScript(image, pkgManager, packageName string) *api.MetadataItems {
+func getPackageInstallStartupScript(image, pkgManager, packageName string) *computeApi.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
@@ -92,13 +92,13 @@ func getPackageInstallStartupScript(image, pkgManager, packageName string) *api.
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
 
-	return &api.MetadataItems{
+	return &computeApi.MetadataItems{
 		Key:   key,
 		Value: &ss,
 	}
 }
 
-func getPackageRemovalStartupScript(image, pkgManager, packageName string) *api.MetadataItems {
+func getPackageRemovalStartupScript(image, pkgManager, packageName string) *computeApi.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
@@ -191,13 +191,13 @@ func getPackageRemovalStartupScript(image, pkgManager, packageName string) *api.
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
 
-	return &api.MetadataItems{
+	return &computeApi.MetadataItems{
 		Key:   key,
 		Value: &ss,
 	}
 }
 
-func getPackageInstallRemovalStartupScript(image, pkgManager, packageName string) *api.MetadataItems {
+func getPackageInstallRemovalStartupScript(image, pkgManager, packageName string) *computeApi.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
@@ -252,13 +252,13 @@ func getPackageInstallRemovalStartupScript(image, pkgManager, packageName string
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
 
-	return &api.MetadataItems{
+	return &computeApi.MetadataItems{
 		Key:   key,
 		Value: &ss,
 	}
 }
 
-func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageName string) *api.MetadataItems {
+func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageName string) *computeApi.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
@@ -321,7 +321,7 @@ func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageNam
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
 
-	return &api.MetadataItems{
+	return &computeApi.MetadataItems{
 		Key:   key,
 		Value: &ss,
 	}
