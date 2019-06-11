@@ -109,7 +109,7 @@ func buildDaisyVars() map[string]string {
 
 	varMap["destination"] = *destinationURI
 
-	varMap["source_image"] = fmt.Sprintf("global/images/%v", *sourceImage)
+	varMap["source_image"] = *sourceImage
 
 	if *format != "" {
 		varMap["format"] = *format
