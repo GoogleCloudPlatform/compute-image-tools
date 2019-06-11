@@ -96,7 +96,7 @@ func getAllCliArgs() map[string]interface{} {
 	return map[string]interface{}{
 		clientIDFlagKey:             "aClient",
 		destinationURIFlagKey:       "gs://bucket/exported_image",
-		sourceImageFlagKey:          "anImage",
+		sourceImageFlagKey:          "global/images/anImage",
 		"format":                    "",
 		"project":                   "aProject",
 		"network":                   "aNetwork",

@@ -84,13 +84,10 @@ func runTestCases(ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
 }
 
 // RunCliTool executes cli tool with params
-func RunCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) {
+func RunCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) error {
 	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmdString, strings.Join(args, " "))
 	cmd := exec.Command(fmt.Sprintf("./%s", cmdString), args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		logger.Fatalf("Error running cmd: %v\n", err.Error())
-	}
+	return cmd.Run()
 }

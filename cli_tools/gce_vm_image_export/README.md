@@ -20,7 +20,7 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
   `pantheon`.
 + `-destination_uri=DESTINATION_URI` The Google Cloud Storage URI destination for the exported
   virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.
-+ `-source_image=SOURCE_IMAGE` An existing Compute Engine image from which to 
++ `-source_image=SOURCE_IMAGE` An existing Compute Engine image URI from which to 
   export.
 
 #### Optional flags  
