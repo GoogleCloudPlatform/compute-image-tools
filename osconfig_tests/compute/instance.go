@@ -29,14 +29,14 @@ import (
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	computeBeta "google.golang.org/api/compute/v0.beta"
-	compute "google.golang.org/api/compute/v1"
+	computeApiBeta "google.golang.org/api/compute/v0.beta"
+	computeApi "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
 // Instance is a compute instance.
 type Instance struct {
-	*compute.Instance
+	*computeApi.Instance
 	client        daisyCompute.Client
 	Project, Zone string
 }
@@ -93,7 +93,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 }
 
 // WaitForGuestAttributes waits for guest attribute (queryPath, variableKey) to appear.
-func (i *Instance) WaitForGuestAttributes(queryPath string, interval, timeout time.Duration) ([]*computeBeta.GuestAttributesEntry, error) {
+func (i *Instance) WaitForGuestAttributes(queryPath string, interval, timeout time.Duration) ([]*computeApiBeta.GuestAttributesEntry, error) {
 	tick := time.Tick(interval)
 	timedout := time.Tick(timeout)
 	for {
@@ -115,7 +115,7 @@ func (i *Instance) WaitForGuestAttributes(queryPath string, interval, timeout ti
 }
 
 // GetGuestAttributes gets guest attributes for an instance.
-func (i *Instance) GetGuestAttributes(queryPath string) ([]*computeBeta.GuestAttributesEntry, error) {
+func (i *Instance) GetGuestAttributes(queryPath string) ([]*computeApiBeta.GuestAttributesEntry, error) {
 	resp, err := i.client.GetGuestAttributes(i.Project, i.Zone, i.Name, queryPath, "")
 	if err != nil {
 		return nil, err
@@ -170,7 +170,7 @@ func isTerminal(status string) bool {
 }
 
 // CreateInstance creates a compute instance.
-func CreateInstance(client daisyCompute.Client, project, zone string, i *compute.Instance) (*Instance, error) {
+func CreateInstance(client daisyCompute.Client, project, zone string, i *computeApi.Instance) (*Instance, error) {
 	logger.Infof("Creating instance %s in zone %s", i.Name, zone)
 	if err := client.CreateInstance(project, zone, i); err != nil {
 		return nil, err
@@ -179,8 +179,8 @@ func CreateInstance(client daisyCompute.Client, project, zone string, i *compute
 }
 
 // BuildInstanceMetadataItem create an metadata item
-func BuildInstanceMetadataItem(key, value string) *compute.MetadataItems {
-	return &compute.MetadataItems{
+func BuildInstanceMetadataItem(key, value string) *computeApi.MetadataItems {
+	return &computeApi.MetadataItems{
 		Key:   key,
 		Value: func() *string { v := value; return &v }(),
 	}

@@ -19,13 +19,13 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
-	api "google.golang.org/api/compute/v1"
+	computeApi "google.golang.org/api/compute/v1"
 )
 
 type patchTestSetup struct {
 	testName      string
 	image         string
-	metadata      []*api.MetadataItems
+	metadata      []*computeApi.MetadataItems
 	assertTimeout time.Duration
 	machineType   string
 }
@@ -52,13 +52,15 @@ $wu_server = 'wsus-server.c.compute-image-osconfig-agent.internal'
 $windows_update_path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
 $windows_update_au_path = "$windows_update_path\AU"
 
-if (-not (Test-Path $windows_update_path)) {
-  New-Item -Path $windows_update_path -Value ""
-  New-Item -Path $windows_update_au_path -Value ""
+if (Test-Connection $wu_server -Count 1 -ErrorAction SilentlyContinue) {
+	if (-not (Test-Path $windows_update_path -ErrorAction SilentlyContinue)) {
+		New-Item -Path $windows_update_path -Value ""
+		New-Item -Path $windows_update_au_path -Value ""
+	}
+	Set-ItemProperty -Path $windows_update_path -Name WUServer -Value "http://${wu_server}:8530"
+	Set-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "http://${wu_server}:8530"
+	Set-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1
 }
-Set-ItemProperty -Path $windows_update_path -Name WUServer -Value "http://${wu_server}:8530"
-Set-ItemProperty -Path $windows_update_path -Name WUStatusServer -Value "http://${wu_server}:8530"
-Set-ItemProperty -Path $windows_update_au_path -Name UseWUServer -Value 1
 `
 
 	linuxRecordBoot = `
@@ -74,7 +76,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 
 	windowsSetup = &patchTestSetup{
 		assertTimeout: 60 * time.Minute,
-		metadata: []*api.MetadataItems{
+		metadata: []*computeApi.MetadataItems{
 			compute.BuildInstanceMetadataItem("sysprep-specialize-script-ps1", windowsSetWsus),
 			compute.BuildInstanceMetadataItem("windows-startup-script-ps1", windowsRecordBoot+utils.InstallOSConfigGooGet),
 			enablePatch,
@@ -83,7 +85,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	}
 	aptSetup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
-		metadata: []*api.MetadataItems{
+		metadata: []*computeApi.MetadataItems{
 			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigDeb),
 			enablePatch,
 		},
@@ -91,7 +93,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	}
 	el6Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
-		metadata: []*api.MetadataItems{
+		metadata: []*computeApi.MetadataItems{
 			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigYumEL6),
 			enablePatch,
 		},
@@ -99,7 +101,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	}
 	el7Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
-		metadata: []*api.MetadataItems{
+		metadata: []*computeApi.MetadataItems{
 			compute.BuildInstanceMetadataItem("startup-script", el78Startup),
 			enablePatch,
 		},
@@ -107,7 +109,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	}
 	el8Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
-		metadata: []*api.MetadataItems{
+		metadata: []*computeApi.MetadataItems{
 			compute.BuildInstanceMetadataItem("startup-script", el78Startup),
 			enablePatch,
 		},
