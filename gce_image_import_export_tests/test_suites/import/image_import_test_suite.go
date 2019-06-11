@@ -70,7 +70,11 @@ func runImageImportDataDiskTest(
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
-	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
+	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("Error running cmd: %v\n", err)
+		testCase.WriteFailure("Error running cmd: %v", err)
+		return
+	}
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
 }
@@ -84,7 +88,11 @@ func runImageImportOSTest(
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID)}
-	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
+	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("Error running cmd: %v\n", err)
+		testCase.WriteFailure("Error running cmd: %v", err)
+		return
+	}
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
 }
@@ -98,7 +106,11 @@ func runImageImportOSFromImageTest(
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g"}
-	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
+	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("Error running cmd: %v\n", err)
+		testCase.WriteFailure("Error running cmd: %v", err)
+		return
+	}
 
 	verifyImportedImage(ctx, testCase, testProjectConfig, imageName, logger)
 }
@@ -121,7 +133,11 @@ func runImageImportWithRichParamsTest(
 		"-network=default", "-subnet=default", fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
 		"-no_external_ip", fmt.Sprintf("-labels=%v", labels)}
-	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
+	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("Error running cmd: %v\n", err)
+		testCase.WriteFailure("Error running cmd: %v", err)
+		return
+	}
 
 	verifyImportedImageWithParams(ctx, testCase, testProjectConfig, imageName, logger, family, description, labels)
 }

@@ -67,8 +67,12 @@ func runImageExportRawTest(
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		"-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI)}
-	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
+		"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI)}
+	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("Error running cmd: %v\n", err)
+		testCase.WriteFailure("Error running cmd: %v", err)
+		return
+	}
 
 	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
 }
@@ -83,8 +87,12 @@ func runImageExportVMDKTest(
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		"-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk"}
-	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
+		"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk"}
+	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("Error running cmd: %v\n", err)
+		testCase.WriteFailure("Error running cmd: %v", err)
+		return
+	}
 
 	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
 }
@@ -100,11 +108,15 @@ func runImageExportWithRichParamsTest(
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		"-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+		"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
 		"-network=default", "-subnet=default", fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
 		"-labels=key1=value1,key2=value"}
-	testsuiteutils.RunCliTool(logger, testCase, cmd, args)
+	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("Error running cmd: %v\n", err)
+		testCase.WriteFailure("Error running cmd: %v", err)
+		return
+	}
 
 	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
 }
