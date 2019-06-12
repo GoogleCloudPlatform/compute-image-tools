@@ -115,12 +115,12 @@ def main():
     os.mkdir(config_space + 'files/etc/apt/sources.list.d/gce_staging.list')
     utils.Execute(
         ['cp', '/files/fai_config/sources/GCE_STAGING',
-         config_space +
-         'files/etc/apt/sources.list.d/gce_staging.list/GCE_STAGING'])
+         config_space
+         + 'files/etc/apt/sources.list.d/gce_staging.list/GCE_STAGING'])
     utils.Execute(
         ['cp', '/files/fai_config/sources/file_modes',
-         config_space +
-         'files/etc/apt/sources.list.d/gce_staging.list/file_modes'])
+         config_space
+         + 'files/etc/apt/sources.list.d/gce_staging.list/file_modes'])
     utils.Execute(
         ['cp', '/files/fai_config/sources/repository.GCE_STAGING',
          config_space + 'hooks/repository.GCE_STAGING'])
@@ -131,12 +131,12 @@ def main():
     os.mkdir(config_space + 'files/etc/apt/sources.list.d/gce_unstable.list')
     utils.Execute(
         ['cp', '/files/fai_config/sources/GCE_UNSTABLE',
-         config_space +
-         'files/etc/apt/sources.list.d/gce_unstable.list/GCE_UNSTABLE'])
+         config_space
+         + 'files/etc/apt/sources.list.d/gce_unstable.list/GCE_UNSTABLE'])
     utils.Execute(
         ['cp', '/files/fai_config/sources/file_modes',
-         config_space +
-         'files/etc/apt/sources.list.d/gce_unstable.list/file_modes'])
+         config_space
+         + 'files/etc/apt/sources.list.d/gce_unstable.list/file_modes'])
     utils.Execute(
         ['cp', '/files/fai_config/sources/repository.GCE_UNSTABLE',
          config_space + 'hooks/repository.GCE_UNSTABLE'])
