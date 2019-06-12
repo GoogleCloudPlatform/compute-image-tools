@@ -34,12 +34,6 @@ func (i *Image) Cleanup() error {
 	return i.Client.DeleteImage(i.Project, i.Name)
 }
 
-// Exists checks whether the image exists.
-func (i *Image) Exists() error {
-	_, err := i.Client.GetImage(i.Project, i.Name)
-	return err
-}
-
 // CreateImageObject creates an image object to be operated by API client
 func CreateImageObject(ctx context.Context, project string, name string) (*Image, error) {
 	client, err := computeApi.NewClient(ctx)
@@ -47,6 +41,7 @@ func CreateImageObject(ctx context.Context, project string, name string) (*Image
 		return nil, err
 	}
 
-	apiImage := &api.Image{Name: name}
-	return &Image{apiImage, client, project}, nil
+	var apiImage *api.Image
+	apiImage, err = client.GetImage(project, name)
+	return &Image{apiImage, client, project}, err
 }
