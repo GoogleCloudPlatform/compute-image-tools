@@ -61,8 +61,8 @@ def main():
   # the FAI's version in stretch does not satisfy our need, so the version from
   # stretch-backports is needed.
   if debian_host_version[1].startswith('9'):
-    utils.AptGetInstall(['fai-server', 'fai-setup-storage'],
-                         'stretch-backports')
+    utils.AptGetInstall(
+        ['fai-server', 'fai-setup-storage'], 'stretch-backports')
   else:
     utils.AptGetInstall(['fai-server', 'fai-setup-storage'])
 
