@@ -122,7 +122,7 @@ func runImageImportWithRichParamsTest(
 
 	family := "test-family"
 	description := "test-description"
-	labels := "key1=value1,key2=value2"
+	labels := []string{"key1=value1", "key2=value2"}
 
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-data-disk-" + suffix
@@ -133,8 +133,8 @@ func runImageImportWithRichParamsTest(
 		"-network=default", "-subnet=default",
 		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
-		"-no_external_ip", 
-		fmt.Sprintf("-labels=%v", labels)}
+		"-no_external_ip",
+		fmt.Sprintf("-labels=%v", strings.Join(labels, ","))}
 	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
 		logger.Printf("Error running cmd: %v\n", err)
 		testCase.WriteFailure("Error running cmd: %v", err)
@@ -147,12 +147,12 @@ func runImageImportWithRichParamsTest(
 func verifyImportedImage(ctx context.Context, testCase *junitxml.TestCase,
 	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger) {
 
-	verifyImportedImageWithParams(ctx, testCase, testProjectConfig, imageName, logger, "", "", "")
+	verifyImportedImageWithParams(ctx, testCase, testProjectConfig, imageName, logger, "", "", nil)
 }
 
 func verifyImportedImageWithParams(ctx context.Context, testCase *junitxml.TestCase,
 	testProjectConfig *testconfig.Project, imageName string, logger *log.Logger,
-	expectedFamily string, expectedDescription string, expectedLabels string) {
+	expectedFamily string, expectedDescription string, expectedLabels []string) {
 
 	logger.Printf("Verifying imported image...")
 	image, err := compute.CreateImageObject(ctx, testProjectConfig.TestProjectID, imageName)
@@ -173,15 +173,14 @@ func verifyImportedImageWithParams(ctx context.Context, testCase *junitxml.TestC
 		logger.Printf("Image '%v' description expect: %v, actual: %v", imageName, expectedDescription, image.Description)
 	}
 
-	if expectedLabels != "" {
-		pairs := make([]string, 0, len(image.Labels))
+	if expectedLabels != nil {
+		imageLabels := make([]string, 0, len(image.Labels))
 		for k, v := range image.Labels {
-			pairs = append(pairs, k+"="+v)
+			imageLabels = append(imageLabels, k+"="+v)
 		}
-		imageLabels := strings.Join(pairs, ",")
-		if !strings.Contains(imageLabels, expectedLabels) {
-			testCase.WriteFailure("Image '%v' labels expect: %v, actual: %v", imageName, expectedLabels, imageLabels)
-			logger.Printf("Image '%v' labels expect: %v, actual: %v", imageName, expectedLabels, imageLabels)
+		if !contains(imageLabels, expectedLabels) {
+			testCase.WriteFailure("Image '%v' labels expect: %v, actual: %v", imageName, strings.Join(expectedLabels, ","), strings.Join(imageLabels, ","))
+			logger.Printf("Image '%v' labels expect: %v, actual: %v", imageName, strings.Join(expectedLabels, ","), strings.Join(imageLabels, ","))
 		}
 	}
 
@@ -190,5 +189,20 @@ func verifyImportedImageWithParams(ctx context.Context, testCase *junitxml.TestC
 	} else {
 		logger.Printf("Image '%v' cleaned up.", imageName)
 	}
+}
 
+func contains(arr []string, subarr []string) bool {
+	for item := range subarr {
+		exists := false
+		for i := range arr {
+			if item == i {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			return false
+		}
+	}
+	return true
 }
