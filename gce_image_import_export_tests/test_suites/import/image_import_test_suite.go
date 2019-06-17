@@ -122,7 +122,7 @@ func runImageImportWithRichParamsTest(
 
 	family := "test-family"
 	description := "test-description"
-	labels := "key1=value1,key2=value"
+	labels := "key1=value1,key2=value2"
 
 	suffix := pathutils.RandString(5)
 	imageName := "e2e-test-image-import-data-disk-" + suffix
@@ -130,9 +130,11 @@ func runImageImportWithRichParamsTest(
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 		"-no_guest_environment", fmt.Sprintf("-family=%v", family), fmt.Sprintf("-description=%v", description),
-		"-network=default", "-subnet=default", fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		"-network=default", "-subnet=default",
+		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
-		"-no_external_ip", fmt.Sprintf("-labels=%v", labels)}
+		"-no_external_ip", 
+		fmt.Sprintf("-labels=%v", labels)}
 	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
 		logger.Printf("Error running cmd: %v\n", err)
 		testCase.WriteFailure("Error running cmd: %v", err)
@@ -155,12 +157,6 @@ func verifyImportedImageWithParams(ctx context.Context, testCase *junitxml.TestC
 	logger.Printf("Verifying imported image...")
 	image, err := compute.CreateImageObject(ctx, testProjectConfig.TestProjectID, imageName)
 	if err != nil {
-		testCase.WriteFailure("Error creating compute api client: %v", err)
-		logger.Printf("Error creating compute api client: %v", err)
-		return
-	}
-
-	if err := image.Exists(); err != nil {
 		testCase.WriteFailure("Image '%v' doesn't exist after import: %v", imageName, err)
 		logger.Printf("Image '%v' doesn't exist after import: %v", imageName, err)
 		return
@@ -183,7 +179,7 @@ func verifyImportedImageWithParams(ctx context.Context, testCase *junitxml.TestC
 			pairs = append(pairs, k+"="+v)
 		}
 		imageLabels := strings.Join(pairs, ",")
-		if imageLabels != expectedLabels {
+		if !strings.Contains(imageLabels, expectedLabels) {
 			testCase.WriteFailure("Image '%v' labels expect: %v, actual: %v", imageName, expectedLabels, imageLabels)
 			logger.Printf("Image '%v' labels expect: %v, actual: %v", imageName, expectedLabels, imageLabels)
 		}
