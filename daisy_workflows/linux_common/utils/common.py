@@ -33,6 +33,39 @@ import uuid
 SUCCESS_LEVELNO = logging.ERROR - 5
 
 
+def RetryOnFailure(func):
+  """Function decorator to retry on an exception."""
+
+  @functools.wraps(func)
+  def Wrapper(*args, **kwargs):
+    ratio = 1.5
+    wait = 3
+    ntries = 0
+    start_time = time.time()
+    end_time = start_time + 15 * 60
+    exception = None
+    while time.time() < end_time:
+      ntries += 1
+      try:
+        response = func(*args, **kwargs)
+      except Exception as e:
+        exception = e
+        logging.info(str(e))
+        logging.info(
+            'Function %s failed, waiting %d seconds, retrying %d ...',
+            str(func), wait, ntries)
+        time.sleep(wait)
+        wait = wait * ratio
+      else:
+        logging.info(
+            'Function %s executed in less then %d sec, with %d tentative(s)',
+            str(func), time.time() - start_time, ntries)
+        return response
+    raise exception
+  return Wrapper
+
+
+@RetryOnFailure
 def YumInstall(package_list):
   if YumInstall.first_run:
     Execute(['yum', 'update'])
@@ -43,6 +76,7 @@ def YumInstall(package_list):
 YumInstall.first_run = True
 
 
+@RetryOnFailure
 def AptGetInstall(package_list, suite=None):
   if AptGetInstall.first_run:
     try:
@@ -195,38 +229,6 @@ def GenSshKey(user):
   with open(key_name + '.pub', 'r') as original:
     data = original.read().strip()
   return "%s:%s" % (user, data), key_name
-
-
-def RetryOnFailure(func):
-  """Function decorator to retry on an exception."""
-
-  @functools.wraps(func)
-  def Wrapper(*args, **kwargs):
-    ratio = 1.5
-    wait = 3
-    ntries = 0
-    start_time = time.time()
-    end_time = start_time + 15 * 60
-    exception = None
-    while time.time() < end_time:
-      ntries += 1
-      try:
-        response = func(*args, **kwargs)
-      except Exception as e:
-        exception = e
-        logging.info(str(e))
-        logging.info(
-            'Function %s failed, waiting %d seconds, retrying %d ...',
-            str(func), wait, ntries)
-        time.sleep(wait)
-        wait = wait * ratio
-      else:
-        logging.info(
-            'Function %s executed in less then %d sec, with %d tentative(s)',
-            str(func), time.time() - start_time, ntries)
-        return response
-    raise exception
-  return Wrapper
 
 
 def ExecuteInSsh(
