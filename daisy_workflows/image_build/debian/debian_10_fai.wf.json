@@ -10,6 +10,10 @@
     "debian_version": {
       "Value": "buster",
       "Description": "The FAI tool debian version to be requested."
+    },
+    "google_cloud_repo": {
+      "Value": "stable",
+      "Description": "The Google Cloud Repo branch to use."
     }
   },
   "Steps": {
@@ -21,8 +25,9 @@
           "build_date": "${build_date}",
           "debian_cloud_images_version": "${debian_cloud_images_version}",
           "debian_version": "${debian_version}",
-          "builder_source_image": "projects/debian-cloud/global/images/family/debian-9",
-          "image_dest": "${image_dest}"
+          "builder_source_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
+          "image_dest": "${image_dest}",
+          "google_cloud_repo": "${google_cloud_repo}"
         }
       }
     }

@@ -4,7 +4,7 @@
     "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "bootstrap_vz_version": {
-      "Value": "f00c63eaeb7cd06c28f56e2b228a979dade9a873",
+      "Value": "8715d5e969e9452d0c975c1d1949535fa60b71fe",
       "Description": "The bootstrap-vz github commit ID to use."
     }
   },

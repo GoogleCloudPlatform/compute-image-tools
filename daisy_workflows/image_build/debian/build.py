@@ -38,7 +38,7 @@ utils.AptGetInstall(
     ['git', 'python-pip', 'qemu-utils', 'parted', 'kpartx', 'debootstrap',
      'python-yaml', 'python3-yaml'])
 utils.PipInstall(
-    ['termcolor', 'fysom', 'jsonschema', 'docopt'])
+    ['termcolor', 'fysom', 'jsonschema', 'docopt', 'json_minify'])
 
 import yaml  # noqa: E402,I202
 
