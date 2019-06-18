@@ -34,6 +34,11 @@ import urllib.request
 import utils
 
 
+def CopyToConfigSpace(src, dst, config_space):
+  """Copies source files to config space destination."""
+  return utils.Execute(['cp', src, config_space + dst])
+
+
 def main():
   # Get Parameters.
   build_date = utils.GetMetadataAttribute(
@@ -96,50 +101,51 @@ def main():
   config_space = os.getcwd() + work_dir + '/config_space/'
 
   # Copy GCE_SPECIFIC fai classes.
-  utils.Execute(['cp', '/files/fai_config/packages/GCE_SPECIFIC',
-                 config_space + 'package_config/GCE_SPECIFIC'])
+  CopyToConfigSpace('/files/fai_config/packages/GCE_SPECIFIC',
+                    'package_config/GCE_SPECIFIC',
+                    config_space)
   os.mkdir(config_space + 'files/etc/apt/sources.list.d/gce.list')
-  utils.Execute(
-      ['cp', '/files/fai_config/sources/GCE_SPECIFIC',
-       config_space + 'files/etc/apt/sources.list.d/gce.list/GCE_SPECIFIC'])
-  utils.Execute(
-      ['cp', '/files/fai_config/sources/file_modes',
-       config_space + 'files/etc/apt/sources.list.d/gce.list/file_modes'])
-  utils.Execute(
-      ['cp', '/files/fai_config/sources/repository.GCE_SPECIFIC',
-       config_space + 'hooks/repository.GCE_SPECIFIC'])
+  CopyToConfigSpace('/files/fai_config/sources/GCE_SPECIFIC',
+                    'files/etc/apt/sources.list.d/gce.list/GCE_SPECIFIC',
+                    config_space)
+  CopyToConfigSpace('/files/fai_config/sources/file_modes',
+                    'files/etc/apt/sources.list.d/gce.list/file_modes',
+                    config_space)
+  CopyToConfigSpace('/files/fai_config/sources/repository.GCE_SPECIFIC',
+                    'hooks/repository.GCE_SPECIFIC',
+                    config_space)
   fai_classes += ['GCE_SPECIFIC']
 
   # GCE staging package repo.
   if google_cloud_repo == 'staging' or google_cloud_repo == 'unstable':
     os.mkdir(config_space + 'files/etc/apt/sources.list.d/gce_staging.list')
-    utils.Execute(
-        ['cp', '/files/fai_config/sources/GCE_STAGING',
-         config_space
-         + 'files/etc/apt/sources.list.d/gce_staging.list/GCE_STAGING'])
-    utils.Execute(
-        ['cp', '/files/fai_config/sources/file_modes',
-         config_space
-         + 'files/etc/apt/sources.list.d/gce_staging.list/file_modes'])
-    utils.Execute(
-        ['cp', '/files/fai_config/sources/repository.GCE_STAGING',
-         config_space + 'hooks/repository.GCE_STAGING'])
+    CopyToConfigSpace(
+        '/files/fai_config/sources/GCE_STAGING',
+        'files/etc/apt/sources.list.d/gce_staging.list/GCE_STAGING',
+        config_space)
+    CopyToConfigSpace(
+        '/files/fai_config/sources/file_modes',
+        'files/etc/apt/sources.list.d/gce_staging.list/file_modes',
+        config_space)
+    CopyToConfigSpace('/files/fai_config/sources/repository.GCE_STAGING',
+                      'hooks/repository.GCE_STAGING',
+                      config_space)
     fai_classes += ['GCE_STAGING']
 
   # GCE unstable package repo.
   if google_cloud_repo == 'unstable':
     os.mkdir(config_space + 'files/etc/apt/sources.list.d/gce_unstable.list')
-    utils.Execute(
-        ['cp', '/files/fai_config/sources/GCE_UNSTABLE',
-         config_space
-         + 'files/etc/apt/sources.list.d/gce_unstable.list/GCE_UNSTABLE'])
-    utils.Execute(
-        ['cp', '/files/fai_config/sources/file_modes',
-         config_space
-         + 'files/etc/apt/sources.list.d/gce_unstable.list/file_modes'])
-    utils.Execute(
-        ['cp', '/files/fai_config/sources/repository.GCE_UNSTABLE',
-         config_space + 'hooks/repository.GCE_UNSTABLE'])
+    CopyToConfigSpace(
+        '/files/fai_config/sources/GCE_UNSTABLE',
+        'files/etc/apt/sources.list.d/gce_unstable.list/GCE_UNSTABLE',
+        config_space)
+    CopyToConfigSpace(
+        '/files/fai_config/sources/file_modes',
+        'files/etc/apt/sources.list.d/gce_unstable.list/file_modes',
+        config_space)
+    CopyToConfigSpace('/files/fai_config/sources/file_modes',
+                      'hooks/repository.GCE_UNSTABLE',
+                      config_space)
     fai_classes += ['GCE_UNSTABLE']
 
   # Run fai-tool.
@@ -160,21 +166,6 @@ def main():
   # Upload tar.
   logging.info('Saving %s to %s' % (disk_tar_gz, image_dest))
   utils.UploadFile(disk_tar_gz, image_dest)
-
-  # Create and upload the synopsis of the image.
-  logging.info('Creating image synopsis.')
-  synopsis = {}
-  packages = collections.OrderedDict()
-  _, output = utils.Execute(['dpkg-query', '-W'], capture_output=True)
-  for line in output.split('\n')[:-1]:  # Last line is an empty line.
-    parts = line.split()
-    packages[parts[0]] = parts[1]
-  synopsis['installed_packages'] = packages
-  with open('/tmp/synopsis.json', 'w') as f:
-    f.write(json.dumps(synopsis))
-  logging.info('Uploading image synopsis.')
-  synopsis_dest = os.path.join(outs_path, 'synopsis.json')
-  utils.UploadFile('/tmp/synopsis.json', synopsis_dest)
 
 
 if __name__ == '__main__':
