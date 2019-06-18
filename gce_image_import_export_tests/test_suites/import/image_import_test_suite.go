@@ -130,11 +130,9 @@ func runImageImportWithRichParamsTest(
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
 		"-no_guest_environment", fmt.Sprintf("-family=%v", family), fmt.Sprintf("-description=%v", description),
-		"-network=default", "-subnet=default",
-		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		"-network=default", "-subnet=default", fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
-		"-no_external_ip",
-		fmt.Sprintf("-labels=%v", strings.Join(labels, ","))}
+		"-no_external_ip", fmt.Sprintf("-labels=%v", strings.Join(labels, ","))}
 	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
 		logger.Printf("Error running cmd: %v\n", err)
 		testCase.WriteFailure("Error running cmd: %v", err)
