@@ -136,6 +136,7 @@ func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath
 	}
 	rp := progress{}
 	tw := tar.NewWriter(io.MultiWriter(&rp, gw))
+
 	ls := splitLicenses(*licenses)
 	fmt.Printf("GCEExport: Disk %s is %s, compressed size will most likely be much smaller.\n", *disk, humanize.IBytes(uint64(size)))
 	if ls != nil {
@@ -153,8 +154,10 @@ func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath
 			os.Exit(0)
 		}
 	}
+
 	fmt.Println("GCEExport: Beginning export...")
 	start := time.Now()
+
 	if ls != nil {
 		type lsJSON struct {
 			Licenses []string `json:"licenses"`
