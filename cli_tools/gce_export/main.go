@@ -26,7 +26,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -38,9 +37,8 @@ import (
 )
 
 var (
-	disk      = flag.String("disk", "", "disk to copy, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive0'")
-	bufferPath = flag.String("buffer_path", "", "buffer path to store the .tar.gz file on local, on linux this would be something like '/dev/sdb/buffer', and on Windows '\\\\.\\PhysicalDrive1\buffer'. " +
-		"It's optional: when it's provided, the .tar.gz file will be stored on the given buffer path and then copied to gcs_path, which is more stable but needs extra disk space. Without this param, it's directly streamed to gcs")
+	disk      = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive0'")
+	localPath = flag.String("local_path", "", "local path to store the image file on disk, on linux this would be something like '/dev/sdb/buffer', and on Windows '\\\\.\\PhysicalDrive1\buffer'. ")
 	gcsPath   = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
 	oauth     = flag.String("oauth", "", "path to oauth json file")
 	licenses  = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
@@ -74,17 +72,16 @@ func splitLicenses(input string) []string {
 func main() {
 	flag.Parse()
 
-	if *gcsPath == "" {
-		log.Fatal("The flag -gcs_path must be provided")
+	if *localPath != "" && *gcsPath != "" {
+		log.Fatal("-local_path and -gcs_path can't be both specified")
+	}
+
+	if *localPath == "" && *gcsPath == "" {
+		log.Fatal("-local_path or -gcs_path must be provided")
 	}
 
 	if *disk == "" {
 		log.Fatal("The flag -disk must be provided")
-	}
-
-	bkt, obj, err := storageutils.SplitGCSPath(*gcsPath)
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	file, err := os.Open(*disk)
@@ -98,50 +95,40 @@ func main() {
 		log.Fatal(err)
 	}
 
-	w := createWriter(bkt, obj)
-
-	if *bufferPath == "" {
-		// Create gzip file on GCS
-		createGzipFile(w, size, file, fmt.Sprintf("gs://%s/%s", bkt, obj))
-	} else {
-		// Create gzip file on buffer path
-		createGzipFile(w, size, file, *bufferPath)
-		// copy gzip file to gcs
-		args := []string{"cp", *bufferPath, *gcsPath}
-		fmt.Printf("GCEExport: Copying %s to %s.\n", *bufferPath, *gcsPath)
-		cmd := exec.Command("gsutil", args...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("GCEExport: Failed to copy %s to %s: %v\n", *bufferPath, *gcsPath, err)
-		} else {
-			fmt.Printf("GCEExport: Finished copying %s to %s.\n", *bufferPath, *gcsPath)
-		}
-	}
-
+	writer, targetPath := createWriter()
+	createGzipFile(file, size, writer, targetPath)
 }
 
-func createWriter(bkt string, obj string) io.WriteCloser {
+func createWriter() (io.WriteCloser, string) {
 	var w io.WriteCloser
-	if *bufferPath == "" {
+	var p string
+	if *gcsPath != "" {
+		bkt, obj, err := storageutils.SplitGCSPath(*gcsPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		ctx := context.Background()
 		client, err := storage.NewClient(ctx, option.WithServiceAccountFile(*oauth))
 		if err != nil {
 			log.Fatal(err)
 		}
 		w = client.Bucket(bkt).Object(obj).NewWriter(ctx)
+		p = fmt.Sprintf("gs://%s/%s", bkt, obj)
 	} else {
-		bufferFile, err := os.Create(*bufferPath)
+		bufferFile, err := os.Create(*localPath)
 		if err != nil {
 			log.Fatal(err)
 		}
 		bw := bufio.NewWriter(bufferFile)
 		w = &FileWriter{bw}
+		p = *localPath
 	}
-	return w
+
+	return w, p
 }
 
-func createGzipFile(writer io.WriteCloser, size int64, file *os.File, targetPath string) {
+func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath string) {
 	up := progress{}
 	gw, err := gzip.NewWriterLevel(io.MultiWriter(&up, writer), *level)
 	if err != nil {
@@ -166,7 +153,7 @@ func createGzipFile(writer io.WriteCloser, size int64, file *os.File, targetPath
 			os.Exit(0)
 		}
 	}
-	fmt.Println("GCEExport: Beginning compress...")
+	fmt.Println("GCEExport: Beginning export...")
 	start := time.Now()
 	if ls != nil {
 		type lsJSON struct {
