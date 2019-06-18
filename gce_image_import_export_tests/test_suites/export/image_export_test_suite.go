@@ -126,12 +126,6 @@ func verifyExportedImageFile(ctx context.Context, testCase *junitxml.TestCase, b
 	logger.Printf("Verifying exported file...")
 	file, err := storage.CreateFileObject(ctx, bucketName, objectName)
 	if err != nil {
-		testCase.WriteFailure("Error creating compute api client: %v", err)
-		logger.Printf("Error creating compute api client: %v", err)
-		return
-	}
-
-	if err := file.Exists(); err != nil {
 		testCase.WriteFailure("File '%v' doesn't exist after export: %v", objectName, err)
 		logger.Printf("File '%v' doesn't exist after export: %v", objectName, err)
 		return

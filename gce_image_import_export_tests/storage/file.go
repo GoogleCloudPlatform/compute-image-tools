@@ -36,12 +36,6 @@ func (f *File) Cleanup() error {
 	return f.FileObject.Delete(f.ctx)
 }
 
-// Exists checks whether the file exists.
-func (f *File) Exists() error {
-	_, err := f.FileObject.NewReader(f.ctx)
-	return err
-}
-
 // CreateFileObject creates an file object to be operated by API client
 func CreateFileObject(ctx context.Context, bucketName string, objectName string) (*File, error) {
 	storageOptions := []option.ClientOption{}
@@ -52,5 +46,6 @@ func CreateFileObject(ctx context.Context, bucketName string, objectName string)
 
 	fileObj := client.Bucket(bucketName).Object(objectName)
 	apiObj := &api.Object{}
-	return &File{apiObj, *client, fileObj, ctx}, nil
+	_, err = fileObj.NewReader(ctx)
+	return &File{apiObj, *client, fileObj, ctx}, err
 }
