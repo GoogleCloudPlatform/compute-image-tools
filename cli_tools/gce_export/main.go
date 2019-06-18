@@ -37,8 +37,8 @@ import (
 )
 
 var (
-	disk      = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive0'")
-	localPath = flag.String("local_path", "", "local path to store the image file on disk, on linux this would be something like '/dev/sdb/buffer', and on Windows '\\\\.\\PhysicalDrive1\buffer'. ")
+	disk      = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive1'")
+	localPath = flag.String("local_path", "", "local path to store the image file on disk, on linux this would be something like '/my_folder/linux.tar.gz', and on Windows '\\\\.\\PhysicalDrive2\buffer'. ")
 	gcsPath   = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
 	oauth     = flag.String("oauth", "", "path to oauth json file")
 	licenses  = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
