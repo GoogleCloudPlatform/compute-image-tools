@@ -24,6 +24,7 @@ type FileWriter struct {
 	*bufio.Writer
 }
 
+// Close preparing for detaching resources
 func (fw *FileWriter) Close() error {
 	return fw.Flush()
 }
