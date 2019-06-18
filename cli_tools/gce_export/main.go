@@ -222,6 +222,6 @@ func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath
 	if err := writer.Close(); err != nil {
 		log.Fatal(err)
 	}
-	
+
 	fmt.Println("GCEExport: Finished export in ", time.Since(start))
 }
