@@ -17,6 +17,7 @@ package main
 
 import (
 	"archive/tar"
+	"bufio"
 	"context"
 	"encoding/json"
 	"flag"
@@ -25,18 +26,21 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
-	humanize "github.com/dustin/go-humanize"
+	"github.com/dustin/go-humanize"
 	gzip "github.com/klauspost/pgzip"
 	"google.golang.org/api/option"
 )
 
 var (
 	disk      = flag.String("disk", "", "disk to copy, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive0'")
+	bufferPath = flag.String("buffer_path", "", "buffer path to store the .tar.gz file on local, on linux this would be something like '/dev/sdb/buffer', and on Windows '\\\\.\\PhysicalDrive1\buffer'. " +
+		"It's optional: when it's provided, the .tar.gz file will be stored on the given buffer path and then copied to gcs_path, which is more stable but needs extra disk space. Without this param, it's directly streamed to gcs")
 	gcsPath   = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
 	oauth     = flag.String("oauth", "", "path to oauth json file")
 	licenses  = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
@@ -94,29 +98,64 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx := context.Background()
-	client, err := storage.NewClient(ctx, option.WithServiceAccountFile(*oauth))
-	if err != nil {
-		log.Fatal(err)
+	w := createWriter(bkt, obj)
+
+	if *bufferPath == "" {
+		// Create gzip file on GCS
+		createGzipFile(w, size, file, fmt.Sprintf("gs://%s/%s", bkt, obj))
+	} else {
+		// Create gzip file on buffer path
+		createGzipFile(w, size, file, *bufferPath)
+		// copy gzip file to gcs
+		args := []string{"cp", *bufferPath, *gcsPath}
+		fmt.Printf("GCEExport: Copying %s to %s.\n", *bufferPath, *gcsPath)
+		cmd := exec.Command("gsutil", args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("GCEExport: Failed to copy %s to %s: %v\n", *bufferPath, *gcsPath, err)
+		} else {
+			fmt.Printf("GCEExport: Finished copying %s to %s.\n", *bufferPath, *gcsPath)
+		}
 	}
 
-	w := client.Bucket(bkt).Object(obj).NewWriter(ctx)
+}
+
+func createWriter(bkt string, obj string) io.WriteCloser {
+	var w io.WriteCloser
+	if *bufferPath == "" {
+		ctx := context.Background()
+		client, err := storage.NewClient(ctx, option.WithServiceAccountFile(*oauth))
+		if err != nil {
+			log.Fatal(err)
+		}
+		w = client.Bucket(bkt).Object(obj).NewWriter(ctx)
+	} else {
+		bufferFile, err := os.Create(*bufferPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bw := bufio.NewWriter(bufferFile)
+		w = &FileWriter{bw}
+	}
+	return w
+}
+
+func createGzipFile(writer io.WriteCloser, size int64, file *os.File, targetPath string) {
 	up := progress{}
-	gw, err := gzip.NewWriterLevel(io.MultiWriter(&up, w), *level)
+	gw, err := gzip.NewWriterLevel(io.MultiWriter(&up, writer), *level)
 	if err != nil {
 		log.Fatal(err)
 	}
 	rp := progress{}
 	tw := tar.NewWriter(io.MultiWriter(&rp, gw))
-
 	ls := splitLicenses(*licenses)
 	fmt.Printf("GCEExport: Disk %s is %s, compressed size will most likely be much smaller.\n", *disk, humanize.IBytes(uint64(size)))
 	if ls != nil {
-		fmt.Printf("GCEExport: Exporting disk with licenses %q to gs://%s/%s.\n", ls, bkt, obj)
+		fmt.Printf("GCEExport: Exporting disk with licenses %q to %s.\n", ls, targetPath)
 	} else {
-		fmt.Printf("GCEExport: Exporting disk to gs://%s/%s.\n", bkt, obj)
+		fmt.Printf("GCEExport: Exporting disk to %s.\n", targetPath)
 	}
-
 	if !*noconfirm {
 		fmt.Print("Continue? (y/N): ")
 		var c string
@@ -127,10 +166,8 @@ func main() {
 			os.Exit(0)
 		}
 	}
-
-	fmt.Println("GCEExport: Beginning copy...")
+	fmt.Println("GCEExport: Beginning compress...")
 	start := time.Now()
-
 	if ls != nil {
 		type lsJSON struct {
 			Licenses []string `json:"licenses"`
@@ -152,7 +189,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-
 	if err := tw.WriteHeader(&tar.Header{
 		Name:   "disk.raw",
 		Mode:   0600,
@@ -176,29 +212,24 @@ func main() {
 			uploadTotal := humanize.IBytes(uint64(up.total))
 			readTotal := humanize.IBytes(uint64(rp.total))
 			fmt.Printf("GCEExport: Read %s of %s (%s/sec),", readTotal, totalSize, diskSpd)
-			fmt.Printf(" total uploaded size: %s (%s/sec)\n", uploadTotal, upldSpd)
+			fmt.Printf(" total written size: %s (%s/sec)\n", uploadTotal, upldSpd)
 			oldUpload = up.total
 			oldRead = rp.total
 			oldSince = since
 			time.Sleep(45 * time.Second)
 		}
 	}()
-
 	if _, err := io.CopyN(tw, file, size); err != nil {
 		log.Fatal(err)
 	}
-
 	if err := tw.Close(); err != nil {
 		log.Fatal(err)
 	}
-
 	if err := gw.Close(); err != nil {
 		log.Fatal(err)
 	}
-
-	if err := w.Close(); err != nil {
+	if err := writer.Close(); err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("GCEExport: Finished export in", time.Since(start))
+	fmt.Println("GCEExport: Finished compress in ", time.Since(start))
 }

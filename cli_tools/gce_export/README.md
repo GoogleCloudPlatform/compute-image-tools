@@ -20,6 +20,11 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export
 
 + `-disk` disk to copy, on linux this would be something like `/dev/sdb`, and on
 Windows `\\.\PhysicalDrive1`
++ `-buffer_path` buffer path to store the .tar.gz file on local, on linux this would
+be something like `/dev/sdb/buffer`, and on Windows `\\.\PhysicalDrive1\buffer`. It's
+optional: when it's provided, the .tar.gz file will be stored on the given buffer path
+and then copied to gcs_path, which is more stable but needs extra disk space.
+Without this param, it's directly streamed to gcs. 
 + `-gcs_path` GCS path to upload the image to, in the form of gs://my-bucket/image.tar.gz
 + `-oauth` path to oauth json file fo authenticating to the GCS bucket
 + `-licenses` (optional) comma separated list of licenses to add to the image
