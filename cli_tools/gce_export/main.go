@@ -95,44 +95,50 @@ func main() {
 		log.Fatal(err)
 	}
 
-	writer, targetPath := createWriter()
-	createGzipFile(file, size, writer, targetPath)
+	writer, targetPath, err := createWriter()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := createGzipFile(file, size, writer, targetPath); err != nil {
+		log.Fatal(err)
+	}
 }
 
-func createWriter() (io.WriteCloser, string) {
+func createWriter() (io.WriteCloser, string, error) {
 	var w io.WriteCloser
 	var p string
 	if *gcsPath != "" {
 		bkt, obj, err := storageutils.SplitGCSPath(*gcsPath)
 		if err != nil {
-			log.Fatal(err)
+			return nil, "", err
 		}
 
 		ctx := context.Background()
 		client, err := storage.NewClient(ctx, option.WithServiceAccountFile(*oauth))
 		if err != nil {
-			log.Fatal(err)
+			return nil, "", err
 		}
 		w = client.Bucket(bkt).Object(obj).NewWriter(ctx)
 		p = fmt.Sprintf("gs://%s/%s", bkt, obj)
 	} else {
 		bufferFile, err := os.Create(*localPath)
 		if err != nil {
-			log.Fatal(err)
+			return nil, "", err
 		}
 		bw := bufio.NewWriter(bufferFile)
 		w = &FileWriter{bw}
 		p = *localPath
 	}
 
-	return w, p
+	return w, p, nil
 }
 
-func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath string) {
+func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath string) error {
 	up := progress{}
 	gw, err := gzip.NewWriterLevel(io.MultiWriter(&up, writer), *level)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	rp := progress{}
 	tw := tar.NewWriter(io.MultiWriter(&rp, gw))
@@ -164,7 +170,7 @@ func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath
 		}
 		body, err := json.Marshal(lsJSON{Licenses: ls})
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		if err := tw.WriteHeader(&tar.Header{
@@ -173,10 +179,10 @@ func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath
 			Size:   int64(len(body)),
 			Format: tar.FormatGNU,
 		}); err != nil {
-			log.Fatal(err)
+			return err
 		}
 		if _, err := tw.Write([]byte(body)); err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
 	if err := tw.WriteHeader(&tar.Header{
@@ -185,7 +191,7 @@ func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath
 		Size:   size,
 		Format: tar.FormatGNU,
 	}); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// This function only serves to update progress for the user.
@@ -211,20 +217,21 @@ func createGzipFile(file *os.File, size int64, writer io.WriteCloser, targetPath
 	}()
 
 	if _, err := io.CopyN(tw, file, size); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err := tw.Close(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err := gw.Close(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err := writer.Close(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	fmt.Println("GCEExport: Finished export in ", time.Since(start))
+	return nil
 }
