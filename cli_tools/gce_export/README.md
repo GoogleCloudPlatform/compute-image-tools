@@ -3,9 +3,11 @@
 The `gce_export` tool streams a local disk to a Google Compute Engine image 
 file in a Google Cloud Storage bucket (steps 9 and 10 in the
 [image export documentation](https://cloud.google.com/compute/docs/images/export-image)).
-No local file is created so no additional disk space needs to be allocated. 
+When exporting to GCS, no local file is created so no additional disk space needs to be allocated. 
 Once complete the image file can be imported in GCE as described in the 
 [image import documentation](https://cloud.google.com/compute/docs/images/import-existing-image).
+
+This tool can also be used to export the image to local disk.
 
 ### Build
 Download and install [Go](https://golang.org/doc/install). Then pull and 
