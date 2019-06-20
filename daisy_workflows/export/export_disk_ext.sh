@@ -16,12 +16,12 @@ set -x
 
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
-GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
+GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 FORMAT=$(curl -f -H Metadata-Flavor:Google ${URL}/format)
 DISK_RESIZING_MON=$(curl -f -H Metadata-Flavor:Google ${URL}/resizing-script-name)
 
 # Strip gs://
-IMAGE_OUTPUT_PATH=${GS_PATH##*//}
+IMAGE_OUTPUT_PATH=${GCS_PATH##*//}
 # Create dir for output
 OUTS_PATH=${IMAGE_OUTPUT_PATH%/*}
 mkdir -p "/gs/${OUTS_PATH}"
@@ -49,7 +49,7 @@ DISK_RESIZING_MON_LOCAL_PATH=/gs/${DISK_RESIZING_MON}
 echo "GCEExport: Copying disk size monitor script..."
 if ! out=$(gsutil cp "${DISK_RESIZING_MON_GCS_PATH}" "${DISK_RESIZING_MON_LOCAL_PATH}" 2>&1); then
   echo "ExportFailed: Failed to copy disk size monitor script. Error: ${out}"
-  exit
+  exit 1
 fi
 echo ${out}
 
@@ -59,15 +59,15 @@ ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
 
 echo "GCEExport: Exporting disk of size ${SIZE_OUTPUT_GB}GB and format ${FORMAT}."
 if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT 2>&1); then
-  echo "ExportFailed: Failed to export disk source to ${GS_PATH} due to qemu-img error: ${out}"
-  exit
+  echo "ExportFailed: Failed to export disk source to ${GCS_PATH} due to qemu-img error: ${out}"
+  exit 1
 fi
 echo ${out}
 
 echo "GCEExport: Copying output image to target GCS path..."
-if ! out=$(gsutil cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>&1); then
-  echo "ExportFailed: Failed to copy output image to ${GS_PATH}, error: ${out}"
-  exit
+if ! out=$(gsutil cp "/gs/${IMAGE_OUTPUT_PATH}" "${GCS_PATH}" 2>&1); then
+  echo "ExportFailed: Failed to copy output image to ${GCS_PATH}, error: ${out}"
+  exit 1
 fi
 echo ${out}
 

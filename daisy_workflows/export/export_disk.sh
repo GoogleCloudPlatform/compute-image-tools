@@ -13,20 +13,68 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
+DISK_RESIZING_MON=$(curl -f -H Metadata-Flavor:Google ${URL}/resizing-script-name)
 
-echo "GCEExport: Running export tool."
-if [[ -n $LICENSES ]]; then
-  gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
-else
-  gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y
+# Strip gs://
+IMAGE_OUTPUT_PATH=${GCS_PATH##*//}
+# Create dir for output
+OUTS_PATH=${IMAGE_OUTPUT_PATH%/*}
+mkdir -p "/gs/${OUTS_PATH}"
+
+# Prepare disk size info.
+# 1. Disk image size info.
+SIZE_BYTES=$(lsblk /dev/sdb --output=size -b | sed -n 2p)
+# 2. Round up to the next GB.
+SIZE_OUTPUT_GB=$(awk "BEGIN {print int(((${SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
+# 3. Add 5GB of additional space to max size to prevent the corner case that output
+# file is slightly larger than source disk.
+MAX_BUFFER_DISK_SIZE_GB=$(awk "BEGIN {print int(${SIZE_OUTPUT_GB} + 5)}")
+
+# Prepare buffer disk.
+echo "GCEExport: Initializing buffer disk for gce_export output..."
+mkfs.ext4 /dev/sdc
+mount /dev/sdc "/gs/${OUTS_PATH}"
+if [[ $? -ne 0 ]]; then
+  echo "ExportFailed: Failed to prepare buffer disk by mkfs + mount."
 fi
-if [ $? -ne 0 ]; then
-  echo "ExportFailed: Failed to export disk source to ${GCS_PATH}."
+
+# Fetch disk size monitor script from GCS1
+DISK_RESIZING_MON_GCS_PATH=gs://${OUTS_PATH%/*}/sources/${DISK_RESIZING_MON}
+DISK_RESIZING_MON_LOCAL_PATH=/gs/${DISK_RESIZING_MON}
+echo "GCEExport: Copying disk size monitor script..."
+if ! out=$(gsutil cp "${DISK_RESIZING_MON_GCS_PATH}" "${DISK_RESIZING_MON_LOCAL_PATH}" 2>&1); then
+  echo "ExportFailed: Failed to copy disk size monitor script. Error: ${out}"
   exit 1
 fi
+echo ${out}
+
+echo "GCEExport: Launching disk size monitor in background..."
+chmod +x ${DISK_RESIZING_MON_LOCAL_PATH}
+${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
+
+echo "GCEExport: Exporting image to local by gce_export tool..."
+if [[ -n $LICENSES ]]; then
+  gce_export -local_path "$IMAGE_OUTPUT_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
+else
+  gce_export -local_path "$IMAGE_OUTPUT_PATH" -disk /dev/sdb -y
+fi
+if [ $? -ne 0 ]; then
+  echo "ExportFailed: Failed to export disk source to ${IMAGE_OUTPUT_PATH}."
+  exit 1
+fi
+
+echo "GCEExport: Copying output image to target GCS path..."
+if ! out=$(gsutil cp "/gs/${IMAGE_OUTPUT_PATH}" "${GCS_PATH}" 2>&1); then
+  echo "ExportFailed: Failed to copy output image to ${GCS_PATH}, error: ${out}"
+  exit 1
+fi
+echo ${out}
+
+"$GCS_PATH"
 
 echo "ExportSuccess"
 sync
