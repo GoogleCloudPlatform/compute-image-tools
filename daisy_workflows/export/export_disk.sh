@@ -58,12 +58,12 @@ ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
 
 echo "GCEExport: Exporting image to local by gce_export tool..."
 if [[ -n $LICENSES ]]; then
-  gce_export -local_path "$IMAGE_OUTPUT_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
+  gce_export -local_path "/gs/${IMAGE_OUTPUT_PATH}" -disk /dev/sdb -licenses "$LICENSES" -y
 else
-  gce_export -local_path "$IMAGE_OUTPUT_PATH" -disk /dev/sdb -y
+  gce_export -local_path "/gs/${IMAGE_OUTPUT_PATH}" -disk /dev/sdb -y
 fi
 if [ $? -ne 0 ]; then
-  echo "ExportFailed: Failed to export disk source to ${IMAGE_OUTPUT_PATH}."
+  echo "ExportFailed: Failed to export disk source to /gs/${IMAGE_OUTPUT_PATH}."
   exit 1
 fi
 
