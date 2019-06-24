@@ -57,6 +57,13 @@ func daisyBkt(ctx context.Context, client *storage.Client, project string) (stri
 	return dBkt, nil
 }
 
+// TimeRecord is a type with info of a step execution time
+type TimeRecord struct {
+	Name      string
+	StartTime time.Time
+	EndTime   time.Time
+}
+
 // Var is a type with a flexible JSON representation. A Var can be represented
 // by either a string, or by this struct definition. A Var that is represented
 // by a string will unmarshal into the struct: {Value: <string>, Required: false, Description: ""}.
@@ -143,6 +150,8 @@ type Workflow struct {
 	subnetworks     *subnetworkRegistry
 	targetInstances *targetInstanceRegistry
 	objects         *objectRegistry
+
+	stepTimeRecords []TimeRecord
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -247,7 +256,21 @@ func (w *Workflow) RunWithModifiers(
 	return nil
 }
 
+func (w *Workflow) recordStepTime(stepName string, startTime time.Time, endTime time.Time) {
+	if w.parent == nil {
+		w.stepTimeRecords = append(w.stepTimeRecords, TimeRecord{stepName, startTime, endTime})
+	} else {
+		w.parent.recordStepTime(fmt.Sprintf("%s.%s", w.Name, stepName), startTime, endTime)
+	}
+}
+
+// GetStepTimeRecords returns time records of each steps
+func (w *Workflow) GetStepTimeRecords() []TimeRecord {
+	return w.stepTimeRecords
+}
+
 func (w *Workflow) cleanup() {
+	startTime := time.Now()
 	w.LogWorkflowInfo("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
 	select {
 	case <-w.Cancel:
@@ -260,6 +283,7 @@ func (w *Workflow) cleanup() {
 		}
 	}
 	w.LogWorkflowInfo("Workflow %q finished cleanup.", w.Name)
+	w.recordStepTime("workflow cleanup", startTime, time.Now())
 }
 
 func (w *Workflow) genName(n string) string {
