@@ -56,7 +56,7 @@ echo "GCEExport: Launching disk size monitor in background..."
 chmod +x ${DISK_RESIZING_MON_LOCAL_PATH}
 ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
 
-echo "GCEExport: Exporting image to local by gce_export tool..."
+echo "GCEExport: Exporting image to local disk by gce_export tool..."
 if [[ -n $LICENSES ]]; then
   gce_export -local_path "/gs/${IMAGE_OUTPUT_PATH}" -disk /dev/sdb -licenses "$LICENSES" -y
 else
@@ -73,8 +73,6 @@ if ! out=$(gsutil cp "/gs/${IMAGE_OUTPUT_PATH}" "${GCS_PATH}" 2>&1); then
   exit 1
 fi
 echo ${out}
-
-"$GCS_PATH"
 
 echo "ExportSuccess"
 sync
