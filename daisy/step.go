@@ -34,10 +34,8 @@ type stepImpl interface {
 
 // Step is a single daisy workflow step.
 type Step struct {
-	name      string
-	w         *Workflow
-	startTime time.Time
-	endTime   time.Time
+	name string
+	w    *Workflow
 
 	// Time to wait for this step to complete (default 10m).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
@@ -252,14 +250,14 @@ func (s *Step) populate(ctx context.Context) dErr {
 	return err
 }
 
-func (s *Step) recordEndTime() {
-	s.endTime = time.Now()
-	s.w.recordStepTime(s.name, s.startTime, s.endTime)
+func (s *Step) recordStepTime(startTime time.Time) {
+	endTime := time.Now()
+	s.w.recordStepTime(s.name, startTime, endTime)
 }
 
 func (s *Step) run(ctx context.Context) dErr {
-	s.startTime = time.Now()
-	defer s.recordEndTime()
+	startTime = time.Now()
+	defer s.recordStepTime(startTime)
 	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapRunError(err)
