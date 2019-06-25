@@ -132,6 +132,7 @@ type Workflow struct {
 	Logger                Logger `json:"-"`
 	cleanupHooks          []func() dErr
 	cleanupHooksMx        sync.Mutex
+	recordTimeMx          sync.Mutex
 	logWait               sync.WaitGroup
 
 	// Optional compute endpoint override.
@@ -258,7 +259,9 @@ func (w *Workflow) RunWithModifiers(
 
 func (w *Workflow) recordStepTime(stepName string, startTime time.Time, endTime time.Time) {
 	if w.parent == nil {
+		w.recordTimeMx.Lock()
 		w.stepTimeRecords = append(w.stepTimeRecords, TimeRecord{stepName, startTime, endTime})
+		w.recordTimeMx.Unlock()
 	} else {
 		w.parent.recordStepTime(fmt.Sprintf("%s.%s", w.Name, stepName), startTime, endTime)
 	}
