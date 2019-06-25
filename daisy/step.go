@@ -256,7 +256,7 @@ func (s *Step) recordStepTime(startTime time.Time) {
 }
 
 func (s *Step) run(ctx context.Context) dErr {
-	startTime = time.Now()
+	startTime := time.Now()
 	defer s.recordStepTime(startTime)
 	impl, err := s.stepImpl()
 	if err != nil {
