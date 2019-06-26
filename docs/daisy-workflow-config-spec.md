@@ -190,7 +190,7 @@ daisy uses the same representation with a few modifications:
 
 | Field Name | Type | Description |
 | - | - | - |
-| Name | string | The name of the disk to detach, either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
+| DeviceName | string | The name of the disk to detach, either disk [partial URLs](#glossary-partialurl) or workflow-internal disk names are valid. |
 
 Added fields:
 
@@ -212,7 +212,7 @@ detaching it.
 "detach-step": {
   "DetachDisks": [
     {
-      "Name": "my-disk",
+      "DeviceName": "my-disk",
       "Instance": "my-instance"
     }
   ]
