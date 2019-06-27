@@ -76,7 +76,7 @@
               "subnetwork": "${export_subnet}"
             }
           ],
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control"],
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control","https://www.googleapis.com/auth/compute"],
           "StartupScript": "${NAME}_export_disk.sh"
         }
       ]
