@@ -499,7 +499,7 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 	}
 
 	if err := w.PopulateClients(ctx); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("PopulateClients failed: %s", err)
 	}
 
 	w.Name = img.Prefix
@@ -511,7 +511,7 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 		var err error
 		pubImgs, err = w.ComputeClient.ListImages(p.PublishProject, daisyCompute.OrderBy("creationTimestamp desc"))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("ComputeClient.ListImages failed: %s", err)
 		}
 		if imagesCache == nil {
 			imagesCache = map[string][]*compute.Image{}
@@ -520,7 +520,7 @@ func (p *Publish) createWorkflow(ctx context.Context, img *Image, varMap map[str
 	}
 
 	if err := p.populateWorkflow(ctx, w, pubImgs, img, rb, sd, rep); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("populateWorkflow failed: %s", err)
 	}
 	if len(w.Steps) == 0 {
 		return nil, nil
