@@ -8,10 +8,6 @@ import (
 )
 
 func printPerfProfile(workflow *daisy.Workflow) {
-        if !*printPerf {
-                return
-        }
-
         timeRecords := workflow.GetStepTimeRecords()
         if len(timeRecords) == 0 {
                 return

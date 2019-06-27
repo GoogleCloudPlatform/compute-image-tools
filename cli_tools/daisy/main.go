@@ -254,7 +254,9 @@ func main() {
 		wg.Add(1)
 		go func(w *daisy.Workflow) {
 			defer wg.Done()
-			defer printPerfProfile(w)
+			if *printPerf {
+				defer printPerfProfile(w)
+			}
 			fmt.Printf("[Daisy] Running workflow %q (id=%s)\n", w.Name, w.ID())
 			if err := w.Run(ctx); err != nil {
 				errors <- fmt.Errorf("%s: %v", w.Name, err)
