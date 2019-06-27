@@ -26,7 +26,6 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
-	"time"
 
 	"cloud.google.com/go/compute/metadata"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -39,7 +38,7 @@ var (
 	zone               = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables          = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	print              = flag.Bool("print", false, "print out the parsed workflow for debugging")
-	printPerf          = flag.Bool("print_perf", false, "print out the perf profile for debugging")
+	printPerf          = flag.Bool("print_perf", false, "print out the performance profile")
 	validate           = flag.Bool("validate", false, "validate the workflow and exit")
 	format             = flag.Bool("format_workflow", false, "format the workflow file(s) and exit")
 	defaultTimeout     = flag.String("default_timeout", "", "sets the default timeout for the workflow")
@@ -286,32 +285,3 @@ func main() {
 	}
 }
 
-func printPerfProfile(workflow *daisy.Workflow) {
-	if !*printPerf {
-		return
-	}
-
-	timeRecords := workflow.GetStepTimeRecords()
-	if len(timeRecords) == 0 {
-		return
-	}
-
-	wfStartTime := time.Now()
-	wfEndTime, _ := time.Parse(time.RFC3339, "0001-01-01T00:00:00+00:00")
-	fmt.Println("\nPerf Profile:")
-	for _, r := range timeRecords {
-		if wfStartTime.After(r.StartTime) {
-			wfStartTime = r.StartTime
-		}
-		if wfEndTime.Before(r.EndTime) {
-			wfEndTime = r.EndTime
-		}
-		fmt.Printf("- %v: %v\n", r.Name, formatDuration(r.EndTime.Sub(r.StartTime)))
-	}
-	fmt.Printf("Total time: %v\n\n", formatDuration(wfEndTime.Sub(wfStartTime)))
-}
-
-func formatDuration(d time.Duration) string {
-	s := int(d.Seconds())
-	return fmt.Sprintf("%v:%v:%v", s/3600, s/60%60, s%60)
-}
