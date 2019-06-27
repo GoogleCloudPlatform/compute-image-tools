@@ -28,6 +28,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/compute/metadata"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/performance"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -255,7 +256,7 @@ func main() {
 		go func(w *daisy.Workflow) {
 			defer wg.Done()
 			if *printPerf {
-				defer printPerfProfile(w)
+				defer performance.PrintPerfProfile(w)
 			}
 			fmt.Printf("[Daisy] Running workflow %q (id=%s)\n", w.Name, w.ID())
 			if err := w.Run(ctx); err != nil {
