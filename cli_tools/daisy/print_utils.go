@@ -30,5 +30,5 @@ func printPerfProfile(workflow *daisy.Workflow) {
 
 func formatDuration(d time.Duration) string {
 	s := int(d.Seconds())
-	return fmt.Sprintf("%v:%v:%v", s/3600, s/60%60, s%60)
+	return fmt.Sprintf("[hh:mm:ss] %v:%v:%v", s/3600, s/60%60, s%60)
 }
