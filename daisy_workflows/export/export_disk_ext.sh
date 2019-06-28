@@ -65,7 +65,7 @@ fi
 echo ${out}
 
 echo "GCEExport: Copying output image to target GCS path..."
-if ! out=$(gsutil cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>&1); then
+if ! out=$(gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>&1); then
   echo "ExportFailed: Failed to copy output image to ${GS_PATH}, error: ${out}"
   exit
 fi
