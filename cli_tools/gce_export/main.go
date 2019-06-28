@@ -29,6 +29,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,8 +53,8 @@ var (
 	licenses     = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
 	noconfirm    = flag.Bool("y", false, "skip confirmation")
 	level        = flag.Int("level", 3, "level of compression from 1-9, 1 being best speed, 9 being best compression")
-	bufferSize   = flag.String("buffer_size", "1GB", "")
-	workers      = flag.Int("workers", 4, "")
+	bufferSize   = flag.String("buffer_size", "1GB", "max buffer size to use")
+	workers      = flag.Int("workers", runtime.NumCPU(), "number of upload workers to utilize")
 )
 
 // progress is a io.Writer that updates total in Write.
@@ -196,7 +197,8 @@ func (b *buffer) Close() error {
 	// Compose the object.
 	for i := 0; ; i++ {
 		var objs []*storage.ObjectHandle
-		l := math.Min(float64(30), float64(len(b.tmpObjs)))
+		// Max 32 components in a single compose.
+		l := math.Min(float64(32), float64(len(b.tmpObjs)))
 		for _, obj := range b.tmpObjs[:int(l)] {
 			objs = append(objs, client.Bucket(b.bkt).Object(obj))
 		}
@@ -311,7 +313,7 @@ func writeGzipProgress(start time.Time, size int64, rp, wp *progress) {
 		oldUpload = wpTotal
 		oldRead = rpTotal
 		oldSince = since
-		time.Sleep(45 * time.Second)
+		time.Sleep(30 * time.Second)
 	}
 }
 
@@ -403,7 +405,7 @@ func stream(ctx context.Context, src *os.File, size int64, prefix, bkt, obj stri
 		}
 		buf := newBuffer(ctx, int64(bs), int64(*workers), prefix, bkt, obj)
 
-		fmt.Printf("GCEExport: Using %q as the local buffer prefix, %s as the max buffer size, and %d as the number of workers.\n", prefix, humanize.IBytes(bs), *workers)
+		fmt.Printf("GCEExport: Using %q as the buffer prefix, %s as the buffer size, and %d as the number of workers.\n", prefix, humanize.IBytes(bs), *workers)
 		return gzipDisk(src, size, buf)
 	}
 
