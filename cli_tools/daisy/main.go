@@ -28,6 +28,7 @@ import (
 	"sync"
 
 	"cloud.google.com/go/compute/metadata"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/performance"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -38,6 +39,7 @@ var (
 	zone               = flag.String("zone", "", "zone to run in, overrides what is set in workflow")
 	variables          = flag.String("variables", "", "comma separated list of variables, in the form 'key=value'")
 	print              = flag.Bool("print", false, "print out the parsed workflow for debugging")
+	printPerf          = flag.Bool("print_perf", false, "print out the performance profile")
 	validate           = flag.Bool("validate", false, "validate the workflow and exit")
 	format             = flag.Bool("format_workflow", false, "format the workflow file(s) and exit")
 	defaultTimeout     = flag.String("default_timeout", "", "sets the default timeout for the workflow")
@@ -253,6 +255,9 @@ func main() {
 		wg.Add(1)
 		go func(w *daisy.Workflow) {
 			defer wg.Done()
+			if *printPerf {
+				defer performance.PrintPerfProfile(w)
+			}
 			fmt.Printf("[Daisy] Running workflow %q (id=%s)\n", w.Name, w.ID())
 			if err := w.Run(ctx); err != nil {
 				errors <- fmt.Errorf("%s: %v", w.Name, err)

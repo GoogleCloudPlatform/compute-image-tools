@@ -250,7 +250,14 @@ func (s *Step) populate(ctx context.Context) dErr {
 	return err
 }
 
+func (s *Step) recordStepTime(startTime time.Time) {
+	endTime := time.Now()
+	s.w.recordStepTime(s.name, startTime, endTime)
+}
+
 func (s *Step) run(ctx context.Context) dErr {
+	startTime := time.Now()
+	defer s.recordStepTime(startTime)
 	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapRunError(err)
