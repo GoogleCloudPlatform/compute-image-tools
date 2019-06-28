@@ -119,7 +119,7 @@ func (b *buffer) addObj(obj string) {
 func (b *buffer) uploadWorker() {
 	defer b.Done()
 	for in := range b.upload {
-		for i := 0; ; i++ {
+		for i := 1; ; i++ {
 			err := func() error {
 				client, err := gcsClient(b.ctx)
 				if err != nil {
@@ -145,12 +145,12 @@ func (b *buffer) uploadWorker() {
 				}
 
 				return dst.Close()
-
 			}()
 			if err != nil {
-				if i > 2 {
+				if i > 3 {
 					log.Fatal(err)
 				}
+				time.Sleep(time.Duration(1*i) * time.Second)
 				continue
 			}
 			break
