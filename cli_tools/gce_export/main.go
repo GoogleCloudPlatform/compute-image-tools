@@ -53,7 +53,7 @@ var (
 	licenses     = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
 	noconfirm    = flag.Bool("y", false, "skip confirmation")
 	level        = flag.Int("level", 3, "level of compression from 1-9, 1 being best speed, 9 being best compression")
-	bufferSize   = flag.String("buffer_size", "1GB", "max buffer size to use")
+	bufferSize   = flag.String("buffer_size", "1GiB", "max buffer size to use")
 	workers      = flag.Int("workers", runtime.NumCPU(), "number of upload workers to utilize")
 )
 
