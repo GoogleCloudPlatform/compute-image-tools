@@ -54,8 +54,7 @@ func (fms *failureMatches) UnmarshalJSON(b []byte) error {
 // port.
 // A StatusMatch will print out the matching line from the StatusMatch onward.
 // This step will not complete until a line in the serial output matches
-// SuccessMatch, FailureMatch or FailureMatches. A match with FailureMatch or FailureMatches will
-// cause the step to fail.
+// SuccessMatch or FailureMatch. A match with FailureMatch will cause the step to fail.
 type SerialOutput struct {
 	Port         int64          `json:",omitempty"`
 	SuccessMatch string         `json:",omitempty"`
@@ -151,7 +150,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				if len(so.FailureMatch) > 0 {
 					for _, failureMatch := range so.FailureMatch {
 						if i := strings.Index(ln, failureMatch); i != -1 {
-							return errf("WaitForInstancesSignal FailureMatches found for %q: %q", name, strings.TrimSpace(ln[i:]))
+							return errf("WaitForInstancesSignal FailureMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
 						}
 					}
 				}
@@ -252,7 +251,7 @@ func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) dErr {
 				return errf("%q: cannot wait for instance signal via SerialOutput, no Port given", i.Name)
 			}
 			if i.SerialOutput.SuccessMatch == "" && len(i.SerialOutput.FailureMatch) == 0 {
-				return errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch, FailureMatch or FailureMatches given", i.Name)
+				return errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
 			}
 		}
 	}
