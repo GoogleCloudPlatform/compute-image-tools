@@ -91,7 +91,7 @@ func splitLicenses(input string) []string {
 	return ls
 }
 
-type buffer struct {
+type bufferedWriter struct {
 	// These fields are read only.
 	cSize    int64
 	prefix   string
@@ -110,13 +110,13 @@ type buffer struct {
 	file  *os.File
 }
 
-func (b *buffer) addObj(obj string) {
+func (b *bufferedWriter) addObj(obj string) {
 	b.tmpObjsMx.Lock()
 	b.tmpObjs = append(b.tmpObjs, obj)
 	b.tmpObjsMx.Unlock()
 }
 
-func (b *buffer) uploadWorker() {
+func (b *bufferedWriter) uploadWorker() {
 	defer b.Done()
 	for in := range b.upload {
 		for i := 1; ; i++ {
@@ -147,7 +147,7 @@ func (b *buffer) uploadWorker() {
 				return dst.Close()
 			}()
 			if err != nil {
-				if i > 3 {
+				if i > 16 {
 					log.Fatal(err)
 				}
 				time.Sleep(time.Duration(1*i) * time.Second)
@@ -158,7 +158,7 @@ func (b *buffer) uploadWorker() {
 	}
 }
 
-func (b *buffer) newChunk() error {
+func (b *bufferedWriter) newChunk() error {
 	fp := fmt.Sprint(b.prefix, b.id, "_part", b.part)
 	f, err := os.Create(fp)
 	if err != nil {
@@ -172,7 +172,7 @@ func (b *buffer) newChunk() error {
 	return nil
 }
 
-func (b *buffer) flush() error {
+func (b *bufferedWriter) flush() error {
 	if err := b.file.Close(); err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func (b *buffer) flush() error {
 	return nil
 }
 
-func (b *buffer) Close() error {
+func (b *bufferedWriter) Close() error {
 	if err := b.flush(); err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func (b *buffer) Close() error {
 	return nil
 }
 
-func (b *buffer) Write(d []byte) (int, error) {
+func (b *bufferedWriter) Write(d []byte) (int, error) {
 	b.Lock()
 	defer b.Unlock()
 
@@ -268,8 +268,8 @@ func gcsClient(ctx context.Context) (*storage.Client, error) {
 	return storage.NewClient(ctx, option.WithHTTPClient(&http.Client{Transport: transport}))
 }
 
-func newBuffer(ctx context.Context, size, workers int64, prefix, bkt, obj string) *buffer {
-	b := &buffer{
+func newBuffer(ctx context.Context, size, workers int64, prefix, bkt, obj string) *bufferedWriter {
+	b := &bufferedWriter{
 		cSize:  size / workers,
 		prefix: prefix,
 		id:     randString(5),
