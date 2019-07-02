@@ -78,7 +78,7 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "ImportSuccess:",
-            "FailureMatches": ["ImportFailed:", "WARNING Failed to download metadata script"],
+            "FailureMatch": ["ImportFailed:", "WARNING Failed to download metadata script"],
             "StatusMatch": "Import:"
           }
         }
