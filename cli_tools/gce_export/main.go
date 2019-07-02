@@ -70,9 +70,10 @@ func (p *progress) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
+const letters = "bdghjlmnpqrstvwxyz0123456789"
+
 func randString(n int) string {
 	gen := rand.New(rand.NewSource(time.Now().UnixNano()))
-	letters := "bdghjlmnpqrstvwxyz0123456789"
 	b := make([]byte, n)
 	for i := range b {
 		b[i] = letters[gen.Int63()%int64(len(letters))]
