@@ -344,16 +344,10 @@ func (i *Instance) validateNetworks(s *Step) (errs dErr) {
 		}
 
 		if n.Network != "" {
-			nr, err := s.w.networks.regUse(n.Network, s)
+			_, err := s.w.networks.regUse(n.Network, s)
 			if err != nil {
 				errs = addErrs(errs, err)
 				continue
-			}
-
-			// Ensure network is in the same project.
-			result := namedSubexp(networkURLRegex, nr.link)
-			if result["project"] != i.Project {
-				errs = addErrs(errs, errf("cannot create instance in project %q with Network in project %q: %q", i.Project, result["project"], n.Network))
 			}
 		}
 	}
