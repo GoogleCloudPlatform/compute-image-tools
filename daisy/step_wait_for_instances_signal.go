@@ -36,11 +36,11 @@ type WaitForInstancesSignal []*InstanceSignal
 // SuccessMatch, FailureMatch or FailureMatches. A match with FailureMatch or FailureMatches will
 // cause the step to fail.
 type SerialOutput struct {
-	Port             int64  `json:",omitempty"`
-	SuccessMatch     string `json:",omitempty"`
-	FailureMatch     string `json:",omitempty"`
+	Port           int64    `json:",omitempty"`
+	SuccessMatch   string   `json:",omitempty"`
+	FailureMatch   string   `json:",omitempty"`
 	FailureMatches []string `json:",omitempty"`
-	StatusMatch      string `json:",omitempty"`
+	StatusMatch    string   `json:",omitempty"`
 }
 
 // InstanceSignal waits for a signal from an instance.
