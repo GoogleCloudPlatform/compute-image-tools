@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -29,6 +30,26 @@ const (
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []*InstanceSignal
 
+type failureMatches []string
+
+// UnmarshalJSON unmarshals failureMatches.
+func (fms *failureMatches) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		*fms = []string{s}
+		return nil
+	}
+
+	//not a string, try unmarshalling into an array. Need a temp type to avoid infinite loop.
+	var ss []string
+	if err := json.Unmarshal(b, &ss); err != nil {
+		return err
+	}
+
+	*fms = failureMatches(ss)
+	return nil
+}
+
 // SerialOutput describes text signal strings that will be written to the serial
 // port.
 // A StatusMatch will print out the matching line from the StatusMatch onward.
@@ -36,11 +57,10 @@ type WaitForInstancesSignal []*InstanceSignal
 // SuccessMatch, FailureMatch or FailureMatches. A match with FailureMatch or FailureMatches will
 // cause the step to fail.
 type SerialOutput struct {
-	Port           int64    `json:",omitempty"`
-	SuccessMatch   string   `json:",omitempty"`
-	FailureMatch   string   `json:",omitempty"`
-	FailureMatches []string `json:",omitempty"`
-	StatusMatch    string   `json:",omitempty"`
+	Port         int64          `json:",omitempty"`
+	SuccessMatch string         `json:",omitempty"`
+	FailureMatch failureMatches `json:"failureMatch,omitempty"`
+	StatusMatch  string         `json:",omitempty"`
 }
 
 // InstanceSignal waits for a signal from an instance.
@@ -84,11 +104,8 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 	if so.SuccessMatch != "" {
 		msg += fmt.Sprintf(", SuccessMatch: %q", so.SuccessMatch)
 	}
-	if so.FailureMatch != "" {
-		msg += fmt.Sprintf(", FailureMatch: %q", so.FailureMatch)
-	}
-	if len(so.FailureMatches) > 0 {
-		msg += fmt.Sprintf(", FailureMatches: %v", so.FailureMatches)
+	if len(so.FailureMatch) > 0 {
+		msg += fmt.Sprintf(", FailureMatch: %v", so.FailureMatch)
 	}
 	if so.StatusMatch != "" {
 		msg += fmt.Sprintf(", StatusMatch: %q", so.StatusMatch)
@@ -131,13 +148,8 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 						w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: StatusMatch found: %q", name, strings.TrimSpace(ln[i:]))
 					}
 				}
-				if so.FailureMatch != "" {
-					if i := strings.Index(ln, so.FailureMatch); i != -1 {
-						return errf("WaitForInstancesSignal FailureMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
-					}
-				}
-				if len(so.FailureMatches) > 0 {
-					for _, failureMatch := range so.FailureMatches {
+				if len(so.FailureMatch) > 0 {
+					for _, failureMatch := range so.FailureMatch {
 						if i := strings.Index(ln, failureMatch); i != -1 {
 							return errf("WaitForInstancesSignal FailureMatches found for %q: %q", name, strings.TrimSpace(ln[i:]))
 						}
@@ -239,7 +251,7 @@ func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) dErr {
 			if i.SerialOutput.Port == 0 {
 				return errf("%q: cannot wait for instance signal via SerialOutput, no Port given", i.Name)
 			}
-			if i.SerialOutput.SuccessMatch == "" && i.SerialOutput.FailureMatch == "" && len(i.SerialOutput.FailureMatches) == 0 {
+			if i.SerialOutput.SuccessMatch == "" && len(i.SerialOutput.FailureMatch) == 0 {
 				return errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch, FailureMatch or FailureMatches given", i.Name)
 			}
 		}
