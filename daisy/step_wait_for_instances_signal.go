@@ -104,7 +104,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 		msg += fmt.Sprintf(", SuccessMatch: %q", so.SuccessMatch)
 	}
 	if len(so.FailureMatch) > 0 {
-		msg += fmt.Sprintf(", FailureMatch: %v", so.FailureMatch)
+		msg += fmt.Sprintf(", FailureMatch: %q", so.FailureMatch)
 	}
 	if so.StatusMatch != "" {
 		msg += fmt.Sprintf(", StatusMatch: %q", so.StatusMatch)
