@@ -33,13 +33,14 @@ type WaitForInstancesSignal []*InstanceSignal
 // port.
 // A StatusMatch will print out the matching line from the StatusMatch onward.
 // This step will not complete until a line in the serial output matches
-// SuccessMatch or FailureMatch. A match with FailureMatch will cause the step
-// to fail.
+// SuccessMatch, FailureMatch or FailureMatches. A match with FailureMatch or FailureMatches will
+// cause the step to fail.
 type SerialOutput struct {
-	Port         int64  `json:",omitempty"`
-	SuccessMatch string `json:",omitempty"`
-	FailureMatch string `json:",omitempty"`
-	StatusMatch  string `json:",omitempty"`
+	Port             int64  `json:",omitempty"`
+	SuccessMatch     string `json:",omitempty"`
+	FailureMatch     string `json:",omitempty"`
+	FailureMatches []string `json:",omitempty"`
+	StatusMatch      string `json:",omitempty"`
 }
 
 // InstanceSignal waits for a signal from an instance.
@@ -86,6 +87,9 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 	if so.FailureMatch != "" {
 		msg += fmt.Sprintf(", FailureMatch: %q", so.FailureMatch)
 	}
+	if len(so.FailureMatches) > 0 {
+		msg += fmt.Sprintf(", FailureMatches: %v", so.FailureMatches)
+	}
 	if so.StatusMatch != "" {
 		msg += fmt.Sprintf(", StatusMatch: %q", so.StatusMatch)
 	}
@@ -130,6 +134,13 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				if so.FailureMatch != "" {
 					if i := strings.Index(ln, so.FailureMatch); i != -1 {
 						return errf("WaitForInstancesSignal FailureMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+					}
+				}
+				if len(so.FailureMatches) > 0 {
+					for _, failureMatch := range so.FailureMatches {
+						if i := strings.Index(ln, failureMatch); i != -1 {
+							return errf("WaitForInstancesSignal FailureMatches found for %q: %q", name, strings.TrimSpace(ln[i:]))
+						}
 					}
 				}
 				if so.SuccessMatch != "" {
@@ -228,8 +239,8 @@ func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) dErr {
 			if i.SerialOutput.Port == 0 {
 				return errf("%q: cannot wait for instance signal via SerialOutput, no Port given", i.Name)
 			}
-			if i.SerialOutput.SuccessMatch == "" && i.SerialOutput.FailureMatch == "" {
-				return errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
+			if i.SerialOutput.SuccessMatch == "" && i.SerialOutput.FailureMatch == "" && len(i.SerialOutput.FailureMatches) == 0 {
+				return errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch, FailureMatch or FailureMatches given", i.Name)
 			}
 		}
 	}

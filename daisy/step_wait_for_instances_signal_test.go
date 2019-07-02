@@ -126,6 +126,7 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 	ws := &WaitForInstancesSignal{
 		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "success", SuccessMatch: "success"}},
 		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatch: "fail"}},
+		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatches: []string{"fail", "fail2"}}},
 		{Name: "i3", interval: 1 * time.Microsecond, Stopped: true},
 	}
 	if err := ws.run(ctx, s); err != nil {
@@ -136,6 +137,15 @@ func TestWaitForInstancesSignalRun(t *testing.T) {
 	ws = &WaitForInstancesSignal{
 		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: "fail", SuccessMatch: "success"}},
 		{Name: "i3", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: "fail"}},
+	}
+	if err := ws.run(ctx, s); err == nil {
+		t.Error("expected error")
+	}
+
+	// Failure matches error.
+	ws = &WaitForInstancesSignal{
+		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatches: []string{"fail", "fail2"}, SuccessMatch: "success"}},
+		{Name: "i3", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatches: []string{"fail", "fail2"}}},
 	}
 	if err := ws.run(ctx, s); err == nil {
 		t.Error("expected error")
@@ -195,9 +205,12 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 		{"normal case Stopped", WaitForInstancesSignal{{Name: "instance1", Stopped: true, interval: 1 * time.Second}}, false},
 		{"normal SerialOutput SuccessMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, StatusMatch: "test", SuccessMatch: "test"}, interval: 1 * time.Second}}, false},
 		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail"}, interval: 1 * time.Second}}, false},
-		{"normal SerialOutput FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test", FailureMatch: "fail"}, interval: 1 * time.Second}}, false},
+		{"normal SerialOutput SuccessMatch FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test", FailureMatch: "fail"}, interval: 1 * time.Second}}, false},
+		{"normal SerialOutput SuccessMatch FailureMatches", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test", FailureMatches: []string{"fail", "fail2"}}, interval: 1 * time.Second}}, false},
+		{"normal SerialOutput FailureMatch FailureMatches", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, FailureMatch: "fail", FailureMatches: []string{"fail", "fail2"}}, interval: 1 * time.Second}}, false},
+		{"normal SerialOutput SuccessMatch FailureMatch FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1, SuccessMatch: "test", FailureMatch: "fail", FailureMatches: []string{"fail", "fail2"}}, interval: 1 * time.Second}}, false},
 		{"SerialOutput no port", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{SuccessMatch: "test"}, interval: 1 * time.Second}}, true},
-		{"SerialOutput no SuccessMatch or FailureMatch", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1}, interval: 1 * time.Second}}, true},
+		{"SerialOutput no SuccessMatch or FailureMatch or FailureMatches", WaitForInstancesSignal{{Name: "instance1", SerialOutput: &SerialOutput{Port: 1}, interval: 1 * time.Second}}, true},
 		{"instance DNE error check", WaitForInstancesSignal{{Name: "instance1", Stopped: true, interval: 1 * time.Second}, {Name: "instance2", Stopped: true, interval: 1 * time.Second}}, true},
 		{"no interval", WaitForInstancesSignal{{Name: "instance1", Stopped: true, Interval: "0s"}}, true},
 		{"no signal", WaitForInstancesSignal{{Name: "instance1", interval: 1 * time.Second}}, true},

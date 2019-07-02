@@ -722,11 +722,12 @@ SerialOutput:
 | Field Name | Type | Description |
 | - | - | - |
 | Port | int64 | The serial port number to listen to. GCE VMs have serial ports 1-4. |
-| FailureMatch | string | *Optional, but this or SuccessMatch must be provided.* An expected string in case of a failure. |
+| FailureMatch | string | *Optional, but this, FailureMatches or SuccessMatch must be provided.* An expected string in case of a failure. |
+| FailureMatches | []string | *Optional, but this, FailureMatch or SuccessMatch must be provided.* A list of expected strings in case of a failure. |
 | SuccessMatch | string | *Optional, but this or FailureMatch must be provided.* An expected string when the VM performed its task successfully. |
 | StatusMatch | string | *Optional* An informational status line to print out. |
 
-If any serial line matches FailureMatch, SuccessMatch or StatusMatch the line
+If any serial line matches FailureMatch, FailureMatches, SuccessMatch or StatusMatch the line
 from the match onward will be logged. This example step waits for VM "foo" to
 stop and for a signal from VM "bar":
 ```json
