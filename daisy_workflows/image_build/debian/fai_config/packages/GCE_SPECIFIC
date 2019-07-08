@@ -3,3 +3,8 @@ PACKAGES install
 haveged
 # used by the bootstrap script
 curl
+# GCE disk expansion
+gce-disk-expand
+
+PACKAGES remove
+cloud-initramfs-growroot
