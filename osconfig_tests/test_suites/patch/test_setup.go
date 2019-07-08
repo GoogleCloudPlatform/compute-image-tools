@@ -70,15 +70,13 @@ new=$(($old + 1))
 curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 `
 
-	el78Startup = linuxRecordBoot + "yum install -y yum-utils\n" + utils.InstallOSConfigYumEL7
-
 	enablePatch = compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch")
 
 	windowsSetup = &patchTestSetup{
 		assertTimeout: 60 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
 			compute.BuildInstanceMetadataItem("sysprep-specialize-script-ps1", windowsSetWsus),
-			compute.BuildInstanceMetadataItem("windows-startup-script-ps1", windowsRecordBoot+utils.InstallOSConfigGooGet),
+			compute.BuildInstanceMetadataItem("windows-startup-script-ps1", windowsRecordBoot+utils.InstallOSConfigGooGet()),
 			enablePatch,
 		},
 		machineType: "n1-standard-4",
@@ -86,7 +84,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	aptSetup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigDeb),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigDeb()),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -94,7 +92,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	el6Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigYumEL6),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL6()),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -102,7 +100,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	el7Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", el78Startup),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+"yum install -y yum-utils\n"+utils.InstallOSConfigEL7()),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -110,7 +108,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	el8Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", el78Startup),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+"yum install -y yum-utils\n"+utils.InstallOSConfigEL8()),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",

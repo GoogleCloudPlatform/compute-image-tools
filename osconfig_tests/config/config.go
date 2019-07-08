@@ -24,10 +24,16 @@ var (
 	// TODO: allow this to be configurable through flag to test against staging
 	prodEndpoint           = "osconfig.googleapis.com:443"
 	oauthDefault           = flag.String("local_oauth", "", "path to service creds file")
+	agentRepo              = flag.String("agent_repo", "unstable", "repo to pull agent from (unstable, staging, or stable)")
 	bucketDefault          = "osconfig-agent-end2end-tests"
 	logPushIntervalDefault = 3 * time.Second
 	logsPath               = fmt.Sprintf("logs-%s", time.Now().Format("2006-01-02-15:04:05"))
 )
+
+// AgentRepo returns the agentRepo
+func AgentRepo() string {
+	return *agentRepo
+}
 
 // SvcEndpoint returns the svcEndpoint
 func SvcEndpoint() string {

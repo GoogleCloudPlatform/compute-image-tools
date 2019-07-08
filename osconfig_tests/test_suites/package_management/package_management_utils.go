@@ -28,11 +28,11 @@ import (
 
 var (
 	yumStartupScripts = map[string]string{
-		"rhel-6":   utils.InstallOSConfigYumEL6,
-		"rhel-7":   utils.InstallOSConfigYumEL7,
-		"rhel-8":   utils.InstallOSConfigYumEL7,
-		"centos-6": utils.InstallOSConfigYumEL6,
-		"centos-7": utils.InstallOSConfigYumEL7,
+		"rhel-6":   utils.InstallOSConfigEL6(),
+		"rhel-7":   utils.InstallOSConfigEL7(),
+		"rhel-8":   utils.InstallOSConfigEL8(),
+		"centos-6": utils.InstallOSConfigEL6(),
+		"centos-7": utils.InstallOSConfigEL7(),
 	}
 )
 

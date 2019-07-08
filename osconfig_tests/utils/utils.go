@@ -22,23 +22,12 @@ import (
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	api "google.golang.org/api/compute/v1"
 	"google.golang.org/grpc/status"
 )
 
 var (
-	// TODO: the startup script installs the osconfig agent and then keeps querying
-	// for list of installed packages. Though, this is required for package
-	// management tests, it is not required for inventory tests.
-	// Running multiple startup script is not supported. We have project level and
-	// instance level startup scripts, but only one of them gets executed by virtue
-	// of concept of overriding.
-	// A way to solve this is to spin up the vm with a project level startup script
-	// that installs the osconfig-agent and once the agent is installed, replace
-	// the startup script that queries the packages and redirects to serial console.
-	// The only caveat is that it requires a reboot which would ultimately increase
-	// test running time.
-
 	yumInstallAgent = `
 while ! yum install -y google-osconfig-agent; do
 if [[ n -gt 3 ]]; then
@@ -53,44 +42,64 @@ uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes
 curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
 `
 
-	// InstallOSConfigDeb installs the osconfig agent on deb based systems.
-	InstallOSConfigDeb = `echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-unstable main' >> /etc/apt/sources.list
-curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-apt-get update
-apt-get install -y google-osconfig-agent` + curlPost
-
-	// InstallOSConfigGooGet installs the osconfig agent on googet based systems.
-	InstallOSConfigGooGet = `
-c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-unstable google-osconfig-agent
+	windowsPost = `
 Start-Sleep 10
-$uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done'
-Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body 1`
+uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done
+curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
+`
 
-	// InstallOSConfigYumEL7 installs the osconfig agent on el7 based systems.
-	InstallOSConfigYumEL7 = `cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
-[google-osconfig-agent]
-name=Google OSConfig Agent Repository
-baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el7-unstable
-enabled=1
-gpgcheck=0
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM` + yumInstallAgent
-
-	// InstallOSConfigYumEL6 installs the osconfig agent on el6 based systems.
-	InstallOSConfigYumEL6 = `sleep 10
+	yumRepoSetup = `
 cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [google-osconfig-agent]
 name=Google OSConfig Agent Repository
-baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-el6-unstable
+baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-%s-%s
 enabled=1
 gpgcheck=0
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-       https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-EOM` + yumInstallAgent
+		https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOM`
 )
+
+// InstallOSConfigDeb installs the osconfig agent on deb based systems.
+func InstallOSConfigDeb() string {
+	return fmt.Sprintf(`echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-%s main' >> /etc/apt/sources.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+apt-get update
+apt-get install -y google-osconfig-agent`+curlPost, config.AgentRepo())
+}
+
+// InstallOSConfigGooGet installs the osconfig agent on Windows systems.
+func InstallOSConfigGooGet() string {
+	if config.AgentRepo() == "stable" {
+		return `c:\programdata\googet\googet.exe -noconfirm install google-osconfig-agent` + windowsPost
+	}
+	return fmt.Sprintf(`c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-%s google-osconfig-agent`+windowsPost, config.AgentRepo())
+}
+
+// InstallOSConfigEL8 installs the osconfig agent on el8 based systems.
+func InstallOSConfigEL8() string {
+	if config.AgentRepo() == "stable" {
+		return yumInstallAgent
+	}
+	return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el8", config.AgentRepo())
+}
+
+// InstallOSConfigEL7 installs the osconfig agent on el7 based systems.
+func InstallOSConfigEL7() string {
+	if config.AgentRepo() == "stable" {
+		return yumInstallAgent
+	}
+	return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el7", config.AgentRepo())
+}
+
+// InstallOSConfigEL6 installs the osconfig agent on el6 based systems.
+func InstallOSConfigEL6() string {
+	if config.AgentRepo() == "stable" {
+		return "sleep 10" + yumInstallAgent
+	}
+	return fmt.Sprintf("sleep 10"+yumRepoSetup+yumInstallAgent, "el6", config.AgentRepo())
+}
 
 // HeadAptImages is a map of names to image paths for public image families that use APT.
 var HeadAptImages = map[string]string{
