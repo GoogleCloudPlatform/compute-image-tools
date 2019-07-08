@@ -225,7 +225,7 @@ periodics:
        - name: compute-image-tools-test-service-account
          secret:
            secretName: compute-image-tools-test-service-account
- - name: osconfig-tests
+ - name: osconfig-unstable
    interval: 1h
    agent: kubernetes
    spec:
@@ -233,8 +233,47 @@ periodics:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
       - "-out_dir=/artifacts"
+      - "-agent_repo=unstable"
       - "-test_project_id=compute-image-osconfig-agent"
-      - "-test_zones={\"us-central1-a\":30,\"us-central1-b\":30,\"us-central1-c\":30,\"us-central1-f\":30,\"us-west1-a\":6,\"us-west1-b\":6,\"us-west1-c\":6,\"us-east1-b\":6,\"us-east1-c\":6,\"us-east1-d\":6,\"us-east4-a\":6,\"us-east4-b\":6,\"us-east4-c\":6}"
+      - "-test_zones={\"us-central1-a\":10,\"us-central1-b\":10,\"us-central1-c\":10,\"us-central1-f\":10,\"us-west1-a\":5,\"us-west1-b\":5,\"us-west1-c\":5,\"us-east1-b\":5,\"us-east1-c\":5,\"us-east1-d\":5,\"us-east4-a\":10,\"us-east4-b\":10,\"us-east4-c\":10}"
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
+ - name: osconfig-staging
+   interval: 3h
+   agent: kubernetes
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
+      args:
+      - "-out_dir=/artifacts"
+      - "-agent_repo=staging"
+      - "-test_project_id=compute-image-osconfig-agent"
+      - "-test_zones={\"us-central1-a\":10,\"us-central1-b\":10,\"us-central1-c\":10,\"us-central1-f\":10,\"us-west1-a\":5,\"us-west1-b\":5,\"us-west1-c\":5,\"us-east1-b\":5,\"us-east1-c\":5,\"us-east1-d\":5,\"us-east4-a\":10,\"us-east4-b\":10,\"us-east4-c\":10}"
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
+ - name: osconfig-stable
+   interval: 5h
+   agent: kubernetes
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
+      args:
+      - "-out_dir=/artifacts"
+      - "-agent_repo=stable"
+      - "-test_project_id=compute-image-osconfig-agent"
+      - "-test_zones={\"us-central1-a\":10,\"us-central1-b\":10,\"us-central1-c\":10,\"us-central1-f\":10,\"us-west1-a\":5,\"us-west1-b\":5,\"us-west1-c\":5,\"us-east1-b\":5,\"us-east1-c\":5,\"us-east1-d\":5,\"us-east4-a\":10,\"us-east4-b\":10,\"us-east4-c\":10}"
       volumeMounts:
       - name: compute-image-tools-test-service-account
         mountPath: /etc/compute-image-tools-test-service-account

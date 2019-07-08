@@ -17,8 +17,9 @@ package inventory
 import (
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
-	"google.golang.org/api/compute/v1"
+	computeAPI "google.golang.org/api/compute/v1"
 )
 
 type inventoryTestSetup struct {
@@ -27,53 +28,39 @@ type inventoryTestSetup struct {
 	image       string
 	packageType []string
 	shortName   string
-	startup     *compute.MetadataItems
+	startup     *computeAPI.MetadataItems
 	machineType string
 }
 
 var windowsSetup = &inventoryTestSetup{
 	packageType: []string{"googet", "wua", "qfe"},
 	shortName:   "windows",
-	startup: &compute.MetadataItems{
-		Key:   "windows-startup-script-ps1",
-		Value: &utils.InstallOSConfigGooGet,
-	},
+
+	startup:     compute.BuildInstanceMetadataItem("windows-startup-script-ps1", utils.InstallOSConfigGooGet()),
 	machineType: "n1-standard-4",
 }
 
 var aptSetup = &inventoryTestSetup{
 	packageType: []string{"deb"},
-	startup: &compute.MetadataItems{
-		Key:   "startup-script",
-		Value: &utils.InstallOSConfigDeb,
-	},
+	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigDeb()),
 	machineType: "n1-standard-2",
 }
 
 var el6Setup = &inventoryTestSetup{
 	packageType: []string{"rpm"},
-	startup: &compute.MetadataItems{
-		Key:   "startup-script",
-		Value: &utils.InstallOSConfigYumEL6,
-	},
+	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigEL6()),
 	machineType: "n1-standard-2",
 }
 
 var el7Setup = &inventoryTestSetup{
 	packageType: []string{"rpm"},
-	startup: &compute.MetadataItems{
-		Key:   "startup-script",
-		Value: &utils.InstallOSConfigYumEL7,
-	},
+	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigEL7()),
 	machineType: "n1-standard-2",
 }
 
 var el8Setup = &inventoryTestSetup{
 	packageType: []string{"rpm"},
-	startup: &compute.MetadataItems{
-		Key:   "startup-script",
-		Value: &utils.InstallOSConfigYumEL7,
-	},
+	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigEL8()),
 	machineType: "n1-standard-2",
 }
 
