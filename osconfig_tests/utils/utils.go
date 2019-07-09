@@ -44,8 +44,8 @@ curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
 
 	windowsPost = `
 Start-Sleep 10
-uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done
-curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
+$uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done'
+Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body 1
 `
 
 	yumRepoSetup = `
