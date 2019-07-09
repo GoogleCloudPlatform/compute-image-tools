@@ -1,5 +1,11 @@
 PACKAGES install
-# To avoid entropy issues when intances boot
+# To avoid entropy issues when intances boot.
 haveged
-# used by the bootstrap script
+# Used by the bootstrap script.
 curl
+# GCE disk expansion package.
+gce-disk-expand
+
+# Use gce-disk-expand instead.
+PACKAGES remove
+cloud-initramfs-growroot

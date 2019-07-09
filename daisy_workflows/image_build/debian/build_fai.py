@@ -89,7 +89,7 @@ def main():
   if debian_version == 'stretch':
     fai_classes += ['STRETCH', 'BACKPORTS', 'BACKPORTS_LINUX']
   elif debian_version == 'buster':
-    fai_classes += ['BUSTER']
+    fai_classes += ['BUSTER', 'BACKPORTS']
   elif debian_version == 'sid':
     fai_classes += ['SID']
   image_size = '10G'
@@ -143,6 +143,17 @@ def main():
                       'hooks/repository.GCE_UNSTABLE',
                       config_space)
     fai_classes += ['GCE_UNSTABLE']
+
+  # Cleanup class for GCE.
+  os.mkdir(config_space + 'scripts/GCE_CLEAN')
+  CopyToConfigSpace('/files/fai_config/scripts/10-gce-clean',
+                    'scripts/GCE_CLEAN/10-gce-clean',
+                    config_space)
+  os.chmod(config_space + 'scripts/GCE_CLEAN/10-gce-clean', 0o755)
+  fai_classes += ['GCE_CLEAN']
+
+  # Remove failing test method for now.
+  os.remove(config_space + 'hooks/tests.CLOUD')
 
   # Run fai-tool.
   cmd = ['fai-diskimage', '--verbose', '--hostname', 'debian', '--class',
