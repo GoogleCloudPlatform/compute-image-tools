@@ -195,7 +195,7 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 		varMap["source_disk_file"] = *sourceFile
 	}
 	if *sourceImage != "" {
-		varMap["source_image"] = fmt.Sprintf("global/images/%v", *sourceImage)
+		varMap["source_image"] = *sourceImage
 	}
 	varMap["family"] = *family
 	varMap["description"] = *description
