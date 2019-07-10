@@ -28,7 +28,7 @@ import (
 )
 
 func TestGetWorkflowPathsFromImage(t *testing.T) {
-	defer testutils.SetStringP(&sourceImage, "image-1")()
+	defer testutils.SetStringP(&sourceImage, "global/images/image-1")()
 	defer testutils.SetStringP(&osID, "ubuntu-1404")()
 	workflow, translate := getWorkflowPaths()
 	if workflow != pathutils.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
@@ -47,7 +47,7 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
 	defer testutils.SetStringP(&imageName, "image-a")()
 	defer testutils.SetStringP(&clientID, "gcloud")()
-	defer testutils.SetStringP(&sourceImage, "image-1")()
+	defer testutils.SetStringP(&sourceImage, "global/images/image-1")()
 	defer testutils.SetStringP(&customTranWorkflow, "custom.wf")()
 	if err := validateAndParseFlags(); err != nil {
 		t.Errorf("Unexpected flags error: %v", err)
@@ -85,7 +85,6 @@ func TestFlagsUnexpectedCustomTranslateWorkflowWithDataDisk(t *testing.T) {
 func TestGetWorkflowPathsFromFile(t *testing.T) {
 	homeDir := "/home/gce/"
 	defer testutils.SetBoolP(&dataDisk, false)()
-	defer testutils.SetStringP(&sourceImage, "image-1")()
 	defer testutils.SetStringP(&osID, "ubuntu-1404")()
 	defer testutils.SetStringP(&sourceImage, "")()
 	defer testutils.SetStringP(&currentExecutablePath, homeDir+"executable")()
@@ -272,7 +271,7 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 	defer testutils.SetStringP(&imageName, "image-a")()
 	defer testutils.SetBoolP(&noGuestEnvironment, true)()
 	defer testutils.SetStringP(&sourceFile, "")()
-	defer testutils.SetStringP(&sourceImage, "source-image")()
+	defer testutils.SetStringP(&sourceImage, "global/images/source-image")()
 	defer testutils.SetStringP(&family, "a-family")()
 	defer testutils.SetStringP(&description, "a-description")()
 	defer testutils.SetStringP(&network, "a-network")()
@@ -307,7 +306,7 @@ func getAllCliArgs() map[string]interface{} {
 		"data_disk":                 true,
 		"os":                        "ubuntu-1404",
 		"source_file":               "gs://source_bucket/source_file",
-		"source_image":              "anImage",
+		"source_image":              "global/images/anImage",
 		"no_guest_environment":      true,
 		"family":                    "aFamily",
 		"description":               "aDescription",

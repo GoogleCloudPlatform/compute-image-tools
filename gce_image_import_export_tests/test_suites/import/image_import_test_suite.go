@@ -105,7 +105,7 @@ func runImageImportOSFromImageTest(
 	imageName := "e2e-test-image-import-os-from-image-" + suffix
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=e2e-test-image-10g"}
+		fmt.Sprintf("-image_name=%v", imageName), "-os=debian-9", "-source_image=global/images/e2e-test-image-10g"}
 	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
 		logger.Printf("Error running cmd: %v\n", err)
 		testCase.WriteFailure("Error running cmd: %v", err)
