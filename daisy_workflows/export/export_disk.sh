@@ -19,9 +19,9 @@ LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
 
 echo "GCEExport: Running export tool."
 if [[ -n $LICENSES ]]; then
-  gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
+  gce_export -buffer_prefix=/ -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
 else
-  gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y
+  gce_export -buffer_prefix=/ -gcs_path "$GCS_PATH" -disk /dev/sdb -y
 fi
 if [ $? -ne 0 ]; then
   echo "ExportFailed: Failed to export disk source to ${GCS_PATH}."
