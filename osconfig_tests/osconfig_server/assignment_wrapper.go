@@ -33,7 +33,7 @@ type Assignment struct {
 
 // CreateAssignment is a wrapper around createAssignment API
 func CreateAssignment(ctx context.Context, assignment *osconfigpb.Assignment, parent string) (*Assignment, error) {
-	client, err := gcpclients.GetOsConfigClient(ctx)
+	client, err := gcpclients.GetOsConfigClient()
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func CreateAssignment(ctx context.Context, assignment *osconfigpb.Assignment, pa
 
 // Cleanup function will cleanup the assignment created under project
 func (a *Assignment) Cleanup(ctx context.Context, projectID string) error {
-	client, err := gcpclients.GetOsConfigClient(ctx)
+	client, err := gcpclients.GetOsConfigClient()
 	if err != nil {
 		return err
 	}

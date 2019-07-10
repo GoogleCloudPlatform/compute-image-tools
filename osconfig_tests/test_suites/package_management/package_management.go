@@ -130,9 +130,10 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
-	computeClient, err := gcpclients.GetComputeClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient()
 	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
+		testCase.WriteFailure("Error getting compute client: %v", err)
+		return
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
@@ -146,7 +147,7 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 	defer inst.Cleanup()
 
-	storageClient, err := gcpclients.GetStorageClient(ctx)
+	storageClient, err := gcpclients.GetStorageClient()
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
@@ -184,9 +185,10 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
-	computeClient, err := gcpclients.GetComputeClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient()
 	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
+		testCase.WriteFailure("Error getting compute client: %v", err)
+		return
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
@@ -200,7 +202,7 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 	}
 	defer inst.Cleanup()
 
-	storageClient, err := gcpclients.GetStorageClient(ctx)
+	storageClient, err := gcpclients.GetStorageClient()
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
@@ -237,9 +239,10 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
-	computeClient, err := gcpclients.GetComputeClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient()
 	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
+		testCase.WriteFailure("Error getting compute client: %v", err)
+		return
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
@@ -253,7 +256,7 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 	defer inst.Cleanup()
 
-	storageClient, err := gcpclients.GetStorageClient(ctx)
+	storageClient, err := gcpclients.GetStorageClient()
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
@@ -290,9 +293,10 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	}
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
-	computeClient, err := gcpclients.GetComputeClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient()
 	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
+		testCase.WriteFailure("Error getting compute client: %v", err)
+		return
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
@@ -306,7 +310,7 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	}
 	defer inst.Cleanup()
 
-	storageClient, err := gcpclients.GetStorageClient(ctx)
+	storageClient, err := gcpclients.GetStorageClient()
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}

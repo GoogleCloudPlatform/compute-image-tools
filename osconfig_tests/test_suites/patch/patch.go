@@ -123,7 +123,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 }
 
 func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.Duration) (*osconfigpb.PatchJob, error) {
-	client, err := gcpclients.GetOsConfigClient(ctx)
+	client, err := gcpclients.GetOsConfigClient()
 	if err != nil {
 		return nil, err
 	}
@@ -157,9 +157,9 @@ func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.D
 }
 
 func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, testProjectConfig *testconfig.Project, pc *osconfigpb.PatchConfig) {
-	computeClient, err := gcpclients.GetComputeClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient()
 	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
+		testCase.WriteFailure("Error getting compute client: %v", err)
 		return
 	}
 
@@ -181,7 +181,11 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	testCase.Logf("Agent installed successfully")
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
-	osconfigClient, err := gcpclients.GetOsConfigClient(ctx)
+	osconfigClient, err := gcpclients.GetOsConfigClient()
+	if err != nil {
+		testCase.WriteFailure("Error getting osconfig client: %v", err)
+		return
+	}
 
 	req := &osconfigpb.ExecutePatchJobRequest{
 		Parent:      parent,
@@ -191,7 +195,6 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 		PatchConfig: pc,
 	}
 	job, err := osconfigClient.ExecutePatchJob(ctx, req)
-
 	if err != nil {
 		testCase.WriteFailure("error while executing patch job: \n%s\n", utils.GetStatusFromError(err))
 		return
@@ -204,9 +207,9 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 }
 
 func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, testProjectConfig *testconfig.Project, pc *osconfigpb.PatchConfig, shouldReboot bool) {
-	computeClient, err := gcpclients.GetComputeClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient()
 	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
+		testCase.WriteFailure("Error getting compute client: %v", err)
 		return
 	}
 
@@ -228,7 +231,11 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	testCase.Logf("Agent installed successfully")
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
-	osconfigClient, err := gcpclients.GetOsConfigClient(ctx)
+	osconfigClient, err := gcpclients.GetOsConfigClient()
+	if err != nil {
+		testCase.WriteFailure("Error getting osconfig client: %v", err)
+		return
+	}
 
 	req := &osconfigpb.ExecutePatchJobRequest{
 		Parent:      parent,
@@ -238,7 +245,6 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 		PatchConfig: pc,
 	}
 	job, err := osconfigClient.ExecutePatchJob(ctx, req)
-
 	if err != nil {
 		testCase.WriteFailure("error while executing patch job: \n%s\n", utils.GetStatusFromError(err))
 		return

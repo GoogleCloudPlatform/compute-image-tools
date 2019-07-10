@@ -17,7 +17,6 @@ package gcpclients
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -31,59 +30,49 @@ var (
 	storageClient  *storage.Client
 	computeClient  compute.Client
 	osconfigClient *osconfig.Client
-
-	populateClientOnce sync.Once
 )
 
-func populateClients(ctx context.Context) error {
-	var err error
-	populateClientOnce.Do(func() {
-		err = createComputeClient(ctx)
-		err = createOsConfigClient(ctx)
-		err = createStorageClient(ctx)
-	})
-	return err
+// PopulateClients populates the GCP clients.
+func PopulateClients(ctx context.Context) error {
+	if err := createComputeClient(ctx); err != nil {
+		return err
+	}
+	if err := createOsConfigClient(ctx); err != nil {
+		return err
+	}
+	return createStorageClient(ctx)
 }
 
 func createComputeClient(ctx context.Context) error {
 	var err error
 	computeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func createStorageClient(ctx context.Context) error {
 	logger.Debugf("creating storage client\n")
 	var err error
 	storageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func createOsConfigClient(ctx context.Context) error {
 	logger.Debugf("creating osconfig client\n")
 	var err error
 	osconfigClient, err = osconfig.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()), option.WithEndpoint(config.SvcEndpoint()))
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // GetComputeClient returns a singleton GCP client for osconfig tests
-func GetComputeClient(ctx context.Context) (compute.Client, error) {
-	if err := populateClients(ctx); err != nil {
-		return nil, err
+func GetComputeClient() (compute.Client, error) {
+	if computeClient == nil {
+		return nil, fmt.Errorf("compute client was not initialized")
 	}
 	return computeClient, nil
 }
 
 // GetStorageClient returns a singleton GCP client for osconfig tests
-func GetStorageClient(ctx context.Context) (*storage.Client, error) {
+func GetStorageClient() (*storage.Client, error) {
 	if storageClient == nil {
 		return nil, fmt.Errorf("storage client was not initialized")
 	}
@@ -91,9 +80,9 @@ func GetStorageClient(ctx context.Context) (*storage.Client, error) {
 }
 
 // GetOsConfigClient returns a singleton GCP client for osconfig tests
-func GetOsConfigClient(ctx context.Context) (*osconfig.Client, error) {
-	if err := populateClients(ctx); err != nil {
-		return nil, err
+func GetOsConfigClient() (*osconfig.Client, error) {
+	if osconfigClient == nil {
+		return nil, fmt.Errorf("osconfig client was not initialized")
 	}
 	return osconfigClient, nil
 }

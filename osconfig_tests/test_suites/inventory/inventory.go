@@ -78,9 +78,10 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) ([]*apiBeta.GuestAttributesEntry, bool) {
 	testCase.Logf("Creating compute client")
 
-	computeClient, err := gcpclients.GetComputeClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient()
 	if err != nil {
-		testCase.WriteFailure("Error getting storage client: %v", err)
+		testCase.WriteFailure("Error getting compute client: %v", err)
+		return nil, false
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
@@ -97,7 +98,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	}
 	defer inst.Cleanup()
 
-	storageClient, err := gcpclients.GetStorageClient(ctx)
+	storageClient, err := gcpclients.GetStorageClient()
 	if err != nil {
 		testCase.WriteFailure("Error getting storage client: %v", err)
 	}

@@ -31,11 +31,11 @@ import (
 	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
-
+	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
 )
 
 var (
@@ -99,6 +99,10 @@ func main() {
 			fmt.Println("-testCaseFilter flag not valid:", err)
 			os.Exit(1)
 		}
+	}
+
+	if err := gcpclients.PopulateClients(ctx); err != nil {
+		log.Fatal(err)
 	}
 
 	logger := log.New(os.Stdout, "[OsConfigTests] ", 0)
