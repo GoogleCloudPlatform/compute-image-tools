@@ -23,7 +23,6 @@ import (
 	"sync"
 	"time"
 
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
@@ -131,17 +130,16 @@ func runPackageRemovalTest(ctx context.Context, testCase *junitxml.TestCase, tes
 
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
-	client, err := daisyCompute.NewClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("Error creating client: %v", err)
-		return
+		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*computeApi.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
 		return
@@ -186,17 +184,16 @@ func runPackageInstallRemovalTest(ctx context.Context, testCase *junitxml.TestCa
 
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
-	client, err := daisyCompute.NewClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("Error creating client: %v", err)
-		return
+		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*computeApi.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -240,17 +237,16 @@ func runPackageInstallTest(ctx context.Context, testCase *junitxml.TestCase, tes
 	}
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
-	client, err := daisyCompute.NewClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("Error creating client: %v", err)
-		return
+		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*computeApi.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -294,17 +290,16 @@ func runPackageInstallFromNewRepoTest(ctx context.Context, testCase *junitxml.Te
 	}
 	defer cleanupAssignment(ctx, testCase, assign, testProjectConfig)
 
-	client, err := daisyCompute.NewClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("Error creating client: %v", err)
-		return
+		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	var metadataItems []*computeApi.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, "n1-standard-4", testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return

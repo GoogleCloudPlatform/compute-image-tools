@@ -26,7 +26,6 @@ import (
 	"sync"
 	"time"
 
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
@@ -158,15 +157,15 @@ func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.D
 }
 
 func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, testProjectConfig *testconfig.Project, pc *osconfigpb.PatchConfig) {
-	client, err := daisyCompute.NewClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("error creating client: %v", err)
+		testCase.WriteFailure("Error getting storage client: %v", err)
 		return
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	name := fmt.Sprintf("patch-test-%s-%s-%s", path.Base(testSetup.testName), testSuffix, utils.RandString(5))
-	inst, err := utils.CreateComputeInstance(testSetup.metadata, client, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(testSetup.metadata, computeClient, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return
@@ -205,15 +204,15 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 }
 
 func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *patchTestSetup, testProjectConfig *testconfig.Project, pc *osconfigpb.PatchConfig, shouldReboot bool) {
-	client, err := daisyCompute.NewClient(ctx)
+	computeClient, err := gcpclients.GetComputeClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("error creating client: %v", err)
+		testCase.WriteFailure("Error getting storage client: %v", err)
 		return
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	name := fmt.Sprintf("patch-reboot-%s-%s-%s", path.Base(testSetup.testName), testSuffix, utils.RandString(5))
-	inst, err := utils.CreateComputeInstance(testSetup.metadata, client, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(testSetup.metadata, computeClient, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", utils.GetStatusFromError(err))
 		return

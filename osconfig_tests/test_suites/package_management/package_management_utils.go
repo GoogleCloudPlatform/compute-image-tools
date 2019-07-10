@@ -53,7 +53,7 @@ func getPackageInstallStartupScript(image, pkgManager, packageName string) *comp
 			"sleep 5;\n" +
 			"done;\n"
 
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb(), packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "yum":
@@ -85,7 +85,7 @@ func getPackageInstallStartupScript(image, pkgManager, packageName string) *comp
 			"}\n" +
 			"sleep 5\n" +
 			"}\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, packageInstalledString, packageNotInstalledString)
 		key = "windows-startup-script-ps1"
 
 	default:
@@ -129,7 +129,7 @@ func getPackageRemovalStartupScript(image, pkgManager, packageName string) *comp
 			"sleep 5;\n" +
 			"done;\n"
 
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName, packageName, packageNotInstalledString, packageInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb(), packageName, packageName, packageName, packageNotInstalledString, packageInstalledString)
 		key = "startup-script"
 
 	case "yum":
@@ -184,7 +184,7 @@ func getPackageRemovalStartupScript(image, pkgManager, packageName string) *comp
 			"}\n" +
 			"sleep 5\n" +
 			"}\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet, packageName, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, packageName, packageInstalledString, packageNotInstalledString)
 		key = "windows-startup-script-ps1"
 
 	default:
@@ -214,7 +214,7 @@ func getPackageInstallRemovalStartupScript(image, pkgManager, packageName string
 			"sleep 5;\n" +
 			"done;\n"
 
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageName, packageNotInstalledString, packageInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb(), packageName, packageName, packageNotInstalledString, packageInstalledString)
 		key = "startup-script"
 
 	case "yum":
@@ -245,7 +245,7 @@ func getPackageInstallRemovalStartupScript(image, pkgManager, packageName string
 			"}\n" +
 			"sleep 5\n" +
 			"}\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, packageInstalledString, packageNotInstalledString)
 		key = "windows-startup-script-ps1"
 
 	default:
@@ -277,7 +277,7 @@ func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageNam
 			"sleep 5;\n" +
 			"done;\n"
 
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb(), packageName, packageInstalledString, packageNotInstalledString)
 		key = "startup-script"
 
 	case "yum":
@@ -314,7 +314,7 @@ func getPackageInstallFromNewRepoTestStartupScript(image, pkgManager, packageNam
 			"}\n" +
 			"sleep 5\n" +
 			"}\n"
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet, packageName, packageInstalledString, packageNotInstalledString)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, packageInstalledString, packageNotInstalledString)
 		key = "windows-startup-script-ps1"
 
 	default:

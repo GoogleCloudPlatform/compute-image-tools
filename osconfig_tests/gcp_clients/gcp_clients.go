@@ -21,6 +21,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
 	osconfig "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"google.golang.org/api/option"
@@ -28,37 +29,57 @@ import (
 
 var (
 	storageClient  *storage.Client
+	computeClient  compute.Client
 	osconfigClient *osconfig.Client
 
 	populateClientOnce sync.Once
 )
 
-// PopulateClients creates singleton clients for various services
-func PopulateClients(ctx context.Context) {
+func populateClients(ctx context.Context) error {
+	var err error
 	populateClientOnce.Do(func() {
-		createOsConfigClient(ctx)
-		createStorageClient(ctx)
+		err = createComputeClient(ctx)
+		err = createOsConfigClient(ctx)
+		err = createStorageClient(ctx)
 	})
+	return err
 }
 
-func createStorageClient(ctx context.Context) {
+func createComputeClient(ctx context.Context) error {
+	var err error
+	computeClient, err = compute.NewClient(ctx,  option.WithCredentialsFile(config.OauthPath()))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func createStorageClient(ctx context.Context) error{
 	logger.Debugf("creating storage client\n")
-	storageClient, _ = storage.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
-	if storageClient != nil {
-		logger.Debugf("Created storage client\n")
-	} else {
-		logger.Debugf("No storage client\n")
+	var err error
+	storageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
+	if err != nil {
+		return err
 	}
+	return nil
 }
 
-func createOsConfigClient(ctx context.Context) {
+func createOsConfigClient(ctx context.Context) error{
 	logger.Debugf("creating osconfig client\n")
-	osconfigClient, _ = osconfig.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()), option.WithEndpoint(config.SvcEndpoint()))
-	if osconfigClient != nil {
-		logger.Debugf("Created osconfig client\n")
-	} else {
-		logger.Debugf("No osconfig client\n")
+	var err error
+	osconfigClient, err = osconfig.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()), option.WithEndpoint(config.SvcEndpoint()))
+	if err != nil {
+		return err
 	}
+	return nil
+}
+
+// GetComputeClient returns a singleton GCP client for osconfig tests
+func GetComputeClient(ctx context.Context) (compute.Client, error) {
+	if err := populateClients(ctx); err != nil {
+		return nil, err
+	}
+	return computeClient, nil
 }
 
 // GetStorageClient returns a singleton GCP client for osconfig tests
@@ -71,9 +92,8 @@ func GetStorageClient(ctx context.Context) (*storage.Client, error) {
 
 // GetOsConfigClient returns a singleton GCP client for osconfig tests
 func GetOsConfigClient(ctx context.Context) (*osconfig.Client, error) {
-	PopulateClients(ctx)
-	if osconfigClient == nil {
-		return nil, fmt.Errorf("osconfig client was not initialized")
+	if err := populateClients(ctx); err != nil {
+		return nil, err
 	}
 	return osconfigClient, nil
 }

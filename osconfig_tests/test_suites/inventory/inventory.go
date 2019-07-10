@@ -28,7 +28,6 @@ import (
 	"sync"
 	"time"
 
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
@@ -78,10 +77,10 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, testCase *junitxml.TestCase, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) ([]*apiBeta.GuestAttributesEntry, bool) {
 	testCase.Logf("Creating compute client")
-	client, err := daisyCompute.NewClient(ctx)
+
+	computeClient, err := gcpclients.GetComputeClient(ctx)
 	if err != nil {
-		testCase.WriteFailure("Error creating client: %v", err)
-		return nil, false
+		testCase.WriteFailure("Error getting storage client: %v", err)
 	}
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
@@ -91,7 +90,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("enable-os-inventory", "true"))
 
-	inst, err := utils.CreateComputeInstance(metadataItems, client, "n1-standard-2", testSetup.image, testSetup.hostname, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, "n1-standard-2", testSetup.image, testSetup.hostname, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", err)
 		return nil, false

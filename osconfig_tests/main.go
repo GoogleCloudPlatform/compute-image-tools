@@ -34,7 +34,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
 
-	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 )
@@ -57,8 +56,6 @@ var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.Test
 func main() {
 	flag.Parse()
 	ctx := context.Background()
-
-	gcpclients.PopulateClients(ctx)
 
 	if len(strings.TrimSpace(*testProjectID)) == 0 {
 		fmt.Println("-test_project_id is invalid")
