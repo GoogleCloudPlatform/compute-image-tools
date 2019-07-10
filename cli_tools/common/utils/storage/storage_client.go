@@ -49,11 +49,11 @@ type StorageClient struct {
 
 // NewStorageClient creates a StorageClient
 func NewStorageClient(ctx context.Context,
-	logger logging.LoggerInterface, oauth *string) (*StorageClient, error) {
+	logger logging.LoggerInterface, oauth string) (*StorageClient, error) {
 
 	storageOptions := []option.ClientOption{}
-	if oauth != nil {
-		storageOptions = append(storageOptions, option.WithCredentialsFile(*oauth))
+	if oauth != "" {
+		storageOptions = append(storageOptions, option.WithCredentialsFile(oauth))
 	}
 	client, err := storage.NewClient(ctx, storageOptions...)
 	if err != nil {
