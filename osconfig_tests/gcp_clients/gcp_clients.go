@@ -20,8 +20,8 @@ import (
 	"sync"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
 	osconfig "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	"google.golang.org/api/option"
@@ -47,14 +47,14 @@ func populateClients(ctx context.Context) error {
 
 func createComputeClient(ctx context.Context) error {
 	var err error
-	computeClient, err = compute.NewClient(ctx,  option.WithCredentialsFile(config.OauthPath()))
+	computeClient, err = compute.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func createStorageClient(ctx context.Context) error{
+func createStorageClient(ctx context.Context) error {
 	logger.Debugf("creating storage client\n")
 	var err error
 	storageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
@@ -64,7 +64,7 @@ func createStorageClient(ctx context.Context) error{
 	return nil
 }
 
-func createOsConfigClient(ctx context.Context) error{
+func createOsConfigClient(ctx context.Context) error {
 	logger.Debugf("creating osconfig client\n")
 	var err error
 	osconfigClient, err = osconfig.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()), option.WithEndpoint(config.SvcEndpoint()))
