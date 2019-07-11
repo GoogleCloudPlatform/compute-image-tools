@@ -19,10 +19,13 @@
 getent hosts $INSTANCE
 
 # Raise error if it occurred
-[ $? -ne 0 ] && logger -p daemon.info "DNS_Failed"
+[ $? -ne 0 ] && \
+ (logger -p daemon.info "DNS_Failed"; echo "DNS_Failed" > /dev/console)
 
 # Verify VM to external DNS connection
 getent hosts www.google.com
 
 # Signalize wait-for-instance that instance is ready or error occurred
-[ $? -ne 0 ] && logger -p daemon.info "DNS_Failed" || logger -p daemon.info "DNS_Success"
+[ $? -ne 0 ] && \
+ (logger -p daemon.info "DNS_Failed"; echo "DNS_Failed" > /dev/console) || \
+ (logger -p daemon.info "DNS_Success"; echo "DNS_Success" > /dev/console)

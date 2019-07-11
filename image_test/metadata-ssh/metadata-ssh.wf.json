@@ -72,7 +72,7 @@
           "RealName": "inst-metadata-ssh-testee-${DATETIME}-${ID}",
           "Disks": [{"Source": "disk-testee"}],
           "metadata": {
-            "startup-script": "service sshguard stop; logger -p daemon.info BOOTED"
+            "startup-script": "service sshguard stop; logger -p daemon.info BOOTED; echo BOOTED > /dev/console"
           }
         }
       ]

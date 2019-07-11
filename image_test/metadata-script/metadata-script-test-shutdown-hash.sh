@@ -214,3 +214,4 @@ fi
 
 # Finish the script by outputing the hash which is the SuccessMatch
 $md5bin ./shutdown_tester.sh | logger -p daemon.info
+$md5bin ./shutdown_tester.sh > /dev/console

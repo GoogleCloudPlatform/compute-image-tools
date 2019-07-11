@@ -15,6 +15,7 @@
 
 # Signalize wait-for-instance that instance is ready
 logger -p daemon.info "BOOTED"
+echo "BOOTED" > /dev/console
 
 # Serve a file server that prints the hostname when requesting "/hostname"
 # and "linux" when requesting "/os"

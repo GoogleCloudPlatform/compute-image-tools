@@ -23,4 +23,6 @@ if [  -n "$(uname -a | grep Ubuntu)" ]; then
     fi
 fi
 
-ping -c 5 ${HOST} && logger -p daemon.info 'MultiNICSuccess' || logger -p daemon.info 'MultiNICFailed'
+ping -c 5 ${HOST} && \
+ (logger -p daemon.info 'MultiNICSuccess'; echo 'MultiNICSuccess' > /dev/console) || \
+ (logger -p daemon.info 'MultiNICFailed'; echo 'MultiNICFailed' > /dev/console)
