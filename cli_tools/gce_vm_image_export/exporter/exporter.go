@@ -35,9 +35,13 @@ const (
 	workflowDir              = "daisy_workflows/export/"
 	exportWorkflow           = workflowDir + "image_export.wf.json"
 	exportAndConvertWorkflow = workflowDir + "image_export_ext.wf.json"
-	ClientIDFlagKey          = "client_id"
-	DestinationURIFlagKey    = "destination_uri"
-	SourceImageFlagKey       = "source_image"
+)
+
+// Parameter key shared with external packages
+const (
+	ClientIDFlagKey       = "client_id"
+	DestinationURIFlagKey = "destination_uri"
+	SourceImageFlagKey    = "source_image"
 )
 
 func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
@@ -98,9 +102,9 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 }
 
 func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap map[string]string,
-		project string, zone string, timeout string, scratchBucketGcsPath string, oauth string,
-		ce string, gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool,
-		userLabels map[string]string) error {
+	project string, zone string, timeout string, scratchBucketGcsPath string, oauth string, ce string,
+	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool,
+	userLabels map[string]string) error {
 
 	workflow, err := daisycommon.ParseWorkflow(exportWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
@@ -127,6 +131,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
 }
 
+// Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, format string,
 	project string, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,

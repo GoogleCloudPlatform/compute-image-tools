@@ -22,13 +22,13 @@ import (
 )
 
 var (
-	clientID             = ""
-	destinationURI       = ""
-	sourceImage          = ""
-	format               = ""
-	network              = ""
-	subnet               = ""
-	labels               = ""
+	clientID       = ""
+	destinationURI = ""
+	sourceImage    = ""
+	format         = ""
+	network        = ""
+	subnet         = ""
+	labels         = ""
 )
 
 func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
@@ -50,19 +50,19 @@ func TestGetWorkflowPathWithFormatConversion(t *testing.T) {
 func TestFlagsSouceImageNotProvided(t *testing.T) {
 	resetArgs()
 	sourceImage = ""
-	assertErrorOnValidate( "Expected error for missing source_image flag", t)
+	assertErrorOnValidate("Expected error for missing source_image flag", t)
 }
 
 func TestFlagsClientIdNotProvided(t *testing.T) {
 	resetArgs()
 	clientID = ""
-	assertErrorOnValidate( "Expected error for missing client_id flag", t)
+	assertErrorOnValidate("Expected error for missing client_id flag", t)
 }
 
 func TestFlagsDestinationUriNotProvided(t *testing.T) {
 	resetArgs()
 	destinationURI = ""
-	assertErrorOnValidate( "Expected error for missing destination_uri flag", t)
+	assertErrorOnValidate("Expected error for missing destination_uri flag", t)
 }
 
 func assertErrorOnValidate(errorMsg string, t *testing.T) {
