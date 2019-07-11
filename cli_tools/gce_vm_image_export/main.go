@@ -114,11 +114,15 @@ func buildDaisyVars() map[string]string {
 	if *format != "" {
 		varMap["format"] = *format
 	}
-	if *network != "" {
-		varMap["export_network"] = fmt.Sprintf("global/networks/%v", *network)
-	}
 	if *subnet != "" {
 		varMap["export_subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", *region, *subnet)
+		// When subnet is set, we need to grant a value to network to avoid fallback to default
+		if *network == "" {
+			varMap["import_network"] = ""
+		}
+	}
+	if *network != "" {
+		varMap["export_network"] = fmt.Sprintf("global/networks/%v", *network)
 	}
 	return varMap
 }
