@@ -128,7 +128,7 @@ func runImageImportWithRichParamsTest(
 	labels := []string{"key1=value1", "key2=value2"}
 
 	suffix := pathutils.RandString(5)
-	imageName := "e2e-test-image-import-data-disk-" + suffix
+	imageName := "e2e-test-image-import-rich-param-" + suffix
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-image_name=%s", imageName), "-data_disk", fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),

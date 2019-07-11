@@ -107,7 +107,7 @@ func runImageExportWithRichParamsTest(
 
 	suffix := pathutils.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
-	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
+	objectName := fmt.Sprintf("e2e-export-rich-param-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
 	cmd := "gce_vm_image_export"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
