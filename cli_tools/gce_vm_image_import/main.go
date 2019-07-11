@@ -199,11 +199,15 @@ func buildDaisyVars(translateWorkflowPath string) map[string]string {
 	}
 	varMap["family"] = *family
 	varMap["description"] = *description
-	if *network != "" {
-		varMap["import_network"] = fmt.Sprintf("global/networks/%v", *network)
-	}
 	if *subnet != "" {
 		varMap["import_subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", *region, *subnet)
+		// When subnet is set, we need to grant a value to network to avoid fallback to default
+		if *network == "" {
+			varMap["import_network"] = ""
+		}
+	}
+	if *network != "" {
+		varMap["import_network"] = fmt.Sprintf("global/networks/%v", *network)
 	}
 	return varMap
 }
