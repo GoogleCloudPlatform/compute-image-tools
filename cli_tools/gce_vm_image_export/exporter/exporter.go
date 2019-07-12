@@ -31,10 +31,11 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-const (
-	workflowDir              = "daisy_workflows/export/"
-	exportWorkflow           = workflowDir + "image_export.wf.json"
-	exportAndConvertWorkflow = workflowDir + "image_export_ext.wf.json"
+// Make file paths mutable
+var (
+	WorkflowDir              = "daisy_workflows/export/"
+	ExportWorkflow           = "image_export.wf.json"
+	ExportAndConvertWorkflow = "image_export_ext.wf.json"
 )
 
 // Parameter key shared with external packages
@@ -70,10 +71,10 @@ func validateAndParseFlags(clientID string, destinationURI string, sourceImage s
 
 func getWorkflowPath(format string, currentExecutablePath string) string {
 	if format == "" {
-		return pathutils.ToWorkingDir(exportWorkflow, currentExecutablePath)
+		return pathutils.ToWorkingDir(WorkflowDir + ExportWorkflow, currentExecutablePath)
 	}
 
-	return pathutils.ToWorkingDir(exportAndConvertWorkflow, currentExecutablePath)
+	return pathutils.ToWorkingDir(WorkflowDir + ExportAndConvertWorkflow, currentExecutablePath)
 }
 
 func buildDaisyVars(destinationURI string, sourceImage string, format string, network string,
