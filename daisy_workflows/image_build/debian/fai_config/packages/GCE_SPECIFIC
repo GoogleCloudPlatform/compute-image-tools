@@ -3,6 +3,9 @@ PACKAGES install
 haveged
 # Used by the bootstrap script.
 curl
+# Useful tools
+net-tools
+vim
 # GCE disk expansion package.
 gce-disk-expand
 
