@@ -130,7 +130,8 @@ def main():
 
   # GCE unstable package repo.
   if google_cloud_repo == 'unstable':
-    os.mkdir(config_space + 'files/etc/apt/sources.list.d/google_cloud_unstable.list')
+    os.mkdir(
+        config_space + 'files/etc/apt/sources.list.d/google_cloud_unstable.list')
     CopyToConfigSpace(
         '/files/fai_config/sources/GCE_UNSTABLE',
         'files/etc/apt/sources.list.d/google_cloud_unstable.list/GCE_UNSTABLE',
