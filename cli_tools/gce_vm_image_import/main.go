@@ -27,7 +27,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
@@ -121,7 +121,7 @@ func validateAndParseFlags() error {
 	}
 
 	if *osID != "" {
-		if err := daisy.ValidateOS(*osID); err != nil {
+		if err := daisyutils.ValidateOS(*osID); err != nil {
 			return err
 		}
 	}
@@ -180,7 +180,7 @@ func getTranslateWorkflowPath() string {
 	if *customTranWorkflow != "" {
 		return *customTranWorkflow
 	}
-	return daisy.GetTranslateWorkflowPath(osID)
+	return daisyutils.GetTranslateWorkflowPath(osID)
 }
 
 func buildDaisyVars(translateWorkflowPath string) map[string]string {
@@ -223,7 +223,7 @@ func runImport(ctx context.Context) error {
 	}
 
 	workflowModifier := func(w *daisy.Workflow) {
-		rl := &daisy.ResourceLabeler{
+		rl := &daisyutils.ResourceLabeler{
 			BuildID: buildID, UserLabels: userLabels, BuildIDLabelKey: "gce-image-import-build-id",
 			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
 				return "gce-image-import-tmp"
@@ -239,7 +239,7 @@ func runImport(ctx context.Context) error {
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		daisy.UpdateAllInstanceNoExternalIP(w, *noExternalIP)
+		daisyutils.UpdateAllInstanceNoExternalIP(w, *noExternalIP)
 	}
 
 	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
@@ -253,7 +253,7 @@ func main() {
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger("[image-import]"), oauth)
+		ctx, logging.NewLogger("[image-import]"), *oauth)
 	if err != nil {
 		log.Fatalf("error creating storage client %v", err)
 	}
