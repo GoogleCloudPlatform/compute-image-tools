@@ -33,7 +33,7 @@ import (
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
+	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/gce_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
@@ -57,7 +57,7 @@ type OVFImporter struct {
 	computeClient         daisycompute.Client
 	tarGcsExtractor       domain.TarGcsExtractorInterface
 	mgce                  domain.MetadataGCEInterface
-	ovfDescriptorLoader   domain.OvfDescriptorLoaderInterface
+	ovfDescriptorLoader   ovfdomain.OvfDescriptorLoaderInterface
 	bucketIteratorCreator domain.BucketIteratorCreatorInterface
 	Logger                logging.LoggerInterface
 	zoneValidator         domain.ZoneValidatorInterface
