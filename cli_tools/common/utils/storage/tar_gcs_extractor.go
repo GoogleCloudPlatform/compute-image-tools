@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package storageutils
+package storage
 
 import (
 	"archive/tar"
@@ -81,7 +81,7 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 			return errors.New("tar subdirectories not supported")
 
 		case tar.TypeReg:
-			destinationFilePath := pathutils.JoinURL(destinationPath, header.Name)
+			destinationFilePath := path.JoinURL(destinationPath, header.Name)
 			tge.logger.Log(fmt.Sprintf("Extracting: %v to gs://%v", header.Name, path.Join(destinationBucketName, destinationFilePath)))
 
 			if err := tge.storageClient.WriteToGCS(destinationBucketName, destinationFilePath, tarReader); err != nil {

@@ -31,7 +31,7 @@ func TestGetWorkflowPathsFromImage(t *testing.T) {
 	defer testutils.SetStringP(&sourceImage, "image-1")()
 	defer testutils.SetStringP(&osID, "ubuntu-1404")()
 	workflow, translate := getWorkflowPaths()
-	if workflow != pathutils.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
+	if workflow != path.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
 	}
 }
@@ -39,7 +39,7 @@ func TestGetWorkflowPathsFromImage(t *testing.T) {
 func TestGetWorkflowPathsDataDisk(t *testing.T) {
 	defer testutils.SetBoolP(&dataDisk, true)()
 	workflow, translate := getWorkflowPaths()
-	if workflow != pathutils.ToWorkingDir(importWorkflow, *currentExecutablePath) || translate != "" {
+	if workflow != path.ToWorkingDir(importWorkflow, *currentExecutablePath) || translate != "" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importWorkflow)
 	}
 }
@@ -53,7 +53,7 @@ func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
 		t.Errorf("Unexpected flags error: %v", err)
 	}
 	workflow, translate := getWorkflowPaths()
-	if workflow != pathutils.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath) || translate != "custom.wf" {
+	if workflow != path.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath) || translate != "custom.wf" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, importFromImageWorkflow)
 	}
 }

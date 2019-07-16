@@ -24,9 +24,9 @@ import (
 )
 
 var (
-	clientID             = flag.String(imageexporter.ClientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`.")
-	destinationURI       = flag.String(imageexporter.DestinationURIFlagKey, "", "The Google Cloud Storage URI destination for the exported virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.")
-	sourceImage          = flag.String(imageexporter.SourceImageFlagKey, "", "Compute Engine image from which to export")
+	clientID             = flag.String(exporter.ClientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`.")
+	destinationURI       = flag.String(exporter.DestinationURIFlagKey, "", "The Google Cloud Storage URI destination for the exported virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.")
+	sourceImage          = flag.String(exporter.SourceImageFlagKey, "", "Compute Engine image from which to export")
 	format               = flag.String("format", "", "Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.")
 	project              = flag.String("project", "", "Project to run in, overrides what is set in workflow.")
 	network              = flag.String("network", "", "Name of the network in your project to use for the image import. The network must have access to Google Cloud Storage. If not specified, the network named default is used.")

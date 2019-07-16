@@ -76,7 +76,7 @@ func TestSuite(
 
 	testSuite := junitxml.NewTestSuite(testSuiteName)
 	defer testSuite.Finish(testSuites)
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	ovaBucket := "compute-image-tools-test-resources"
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 

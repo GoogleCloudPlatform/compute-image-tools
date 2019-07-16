@@ -14,7 +14,7 @@
 
 //+build !test
 
-package computeutils
+package compute
 
 import "cloud.google.com/go/compute/metadata"
 

@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package imageexporter
+package exporter
 
 import (
 	"testing"
@@ -33,7 +33,7 @@ var (
 
 func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
 	workflow := getWorkflowPath(format, "")
-	expectedWorkflow := pathutils.ToWorkingDir(exportWorkflow, "")
+	expectedWorkflow := path.ToWorkingDir(exportWorkflow, "")
 	if workflow != expectedWorkflow {
 		t.Errorf("%v != %v", workflow, expectedWorkflow)
 	}
@@ -41,7 +41,7 @@ func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
 
 func TestGetWorkflowPathWithFormatConversion(t *testing.T) {
 	workflow := getWorkflowPath("vmdk", "")
-	expectedWorkflow := pathutils.ToWorkingDir(exportAndConvertWorkflow, "")
+	expectedWorkflow := path.ToWorkingDir(exportAndConvertWorkflow, "")
 	if workflow != expectedWorkflow {
 		t.Errorf("%v != %v", workflow, expectedWorkflow)
 	}

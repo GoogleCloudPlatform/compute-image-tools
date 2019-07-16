@@ -12,8 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package imageexporter defines GCE VM image exporter
-package imageexporter
+// Package exporter defines GCE VM image exporter
+package exporter
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -48,19 +48,19 @@ const (
 func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
 	map[string]string, error) {
 
-	if err := validationutils.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
 		return nil, err
 	}
-	if err := validationutils.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(destinationURI, DestinationURIFlagKey); err != nil {
 		return nil, err
 	}
-	if err := validationutils.ValidateStringFlagNotEmpty(sourceImage, SourceImageFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(sourceImage, SourceImageFlagKey); err != nil {
 		return nil, err
 	}
 
 	if labels != "" {
 		var err error
-		userLabels, err := paramutils.ParseKeyValues(labels)
+		userLabels, err := param.ParseKeyValues(labels)
 		if err != nil {
 			return nil, err
 		}
@@ -71,10 +71,10 @@ func validateAndParseFlags(clientID string, destinationURI string, sourceImage s
 
 func getWorkflowPath(format string, currentExecutablePath string) string {
 	if format == "" {
-		return pathutils.ToWorkingDir(WorkflowDir + ExportWorkflow, currentExecutablePath)
+		return path.ToWorkingDir(WorkflowDir+ExportWorkflow, currentExecutablePath)
 	}
 
-	return pathutils.ToWorkingDir(WorkflowDir + ExportAndConvertWorkflow, currentExecutablePath)
+	return path.ToWorkingDir(WorkflowDir+ExportAndConvertWorkflow, currentExecutablePath)
 }
 
 func buildDaisyVars(destinationURI string, sourceImage string, format string, network string,
@@ -115,7 +115,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 	}
 
 	workflowModifier := func(w *daisy.Workflow) {
-		rl := &daisyutils.ResourceLabeler{
+		rl := &daisy.ResourceLabeler{
 			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
 			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
 				return "gce-image-export-tmp"
@@ -145,22 +145,22 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	}
 
 	ctx := context.Background()
-	metadataGCE := &computeutils.MetadataGCE{}
-	storageClient, err := storageutils.NewStorageClient(
+	metadataGCE := &compute.MetadataGCE{}
+	storageClient, err := storage.NewStorageClient(
 		ctx, logging.NewLogger("[image-export]"), oauth)
 	if err != nil {
 		return fmt.Errorf("error creating storage client %v", err)
 	}
 	defer storageClient.Close()
 
-	scratchBucketCreator := storageutils.NewScratchBucketCreator(ctx, storageClient)
-	zoneRetriever, err := storageutils.NewZoneRetriever(metadataGCE, paramutils.CreateComputeClient(&ctx, oauth, ce))
+	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
+	zoneRetriever, err := storage.NewZoneRetriever(metadataGCE, param.CreateComputeClient(&ctx, oauth, ce))
 	if err != nil {
 		return err
 	}
 
 	region := new(string)
-	err = paramutils.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
+	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		destinationURI, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
 		return err

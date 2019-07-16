@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package paramutils
+package param
 
 import (
 	"context"
@@ -62,7 +62,7 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 
 		*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", scratchBucketName)
 	} else {
-		scratchBucketName, err := storageutils.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
+		scratchBucketName, err := storage.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
 		if err != nil {
 			return fmt.Errorf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
 		}

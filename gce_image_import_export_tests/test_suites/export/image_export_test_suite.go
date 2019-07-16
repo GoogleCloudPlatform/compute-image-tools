@@ -64,7 +64,7 @@ func runImageExportRawTest(
 	ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
@@ -84,7 +84,7 @@ func runImageExportVMDKTest(
 	ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-vmdk-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
@@ -105,7 +105,7 @@ func runImageExportWithRichParamsTest(
 	ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-rich-param-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
@@ -130,7 +130,7 @@ func runImageExportWithSubnetWithoutNetworkParamsTest(
 	ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-subnet-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)

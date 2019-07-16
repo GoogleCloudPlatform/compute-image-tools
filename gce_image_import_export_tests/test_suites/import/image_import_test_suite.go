@@ -68,7 +68,7 @@ func runImageImportDataDiskTest(
 	ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-data-disk-" + suffix
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
@@ -86,7 +86,7 @@ func runImageImportOSTest(
 	ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-os-" + suffix
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
@@ -104,7 +104,7 @@ func runImageImportOSFromImageTest(
 	ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-os-from-image-" + suffix
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
@@ -127,7 +127,7 @@ func runImageImportWithRichParamsTest(
 	description := "test-description"
 	labels := []string{"key1=value1", "key2=value2"}
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-rich-param-" + suffix
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
@@ -151,7 +151,7 @@ func runImageImportWithSubnetWithoutNetworkSpecified(
 	ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project) {
 
-	suffix := pathutils.RandString(5)
+	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-subnet-" + suffix
 	cmd := "gce_vm_image_import"
 	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
