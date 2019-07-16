@@ -58,6 +58,9 @@ func (c *ScratchBucketCreator) CreateScratchBucket(
 		// source file provided, create bucket in the same region for cost/performance reasons
 		bucket, region, err = c.createBucketMatchFileRegion(sourceFileFlag, project)
 	}
+	if err != nil {
+		log.Printf("Error creating a scratch bucket in source region. Reason: %v", err)
+	}
 	if sourceFileFlag == "" || err != nil {
 		// source file not provided or couldn't create bucket based on it, create default scratch bucket
 		bucket = c.formatScratchBucketName(project, defaultRegion)
