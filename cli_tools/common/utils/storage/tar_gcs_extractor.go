@@ -24,7 +24,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 )
 
 // TarGcsExtractor is responsible for extracting TAR archives from GCS to GCS
@@ -81,7 +81,7 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 			return errors.New("tar subdirectories not supported")
 
 		case tar.TypeReg:
-			destinationFilePath := path.JoinURL(destinationPath, header.Name)
+			destinationFilePath := pathutils.JoinURL(destinationPath, header.Name)
 			tge.logger.Log(fmt.Sprintf("Extracting: %v to gs://%v", header.Name, path.Join(destinationBucketName, destinationFilePath)))
 
 			if err := tge.storageClient.WriteToGCS(destinationBucketName, destinationFilePath, tarReader); err != nil {

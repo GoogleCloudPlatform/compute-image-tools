@@ -46,7 +46,7 @@ func main() {
 	flag.Parse()
 
 	currentExecutablePath := string(os.Args[0])
-	if err := imageexporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
+	if err := exporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath); err != nil {
 
