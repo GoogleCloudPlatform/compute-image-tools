@@ -21,7 +21,7 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
@@ -115,7 +115,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 	}
 
 	workflowModifier := func(w *daisy.Workflow) {
-		rl := &daisy.ResourceLabeler{
+		rl := &daisyutils.ResourceLabeler{
 			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
 			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
 				return "gce-image-export-tmp"
