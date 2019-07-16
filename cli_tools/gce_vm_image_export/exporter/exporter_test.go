@@ -33,7 +33,7 @@ var (
 
 func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
 	workflow := getWorkflowPath(format, "")
-	expectedWorkflow := path.ToWorkingDir(ExportWorkflow, "")
+	expectedWorkflow := path.ToWorkingDir(WorkflowDir+ExportWorkflow, "")
 	if workflow != expectedWorkflow {
 		t.Errorf("%v != %v", workflow, expectedWorkflow)
 	}
@@ -41,7 +41,7 @@ func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
 
 func TestGetWorkflowPathWithFormatConversion(t *testing.T) {
 	workflow := getWorkflowPath("vmdk", "")
-	expectedWorkflow := path.ToWorkingDir(ExportAndConvertWorkflow, "")
+	expectedWorkflow := path.ToWorkingDir(WorkflowDir+ExportAndConvertWorkflow, "")
 	if workflow != expectedWorkflow {
 		t.Errorf("%v != %v", workflow, expectedWorkflow)
 	}
