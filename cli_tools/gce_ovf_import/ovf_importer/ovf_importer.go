@@ -25,12 +25,12 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
@@ -73,7 +73,7 @@ type OVFImporter struct {
 func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, error) {
 	ctx := context.Background()
 	logger := logging.NewLogger("[import-ovf]")
-	storageClient, err := storage.NewStorageClient(ctx, logger, nil)
+	storageClient, err := storageutils.NewStorageClient(ctx, logger, "")
 	if err != nil {
 		return nil, err
 	}
@@ -81,19 +81,19 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 	if err != nil {
 		return nil, err
 	}
-	tarGcsExtractor := storage.NewTarGcsExtractor(ctx, storageClient, logger)
+	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient, logger)
 	buildID := os.Getenv("BUILD_ID")
 	if buildID == "" {
-		buildID = path.RandString(5)
+		buildID = pathutils.RandString(5)
 	}
 	workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow, params)
-	bic := &storage.BucketIteratorCreator{}
+	bic := &storageutils.BucketIteratorCreator{}
 
 	ovfImporter := &OVFImporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
 		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, buildID: buildID,
 		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
-		mgce:                &compute.MetadataGCE{}, bucketIteratorCreator: bic, Logger: logger,
-		zoneValidator: &compute.ZoneValidator{ComputeClient: computeClient}, params: params}
+		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic, Logger: logger,
+		zoneValidator: &computeutils.ZoneValidator{ComputeClient: computeClient}, params: params}
 	return ovfImporter, nil
 }
 
@@ -213,7 +213,7 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 	var err error
 
 	if strings.HasSuffix(ovfOvaGcsPathLowered, ".ova") {
-		ovfGcsPath = path.JoinURL(tmpGcsPath, "ovf")
+		ovfGcsPath = pathutils.JoinURL(tmpGcsPath, "ovf")
 		oi.Logger.Log(
 			fmt.Sprintf("Extracting %v OVA archive to %v", oi.params.OvfOvaGcsPath, ovfGcsPath))
 		err = oi.tarGcsExtractor.ExtractTarToGcs(oi.params.OvfOvaGcsPath, ovfGcsPath)
@@ -228,7 +228,7 @@ func (oi *OVFImporter) getOvfGcsPath(tmpGcsPath string) (string, bool, error) {
 	}
 
 	// assume OvfOvaGcsPath is a GCS folder for the whole OVF package
-	return path.ToDirectoryURL(ovfGcsPath), shouldCleanUp, err
+	return pathutils.ToDirectoryURL(ovfGcsPath), shouldCleanUp, err
 }
 
 func (oi *OVFImporter) createScratchBucketBucket(project string, region string) error {
@@ -265,12 +265,12 @@ func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, e
 			return "", err
 		}
 	}
-	return path.JoinURL(oi.params.ScratchBucketGcsPath, fmt.Sprintf("ovf-import-%v", oi.buildID)),
+	return pathutils.JoinURL(oi.params.ScratchBucketGcsPath, fmt.Sprintf("ovf-import-%v", oi.buildID)),
 		nil
 }
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
-	rl := &daisy.ResourceLabeler{
+	rl := &daisyutils.ResourceLabeler{
 		BuildID: oi.buildID, UserLabels: oi.params.UserLabels, BuildIDLabelKey: "gce-ovf-import-build-id",
 		InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
 			if strings.ToLower(oi.params.InstanceNames) == instance.Name {
@@ -285,7 +285,7 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 			return "gce-ovf-import-tmp"
 		}}
 	rl.LabelResources(w)
-	daisy.UpdateAllInstanceNoExternalIP(w, oi.params.NoExternalIP)
+	daisyutils.UpdateAllInstanceNoExternalIP(w, oi.params.NoExternalIP)
 }
 
 func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
@@ -353,13 +353,13 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		oi.Logger.Log(
 			fmt.Sprintf("Found valid osType in OVF descriptor, importing VM with `%v` as OS.",
 				osIDValue))
-	} else if err = daisy.ValidateOS(oi.params.OsID); err != nil {
+	} else if err = daisyutils.ValidateOS(oi.params.OsID); err != nil {
 		return nil, err
 	} else {
 		osIDValue = oi.params.OsID
 	}
 
-	translateWorkflowPath := "../image_import/" + daisy.GetTranslateWorkflowPath(&osIDValue)
+	translateWorkflowPath := "../image_import/" + daisyutils.GetTranslateWorkflowPath(&osIDValue)
 	machineTypeStr, err := oi.getMachineType(ovfDescriptor, project, zone)
 	if err != nil {
 		return nil, err
