@@ -24,12 +24,12 @@ import (
 
 // OvfDescriptorLoader is responsible for loading OVF descriptor from a GCS directory path.
 type OvfDescriptorLoader struct {
-	storageClient commondomain.StorageClientInterface
+	storageClient domain.StorageClientInterface
 	validator     domain.OvfDescriptorValidatorInterface
 }
 
 // NewOvfDescriptorLoader creates new OvfDescriptorLoader
-func NewOvfDescriptorLoader(sc commondomain.StorageClientInterface) *OvfDescriptorLoader {
+func NewOvfDescriptorLoader(sc domain.StorageClientInterface) *OvfDescriptorLoader {
 	return &OvfDescriptorLoader{
 		storageClient: sc,
 		validator:     NewOvfValidator(sc)}

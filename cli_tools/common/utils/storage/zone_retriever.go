@@ -37,12 +37,12 @@ var (
 
 // ZoneRetriever is responsible for retrieving GCE zone to run import in
 type ZoneRetriever struct {
-	Mgce              commondomain.MetadataGCEInterface
+	Mgce              domain.MetadataGCEInterface
 	ComputeGCEService daisycompute.Client
 }
 
 // NewZoneRetriever creates a ZoneRetriever
-func NewZoneRetriever(aMgce commondomain.MetadataGCEInterface, cs daisycompute.Client) (*ZoneRetriever, error) {
+func NewZoneRetriever(aMgce domain.MetadataGCEInterface, cs daisycompute.Client) (*ZoneRetriever, error) {
 	return &ZoneRetriever{Mgce: aMgce, ComputeGCEService: cs}, nil
 }
 

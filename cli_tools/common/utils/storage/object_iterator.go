@@ -29,7 +29,7 @@ type ObjectIteratorCreator struct {
 
 // CreateObjectIterator creates GCS Object iterator
 func (bic *ObjectIteratorCreator) CreateObjectIterator(
-	bucket string, objectPath string) commondomain.ObjectIteratorInterface {
+	bucket string, objectPath string) domain.ObjectIteratorInterface {
 	return &ObjectIterator{
 		it: bic.sc.Bucket(bucket).Objects(bic.ctx, &storage.Query{Prefix: objectPath})}
 }

@@ -146,7 +146,7 @@ func validateAndParseFlags() error {
 }
 
 // Validate source file is not a compression file by checking file header.
-func validateSourceFile(storageClient commondomain.StorageClientInterface) error {
+func validateSourceFile(storageClient domain.StorageClientInterface) error {
 	if *sourceFile == "" {
 		return nil
 	}

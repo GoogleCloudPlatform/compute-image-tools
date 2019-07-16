@@ -40,11 +40,11 @@ var (
 // StorageClient implements domain.StorageClientInterface. It implements main Storage functions
 // used by image import features.
 type StorageClient struct {
-	ObjectDeleter commondomain.StorageObjectDeleterInterface
+	ObjectDeleter domain.StorageObjectDeleterInterface
 	StorageClient *storage.Client
 	Logger        logging.LoggerInterface
 	Ctx           context.Context
-	Oic           commondomain.ObjectIteratorCreatorInterface
+	Oic           domain.ObjectIteratorCreatorInterface
 }
 
 // NewStorageClient creates a StorageClient
@@ -93,7 +93,7 @@ func (sc *StorageClient) GetBucket(bucket string) *storage.BucketHandle {
 }
 
 // GetObjects returns object iterator for given bucket and path
-func (sc *StorageClient) GetObjects(bucket string, objectPath string) commondomain.ObjectIteratorInterface {
+func (sc *StorageClient) GetObjects(bucket string, objectPath string) domain.ObjectIteratorInterface {
 	return sc.Oic.CreateObjectIterator(bucket, objectPath)
 }
 

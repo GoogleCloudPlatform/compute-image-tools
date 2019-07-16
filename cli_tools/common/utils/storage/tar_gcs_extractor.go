@@ -30,12 +30,12 @@ import (
 // TarGcsExtractor is responsible for extracting TAR archives from GCS to GCS
 type TarGcsExtractor struct {
 	ctx           context.Context
-	storageClient commondomain.StorageClientInterface
+	storageClient domain.StorageClientInterface
 	logger        logging.LoggerInterface
 }
 
 // NewTarGcsExtractor creates new TarGcsExtractor
-func NewTarGcsExtractor(ctx context.Context, sc commondomain.StorageClientInterface, logger logging.LoggerInterface) *TarGcsExtractor {
+func NewTarGcsExtractor(ctx context.Context, sc domain.StorageClientInterface, logger logging.LoggerInterface) *TarGcsExtractor {
 	return &TarGcsExtractor{ctx: ctx, storageClient: sc, logger: logger}
 }
 

@@ -53,14 +53,14 @@ const (
 // OVFImporter is responsible for importing OVF into GCE
 type OVFImporter struct {
 	ctx                   context.Context
-	storageClient         commondomain.StorageClientInterface
+	storageClient         domain.StorageClientInterface
 	computeClient         daisycompute.Client
-	tarGcsExtractor       commondomain.TarGcsExtractorInterface
-	mgce                  commondomain.MetadataGCEInterface
+	tarGcsExtractor       domain.TarGcsExtractorInterface
+	mgce                  domain.MetadataGCEInterface
 	ovfDescriptorLoader   domain.OvfDescriptorLoaderInterface
-	bucketIteratorCreator commondomain.BucketIteratorCreatorInterface
+	bucketIteratorCreator domain.BucketIteratorCreatorInterface
 	Logger                logging.LoggerInterface
-	zoneValidator         commondomain.ZoneValidatorInterface
+	zoneValidator         domain.ZoneValidatorInterface
 	gcsPathToClean        string
 	workflowPath          string
 	buildID               string
