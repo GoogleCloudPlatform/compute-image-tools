@@ -219,7 +219,7 @@ func (hc *HTTPClient) Get(url string) (resp *http.Response, err error) {
 	return hc.httpClient.Get(url)
 }
 
-// ObjectDeleter is responsible for deleting object
+// ObjectDeleter is responsible for deleting storage object
 type ObjectDeleter struct {
 	sc *Client
 }
