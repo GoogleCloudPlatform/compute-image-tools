@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package storageutils
+package storage
 
 import (
 	"context"
@@ -365,8 +365,8 @@ func TestCreateScratchBucketErrorWhenCreatingBucket(t *testing.T) {
 }
 
 func createMockBucketIteratorWithRandomBuckets(mockCtrl *gomock.Controller, ctx *context.Context,
-	storageClient commondomain.StorageClientInterface,
-	project string) commondomain.BucketIteratorCreatorInterface {
+	storageClient domain.StorageClientInterface,
+	project string) domain.BucketIteratorCreatorInterface {
 	firstBucketAttrs := &storage.BucketAttrs{
 		Name:         "firstbucket",
 		Location:     "us-west2",

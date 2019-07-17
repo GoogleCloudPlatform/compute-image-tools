@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package storageutils
+package storage
 
 import (
 	"context"
@@ -27,7 +27,7 @@ type BucketIteratorCreator struct {
 
 // CreateBucketIterator creates GCS bucket iterator
 func (bic *BucketIteratorCreator) CreateBucketIterator(ctx context.Context,
-	storageClient commondomain.StorageClientInterface, projectID string) commondomain.BucketIteratorInterface {
+	storageClient domain.StorageClientInterface, projectID string) domain.BucketIteratorInterface {
 	return &BucketIterator{storageClient.Buckets(projectID)}
 }
 

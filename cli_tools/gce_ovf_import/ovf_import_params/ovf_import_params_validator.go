@@ -39,7 +39,7 @@ const (
 // invalid. If params are valid, additional fields in OVFImportParams will be populated with
 // parsed values
 func ValidateAndParseParams(params *OVFImportParams) error {
-	if err := validationutils.ValidateStringFlagNotEmpty(params.InstanceNames, InstanceNameFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(params.InstanceNames, InstanceNameFlagKey); err != nil {
 		return err
 	}
 
@@ -48,21 +48,21 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 		return fmt.Errorf("OVF import doesn't support multi instance import at this time")
 	}
 
-	if err := validationutils.ValidateStringFlagNotEmpty(params.OvfOvaGcsPath, OvfGcsPathFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(params.OvfOvaGcsPath, OvfGcsPathFlagKey); err != nil {
 		return err
 	}
 
-	if err := validationutils.ValidateStringFlagNotEmpty(params.ClientID, ClientIDFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(params.ClientID, ClientIDFlagKey); err != nil {
 		return err
 	}
 
-	if _, _, err := storageutils.SplitGCSPath(params.OvfOvaGcsPath); err != nil {
+	if _, _, err := storage.SplitGCSPath(params.OvfOvaGcsPath); err != nil {
 		return fmt.Errorf("%v should be a path to OVF or OVA package in GCS", OvfGcsPathFlagKey)
 	}
 
 	if params.Labels != "" {
 		var err error
-		params.UserLabels, err = paramutils.ParseKeyValues(params.Labels)
+		params.UserLabels, err = param.ParseKeyValues(params.Labels)
 		if err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 
 	if params.NodeAffinityLabelsFlag != nil {
 		var err error
-		params.NodeAffinities, err = computeutils.ParseNodeAffinityLabels(params.NodeAffinityLabelsFlag)
+		params.NodeAffinities, err = compute.ParseNodeAffinityLabels(params.NodeAffinityLabelsFlag)
 		if err != nil {
 			return err
 		}

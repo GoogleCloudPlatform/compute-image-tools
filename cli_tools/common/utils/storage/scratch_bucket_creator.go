@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package storageutils
+package storage
 
 import (
 	"context"
@@ -32,13 +32,13 @@ const (
 
 // ScratchBucketCreator is responsible for creating Daisy scratch bucketets
 type ScratchBucketCreator struct {
-	StorageClient         commondomain.StorageClientInterface
+	StorageClient         domain.StorageClientInterface
 	Ctx                   context.Context
-	BucketIteratorCreator commondomain.BucketIteratorCreatorInterface
+	BucketIteratorCreator domain.BucketIteratorCreatorInterface
 }
 
 // NewScratchBucketCreator creates a ScratchBucketCreator
-func NewScratchBucketCreator(ctx context.Context, storageClient commondomain.StorageClientInterface) *ScratchBucketCreator {
+func NewScratchBucketCreator(ctx context.Context, storageClient domain.StorageClientInterface) *ScratchBucketCreator {
 	return &ScratchBucketCreator{storageClient, ctx, &BucketIteratorCreator{}}
 }
 

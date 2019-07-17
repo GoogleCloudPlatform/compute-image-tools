@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package storageutils
+package storage
 
 import (
 	"archive/tar"
@@ -24,18 +24,18 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 )
 
 // TarGcsExtractor is responsible for extracting TAR archives from GCS to GCS
 type TarGcsExtractor struct {
 	ctx           context.Context
-	storageClient commondomain.StorageClientInterface
+	storageClient domain.StorageClientInterface
 	logger        logging.LoggerInterface
 }
 
 // NewTarGcsExtractor creates new TarGcsExtractor
-func NewTarGcsExtractor(ctx context.Context, sc commondomain.StorageClientInterface, logger logging.LoggerInterface) *TarGcsExtractor {
+func NewTarGcsExtractor(ctx context.Context, sc domain.StorageClientInterface, logger logging.LoggerInterface) *TarGcsExtractor {
 	return &TarGcsExtractor{ctx: ctx, storageClient: sc, logger: logger}
 }
 

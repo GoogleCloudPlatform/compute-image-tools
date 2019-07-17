@@ -18,18 +18,18 @@ import (
 	"bytes"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
+	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/vmware/govmomi/ovf"
 )
 
 // OvfDescriptorLoader is responsible for loading OVF descriptor from a GCS directory path.
 type OvfDescriptorLoader struct {
-	storageClient commondomain.StorageClientInterface
-	validator     domain.OvfDescriptorValidatorInterface
+	storageClient domain.StorageClientInterface
+	validator     ovfdomain.OvfDescriptorValidatorInterface
 }
 
 // NewOvfDescriptorLoader creates new OvfDescriptorLoader
-func NewOvfDescriptorLoader(sc commondomain.StorageClientInterface) *OvfDescriptorLoader {
+func NewOvfDescriptorLoader(sc domain.StorageClientInterface) *OvfDescriptorLoader {
 	return &OvfDescriptorLoader{
 		storageClient: sc,
 		validator:     NewOvfValidator(sc)}

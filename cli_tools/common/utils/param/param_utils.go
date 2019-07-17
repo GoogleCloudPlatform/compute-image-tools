@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package paramutils
+package param
 
 import (
 	"context"
@@ -27,7 +27,7 @@ import (
 )
 
 // GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
-func GetProjectID(mgce commondomain.MetadataGCEInterface, projectFlag string) (string, error) {
+func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string, error) {
 	if projectFlag == "" {
 		if !mgce.OnGCE() {
 			return "", fmt.Errorf("project cannot be determined because build is not running on GCE")
@@ -43,10 +43,10 @@ func GetProjectID(mgce commondomain.MetadataGCEInterface, projectFlag string) (s
 
 // PopulateMissingParameters populate missing params for import/export cli tools
 func PopulateMissingParameters(project *string, zone *string, region *string,
-	scratchBucketGcsPath *string, file string, mgce commondomain.MetadataGCEInterface,
-	scratchBucketCreator commondomain.ScratchBucketCreatorInterface,
-	zoneRetriever commondomain.ZoneRetrieverInterface,
-	storageClient commondomain.StorageClientInterface) error {
+	scratchBucketGcsPath *string, file string, mgce domain.MetadataGCEInterface,
+	scratchBucketCreator domain.ScratchBucketCreatorInterface,
+	zoneRetriever domain.ZoneRetrieverInterface,
+	storageClient domain.StorageClientInterface) error {
 
 	if err := PopulateProjectIfMissing(mgce, project); err != nil {
 		return err
@@ -62,9 +62,9 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 
 		*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", scratchBucketName)
 	} else {
-		scratchBucketName, err := storageutils.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
+		scratchBucketName, err := storage.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
 		if err != nil {
-			return fmt.Errorf("invalid scratch bucket GCS path %v", *scratchBucketGcsPath)
+			return fmt.Errorf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
 		}
 		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
 		if err == nil {
@@ -87,7 +87,7 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 }
 
 // PopulateProjectIfMissing populates project id for cli tools
-func PopulateProjectIfMissing(mgce commondomain.MetadataGCEInterface, projectFlag *string) error {
+func PopulateProjectIfMissing(mgce domain.MetadataGCEInterface, projectFlag *string) error {
 	var err error
 	*projectFlag, err = GetProjectID(mgce, *projectFlag)
 	return err

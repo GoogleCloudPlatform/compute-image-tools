@@ -25,15 +25,15 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
+	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/gce_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
@@ -53,14 +53,14 @@ const (
 // OVFImporter is responsible for importing OVF into GCE
 type OVFImporter struct {
 	ctx                   context.Context
-	storageClient         commondomain.StorageClientInterface
+	storageClient         domain.StorageClientInterface
 	computeClient         daisycompute.Client
-	tarGcsExtractor       commondomain.TarGcsExtractorInterface
-	mgce                  commondomain.MetadataGCEInterface
-	ovfDescriptorLoader   domain.OvfDescriptorLoaderInterface
-	bucketIteratorCreator commondomain.BucketIteratorCreatorInterface
+	tarGcsExtractor       domain.TarGcsExtractorInterface
+	mgce                  domain.MetadataGCEInterface
+	ovfDescriptorLoader   ovfdomain.OvfDescriptorLoaderInterface
+	bucketIteratorCreator domain.BucketIteratorCreatorInterface
 	Logger                logging.LoggerInterface
-	zoneValidator         commondomain.ZoneValidatorInterface
+	zoneValidator         domain.ZoneValidatorInterface
 	gcsPathToClean        string
 	workflowPath          string
 	buildID               string
@@ -73,7 +73,7 @@ type OVFImporter struct {
 func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, error) {
 	ctx := context.Background()
 	logger := logging.NewLogger("[import-ovf]")
-	storageClient, err := storageutils.NewStorageClient(ctx, logger, nil)
+	storageClient, err := storageutils.NewStorageClient(ctx, logger, "")
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +173,7 @@ func createComputeClient(ctx *context.Context, params *ovfimportparams.OVFImport
 }
 
 func (oi *OVFImporter) getProject() (string, error) {
-	return paramutils.GetProjectID(oi.mgce, oi.params.Project)
+	return param.GetProjectID(oi.mgce, oi.params.Project)
 }
 
 func (oi *OVFImporter) getZone(project string) (string, error) {
@@ -315,7 +315,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		region  string
 		err     error
 	)
-	if project, err = paramutils.GetProjectID(oi.mgce, oi.params.Project); err != nil {
+	if project, err = param.GetProjectID(oi.mgce, oi.params.Project); err != nil {
 		return nil, err
 	}
 	if zone, err = oi.getZone(project); err != nil {

@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package storageutils
+package storage
 
 import (
 	"fmt"
@@ -37,12 +37,12 @@ var (
 
 // ZoneRetriever is responsible for retrieving GCE zone to run import in
 type ZoneRetriever struct {
-	Mgce              commondomain.MetadataGCEInterface
+	Mgce              domain.MetadataGCEInterface
 	ComputeGCEService daisycompute.Client
 }
 
 // NewZoneRetriever creates a ZoneRetriever
-func NewZoneRetriever(aMgce commondomain.MetadataGCEInterface, cs daisycompute.Client) (*ZoneRetriever, error) {
+func NewZoneRetriever(aMgce domain.MetadataGCEInterface, cs daisycompute.Client) (*ZoneRetriever, error) {
 	return &ZoneRetriever{Mgce: aMgce, ComputeGCEService: cs}, nil
 }
 

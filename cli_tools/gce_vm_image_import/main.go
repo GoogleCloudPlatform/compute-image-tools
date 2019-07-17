@@ -27,13 +27,13 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_common"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -93,10 +93,10 @@ func init() {
 func validateAndParseFlags() error {
 	flag.Parse()
 
-	if err := validationutils.ValidateStringFlagNotEmpty(*imageName, imageNameFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(*imageName, imageNameFlagKey); err != nil {
 		return err
 	}
-	if err := validationutils.ValidateStringFlagNotEmpty(*clientID, clientIDFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(*clientID, clientIDFlagKey); err != nil {
 		return err
 	}
 
@@ -128,7 +128,7 @@ func validateAndParseFlags() error {
 
 	if *sourceFile != "" {
 		var err error
-		sourceBucketName, sourceObjectName, err = storageutils.SplitGCSPath(*sourceFile)
+		sourceBucketName, sourceObjectName, err = storage.SplitGCSPath(*sourceFile)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func validateAndParseFlags() error {
 
 	if *labels != "" {
 		var err error
-		userLabels, err = paramutils.ParseKeyValues(*labels)
+		userLabels, err = param.ParseKeyValues(*labels)
 		if err != nil {
 			return err
 		}
@@ -146,7 +146,7 @@ func validateAndParseFlags() error {
 }
 
 // Validate source file is not a compression file by checking file header.
-func validateSourceFile(storageClient commondomain.StorageClientInterface) error {
+func validateSourceFile(storageClient domain.StorageClientInterface) error {
 	if *sourceFile == "" {
 		return nil
 	}
@@ -168,12 +168,12 @@ func validateSourceFile(storageClient commondomain.StorageClientInterface) error
 // Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths() (string, string) {
 	if *sourceImage != "" {
-		return pathutils.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath), getTranslateWorkflowPath()
+		return path.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath), getTranslateWorkflowPath()
 	}
 	if *dataDisk {
-		return pathutils.ToWorkingDir(importWorkflow, *currentExecutablePath), ""
+		return path.ToWorkingDir(importWorkflow, *currentExecutablePath), ""
 	}
-	return pathutils.ToWorkingDir(importAndTranslateWorkflow, *currentExecutablePath), getTranslateWorkflowPath()
+	return path.ToWorkingDir(importAndTranslateWorkflow, *currentExecutablePath), getTranslateWorkflowPath()
 }
 
 func getTranslateWorkflowPath() string {
@@ -251,21 +251,21 @@ func main() {
 	}
 
 	ctx := context.Background()
-	metadataGCE := &computeutils.MetadataGCE{}
-	storageClient, err := storageutils.NewStorageClient(
-		ctx, logging.NewLogger("[image-import]"), oauth)
+	metadataGCE := &compute.MetadataGCE{}
+	storageClient, err := storage.NewStorageClient(
+		ctx, logging.NewLogger("[image-import]"), *oauth)
 	if err != nil {
 		log.Fatalf("error creating storage client %v", err)
 	}
 	defer storageClient.Close()
 
-	scratchBucketCreator := storageutils.NewScratchBucketCreator(ctx, storageClient)
-	zoneRetriever, err := storageutils.NewZoneRetriever(metadataGCE, paramutils.CreateComputeClient(&ctx, *oauth, *ce))
+	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
+	zoneRetriever, err := storage.NewZoneRetriever(metadataGCE, param.CreateComputeClient(&ctx, *oauth, *ce))
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 
-	err = paramutils.PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
+	err = param.PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
 		*sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
 		log.Fatalf(err.Error())

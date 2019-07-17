@@ -23,12 +23,12 @@ import (
 
 // OvfValidator is responsible for validating OVF packages
 type OvfValidator struct {
-	storageClient commondomain.StorageClientInterface
+	storageClient domain.StorageClientInterface
 }
 
 // NewOvfValidator creates a new OvfValidator
 func NewOvfValidator(
-	storageClient commondomain.StorageClientInterface) *OvfValidator {
+	storageClient domain.StorageClientInterface) *OvfValidator {
 	return &OvfValidator{storageClient: storageClient}
 }
 

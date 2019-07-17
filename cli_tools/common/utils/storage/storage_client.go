@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package storageutils
+package storage
 
 import (
 	"context"
@@ -37,73 +37,73 @@ var (
 	gsPathRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.+)$`, bucketNameRegex))
 )
 
-// StorageClient implements domain.StorageClientInterface. It implements main Storage functions
+// Client implements domain.StorageClientInterface. It implements main Storage functions
 // used by image import features.
-type StorageClient struct {
-	ObjectDeleter commondomain.StorageObjectDeleterInterface
+type Client struct {
+	ObjectDeleter domain.StorageObjectDeleterInterface
 	StorageClient *storage.Client
 	Logger        logging.LoggerInterface
 	Ctx           context.Context
-	Oic           commondomain.ObjectIteratorCreatorInterface
+	Oic           domain.ObjectIteratorCreatorInterface
 }
 
-// NewStorageClient creates a StorageClient
+// NewStorageClient creates a Client
 func NewStorageClient(ctx context.Context,
-	logger logging.LoggerInterface, oauth *string) (*StorageClient, error) {
+	logger logging.LoggerInterface, oauth string) (*Client, error) {
 
 	storageOptions := []option.ClientOption{}
-	if oauth != nil {
-		storageOptions = append(storageOptions, option.WithCredentialsFile(*oauth))
+	if oauth != "" {
+		storageOptions = append(storageOptions, option.WithCredentialsFile(oauth))
 	}
 	client, err := storage.NewClient(ctx, storageOptions...)
 	if err != nil {
 		return nil, err
 	}
-	sc := &StorageClient{StorageClient: client, Ctx: ctx,
+	sc := &Client{StorageClient: client, Ctx: ctx,
 		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}
 
-	sc.ObjectDeleter = &StorageObjectDeleter{sc}
+	sc.ObjectDeleter = &ObjectDeleter{sc}
 	return sc, nil
 }
 
 // CreateBucket creates a GCS bucket
-func (sc *StorageClient) CreateBucket(
+func (sc *Client) CreateBucket(
 	bucketName string, project string, attrs *storage.BucketAttrs) error {
 	return sc.StorageClient.Bucket(bucketName).Create(sc.Ctx, project, attrs)
 }
 
 // Buckets returns a bucket iterator for all buckets within a project
-func (sc *StorageClient) Buckets(projectID string) *storage.BucketIterator {
+func (sc *Client) Buckets(projectID string) *storage.BucketIterator {
 	return sc.StorageClient.Buckets(sc.Ctx, projectID)
 }
 
 // GetBucketAttrs returns bucket attributes for given bucket
-func (sc *StorageClient) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
+func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
 	return sc.StorageClient.Bucket(bucket).Attrs(sc.Ctx)
 }
 
 // GetObjectReader creates a new Reader to read the contents of the object.
-func (sc *StorageClient) GetObjectReader(bucket string, objectPath string) (io.ReadCloser, error) {
+func (sc *Client) GetObjectReader(bucket string, objectPath string) (io.ReadCloser, error) {
 	return sc.GetBucket(bucket).Object(objectPath).NewReader(sc.Ctx)
 }
 
 // GetBucket returns a BucketHandle, which provides operations on the named bucket.
-func (sc *StorageClient) GetBucket(bucket string) *storage.BucketHandle {
+func (sc *Client) GetBucket(bucket string) *storage.BucketHandle {
 	return sc.StorageClient.Bucket(bucket)
 }
 
 // GetObjects returns object iterator for given bucket and path
-func (sc *StorageClient) GetObjects(bucket string, objectPath string) commondomain.ObjectIteratorInterface {
+func (sc *Client) GetObjects(bucket string, objectPath string) domain.ObjectIteratorInterface {
 	return sc.Oic.CreateObjectIterator(bucket, objectPath)
 }
 
 // DeleteObject deletes GCS object in given bucket and object path
-func (sc *StorageClient) DeleteObject(bucket string, objectPath string) error {
+func (sc *Client) DeleteObject(bucket string, objectPath string) error {
 	return sc.ObjectDeleter.DeleteObject(bucket, objectPath)
 }
 
 // DeleteGcsPath deletes a GCS path, including files
-func (sc *StorageClient) DeleteGcsPath(gcsPath string) error {
+func (sc *Client) DeleteGcsPath(gcsPath string) error {
 	bucketName, objectPath, err := SplitGCSPath(gcsPath)
 	if err != nil {
 		return err
@@ -132,7 +132,7 @@ func (sc *StorageClient) DeleteGcsPath(gcsPath string) error {
 
 // FindGcsFile finds a file in a GCS directory path for given file extension. File extension can
 // be a file name as well.
-func (sc *StorageClient) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error) {
+func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error) {
 
 	bucketName, objectPath, err := SplitGCSPath(gcsDirectoryPath)
 	if err != nil {
@@ -160,7 +160,7 @@ func (sc *StorageClient) FindGcsFile(gcsDirectoryPath string, fileExtension stri
 }
 
 // GetGcsFileContent returns content of a GCS object as byte array
-func (sc *StorageClient) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error) {
+func (sc *Client) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error) {
 	reader, err := gcsObject.NewReader(sc.Ctx)
 	if err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func (sc *StorageClient) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]b
 }
 
 // WriteToGCS writes content from a reader to destination bucket and path
-func (sc *StorageClient) WriteToGCS(
+func (sc *Client) WriteToGCS(
 	destinationBucketName string, destinationObjectPath string, reader io.Reader) error {
 	destinationBucket := sc.GetBucket(destinationBucketName)
 	fileWriter := destinationBucket.Object(destinationObjectPath).NewWriter(sc.Ctx)
@@ -184,7 +184,7 @@ func (sc *StorageClient) WriteToGCS(
 // Close closes the Client.
 //
 // Close need not be called at program exit.
-func (sc *StorageClient) Close() error {
+func (sc *Client) Close() error {
 	return sc.StorageClient.Close()
 }
 
@@ -219,12 +219,12 @@ func (hc *HTTPClient) Get(url string) (resp *http.Response, err error) {
 	return hc.httpClient.Get(url)
 }
 
-// StorageObjectDeleter is responsible for deleting object
-type StorageObjectDeleter struct {
-	sc *StorageClient
+// ObjectDeleter is responsible for deleting storage object
+type ObjectDeleter struct {
+	sc *Client
 }
 
 // DeleteObject deletes GCS object in given bucket and path
-func (sod *StorageObjectDeleter) DeleteObject(bucket string, objectPath string) error {
+func (sod *ObjectDeleter) DeleteObject(bucket string, objectPath string) error {
 	return sod.sc.GetBucket(bucket).Object(objectPath).Delete(sod.sc.Ctx)
 }
