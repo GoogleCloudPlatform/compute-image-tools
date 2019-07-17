@@ -44,7 +44,7 @@ func TestDeleteGcsPath(t *testing.T) {
 	secondDeletion := mockStorageObjectDeleter.EXPECT().DeleteObject("sourcebucket", "sourcepath/furtherpath/afile2.txt")
 	gomock.InOrder(firstDeletion, secondDeletion)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
+	sc := Client{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
 		Logger: logging.NewLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.Nil(t, err)
@@ -54,7 +54,7 @@ func TestDeleteGcsPathErrorWhenInvalidGCSPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	sc := StorageClient{}
+	sc := Client{}
 	err := sc.DeleteGcsPath("NOT_GCS_PATH")
 	assert.NotNil(t, err)
 }
@@ -70,7 +70,7 @@ func TestDeleteGcsPathErrorWhenIteratorReturnsError(t *testing.T) {
 	mockObjectIteratorCreator.EXPECT().CreateObjectIterator(
 		"sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)
 }
@@ -100,7 +100,7 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 		Return(fmt.Errorf("can't delete second file"))
 	gomock.InOrder(firstDeletion, secondDeletion)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
+	sc := Client{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
 		Logger: logging.NewLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)
@@ -124,7 +124,7 @@ func TestFindGcsFile(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
 		Return(mockObjectIterator)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
 	objectHandle, err := sc.FindGcsFile(
 		"gs://sourcebucket/sourcepath/furtherpath", ".ovf")
 
@@ -155,7 +155,7 @@ func TestFindGcsFileNoFileFound(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
 		Return(mockObjectIterator)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
 	objectHandle, err := sc.FindGcsFile("gs://sourcebucket/sourcepath/furtherpath", ".ovf")
 	assert.Nil(t, objectHandle)
 	assert.NotNil(t, err)
@@ -165,7 +165,7 @@ func TestFindGcsFileInvalidGCSPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	sc := StorageClient{}
+	sc := Client{}
 	objectHandle, err := sc.FindGcsFile("NOT_A_GCS_PATH", ".ovf")
 	assert.Nil(t, objectHandle)
 	assert.NotNil(t, err)
@@ -189,7 +189,7 @@ func TestFindGcsFileErrorWhileIteratingThroughFilesInPath(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
 		Return(mockObjectIterator)
 
-	sc := StorageClient{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
 	objectHandle, err := sc.
 		FindGcsFile("gs://sourcebucket/sourcepath/furtherpath", ".ovf")
 	assert.Nil(t, objectHandle)
