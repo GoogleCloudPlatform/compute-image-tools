@@ -4,8 +4,8 @@
 chroot $target apt-get -y autoremove
 
 # Remove GCE unstable and staging repos.
-rm -rf $target/etc/apt/sources.list.d/gce_staging.list
-rm -rf $target/etc/apt/sources.list.d/gce_unstable.list
+rm -rf $target/etc/apt/sources.list.d/google_cloud_staging.list
+rm -rf $target/etc/apt/sources.list.d/google_cloud_unstable.list
 
 # Leave a baseline apt cache on the disk.
 chroot $target apt-get clean
