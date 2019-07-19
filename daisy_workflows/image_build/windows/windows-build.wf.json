@@ -1,0 +1,110 @@
+{
+  "Vars": {
+    "media": {"Required": true, "Description": "GCS or local path to Windows Server ISO."},
+    "edition": {"Required": true, "Description": "Windows Server Edition to install."},
+    "cloud_sdk": {"Required": true, "Description": "GCS or local path to Google Cloud SDK installer."},
+    "drivers_bucket": {"Required": true, "Description": "GCS location containing drivers."},
+    "product_key": {"Description": "Windows product key."},
+    "install_disk": {"Value": "disk-install", "Description": "Name of disk where Windows is installed."},
+    "googet_repo": {"Value": "stable", "Description": "Googet repo to retrieve packages from during the build."},
+    "install_disk_size": {"Description": "Size of the disk for Windows install."},
+    "updates": {"Description": "GCS or local filesystem location containing Windows update files."},
+    "install_source_image": {"Description": "Source image to use for the install disk (usually should be left blank)."},
+    "bootstrap_source_image": {"Value": "projects/windows-cloud/global/images/family/windows-2019-core", "Description": "Source image to use for the bootstrap disk."},
+    "workflow_root": {"Required": true, "Description": "Root of github workflows, defaults to /workflows in the container."}
+  },
+  "Sources": {
+    "components": "./components/",
+    "bootstrap_install.ps1": "./bootstrap_install.ps1",
+    "post_install.ps1": "./post_install.ps1",
+    "components/updates": "${updates}",
+    "components/windows.iso": "${media}",
+    "components/GoogleCloudSDKInstaller.exe": "${cloud_sdk}",
+    "drivers/": "${drivers_bucket}"
+  },
+  "Steps": {
+    "setup-disks": {
+      "CreateDisks": [
+        {
+          "Name": "bootstrap",
+          "SourceImage": "${bootstrap_source_image}",
+          "SizeGb": "200",
+          "Type": "pd-ssd"
+        },
+        {
+          "Name": "${install_disk}",
+          "SourceImage": "${install_source_image}",
+          "SizeGb": "${install_disk_size}",
+          "Type": "pd-ssd"
+        }
+      ]
+    },
+    "run-bootstrap": {
+      "CreateInstances": [
+        {
+          "Name": "bootstrap",
+          "Disks": [{"Source": "bootstrap"}, {"Source": "${install_disk}"}],
+          "MachineType": "n1-standard-4",
+          "Metadata": {
+            "components-path": "${SOURCESPATH}/components",
+            "drivers-path": "${SOURCESPATH}/drivers",
+            "edition": "${edition}",
+            "product-key": "${product_key}",
+            "google-cloud-repo": "${googet_repo}"
+          },
+          "StartupScript": "bootstrap_install.ps1"
+        }
+      ]
+    },
+    "wait-for-bootstrap": {
+      "Timeout": "2h",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "bootstrap",
+          "Stopped": true,
+          "SerialOutput": {"Port": 1, "FailureMatch": "Windows build failed"}
+        }
+      ]
+    },
+    "delete-bootstrap": {
+      "DeleteResources": {
+        "Instances": ["bootstrap"]
+      }
+    },
+    "run-install": {
+      "CreateInstances": [
+        {
+          "Name": "install",
+          "Disks": [{"Source": "${install_disk}"}, {"Source": "bootstrap"}],
+          "MachineType": "n1-standard-4",
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "StartupScript": "post_install.ps1"
+        }
+      ]
+    },
+    "wait-for-install": {
+      "Timeout": "3h",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "install",
+          "Stopped": true,
+          "SerialOutput": {"Port": 1,
+          "FailureMatch": "Windows build failed"}
+        }
+      ]
+    },
+    "delete-install": {
+      "DeleteResources": {
+        "Instances": ["install"]
+      }
+    }
+  },
+  "Dependencies": {
+    "run-bootstrap": ["setup-disks"],
+    "wait-for-bootstrap": ["run-bootstrap"],
+    "delete-bootstrap": ["wait-for-bootstrap"],
+    "run-install": ["delete-bootstrap"],
+    "wait-for-install": ["run-install"],
+    "delete-install": ["wait-for-install"]
+  }
+}
