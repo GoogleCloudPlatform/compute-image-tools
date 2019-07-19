@@ -101,12 +101,12 @@ def main():
   CopyToConfigSpace('/files/fai_config/packages/GCE_SPECIFIC',
                     'package_config/GCE_SPECIFIC',
                     config_space)
-  os.mkdir(config_space + apt_sources_base + 'google_cloud.list')
+  os.mkdir(config_space + apt_sources_base + 'google-cloud.list')
   CopyToConfigSpace('/files/fai_config/sources/GCE_SPECIFIC',
-                    apt_sources_base + 'google_cloud.list/GCE_SPECIFIC',
+                    apt_sources_base + 'google-cloud.list/GCE_SPECIFIC',
                     config_space)
   CopyToConfigSpace('/files/fai_config/sources/file_modes',
-                    apt_sources_base + '/google_cloud.list/file_modes',
+                    apt_sources_base + '/google-cloud.list/file_modes',
                     config_space)
   CopyToConfigSpace('/files/fai_config/sources/repository.GCE_SPECIFIC',
                     'hooks/repository.GCE_SPECIFIC',
@@ -116,14 +116,14 @@ def main():
   # GCE staging package repo.
   if google_cloud_repo == 'staging' or google_cloud_repo == 'unstable':
     os.mkdir(
-        config_space + apt_sources_base + 'google_cloud_staging.list')
+        config_space + apt_sources_base + 'google-cloud_staging.list')
     CopyToConfigSpace(
         '/files/fai_config/sources/GCE_STAGING',
-        apt_sources_base + 'google_cloud_staging.list/GCE_STAGING',
+        apt_sources_base + 'google-cloud-staging.list/GCE_STAGING',
         config_space)
     CopyToConfigSpace(
         '/files/fai_config/sources/file_modes',
-        apt_sources_base + 'google_cloud_staging.list/file_modes',
+        apt_sources_base + 'google-cloud-staging.list/file_modes',
         config_space)
     CopyToConfigSpace('/files/fai_config/sources/repository.GCE_STAGING',
                       'hooks/repository.GCE_STAGING',
@@ -133,14 +133,14 @@ def main():
   # GCE unstable package repo.
   if google_cloud_repo == 'unstable':
     os.mkdir(
-        config_space + apt_sources_base + 'google_cloud_unstable.list')
+        config_space + apt_sources_base + 'google-cloud-unstable.list')
     CopyToConfigSpace(
         '/files/fai_config/sources/GCE_UNSTABLE',
-        apt_sources_base + 'google_cloud_unstable.list/GCE_UNSTABLE',
+        apt_sources_base + 'google-cloud-unstable.list/GCE_UNSTABLE',
         config_space)
     CopyToConfigSpace(
         '/files/fai_config/sources/file_modes',
-        apt_sources_base + 'google_cloud_unstable.list/file_modes',
+        apt_sources_base + 'google-cloud-unstable.list/file_modes',
         config_space)
     CopyToConfigSpace('/files/fai_config/sources/file_modes',
                       'hooks/repository.GCE_UNSTABLE',
