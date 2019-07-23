@@ -59,8 +59,8 @@ func ValidateOS(osID string) error {
 }
 
 // GetTranslateWorkflowPath returns path to image translate workflow path for given OS
-func GetTranslateWorkflowPath(os *string) string {
-	return osChoices[*os]
+func GetTranslateWorkflowPath(os string) string {
+	return osChoices[os]
 }
 
 // UpdateAllInstanceNoExternalIP updates all Create Instance steps in the workflow to operate

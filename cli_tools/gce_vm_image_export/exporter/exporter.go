@@ -133,10 +133,9 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 }
 
 // Run runs export workflow.
-func Run(clientID string, destinationURI string, sourceImage string, format string,
-	project string, network string, subnet string, zone string, timeout string,
-	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
-	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) error {
+func Run(clientID, destinationURI, sourceImage, format, project, network, subnet, zone, timeout,
+	scratchBucketGcsPath, oauth, ce string, gcsLogsDisabled, cloudLogsDisabled,
+	stdoutLogsDisabled bool, labels, currentExecutablePath string) error {
 
 	var userLabels map[string]string
 	var err error

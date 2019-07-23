@@ -37,7 +37,7 @@ func TestValidateOsInvalid(t *testing.T) {
 
 func TestGetTranslateWorkflowPathValid(t *testing.T) {
 	input := "ubuntu-1604"
-	result := GetTranslateWorkflowPath(&input)
+	result := GetTranslateWorkflowPath(input)
 	if result != "ubuntu/translate_ubuntu_1604.wf.json" {
 		t.Errorf("expected `%v`, got `%v`",
 			"ubuntu/translate_ubuntu_1604.wf.json", result)
@@ -46,7 +46,7 @@ func TestGetTranslateWorkflowPathValid(t *testing.T) {
 
 func TestGetTranslateWorkflowPathInvalid(t *testing.T) {
 	input := "not-an-OS"
-	result := GetTranslateWorkflowPath(&input)
+	result := GetTranslateWorkflowPath(input)
 	if result != "" {
 		t.Errorf("expected empty result, got `%v`", result)
 	}
