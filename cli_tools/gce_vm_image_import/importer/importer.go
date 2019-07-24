@@ -44,8 +44,8 @@ var (
 
 // Parameter key shared with external packages
 const (
-	ImageNameFlagKey           = "image_name"
-	ClientIDFlagKey            = "client_id"
+	ImageNameFlagKey = "image_name"
+	ClientIDFlagKey  = "client_id"
 )
 
 func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
@@ -142,7 +142,8 @@ func getTranslateWorkflowPath(customTranWorkflow, osID string) string {
 }
 
 func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family, description,
-		region, subnet, network string, noGuestEnvironment bool) map[string]string {
+	region, subnet, network string, noGuestEnvironment bool) map[string]string {
+
 	varMap := map[string]string{}
 
 	varMap["image_name"] = strings.ToLower(imageName)

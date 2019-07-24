@@ -103,7 +103,7 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 	resetArgs()
 	imageName = "image-a"
 	sourceImage = ""
-	currentExecutablePath = homeDir+"executable"
+	currentExecutablePath = homeDir + "executable"
 
 	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
 
@@ -305,8 +305,8 @@ func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
 	imageName = "IMAGE-a"
 
 	region := ""
-	got := buildDaisyVars("translate/workflow/path",  imageName, sourceFile,
-			sourceImage, family, description, region, subnet, network, noGuestEnvironment)
+	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
+		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
 
 	assert.Equal(t, got["image_name"], "image-a")
 }
