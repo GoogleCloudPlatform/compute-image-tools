@@ -43,8 +43,6 @@ import (
 	htransport "google.golang.org/api/transport/http"
 )
 
-const gcsChunkSize = 0
-
 var (
 	disk         = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive1'")
 	bufferPrefix = flag.String("buffer_prefix", "", "if set will use this local path as the local buffer prefix")
@@ -133,12 +131,10 @@ func (b *bufferedWriter) uploadWorker() {
 					return err
 				}
 				defer file.Close()
-				defer os.Remove(in)
 
 				tmpObj := path.Join(b.obj, strings.TrimPrefix(in, b.prefix))
 				b.addObj(tmpObj)
 				dst := client.Bucket(b.bkt).Object(tmpObj).NewWriter(b.ctx)
-				dst.ChunkSize = gcsChunkSize
 				if _, err := io.Copy(dst, file); err != nil {
 					if io.EOF != err {
 						return err
@@ -148,19 +144,22 @@ func (b *bufferedWriter) uploadWorker() {
 				return dst.Close()
 			}()
 			if err != nil {
+				fmt.Printf("Failed %v time(s) to upload '%v', error: %v\n", i, in, err)
 				if i > 16 {
 					log.Fatal(err)
 				}
+				fmt.Printf("Retrying upload '%v' after %v second(s)...\n", in, i)
 				time.Sleep(time.Duration(1*i) * time.Second)
 				continue
 			}
+			os.Remove(in)
 			break
 		}
 	}
 }
 
 func (b *bufferedWriter) newChunk() error {
-	fp := fmt.Sprint(b.prefix, b.id, "_part", b.part)
+	fp := path.Join(b.prefix, fmt.Sprint(b.id, "_part", b.part))
 	f, err := os.Create(fp)
 	if err != nil {
 		return err
@@ -210,7 +209,7 @@ func (b *bufferedWriter) Close() error {
 			objs[0].Delete(b.ctx)
 			break
 		}
-		newObj := client.Bucket(b.bkt).Object(path.Join(b.obj, "compose_"+strconv.Itoa(i)))
+		newObj := client.Bucket(b.bkt).Object(path.Join(b.obj, b.id+"_compose_"+strconv.Itoa(i)))
 		b.tmpObjs = append([]string{newObj.ObjectName()}, b.tmpObjs[int(l):]...)
 		if _, err := newObj.ComposerFrom(objs...).Run(b.ctx); err != nil {
 			return err
@@ -266,7 +265,8 @@ func gcsClient(ctx context.Context) (*storage.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return storage.NewClient(ctx, option.WithHTTPClient(&http.Client{Transport: transport}))
+	return storage.NewClient(ctx, option.WithHTTPClient(&http.Client{Transport: transport}),
+		option.WithCredentialsFile(*oauth))
 }
 
 func newBuffer(ctx context.Context, size, workers int64, prefix, bkt, obj string) *bufferedWriter {
@@ -416,7 +416,6 @@ func stream(ctx context.Context, src *os.File, size int64, prefix, bkt, obj stri
 	}
 
 	w := client.Bucket(bkt).Object(obj).NewWriter(ctx)
-	w.ChunkSize = gcsChunkSize
 	fmt.Println("GCEExport: No local cache set, streaming directly to GCS.")
 	return gzipDisk(src, size, w)
 }
