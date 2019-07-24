@@ -206,6 +206,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
 }
 
+// Run runs import workflow.
 func Run(clientID, imageName string, dataDisk bool, osID, customTranWorkflow, sourceFile,
 	sourceImage string, noGuestEnvironment bool, family, description, network, subnet, zone, timeout,
 	project, scratchBucketGcsPath, oauth, ce string, gcsLogsDisabled, cloudLogsDisabled,

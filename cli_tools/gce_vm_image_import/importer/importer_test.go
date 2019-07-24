@@ -29,20 +29,9 @@ import (
 )
 
 var (
-	currentExecutablePath = ""
-	clientID             = ""
-	imageName            = ""
-	dataDisk             = false
-	osID                 = ""
-	customTranWorkflow   = ""
-	sourceFile           = ""
-	sourceImage          = ""
-	noGuestEnvironment   = false
-	family               = ""
-	description          = ""
-	network              = ""
-	subnet               = ""
-	labels               = ""
+	currentExecutablePath, clientID, imageName, osID, customTranWorkflow, sourceFile, sourceImage,
+	family, description, network, subnet, labels string
+	dataDisk, noGuestEnvironment bool
 )
 
 func TestGetWorkflowPathsFromImage(t *testing.T) {
@@ -339,7 +328,7 @@ func resetArgs() {
 	dataDisk = false
 	imageName = "img"
 	clientID = "aClient"
-	customTranWorkflow   = ""
+	customTranWorkflow = ""
 	currentExecutablePath = ""
 	labels = "userkey1=uservalue1,userkey2=uservalue2"
 }
