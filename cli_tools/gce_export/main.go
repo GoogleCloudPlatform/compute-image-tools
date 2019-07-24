@@ -148,7 +148,7 @@ func (b *bufferedWriter) uploadWorker() {
 				if i > 16 {
 					log.Fatal(err)
 				}
-				fmt.Printf("Retrying uploading '%v' after %v s...\n", in, i)
+				fmt.Printf("Retrying upload '%v' after %v second(s)...\n", in, i)
 				time.Sleep(time.Duration(1*i) * time.Second)
 				continue
 			}
