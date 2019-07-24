@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	testutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 )
 
@@ -179,7 +179,7 @@ func TestFlagsSourceFile(t *testing.T) {
 }
 
 func TestFlagSourceFileCompressed(t *testing.T) {
-	fileString := testutils.CreateCompressedFile()
+	fileString := test.CreateCompressedFile()
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
