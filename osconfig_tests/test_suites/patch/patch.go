@@ -33,7 +33,7 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/kylelemons/godebug/pretty"
 
-	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
 )
 
 const (
@@ -123,7 +123,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 }
 
 func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.Duration) (*osconfigpb.PatchJob, error) {
-	client, err := gcpclients.GetOsConfigClient()
+	client, err := gcpclients.GetOsConfigClientV1alpha2()
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	testCase.Logf("Agent installed successfully")
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
-	osconfigClient, err := gcpclients.GetOsConfigClient()
+	osconfigClient, err := gcpclients.GetOsConfigClientV1alpha2()
 	if err != nil {
 		testCase.WriteFailure("Error getting osconfig client: %v", err)
 		return
@@ -231,7 +231,7 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	testCase.Logf("Agent installed successfully")
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
-	osconfigClient, err := gcpclients.GetOsConfigClient()
+	osconfigClient, err := gcpclients.GetOsConfigClientV1alpha2()
 	if err != nil {
 		testCase.WriteFailure("Error getting osconfig client: %v", err)
 		return
