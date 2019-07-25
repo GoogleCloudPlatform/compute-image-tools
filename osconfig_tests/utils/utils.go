@@ -121,6 +121,9 @@ var OldAptImages = map[string]string{
 	"old/ubuntu-1804-lts": "projects/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20190122",
 }
 
+// HeadSLESImages is a map of names to image paths for public SLES images.
+var HeadSLESImages = map[string]string{}
+
 // HeadEL6Images is a map of names to image paths for public EL6 image families.
 var HeadEL6Images = map[string]string{
 	"centos-cloud/centos-6": "projects/centos-cloud/global/images/family/centos-6",
