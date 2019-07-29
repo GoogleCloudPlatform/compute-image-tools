@@ -116,7 +116,7 @@ def main():
   # GCE staging package repo.
   if google_cloud_repo == 'staging' or google_cloud_repo == 'unstable':
     os.mkdir(
-        config_space + apt_sources_base + 'google-cloud_staging.list')
+        config_space + apt_sources_base + 'google-cloud-staging.list')
     CopyToConfigSpace(
         '/files/fai_config/sources/GCE_STAGING',
         apt_sources_base + 'google-cloud-staging.list/GCE_STAGING',
