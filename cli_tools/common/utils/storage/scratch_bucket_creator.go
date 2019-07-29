@@ -26,8 +26,9 @@ import (
 )
 
 const (
-	defaultRegion       = "US"
-	defaultStorageClass = "MULTI_REGIONAL"
+	defaultRegion        = "US"
+	defaultStorageClass  = "MULTI_REGIONAL"
+	regionalStorageClass = "REGIONAL"
 )
 
 // ScratchBucketCreator is responsible for creating Daisy scratch bucketets
@@ -45,30 +46,40 @@ func NewScratchBucketCreator(ctx context.Context, storageClient domain.StorageCl
 // CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
 // Returns (bucket_name, region, error)
 func (c *ScratchBucketCreator) CreateScratchBucket(
-	sourceFileFlag string, project string) (string, string, error) {
-	bucket := ""
-	region := ""
-	var err error
+	sourceFileFlag string, project string, zone string) (string, string, error) {
 
 	if project == "" {
 		return "", "", fmt.Errorf("can't create scratch bucket if project not specified")
 	}
+
 	if sourceFileFlag != "" {
 		// source file provided, create bucket in the same region for cost/performance reasons
-		bucket, region, err = c.createBucketMatchFileRegion(sourceFileFlag, project)
+		return c.createBucketMatchFileRegion(sourceFileFlag, project, zone)
 	}
-	if sourceFileFlag == "" || err != nil {
-		// source file not provided or couldn't create bucket based on it, create default scratch bucket
-		bucket = c.formatScratchBucketName(project, defaultRegion)
-		region, err = c.createBucketIfNotExisting(bucket, project, &storage.BucketAttrs{Name: bucket, Location: defaultRegion, StorageClass: defaultStorageClass})
-		if err != nil {
+
+	// if source file is not provided, fallback to input / default region.
+	return c.createBucketOnFallbackZone(project, zone)
+}
+
+func (c *ScratchBucketCreator) createBucketOnFallbackZone(project string, zone string) (string, string, error) {
+	fallbackRegion := defaultRegion
+	storageClass := defaultStorageClass
+	var err error
+	if zone != "" {
+		if fallbackRegion, err = getRegion(zone); err != nil {
 			return "", "", err
 		}
+		storageClass = regionalStorageClass
+	}
+	bucket := c.formatScratchBucketName(project, fallbackRegion)
+	region, err := c.createBucketIfNotExisting(bucket, project, &storage.BucketAttrs{Name: bucket, Location: fallbackRegion, StorageClass: storageClass})
+	if err != nil {
+		return "", "", err
 	}
 	return bucket, region, nil
 }
 
-func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string) (string, string, error) {
+func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string, zone string) (string, string, error) {
 	fileBucket, _, err := SplitGCSPath(fileGcsPath)
 	if err != nil || fileBucket == "" {
 		return "", "", fmt.Errorf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
@@ -76,7 +87,8 @@ func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, p
 
 	fileBucketAttrs, err := c.StorageClient.GetBucketAttrs(fileBucket)
 	if err != nil || fileBucketAttrs == nil {
-		return "", "", fmt.Errorf("couldn't determine region for bucket `%v` : %v", fileBucket, err)
+		// if region can't be determined by bucket, then fallback to input / default region
+		return c.createBucketOnFallbackZone(project, zone)
 	}
 
 	bucket := c.formatScratchBucketName(project, fileBucketAttrs.Location)
@@ -123,4 +135,15 @@ func (c *ScratchBucketCreator) formatScratchBucketName(project string, location 
 		bucket = bucket + "-" + location
 	}
 	return strings.ToLower(bucket)
+}
+
+func getRegion(zone string) (string, error) {
+	if zone == "" {
+		return "", fmt.Errorf("zone is empty. Can't determine region")
+	}
+	zoneStrs := strings.Split(zone, "-")
+	if len(zoneStrs) < 2 {
+		return "", fmt.Errorf("%v is not a valid zone", zone)
+	}
+	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
 }

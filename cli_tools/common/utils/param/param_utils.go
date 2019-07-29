@@ -54,7 +54,12 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 
 	scratchBucketRegion := ""
 	if *scratchBucketGcsPath == "" {
-		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(file, *project)
+		fallbackZone := *zone
+		if fallbackZone == "" && mgce.OnGCE() {
+			// try to get zone which Cloud Build is running in, ignoring error
+			fallbackZone, _ = mgce.Zone()
+		}
+		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(file, *project, fallbackZone)
 		scratchBucketRegion = sbr
 		if err != nil {
 			return err
@@ -66,10 +71,13 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 		if err != nil {
 			return fmt.Errorf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
 		}
+
 		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
-		if err == nil {
-			scratchBucketRegion = scratchBucketAttrs.Location
+		if err != nil {
+			return fmt.Errorf("invalid scratch bucket name %v", scratchBucketName)
 		}
+
+		scratchBucketRegion = scratchBucketAttrs.Location
 	}
 
 	if *zone == "" {
