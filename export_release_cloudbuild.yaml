@@ -1,0 +1,54 @@
+timeout: 600s
+steps:
+# Setup workspace
+- name: 'alpine'
+  args: ['mkdir', '-p', './src/github.com/GoogleCloudPlatform/compute-image-tools']
+- name: 'alpine'
+  args: ['mv', './daisy', './src/github.com/GoogleCloudPlatform/compute-image-tools/daisy']
+- name: 'alpine'
+  args: ['mv', './cli_tools', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools']
+- name: 'alpine'
+  args: ['mv', './go', './src/github.com/GoogleCloudPlatform/compute-image-tools/go']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/...']
+  env: ['GOPATH=./']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['get', '-d', './src/github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/...']
+  env: ['GOPATH=./', 'GOOS=windows']
+
+# Build Linux binaries.
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/gce_export', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=linux/gce_vm_image_export', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export']
+  env: ['CGO_ENABLED=0']
+
+# Copy Linux binaries to GS
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './linux/*', 'gs://compute-image-tools/release/linux/']
+
+# Build Linux containers.
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_export:release', '--tag=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA', '--file=Dockerfile.gce_export', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_export:release', '--tag=gcr.io/$PROJECT_ID/gce_vm_image_export:$COMMIT_SHA', '--file=Dockerfile.gce_vm_image_export', '.']
+
+# Build Windows binaries.
+- name: 'gcr.io/cloud-builders/go'
+  args: ['build', '-o=windows/gce_export.exe', 'github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_export']
+  env: ['GOOS=windows']
+
+# Copy Windows binaries to GS
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['cp', './windows/*', 'gs://compute-image-tools/release/windows/']
+
+# Make binaries world-readable.
+- name: 'gcr.io/cloud-builders/gsutil'
+  args: ['-m', 'acl', '-r', 'ch', '-u', 'AllUsers:R', 'gs://compute-image-tools/release/*']
+
+images:
+  - 'gcr.io/$PROJECT_ID/gce_export:release'
+  - 'gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_export:release'
+  - 'gcr.io/$PROJECT_ID/gce_vm_image_export:$COMMIT_SHA'
