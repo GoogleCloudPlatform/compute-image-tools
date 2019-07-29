@@ -252,11 +252,13 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 			Licenses:    img.Licenses,
 			Family:      img.Family,
 		},
-		GuestOsFeatures: img.GuestOsFeatures,
-		Resource: daisy.Resource{
-			NoCleanup: true,
-			Project:   p.PublishProject,
-			RealName:  publishName,
+		ImageBase: daisy.ImageBase{
+			GuestOsFeatures: img.GuestOsFeatures,
+			Resource: daisy.Resource{
+				NoCleanup: true,
+				Project:   p.PublishProject,
+				RealName:  publishName,
+			},
 		},
 	}
 
@@ -273,7 +275,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 	} else {
 		return nil, nil, nil, errors.New("neither SourceProject or SourceGCSPath was set")
 	}
-	cis := &daisy.CreateImages{&ci}
+	cis := &daisy.CreateImages{Images: []*daisy.Image{&ci}}
 
 	dis := &daisy.DeprecateImages{}
 	drs := &daisy.DeleteResources{}
@@ -286,7 +288,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 				continue
 			} else if rep {
 				fmt.Printf("    Image %s, replacing\n", msg)
-				(*cis)[0].OverWrite = true
+				(*cis).Images[0].OverWrite = true
 				continue
 			}
 			return nil, nil, nil, errors.New(msg)
@@ -422,7 +424,7 @@ func (p *Publish) createPrintOut(createImages *daisy.CreateImages) {
 	if createImages == nil {
 		return
 	}
-	for _, ci := range *createImages {
+	for _, ci := range createImages.Images {
 		p.toCreate = append(p.toCreate, fmt.Sprintf("%s: (%s)", ci.Name, ci.Description))
 	}
 	return

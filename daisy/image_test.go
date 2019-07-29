@@ -71,7 +71,7 @@ func TestImagePopulate(t *testing.T) {
 		},
 		{
 			"extend SourceDisk URL case",
-			&Image{Resource: Resource{Project: "p"}, Image: compute.Image{SourceDisk: "zones/z/disks/d"}},
+			&Image{ImageBase: ImageBase{Resource: Resource{Project: "p"}}, Image: compute.Image{SourceDisk: "zones/z/disks/d"}},
 			&Image{Image: compute.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
 			false,
 		},
@@ -89,7 +89,7 @@ func TestImagePopulate(t *testing.T) {
 		},
 		{
 			"extend SourceImage URL case",
-			&Image{Resource: Resource{Project: "p"}, Image: compute.Image{SourceImage: "global/images/i"}},
+			&Image{ImageBase: ImageBase{Resource: Resource{Project: "p"}}, Image: compute.Image{SourceImage: "global/images/i"}},
 			&Image{Image: compute.Image{SourceImage: "projects/p/global/images/i"}},
 			false,
 		},
@@ -107,13 +107,13 @@ func TestImagePopulate(t *testing.T) {
 		},
 		{
 			"GuestOsFeatures",
-			&Image{Image: compute.Image{SourceImage: "i"}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
-			&Image{Image: compute.Image{SourceImage: "i", GuestOsFeatures: []*compute.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			&Image{Image: compute.Image{SourceImage: "i"}, ImageBase: ImageBase{GuestOsFeatures: guestOsFeatures{"foo", "bar"}}},
+			&Image{Image: compute.Image{SourceImage: "i", GuestOsFeatures: []*compute.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, ImageBase: ImageBase{GuestOsFeatures: guestOsFeatures{"foo", "bar"}}},
 			false,
 		},
 		{
 			"Bad RawDisk.Source case",
-			&Image{Resource: Resource{}, Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "blah"}}},
+			&Image{ImageBase: ImageBase{Resource: Resource{}}, Image: compute.Image{RawDisk: &compute.ImageRawDisk{Source: "blah"}}},
 			nil,
 			true,
 		},
@@ -186,7 +186,7 @@ func TestImageValidate(t *testing.T) {
 
 	for testNum, tt := range tests {
 		s, _ := w.NewStep("s" + strconv.Itoa(testNum))
-		s.CreateImages = &CreateImages{tt.i}
+		s.CreateImages = &CreateImages{Images: []*Image{tt.i}}
 		w.AddDependency(s, d1Creator, d2Deleter, si1Creator)
 
 		// Test sanitation -- clean/set irrelevant fields.

@@ -103,26 +103,28 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 	w.Steps = map[string]*daisy.Step{
 		"cimg": {
 			CreateImages: &daisy.CreateImages{
-				{
-					Image: compute.Image{
-						Name:   "final-image-1",
-						Labels: map[string]string{"labelKey": "labelValue"},
+				Images: []*daisy.Image{
+					{
+						Image: compute.Image{
+							Name:   "final-image-1",
+							Labels: map[string]string{"labelKey": "labelValue"},
+						},
 					},
-				},
-				{
-					Image: compute.Image{
-						Name: "final-image-2",
+					{
+						Image: compute.Image{
+							Name: "final-image-2",
+						},
 					},
-				},
-				{
-					Image: compute.Image{
-						Name:   "untranslated-image-1",
-						Labels: map[string]string{"labelKey": "labelValue"},
+					{
+						Image: compute.Image{
+							Name:   "untranslated-image-1",
+							Labels: map[string]string{"labelKey": "labelValue"},
+						},
 					},
-				},
-				{
-					Image: compute.Image{
-						Name: "untranslated-image-2",
+					{
+						Image: compute.Image{
+							Name: "untranslated-image-2",
+						},
 					},
 				},
 			},
@@ -132,14 +134,14 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 	rl := createTestResourceLabeler(buildID, userLabels)
 	rl.LabelResources(w)
 
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages)[0].Image.Labels, "gce-image-import",
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[0].Image.Labels, "gce-image-import",
 		buildID, &existingLabels)
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages)[1].Image.Labels, "gce-image-import",
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[1].Image.Labels, "gce-image-import",
 		buildID)
 
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages)[2].Image.Labels,
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[2].Image.Labels,
 		"gce-image-import-tmp", buildID, &existingLabels)
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages)[3].Image.Labels,
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[3].Image.Labels,
 		"gce-image-import-tmp", buildID)
 }
 

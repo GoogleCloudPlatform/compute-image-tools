@@ -24,6 +24,7 @@ import (
 	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -40,7 +41,7 @@ var (
 	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
 )
 
-// imageExists should only be used during validation for existing GCE images
+// imageExists should only be used during validation for existing GCE Images
 // and should not be relied or populated for daisy created resources.
 func imageExists(client daisyCompute.Client, project, family, name string) (bool, dErr) {
 	if family != "" {
@@ -83,7 +84,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	if _, ok := imageCache.exists[project]; !ok {
 		il, err := client.ListImages(project)
 		if err != nil {
-			return false, errf("error listing images for project %q: %v", project, err)
+			return false, errf("error listing Images for project %q: %v", project, err)
 		}
 		imageCache.exists[project] = il
 	}
@@ -100,10 +101,10 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	return false, nil
 }
 
-// Image is used to create a GCE image.
-// Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
-type Image struct {
-	compute.Image
+type ImageInterface interface {
+}
+
+type ImageBase struct {
 	Resource
 
 	// GuestOsFeatures to set for the image.
@@ -114,6 +115,18 @@ type Image struct {
 
 	//Ignores license validation if 403/forbidden returned
 	IgnoreLicenseValidationIfForbidden bool `json:",omitempty"`
+}
+
+// Image is used to create a GCE image.
+// Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
+type Image struct {
+	ImageBase
+	compute.Image
+}
+
+type ImageBeta struct {
+	ImageBase
+	computeBeta.Image
 }
 
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
@@ -166,17 +179,107 @@ func (i *Image) populate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
+func (i *ImageBeta) populate(ctx context.Context, s *Step) dErr {
+	var errs dErr
+	i.Name, errs = i.Resource.populateWithGlobal(ctx, s, i.Name)
+	//i.imageBeta.StorageLocations
+
+	i.Description = strOr(i.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
+
+	if diskURLRgx.MatchString(i.SourceDisk) {
+		i.SourceDisk = extendPartialURL(i.SourceDisk, i.Project)
+	}
+
+	if imageURLRgx.MatchString(i.SourceImage) {
+		i.SourceImage = extendPartialURL(i.SourceImage, i.Project)
+	}
+
+	if i.RawDisk != nil {
+		if s.w.sourceExists(i.RawDisk.Source) {
+			i.RawDisk.Source = s.w.getSourceGCSAPIPath(i.RawDisk.Source)
+		} else if p, err := getGCSAPIPath(i.RawDisk.Source); err == nil {
+			i.RawDisk.Source = p
+		} else {
+			errs = addErrs(errs, errf("bad value for RawDisk.Source: %q", i.RawDisk.Source))
+		}
+	}
+	i.link = fmt.Sprintf("projects/%s/global/images/%s", i.Project, i.Name)
+	i.populateGuestOSFeatures(s.w)
+	return errs
+}
+
 func (i *Image) populateGuestOSFeatures(w *Workflow) {
-	if i.GuestOsFeatures == nil {
+	if i.ImageBase.GuestOsFeatures == nil {
 		return
 	}
-	for _, f := range i.GuestOsFeatures {
+	for _, f := range i.ImageBase.GuestOsFeatures {
 		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: f})
 	}
 	return
 }
 
+func (i *ImageBeta) populateGuestOSFeatures(w *Workflow) {
+	if i.ImageBase.GuestOsFeatures == nil {
+		return
+	}
+	for _, f := range i.ImageBase.GuestOsFeatures {
+		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: f})
+	}
+	return
+}
+
 func (i *Image) validate(ctx context.Context, s *Step) dErr {
+	pre := fmt.Sprintf("cannot create image %q", i.daisyName)
+	errs := i.Resource.validate(ctx, s, pre)
+
+	if !xor(!xor(i.SourceDisk == "", i.SourceImage == ""), i.RawDisk == nil) {
+		errs = addErrs(errs, errf("%s: must provide either SourceImage, SourceDisk or RawDisk, exclusively", pre))
+	}
+
+	// Source disk checking.
+	if i.SourceDisk != "" {
+		if _, err := s.w.disks.regUse(i.SourceDisk, s); err != nil {
+			errs = addErrs(errs, newErr(err))
+		}
+	}
+
+	// Source image checking.
+	if i.SourceImage != "" {
+		_, err := s.w.images.regUse(i.SourceImage, s)
+		errs = addErrs(errs, err)
+	}
+
+	// RawDisk.Source checking.
+	if i.RawDisk != nil {
+		sBkt, sObj, err := splitGCSPath(i.RawDisk.Source)
+		errs = addErrs(errs, err)
+
+		// Check if this image object is created by this workflow, otherwise check if object exists.
+		if !strIn(path.Join(sBkt, sObj), s.w.objects.created) {
+			if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).Attrs(ctx); err != nil {
+				errs = addErrs(errs, errf("error reading object %s/%s: %v", sBkt, sObj, err))
+			}
+		}
+	}
+
+	// License checking.
+	for _, l := range i.Licenses {
+		result := namedSubexp(licenseURLRegex, l)
+		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
+			if !(isGoogleAPIForbiddenError(err) && i.IgnoreLicenseValidationIfForbidden) {
+				errs = addErrs(errs, errf("%s: bad license lookup: %q, error: %v", pre, l, err))
+			}
+		} else if !exists {
+			errs = addErrs(errs, errf("%s: license does not exist: %q", pre, l))
+		}
+	}
+
+	// Register image creation.
+	errs = addErrs(errs, s.w.images.regCreate(i.daisyName, &i.Resource, s, i.OverWrite))
+	return errs
+}
+
+func (i *ImageBeta) validate(ctx context.Context, s *Step) dErr {
 	pre := fmt.Sprintf("cannot create image %q", i.daisyName)
 	errs := i.Resource.validate(ctx, s, pre)
 

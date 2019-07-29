@@ -14,7 +14,9 @@
 
 package daisy
 
-import "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+import (
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+)
 
 // ResourceLabeler is responsible for labelling GCE resources (instances, disks and images) with
 // labels used to track resource creation by import processes.
@@ -57,7 +59,7 @@ func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
 			}
 		}
 		if step.CreateImages != nil {
-			for _, image := range *step.CreateImages {
+			for _, image := range step.CreateImages.Images {
 				image.Image.Labels =
 					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image))
 			}

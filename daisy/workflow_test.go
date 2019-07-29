@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/option"
 )
@@ -293,7 +294,143 @@ func TestNewFromFile(t *testing.T) {
 		},
 		"create-image": {
 			name:         "create-image",
-			CreateImages: &CreateImages{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}},
+			CreateImages: &CreateImages{Images: []*Image{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}}},
+		},
+		"include-workflow": {
+			name: "include-workflow",
+			IncludeWorkflow: &IncludeWorkflow{
+				Vars: map[string]string{
+					"key": "value",
+				},
+				Path: "./test_sub.wf.json",
+			},
+		},
+		"sub-workflow": {
+			name: "sub-workflow",
+			SubWorkflow: &SubWorkflow{
+				Vars: map[string]string{
+					"key": "value",
+				},
+				Path: "./test_sub.wf.json",
+			},
+		},
+	}
+	want.Dependencies = map[string][]string{
+		"create-disks":        {},
+		"bootstrap":           {"create-disks"},
+		"bootstrap-stopped":   {"bootstrap"},
+		"postinstall":         {"bootstrap-stopped"},
+		"postinstall-stopped": {"postinstall"},
+		"create-image":        {"postinstall-stopped"},
+		"include-workflow":    {"create-image"},
+		"sub-workflow":        {"create-image"},
+	}
+
+	for _, s := range want.Steps {
+		s.w = want
+	}
+
+	if diffRes := diff(got, want, 0); diffRes != "" {
+		t.Errorf("parsed workflow does not match expectation: (-got +want)\n%s", diffRes)
+	}
+}
+
+func TestNewFromFileBeta(t *testing.T) {
+	got, err := NewFromFile("./test_data/test_beta_compute_api.wf.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := New()
+	// These are difficult to validate and irrelevant, so we cheat.
+	want.id = got.ID()
+	want.Cancel = got.Cancel
+	want.cleanupHooks = got.cleanupHooks
+	want.disks = newDiskRegistry(want)
+	want.images = newImageRegistry(want)
+	want.instances = newInstanceRegistry(want)
+	want.networks = newNetworkRegistry(want)
+
+	want.workflowDir = filepath.Join(wd, "test_data")
+	want.Name = "some-name"
+	want.Project = "some-project"
+	want.Zone = "us-central1-a"
+	want.GCSPath = "gs://some-bucket/images"
+	want.OAuthPath = filepath.Join(wd, "test_data", "somefile")
+	want.Sources = map[string]string{}
+	want.autovars = map[string]string{}
+	want.Vars = map[string]Var{
+		"bootstrap_instance_name": {Value: "bootstrap-${NAME}", Required: true},
+		"machine_type":            {Value: "n1-standard-1"},
+		"key1":                    {Value: "var1"},
+		"key2":                    {Value: "var2"},
+	}
+	want.Steps = map[string]*Step{
+		"create-disks": {
+			name: "create-disks",
+			CreateDisks: &CreateDisks{
+				{
+					Disk: compute.Disk{
+						Name:        "bootstrap",
+						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+						Type:        "pd-ssd",
+					},
+					SizeGb: "50",
+				},
+				{
+					Disk: compute.Disk{
+						Name:        "image",
+						SourceImage: "projects/windows-cloud/global/images/family/windows-server-2016-core",
+						Type:        "pd-standard",
+					},
+					SizeGb: "50",
+				},
+			},
+		},
+		"${bootstrap_instance_name}": {
+			name: "${bootstrap_instance_name}",
+			CreateInstances: &CreateInstances{
+				{
+					Instance: compute.Instance{
+						Name:        "${bootstrap_instance_name}",
+						Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
+						MachineType: "${machine_type}",
+					},
+					StartupScript: "shutdown /h",
+					Metadata:      map[string]string{"test_metadata": "this was a test"},
+				},
+			},
+		},
+		"${bootstrap_instance_name}-stopped": {
+			name:                   "${bootstrap_instance_name}-stopped",
+			Timeout:                "1h",
+			WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "${bootstrap_instance_name}", Stopped: true, Interval: "1s"}},
+		},
+		"postinstall": {
+			name: "postinstall",
+			CreateInstances: &CreateInstances{
+				{
+					Instance: compute.Instance{
+						Name:        "postinstall",
+						Disks:       []*compute.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
+						MachineType: "${machine_type}",
+					},
+					StartupScript: "shutdown /h",
+				},
+			},
+		},
+		"postinstall-stopped": {
+			name:                   "postinstall-stopped",
+			WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "postinstall", Stopped: true}},
+		},
+		"create-image": {
+			name:         "create-image",
+			CreateImages: &CreateImages{ImagesBeta: []*ImageBeta{{Image: computeBeta.Image{Name: "image-from-disk", SourceDisk: "image", StorageLocations: []string{"eu"}}}}},
 		},
 		"include-workflow": {
 			name: "include-workflow",
