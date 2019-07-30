@@ -17,14 +17,6 @@ URL="http://metadata/computeMetadata/v1/instance/attributes"
 GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
 LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
 
-echo "GCEExport: Downloading gce_export."
-curl --output /usr/bin/gce_export https://storage.googleapis.com/compute-image-tools/release/linux/gce_export
-if [[ $? -ne 0 ]]; then
-  echo "ExportFailed: Could not download gce_export."
-  exit 1
-fi
-chmod +x /usr/bin/gce_export
-
 mkdir ~/upload
 
 echo "GCEExport: Running export tool."
