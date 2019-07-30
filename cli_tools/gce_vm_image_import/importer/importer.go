@@ -1,4 +1,4 @@
-//  Copyright 2018 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ var (
 	ImportAndTranslateWorkflow = "import_and_translate.wf.json"
 )
 
-// Parameter key shared with external packages
+// Parameter key shared with other packages
 const (
 	ImageNameFlagKey = "image_name"
 	ClientIDFlagKey  = "client_id"
@@ -134,9 +134,9 @@ func getWorkflowPaths(dataDisk bool, osID, sourceImage, customTranWorkflow, curr
 	return path.ToWorkingDir(WorkflowDir+ImportAndTranslateWorkflow, currentExecutablePath), getTranslateWorkflowPath(customTranWorkflow, osID)
 }
 
-func getTranslateWorkflowPath(customTranWorkflow, osID string) string {
-	if customTranWorkflow != "" {
-		return customTranWorkflow
+func getTranslateWorkflowPath(customTranslateWorkflow, osID string) string {
+	if customTranslateWorkflow != "" {
+		return customTranslateWorkflow
 	}
 	return daisyutils.GetTranslateWorkflowPath(osID)
 }
@@ -172,9 +172,10 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 	return varMap
 }
 
-func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath string, zone,
-	timeout, project, scratchBucketGcsPath, oauth, ce string, gcsLogsDisabled, cloudLogsDisabled,
-	stdoutLogsDisabled bool, kmsKey, kmsKeyring, kmsLocation, kmsProject string, noExternalIP bool,
+func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath string, zone string,
+	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
+	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
+	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
 	userLabels map[string]string) error {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
@@ -208,11 +209,12 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 }
 
 // Run runs import workflow.
-func Run(clientID, imageName string, dataDisk bool, osID, customTranWorkflow, sourceFile,
-	sourceImage string, noGuestEnvironment bool, family, description, network, subnet, zone, timeout,
-	project, scratchBucketGcsPath, oauth, ce string, gcsLogsDisabled, cloudLogsDisabled,
-	stdoutLogsDisabled bool, kmsKey, kmsKeyring, kmsLocation, kmsProject string, noExternalIP bool,
-	labels, currentExecutablePath string) error {
+func Run(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string,
+	sourceFile string, sourceImage string, noGuestEnvironment bool, family string, description string,
+	network string, subnet string, zone string, timeout string, project string,
+	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
+	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
+	noExternalIP bool, labels string, currentExecutablePath string) error {
 
 	sourceBucketName, sourceObjectName, userLabels, err := validateAndParseFlags(clientID, imageName,
 		sourceFile, sourceImage, dataDisk, osID, customTranWorkflow, labels)
