@@ -87,7 +87,8 @@ func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, p
 
 	fileBucketAttrs, err := c.StorageClient.GetBucketAttrs(fileBucket)
 	if err != nil || fileBucketAttrs == nil {
-		// if region can't be determined by bucket, then fallback to input / default region
+		// if region can't be determined by bucket (which usually means bucket doesn't exist), then
+		// fallback to input / default region
 		return c.createBucketOnFallbackZone(project, zone)
 	}
 

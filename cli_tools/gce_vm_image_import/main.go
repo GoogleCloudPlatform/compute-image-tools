@@ -265,13 +265,13 @@ func main() {
 		log.Fatalf(err.Error())
 	}
 
-	err = validateSourceFile(storageClient)
+	err = param.PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
+		*sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 
-	err = param.PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
-		*sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
+	err = validateSourceFile(storageClient)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
