@@ -290,9 +290,9 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
-	assert.Equal(t, "europe-north1-c", zone)
-	assert.Equal(t, "europe-north1", region)
-	assert.Equal(t, "gs://new_scratch_bucket/", scratchBucketGcsPath)
+	assert.Equal(t, expectedZone, zone)
+	assert.Equal(t, expectedRegion, region)
+	assert.Equal(t, fmt.Sprintf("gs://%v/", expectedBucketName), scratchBucketGcsPath)
 }
 
 func TestPopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t *testing.T) {
@@ -327,9 +327,9 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t *test
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
-	assert.Equal(t, "europe-north1-c", zone)
-	assert.Equal(t, "europe-north1", region)
-	assert.Equal(t, "gs://new_scratch_bucket/", scratchBucketGcsPath)
+	assert.Equal(t, expectedZone, zone)
+	assert.Equal(t, expectedRegion, region)
+	assert.Equal(t, fmt.Sprintf("gs://%v/", expectedBucketName), scratchBucketGcsPath)
 }
 
 func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {

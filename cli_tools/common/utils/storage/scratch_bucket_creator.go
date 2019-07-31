@@ -46,7 +46,7 @@ func NewScratchBucketCreator(ctx context.Context, storageClient domain.StorageCl
 // CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
 // Returns (bucket_name, region, error)
 func (c *ScratchBucketCreator) CreateScratchBucket(
-	sourceFileFlag string, project string, zone string) (string, string, error) {
+	sourceFileFlag string, project string, fallBackZone string) (string, string, error) {
 
 	if project == "" {
 		return "", "", fmt.Errorf("can't create scratch bucket if project not specified")
@@ -54,29 +54,11 @@ func (c *ScratchBucketCreator) CreateScratchBucket(
 
 	if sourceFileFlag != "" {
 		// source file provided, create bucket in the same region for cost/performance reasons
-		return c.createBucketMatchFileRegion(sourceFileFlag, project, zone)
+		return c.createBucketMatchFileRegion(sourceFileFlag, project, fallBackZone)
 	}
 
 	// if source file is not provided, fallback to input / default region.
-	return c.createBucketOnFallbackZone(project, zone)
-}
-
-func (c *ScratchBucketCreator) createBucketOnFallbackZone(project string, zone string) (string, string, error) {
-	fallbackRegion := defaultRegion
-	storageClass := defaultStorageClass
-	var err error
-	if zone != "" {
-		if fallbackRegion, err = getRegion(zone); err != nil {
-			return "", "", err
-		}
-		storageClass = regionalStorageClass
-	}
-	bucket := c.formatScratchBucketName(project, fallbackRegion)
-	region, err := c.createBucketIfNotExisting(bucket, project, &storage.BucketAttrs{Name: bucket, Location: fallbackRegion, StorageClass: storageClass})
-	if err != nil {
-		return "", "", err
-	}
-	return bucket, region, nil
+	return c.createBucketOnFallbackZone(project, fallBackZone)
 }
 
 func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string, zone string) (string, string, error) {
@@ -100,6 +82,24 @@ func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, p
 		return "", "", err
 	}
 	return bucket, location, nil
+}
+
+func (c *ScratchBucketCreator) createBucketOnFallbackZone(project string, fallbackZone string) (string, string, error) {
+	fallbackRegion := defaultRegion
+	storageClass := defaultStorageClass
+	var err error
+	if fallbackZone != "" {
+		if fallbackRegion, err = getRegion(fallbackZone); err != nil {
+			return "", "", err
+		}
+		storageClass = regionalStorageClass
+	}
+	bucket := c.formatScratchBucketName(project, fallbackRegion)
+	region, err := c.createBucketIfNotExisting(bucket, project, &storage.BucketAttrs{Name: bucket, Location: fallbackRegion, StorageClass: storageClass})
+	if err != nil {
+		return "", "", err
+	}
+	return bucket, region, nil
 }
 
 func (c *ScratchBucketCreator) createBucketIfNotExisting(bucket string, project string,

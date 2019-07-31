@@ -70,14 +70,13 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 		scratchBucketName, err := storage.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
 		if err != nil {
 			return fmt.Errorf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
+
 		}
 
 		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
-		if err != nil {
-			return fmt.Errorf("invalid scratch bucket name %v", scratchBucketName)
+		if err == nil {
+			scratchBucketRegion = scratchBucketAttrs.Location
 		}
-
-		scratchBucketRegion = scratchBucketAttrs.Location
 	}
 
 	if *zone == "" {

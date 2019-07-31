@@ -85,7 +85,7 @@ type ZoneValidatorInterface interface {
 
 // ScratchBucketCreatorInterface represents Daisy scratch (temporary) bucket creator
 type ScratchBucketCreatorInterface interface {
-	CreateScratchBucket(sourceFileFlag string, projectFlag string, zone string) (string, string, error)
+	CreateScratchBucket(sourceFileFlag string, projectFlag string, fallbackZone string) (string, string, error)
 }
 
 // ZoneRetrieverInterface represents Daisy GCE zone retriever
