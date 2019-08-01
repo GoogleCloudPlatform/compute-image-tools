@@ -18,12 +18,13 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
+
+	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/option"
 )
 
 // GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
@@ -52,7 +53,7 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 		return err
 	}
 
-	scratchBucketRegion, err := PopulateBucket(scratchBucketGcsPath, zone, mgce, scratchBucketCreator,
+	scratchBucketRegion, err := populateBucket(scratchBucketGcsPath, zone, mgce, scratchBucketCreator,
 		file, project, storageClient)
 	if err != nil {
 		return err
@@ -72,7 +73,7 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 	return nil
 }
 
-func PopulateBucket(scratchBucketGcsPath *string, zone *string, mgce domain.MetadataGCEInterface,
+func populateBucket(scratchBucketGcsPath *string, zone *string, mgce domain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
 	storageClient domain.StorageClientInterface) (string, error) {
 
@@ -80,9 +81,13 @@ func PopulateBucket(scratchBucketGcsPath *string, zone *string, mgce domain.Meta
 	if *scratchBucketGcsPath == "" {
 		fallbackZone := *zone
 		if fallbackZone == "" && mgce.OnGCE() {
-			// try to get zone which Cloud Build is running in, ignoring error
-			fallbackZone, _ = mgce.Zone()
+			var err error
+			if fallbackZone, err = mgce.Zone(); err != nil {
+				// reset fallback zone if failed to get zone from running GCE
+				fallbackZone = ""
+			}
 		}
+
 		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(file, *project, fallbackZone)
 		scratchBucketRegion = sbr
 		if err != nil {
@@ -114,24 +119,12 @@ func PopulateProjectIfMissing(mgce domain.MetadataGCEInterface, projectFlag *str
 
 // PopulateRegion populates region based on the value extracted from zone param
 func PopulateRegion(region *string, zone string) error {
-	aRegion, err := GetRegion(zone)
+	aRegion, err := paramhelper.GetRegion(zone)
 	if err != nil {
 		return err
 	}
 	*region = aRegion
 	return nil
-}
-
-// GetRegion extracts region from a zones
-func GetRegion(zone string) (string, error) {
-	if zone == "" {
-		return "", fmt.Errorf("zone is empty. Can't determine region")
-	}
-	zoneStrs := strings.Split(zone, "-")
-	if len(zoneStrs) < 2 {
-		return "", fmt.Errorf("%v is not a valid zone", zone)
-	}
-	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
 }
 
 // CreateComputeClient creates a new compute client

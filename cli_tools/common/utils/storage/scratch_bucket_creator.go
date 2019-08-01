@@ -22,6 +22,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"google.golang.org/api/iterator"
 )
 
@@ -102,7 +103,7 @@ func (c *ScratchBucketCreator) getBucketAttrsOnFallbackZone(project string, fall
 	storageClass := defaultStorageClass
 	var err error
 	if fallbackZone != "" {
-		if fallbackRegion, err = getRegion(fallbackZone); err != nil {
+		if fallbackRegion, err = paramhelper.GetRegion(fallbackZone); err != nil {
 			return nil, err
 		}
 		storageClass = regionalStorageClass
@@ -136,15 +137,4 @@ func (c *ScratchBucketCreator) formatScratchBucketName(project string, location 
 		bucket = bucket + "-" + location
 	}
 	return strings.ToLower(bucket)
-}
-
-func getRegion(zone string) (string, error) {
-	if zone == "" {
-		return "", fmt.Errorf("zone is empty. Can't determine region")
-	}
-	zoneStrs := strings.Split(zone, "-")
-	if len(zoneStrs) < 2 {
-		return "", fmt.Errorf("%v is not a valid zone", zone)
-	}
-	return strings.Join(zoneStrs[:len(zoneStrs)-1], "-"), nil
 }

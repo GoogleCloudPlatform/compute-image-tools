@@ -19,9 +19,11 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
+	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 )
 
 func TestGetRegion(t *testing.T) {
@@ -38,7 +40,7 @@ func TestGetRegion(t *testing.T) {
 
 	for _, test := range tests {
 		zone := &test.input
-		got, err := GetRegion(*zone)
+		got, err := paramhelper.GetRegion(*zone)
 		if test.want != got {
 			t.Errorf("%v != %v", test.want, got)
 		} else if err != test.err && test.err.Error() != err.Error() {
