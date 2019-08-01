@@ -33,8 +33,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/guestpolicies"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
-	packagemanagement "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/package_management"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
 )
 
@@ -48,7 +48,7 @@ var (
 )
 
 var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
-	packagemanagement.TestSuite,
+	guestpolicies.TestSuite,
 	inventory.TestSuite,
 	patch.TestSuite,
 }

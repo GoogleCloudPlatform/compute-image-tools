@@ -22,7 +22,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
-	osconfig "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
 	osconfigV1alpha2 "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha2"
 	"google.golang.org/api/option"
 )
@@ -30,16 +29,12 @@ import (
 var (
 	storageClient          *storage.Client
 	computeClient          compute.Client
-	osconfigClient         *osconfig.Client
 	osconfigClientV1alpha2 *osconfigV1alpha2.Client
 )
 
 // PopulateClients populates the GCP clients.
 func PopulateClients(ctx context.Context) error {
 	if err := createComputeClient(ctx); err != nil {
-		return err
-	}
-	if err := createOsConfigClient(ctx); err != nil {
 		return err
 	}
 	if err := createOsConfigClientV1alpha2(ctx); err != nil {
@@ -58,13 +53,6 @@ func createStorageClient(ctx context.Context) error {
 	logger.Debugf("creating storage client\n")
 	var err error
 	storageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()))
-	return err
-}
-
-func createOsConfigClient(ctx context.Context) error {
-	logger.Debugf("creating v1alpha1 osconfig client\n")
-	var err error
-	osconfigClient, err = osconfig.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()), option.WithEndpoint(config.SvcEndpoint()))
 	return err
 }
 
@@ -89,14 +77,6 @@ func GetStorageClient() (*storage.Client, error) {
 		return nil, fmt.Errorf("storage client was not initialized")
 	}
 	return storageClient, nil
-}
-
-// GetOsConfigClient returns a singleton GCP client for osconfig tests
-func GetOsConfigClient() (*osconfig.Client, error) {
-	if osconfigClient == nil {
-		return nil, fmt.Errorf("osconfig client was not initialized")
-	}
-	return osconfigClient, nil
 }
 
 // GetOsConfigClientV1alpha2 returns a singleton GCP client for osconfig tests
