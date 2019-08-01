@@ -36,6 +36,7 @@ func (ci *CreateImages) UnmarshalJSON(b []byte) error {
 	}
 
 	if usesBetaFeatures(imagesBeta) {
+		// Actually uses Beta features, no need to parse as GA
 		ci.ImagesBeta = *imagesBeta
 		return nil
 	}
@@ -100,32 +101,40 @@ func (c *CreateImages) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan dErr)
-	for _, i := range c.Images {
-		wg.Add(1)
-		go func(ci *Image) {
-			defer wg.Done()
-			// Get source disk link if SourceDisk is a daisy reference to a disk.
-			if d, ok := w.disks.get(ci.SourceDisk); ok {
-				ci.SourceDisk = d.link
-			}
 
-			// Delete existing if OverWrite is true.
-			if ci.OverWrite {
-				// Just try to delete it, a 404 here indicates the image doesn't exist.
-				if err := w.ComputeClient.DeleteImage(ci.Project, ci.Name); err != nil {
-					if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
-						e <- errf("error deleting existing image: %v", err)
-						return
-					}
+	createImage := func(ci ImageInterface) {
+		defer wg.Done()
+		// Get source disk link if SourceDisk is a daisy reference to a disk.
+		if d, ok := w.disks.get(ci.getSourceDisk()); ok {
+			ci.setSourceDisk(d.link)
+		}
+
+		// Delete existing if OverWrite is true.
+		if ci.isOverwrite() {
+			// Just try to delete it, a 404 here indicates the image doesn't exist.
+			if err := ci.delete(w.ComputeClient); err != nil {
+				if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
+					e <- errf("error deleting existing image: %v", err)
+					return
 				}
 			}
+		}
 
-			w.LogStepInfo(s.name, "CreateImages", "Creating image %q.", ci.Name)
-			if err := w.ComputeClient.CreateImage(ci.Project, &ci.Image); err != nil {
-				e <- newErr(err)
-				return
-			}
-		}(i)
+		w.LogStepInfo(s.name, "CreateImages", "Creating image %q.", ci.getName())
+		if err := ci.create(w.ComputeClient); err != nil {
+			e <- newErr(err)
+			return
+		}
+	}
+
+	for _, i := range c.Images {
+		wg.Add(1)
+		go createImage(i)
+	}
+
+	for _, i := range c.ImagesBeta {
+		wg.Add(1)
+		go createImage(i)
 	}
 
 	go func() {
@@ -142,5 +151,3 @@ func (c *CreateImages) run(ctx context.Context, s *Step) dErr {
 		return nil
 	}
 }
-
-

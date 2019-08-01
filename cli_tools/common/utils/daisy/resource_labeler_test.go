@@ -18,9 +18,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -154,9 +155,9 @@ func createTestResourceLabeler(buildID string, userLabels map[string]string) *Re
 		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
 			return "gce-image-import-tmp"
 		},
-		ImageLabelKeyRetriever: func(image *daisy.Image) string {
+		ImageLabelKeyRetriever: func(imageName string) string {
 			imageTypeLabel := "gce-image-import"
-			if strings.Contains(image.Image.Name, "untranslated") {
+			if strings.Contains(imageName, "untranslated") {
 				imageTypeLabel = "gce-image-import-tmp"
 			}
 			return imageTypeLabel

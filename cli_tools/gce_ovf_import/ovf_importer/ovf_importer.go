@@ -281,7 +281,7 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
 			return "gce-ovf-import-tmp"
 		},
-		ImageLabelKeyRetriever: func(image *daisy.Image) string {
+		ImageLabelKeyRetriever: func(imageName string) string {
 			return "gce-ovf-import-tmp"
 		}}
 	rl.LabelResources(w)

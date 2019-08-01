@@ -36,7 +36,7 @@ type InstanceLabelKeyRetrieverFunc func(image *daisy.Instance) string
 type DiskLabelKeyRetrieverFunc func(image *daisy.Disk) string
 
 // ImageLabelKeyRetrieverFunc returns GCE label key to be added to given image
-type ImageLabelKeyRetrieverFunc func(image *daisy.Image) string
+type ImageLabelKeyRetrieverFunc func(imageName string) string
 
 // LabelResources labels workflow resources temporary and permanent resources with appropriate
 // labels
@@ -61,7 +61,11 @@ func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
 		if step.CreateImages != nil {
 			for _, image := range step.CreateImages.Images {
 				image.Image.Labels =
-					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image))
+					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
+			}
+			for _, image := range step.CreateImages.ImagesBeta {
+				image.Image.Labels =
+						rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
 			}
 		}
 	}

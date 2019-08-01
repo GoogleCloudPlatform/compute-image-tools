@@ -23,10 +23,11 @@ import (
 	"regexp"
 	"sync"
 
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
+
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 var (
@@ -102,6 +103,12 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 }
 
 type ImageInterface interface {
+	getName() string
+	getSourceDisk() string
+	setSourceDisk(sourceDisk string)
+	isOverwrite() bool
+	create(cc daisyCompute.Client) error
+	delete(cc daisyCompute.Client) error
 }
 
 type ImageBase struct {
@@ -124,9 +131,57 @@ type Image struct {
 	compute.Image
 }
 
+func (i *Image) getName() string {
+	return i.Name
+}
+
+func (i *Image) getSourceDisk() string {
+	return i.SourceDisk
+}
+
+func (i *Image) setSourceDisk(sourceDisk string) {
+	i.SourceDisk = sourceDisk
+}
+
+func (i *Image) isOverwrite() bool {
+	return i.OverWrite
+}
+
+func (i *Image) create(cc daisyCompute.Client) error {
+	return cc.CreateImage(i.Project, &i.Image)
+}
+
+func (i *Image) delete(cc daisyCompute.Client) error {
+	return cc.DeleteImage(i.Project, i.Name)
+}
+
 type ImageBeta struct {
 	ImageBase
 	computeBeta.Image
+}
+
+func (i *ImageBeta) getName() string {
+	return i.Name
+}
+
+func (i *ImageBeta) getSourceDisk() string {
+	return i.SourceDisk
+}
+
+func (i *ImageBeta) setSourceDisk(sourceDisk string) {
+	i.SourceDisk = sourceDisk
+}
+
+func (i *ImageBeta) isOverwrite() bool {
+	return i.OverWrite
+}
+
+func (i *ImageBeta) create(cc daisyCompute.Client) error {
+	return cc.CreateImageBeta(i.Project, &i.Image)
+}
+
+func (i *ImageBeta) delete(cc daisyCompute.Client) error {
+	return cc.DeleteImage(i.Project, i.Name)
 }
 
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.

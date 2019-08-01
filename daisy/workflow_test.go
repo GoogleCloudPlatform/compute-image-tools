@@ -292,10 +292,15 @@ func TestNewFromFile(t *testing.T) {
 			name:                   "postinstall-stopped",
 			WaitForInstancesSignal: &WaitForInstancesSignal{{Name: "postinstall", Stopped: true}},
 		},
+		"create-image-locality": {
+			name:         "create-image-locality",
+			CreateImages: &CreateImages{ImagesBeta: []*ImageBeta{{Image: computeBeta.Image{Name: "image-from-local-disk", SourceDisk: "local-image", StorageLocations: []string{"europe-west1"}}}}},
+		},
 		"create-image": {
 			name:         "create-image",
 			CreateImages: &CreateImages{Images: []*Image{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}}},
 		},
+
 		"include-workflow": {
 			name: "include-workflow",
 			IncludeWorkflow: &IncludeWorkflow{
@@ -321,7 +326,8 @@ func TestNewFromFile(t *testing.T) {
 		"bootstrap-stopped":   {"bootstrap"},
 		"postinstall":         {"bootstrap-stopped"},
 		"postinstall-stopped": {"postinstall"},
-		"create-image":        {"postinstall-stopped"},
+		"create-image-locality": {"postinstall-stopped"},
+		"create-image":        {"create-image-locality"},
 		"include-workflow":    {"create-image"},
 		"sub-workflow":        {"create-image"},
 	}

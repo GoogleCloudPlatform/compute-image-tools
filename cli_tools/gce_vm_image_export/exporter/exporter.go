@@ -123,7 +123,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
 				return "gce-image-export-tmp"
 			},
-			ImageLabelKeyRetriever: func(image *daisy.Image) string {
+			ImageLabelKeyRetriever: func(imageName string) string {
 				return "gce-image-export"
 			}}
 		rl.LabelResources(w)

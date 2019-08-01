@@ -231,9 +231,9 @@ func runImport(ctx context.Context) error {
 			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
 				return "gce-image-import-tmp"
 			},
-			ImageLabelKeyRetriever: func(image *daisy.Image) string {
+			ImageLabelKeyRetriever: func(imageName string) string {
 				imageTypeLabel := "gce-image-import"
-				if strings.Contains(image.Image.Name, "untranslated") {
+				if strings.Contains(imageName, "untranslated") {
 					imageTypeLabel = "gce-image-import-tmp"
 				}
 				return imageTypeLabel
