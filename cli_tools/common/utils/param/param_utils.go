@@ -52,31 +52,10 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 		return err
 	}
 
-	scratchBucketRegion := ""
-	if *scratchBucketGcsPath == "" {
-		fallbackZone := *zone
-		if fallbackZone == "" && mgce.OnGCE() {
-			// try to get zone which Cloud Build is running in, ignoring error
-			fallbackZone, _ = mgce.Zone()
-		}
-		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(file, *project, fallbackZone)
-		scratchBucketRegion = sbr
-		if err != nil {
-			return err
-		}
-
-		*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", scratchBucketName)
-	} else {
-		scratchBucketName, err := storage.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
-		if err != nil {
-			return fmt.Errorf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
-
-		}
-
-		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
-		if err == nil {
-			scratchBucketRegion = scratchBucketAttrs.Location
-		}
+	scratchBucketRegion, err := PopulateBucket(scratchBucketGcsPath, zone, mgce, scratchBucketCreator,
+		file, project, storageClient)
+	if err != nil {
+		return err
 	}
 
 	if *zone == "" {
@@ -91,6 +70,39 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 		return err
 	}
 	return nil
+}
+
+func PopulateBucket(scratchBucketGcsPath *string, zone *string, mgce domain.MetadataGCEInterface,
+	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
+	storageClient domain.StorageClientInterface) (string, error) {
+
+	scratchBucketRegion := ""
+	if *scratchBucketGcsPath == "" {
+		fallbackZone := *zone
+		if fallbackZone == "" && mgce.OnGCE() {
+			// try to get zone which Cloud Build is running in, ignoring error
+			fallbackZone, _ = mgce.Zone()
+		}
+		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(file, *project, fallbackZone)
+		scratchBucketRegion = sbr
+		if err != nil {
+			return "", err
+		}
+
+		*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", scratchBucketName)
+	} else {
+		scratchBucketName, err := storage.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
+		if err != nil {
+			return "", fmt.Errorf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
+
+		}
+
+		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
+		if err == nil {
+			scratchBucketRegion = scratchBucketAttrs.Location
+		}
+	}
+	return scratchBucketRegion, nil
 }
 
 // PopulateProjectIfMissing populates project id for cli tools

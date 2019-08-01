@@ -45,89 +45,89 @@ func NewScratchBucketCreator(ctx context.Context, storageClient domain.StorageCl
 
 // CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
 // Returns (bucket_name, region, error)
-func (c *ScratchBucketCreator) CreateScratchBucket(
-	sourceFileFlag string, project string, fallBackZone string) (string, string, error) {
+func (c *ScratchBucketCreator) CreateScratchBucket(sourceFileFlag string, project string,
+	fallbackZone string) (string, string, error) {
 
-	if project == "" {
-		return "", "", fmt.Errorf("can't create scratch bucket if project not specified")
+	bucketAttrs, err := c.getBucketAttrs(sourceFileFlag, project, fallbackZone)
+	if err != nil {
+		return "", "", err
 	}
 
-	if sourceFileFlag != "" {
-		// source file provided, create bucket in the same region for cost/performance reasons
-		return c.createBucketMatchFileRegion(sourceFileFlag, project, fallBackZone)
+	region, err := c.createBucketIfNotExisting(project, bucketAttrs)
+	if err != nil {
+		return "", "", err
 	}
-
-	// if source file is not provided, fallback to input / default region.
-	return c.createBucketOnFallbackZone(project, fallBackZone)
+	return bucketAttrs.Name, region, nil
 }
 
-func (c *ScratchBucketCreator) createBucketMatchFileRegion(fileGcsPath string, project string, zone string) (string, string, error) {
+func (c *ScratchBucketCreator) getBucketAttrs(fileGcsPath string, project string, fallbackZone string) (*storage.BucketAttrs, error) {
+	if project == "" {
+		return nil, fmt.Errorf("can't create scratch bucket if project not specified")
+	}
+
+	if fileGcsPath != "" {
+		// file provided, create bucket in the same region for cost/performance reasons
+		return c.getBucketAttrsFromInputFile(fileGcsPath, project, fallbackZone)
+	}
+
+	// if file is not provided, fallback to input / default zone.
+	return c.getBucketAttrsOnFallbackZone(project, fallbackZone)
+}
+
+func (c *ScratchBucketCreator) getBucketAttrsFromInputFile(fileGcsPath string, project string,
+	fallbackZone string) (*storage.BucketAttrs, error) {
+
 	fileBucket, _, err := SplitGCSPath(fileGcsPath)
 	if err != nil || fileBucket == "" {
-		return "", "", fmt.Errorf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
+		return nil, fmt.Errorf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
 	}
 
 	fileBucketAttrs, err := c.StorageClient.GetBucketAttrs(fileBucket)
 	if err != nil || fileBucketAttrs == nil {
 		// if region can't be determined by bucket (which usually means bucket doesn't exist), then
-		// fallback to input / default region
-		return c.createBucketOnFallbackZone(project, zone)
+		// fallback to input / default zone
+		return c.getBucketAttrsOnFallbackZone(project, fallbackZone)
 	}
 
 	bucket := c.formatScratchBucketName(project, fileBucketAttrs.Location)
-	bucketAttrs := c.createBucketAttrsWithLocationStorageType(bucket, fileBucketAttrs)
-
-	location, err := c.createBucketIfNotExisting(bucket, project, bucketAttrs)
-	if err != nil {
-		return "", "", err
-	}
-	return bucket, location, nil
+	return &storage.BucketAttrs{
+		Name:         bucket,
+		Location:     fileBucketAttrs.Location,
+		StorageClass: fileBucketAttrs.StorageClass,
+	}, nil
 }
 
-func (c *ScratchBucketCreator) createBucketOnFallbackZone(project string, fallbackZone string) (string, string, error) {
+func (c *ScratchBucketCreator) getBucketAttrsOnFallbackZone(project string, fallbackZone string) (*storage.BucketAttrs, error) {
 	fallbackRegion := defaultRegion
 	storageClass := defaultStorageClass
 	var err error
 	if fallbackZone != "" {
 		if fallbackRegion, err = getRegion(fallbackZone); err != nil {
-			return "", "", err
+			return nil, err
 		}
 		storageClass = regionalStorageClass
 	}
 	bucket := c.formatScratchBucketName(project, fallbackRegion)
-	region, err := c.createBucketIfNotExisting(bucket, project, &storage.BucketAttrs{Name: bucket, Location: fallbackRegion, StorageClass: storageClass})
-	if err != nil {
-		return "", "", err
-	}
-	return bucket, region, nil
+	return &storage.BucketAttrs{Name: bucket, Location: fallbackRegion, StorageClass: storageClass}, nil
 }
 
-func (c *ScratchBucketCreator) createBucketIfNotExisting(bucket string, project string,
+func (c *ScratchBucketCreator) createBucketIfNotExisting(project string,
 	bucketAttrs *storage.BucketAttrs) (string, error) {
 	it := c.BucketIteratorCreator.CreateBucketIterator(c.Ctx, c.StorageClient, project)
 	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
 		if err != nil {
 			return "", err
 		}
-		if itBucketAttrs.Name == bucket {
+		if itBucketAttrs.Name == bucketAttrs.Name {
 			return itBucketAttrs.Location, nil
 		}
 	}
 
-	log.Printf("Creating scratch bucket `%v` in %v region", bucket, bucketAttrs.Location)
-	if err := c.StorageClient.CreateBucket(bucket, project, bucketAttrs); err != nil {
+	log.Printf("Creating scratch bucket `%v` in %v region", bucketAttrs.Name, bucketAttrs.Location)
+	if err := c.StorageClient.CreateBucket(bucketAttrs.Name, project, bucketAttrs); err != nil {
 		return "", err
 	}
 	return bucketAttrs.Location, nil
-}
-
-func (c *ScratchBucketCreator) createBucketAttrsWithLocationStorageType(name string,
-	bucketAttrs *storage.BucketAttrs) *storage.BucketAttrs {
-	return &storage.BucketAttrs{
-		Name:         name,
-		Location:     bucketAttrs.Location,
-		StorageClass: bucketAttrs.StorageClass,
-	}
 }
 
 func (c *ScratchBucketCreator) formatScratchBucketName(project string, location string) string {
