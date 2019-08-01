@@ -156,11 +156,12 @@ def main():
   fai_classes += ['GCE_CLEAN']
 
   # Copy secure boot keys for gsetup.
+  sb_tar = 'files/boot/efi/EFI/Google/gsetup/secure-boot-keys.tar.gz'
   os.mkdir(
-      config_space + 'files/boot/efi/EFI/Google/gsetup/secure-boot-keys.tar.gz')
+      config_space + sb_tar)
   CopyToConfigSpace(
       '/files/secure-boot-keys.tar.gz',
-      'files/boot/efi/EFI/Google/gsetup/secure-boot-keys.tar.gz/GCE_SPECIFIC',
+      sb_tar + '/GCE_SPECIFIC',
       config_space)
 
   # Remove failing test method for now.
