@@ -14,7 +14,7 @@
 
 //+build !test
 
-package testutils
+package test
 
 import (
 	"bytes"
@@ -80,30 +80,6 @@ func SetBoolP(p **bool, value bool) func() {
 	oldValue := *p
 	*p = &value
 	return func() { *p = oldValue }
-}
-
-// ClearStringFlag clears a flag from a map with CLI args as well as from a pointer holding
-// the corresponding value internally. Returns a function which restores the pointer to the previous
-// value. This function can be used with defer.
-func ClearStringFlag(cliArgs map[string]interface{}, flagKey string, flag **string) func() {
-	delete(cliArgs, flagKey)
-	return SetStringP(flag, "")
-}
-
-// ClearBoolFlag clears a flag from a map with CLI args as well as from a pointer holding
-// the corresponding value internally. Returns a function which restores the pointer to the previous
-// value. This function can be used with defer.
-func ClearBoolFlag(cliArgs map[string]interface{}, flagKey string, flag **bool) func() {
-	delete(cliArgs, flagKey)
-	return SetBoolP(flag, false)
-}
-
-// ClearIntFlag clears a flag from a map with CLI args as well as from a pointer holding
-// the corresponding value internally. Returns a function which restores the pointer to the previous
-// value. This function can be used with defer.
-func ClearIntFlag(cliArgs map[string]interface{}, flagKey string, flag **int) func() {
-	delete(cliArgs, flagKey)
-	return SetIntP(flag, 0)
 }
 
 // CreateCompressedFile creates a valid compressed file in memory

@@ -16,39 +16,16 @@
 package main
 
 import (
-	"compress/gzip"
-	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
-	"strconv"
-	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-)
-
-const (
-	workflowDir                = "daisy_workflows/image_import/"
-	importWorkflow             = workflowDir + "import_image.wf.json"
-	importFromImageWorkflow    = workflowDir + "import_from_image.wf.json"
-	importAndTranslateWorkflow = workflowDir + "import_and_translate.wf.json"
-	imageNameFlagKey           = "image_name"
-	clientIDFlagKey            = "client_id"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
 var (
-	imageName            = flag.String(imageNameFlagKey, "", "Image name to be imported.")
-	clientID             = flag.String(clientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
+	clientID             = flag.String(importer.ClientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
+	imageName            = flag.String(importer.ImageNameFlagKey, "", "Image name to be imported.")
 	dataDisk             = flag.Bool("data_disk", false, "Specifies that the disk has no bootable OS installed on it.	Imports the disk without making it bootable or installing Google tools on it. ")
 	osID                 = flag.String("os", "", "Specifies the OS of the image being imported. OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-10-byol, windows-2008r2, windows-2008r2-byol, windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016, windows-2016-byol, windows-7-byol.")
 	customTranWorkflow   = flag.String("custom_translate_workflow", "", "Specifies the custom workflow used to do translation")
@@ -74,209 +51,19 @@ var (
 	kmsProject           = flag.String("kms_project", "", "The Cloud project for the key")
 	noExternalIP         = flag.Bool("no_external_ip", false, "VPC doesn't allow external IPs")
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
-
-	region  = new(string)
-	buildID = os.Getenv("BUILD_ID")
-
-	userLabels            map[string]string
-	currentExecutablePath *string
-
-	sourceBucketName string
-	sourceObjectName string
 )
 
-func init() {
-	currentExecutablePathStr := string(os.Args[0])
-	currentExecutablePath = &currentExecutablePathStr
-}
-
-func validateAndParseFlags() error {
+func main() {
 	flag.Parse()
 
-	if err := validation.ValidateStringFlagNotEmpty(*imageName, imageNameFlagKey); err != nil {
-		return err
-	}
-	if err := validation.ValidateStringFlagNotEmpty(*clientID, clientIDFlagKey); err != nil {
-		return err
-	}
+	currentExecutablePath := string(os.Args[0])
 
-	if !*dataDisk && *osID == "" && *customTranWorkflow == "" {
-		return fmt.Errorf("-data_disk, or -os, or -custom_translate_workflow has to be specified")
-	}
+	if err := importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
+		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
+		*project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
+		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
+		*labels, currentExecutablePath); err != nil {
 
-	if *dataDisk && (*osID != "" || *customTranWorkflow != "") {
-		return fmt.Errorf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
-	}
-
-	if *osID != "" && *customTranWorkflow != "" {
-		return fmt.Errorf("-os and -custom_translate_workflow can't be both specified")
-	}
-
-	if *sourceFile == "" && *sourceImage == "" {
-		return fmt.Errorf("-source_file or -source_image has to be specified")
-	}
-
-	if *sourceFile != "" && *sourceImage != "" {
-		return fmt.Errorf("either -source_file or -source_image has to be specified, but not both %v %v", *sourceFile, *sourceImage)
-	}
-
-	if *osID != "" {
-		if err := daisyutils.ValidateOS(*osID); err != nil {
-			return err
-		}
-	}
-
-	if *sourceFile != "" {
-		var err error
-		sourceBucketName, sourceObjectName, err = storage.SplitGCSPath(*sourceFile)
-		if err != nil {
-			return err
-		}
-	}
-
-	if *labels != "" {
-		var err error
-		userLabels, err = param.ParseKeyValues(*labels)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Validate source file is not a compression file by checking file header.
-func validateSourceFile(storageClient domain.StorageClientInterface) error {
-	if *sourceFile == "" {
-		return nil
-	}
-
-	rc, err := storageClient.GetObjectReader(sourceBucketName, sourceObjectName)
-	if err != nil {
-		return fmt.Errorf("readFile: unable to open file from bucket %q, file %q: %v", sourceBucketName, sourceObjectName, err)
-	}
-	defer rc.Close()
-
-	// Detect whether it's a compressed file by extracting compressed file header
-	if _, err = gzip.NewReader(rc); err == nil {
-		return fmt.Errorf("cannot import an image from a compressed file. Please provide a path to an uncompressed image file. If the compressed file is an image exported from Google Compute Engine, please use 'images create' instead")
-	}
-
-	return nil
-}
-
-// Returns main workflow and translate workflow paths (if any)
-func getWorkflowPaths() (string, string) {
-	if *sourceImage != "" {
-		return path.ToWorkingDir(importFromImageWorkflow, *currentExecutablePath), getTranslateWorkflowPath()
-	}
-	if *dataDisk {
-		return path.ToWorkingDir(importWorkflow, *currentExecutablePath), ""
-	}
-	return path.ToWorkingDir(importAndTranslateWorkflow, *currentExecutablePath), getTranslateWorkflowPath()
-}
-
-func getTranslateWorkflowPath() string {
-	if *customTranWorkflow != "" {
-		return *customTranWorkflow
-	}
-	return daisyutils.GetTranslateWorkflowPath(osID)
-}
-
-func buildDaisyVars(translateWorkflowPath string) map[string]string {
-	varMap := map[string]string{}
-
-	varMap["image_name"] = strings.ToLower(*imageName)
-	if translateWorkflowPath != "" {
-		varMap["translate_workflow"] = translateWorkflowPath
-		varMap["install_gce_packages"] = strconv.FormatBool(!*noGuestEnvironment)
-	}
-	if *sourceFile != "" {
-		varMap["source_disk_file"] = *sourceFile
-	}
-	if *sourceImage != "" {
-		varMap["source_image"] = fmt.Sprintf("global/images/%v", *sourceImage)
-	}
-	varMap["family"] = *family
-	varMap["description"] = *description
-	if *subnet != "" {
-		varMap["import_subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", *region, *subnet)
-		// When subnet is set, we need to grant a value to network to avoid fallback to default
-		if *network == "" {
-			varMap["import_network"] = ""
-		}
-	}
-	if *network != "" {
-		varMap["import_network"] = fmt.Sprintf("global/networks/%v", *network)
-	}
-	return varMap
-}
-
-func runImport(ctx context.Context) error {
-	importWorkflowPath, translateWorkflowPath := getWorkflowPaths()
-	varMap := buildDaisyVars(translateWorkflowPath)
-	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
-		*project, *zone, *scratchBucketGcsPath, *oauth, *timeout, *ce, *gcsLogsDisabled,
-		*cloudLogsDisabled, *stdoutLogsDisabled)
-	if err != nil {
-		return err
-	}
-
-	workflowModifier := func(w *daisy.Workflow) {
-		rl := &daisyutils.ResourceLabeler{
-			BuildID: buildID, UserLabels: userLabels, BuildIDLabelKey: "gce-image-import-build-id",
-			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
-				return "gce-image-import-tmp"
-			},
-			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-				return "gce-image-import-tmp"
-			},
-			ImageLabelKeyRetriever: func(imageName string) string {
-				imageTypeLabel := "gce-image-import"
-				if strings.Contains(imageName, "untranslated") {
-					imageTypeLabel = "gce-image-import-tmp"
-				}
-				return imageTypeLabel
-			}}
-		rl.LabelResources(w)
-		daisyutils.UpdateAllInstanceNoExternalIP(w, *noExternalIP)
-	}
-
-	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
-}
-
-func main() {
-	if err := validateAndParseFlags(); err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	ctx := context.Background()
-	metadataGCE := &compute.MetadataGCE{}
-	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger("[image-import]"), *oauth)
-	if err != nil {
-		log.Fatalf("error creating storage client %v", err)
-	}
-	defer storageClient.Close()
-
-	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
-	zoneRetriever, err := storage.NewZoneRetriever(metadataGCE, param.CreateComputeClient(&ctx, *oauth, *ce))
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	err = param.PopulateMissingParameters(project, zone, region, scratchBucketGcsPath,
-		*sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	err = validateSourceFile(storageClient)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
-	if err := runImport(ctx); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatal(err)
 	}
 }

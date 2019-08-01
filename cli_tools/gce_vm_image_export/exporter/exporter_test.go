@@ -22,16 +22,11 @@ import (
 )
 
 var (
-	clientID       = ""
-	destinationURI = ""
-	sourceImage    = ""
-	format         = ""
-	network        = ""
-	subnet         = ""
-	labels         = ""
+	clientID, destinationURI, sourceImage, format, network, subnet, labels string
 )
 
 func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
+	resetArgs()
 	workflow := getWorkflowPath(format, "")
 	expectedWorkflow := path.ToWorkingDir(WorkflowDir+ExportWorkflow, "")
 	if workflow != expectedWorkflow {
@@ -40,6 +35,7 @@ func TestGetWorkflowPathWithoutFormatConversion(t *testing.T) {
 }
 
 func TestGetWorkflowPathWithFormatConversion(t *testing.T) {
+	resetArgs()
 	workflow := getWorkflowPath("vmdk", "")
 	expectedWorkflow := path.ToWorkingDir(WorkflowDir+ExportAndConvertWorkflow, "")
 	if workflow != expectedWorkflow {

@@ -25,8 +25,8 @@ import (
 
 func TestBuildParams(t *testing.T) {
 	cliArgs := getAllCliArgs()
-	defer testutils.BackupOsArgs()()
-	testutils.BuildOsArgs(cliArgs)
+	defer test.BackupOsArgs()()
+	test.BuildOsArgs(cliArgs)
 
 	params := buildImportParams()
 

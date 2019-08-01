@@ -23,13 +23,15 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
 	osconfig "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha1"
+	osconfigV1alpha2 "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha2"
 	"google.golang.org/api/option"
 )
 
 var (
-	storageClient  *storage.Client
-	computeClient  compute.Client
-	osconfigClient *osconfig.Client
+	storageClient          *storage.Client
+	computeClient          compute.Client
+	osconfigClient         *osconfig.Client
+	osconfigClientV1alpha2 *osconfigV1alpha2.Client
 )
 
 // PopulateClients populates the GCP clients.
@@ -38,6 +40,9 @@ func PopulateClients(ctx context.Context) error {
 		return err
 	}
 	if err := createOsConfigClient(ctx); err != nil {
+		return err
+	}
+	if err := createOsConfigClientV1alpha2(ctx); err != nil {
 		return err
 	}
 	return createStorageClient(ctx)
@@ -57,9 +62,16 @@ func createStorageClient(ctx context.Context) error {
 }
 
 func createOsConfigClient(ctx context.Context) error {
-	logger.Debugf("creating osconfig client\n")
+	logger.Debugf("creating v1alpha1 osconfig client\n")
 	var err error
 	osconfigClient, err = osconfig.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()), option.WithEndpoint(config.SvcEndpoint()))
+	return err
+}
+
+func createOsConfigClientV1alpha2(ctx context.Context) error {
+	logger.Debugf("creating v1alpha2 osconfig client\n")
+	var err error
+	osconfigClientV1alpha2, err = osconfigV1alpha2.NewClient(ctx, option.WithCredentialsFile(config.OauthPath()), option.WithEndpoint(config.SvcEndpoint()))
 	return err
 }
 
@@ -85,4 +97,12 @@ func GetOsConfigClient() (*osconfig.Client, error) {
 		return nil, fmt.Errorf("osconfig client was not initialized")
 	}
 	return osconfigClient, nil
+}
+
+// GetOsConfigClientV1alpha2 returns a singleton GCP client for osconfig tests
+func GetOsConfigClientV1alpha2() (*osconfigV1alpha2.Client, error) {
+	if osconfigClientV1alpha2 == nil {
+		return nil, fmt.Errorf("v1alpha2 osconfig client was not initialized")
+	}
+	return osconfigClientV1alpha2, nil
 }
