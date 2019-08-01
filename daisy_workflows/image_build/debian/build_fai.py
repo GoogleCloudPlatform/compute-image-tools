@@ -155,6 +155,14 @@ def main():
   os.chmod(config_space + 'scripts/GCE_CLEAN/10-gce-clean', 0o755)
   fai_classes += ['GCE_CLEAN']
 
+  # Copy secure boot keys for gsetup.
+  os.mkdir(
+      config_space + 'files/boot/efi/EFI/Google/gsetup/secure-boot-keys.tar.gz')
+  CopyToConfigSpace(
+      '/files/secure-boot-keys.tar.gz',
+      'files/boot/efi/EFI/Google/gsetup/secure-boot-keys.tar.gz/GCE_SPECIFIC',
+      config_space)
+
   # Remove failing test method for now.
   os.remove(config_space + 'hooks/tests.CLOUD')
 
