@@ -70,6 +70,7 @@ Exactly one of these must be specified:
 + `-storage_location` Location for the imported image which can be any GCS location. If the location
   parameter is not included, images are created in the multi-region associated with the source disk,
   image, snapshot or GCS bucket.  
+
 ### Usage
 
 ```

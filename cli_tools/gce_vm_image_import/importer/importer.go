@@ -107,7 +107,7 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 	return sourceBucketName, sourceObjectName, userLabels, nil
 }
 
-// Validate source file is not a compression file by checking file header.
+// validate source file is not a compression file by checking file header.
 func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucketName, sourceObjectName string) error {
 	rc, err := storageClient.GetObjectReader(sourceBucketName, sourceObjectName)
 	if err != nil {

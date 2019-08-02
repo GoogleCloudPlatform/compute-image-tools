@@ -14,9 +14,7 @@
 
 package daisy
 
-import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-)
+import "github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 
 // ResourceLabeler is responsible for labelling GCE resources (instances, disks and images) with
 // labels used to track resource creation by import processes.

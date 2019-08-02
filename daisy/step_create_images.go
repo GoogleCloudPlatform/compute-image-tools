@@ -22,6 +22,7 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
+//UseBetaAPI determines if Beta Compute API should be used for calls that use Beta features.
 var UseBetaAPI = false
 
 // CreateImages is a Daisy CreateImages workflow step.
@@ -44,12 +45,12 @@ func (ci *CreateImages) UnmarshalJSON(b []byte) error {
 	}
 
 	images := &[]*Image{}
-	if err := json.Unmarshal(b, images); err == nil {
+	var err error
+	if err = json.Unmarshal(b, images); err == nil {
 		ci.Images = *images
 		return nil
-	} else {
-		return err
 	}
+	return err
 }
 
 func usesBetaFeatures(imagesBeta *[]*ImageBeta) bool {
@@ -67,42 +68,42 @@ func usesBetaFeatures(imagesBeta *[]*ImageBeta) bool {
 // populate preprocesses fields: Name, Project, Description, SourceDisk, RawDisk, and daisyName.
 // - sets defaults
 // - extends short partial URLs to include "projects/<project>"
-func (c *CreateImages) populate(ctx context.Context, s *Step) dErr {
+func (ci *CreateImages) populate(ctx context.Context, s *Step) dErr {
 	var errs dErr
-	if c.Images != nil {
-		for _, i := range c.Images {
-			errs = addErrs(errs, Populate(i, &i.ImageBase, ctx, s))
+	if ci.Images != nil {
+		for _, i := range ci.Images {
+			errs = addErrs(errs, populate(ctx, i, &i.ImageBase, s))
 		}
 	}
 
-	if c.ImagesBeta != nil {
-		for _, i := range c.ImagesBeta {
-			errs = addErrs(errs, Populate(i, &i.ImageBase, ctx, s))
+	if ci.ImagesBeta != nil {
+		for _, i := range ci.ImagesBeta {
+			errs = addErrs(errs, populate(ctx, i, &i.ImageBase, s))
 		}
 	}
 
 	return errs
 }
 
-func (c *CreateImages) validate(ctx context.Context, s *Step) dErr {
+func (ci *CreateImages) validate(ctx context.Context, s *Step) dErr {
 	var errs dErr
 
-	if c.Images != nil {
-		for _, i := range c.Images {
-			errs = addErrs(errs, Validate(i, &i.ImageBase, i.Licenses, ctx, s))
+	if ci.Images != nil {
+		for _, i := range ci.Images {
+			errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
 		}
 	}
 
-	if c.ImagesBeta != nil {
-		for _, i := range c.ImagesBeta {
-			errs = addErrs(errs, Validate(i, &i.ImageBase, i.Licenses, ctx, s))
+	if ci.ImagesBeta != nil {
+		for _, i := range ci.ImagesBeta {
+			errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
 		}
 	}
 
 	return errs
 }
 
-func (c *CreateImages) run(ctx context.Context, s *Step) dErr {
+func (ci *CreateImages) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan dErr)
@@ -132,12 +133,12 @@ func (c *CreateImages) run(ctx context.Context, s *Step) dErr {
 		}
 	}
 
-	for _, i := range c.Images {
+	for _, i := range ci.Images {
 		wg.Add(1)
 		go createImage(i, i.OverWrite)
 	}
 
-	for _, i := range c.ImagesBeta {
+	for _, i := range ci.ImagesBeta {
 		wg.Add(1)
 		go createImage(i, i.OverWrite)
 	}

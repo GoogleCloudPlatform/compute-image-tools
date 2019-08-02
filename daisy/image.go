@@ -102,6 +102,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	return false, nil
 }
 
+//ImageInterface represent abstract Image across different API stages (Alpha, Beta, API)
 type ImageInterface interface {
 	getName() string
 	setName(name string)
@@ -119,6 +120,7 @@ type ImageInterface interface {
 	appendGuestOsFeatures(featureType string)
 }
 
+//ImageBase is a base struct for GA/Beta images. It holds the shared properties between the two.
 type ImageBase struct {
 	Resource
 
@@ -132,7 +134,7 @@ type ImageBase struct {
 	IgnoreLicenseValidationIfForbidden bool `json:",omitempty"`
 }
 
-// Image is used to create a GCE image.
+// Image is used to create a GCE image using GA API.
 // Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
 type Image struct {
 	ImageBase
@@ -194,7 +196,8 @@ func (i *Image) appendGuestOsFeatures(featureType string) {
 	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: featureType})
 }
 
-
+// ImageBeta is used to create a GCE image using Beta API.
+// Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
 type ImageBeta struct {
 	ImageBase
 	computeBeta.Image
@@ -278,7 +281,7 @@ func (g *guestOsFeatures) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, (*dg)(g))
 }
 
-func Populate(ii ImageInterface, ib *ImageBase, ctx context.Context, s *Step) dErr {
+func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) dErr {
 	name, errs := ib.Resource.populateWithGlobal(ctx, s, ii.getName())
 	ii.setName(name)
 
@@ -302,11 +305,11 @@ func Populate(ii ImageInterface, ib *ImageBase, ctx context.Context, s *Step) dE
 		}
 	}
 	ib.link = fmt.Sprintf("projects/%s/global/images/%s", ib.Project, ii.getName())
-	PopulateGuestOSFeatures(ii, ib, s.w)
+	populateGuestOSFeatures(ii, ib, s.w)
 	return errs
 }
 
-func PopulateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
+func populateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
 	if ib.GuestOsFeatures == nil {
 		return
 	}
@@ -316,7 +319,7 @@ func PopulateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
 	return
 }
 
-func Validate(ii ImageInterface, ib *ImageBase, licenses []string, ctx context.Context, s *Step) dErr {
+func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []string, s *Step) dErr {
 	pre := fmt.Sprintf("cannot create image %q", ib.daisyName)
 	errs := ib.Resource.validate(ctx, s, pre)
 
