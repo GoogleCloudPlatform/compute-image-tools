@@ -22,9 +22,6 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-//UseBetaAPI determines if Beta Compute API should be used for calls that use Beta features.
-var UseBetaAPI = false
-
 // CreateImages is a Daisy CreateImages workflow step.
 type CreateImages struct {
 	Images     []*Image
@@ -37,27 +34,19 @@ func (ci *CreateImages) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, imagesBeta); err != nil {
 		return err
 	}
-
-	if usesBetaFeatures(imagesBeta) {
-		// Actually uses Beta features, no need to parse as GA
-		ci.ImagesBeta = *imagesBeta
-		return nil
-	}
+	ci.ImagesBeta = *imagesBeta
 
 	images := &[]*Image{}
-	var err error
-	if err = json.Unmarshal(b, images); err == nil {
-		ci.Images = *images
-		return nil
+	if err := json.Unmarshal(b, images); err != nil {
+		return err
 	}
-	return err
+	ci.Images = *images
+
+	return nil
 }
 
-func usesBetaFeatures(imagesBeta *[]*ImageBeta) bool {
-	if UseBetaAPI {
-		return UseBetaAPI
-	}
-	for _, imageBeta := range *imagesBeta {
+func usesBetaFeatures(imagesBeta []*ImageBeta) bool {
+	for _, imageBeta := range imagesBeta {
 		if imageBeta != nil && len(imageBeta.StorageLocations) > 0 {
 			return true
 		}
@@ -88,15 +77,17 @@ func (ci *CreateImages) populate(ctx context.Context, s *Step) dErr {
 func (ci *CreateImages) validate(ctx context.Context, s *Step) dErr {
 	var errs dErr
 
-	if ci.Images != nil {
-		for _, i := range ci.Images {
-			errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
+	if usesBetaFeatures(ci.ImagesBeta) {
+		if ci.ImagesBeta != nil {
+			for _, i := range ci.ImagesBeta {
+				errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
+			}
 		}
-	}
-
-	if ci.ImagesBeta != nil {
-		for _, i := range ci.ImagesBeta {
-			errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
+	} else {
+		if ci.Images != nil {
+			for _, i := range ci.Images {
+				errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
+			}
 		}
 	}
 
@@ -133,14 +124,16 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) dErr {
 		}
 	}
 
-	for _, i := range ci.Images {
-		wg.Add(1)
-		go createImage(i, i.OverWrite)
-	}
-
-	for _, i := range ci.ImagesBeta {
-		wg.Add(1)
-		go createImage(i, i.OverWrite)
+	if usesBetaFeatures(ci.ImagesBeta) {
+		for _, i := range ci.ImagesBeta {
+			wg.Add(1)
+			go createImage(i, i.OverWrite)
+		}
+	} else {
+		for _, i := range ci.Images {
+			wg.Add(1)
+			go createImage(i, i.OverWrite)
+		}
 	}
 
 	go func() {

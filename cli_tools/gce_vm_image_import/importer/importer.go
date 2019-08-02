@@ -178,10 +178,6 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
 	userLabels map[string]string, storageLocation string) error {
 
-	if storageLocation != "" {
-		daisy.UseBetaAPI = true
-	}
-
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
 		cloudLogsDisabled, stdoutLogsDisabled)
