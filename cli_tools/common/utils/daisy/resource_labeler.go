@@ -67,7 +67,7 @@ func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
 					image.Image.StorageLocations = []string{rl.ImageLocation}
 				}
 				image.Image.Labels =
-						rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
+					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
 			}
 		}
 	}
