@@ -20,21 +20,6 @@ import (
 	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
 )
 
-/*
-// BuildOsConfig creates a struct of OsConfig
-func BuildOsConfig(name, description string, aptconfig *osconfigpb.AptPackageConfig, yumconfig *osconfigpb.YumPackageConfig, gooconfig *osconfigpb.GooPackageConfig, wuconfig *osconfigpb.WindowsUpdateConfig, zypperconfig *osconfigpb.ZypperPackageConfig) *osconfigpb.OsConfig {
-	return &osconfigpb.OsConfig{
-		Name:          name,
-		Description:   description,
-		Apt:           aptconfig,
-		Yum:           yumconfig,
-		Goo:           gooconfig,
-		WindowsUpdate: wuconfig,
-		Zypper:        zypperconfig,
-	}
-}
-*/
-
 // BuildPackagePolicy creates an package policy.
 func BuildPackagePolicy(installs, removes, upgrades []string) []*osconfigpb.Package {
 	var pkgs []*osconfigpb.Package
@@ -68,7 +53,7 @@ func BuildAptRepository(archiveType osconfigpb.AptRepository_ArchiveType, uri, d
 			Uri:          uri,
 			Distribution: distribution,
 			Components:   components,
-			//KeyUri:       keyuri,
+			GpgKey:       keyuri,
 		},
 	}
 }

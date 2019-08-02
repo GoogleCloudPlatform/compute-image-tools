@@ -53,9 +53,10 @@ const (
 	packageNoUpdateFunction           = "pkgnoupdate"
 )
 
-type packageManagementTestSetup struct {
+type guestPolicyTestSetup struct {
 	image         string
-	name          string
+	guestPolicyID string
+	instanceName  string
 	testName      string
 	guestPolicy   *osconfigpb.GuestPolicy
 	startup       *computeApi.MetadataItems
@@ -64,10 +65,11 @@ type packageManagementTestSetup struct {
 	assertTimeout time.Duration
 }
 
-func newPackageManagementTestSetup(image, name, testName, queryPath, machineType string, gp *osconfigpb.GuestPolicy, startup *computeApi.MetadataItems, assertTimeout time.Duration) *packageManagementTestSetup {
-	return &packageManagementTestSetup{
+func newGuestPolicyTestSetup(image, instanceName, testName, queryPath, machineType string, gp *osconfigpb.GuestPolicy, startup *computeApi.MetadataItems, assertTimeout time.Duration) *guestPolicyTestSetup {
+	return &guestPolicyTestSetup{
 		image:         image,
-		name:          name,
+		guestPolicyID: instanceName,
+		instanceName:  instanceName,
 		guestPolicy:   gp,
 		testName:      testName,
 		machineType:   machineType,
@@ -109,7 +111,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
-func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packageManagementTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
+func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *guestPolicyTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 
 	client, err := gcpclients.GetOsConfigClientV1alpha2()
@@ -120,7 +122,7 @@ func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packag
 
 	req := &osconfigpb.CreateGuestPolicyRequest{
 		Parent:        parent,
-		GuestPolicyId: testSetup.name,
+		GuestPolicyId: testSetup.guestPolicyID,
 		GuestPolicy:   testSetup.guestPolicy,
 	}
 
@@ -141,7 +143,7 @@ func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packag
 	var metadataItems []*computeApi.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
-	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, testSetup.machineType, testSetup.image, testSetup.name, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, testSetup.machineType, testSetup.image, testSetup.instanceName, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
 		return
@@ -167,7 +169,7 @@ func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *packag
 	}
 }
 
-func packageManagementTestCase(ctx context.Context, testSetup *packageManagementTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
+func packageManagementTestCase(ctx context.Context, testSetup *guestPolicyTestSetup, tests chan *junitxml.TestCase, wg *sync.WaitGroup, logger *log.Logger, regex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 	defer wg.Done()
 
 	var logwg sync.WaitGroup
@@ -190,7 +192,7 @@ func packageManagementTestCase(ctx context.Context, testSetup *packageManagement
 }
 
 // factory method to get testcase from the testsetup
-func getTestCaseFromTestSetUp(testSetup *packageManagementTestSetup) (*junitxml.TestCase, error) {
+func getTestCaseFromTestSetUp(testSetup *guestPolicyTestSetup) (*junitxml.TestCase, error) {
 	var tc *junitxml.TestCase
 
 	switch testSetup.testName {

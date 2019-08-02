@@ -99,9 +99,7 @@ type junitFailure struct {
 
 // Logf logs to the TestCase SystemOut.
 func (c *TestCase) Logf(msg string, args ...interface{}) {
-	c.buf.WriteString(fmt.Sprintf("%s: ", time.Now().Format(time.RFC3339)))
-	c.buf.WriteString(fmt.Sprintf(msg, args...))
-	c.buf.WriteString("\n")
+	c.buf.WriteString(fmt.Sprintf("%s: %s\n", time.Now().Format(time.RFC3339), fmt.Sprintf(msg, args...)))
 }
 
 // WriteFailure marks a TestCase as failed with the provided message.

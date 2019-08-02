@@ -40,7 +40,7 @@ var (
 	yumRaptureGpgKeys = []string{"https://packages.cloud.google.com/yum/doc/yum-key.gpg", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"}
 )
 
-func buildPkgInstallTestSetup(name, image, pkgManager, key string) *packageManagementTestSetup {
+func buildPkgInstallTestSetup(name, image, pkgManager, key string) *guestPolicyTestSetup {
 	assertTimeout := 60 * time.Second
 	testName := packageInstallFunction
 	packageName := "cowsay"
@@ -58,11 +58,11 @@ func buildPkgInstallTestSetup(name, image, pkgManager, key string) *packageManag
 		},
 	}
 	ss := getStartupScript(name, pkgManager, packageName)
-	return newPackageManagementTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
+	return newGuestPolicyTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
 }
 
-func addPackageInstallTest(key string) []*packageManagementTestSetup {
-	var pkgTestSetup []*packageManagementTestSetup
+func addPackageInstallTest(key string) []*guestPolicyTestSetup {
+	var pkgTestSetup []*guestPolicyTestSetup
 	for name, image := range utils.HeadAptImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgInstallTestSetup(name, image, "apt", key))
 	}
@@ -78,7 +78,7 @@ func addPackageInstallTest(key string) []*packageManagementTestSetup {
 	return pkgTestSetup
 }
 
-func buildPkgUpdateTestSetup(name, image, pkgManager, key string) *packageManagementTestSetup {
+func buildPkgUpdateTestSetup(name, image, pkgManager, key string) *guestPolicyTestSetup {
 	assertTimeout := 240 * time.Second
 	testName := packageUpdateFunction
 	packageName := "cowsay"
@@ -96,11 +96,11 @@ func buildPkgUpdateTestSetup(name, image, pkgManager, key string) *packageManage
 		},
 	}
 	ss := getUpdateStartupScript(name, pkgManager, packageName)
-	return newPackageManagementTestSetup(image, instanceName, testName, packageNotInstalled, machineType, gp, ss, assertTimeout)
+	return newGuestPolicyTestSetup(image, instanceName, testName, packageNotInstalled, machineType, gp, ss, assertTimeout)
 }
 
-func addPackageUpdateTest(key string) []*packageManagementTestSetup {
-	var pkgTestSetup []*packageManagementTestSetup
+func addPackageUpdateTest(key string) []*guestPolicyTestSetup {
+	var pkgTestSetup []*guestPolicyTestSetup
 	for name, image := range utils.HeadAptImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgUpdateTestSetup(name, image, "apt", key))
 	}
@@ -116,7 +116,7 @@ func addPackageUpdateTest(key string) []*packageManagementTestSetup {
 	return pkgTestSetup
 }
 
-func buildPkgDoesNotUpdateTestSetup(name, image, pkgManager, key string) *packageManagementTestSetup {
+func buildPkgDoesNotUpdateTestSetup(name, image, pkgManager, key string) *guestPolicyTestSetup {
 	assertTimeout := 240 * time.Second
 	testName := packageNoUpdateFunction
 	packageName := "cowsay"
@@ -135,11 +135,11 @@ func buildPkgDoesNotUpdateTestSetup(name, image, pkgManager, key string) *packag
 		},
 	}
 	ss := getUpdateStartupScript(name, pkgManager, packageName)
-	return newPackageManagementTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
+	return newGuestPolicyTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
 }
 
-func addPackageDoesNotUpdateTest(key string) []*packageManagementTestSetup {
-	var pkgTestSetup []*packageManagementTestSetup
+func addPackageDoesNotUpdateTest(key string) []*guestPolicyTestSetup {
+	var pkgTestSetup []*guestPolicyTestSetup
 	for name, image := range utils.HeadAptImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgDoesNotUpdateTestSetup(name, image, "apt", key))
 	}
@@ -155,7 +155,7 @@ func addPackageDoesNotUpdateTest(key string) []*packageManagementTestSetup {
 	return pkgTestSetup
 }
 
-func buildPkgRemoveTestSetup(name, image, pkgManager, key string) *packageManagementTestSetup {
+func buildPkgRemoveTestSetup(name, image, pkgManager, key string) *guestPolicyTestSetup {
 	assertTimeout := 180 * time.Second
 	testName := packageRemovalFunction
 	packageName := "vim"
@@ -171,11 +171,11 @@ func buildPkgRemoveTestSetup(name, image, pkgManager, key string) *packageManage
 		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
 	}
 	ss := getStartupScript(name, pkgManager, packageName)
-	return newPackageManagementTestSetup(image, instanceName, testName, packageNotInstalled, machineType, gp, ss, assertTimeout)
+	return newGuestPolicyTestSetup(image, instanceName, testName, packageNotInstalled, machineType, gp, ss, assertTimeout)
 }
 
-func addPackageRemovalTest(key string) []*packageManagementTestSetup {
-	var pkgTestSetup []*packageManagementTestSetup
+func addPackageRemovalTest(key string) []*guestPolicyTestSetup {
+	var pkgTestSetup []*guestPolicyTestSetup
 	for name, image := range utils.HeadAptImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgRemoveTestSetup(name, image, "apt", key))
 	}
@@ -191,7 +191,7 @@ func addPackageRemovalTest(key string) []*packageManagementTestSetup {
 	return pkgTestSetup
 }
 
-func buildPkgInstallFromNewRepoTestSetup(name, image, pkgManager, key string) *packageManagementTestSetup {
+func buildPkgInstallFromNewRepoTestSetup(name, image, pkgManager, key string) *guestPolicyTestSetup {
 	assertTimeout := 60 * time.Second
 	packageName := "osconfig-agent-test"
 	testName := packageInstallFromNewRepoFunction
@@ -213,11 +213,11 @@ func buildPkgInstallFromNewRepoTestSetup(name, image, pkgManager, key string) *p
 		},
 	}
 	ss := getStartupScript(name, pkgManager, packageName)
-	return newPackageManagementTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
+	return newGuestPolicyTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
 }
 
-func addPackageInstallFromNewRepoTest(key string) []*packageManagementTestSetup {
-	var pkgTestSetup []*packageManagementTestSetup
+func addPackageInstallFromNewRepoTest(key string) []*guestPolicyTestSetup {
+	var pkgTestSetup []*guestPolicyTestSetup
 	for name, image := range utils.HeadAptImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgInstallFromNewRepoTestSetup(name, image, "apt", key))
 	}
@@ -233,10 +233,10 @@ func addPackageInstallFromNewRepoTest(key string) []*packageManagementTestSetup 
 	return pkgTestSetup
 }
 
-func generateAllTestSetup(testProjectConfig *testconfig.Project) []*packageManagementTestSetup {
+func generateAllTestSetup(testProjectConfig *testconfig.Project) []*guestPolicyTestSetup {
 	key := utils.RandString(3)
 
-	pkgTestSetup := []*packageManagementTestSetup{}
+	pkgTestSetup := []*guestPolicyTestSetup{}
 	pkgTestSetup = append(pkgTestSetup, addPackageInstallTest(key)...)
 	pkgTestSetup = append(pkgTestSetup, addPackageRemovalTest(key)...)
 	pkgTestSetup = append(pkgTestSetup, addPackageInstallFromNewRepoTest(key)...)
