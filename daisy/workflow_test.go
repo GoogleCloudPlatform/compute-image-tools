@@ -321,15 +321,15 @@ func TestNewFromFile(t *testing.T) {
 		},
 	}
 	want.Dependencies = map[string][]string{
-		"create-disks":        {},
-		"bootstrap":           {"create-disks"},
-		"bootstrap-stopped":   {"bootstrap"},
-		"postinstall":         {"bootstrap-stopped"},
-		"postinstall-stopped": {"postinstall"},
+		"create-disks":          {},
+		"bootstrap":             {"create-disks"},
+		"bootstrap-stopped":     {"bootstrap"},
+		"postinstall":           {"bootstrap-stopped"},
+		"postinstall-stopped":   {"postinstall"},
 		"create-image-locality": {"postinstall-stopped"},
-		"create-image":        {"create-image-locality"},
-		"include-workflow":    {"create-image"},
-		"sub-workflow":        {"create-image"},
+		"create-image":          {"create-image-locality"},
+		"include-workflow":      {"create-image"},
+		"sub-workflow":          {"create-image"},
 	}
 
 	for _, s := range want.Steps {

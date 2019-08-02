@@ -35,11 +35,11 @@ func TestCreateImagesRun(t *testing.T) {
 		cib       *ImageBeta
 		shouldErr bool
 	}{
-		{desc:"source disk with overwrite case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: compute.Image{Name: testImage, SourceDisk: testDisk}}, shouldErr: false},
-		{desc:"raw image case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: testImage, RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}}, shouldErr: false},
-		{desc:"bad disk case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: testImage, SourceDisk: "bad"}}, shouldErr: true},
-		{desc:"bad overwrite case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: compute.Image{Name: "bad", SourceDisk: testDisk}}, shouldErr: true},
-		{desc:"image location using beta API", cib: &ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true, }, Image: computeBeta.Image{Name: "beta", SourceDisk: testDisk, StorageLocations:[]string{"eu"}}}, shouldErr: false},
+		{desc: "source disk with overwrite case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: compute.Image{Name: testImage, SourceDisk: testDisk}}, shouldErr: false},
+		{desc: "raw image case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: testImage, RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}}, shouldErr: false},
+		{desc: "bad disk case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: testImage, SourceDisk: "bad"}}, shouldErr: true},
+		{desc: "bad overwrite case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: compute.Image{Name: "bad", SourceDisk: testDisk}}, shouldErr: true},
+		{desc: "image location using beta API", cib: &ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: computeBeta.Image{Name: "beta", SourceDisk: testDisk, StorageLocations: []string{"eu"}}}, shouldErr: false},
 	}
 
 	for _, tt := range tests {

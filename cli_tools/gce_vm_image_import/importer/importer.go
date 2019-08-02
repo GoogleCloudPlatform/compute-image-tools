@@ -191,10 +191,10 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 
 	workflowModifier := func(w *daisy.Workflow) {
 		rl := &daisyutils.ResourceLabeler{
-			BuildID: os.Getenv("BUILD_ID"),
-			UserLabels: userLabels,
+			BuildID:         os.Getenv("BUILD_ID"),
+			UserLabels:      userLabels,
 			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation: storageLocation,
+			ImageLocation:   storageLocation,
 			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
 				return "gce-image-import-tmp"
 			},
