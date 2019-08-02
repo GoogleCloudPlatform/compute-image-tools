@@ -25,8 +25,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	api "google.golang.org/api/compute/v1"
 	"google.golang.org/grpc/status"
-
-	_ "google.golang.org/genproto/googleapis/rpc/errdetails" // For error details in gRPC.
 )
 
 var (

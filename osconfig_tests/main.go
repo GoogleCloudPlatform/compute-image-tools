@@ -36,6 +36,8 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/guestpolicies"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/inventory"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_suites/patch"
+
+	_ "google.golang.org/genproto/googleapis/rpc/errdetails"
 )
 
 var (

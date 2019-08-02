@@ -13,7 +13,6 @@
 //  limitations under the License.
 
 // Package guestpolicies GuestPolicy osconfig agent tests.
-
 package guestpolicies
 
 import (
@@ -216,10 +215,10 @@ func getTestCaseFromTestSetUp(testSetup *guestPolicyTestSetup) (*junitxml.TestCa
 func cleanupGuestPolicy(ctx context.Context, testCase *junitxml.TestCase, gp *osconfigpb.GuestPolicy) {
 	client, err := gcpclients.GetOsConfigClientV1alpha2()
 	if err != nil {
-		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", utils.GetStatusFromError(err)))
+		testCase.WriteFailure(fmt.Sprintf("Error while deleting osconfig: %s", utils.GetStatusFromError(err)))
 	}
 
 	if err := client.DeleteGuestPolicy(ctx, &osconfigpb.DeleteGuestPolicyRequest{Name: gp.GetName()}); err != nil {
-		testCase.WriteFailure(fmt.Sprintf("error while deleting osconfig: %s", utils.GetStatusFromError(err)))
+		testCase.WriteFailure(fmt.Sprintf("Error while deleting osconfig: %s", utils.GetStatusFromError(err)))
 	}
 }
