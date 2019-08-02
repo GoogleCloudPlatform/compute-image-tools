@@ -42,7 +42,7 @@ var (
 	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
 )
 
-// imageExists should only be used during validation for existing GCE Images
+// imageExists should only be used during validation for existing GCE images
 // and should not be relied or populated for daisy created resources.
 func imageExists(client daisyCompute.Client, project, family, name string) (bool, dErr) {
 	if family != "" {
@@ -85,7 +85,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	if _, ok := imageCache.exists[project]; !ok {
 		il, err := client.ListImages(project)
 		if err != nil {
-			return false, errf("error listing Images for project %q: %v", project, err)
+			return false, errf("error listing images for project %q: %v", project, err)
 		}
 		imageCache.exists[project] = il
 	}
@@ -104,11 +104,19 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 
 type ImageInterface interface {
 	getName() string
+	setName(name string)
+	getDescription() string
+	setDescription(description string)
 	getSourceDisk() string
 	setSourceDisk(sourceDisk string)
-	isOverwrite() bool
+	getSourceImage() string
+	setSourceImage(sourceImage string)
+	hasRawDisk() bool
+	getRawDiskSource() string
+	setRawDiskSource(rawDiskSource string)
 	create(cc daisyCompute.Client) error
 	delete(cc daisyCompute.Client) error
+	appendGuestOsFeatures(featureType string)
 }
 
 type ImageBase struct {
@@ -135,6 +143,18 @@ func (i *Image) getName() string {
 	return i.Name
 }
 
+func (i *Image) setName(name string) {
+	i.Name = name
+}
+
+func (i *Image) getDescription() string {
+	return i.Description
+}
+
+func (i *Image) setDescription(description string) {
+	i.Description = description
+}
+
 func (i *Image) getSourceDisk() string {
 	return i.SourceDisk
 }
@@ -143,8 +163,23 @@ func (i *Image) setSourceDisk(sourceDisk string) {
 	i.SourceDisk = sourceDisk
 }
 
-func (i *Image) isOverwrite() bool {
-	return i.OverWrite
+func (i *Image) getSourceImage() string {
+	return i.SourceImage
+}
+func (i *Image) setSourceImage(sourceImage string) {
+	i.SourceImage = sourceImage
+}
+
+func (i *Image) hasRawDisk() bool {
+	return i.RawDisk != nil
+}
+
+func (i *Image) getRawDiskSource() string {
+	return i.RawDisk.Source
+}
+
+func (i *Image) setRawDiskSource(rawDiskSource string) {
+	i.RawDisk.Source = rawDiskSource
 }
 
 func (i *Image) create(cc daisyCompute.Client) error {
@@ -155,6 +190,11 @@ func (i *Image) delete(cc daisyCompute.Client) error {
 	return cc.DeleteImage(i.Project, i.Name)
 }
 
+func (i *Image) appendGuestOsFeatures(featureType string) {
+	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: featureType})
+}
+
+
 type ImageBeta struct {
 	ImageBase
 	computeBeta.Image
@@ -162,6 +202,18 @@ type ImageBeta struct {
 
 func (i *ImageBeta) getName() string {
 	return i.Name
+}
+
+func (i *ImageBeta) setName(name string) {
+	i.Name = name
+}
+
+func (i *ImageBeta) getDescription() string {
+	return i.Description
+}
+
+func (i *ImageBeta) setDescription(description string) {
+	i.Description = description
 }
 
 func (i *ImageBeta) getSourceDisk() string {
@@ -172,8 +224,24 @@ func (i *ImageBeta) setSourceDisk(sourceDisk string) {
 	i.SourceDisk = sourceDisk
 }
 
-func (i *ImageBeta) isOverwrite() bool {
-	return i.OverWrite
+func (i *ImageBeta) getSourceImage() string {
+	return i.SourceImage
+}
+
+func (i *ImageBeta) setSourceImage(sourceImage string) {
+	i.SourceImage = sourceImage
+}
+
+func (i *ImageBeta) hasRawDisk() bool {
+	return i.RawDisk != nil
+}
+
+func (i *ImageBeta) getRawDiskSource() string {
+	return i.RawDisk.Source
+}
+
+func (i *ImageBeta) setRawDiskSource(rawDiskSource string) {
+	i.RawDisk.Source = rawDiskSource
 }
 
 func (i *ImageBeta) create(cc daisyCompute.Client) error {
@@ -182,6 +250,10 @@ func (i *ImageBeta) create(cc daisyCompute.Client) error {
 
 func (i *ImageBeta) delete(cc daisyCompute.Client) error {
 	return cc.DeleteImage(i.Project, i.Name)
+}
+
+func (i *ImageBeta) appendGuestOsFeatures(featureType string) {
+	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: featureType})
 }
 
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
@@ -206,107 +278,68 @@ func (g *guestOsFeatures) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, (*dg)(g))
 }
 
-func (i *Image) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
-	i.Name, errs = i.Resource.populateWithGlobal(ctx, s, i.Name)
+func Populate(ii ImageInterface, ib *ImageBase, ctx context.Context, s *Step) dErr {
+	name, errs := ib.Resource.populateWithGlobal(ctx, s, ii.getName())
+	ii.setName(name)
 
-	i.Description = strOr(i.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
+	ii.setDescription(strOr(ii.getDescription(), fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username)))
 
-	if diskURLRgx.MatchString(i.SourceDisk) {
-		i.SourceDisk = extendPartialURL(i.SourceDisk, i.Project)
+	if diskURLRgx.MatchString(ii.getSourceDisk()) {
+		ii.setSourceDisk(extendPartialURL(ii.getSourceDisk(), ib.Project))
 	}
 
-	if imageURLRgx.MatchString(i.SourceImage) {
-		i.SourceImage = extendPartialURL(i.SourceImage, i.Project)
+	if imageURLRgx.MatchString(ii.getSourceImage()) {
+		ii.setSourceImage(extendPartialURL(ii.getSourceImage(), ib.Project))
 	}
 
-	if i.RawDisk != nil {
-		if s.w.sourceExists(i.RawDisk.Source) {
-			i.RawDisk.Source = s.w.getSourceGCSAPIPath(i.RawDisk.Source)
-		} else if p, err := getGCSAPIPath(i.RawDisk.Source); err == nil {
-			i.RawDisk.Source = p
+	if ii.hasRawDisk() {
+		if s.w.sourceExists(ii.getRawDiskSource()) {
+			ii.setRawDiskSource(s.w.getSourceGCSAPIPath(ii.getRawDiskSource()))
+		} else if p, err := getGCSAPIPath(ii.getRawDiskSource()); err == nil {
+			ii.setRawDiskSource(p)
 		} else {
-			errs = addErrs(errs, errf("bad value for RawDisk.Source: %q", i.RawDisk.Source))
+			errs = addErrs(errs, errf("bad value for RawDisk.Source: %q", ii.getRawDiskSource()))
 		}
 	}
-	i.link = fmt.Sprintf("projects/%s/global/images/%s", i.Project, i.Name)
-	i.populateGuestOSFeatures(s.w)
+	ib.link = fmt.Sprintf("projects/%s/global/images/%s", ib.Project, ii.getName())
+	PopulateGuestOSFeatures(ii, ib, s.w)
 	return errs
 }
 
-func (i *ImageBeta) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
-	i.Name, errs = i.Resource.populateWithGlobal(ctx, s, i.Name)
-	//i.imageBeta.StorageLocations
-
-	i.Description = strOr(i.Description, fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
-
-	if diskURLRgx.MatchString(i.SourceDisk) {
-		i.SourceDisk = extendPartialURL(i.SourceDisk, i.Project)
-	}
-
-	if imageURLRgx.MatchString(i.SourceImage) {
-		i.SourceImage = extendPartialURL(i.SourceImage, i.Project)
-	}
-
-	if i.RawDisk != nil {
-		if s.w.sourceExists(i.RawDisk.Source) {
-			i.RawDisk.Source = s.w.getSourceGCSAPIPath(i.RawDisk.Source)
-		} else if p, err := getGCSAPIPath(i.RawDisk.Source); err == nil {
-			i.RawDisk.Source = p
-		} else {
-			errs = addErrs(errs, errf("bad value for RawDisk.Source: %q", i.RawDisk.Source))
-		}
-	}
-	i.link = fmt.Sprintf("projects/%s/global/images/%s", i.Project, i.Name)
-	i.populateGuestOSFeatures(s.w)
-	return errs
-}
-
-func (i *Image) populateGuestOSFeatures(w *Workflow) {
-	if i.ImageBase.GuestOsFeatures == nil {
+func PopulateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
+	if ib.GuestOsFeatures == nil {
 		return
 	}
-	for _, f := range i.ImageBase.GuestOsFeatures {
-		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: f})
+	for _, f := range ib.GuestOsFeatures {
+		ii.appendGuestOsFeatures(f)
 	}
 	return
 }
 
-func (i *ImageBeta) populateGuestOSFeatures(w *Workflow) {
-	if i.ImageBase.GuestOsFeatures == nil {
-		return
-	}
-	for _, f := range i.ImageBase.GuestOsFeatures {
-		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: f})
-	}
-	return
-}
+func Validate(ii ImageInterface, ib *ImageBase, licenses []string, ctx context.Context, s *Step) dErr {
+	pre := fmt.Sprintf("cannot create image %q", ib.daisyName)
+	errs := ib.Resource.validate(ctx, s, pre)
 
-func (i *Image) validate(ctx context.Context, s *Step) dErr {
-	pre := fmt.Sprintf("cannot create image %q", i.daisyName)
-	errs := i.Resource.validate(ctx, s, pre)
-
-	if !xor(!xor(i.SourceDisk == "", i.SourceImage == ""), i.RawDisk == nil) {
+	if !xor(!xor(ii.getSourceDisk() == "", ii.getSourceImage() == ""), !ii.hasRawDisk()) {
 		errs = addErrs(errs, errf("%s: must provide either SourceImage, SourceDisk or RawDisk, exclusively", pre))
 	}
 
 	// Source disk checking.
-	if i.SourceDisk != "" {
-		if _, err := s.w.disks.regUse(i.SourceDisk, s); err != nil {
+	if ii.getSourceDisk() != "" {
+		if _, err := s.w.disks.regUse(ii.getSourceDisk(), s); err != nil {
 			errs = addErrs(errs, newErr(err))
 		}
 	}
 
 	// Source image checking.
-	if i.SourceImage != "" {
-		_, err := s.w.images.regUse(i.SourceImage, s)
+	if ii.getSourceImage() != "" {
+		_, err := s.w.images.regUse(ii.getSourceImage(), s)
 		errs = addErrs(errs, err)
 	}
 
 	// RawDisk.Source checking.
-	if i.RawDisk != nil {
-		sBkt, sObj, err := splitGCSPath(i.RawDisk.Source)
+	if ii.hasRawDisk() {
+		sBkt, sObj, err := splitGCSPath(ii.getRawDiskSource())
 		errs = addErrs(errs, err)
 
 		// Check if this image object is created by this workflow, otherwise check if object exists.
@@ -318,10 +351,10 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	}
 
 	// License checking.
-	for _, l := range i.Licenses {
+	for _, l := range licenses {
 		result := namedSubexp(licenseURLRegex, l)
 		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
-			if !(isGoogleAPIForbiddenError(err) && i.IgnoreLicenseValidationIfForbidden) {
+			if !(isGoogleAPIForbiddenError(err) && ib.IgnoreLicenseValidationIfForbidden) {
 				errs = addErrs(errs, errf("%s: bad license lookup: %q, error: %v", pre, l, err))
 			}
 		} else if !exists {
@@ -330,58 +363,7 @@ func (i *Image) validate(ctx context.Context, s *Step) dErr {
 	}
 
 	// Register image creation.
-	errs = addErrs(errs, s.w.images.regCreate(i.daisyName, &i.Resource, s, i.OverWrite))
-	return errs
-}
-
-func (i *ImageBeta) validate(ctx context.Context, s *Step) dErr {
-	pre := fmt.Sprintf("cannot create image %q", i.daisyName)
-	errs := i.Resource.validate(ctx, s, pre)
-
-	if !xor(!xor(i.SourceDisk == "", i.SourceImage == ""), i.RawDisk == nil) {
-		errs = addErrs(errs, errf("%s: must provide either SourceImage, SourceDisk or RawDisk, exclusively", pre))
-	}
-
-	// Source disk checking.
-	if i.SourceDisk != "" {
-		if _, err := s.w.disks.regUse(i.SourceDisk, s); err != nil {
-			errs = addErrs(errs, newErr(err))
-		}
-	}
-
-	// Source image checking.
-	if i.SourceImage != "" {
-		_, err := s.w.images.regUse(i.SourceImage, s)
-		errs = addErrs(errs, err)
-	}
-
-	// RawDisk.Source checking.
-	if i.RawDisk != nil {
-		sBkt, sObj, err := splitGCSPath(i.RawDisk.Source)
-		errs = addErrs(errs, err)
-
-		// Check if this image object is created by this workflow, otherwise check if object exists.
-		if !strIn(path.Join(sBkt, sObj), s.w.objects.created) {
-			if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).Attrs(ctx); err != nil {
-				errs = addErrs(errs, errf("error reading object %s/%s: %v", sBkt, sObj, err))
-			}
-		}
-	}
-
-	// License checking.
-	for _, l := range i.Licenses {
-		result := namedSubexp(licenseURLRegex, l)
-		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
-			if !(isGoogleAPIForbiddenError(err) && i.IgnoreLicenseValidationIfForbidden) {
-				errs = addErrs(errs, errf("%s: bad license lookup: %q, error: %v", pre, l, err))
-			}
-		} else if !exists {
-			errs = addErrs(errs, errf("%s: license does not exist: %q", pre, l))
-		}
-	}
-
-	// Register image creation.
-	errs = addErrs(errs, s.w.images.regCreate(i.daisyName, &i.Resource, s, i.OverWrite))
+	errs = addErrs(errs, s.w.images.regCreate(ib.daisyName, &ib.Resource, s, ib.OverWrite))
 	return errs
 }
 
