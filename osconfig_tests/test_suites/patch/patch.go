@@ -194,15 +194,16 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 		Duration:    &duration.Duration{Seconds: int64(testSetup.assertTimeout / time.Second)},
 		PatchConfig: pc,
 	}
+	testCase.Logf("Running ExecutePatchJob")
 	job, err := osconfigClient.ExecutePatchJob(ctx, req)
 	if err != nil {
-		testCase.WriteFailure("error while executing patch job: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error running ExecutePatchJob: %s", utils.GetStatusFromError(err))
 		return
 	}
 
-	testCase.Logf("Started patch job '%s'", job.GetName())
+	testCase.Logf("Started patch job %q", job.GetName())
 	if _, err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
-		testCase.WriteFailure("Patch job '%s' error: %v", job.GetName(), err)
+		testCase.WriteFailure("Patch job %q error: %v", job.GetName(), err)
 	}
 }
 
@@ -244,9 +245,10 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 		Duration:    &duration.Duration{Seconds: int64(testSetup.assertTimeout / time.Second)},
 		PatchConfig: pc,
 	}
+	testCase.Logf("Running ExecutePatchJob")
 	job, err := osconfigClient.ExecutePatchJob(ctx, req)
 	if err != nil {
-		testCase.WriteFailure("error while executing patch job: \n%s\n", utils.GetStatusFromError(err))
+		testCase.WriteFailure("Error running ExecutePatchJob: %s", utils.GetStatusFromError(err))
 		return
 	}
 

@@ -17,118 +17,78 @@ package osconfigserver
 import (
 	"fmt"
 
-	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha1"
+	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
 )
 
-// BuildOsConfig creates a struct of OsConfig
-func BuildOsConfig(name, description string, aptconfig *osconfigpb.AptPackageConfig, yumconfig *osconfigpb.YumPackageConfig, gooconfig *osconfigpb.GooPackageConfig, wuconfig *osconfigpb.WindowsUpdateConfig, zypperconfig *osconfigpb.ZypperPackageConfig) *osconfigpb.OsConfig {
-	return &osconfigpb.OsConfig{
-		Name:          name,
-		Description:   description,
-		Apt:           aptconfig,
-		Yum:           yumconfig,
-		Goo:           gooconfig,
-		WindowsUpdate: wuconfig,
-		Zypper:        zypperconfig,
+// BuildPackagePolicy creates an package policy.
+func BuildPackagePolicy(installs, removes, upgrades []string) []*osconfigpb.Package {
+	var pkgs []*osconfigpb.Package
+	for _, p := range installs {
+		pkgs = append(pkgs, &osconfigpb.Package{
+			DesiredState: osconfigpb.DesiredState_INSTALLED,
+			Name:         p,
+		})
 	}
-}
+	for _, p := range removes {
+		pkgs = append(pkgs, &osconfigpb.Package{
+			DesiredState: osconfigpb.DesiredState_REMOVED,
+			Name:         p,
+		})
+	}
+	for _, p := range upgrades {
+		pkgs = append(pkgs, &osconfigpb.Package{
+			DesiredState: osconfigpb.DesiredState_UPDATED,
+			Name:         p,
+		})
+	}
 
-// BuildAssignment creates a struct of Assignment
-func BuildAssignment(name, description, expression string, osconfigs []string) *osconfigpb.Assignment {
-	return &osconfigpb.Assignment{
-		Name:        name,
-		Description: description,
-		Expression:  expression,
-		OsConfigs:   osconfigs,
-	}
-}
-
-// BuildAptPackageConfig creates an Apt package config
-func BuildAptPackageConfig(installs, removes []*osconfigpb.Package, repos []*osconfigpb.AptRepository) *osconfigpb.AptPackageConfig {
-	return &osconfigpb.AptPackageConfig{
-		PackageInstalls: installs,
-		PackageRemovals: removes,
-		Repositories:    repos,
-	}
-}
-
-// BuildYumPackageConfig creates a yum package config
-func BuildYumPackageConfig(installs, removes []*osconfigpb.Package, repos []*osconfigpb.YumRepository) *osconfigpb.YumPackageConfig {
-	return &osconfigpb.YumPackageConfig{
-		PackageInstalls: installs,
-		PackageRemovals: removes,
-		Repositories:    repos,
-	}
-}
-
-// BuildGooPackageConfig create a goo package config
-func BuildGooPackageConfig(installs, removes []*osconfigpb.Package, repos []*osconfigpb.GooRepository) *osconfigpb.GooPackageConfig {
-	return &osconfigpb.GooPackageConfig{
-		PackageInstalls: installs,
-		PackageRemovals: removes,
-		Repositories:    repos,
-	}
-}
-
-// BuildZypperPackageConfig create a zypper package config
-func BuildZypperPackageConfig(installs, removes []*osconfigpb.Package, repos []*osconfigpb.ZypperRepository) *osconfigpb.ZypperPackageConfig {
-	return &osconfigpb.ZypperPackageConfig{
-		PackageInstalls: installs,
-		PackageRemovals: removes,
-		Repositories:    repos,
-	}
+	return pkgs
 }
 
 // BuildAptRepository create an apt repository object
-func BuildAptRepository(archiveType osconfigpb.AptRepository_ArchiveType, uri, distribution, keyuri string, components []string) *osconfigpb.AptRepository {
-	return &osconfigpb.AptRepository{
-		ArchiveType:  archiveType,
-		Uri:          uri,
-		Distribution: distribution,
-		Components:   components,
-		KeyUri:       keyuri,
+func BuildAptRepository(archiveType osconfigpb.AptRepository_ArchiveType, uri, distribution, keyuri string, components []string) *osconfigpb.PackageRepository_Apt {
+	return &osconfigpb.PackageRepository_Apt{
+		Apt: &osconfigpb.AptRepository{
+			ArchiveType:  archiveType,
+			Uri:          uri,
+			Distribution: distribution,
+			Components:   components,
+			GpgKey:       keyuri,
+		},
 	}
 }
 
 // BuildYumRepository create an yum repository object
-func BuildYumRepository(id, name, baseURL string, gpgkeys []string) *osconfigpb.YumRepository {
-	return &osconfigpb.YumRepository{
-		Id:          id,
-		DisplayName: name,
-		BaseUrl:     baseURL,
-		GpgKeys:     gpgkeys,
+func BuildYumRepository(id, name, baseURL string, gpgkeys []string) *osconfigpb.PackageRepository_Yum {
+	return &osconfigpb.PackageRepository_Yum{
+		Yum: &osconfigpb.YumRepository{
+			Id:          id,
+			DisplayName: name,
+			BaseUrl:     baseURL,
+			GpgKeys:     gpgkeys,
+		},
 	}
 }
 
 // BuildZypperRepository create an zypper repository object
-func BuildZypperRepository(id, name, baseURL string, gpgkeys []string) *osconfigpb.ZypperRepository {
-	return &osconfigpb.ZypperRepository{
-		Id:          id,
-		DisplayName: name,
-		BaseUrl:     baseURL,
-		GpgKeys:     gpgkeys,
+func BuildZypperRepository(id, name, baseURL string, gpgkeys []string) *osconfigpb.PackageRepository_Zypper {
+	return &osconfigpb.PackageRepository_Zypper{
+		Zypper: &osconfigpb.ZypperRepository{
+			Id:          id,
+			DisplayName: name,
+			BaseUrl:     baseURL,
+			GpgKeys:     gpgkeys,
+		},
 	}
 }
 
 // BuildGooRepository create an googet repository object
-func BuildGooRepository(name, url string) *osconfigpb.GooRepository {
-	return &osconfigpb.GooRepository{
-		Name: name,
-		Url:  url,
-	}
-}
-
-// BuildWindowsUpdateConfig create an windows update repository object
-func BuildWindowsUpdateConfig(uri string) *osconfigpb.WindowsUpdateConfig {
-	return &osconfigpb.WindowsUpdateConfig{
-		WindowsUpdateServerUri: uri,
-	}
-}
-
-// BuildWUPackageConfig create a window update config
-func BuildWUPackageConfig(wusu string) *osconfigpb.WindowsUpdateConfig {
-	return &osconfigpb.WindowsUpdateConfig{
-		WindowsUpdateServerUri: wusu,
+func BuildGooRepository(name, url string) *osconfigpb.PackageRepository_Goo {
+	return &osconfigpb.PackageRepository_Goo{
+		Goo: &osconfigpb.GooRepository{
+			Name: name,
+			Url:  url,
+		},
 	}
 }
 

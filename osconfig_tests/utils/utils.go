@@ -104,7 +104,8 @@ func InstallOSConfigEL6() string {
 // HeadAptImages is a map of names to image paths for public image families that use APT.
 var HeadAptImages = map[string]string{
 	// Debian images.
-	"debian-cloud/debian-9": "projects/debian-cloud/global/images/family/debian-9",
+	"debian-cloud/debian-9":  "projects/debian-cloud/global/images/family/debian-9",
+	"debian-cloud/debian-10": "projects/debian-cloud/global/images/family/debian-10",
 
 	// Ubuntu images.
 	"ubuntu-os-cloud/ubuntu-1604-lts": "projects/ubuntu-os-cloud/global/images/family/ubuntu-1604-lts",
@@ -114,12 +115,16 @@ var HeadAptImages = map[string]string{
 // OldAptImages is a map of names to image paths for old images that use APT.
 var OldAptImages = map[string]string{
 	// Debian images.
-	"old/debian-9": "projects/debian-cloud/global/images/debian-9-stretch-v20190116",
+	"old/debian-9":  "projects/debian-cloud/global/images/debian-9-stretch-v20190116",
+	"old/debian-10": "projects/debian-cloud/global/images/debian-10-buster-v20190729",
 
 	// Ubuntu images.
 	"old/ubuntu-1604-lts": "projects/ubuntu-os-cloud/global/images/ubuntu-1604-xenial-v20190122a",
 	"old/ubuntu-1804-lts": "projects/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20190122",
 }
+
+// HeadSLESImages is a map of names to image paths for public SLES images.
+var HeadSLESImages = map[string]string{}
 
 // HeadEL6Images is a map of names to image paths for public EL6 image families.
 var HeadEL6Images = map[string]string{
@@ -255,6 +260,7 @@ func CreateComputeInstance(metadataitems []*api.MetadataItems, client daisyCompu
 				Scopes: serviceAccountScopes,
 			},
 		},
+		Labels: map[string]string{"name": name},
 	}
 
 	inst, err := compute.CreateInstance(client, projectID, zone, i)
