@@ -78,16 +78,12 @@ func (ci *CreateImages) validate(ctx context.Context, s *Step) dErr {
 	var errs dErr
 
 	if usesBetaFeatures(ci.ImagesBeta) {
-		if ci.ImagesBeta != nil {
-			for _, i := range ci.ImagesBeta {
-				errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
-			}
+		for _, i := range ci.ImagesBeta {
+			errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
 		}
 	} else {
-		if ci.Images != nil {
-			for _, i := range ci.Images {
-				errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
-			}
+		for _, i := range ci.Images {
+			errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
 		}
 	}
 
