@@ -30,6 +30,7 @@ import (
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
+	osconfigV1alpha2 "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha2"
 	"github.com/kylelemons/godebug/pretty"
 	computeApi "google.golang.org/api/compute/v1"
 
@@ -110,6 +111,15 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
+// We only want to create one GuestPolicy at a time to limit QPS.
+var gpMx sync.Mutex
+
+func createGuestPolicy(ctx context.Context, client *osconfigV1alpha2.Client, req *osconfigpb.CreateGuestPolicyRequest) (*osconfigpb.GuestPolicy, error) {
+	gpMx.Lock()
+	defer gpMx.Unlock()
+	return client.CreateGuestPolicy(ctx, req)
+}
+
 func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *guestPolicyTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 
@@ -125,7 +135,7 @@ func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *guestP
 		GuestPolicy:   testSetup.guestPolicy,
 	}
 
-	res, err := client.CreateGuestPolicy(ctx, req)
+	res, err := createGuestPolicy(ctx, client, req)
 	if err != nil {
 		testCase.WriteFailure("Error running CreateGuestPolicy: %s", utils.GetStatusFromError(err))
 		return
