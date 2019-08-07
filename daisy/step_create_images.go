@@ -30,17 +30,17 @@ type CreateImages struct {
 
 // UnmarshalJSON unmarshals Image.
 func (ci *CreateImages) UnmarshalJSON(b []byte) error {
-	imagesBeta := &[]*ImageBeta{}
-	if err := json.Unmarshal(b, imagesBeta); err != nil {
+	var imagesBeta []*ImageBeta
+	if err := json.Unmarshal(b, &imagesBeta); err != nil {
 		return err
 	}
-	ci.ImagesBeta = *imagesBeta
+	ci.ImagesBeta = imagesBeta
 
-	images := &[]*Image{}
-	if err := json.Unmarshal(b, images); err != nil {
+	var images []*Image
+	if err := json.Unmarshal(b, &images); err != nil {
 		return err
 	}
-	ci.Images = *images
+	ci.Images = images
 
 	return nil
 }
