@@ -223,6 +223,9 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
       if release == 'rhel-7-6':
         logging.info('Building RHEL 7.6 for SAP')
         point = FetchConfigPart('rhel7-6-post.cfg')
+      if release == 'rhel-7-7':
+        logging.info('Building RHEL 7.7 for SAP')
+        point = FetchConfigPart('rhel7-7-post.cfg')
       rhel_post = '\n'.join([point, FetchConfigPart('rhel7-sap-post.cfg')])
     el_post = FetchConfigPart('el7-post.cfg')
     custom_post = '\n'.join([rhel_post, el_post])
