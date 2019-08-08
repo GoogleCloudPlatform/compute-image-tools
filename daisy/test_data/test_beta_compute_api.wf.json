@@ -72,20 +72,12 @@
     "postinstall-stopped": {
       "waitForInstancesSignal": [{"name": "postinstall", "stopped": true}]
     },
-    "create-image-locality": {
-      "createImages": [
-        {
-          "Name": "image-from-local-disk",
-          "SourceDisk": "local-image",
-          "StorageLocations": ["europe-west1"]
-        }
-      ]
-    },
     "create-image": {
       "createImages": [
         {
           "Name": "image-from-disk",
-          "SourceDisk": "image"
+          "SourceDisk": "image",
+          "StorageLocations": ["eu"]
         }
       ]
     },
@@ -108,8 +100,7 @@
     "bootstrap-stopped": ["bootstrap"],
     "postinstall": ["bootstrap-stopped"],
     "postinstall-stopped": ["postinstall"],
-    "create-image-locality": ["postinstall-stopped"],
-    "create-image": ["create-image-locality"],
+    "create-image": ["postinstall-stopped"],
     "include-workflow": ["create-image"],
     "sub-workflow": ["create-image"]
   }

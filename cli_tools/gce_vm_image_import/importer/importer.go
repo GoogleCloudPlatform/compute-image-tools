@@ -107,7 +107,7 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 	return sourceBucketName, sourceObjectName, userLabels, nil
 }
 
-// Validate source file is not a compression file by checking file header.
+// validate source file is not a compression file by checking file header.
 func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucketName, sourceObjectName string) error {
 	rc, err := storageClient.GetObjectReader(sourceBucketName, sourceObjectName)
 	if err != nil {
@@ -176,7 +176,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
 	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
-	userLabels map[string]string) error {
+	userLabels map[string]string, storageLocation string) error {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
@@ -187,16 +187,19 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 
 	workflowModifier := func(w *daisy.Workflow) {
 		rl := &daisyutils.ResourceLabeler{
-			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-import-build-id",
+			BuildID:         os.Getenv("BUILD_ID"),
+			UserLabels:      userLabels,
+			BuildIDLabelKey: "gce-image-import-build-id",
+			ImageLocation:   storageLocation,
 			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
 				return "gce-image-import-tmp"
 			},
 			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
 				return "gce-image-import-tmp"
 			},
-			ImageLabelKeyRetriever: func(image *daisy.Image) string {
+			ImageLabelKeyRetriever: func(imageName string) string {
 				imageTypeLabel := "gce-image-import"
-				if strings.Contains(image.Image.Name, "untranslated") {
+				if strings.Contains(imageName, "untranslated") {
 					imageTypeLabel = "gce-image-import-tmp"
 				}
 				return imageTypeLabel
@@ -214,7 +217,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	network string, subnet string, zone string, timeout string, project string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
-	noExternalIP bool, labels string, currentExecutablePath string) error {
+	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string) error {
 
 	sourceBucketName, sourceObjectName, userLabels, err := validateAndParseFlags(clientID, imageName,
 		sourceFile, sourceImage, dataDisk, osID, customTranWorkflow, labels)
@@ -260,7 +263,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 
 	if err := runImport(ctx, varMap, importWorkflowPath, zone, timeout, project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
-		kmsLocation, kmsProject, noExternalIP, userLabels); err != nil {
+		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation); err != nil {
 
 		return err
 	}

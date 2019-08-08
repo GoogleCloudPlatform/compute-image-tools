@@ -38,6 +38,7 @@ type Client interface {
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRule(project string, i *compute.Firewall) error
 	CreateImage(project string, i *compute.Image) error
+	CreateImageBeta(project string, i *computeBeta.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
 	CreateSubnetwork(project, region string, n *compute.Subnetwork) error
@@ -62,6 +63,7 @@ type Client interface {
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
 	GetImage(project, name string) (*compute.Image, error)
+	GetImageBeta(project, name string) (*computeBeta.Image, error)
 	GetImageFromFamily(project, family string) (*compute.Image, error)
 	GetLicense(project, name string) (*compute.License, error)
 	GetNetwork(project, name string) (*compute.Network, error)
@@ -88,6 +90,7 @@ type Client interface {
 	GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
 
 	Retry(f func(opts ...googleapi.CallOption) (*compute.Operation, error), opts ...googleapi.CallOption) (op *compute.Operation, err error)
+	RetryBeta(f func(opts ...googleapi.CallOption) (*computeBeta.Operation, error), opts ...googleapi.CallOption) (op *computeBeta.Operation, err error)
 	BasePath() string
 }
 
@@ -309,6 +312,22 @@ func (c *client) Retry(f func(opts ...googleapi.CallOption) (*compute.Operation,
 	return
 }
 
+// RetryBeta invokes the given function, retrying it multiple times if the HTTP
+// status response indicates the request should be attempted again or the
+// oauth Token is no longer valid.
+func (c *client) RetryBeta(f func(opts ...googleapi.CallOption) (*computeBeta.Operation, error), opts ...googleapi.CallOption) (op *computeBeta.Operation, err error) {
+	for i := 1; i < 4; i++ {
+		op, err = f(opts...)
+		if err == nil {
+			return op, nil
+		}
+		if !shouldRetryWithWait(c.hc.Transport, err, i) {
+			return nil, err
+		}
+	}
+	return
+}
+
 // AttachDisk attaches a GCE persistent disk to an instance.
 func (c *client) AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error {
 	op, err := c.Retry(c.raw.Instances.AttachDisk(project, zone, instance, d).Do)
@@ -401,6 +420,28 @@ func (c *client) CreateImage(project string, i *compute.Image) error {
 
 	var createdImage *compute.Image
 	if createdImage, err = c.i.GetImage(project, i.Name); err != nil {
+		return err
+	}
+	*i = *createdImage
+	return nil
+}
+
+// CreateImageBeta creates a GCE image using Beta API.
+// Only one of sourceDisk or sourceFile must be specified, sourceDisk is the
+// url (full or partial) to the source disk, sourceFile is the full Google
+// Cloud Storage URL where the disk image is stored.
+func (c *client) CreateImageBeta(project string, i *computeBeta.Image) error {
+	op, err := c.RetryBeta(c.rawBeta.Images.Insert(project, i).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.globalOperationsWait(project, op.Name); err != nil {
+		return err
+	}
+
+	var createdImage *computeBeta.Image
+	if createdImage, err = c.i.GetImageBeta(project, i.Name); err != nil {
 		return err
 	}
 	*i = *createdImage
@@ -836,6 +877,15 @@ func (c *client) GetImage(project, name string) (*compute.Image, error) {
 	i, err := c.raw.Images.Get(project, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
 		return c.raw.Images.Get(project, name).Do()
+	}
+	return i, err
+}
+
+// GetImageBeta gets a GCE Image using Beta API
+func (c *client) GetImageBeta(project, name string) (*computeBeta.Image, error) {
+	i, err := c.rawBeta.Images.Get(project, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.rawBeta.Images.Get(project, name).Do()
 	}
 	return i, err
 }

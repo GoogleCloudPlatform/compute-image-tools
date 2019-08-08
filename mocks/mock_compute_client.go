@@ -134,6 +134,20 @@ func (mr *MockClientMockRecorder) CreateImage(arg0, arg1 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImage", reflect.TypeOf((*MockClient)(nil).CreateImage), arg0, arg1)
 }
 
+// CreateImageBeta mocks base method
+func (m *MockClient) CreateImageBeta(arg0 string, arg1 *v0_beta.Image) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateImageBeta", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateImageBeta indicates an expected call of CreateImageBeta
+func (mr *MockClientMockRecorder) CreateImageBeta(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImageBeta", reflect.TypeOf((*MockClient)(nil).CreateImageBeta), arg0, arg1)
+}
+
 // CreateInstance mocks base method
 func (m *MockClient) CreateInstance(arg0, arg1 string, arg2 *v1.Instance) error {
 	m.ctrl.T.Helper()
@@ -403,6 +417,21 @@ func (m *MockClient) GetImage(arg0, arg1 string) (*v1.Image, error) {
 func (mr *MockClientMockRecorder) GetImage(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImage", reflect.TypeOf((*MockClient)(nil).GetImage), arg0, arg1)
+}
+
+// GetImageBeta mocks base method
+func (m *MockClient) GetImageBeta(arg0, arg1 string) (*v0_beta.Image, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetImageBeta", arg0, arg1)
+	ret0, _ := ret[0].(*v0_beta.Image)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetImageBeta indicates an expected call of GetImageBeta
+func (mr *MockClientMockRecorder) GetImageBeta(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageBeta", reflect.TypeOf((*MockClient)(nil).GetImageBeta), arg0, arg1)
 }
 
 // GetImageFromFamily mocks base method
@@ -837,6 +866,26 @@ func (mr *MockClientMockRecorder) Retry(arg0 interface{}, arg1 ...interface{}) *
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0}, arg1...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Retry", reflect.TypeOf((*MockClient)(nil).Retry), varargs...)
+}
+
+// RetryBeta mocks base method
+func (m *MockClient) RetryBeta(arg0 func(...googleapi.CallOption) (*v0_beta.Operation, error), arg1 ...googleapi.CallOption) (*v0_beta.Operation, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RetryBeta", varargs...)
+	ret0, _ := ret[0].(*v0_beta.Operation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RetryBeta indicates an expected call of RetryBeta
+func (mr *MockClientMockRecorder) RetryBeta(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryBeta", reflect.TypeOf((*MockClient)(nil).RetryBeta), varargs...)
 }
 
 // SetCommonInstanceMetadata mocks base method

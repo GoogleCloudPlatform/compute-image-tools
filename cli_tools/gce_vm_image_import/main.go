@@ -51,6 +51,7 @@ var (
 	kmsProject           = flag.String("kms_project", "", "The Cloud project for the key")
 	noExternalIP         = flag.Bool("no_external_ip", false, "VPC doesn't allow external IPs")
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
+	storageLocation      = flag.String("storage_location", "", "Location for the imported image which can be any GCS location. If the location parameter is not included, images are created in the multi-region associated with the source disk, image, snapshot or GCS bucket.")
 )
 
 func main() {
@@ -62,8 +63,9 @@ func main() {
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
 		*project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
-		*labels, currentExecutablePath); err != nil {
+		*labels, currentExecutablePath, *storageLocation); err != nil {
 
-		log.Fatal(err)
+		log.SetPrefix("[import-image] ")
+		log.Fatal(err.Error())
 	}
 }

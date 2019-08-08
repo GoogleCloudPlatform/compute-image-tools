@@ -18,6 +18,7 @@ import (
 	"context"
 	"testing"
 
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -31,16 +32,24 @@ func TestCreateImagesRun(t *testing.T) {
 	tests := []struct {
 		desc      string
 		ci        *Image
+		cib       *ImageBeta
 		shouldErr bool
 	}{
-		{"source disk with overwrite case", &Image{Resource: Resource{Project: testProject}, Image: compute.Image{Name: testImage, SourceDisk: testDisk}, OverWrite: true}, false},
-		{"raw image case", &Image{Resource: Resource{Project: testProject}, Image: compute.Image{Name: testImage, RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}}, false},
-		{"bad disk case", &Image{Resource: Resource{Project: testProject}, Image: compute.Image{Name: testImage, SourceDisk: "bad"}}, true},
-		{"bad overwrite case", &Image{Resource: Resource{Project: testProject}, Image: compute.Image{Name: "bad", SourceDisk: testDisk}, OverWrite: true}, true},
+		{desc: "source disk with overwrite case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: compute.Image{Name: testImage, SourceDisk: testDisk}}, shouldErr: false},
+		{desc: "raw image case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: testImage, RawDisk: &compute.ImageRawDisk{Source: "gs://bucket/object"}}}, shouldErr: false},
+		{desc: "bad disk case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: testImage, SourceDisk: "bad"}}, shouldErr: true},
+		{desc: "bad overwrite case", ci: &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: compute.Image{Name: "bad", SourceDisk: testDisk}}, shouldErr: true},
+		{desc: "image location using beta API", cib: &ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: testProject}, OverWrite: true}, Image: computeBeta.Image{Name: "beta", SourceDisk: testDisk, StorageLocations: []string{"eu"}}}, shouldErr: false},
 	}
 
 	for _, tt := range tests {
-		cis := &CreateImages{tt.ci}
+		var cis *CreateImages
+		if tt.cib != nil {
+			cis = &CreateImages{ImagesBeta: []*ImageBeta{tt.cib}}
+		} else {
+			cis = &CreateImages{Images: []*Image{tt.ci}}
+		}
+
 		if err := cis.run(ctx, s); err == nil && tt.shouldErr {
 			t.Errorf("%s: should have returned an error, but didn't", tt.desc)
 		} else if err != nil && !tt.shouldErr {
