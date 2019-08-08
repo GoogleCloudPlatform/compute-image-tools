@@ -295,15 +295,31 @@ func TestNewFromFile(t *testing.T) {
 		"create-image-locality": {
 			name: "create-image-locality",
 			CreateImages: &CreateImages{
-				Images:     []*Image{{Image: compute.Image{Name: "image-from-local-disk", SourceDisk: "local-image"}}},
-				ImagesBeta: []*ImageBeta{{Image: computeBeta.Image{Name: "image-from-local-disk", SourceDisk: "local-image", StorageLocations: []string{"europe-west1"}}}},
+				Images: []*Image{{
+					Image: compute.Image{Name: "image-from-local-disk", SourceDisk: "local-image", Description: "Some Ubuntu", Family: "ubuntu-1404"},
+					ImageBase: ImageBase{OverWrite: false, GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "UBUNTU", "MULTI_IP_SUBNET"},
+						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: false}},
+				}},
+				ImagesBeta: []*ImageBeta{{
+					Image: computeBeta.Image{Name: "image-from-local-disk", SourceDisk: "local-image", StorageLocations: []string{"europe-west1"}, Description: "Some Ubuntu", Family: "ubuntu-1404"},
+					ImageBase: ImageBase{OverWrite: false, GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "UBUNTU", "MULTI_IP_SUBNET"},
+						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: false}},
+				}},
 			},
 		},
 		"create-image": {
 			name: "create-image",
 			CreateImages: &CreateImages{
-				Images:     []*Image{{Image: compute.Image{Name: "image-from-disk", SourceDisk: "image"}}},
-				ImagesBeta: []*ImageBeta{{Image: computeBeta.Image{Name: "image-from-disk", SourceDisk: "image"}}},
+				Images: []*Image{{
+					Image: compute.Image{Name: "image-from-disk", SourceDisk: "image", Description: "Microsoft, SQL Server 2016 Web, on Windows Server 2019", Family: "sql-web-2016-win-2019"},
+					ImageBase: ImageBase{OverWrite: true, GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"},
+						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: true}},
+				}},
+				ImagesBeta: []*ImageBeta{{
+					Image: computeBeta.Image{Name: "image-from-disk", SourceDisk: "image", Description: "Microsoft, SQL Server 2016 Web, on Windows Server 2019", Family: "sql-web-2016-win-2019"},
+					ImageBase: ImageBase{OverWrite: true, GuestOsFeatures: []string{"VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"},
+						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: true}},
+				}},
 			},
 		},
 

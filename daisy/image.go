@@ -125,7 +125,7 @@ type ImageBase struct {
 	Resource
 
 	// GuestOsFeatures to set for the image.
-	GuestOsFeatures guestOsFeatures `json:"guestOsFeatures,omitempty"`
+	GuestOsFeatures guestOsFeatures `json:"GuestOsFeatures,omitempty"`
 	// Should an existing image of the same name be deleted, defaults to false
 	// which will fail validation.
 	OverWrite bool `json:",omitempty"`
