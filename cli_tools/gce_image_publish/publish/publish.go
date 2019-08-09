@@ -91,6 +91,8 @@ type Image struct {
 	Licenses []string `json:",omitempty"`
 	// GuestOsFeatures to add to the image.
 	GuestOsFeatures []string `json:",omitempty"`
+	//Ignores license validation if 403/forbidden returned
+	IgnoreLicenseValidationIfForbidden bool `json:",omitempty"`
 }
 
 var (
@@ -259,6 +261,7 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 				Project:   p.PublishProject,
 				RealName:  publishName,
 			},
+			IgnoreLicenseValidationIfForbidden: img.IgnoreLicenseValidationIfForbidden,
 		},
 	}
 
