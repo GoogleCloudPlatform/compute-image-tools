@@ -118,14 +118,13 @@ type ImageInterface interface {
 	create(cc daisyCompute.Client) error
 	delete(cc daisyCompute.Client) error
 	appendGuestOsFeatures(featureType string)
+	getGuestOsFeatures() guestOsFeatures
 }
 
 //ImageBase is a base struct for GA/Beta images. It holds the shared properties between the two.
 type ImageBase struct {
 	Resource
 
-	// GuestOsFeatures to set for the image.
-	GuestOsFeatures guestOsFeatures `json:"GuestOsFeatures,omitempty"`
 	// Should an existing image of the same name be deleted, defaults to false
 	// which will fail validation.
 	OverWrite bool `json:",omitempty"`
@@ -139,6 +138,9 @@ type ImageBase struct {
 type Image struct {
 	ImageBase
 	compute.Image
+
+	// GuestOsFeatures to set for the image.
+	GuestOsFeatures guestOsFeatures `json:"guestOsFeatures,omitempty"`
 }
 
 func (i *Image) getName() string {
@@ -196,11 +198,18 @@ func (i *Image) appendGuestOsFeatures(featureType string) {
 	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: featureType})
 }
 
+func (i *Image) getGuestOsFeatures() guestOsFeatures {
+	return i.GuestOsFeatures
+}
+
 // ImageBeta is used to create a GCE image using Beta API.
 // Supported sources are a GCE disk or a RAW image listed in Workflow.Sources.
 type ImageBeta struct {
 	ImageBase
 	computeBeta.Image
+
+	// GuestOsFeatures to set for the image.
+	GuestOsFeatures guestOsFeatures `json:"guestOsFeatures,omitempty"`
 }
 
 func (i *ImageBeta) getName() string {
@@ -259,6 +268,10 @@ func (i *ImageBeta) appendGuestOsFeatures(featureType string) {
 	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: featureType})
 }
 
+func (i *ImageBeta) getGuestOsFeatures() guestOsFeatures {
+	return i.GuestOsFeatures
+}
+
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
 func (i *Image) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*i)
@@ -310,10 +323,10 @@ func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) dE
 }
 
 func populateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
-	if ib.GuestOsFeatures == nil {
+	if ii.getGuestOsFeatures() == nil {
 		return
 	}
-	for _, f := range ib.GuestOsFeatures {
+	for _, f := range ii.getGuestOsFeatures() {
 		ii.appendGuestOsFeatures(f)
 	}
 	return

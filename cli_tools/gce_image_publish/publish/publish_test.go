@@ -48,8 +48,8 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			false,
-			&daisy.CreateImages{Images: []*daisy.Image{&daisy.Image{ImageBase: daisy.ImageBase{GuestOsFeatures: []string{"foo-feature", "bar-feature"}, Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
-				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}},
+			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
+				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}, GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
 			}},
 
 			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
@@ -162,8 +162,8 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			false,
-			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{GuestOsFeatures: []string{"foo-feature", "bar-feature"}, Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-x"}}, Image: compute.Image{
-				Name: "foo-x", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-x"}},
+			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-x"}}, Image: compute.Image{
+				Name: "foo-x", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-x"}, GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
 			}},
 			nil,
 			false,

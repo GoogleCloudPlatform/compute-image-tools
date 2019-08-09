@@ -253,13 +253,13 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 			Family:      img.Family,
 		},
 		ImageBase: daisy.ImageBase{
-			GuestOsFeatures: img.GuestOsFeatures,
 			Resource: daisy.Resource{
 				NoCleanup: true,
 				Project:   p.PublishProject,
 				RealName:  publishName,
 			},
 		},
+		GuestOsFeatures: img.GuestOsFeatures,
 	}
 
 	var source string

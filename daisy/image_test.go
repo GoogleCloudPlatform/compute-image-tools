@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"testing"
 
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -107,8 +108,8 @@ func TestImagePopulate(t *testing.T) {
 		},
 		{
 			"GuestOsFeatures",
-			&Image{Image: compute.Image{SourceImage: "i"}, ImageBase: ImageBase{GuestOsFeatures: guestOsFeatures{"foo", "bar"}}},
-			&Image{Image: compute.Image{SourceImage: "i", GuestOsFeatures: []*compute.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, ImageBase: ImageBase{GuestOsFeatures: guestOsFeatures{"foo", "bar"}}},
+			&Image{Image: compute.Image{SourceImage: "i"}, ImageBase: ImageBase{}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			&Image{Image: compute.Image{SourceImage: "i", GuestOsFeatures: []*compute.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, ImageBase: ImageBase{}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
 			false,
 		},
 		{
@@ -141,6 +142,101 @@ func TestImagePopulate(t *testing.T) {
 	}
 }
 
+func TestImageBetaPopulate(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+	w.Sources = map[string]string{"d": "d"}
+	s, _ := w.NewStep("s")
+
+	gcsAPIPath, _ := getGCSAPIPath("gs://bucket/d")
+	tests := []struct {
+		desc        string
+		input, want *ImageBeta
+		wantErr     bool
+	}{
+		{
+			"SourceDisk case",
+			&ImageBeta{Image: computeBeta.Image{SourceDisk: "d"}},
+			&ImageBeta{Image: computeBeta.Image{SourceDisk: "d"}},
+			false,
+		},
+		{
+			"SourceDisk URL case",
+			&ImageBeta{Image: computeBeta.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			&ImageBeta{Image: computeBeta.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			false,
+		},
+		{
+			"extend SourceDisk URL case",
+			&ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: "p"}}, Image: computeBeta.Image{SourceDisk: "zones/z/disks/d"}},
+			&ImageBeta{Image: computeBeta.Image{SourceDisk: "projects/p/zones/z/disks/d"}},
+			false,
+		},
+		{
+			"SourceImage case",
+			&ImageBeta{Image: computeBeta.Image{SourceImage: "i"}},
+			&ImageBeta{Image: computeBeta.Image{SourceImage: "i"}},
+			false,
+		},
+		{
+			"SourceImage URL case",
+			&ImageBeta{Image: computeBeta.Image{SourceImage: "projects/p/global/images/i"}},
+			&ImageBeta{Image: computeBeta.Image{SourceImage: "projects/p/global/images/i"}},
+			false,
+		},
+		{
+			"extend SourceImage URL case",
+			&ImageBeta{ImageBase: ImageBase{Resource: Resource{Project: "p"}}, Image: computeBeta.Image{SourceImage: "global/images/i"}},
+			&ImageBeta{Image: computeBeta.Image{SourceImage: "projects/p/global/images/i"}},
+			false,
+		},
+		{
+			"RawDisk.Source from Sources case",
+			&ImageBeta{Image: computeBeta.Image{RawDisk: &computeBeta.ImageRawDisk{Source: "d"}}},
+			&ImageBeta{Image: computeBeta.Image{RawDisk: &computeBeta.ImageRawDisk{Source: w.getSourceGCSAPIPath("d")}}},
+			false,
+		},
+		{
+			"RawDisk.Source GCS URL case",
+			&ImageBeta{Image: computeBeta.Image{RawDisk: &computeBeta.ImageRawDisk{Source: "gs://bucket/d"}}},
+			&ImageBeta{Image: computeBeta.Image{RawDisk: &computeBeta.ImageRawDisk{Source: gcsAPIPath}}},
+			false,
+		},
+		{
+			"GuestOsFeatures",
+			&ImageBeta{Image: computeBeta.Image{SourceImage: "i"}, ImageBase: ImageBase{}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			&ImageBeta{Image: computeBeta.Image{SourceImage: "i", GuestOsFeatures: []*computeBeta.GuestOsFeature{{Type: "foo"}, {Type: "bar"}}}, ImageBase: ImageBase{}, GuestOsFeatures: guestOsFeatures{"foo", "bar"}},
+			false,
+		},
+		{
+			"Bad RawDisk.Source case",
+			&ImageBeta{ImageBase: ImageBase{Resource: Resource{}}, Image: computeBeta.Image{RawDisk: &computeBeta.ImageRawDisk{Source: "blah"}}},
+			nil,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		err := populate(ctx, tt.input, &tt.input.ImageBase, s)
+
+		// Test sanitation -- clean/set irrelevant fields.
+		if tt.want != nil {
+			tt.want.Name = tt.input.RealName
+			tt.want.Description = tt.input.Description
+		}
+		tt.input.Resource = Resource{} // These fields are tested in resource_test.
+
+		if tt.wantErr {
+			if err == nil {
+				t.Errorf("%s: should have returned an error but didn't", tt.desc)
+			}
+		} else if err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		} else if diffRes := diff(tt.input, tt.want, 0); diffRes != "" {
+			t.Errorf("%s: populated Image does not match expectation: (-got,+want)\n%s", tt.desc, diffRes)
+		}
+	}
+}
 func TestImageValidate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()

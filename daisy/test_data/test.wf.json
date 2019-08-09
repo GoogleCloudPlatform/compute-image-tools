@@ -103,6 +103,22 @@
         }
       ]
     },
+    "create-image-guest-os-features-compute-api": {
+      "createImages": [
+        {
+          "Name": "image-from-disk",
+          "SourceDisk": "image",
+          "Description": "GuestOS Features Compute API",
+          "Family": "guest-os",
+          "Project": "a_project",
+          "NoCleanup": true,
+          "ExactName": true,
+          "OverWrite": true,
+          "GuestOsFeatures": [{"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}, {"Type":"MULTI_IP_SUBNET"}]
+        }
+      ]
+    },
+
     "include-workflow": {
       "IncludeWorkflow": {
         "path": "./test_sub.wf.json",
