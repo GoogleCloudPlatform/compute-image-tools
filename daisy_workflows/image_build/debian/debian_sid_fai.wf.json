@@ -1,5 +1,5 @@
 {
-  "Name": "build-debian-9-fai",
+  "Name": "build-debian-sid-fai",
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
@@ -8,7 +8,7 @@
       "Description": "The debian-cloud-images scripts git commit ID or branch to use."
     },
     "debian_version": {
-      "Value": "stretch",
+      "Value": "sid",
       "Description": "The FAI tool debian version to be requested."
     },
     "google_cloud_repo": {

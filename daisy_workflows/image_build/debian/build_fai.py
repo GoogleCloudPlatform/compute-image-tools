@@ -86,9 +86,7 @@ def main():
   work_dir = url_params['filename']
   fai_classes = ['DEBIAN', 'CLOUD', 'GCE', 'GCE_SDK', 'AMD64',
                  'GRUB_CLOUD_AMD64', 'LINUX_IMAGE_CLOUD']
-  if debian_version == 'stretch':
-    fai_classes += ['STRETCH', 'BACKPORTS', 'BACKPORTS_LINUX']
-  elif debian_version == 'buster':
+  if debian_version == 'buster':
     fai_classes += ['BUSTER', 'BACKPORTS']
   elif debian_version == 'sid':
     fai_classes += ['SID']
