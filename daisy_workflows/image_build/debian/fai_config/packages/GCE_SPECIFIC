@@ -1,11 +1,19 @@
 PACKAGES install
 # To avoid entropy issues when intances boot.
 haveged
+
 # Used by the bootstrap script.
 curl
+
 # Useful tools
+man
 net-tools
 vim
+
+# Secure Boot
+shim-signed
+grub-efi-amd64-signed
+
 # GCE disk expansion package.
 gce-disk-expand
 
