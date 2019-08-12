@@ -156,7 +156,7 @@ def main():
   fai_classes += ['GCE_CLEAN']
 
   # Copy secure boot keys for gsetup.
-  sb_tar = 'files/boot/efi/EFI/Google/gsetup/secure-boot-keys.tar.gz'
+  sb_tar = 'files/boot/secure-boot-keys.tar.gz'
   os.mkdir(
       config_space + sb_tar)
   CopyToConfigSpace(
