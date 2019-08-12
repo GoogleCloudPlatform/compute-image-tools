@@ -191,7 +191,7 @@ func TestPublishImage(t *testing.T) {
 			false,
 			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, IgnoreLicenseValidationIfForbidden: true}, Image: compute.Image{
-				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}, GuestOsFeatures: []string{"foo-feature"},},
+				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}, GuestOsFeatures: []string{"foo-feature"}},
 			}},
 			nil,
 			false,
@@ -204,7 +204,7 @@ func TestPublishImage(t *testing.T) {
 			false,
 			false,
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, IgnoreLicenseValidationIfForbidden: false}, Image: compute.Image{
-				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}, GuestOsFeatures: []string{"foo-feature"},},
+				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}, GuestOsFeatures: []string{"foo-feature"}},
 			}},
 			nil,
 			false,
