@@ -44,7 +44,8 @@ func NewScratchBucketCreator(ctx context.Context, storageClient domain.StorageCl
 	return &ScratchBucketCreator{storageClient, ctx, &BucketIteratorCreator{}}
 }
 
-// CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag.
+// CreateScratchBucket creates scratch bucket in the same region as sourceFileFlag. If failed to
+// determine region by source file, we will try to determine region by fallbackZone.
 // Returns (bucket_name, region, error)
 func (c *ScratchBucketCreator) CreateScratchBucket(sourceFileFlag string, project string,
 	fallbackZone string) (string, string, error) {
@@ -61,9 +62,11 @@ func (c *ScratchBucketCreator) CreateScratchBucket(sourceFileFlag string, projec
 	return bucketAttrs.Name, region, nil
 }
 
-func (c *ScratchBucketCreator) getBucketAttrs(fileGcsPath string, project string, fallbackZone string) (*storage.BucketAttrs, error) {
+func (c *ScratchBucketCreator) getBucketAttrs(fileGcsPath string, project string,
+	fallbackZone string) (*storage.BucketAttrs, error) {
+
 	if project == "" {
-		return nil, fmt.Errorf("can't create scratch bucket if project not specified")
+		return nil, fmt.Errorf("can't get bucket attributes if project not specified")
 	}
 
 	if fileGcsPath != "" {

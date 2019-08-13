@@ -53,8 +53,8 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 		return err
 	}
 
-	scratchBucketRegion, err := populateBucket(scratchBucketGcsPath, zone, mgce, scratchBucketCreator,
-		file, project, storageClient)
+	scratchBucketRegion, err := populateScratchBucketGcsPath(scratchBucketGcsPath, *zone, mgce,
+		scratchBucketCreator, file, project, storageClient)
 	if err != nil {
 		return err
 	}
@@ -73,13 +73,13 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 	return nil
 }
 
-func populateBucket(scratchBucketGcsPath *string, zone *string, mgce domain.MetadataGCEInterface,
+func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgce domain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
 	storageClient domain.StorageClientInterface) (string, error) {
 
 	scratchBucketRegion := ""
 	if *scratchBucketGcsPath == "" {
-		fallbackZone := *zone
+		fallbackZone := zone
 		if fallbackZone == "" && mgce.OnGCE() {
 			var err error
 			if fallbackZone, err = mgce.Zone(); err != nil {
