@@ -17,6 +17,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"cloud.google.com/go/storage"
@@ -35,11 +36,11 @@ func TestCreateScratchBucketErrorWhenProjectNotProvided(t *testing.T) {
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, nil}
-	bucket, region, err := c.CreateScratchBucket("", "")
+	bucket, region, err := c.CreateScratchBucket("", "", "")
 	assertErrorFromCreateScratchBucket(t, bucket, region, err)
 }
 
-func TestCreateScratchBucketNoSourceFileDefaultBucketCreated(t *testing.T) {
+func TestCreateScratchBucketNoSourceFileDefaultBucketCreatedBasedOnDefaultRegion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -56,7 +57,30 @@ func TestCreateScratchBucketNoSourceFileDefaultBucketCreated(t *testing.T) {
 	}).Return(nil)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, createMockBucketIteratorWithRandomBuckets(mockCtrl, &ctx, mockStorageClient, project)}
-	bucket, region, err := c.CreateScratchBucket("", project)
+	bucket, region, err := c.CreateScratchBucket("", project, "")
+	assert.Equal(t, expectedBucket, bucket)
+	assert.Equal(t, expectedRegion, region)
+	assert.Nil(t, err)
+}
+
+func TestCreateScratchBucketNoSourceFileBucketCreatedBasedOnInputZone(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	project := "proJect1"
+	expectedBucket := "project1-daisy-bkt-asia-east1"
+	expectedRegion := "asia-east1"
+	ctx := context.Background()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().CreateBucket(expectedBucket, project, &storage.BucketAttrs{
+		Name:         expectedBucket,
+		Location:     "asia-east1",
+		StorageClass: regionalStorageClass,
+	}).Return(nil)
+
+	c := ScratchBucketCreator{mockStorageClient, ctx, createMockBucketIteratorWithRandomBuckets(mockCtrl, &ctx, mockStorageClient, project)}
+	bucket, region, err := c.CreateScratchBucket("", project, "asia-east1-b")
 	assert.Equal(t, expectedBucket, bucket)
 	assert.Equal(t, expectedRegion, region)
 	assert.Nil(t, err)
@@ -78,10 +102,11 @@ func TestCreateScratchBucketNoSourceErrorCreatingDefaultBucket(t *testing.T) {
 	}).Return(fmt.Errorf("some error"))
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, createMockBucketIteratorWithRandomBuckets(mockCtrl, &ctx, mockStorageClient, project)}
-	bucket, region, err := c.CreateScratchBucket("", project)
+	bucket, region, err := c.CreateScratchBucket("", project, "")
 	assert.Equal(t, "", bucket)
 	assert.Equal(t, "", region)
 	assert.NotNil(t, err)
+	assert.Equal(t, "some error", err.Error())
 }
 
 func TestCreateScratchBucketNewBucketCreatedProject(t *testing.T) {
@@ -130,33 +155,23 @@ func TestCreateScratchBucketNewBucketCreatedProject(t *testing.T) {
 		Times(1)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
-	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project)
+	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project, "")
 	assert.Equal(t, "project1-daisy-bkt-us-west2", bucket)
 	assert.Equal(t, "us-west2", region)
 	assert.Nil(t, err)
 }
 
-func TestCreateScratchBucketInvalidSourceFileDefaultBucketCreated(t *testing.T) {
+func TestCreateScratchBucketInvalidSourceFileErrorThrown(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
 	project := "proJect1"
-	expectedBucket := "project1-daisy-bkt-us"
-	expectedRegion := "US"
-	ctx := context.Background()
 
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, project, &storage.BucketAttrs{
-		Name:         expectedBucket,
-		Location:     defaultRegion,
-		StorageClass: defaultStorageClass,
-	}).Return(nil)
-
-	c := ScratchBucketCreator{mockStorageClient, ctx, createMockBucketIteratorWithRandomBuckets(mockCtrl, &ctx, mockStorageClient, project)}
-	bucket, region, err := c.CreateScratchBucket("NOT_A_GS_PATH", project)
-	assert.Equal(t, expectedBucket, bucket)
-	assert.Equal(t, expectedRegion, region)
-	assert.Nil(t, err)
+	c := ScratchBucketCreator{}
+	gcsPath := "NOT_A_GS_PATH"
+	_, _, err := c.CreateScratchBucket(gcsPath, project, "")
+	assert.NotNil(t, err)
+	assert.True(t, strings.HasPrefix(err.Error(), fmt.Sprintf("file GCS path `%v` is invalid:", gcsPath)))
 }
 
 func TestCreateScratchBucketErrorRetrievingSourceFileBucketMetadataDefaultBucketCreated(t *testing.T) {
@@ -177,7 +192,31 @@ func TestCreateScratchBucketErrorRetrievingSourceFileBucketMetadataDefaultBucket
 	}).Return(nil)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, createMockBucketIteratorWithRandomBuckets(mockCtrl, &ctx, mockStorageClient, project)}
-	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project)
+	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project, "")
+	assert.Equal(t, expectedBucket, bucket)
+	assert.Equal(t, expectedRegion, region)
+	assert.Nil(t, err)
+}
+
+func TestCreateScratchBucketErrorRetrievingSourceFileBucketMetadataBucketCreatedBasedOnInputZone(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	project := "proJect1"
+	expectedBucket := "project1-daisy-bkt-asia-east1"
+	expectedRegion := "asia-east1"
+	ctx := context.Background()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetBucketAttrs("sourcebucket").Return(&storage.BucketAttrs{}, fmt.Errorf("error retrieving bucket attrs")).Times(1)
+	mockStorageClient.EXPECT().CreateBucket(expectedBucket, project, &storage.BucketAttrs{
+		Name:         expectedBucket,
+		Location:     "asia-east1",
+		StorageClass: regionalStorageClass,
+	}).Return(nil)
+
+	c := ScratchBucketCreator{mockStorageClient, ctx, createMockBucketIteratorWithRandomBuckets(mockCtrl, &ctx, mockStorageClient, project)}
+	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project, "asia-east1-b")
 	assert.Equal(t, expectedBucket, bucket)
 	assert.Equal(t, expectedRegion, region)
 	assert.Nil(t, err)
@@ -201,7 +240,7 @@ func TestCreateScratchBucketNilSourceFileBucketMetadataDefaultBucketCreated(t *t
 	}).Return(nil)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, createMockBucketIteratorWithRandomBuckets(mockCtrl, &ctx, mockStorageClient, project)}
-	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project)
+	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project, "")
 	assert.Equal(t, expectedBucket, bucket)
 	assert.Equal(t, expectedRegion, region)
 	assert.Nil(t, err)
@@ -213,8 +252,6 @@ func TestCreateScratchBucketErrorWhenIteratingOverProjectBucketsWhileCreatingBuc
 	ctx := context.Background()
 
 	projectID := "PROJECT1"
-	expectedBucket := "project1-daisy-bkt-us"
-	expectedRegion := "US"
 
 	sourceBucketAttrs := &storage.BucketAttrs{
 		Name:         "sourcebucket",
@@ -223,31 +260,18 @@ func TestCreateScratchBucketErrorWhenIteratingOverProjectBucketsWhileCreatingBuc
 	}
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("sourcebucket").Return(sourceBucketAttrs, nil).Times(1)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, projectID, &storage.BucketAttrs{
-		Name:         expectedBucket,
-		Location:     defaultRegion,
-		StorageClass: defaultStorageClass,
-	}).Return(nil)
 
 	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
 	mockBucketIterator.EXPECT().Next().Return(nil, fmt.Errorf("iterator error"))
-	secondMockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
-	secondMockBucketIterator.EXPECT().Next().Return(sourceBucketAttrs, nil)
-	secondMockBucketIterator.EXPECT().Next().Return(nil, iterator.Done)
 
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
-	first := mockBucketIteratorCreator.EXPECT().CreateBucketIterator(ctx, mockStorageClient, projectID).
+	mockBucketIteratorCreator.EXPECT().CreateBucketIterator(ctx, mockStorageClient, projectID).
 		Return(mockBucketIterator)
-	second := mockBucketIteratorCreator.EXPECT().CreateBucketIterator(ctx, mockStorageClient, projectID).
-		Return(secondMockBucketIterator)
-
-	gomock.InOrder(first, second)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
-	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", projectID)
-	assert.Equal(t, expectedBucket, bucket)
-	assert.Equal(t, expectedRegion, region)
-	assert.Nil(t, err)
+	_, _, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", projectID, "")
+	assert.NotNil(t, err)
+	assert.Equal(t, "iterator error", err.Error())
 }
 
 func TestCreateScratchBucketReturnsExistingScratchBucketNoCreate(t *testing.T) {
@@ -290,7 +314,7 @@ func TestCreateScratchBucketReturnsExistingScratchBucketNoCreate(t *testing.T) {
 		Times(1)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
-	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", projectID)
+	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", projectID, "")
 	assert.Equal(t, "project1-daisy-bkt-us-west2", bucket)
 	assert.Equal(t, "us-west2", region)
 	assert.Nil(t, err)
@@ -302,8 +326,6 @@ func TestCreateScratchBucketErrorWhenCreatingBucket(t *testing.T) {
 	ctx := context.Background()
 
 	project := "PROJECT1"
-	expectedBucket := "project1-daisy-bkt-us"
-	expectedRegion := "US"
 
 	sourceBucketAttrs := &storage.BucketAttrs{
 		Name:         "sourcebucket",
@@ -330,11 +352,6 @@ func TestCreateScratchBucketErrorWhenCreatingBucket(t *testing.T) {
 		CreateBucket("project1-daisy-bkt-us-west2", project, scratchBucketAttrs).
 		Return(fmt.Errorf("error creating a bucket")).
 		Times(1)
-	mockStorageClient.EXPECT().CreateBucket(expectedBucket, project, &storage.BucketAttrs{
-		Name:         expectedBucket,
-		Location:     defaultRegion,
-		StorageClass: defaultStorageClass,
-	}).Return(nil)
 
 	mockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
 	first := mockBucketIterator.EXPECT().Next().Return(anotherBucketAttrs, nil)
@@ -343,25 +360,15 @@ func TestCreateScratchBucketErrorWhenCreatingBucket(t *testing.T) {
 
 	gomock.InOrder(first, second, third)
 
-	secondMockBucketIterator := mocks.NewMockBucketIteratorInterface(mockCtrl)
-	first = secondMockBucketIterator.EXPECT().Next().Return(anotherBucketAttrs, nil)
-	second = secondMockBucketIterator.EXPECT().Next().Return(nil, iterator.Done)
-
-	gomock.InOrder(first, second)
-
 	mockBucketIteratorCreator := mocks.NewMockBucketIteratorCreatorInterface(mockCtrl)
 	mockBucketIteratorCreator.EXPECT().
 		CreateBucketIterator(ctx, mockStorageClient, project).
 		Return(mockBucketIterator)
-	mockBucketIteratorCreator.EXPECT().
-		CreateBucketIterator(ctx, mockStorageClient, project).
-		Return(secondMockBucketIterator)
 
 	c := ScratchBucketCreator{mockStorageClient, ctx, mockBucketIteratorCreator}
-	bucket, region, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project)
-	assert.Equal(t, expectedBucket, bucket)
-	assert.Equal(t, expectedRegion, region)
-	assert.Nil(t, err)
+	_, _, err := c.CreateScratchBucket("gs://sourcebucket/sourcefile", project, "")
+	assert.NotNil(t, err)
+	assert.Equal(t, "error creating a bucket", err.Error())
 }
 
 func createMockBucketIteratorWithRandomBuckets(mockCtrl *gomock.Controller, ctx *context.Context,

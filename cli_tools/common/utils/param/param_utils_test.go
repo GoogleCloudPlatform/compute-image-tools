@@ -19,9 +19,11 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
+	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 )
 
 func TestGetRegion(t *testing.T) {
@@ -38,7 +40,7 @@ func TestGetRegion(t *testing.T) {
 
 	for _, test := range tests {
 		zone := &test.input
-		got, err := GetRegion(*zone)
+		got, err := paramhelper.GetRegion(*zone)
 		if test.want != got {
 			t.Errorf("%v != %v", test.want, got)
 		} else if err != test.err && test.err.Error() != err.Error() {
@@ -173,8 +175,9 @@ func TestPopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *
 	defer mockCtrl.Finish()
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false)
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockScratchBucketCreator.EXPECT().CreateScratchBucket(file, project).Return("", "", fmt.Errorf("err"))
+	mockScratchBucketCreator.EXPECT().CreateScratchBucket(file, project, zone).Return("", "", fmt.Errorf("err"))
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
@@ -273,10 +276,11 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 	defer mockCtrl.Finish()
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false)
 
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockScratchBucketCreator.EXPECT().
-		CreateScratchBucket(file, project).
+		CreateScratchBucket(file, project, zone).
 		Return(expectedBucketName, expectedRegion, nil).
 		Times(1)
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
@@ -288,9 +292,46 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 
 	assert.Nil(t, err)
 	assert.Equal(t, "a_project", project)
-	assert.Equal(t, "europe-north1-c", zone)
-	assert.Equal(t, "europe-north1", region)
-	assert.Equal(t, "gs://new_scratch_bucket/", scratchBucketGcsPath)
+	assert.Equal(t, expectedZone, zone)
+	assert.Equal(t, expectedRegion, region)
+	assert.Equal(t, fmt.Sprintf("gs://%v/", expectedBucketName), scratchBucketGcsPath)
+}
+
+func TestPopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t *testing.T) {
+	project := "a_project"
+	zone := ""
+	region := ""
+	scratchBucketGcsPath := ""
+
+	file := "gs://sourcebucket/sourcefile"
+	expectedBucketName := "new_scratch_bucket"
+	expectedRegion := "europe-north1"
+	expectedZone := "europe-north1-c"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(true)
+	mockMetadataGce.EXPECT().Zone().Return(expectedZone, nil)
+
+	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
+	mockScratchBucketCreator.EXPECT().
+		CreateScratchBucket(file, project, expectedZone).
+		Return(expectedBucketName, expectedRegion, nil).
+		Times(1)
+	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
+	mockZoneRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+
+	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath, file,
+		mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "a_project", project)
+	assert.Equal(t, expectedZone, zone)
+	assert.Equal(t, expectedRegion, region)
+	assert.Equal(t, fmt.Sprintf("gs://%v/", expectedBucketName), scratchBucketGcsPath)
 }
 
 func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
