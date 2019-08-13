@@ -162,7 +162,7 @@ func TestSuite(
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"windows-startup-script-ps1", startupScriptWindowsSingleDisk),
 			assertTimeout:         7200 * time.Second,
-			expectedMachineType:   "n1-highmem-2",
+			expectedMachineType:   "n2-standard-2",
 			expectedStartupOutput: "All Tests Passed",
 		},
 	}
