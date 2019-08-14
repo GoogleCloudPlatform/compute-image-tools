@@ -599,7 +599,7 @@ func (w *Workflow) runStep(ctx context.Context, s *Step) dErr {
 	case err := <-e:
 		return err
 	case <-timeout:
-		return errf("step %q did not complete within the specified timeout of %s", s.name, s.timeout)
+		return s.getTimeoutError()
 	}
 }
 
