@@ -78,7 +78,7 @@
         }
       ],
       "Timeout": "60m",
-      "ErrorDescription": "This might indicate the disk is not bootable in Google Compute Engine. Make sure the disk satisfies the requirements documented at https://cloud.google.com/compute/docs/import/importing-virtual-disks."
+      "TimeoutDescription": "Ensure that the disk is bootable on Google Compute Engine. For more information about disk requirements for import, see [Importing virtual disks](https://cloud.google.com/compute/docs/import/importing-virtual-disks)."
     },
     "delete-instance": {
       "DeleteResources": {

@@ -38,8 +38,8 @@ type Step struct {
 	name string
 	w    *Workflow
 
-	//Run error description
-	ErrorDescription string `json:",omitempty"`
+	//Timeout description
+	TimeoutDescription string `json:",omitempty"`
 	// Time to wait for this step to complete (default 10m).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
 	Timeout string `json:",omitempty"`
@@ -311,10 +311,10 @@ func (s *Step) wrapValidateError(e dErr) dErr {
 }
 
 func (s *Step) getTimeoutError() dErr {
-	var errorDescription string
-	if s.ErrorDescription != "" {
-		errorDescription = fmt.Sprintf(". %s", s.ErrorDescription)
+	var timeoutDescription string
+	if s.TimeoutDescription != "" {
+		timeoutDescription = fmt.Sprintf(". %s", s.TimeoutDescription)
 	}
 
-	return errf("step %q did not complete within the specified timeout of %s%s", s.name, s.timeout, errorDescription)
+	return errf("step %q did not complete within the specified timeout of %s%s", s.name, s.timeout, timeoutDescription)
 }
