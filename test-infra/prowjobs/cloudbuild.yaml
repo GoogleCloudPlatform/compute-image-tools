@@ -3,6 +3,8 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/wrapper:latest', '--tag=gcr.io/$PROJECT_ID/wrapper:$COMMIT_SHA', './test-infra/prowjobs/wrapper']
 - name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/wrapper-with-gcloud:latest', '--tag=gcr.io/$PROJECT_ID/wrapper-with-gcloud:$COMMIT_SHA', './test-infra/prowjobs/wrapper/DockerfileWithGcloud']
+- name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gocheck:latest', '--tag=gcr.io/$PROJECT_ID/gocheck:$COMMIT_SHA', './test-infra/prowjobs/gocheck']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gobuild:latest', '--tag=gcr.io/$PROJECT_ID/gobuild:$COMMIT_SHA', './test-infra/prowjobs/gobuild']

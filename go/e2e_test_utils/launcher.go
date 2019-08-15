@@ -43,6 +43,16 @@ var (
 // LaunchTests launches tests by the test framework
 func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
 	loggerPrefix string) {
+
+	if hasError := RunTestsAndOutput(testFunctions, loggerPrefix); hasError {
+		os.Exit(1)
+	}
+}
+
+// RunTestsAndOutput runs tests by the test framework and output results to given file
+func RunTestsAndOutput(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
+	loggerPrefix string) bool {
+
 	flag.Parse()
 	ctx := context.Background()
 	pr := getProject(ctx)
@@ -54,8 +64,7 @@ func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *ju
 	testResultChan := runTests(ctx, testFunctions, logger, testSuiteRegex, testCaseRegex, pr)
 
 	testSuites := outputTestResultToFile(testResultChan, logger)
-	outputTestResultToLogger(testSuites, logger)
-	logger.Print("All test cases completed successfully.")
+	return outputTestResultToLogger(testSuites, logger)
 }
 
 func getProject(ctx context.Context) *testconfig.Project {
@@ -130,7 +139,7 @@ func outputTestResultToFile(tests chan *junitxml.TestSuite, logger *log.Logger) 
 	return testSuites
 }
 
-func outputTestResultToLogger(testSuites []*junitxml.TestSuite, logger *log.Logger) {
+func outputTestResultToLogger(testSuites []*junitxml.TestSuite, logger *log.Logger) bool {
 	var buf bytes.Buffer
 	for _, ts := range testSuites {
 		if ts.Failures > 0 {
@@ -144,6 +153,9 @@ func outputTestResultToLogger(testSuites []*junitxml.TestSuite, logger *log.Logg
 		}
 	}
 	if buf.Len() > 0 {
-		logger.Fatalf("%sExiting with exit code 1", buf.String())
+		logger.Printf("%sExiting with exit code 1\n", buf.String())
+		return false
 	}
+	logger.Println("All test cases completed successfully.")
+	return true
 }

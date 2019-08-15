@@ -34,121 +34,174 @@ const (
 )
 
 // TestSuite is image export test suite.
-func TestSuite(
-	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
-	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project) {
+func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
+	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 
-	imageExportRawTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export Raw"))
-	imageExportVMDKTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export VMDK"))
-	imageExportWithRichParamsTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export with rich params"))
-	imageExportWithSubnetWithoutNetworkTestCase := junitxml.NewTestCase(
-		testSuiteName, fmt.Sprintf("[ImageExport] %v", "Export with subnet but without network"))
-
-	testsMap := map[*junitxml.TestCase]func(
-		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project){
-		imageExportRawTestCase:                      runImageExportRawTest,
-		imageExportVMDKTestCase:                     runImageExportVMDKTest,
-		imageExportWithRichParamsTestCase:           runImageExportWithRichParamsTest,
-		imageExportWithSubnetWithoutNetworkTestCase: runImageExportWithSubnetWithoutNetworkParamsTest,
+	testTypes := []testsuiteutils.TestType{
+		testsuiteutils.Wrapper,
+		testsuiteutils.GcloudProdWrapperLatest,
+		testsuiteutils.GcloudLatestWrapperLatest,
 	}
 
-	testsuiteutils.TestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
-		testProjectConfig, testSuiteName, testsMap)
+	testsMap := map[testsuiteutils.TestType]map[*junitxml.TestCase]func(
+		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, testsuiteutils.TestType){}
+
+	for _, testType := range testTypes {
+		imageExportRawTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export Raw"))
+		imageExportVMDKTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export VMDK"))
+		imageExportWithRichParamsTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export with rich params"))
+		imageExportWithSubnetWithoutNetworkTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export with subnet but without network"))
+
+		testsMap[testType] = map[*junitxml.TestCase]func(
+			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, testsuiteutils.TestType){}
+		testsMap[testType][imageExportRawTestCase] = runImageExportRawTest
+		testsMap[testType][imageExportVMDKTestCase] = runImageExportVMDKTest
+		testsMap[testType][imageExportWithRichParamsTestCase] = runImageExportWithRichParamsTest
+		testsMap[testType][imageExportWithSubnetWithoutNetworkTestCase] = runImageExportWithSubnetWithoutNetworkParamsTest
+	}
+
+	testsuiteutils.TestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex, testProjectConfig, testSuiteName, testsMap)
 }
 
-func runImageExportRawTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runImageExportRawTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType testsuiteutils.TestType) {
 
 	suffix := path.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-raw-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
-	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI)}
-	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
-		logger.Printf("Error running cmd: %v\n", err)
-		testCase.WriteFailure("Error running cmd: %v", err)
-		return
+
+	argsMap := map[testsuiteutils.TestType][]string{
+		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
 	}
 
-	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
+	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
 }
 
-func runImageExportVMDKTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runImageExportVMDKTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+	testProjectConfig *testconfig.Project, testType testsuiteutils.TestType) {
 
 	suffix := path.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-vmdk-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
-	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk"}
-	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
-		logger.Printf("Error running cmd: %v\n", err)
-		testCase.WriteFailure("Error running cmd: %v", err)
-		return
+
+	argsMap := map[testsuiteutils.TestType][]string{
+		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI), "-format=vmdk",
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--destination-uri=%v", fileURI), "--export-format=vmdk", fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--destination-uri=%v", fileURI), "--export-format=vmdk", fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
 	}
 
-	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
+	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
 }
 
 // Test most of params except -oauth, -compute_endpoint_override, and -scratch_bucket_gcs_path
-func runImageExportWithRichParamsTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runImageExportWithRichParamsTest(ctx context.Context, testCase *junitxml.TestCase,
+	logger *log.Logger, testProjectConfig *testconfig.Project, testType testsuiteutils.TestType) {
 
 	suffix := path.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-rich-param-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
-	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
-		fmt.Sprintf("-network=%v-vpc-1", testProjectConfig.TestProjectID),
-		fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
-		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
-		"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
-		"-labels=key1=value1,key2=value"}
-	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
-		logger.Printf("Error running cmd: %v\n", err)
-		testCase.WriteFailure("Error running cmd: %v", err)
-		return
+
+	argsMap := map[testsuiteutils.TestType][]string{
+		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+			fmt.Sprintf("-network=%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+			"-timeout=2h", "-disable_gcs_logging", "-disable_cloud_logging", "-disable_stdout_logging",
+			"-labels=key1=value1,key2=value",
+		},
+		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--network=%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			"--timeout=2h", "--image=e2e-test-image-10g", fmt.Sprintf("--destination-uri=%v", fileURI),
+		},
+		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--network=%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			"--timeout=2h", "--image=e2e-test-image-10g", fmt.Sprintf("--destination-uri=%v", fileURI),
+		},
 	}
 
-	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
+	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
 }
 
-func runImageExportWithSubnetWithoutNetworkParamsTest(
-	ctx context.Context, testCase *junitxml.TestCase,
-	logger *log.Logger, testProjectConfig *testconfig.Project) {
+func runImageExportWithSubnetWithoutNetworkParamsTest(ctx context.Context, testCase *junitxml.TestCase,
+	logger *log.Logger, testProjectConfig *testconfig.Project, testType testsuiteutils.TestType) {
 
 	suffix := path.RandString(5)
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-subnet-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
-	cmd := "gce_vm_image_export"
-	args := []string{"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
-		"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI)}
-	if err := testsuiteutils.RunCliTool(logger, testCase, cmd, args); err != nil {
-		logger.Printf("Error running cmd: %v\n", err)
-		testCase.WriteFailure("Error running cmd: %v", err)
-		return
+
+	argsMap := map[testsuiteutils.TestType][]string{
+		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
+			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
 	}
 
-	verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
+	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
+}
+
+func runExportTest(ctx context.Context, args []string, testType testsuiteutils.TestType,
+	logger *log.Logger, testCase *junitxml.TestCase, bucketName string, objectName string) {
+
+	cmds := map[testsuiteutils.TestType]string{
+		testsuiteutils.Wrapper:                   "./gce_vm_image_export",
+		testsuiteutils.GcloudProdWrapperLatest:   "gcloud",
+		testsuiteutils.GcloudLatestWrapperLatest: "gcloud",
+	}
+
+	if testsuiteutils.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
+		verifyExportedImageFile(ctx, testCase, bucketName, objectName, logger)
+	}
 }
 
 func verifyExportedImageFile(ctx context.Context, testCase *junitxml.TestCase, bucketName string,
 	objectName string, logger *log.Logger) {
+
 	logger.Printf("Verifying exported file...")
 	file, err := storage.CreateFileObject(ctx, bucketName, objectName)
 	if err != nil {

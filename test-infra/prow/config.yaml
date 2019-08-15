@@ -216,7 +216,7 @@ periodics:
          args:
            - "-out_dir=/artifacts"
            - "-test_project_id=compute-image-test-pool-001"
-           - "-test_zone=us-central1-c"
+           - "-test_zone=us-central1-b"
          volumeMounts:
            - name: compute-image-tools-test-service-account
              mountPath: /etc/compute-image-tools-test-service-account
