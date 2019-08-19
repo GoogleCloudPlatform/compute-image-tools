@@ -36,6 +36,18 @@ echo "DISKNAME: ${DISKNAME}" 2> /dev/null
 echo "ME: ${ME}" 2> /dev/null
 echo "ZONE: ${ZONE}" 2> /dev/null
 
+function resizeDisk() {
+  local diskId="${1}"
+  local newSizeInGb="${2}"
+  local zone="${3}"
+
+  echo "Import: Resizing ${diskId} to ${newSizeInGb}GB in ${zone}."
+  if ! out=$(gcloud -q compute disks resize ${diskId} --size=${newSizeInGb}GB --zone=${zone} 2>&1); then
+    echo "ImportFailed: Failed to resize ${diskId} to ${newSizeInGb}GB in ${zone}, error: ${out}"
+    exit
+  fi
+}
+
 # Mount GCS bucket containing the disk image.
 mkdir -p /gcs/${SOURCEBUCKET}
 gcsfuse --implicit-dirs ${SOURCEBUCKET} /gcs/${SOURCEBUCKET}
@@ -57,22 +69,17 @@ SIZE_GB=$(awk "BEGIN {print int((${SIZE_BYTES}/1000000000)+ 1)}")
 
 echo "Import: Importing ${SOURCEPATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
 
-# Resize the disk if its bigger than 10GB and attach it.
+# Ensure the disk referenced by $DISKNAME is large enough to
+# hold the inflated disk. For the common case, we initialize
+# it to have a capacity of 10 GB, and then resize it if qemu-img
+# tells us that it will be larger than 10 GB.
 if [[ ${SIZE_GB} -gt 10 ]]; then
-  if ! out=$(gcloud -q compute disks resize ${DISKNAME} --size=${SIZE_GB}GB --zone=${ZONE} 2>&1); then
-    echo "ImportFailed: Failed to resize ${DISKNAME} to ${SIZE_GB}GB in ${ZONE}, error: ${out}"
-    exit
-  fi
+  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}"
 fi
-echo ${out}
 
-if ! out=$(gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE} 2>&1); then
-  echo "ImportFailed: Failed to attach ${DISKNAME} to ${ME}, error: ${out}"
-  exit
-fi
-echo ${out}
-
-# Write imported disk to GCE disk.
+# Decompress the image and write it to the disk referenced by $DISKNAME.
+# /dev/sdb is used since it's the second disk that is attached
+# in import_disk.wf.json.
 if ! out=$(qemu-img convert /gcs/${SOURCEPATH} -p -O raw -S 512b /dev/sdb 2>&1); then
   echo "ImportFailed: Failed to convert source to raw, error: ${out}"
   exit
