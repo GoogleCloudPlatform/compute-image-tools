@@ -31,12 +31,11 @@ RUN CGO_ENABLED=0 go build -o /gce_vm_image_export github.com/GoogleCloudPlatfor
 RUN chmod +x /gce_vm_image_export
 
 # Prepare content of docker
-FROM gcr.io/compute-image-tools-test/wrapper:latest
+FROM gcr.io/compute-image-tools-test/wrapper-with-gcloud:latest
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /gce_image_import_export_test_runner gce_image_import_export_test_runner
 COPY --from=0 /gce_vm_image_import gce_vm_image_import
 COPY --from=0 /gce_vm_image_export gce_vm_image_export
 COPY /daisy_workflows/ /daisy_workflows/
-
 ENTRYPOINT ["./wrapper", "./gce_image_import_export_test_runner"]
