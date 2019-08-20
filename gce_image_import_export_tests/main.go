@@ -29,13 +29,13 @@ import (
 )
 
 func main() {
-	exportTestFail := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+	exportTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
 		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){exporttestsuites.TestSuite},
 		"[ImageExportTests]")
-	importTestFail := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+	importTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
 		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){importtestsuites.TestSuite},
 		"[ImageImportTests]")
-	if exportTestFail || importTestFail {
+	if !exportTestSuccess || !importTestSuccess {
 		os.Exit(1)
 	}
 }
