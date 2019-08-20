@@ -82,6 +82,10 @@ func TestIncludeWorkflowPopulate(t *testing.T) {
 			},
 		},
 	}
+	// Register the 'got' workflow attrs with values from the 'want'
+	// workflow. This is done by populateStep, so it must be done here too
+	// for these objects to match.
+	want.includeWorkflow(got)
 
 	// Fixes for pretty.Compare.
 	for _, wf := range []*Workflow{got, want} {
@@ -108,7 +112,8 @@ func TestIncludeWorkflowRun(t *testing.T) {}
 func TestIncludeWorkflowValidate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
-	iw := w.NewIncludedWorkflow()
+	iw := New()
+	w.includeWorkflow(iw)
 	dCreator, _ := w.NewStep("dCreator")
 	dCreator.CreateImages = &CreateImages{}
 	incStep, _ := w.NewStep("incStep")

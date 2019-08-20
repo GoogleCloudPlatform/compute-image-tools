@@ -106,14 +106,20 @@ func TestDiskRegAttach(t *testing.T) {
 	// iw2:
 	// iw2SubStep
 	w := testWorkflow()
-	iw := w.NewIncludedWorkflow()
-	iw2 := w.NewIncludedWorkflow()
+
+	iw := New()
+	w.includeWorkflow(iw)
+	iw2 := New()
+	w.includeWorkflow(iw2)
+
 	iwStep, e1 := w.NewStep("iwStep")
 	iwStep.IncludeWorkflow = &IncludeWorkflow{Workflow: iw}
 	iwSubStep, e2 := iw.NewStep("iwSubStep")
+
 	iw2Step, e3 := w.NewStep("iw2Step")
 	iw2Step.IncludeWorkflow = &IncludeWorkflow{Workflow: iw2}
 	iw2SubStep, e4 := iw2.NewStep("iw2SubStep")
+
 	s, e5 := w.NewStep("s")
 	s2, e6 := w.NewStep("s2")
 	att, e7 := w.NewStep("att")
