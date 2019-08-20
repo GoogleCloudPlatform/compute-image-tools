@@ -55,6 +55,7 @@ func buildPkgInstallTestSetup(name, image, pkgManager, key string) *guestPolicyT
 		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
 		PackageRepositories: []*osconfigpb.PackageRepository{
 			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildGooRepository("Google OSConfig Agent Test Repository", gooTestRepoURL)},
+			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)},
 		},
 	}
 	ss := getStartupScript(name, pkgManager, packageName)
@@ -69,7 +70,7 @@ func addPackageInstallTest(key string) []*guestPolicyTestSetup {
 	for name, image := range utils.HeadELImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgInstallTestSetup(name, image, "yum", key))
 	}
-	for name, image := range utils.HeadSLESImages {
+	for name, image := range utils.HeadSUSEImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgInstallTestSetup(name, image, "zypper", key))
 	}
 	for name, image := range utils.HeadWindowsImages {
@@ -107,7 +108,7 @@ func addPackageUpdateTest(key string) []*guestPolicyTestSetup {
 	for name, image := range utils.HeadELImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgUpdateTestSetup(name, image, "yum", key))
 	}
-	for name, image := range utils.HeadSLESImages {
+	for name, image := range utils.HeadSUSEImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgUpdateTestSetup(name, image, "zypper", key))
 	}
 	for name, image := range utils.HeadWindowsImages {
@@ -146,7 +147,7 @@ func addPackageDoesNotUpdateTest(key string) []*guestPolicyTestSetup {
 	for name, image := range utils.HeadELImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgDoesNotUpdateTestSetup(name, image, "yum", key))
 	}
-	for name, image := range utils.HeadSLESImages {
+	for name, image := range utils.HeadSUSEImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgDoesNotUpdateTestSetup(name, image, "zypper", key))
 	}
 	for name, image := range utils.HeadWindowsImages {
@@ -182,7 +183,7 @@ func addPackageRemovalTest(key string) []*guestPolicyTestSetup {
 	for name, image := range utils.HeadELImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgRemoveTestSetup(name, image, "yum", key))
 	}
-	for name, image := range utils.HeadSLESImages {
+	for name, image := range utils.HeadSUSEImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgRemoveTestSetup(name, image, "zypper", key))
 	}
 	for name, image := range utils.HeadWindowsImages {
@@ -224,7 +225,7 @@ func addPackageInstallFromNewRepoTest(key string) []*guestPolicyTestSetup {
 	for name, image := range utils.HeadELImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgInstallFromNewRepoTestSetup(name, image, "yum", key))
 	}
-	for name, image := range utils.HeadSLESImages {
+	for name, image := range utils.HeadSUSEImages {
 		pkgTestSetup = append(pkgTestSetup, buildPkgInstallFromNewRepoTestSetup(name, image, "zypper", key))
 	}
 	for name, image := range utils.HeadWindowsImages {

@@ -100,7 +100,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	el7Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+"yum install -y yum-utils\n"+utils.InstallOSConfigEL7()),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL7()),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -108,7 +108,15 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	el8Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+"yum install -y yum-utils\n"+utils.InstallOSConfigEL8()),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL8()),
+			enablePatch,
+		},
+		machineType: "n1-standard-2",
+	}
+	suseSetup = &patchTestSetup{
+		assertTimeout: 10 * time.Minute,
+		metadata: []*computeApi.MetadataItems{
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigSUSE()),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -135,6 +143,7 @@ func headImageTestSetup() []*patchTestSetup {
 		el7Setup:     utils.HeadEL7Images,
 		el8Setup:     utils.HeadEL8Images,
 		aptSetup:     utils.HeadAptImages,
+		suseSetup:    utils.HeadSUSEImages,
 	}
 
 	return imageTestSetup(mapping)
@@ -147,6 +156,7 @@ func oldImageTestSetup() []*patchTestSetup {
 		el6Setup:     utils.OldEL6Images,
 		el7Setup:     utils.OldEL7Images,
 		aptSetup:     utils.OldAptImages,
+		suseSetup:    utils.OldSUSEImages,
 	}
 
 	return imageTestSetup(mapping)

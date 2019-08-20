@@ -87,6 +87,22 @@ while(1) {
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, packageInstalled, packageNotInstalled)
 		key = "windows-startup-script-ps1"
 
+	case "zypper":
+		ss = `%s
+while true; do
+  isinstalled=$(/usr/bin/rpmquery -a %s)
+  if [[ $isinstalled =~ ^%s-* ]]; then
+	uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s
+	curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
+  else
+	uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s
+	curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
+  fi
+  sleep 5
+done`
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigSUSE(), packageName, packageInstalled, packageNotInstalled)
+		key = "startup-script"
+
 	default:
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
 	}
@@ -189,6 +205,40 @@ while(1) {
 }`
 		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, packageInstalled, packageNotInstalled)
 		key = "windows-startup-script-ps1"
+
+	case "zypper":
+		ss = `%s
+sleep 20
+[test-repo]
+name=test repo
+baseurl=https://packages.cloud.google.com/yum/repos/osconfig-agent-test-repository
+enabled=1
+gpgcheck=0
+EOM
+n=0
+while ! yum -y remove %[2]s; do
+  if [[ n -gt 5 ]]; then
+    exit 1
+  fi
+  n=$[$n+1]
+  sleep 10
+done
+zypper -n --no-gpg-checks install %[2]s-3.03-2.fc7 || exit 1
+systemctl restart google-osconfig-agent
+sleep 20
+while true; do
+  isinstalled=$(/usr/bin/rpmquery -a %[2]s)
+  if [[ $isinstalled =~ 3.03-2.fc7 ]]; then
+    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[3]s
+    curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
+  else
+    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[4]s
+    curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
+  fi
+  sleep 5
+done`
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigSUSE(), packageName, packageInstalled, packageNotInstalled)
+		key = "startup-script"
 
 	default:
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))

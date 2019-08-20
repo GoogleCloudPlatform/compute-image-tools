@@ -106,7 +106,7 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	go inst.StreamSerialOutput(ctx, storageClient, path.Join(testSuiteName, config.LogsPath()), config.LogBucket(), logwg, 1, config.LogPushInterval())
 
 	testCase.Logf("Waiting for agent install to complete")
-	if _, err := inst.WaitForGuestAttributes("osconfig_tests/install_done", 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/install_done", 5*time.Second, 10*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return nil, false
 	}

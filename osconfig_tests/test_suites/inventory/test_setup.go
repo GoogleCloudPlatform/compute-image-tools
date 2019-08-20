@@ -64,6 +64,12 @@ var el8Setup = &inventoryTestSetup{
 	machineType: "n1-standard-2",
 }
 
+var suseSetup = &inventoryTestSetup{
+	packageType: []string{"zypper"},
+	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigSUSE()),
+	machineType: "n1-standard-2",
+}
+
 func headImageTestSetup() (setup []*inventoryTestSetup) {
 	// This maps a specific inventoryTestSetup to test setup names and associated images.
 	headTestSetupMapping := map[*inventoryTestSetup]map[string]string{
@@ -72,6 +78,7 @@ func headImageTestSetup() (setup []*inventoryTestSetup) {
 		el7Setup:     utils.HeadEL7Images,
 		el8Setup:     utils.HeadEL8Images,
 		aptSetup:     utils.HeadAptImages,
+		suseSetup:    utils.HeadSUSEImages,
 	}
 
 	for s, m := range headTestSetupMapping {
@@ -87,6 +94,10 @@ func headImageTestSetup() (setup []*inventoryTestSetup) {
 				new.shortName = "debian"
 			} else if strings.Contains(name, "ubuntu") {
 				new.shortName = "ubuntu"
+			} else if strings.Contains(name, "sles") {
+				new.shortName = "sles"
+			} else if strings.Contains(name, "opensuse-leap") {
+				new.shortName = "opensuse-leap"
 			}
 			setup = append(setup, &new)
 		}

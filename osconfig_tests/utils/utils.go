@@ -37,6 +37,15 @@ n=$[$n+1]
 sleep 5
 done` + curlPost
 
+	zypperInstallAgent = `
+while ! zypper -n --no-gpg-checks install google-osconfig-agent; do
+if [[ n -gt 3 ]]; then
+  exit 1
+fi
+n=$[$n+1]
+sleep 5
+done` + curlPost
+
 	curlPost = `
 uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done
 curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
@@ -50,6 +59,18 @@ Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"}
 
 	yumRepoSetup = `
 cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
+[google-osconfig-agent]
+name=Google OSConfig Agent Repository
+baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-%s-%s
+enabled=1
+gpgcheck=0
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+		https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+EOM`
+
+	zypperRepoSetup = `
+cat > /etc/zypp/repos.d/google-osconfig-agent.repo <<EOM
 [google-osconfig-agent]
 name=Google OSConfig Agent Repository
 baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-%s-%s
@@ -75,6 +96,14 @@ func InstallOSConfigGooGet() string {
 		return `c:\programdata\googet\googet.exe -noconfirm install google-osconfig-agent` + windowsPost
 	}
 	return fmt.Sprintf(`c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-%s google-osconfig-agent`+windowsPost, config.AgentRepo())
+}
+
+// InstallOSConfigSUSE installs the osconfig agent on suse systems.
+func InstallOSConfigSUSE() string {
+	if config.AgentRepo() == "stable" {
+		return zypperInstallAgent
+	}
+	return fmt.Sprintf(zypperRepoSetup+zypperInstallAgent, "el8", config.AgentRepo())
 }
 
 // InstallOSConfigEL8 installs the osconfig agent on el8 based systems.
@@ -123,8 +152,21 @@ var OldAptImages = map[string]string{
 	"old/ubuntu-1804-lts": "projects/ubuntu-os-cloud/global/images/ubuntu-1804-bionic-v20190122",
 }
 
-// HeadSLESImages is a map of names to image paths for public SLES images.
-var HeadSLESImages = map[string]string{}
+// HeadSUSEImages is a map of names to image paths for public SUSE images.
+var HeadSUSEImages = map[string]string{
+	"suse-cloud/sles-12": "projects/suse-cloud/global/images/family/sles-12",
+	"suse-cloud/sles-15": "projects/suse-cloud/global/images/family/sles-15",
+
+	"opensuse-cloud/opensuse-leap": "projects/opensuse-cloud/global/images/family/opensuse-leap",
+}
+
+// OldSUSEImages is a map of names to image paths for old SUSE images.
+var OldSUSEImages = map[string]string{
+	"old/sles-12": "projects/suse-cloud/global/images/sles-12-sp4-v20190221",
+	"old/sles-15": "projects/suse-cloud/global/images/sles-15-v20190221",
+
+	"old/opensuse-leap": "projects/opensuse-cloud/global/images/opensuse-leap-15-1-v20190618",
+}
 
 // HeadEL6Images is a map of names to image paths for public EL6 image families.
 var HeadEL6Images = map[string]string{
