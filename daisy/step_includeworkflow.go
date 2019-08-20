@@ -38,10 +38,11 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 		if i.Workflow, err = s.w.NewIncludedWorkflowFromFile(i.Path); err != nil {
 			return newErr(err)
 		}
-	}
-
-	if i.Workflow == nil {
-		return errf("IncludeWorkflow %q does not have a workflow", s.name)
+	} else {
+		if i.Workflow == nil {
+			return errf("IncludeWorkflow %q does not have a workflow", s.name)
+		}
+		s.w.includeWorkflow(i.Workflow)
 	}
 
 	i.Workflow.id = i.Workflow.parent.id
