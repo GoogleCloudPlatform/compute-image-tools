@@ -173,7 +173,7 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	defer inst.Cleanup()
 
 	testCase.Logf("Waiting for agent install to complete")
-	if _, err := inst.WaitForGuestAttributes("osconfig_tests/install_done", 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/install_done", 5*time.Second, 15*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return
 	}
@@ -224,7 +224,7 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	defer inst.Cleanup()
 
 	testCase.Logf("Waiting for agent install to complete")
-	if _, err := inst.WaitForGuestAttributes("osconfig_tests/install_done", 5*time.Second, 5*time.Minute); err != nil {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/install_done", 5*time.Second, 15*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
 		return
 	}
