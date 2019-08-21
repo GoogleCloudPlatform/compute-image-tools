@@ -61,9 +61,24 @@ Variables:
 * **freebsd/translate_freebsd.wf.json**: translates a FreeBSD based virtual disk.
 * **ubuntu/translate_ubuntu_1404.wf.json**: translates an Ubuntu 14.04 Trusty based virtual disk.
 * **ubuntu/translate_ubuntu_1604.wf.json**: translates an Ubuntu 16.04 Xenial based virtual disk.
-* **windows/translate_windows_2008_r2.wf.json**: translates a Windows 2008R2 based virtual disk.
-* **windows/translate_windows_2012_r2.wf.json**: translates a Windows 2012R2 based virtual disk.
-* **windows/translate_windows_2016.wf.json**: translates a Windows 2016 based virtual disk.
+
+If you are using a Google provided license for Windows, but want to import a
+custom disk image, use the following import workflows:
+* **windows/translate_windows_2008_r2.wf.json**: Windows Server 2008r2
+* **windows/translate_windows_2012.wf.json**: Windows Server 2012
+* **windows/translate_windows_2012_r2.wf.json**: Windows Server 2012r2
+* **windows/translate_windows_2016.wf.json**: Windows Server 2016
+* **windows/translate_windows_2019.wf.json**: Windows Server 2019
+
+If you are bringing a license and disk image for Windows, use the following import workflows:
+* **windows/translate_windows_2008_r2_byol.wf.json**: Windows Server 2008r2
+* **windows/translate_windows_2012_byol.wf.json**: Windows Server 2012
+* **windows/translate_windows_2012_r2_byol.wf.json**: Windows Server 2012r2
+* **windows/translate_windows_2016_byol.wf.json**: Windows Server 2016
+* **windows/translate_windows_2019_byol.wf.json**: Windows Server 2019
+* **windows/translate_windows_7_byol.wf.json**: Windows 7 x64
+* **windows/translate_windows_8-1_x64_byol.wf.json**: Windows 8.1 x64
+* **windows/translate_windows_10_byol.wf.json**: Windows 10 x64
 
 Example Daisy invocation:
 ```shell
