@@ -277,8 +277,8 @@ func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, e
 			return "", err
 		}
 	}
-	return pathutils.JoinURL(oi.params.ScratchBucketGcsPath, fmt.Sprintf("ovf-import-%v", oi.buildID)),
-		nil
+	return pathutils.JoinURL(oi.params.ScratchBucketGcsPath,
+		fmt.Sprintf("ovf-import-%v", oi.buildID)), nil
 }
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
@@ -339,6 +339,9 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	if region, err = oi.getRegion(zone); err != nil {
 		return nil, err
 	}
+	if err := validateReleaseTrack(oi.params.ReleaseTrack); err != nil {
+		return nil, err
+	}
 	if oi.params.ReleaseTrack == Alpha || oi.params.ReleaseTrack == Beta {
 		oi.imageLocation = region
 	}
@@ -395,6 +398,13 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		return nil, fmt.Errorf("error parsing workflow %q: %v", ovfImportWorkflow, err)
 	}
 	return workflow, nil
+}
+
+func validateReleaseTrack(releaseTrack string) error {
+	if releaseTrack != "" && releaseTrack != Alpha && releaseTrack != Beta && releaseTrack != GA {
+		return fmt.Errorf("invalid value for release-track flag: %v", releaseTrack)
+	}
+	return nil
 }
 
 // Import runs OVF import
