@@ -208,6 +208,7 @@ func TestUpdateWorkflowImageStorageLocationSet(t *testing.T) {
 	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.Labels, "gce-image-import",
 		buildID, &existingLabels)
 
+	assert.Equal(t, 1, len((*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.StorageLocations))
 	assert.Equal(t, "europe-west5", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.StorageLocations[0])
 }
 
