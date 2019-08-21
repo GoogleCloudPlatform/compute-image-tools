@@ -30,10 +30,11 @@ const (
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []*InstanceSignal
 
-type failureMatches []string
+// FailureMatches is a list of matching failure strings.
+type FailureMatches []string
 
-// UnmarshalJSON unmarshals failureMatches.
-func (fms *failureMatches) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON unmarshals FailureMatches.
+func (fms *FailureMatches) UnmarshalJSON(b []byte) error {
 	var s string
 	if err := json.Unmarshal(b, &s); err == nil {
 		*fms = []string{s}
@@ -46,7 +47,7 @@ func (fms *failureMatches) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	*fms = failureMatches(ss)
+	*fms = FailureMatches(ss)
 	return nil
 }
 
@@ -58,7 +59,7 @@ func (fms *failureMatches) UnmarshalJSON(b []byte) error {
 type SerialOutput struct {
 	Port         int64          `json:",omitempty"`
 	SuccessMatch string         `json:",omitempty"`
-	FailureMatch failureMatches `json:"failureMatch,omitempty"`
+	FailureMatch FailureMatches `json:"failureMatch,omitempty"`
 	StatusMatch  string         `json:",omitempty"`
 }
 

@@ -492,9 +492,7 @@ func (w *Workflow) AddDependency(dependent *Step, dependencies ...*Step) error {
 	return nil
 }
 
-// NewIncludedWorkflow instantiates a new workflow with the same resources as the parent.
-func (w *Workflow) NewIncludedWorkflow() *Workflow {
-	iw := New()
+func (w *Workflow) includeWorkflow(iw *Workflow) {
 	iw.Cancel = w.Cancel
 	iw.parent = w
 	iw.disks = w.disks
@@ -506,7 +504,6 @@ func (w *Workflow) NewIncludedWorkflow() *Workflow {
 	iw.subnetworks = w.subnetworks
 	iw.targetInstances = w.targetInstances
 	iw.objects = w.objects
-	return iw
 }
 
 // ID is the unique identifyier for this Workflow.
@@ -516,7 +513,8 @@ func (w *Workflow) ID() string {
 
 // NewIncludedWorkflowFromFile reads and unmarshals a workflow with the same resources as the parent.
 func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, error) {
-	iw := w.NewIncludedWorkflow()
+	iw := New()
+	w.includeWorkflow(iw)
 	if !filepath.IsAbs(file) {
 		file = filepath.Join(w.workflowDir, file)
 	}
