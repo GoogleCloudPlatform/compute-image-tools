@@ -77,6 +77,12 @@ if [[ ${SIZE_GB} -gt 10 ]]; then
   resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}"
 fi
 
+if ! out=$(gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE} 2>&1); then
+  echo "ImportFailed: Failed to attach ${DISKNAME} to ${ME}, error: ${out}"
+  exit
+fi
+echo ${out}
+
 # Decompress the image and write it to the disk referenced by $DISKNAME.
 # /dev/sdb is used since it's the second disk that is attached
 # in import_disk.wf.json.
