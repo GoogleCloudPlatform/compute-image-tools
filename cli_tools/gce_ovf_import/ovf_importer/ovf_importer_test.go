@@ -107,6 +107,7 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, "oAuthFilePath", w.OAuthPath)
 	assert.Equal(t, "3h", w.DefaultTimeout)
 	assert.Equal(t, 3+3*3, len(w.Steps))
+	assert.Equal(t, "", oi.imageLocation)
 
 	instance := (*w.Steps["create-instance"].CreateInstances)[0].Instance
 	assert.Equal(t, "build123", instance.Labels["gce-ovf-import-build-id"])
@@ -180,6 +181,50 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["userkey2"])
 	assert.Equal(t, "gs://bucket/folder/ovf-import-build123/ovf/", oi.gcsPathToClean)
+}
+
+func TestSetUpWorkflowUsesImageLocationForBetaReleaseTrack(t *testing.T) {
+	doTestSetUpWorkflowUsesImageLocationForReleaseTrack(t, Beta)
+}
+
+func TestSetUpWorkflowUsesImageLocationForAlphaReleaseTrack(t *testing.T) {
+	doTestSetUpWorkflowUsesImageLocationForReleaseTrack(t, Alpha)
+}
+
+func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(t *testing.T, releaseTrack string) {
+	params := GetAllParams()
+	params.ReleaseTrack = releaseTrack
+	params.Zone = "europe-west2-b"
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockComputeClient := mocks.NewMockClient(mockCtrl)
+	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+	mockOvfDescriptorLoader.EXPECT().Load("gs://bucket/folder/ovf-import-build123/ovf/").Return(
+		createOVFDescriptor(), nil)
+	mockMockTarGcsExtractorInterface := mocks.NewMockTarGcsExtractorInterface(mockCtrl)
+	mockMockTarGcsExtractorInterface.EXPECT().ExtractTarToGcs(
+		"gs://ovfbucket/ovfpath/vmware.ova", "gs://bucket/folder/ovf-import-build123/ovf").
+		Return(nil).Times(1)
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid("aProject", "europe-west2-b").Return(nil)
+	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
+		storageClient: mockStorageClient, computeClient: mockComputeClient, buildID: "build123",
+		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
+		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+	w, err := oi.setUpImportWorkflow()
+
+	assert.Nil(t, err)
+	assert.NotNil(t, w)
+
+	oi.modifyWorkflowPreValidate(w)
+	oi.modifyWorkflowPostValidate(w)
+
+	imageBeta := (*w.Steps["create-image"].CreateImages).ImagesBeta[0].Image
+	assert.Equal(t, "europe-west2", imageBeta.StorageLocations[0])
 }
 
 func TestSetUpWorkflowPopulateMissingParametersError(t *testing.T) {

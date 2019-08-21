@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -128,6 +129,30 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 						},
 					},
 				},
+				ImagesBeta: []*daisy.ImageBeta{
+					{
+						Image: computeBeta.Image{
+							Name:   "final-image-1",
+							Labels: map[string]string{"labelKey": "labelValue"},
+						},
+					},
+					{
+						Image: computeBeta.Image{
+							Name: "final-image-2",
+						},
+					},
+					{
+						Image: computeBeta.Image{
+							Name:   "untranslated-image-1",
+							Labels: map[string]string{"labelKey": "labelValue"},
+						},
+					},
+					{
+						Image: computeBeta.Image{
+							Name: "untranslated-image-2",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -139,11 +164,51 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 		buildID, &existingLabels)
 	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[1].Image.Labels, "gce-image-import",
 		buildID)
-
 	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[2].Image.Labels,
 		"gce-image-import-tmp", buildID, &existingLabels)
 	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[3].Image.Labels,
 		"gce-image-import-tmp", buildID)
+
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.Labels, "gce-image-import",
+		buildID, &existingLabels)
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[1].Image.Labels, "gce-image-import",
+		buildID)
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[2].Image.Labels,
+		"gce-image-import-tmp", buildID, &existingLabels)
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[3].Image.Labels,
+		"gce-image-import-tmp", buildID)
+
+}
+
+func TestUpdateWorkflowImageStorageLocationSet(t *testing.T) {
+	buildID := "abc"
+
+	w := daisy.New()
+	existingLabels := map[string]string{"labelKey": "labelValue"}
+	w.Steps = map[string]*daisy.Step{
+		"cimg": {
+			CreateImages: &daisy.CreateImages{
+				ImagesBeta: []*daisy.ImageBeta{
+					{
+						Image: computeBeta.Image{
+							Name:   "final-image-1",
+							Labels: map[string]string{"labelKey": "labelValue"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	rl := createTestResourceLabeler(buildID, userLabels)
+	rl.ImageLocation = "europe-west5"
+
+	rl.LabelResources(w)
+
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.Labels, "gce-image-import",
+		buildID, &existingLabels)
+
+	assert.Equal(t, "europe-west5", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.StorageLocations[0])
 }
 
 func createTestResourceLabeler(buildID string, userLabels map[string]string) *ResourceLabeler {

@@ -17,6 +17,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -59,6 +60,7 @@ var (
 	gcsLogsDisabled             = flag.Bool("disable-gcs-logging", false, "do not stream logs to GCS")
 	cloudLogsDisabled           = flag.Bool("disable-cloud-logging", false, "do not stream logs to Cloud Logging")
 	stdoutLogsDisabled          = flag.Bool("disable-stdout-logging", false, "do not display individual workflow logs on stdout")
+	releaseTrack                = flag.String("release-track", ovfimporter.GA, fmt.Sprintf("Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.", ovfimporter.Alpha, ovfimporter.Beta, ovfimporter.GA))
 
 	nodeAffinityLabelsFlag flags.StringArrayFlag
 	currentExecutablePath  string
@@ -77,14 +79,16 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		Labels: *labels, MachineType: *machineType, Network: *network, NetworkTier: *networkTier,
 		Subnet: *subnet, PrivateNetworkIP: *privateNetworkIP, NoExternalIP: *noExternalIP,
 		NoRestartOnFailure: *noRestartOnFailure, OsID: *osID,
-		ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring, ShieldedSecureBoot: *shieldedSecureBoot,
-		ShieldedVtpm: *shieldedVtpm, Tags: *tags,
+		ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring,
+		ShieldedSecureBoot:          *shieldedSecureBoot, ShieldedVtpm: *shieldedVtpm, Tags: *tags,
 		Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey, BootDiskKmsKeyring: *bootDiskKmsKeyring,
 		BootDiskKmsLocation: *bootDiskKmsLocation, BootDiskKmsProject: *bootDiskKmsProject,
 		Timeout: *timeout, Project: *project, ScratchBucketGcsPath: *scratchBucketGcsPath,
 		Oauth: *oauth, Ce: *ce, GcsLogsDisabled: *gcsLogsDisabled,
 		CloudLogsDisabled: *cloudLogsDisabled, StdoutLogsDisabled: *stdoutLogsDisabled,
-		NodeAffinityLabelsFlag: nodeAffinityLabelsFlag, CurrentExecutablePath: currentExecutablePath}
+		NodeAffinityLabelsFlag: nodeAffinityLabelsFlag, CurrentExecutablePath: currentExecutablePath,
+		ReleaseTrack: *releaseTrack,
+	}
 }
 
 func runImport() error {
@@ -92,7 +96,9 @@ func runImport() error {
 	ovfImporter, err := ovfimporter.NewOVFImporter(buildImportParams())
 	if err != nil {
 		logger.Println(err.Error())
-		ovfImporter.CleanUp()
+		if ovfImporter != nil {
+			ovfImporter.CleanUp()
+		}
 		return err
 	}
 	err = ovfImporter.Import()

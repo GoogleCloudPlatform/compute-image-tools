@@ -50,6 +50,17 @@ const (
 	ovfImportWorkflow = ovfWorkflowDir + "import_ovf.wf.json"
 )
 
+const (
+	//Alpha represents alpha release track
+	Alpha = "alpha"
+
+	//Beta represents beta release track
+	Beta = "beta"
+
+	//GA represents GA release track
+	GA = "ga"
+)
+
 // OVFImporter is responsible for importing OVF into GCE
 type OVFImporter struct {
 	ctx                   context.Context
@@ -66,6 +77,7 @@ type OVFImporter struct {
 	buildID               string
 	diskInfos             *[]ovfutils.DiskInfo
 	params                *ovfimportparams.OVFImportParams
+	imageLocation         string
 }
 
 // NewOVFImporter creates an OVF importer, including automatically populating dependencies,
@@ -271,7 +283,10 @@ func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, e
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 	rl := &daisyutils.ResourceLabeler{
-		BuildID: oi.buildID, UserLabels: oi.params.UserLabels, BuildIDLabelKey: "gce-ovf-import-build-id",
+		BuildID:         oi.buildID,
+		UserLabels:      oi.params.UserLabels,
+		BuildIDLabelKey: "gce-ovf-import-build-id",
+		ImageLocation:   oi.imageLocation,
 		InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
 			if strings.ToLower(oi.params.InstanceNames) == instance.Name {
 				return "gce-ovf-import"
@@ -324,6 +339,9 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	if region, err = oi.getRegion(zone); err != nil {
 		return nil, err
 	}
+	if oi.params.ReleaseTrack == Alpha || oi.params.ReleaseTrack == Beta {
+		oi.imageLocation = region
+	}
 
 	tmpGcsPath, err := oi.buildTmpGcsPath(project, region)
 	if err != nil {
@@ -370,8 +388,8 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	varMap := oi.buildDaisyVars(translateWorkflowPath, diskInfos[0].FilePath, machineTypeStr, region)
 
 	workflow, err := daisycommon.ParseWorkflow(oi.workflowPath, varMap, project,
-		zone, oi.params.ScratchBucketGcsPath, oi.params.Oauth, oi.params.Timeout, oi.params.Ce, oi.params.GcsLogsDisabled, oi.params.CloudLogsDisabled,
-		oi.params.StdoutLogsDisabled)
+		zone, oi.params.ScratchBucketGcsPath, oi.params.Oauth, oi.params.Timeout, oi.params.Ce,
+		oi.params.GcsLogsDisabled, oi.params.CloudLogsDisabled, oi.params.StdoutLogsDisabled)
 
 	if err != nil {
 		return nil, fmt.Errorf("error parsing workflow %q: %v", ovfImportWorkflow, err)
