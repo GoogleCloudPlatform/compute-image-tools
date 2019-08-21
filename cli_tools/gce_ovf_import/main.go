@@ -79,15 +79,14 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		Labels: *labels, MachineType: *machineType, Network: *network, NetworkTier: *networkTier,
 		Subnet: *subnet, PrivateNetworkIP: *privateNetworkIP, NoExternalIP: *noExternalIP,
 		NoRestartOnFailure: *noRestartOnFailure, OsID: *osID,
-		ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring,
-		ShieldedSecureBoot:          *shieldedSecureBoot, ShieldedVtpm: *shieldedVtpm, Tags: *tags,
-		Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey, BootDiskKmsKeyring: *bootDiskKmsKeyring,
-		BootDiskKmsLocation: *bootDiskKmsLocation, BootDiskKmsProject: *bootDiskKmsProject,
-		Timeout: *timeout, Project: *project, ScratchBucketGcsPath: *scratchBucketGcsPath,
-		Oauth: *oauth, Ce: *ce, GcsLogsDisabled: *gcsLogsDisabled,
-		CloudLogsDisabled: *cloudLogsDisabled, StdoutLogsDisabled: *stdoutLogsDisabled,
-		NodeAffinityLabelsFlag: nodeAffinityLabelsFlag, CurrentExecutablePath: currentExecutablePath,
-		ReleaseTrack: *releaseTrack,
+		ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring, ShieldedSecureBoot: *shieldedSecureBoot,
+		ShieldedVtpm: *shieldedVtpm, Tags: *tags, Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey,
+		BootDiskKmsKeyring: *bootDiskKmsKeyring, BootDiskKmsLocation: *bootDiskKmsLocation,
+		BootDiskKmsProject: *bootDiskKmsProject, Timeout: *timeout, Project: *project,
+		ScratchBucketGcsPath: *scratchBucketGcsPath, Oauth: *oauth, Ce: *ce,
+		GcsLogsDisabled: *gcsLogsDisabled, CloudLogsDisabled: *cloudLogsDisabled,
+		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
+		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,
 	}
 }
 
