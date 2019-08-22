@@ -48,6 +48,10 @@ def DistroSpecific(g):
 
   if install_gce == 'true':
     logging.info('Installing GCE packages.')
+
+    g.command(['apt-get', 'update'])
+    g.sh('DEBIAN_FRONTEND=noninteractive apt-get install --assume-yes gnupg')
+
     g.command(
         ['wget', 'https://packages.cloud.google.com/apt/doc/apt-key.gpg',
         '-O', '/tmp/gce_key'])
