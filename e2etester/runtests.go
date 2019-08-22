@@ -1,0 +1,594 @@
+//  Copyright 2018 Google Inc. All Rights Reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
+package e2etester
+
+import (
+	"bytes"
+	"context"
+	"encoding/xml"
+	"errors"
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"math/rand"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/google/uuid"
+	"google.golang.org/api/compute/v1"
+)
+
+const (
+	defaultParallelCount = 5
+	timeFormat           = time.RFC3339
+)
+
+var (
+	oauth         = flag.String("oauth", "", "path to oauth json file")
+	projects      = flag.String("projects", "", "comma separated list of projects that can be used for tests")
+	images        = flag.String("images", "", "comma separated list of images to run tests for")
+	zone          = flag.String("zone", "", "zone to use for tests")
+	printTests    = flag.Bool("print", false, "print out the parsed test cases for debugging")
+	validate      = flag.Bool("validate", false, "validate all the test cases and exit")
+	ce            = flag.String("compute_endpoint_override", "", "API endpoint to override default")
+	filter        = flag.String("filter", "", "test name filter")
+	outPath       = flag.String("out_path", "junit.xml", "junit xml path")
+	parallelCount = flag.Int("parallel_count", 0, "TestParallelCount")
+)
+
+// A TestSuite describes the tests to run.
+type TestSuite struct {
+	// Name for this set of tests.
+	Name string
+	// Project pool to use.
+	Projects []string
+	// Images to test.
+	Images []string
+	// Default zone to use.
+	Zone string
+	// The test cases to run.
+	Tests map[string]*TestCase
+	// How many tests to run in parallel.
+	TestParallelCount int
+
+	OAuthPath       string
+	ComputeEndpoint string
+}
+
+// A TestCase is a single test to run.
+type TestCase struct {
+	// Path to the daisy workflow to use.
+	// Each test workflow should manage its own resource creation and cleanup.
+	w      *daisy.Workflow
+	id     string
+	logger *logger
+
+	// Default timeout is 2 hours.
+	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
+	TestTimeout string
+	timeout     time.Duration
+
+	// If set this test will be the only test allowed to run in the project.
+	// This is required for any test that changes project level settings that may
+	// impact other concurrent test runs.
+	// TODO: allow setting these..
+	ProjectLock       bool
+	CustomProjectLock string
+}
+
+type logger struct {
+	buf bytes.Buffer
+	mx  sync.Mutex
+}
+
+func (l *logger) WriteLogEntry(e *daisy.LogEntry) {
+	l.mx.Lock()
+	defer l.mx.Unlock()
+	l.buf.WriteString(e.String())
+}
+
+func (l *logger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {
+	return
+}
+
+func (l *logger) Flush() { return }
+
+func createTestSuite(testHandle interface{}, regex *regexp.Regexp) (*TestSuite, error) {
+	var t TestSuite
+
+	if *projects != "" {
+		t.Projects = strings.Split(*projects, ",")
+	}
+	if len(t.Projects) == 0 {
+		return nil, errors.New("no projects provided")
+	}
+
+	if *images != "" {
+		t.Images = strings.Split(*images, ",")
+	}
+	if len(t.Images) == 0 {
+		return nil, errors.New("no images provided")
+	}
+
+	if *zone != "" {
+		t.Zone = *zone
+	}
+	if *oauth != "" {
+		t.OAuthPath = *oauth
+	}
+	if *ce != "" {
+		t.ComputeEndpoint = *ce
+	}
+	if *parallelCount != 0 {
+		t.TestParallelCount = *parallelCount
+	}
+
+	if t.TestParallelCount == 0 {
+		t.TestParallelCount = defaultParallelCount
+	}
+
+	fmt.Printf("[TestRunner] Creating test cases\n")
+
+	workflows, err := createTestWorkflows(testHandle, t.Images, regex)
+	if err != nil {
+		return nil, err
+	}
+
+	t.Tests = make(map[string]*TestCase)
+	for name, w := range workflows {
+		t.Tests[name] = &TestCase{w: w}
+	}
+
+	for name, test := range t.Tests {
+		test.id = uuid.New().String()
+		if test.TestTimeout == "" {
+			test.timeout = defaultTimeout
+		} else {
+			d, err := time.ParseDuration(test.TestTimeout)
+			if err != nil {
+				test.timeout = defaultTimeout
+			} else {
+				test.timeout = d
+			}
+		}
+
+		fmt.Printf("  - Creating test case for %q\n", name)
+
+		test.logger = &logger{}
+
+		rand.Seed(time.Now().UnixNano())
+		test.w.Project = t.Projects[rand.Intn(len(t.Projects))]
+		test.w.Zone = t.Zone
+		test.w.OAuthPath = t.OAuthPath
+		test.w.ComputeEndpoint = t.ComputeEndpoint
+		test.w.DisableGCSLogging()
+		test.w.DisableCloudLogging()
+		test.w.DisableStdoutLogging()
+		test.w.Logger = test.logger
+	}
+
+	return &t, nil
+}
+
+func checkError(errors chan error) {
+	select {
+	case err := <-errors:
+		fmt.Fprintln(os.Stderr, "\n[TestRunner] Errors in one or more test cases:")
+		fmt.Fprintln(os.Stderr, "\n - ", err)
+		for {
+			select {
+			case err := <-errors:
+				fmt.Fprintln(os.Stderr, "\n - ", err)
+				continue
+			default:
+				fmt.Fprintln(os.Stderr, "\n[TestRunner] Exiting with exit code 1")
+				os.Exit(1)
+			}
+		}
+	default:
+		return
+	}
+}
+
+type junitTestSuite struct {
+	mx sync.Mutex
+
+	XMLName  xml.Name `xml:"testsuite"`
+	Name     string   `xml:"name,attr"`
+	Tests    int      `xml:"tests,attr"`
+	Failures int      `xml:"failures,attr"`
+	Errors   int      `xml:"errors,attr"`
+	Disabled int      `xml:"disabled,attr"`
+	Skipped  int      `xml:"skipped,attr"`
+	Time     float64  `xml:"time,attr"`
+
+	TestCase []*junitTestCase `xml:"testcase"`
+}
+
+type junitTestCase struct {
+	Classname string        `xml:"classname,attr"`
+	ID        string        `xml:"id,attr"`
+	Name      string        `xml:"name,attr"`
+	Time      float64       `xml:"time,attr"`
+	Skipped   *junitSkipped `xml:"skipped,omitempty"`
+	Failure   *junitFailure `xml:"failure,omitempty"`
+	SystemOut string        `xml:"system-out,omitempty"`
+}
+
+type junitSkipped struct {
+	Message string `xml:"message,attr"`
+}
+
+type junitFailure struct {
+	FailMessage string `xml:",chardata"`
+	FailType    string `xml:"type,attr"`
+}
+
+type test struct {
+	name     string
+	testCase *TestCase
+}
+
+func getCommonInstanceMetadata(client daisyCompute.Client, project string) (*compute.Metadata, error) {
+	proj, err := client.GetProject(project)
+	if err != nil {
+		return nil, fmt.Errorf("error getting project: %v", err)
+	}
+
+	return proj.CommonInstanceMetadata, nil
+}
+
+func delItem(items []*compute.MetadataItems, i int) []*compute.MetadataItems {
+	// Delete the element.
+	// https://github.com/golang/go/wiki/SliceTricks
+	copy(items[i:], items[i+1:])
+	items[len(items)-1] = nil
+	return items[:len(items)-1]
+}
+
+func isExpired(val string) bool {
+	t, err := time.Parse(timeFormat, val)
+	if err != nil {
+		return false
+	}
+	return time.Now().After(t)
+}
+
+const (
+	writeLock      = "TestWriteLock-"
+	readLock       = "TestReadLock-"
+	defaultTimeout = 2 * time.Hour
+)
+
+func waitLock(client daisyCompute.Client, project string, prefix ...string) (*compute.Metadata, error) {
+	var md *compute.Metadata
+	var err error
+Loop:
+	for {
+		md, err = getCommonInstanceMetadata(client, project)
+		if err != nil {
+			return nil, err
+		}
+
+		for i, mdi := range md.Items {
+			if mdi != nil {
+				for _, p := range prefix {
+					if strings.HasPrefix(mdi.Key, p) {
+						if isExpired(*mdi.Value) {
+							md.Items = delItem(md.Items, i)
+						} else {
+							r := rand.Intn(10) + 5
+							time.Sleep(time.Duration(r) * time.Second)
+							continue Loop
+						}
+					}
+				}
+			}
+		}
+		return md, nil
+	}
+}
+
+func projectReadLock(client daisyCompute.Client, project, key string, timeout time.Duration) (string, error) {
+	md, err := waitLock(client, project, writeLock)
+	if err != nil {
+		return "", err
+	}
+
+	lock := readLock + key
+	val := time.Now().Add(timeout).Format(timeFormat)
+	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
+	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
+		return "", err
+	}
+	return lock, nil
+}
+
+func customProjectWriteLock(client daisyCompute.Client, project, custom, key string, timeout time.Duration) (string, error) {
+	customLock := readLock + custom
+	md, err := waitLock(client, project, writeLock, customLock)
+	if err != nil {
+		return "", err
+	}
+
+	lock := customLock + key
+	val := time.Now().Add(timeout).Format(timeFormat)
+	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
+	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
+		return "", err
+	}
+
+	return lock, nil
+}
+
+func projectWriteLock(client daisyCompute.Client, project, key string, timeout time.Duration) (string, error) {
+	md, err := waitLock(client, project, writeLock)
+	if err != nil {
+		return "", err
+	}
+
+	// This means the project has no current write locks, set the write lock
+	// now and then wait till all current read locks are gone.
+	lock := writeLock + key
+	val := time.Now().Add(timeout).Format(timeFormat)
+	md.Items = append(md.Items, &compute.MetadataItems{Key: lock, Value: &val})
+	if err := client.SetCommonInstanceMetadata(project, md); err != nil {
+		return "", err
+	}
+
+	if _, err := waitLock(client, project, readLock); err != nil {
+		// Attempt to unlock.
+		projectUnlock(client, project, lock)
+		return "", err
+	}
+	return lock, nil
+}
+
+func projectUnlock(client daisyCompute.Client, project, lock string) error {
+	md, err := getCommonInstanceMetadata(client, project)
+	if err != nil {
+		return err
+	}
+
+	for i, mdi := range md.Items {
+		if mdi != nil && lock == mdi.Key {
+			md.Items = delItem(md.Items, i)
+		}
+	}
+
+	return client.SetCommonInstanceMetadata(project, md)
+}
+
+var allowedChars = regexp.MustCompile("[^-_a-zA-Z0-9]+")
+
+func runTestCase(ctx context.Context, test *test, tc *junitTestCase, errors chan error, retries int) {
+	if err := test.testCase.w.PopulateClients(ctx); err != nil {
+		errors <- fmt.Errorf("%s: %v", tc.Name, err)
+		tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Error"}
+		return
+	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		select {
+		case <-c:
+			fmt.Printf("\nCtrl-C caught, sending cancel signal to %q...\n", test.name)
+			close(test.testCase.w.Cancel)
+			err := fmt.Errorf("test case %q was canceled", test.name)
+			errors <- err
+			tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Canceled"}
+		case <-test.testCase.w.Cancel:
+		}
+	}()
+
+	project := test.testCase.w.Project
+	client := test.testCase.w.ComputeClient
+	key := test.testCase.w.ID()
+	var lock string
+	var err error
+	if test.testCase.CustomProjectLock != "" {
+		for i := 0; i < retries; i++ {
+			lock, err = customProjectWriteLock(client, project, allowedChars.ReplaceAllString(test.testCase.CustomProjectLock, "_"), key, test.testCase.timeout)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			errors <- err
+			return
+		}
+	} else if test.testCase.ProjectLock {
+		for i := 0; i < retries; i++ {
+			lock, err = projectWriteLock(client, project, key, test.testCase.timeout)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			errors <- err
+			return
+		}
+	} else {
+		for i := 0; i < retries; i++ {
+			lock, err = projectReadLock(client, project, key, test.testCase.timeout)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			errors <- err
+			return
+		}
+	}
+	defer func() {
+		for i := 0; i < retries; i++ {
+			err := projectUnlock(client, project, lock)
+			if err == nil {
+				break
+			}
+		}
+		if err != nil {
+			fmt.Printf("[TestRunner] Test %q: Error unlocking project: %v\n", test.name, err)
+		}
+	}()
+
+	select {
+	case <-test.testCase.w.Cancel:
+		return
+	default:
+	}
+
+	start := time.Now()
+	fmt.Printf("[TestRunner] Running test case %q\n", tc.Name)
+	if err := test.testCase.w.Run(ctx); err != nil {
+		errors <- fmt.Errorf("%s: %v", tc.Name, err)
+		tc.Failure = &junitFailure{FailMessage: err.Error(), FailType: "Failure"}
+	}
+	tc.Time = time.Since(start).Seconds()
+	tc.SystemOut = test.testCase.logger.buf.String()
+	fmt.Printf("[TestRunner] Test case %q finished\n", tc.Name)
+}
+
+// RunTests runs tests.
+func RunTests(testHandle interface{}) {
+	// If invoked as the test runner, run tests. Otherwise proceed as test executor.
+	if strings.HasPrefix(os.Args[0], "/startup") {
+		err := runLocalTest(testHandle)
+		if err != nil {
+			fmt.Printf("TEST-FAILURE: test failed: %v\n", err)
+		} else {
+			fmt.Printf("TEST-SUCCESS: test succeeded\n")
+		}
+		return
+	}
+
+	// TODO: do this in init ??
+	flag.Parse()
+
+	var regex *regexp.Regexp
+	if *filter != "" {
+		var err error
+		regex, err = regexp.Compile(*filter)
+		if err != nil {
+			fmt.Println("-filter flag not valid:", err)
+			os.Exit(1)
+		}
+	}
+
+	ctx := context.Background()
+
+	ts, err := createTestSuite(testHandle, regex)
+	if err != nil {
+		log.Fatalln("test case creation error:", err)
+	}
+
+	if ts == nil {
+		// If filters resulted in no possible tests..?
+		return
+	}
+
+	errors := make(chan error, len(ts.Tests))
+	// Retry failed locks 2x as many tests in the test case.
+	retries := len(ts.Tests) * 2
+	if len(ts.Tests) == 0 {
+		fmt.Println("[TestRunner] Nothing to do")
+		return
+	}
+
+	if *printTests {
+		for n, t := range ts.Tests {
+			if t.w == nil {
+				continue
+			}
+			fmt.Printf("[TestRunner] Printing test case %q\n", n)
+			t.w.Print(ctx)
+		}
+		checkError(errors)
+		return
+	}
+
+	if *validate {
+		for n, t := range ts.Tests {
+			if t.w == nil {
+				continue
+			}
+			fmt.Printf("[TestRunner] Validating test case %q\n", t.w.Name)
+			if err := t.w.Validate(ctx); err != nil {
+				errors <- fmt.Errorf("Error validating test case %s: %v", n, err)
+			}
+		}
+		checkError(errors)
+		return
+	}
+
+	if err := os.MkdirAll(filepath.Dir(*outPath), 0770); err != nil {
+		log.Fatal(err)
+	}
+
+	junit := &junitTestSuite{Name: ts.Name, Tests: len(ts.Tests)}
+	tests := make(chan *test, len(ts.Tests))
+	var wg sync.WaitGroup
+	for i := 0; i < ts.TestParallelCount; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for test := range tests {
+				tc := &junitTestCase{Classname: ts.Name, ID: test.testCase.id, Name: test.name}
+				junit.mx.Lock()
+				junit.TestCase = append(junit.TestCase, tc)
+				junit.mx.Unlock()
+
+				if test.testCase.w == nil {
+					junit.mx.Lock()
+					junit.Skipped++
+					junit.mx.Unlock()
+					tc.Skipped = &junitSkipped{Message: fmt.Sprintf("Test does not match filter: %q", regex.String())}
+					continue
+				}
+
+				runTestCase(ctx, test, tc, errors, retries)
+			}
+		}()
+	}
+
+	start := time.Now()
+	for n, t := range ts.Tests {
+		tests <- &test{name: n, testCase: t}
+	}
+	close(tests)
+	wg.Wait()
+
+	fmt.Printf("[TestRunner] Creating junit xml file: %q\n", *outPath)
+	junit.Time = time.Since(start).Seconds()
+	d, err := xml.MarshalIndent(junit, "  ", "   ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := ioutil.WriteFile(*outPath, d, 0644); err != nil {
+		log.Fatal(err)
+	}
+
+	checkError(errors)
+	fmt.Println("[TestRunner] All test cases completed successfully.")
+}
