@@ -44,7 +44,7 @@ var (
 func LaunchTests(testFunctions []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project),
 	loggerPrefix string) {
 
-	if hasError := RunTestsAndOutput(testFunctions, loggerPrefix); hasError {
+	if success := RunTestsAndOutput(testFunctions, loggerPrefix); !success {
 		os.Exit(1)
 	}
 }
