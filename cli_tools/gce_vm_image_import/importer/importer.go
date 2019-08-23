@@ -46,6 +46,7 @@ var (
 const (
 	ImageNameFlagKey = "image_name"
 	ClientIDFlagKey  = "client_id"
+	buildIDOSEnv     = "BUILD_ID"
 )
 
 func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
@@ -187,7 +188,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 
 	workflowModifier := func(w *daisy.Workflow) {
 		rl := &daisyutils.ResourceLabeler{
-			BuildID:         os.Getenv("BUILD_ID"),
+			BuildID:         os.Getenv(buildIDOSEnv),
 			UserLabels:      userLabels,
 			BuildIDLabelKey: "gce-image-import-build-id",
 			ImageLocation:   storageLocation,
@@ -227,8 +228,12 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
+	logger := logging.NewLogger("[image-import]")
+
+	logger.Log(fmt.Sprintf("Cloud Build ID: %s", os.Getenv(buildIDOSEnv)))
+
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger("[image-import]"), oauth)
+		ctx, logger, oauth)
 	if err != nil {
 		return fmt.Errorf("error creating storage client: %v", err)
 	}
