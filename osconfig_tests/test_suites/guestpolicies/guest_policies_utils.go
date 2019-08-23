@@ -58,8 +58,8 @@ done`
 	case "yum":
 		ss = `%s
 while true; do
-  isinstalled=$(/usr/bin/rpmquery -a %s)
-  if [[ $isinstalled =~ ^%s-* ]]; then
+  isinstalled=$(/usr/bin/rpmquery -a %[2]s)
+  if [[ $isinstalled =~ ^%[2]s-* ]]; then
     uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s
     curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
   else
@@ -68,7 +68,7 @@ while true; do
   fi
   sleep 5
 done`
-		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, packageName, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, packageInstalled, packageNotInstalled)
 		key = "startup-script"
 
 	case "googet":
@@ -89,9 +89,14 @@ while(1) {
 
 	case "zypper":
 		ss = `%s
+wget https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+wget https://packages.cloud.google.com/yum/doc/yum-key.gpg
+rpm --import yum-key.gpg
+rpm --import rpm-package-key.gpg
+systemctl restart google-osconfig-agent
 while true; do
-  isinstalled=$(/usr/bin/rpmquery -a %s)
-  if [[ $isinstalled =~ ^%s-* ]]; then
+  isinstalled=$(/usr/bin/rpmquery -a %[2]s)
+  if [[ $isinstalled =~ ^%[2]s-* ]]; then
 	uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s
 	curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
   else
@@ -209,6 +214,7 @@ while(1) {
 	case "zypper":
 		ss = `%s
 sleep 20
+cat > /etc/zypp/repos.d/google-osconfig-agent.repo <<EOM
 [test-repo]
 name=test repo
 baseurl=https://packages.cloud.google.com/yum/repos/osconfig-agent-test-repository
@@ -216,7 +222,7 @@ enabled=1
 gpgcheck=0
 EOM
 n=0
-while ! yum -y remove %[2]s; do
+while ! zypper -n remove %[2]s; do
   if [[ n -gt 5 ]]; then
     exit 1
   fi

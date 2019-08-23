@@ -17,6 +17,7 @@ package guestpolicies
 import (
 	"fmt"
 	"path"
+	"strings"
 	"time"
 
 	osconfigserver "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/osconfig_server"
@@ -48,6 +49,9 @@ func buildPkgInstallTestSetup(name, image, pkgManager, key string) *guestPolicyT
 	if pkgManager == "googet" {
 		machineType = "n1-standard-4"
 	}
+	if strings.Contains(image, "rhel-8") {
+		packageName = "xorg-x11-apps"
+	}
 
 	instanceName := fmt.Sprintf("%s-%s-%s-%s", path.Base(name), testName, key, utils.RandString(3))
 	gp := &osconfigpb.GuestPolicy{
@@ -55,7 +59,6 @@ func buildPkgInstallTestSetup(name, image, pkgManager, key string) *guestPolicyT
 		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
 		PackageRepositories: []*osconfigpb.PackageRepository{
 			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildGooRepository("Google OSConfig Agent Test Repository", gooTestRepoURL)},
-			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)},
 		},
 	}
 	ss := getStartupScript(name, pkgManager, packageName)
