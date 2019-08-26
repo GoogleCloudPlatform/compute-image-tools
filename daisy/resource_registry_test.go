@@ -85,9 +85,9 @@ func TestResourceRegistryConcurrency(t *testing.T) {
 }
 
 func TestResourceRegistryDelete(t *testing.T) {
-	var deleteFnErr dErr
+	var deleteFnErr DError
 	r := &baseResourceRegistry{m: map[string]*Resource{}}
-	r.deleteFn = func(r *Resource) dErr {
+	r.deleteFn = func(r *Resource) DError {
 		return deleteFnErr
 	}
 
@@ -96,13 +96,13 @@ func TestResourceRegistryDelete(t *testing.T) {
 
 	tests := []struct {
 		desc, input string
-		deleteFnErr dErr
+		deleteFnErr DError
 		shouldErr   bool
 	}{
 		{"good case", "foo", nil, false},
 		{"bad redelete case", "foo", nil, true},
 		{"bad resource dne case", "bar", nil, true},
-		{"bad deleteFn error case", "baz", errf("error"), true},
+		{"bad deleteFn error case", "baz", Errf("error"), true},
 	}
 
 	for _, tt := range tests {
@@ -125,13 +125,13 @@ func TestResourceRegistryDelete(t *testing.T) {
 }
 
 func TestResourceRegistryStart(t *testing.T) {
-	var startFnErr dErr
-	var stopFnErr dErr
+	var startFnErr DError
+	var stopFnErr DError
 	r := &baseResourceRegistry{m: map[string]*Resource{}}
-	r.startFn = func(r *Resource) dErr {
+	r.startFn = func(r *Resource) DError {
 		return startFnErr
 	}
-	r.stopFn = func(r *Resource) dErr {
+	r.stopFn = func(r *Resource) DError {
 		return stopFnErr
 	}
 
@@ -144,14 +144,14 @@ func TestResourceRegistryStart(t *testing.T) {
 
 	tests := []struct {
 		desc, input string
-		startFnErr  dErr
+		startFnErr  DError
 		shouldErr   bool
 	}{
 		{"good case", "stopped", nil, false},
 		{"bad restart case", "foo", nil, true},
 		{"bad resource dne case", "bar", nil, true},
-		{"checks started state on creation", "baz", errf("error"), true},
-		{"bad startFn error case", "keep_stopped", errf("error"), true},
+		{"checks started state on creation", "baz", Errf("error"), true},
+		{"bad startFn error case", "keep_stopped", Errf("error"), true},
 	}
 
 	for _, tt := range tests {
@@ -176,9 +176,9 @@ func TestResourceRegistryStart(t *testing.T) {
 }
 
 func TestResourceRegistryStop(t *testing.T) {
-	var stopFnErr dErr
+	var stopFnErr DError
 	r := &baseResourceRegistry{m: map[string]*Resource{}}
-	r.stopFn = func(r *Resource) dErr {
+	r.stopFn = func(r *Resource) DError {
 		return stopFnErr
 	}
 
@@ -187,13 +187,13 @@ func TestResourceRegistryStop(t *testing.T) {
 
 	tests := []struct {
 		desc, input string
-		stopFnErr   dErr
+		stopFnErr   DError
 		shouldErr   bool
 	}{
 		{"good case", "foo", nil, false},
 		{"bad restop case", "foo", nil, true},
 		{"bad resource dne case", "bar", nil, true},
-		{"bad stopFn error case", "baz", errf("error"), true},
+		{"bad stopFn error case", "baz", Errf("error"), true},
 	}
 
 	for _, tt := range tests {

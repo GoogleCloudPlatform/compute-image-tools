@@ -16,18 +16,15 @@ package validation
 
 import (
 	"fmt"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // ValidateStringFlagNotEmpty returns error with error message stating field must be provided if
 // value is empty string. Returns nil otherwise.
 func ValidateStringFlagNotEmpty(flagValue string, flagKey string) error {
-	return ValidateStringNotEmpty(flagValue, flagKey, "The flag -%v must be provided")
-}
-
-// ValidateStringNotEmpty returns error with specific error message if string is empty. Returns nil otherwise.
-func ValidateStringNotEmpty(value string, key string, errorMessage string) error {
-	if value == "" {
-		return fmt.Errorf(errorMessage, key)
+	if flagValue == "" {
+		return daisy.Errf(fmt.Sprintf("The flag -%v must be provided", flagKey))
 	}
 	return nil
 }

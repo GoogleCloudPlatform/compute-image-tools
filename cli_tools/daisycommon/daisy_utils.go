@@ -15,8 +15,6 @@
 package daisycommon
 
 import (
-	"fmt"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -34,7 +32,7 @@ Loop:
 				continue Loop
 			}
 		}
-		return nil, fmt.Errorf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
+		return nil, daisy.Errf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
 	}
 
 	w.Project = project

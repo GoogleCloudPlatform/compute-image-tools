@@ -81,7 +81,7 @@ func TestCreateFirewallRulesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
 
-	e := errf("error")
+	e := Errf("error")
 
 	wantFirewallRule := compute.Firewall{}
 	wantFirewallRule.Description = "FirewallRule created by Daisy in workflow \"test-wf\" on behalf of ."
@@ -92,7 +92,7 @@ func TestCreateFirewallRulesRun(t *testing.T) {
 		desc      string
 		n, wantN  compute.Firewall
 		clientErr error
-		wantErr   dErr
+		wantErr   DError
 	}{
 		{"good case", compute.Firewall{Network: "global/networks/bar"}, wantFirewallRule, nil, nil},
 		{"client error case", compute.Firewall{Network: "global/networks/bar"}, wantFirewallRule, e, e},

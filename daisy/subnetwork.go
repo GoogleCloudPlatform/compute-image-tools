@@ -36,7 +36,7 @@ var (
 	subnetworkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/subnetworks/(?P<subnetwork>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func subnetworkExists(client daisyCompute.Client, project, region, name string) (bool, dErr) {
+func subnetworkExists(client daisyCompute.Client, project, region, name string) (bool, DError) {
 	subnetworkCache.mu.Lock()
 	defer subnetworkCache.mu.Unlock()
 	if subnetworkCache.exists == nil {
@@ -48,7 +48,7 @@ func subnetworkExists(client daisyCompute.Client, project, region, name string) 
 	if _, ok := subnetworkCache.exists[project][region]; !ok {
 		nl, err := client.ListSubnetworks(project, region)
 		if err != nil {
-			return false, errf("error listing subnetworks for project %q: %v", project, err)
+			return false, Errf("error listing subnetworks for project %q: %v", project, err)
 		}
 		var subnetworks []string
 		for _, sn := range nl {
@@ -70,8 +70,8 @@ func (sn *Subnetwork) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*sn)
 }
 
-func (sn *Subnetwork) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (sn *Subnetwork) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	sn.Name, errs = sn.Resource.populateWithGlobal(ctx, s, sn.Name)
 
 	sn.Description = strOr(sn.Description, defaultDescription("Subnetwork", s.w.Name, s.w.username))
@@ -79,19 +79,19 @@ func (sn *Subnetwork) populate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
-func (sn *Subnetwork) validate(ctx context.Context, s *Step) dErr {
+func (sn *Subnetwork) validate(ctx context.Context, s *Step) DError {
 	pre := fmt.Sprintf("cannot create subnetwork %q", sn.daisyName)
 	errs := sn.Resource.validate(ctx, s, pre)
 
 	if sn.Name == "" {
-		errs = addErrs(errs, errf("%s: name is mandatory", pre))
+		errs = addErrs(errs, Errf("%s: name is mandatory", pre))
 	}
 	if sn.Network == "" {
-		errs = addErrs(errs, errf("%s: network is mandatory", pre))
+		errs = addErrs(errs, Errf("%s: network is mandatory", pre))
 	}
 	sn.Region = strOr(sn.Region, getRegionFromZone(s.w.Zone))
 	if _, _, err := net.ParseCIDR(sn.IpCidrRange); err != nil {
-		errs = addErrs(errs, errf("%s: bad IpCidrRange: %q, error: %v", pre, sn.IpCidrRange, err))
+		errs = addErrs(errs, Errf("%s: bad IpCidrRange: %q, error: %v", pre, sn.IpCidrRange, err))
 	}
 
 	// Register creation.
@@ -106,7 +106,7 @@ type subnetworkConnection struct {
 type subnetworkRegistry struct {
 	baseResourceRegistry
 	connections          map[string]map[string]*subnetworkConnection
-	testDisconnectHelper func(nName, iName string, s *Step) dErr
+	testDisconnectHelper func(nName, iName string, s *Step) DError
 }
 
 func newSubnetworkRegistry(w *Workflow) *subnetworkRegistry {
@@ -117,16 +117,16 @@ func newSubnetworkRegistry(w *Workflow) *subnetworkRegistry {
 	return nr
 }
 
-func (nr *subnetworkRegistry) deleteFn(res *Resource) dErr {
+func (nr *subnetworkRegistry) deleteFn(res *Resource) DError {
 	m := namedSubexp(subnetworkURLRegex, res.link)
 	err := nr.w.ComputeClient.DeleteSubnetwork(m["project"], m["region"], m["subnetwork"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, err)
+		return typedErr(resourceDNEError, "failed to delete subnetwork", err)
 	}
-	return newErr(err)
+	return newErr("failed to delete subnetwork", err)
 }
 
-func (nr *subnetworkRegistry) disconnectHelper(nName, iName string, s *Step) dErr {
+func (nr *subnetworkRegistry) disconnectHelper(nName, iName string, s *Step) DError {
 	if nr.testDisconnectHelper != nil {
 		return nr.testDisconnectHelper(nName, iName, s)
 	}
@@ -134,20 +134,20 @@ func (nr *subnetworkRegistry) disconnectHelper(nName, iName string, s *Step) dEr
 	var conn *subnetworkConnection
 
 	if im, _ := nr.connections[nName]; im == nil {
-		return errf("%s: not connected", pre)
+		return Errf("%s: not connected", pre)
 	} else if conn, _ = im[iName]; conn == nil {
-		return errf("%s: not attached", pre)
+		return Errf("%s: not attached", pre)
 	} else if conn.disconnector != nil {
-		return errf("%s: already disconnected or concurrently disconnected by step %q", pre, conn.disconnector.name)
+		return Errf("%s: already disconnected or concurrently disconnected by step %q", pre, conn.disconnector.name)
 	} else if !s.nestedDepends(conn.connector) {
-		return errf("%s: step %q does not depend on connecting step %q", pre, s.name, conn.connector.name)
+		return Errf("%s: step %q does not depend on connecting step %q", pre, s.name, conn.connector.name)
 	}
 	conn.disconnector = s
 	return nil
 }
 
 // regConnect marks a subnetwork and instance as connected by a Step s.
-func (nr *subnetworkRegistry) regConnect(nName, iName string, s *Step) dErr {
+func (nr *subnetworkRegistry) regConnect(nName, iName string, s *Step) DError {
 	nr.mx.Lock()
 	defer nr.mx.Unlock()
 
@@ -155,14 +155,14 @@ func (nr *subnetworkRegistry) regConnect(nName, iName string, s *Step) dErr {
 	if im, _ := nr.connections[nName]; im == nil {
 		nr.connections[nName] = map[string]*subnetworkConnection{iName: {connector: s}}
 	} else if nc, _ := im[iName]; nc != nil && !s.nestedDepends(nc.disconnector) {
-		return errf("%s: concurrently connected by step %q", pre, nc.connector.name)
+		return Errf("%s: concurrently connected by step %q", pre, nc.connector.name)
 	} else {
 		nr.connections[nName][iName] = &subnetworkConnection{connector: s}
 	}
 	return nil
 }
 
-func (nr *subnetworkRegistry) regDisconnect(nName, iName string, s *Step) dErr {
+func (nr *subnetworkRegistry) regDisconnect(nName, iName string, s *Step) DError {
 	nr.mx.Lock()
 	defer nr.mx.Unlock()
 
@@ -170,11 +170,11 @@ func (nr *subnetworkRegistry) regDisconnect(nName, iName string, s *Step) dErr {
 }
 
 // regDisconnect all is called by Instance.regDelete and registers Step s as the disconnector for all subnetworks that iName is currently connected to.
-func (nr *subnetworkRegistry) regDisconnectAll(iName string, s *Step) dErr {
+func (nr *subnetworkRegistry) regDisconnectAll(iName string, s *Step) DError {
 	nr.mx.Lock()
 	defer nr.mx.Unlock()
 
-	var errs dErr
+	var errs DError
 	// For every subnetwork, if connected, disconnect.
 	for nName, im := range nr.connections {
 		if conn, _ := im[iName]; conn != nil && conn.disconnector == nil {

@@ -22,26 +22,26 @@ import (
 // CreateTargetInstances is a Daisy CreateTargetInstances workflow step.
 type CreateTargetInstances []*TargetInstance
 
-func (c *CreateTargetInstances) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (c *CreateTargetInstances) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, ti := range *c {
 		errs = addErrs(errs, ti.populate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateTargetInstances) validate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (c *CreateTargetInstances) validate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, ti := range *c {
 		errs = addErrs(errs, ti.validate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateTargetInstances) run(ctx context.Context, s *Step) dErr {
+func (c *CreateTargetInstances) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan dErr)
+	e := make(chan DError)
 	for _, ti := range *c {
 		wg.Add(1)
 		go func(ti *TargetInstance) {
@@ -49,7 +49,7 @@ func (c *CreateTargetInstances) run(ctx context.Context, s *Step) dErr {
 
 			w.LogStepInfo(s.name, "CreateTargetInstances", "Creating target instance %q.", ti.Name)
 			if err := w.ComputeClient.CreateTargetInstance(ti.Project, ti.Zone, &ti.TargetInstance); err != nil {
-				e <- newErr(err)
+				e <- newErr("failed to create target instances", err)
 				return
 			}
 		}(ti)

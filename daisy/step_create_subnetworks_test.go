@@ -28,7 +28,7 @@ func TestCreateSubnetworksRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
 
-	e := errf("error")
+	e := Errf("error")
 
 	wantSubnetwork := compute.Subnetwork{}
 	wantSubnetwork.Description = "Subnetwork created by Daisy in workflow \"test-wf\" on behalf of ."
@@ -38,7 +38,7 @@ func TestCreateSubnetworksRun(t *testing.T) {
 		desc      string
 		n, wantN  compute.Subnetwork
 		clientErr error
-		wantErr   dErr
+		wantErr   DError
 	}{
 		{"good case", compute.Subnetwork{}, wantSubnetwork, nil, nil},
 		{"client error case", compute.Subnetwork{}, wantSubnetwork, e, e},

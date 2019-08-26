@@ -102,10 +102,10 @@ func TestValidateWorkflow(t *testing.T) {
 func TestValidateDAG(t *testing.T) {
 	ctx := context.Background()
 	calls := make([]int, 5)
-	errs := make([]dErr, 5)
+	errs := make([]DError, 5)
 	var rw sync.Mutex
-	mockValidate := func(i int) func(ctx context.Context, s *Step) dErr {
-		return func(ctx context.Context, s *Step) dErr {
+	mockValidate := func(i int) func(ctx context.Context, s *Step) DError {
+		return func(ctx context.Context, s *Step) DError {
 			rw.Lock()
 			defer rw.Unlock()
 			calls[i] = calls[i] + 1
@@ -116,7 +116,7 @@ func TestValidateDAG(t *testing.T) {
 		rw.Lock()
 		defer rw.Unlock()
 		calls = make([]int, 5)
-		errs = make([]dErr, 5)
+		errs = make([]DError, 5)
 	}
 
 	// s0---->s1---->s3
@@ -157,7 +157,7 @@ func TestValidateDAG(t *testing.T) {
 	reset()
 
 	// Failed step 2.
-	errs[2] = errf("fail")
+	errs[2] = Errf("fail")
 	if err := w.validateDAG(ctx); err == nil {
 		t.Error("step 2 should have failed validation")
 	}

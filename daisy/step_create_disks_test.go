@@ -28,13 +28,13 @@ func TestCreateDisksRun(t *testing.T) {
 	s := &Step{w: w}
 	w.images.m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
 
-	e := errf("error")
+	e := Errf("error")
 	tests := []struct {
 		desc      string
 		d         compute.Disk
 		wantD     compute.Disk
 		clientErr error
-		wantErr   dErr
+		wantErr   DError
 	}{
 		{"blank case", compute.Disk{}, compute.Disk{}, nil, nil},
 		{"resolve source image case", compute.Disk{SourceImage: "i1"}, compute.Disk{SourceImage: "i1link"}, nil, nil},

@@ -77,7 +77,7 @@ type InstanceSignal struct {
 	SerialOutput *SerialOutput `json:",omitempty"`
 }
 
-func waitForInstanceStopped(s *Step, project, zone, name string, interval time.Duration) dErr {
+func waitForInstanceStopped(s *Step, project, zone, name string, interval time.Duration) DError {
 	w := s.w
 	w.LogStepInfo(s.name, "WaitForInstancesSignal", "Waiting for instance %q to stop.", name)
 	tick := time.Tick(interval)
@@ -88,7 +88,7 @@ func waitForInstanceStopped(s *Step, project, zone, name string, interval time.D
 		case <-tick:
 			stopped, err := s.w.ComputeClient.InstanceStopped(project, zone, name)
 			if err != nil {
-				return typedErr(apiError, err)
+				return typedErr(apiError, "failed to check whether instance is stopped", err)
 			}
 			if stopped {
 				w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q stopped.", name)
@@ -98,7 +98,7 @@ func waitForInstanceStopped(s *Step, project, zone, name string, interval time.D
 	}
 }
 
-func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, interval time.Duration) dErr {
+func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, interval time.Duration) DError {
 	w := s.w
 	msg := fmt.Sprintf("Instance %q: watching serial port %d", name, so.Port)
 	if so.SuccessMatch != "" {
@@ -139,7 +139,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 					continue
 				}
 
-				return errf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
+				return Errf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
 			}
 			start = resp.Next
 			for _, ln := range strings.Split(resp.Contents, "\n") {
@@ -151,7 +151,9 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				if len(so.FailureMatch) > 0 {
 					for _, failureMatch := range so.FailureMatch {
 						if i := strings.Index(ln, failureMatch); i != -1 {
-							return errf("WaitForInstancesSignal FailureMatch found for %q: %q", name, strings.TrimSpace(ln[i:]))
+							errMsg := strings.TrimSpace(ln[i:])
+							format := "WaitForInstancesSignal FailureMatch found for %q: %q"
+							return newErr(errMsg, fmt.Errorf(format, name, errMsg))
 						}
 					}
 				}
@@ -167,7 +169,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 	}
 }
 
-func (w *WaitForInstancesSignal) populate(ctx context.Context, s *Step) dErr {
+func (w *WaitForInstancesSignal) populate(ctx context.Context, s *Step) DError {
 	for _, ws := range *w {
 		if ws.Interval == "" {
 			ws.Interval = defaultInterval
@@ -175,15 +177,15 @@ func (w *WaitForInstancesSignal) populate(ctx context.Context, s *Step) dErr {
 		var err error
 		ws.interval, err = time.ParseDuration(ws.Interval)
 		if err != nil {
-			return newErr(err)
+			return newErr("failed to parse duration for step wait_for_instance_signal", err)
 		}
 	}
 	return nil
 }
 
-func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) dErr {
+func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
-	e := make(chan dErr)
+	e := make(chan DError)
 
 	for _, is := range *w {
 		wg.Add(1)
@@ -191,7 +193,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) dErr {
 			defer wg.Done()
 			i, ok := s.w.instances.get(is.Name)
 			if !ok {
-				e <- errf("unresolved instance %q", is.Name)
+				e <- Errf("unresolved instance %q", is.Name)
 				return
 			}
 			m := namedSubexp(instanceURLRgx, i.link)
@@ -235,24 +237,24 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) dErr {
 	}
 }
 
-func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) dErr {
+func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) DError {
 	// Instance checking.
 	for _, i := range *w {
 		if _, err := s.w.instances.regUse(i.Name, s); err != nil {
 			return err
 		}
 		if i.interval == 0*time.Second {
-			return errf("%q: cannot wait for instance signal, no interval given", i.Name)
+			return Errf("%q: cannot wait for instance signal, no interval given", i.Name)
 		}
 		if i.SerialOutput == nil && i.Stopped == false {
-			return errf("%q: cannot wait for instance signal, nothing to wait for", i.Name)
+			return Errf("%q: cannot wait for instance signal, nothing to wait for", i.Name)
 		}
 		if i.SerialOutput != nil {
 			if i.SerialOutput.Port == 0 {
-				return errf("%q: cannot wait for instance signal via SerialOutput, no Port given", i.Name)
+				return Errf("%q: cannot wait for instance signal via SerialOutput, no Port given", i.Name)
 			}
 			if i.SerialOutput.SuccessMatch == "" && len(i.SerialOutput.FailureMatch) == 0 {
-				return errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
+				return Errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
 			}
 		}
 	}

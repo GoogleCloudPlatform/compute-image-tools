@@ -20,7 +20,9 @@ import (
 	"log"
 	"os"
 
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -64,6 +66,18 @@ func main() {
 		*project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
 		*labels, currentExecutablePath, *storageLocation); err != nil {
+
+		defer func() {
+			// TODO: log anonymized errors to firelog
+			derr := daisy.ToDError(err)
+			if derr == nil {
+				return
+			}
+			anonymizedErrs := []string{}
+			for _, m := range derr.AnonymizedErrs() {
+				anonymizedErrs = append(anonymizedErrs, daisyutils.RemovePrivacyLogInfo(m))
+			}
+		}()
 
 		log.SetPrefix("[import-image] ")
 		log.Fatal(err.Error())

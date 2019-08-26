@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 )
@@ -42,8 +43,8 @@ type ZoneRetriever struct {
 }
 
 // NewZoneRetriever creates a ZoneRetriever
-func NewZoneRetriever(aMgce domain.MetadataGCEInterface, cs daisycompute.Client) (*ZoneRetriever, error) {
-	return &ZoneRetriever{Mgce: aMgce, ComputeGCEService: cs}, nil
+func NewZoneRetriever(aMgce domain.MetadataGCEInterface, cs daisycompute.Client) *ZoneRetriever {
+	return &ZoneRetriever{Mgce: aMgce, ComputeGCEService: cs}
 }
 
 // GetZone retrieves GCE zone to run import in based on imported source file location and available
@@ -66,25 +67,24 @@ func (zr *ZoneRetriever) GetZone(storageLocation string, project string) (string
 	if zr.Mgce.OnGCE() {
 		zone, err = zr.Mgce.Zone()
 	}
-
 	if err != nil {
-		return "", fmt.Errorf("can't infer zone: %v", err)
+		return "", daisy.Errf("can't infer zone: %v", err)
 	}
 	if zone == "" {
-		return "", fmt.Errorf("zone is empty")
+		return "", daisy.Errf("zone is empty")
 	}
 	fmt.Printf("[image-importer] Zone not provided, using %v\n", zone)
 
 	return zone, nil
 }
 
-func (zr *ZoneRetriever) getZoneFromStorageLocation(location string, project string) (string, error) {
+func (zr *ZoneRetriever) getZoneFromStorageLocation(location string, project string) (string, daisy.DError) {
 	if project == "" {
-		return "", fmt.Errorf("project cannot be empty in order to find a zone from a location")
+		return "", daisy.Errf("project cannot be empty in order to find a zone from a location")
 	}
 	zones, err := zr.ComputeGCEService.ListZones(project)
 	if err != nil {
-		return "", err
+		return "", daisy.Errf("Failed to list zones: %v", err)
 	}
 	if zr.isMultiRegion(location) {
 		return zr.getBestZoneForMultiRegion(location, zones)
@@ -92,22 +92,22 @@ func (zr *ZoneRetriever) getZoneFromStorageLocation(location string, project str
 	return zr.getZoneForRegion(location, zones)
 }
 
-func (zr *ZoneRetriever) getZoneForRegion(region string, zones []*compute.Zone) (string, error) {
+func (zr *ZoneRetriever) getZoneForRegion(region string, zones []*compute.Zone) (string, daisy.DError) {
 	for _, zone := range zones {
 		if isZoneUp(zone) && strings.HasSuffix(strings.ToLower(zone.Region), strings.ToLower(region)) {
 			return zone.Name, nil
 		}
 	}
-	return "", fmt.Errorf("no zone found for %v region", region)
+	return "", daisy.Errf("no zone found for %v region", region)
 }
 
-func (zr *ZoneRetriever) getBestZoneForMultiRegion(multiRegion string, zones []*compute.Zone) (string, error) {
+func (zr *ZoneRetriever) getBestZoneForMultiRegion(multiRegion string, zones []*compute.Zone) (string, daisy.DError) {
 	for _, region := range multiRegions[multiRegion] {
 		if zone, err := zr.getZoneForRegion(region, zones); err == nil {
 			return zone, nil
 		}
 	}
-	return "", fmt.Errorf("no zones found for %v multi region", multiRegion)
+	return "", daisy.Errf("no zones found for %v multi region", multiRegion)
 }
 
 func (zr *ZoneRetriever) isMultiRegion(location string) bool {

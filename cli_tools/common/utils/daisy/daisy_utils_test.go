@@ -80,6 +80,56 @@ func TestUpdateWorkflowInstancesNotModifiedIfNoNetworkInterfaceElement(t *testin
 	}
 }
 
+func TestRemovePrivacyLogInfoNoPrivacyInfo(t *testing.T) {
+	testRemovePrivacyLogInfo(t,
+		"No privacy info",
+		"No privacy info",
+		"Regular message should stay the same")
+
+	testRemovePrivacyLogInfo(t,
+		"[Privacy-> info",
+		"[Privacy-> info",
+		"Incomplete privacy info (left bracket) should stay the same")
+
+	testRemovePrivacyLogInfo(t,
+		"info <-Privacy]",
+		"info <-Privacy]",
+		"Incomplete privacy info (right bracket) should stay the same")
+}
+
+func TestRemovePrivacyLogInfoTranslateFailed(t *testing.T) {
+	testRemovePrivacyLogInfo(t,
+		"[DaisyLog] TranslateFailed: OS not detected\nFailed for project my-project",
+		"TranslateFailed",
+		"TranslateFailed error details should be hidden")
+}
+
+func TestRemovePrivacyLogInfoSingle(t *testing.T) {
+	testRemovePrivacyLogInfo(t,
+		"[Privacy-> info 1 <-Privacy] info 2",
+		"[Privacy Info] info 2",
+		"Privacy info (on the head) should be hidden")
+
+	testRemovePrivacyLogInfo(t,
+		"info 0 [Privacy-> info 1 <-Privacy]",
+		"info 0 [Privacy Info]",
+		"Privacy info (on the tail) should be hidden")
+}
+
+func TestRemovePrivacyLogInfoMultiple(t *testing.T) {
+	testRemovePrivacyLogInfo(t,
+		"info 0 [Privacy-> info 1 <-Privacy] info 2 [Privacy-> info 3 <-Privacy] info 4",
+		"info 0 [Privacy Info] info 2 [Privacy Info] info 4",
+		"Multiple privacy info should be hidden")
+}
+
+func testRemovePrivacyLogInfo(t *testing.T, originalMessage string, expectedMessage string, onFailure string) {
+	m := RemovePrivacyLogInfo(originalMessage)
+	if m != expectedMessage {
+		t.Errorf("%v. Expect: `%v`, actual: `%v`", onFailure, expectedMessage, m)
+	}
+}
+
 func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
 	w := daisy.New()
 	w.Steps = map[string]*daisy.Step{

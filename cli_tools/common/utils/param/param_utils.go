@@ -17,13 +17,13 @@ package param
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"google.golang.org/api/option"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
@@ -31,11 +31,11 @@ import (
 func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string, error) {
 	if projectFlag == "" {
 		if !mgce.OnGCE() {
-			return "", fmt.Errorf("project cannot be determined because build is not running on GCE")
+			return "", daisy.Errf("project cannot be determined because build is not running on GCE")
 		}
 		aProject, err := mgce.ProjectID()
 		if err != nil || aProject == "" {
-			return "", fmt.Errorf("project cannot be determined %v", err)
+			return "", daisy.Errf("project cannot be determined %v", err)
 		}
 		return aProject, nil
 	}
@@ -91,15 +91,14 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(file, *project, fallbackZone)
 		scratchBucketRegion = sbr
 		if err != nil {
-			return "", err
+			return "", daisy.Errf("failed to create scratch bucket: %v", err)
 		}
 
 		*scratchBucketGcsPath = fmt.Sprintf("gs://%v/", scratchBucketName)
 	} else {
 		scratchBucketName, err := storage.GetBucketNameFromGCSPath(*scratchBucketGcsPath)
 		if err != nil {
-			return "", fmt.Errorf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
-
+			return "", daisy.Errf("invalid scratch bucket GCS path %v", scratchBucketGcsPath)
 		}
 
 		scratchBucketAttrs, err := storageClient.GetBucketAttrs(scratchBucketName)
@@ -128,7 +127,7 @@ func PopulateRegion(region *string, zone string) error {
 }
 
 // CreateComputeClient creates a new compute client
-func CreateComputeClient(ctx *context.Context, oauth string, ce string) compute.Client {
+func CreateComputeClient(ctx *context.Context, oauth string, ce string) (compute.Client, error) {
 	computeOptions := []option.ClientOption{option.WithCredentialsFile(oauth)}
 	if ce != "" {
 		computeOptions = append(computeOptions, option.WithEndpoint(ce))
@@ -136,7 +135,7 @@ func CreateComputeClient(ctx *context.Context, oauth string, ce string) compute.
 
 	computeClient, err := compute.NewClient(*ctx, computeOptions...)
 	if err != nil {
-		log.Fatalf("compute client: %v", err)
+		return nil, daisy.Errf("failed to create compute client: %v", err)
 	}
-	return computeClient
+	return computeClient, nil
 }

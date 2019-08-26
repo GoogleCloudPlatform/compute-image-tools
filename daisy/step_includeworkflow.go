@@ -32,15 +32,15 @@ type IncludeWorkflow struct {
 	Workflow *Workflow         `json:",omitempty"`
 }
 
-func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
+func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) DError {
 	if i.Path != "" {
 		var err error
 		if i.Workflow, err = s.w.NewIncludedWorkflowFromFile(i.Path); err != nil {
-			return newErr(err)
+			return newErr("failed to parse duration for step includeworkflow", err)
 		}
 	} else {
 		if i.Workflow == nil {
-			return errf("IncludeWorkflow %q does not have a workflow", s.name)
+			return Errf(fmt.Sprintf("IncludeWorkflow %q does not have a workflow", s.name))
 		}
 		s.w.includeWorkflow(i.Workflow)
 	}
@@ -66,7 +66,7 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) dErr {
 	i.Workflow.Name = s.name
 	i.Workflow.DefaultTimeout = s.Timeout
 
-	var errs dErr
+	var errs DError
 Loop:
 	for k, v := range i.Vars {
 		for wv := range i.Workflow.Vars {
@@ -75,7 +75,7 @@ Loop:
 				continue Loop
 			}
 		}
-		errs = addErrs(errs, errf("unknown workflow Var %q passed to IncludeWorkflow %q", k, s.name))
+		errs = addErrs(errs, Errf("unknown workflow Var %q passed to IncludeWorkflow %q", k, s.name))
 	}
 	if errs != nil {
 		return errs
@@ -121,7 +121,7 @@ Loop:
 			continue
 		}
 		if _, ok := s.w.Sources[k]; ok {
-			return errf("source %q already exists in workflow", k)
+			return Errf("source %q already exists in workflow", k)
 		}
 		if s.w.Sources == nil {
 			s.w.Sources = map[string]string{}
@@ -135,10 +135,10 @@ Loop:
 	return nil
 }
 
-func (i *IncludeWorkflow) validate(ctx context.Context, s *Step) dErr {
+func (i *IncludeWorkflow) validate(ctx context.Context, s *Step) DError {
 	return i.Workflow.validate(ctx)
 }
 
-func (i *IncludeWorkflow) run(ctx context.Context, s *Step) dErr {
+func (i *IncludeWorkflow) run(ctx context.Context, s *Step) DError {
 	return i.Workflow.run(ctx)
 }

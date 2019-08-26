@@ -22,26 +22,26 @@ import (
 // CreateSubnetworks is a Daisy CreateSubnetwork workflow step.
 type CreateSubnetworks []*Subnetwork
 
-func (c *CreateSubnetworks) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (c *CreateSubnetworks) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, sn := range *c {
 		errs = addErrs(errs, sn.populate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateSubnetworks) validate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (c *CreateSubnetworks) validate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, sn := range *c {
 		errs = addErrs(errs, sn.validate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateSubnetworks) run(ctx context.Context, s *Step) dErr {
+func (c *CreateSubnetworks) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan dErr)
+	e := make(chan DError)
 	for _, sn := range *c {
 		wg.Add(1)
 		go func(sn *Subnetwork) {
@@ -53,7 +53,7 @@ func (c *CreateSubnetworks) run(ctx context.Context, s *Step) dErr {
 
 			w.LogStepInfo(s.name, "CreateSubnetworks", "Creating subnetwork %q.", sn.Name)
 			if err := w.ComputeClient.CreateSubnetwork(sn.Project, sn.Region, &sn.Subnetwork); err != nil {
-				e <- newErr(err)
+				e <- newErr("failed to create subnetworks", err)
 				return
 			}
 		}(sn)

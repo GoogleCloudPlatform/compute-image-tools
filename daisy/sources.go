@@ -41,12 +41,12 @@ func newObjectRegistry(w *Workflow) *objectRegistry {
 	return &objectRegistry{}
 }
 
-func (o *objectRegistry) regCreate(object string) dErr {
+func (o *objectRegistry) regCreate(object string) DError {
 	o.mx.Lock()
 	defer o.mx.Unlock()
 
 	if strIn(object, o.created) {
-		return errf("cannot create object %q, object already created by another step", object)
+		return Errf("cannot create object %q, object already created by another step", object)
 	}
 
 	o.created = append(o.created, object)
@@ -55,11 +55,11 @@ func (o *objectRegistry) regCreate(object string) dErr {
 
 var sourceVarRgx = regexp.MustCompile(`\$\{SOURCE:([^}]+)}`)
 
-func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) dErr {
+func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) DError {
 	it := w.StorageClient.Bucket(bkt).Objects(ctx, &storage.Query{Prefix: prefix})
 	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
 		if err != nil {
-			return typedErr(apiError, err)
+			return typedErr(apiError, "failed to iterate GCS objects for uploading", err)
 		}
 		if objAttr.Size == 0 {
 			continue
@@ -68,7 +68,7 @@ func (w *Workflow) recursiveGCS(ctx context.Context, bkt, prefix, dst string) dE
 		o := path.Join(w.sourcesPath, dst, strings.TrimPrefix(objAttr.Name, prefix))
 		dstPath := w.StorageClient.Bucket(w.bucket).Object(o)
 		if _, err := dstPath.CopierFrom(srcPath).Run(ctx); err != nil {
-			return typedErr(apiError, err)
+			return typedErr(apiError, "failed to upload GCS object", err)
 		}
 	}
 	return nil
@@ -82,28 +82,28 @@ func (w *Workflow) sourceExists(s string) bool {
 func (w *Workflow) sourceContent(ctx context.Context, s string) (string, error) {
 	src, ok := w.Sources[s]
 	if !ok {
-		return "", errf("source not found: %s", s)
+		return "", Errf("source not found: %s", s)
 	}
 	// Try GCS file first.
 	if bkt, objPath, err := splitGCSPath(src); err == nil {
 		if objPath == "" || strings.HasSuffix(objPath, "/") {
-			return "", errf("source %s appears to be a GCS 'bucket'", src)
+			return "", Errf("source %s appears to be a GCS 'bucket'", src)
 
 		}
 		src := w.StorageClient.Bucket(bkt).Object(objPath)
 		r, err := src.NewReader(ctx)
 		if err != nil {
-			return "", errf("error reading from file %s/%s: %v", bkt, objPath, err)
+			return "", Errf("error reading from file %s/%s: %v", bkt, objPath, err)
 		}
 		defer r.Close()
 
 		if r.Size() > 1024 {
-			return "", errf("file size is too large %s/%s: %d", bkt, objPath, r.Size())
+			return "", Errf("file size is too large %s/%s: %d", bkt, objPath, r.Size())
 		}
 
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, r); err != nil {
-			return "", errf("error reading from file %s/%s: %v", bkt, objPath, err)
+			return "", Errf("error reading from file %s/%s: %v", bkt, objPath, err)
 		}
 
 		return buf.String(), nil
@@ -113,31 +113,31 @@ func (w *Workflow) sourceContent(ctx context.Context, s string) (string, error) 
 		src = filepath.Join(w.workflowDir, src)
 	}
 	if _, err := os.Stat(src); err != nil {
-		return "", typedErr(fileIOError, err)
+		return "", typedErr(fileIOError, "failed to find local file", err)
 	}
 
 	d, err := ioutil.ReadFile(src)
 	if err != nil {
-		return "", newErr(err)
+		return "", newErr("failed to read local file content", err)
 	}
 	return string(d), nil
 }
 
-func (w *Workflow) uploadFile(ctx context.Context, src, obj string) dErr {
+func (w *Workflow) uploadFile(ctx context.Context, src, obj string) DError {
 	obj = filepath.ToSlash(obj)
 	dstPath := w.StorageClient.Bucket(w.bucket).Object(path.Join(w.sourcesPath, obj))
 	gcs := dstPath.NewWriter(ctx)
 	f, err := os.Open(src)
 	if err != nil {
-		return newErr(err)
+		return newErr("failed to open local file for uploading", err)
 	}
 	if _, err := io.Copy(gcs, f); err != nil {
-		return newErr(err)
+		return newErr("failed to copy local file to GCS", err)
 	}
-	return newErr(gcs.Close())
+	return newErr("failed to close GCS object", gcs.Close())
 }
 
-func (w *Workflow) uploadSources(ctx context.Context) dErr {
+func (w *Workflow) uploadSources(ctx context.Context) DError {
 	for dst, origPath := range w.Sources {
 		if origPath == "" {
 			continue
@@ -146,7 +146,7 @@ func (w *Workflow) uploadSources(ctx context.Context) dErr {
 		if bkt, objPath, err := splitGCSPath(origPath); err == nil {
 			if objPath == "" || strings.HasSuffix(objPath, "/") {
 				if err := w.recursiveGCS(ctx, bkt, objPath, dst); err != nil {
-					return errf("error copying from bucket %s: %v", origPath, err)
+					return Errf("error copying from bucket %s: %v", origPath, err)
 				}
 				continue
 			}
@@ -156,7 +156,7 @@ func (w *Workflow) uploadSources(ctx context.Context) dErr {
 				if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 					return typedErrf(resourceDNEError, "error copying from file %s: %v", origPath, err)
 				}
-				return errf("error copying from file %s: %v", origPath, err)
+				return Errf("error copying from file %s: %v", origPath, err)
 			}
 
 			continue
@@ -168,7 +168,7 @@ func (w *Workflow) uploadSources(ctx context.Context) dErr {
 		}
 		fi, err := os.Stat(origPath)
 		if err != nil {
-			return typedErr(fileIOError, err)
+			return typedErr(fileIOError, "failed to open local file", err)
 		}
 		if fi.IsDir() {
 			var files []string
@@ -182,7 +182,7 @@ func (w *Workflow) uploadSources(ctx context.Context) dErr {
 				files = append(files, path)
 				return nil
 			}); err != nil {
-				return typedErr(fileIOError, err)
+				return typedErr(fileIOError, "failed to walk file path", err)
 			}
 			for _, file := range files {
 				obj := path.Join(dst, strings.TrimPrefix(file, filepath.Clean(origPath)))

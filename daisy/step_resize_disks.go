@@ -32,7 +32,7 @@ type ResizeDisk struct {
 	Name string
 }
 
-func (r *ResizeDisks) populate(ctx context.Context, s *Step) dErr {
+func (r *ResizeDisks) populate(ctx context.Context, s *Step) DError {
 	for _, rd := range *r {
 		if diskURLRgx.MatchString(rd.Name) {
 			rd.Name = extendPartialURL(rd.Name, s.w.Project)
@@ -41,29 +41,29 @@ func (r *ResizeDisks) populate(ctx context.Context, s *Step) dErr {
 	return nil
 }
 
-func (r *ResizeDisks) validate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (r *ResizeDisks) validate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, rd := range *r {
 		dr, err := s.w.disks.regUse(rd.Name, s)
 		if dr == nil {
 			// Return now, the rest of this function can't be run without dr.
-			return addErrs(errs, errf("cannot resize disk: %v", err))
+			return addErrs(errs, Errf("cannot resize disk: %v", err))
 		}
 		// Reference the actual name of the disk
 		rd.Name = dr.RealName
 
 		pre := fmt.Sprintf("cannot resize disk %q", rd.Name)
 		if rd.SizeGb <= 0 {
-			errs = addErrs(errs, errf("%s: SizeGb can't be zero: it's a mandatory field.", pre))
+			errs = addErrs(errs, Errf("%s: SizeGb can't be zero: it's a mandatory field.", pre))
 		}
 	}
 	return errs
 }
 
-func (r *ResizeDisks) run(ctx context.Context, s *Step) dErr {
+func (r *ResizeDisks) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan dErr)
+	e := make(chan DError)
 	for _, rd := range *r {
 		wg.Add(1)
 		go func(rd *ResizeDisk) {
@@ -71,7 +71,7 @@ func (r *ResizeDisks) run(ctx context.Context, s *Step) dErr {
 
 			w.LogStepInfo(s.name, "ResizeDisks", "Resizing disk %q to %v GB.", rd.Name, rd.SizeGb)
 			if err := w.ComputeClient.ResizeDisk(s.w.Project, s.w.Zone, rd.Name, &rd.DisksResizeRequest); err != nil {
-				e <- newErr(err)
+				e <- newErr("failed to resize disk", err)
 				return
 			}
 		}(rd)
