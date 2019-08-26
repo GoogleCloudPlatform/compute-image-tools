@@ -59,7 +59,6 @@ func validateAndParseFlags(clientID string, destinationURI string, sourceImage s
 	}
 
 	if labels != "" {
-		var err error
 		userLabels, err := param.ParseKeyValues(labels)
 		if err != nil {
 			return nil, err
@@ -138,9 +137,8 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) error {
 
-	var userLabels map[string]string
-	var err error
-	if userLabels, err = validateAndParseFlags(clientID, destinationURI, sourceImage, labels); err != nil {
+	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels)
+	if err != nil {
 		return err
 	}
 
@@ -149,15 +147,16 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	storageClient, err := storage.NewStorageClient(
 		ctx, logging.NewLogger("[image-export]"), oauth)
 	if err != nil {
-		return fmt.Errorf("error creating storage client %v", err)
+		return err
 	}
 	defer storageClient.Close()
 
 	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
-	zoneRetriever, err := storage.NewZoneRetriever(metadataGCE, param.CreateComputeClient(&ctx, oauth, ce))
+	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
 	if err != nil {
 		return err
 	}
+	zoneRetriever := storage.NewZoneRetriever(metadataGCE, computeClient)
 
 	region := new(string)
 	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
@@ -168,7 +167,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 
 	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region)
 
-	if err := runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, project,
+	if err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, project,
 		zone, timeout, scratchBucketGcsPath, oauth, ce, gcsLogsDisabled, cloudLogsDisabled,
 		stdoutLogsDisabled, userLabels); err != nil {
 		return err

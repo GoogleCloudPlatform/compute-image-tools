@@ -43,26 +43,26 @@ import (
 const DNE = "DNE!"
 
 type mockStep struct {
-	populateImpl func(context.Context, *Step) dErr
-	runImpl      func(context.Context, *Step) dErr
-	validateImpl func(context.Context, *Step) dErr
+	populateImpl func(context.Context, *Step) DError
+	runImpl      func(context.Context, *Step) DError
+	validateImpl func(context.Context, *Step) DError
 }
 
-func (m *mockStep) populate(ctx context.Context, s *Step) dErr {
+func (m *mockStep) populate(ctx context.Context, s *Step) DError {
 	if m.populateImpl != nil {
 		return m.populateImpl(ctx, s)
 	}
 	return nil
 }
 
-func (m *mockStep) run(ctx context.Context, s *Step) dErr {
+func (m *mockStep) run(ctx context.Context, s *Step) DError {
 	if m.runImpl != nil {
 		return m.runImpl(ctx, s)
 	}
 	return nil
 }
 
-func (m *mockStep) validate(ctx context.Context, s *Step) dErr {
+func (m *mockStep) validate(ctx context.Context, s *Step) DError {
 	if m.validateImpl != nil {
 		return m.validateImpl(ctx, s)
 	}

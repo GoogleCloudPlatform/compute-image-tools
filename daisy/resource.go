@@ -47,25 +47,25 @@ type Resource struct {
 	users            []*Step
 }
 
-func (r *Resource) populateWithGlobal(ctx context.Context, s *Step, name string) (string, dErr) {
+func (r *Resource) populateWithGlobal(ctx context.Context, s *Step, name string) (string, DError) {
 	errs := r.populateHelper(ctx, s, name)
 	return r.RealName, errs
 }
 
-func (r *Resource) populateWithZone(ctx context.Context, s *Step, name, zone string) (string, string, dErr) {
+func (r *Resource) populateWithZone(ctx context.Context, s *Step, name, zone string) (string, string, DError) {
 	errs := r.populateHelper(ctx, s, name)
 	return r.RealName, strOr(zone, s.w.Zone), errs
 }
 
-func (r *Resource) populateWithRegion(ctx context.Context, s *Step, name, region string) (string, string, dErr) {
+func (r *Resource) populateWithRegion(ctx context.Context, s *Step, name, region string) (string, string, DError) {
 	errs := r.populateHelper(ctx, s, name)
 	return r.RealName, strOr(region, getRegionFromZone(s.w.Zone)), errs
 }
 
-func (r *Resource) populateHelper(ctx context.Context, s *Step, name string) dErr {
-	var errs dErr
+func (r *Resource) populateHelper(ctx context.Context, s *Step, name string) DError {
+	var errs DError
 	if r.ExactName && r.RealName != "" {
-		errs = addErrs(errs, errf("ExactName and RealName must be used mutually exclusively"))
+		errs = addErrs(errs, Errf("ExactName and RealName must be used mutually exclusively"))
 	} else if r.ExactName {
 		r.RealName = name
 	} else if r.RealName == "" {
@@ -76,43 +76,43 @@ func (r *Resource) populateHelper(ctx context.Context, s *Step, name string) dEr
 	return errs
 }
 
-func (r *Resource) validate(ctx context.Context, s *Step, errPrefix string) dErr {
-	var errs dErr
+func (r *Resource) validate(ctx context.Context, s *Step, errPrefix string) DError {
+	var errs DError
 
 	if !checkName(r.RealName) {
-		return errf("%s: bad name: %q", errPrefix, r.RealName)
+		return Errf("%s: bad name: %q", errPrefix, r.RealName)
 	}
 
 	if exists, err := projectExists(s.w.ComputeClient, r.Project); err != nil {
-		errs = addErrs(errs, errf("%s: bad project lookup: %q, error: %v", errPrefix, r.Project, err))
+		errs = addErrs(errs, Errf("%s: bad project lookup: %q, error: %v", errPrefix, r.Project, err))
 	} else if !exists {
-		errs = addErrs(errs, errf("%s: project does not exist: %q", errPrefix, r.Project))
+		errs = addErrs(errs, Errf("%s: project does not exist: %q", errPrefix, r.Project))
 	}
 	return errs
 }
 
-func (r *Resource) validateWithZone(ctx context.Context, s *Step, z, errPrefix string) dErr {
+func (r *Resource) validateWithZone(ctx context.Context, s *Step, z, errPrefix string) DError {
 	errs := r.validate(ctx, s, errPrefix)
 	if z == "" {
-		errs = addErrs(errs, errf("%s: no zone provided in step or workflow", errPrefix))
+		errs = addErrs(errs, Errf("%s: no zone provided in step or workflow", errPrefix))
 	}
 	if exists, err := zoneExists(s.w.ComputeClient, r.Project, z); err != nil {
-		errs = addErrs(errs, errf("%s: bad zone lookup: %q, error: %v", errPrefix, z, err))
+		errs = addErrs(errs, Errf("%s: bad zone lookup: %q, error: %v", errPrefix, z, err))
 	} else if !exists {
-		errs = addErrs(errs, errf("%s: zone does not exist: %q", errPrefix, z))
+		errs = addErrs(errs, Errf("%s: zone does not exist: %q", errPrefix, z))
 	}
 	return errs
 }
 
-func (r *Resource) validateWithRegion(ctx context.Context, s *Step, re, errPrefix string) dErr {
+func (r *Resource) validateWithRegion(ctx context.Context, s *Step, re, errPrefix string) DError {
 	errs := r.validate(ctx, s, errPrefix)
 	if re == "" {
-		errs = addErrs(errs, errf("%s: no region provided in step or workflow", errPrefix))
+		errs = addErrs(errs, Errf("%s: no region provided in step or workflow", errPrefix))
 	}
 	if exists, err := regionExists(s.w.ComputeClient, r.Project, re); err != nil {
-		errs = addErrs(errs, errf("%s: bad region lookup: %q, error: %v", errPrefix, re, err))
+		errs = addErrs(errs, Errf("%s: bad region lookup: %q, error: %v", errPrefix, re, err))
 	} else if !exists {
-		errs = addErrs(errs, errf("%s: region does not exist: %q", errPrefix, re))
+		errs = addErrs(errs, Errf("%s: region does not exist: %q", errPrefix, re))
 	}
 	return errs
 }
@@ -128,9 +128,9 @@ func extendPartialURL(url, project string) string {
 	return fmt.Sprintf("projects/%s/%s", project, url)
 }
 
-func resourceExists(client compute.Client, url string) (bool, dErr) {
+func resourceExists(client compute.Client, url string) (bool, DError) {
 	if !strings.HasPrefix(url, "projects/") {
-		return false, errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
+		return false, Errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
 	switch {
 	case machineTypeURLRegex.MatchString(url):
@@ -161,7 +161,7 @@ func resourceExists(client compute.Client, url string) (bool, dErr) {
 		result := namedSubexp(firewallRuleURLRegex, url)
 		return firewallRuleExists(client, result["project"], result["firewallRule"])
 	}
-	return false, errf("unknown resource type: %q", url)
+	return false, Errf("unknown resource type: %q", url)
 }
 
 func resourceNameHelper(name string, w *Workflow, exactName bool) string {

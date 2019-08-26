@@ -22,26 +22,26 @@ import (
 // CreateFirewallRules is a Daisy CreateFirewallRules workflow step.
 type CreateFirewallRules []*FirewallRule
 
-func (c *CreateFirewallRules) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (c *CreateFirewallRules) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, fir := range *c {
 		errs = addErrs(errs, fir.populate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateFirewallRules) validate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (c *CreateFirewallRules) validate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, fir := range *c {
 		errs = addErrs(errs, fir.validate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateFirewallRules) run(ctx context.Context, s *Step) dErr {
+func (c *CreateFirewallRules) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan dErr)
+	e := make(chan DError)
 	for _, fir := range *c {
 		wg.Add(1)
 		go func(fir *FirewallRule) {
@@ -53,7 +53,7 @@ func (c *CreateFirewallRules) run(ctx context.Context, s *Step) dErr {
 
 			w.LogStepInfo(s.name, "CreateFirewallRules", "Creating firewall rule %q.", fir.Name)
 			if err := w.ComputeClient.CreateFirewallRule(fir.Project, &fir.Firewall); err != nil {
-				e <- newErr(err)
+				e <- newErr("failed to create firewall", err)
 				return
 			}
 		}(fir)

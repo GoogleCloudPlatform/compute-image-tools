@@ -82,26 +82,26 @@ Loop:
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.
 // - sets defaults
 // - extends short partial URLs to include "projects/<project>"
-func (c *CreateInstances) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (c *CreateInstances) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, i := range *c {
 		errs = addErrs(errs, i.populate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateInstances) validate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (c *CreateInstances) validate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, i := range *c {
 		errs = addErrs(errs, i.validate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
+func (c *CreateInstances) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
-	eChan := make(chan dErr)
+	eChan := make(chan DError)
 	for _, ci := range *c {
 		wg.Add(1)
 		go func(i *Instance) {
@@ -129,7 +129,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) dErr {
 
 			w.LogStepInfo(s.name, "CreateInstances", "Creating instance %q.", i.Name)
 			if err := w.ComputeClient.CreateInstance(i.Project, i.Zone, &i.Instance); err != nil {
-				eChan <- newErr(err)
+				eChan <- newErr("failed to create instances", err)
 				return
 			}
 			go logSerialOutput(ctx, s, i, 1, 3*time.Second)

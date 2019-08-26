@@ -24,7 +24,7 @@ else
   gce_export -gcs_path "$GCS_PATH" -disk /dev/sdb -y
 fi
 if [ $? -ne 0 ]; then
-  echo "ExportFailed: Failed to export disk source to ${GCS_PATH}."
+  echo "ExportFailed: Failed to export disk source to GCS [Privacy-> ${GCS_PATH}. <-Privacy]"
   exit 1
 fi
 

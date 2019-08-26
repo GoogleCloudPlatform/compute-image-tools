@@ -36,7 +36,7 @@ var (
 	networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func networkExists(client daisyCompute.Client, project, name string) (bool, dErr) {
+func networkExists(client daisyCompute.Client, project, name string) (bool, DError) {
 	networkCache.mu.Lock()
 	defer networkCache.mu.Unlock()
 	if networkCache.exists == nil {
@@ -45,7 +45,7 @@ func networkExists(client daisyCompute.Client, project, name string) (bool, dErr
 	if _, ok := networkCache.exists[project]; !ok {
 		nl, err := client.ListNetworks(project)
 		if err != nil {
-			return false, errf("error listing networks for project %q: %v", project, err)
+			return false, Errf("error listing networks for project %q: %v", project, err)
 		}
 		var networks []string
 		for _, n := range nl {
@@ -68,8 +68,8 @@ func (n *Network) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*n)
 }
 
-func (n *Network) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (n *Network) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	n.Name, errs = n.Resource.populateWithGlobal(ctx, s, n.Name)
 
 	n.Description = strOr(n.Description, defaultDescription("Network", s.w.Name, s.w.username))
@@ -82,19 +82,19 @@ func (n *Network) populate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
-func (n *Network) validate(ctx context.Context, s *Step) dErr {
+func (n *Network) validate(ctx context.Context, s *Step) DError {
 	pre := fmt.Sprintf("cannot create network %q", n.daisyName)
 	errs := n.Resource.validate(ctx, s, pre)
 
 	if n.IPv4Range != "" {
 		if _, _, err := net.ParseCIDR(n.IPv4Range); err != nil {
-			errs = addErrs(errs, errf("%s: bad IPv4Range: %q, error: %v", pre, n.IPv4Range, err))
+			errs = addErrs(errs, Errf("%s: bad IPv4Range: %q, error: %v", pre, n.IPv4Range, err))
 		}
 	}
 
 	modes := []string{"REGIONAL", "GLOBAL"}
 	if n.RoutingConfig != nil && !strIn(n.RoutingConfig.RoutingMode, modes) {
-		errs = addErrs(errs, errf("%s: RoutingConfig %q not one of %v", pre, n.RoutingConfig.RoutingMode, modes))
+		errs = addErrs(errs, Errf("%s: RoutingConfig %q not one of %v", pre, n.RoutingConfig.RoutingMode, modes))
 	}
 
 	// Register creation.
@@ -109,7 +109,7 @@ type networkConnection struct {
 type networkRegistry struct {
 	baseResourceRegistry
 	connections          map[string]map[string]*networkConnection
-	testDisconnectHelper func(nName, iName string, s *Step) dErr
+	testDisconnectHelper func(nName, iName string, s *Step) DError
 }
 
 func newNetworkRegistry(w *Workflow) *networkRegistry {
@@ -120,16 +120,16 @@ func newNetworkRegistry(w *Workflow) *networkRegistry {
 	return nr
 }
 
-func (nr *networkRegistry) deleteFn(res *Resource) dErr {
+func (nr *networkRegistry) deleteFn(res *Resource) DError {
 	m := namedSubexp(networkURLRegex, res.link)
 	err := nr.w.ComputeClient.DeleteNetwork(m["project"], m["network"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, err)
+		return typedErr(resourceDNEError, "failed to delete network", err)
 	}
-	return newErr(err)
+	return newErr("failed to delete network", err)
 }
 
-func (nr *networkRegistry) disconnectHelper(nName, iName string, s *Step) dErr {
+func (nr *networkRegistry) disconnectHelper(nName, iName string, s *Step) DError {
 	if nr.testDisconnectHelper != nil {
 		return nr.testDisconnectHelper(nName, iName, s)
 	}
@@ -137,20 +137,20 @@ func (nr *networkRegistry) disconnectHelper(nName, iName string, s *Step) dErr {
 	var conn *networkConnection
 
 	if im, _ := nr.connections[nName]; im == nil {
-		return errf("%s: not connected", pre)
+		return Errf("%s: not connected", pre)
 	} else if conn, _ = im[iName]; conn == nil {
-		return errf("%s: not attached", pre)
+		return Errf("%s: not attached", pre)
 	} else if conn.disconnector != nil {
-		return errf("%s: already disconnected or concurrently disconnected by step %q", pre, conn.disconnector.name)
+		return Errf("%s: already disconnected or concurrently disconnected by step %q", pre, conn.disconnector.name)
 	} else if !s.nestedDepends(conn.connector) {
-		return errf("%s: step %q does not depend on connecting step %q", pre, s.name, conn.connector.name)
+		return Errf("%s: step %q does not depend on connecting step %q", pre, s.name, conn.connector.name)
 	}
 	conn.disconnector = s
 	return nil
 }
 
 // regConnect marks a network and instance as connected by a Step s.
-func (nr *networkRegistry) regConnect(nName, iName string, s *Step) dErr {
+func (nr *networkRegistry) regConnect(nName, iName string, s *Step) DError {
 	nr.mx.Lock()
 	defer nr.mx.Unlock()
 
@@ -158,14 +158,14 @@ func (nr *networkRegistry) regConnect(nName, iName string, s *Step) dErr {
 	if im, _ := nr.connections[nName]; im == nil {
 		nr.connections[nName] = map[string]*networkConnection{iName: {connector: s}}
 	} else if nc, _ := im[iName]; nc != nil && !s.nestedDepends(nc.disconnector) {
-		return errf("%s: concurrently connected by step %q", pre, nc.connector.name)
+		return Errf("%s: concurrently connected by step %q", pre, nc.connector.name)
 	} else {
 		nr.connections[nName][iName] = &networkConnection{connector: s}
 	}
 	return nil
 }
 
-func (nr *networkRegistry) regDisconnect(nName, iName string, s *Step) dErr {
+func (nr *networkRegistry) regDisconnect(nName, iName string, s *Step) DError {
 	nr.mx.Lock()
 	defer nr.mx.Unlock()
 
@@ -173,11 +173,11 @@ func (nr *networkRegistry) regDisconnect(nName, iName string, s *Step) dErr {
 }
 
 // regDisconnect all is called by Instance.regDelete and registers Step s as the disconnector for all networks that iName is currently connected to.
-func (nr *networkRegistry) regDisconnectAll(iName string, s *Step) dErr {
+func (nr *networkRegistry) regDisconnectAll(iName string, s *Step) DError {
 	nr.mx.Lock()
 	defer nr.mx.Unlock()
 
-	var errs dErr
+	var errs DError
 	// For every network, if connected, disconnect.
 	for nName, im := range nr.connections {
 		if conn, _ := im[iName]; conn != nil && conn.disconnector == nil {

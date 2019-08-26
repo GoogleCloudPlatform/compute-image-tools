@@ -37,7 +37,7 @@ type DeleteResources struct {
 	GCSPaths    []string `json:",omitempty"`
 }
 
-func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
+func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
 	for i, disk := range d.Disks {
 		if diskURLRgx.MatchString(disk) {
 			d.Disks[i] = extendPartialURL(disk, s.w.Project)
@@ -66,7 +66,7 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) dErr {
 	return nil
 }
 
-func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
+func (d *DeleteResources) validateInstance(i string, s *Step) DError {
 	if err := s.w.instances.regDelete(i, s); err != nil {
 		return err
 	}
@@ -95,17 +95,17 @@ func (d *DeleteResources) validateInstance(i string, s *Step) dErr {
 	return nil
 }
 
-func (d *DeleteResources) checkError(err dErr, s *Step) dErr {
-	if err != nil && err.Type() == resourceDNEError {
+func (d *DeleteResources) checkError(err DError, s *Step) DError {
+	if err != nil && err.etype() == resourceDNEError {
 		s.w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error validating deletion: %v", err)
 		return nil
-	} else if err != nil && err.Type() == imageObsoleteDeletedError {
+	} else if err != nil && err.etype() == imageObsoleteDeletedError {
 		return nil
 	}
 	return err
 }
 
-func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
+func (d *DeleteResources) validate(ctx context.Context, s *Step) DError {
 	// Instance checking.
 	for _, i := range d.Instances {
 		if err := d.validateInstance(i, s); d.checkError(err, s) != nil {
@@ -152,19 +152,19 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 		writableBkts.mx.Lock()
 		if !strIn(bkt, writableBkts.bkts) {
 			if _, err := s.w.StorageClient.Bucket(bkt).Attrs(ctx); err != nil {
-				return errf("error reading bucket %q: %v", bkt, err)
+				return Errf("error reading bucket %q: %v", bkt, err)
 			}
 
 			tObj := s.w.StorageClient.Bucket(bkt).Object(fmt.Sprintf("daisy-validate-%s-%s", s.name, s.w.id))
 			w := tObj.NewWriter(ctx)
 			if _, err := w.Write(nil); err != nil {
-				return newErr(err)
+				return newErr("failed to write to GCS object when deleting resources", err)
 			}
 			if err := w.Close(); err != nil {
-				return errf("error writing to bucket %q: %v", bkt, err)
+				return Errf("error writing to bucket %q: %v", bkt, err)
 			}
 			if err := tObj.Delete(ctx); err != nil {
-				return errf("error deleting file %+v after write validation: %v", tObj, err)
+				return Errf("error deleting file %+v after write validation: %v", tObj, err)
 			}
 			writableBkts.bkts = append(writableBkts.bkts, bkt)
 		}
@@ -174,17 +174,17 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) dErr {
 	return nil
 }
 
-func recursiveGCSDelete(ctx context.Context, w *Workflow, bkt, prefix string) dErr {
+func recursiveGCSDelete(ctx context.Context, w *Workflow, bkt, prefix string) DError {
 	it := w.StorageClient.Bucket(bkt).Objects(ctx, &storage.Query{Prefix: prefix})
 	for objAttr, err := it.Next(); err != iterator.Done; objAttr, err = it.Next() {
 		if err != nil {
-			return typedErr(apiError, err)
+			return typedErr(apiError, "failed to iterate GCS object for deletion", err)
 		}
 		if objAttr.Size == 0 {
 			continue
 		}
 		if err := w.StorageClient.Bucket(bkt).Object(objAttr.Name).Delete(ctx); err != nil {
-			return typedErr(apiError, err)
+			return typedErr(apiError, "failed to delete GCS object", err)
 		}
 	}
 	return nil
@@ -192,7 +192,7 @@ func recursiveGCSDelete(ctx context.Context, w *Workflow, bkt, prefix string) dE
 
 // Waits for the whole group to run. Monitors for error and cancels.
 // Returns true if error should be raised, false otherwise.
-func waitGroup(wg *sync.WaitGroup, e chan dErr, w *Workflow) (bool, dErr) {
+func waitGroup(wg *sync.WaitGroup, e chan DError, w *Workflow) (bool, DError) {
 	go func() {
 		wg.Wait()
 		e <- nil
@@ -209,10 +209,10 @@ func waitGroup(wg *sync.WaitGroup, e chan dErr, w *Workflow) (bool, dErr) {
 	return false, nil
 }
 
-func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
+func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan dErr)
+	e := make(chan DError)
 
 	for _, i := range d.Instances {
 		wg.Add(1)
@@ -220,7 +220,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting instance %q.", i)
 			if err := w.instances.delete(i); err != nil {
-				if err.Type() == resourceDNEError {
+				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting instance %q: %v", i, err)
 					return
 				}
@@ -235,7 +235,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting image %q.", i)
 			if err := w.images.delete(i); err != nil {
-				if err.Type() == resourceDNEError {
+				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting image %q: %v", i, err)
 					return
 				}
@@ -265,7 +265,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting GCS Path %q: %v", p, err)
 					return
 				}
-				e <- errf("error deleting GCS path %q: %v", p, err)
+				e <- Errf("error deleting GCS path %q: %v", p, err)
 			}
 		}(p)
 	}
@@ -275,14 +275,14 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 	}
 
 	// Delete disks only after instances have been deleted.
-	e = make(chan dErr)
+	e = make(chan DError)
 	for _, d := range d.Disks {
 		wg.Add(1)
 		go func(d string) {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting disk %q.", d)
 			if err := w.disks.delete(d); err != nil {
-				if err.Type() == resourceDNEError {
+				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting disk %q: %v", d, err)
 					return
 				}
@@ -298,7 +298,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting subnetwork %q.", sn)
 			if err := w.subnetworks.delete(sn); err != nil {
-				if err.Type() == resourceDNEError {
+				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting subnetwork %q: %v", sn, err)
 				}
 				e <- err
@@ -317,7 +317,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) dErr {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting network %q.", n)
 			if err := w.networks.delete(n); err != nil {
-				if err.Type() == resourceDNEError {
+				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting network %q: %v", n, err)
 				}
 				e <- err

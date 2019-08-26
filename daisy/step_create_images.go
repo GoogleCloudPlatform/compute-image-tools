@@ -57,8 +57,8 @@ func usesBetaFeatures(imagesBeta []*ImageBeta) bool {
 // populate preprocesses fields: Name, Project, Description, SourceDisk, RawDisk, and daisyName.
 // - sets defaults
 // - extends short partial URLs to include "projects/<project>"
-func (ci *CreateImages) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (ci *CreateImages) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	if ci.Images != nil {
 		for _, i := range ci.Images {
 			errs = addErrs(errs, populate(ctx, i, &i.ImageBase, s))
@@ -74,8 +74,8 @@ func (ci *CreateImages) populate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
-func (ci *CreateImages) validate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (ci *CreateImages) validate(ctx context.Context, s *Step) DError {
+	var errs DError
 
 	if usesBetaFeatures(ci.ImagesBeta) {
 		for _, i := range ci.ImagesBeta {
@@ -90,10 +90,10 @@ func (ci *CreateImages) validate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
-func (ci *CreateImages) run(ctx context.Context, s *Step) dErr {
+func (ci *CreateImages) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan dErr)
+	e := make(chan DError)
 
 	createImage := func(ci ImageInterface, overwrite bool) {
 		defer wg.Done()
@@ -107,7 +107,7 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) dErr {
 			// Just try to delete it, a 404 here indicates the image doesn't exist.
 			if err := ci.delete(w.ComputeClient); err != nil {
 				if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
-					e <- errf("error deleting existing image: %v", err)
+					e <- Errf("error deleting existing image: %v", err)
 					return
 				}
 			}
@@ -115,7 +115,7 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) dErr {
 
 		w.LogStepInfo(s.name, "CreateImages", "Creating image %q.", ci.getName())
 		if err := ci.create(w.ComputeClient); err != nil {
-			e <- newErr(err)
+			e <- newErr("failed to create images", err)
 			return
 		}
 	}

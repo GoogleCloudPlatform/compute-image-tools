@@ -96,7 +96,7 @@ Loop:
 	} else if w.Project == "" && metadata.OnGCE() {
 		w.Project, err = metadata.ProjectID()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to get GCE project id from metadata: %v", err)
 		}
 	}
 	if zone != "" {
@@ -104,7 +104,7 @@ Loop:
 	} else if w.Zone == "" && metadata.OnGCE() {
 		w.Zone, err = metadata.Zone()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Failed to get GCE zone from metadata: %v", err)
 		}
 	}
 	if gcsPath != "" {

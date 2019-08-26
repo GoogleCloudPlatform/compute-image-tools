@@ -35,7 +35,7 @@ var (
 	targetInstanceURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/TargetInstances/(?P<targetInstance>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func targetInstanceExists(client daisyCompute.Client, project, zone, name string) (bool, dErr) {
+func targetInstanceExists(client daisyCompute.Client, project, zone, name string) (bool, DError) {
 	targetInstanceCache.mu.Lock()
 	defer targetInstanceCache.mu.Unlock()
 	if targetInstanceCache.exists == nil {
@@ -47,7 +47,7 @@ func targetInstanceExists(client daisyCompute.Client, project, zone, name string
 	if _, ok := targetInstanceCache.exists[project][zone]; !ok {
 		nl, err := client.ListTargetInstances(project, zone)
 		if err != nil {
-			return false, errf("error listing target-instances for project %q: %v", project, err)
+			return false, Errf("error listing target-instances for project %q: %v", project, err)
 		}
 		var targetInstances []string
 		for _, ti := range nl {
@@ -69,8 +69,8 @@ func (ti *TargetInstance) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*ti)
 }
 
-func (ti *TargetInstance) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (ti *TargetInstance) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	ti.Name, ti.Zone, errs = ti.Resource.populateWithZone(ctx, s, ti.Name, ti.Zone)
 
 	if instanceURLRgx.MatchString(ti.Instance) {
@@ -84,12 +84,12 @@ func (ti *TargetInstance) populate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
-func (ti *TargetInstance) validate(ctx context.Context, s *Step) dErr {
+func (ti *TargetInstance) validate(ctx context.Context, s *Step) DError {
 	pre := fmt.Sprintf("cannot create target-instance %q", ti.daisyName)
 	errs := ti.Resource.validateWithZone(ctx, s, ti.Zone, pre)
 
 	if ti.Instance == "" {
-		errs = addErrs(errs, errf("%s: Instance not set", pre))
+		errs = addErrs(errs, Errf("%s: Instance not set", pre))
 	}
 
 	// Register creation.
@@ -104,7 +104,7 @@ type targetInstanceConnection struct {
 type targetInstanceRegistry struct {
 	baseResourceRegistry
 	connections          map[string]map[string]*targetInstanceConnection
-	testDisconnectHelper func(nName, iName string, s *Step) dErr
+	testDisconnectHelper func(nName, iName string, s *Step) DError
 }
 
 func newTargetInstanceRegistry(w *Workflow) *targetInstanceRegistry {
@@ -115,11 +115,11 @@ func newTargetInstanceRegistry(w *Workflow) *targetInstanceRegistry {
 	return tir
 }
 
-func (tir *targetInstanceRegistry) deleteFn(res *Resource) dErr {
+func (tir *targetInstanceRegistry) deleteFn(res *Resource) DError {
 	m := namedSubexp(targetInstanceURLRegex, res.link)
 	err := tir.w.ComputeClient.DeleteTargetInstance(m["project"], m["zone"], m["targetInstance"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, err)
+		return typedErr(resourceDNEError, "failed to delete target instance", err)
 	}
-	return newErr(err)
+	return newErr("failed to delete target instance", err)
 }

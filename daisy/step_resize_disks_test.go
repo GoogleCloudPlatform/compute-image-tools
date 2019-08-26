@@ -86,13 +86,13 @@ func TestResizeDisksRun(t *testing.T) {
 	s, _ := w.NewStep("test")
 	w.AddDependency(s, sCreateDisk)
 
-	e := errf("error")
+	e := Errf("error")
 	tests := []struct {
 		desc      string
 		rd        *ResizeDisks
 		wantDrr   *compute.DisksResizeRequest
 		clientErr error
-		wantErr   dErr
+		wantErr   DError
 	}{
 		{"blank case", &ResizeDisks{}, &compute.DisksResizeRequest{}, nil, nil},
 		{"existing disk", &ResizeDisks{{Name: "disk1", DisksResizeRequest: compute.DisksResizeRequest{SizeGb: 10}}}, &compute.DisksResizeRequest{SizeGb: 10}, nil, nil},

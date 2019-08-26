@@ -28,7 +28,7 @@ func TestCreateForwardingRulesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
 
-	e := errf("error")
+	e := Errf("error")
 
 	wantForwardingRule := compute.ForwardingRule{}
 	wantForwardingRule.Description = "ForwardingRule created by Daisy in workflow \"test-wf\" on behalf of ."
@@ -40,7 +40,7 @@ func TestCreateForwardingRulesRun(t *testing.T) {
 		desc      string
 		n, wantN  compute.ForwardingRule
 		clientErr error
-		wantErr   dErr
+		wantErr   DError
 	}{
 		{"good case", compute.ForwardingRule{}, wantForwardingRule, nil, nil},
 		{"client error case", compute.ForwardingRule{}, wantForwardingRule, e, e},

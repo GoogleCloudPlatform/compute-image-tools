@@ -127,12 +127,12 @@ func TestDeprecateImagesRun(t *testing.T) {
 	s := &Step{w: w}
 	w.images.m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
 
-	e := errf("error")
+	e := Errf("error")
 	tests := []struct {
 		desc      string
 		di        *DeprecateImage
 		clientErr error
-		wantErr   dErr
+		wantErr   DError
 	}{
 		{"DEPRECATED case", &DeprecateImage{Image: "i1", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED"}}, nil, nil},
 		{"client error case", &DeprecateImage{Image: "i1", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED"}}, e, e},

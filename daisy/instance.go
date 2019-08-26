@@ -56,7 +56,7 @@ func checkDiskMode(m string) bool {
 
 // instanceExists should only be used during validation for existing GCE instances
 // and should not be relied or populated for daisy created resources.
-func instanceExists(client daisyCompute.Client, project, zone, instance string) (bool, dErr) {
+func instanceExists(client daisyCompute.Client, project, zone, instance string) (bool, DError) {
 	instanceCache.mu.Lock()
 	defer instanceCache.mu.Unlock()
 	if instanceCache.exists == nil {
@@ -68,7 +68,7 @@ func instanceExists(client daisyCompute.Client, project, zone, instance string) 
 	if _, ok := instanceCache.exists[project][zone]; !ok {
 		il, err := client.ListInstances(project, zone)
 		if err != nil {
-			return false, errf("error listing instances for project %q: %v", project, err)
+			return false, Errf("error listing instances for project %q: %v", project, err)
 		}
 		var instances []string
 		for _, i := range il {
@@ -99,8 +99,8 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*i)
 }
 
-func (i *Instance) populate(ctx context.Context, s *Step) dErr {
-	var errs dErr
+func (i *Instance) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	i.Name, i.Zone, errs = i.Resource.populateWithZone(ctx, s, i.Name, i.Zone)
 	i.Description = strOr(i.Description, fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 
@@ -113,7 +113,7 @@ func (i *Instance) populate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
-func (i *Instance) populateDisks(w *Workflow) dErr {
+func (i *Instance) populateDisks(w *Workflow) DError {
 	autonameIdx := 1
 	for di, d := range i.Disks {
 		d.Boot = di == 0
@@ -160,7 +160,7 @@ func (i *Instance) populateDisks(w *Workflow) dErr {
 	return nil
 }
 
-func (i *Instance) populateMachineType() dErr {
+func (i *Instance) populateMachineType() DError {
 	i.MachineType = strOr(i.MachineType, "n1-standard-1")
 	if machineTypeURLRegex.MatchString(i.MachineType) {
 		i.MachineType = extendPartialURL(i.MachineType, i.Project)
@@ -170,7 +170,7 @@ func (i *Instance) populateMachineType() dErr {
 	return nil
 }
 
-func (i *Instance) populateMetadata(w *Workflow) dErr {
+func (i *Instance) populateMetadata(w *Workflow) DError {
 	if i.Metadata == nil {
 		i.Metadata = map[string]string{}
 	}
@@ -182,7 +182,7 @@ func (i *Instance) populateMetadata(w *Workflow) dErr {
 	i.Metadata["daisy-outs-path"] = "gs://" + path.Join(w.bucket, w.outsPath)
 	if i.StartupScript != "" {
 		if !w.sourceExists(i.StartupScript) {
-			return errf("bad value for StartupScript, source not found: %s", i.StartupScript)
+			return Errf("bad value for StartupScript, source not found: %s", i.StartupScript)
 		}
 		i.StartupScript = "gs://" + path.Join(w.bucket, w.sourcesPath, i.StartupScript)
 		i.Metadata["startup-script-url"] = i.StartupScript
@@ -195,7 +195,7 @@ func (i *Instance) populateMetadata(w *Workflow) dErr {
 	return nil
 }
 
-func (i *Instance) populateNetworks() dErr {
+func (i *Instance) populateNetworks() DError {
 	defaultAcs := []*compute.AccessConfig{{Type: defaultAccessConfigType}}
 
 	if i.NetworkInterfaces == nil {
@@ -223,7 +223,7 @@ func (i *Instance) populateNetworks() dErr {
 	return nil
 }
 
-func (i *Instance) populateScopes() dErr {
+func (i *Instance) populateScopes() DError {
 	if i.Scopes == nil {
 		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
 	}
@@ -233,7 +233,7 @@ func (i *Instance) populateScopes() dErr {
 	return nil
 }
 
-func (i *Instance) validate(ctx context.Context, s *Step) dErr {
+func (i *Instance) validate(ctx context.Context, s *Step) DError {
 	pre := fmt.Sprintf("cannot create instance %q", i.daisyName)
 	errs := i.Resource.validateWithZone(ctx, s, i.Zone, pre)
 	errs = addErrs(errs, i.validateDisks(s))
@@ -245,17 +245,17 @@ func (i *Instance) validate(ctx context.Context, s *Step) dErr {
 	return errs
 }
 
-func (i *Instance) validateDisks(s *Step) (errs dErr) {
+func (i *Instance) validateDisks(s *Step) (errs DError) {
 	if len(i.Disks) == 0 {
-		errs = addErrs(errs, errf("cannot create instance: no disks provided"))
+		errs = addErrs(errs, Errf("cannot create instance: no disks provided"))
 	}
 
 	for _, d := range i.Disks {
 		if !checkDiskMode(d.Mode) {
-			errs = addErrs(errs, errf("cannot create instance: bad disk mode: %q", d.Mode))
+			errs = addErrs(errs, Errf("cannot create instance: bad disk mode: %q", d.Mode))
 		}
 		if d.Source != "" && d.InitializeParams != nil {
-			errs = addErrs(errs, errf("cannot create instance: disk.source and disk.initializeParams are mutually exclusive"))
+			errs = addErrs(errs, Errf("cannot create instance: disk.source and disk.initializeParams are mutually exclusive"))
 		}
 		if d.InitializeParams != nil {
 			errs = addErrs(errs, i.validateDiskInitializeParams(d, s))
@@ -266,25 +266,25 @@ func (i *Instance) validateDisks(s *Step) (errs dErr) {
 	return
 }
 
-func (i *Instance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step) (errs dErr) {
+func (i *Instance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step) (errs DError) {
 	p := d.InitializeParams
 
 	parts := namedSubexp(diskTypeURLRgx, p.DiskType)
 	if parts["project"] != i.Project {
-		errs = addErrs(errs, errf("cannot create instance in project %q with InitializeParams.DiskType in project %q", i.Project, parts["project"]))
+		errs = addErrs(errs, Errf("cannot create instance in project %q with InitializeParams.DiskType in project %q", i.Project, parts["project"]))
 	}
 	if parts["zone"] != i.Zone {
-		errs = addErrs(errs, errf("cannot create instance in zone %q with InitializeParams.DiskType in zone %q", i.Zone, parts["zone"]))
+		errs = addErrs(errs, Errf("cannot create instance in zone %q with InitializeParams.DiskType in zone %q", i.Zone, parts["zone"]))
 	}
 	if parts["disktype"] == "local-ssd" {
 		return
 	}
 
 	if _, err := s.w.images.regUse(p.SourceImage, s); err != nil {
-		errs = addErrs(errs, errf("cannot create instance: can't use InitializeParams.SourceImage %q: %v", p.SourceImage, err))
+		errs = addErrs(errs, Errf("cannot create instance: can't use InitializeParams.SourceImage %q: %v", p.SourceImage, err))
 	}
 	if !rfc1035Rgx.MatchString(p.DiskName) {
-		errs = addErrs(errs, errf("cannot create instance: bad InitializeParams.DiskName: %q", p.DiskName))
+		errs = addErrs(errs, Errf("cannot create instance: bad InitializeParams.DiskName: %q", p.DiskName))
 	}
 	link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", i.Project, i.Zone, p.DiskName)
 	// Set cleanup if not being autodeleted.
@@ -294,47 +294,47 @@ func (i *Instance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step
 	return
 }
 
-func (i *Instance) validateDiskSource(d *compute.AttachedDisk, s *Step) dErr {
+func (i *Instance) validateDiskSource(d *compute.AttachedDisk, s *Step) DError {
 	dr, errs := s.w.disks.regUse(d.Source, s)
 	if dr == nil {
 		// Return now, the rest of this function can't be run without dr.
-		return addErrs(errs, errf("cannot create instance: disk %q not found in registry", d.Source))
+		return addErrs(errs, Errf("cannot create instance: disk %q not found in registry", d.Source))
 	}
 
 	// Ensure disk is in the same project and zone.
 	result := namedSubexp(diskURLRgx, dr.link)
 	if result["project"] != i.Project {
-		errs = addErrs(errs, errf("cannot create instance in project %q with disk in project %q: %q", i.Project, result["project"], d.Source))
+		errs = addErrs(errs, Errf("cannot create instance in project %q with disk in project %q: %q", i.Project, result["project"], d.Source))
 	}
 	if result["zone"] != i.Zone {
-		errs = addErrs(errs, errf("cannot create instance in project %q with disk in zone %q: %q", i.Zone, result["zone"], d.Source))
+		errs = addErrs(errs, Errf("cannot create instance in project %q with disk in zone %q: %q", i.Zone, result["zone"], d.Source))
 	}
 	return errs
 }
 
-func (i *Instance) validateMachineType(client daisyCompute.Client) (errs dErr) {
+func (i *Instance) validateMachineType(client daisyCompute.Client) (errs DError) {
 	if !machineTypeURLRegex.MatchString(i.MachineType) {
-		errs = addErrs(errs, errf("can't create instance: bad MachineType: %q", i.MachineType))
+		errs = addErrs(errs, Errf("can't create instance: bad MachineType: %q", i.MachineType))
 		return
 	}
 
 	result := namedSubexp(machineTypeURLRegex, i.MachineType)
 	if result["project"] != i.Project {
-		errs = addErrs(errs, errf("cannot create instance in project %q with MachineType in project %q: %q", i.Project, result["project"], i.MachineType))
+		errs = addErrs(errs, Errf("cannot create instance in project %q with MachineType in project %q: %q", i.Project, result["project"], i.MachineType))
 	}
 	if result["zone"] != i.Zone {
-		errs = addErrs(errs, errf("cannot create instance in zone %q with MachineType in zone %q: %q", i.Zone, result["zone"], i.MachineType))
+		errs = addErrs(errs, Errf("cannot create instance in zone %q with MachineType in zone %q: %q", i.Zone, result["zone"], i.MachineType))
 	}
 
 	if exists, err := machineTypeExists(client, result["project"], result["zone"], result["machinetype"]); err != nil {
-		errs = addErrs(errs, errf("cannot create instance, bad machineType lookup: %q, error: %v", result["machinetype"], err))
+		errs = addErrs(errs, Errf("cannot create instance, bad machineType lookup: %q, error: %v", result["machinetype"], err))
 	} else if !exists {
-		errs = addErrs(errs, errf("cannot create instance, machineType does not exist: %q", result["machinetype"]))
+		errs = addErrs(errs, Errf("cannot create instance, machineType does not exist: %q", result["machinetype"]))
 	}
 	return
 }
 
-func (i *Instance) validateNetworks(s *Step) (errs dErr) {
+func (i *Instance) validateNetworks(s *Step) (errs DError) {
 	for _, n := range i.NetworkInterfaces {
 		if n.Subnetwork != "" {
 			_, err := s.w.subnetworks.regUse(n.Subnetwork, s)
@@ -370,7 +370,7 @@ func newInstanceRegistry(w *Workflow) *instanceRegistry {
 // SleepFn function is mocked on testing.
 var SleepFn = time.Sleep
 
-func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
+func (ir *instanceRegistry) deleteFn(res *Resource) DError {
 	m := namedSubexp(instanceURLRgx, res.link)
 	for i := 1; i < 4; i++ {
 		if _, err := ir.w.ComputeClient.GetInstance(m["project"], m["zone"], m["instance"]); err != nil {
@@ -383,30 +383,30 @@ func (ir *instanceRegistry) deleteFn(res *Resource) dErr {
 	// Proceed to instance deletion
 	err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, err)
+		return typedErr(resourceDNEError, "failed to delete instance", err)
 	}
-	return newErr(err)
+	return newErr("failed to delete instance", err)
 }
 
-func (ir *instanceRegistry) startFn(res *Resource) dErr {
+func (ir *instanceRegistry) startFn(res *Resource) DError {
 	m := namedSubexp(instanceURLRgx, res.link)
 	err := ir.w.ComputeClient.StartInstance(m["project"], m["zone"], m["instance"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, err)
+		return typedErr(resourceDNEError, "failed to start instance", err)
 	}
-	return newErr(err)
+	return newErr("failed to start instance", err)
 }
 
-func (ir *instanceRegistry) stopFn(res *Resource) dErr {
+func (ir *instanceRegistry) stopFn(res *Resource) DError {
 	m := namedSubexp(instanceURLRgx, res.link)
 	err := ir.w.ComputeClient.StopInstance(m["project"], m["zone"], m["instance"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, err)
+		return typedErr(resourceDNEError, "failed to stop instance", err)
 	}
-	return newErr(err)
+	return newErr("failed to stop instance", err)
 }
 
-func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) dErr {
+func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) DError {
 	// Base creation logic.
 	errs := ir.baseResourceRegistry.regCreate(name, res, s, false)
 
@@ -439,7 +439,7 @@ func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) dErr 
 	return errs
 }
 
-func (ir *instanceRegistry) regDelete(name string, s *Step) dErr {
+func (ir *instanceRegistry) regDelete(name string, s *Step) DError {
 	errs := ir.baseResourceRegistry.regDelete(name, s)
 	errs = addErrs(errs, ir.w.disks.regDetachAll(name, s))
 	return addErrs(errs, ir.w.networks.regDisconnectAll(name, s))

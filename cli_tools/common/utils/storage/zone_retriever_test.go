@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -62,7 +63,7 @@ func TestGetZoneErrorWhenGCEMetadataReturnsError(t *testing.T) {
 
 	projectID := "a_project"
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().Zone().Return("", fmt.Errorf("err"))
+	mockMetadataGce.EXPECT().Zone().Return("", daisy.Errf("err"))
 	mockMetadataGce.EXPECT().OnGCE().Return(true)
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 
