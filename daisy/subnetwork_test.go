@@ -190,18 +190,18 @@ func TestSubnetworkRegDisconnect(t *testing.T) {
 	// - error from helper
 	w := testWorkflow()
 
-	var helperErr *DError
-	w.subnetworks.testDisconnectHelper = func(_, _ string, _ *Step) DError {
+	var helperErr *dErr
+	w.subnetworks.testDisconnectHelper = func(_, _ string, _ *Step) dErr {
 		return *helperErr
 	}
 
 	tests := []struct {
 		desc      string
-		helperErr DError
+		helperErr dErr
 		shouldErr bool
 	}{
 		{"normal case", nil, false},
-		{"disconnect helper error case", Errf("error!"), true},
+		{"disconnect helper error case", errf("error!"), true},
 	}
 
 	for _, tt := range tests {
@@ -225,8 +225,8 @@ func TestSubnetworkRegDisconnectAll(t *testing.T) {
 	otherDisconnector, _ := w.NewStep("other-disconnector")
 
 	var callsArgs [][]interface{}
-	var helperErr *DError
-	w.subnetworks.testDisconnectHelper = func(nName, iName string, s *Step) DError {
+	var helperErr *dErr
+	w.subnetworks.testDisconnectHelper = func(nName, iName string, s *Step) dErr {
 		callsArgs = append(callsArgs, []interface{}{nName, iName, s})
 		return *helperErr
 	}
@@ -242,11 +242,11 @@ func TestSubnetworkRegDisconnectAll(t *testing.T) {
 
 	tests := []struct {
 		desc      string
-		helperErr DError
+		helperErr dErr
 		shouldErr bool
 	}{
 		{"normal case", nil, false},
-		{"disconnect helper error case", Errf("error!"), true},
+		{"disconnect helper error case", errf("error!"), true},
 	}
 
 	for _, tt := range tests {

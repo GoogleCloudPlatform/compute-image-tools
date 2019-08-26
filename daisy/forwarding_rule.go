@@ -35,7 +35,7 @@ var (
 	forwardingRuleURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/forwardingRules/(?P<forwardingRule>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func forwardingRuleExists(client daisyCompute.Client, project, region, name string) (bool, DError) {
+func forwardingRuleExists(client daisyCompute.Client, project, region, name string) (bool, dErr) {
 	forwardingRuleCache.mu.Lock()
 	defer forwardingRuleCache.mu.Unlock()
 	if forwardingRuleCache.exists == nil {
@@ -47,7 +47,7 @@ func forwardingRuleExists(client daisyCompute.Client, project, region, name stri
 	if _, ok := forwardingRuleCache.exists[project][region]; !ok {
 		nl, err := client.ListForwardingRules(project, region)
 		if err != nil {
-			return false, Errf("error listing forwarding-rules for project %q: %v", project, err)
+			return false, errf("error listing forwarding-rules for project %q: %v", project, err)
 		}
 		var forwardingRules []string
 		for _, fr := range nl {
@@ -69,8 +69,8 @@ func (fr *ForwardingRule) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*fr)
 }
 
-func (fr *ForwardingRule) populate(ctx context.Context, s *Step) DError {
-	var errs DError
+func (fr *ForwardingRule) populate(ctx context.Context, s *Step) dErr {
+	var errs dErr
 	fr.Name, fr.Region, errs = fr.Resource.populateWithRegion(ctx, s, fr.Name, fr.Region)
 
 	if targetInstanceURLRegex.MatchString(fr.Target) {
@@ -84,18 +84,18 @@ func (fr *ForwardingRule) populate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-func (fr *ForwardingRule) validate(ctx context.Context, s *Step) DError {
+func (fr *ForwardingRule) validate(ctx context.Context, s *Step) dErr {
 	pre := fmt.Sprintf("cannot create forwarding-rule %q", fr.daisyName)
 	errs := fr.Resource.validateWithRegion(ctx, s, fr.Region, pre)
 
 	if fr.IPProtocol == "" {
-		errs = addErrs(errs, Errf("%s: IPProtocol not set", pre))
+		errs = addErrs(errs, errf("%s: IPProtocol not set", pre))
 	}
 	if fr.PortRange == "" {
-		errs = addErrs(errs, Errf("%s: PortRange not set", pre))
+		errs = addErrs(errs, errf("%s: PortRange not set", pre))
 	}
 	if fr.Target == "" {
-		errs = addErrs(errs, Errf("%s: Target not set", pre))
+		errs = addErrs(errs, errf("%s: Target not set", pre))
 	}
 
 	// Register creation.
@@ -110,7 +110,7 @@ type forwardingRuleConnection struct {
 type forwardingRuleRegistry struct {
 	baseResourceRegistry
 	connections          map[string]map[string]*forwardingRuleConnection
-	testDisconnectHelper func(nName, iName string, s *Step) DError
+	testDisconnectHelper func(nName, iName string, s *Step) dErr
 }
 
 func newForwardingRuleRegistry(w *Workflow) *forwardingRuleRegistry {
@@ -121,11 +121,11 @@ func newForwardingRuleRegistry(w *Workflow) *forwardingRuleRegistry {
 	return tir
 }
 
-func (tir *forwardingRuleRegistry) deleteFn(res *Resource) DError {
+func (tir *forwardingRuleRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(forwardingRuleURLRegex, res.link)
 	err := tir.w.ComputeClient.DeleteForwardingRule(m["project"], m["region"], m["forwardingRule"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, "failed to delete forwarding rule", err)
+		return typedErr(resourceDNEError, err)
 	}
-	return newErr("failed to delete forwarding rule", err)
+	return newErr(err)
 }

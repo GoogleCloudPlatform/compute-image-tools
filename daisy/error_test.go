@@ -22,14 +22,14 @@ import (
 func TestAddErrs(t *testing.T) {
 	tests := []struct {
 		desc string
-		base DError
+		base dErr
 		errs []error
-		want DError
+		want dErr
 	}{
 		{"add nil to nil case", nil, nil, nil},
 		{"add error to nil case", nil, []error{errors.New("foo")}, &dErrImpl{errs: []error{errors.New("foo")}}},
-		{"add nil to DError case", &dErrImpl{errs: []error{errors.New("foo")}}, nil, &dErrImpl{errs: []error{errors.New("foo")}}},
-		{"add errors to DError case", &dErrImpl{errs: []error{errors.New("foo")}}, []error{errors.New("bar"), errors.New("baz")}, &dErrImpl{errs: []error{errors.New("foo"), errors.New("bar"), errors.New("baz")}, errType: multiError}},
+		{"add nil to dErr case", &dErrImpl{errs: []error{errors.New("foo")}}, nil, &dErrImpl{errs: []error{errors.New("foo")}}},
+		{"add errors to dErr case", &dErrImpl{errs: []error{errors.New("foo")}}, []error{errors.New("bar"), errors.New("baz")}, &dErrImpl{errs: []error{errors.New("foo"), errors.New("bar"), errors.New("baz")}, errType: multiError}},
 	}
 
 	for _, tt := range tests {
@@ -38,7 +38,7 @@ func TestAddErrs(t *testing.T) {
 			t.Errorf("%s: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 		if diffRes := diff(tt.base, tt.want, 0); tt.base != nil && diffRes != "" {
-			t.Errorf("%s: base DError not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
+			t.Errorf("%s: base dErr not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 	}
 }
@@ -46,7 +46,7 @@ func TestAddErrs(t *testing.T) {
 func TestDErrError(t *testing.T) {
 	tests := []struct {
 		desc string
-		err  DError
+		err  dErr
 		want string
 	}{
 		{"no error type case", &dErrImpl{errs: []error{errors.New("foo")}}, "foo"},
@@ -67,7 +67,7 @@ func TestDErrError(t *testing.T) {
 }
 
 func TestErrf(t *testing.T) {
-	got := Errf("%s %s", "hello", "world")
+	got := errf("%s %s", "hello", "world")
 
 	want := &dErrImpl{errs: []error{errors.New("hello world")}}
 	if diffRes := diff(got, want, 0); diffRes != "" {

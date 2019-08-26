@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 )
 
@@ -87,7 +86,7 @@ func TestPopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
-	mockZoneRetriever.EXPECT().GetZone("us-west2", project).Return("", daisy.Errf("err")).Times(1)
+	mockZoneRetriever.EXPECT().GetZone("us-west2", project).Return("", fmt.Errorf("err")).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
 
@@ -154,7 +153,7 @@ func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMetadataR
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(true)
-	mockMetadataGce.EXPECT().ProjectID().Return("pr", daisy.Errf("Err"))
+	mockMetadataGce.EXPECT().ProjectID().Return("pr", fmt.Errorf("Err"))
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
@@ -178,7 +177,7 @@ func TestPopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false)
 	mockScratchBucketCreator := mocks.NewMockScratchBucketCreatorInterface(mockCtrl)
-	mockScratchBucketCreator.EXPECT().CreateScratchBucket(file, project, zone).Return("", "", daisy.Errf("err"))
+	mockScratchBucketCreator.EXPECT().CreateScratchBucket(file, project, zone).Return("", "", fmt.Errorf("err"))
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
@@ -392,7 +391,7 @@ func TestPopulateProjectIfMissingProjectWithErrorRetrievingFromGCE(t *testing.T)
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(true)
-	mockMetadataGce.EXPECT().ProjectID().Return("", daisy.Errf("gce error"))
+	mockMetadataGce.EXPECT().ProjectID().Return("", fmt.Errorf("gce error"))
 
 	err := PopulateProjectIfMissing(mockMetadataGce, &project)
 

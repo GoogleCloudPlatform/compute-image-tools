@@ -22,26 +22,26 @@ import (
 // CreateNetworks is a Daisy CreateNetwork workflow step.
 type CreateNetworks []*Network
 
-func (c *CreateNetworks) populate(ctx context.Context, s *Step) DError {
-	var errs DError
+func (c *CreateNetworks) populate(ctx context.Context, s *Step) dErr {
+	var errs dErr
 	for _, n := range *c {
 		errs = addErrs(errs, n.populate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateNetworks) validate(ctx context.Context, s *Step) DError {
-	var errs DError
+func (c *CreateNetworks) validate(ctx context.Context, s *Step) dErr {
+	var errs dErr
 	for _, n := range *c {
 		errs = addErrs(errs, n.validate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateNetworks) run(ctx context.Context, s *Step) DError {
+func (c *CreateNetworks) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan DError)
+	e := make(chan dErr)
 	for _, n := range *c {
 		wg.Add(1)
 		go func(n *Network) {
@@ -49,7 +49,7 @@ func (c *CreateNetworks) run(ctx context.Context, s *Step) DError {
 
 			w.LogStepInfo(s.name, "CreateNetworks", "Creating network %q.", n.Name)
 			if err := w.ComputeClient.CreateNetwork(n.Project, &n.Network); err != nil {
-				e <- newErr("failed to create networks", err)
+				e <- newErr(err)
 				return
 			}
 		}(n)

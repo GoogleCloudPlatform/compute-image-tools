@@ -59,23 +59,23 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 	}
 
 	if !dataDisk && osID == "" && customTranWorkflow == "" {
-		return "", "", nil, daisy.Errf("-data_disk, or -os, or -custom_translate_workflow has to be specified")
+		return "", "", nil, fmt.Errorf("-data_disk, or -os, or -custom_translate_workflow has to be specified")
 	}
 
 	if dataDisk && (osID != "" || customTranWorkflow != "") {
-		return "", "", nil, daisy.Errf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
+		return "", "", nil, fmt.Errorf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
 	}
 
 	if osID != "" && customTranWorkflow != "" {
-		return "", "", nil, daisy.Errf("-os and -custom_translate_workflow can't be both specified")
+		return "", "", nil, fmt.Errorf("-os and -custom_translate_workflow can't be both specified")
 	}
 
 	if sourceFile == "" && sourceImage == "" {
-		return "", "", nil, daisy.Errf("-source_file or -source_image has to be specified")
+		return "", "", nil, fmt.Errorf("-source_file or -source_image has to be specified")
 	}
 
 	if sourceFile != "" && sourceImage != "" {
-		return "", "", nil, daisy.Errf("either -source_file or -source_image has to be specified, but not both %v %v", sourceFile, sourceImage)
+		return "", "", nil, fmt.Errorf("either -source_file or -source_image has to be specified, but not both %v %v", sourceFile, sourceImage)
 	}
 
 	if osID != "" {
@@ -90,17 +90,17 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 		var err error
 		sourceBucketName, sourceObjectName, err = storage.SplitGCSPath(sourceFile)
 		if err != nil {
-			return "", "", nil, daisy.Errf("failed to split source file GCS path: %v", err)
+			return "", "", nil, err
 		}
 	}
 
 	var userLabels map[string]string
+
 	if labels != "" {
 		var err error
 		userLabels, err = param.ParseKeyValues(labels)
-		derr := daisy.ToDError(err)
-		if derr != nil {
-			return "", "", nil, derr
+		if err != nil {
+			return "", "", nil, err
 		}
 	}
 
@@ -111,13 +111,13 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucketName, sourceObjectName string) error {
 	rc, err := storageClient.GetObjectReader(sourceBucketName, sourceObjectName)
 	if err != nil {
-		return daisy.Errf("failed to read GCS file when validating source file: unable to open file from bucket %q, file %q: %v", sourceBucketName, sourceObjectName, err)
+		return fmt.Errorf("readFile: unable to open file from bucket %q, file %q: %v", sourceBucketName, sourceObjectName, err)
 	}
 	defer rc.Close()
 
 	// Detect whether it's a compressed file by extracting compressed file header
 	if _, err = gzip.NewReader(rc); err == nil {
-		return daisy.Errf("cannot import an image from a compressed file. Please provide a path to an uncompressed image file. If the compressed file is an image exported from Google Compute Engine, please use 'images create' instead")
+		return fmt.Errorf("cannot import an image from a compressed file. Please provide a path to an uncompressed image file. If the compressed file is an image exported from Google Compute Engine, please use 'images create' instead")
 	}
 
 	return nil
@@ -230,16 +230,15 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	storageClient, err := storage.NewStorageClient(
 		ctx, logging.NewLogger("[image-import]"), oauth)
 	if err != nil {
-		return daisy.Errf("error creating storage client: %v", err)
+		return fmt.Errorf("error creating storage client: %v", err)
 	}
 	defer storageClient.Close()
 
 	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
-	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
+	zoneRetriever, err := storage.NewZoneRetriever(metadataGCE, param.CreateComputeClient(&ctx, oauth, ce))
 	if err != nil {
 		return err
 	}
-	zoneRetriever := storage.NewZoneRetriever(metadataGCE, computeClient)
 
 	region := new(string)
 	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
@@ -251,6 +250,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	if sourceFile != "" {
 		err = validateSourceFile(storageClient, sourceBucketName, sourceObjectName)
 	}
+
 	if err != nil {
 		return err
 	}
@@ -261,7 +261,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	varMap := buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family,
 		description, *region, subnet, network, noGuestEnvironment)
 
-	if err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, project, scratchBucketGcsPath,
+	if err := runImport(ctx, varMap, importWorkflowPath, zone, timeout, project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
 		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation); err != nil {
 

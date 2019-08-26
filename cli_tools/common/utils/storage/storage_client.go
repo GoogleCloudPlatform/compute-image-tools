@@ -27,7 +27,6 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -58,7 +57,7 @@ func NewStorageClient(ctx context.Context,
 	}
 	client, err := storage.NewClient(ctx, storageOptions...)
 	if err != nil {
-		return nil, daisy.Errf("error creating storage client: %v", err)
+		return nil, err
 	}
 	sc := &Client{StorageClient: client, Ctx: ctx,
 		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}

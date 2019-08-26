@@ -25,7 +25,7 @@ var regionsCache struct {
 	mu     sync.Mutex
 }
 
-func regionExists(client compute.Client, project, region string) (bool, DError) {
+func regionExists(client compute.Client, project, region string) (bool, dErr) {
 	regionsCache.mu.Lock()
 	defer regionsCache.mu.Unlock()
 	if regionsCache.exists == nil {
@@ -34,7 +34,7 @@ func regionExists(client compute.Client, project, region string) (bool, DError) 
 	if _, ok := regionsCache.exists[project]; !ok {
 		rl, err := client.ListRegions(project)
 		if err != nil {
-			return false, typedErr(apiError, "failed to list regions", err)
+			return false, typedErr(apiError, err)
 		}
 		var regions []string
 		for _, r := range rl {

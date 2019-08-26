@@ -48,7 +48,7 @@ var (
 	gcsAPIBase = "https://storage.cloud.google.com"
 )
 
-func getGCSAPIPath(p string) (string, DError) {
+func getGCSAPIPath(p string) (string, dErr) {
 	b, o, e := splitGCSPath(p)
 	if e != nil {
 		return "", e
@@ -56,7 +56,7 @@ func getGCSAPIPath(p string) (string, DError) {
 	return fmt.Sprintf("%s/%s", gcsAPIBase, path.Join(b, o)), nil
 }
 
-func splitGCSPath(p string) (string, string, DError) {
+func splitGCSPath(p string) (string, string, dErr) {
 	for _, rgx := range []*regexp.Regexp{gsRegex, gsHTTPRegex1, gsHTTPRegex2, gsHTTPRegex3} {
 		matches := rgx.FindStringSubmatch(p)
 		if matches != nil {
@@ -67,7 +67,7 @@ func splitGCSPath(p string) (string, string, DError) {
 	if matches != nil {
 		return matches[1], "", nil
 	}
-	return "", "", Errf("%q is not a valid GCS path", p)
+	return "", "", errf("%q is not a valid GCS path", p)
 }
 
 type validatedBkts struct {

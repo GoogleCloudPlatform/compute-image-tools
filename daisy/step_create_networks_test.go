@@ -28,7 +28,7 @@ func TestCreateNetworksRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
 
-	e := Errf("error")
+	e := errf("error")
 
 	wantNetwork := compute.Network{}
 	wantNetwork.Description = "Network created by Daisy in workflow \"test-wf\" on behalf of ."
@@ -38,7 +38,7 @@ func TestCreateNetworksRun(t *testing.T) {
 		desc      string
 		n, wantN  compute.Network
 		clientErr error
-		wantErr   DError
+		wantErr   dErr
 	}{
 		{"good case", compute.Network{}, wantNetwork, nil, nil},
 		{"client error case", compute.Network{}, wantNetwork, e, e},

@@ -29,7 +29,7 @@ var licenseCache struct {
 	mu     sync.Mutex
 }
 
-func licenseExists(client compute.Client, project, license string) (bool, DError) {
+func licenseExists(client compute.Client, project, license string) (bool, dErr) {
 	licenseCache.mu.Lock()
 	defer licenseCache.mu.Unlock()
 	if licenseCache.exists == nil {
@@ -37,7 +37,7 @@ func licenseExists(client compute.Client, project, license string) (bool, DError
 	}
 	if _, ok := licenseCache.exists[project]; !ok || !strIn(license, licenseCache.exists[project]) {
 		if _, err := client.GetLicense(project, license); err != nil {
-			return false, typedErr(apiError, "failed to get license", err)
+			return false, typedErr(apiError, err)
 		}
 		licenseCache.exists[project] = append(licenseCache.exists[project], license)
 	}

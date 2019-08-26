@@ -26,9 +26,9 @@ type baseResourceRegistry struct {
 	m  map[string]*Resource
 	mx sync.Mutex
 
-	deleteFn func(res *Resource) DError
-	startFn  func(res *Resource) DError
-	stopFn   func(res *Resource) DError
+	deleteFn func(res *Resource) dErr
+	startFn  func(res *Resource) dErr
+	stopFn   func(res *Resource) dErr
 	typeName string
 	urlRgx   *regexp.Regexp
 }
@@ -46,7 +46,7 @@ func (r *baseResourceRegistry) cleanup() {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			if err := r.delete(name); err != nil && err.etype() != resourceDNEError {
+			if err := r.delete(name); err != nil && err.Type() != resourceDNEError {
 				fmt.Println(err)
 			}
 		}(name)
@@ -54,10 +54,10 @@ func (r *baseResourceRegistry) cleanup() {
 	wg.Wait()
 }
 
-func (r *baseResourceRegistry) delete(name string) DError {
+func (r *baseResourceRegistry) delete(name string) dErr {
 	res, ok := r.get(name)
 	if !ok {
-		return Errf("cannot delete %s %q; does not exist in registry", r.typeName, name)
+		return errf("cannot delete %s %q; does not exist in registry", r.typeName, name)
 	}
 
 	// TODO: find a better way for resource delete locking.
@@ -71,7 +71,7 @@ func (r *baseResourceRegistry) delete(name string) DError {
 	res.deleteMx.Lock()
 	defer res.deleteMx.Unlock()
 	if res.deleted {
-		return Errf("cannot delete %q; already deleted", name)
+		return errf("cannot delete %q; already deleted", name)
 	}
 	if err := r.deleteFn(res); err != nil {
 		return err
@@ -80,14 +80,14 @@ func (r *baseResourceRegistry) delete(name string) DError {
 	return nil
 }
 
-func (r *baseResourceRegistry) start(name string) DError {
+func (r *baseResourceRegistry) start(name string) dErr {
 	res, ok := r.get(name)
 	if !ok {
-		return Errf("cannot start %s %q; does not exist in registry", r.typeName, name)
+		return errf("cannot start %s %q; does not exist in registry", r.typeName, name)
 	}
 
 	if !res.stopped {
-		return Errf("cannot start %q; already started", name)
+		return errf("cannot start %q; already started", name)
 	}
 	if err := r.startFn(res); err != nil {
 		return err
@@ -96,14 +96,14 @@ func (r *baseResourceRegistry) start(name string) DError {
 	return nil
 }
 
-func (r *baseResourceRegistry) stop(name string) DError {
+func (r *baseResourceRegistry) stop(name string) dErr {
 	res, ok := r.get(name)
 	if !ok {
-		return Errf("cannot stop %s %q; does not exist in registry", r.typeName, name)
+		return errf("cannot stop %s %q; does not exist in registry", r.typeName, name)
 	}
 
 	if res.stopped {
-		return Errf("cannot stop %q; already stopped", name)
+		return errf("cannot stop %q; already stopped", name)
 	}
 	if err := r.stopFn(res); err != nil {
 		return err
@@ -120,20 +120,20 @@ func (r *baseResourceRegistry) get(name string) (*Resource, bool) {
 }
 
 // regCreate registers a Step s as the creator of a resource, res, and identifies the resource by name.
-func (r *baseResourceRegistry) regCreate(name string, res *Resource, s *Step, overWrite bool) DError {
+func (r *baseResourceRegistry) regCreate(name string, res *Resource, s *Step, overWrite bool) dErr {
 	// Check:
 	// - no duplicates known by name
 	r.mx.Lock()
 	defer r.mx.Unlock()
 	if res, ok := r.m[name]; ok {
-		return Errf("cannot create %s %q; already created by step %q", r.typeName, name, res.creator.name)
+		return errf("cannot create %s %q; already created by step %q", r.typeName, name, res.creator.name)
 	}
 
 	if !overWrite {
 		if exists, err := resourceExists(r.w.ComputeClient, res.link); err != nil {
-			return Errf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
+			return errf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
 		} else if exists {
-			return Errf("cannot create %s %q; resource already exists", r.typeName, name)
+			return errf("cannot create %s %q; resource already exists", r.typeName, name)
 		}
 	}
 
@@ -144,7 +144,7 @@ func (r *baseResourceRegistry) regCreate(name string, res *Resource, s *Step, ov
 
 // regDelete registers a Step s as the deleter of a resource.
 // The name argument can be a Daisy internal name, or a fully qualified resource URL, e.g. projects/p/global/images/i.
-func (r *baseResourceRegistry) regDelete(name string, s *Step) DError {
+func (r *baseResourceRegistry) regDelete(name string, s *Step) dErr {
 	// Check:
 	// - don't dupe deletion of name.
 	// - s depends on ALL registered users and creator of name.
@@ -153,17 +153,17 @@ func (r *baseResourceRegistry) regDelete(name string, s *Step) DError {
 	var ok bool
 	var res *Resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
-		var err DError
+		var err dErr
 		res, err = r.regURL(name)
 		if err != nil {
 			return err
 		}
 	} else if res, ok = r.m[name]; !ok {
-		return Errf("missing reference for %s %q", r.typeName, name)
+		return errf("missing reference for %s %q", r.typeName, name)
 	}
 
 	if res.deleter != nil {
-		return Errf("cannot delete %s %q: already deleted by step %q", r.typeName, name, res.deleter.name)
+		return errf("cannot delete %s %q: already deleted by step %q", r.typeName, name, res.deleter.name)
 	}
 	us := res.users
 	if res.creator != nil {
@@ -171,7 +171,7 @@ func (r *baseResourceRegistry) regDelete(name string, s *Step) DError {
 	}
 	for _, u := range us {
 		if !s.nestedDepends(u) {
-			return Errf("deleting %s %q MUST transitively depend on step %q which references %q", r.typeName, name, u.name, name)
+			return errf("deleting %s %q MUST transitively depend on step %q which references %q", r.typeName, name, u.name, name)
 		}
 	}
 	res.deleter = s
@@ -182,9 +182,9 @@ func (r *baseResourceRegistry) regDelete(name string, s *Step) DError {
 // projects/p/global/images/i.
 // A placeholder resource will be created in the registry. The resource will have no creator and will not auto-cleanup.
 // The placeholder resource will be identified within the registry by its fully qualified resource URL.
-func (r *baseResourceRegistry) regURL(url string) (*Resource, DError) {
+func (r *baseResourceRegistry) regURL(url string) (*Resource, dErr) {
 	if !strings.HasPrefix(url, "projects/") {
-		return nil, Errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
+		return nil, errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
 	if r, ok := r.m[url]; ok {
 		return r, nil
@@ -205,7 +205,7 @@ func (r *baseResourceRegistry) regURL(url string) (*Resource, DError) {
 
 // regUse registers a Step s as a user of a resource.
 // The name argument can be a Daisy internal name, or a fully qualified resource URL, e.g. projects/p/global/images/i.
-func (r *baseResourceRegistry) regUse(name string, s *Step) (*Resource, DError) {
+func (r *baseResourceRegistry) regUse(name string, s *Step) (*Resource, dErr) {
 	// Check:
 	// - s depends on creator of name, if there is a creator.
 	// - name doesn't have a registered deleter yet, usage must occur before deletion.
@@ -214,20 +214,20 @@ func (r *baseResourceRegistry) regUse(name string, s *Step) (*Resource, DError) 
 	var ok bool
 	var res *Resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
-		var err DError
+		var err dErr
 		res, err = r.regURL(name)
 		if err != nil {
 			return nil, err
 		}
 	} else if res, ok = r.m[name]; !ok {
-		return nil, Errf("missing reference for %s %q", r.typeName, name)
+		return nil, errf("missing reference for %s %q", r.typeName, name)
 	}
 
 	if res.creator != nil && !s.nestedDepends(res.creator) {
-		return nil, Errf("using %s %q MUST transitively depend on step %q which creates %q", r.typeName, name, res.creator.name, name)
+		return nil, errf("using %s %q MUST transitively depend on step %q which creates %q", r.typeName, name, res.creator.name, name)
 	}
 	if res.deleter != nil {
-		return nil, Errf("using %s %q; step %q deletes %q and MUST transitively depend on this step", r.typeName, name, res.deleter.name, name)
+		return nil, errf("using %s %q; step %q deletes %q and MUST transitively depend on this step", r.typeName, name, res.deleter.name, name)
 	}
 
 	r.m[name].users = append(r.m[name].users, s)

@@ -28,7 +28,7 @@ func TestCreateTargetInstancesRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
 
-	e := Errf("error")
+	e := errf("error")
 
 	wantTargetInstance := compute.TargetInstance{}
 	wantTargetInstance.Description = "TargetInstance created by Daisy in workflow \"test-wf\" on behalf of ."
@@ -40,7 +40,7 @@ func TestCreateTargetInstancesRun(t *testing.T) {
 		desc      string
 		n, wantN  compute.TargetInstance
 		clientErr error
-		wantErr   DError
+		wantErr   dErr
 	}{
 		{"good case", compute.TargetInstance{}, wantTargetInstance, nil, nil},
 		{"client error case", compute.TargetInstance{}, wantTargetInstance, e, e},

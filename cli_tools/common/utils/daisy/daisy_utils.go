@@ -17,16 +17,9 @@ package daisy
 import (
 	"fmt"
 	"reflect"
-	"regexp"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
-)
-
-const (
-	translateFailedPrefix  = "TranslateFailed"
-	privacyInfoReplacement = "[Privacy Info]"
 )
 
 var (
@@ -55,18 +48,15 @@ var (
 		"windows-8-1-x64-byol": "windows/translate_windows_8-1_x64_byol.wf.json",
 		"windows-10-byol":      "windows/translate_windows_10_byol.wf.json",
 	}
-	privacyRegex = regexp.MustCompile(`\[Privacy\->.*?<\-Privacy\]`)
 )
 
 // ValidateOS validates that osID is supported by Daisy image import
 func ValidateOS(osID string) error {
 	if osID == "" {
-		return daisy.Errf("osID is empty")
+		return fmt.Errorf("osID is empty")
 	}
 	if _, osValid := osChoices[osID]; !osValid {
-		// Expose osID and osChoices in the anonymized error message since they are not sensitive values.
-		errMsg := fmt.Sprintf("os `%v` is invalid. Allowed values: %v", osID, reflect.ValueOf(osChoices).MapKeys())
-		return daisy.Errf(errMsg)
+		return fmt.Errorf("os `%v` is invalid. Allowed values: %v", osID, reflect.ValueOf(osChoices).MapKeys())
 	}
 	return nil
 }
@@ -104,19 +94,5 @@ func updateAllInstanceAccessConfig(workflow *daisy.Workflow, accessConfigProvide
 			}
 		}
 	}
-}
 
-// RemovePrivacyLogInfo removes privacy log information.
-func RemovePrivacyLogInfo(message string) string {
-	// Since translation scripts vary and is hard to predict the output, we have to hide the
-	// details and only remain "TranslateFailed"
-	if strings.Contains(message, translateFailedPrefix) {
-		return translateFailedPrefix
-	}
-
-	// All import/export bash scripts enclose privacy info inside "[Privacy-> XXX <-Privacy]". Let's
-	// remove it for privacy.
-	message = privacyRegex.ReplaceAllString(message, privacyInfoReplacement)
-
-	return message
 }

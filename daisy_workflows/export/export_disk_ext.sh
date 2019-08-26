@@ -48,7 +48,7 @@ DISK_RESIZING_MON_GCS_PATH=gs://${OUTS_PATH%/*}/sources/${DISK_RESIZING_MON}
 DISK_RESIZING_MON_LOCAL_PATH=/gs/${DISK_RESIZING_MON}
 echo "GCEExport: Copying disk size monitor script..."
 if ! out=$(gsutil cp "${DISK_RESIZING_MON_GCS_PATH}" "${DISK_RESIZING_MON_LOCAL_PATH}" 2>&1); then
-  echo "ExportFailed: Failed to copy disk size monitor script.[Privacy-> Error: ${out} <-Privacy]"
+  echo "ExportFailed: Failed to copy disk size monitor script. Error: ${out}"
   exit
 fi
 echo ${out}
@@ -59,14 +59,14 @@ ${DISK_RESIZING_MON_LOCAL_PATH} ${MAX_BUFFER_DISK_SIZE_GB} &
 
 echo "GCEExport: Exporting disk of size ${SIZE_OUTPUT_GB}GB and format ${FORMAT}."
 if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT 2>&1); then
-  echo "ExportFailed: Failed to export disk source to GCS [Privacy-> ${GS_PATH} <-Privacy] due to qemu-img error: [Privacy-> ${out} <-Privacy]"
+  echo "ExportFailed: Failed to export disk source to ${GS_PATH} due to qemu-img error: ${out}"
   exit
 fi
 echo ${out}
 
 echo "GCEExport: Copying output image to target GCS path..."
 if ! out=$(gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>&1); then
-  echo "ExportFailed: Failed to copy output image to GCS [Privacy-> ${GS_PATH}, error: ${out} <-Privacy]"
+  echo "ExportFailed: Failed to copy output image to ${GS_PATH}, error: ${out}"
   exit
 fi
 echo ${out}

@@ -24,7 +24,7 @@ type StartInstances struct {
 	Instances []string `json:",omitempty"`
 }
 
-func (st *StartInstances) populate(ctx context.Context, s *Step) DError {
+func (st *StartInstances) populate(ctx context.Context, s *Step) dErr {
 	for i, instance := range st.Instances {
 		if instanceURLRgx.MatchString(instance) {
 			st.Instances[i] = extendPartialURL(instance, s.w.Project)
@@ -33,7 +33,7 @@ func (st *StartInstances) populate(ctx context.Context, s *Step) DError {
 	return nil
 }
 
-func (st *StartInstances) validate(ctx context.Context, s *Step) DError {
+func (st *StartInstances) validate(ctx context.Context, s *Step) dErr {
 	// Instance checking.
 	for _, i := range st.Instances {
 		if _, err := s.w.instances.regUse(i, s); err != nil {
@@ -43,10 +43,10 @@ func (st *StartInstances) validate(ctx context.Context, s *Step) DError {
 	return nil
 }
 
-func (st *StartInstances) run(ctx context.Context, s *Step) DError {
+func (st *StartInstances) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan DError)
+	e := make(chan dErr)
 
 	for _, i := range st.Instances {
 		wg.Add(1)

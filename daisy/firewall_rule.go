@@ -35,7 +35,7 @@ var (
 	firewallRuleURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/firewalls/(?P<firewallRule>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func firewallRuleExists(client daisyCompute.Client, project, name string) (bool, DError) {
+func firewallRuleExists(client daisyCompute.Client, project, name string) (bool, dErr) {
 	firewallRuleCache.mu.Lock()
 	defer firewallRuleCache.mu.Unlock()
 	if firewallRuleCache.exists == nil {
@@ -44,7 +44,7 @@ func firewallRuleExists(client daisyCompute.Client, project, name string) (bool,
 	if _, ok := firewallRuleCache.exists[project]; !ok {
 		nl, err := client.ListFirewallRules(project)
 		if err != nil {
-			return false, Errf("error listing firewall-rules for project %q: %v", project, err)
+			return false, errf("error listing firewall-rules for project %q: %v", project, err)
 		}
 		var firewallRules []string
 		for _, fir := range nl {
@@ -66,8 +66,8 @@ func (fir *FirewallRule) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*fir)
 }
 
-func (fir *FirewallRule) populate(ctx context.Context, s *Step) DError {
-	var errs DError
+func (fir *FirewallRule) populate(ctx context.Context, s *Step) dErr {
+	var errs dErr
 	fir.Name, errs = fir.Resource.populateWithGlobal(ctx, s, fir.Name)
 
 	if networkURLRegex.MatchString(fir.Network) {
@@ -79,12 +79,12 @@ func (fir *FirewallRule) populate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-func (fir *FirewallRule) validate(ctx context.Context, s *Step) DError {
+func (fir *FirewallRule) validate(ctx context.Context, s *Step) dErr {
 	pre := fmt.Sprintf("cannot create firewall-rule %q", fir.daisyName)
 	errs := fir.Resource.validate(ctx, s, pre)
 
 	if fir.Network == "" {
-		errs = addErrs(errs, Errf("%s: Network not set", pre))
+		errs = addErrs(errs, errf("%s: Network not set", pre))
 	}
 
 	// Register creation.
@@ -99,7 +99,7 @@ type firewallRuleConnection struct {
 type firewallRuleRegistry struct {
 	baseResourceRegistry
 	connections          map[string]map[string]*firewallRuleConnection
-	testDisconnectHelper func(nName, iName string, s *Step) DError
+	testDisconnectHelper func(nName, iName string, s *Step) dErr
 }
 
 func newFirewallRuleRegistry(w *Workflow) *firewallRuleRegistry {
@@ -110,11 +110,11 @@ func newFirewallRuleRegistry(w *Workflow) *firewallRuleRegistry {
 	return frr
 }
 
-func (frr *firewallRuleRegistry) deleteFn(res *Resource) DError {
+func (frr *firewallRuleRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(firewallRuleURLRegex, res.link)
 	err := frr.w.ComputeClient.DeleteFirewallRule(m["project"], m["firewallRule"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, "failed to delete firewall", err)
+		return typedErr(resourceDNEError, err)
 	}
-	return newErr("failed to delete firewall", err)
+	return newErr(err)
 }

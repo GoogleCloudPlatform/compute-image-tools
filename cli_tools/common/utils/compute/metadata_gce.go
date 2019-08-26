@@ -16,10 +16,7 @@
 
 package compute
 
-import (
-	"cloud.google.com/go/compute/metadata"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-)
+import "cloud.google.com/go/compute/metadata"
 
 // MetadataGCE implements MetadataGCEInterface
 type MetadataGCE struct{}
@@ -31,18 +28,10 @@ func (m *MetadataGCE) OnGCE() bool {
 
 // Zone returns the current VM's zone, such as "us-central1-b".
 func (m *MetadataGCE) Zone() (string, error) {
-	zone, err := metadata.Zone()
-	if err != nil {
-		return zone, daisy.Errf("failed to get GCE zone from metadata: %v", err)
-	}
-	return zone, nil
+	return metadata.Zone()
 }
 
 // ProjectID returns the current instance's project ID string.
 func (m *MetadataGCE) ProjectID() (string, error) {
-	project, err := metadata.ProjectID()
-	if err != nil {
-		return project, daisy.Errf("failed to get GCE project id from metadata: %v", err)
-	}
-	return project, nil
+	return metadata.ProjectID()
 }

@@ -28,12 +28,12 @@ while sleep ${INTERVAL}; do
 
   echo "GCEExport: Resizing buffer disk from ${CURRENT_DEVICE_SIZE}GB to ${NEXT_SIZE}GB..."
   if ! out=$(gcloud compute disks resize ${BUFFER_DISK} --size=${NEXT_SIZE}GB --quiet --zone "${ZONE}" 2>&1); then
-    echo "ExportFailed: Failed to resize buffer disk. [Privacy-> Error: ${out} <-Privacy]"
+    echo "ExportFailed: Failed to resize buffer disk. Error: ${out}"
     continue
   fi
   echo ${out}
   if ! out=$(sudo resize2fs /dev/sdc 2>&1); then
-    echo "ExportFailed: Failed to resize partition of buffer disk. [Privacy-> Error: ${out} <-Privacy]"
+    echo "ExportFailed: Failed to resize partition of buffer disk. Error: ${out}"
     continue
   fi
   echo ${out}

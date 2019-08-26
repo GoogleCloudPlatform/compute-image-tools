@@ -26,16 +26,16 @@ type SubWorkflow struct {
 	Workflow *Workflow         `json:",omitempty"`
 }
 
-func (s *SubWorkflow) populate(ctx context.Context, st *Step) DError {
+func (s *SubWorkflow) populate(ctx context.Context, st *Step) dErr {
 	if s.Path != "" {
 		var err error
 		if s.Workflow, err = st.w.NewSubWorkflowFromFile(s.Path); err != nil {
-			return ToDError(err)
+			return newErr(err)
 		}
 	}
 
 	if s.Workflow == nil {
-		return Errf("SubWorkflow %q does not have a workflow", st.name)
+		return errf("SubWorkflow %q does not have a workflow", st.name)
 	}
 
 	s.Workflow.parent = st.w
@@ -49,7 +49,7 @@ func (s *SubWorkflow) populate(ctx context.Context, st *Step) DError {
 	s.Workflow.Logger = s.Workflow.parent.Logger
 	s.Workflow.DefaultTimeout = st.Timeout
 
-	var errs DError
+	var errs dErr
 Loop:
 	for k, v := range s.Vars {
 		for wv := range s.Workflow.Vars {
@@ -58,7 +58,7 @@ Loop:
 				continue Loop
 			}
 		}
-		errs = addErrs(errs, Errf("unknown workflow Var %q passed to SubWorkflow %q", k, st.name))
+		errs = addErrs(errs, errf("unknown workflow Var %q passed to SubWorkflow %q", k, st.name))
 	}
 	if errs != nil {
 		return errs
@@ -67,11 +67,11 @@ Loop:
 	return s.Workflow.populate(ctx)
 }
 
-func (s *SubWorkflow) validate(ctx context.Context, st *Step) DError {
+func (s *SubWorkflow) validate(ctx context.Context, st *Step) dErr {
 	return s.Workflow.validate(ctx)
 }
 
-func (s *SubWorkflow) run(ctx context.Context, st *Step) DError {
+func (s *SubWorkflow) run(ctx context.Context, st *Step) dErr {
 	if err := s.Workflow.uploadSources(ctx); err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (s *SubWorkflow) run(ctx context.Context, st *Step) DError {
 	// If the workflow fails before the subworkflow completes, the previous
 	// "defer" cleanup won't happen. Add a failsafe here, have the workflow
 	// also call this subworkflow's cleanup.
-	st.w.addCleanupHook(func() DError {
+	st.w.addCleanupHook(func() dErr {
 		swCleanup()
 		return nil
 	})

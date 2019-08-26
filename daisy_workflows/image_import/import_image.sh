@@ -43,7 +43,7 @@ function resizeDisk() {
 
   echo "Import: Resizing ${diskId} to ${newSizeInGb}GB in ${zone}."
   if ! out=$(gcloud -q compute disks resize ${diskId} --size=${newSizeInGb}GB --zone=${zone} 2>&1); then
-    echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${newSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
+    echo "ImportFailed: Failed to resize ${diskId} to ${newSizeInGb}GB in ${zone}, error: ${out}"
     exit
   fi
 }
@@ -78,7 +78,7 @@ if [[ ${SIZE_GB} -gt 10 ]]; then
 fi
 
 if ! out=$(gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE} 2>&1); then
-  echo "ImportFailed: Failed to attach disk [Privacy-> from ${DISKNAME} to ${ME}, error: ${out} <-Privacy]"
+  echo "ImportFailed: Failed to attach ${DISKNAME} to ${ME}, error: ${out}"
   exit
 fi
 echo ${out}
@@ -87,7 +87,7 @@ echo ${out}
 # /dev/sdb is used since it's the second disk that is attached
 # in import_disk.wf.json.
 if ! out=$(qemu-img convert /gcs/${SOURCEPATH} -p -O raw -S 512b /dev/sdb 2>&1); then
-  echo "ImportFailed: Failed to convert source to raw. [Privacy-> error: ${out} <-Privacy]"
+  echo "ImportFailed: Failed to convert source to raw, error: ${out}"
   exit
 fi
 echo ${out}

@@ -38,7 +38,7 @@ var (
 
 // diskExists should only be used during validation for existing GCE disks
 // and should not be relied or populated for daisy created resources.
-func diskExists(client daisyCompute.Client, project, zone, disk string) (bool, DError) {
+func diskExists(client daisyCompute.Client, project, zone, disk string) (bool, dErr) {
 	diskCache.mu.Lock()
 	defer diskCache.mu.Unlock()
 	if diskCache.exists == nil {
@@ -50,7 +50,7 @@ func diskExists(client daisyCompute.Client, project, zone, disk string) (bool, D
 	if _, ok := diskCache.exists[project][zone]; !ok {
 		dl, err := client.ListDisks(project, zone)
 		if err != nil {
-			return false, Errf("error listing disks for project %q: %v", project, err)
+			return false, errf("error listing disks for project %q: %v", project, err)
 		}
 		var disks []string
 		for _, d := range dl {
@@ -75,15 +75,15 @@ func (d *Disk) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*d)
 }
 
-func (d *Disk) populate(ctx context.Context, s *Step) DError {
-	var errs DError
+func (d *Disk) populate(ctx context.Context, s *Step) dErr {
+	var errs dErr
 	d.Name, d.Zone, errs = d.Resource.populateWithZone(ctx, s, d.Name, d.Zone)
 
 	d.Description = strOr(d.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 	if d.SizeGb != "" {
 		size, err := strconv.ParseInt(d.SizeGb, 10, 64)
 		if err != nil {
-			errs = addErrs(errs, Errf("cannot parse SizeGb: %s, err: %v", d.SizeGb, err))
+			errs = addErrs(errs, errf("cannot parse SizeGb: %s, err: %v", d.SizeGb, err))
 		}
 		d.Disk.SizeGb = size
 	}
@@ -101,20 +101,20 @@ func (d *Disk) populate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-func (d *Disk) validate(ctx context.Context, s *Step) DError {
+func (d *Disk) validate(ctx context.Context, s *Step) dErr {
 	pre := fmt.Sprintf("cannot create disk %q", d.daisyName)
 	errs := d.Resource.validateWithZone(ctx, s, d.Zone, pre)
 
 	if !diskTypeURLRgx.MatchString(d.Type) {
-		errs = addErrs(errs, Errf("%s: bad disk type: %q", pre, d.Type))
+		errs = addErrs(errs, errf("%s: bad disk type: %q", pre, d.Type))
 	}
 
 	if d.SourceImage != "" {
 		if _, err := s.w.images.regUse(d.SourceImage, s); err != nil {
-			errs = addErrs(errs, Errf("%s: can't use image %q: %v", pre, d.SourceImage, err))
+			errs = addErrs(errs, errf("%s: can't use image %q: %v", pre, d.SourceImage, err))
 		}
 	} else if d.Disk.SizeGb == 0 {
-		errs = addErrs(errs, Errf("%s: SizeGb and SourceImage not set", pre))
+		errs = addErrs(errs, errf("%s: SizeGb and SourceImage not set", pre))
 	}
 
 	// Register creation.
@@ -130,7 +130,7 @@ type diskAttachment struct {
 type diskRegistry struct {
 	baseResourceRegistry
 	attachments      map[string]map[string]*diskAttachment // map (disk, instance) -> attachment
-	testDetachHelper func(dName, iName string, s *Step) DError
+	testDetachHelper func(dName, iName string, s *Step) dErr
 }
 
 func newDiskRegistry(w *Workflow) *diskRegistry {
@@ -145,18 +145,18 @@ func (dr *diskRegistry) init() {
 	dr.attachments = map[string]map[string]*diskAttachment{}
 }
 
-func (dr *diskRegistry) deleteFn(res *Resource) DError {
+func (dr *diskRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(diskURLRgx, res.link)
 	err := dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, "failed to delete disk", err)
+		return typedErr(resourceDNEError, err)
 	}
-	return newErr("failed to delete disk", err)
+	return newErr(err)
 }
 
 // detachHelper marks s as the detacher between dName and iName.
 // Returns an error if dName and iName aren't attached or if the detacher doesn't depend on the attacher.
-func (dr *diskRegistry) detachHelper(dName, iName string, s *Step) DError {
+func (dr *diskRegistry) detachHelper(dName, iName string, s *Step) dErr {
 	if dr.testDetachHelper != nil {
 		return dr.testDetachHelper(dName, iName, s)
 	}
@@ -164,25 +164,25 @@ func (dr *diskRegistry) detachHelper(dName, iName string, s *Step) DError {
 	var att *diskAttachment
 
 	if im, _ := dr.attachments[dName]; im == nil {
-		return Errf("%s: not attached", pre)
+		return errf("%s: not attached", pre)
 	} else if att, _ = im[iName]; att == nil {
-		return Errf("%s: not attached", pre)
+		return errf("%s: not attached", pre)
 	} else if att.detacher != nil {
-		return Errf("%s: already detached or concurrently detached by step %q", pre, att.detacher.name)
+		return errf("%s: already detached or concurrently detached by step %q", pre, att.detacher.name)
 	} else if !s.nestedDepends(att.attacher) {
-		return Errf("%s: step %q does not depend on attaching step %q", pre, s.name, att.attacher.name)
+		return errf("%s: step %q does not depend on attaching step %q", pre, s.name, att.attacher.name)
 	}
 	att.detacher = s
 	return nil
 }
 
 // registerAttachment is called by Instance.regCreate and AttachDisks.validate and marks a disk as attached to an instance by Step s.
-func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) DError {
+func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 
 	pre := fmt.Sprintf("step %q cannot attach disk %q to instance %q", s.name, dName, iName)
-	var errs DError
+	var errs dErr
 	// Iterate over disk's attachments. Check for concurrent conflicts.
 	// Step s is concurrent with other attachments if the attachment detacher == nil
 	// or s does not depend on the detacher.
@@ -191,11 +191,11 @@ func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) DError {
 		// Is this a concurrent attachment?
 		if att.detacher == nil || !s.nestedDepends(att.detacher) {
 			if attIName == iName {
-				errs = addErrs(errs, Errf("%s: concurrently attached by step %q", pre, att.attacher.name))
+				errs = addErrs(errs, errf("%s: concurrently attached by step %q", pre, att.attacher.name))
 				return nil // this is a repeat attachment to the same instance -- does nothing
 			} else if strIn(diskModeRW, []string{mode, att.mode}) {
 				// Can't have concurrent attachment in RW mode.
-				return Errf(
+				return errf(
 					"%s: concurrent RW attachment of disk %q between instances %q (%s) and %q (%s)",
 					pre, dName, iName, mode, attIName, att.mode)
 			}
@@ -213,7 +213,7 @@ func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) DError {
 
 // regDetach marks s as the detacher for the dName disk and iName instance.
 // Returns an error if dName or iName don't exist or if detachHelper returns an error.
-func (dr *diskRegistry) regDetach(dName, iName string, s *Step) DError {
+func (dr *diskRegistry) regDetach(dName, iName string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 
@@ -221,11 +221,11 @@ func (dr *diskRegistry) regDetach(dName, iName string, s *Step) DError {
 }
 
 // regDetachAll is called by Instance.regDelete and registers Step s as the detacher for all disks currently attached to iName.
-func (dr *diskRegistry) regDetachAll(iName string, s *Step) DError {
+func (dr *diskRegistry) regDetachAll(iName string, s *Step) dErr {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 
-	var errs DError
+	var errs dErr
 	// For every disk.
 	for dName, im := range dr.attachments {
 		// Check if instance attached.

@@ -53,7 +53,7 @@ func (w *Workflow) createLogger(ctx context.Context) {
 		stdoutLogging: !w.stdoutLoggingDisabled,
 	}
 
-	w.addCleanupHook(func() DError {
+	w.addCleanupHook(func() dErr {
 		w.logWait.Wait()
 		return nil
 	})
@@ -82,7 +82,7 @@ func (w *Workflow) createLogger(ctx context.Context) {
 
 	w.Logger = l
 
-	w.addCleanupHook(func() DError {
+	w.addCleanupHook(func() dErr {
 		w.Logger.Flush()
 		return nil
 	})

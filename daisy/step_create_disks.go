@@ -22,26 +22,26 @@ import (
 // CreateDisks is a Daisy CreateDisks workflow step.
 type CreateDisks []*Disk
 
-func (c *CreateDisks) populate(ctx context.Context, s *Step) DError {
-	var errs DError
+func (c *CreateDisks) populate(ctx context.Context, s *Step) dErr {
+	var errs dErr
 	for _, d := range *c {
 		errs = addErrs(errs, d.populate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateDisks) validate(ctx context.Context, s *Step) DError {
-	var errs DError
+func (c *CreateDisks) validate(ctx context.Context, s *Step) dErr {
+	var errs dErr
 	for _, d := range *c {
 		errs = addErrs(errs, d.validate(ctx, s))
 	}
 	return errs
 }
 
-func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
+func (c *CreateDisks) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan DError)
+	e := make(chan dErr)
 	for _, d := range *c {
 		wg.Add(1)
 		go func(cd *Disk) {
@@ -56,7 +56,7 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 
 			w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
-				e <- newErr("failed to create disk", err)
+				e <- newErr(err)
 				return
 			}
 		}(d)

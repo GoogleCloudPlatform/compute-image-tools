@@ -237,18 +237,18 @@ func TestDiskRegDetach(t *testing.T) {
 	// - error from helper
 	w := testWorkflow()
 
-	var helperErr *DError
-	w.disks.testDetachHelper = func(_, _ string, _ *Step) DError {
+	var helperErr *dErr
+	w.disks.testDetachHelper = func(_, _ string, _ *Step) dErr {
 		return *helperErr
 	}
 
 	tests := []struct {
 		desc      string
-		helperErr DError
+		helperErr dErr
 		shouldErr bool
 	}{
 		{"normal case", nil, false},
-		{"disconnect helper error case", Errf("error!"), true},
+		{"disconnect helper error case", errf("error!"), true},
 	}
 
 	for _, tt := range tests {
@@ -272,8 +272,8 @@ func TestDiskRegDetachAll(t *testing.T) {
 	otherDetacher, _ := w.NewStep("other-detacher")
 
 	var callsArgs [][]interface{}
-	var helperErr *DError
-	w.disks.testDetachHelper = func(dName, iName string, s *Step) DError {
+	var helperErr *dErr
+	w.disks.testDetachHelper = func(dName, iName string, s *Step) dErr {
 		callsArgs = append(callsArgs, []interface{}{dName, iName, s})
 		return *helperErr
 	}
@@ -289,11 +289,11 @@ func TestDiskRegDetachAll(t *testing.T) {
 
 	tests := []struct {
 		desc      string
-		helperErr DError
+		helperErr dErr
 		shouldErr bool
 	}{
 		{"normal case", nil, false},
-		{"disconnect helper error case", Errf("error!"), true},
+		{"disconnect helper error case", errf("error!"), true},
 	}
 
 	for _, tt := range tests {

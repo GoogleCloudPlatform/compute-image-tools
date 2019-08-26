@@ -103,7 +103,7 @@ func TestLogSerialOutput(t *testing.T) {
 
 func TestCreateInstancesRun(t *testing.T) {
 	ctx := context.Background()
-	var createErr DError
+	var createErr dErr
 	w := testWorkflow()
 	w.ComputeClient.(*daisyCompute.TestClient).CreateInstanceFn = func(p, z string, i *compute.Instance) error {
 		i.SelfLink = "insertedLink"
@@ -138,7 +138,7 @@ func TestCreateInstancesRun(t *testing.T) {
 
 	// Bad case: compute client Instance error.
 	w.instances.m = map[string]*Resource{}
-	createErr = Errf("client error")
+	createErr = errf("client error")
 	ci = &CreateInstances{
 		{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},
 	}

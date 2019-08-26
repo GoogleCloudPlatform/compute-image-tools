@@ -26,7 +26,7 @@ else
   gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk /dev/sdb -y
 fi
 if [[ $? -ne 0 ]]; then
-  echo "ExportFailed: Failed to export disk source to GCS [Privacy-> ${GCS_PATH}. <-Privacy]."
+  echo "ExportFailed: Failed to export disk source to ${GCS_PATH}."
   exit 1
 fi
 

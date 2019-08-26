@@ -39,12 +39,12 @@ import (
 
 const defaultTimeout = "10m"
 
-func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, DError) {
+func daisyBkt(ctx context.Context, client *storage.Client, project string) (string, dErr) {
 	dBkt := strings.Replace(project, ":", "-", -1) + "-daisy-bkt"
 	it := client.Buckets(ctx, project)
 	for bucketAttrs, err := it.Next(); err != iterator.Done; bucketAttrs, err = it.Next() {
 		if err != nil {
-			return "", typedErr(apiError, "failed to iterate buckets", err)
+			return "", typedErr(apiError, err)
 		}
 		if bucketAttrs.Name == dBkt {
 			return dBkt, nil
@@ -52,7 +52,7 @@ func daisyBkt(ctx context.Context, client *storage.Client, project string) (stri
 	}
 
 	if err := client.Bucket(dBkt).Create(ctx, project, nil); err != nil {
-		return "", typedErr(apiError, "failed to create bucket", err)
+		return "", typedErr(apiError, err)
 	}
 	return dBkt, nil
 }
@@ -130,7 +130,7 @@ type Workflow struct {
 	stdoutLoggingDisabled bool
 	id                    string
 	Logger                Logger `json:"-"`
-	cleanupHooks          []func() DError
+	cleanupHooks          []func() dErr
 	cleanupHooksMx        sync.Mutex
 	recordTimeMx          sync.Mutex
 	logWait               sync.WaitGroup
@@ -178,27 +178,27 @@ func (w *Workflow) AddVar(k, v string) {
 	w.Vars[k] = Var{Value: v}
 }
 
-func (w *Workflow) addCleanupHook(hook func() DError) {
+func (w *Workflow) addCleanupHook(hook func() dErr) {
 	w.cleanupHooksMx.Lock()
 	w.cleanupHooks = append(w.cleanupHooks, hook)
 	w.cleanupHooksMx.Unlock()
 }
 
 // Validate runs validation on the workflow.
-func (w *Workflow) Validate(ctx context.Context) DError {
+func (w *Workflow) Validate(ctx context.Context) error {
 	if err := w.PopulateClients(ctx); err != nil {
 		close(w.Cancel)
-		return Errf("error populating workflow: %v", err)
+		return errf("error populating workflow: %v", err)
 	}
 
 	if err := w.validateRequiredFields(); err != nil {
 		close(w.Cancel)
-		return Errf("error validating workflow: %v", err)
+		return errf("error validating workflow: %v", err)
 	}
 
 	if err := w.populate(ctx); err != nil {
 		close(w.Cancel)
-		return Errf("error populating workflow: %v", err)
+		return errf("error populating workflow: %v", err)
 	}
 
 	w.LogWorkflowInfo("Validating workflow")
@@ -223,7 +223,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 func (w *Workflow) RunWithModifiers(
 	ctx context.Context,
 	preValidateWorkflowModifier WorkflowModifier,
-	postValidateWorkflowModifier WorkflowModifier) DError {
+	postValidateWorkflowModifier WorkflowModifier) error {
 
 	w.externalLogging = true
 	if preValidateWorkflowModifier != nil {
@@ -325,7 +325,7 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 	if w.ComputeClient == nil {
 		w.ComputeClient, err = compute.NewClient(ctx, computeOptions...)
 		if err != nil {
-			return typedErr(apiError, "failed to create compute client", err)
+			return typedErr(apiError, err)
 		}
 	}
 
@@ -347,18 +347,18 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 	return nil
 }
 
-func (w *Workflow) populateStep(ctx context.Context, s *Step) DError {
+func (w *Workflow) populateStep(ctx context.Context, s *Step) dErr {
 	if s.Timeout == "" {
 		s.Timeout = w.DefaultTimeout
 
 	}
 	timeout, err := time.ParseDuration(s.Timeout)
 	if err != nil {
-		return newErr(fmt.Sprintf("failed to parse duration for workflow %v, step %v", w.Name, s.name), err)
+		return newErr(err)
 	}
 	s.timeout = timeout
 
-	var derr DError
+	var derr dErr
 	var step stepImpl
 	if step, derr = s.stepImpl(); derr != nil {
 		return derr
@@ -374,10 +374,10 @@ func (w *Workflow) populateStep(ctx context.Context, s *Step) DError {
 // - generates autovars from workflow fields (Name, Zone, etc) and run second round of var substitution.
 // - sets up logger.
 // - runs populate on each step.
-func (w *Workflow) populate(ctx context.Context) DError {
+func (w *Workflow) populate(ctx context.Context) dErr {
 	for k, v := range w.Vars {
 		if v.Required && v.Value == "" {
-			return Errf("cannot populate workflow, required var %q is unset", k)
+			return errf("cannot populate workflow, required var %q is unset", k)
 		}
 	}
 
@@ -408,7 +408,7 @@ func (w *Workflow) populate(ctx context.Context) DError {
 	// Parse timeout.
 	timeout, err := time.ParseDuration(w.DefaultTimeout)
 	if err != nil {
-		return Errf("failed to parse timeout for workflow: %v", err)
+		return newErr(err)
 	}
 	w.defaultTimeout = timeout
 
@@ -420,9 +420,9 @@ func (w *Workflow) populate(ctx context.Context) DError {
 		}
 		w.GCSPath = "gs://" + dBkt
 	}
-	bkt, p, derr := splitGCSPath(w.GCSPath)
+	bkt, p, err := splitGCSPath(w.GCSPath)
 	if err != nil {
-		return derr
+		return newErr(err)
 	}
 	w.bucket = bkt
 	w.scratchPath = path.Join(p, fmt.Sprintf("daisy-%s-%s-%s", w.Name, now.Format("20060102-15:04:05"), w.id))
@@ -466,7 +466,7 @@ func (w *Workflow) populate(ctx context.Context) DError {
 		s.name = name
 		s.w = w
 		if err := w.populateStep(ctx, s); err != nil {
-			return Errf("error populating step %q: %v", name, err)
+			return errf("error populating step %q: %v", name, err)
 		}
 	}
 	return nil
@@ -575,20 +575,20 @@ func (w *Workflow) Print(ctx context.Context) {
 	fmt.Println(string(b))
 }
 
-func (w *Workflow) run(ctx context.Context) DError {
-	return w.traverseDAG(func(s *Step) DError {
+func (w *Workflow) run(ctx context.Context) dErr {
+	return w.traverseDAG(func(s *Step) dErr {
 		return w.runStep(ctx, s)
 	})
 }
 
-func (w *Workflow) runStep(ctx context.Context, s *Step) DError {
+func (w *Workflow) runStep(ctx context.Context, s *Step) dErr {
 	timeout := make(chan struct{})
 	go func() {
 		time.Sleep(s.timeout)
 		close(timeout)
 	}()
 
-	e := make(chan DError)
+	e := make(chan dErr)
 	go func() {
 		e <- s.run(ctx)
 	}()
@@ -603,21 +603,21 @@ func (w *Workflow) runStep(ctx context.Context, s *Step) DError {
 
 // Concurrently traverse the DAG, running func f on each step.
 // Return an error if f returns an error on any step.
-func (w *Workflow) traverseDAG(f func(*Step) DError) DError {
+func (w *Workflow) traverseDAG(f func(*Step) dErr) dErr {
 	// waiting = steps and the dependencies they are waiting for.
 	// running = the currently running steps.
 	// start = map of steps' start channels/semaphores.
 	// done = map of steps' done channels for signaling step completion.
 	waiting := map[string][]string{}
 	var running []string
-	start := map[string]chan DError{}
-	done := map[string]chan DError{}
+	start := map[string]chan dErr{}
+	done := map[string]chan dErr{}
 
 	// Setup: channels, copy dependencies.
 	for name := range w.Steps {
 		waiting[name] = w.Dependencies[name]
-		start[name] = make(chan DError)
-		done[name] = make(chan DError)
+		start[name] = make(chan dErr)
+		done[name] = make(chan dErr)
 	}
 	// Setup: goroutine for each step. Each waits to be notified to start.
 	for name, s := range w.Steps {
@@ -696,7 +696,7 @@ func New() *Workflow {
 	w.subnetworks = newSubnetworkRegistry(w)
 	w.objects = newObjectRegistry(w)
 	w.targetInstances = newTargetInstanceRegistry(w)
-	w.addCleanupHook(func() DError {
+	w.addCleanupHook(func() dErr {
 		w.instances.cleanup() // instances need to be done before disks/networks
 		w.images.cleanup()
 		w.disks.cleanup()
@@ -750,19 +750,19 @@ func JSONError(file string, data []byte, err error) error {
 	return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 }
 
-func readWorkflow(file string, w *Workflow) DError {
+func readWorkflow(file string, w *Workflow) error {
 	data, err := ioutil.ReadFile(file)
 	if err != nil {
-		return newErr("failed to read workflow file", err)
+		return err
 	}
 
 	w.workflowDir, err = filepath.Abs(filepath.Dir(file))
 	if err != nil {
-		return newErr("failed to get absolute path of workflow file", err)
+		return err
 	}
 
 	if err := json.Unmarshal(data, &w); err != nil {
-		return newErr("failed to unmarshal workflow file", JSONError(file, data, err))
+		return JSONError(file, data, err)
 	}
 
 	if w.OAuthPath != "" && !filepath.IsAbs(w.OAuthPath) {
@@ -778,7 +778,7 @@ func readWorkflow(file string, w *Workflow) DError {
 }
 
 // stepsListen returns the first step that finishes/errs.
-func stepsListen(names []string, chans map[string]chan DError) (string, DError) {
+func stepsListen(names []string, chans map[string]chan dErr) (string, dErr) {
 	cases := make([]reflect.SelectCase, len(names))
 	for i, name := range names {
 		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(chans[name])}
@@ -787,7 +787,7 @@ func stepsListen(names []string, chans map[string]chan DError) (string, DError) 
 	name := names[caseIndex]
 	if recvOk {
 		// recvOk -> a step failed, return the error.
-		return name, value.Interface().(DError)
+		return name, value.Interface().(dErr)
 	}
 	return name, nil
 }

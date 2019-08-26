@@ -44,7 +44,7 @@ var (
 
 // imageExists should only be used during validation for existing GCE images
 // and should not be relied or populated for daisy created resources.
-func imageExists(client daisyCompute.Client, project, family, name string) (bool, DError) {
+func imageExists(client daisyCompute.Client, project, family, name string) (bool, dErr) {
 	if family != "" {
 		imageFamilyCache.mu.Lock()
 		defer imageFamilyCache.mu.Unlock()
@@ -63,7 +63,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 			if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
 				return false, nil
 			}
-			return false, typedErr(apiError, "failed to get image from family", err)
+			return false, typedErr(apiError, err)
 		}
 		if img.Deprecated != nil {
 			if img.Deprecated.State == "OBSOLETE" || img.Deprecated.State == "DELETED" {
@@ -75,7 +75,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	}
 
 	if name == "" {
-		return false, Errf("must provide either family or name")
+		return false, errf("must provide either family or name")
 	}
 	imageCache.mu.Lock()
 	defer imageCache.mu.Unlock()
@@ -85,7 +85,7 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	if _, ok := imageCache.exists[project]; !ok {
 		il, err := client.ListImages(project)
 		if err != nil {
-			return false, Errf("error listing images for project %q: %v", project, err)
+			return false, errf("error listing images for project %q: %v", project, err)
 		}
 		imageCache.exists[project] = il
 	}
@@ -294,7 +294,7 @@ func (g *guestOsFeatures) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, (*dg)(g))
 }
 
-func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) DError {
+func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) dErr {
 	name, errs := ib.Resource.populateWithGlobal(ctx, s, ii.getName())
 	ii.setName(name)
 
@@ -314,7 +314,7 @@ func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) DE
 		} else if p, err := getGCSAPIPath(ii.getRawDiskSource()); err == nil {
 			ii.setRawDiskSource(p)
 		} else {
-			errs = addErrs(errs, Errf("bad value for RawDisk.Source: %q", ii.getRawDiskSource()))
+			errs = addErrs(errs, errf("bad value for RawDisk.Source: %q", ii.getRawDiskSource()))
 		}
 	}
 	ib.link = fmt.Sprintf("projects/%s/global/images/%s", ib.Project, ii.getName())
@@ -332,18 +332,18 @@ func populateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
 	return
 }
 
-func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []string, s *Step) DError {
+func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []string, s *Step) dErr {
 	pre := fmt.Sprintf("cannot create image %q", ib.daisyName)
 	errs := ib.Resource.validate(ctx, s, pre)
 
 	if !xor(!xor(ii.getSourceDisk() == "", ii.getSourceImage() == ""), !ii.hasRawDisk()) {
-		errs = addErrs(errs, Errf("%s: must provide either SourceImage, SourceDisk or RawDisk, exclusively", pre))
+		errs = addErrs(errs, errf("%s: must provide either SourceImage, SourceDisk or RawDisk, exclusively", pre))
 	}
 
 	// Source disk checking.
 	if ii.getSourceDisk() != "" {
 		if _, err := s.w.disks.regUse(ii.getSourceDisk(), s); err != nil {
-			errs = addErrs(errs, newErr("failed to get source disk", err))
+			errs = addErrs(errs, newErr(err))
 		}
 	}
 
@@ -361,7 +361,7 @@ func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []
 		// Check if this image object is created by this workflow, otherwise check if object exists.
 		if !strIn(path.Join(sBkt, sObj), s.w.objects.created) {
 			if _, err := s.w.StorageClient.Bucket(sBkt).Object(sObj).Attrs(ctx); err != nil {
-				errs = addErrs(errs, Errf("error reading object %s/%s: %v", sBkt, sObj, err))
+				errs = addErrs(errs, errf("error reading object %s/%s: %v", sBkt, sObj, err))
 			}
 		}
 	}
@@ -371,10 +371,10 @@ func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []
 		result := namedSubexp(licenseURLRegex, l)
 		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
 			if !(isGoogleAPIForbiddenError(err) && ib.IgnoreLicenseValidationIfForbidden) {
-				errs = addErrs(errs, Errf("%s: bad license lookup: %q, error: %v", pre, l, err))
+				errs = addErrs(errs, errf("%s: bad license lookup: %q, error: %v", pre, l, err))
 			}
 		} else if !exists {
-			errs = addErrs(errs, Errf("%s: license does not exist: %q", pre, l))
+			errs = addErrs(errs, errf("%s: license does not exist: %q", pre, l))
 		}
 	}
 
@@ -383,7 +383,7 @@ func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []
 	return errs
 }
 
-func isGoogleAPIForbiddenError(err DError) bool {
+func isGoogleAPIForbiddenError(err dErr) bool {
 	dErrConcrete, isDErrConcrete := err.(*dErrImpl)
 	if isDErrConcrete && len(dErrConcrete.errs) > 0 {
 		gAPIErr, isGAPIErr := dErrConcrete.errs[0].(*googleapi.Error)
@@ -405,11 +405,11 @@ func newImageRegistry(w *Workflow) *imageRegistry {
 	return ir
 }
 
-func (ir *imageRegistry) deleteFn(res *Resource) DError {
+func (ir *imageRegistry) deleteFn(res *Resource) dErr {
 	m := namedSubexp(imageURLRgx, res.link)
 	err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
-		return typedErr(resourceDNEError, "failed to delete image", err)
+		return typedErr(resourceDNEError, err)
 	}
-	return newErr("failed to delete image", err)
+	return newErr(err)
 }

@@ -15,9 +15,8 @@
 package param
 
 import (
+	"fmt"
 	"strings"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // ParseKeyValues parses a comma-separated list of [key=value] pairs.
@@ -37,18 +36,18 @@ func ParseKeyValues(keyValues string) (map[string]string, error) {
 	return labelsMap, nil
 }
 
-func parseKeyValue(keyValueSplit string) (string, string, daisy.DError) {
+func parseKeyValue(keyValueSplit string) (string, string, error) {
 	splits := strings.Split(keyValueSplit, "=")
 	if len(splits) != 2 {
-		return "", "", daisy.Errf("failed to parse key-value pair. key-value should be in the following format: KEY=VALUE, but it's %v", keyValueSplit)
+		return "", "", fmt.Errorf("key-value should be in the following format: KEY=VALUE, but it's %v", keyValueSplit)
 	}
 	key := strings.TrimSpace(splits[0])
 	value := strings.TrimSpace(splits[1])
 	if len(key) == 0 {
-		return "", "", daisy.Errf("failed to parse key-value pair. key is empty string: %v", keyValueSplit)
+		return "", "", fmt.Errorf("key is empty string: %v", keyValueSplit)
 	}
 	if len(value) == 0 {
-		return "", "", daisy.Errf("failed to parse key-value pair. value is empty string: %v", keyValueSplit)
+		return "", "", fmt.Errorf("value is empty string: %v", keyValueSplit)
 	}
 	return key, value, nil
 }

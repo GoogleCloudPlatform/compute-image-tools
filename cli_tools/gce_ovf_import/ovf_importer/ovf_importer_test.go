@@ -555,7 +555,7 @@ func TestGetZoneErrorRetrievingZone(t *testing.T) {
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
-	mockMetadataGce.EXPECT().Zone().Return("", daisy.Errf("err"))
+	mockMetadataGce.EXPECT().Zone().Return("", errors.New("err"))
 
 	oi := OVFImporter{mgce: mockMetadataGce, params: params}
 	zone, err := oi.getZone("aProject")

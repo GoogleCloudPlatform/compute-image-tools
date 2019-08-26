@@ -28,9 +28,9 @@ type stepImpl interface {
 	// URLs (partial URLs including the "projects/<project>" prefix), etc.
 	// This should not perform value validation.
 	// Returns any parsing errors.
-	populate(ctx context.Context, s *Step) DError
-	validate(ctx context.Context, s *Step) DError
-	run(ctx context.Context, s *Step) DError
+	populate(ctx context.Context, s *Step) dErr
+	validate(ctx context.Context, s *Step) dErr
+	run(ctx context.Context, s *Step) dErr
 }
 
 // Step is a single daisy workflow step.
@@ -73,7 +73,7 @@ func NewStep(name string, w *Workflow, timeout time.Duration) *Step {
 	return &Step{name: name, w: w, timeout: timeout}
 }
 
-func (s *Step) stepImpl() (stepImpl, DError) {
+func (s *Step) stepImpl() (stepImpl, dErr) {
 	var result stepImpl
 	matchCount := 0
 	if s.AttachDisks != nil {
@@ -158,10 +158,10 @@ func (s *Step) stepImpl() (stepImpl, DError) {
 	}
 
 	if matchCount == 0 {
-		return nil, Errf("no step type defined")
+		return nil, errf("no step type defined")
 	}
 	if matchCount > 1 {
-		return nil, Errf("multiple step types defined")
+		return nil, errf("multiple step types defined")
 	}
 	return result, nil
 }
@@ -241,7 +241,7 @@ func (s *Step) getChain() []*Step {
 	return nil
 }
 
-func (s *Step) populate(ctx context.Context) DError {
+func (s *Step) populate(ctx context.Context) dErr {
 	s.w.LogWorkflowInfo("Populating step %q", s.name)
 	impl, err := s.stepImpl()
 	if err != nil {
@@ -258,7 +258,7 @@ func (s *Step) recordStepTime(startTime time.Time) {
 	s.w.recordStepTime(s.name, startTime, endTime)
 }
 
-func (s *Step) run(ctx context.Context) DError {
+func (s *Step) run(ctx context.Context) dErr {
 	startTime := time.Now()
 	defer s.recordStepTime(startTime)
 	impl, err := s.stepImpl()
@@ -283,10 +283,10 @@ func (s *Step) run(ctx context.Context) DError {
 	return nil
 }
 
-func (s *Step) validate(ctx context.Context) DError {
+func (s *Step) validate(ctx context.Context) dErr {
 	s.w.LogWorkflowInfo("Validating step %q", s.name)
 	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
-		return s.wrapValidateError(Errf("step name must start with a letter and only contain letters, numbers, and hyphens"))
+		return s.wrapValidateError(errf("step name must start with a letter and only contain letters, numbers, and hyphens"))
 	}
 	impl, err := s.stepImpl()
 	if err != nil {
@@ -298,23 +298,23 @@ func (s *Step) validate(ctx context.Context) DError {
 	return nil
 }
 
-func (s *Step) wrapPopulateError(e DError) DError {
-	return Errf("step %q populate error: %s", s.name, e)
+func (s *Step) wrapPopulateError(e dErr) dErr {
+	return errf("step %q populate error: %s", s.name, e)
 }
 
-func (s *Step) wrapRunError(e DError) DError {
-	return Errf("step %q run error: %s", s.name, e)
+func (s *Step) wrapRunError(e dErr) dErr {
+	return errf("step %q run error: %s", s.name, e)
 }
 
-func (s *Step) wrapValidateError(e DError) DError {
-	return Errf("step %q validation error: %s", s.name, e)
+func (s *Step) wrapValidateError(e dErr) dErr {
+	return errf("step %q validation error: %s", s.name, e)
 }
 
-func (s *Step) getTimeoutError() DError {
+func (s *Step) getTimeoutError() dErr {
 	var timeoutDescription string
 	if s.TimeoutDescription != "" {
 		timeoutDescription = fmt.Sprintf(". %s", s.TimeoutDescription)
 	}
 
-	return Errf("step %q did not complete within the specified timeout of %s%s", s.name, s.timeout, timeoutDescription)
+	return errf("step %q did not complete within the specified timeout of %s%s", s.name, s.timeout, timeoutDescription)
 }

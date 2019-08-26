@@ -32,57 +32,57 @@ func checkName(s string) bool {
 	return len(s) < 64 && rfc1035Rgx.MatchString(s)
 }
 
-func (w *Workflow) validateRequiredFields() DError {
+func (w *Workflow) validateRequiredFields() dErr {
 	if w.Name == "" {
-		return Errf("must provide workflow field 'Name'")
+		return errf("must provide workflow field 'Name'")
 	}
 	if !rfc1035Rgx.MatchString(strings.ToLower(w.Name)) {
-		return Errf("workflow field 'Name' must start with a letter and only contain letters, numbers, and hyphens")
+		return errf("workflow field 'Name' must start with a letter and only contain letters, numbers, and hyphens")
 	}
 	if w.Project == "" {
-		return Errf("must provide workflow field 'Project'")
+		return errf("must provide workflow field 'Project'")
 	}
 	if exists, err := projectExists(w.ComputeClient, w.Project); err != nil {
-		return Errf("bad project lookup: %q, error: %v", w.Project, err)
+		return errf("bad project lookup: %q, error: %v", w.Project, err)
 	} else if !exists {
-		return Errf("project does not exist: %q", w.Project)
+		return errf("project does not exist: %q", w.Project)
 	}
 	if w.Zone != "" {
 		if exists, err := zoneExists(w.ComputeClient, w.Project, w.Zone); err != nil {
-			return Errf("bad zone lookup: %q, error: %v", w.Zone, err)
+			return errf("bad zone lookup: %q, error: %v", w.Zone, err)
 		} else if !exists {
-			return Errf("zone does not exist: %q", w.Zone)
+			return errf("zone does not exist: %q", w.Zone)
 		}
 	}
 	if len(w.Steps) == 0 {
-		return Errf("must provide at least one step in workflow field 'Steps'")
+		return errf("must provide at least one step in workflow field 'Steps'")
 	}
 	for name := range w.Steps {
 		if name == "" {
-			return Errf("no name defined for Step %q", name)
+			return errf("no name defined for Step %q", name)
 		}
 	}
 	return nil
 }
 
-func (w *Workflow) validate(ctx context.Context) DError {
+func (w *Workflow) validate(ctx context.Context) dErr {
 	return w.validateDAG(ctx)
 }
 
 // Step through the step DAG, calling each step's validate().
-func (w *Workflow) validateDAG(ctx context.Context) DError {
+func (w *Workflow) validateDAG(ctx context.Context) dErr {
 	// Sanitation.
 	for s, deps := range w.Dependencies {
 		// Check for missing steps.
 		if _, ok := w.Steps[s]; !ok {
-			return Errf("dependencies reference non existent step %q: %q:%q", s, s, deps)
+			return errf("dependencies reference non existent step %q: %q:%q", s, s, deps)
 		}
 		seen := map[string]bool{}
 		var clean []string
 		for _, dep := range deps {
 			// Check for missing dependencies.
 			if _, ok := w.Steps[dep]; !ok {
-				return Errf("dependencies reference non existent step %q: %q:%q", dep, s, deps)
+				return errf("dependencies reference non existent step %q: %q:%q", dep, s, deps)
 			}
 			// Remove duplicate dependencies.
 			if !seen[dep] {
@@ -96,20 +96,20 @@ func (w *Workflow) validateDAG(ctx context.Context) DError {
 	// Check for cycles.
 	for _, s := range w.Steps {
 		if s.depends(s) {
-			return Errf("cyclic dependency on step %v", s)
+			return errf("cyclic dependency on step %v", s)
 		}
 	}
-	return w.traverseDAG(func(s *Step) DError { return s.validate(ctx) })
+	return w.traverseDAG(func(s *Step) dErr { return s.validate(ctx) })
 }
 
-func (w *Workflow) validateVarsSubbed() DError {
+func (w *Workflow) validateVarsSubbed() dErr {
 	unsubbedVarRgx := regexp.MustCompile(`\$\{([^}]+)}`)
-	return traverseData(reflect.ValueOf(w).Elem(), func(v reflect.Value) DError {
+	return traverseData(reflect.ValueOf(w).Elem(), func(v reflect.Value) dErr {
 		switch v.Interface().(type) {
 		case string:
 			if match := unsubbedVarRgx.FindStringSubmatch(v.String()); match != nil {
 				if !sourceVarRgx.MatchString(v.String()) {
-					return Errf("Unresolved var %q found in %q", match[0], v.String())
+					return errf("Unresolved var %q found in %q", match[0], v.String())
 				}
 			}
 		}

@@ -27,7 +27,7 @@ var projectCache struct {
 	mu     sync.Mutex
 }
 
-func projectExists(client compute.Client, project string) (bool, DError) {
+func projectExists(client compute.Client, project string) (bool, dErr) {
 	projectCache.mu.Lock()
 	defer projectCache.mu.Unlock()
 	if strIn(project, projectCache.exists) {
@@ -37,7 +37,7 @@ func projectExists(client compute.Client, project string) (bool, DError) {
 		if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
 			return false, nil
 		}
-		return false, typedErr(apiError, "failed to get project", err)
+		return false, typedErr(apiError, err)
 	}
 	projectCache.exists = append(projectCache.exists, project)
 	return true, nil

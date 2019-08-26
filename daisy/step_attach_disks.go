@@ -34,7 +34,7 @@ type AttachDisk struct {
 	project, zone string
 }
 
-func (a *AttachDisks) populate(ctx context.Context, s *Step) DError {
+func (a *AttachDisks) populate(ctx context.Context, s *Step) dErr {
 	for _, ad := range *a {
 		ad.Mode = strOr(ad.Mode, defaultDiskMode)
 		if ad.DeviceName == "" {
@@ -48,26 +48,26 @@ func (a *AttachDisks) populate(ctx context.Context, s *Step) DError {
 	return nil
 }
 
-func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs DError) {
+func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs dErr) {
 	for _, ad := range *a {
 		if !checkDiskMode(ad.Mode) {
-			errs = addErrs(errs, Errf("cannot attach disk: bad disk mode: %q", ad.Mode))
+			errs = addErrs(errs, errf("cannot attach disk: bad disk mode: %q", ad.Mode))
 		}
 		if ad.Source == "" {
-			errs = addErrs(errs, Errf("cannot attach disk: AttachedDisk.Source is empty"))
+			errs = addErrs(errs, errf("cannot attach disk: AttachedDisk.Source is empty"))
 		}
 
 		ir, err := s.w.instances.regUse(ad.Instance, s)
 		if ir == nil {
 			// Return now, the rest of this function can't be run without ir.
-			return addErrs(errs, Errf("cannot attach disk: %v", err))
+			return addErrs(errs, errf("cannot attach disk: %v", err))
 		}
 		addErrs(errs, err)
 
 		dr, err := s.w.disks.regUse(ad.Source, s)
 		if dr == nil {
 			// Return now, the rest of this function can't be run without dr.
-			return addErrs(errs, Errf("cannot attach disk: %v", err))
+			return addErrs(errs, errf("cannot attach disk: %v", err))
 		}
 		addErrs(errs, err)
 
@@ -75,10 +75,10 @@ func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		disk := namedSubexp(diskURLRgx, dr.link)
 		instance := namedSubexp(instanceURLRgx, ir.link)
 		if disk["project"] != instance["project"] {
-			errs = addErrs(errs, Errf("cannot attach disk in project %q to instance in project %q: %q", disk["project"], instance["project"], ad.Source))
+			errs = addErrs(errs, errf("cannot attach disk in project %q to instance in project %q: %q", disk["project"], instance["project"], ad.Source))
 		}
 		if disk["zone"] != instance["zone"] {
-			errs = addErrs(errs, Errf("cannot attach disk in zone %q to instance in zone %q: %q", disk["zone"], instance["zone"], ad.Source))
+			errs = addErrs(errs, errf("cannot attach disk in zone %q to instance in zone %q: %q", disk["zone"], instance["zone"], ad.Source))
 		}
 
 		ad.project = disk["project"]
@@ -91,10 +91,10 @@ func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 	return errs
 }
 
-func (a *AttachDisks) run(ctx context.Context, s *Step) DError {
+func (a *AttachDisks) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan DError)
+	e := make(chan dErr)
 	for _, ad := range *a {
 		wg.Add(1)
 		go func(ad *AttachDisk) {
@@ -112,7 +112,7 @@ func (a *AttachDisks) run(ctx context.Context, s *Step) DError {
 
 			w.LogStepInfo(s.name, "AttachDisks", "Attaching disk %q to instance %q.", ad.AttachedDisk.Source, inst)
 			if err := w.ComputeClient.AttachDisk(ad.project, ad.zone, ad.Instance, &ad.AttachedDisk); err != nil {
-				e <- newErr("failed to attach disk", err)
+				e <- newErr(err)
 				return
 			}
 		}(ad)

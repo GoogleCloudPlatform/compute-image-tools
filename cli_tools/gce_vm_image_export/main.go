@@ -20,9 +20,7 @@ import (
 	"log"
 	"os"
 
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export/exporter"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -51,18 +49,6 @@ func main() {
 	if err := exporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath); err != nil {
-
-		defer func() {
-			// TODO: log anonymized errors to firelog
-			derr := daisy.ToDError(err)
-			if derr == nil {
-				return
-			}
-			anonymizedErrs := []string{}
-			for _, m := range derr.AnonymizedErrs() {
-				anonymizedErrs = append(anonymizedErrs, daisyutils.RemovePrivacyLogInfo(m))
-			}
-		}()
 
 		log.Fatalf(err.Error())
 	}

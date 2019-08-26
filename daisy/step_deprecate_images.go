@@ -35,24 +35,24 @@ type DeprecateImage struct {
 	Project string `json:",omitempty"`
 }
 
-func (d *DeprecateImages) populate(ctx context.Context, s *Step) DError {
+func (d *DeprecateImages) populate(ctx context.Context, s *Step) dErr {
 	for _, di := range *d {
 		di.Project = strOr(di.Project, s.w.Project)
 	}
 	return nil
 }
 
-func (d *DeprecateImages) validate(ctx context.Context, s *Step) DError {
+func (d *DeprecateImages) validate(ctx context.Context, s *Step) dErr {
 	deprecationStates := []string{"", "DEPRECATED", "OBSOLETE", "DELETED"}
 	for _, di := range *d {
 		if exists, err := projectExists(s.w.ComputeClient, di.Project); err != nil {
-			return Errf("cannot deprecate image %q: bad project lookup: %q, error: %v", di.Image, di.Project, err)
+			return errf("cannot deprecate image %q: bad project lookup: %q, error: %v", di.Image, di.Project, err)
 		} else if !exists {
-			return Errf("cannot deprecate image %q: project does not exist: %q", di.Image, di.Project)
+			return errf("cannot deprecate image %q: project does not exist: %q", di.Image, di.Project)
 		}
 
 		if !strIn(di.DeprecationStatus.State, deprecationStates) {
-			return Errf("DeprecationStatus.State of %q not in %q", di.DeprecationStatus.State, deprecationStates)
+			return errf("DeprecationStatus.State of %q not in %q", di.DeprecationStatus.State, deprecationStates)
 		}
 
 		// regUse needs the partal url of a non daisy resource.
@@ -61,17 +61,17 @@ func (d *DeprecateImages) validate(ctx context.Context, s *Step) DError {
 			lookup = fmt.Sprintf("projects/%s/global/images/%s", di.Project, di.Image)
 		}
 		if _, err := s.w.images.regUse(lookup, s); err != nil {
-			return newErr("failed to register use of image when deprecating", err)
+			return newErr(err)
 		}
 	}
 
 	return nil
 }
 
-func (d *DeprecateImages) run(ctx context.Context, s *Step) DError {
+func (d *DeprecateImages) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan DError)
+	e := make(chan dErr)
 	for _, di := range *d {
 		wg.Add(1)
 		go func(di *DeprecateImage) {
@@ -79,7 +79,7 @@ func (d *DeprecateImages) run(ctx context.Context, s *Step) DError {
 
 			w.LogStepInfo(s.name, "DeprecateImages", "%q --> %q.", di.Image, di.DeprecationStatus.State)
 			if err := w.ComputeClient.DeprecateImage(di.Project, di.Image, &di.DeprecationStatus); err != nil {
-				e <- newErr("failed to deprecate images", err)
+				e <- newErr(err)
 			}
 		}(di)
 	}

@@ -31,7 +31,7 @@ type DetachDisk struct {
 	project, zone string
 }
 
-func (a *DetachDisks) populate(ctx context.Context, s *Step) DError {
+func (a *DetachDisks) populate(ctx context.Context, s *Step) dErr {
 	for _, dd := range *a {
 		if dd.DeviceName == "" {
 			dd.DeviceName = path.Base(dd.DeviceName)
@@ -44,23 +44,23 @@ func (a *DetachDisks) populate(ctx context.Context, s *Step) DError {
 	return nil
 }
 
-func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
+func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs dErr) {
 	for _, dd := range *a {
 		if dd.DeviceName == "" {
-			errs = addErrs(errs, Errf("cannot detach disk: DeviceName is empty"))
+			errs = addErrs(errs, errf("cannot detach disk: DeviceName is empty"))
 		}
 
 		ir, err := s.w.instances.regUse(dd.Instance, s)
 		if ir == nil {
 			// Return now, the rest of this function can't be run without ir.
-			return addErrs(errs, Errf("cannot detach disk: %v", err))
+			return addErrs(errs, errf("cannot detach disk: %v", err))
 		}
 		addErrs(errs, err)
 
 		dr, err := s.w.disks.regUse(dd.DeviceName, s)
 		if dr == nil {
 			// Return now, the rest of this function can't be run without dr.
-			return addErrs(errs, Errf("cannot detach disk: %v", err))
+			return addErrs(errs, errf("cannot detach disk: %v", err))
 		}
 		addErrs(errs, err)
 
@@ -68,10 +68,10 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		disk := namedSubexp(diskURLRgx, dr.link)
 		instance := namedSubexp(instanceURLRgx, ir.link)
 		if disk["project"] != instance["project"] {
-			errs = addErrs(errs, Errf("cannot detach disk in project %q from instance in project %q: %q", disk["project"], instance["project"], dd.DeviceName))
+			errs = addErrs(errs, errf("cannot detach disk in project %q from instance in project %q: %q", disk["project"], instance["project"], dd.DeviceName))
 		}
 		if disk["zone"] != instance["zone"] {
-			errs = addErrs(errs, Errf("cannot detach disk in zone %q from instance in zone %q: %q", disk["zone"], instance["zone"], dd.DeviceName))
+			errs = addErrs(errs, errf("cannot detach disk in zone %q from instance in zone %q: %q", disk["zone"], instance["zone"], dd.DeviceName))
 		}
 
 		dd.project = disk["project"]
@@ -84,10 +84,10 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 	return errs
 }
 
-func (a *DetachDisks) run(ctx context.Context, s *Step) DError {
+func (a *DetachDisks) run(ctx context.Context, s *Step) dErr {
 	var wg sync.WaitGroup
 	w := s.w
-	e := make(chan DError)
+	e := make(chan dErr)
 	for _, dd := range *a {
 		wg.Add(1)
 		go func(dd *DetachDisk) {
@@ -100,7 +100,7 @@ func (a *DetachDisks) run(ctx context.Context, s *Step) DError {
 
 			w.LogStepInfo(s.name, "DetachDisks", "Detaching disk %q from instance %q.", dd.DeviceName, inst)
 			if err := w.ComputeClient.DetachDisk(dd.project, dd.zone, dd.Instance, dd.DeviceName); err != nil {
-				e <- newErr("failed to detach disks", err)
+				e <- newErr(err)
 				return
 			}
 		}(dd)
