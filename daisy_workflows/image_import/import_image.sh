@@ -15,6 +15,10 @@
 
 set -x
 
+# Enable case-insensitive match when checking for
+# the ova filetype.
+shopt -s nocasematch
+
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance"
 DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)"
@@ -24,9 +28,8 @@ SCRATCH_DISK_NAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/scratch
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
 ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
 
-SOURCE_FILE_EXT="${SOURCE_URL##*.}"
 SOURCE_SIZE_BYTES="$(gsutil du ${SOURCE_URL} | grep -o '^[0-9]\+')"
-IMAGE_PATH="/daisy-scratch/image.${SOURCE_FILE_EXT}"
+IMAGE_PATH="/daisy-scratch/$(basename ${SOURCE_URL})"
 
 # Print info.
 echo "#################" 2> /dev/null
@@ -35,7 +38,6 @@ echo "#################" 2> /dev/null
 echo "IMAGE_PATH: ${IMAGE_PATH}" 2> /dev/null
 echo "SOURCE_URL: ${SOURCE_URL}" 2> /dev/null
 echo "SOURCE_SIZE_BYTES: ${SOURCE_SIZE_BYTES}" 2> /dev/null
-echo "SOURCE_FILE_EXT: ${SOURCE_FILE_EXT}" 2> /dev/null
 echo "DISKNAME: ${DISKNAME}" 2> /dev/null
 echo "ME: ${ME}" 2> /dev/null
 echo "ZONE: ${ZONE}" 2> /dev/null
@@ -56,7 +58,7 @@ function copyImageToScratchDisk() {
   local scratchDiskSizeGigabytes=$(awk "BEGIN {print int(((${SOURCE_SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
   # We allocate double capacity for OVA, which would
   # require making an additional copy of its enclosed VMDK.
-  if [[ "${SOURCE_FILE_EXT}" == "ova" ]]; then
+  if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
      scratchDiskSizeGigabytes=$((scratchDiskSizeGigabytes * 2))
   fi
 
@@ -81,7 +83,7 @@ function copyImageToScratchDisk() {
 copyImageToScratchDisk
 
 # If the image is an OVA, then copy out its VMDK.
-if [[ "${SOURCE_FILE_EXT}" == "ova" ]]; then
+if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
   echo "Import: Unpacking VMDK files from ova."
   VMDK="$(tar --list -f ${IMAGE_PATH} | grep -m1 vmdk)"
   tar -C /daisy-scratch -xf ${IMAGE_PATH} ${VMDK}
