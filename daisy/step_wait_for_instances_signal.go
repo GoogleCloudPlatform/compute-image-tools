@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -25,6 +26,10 @@ import (
 
 const (
 	defaultInterval = "10s"
+)
+
+var (
+	serialOutputValueRegex = regexp.MustCompile(".*<serial-output key:'(.*)' value:'(.*)'>")
 )
 
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
@@ -146,6 +151,7 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 				if so.StatusMatch != "" {
 					if i := strings.Index(ln, so.StatusMatch); i != -1 {
 						w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: StatusMatch found: %q", name, strings.TrimSpace(ln[i:]))
+						extractOutputValue(w, ln)
 					}
 				}
 				if len(so.FailureMatch) > 0 {
@@ -166,6 +172,15 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 			}
 			errs = 0
 		}
+	}
+}
+
+func extractOutputValue(w *Workflow, s string) {
+	if matches := serialOutputValueRegex.FindStringSubmatch(s); matches != nil && len(matches) == 3 {
+		for w.parent != nil {
+			w = w.parent
+		}
+		w.AddSerialConsoleOutputValue(matches[1], matches[2])
 	}
 }
 

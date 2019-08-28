@@ -152,7 +152,9 @@ type Workflow struct {
 	targetInstances *targetInstanceRegistry
 	objects         *objectRegistry
 
-	stepTimeRecords []TimeRecord
+	stepTimeRecords             []TimeRecord
+	serialControlOutputValues   map[string]string
+	serialControlOutputValuesMx sync.Mutex
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -176,6 +178,21 @@ func (w *Workflow) AddVar(k, v string) {
 		w.Vars = map[string]Var{}
 	}
 	w.Vars[k] = Var{Value: v}
+}
+
+// AddSerialConsoleOutputValue adds an serial-output key-value pair to the Workflow.
+func (w *Workflow) AddSerialConsoleOutputValue(k, v string) {
+	w.serialControlOutputValuesMx.Lock()
+	if w.serialControlOutputValues == nil {
+		w.serialControlOutputValues = map[string]string{}
+	}
+	w.serialControlOutputValues[k] = v
+	w.serialControlOutputValuesMx.Unlock()
+}
+
+// GetSerialConsoleOutputValue gets an serial-output value by key.
+func (w *Workflow) GetSerialConsoleOutputValue(k string) string {
+	return w.serialControlOutputValues[k]
 }
 
 func (w *Workflow) addCleanupHook(hook func() DError) {
@@ -250,10 +267,16 @@ func (w *Workflow) RunWithModifiers(
 		return err
 	}
 	w.LogWorkflowInfo("Running workflow")
+	defer func() {
+		for k, v := range w.serialControlOutputValues {
+			w.LogWorkflowInfo("Serial-output value -> %v:%v", k, v)
+		}
+	}()
 	if err := w.run(ctx); err != nil {
 		w.LogWorkflowInfo("Error running workflow: %v", err)
 		return err
 	}
+
 	return nil
 }
 

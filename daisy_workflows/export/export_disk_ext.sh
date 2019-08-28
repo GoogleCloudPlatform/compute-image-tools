@@ -14,6 +14,10 @@
 # limitations under the License.
 set -x
 
+function serialOutputKeyValuePair() {
+  echo "<serial-output key:'$1' value:'$2'>"
+}
+
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
@@ -34,6 +38,10 @@ SIZE_OUTPUT_GB=$(awk "BEGIN {print int(((${SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 # 3. Add 5GB of additional space to max size to prevent the corner case that output
 # file is slightly larger than source disk.
 MAX_BUFFER_DISK_SIZE_GB=$(awk "BEGIN {print int(${SIZE_OUTPUT_GB} + 5)}")
+
+set +x
+echo "GCEExport: $(serialOutputKeyValuePair "source-size-gb" "${SIZE_OUTPUT_GB}")"
+set -x
 
 # Prepare buffer disk.
 echo "GCEExport: Initializing buffer disk for qemu-img output..."
@@ -63,6 +71,13 @@ if ! out=$(qemu-img convert /dev/sdb "/gs/${IMAGE_OUTPUT_PATH}" -p -O $FORMAT 2>
   exit
 fi
 echo ${out}
+
+# Exported image size info.
+TARGET_SIZE_BYTES=$(du -b /gs/${IMAGE_OUTPUT_PATH} | awk '{print $1}')
+TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
+set +x
+echo "GCEExport: $(serialOutputKeyValuePair "target-size-gb" "${TARGET_SIZE_GB}")"
+set -x
 
 echo "GCEExport: Copying output image to target GCS path..."
 if ! out=$(gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>&1); then
