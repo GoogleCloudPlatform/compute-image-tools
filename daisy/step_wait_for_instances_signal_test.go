@@ -220,3 +220,40 @@ func TestWaitForInstancesSignalValidate(t *testing.T) {
 		}
 	}
 }
+
+func TestWaitForInstancesSignalGetOutputValue(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, _ int64) (*compute.SerialPortOutput, error) {
+		ret := &compute.SerialPortOutput{Next: 20}
+		switch n {
+		case w.genName("i1"):
+			ret.Contents = "status: no output value"
+		case w.genName("i2"):
+			ret.Contents = "status: <serial-output key:'my-key' value:'my-value'>"
+		}
+		return ret, nil
+	}
+
+	s := &Step{w: w}
+	w.instances.m = map[string]*Resource{
+		"i1": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i1"))},
+		"i2": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i2"))},
+	}
+
+	// No output value.
+	ws := &WaitForInstancesSignal{
+		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "status", SuccessMatch: "status"}},
+	}
+	if ws.run(ctx, s); w.serialControlOutputValues != nil {
+		t.Errorf("error running WaitForInstancesSignal.run(): there shouldn't be any output value")
+	}
+
+	// There is an output value.
+	ws = &WaitForInstancesSignal{
+		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "status", SuccessMatch: "status"}},
+	}
+	if ws.run(ctx, s); w.serialControlOutputValues == nil || w.serialControlOutputValues["my-key"] != "my-value" {
+		t.Errorf("error running WaitForInstancesSignal.run(): didn't get expected output value")
+	}
+}

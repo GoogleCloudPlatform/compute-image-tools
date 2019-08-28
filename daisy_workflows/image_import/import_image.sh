@@ -29,6 +29,7 @@ ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
 ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
 
 SOURCE_SIZE_BYTES="$(gsutil du ${SOURCE_URL} | grep -o '^[0-9]\+')"
+SOURCE_SIZE_GB=$(awk "BEGIN {print int(((${SOURCE_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 IMAGE_PATH="/daisy-scratch/$(basename ${SOURCE_URL})"
 
 # Print info.
@@ -55,7 +56,7 @@ function resizeDisk() {
 }
 
 function copyImageToScratchDisk() {
-  local scratchDiskSizeGigabytes=$(awk "BEGIN {print int(((${SOURCE_SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
+  local scratchDiskSizeGigabytes=${SOURCE_SIZE_GB}
   # We allocate double capacity for OVA, which would
   # require making an additional copy of its enclosed VMDK.
   if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
@@ -80,6 +81,10 @@ function copyImageToScratchDisk() {
   echo "Import: Copied image from ${SOURCE_URL} to ${IMAGE_PATH}"
 }
 
+function serialOutputKeyValuePair() {
+  echo "<serial-output key:'$1' value:'$2'>"
+}
+
 copyImageToScratchDisk
 
 # If the image is an OVA, then copy out its VMDK.
@@ -97,6 +102,11 @@ SIZE_BYTES=$(qemu-img info --output "json" ${IMAGE_PATH} | grep -m1 "virtual-siz
  # Round up to the next GB.
 SIZE_GB=$(awk "BEGIN {print int(((${SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
 echo "Import: Importing ${IMAGE_PATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
+
+set +x
+echo "Import: $(serialOutputKeyValuePair "target-size-gb" "${SIZE_GB}")"
+echo "Import: $(serialOutputKeyValuePair "source-size-gb" "${SOURCE_SIZE_GB}")"
+set -x
 
 # Ensure the disk referenced by $DISKNAME is large enough to
 # hold the inflated disk. For the common case, we initialize
