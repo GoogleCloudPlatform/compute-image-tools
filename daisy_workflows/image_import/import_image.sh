@@ -26,7 +26,7 @@ ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
 
 SOURCE_FILE_EXT="${SOURCE_URL##*.}"
 SOURCE_SIZE_BYTES="$(gsutil du ${SOURCE_URL} | grep -o '^[0-9]\+')"
-IMAGE_PATH="/daisy-scratch/image.${SOURCE_FILE_EXT}"
+IMAGE_PATH="/daisy-scratch/$(basename ${SOURCE_URL})"
 
 # Print info.
 echo "#################" 2> /dev/null
