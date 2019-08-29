@@ -95,8 +95,11 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 	}
 	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient, logger)
 	buildID := os.Getenv("BUILD_ID")
+
 	if buildID == "" {
 		buildID = pathutils.RandString(5)
+	} else {
+		logger.Log(fmt.Sprintf("Cloud Build ID: %s", buildID))
 	}
 	workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow, params)
 	bic := &storageutils.BucketIteratorCreator{}

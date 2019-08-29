@@ -43,6 +43,7 @@ const (
 	ClientIDFlagKey       = "client_id"
 	DestinationURIFlagKey = "destination_uri"
 	SourceImageFlagKey    = "source_image"
+	buildIDOSEnv          = "BUILD_ID"
 )
 
 func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
@@ -144,8 +145,12 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
+	logger := logging.NewLogger("[image-export]")
+
+	logger.Log(fmt.Sprintf("Cloud Build ID: %s", os.Getenv(buildIDOSEnv)))
+
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger("[image-export]"), oauth)
+		ctx, logger, oauth)
 	if err != nil {
 		return err
 	}

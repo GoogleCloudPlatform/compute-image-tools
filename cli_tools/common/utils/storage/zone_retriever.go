@@ -73,7 +73,7 @@ func (zr *ZoneRetriever) GetZone(storageLocation string, project string) (string
 	if zone == "" {
 		return "", daisy.Errf("zone is empty")
 	}
-	fmt.Printf("[image-importer] Zone not provided, using %v\n", zone)
+	fmt.Printf("[image-import] Zone not provided, using %v\n", zone)
 
 	return zone, nil
 }
