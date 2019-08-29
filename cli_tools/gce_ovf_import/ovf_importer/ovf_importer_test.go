@@ -15,6 +15,7 @@
 package ovfimporter
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -99,6 +100,7 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
 
+	w.Logger = DummyLogger{}
 	oi.modifyWorkflowPreValidate(w)
 	oi.modifyWorkflowPostValidate(w)
 	assert.Equal(t, "n1-highcpu-16", w.Vars["machine_type"].Value)
@@ -166,6 +168,8 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
 
+	w.Logger = DummyLogger{}
+
 	oi.modifyWorkflowPreValidate(w)
 	oi.modifyWorkflowPostValidate(w)
 	assert.Equal(t, "n1-highcpu-16", w.Vars["machine_type"].Value)
@@ -225,6 +229,8 @@ func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(
 
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
+
+	w.Logger = DummyLogger{}
 
 	oi.modifyWorkflowPreValidate(w)
 	oi.modifyWorkflowPostValidate(w)
@@ -749,3 +755,9 @@ var machineTypes = []*compute.MachineType{
 		Zone:                         "us-east1-b",
 	},
 }
+
+type DummyLogger struct{}
+
+func (dl DummyLogger) WriteLogEntry(e *daisy.LogEntry)                                          {}
+func (dl DummyLogger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {}
+func (dl DummyLogger) Flush()                                                                   {}
