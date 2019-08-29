@@ -48,6 +48,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 
 		setupDataDiskStepName := fmt.Sprintf("setup-data-disk-%v", dataDiskIndex)
 		diskImporterDiskName := fmt.Sprintf("disk-importer-%v", dataDiskIndex)
+		scratchDiskDiskName := fmt.Sprintf("disk-importer-scratch-%s-%v", w.ID(), dataDiskIndex)
 
 		setupDataDiskStep := daisy.NewStep(setupDataDiskStepName, w, time.Hour)
 		setupDataDiskStep.CreateDisks = &daisy.CreateDisks{
@@ -70,6 +71,16 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					NoCleanup: true,
 				},
 			},
+			{
+				Disk: compute.Disk{
+					Name: scratchDiskDiskName,
+					Type: "pd-ssd",
+				},
+				SizeGb: "10",
+				Resource: daisy.Resource{
+					ExactName: true,
+				},
+			},
 		}
 		w.Steps[setupDataDiskStepName] = setupDataDiskStep
 
@@ -82,12 +93,15 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 			{
 				Instance: compute.Instance{
 					Name:        dataDiskImporterInstanceName,
-					Disks:       []*compute.AttachedDisk{{Source: diskImporterDiskName}},
+					Disks: []*compute.AttachedDisk{
+						{Source: diskImporterDiskName},
+						{Source: scratchDiskDiskName}},
 					MachineType: "n1-standard-4",
 					Metadata: &compute.Metadata{
 						Items: []*compute.MetadataItems{
 							{Key: "block-project-ssh-keys", Value: &sTrue},
 							{Key: "disk_name", Value: &diskNames[i]},
+							{Key: "scratch_disk_name", Value: &scratchDiskDiskName},
 							{Key: "source_disk_file", Value: &dataDiskFilePath},
 						},
 					},
