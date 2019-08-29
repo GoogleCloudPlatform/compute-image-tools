@@ -98,8 +98,6 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 
 	if buildID == "" {
 		buildID = pathutils.RandString(5)
-	} else {
-		logger.Log(fmt.Sprintf("Cloud Build ID: %s", buildID))
 	}
 	workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow, params)
 	bic := &storageutils.BucketIteratorCreator{}
@@ -285,6 +283,7 @@ func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, e
 }
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
+	w.LogWorkflowInfo("Cloud Build ID: %s", oi.buildID)
 	rl := &daisyutils.ResourceLabeler{
 		BuildID:         oi.buildID,
 		UserLabels:      oi.params.UserLabels,

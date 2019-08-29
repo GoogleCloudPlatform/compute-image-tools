@@ -187,6 +187,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	}
 
 	workflowModifier := func(w *daisy.Workflow) {
+		workflow.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(buildIDOSEnv))
 		rl := &daisyutils.ResourceLabeler{
 			BuildID:         os.Getenv(buildIDOSEnv),
 			UserLabels:      userLabels,
@@ -228,12 +229,8 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
-	logger := logging.NewLogger("[image-import]")
-
-	logger.Log(fmt.Sprintf("Cloud Build ID: %s", os.Getenv(buildIDOSEnv)))
-
 	storageClient, err := storage.NewStorageClient(
-		ctx, logger, oauth)
+		ctx, logging.NewLogger("[image-import]"), oauth)
 	if err != nil {
 		return daisy.Errf("error creating storage client: %v", err)
 	}

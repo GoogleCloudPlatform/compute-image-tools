@@ -115,6 +115,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 	}
 
 	workflowModifier := func(w *daisy.Workflow) {
+		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(buildIDOSEnv))
 		rl := &daisyutils.ResourceLabeler{
 			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
 			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
@@ -145,12 +146,8 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
-	logger := logging.NewLogger("[image-export]")
-
-	logger.Log(fmt.Sprintf("Cloud Build ID: %s", os.Getenv(buildIDOSEnv)))
-
 	storageClient, err := storage.NewStorageClient(
-		ctx, logger, oauth)
+		ctx, logging.NewLogger("[image-export]"), oauth)
 	if err != nil {
 		return err
 	}
