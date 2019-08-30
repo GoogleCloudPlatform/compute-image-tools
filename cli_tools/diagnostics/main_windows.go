@@ -17,13 +17,18 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+)
+
+const (
+	eventLogsRoot = `C:\Windows\System32\winevt\Logs`
+	k8sLogsRoot   = `C:\etc\kubernetes\logs`
+	crashDump     = `C:\Windows\MEMORY.dump`
 )
 
 type cmd struct {
@@ -168,24 +173,54 @@ func gatherProgramLogs(logs chan logFolder, errs chan error) {
 	logs <- logFolder{"Program", runAll(commands, errs)}
 }
 
-func gatherEventLogs(logs chan logFolder, errs chan error) {
-	dirs := []string{`C:\Windows\System32\winevt\Logs`}
-	paths := make([]string, 0)
-	// Recursively gather all the log files in a directory
-	for len(dirs) > 0 {
-		dir := dirs[0]
-		dirs = dirs[1:]
-		files, _ := ioutil.ReadDir(dir)
-		for _, f := range files {
-			path := filepath.Join(dir, f.Name())
-			if f.IsDir() {
-				dirs = append(dirs, path)
-			} else {
-				paths = append(paths, path)
+// collectFilePaths recursively collect all the file paths under given list of roots,
+// return list of file paths and errors(if any).
+func collectFilePaths(roots []string) ([]string, []error) {
+	filePaths := make([]string, 0)
+	errs := make([]error, 0)
+	for _, root := range roots {
+		// Compared filepath.Walk with orginal BFS folder traversal using Measure-Command cmdlet,
+		// looks like almost the same.
+		// 		filepath.Walk -> 4s 973ms
+		// 		original BFS folder traversal -> 4s 897ms
+		// Although filepath.Walk is slower than `find` due to extra lstat calls
+		// https://github.com/golang/go/issues/16399, it should be good enough for this scenario.
+		err := filepath.Walk(root, func(path string, info os.FileInfo, e error) error {
+			if e != nil {
+				return e
 			}
+			if !info.IsDir() {
+				filePaths = append(filePaths, path)
+			}
+			return nil
+		})
+		if err != nil {
+			errs = append(errs, err)
 		}
 	}
-	logs <- logFolder{"Event", paths}
+	return filePaths, errs
+}
+
+// gatherEventLogs put all the event log file paths in logFolder channel
+// and errors in error channel.
+func gatherEventLogs(logs chan logFolder, errs chan error) {
+	roots := []string{eventLogsRoot}
+	filePaths, ers := collectFilePaths(roots)
+	for _, err := range ers {
+		errs <- err
+	}
+	logs <- logFolder{"Event", filePaths}
+}
+
+// gatherKubernetesLogs put all the kubernetes log file paths in logFolder channel
+// and errors in error channel.
+func gatherKubernetesLogs(logs chan logFolder, errs chan error) {
+	roots := []string{k8sLogsRoot, crashDump}
+	filePaths, ers := collectFilePaths(roots)
+	for _, err := range ers {
+		errs <- err
+	}
+	logs <- logFolder{"Kubernetes", filePaths}
 }
 
 func gatherTraceLogs(logs chan logFolder, errs chan error) {
@@ -210,6 +245,7 @@ func gatherLogs(trace bool) ([]logFolder, error) {
 		gatherNetworkLogs,
 		gatherProgramLogs,
 		gatherEventLogs,
+		gatherKubernetesLogs,
 	}
 	if trace {
 		runFuncs = append(runFuncs, gatherTraceLogs)
