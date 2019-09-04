@@ -28,7 +28,7 @@ import (
 const (
 	eventLogsRoot = `C:\Windows\System32\winevt\Logs`
 	k8sLogsRoot   = `C:\etc\kubernetes\logs`
-	crashDump     = `C:\Windows\MEMORY.dump`
+	crashDump     = `C:\Windows\MEMORY.dmp`
 )
 
 type cmd struct {
