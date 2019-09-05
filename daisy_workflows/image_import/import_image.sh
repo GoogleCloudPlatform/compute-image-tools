@@ -88,10 +88,15 @@ function copyImageToScratchDisk() {
 
   # Standard error for `gsutil cp` contains a progress meter that when written
   # to the console will exceed the logging daemon's buffer for large files.
-  # The end of the stream may contain useful debugging messages, hence the
-  # usage of `tail` when we echo the error inside this block.
+  # The stream may contain useful debugging messages, however, so if there's an
+  # error we print any lines that don't have ascii control characters, which
+  # are used to generate the progress meter.
   if ! out=$(gsutil cp "${SOURCE_URL}" "${IMAGE_PATH}" 2> gsutil.cp.err); then
-    echo "ImportFailed: Failed to download image to scratch [Privacy-> from ${SOURCE_URL} to ${IMAGE_PATH}, error: $(tail gsutil.cp.err) <-Privacy]"
+    echo "Import: Failure while executing gsutil cp:"
+    grep -v '[[:cntrl:]]' gsutil.cp.err | while read line; do
+      echo "Import: ${line}"
+    done
+    echo "ImportFailed: Failed to download image to scratch [Privacy-> from ${SOURCE_URL} to ${IMAGE_PATH} <-Privacy]."
   exit
   fi
   echo "Import: Copied image from ${SOURCE_URL} to ${IMAGE_PATH}: ${out}"
