@@ -61,7 +61,7 @@ function copyImageToScratchDisk() {
   # the overhead is less than 10% using the default number of inodes
   # and a reserved block percentage of 1%. We conserve a little more space
   # by avoiding the reserved blocks via `mkfs.ext4 -m 0`.
-  local scratchDiskSizeGigabytes=$(awk "BEGIN {print int(${SOURCE_SIZE_GB} * 1.1)}")
+  local scratchDiskSizeGigabytes=$(awk "BEGIN {print int((${SOURCE_SIZE_GB} * 1.1) + 1)}")
   # We allocate double capacity for OVA, which would
   # require making an additional copy of its enclosed VMDK.
   if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
