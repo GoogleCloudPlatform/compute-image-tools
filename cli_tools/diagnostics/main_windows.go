@@ -28,7 +28,10 @@ import (
 const (
 	eventLogsRoot = `C:\Windows\System32\winevt\Logs`
 	k8sLogsRoot   = `C:\etc\kubernetes\logs`
-	crashDump     = `C:\Windows\MEMORY.dmp`
+	// TODO: user can change the dump path, so better fetch the path from Registry: 
+	// https://support.microsoft.com/en-us/help/254649/overview-of-memory-dump-file-options-for-windows
+	// But it's not likely people will do that. 
+	crashDump     = `C:\Windows\MEMORY.dmp` 
 )
 
 type cmd struct {
@@ -273,7 +276,7 @@ func gatherLogs(trace bool) ([]logFolder, error) {
 			break
 		}
 	}
-
+	// Note: errors are swallowed if error count <= gathterxxxLogs func count.
 	if len(errs) > 0 {
 		return folders, errors.New(strings.Join(errStrings, "\n"))
 	}

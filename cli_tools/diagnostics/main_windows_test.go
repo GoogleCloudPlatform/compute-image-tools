@@ -16,13 +16,18 @@
 package main
 
 import (
+	"reflect"
+	"path/filepath"
 	"strings"
 	"testing"
+	"os"
 )
 
 const (
 	pathNotExistErr = "The system cannot find the path specified."
 	fileNotExistErr = "The system cannot find the file specified."
+	systemLogPath = `C:\Windows\System32\winevt\Logs\System.evtx`
+	kubeletLogFileName = "kubelet.log"
 )
 
 func pathNonExist(e error) bool {
@@ -40,22 +45,32 @@ func fileNonExist(e error) bool {
 }
 
 func TestCollectFilePaths(t *testing.T) {
+	dir := os.TempDir()
+	testRoot := filepath.Join(dir, "collectFilePathsTest")
+	defer os.RemoveAll(testRoot)
+	kubeletlogFilePath := filepath.Join(testRoot, kubeletLogFileName)
+	os.Create(kubeletlogFilePath)
+	nonExistFilePath := filepath.Join(dir, "xxx")
 	type args struct {
 		roots []string
 	}
 	tests := []struct {
 		name  string
 		args  args
+		want  []string
 		errOK func(error) bool
 	}{
-		{"Nil roots", args{nil}, nil},
-		{"Empty roots", args{[]string{""}}, pathNonExist},
-		{"Existing roots", args{[]string{k8sLogsRoot, eventLogsRoot}}, nil},
-		{"Non-existing paths", args{[]string{`C:\etc\kubernetes\logs\xxxx`}}, fileNonExist},
+		{"Nil roots", args{nil}, []string{}, nil},
+		{"Empty roots", args{[]string{""}}, []string{}, pathNonExist},
+		{"Existing roots", args{[]string{testRoot}}, []string{kubeletlogFilePath}, nil},
+		{"Non-existing paths", args{[]string{nonExistFilePath}}, []string{}, fileNonExist},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, gotErrs := collectFilePaths(tt.args.roots)
+			gotFiles, gotErrs := collectFilePaths(tt.args.roots)
+			if !reflect.DeepEqual(gotFiles, tt.want){
+				t.Errorf("unexpected filepaths, want %v, got %v", tt.want, gotFiles)
+			}
 			for _, err := range gotErrs {
 				if tt.errOK == nil || !tt.errOK(err) {
 					t.Errorf("collectFilePaths() got unexpected error = %v", gotErrs)
@@ -63,6 +78,15 @@ func TestCollectFilePaths(t *testing.T) {
 			}
 		})
 	}
+}
+
+func include(ss []string, str string) bool {
+	for _, s := range ss {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }
 
 func TestGatherEventLogs(t *testing.T) {
@@ -80,34 +104,12 @@ func TestGatherEventLogs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			go gatherEventLogs(tt.args.logs, tt.args.errs)
 			select {
-			case <-tt.args.logs:
+			case l := <-tt.args.logs:
+				if !include(l.files, systemLogPath) {
+					t.Errorf("Expect %s, but it's missing", systemLogPath)
+				}
 			case e := <-tt.args.errs:
 				t.Errorf(e.Error())
-			}
-		})
-	}
-}
-
-func TestGatherKubernetesLogs(t *testing.T) {
-	type args struct {
-		logs chan logFolder
-		errs chan error
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{"GatherK8sLogs", args{make(chan logFolder, 2), make(chan error)}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			go gatherKubernetesLogs(tt.args.logs, tt.args.errs)
-			select {
-			case <-tt.args.logs:
-			case e := <-tt.args.errs:
-				if !strings.Contains(e.Error(), crashDump) {
-					t.Errorf(e.Error())
-				}
 			}
 		})
 	}
