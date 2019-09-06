@@ -28,10 +28,10 @@ import (
 const (
 	eventLogsRoot = `C:\Windows\System32\winevt\Logs`
 	k8sLogsRoot   = `C:\etc\kubernetes\logs`
-	// TODO: user can change the dump path, so better fetch the path from Registry: 
+	// TODO: user can change the dump path, so better fetch the path from Registry:
 	// https://support.microsoft.com/en-us/help/254649/overview-of-memory-dump-file-options-for-windows
-	// But it's not likely people will do that. 
-	crashDump     = `C:\Windows\MEMORY.dmp` 
+	// But it's not likely people will do that.
+	crashDump = `C:\Windows\MEMORY.dmp`
 )
 
 type cmd struct {

@@ -16,17 +16,17 @@
 package main
 
 import (
-	"reflect"
+	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
-	"os"
 )
 
 const (
-	pathNotExistErr = "The system cannot find the path specified."
-	fileNotExistErr = "The system cannot find the file specified."
-	systemLogPath = `C:\Windows\System32\winevt\Logs\System.evtx`
+	pathNotExistErr    = "The system cannot find the path specified."
+	fileNotExistErr    = "The system cannot find the file specified."
+	systemLogPath      = `C:\Windows\System32\winevt\Logs\System.evtx`
 	kubeletLogFileName = "kubelet.log"
 )
 
@@ -68,7 +68,7 @@ func TestCollectFilePaths(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotFiles, gotErrs := collectFilePaths(tt.args.roots)
-			if !reflect.DeepEqual(gotFiles, tt.want){
+			if !reflect.DeepEqual(gotFiles, tt.want) {
 				t.Errorf("unexpected filepaths, want %v, got %v", tt.want, gotFiles)
 			}
 			for _, err := range gotErrs {
