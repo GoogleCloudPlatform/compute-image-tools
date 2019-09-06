@@ -56,7 +56,12 @@ function resizeDisk() {
 }
 
 function copyImageToScratchDisk() {
-  local scratchDiskSizeGigabytes=${SOURCE_SIZE_GB}
+  # We allocate an extra 10% capacity to account for ext4's
+  # filesystem overhead. According to https://petermolnar.net/why-use-btrfs-for-media-storage/ ,
+  # the overhead is less than 10% using the default number of inodes
+  # and a reserved block percentage of 1%. We conserve a little more space
+  # by avoiding the reserved blocks via `mkfs.ext4 -m 0`.
+  local scratchDiskSizeGigabytes=$(awk "BEGIN {print int((${SOURCE_SIZE_GB} * 1.1) + 1)}")
   # We allocate double capacity for OVA, which would
   # require making an additional copy of its enclosed VMDK.
   if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
@@ -72,13 +77,29 @@ function copyImageToScratchDisk() {
   mkdir -p /daisy-scratch
   # /dev/sdb is used since the scratch disk is the second
   # disk that's attached in import_disk.wf.json.
-  mkfs.ext4 /dev/sdb
+  #
+  # We disable reserved blocks to save disk space via `-m 0`. Typically
+  # this is 5% and we won't be using it.
+  mkfs.ext4 /dev/sdb -m 0
   mount /dev/sdb /daisy-scratch
   if [[ $? -ne 0 ]]; then
     echo "ImportFailed: Failed to prepare scratch disk."
   fi
-  gsutil cp "${SOURCE_URL}" "${IMAGE_PATH}"
-  echo "Import: Copied image from ${SOURCE_URL} to ${IMAGE_PATH}"
+
+  # Standard error for `gsutil cp` contains a progress meter that when written
+  # to the console will exceed the logging daemon's buffer for large files.
+  # The stream may contain useful debugging messages, however, so if there's an
+  # error we print any lines that don't have ascii control characters, which
+  # are used to generate the progress meter.
+  if ! out=$(gsutil cp "${SOURCE_URL}" "${IMAGE_PATH}" 2> gsutil.cp.err); then
+    echo "Import: Failure while executing gsutil cp:"
+    grep -v '[[:cntrl:]]' gsutil.cp.err | while read line; do
+      echo "Import: ${line}"
+    done
+    echo "ImportFailed: Failed to download image to scratch [Privacy-> from ${SOURCE_URL} to ${IMAGE_PATH} <-Privacy]."
+  exit
+  fi
+  echo "Import: Copied image from ${SOURCE_URL} to ${IMAGE_PATH}: ${out}"
 }
 
 function serialOutputKeyValuePair() {
