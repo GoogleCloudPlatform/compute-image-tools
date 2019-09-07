@@ -45,12 +45,14 @@ func fileNonExist(e error) bool {
 }
 
 func TestCollectFilePaths(t *testing.T) {
+	// Test setup: create dummy test folder and file for test, clean it up afterwards
 	dir := os.TempDir()
 	testRoot := filepath.Join(dir, "collectFilePathsTest")
 	defer os.RemoveAll(testRoot)
 	kubeletlogFilePath := filepath.Join(testRoot, kubeletLogFileName)
 	os.Create(kubeletlogFilePath)
 	nonExistFilePath := filepath.Join(dir, "xxx")
+
 	type args struct {
 		roots []string
 	}
@@ -80,37 +82,37 @@ func TestCollectFilePaths(t *testing.T) {
 	}
 }
 
-func include(ss []string, str string) bool {
-	for _, s := range ss {
-		if s == str {
+func stringArrayIncludesString(stringArray []string, target string) bool {
+	for _, s := range stringArray {
+		if s == target {
 			return true
 		}
 	}
 	return false
 }
 
-func TestGatherEventLogs(t *testing.T) {
+func TestGatherEventLogsGathersExpectedSystemLogFile(t *testing.T) {
 	type args struct {
 		logs chan logFolder
 		errs chan error
 	}
-	tests := []struct {
+	test := struct {
 		name string
 		args args
 	}{
-		{"GatherEventLogs", args{make(chan logFolder, 2), make(chan error)}},
+		"GatherEventLogs",
+		args{make(chan logFolder, 2), make(chan error)},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			go gatherEventLogs(tt.args.logs, tt.args.errs)
-			select {
-			case l := <-tt.args.logs:
-				if !include(l.files, systemLogPath) {
-					t.Errorf("Expect %s, but it's missing", systemLogPath)
-				}
-			case e := <-tt.args.errs:
-				t.Errorf(e.Error())
+
+	t.Run(test.name, func(t *testing.T) {
+		go gatherEventLogs(test.args.logs, test.args.errs)
+		select {
+		case l := <-test.args.logs:
+			if !stringArrayIncludesString(l.files, systemLogPath) {
+				t.Errorf("Expect %s, but it's missing", systemLogPath)
 			}
-		})
-	}
+		case e := <-test.args.errs:
+			t.Errorf(e.Error())
+		}
+	})
 }
