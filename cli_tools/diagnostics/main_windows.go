@@ -276,7 +276,9 @@ func gatherLogs(trace bool) ([]logFolder, error) {
 			break
 		}
 	}
-	// Note: errors are swallowed if error count <= gathterxxxLogs func count.
+	// TODO: errors are swallowed if error count <= gathterxxxLogs func count.
+	// Not sure this behavior is intented or not. Will check that if we can modify it like:
+	// if len(errStrings) > 0
 	if len(errs) > 0 {
 		return folders, errors.New(strings.Join(errStrings, "\n"))
 	}

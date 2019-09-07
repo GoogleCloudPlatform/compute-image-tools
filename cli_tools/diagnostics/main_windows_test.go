@@ -91,27 +91,18 @@ func stringArrayIncludesString(stringArray []string, target string) bool {
 	return false
 }
 
-func TestGatherEventLogsGathersExpectedSystemLogFile(t *testing.T) {
-	type args struct {
-		logs chan logFolder
-		errs chan error
-	}
-	test := struct {
-		name string
-		args args
-	}{
-		"GatherEventLogs",
-		args{make(chan logFolder, 2), make(chan error)},
-	}
+func TestGatherEventLogs(t *testing.T) {
+	logFolderCh := make(chan logFolder, 2)
+	errCh := make(chan error)
 
-	t.Run(test.name, func(t *testing.T) {
-		go gatherEventLogs(test.args.logs, test.args.errs)
+	t.Run("Gathers Expected SystemLog File", func(t *testing.T) {
+		go gatherEventLogs(logFolderCh, errCh)
 		select {
-		case l := <-test.args.logs:
+		case l := <-logFolderCh:
 			if !stringArrayIncludesString(l.files, systemLogPath) {
 				t.Errorf("Expect %s, but it's missing", systemLogPath)
 			}
-		case e := <-test.args.errs:
+		case e := <-errCh:
 			t.Errorf(e.Error())
 		}
 	})
