@@ -257,33 +257,6 @@ func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 	return osID, nil
 }
 
-// Returns capacity in GB taking into account allocation units which should be in `bytes * 2^x`
-// format. If capacity and allocationUnits are valid, returns at least 1 even if given capacity
-// is less than 1GB
-func getCapacityInGB(capacity string, allocationUnits string) (int, error) {
-	capacityRaw, err := strconv.Atoi(capacity)
-	if err != nil {
-		return 0, err
-	}
-	allocationUnitPower, err := getAllocationUnitPowerOfTwo(allocationUnits)
-	if err != nil {
-		return 0, err
-	}
-	allocationUnitPowerToGB := float64(allocationUnitPower) - 30.0
-	allocationUnitFactorToGB := math.Pow(2.0, allocationUnitPowerToGB)
-	capacityInGB := float64(capacityRaw) * allocationUnitFactorToGB
-
-	return int(math.Ceil(capacityInGB)), nil
-}
-
-func getAllocationUnitPowerOfTwo(allocationUnits string) (int, error) {
-	allocationUnits = strings.ToLower(allocationUnits)
-	if !strings.HasPrefix(allocationUnits, "byte * 2^") {
-		return 0, fmt.Errorf("can't parse `%v` disk allocation units", allocationUnits)
-	}
-	return strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(allocationUnits, "byte * 2^")))
-}
-
 func getDiskControllersPrioritized(virtualHardware *ovf.VirtualHardwareSection) []ovf.ResourceAllocationSettingData {
 	controllerItems := filterItemsByResourceTypes(virtualHardware,
 		ideController, parallelSCSIController, iSCSIController, sataController, usbController)
