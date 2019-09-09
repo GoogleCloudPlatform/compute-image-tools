@@ -17,10 +17,9 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export/exporter"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -44,26 +43,39 @@ var (
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 )
 
+func exportEntry() (*daisy.Workflow, error) {
+	currentExecutablePath := string(os.Args[0])
+	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
+		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
+		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
+}
+
 func main() {
 	flag.Parse()
 
-	currentExecutablePath := string(os.Args[0])
-	if err := exporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
-		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
-		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath); err != nil {
-
-		defer func() {
-			// TODO: log anonymized errors to firelog
-			derr := daisy.ToDError(err)
-			if derr == nil {
-				return
-			}
-			anonymizedErrs := []string{}
-			for _, m := range derr.AnonymizedErrs() {
-				anonymizedErrs = append(anonymizedErrs, daisyutils.RemovePrivacyLogInfo(m))
-			}
-		}()
-
-		log.Fatalf(err.Error())
+	paramLog := logging.InputParams{
+		ImageExportParams: &logging.ImageExportParams{
+			CommonParams: &logging.CommonParams{
+				ClientID:                *clientID,
+				Network:                 *network,
+				Subnet:                  *subnet,
+				Zone:                    *zone,
+				Timeout:                 *timeout,
+				Project:                 *project,
+				ObfuscatedProject:       logging.Hash(*project),
+				Labels:                  *labels,
+				ScratchBucketGcsPath:    *scratchBucketGcsPath,
+				Oauth:                   *oauth,
+				ComputeEndpointOverride: *ce,
+				DisableGcsLogging:       *gcsLogsDisabled,
+				DisableCloudLogging:     *cloudLogsDisabled,
+				DisableStdoutLogging:    *stdoutLogsDisabled,
+			},
+			DestinationURI: *destinationURI,
+			SourceImage:    *sourceImage,
+			Format:         *format,
+		},
 	}
+
+	logging.RunWithServerLogging(logging.ImageExportAction, paramLog, exportEntry)
 }
