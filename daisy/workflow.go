@@ -155,6 +155,9 @@ type Workflow struct {
 	stepTimeRecords             []TimeRecord
 	serialControlOutputValues   map[string]string
 	serialControlOutputValuesMx sync.Mutex
+	//Forces cleanup on error
+	ForceCleanupOnError         bool
+	forceCleanup                bool
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -246,8 +249,8 @@ func (w *Workflow) RunWithModifiers(
 	if preValidateWorkflowModifier != nil {
 		preValidateWorkflowModifier(w)
 	}
-
 	if err := w.Validate(ctx); err != nil {
+		w.forceCleanup = w.ForceCleanupOnError
 		return err
 	}
 
@@ -264,6 +267,7 @@ func (w *Workflow) RunWithModifiers(
 	if err := w.uploadSources(ctx); err != nil {
 		w.LogWorkflowInfo("Error uploading sources: %v", err)
 		close(w.Cancel)
+		w.forceCleanup = w.ForceCleanupOnError
 		return err
 	}
 	w.LogWorkflowInfo("Running workflow")
@@ -274,6 +278,7 @@ func (w *Workflow) RunWithModifiers(
 	}()
 	if err := w.run(ctx); err != nil {
 		w.LogWorkflowInfo("Error running workflow: %v", err)
+		w.forceCleanup = w.ForceCleanupOnError
 		return err
 	}
 
@@ -298,6 +303,7 @@ func (w *Workflow) GetStepTimeRecords() []TimeRecord {
 func (w *Workflow) cleanup() {
 	startTime := time.Now()
 	w.LogWorkflowInfo("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
+
 	select {
 	case <-w.Cancel:
 	default:

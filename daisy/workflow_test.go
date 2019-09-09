@@ -684,7 +684,8 @@ func TestPrint(t *testing.T) {
       }
     }
   },
-  "DefaultTimeout": "10m"
+  "DefaultTimeout": "10m",
+  "ForceCleanupOnError": false
 }
 `
 
