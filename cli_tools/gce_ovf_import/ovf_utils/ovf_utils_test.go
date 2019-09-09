@@ -26,10 +26,9 @@ import (
 
 var (
 	diskCapacityAllocationUnits = "byte * 2^30"
-
-	fileRef1     = "file1"
-	fileRef2     = "file2"
-	defaultDisks = &ovf.DiskSection{Disks: []ovf.VirtualDiskDesc{
+	fileRef1                    = "file1"
+	fileRef2                    = "file2"
+	defaultDisks                = &ovf.DiskSection{Disks: []ovf.VirtualDiskDesc{
 		{Capacity: "20", CapacityAllocationUnits: &diskCapacityAllocationUnits, DiskID: "vmdisk1", FileRef: &fileRef1},
 		{Capacity: "1", CapacityAllocationUnits: &diskCapacityAllocationUnits, DiskID: "vmdisk2", FileRef: &fileRef2},
 	}}
@@ -275,24 +274,6 @@ func TestGetVirtualHardwareSectionFromDescriptorWhenNilVirtualSystem(t *testing.
 
 	_, err := GetVirtualHardwareSectionFromDescriptor(ovfDescriptor)
 	assert.NotNil(t, err)
-}
-
-func TestGetCapacityInGB(t *testing.T) {
-	//in GB
-	doTestGetCapacityInGB(t, 20, "20", "byte * 2^30")
-	doTestGetCapacityInGB(t, 10, "10", "byte * 2^30")
-	doTestGetCapacityInGB(t, 1, "1", "byte * 2^30")
-	doTestGetCapacityInGB(t, 1024, "1024", "byte * 2^30")
-	doTestGetCapacityInGB(t, 5242880, "5242880", "byte * 2^30")
-
-	//in MB
-	doTestGetCapacityInGB(t, 1, "1", "byte * 2^20")
-	doTestGetCapacityInGB(t, 1, "1024", "byte * 2^20")
-	doTestGetCapacityInGB(t, 5*1024, "5242880", "byte * 2^20")
-
-	//in TB
-	doTestGetCapacityInGB(t, 1024, "1", "byte * 2^40")
-	doTestGetCapacityInGB(t, 5242880*1024, "5242880", "byte * 2^40")
 }
 
 func TestGetNumberOfCPUs(t *testing.T) {
@@ -624,12 +605,6 @@ func createVirtualHardwareSectionWithMemoryItem(quantity uint, allocationUnit st
 		},
 	}
 	return virtualHardware
-}
-
-func doTestGetCapacityInGB(t *testing.T, expected int, capacity string, allocationUnits string) {
-	capacityInGB, err := getCapacityInGB(capacity, allocationUnits)
-	assert.Nil(t, err)
-	assert.Equal(t, expected, capacityInGB)
 }
 
 func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAllocationSettingData {
