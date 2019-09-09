@@ -24,7 +24,7 @@ type getCapacityInGBTest struct {
 	expected        int
 	capacity        string
 	allocationUnits string
-	err             error
+	expectedErr     error
 }
 
 var getCapacityInGBTests = []getCapacityInGBTest{
@@ -53,12 +53,11 @@ var getCapacityInGBTests = []getCapacityInGBTest{
 }
 
 func TestGetCapacityInGB(t *testing.T) {
-	for i := range getCapacityInGBTests {
-		test := &getCapacityInGBTests[i]
+	for _, test := range getCapacityInGBTests {
 		capacityInGB, err := getCapacityInGB(test.capacity, test.allocationUnits)
-		if capacityInGB != test.expected || !reflect.DeepEqual(err, test.err) {
+		if capacityInGB != test.expected || !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("getCapacityInGB(%v, %v) = (%v, %v) want (%v, %v)",
-				test.capacity, test.allocationUnits, capacityInGB, err, test.expected, test.err)
+				test.capacity, test.allocationUnits, capacityInGB, err, test.expected, test.expectedErr)
 		}
 	}
 }
