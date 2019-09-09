@@ -17,10 +17,9 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -56,30 +55,52 @@ var (
 	storageLocation      = flag.String("storage_location", "", "Location for the imported image which can be any GCS location. If the location parameter is not included, images are created in the multi-region associated with the source disk, image, snapshot or GCS bucket.")
 )
 
-func main() {
-	flag.Parse()
-
+func importEntry() (*daisy.Workflow, error) {
 	currentExecutablePath := string(os.Args[0])
-
-	if err := importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
+	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
 		*project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
-		*labels, currentExecutablePath, *storageLocation); err != nil {
+		*labels, currentExecutablePath, *storageLocation)
+}
 
-		defer func() {
-			// TODO: log anonymized errors to firelog
-			derr := daisy.ToDError(err)
-			if derr == nil {
-				return
-			}
-			anonymizedErrs := []string{}
-			for _, m := range derr.AnonymizedErrs() {
-				anonymizedErrs = append(anonymizedErrs, daisyutils.RemovePrivacyLogInfo(m))
-			}
-		}()
+func main() {
+	flag.Parse()
 
-		log.SetPrefix("[import-image] ")
-		log.Fatal(err.Error())
+	paramLog := logging.InputParams{
+		ImageImportParams: &logging.ImageImportParams{
+			CommonParams: &logging.CommonParams{
+				ClientID:                *clientID,
+				Network:                 *network,
+				Subnet:                  *subnet,
+				Zone:                    *zone,
+				Timeout:                 *timeout,
+				Project:                 *project,
+				ObfuscatedProject:       logging.Hash(*project),
+				Labels:                  *labels,
+				ScratchBucketGcsPath:    *scratchBucketGcsPath,
+				Oauth:                   *oauth,
+				ComputeEndpointOverride: *ce,
+				DisableGcsLogging:       *gcsLogsDisabled,
+				DisableCloudLogging:     *cloudLogsDisabled,
+				DisableStdoutLogging:    *stdoutLogsDisabled,
+			},
+			ImageName:          *imageName,
+			DataDisk:           *dataDisk,
+			OS:                 *osID,
+			SourceFile:         *sourceFile,
+			SourceImage:        *sourceImage,
+			NoGuestEnvironment: *noGuestEnvironment,
+			Family:             *family,
+			Description:        *description,
+			NoExternalIP:       *noExternalIP,
+			HasKmsKey:          *kmsKey != "",
+			HasKmsKeyring:      *kmsKeyring != "",
+			HasKmsLocation:     *kmsLocation != "",
+			HasKmsProject:      *kmsProject != "",
+			StorageLocation:    *storageLocation,
+		},
 	}
+
+	logging.RunWithServerLogging(logging.ImageImportAction, paramLog, importEntry)
 }

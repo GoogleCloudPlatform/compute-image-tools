@@ -130,6 +130,27 @@ func testRemovePrivacyLogInfo(t *testing.T, originalMessage string, expectedMess
 	}
 }
 
+func TestRemovePrivacyTagSingle(t *testing.T) {
+	testRemovePrivacyTag(t,
+		"[Privacy-> info 1 <-Privacy]",
+		" info 1 ",
+		"Single privacy tag should be removed")
+}
+
+func TestRemovePrivacyTagMultiple(t *testing.T) {
+	testRemovePrivacyTag(t,
+		"Error: [Privacy->abc <-Privacy] [Privacy-> xyz<-Privacy] and <-Privacy]",
+		"Error: abc   xyz and ",
+		"Multiple privacy tag should be removed")
+}
+
+func testRemovePrivacyTag(t *testing.T, originalMessage string, expectedMessage string, onFailure string) {
+	m := RemovePrivacyLogTag(originalMessage)
+	if m != expectedMessage {
+		t.Errorf("%v. Expect: `%v`, actual: `%v`", onFailure, expectedMessage, m)
+	}
+}
+
 func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
 	w := daisy.New()
 	w.Steps = map[string]*daisy.Step{
