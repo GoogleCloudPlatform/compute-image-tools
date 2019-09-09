@@ -40,7 +40,7 @@ func (r *baseResourceRegistry) init() {
 func (r *baseResourceRegistry) cleanup() {
 	var wg sync.WaitGroup
 	for name, res := range r.m {
-		if (res.NoCleanup && !r.w.forceCleanup ) || res.deleted  {
+		if (res.NoCleanup && !r.w.forceCleanup) || res.deleted {
 			continue
 		}
 		wg.Add(1)

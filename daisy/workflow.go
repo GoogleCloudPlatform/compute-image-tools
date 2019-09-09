@@ -156,8 +156,8 @@ type Workflow struct {
 	serialControlOutputValues   map[string]string
 	serialControlOutputValuesMx sync.Mutex
 	//Forces cleanup on error
-	ForceCleanupOnError         bool
-	forceCleanup                bool
+	ForceCleanupOnError bool
+	forceCleanup        bool
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
