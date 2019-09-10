@@ -14,17 +14,10 @@
 
 package logging
 
-import (
-	"encoding/json"
-	"fmt"
-	"runtime"
-	"time"
-)
-
 // LogRequest is a server-side pre-defined data structure
 type LogRequest struct {
 	ClientInfo    ClientInfo `json:"client_info"`
-	LogSourceName string     `json:"log_source_name"`
+	LogSource     int64      `json:"log_source"`
 	RequestTimeMs int64      `json:"request_time_ms"`
 	LogEvent      []LogEvent `json:"log_event"`
 }
@@ -38,6 +31,7 @@ type ClientInfo struct {
 // LogEvent is a server-side pre-defined data structure
 type LogEvent struct {
 	EventTimeMs         int64  `json:"event_time_ms"`
+	EventUptimeMs       int64  `json:"event_uptime_ms"`
 	SourceExtensionJSON string `json:"source_extension_json"`
 }
 
@@ -69,36 +63,6 @@ const (
 	// successful requests, and non-retryable requests.
 	DeleteRequest ResponseAction = "DELETE_REQUEST"
 )
-
-func constructLogRequest(event *ComputeImageToolsLogExtension) ([]byte, error) {
-	if event == nil {
-		return nil, fmt.Errorf("won't log a nil event")
-	}
-	eventStr, err := json.Marshal(event)
-	if err != nil {
-		return nil, err
-	}
-
-	now := time.Now().Unix()
-	req := LogRequest{
-		ClientInfo: ClientInfo{
-			ClientType:        "DESKTOP",
-			DesktopClientInfo: map[string]string{"os": runtime.GOOS},
-		},
-		// TODO: replace with actual log source once server side is ready: "COMPUTE_IMAGE_TOOLS"
-		LogSourceName: "FIRELOG_TEST",
-		RequestTimeMs: now,
-		LogEvent: []LogEvent{
-			{
-				EventTimeMs:         now,
-				SourceExtensionJSON: string(eventStr),
-			},
-		},
-	}
-
-	reqStr, err := json.Marshal(req)
-	return reqStr, err
-}
 
 // ComputeImageToolsLogExtension contains all log info, which should be align with sawmill server side configuration.
 type ComputeImageToolsLogExtension struct {
@@ -204,4 +168,6 @@ type OutputInfo struct {
 	FailureMessage string `json:"failure_message,omitempty"`
 	// Failure message of the command without privacy info
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
+	// ElapsedTimeMs represents the time elapsed for the tool execution
+	ElapsedTimeMs int64 `json:"elapsed_time_ms"`
 }
