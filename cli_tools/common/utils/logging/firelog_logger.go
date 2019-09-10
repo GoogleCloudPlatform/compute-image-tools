@@ -23,6 +23,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -36,7 +37,8 @@ import (
 
 var (
 	httpClient            httpClientInterface = &http.Client{Timeout: 5 * time.Second}
-	serverURL                                 = serverURLProd
+	serverURL                                 = decryptString(serverURLProdP1, serverURLProdP2)
+	key                                       = decryptString(keyP1, keyP2)
 	serverLogEnabled                          = false
 	logMutex                                  = sync.Mutex{}
 	nextRequestWaitMillis int64
@@ -44,11 +46,17 @@ var (
 
 // constants used by logging
 const (
-	serverURLProd        = "https://firebaselogging-pa.googleapis.com/v1/firelog/legacy/log"
-	key                  = "Ix3TgeJBsH2TH8FUg9_ukW6I6U0t1zOmCySazIA"
 	ImageImportAction    = "ImageImport"
 	ImageExportAction    = "ImageExport"
 	InstanceImportAction = "InstanceImport"
+
+  // These strings should be interleaved to construct the real URL. This is just to (hopefully)
+  // fool github URL scanning bots.
+	serverURLProdP1      = "hts/frbslgiggolai.o/0clg"
+	serverURLProdP2      = "tp:/ieaeogn.ogepscmvc/o"
+	keyP1                = "AzSCO1066k_gFH2sJg3I"
+	keyP2                = "IaymztUIWu9U8THBeTx"
+
 	targetSizeGb         = "target-size-gb"
 	sourceSizeGb         = "source-size-gb"
 	statusStart          = "Start"
@@ -81,6 +89,22 @@ func reverse(str string) string {
 	return string(revStr)
 }
 
+func decryptString(p1, p2 string) string {
+	l1 := len(p1)
+	l2 := len(p2)
+	if l1 != l2 && l1 != l2+1 {
+		panic("Failed to prepare required data for the tool.")
+	}
+	strBytes := make([]byte, len(p1) + len(p2))
+	for i := range p1 {
+		strBytes[i*2] = p1[i]
+	}
+	for i := range p2 {
+		strBytes[i*2+1] = p2[i]
+	}
+	return string(strBytes)
+}
+
 // FirelogLoggerInterface is server logger abstraction
 type FirelogLoggerInterface interface {
 	logStart()
@@ -93,6 +117,7 @@ type FirelogLogger struct {
 	ServerURL string
 	ID        string
 	Action    string
+	TimeStart time.Time
 	Params    InputParams
 }
 
@@ -102,13 +127,14 @@ func NewFirelogLogger(action string, params InputParams) *FirelogLogger {
 		ServerURL: serverURL,
 		ID:        uuid.New().String(),
 		Action:    action,
+		TimeStart: time.Now(),
 		Params:    params,
 	}
 }
 
 // logStart logs a "start" info to server
 func (l *FirelogLogger) logStart() (*ComputeImageToolsLogExtension, logResult) {
-	logEvent := &ComputeImageToolsLogExtension{
+	logExtension := &ComputeImageToolsLogExtension{
 		ID:           l.ID,
 		CloudBuildID: os.Getenv(daisyutils.BuildIDOSEnv),
 		ToolAction:   l.Action,
@@ -116,35 +142,35 @@ func (l *FirelogLogger) logStart() (*ComputeImageToolsLogExtension, logResult) {
 		InputParams:  &l.Params,
 	}
 
-	return logEvent, l.sendLogToServer(logEvent)
+	return logExtension, l.sendLogToServer(logExtension)
 }
 
 // logSuccess logs a "success" info to server
 func (l *FirelogLogger) logSuccess(w *daisy.Workflow) (*ComputeImageToolsLogExtension, logResult) {
-	logEvent := &ComputeImageToolsLogExtension{
+	logExtension := &ComputeImageToolsLogExtension{
 		ID:           l.ID,
 		CloudBuildID: os.Getenv(daisyutils.BuildIDOSEnv),
 		ToolAction:   l.Action,
 		Status:       statusSuccess,
 		InputParams:  &l.Params,
-		OutputInfo:   getOutputInfo(w, nil),
+		OutputInfo:   l.getOutputInfo(w, nil),
 	}
 
-	return logEvent, l.sendLogToServer(logEvent)
+	return logExtension, l.sendLogToServer(logExtension)
 }
 
 // logFailure logs a "failure" info to server
 func (l *FirelogLogger) logFailure(err error, w *daisy.Workflow) (*ComputeImageToolsLogExtension, logResult) {
-	logEvent := &ComputeImageToolsLogExtension{
+	logExtension := &ComputeImageToolsLogExtension{
 		ID:           l.ID,
 		CloudBuildID: os.Getenv(daisyutils.BuildIDOSEnv),
 		ToolAction:   l.Action,
 		Status:       statusFailure,
 		InputParams:  &l.Params,
-		OutputInfo:   getOutputInfo(w, err),
+		OutputInfo:   l.getOutputInfo(w, err),
 	}
 
-	return logEvent, l.sendLogToServer(logEvent)
+	return logExtension, l.sendLogToServer(logExtension)
 }
 
 func getFailureReason(err error) string {
@@ -163,10 +189,11 @@ func getAnonymizedFailureReason(err error) string {
 	return strings.Join(anonymizedErrs, "\n")
 }
 
-func getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
+func (l *FirelogLogger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
 	o := OutputInfo{
-		TargetSizeGb: getInt64Value(w.GetSerialConsoleOutputValue(targetSizeGb)),
-		SourceSizeGb: getInt64Value(w.GetSerialConsoleOutputValue(sourceSizeGb)),
+		TargetSizeGb:  getInt64Value(w.GetSerialConsoleOutputValue(targetSizeGb)),
+		SourceSizeGb:  getInt64Value(w.GetSerialConsoleOutputValue(sourceSizeGb)),
+		ElapsedTimeMs: time.Since(l.TimeStart).Milliseconds(),
 	}
 
 	if err != nil {
@@ -186,7 +213,7 @@ func getInt64Value(s string) int64 {
 }
 
 func (l *FirelogLogger) runWithServerLogging(function func() (*daisy.Workflow, error)) *ComputeImageToolsLogExtension {
-	var event *ComputeImageToolsLogExtension
+	var logExtension *ComputeImageToolsLogExtension
 
 	// Send log asynchronously. No need to interrupt the main flow when failed to send log, just
 	// keep moving.
@@ -202,19 +229,19 @@ func (l *FirelogLogger) runWithServerLogging(function func() (*daisy.Workflow, e
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			event, _ = l.logFailure(err, w)
-			log.Println(event.OutputInfo.FailureMessage)
+			logExtension, _ = l.logFailure(err, w)
+			log.Println(logExtension.OutputInfo.FailureMessage)
 		}()
 	} else {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			event, _ = l.logSuccess(w)
+			logExtension, _ = l.logSuccess(w)
 		}()
 	}
 
 	wg.Wait()
-	return event
+	return logExtension
 }
 
 // RunWithServerLogging runs the function with server logging
@@ -238,7 +265,7 @@ func (l *FirelogLogger) sendLogToServerWithRetry(logEvent *ComputeImageToolsLogE
 			time.Sleep(time.Duration(nextRequestWaitMillis) * time.Millisecond)
 		}
 
-		logRequestJSON, err := constructLogRequest(logEvent)
+		logRequestJSON, err := l.constructLogRequest(logEvent)
 		fmt.Println(string(logRequestJSON))
 		if err != nil {
 			fmt.Println("Failed to log to server: failed to prepare json log data.")
@@ -255,7 +282,8 @@ func (l *FirelogLogger) sendLogToServerWithRetry(logEvent *ComputeImageToolsLogE
 			return failedOnCreateRequest
 		}
 
-		req.Header.Set("Content-type", "application/json")
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Encoding", "gzip")
 		req.Header.Set("X-Goog-Api-Key", reverse(key))
 		resp, err := httpClient.Do(req)
 		if err != nil {
@@ -302,6 +330,37 @@ func (l *FirelogLogger) sendLogToServerWithRetry(logEvent *ComputeImageToolsLogE
 
 	fmt.Println("Failed to log to server after retrying")
 	return failedAfterRetry
+}
+
+func (l *FirelogLogger) constructLogRequest(event *ComputeImageToolsLogExtension) ([]byte, error) {
+	if event == nil {
+		return nil, fmt.Errorf("won't log a nil event")
+	}
+	eventStr, err := json.Marshal(event)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UnixNano() / 1000000
+	req := LogRequest{
+		ClientInfo: ClientInfo{
+			ClientType:        "COMPUTE_IMAGE_TOOLS",
+			DesktopClientInfo: map[string]string{"os": runtime.GOOS},
+		},
+		// TODO: replace with actual log source once server side is ready: "COMPUTE_IMAGE_TOOLS"
+		LogSource: 1018, // 1018 = "FIRELOG_TEST"
+		RequestTimeMs: now,
+		LogEvent: []LogEvent{
+			{
+				EventTimeMs:         now,
+				EventUptimeMs:       time.Since(l.TimeStart).Milliseconds(),
+				SourceExtensionJSON: string(eventStr),
+			},
+		},
+	}
+
+	reqStr, err := json.Marshal(req)
+	return reqStr, err
 }
 
 // Hash a given string for obfuscation

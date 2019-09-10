@@ -22,6 +22,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -62,6 +63,7 @@ func TestLogStart(t *testing.T) {
 
 func TestLogSuccess(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest))
+	time.Sleep(20 * time.Millisecond)
 
 	w := daisy.Workflow{}
 	w.AddSerialConsoleOutputValue(targetSizeGb, "5")
@@ -80,10 +82,14 @@ func TestLogSuccess(t *testing.T) {
 	if e.OutputInfo.SourceSizeGb != 3 {
 		t.Errorf("Unexpected SourceSizeGb %v != %v", e.OutputInfo.SourceSizeGb, 3)
 	}
+	if e.OutputInfo.ElapsedTimeMs < 20 {
+		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.OutputInfo.ElapsedTimeMs, 20)
+	}
 }
 
 func TestLogFailure(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest))
+	time.Sleep(20 * time.Millisecond)
 
 	w := daisy.Workflow{}
 	rawError := "error - [Privacy-> sensitive <-Privacy]"
@@ -103,27 +109,30 @@ func TestLogFailure(t *testing.T) {
 	if e.OutputInfo.FailureMessageWithoutPrivacyInfo != anonymizedError {
 		t.Errorf("Unexpected FailureMessageWithoutPrivacyInfo %v != %v", e.OutputInfo.FailureMessageWithoutPrivacyInfo, anonymizedError)
 	}
+	if e.OutputInfo.ElapsedTimeMs < 20 {
+		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.OutputInfo.ElapsedTimeMs, 20)
+	}
 }
 
 func TestRunWithServerLoggingSuccess(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest, DeleteRequest))
 
-	event := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
+	logExtension := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
 		return &daisy.Workflow{}, nil
 	})
-	if event.Status != statusSuccess {
-		t.Errorf("Unexpected Status: %v != %v", event.Status, statusSuccess)
+	if logExtension.Status != statusSuccess {
+		t.Errorf("Unexpected Status: %v != %v", logExtension.Status, statusSuccess)
 	}
 }
 
 func TestRunWithServerLoggingFailed(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest, DeleteRequest))
 
-	event := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
+	logExtension := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
 		return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
 	})
-	if event.Status != statusFailure {
-		t.Errorf("Unexpected Status: %v != %v", event.Status, statusFailure)
+	if logExtension.Status != statusFailure {
+		t.Errorf("Unexpected Status: %v != %v", logExtension.Status, statusFailure)
 	}
 }
 
@@ -216,7 +225,7 @@ func prepareTestLoggerWithJSONLogResponse(t *testing.T, err error, lrs []string)
 }
 
 func buildComputeImageToolsLogExtension() *ComputeImageToolsLogExtension {
-	logEvent := &ComputeImageToolsLogExtension{
+	logExtension := &ComputeImageToolsLogExtension{
 		ID:           "dummy-id",
 		CloudBuildID: "dummy-cloud-build-id",
 		ToolAction:   ImageImportAction,
@@ -231,7 +240,7 @@ func buildComputeImageToolsLogExtension() *ComputeImageToolsLogExtension {
 			},
 		},
 	}
-	return logEvent
+	return logExtension
 }
 
 func buildLogResponses(actions ...ResponseAction) []LogResponse {
