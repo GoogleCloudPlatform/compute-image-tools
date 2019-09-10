@@ -157,7 +157,8 @@ type Workflow struct {
 	serialControlOutputValuesMx sync.Mutex
 	//Forces cleanup on error
 	ForceCleanupOnError bool
-	forceCleanup        bool
+	// forceCleanup is set to true when resources should be forced clean, even when NoCleanup is set to true
+	forceCleanup bool
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -243,14 +244,13 @@ func (w *Workflow) Run(ctx context.Context) error {
 func (w *Workflow) RunWithModifiers(
 	ctx context.Context,
 	preValidateWorkflowModifier WorkflowModifier,
-	postValidateWorkflowModifier WorkflowModifier) DError {
+	postValidateWorkflowModifier WorkflowModifier) (err DError) {
 
 	w.externalLogging = true
 	if preValidateWorkflowModifier != nil {
 		preValidateWorkflowModifier(w)
 	}
-	if err := w.Validate(ctx); err != nil {
-		w.forceCleanup = w.ForceCleanupOnError
+	if err = w.Validate(ctx); err != nil {
 		return err
 	}
 
@@ -258,16 +258,21 @@ func (w *Workflow) RunWithModifiers(
 		postValidateWorkflowModifier(w)
 	}
 	defer w.cleanup()
+	defer func() {
+		if err != nil {
+			w.forceCleanup = w.ForceCleanupOnError
+		}
+	}()
+
 	w.LogWorkflowInfo("Workflow Project: %s", w.Project)
 	w.LogWorkflowInfo("Workflow Zone: %s", w.Zone)
 	w.LogWorkflowInfo("Workflow GCSPath: %s", w.GCSPath)
 	w.LogWorkflowInfo("Daisy scratch path: https://console.cloud.google.com/storage/browser/%s", path.Join(w.bucket, w.scratchPath))
 
 	w.LogWorkflowInfo("Uploading sources")
-	if err := w.uploadSources(ctx); err != nil {
+	if err = w.uploadSources(ctx); err != nil {
 		w.LogWorkflowInfo("Error uploading sources: %v", err)
 		close(w.Cancel)
-		w.forceCleanup = w.ForceCleanupOnError
 		return err
 	}
 	w.LogWorkflowInfo("Running workflow")
@@ -276,9 +281,8 @@ func (w *Workflow) RunWithModifiers(
 			w.LogWorkflowInfo("Serial-output value -> %v:%v", k, v)
 		}
 	}()
-	if err := w.run(ctx); err != nil {
+	if err = w.run(ctx); err != nil {
 		w.LogWorkflowInfo("Error running workflow: %v", err)
-		w.forceCleanup = w.ForceCleanupOnError
 		return err
 	}
 

@@ -641,6 +641,51 @@ func TestTraverseDAG(t *testing.T) {
 	}
 }
 
+func TestForceCleanupSetOnRunError(t *testing.T) {
+	doTestForceCleanup(t, true, true, true)
+}
+
+func TestForceCleanupNotSetOnRunErrorWhenForceCleanupFalse(t *testing.T) {
+	doTestForceCleanup(t, true, false, false)
+}
+
+func TestForceCleanupNotSetOnNoErrorWhenForceCleanupTrue(t *testing.T) {
+	doTestForceCleanup(t, false, true, false)
+}
+
+func TestForceCleanupNotSetOnNoErrorWhenForceCleanupFalse(t *testing.T) {
+	doTestForceCleanup(t, false, false, false)
+}
+
+func doTestForceCleanup(t *testing.T, runErrorFromStep bool, forceCleanupOnError bool, forceCleanup bool) {
+	mockRun := func(i int) func(context.Context, *Step) DError {
+		return func(_ context.Context, _ *Step) DError {
+			if runErrorFromStep {
+				return Errf("failure")
+			}
+			return nil
+		}
+	}
+	ctx := context.Background()
+	w := testWorkflow()
+	w.ForceCleanupOnError = forceCleanupOnError
+	w.Steps = map[string]*Step{
+		"s0": {name: "s0", testType: &mockStep{runImpl: mockRun(0)}, w: w},
+	}
+
+	if err := w.Run(ctx); (err != nil) != runErrorFromStep {
+		if runErrorFromStep {
+			t.Errorf("expected error from w.Run but nil received")
+		} else {
+			t.Errorf("expected no error from w.Run but %v received", err)
+		}
+
+	}
+	if w.forceCleanup != forceCleanup {
+		t.Errorf("w.forceCleanup should be set to %v but is %v", forceCleanup, w.forceCleanup)
+	}
+}
+
 func TestPrint(t *testing.T) {
 	data := []byte(`{
 "Name": "some-name",
