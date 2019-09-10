@@ -266,7 +266,6 @@ func (l *FirelogLogger) sendLogToServerWithRetry(logEvent *ComputeImageToolsLogE
 		}
 
 		logRequestJSON, err := l.constructLogRequest(logEvent)
-		fmt.Println(string(logRequestJSON))
 		if err != nil {
 			fmt.Println("Failed to log to server: failed to prepare json log data.")
 			return failedOnCreateRequestJSON
