@@ -16,7 +16,6 @@ package ovfutils
 
 import (
 	"fmt"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -112,12 +111,18 @@ func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, diskSection *ovf.
 			if err != nil {
 				return diskInfos, err
 			}
-			diskInfo := DiskInfo{FilePath: diskFileName}
-			if capacityInGB, err := getCapacityInGB(virtualDiscDesc.Capacity, *virtualDiscDesc.CapacityAllocationUnits); err == nil {
-				diskInfo.SizeInGB = capacityInGB
+
+			capacityRaw, err := strconv.Atoi(virtualDiscDesc.Capacity)
+			if err != nil {
+				return diskInfos, err
 			}
 
-			diskInfos = append(diskInfos, diskInfo)
+			byteCapacity, err := Parse(int64(capacityRaw), *virtualDiscDesc.CapacityAllocationUnits)
+			if err != nil {
+				return diskInfos, err
+			}
+
+			diskInfos = append(diskInfos, DiskInfo{FilePath: diskFileName, SizeInGB: byteCapacity.ToGB()})
 		}
 	}
 
@@ -158,13 +163,12 @@ func GetMemoryInMB(virtualHardware *ovf.VirtualHardwareSection) (int64, error) {
 		return 0, fmt.Errorf("memory allocation unit not specified")
 	}
 
-	memoryPowerOfTwo, err := getAllocationUnitPowerOfTwo(*memoryItem.AllocationUnits)
+	byteCapacity, err := Parse(int64(*memoryItems[0].VirtualQuantity), *memoryItem.AllocationUnits)
 	if err != nil {
 		return 0, err
 	}
 
-	unitInMB := math.Pow(2.0, float64(memoryPowerOfTwo-20))
-	return int64(float64(*memoryItems[0].VirtualQuantity) * unitInMB), nil
+	return int64(byteCapacity.ToMB()), nil
 
 }
 
