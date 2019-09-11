@@ -19,7 +19,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/firelog"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -67,16 +67,16 @@ func importEntry() (*daisy.Workflow, error) {
 func main() {
 	flag.Parse()
 
-	paramLog := logging.InputParams{
-		ImageImportParams: &logging.ImageImportParams{
-			CommonParams: &logging.CommonParams{
+	paramLog := firelog.InputParams{
+		ImageImportParams: &firelog.ImageImportParams{
+			CommonParams: &firelog.CommonParams{
 				ClientID:                *clientID,
 				Network:                 *network,
 				Subnet:                  *subnet,
 				Zone:                    *zone,
 				Timeout:                 *timeout,
 				Project:                 *project,
-				ObfuscatedProject:       logging.Hash(*project),
+				ObfuscatedProject:       firelog.Hash(*project),
 				Labels:                  *labels,
 				ScratchBucketGcsPath:    *scratchBucketGcsPath,
 				Oauth:                   *oauth,
@@ -102,5 +102,5 @@ func main() {
 		},
 	}
 
-	logging.RunWithServerLogging(logging.ImageImportAction, paramLog, importEntry)
+	firelog.RunWithServerLogging(firelog.ImageImportAction, paramLog, importEntry)
 }
