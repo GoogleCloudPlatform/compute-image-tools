@@ -15,49 +15,127 @@
 package ovfutils
 
 import (
-	"errors"
-	"reflect"
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-type getCapacityInGBTest struct {
-	expected        int
-	capacity        string
+type parseTest struct {
+	expectedGB      int
+	capacity        int64
 	allocationUnits string
-	expectedErr     error
+	expectedErr     string
 }
 
-var getCapacityInGBTests = []getCapacityInGBTest{
-	// GB
-	{20, "20", "byte * 2^30", nil},
-	{20, "20", "byte * 2^30", nil},
-	{10, "10", "byte * 2^30", nil},
-	{1, "1", "byte * 2^30", nil},
-	{1024, "1024", "byte * 2^30", nil},
-	{5242880, "5242880", "byte * 2^30", nil},
+var parseTests = []parseTest{
+	// Don't allow zero or negative capacity.
+	{-1, -1, "GB", "expected a positive value for capacity. Given: `-1`"},
+	{-1, 0, "GB", "expected a positive value for capacity. Given: `0`"},
 
-	// MB
-	{1, "1", "byte * 2^20", nil},
-	{1, "1024", "byte * 2^20", nil},
-	{5 * 1024, "5242880", "byte * 2^20", nil},
+	// Always round up to the nearest GB.
+	{1, 1, "byte", ""},
+	{1, 1, "KB", ""},
+	{1, 1, "MB", ""},
+	{2, 1 + 1<<30, "byte", ""},
+	{2, 1 + 1<<20, "KB", ""},
+	{2, 1 + 1<<10, "MB", ""},
 
-	// TB
-	{1024, "1", "byte * 2^40", nil},
-	{5242880 * 1024, "5242880", "byte * 2^40", nil},
+	// Support the largest GCP disk, which is currently 64TB:
+	//   https://cloud.google.com/persistent-disk/
+	{64 * 1024, 64, "TB", ""},
 
 	// Parse error due to allocation units not being recognized.
-	{0, "1024", "megabytes",
-		errors.New("can't parse `megabytes` disk allocation units")},
-	{0, "1024", "mb",
-		errors.New("can't parse `mb` disk allocation units")},
+	{-1, 1024, "rhino",
+		"invalid allocation unit: rhino"},
+
+	// Test all forms of unit names (full name, abbreviation, and scientific):
+	{1, 10, "byte", ""},
+	{1, 10, "bytes", ""},
+	{1, 10, "kilobyte", ""},
+	{1, 10, "kilobytes", ""},
+	{1, 10, "kb", ""},
+	{1, 10, "byte * 2^10", ""},
+	{1, 10, "megabyte", ""},
+	{1, 10, "megabytes", ""},
+	{1, 10, "mb", ""},
+	{1, 10, "byte * 2^20", ""},
+	{10, 10, "gigabyte", ""},
+	{10, 10, "gigabytes", ""},
+	{10, 10, "gb", ""},
+	{10, 10, "byte * 2^30", ""},
+	{10 * 1024, 10, "terabyte", ""},
+	{10 * 1024, 10, "terabytes", ""},
+	{10 * 1024, 10, "tb", ""},
+	{10 * 1024, 10, "byte * 2^40", ""},
+
+	// Ensure that we match the unit regardless of whitespace and casing.
+	{3, 3000, "mb", ""},
+	{3, 3000, "MegaByte", ""},
+	{3, 3000, "Megabytes", ""},
+	{3, 3000, "byte\t*\t2\t^\t20", ""},
+	{3, 3000, "   byte* 2 ^ 20  ", ""},
 }
 
-func TestGetCapacityInGB(t *testing.T) {
-	for _, test := range getCapacityInGBTests {
-		capacityInGB, err := getCapacityInGB(test.capacity, test.allocationUnits)
-		if capacityInGB != test.expected || !reflect.DeepEqual(err, test.expectedErr) {
-			t.Errorf("getCapacityInGB(%v, %v) = (%v, %v) want (%v, %v)",
-				test.capacity, test.allocationUnits, capacityInGB, err, test.expected, test.expectedErr)
+func TestParse(t *testing.T) {
+	for _, test := range parseTests {
+		capacity, err := Parse(test.capacity, test.allocationUnits)
+		caseDescription := fmt.Sprintf("getCapacityInGB(%v, %v) = (%v, %v) want (%v, %v)",
+			test.capacity, test.allocationUnits, capacity, err, test.expectedGB, test.expectedErr)
+
+		if test.expectedErr == "" {
+			assert.Nil(t, err, caseDescription)
+			assert.Equal(t, test.expectedGB, capacity.ToGB(), caseDescription)
+		} else {
+			assert.EqualError(t, err, test.expectedErr, caseDescription)
 		}
 	}
+}
+
+func TestConversionToMB(t *testing.T) {
+	var mb int64 = 1 << 20
+
+	// Panic if trying to convert from a negative capacity.
+	assert.PanicsWithValue(t,
+		"Unexpected non-positive value for bytes: -100",
+		func() { (&ByteCapacity{-100}).ToMB() })
+	assert.PanicsWithValue(t,
+		"Unexpected non-positive value for bytes: -1",
+		func() { (&ByteCapacity{-1}).ToMB() })
+	assert.PanicsWithValue(t,
+		"Unexpected non-positive value for bytes: 0",
+		func() { (&ByteCapacity{0}).ToMB() })
+
+	// Round up to the nearest megabyte.
+	assert.Equal(t, 1, (&ByteCapacity{1}).ToMB())
+	assert.Equal(t, 1, (&ByteCapacity{mb - 1}).ToMB())
+	assert.Equal(t, 1, (&ByteCapacity{mb}).ToMB())
+	assert.Equal(t, 2, (&ByteCapacity{mb + 1}).ToMB())
+	assert.Equal(t, 2, (&ByteCapacity{2*mb - 1}).ToMB())
+	assert.Equal(t, 2, (&ByteCapacity{2 * mb}).ToMB())
+	assert.Equal(t, 3, (&ByteCapacity{2*mb + 1}).ToMB())
+}
+
+func TestConversionToGB(t *testing.T) {
+	var gb int64 = 1 << 30
+
+	// Panic if trying to convert from a negative capacity.
+	assert.PanicsWithValue(t,
+		"Unexpected non-positive value for bytes: -100",
+		func() { (&ByteCapacity{-100}).ToGB() })
+	assert.PanicsWithValue(t,
+		"Unexpected non-positive value for bytes: -1",
+		func() { (&ByteCapacity{-1}).ToGB() })
+	assert.PanicsWithValue(t,
+		"Unexpected non-positive value for bytes: 0",
+		func() { (&ByteCapacity{0}).ToGB() })
+
+	// Round up to the nearest gigabyte.
+	assert.Equal(t, 1, (&ByteCapacity{1}).ToGB())
+	assert.Equal(t, 1, (&ByteCapacity{gb - 1}).ToGB())
+	assert.Equal(t, 1, (&ByteCapacity{gb}).ToGB())
+	assert.Equal(t, 2, (&ByteCapacity{gb + 1}).ToGB())
+	assert.Equal(t, 2, (&ByteCapacity{2*gb - 1}).ToGB())
+	assert.Equal(t, 2, (&ByteCapacity{2 * gb}).ToGB())
+	assert.Equal(t, 3, (&ByteCapacity{2*gb + 1}).ToGB())
 }
