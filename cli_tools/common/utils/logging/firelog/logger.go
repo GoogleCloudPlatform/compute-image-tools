@@ -52,8 +52,8 @@ const (
 
 	// These strings should be interleaved to construct the real URL. This is just to (hopefully)
 	// fool github URL scanning bots.
-	serverURLProdP1 = "hts/frbslgiggolai.o/0clg"
-	serverURLProdP2 = "tp:/ieaeogn.ogepscmvc/o"
+	serverURLProdP1 = "hts/frbslgigp.ogepscmv/ieo/eaylg"
+	serverURLProdP2 = "tp:/ieaeogn-agolai.o/1frlglgc/o"
 	keyP1           = "AzSCO1066k_gFH2sJg3I"
 	keyP2           = "IaymztUIWu9U8THBeTx"
 
@@ -78,15 +78,6 @@ const (
 
 type httpClientInterface interface {
 	Do(req *http.Request) (*http.Response, error)
-}
-
-func reverse(str string) string {
-	l := len(str)
-	revStr := make([]byte, l)
-	for i := 0; i <= l/2; i++ {
-		revStr[i], revStr[l-1-i] = str[l-1-i], str[i]
-	}
-	return string(revStr)
 }
 
 func decryptString(p1, p2 string) string {
@@ -184,9 +175,12 @@ func getAnonymizedFailureReason(err error) string {
 
 func (l *Logger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
 	o := OutputInfo{
-		TargetSizeGb:  getInt64Value(w.GetSerialConsoleOutputValue(targetSizeGb)),
-		SourceSizeGb:  getInt64Value(w.GetSerialConsoleOutputValue(sourceSizeGb)),
 		ElapsedTimeMs: time.Since(l.TimeStart).Milliseconds(),
+	}
+
+	if w != nil {
+		o.TargetSizeGb = getInt64Value(w.GetSerialConsoleOutputValue(targetSizeGb))
+		o.SourceSizeGb = getInt64Value(w.GetSerialConsoleOutputValue(sourceSizeGb))
 	}
 
 	if err != nil {
@@ -243,11 +237,12 @@ func RunWithServerLogging(action string, params InputParams, function func() (*d
 	l.runWithServerLogging(function)
 }
 
-func (l *Logger) sendLogToServer(logEvent *ComputeImageToolsLogExtension) logResult {
-	return l.sendLogToServerWithRetry(logEvent, 3)
+func (l *Logger) sendLogToServer(logExtension *ComputeImageToolsLogExtension) logResult {
+	r := l.sendLogToServerWithRetry(logExtension, 3)
+	return r
 }
 
-func (l *Logger) sendLogToServerWithRetry(logEvent *ComputeImageToolsLogExtension, maxRetry int) logResult {
+func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExtension, maxRetry int) logResult {
 	logMutex.Lock()
 	defer logMutex.Unlock()
 
@@ -258,8 +253,7 @@ func (l *Logger) sendLogToServerWithRetry(logEvent *ComputeImageToolsLogExtensio
 			time.Sleep(time.Duration(nextRequestWaitMillis) * time.Millisecond)
 		}
 
-		logRequestJSON, err := l.constructLogRequest(logEvent)
-		fmt.Println(string(logRequestJSON)) // TODO: remove
+		logRequestJSON, err := l.constructLogRequest(logExtension)
 		if err != nil {
 			fmt.Println("Failed to log to server: failed to prepare json log data.")
 			return failedOnCreateRequestJSON
@@ -277,7 +271,7 @@ func (l *Logger) sendLogToServerWithRetry(logEvent *ComputeImageToolsLogExtensio
 
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Content-Encoding", "gzip")
-		req.Header.Set("X-Goog-Api-Key", reverse(key))
+		req.Header.Set("X-Goog-Api-Key", key)
 		resp, err := httpClient.Do(req)
 		if err != nil {
 			fmt.Println("Failed to log to server: ", err)
@@ -325,11 +319,11 @@ func (l *Logger) sendLogToServerWithRetry(logEvent *ComputeImageToolsLogExtensio
 	return failedAfterRetry
 }
 
-func (l *Logger) constructLogRequest(event *ComputeImageToolsLogExtension) ([]byte, error) {
-	if event == nil {
+func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension) ([]byte, error) {
+	if logExtension == nil {
 		return nil, fmt.Errorf("won't log a nil event")
 	}
-	eventStr, err := json.Marshal(event)
+	eventStr, err := json.Marshal(logExtension)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +331,8 @@ func (l *Logger) constructLogRequest(event *ComputeImageToolsLogExtension) ([]by
 	now := time.Now().UnixNano() / 1000000
 	req := LogRequest{
 		ClientInfo: ClientInfo{
-			ClientType:        "COMPUTE_IMAGE_TOOLS",
+			// TODO: replace with "COMPUTE_IMAGE_TOOLS" when server-aside setting is ready
+			ClientType:        "DESKTOP",
 			DesktopClientInfo: map[string]string{"os": runtime.GOOS},
 		},
 		// TODO: replace with actual log source once server side is ready: "COMPUTE_IMAGE_TOOLS"
