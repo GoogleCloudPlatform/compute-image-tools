@@ -155,7 +155,7 @@ type Workflow struct {
 	stepTimeRecords             []TimeRecord
 	serialControlOutputValues   map[string]string
 	serialControlOutputValuesMx sync.Mutex
-	//Forces cleanup on error
+	//Forces cleanup on error of all resources, including those marked with NoCleanup
 	ForceCleanupOnError bool
 	// forceCleanup is set to true when resources should be forced clean, even when NoCleanup is set to true
 	forceCleanup bool
