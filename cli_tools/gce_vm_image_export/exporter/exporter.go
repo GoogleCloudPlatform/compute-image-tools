@@ -114,7 +114,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 	}
 
 	workflowModifier := func(w *daisy.Workflow) {
-		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(daisyutils.BuildIDOSEnv))
+		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(daisyutils.BuildIDOSEnvVarName))
 		rl := &daisyutils.ResourceLabeler{
 			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
 			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {

@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package logging
+package firelog
 
 import (
 	"encoding/json"
@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	logger                *FirelogLogger
-	serverLogEnabledCache bool
+	logger                *Logger
+	serverLogEnabledPrevValue bool
 )
 
 func TestMain(m *testing.M) {
@@ -40,12 +40,12 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	serverLogEnabledCache = serverLogEnabled
+	serverLogEnabledPrevValue = serverLogEnabled
 	serverLogEnabled = true
 }
 
 func shutdown() {
-	serverLogEnabled = serverLogEnabledCache
+	serverLogEnabled = serverLogEnabledPrevValue
 }
 
 func TestLogStart(t *testing.T) {
@@ -54,10 +54,10 @@ func TestLogStart(t *testing.T) {
 	e, r := logger.logStart()
 
 	if r != logResult(DeleteRequest) {
-		t.Errorf("Unexpected logResult: %v != %v", r, DeleteRequest)
+		t.Errorf("Unexpected logResult: %v, expect: %v", r, DeleteRequest)
 	}
 	if e.Status != statusStart {
-		t.Errorf("Unexpected Status %v != %v", e.Status, statusStart)
+		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusStart)
 	}
 }
 
@@ -71,16 +71,16 @@ func TestLogSuccess(t *testing.T) {
 	e, r := logger.logSuccess(&w)
 
 	if r != logResult(DeleteRequest) {
-		t.Errorf("Unexpected logResult: %v != %v", r, DeleteRequest)
+		t.Errorf("Unexpected logResult: %v, expect: %v", r, DeleteRequest)
 	}
 	if e.Status != statusSuccess {
-		t.Errorf("Unexpected Status %v != %v", e.Status, statusSuccess)
+		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusSuccess)
 	}
 	if e.OutputInfo.TargetSizeGb != 5 {
-		t.Errorf("Unexpected TargetSizeGb %v != %v", e.OutputInfo.TargetSizeGb, 5)
+		t.Errorf("Unexpected TargetSizeGb %v, expect: %v", e.OutputInfo.TargetSizeGb, 5)
 	}
 	if e.OutputInfo.SourceSizeGb != 3 {
-		t.Errorf("Unexpected SourceSizeGb %v != %v", e.OutputInfo.SourceSizeGb, 3)
+		t.Errorf("Unexpected SourceSizeGb %v, expect: %v", e.OutputInfo.SourceSizeGb, 3)
 	}
 	if e.OutputInfo.ElapsedTimeMs < 20 {
 		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.OutputInfo.ElapsedTimeMs, 20)
@@ -98,16 +98,16 @@ func TestLogFailure(t *testing.T) {
 	e, r := logger.logFailure(fmt.Errorf(rawError), &w)
 
 	if r != logResult(DeleteRequest) {
-		t.Errorf("Unexpected logResult: %v != %v", r, DeleteRequest)
+		t.Errorf("Unexpected logResult: %v, expect: %v", r, DeleteRequest)
 	}
 	if e.Status != statusFailure {
-		t.Errorf("Unexpected Status %v != %v", e.Status, statusFailure)
+		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusFailure)
 	}
 	if e.OutputInfo.FailureMessage != regularError {
-		t.Errorf("Unexpected FailureMessage %v != %v", e.OutputInfo.FailureMessage, regularError)
+		t.Errorf("Unexpected FailureMessage %v, expect: %v", e.OutputInfo.FailureMessage, regularError)
 	}
 	if e.OutputInfo.FailureMessageWithoutPrivacyInfo != anonymizedError {
-		t.Errorf("Unexpected FailureMessageWithoutPrivacyInfo %v != %v", e.OutputInfo.FailureMessageWithoutPrivacyInfo, anonymizedError)
+		t.Errorf("Unexpected FailureMessageWithoutPrivacyInfo %v, expect: %v", e.OutputInfo.FailureMessageWithoutPrivacyInfo, anonymizedError)
 	}
 	if e.OutputInfo.ElapsedTimeMs < 20 {
 		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.OutputInfo.ElapsedTimeMs, 20)
@@ -121,7 +121,7 @@ func TestRunWithServerLoggingSuccess(t *testing.T) {
 		return &daisy.Workflow{}, nil
 	})
 	if logExtension.Status != statusSuccess {
-		t.Errorf("Unexpected Status: %v != %v", logExtension.Status, statusSuccess)
+		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)
 	}
 }
 
@@ -132,7 +132,7 @@ func TestRunWithServerLoggingFailed(t *testing.T) {
 		return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
 	})
 	if logExtension.Status != statusFailure {
-		t.Errorf("Unexpected Status: %v != %v", logExtension.Status, statusFailure)
+		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusFailure)
 	}
 }
 
@@ -159,7 +159,7 @@ func TestSendLogToServerFailedOnCreateRequestJSON(t *testing.T) {
 	prepareTestLogger(t, nil, nil)
 	r := logger.sendLogToServer(nil)
 	if r != logResult(failedOnCreateRequestJSON) {
-		t.Errorf("Unexpected Status: %v != %v", r, failedOnCreateRequestJSON)
+		t.Errorf("Unexpected Status: %v, expect: %v", r, failedOnCreateRequestJSON)
 	}
 }
 
@@ -174,7 +174,7 @@ func TestSendLogToServerFailedToParseResponse(t *testing.T) {
 	prepareTestLoggerWithJSONLogResponse(t, nil, []string{"bad-json"})
 	r := logger.sendLogToServer(buildComputeImageToolsLogExtension())
 	if r != logResult(failedToParseResponse) {
-		t.Errorf("Unexpected Status: %v != %v", r, failedToParseResponse)
+		t.Errorf("Unexpected Status: %v, expect: %v", r, failedToParseResponse)
 	}
 }
 
@@ -194,7 +194,7 @@ func testSendLogToServerWithResponses(t *testing.T, expectedLogResult logResult,
 	prepareTestLogger(t, nil, resps)
 	r := logger.sendLogToServer(buildComputeImageToolsLogExtension())
 	if r != logResult(expectedLogResult) {
-		t.Errorf("Unexpected Status: %v != %v", r, expectedLogResult)
+		t.Errorf("Unexpected Status: %v, expect: %v", r, expectedLogResult)
 	}
 }
 

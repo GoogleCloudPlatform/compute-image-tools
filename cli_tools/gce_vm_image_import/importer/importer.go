@@ -186,7 +186,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	}
 
 	workflowModifier := func(w *daisy.Workflow) {
-		buildID := os.Getenv(daisyutils.BuildIDOSEnv)
+		buildID := os.Getenv(daisyutils.BuildIDOSEnvVarName)
 		workflow.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisyutils.ResourceLabeler{
 			BuildID:         buildID,
