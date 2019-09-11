@@ -24,7 +24,9 @@ type LogRequest struct {
 
 // ClientInfo is a server-side pre-defined data structure
 type ClientInfo struct {
+	// ClientType is defined on server side to clarify which firelog client library is used.
 	ClientType        string            `json:"client_type"`
+	// DesktopClientInfo contains what's the platform of the client side
 	DesktopClientInfo map[string]string `json:"desktop_client_info"`
 }
 
