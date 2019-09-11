@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	logger                *Logger
+	logger                    *Logger
 	serverLogEnabledPrevValue bool
 )
 
