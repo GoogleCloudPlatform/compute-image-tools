@@ -31,11 +31,13 @@ var (
 	whitespace = regexp.MustCompile("\\s+")
 )
 
+// ByteCapacity assists with interpreting and converting
+// quantities related to bytes.
 type ByteCapacity struct {
 	bytes int64
 }
 
-// Interprets a human-friendly description of a byte quantity.
+// Parse interprets a human-friendly description of a byte quantity.
 // Units can be represented as a name, abbreviation, or with scientific
 // notation. All of the following are valid ways to represent the gigabyte unit:
 //
@@ -80,12 +82,11 @@ func Parse(quantity int64, unit string) (*ByteCapacity, error) {
 func divideAndRoundUp(numerator int64, denominator int64) int {
 	if numerator%denominator == 0 {
 		return int(numerator / denominator)
-	} else {
-		return 1 + int(numerator/denominator)
 	}
+	return 1 + int(numerator/denominator)
 }
 
-// Converts to megabytes by dividing by 1024^2.
+// ToMB converts to megabytes by dividing by 1024^2.
 // Remainders are always rounded up.
 func (b *ByteCapacity) ToMB() int {
 	if b.bytes < 1 {
@@ -95,7 +96,7 @@ func (b *ByteCapacity) ToMB() int {
 	}
 }
 
-// Converts to gigabytes by dividing by 1024^3.
+// ToGB converts to gigabytes by dividing by 1024^3.
 // Remainders are always rounded up.
 func (b *ByteCapacity) ToGB() int {
 	if b.bytes < 1 {
