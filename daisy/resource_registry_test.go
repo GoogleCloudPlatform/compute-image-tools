@@ -46,6 +46,29 @@ func TestResourceRegistryCleanup(t *testing.T) {
 	}
 }
 
+func TestResourceRegistryForcedCleanup(t *testing.T) {
+	w := testWorkflow()
+	w.forceCleanup = true
+
+	d1 := &Resource{RealName: "d1", link: "link", NoCleanup: false}
+	d2 := &Resource{RealName: "d2", link: "link", NoCleanup: true}
+	im1 := &Resource{RealName: "im1", link: "link", NoCleanup: false}
+	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true}
+	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false}
+	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true}
+	w.disks.m = map[string]*Resource{"d1": d1, "d2": d2}
+	w.images.m = map[string]*Resource{"im1": im1, "im2": im2}
+	w.instances.m = map[string]*Resource{"in1": in1, "in2": in2}
+
+	w.cleanup()
+
+	for _, r := range []*Resource{d1, d2, im1, im2, in1, in2} {
+		if !r.deleted {
+			t.Errorf("cleanup didn't delete %q", r.RealName)
+		}
+	}
+}
+
 func TestResourceRegistryConcurrency(t *testing.T) {
 	rr := baseResourceRegistry{w: testWorkflow()}
 	rr.init()

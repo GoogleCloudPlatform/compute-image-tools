@@ -399,6 +399,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing workflow %q: %v", ovfImportWorkflow, err)
 	}
+	workflow.ForceCleanupOnError = true
 	return workflow, nil
 }
 
