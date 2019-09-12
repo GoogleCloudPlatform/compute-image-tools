@@ -117,7 +117,12 @@ func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, diskSection *ovf.
 				return diskInfos, err
 			}
 
-			byteCapacity, err := Parse(int64(capacityRaw), *virtualDiscDesc.CapacityAllocationUnits)
+			allocationUnits := "byte"
+			if virtualDiscDesc.CapacityAllocationUnits != nil &&
+				*virtualDiscDesc.CapacityAllocationUnits != "" {
+				allocationUnits = *virtualDiscDesc.CapacityAllocationUnits
+			}
+			byteCapacity, err := Parse(int64(capacityRaw), allocationUnits)
 			if err != nil {
 				return diskInfos, err
 			}
