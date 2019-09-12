@@ -165,6 +165,25 @@ func TestSuite(
 			expectedMachineType:   "n2-standard-2",
 			expectedStartupOutput: "All Tests Passed",
 		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-debian-9-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/bitnami-tomcat-8.5.43-0-linux-debian-9-x86_64.ova", ovaBucket),
+				OsID:          "debian-9",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+			},
+			name:        fmt.Sprintf("ovf-import-test-debian-9-%s", suffix),
+			description: "Debian 9",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", startupScriptLinuxSingleDisk),
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-standard-4",
+			expectedStartupOutput: "All tests passed!",
+		},
 	}
 
 	var wg sync.WaitGroup
