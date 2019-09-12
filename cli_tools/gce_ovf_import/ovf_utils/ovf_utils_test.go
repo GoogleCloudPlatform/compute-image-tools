@@ -15,7 +15,9 @@
 package ovfutils
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
@@ -38,6 +40,31 @@ var (
 		{Href: "Ubuntu_for_Horizon71_1_1.0-disk2.vmdk", ID: "file2", Size: 68096},
 	}
 )
+
+// VirtualBox doesn't include a unit when defining disks. The default unit is bytes.
+//  DSP0243, 9.1 DiskSection:
+//   ...
+//   The default unit of allocation shall be bytes.
+func TestGetMemoryInMBSpecInGBDefaultsToBytes(t *testing.T) {
+	envelope := parseOVF(t, "testdata/missing-disk-units.ovf")
+
+	virtualHardware, e := GetVirtualHardwareSectionFromDescriptor(envelope)
+	assert.NoError(t, e)
+
+	diskInfo, e := GetDiskInfos(virtualHardware, envelope.Disk, &envelope.References)
+	assert.NoError(t, e)
+
+	assert.Equal(t, len(diskInfo), 1)
+	assert.Equal(t, diskInfo[0].SizeInGB, 10)
+}
+
+func parseOVF(t *testing.T, fname string) *ovf.Envelope {
+	ovfFile, e := ioutil.ReadFile(fname)
+	assert.NoError(t, e)
+	envelope, e := ovf.Unmarshal(bytes.NewReader(ovfFile))
+	assert.NoError(t, e)
+	return envelope
+}
 
 func TestGetDiskFileInfosDisksOnSingleControllerOutOfOrder(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
@@ -344,6 +371,31 @@ func TestGetMemoryInMBReturnsFirstMemorySpec(t *testing.T) {
 	result, err := GetMemoryInMB(virtualHardware)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(33), result)
+}
+
+// VirtualBox uses 'MegaBytes' instead of 'byte * 10^20'
+func TestGetMemoryInMBWorksWithVirtualBoxUnits(t *testing.T) {
+
+	units := "MegaBytes"
+	quantity := uint(280)
+	resourceType := memory
+
+	virtualHardware := &ovf.VirtualHardwareSection{
+		Item: []ovf.ResourceAllocationSettingData{
+			{
+				CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
+					InstanceID:      "1",
+					ResourceType:    &resourceType,
+					VirtualQuantity: &quantity,
+					AllocationUnits: &units,
+				},
+			},
+		},
+	}
+
+	result, err := GetMemoryInMB(virtualHardware)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(280), result)
 }
 
 func TestGetMemoryInMBSpecInGB(t *testing.T) {
