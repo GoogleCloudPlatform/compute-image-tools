@@ -51,7 +51,7 @@ func TestShouldRetryWithWait(t *testing.T) {
 		want bool
 	}{
 		{"nil error", nil, false},
-		{"non googleapi.Error", errors.New("foo"), false},
+		{"non googleapi.Error", errors.New("foo"), true},
 		{"400 error", &googleapi.Error{Code: 400}, false},
 		{"429 error", &googleapi.Error{Code: 429}, true},
 		{"500 error", &googleapi.Error{Code: 500}, true},

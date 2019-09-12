@@ -184,9 +184,9 @@ func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) b
 	apiErr, ok := err.(*googleapi.Error)
 	var retry bool
 	switch {
-	case !ok && tkValid:
-		// Not a googleapi.Error and the token is still valid.
-		return false
+	case !ok:
+		// Not a googleapi.Error. Likely a transport error.
+		retry = true
 	case apiErr.Code >= 500 && apiErr.Code <= 599:
 		retry = true
 	case apiErr.Code >= 429:
