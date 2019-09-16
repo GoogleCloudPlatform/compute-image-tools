@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package firelog
+package service
 
 // LogRequest is a server-side pre-defined data structure
 type LogRequest struct {
