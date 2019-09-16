@@ -26,8 +26,8 @@ import (
 
 const (
 	// BuildIDOSEnvVarName is the os env var name to get build id
-	BuildIDOSEnvVarName    = "BUILD_ID"
-	translateFailedPrefix  = "TranslateFailed"
+	BuildIDOSEnvVarName   = "BUILD_ID"
+	translateFailedPrefix = "TranslateFailed"
 )
 
 var (
