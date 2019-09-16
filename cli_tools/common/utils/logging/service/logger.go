@@ -23,7 +23,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -179,8 +178,8 @@ func (l *Logger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
 	}
 
 	if w != nil {
-		o.TargetSizeGb = getInt64Value(w.GetSerialConsoleOutputValue(targetSizeGb))
-		o.SourceSizeGb = getInt64Value(w.GetSerialConsoleOutputValue(sourceSizeGb))
+		o.TargetsSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(targetSizeGb))
+		o.SourcesSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(sourceSizeGb))
 	}
 
 	if err != nil {
@@ -191,12 +190,16 @@ func (l *Logger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
 	return &o
 }
 
-func getInt64Value(s string) int64 {
-	i, err := strconv.ParseInt(s, 0, 64)
-	if err != nil {
-		return 0
+func getInt64Values(s string) []int64 {
+	strs := strings.Split(s, ",")
+	var r []int64
+	for _, str := range strs {
+		i, err := strconv.ParseInt(str, 0, 64)
+		if err == nil {
+			r = append(r, i)
+		}
 	}
-	return i
+	return r
 }
 
 func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) *ComputeImageToolsLogExtension {
@@ -333,7 +336,6 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 		ClientInfo: ClientInfo{
 			// TODO: replace with "COMPUTE_IMAGE_TOOLS" when server-aside setting is ready
 			ClientType:        "DESKTOP",
-			DesktopClientInfo: map[string]string{"os": runtime.GOOS},
 		},
 		// TODO: replace with actual log source once server side is ready: "COMPUTE_IMAGE_TOOLS"
 		LogSource:     1018,

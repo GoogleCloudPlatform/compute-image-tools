@@ -24,10 +24,8 @@ type LogRequest struct {
 
 // ClientInfo is a server-side pre-defined data structure
 type ClientInfo struct {
-	// ClientType is defined on server side to clarify which firelog client library is used.
+	// ClientType is defined on server side to clarify which client library is used.
 	ClientType string `json:"client_type"`
-	// DesktopClientInfo contains what's the platform of the client side
-	DesktopClientInfo map[string]string `json:"desktop_client_info"`
 }
 
 // LogEvent is a server-side pre-defined data structure
@@ -162,10 +160,10 @@ type CommonParams struct {
 
 // OutputInfo contains output values from the tools execution
 type OutputInfo struct {
-	// Size of import/export source (image or file)
-	SourceSizeGb int64 `json:"source_size_gb,omitempty"`
-	// Size of import/export target (image or file)
-	TargetSizeGb int64 `json:"target_size_gb,omitempty"`
+	// Size of import/export sources (image or file)
+	SourcesSizeGb []int64 `json:"sources_size_gb,omitempty"`
+	// Size of import/export targets (image or file)
+	TargetsSizeGb []int64 `json:"targets_size_gb,omitempty"`
 	// Failure message of the command
 	FailureMessage string `json:"failure_message,omitempty"`
 	// Failure message of the command without privacy info

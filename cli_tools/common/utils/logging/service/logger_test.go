@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -67,7 +68,7 @@ func TestLogSuccess(t *testing.T) {
 
 	w := daisy.Workflow{}
 	w.AddSerialConsoleOutputValue(targetSizeGb, "5")
-	w.AddSerialConsoleOutputValue(sourceSizeGb, "3")
+	w.AddSerialConsoleOutputValue(sourceSizeGb, "3,2,1")
 	e, r := logger.logSuccess(&w)
 
 	if r != logResult(DeleteRequest) {
@@ -76,11 +77,11 @@ func TestLogSuccess(t *testing.T) {
 	if e.Status != statusSuccess {
 		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusSuccess)
 	}
-	if e.OutputInfo.TargetSizeGb != 5 {
-		t.Errorf("Unexpected TargetSizeGb %v, expect: %v", e.OutputInfo.TargetSizeGb, 5)
+	if !reflect.DeepEqual(e.OutputInfo.TargetsSizeGb, []int64{5}) {
+		t.Errorf("Unexpected TargetSizeGb %v, expect: %v", e.OutputInfo.TargetsSizeGb, "5")
 	}
-	if e.OutputInfo.SourceSizeGb != 3 {
-		t.Errorf("Unexpected SourceSizeGb %v, expect: %v", e.OutputInfo.SourceSizeGb, 3)
+	if !reflect.DeepEqual(e.OutputInfo.SourcesSizeGb, []int64{3,2,1}) {
+		t.Errorf("Unexpected SourceSizeGb %v, expect: %v", e.OutputInfo.SourcesSizeGb, "3,2,1")
 	}
 	if e.OutputInfo.ElapsedTimeMs < 20 {
 		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.OutputInfo.ElapsedTimeMs, 20)
