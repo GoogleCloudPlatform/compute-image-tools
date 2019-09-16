@@ -94,7 +94,7 @@ func TestLogFailure(t *testing.T) {
 	w := daisy.Workflow{}
 	rawError := "error - [Privacy-> sensitive <-Privacy]"
 	regularError := "error -  sensitive "
-	anonymizedError := "error - [Privacy Info]"
+	anonymizedError := "error - "
 	e, r := logger.logFailure(fmt.Errorf(rawError), &w)
 
 	if r != logResult(DeleteRequest) {
