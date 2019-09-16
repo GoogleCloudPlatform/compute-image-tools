@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package firelog
+package service
 
 import (
 	"bytes"
@@ -37,8 +37,8 @@ import (
 
 var (
 	httpClient            httpClientInterface = &http.Client{Timeout: 5 * time.Second}
-	serverURL                                 = decryptString(serverURLProdP1, serverURLProdP2)
-	key                                       = decryptString(keyP1, keyP2)
+	serverURL                                 = deinterleave(serverURLProdP1, serverURLProdP2)
+	key                                       = deinterleave(keyP1, keyP2)
 	serverLogEnabled                          = false
 	logMutex                                  = sync.Mutex{}
 	nextRequestWaitMillis int64
@@ -80,7 +80,7 @@ type httpClientInterface interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func decryptString(p1, p2 string) string {
+func deinterleave(p1, p2 string) string {
 	l1 := len(p1)
 	l2 := len(p2)
 	if l1 != l2 && l1 != l2+1 {
@@ -105,8 +105,8 @@ type Logger struct {
 	Params    InputParams
 }
 
-// NewFirelogLogger creates a new server logger
-func NewFirelogLogger(action string, params InputParams) *Logger {
+// NewLoggingServiceLogger creates a new server logger
+func NewLoggingServiceLogger(action string, params InputParams) *Logger {
 	return &Logger{
 		ServerURL: serverURL,
 		ID:        uuid.New().String(),
@@ -233,7 +233,7 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) 
 
 // RunWithServerLogging runs the function with server logging
 func RunWithServerLogging(action string, params InputParams, function func() (*daisy.Workflow, error)) {
-	l := NewFirelogLogger(action, params)
+	l := NewLoggingServiceLogger(action, params)
 	l.runWithServerLogging(function)
 }
 
@@ -336,7 +336,7 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 			DesktopClientInfo: map[string]string{"os": runtime.GOOS},
 		},
 		// TODO: replace with actual log source once server side is ready: "COMPUTE_IMAGE_TOOLS"
-		LogSource:     1018, // 1018 = "FIRELOG_TEST"
+		LogSource:     1018,
 		RequestTimeMs: now,
 		LogEvent: []LogEvent{
 			{

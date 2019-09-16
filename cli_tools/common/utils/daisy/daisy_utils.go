@@ -28,7 +28,6 @@ const (
 	// BuildIDOSEnvVarName is the os env var name to get build id
 	BuildIDOSEnvVarName    = "BUILD_ID"
 	translateFailedPrefix  = "TranslateFailed"
-	privacyInfoReplacement = "[Privacy Info]"
 )
 
 var (
@@ -119,7 +118,7 @@ func RemovePrivacyLogInfo(message string) string {
 
 	// All import/export bash scripts enclose privacy info inside "[Privacy-> XXX <-Privacy]". Let's
 	// remove it for privacy.
-	message = privacyRegex.ReplaceAllString(message, privacyInfoReplacement)
+	message = privacyRegex.ReplaceAllString(message, "")
 
 	return message
 }

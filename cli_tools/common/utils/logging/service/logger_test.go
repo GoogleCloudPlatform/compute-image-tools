@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package firelog
+package service
 
 import (
 	"encoding/json"
@@ -215,7 +215,7 @@ func prepareTestLoggerWithJSONLogResponse(t *testing.T, err error, lrs []string)
 		err: err,
 	}
 
-	logger = NewFirelogLogger(ImageImportAction, InputParams{
+	logger = NewLoggingServiceLogger(ImageImportAction, InputParams{
 		ImageImportParams: &ImageImportParams{
 			CommonParams: &CommonParams{
 				ClientID: "test-client",
