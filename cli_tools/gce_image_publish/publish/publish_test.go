@@ -18,6 +18,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/kylelemons/godebug/pretty"
@@ -25,6 +26,8 @@ import (
 )
 
 func TestPublishImage(t *testing.T) {
+	now := time.Now()
+
 	tests := []struct {
 		desc    string
 		p       *Publish
@@ -38,7 +41,7 @@ func TestPublishImage(t *testing.T) {
 	}{
 		{
 			"normal case",
-			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3", ObsoleteDate: &now},
 			&Image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
 			[]*compute.Image{
 				{Name: "bar-2", Family: "bar-family"},
@@ -48,8 +51,10 @@ func TestPublishImage(t *testing.T) {
 			},
 			false,
 			false,
-			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
-				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}, GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
+			&daisy.CreateImages{Images: []*daisy.Image{
+				{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}}, Image: compute.Image{
+					Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3",
+					Deprecated: &compute.DeprecationStatus{State: "ACTIVE", Obsolete: now.Format(time.RFC3339)}}, GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
 			}},
 			&daisy.DeprecateImages{{Image: "foo-2", Project: "foo-project", DeprecationStatus: compute.DeprecationStatus{State: "DEPRECATED", Replacement: "https://www.googleapis.com/compute/v1/projects/foo-project/global/images/foo-3"}}},
 			false,

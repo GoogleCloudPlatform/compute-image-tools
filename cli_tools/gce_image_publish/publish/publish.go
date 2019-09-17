@@ -60,7 +60,9 @@ type Publish struct {
 	// 24h*7*4 = ~1 month
 	// 24h*365 = ~1 year
 	DeleteAfter string `json:",omitempty"`
-	expiryDate  *time.Time
+	// Optional DeprecationStatus.Obsolete entry for the image (RFC 3339).
+	ObsoleteDate *time.Time `json:",omitempty"`
+	expiryDate   *time.Time
 	// Images to
 	Images []*Image `json:",omitempty"`
 
@@ -247,12 +249,21 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 		sourceName = fmt.Sprintf("%s-%s", sourceName, p.sourceVersion)
 	}
 
+	var ds *compute.DeprecationStatus
+	if p.ObsoleteDate != nil {
+		ds = &compute.DeprecationStatus{
+			State:    "ACTIVE",
+			Obsolete: p.ObsoleteDate.Format(time.RFC3339),
+		}
+	}
+
 	ci := daisy.Image{
 		Image: compute.Image{
 			Name:        publishName,
 			Description: img.Description,
 			Licenses:    img.Licenses,
 			Family:      img.Family,
+			Deprecated:  ds,
 		},
 		ImageBase: daisy.ImageBase{
 			Resource: daisy.Resource{
