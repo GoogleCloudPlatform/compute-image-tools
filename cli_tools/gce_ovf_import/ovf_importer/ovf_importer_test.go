@@ -91,7 +91,7 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 		Return(mockBucketIterator)
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		storageClient: mockStorageClient, computeClient: mockComputeClient, buildID: "build123",
+		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		ctx: ctx, bucketIteratorCreator: mockBucketIteratorCreator,
 		Logger: logging.NewLogger("test"), params: params}
@@ -160,7 +160,7 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 		ZoneValid("aProject", "europe-west2-b").Return(nil)
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		storageClient: mockStorageClient, computeClient: mockComputeClient, buildID: "build123",
+		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
@@ -222,7 +222,7 @@ func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(
 	mockZoneValidator.EXPECT().
 		ZoneValid("aProject", "europe-west2-b").Return(nil)
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		storageClient: mockStorageClient, computeClient: mockComputeClient, buildID: "build123",
+		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
@@ -262,7 +262,7 @@ func TestSetUpWorkflowInvalidReleaseTrack(t *testing.T) {
 	mockZoneValidator.EXPECT().
 		ZoneValid("aProject", "us-central1-c").Return(nil)
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		storageClient: mockStorageClient, computeClient: mockComputeClient, buildID: "build123",
+		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
@@ -329,7 +329,7 @@ func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 		ZoneValid("aProject", "europe-north1-b").Return(nil)
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		storageClient: mockStorageClient, buildID: "build123",
+		storageClient: mockStorageClient, BuildID: "build123",
 		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
@@ -360,7 +360,7 @@ func TestSetUpWorkflowErrorLoadingDescriptor(t *testing.T) {
 		ZoneValid("aProject", "europe-north1-b").Return(nil)
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		buildID: "build123", ovfDescriptorLoader: mockOvfDescriptorLoader,
+		BuildID: "build123", ovfDescriptorLoader: mockOvfDescriptorLoader,
 		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
@@ -446,7 +446,7 @@ func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
 		ZoneValid("aProject", "us-central1-c").Return(nil)
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		storageClient: mockStorageClient, buildID: "build123",
+		storageClient: mockStorageClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
 	return oi.setUpImportWorkflow()

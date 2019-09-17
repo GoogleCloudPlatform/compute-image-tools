@@ -74,10 +74,12 @@ type OVFImporter struct {
 	zoneValidator         domain.ZoneValidatorInterface
 	gcsPathToClean        string
 	workflowPath          string
-	buildID               string
 	diskInfos             *[]ovfutils.DiskInfo
 	params                *ovfimportparams.OVFImportParams
 	imageLocation         string
+
+	// BuildID is ID of Cloud Build in which this OVF import runs in
+	BuildID string
 }
 
 // NewOVFImporter creates an OVF importer, including automatically populating dependencies,
@@ -103,7 +105,7 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 	bic := &storageutils.BucketIteratorCreator{}
 
 	ovfImporter := &OVFImporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
-		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, buildID: buildID,
+		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, BuildID: buildID,
 		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
 		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic, Logger: logger,
 		zoneValidator: &computeutils.ZoneValidator{ComputeClient: computeClient}, params: params}
@@ -279,13 +281,13 @@ func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, e
 		}
 	}
 	return pathutils.JoinURL(oi.params.ScratchBucketGcsPath,
-		fmt.Sprintf("ovf-import-%v", oi.buildID)), nil
+		fmt.Sprintf("ovf-import-%v", oi.BuildID)), nil
 }
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
-	w.LogWorkflowInfo("Cloud Build ID: %s", oi.buildID)
+	w.LogWorkflowInfo("Cloud Build ID: %s", oi.BuildID)
 	rl := &daisyutils.ResourceLabeler{
-		BuildID:         oi.buildID,
+		BuildID:         oi.BuildID,
 		UserLabels:      oi.params.UserLabels,
 		BuildIDLabelKey: "gce-ovf-import-build-id",
 		ImageLocation:   oi.imageLocation,
