@@ -134,6 +134,7 @@ type Workflow struct {
 	cleanupHooksMx        sync.Mutex
 	recordTimeMx          sync.Mutex
 	logWait               sync.WaitGroup
+	logProcessHook        func(string) string
 
 	// Optional compute endpoint override.
 	ComputeEndpoint    string          `json:",omitempty"`
@@ -203,6 +204,11 @@ func (w *Workflow) addCleanupHook(hook func() DError) {
 	w.cleanupHooksMx.Lock()
 	w.cleanupHooks = append(w.cleanupHooks, hook)
 	w.cleanupHooksMx.Unlock()
+}
+
+// SetLogProcessHook sets a hook function to process log string
+func (w *Workflow) SetLogProcessHook(hook func(string) string) {
+	w.logProcessHook = hook
 }
 
 // Validate runs validation on the workflow.

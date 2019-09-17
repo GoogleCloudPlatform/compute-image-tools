@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -42,9 +43,10 @@ type cloudLogWriter interface {
 
 // daisyLog wraps the different logging mechanisms that can be used.
 type daisyLog struct {
-	gcsLogWriter  *syncedWriter
-	cloudLogger   cloudLogWriter
-	stdoutLogging bool
+	gcsLogWriter    *syncedWriter
+	cloudLogger     cloudLogWriter
+	stdoutLogging   bool
+	logCleanupRegex *regexp.Regexp
 }
 
 // createLogger builds a Logger.
@@ -98,7 +100,7 @@ func (w *Workflow) LogStepInfo(stepName, stepType, format string, a ...interface
 		Message:        fmt.Sprintf(format, a...),
 		Type:           "Daisy",
 	}
-	w.Logger.WriteLogEntry(entry)
+	w.logEntry(entry)
 }
 
 // LogWorkflowInfo logs information for the workflow.
@@ -108,7 +110,20 @@ func (w *Workflow) LogWorkflowInfo(format string, a ...interface{}) {
 		WorkflowName:   getAbsoluteName(w),
 		Message:        fmt.Sprintf(format, a...),
 	}
-	w.Logger.WriteLogEntry(entry)
+	w.logEntry(entry)
+}
+
+func (w *Workflow) logEntry(e *LogEntry) {
+	//  Execute all log process hooks
+	rw := w
+	for rw != nil {
+		if rw.logProcessHook != nil {
+			e.Message = w.logProcessHook(e.Message)
+		}
+		rw = rw.parent
+	}
+
+	w.Logger.WriteLogEntry(e)
 }
 
 // WriteSerialPortLogs writes serial port logs to cloud logging.

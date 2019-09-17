@@ -14,65 +14,67 @@
 
 package service
 
-// LogRequest is a server-side pre-defined data structure
-type LogRequest struct {
-	ClientInfo    ClientInfo `json:"client_info"`
+// logRequest is a server-side pre-defined data structure
+type logRequest struct {
+	ClientInfo    clientInfo `json:"client_info"`
 	LogSource     int64      `json:"log_source"`
 	RequestTimeMs int64      `json:"request_time_ms"`
-	LogEvent      []LogEvent `json:"log_event"`
+	LogEvent      []logEvent `json:"log_event"`
 }
 
 // ClientInfo is a server-side pre-defined data structure
-type ClientInfo struct {
+type clientInfo struct {
 	// ClientType is defined on server side to clarify which client library is used.
 	ClientType string `json:"client_type"`
 }
 
 // LogEvent is a server-side pre-defined data structure
-type LogEvent struct {
+type logEvent struct {
 	EventTimeMs         int64  `json:"event_time_ms"`
 	EventUptimeMs       int64  `json:"event_uptime_ms"`
 	SourceExtensionJSON string `json:"source_extension_json"`
 }
 
-// LogResponse is a server-side pre-defined data structure
-type LogResponse struct {
-	NextRequestWaitMillis int64                `json:"nextRequestWaitMillis,string"`
-	LogResponseDetails    []LogResponseDetails `json:"logResponseDetails"`
+// logResponse is a server-side pre-defined data structure
+type logResponse struct {
+	NextRequestWaitMillis int64                `json:"NextRequestWaitMillis,string"`
+	LogResponseDetails    []logResponseDetails `json:"LogResponseDetails"`
 }
 
 // LogResponseDetails is a server-side pre-defined data structure
-type LogResponseDetails struct {
-	ResponseAction ResponseAction `json:"responseAction"`
+type logResponseDetails struct {
+	ResponseAction responseAction `json:"ResponseAction"`
 }
 
 // ResponseAction is a server-side pre-defined data structure
-type ResponseAction string
+type responseAction string
 
 const (
-	// ResponseActionUnknown - If the client sees this, it should delete the LogRequest (not retry).
+	// responseActionUnknown - If the client sees this, it should delete the logRequest (not retry).
 	// It may indicate that a new response action was added, which the client
 	// doesn't yet understand.  (Deleting rather than retrying will prevent
 	// infinite loops.)  The server will do whatever it can to prevent this
 	// occurring (by not indicating an action to clients that are behind the
 	// requisite version for the action).
-	ResponseActionUnknown ResponseAction = "RESPONSE_ACTION_UNKNOWN"
-	// RetryRequestLater - The client should retry the request later, via normal scheduling.
-	RetryRequestLater ResponseAction = "RETRY_REQUEST_LATER"
-	// DeleteRequest - The client should delete the request.  This action will apply for
+	responseActionUnknown responseAction = "RESPONSE_ACTION_UNKNOWN"
+	// retryRequestLater - The client should retry the request later, via normal scheduling.
+	retryRequestLater responseAction = "RETRY_REQUEST_LATER"
+	// deleteRequest - The client should delete the request.  This action will apply for
 	// successful requests, and non-retryable requests.
-	DeleteRequest ResponseAction = "DELETE_REQUEST"
+	deleteRequest responseAction = "DELETE_REQUEST"
 )
 
 // ComputeImageToolsLogExtension contains all log info, which should be align with sawmill server side configuration.
 type ComputeImageToolsLogExtension struct {
 	// This id is a random guid for correlation among multiple log lines of a single call
-	ID           string       `json:"id"`
-	CloudBuildID string       `json:"cloud_build_id"`
-	ToolAction   string       `json:"tool_action"`
-	Status       string       `json:"status"`
-	InputParams  *InputParams `json:"input_params,omitempty"`
-	OutputInfo   *OutputInfo  `json:"output_info,omitempty"`
+	ID            string       `json:"id"`
+	CloudBuildID  string       `json:"cloud_build_id"`
+	ToolAction    string       `json:"tool_action"`
+	Status        string       `json:"status"`
+	ElapsedTimeMs int64        `json:"elapsed_time_ms"`
+	EventTimeMs   int64        `json:"event_time_ms"`
+	InputParams   *InputParams `json:"input_params,omitempty"`
+	OutputInfo    *OutputInfo  `json:"output_info,omitempty"`
 }
 
 // InputParams contains the union of all APIs' param info. To simplify logging service, we
@@ -136,7 +138,6 @@ type InstanceImportParams struct {
 	HasBootDiskKmsLocation      bool   `json:"has_boot_disk_kms_location"`
 	HasBootDiskKmsProject       bool   `json:"has_boot_disk_kms_project"`
 	NoGuestEnvironment          bool   `json:"no_guest_environment"`
-	Node                        string `json:"node,omitempty"`
 	NodeAffinityLabel           string `json:"node_affinity_label,omitempty"`
 }
 
@@ -168,6 +169,4 @@ type OutputInfo struct {
 	FailureMessage string `json:"failure_message,omitempty"`
 	// Failure message of the command without privacy info
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
-	// ElapsedTimeMs represents the time elapsed for the tool execution
-	ElapsedTimeMs int64 `json:"elapsed_time_ms"`
 }
