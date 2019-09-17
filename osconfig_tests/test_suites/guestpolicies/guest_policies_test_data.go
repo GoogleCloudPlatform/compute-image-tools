@@ -49,6 +49,9 @@ func buildPkgInstallTestSetup(name, image, pkgManager, key string) *guestPolicyT
 	if pkgManager == "googet" {
 		machineType = "n1-standard-4"
 	}
+	if pkgManager == "zypper" {
+		packageName = "xeyes"
+	}
 	if strings.Contains(image, "rhel-8") {
 		packageName = "xorg-x11-apps"
 	}
