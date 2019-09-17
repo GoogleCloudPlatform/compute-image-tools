@@ -236,6 +236,7 @@ func runOvfImportTest(
 
 	logger.Printf("[%v] Creating OVF importer", testSetup.name)
 	ovfImporter, err := ovfimporter.NewOVFImporter(testSetup.importParams)
+	ovfImporter.BuildID = testSetup.name
 
 	if err != nil {
 		logger.Printf("[%v] error creating OVF importer: %v", testSetup.name, err)
