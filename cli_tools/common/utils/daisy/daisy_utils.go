@@ -126,7 +126,7 @@ func RemovePrivacyLogInfo(message string) string {
 // RemovePrivacyLogTag removes privacy log tag.
 func RemovePrivacyLogTag(message string) string {
 	// All import/export bash scripts enclose privacy info inside a pair of tag "[Privacy->XXX<-Privacy]".
-	// Let's remove the tag to make it readable.
+	// Let's remove the tag to improve the readability.
 	message = privacyTagRegex.ReplaceAllString(message, "")
 
 	return message

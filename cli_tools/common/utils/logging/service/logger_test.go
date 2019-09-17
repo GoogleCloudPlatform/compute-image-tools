@@ -50,12 +50,12 @@ func shutdown() {
 }
 
 func TestLogStart(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest))
+	prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
 
 	e, r := logger.logStart()
 
-	if r != logResult(DeleteRequest) {
-		t.Errorf("Unexpected logResult: %v, expect: %v", r, DeleteRequest)
+	if r != logResult(deleteRequest) {
+		t.Errorf("Unexpected logResult: %v, expect: %v", r, deleteRequest)
 	}
 	if e.Status != statusStart {
 		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusStart)
@@ -63,7 +63,7 @@ func TestLogStart(t *testing.T) {
 }
 
 func TestLogSuccess(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest))
+	prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
 	time.Sleep(20 * time.Millisecond)
 
 	w := daisy.Workflow{}
@@ -71,8 +71,8 @@ func TestLogSuccess(t *testing.T) {
 	w.AddSerialConsoleOutputValue(sourceSizeGb, "3,2,1")
 	e, r := logger.logSuccess(&w)
 
-	if r != logResult(DeleteRequest) {
-		t.Errorf("Unexpected logResult: %v, expect: %v", r, DeleteRequest)
+	if r != logResult(deleteRequest) {
+		t.Errorf("Unexpected logResult: %v, expect: %v", r, deleteRequest)
 	}
 	if e.Status != statusSuccess {
 		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusSuccess)
@@ -80,16 +80,16 @@ func TestLogSuccess(t *testing.T) {
 	if !reflect.DeepEqual(e.OutputInfo.TargetsSizeGb, []int64{5}) {
 		t.Errorf("Unexpected TargetSizeGb %v, expect: %v", e.OutputInfo.TargetsSizeGb, "5")
 	}
-	if !reflect.DeepEqual(e.OutputInfo.SourcesSizeGb, []int64{3,2,1}) {
+	if !reflect.DeepEqual(e.OutputInfo.SourcesSizeGb, []int64{3, 2, 1}) {
 		t.Errorf("Unexpected SourceSizeGb %v, expect: %v", e.OutputInfo.SourcesSizeGb, "3,2,1")
 	}
-	if e.OutputInfo.ElapsedTimeMs < 20 {
-		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.OutputInfo.ElapsedTimeMs, 20)
+	if e.ElapsedTimeMs < 20 {
+		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.ElapsedTimeMs, 20)
 	}
 }
 
 func TestLogFailure(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest))
+	prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
 	time.Sleep(20 * time.Millisecond)
 
 	w := daisy.Workflow{}
@@ -98,8 +98,8 @@ func TestLogFailure(t *testing.T) {
 	anonymizedError := "error - "
 	e, r := logger.logFailure(fmt.Errorf(rawError), &w)
 
-	if r != logResult(DeleteRequest) {
-		t.Errorf("Unexpected logResult: %v, expect: %v", r, DeleteRequest)
+	if r != logResult(deleteRequest) {
+		t.Errorf("Unexpected logResult: %v, expect: %v", r, deleteRequest)
 	}
 	if e.Status != statusFailure {
 		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusFailure)
@@ -110,13 +110,13 @@ func TestLogFailure(t *testing.T) {
 	if e.OutputInfo.FailureMessageWithoutPrivacyInfo != anonymizedError {
 		t.Errorf("Unexpected FailureMessageWithoutPrivacyInfo %v, expect: %v", e.OutputInfo.FailureMessageWithoutPrivacyInfo, anonymizedError)
 	}
-	if e.OutputInfo.ElapsedTimeMs < 20 {
-		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.OutputInfo.ElapsedTimeMs, 20)
+	if e.ElapsedTimeMs < 20 {
+		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.ElapsedTimeMs, 20)
 	}
 }
 
 func TestRunWithServerLoggingSuccess(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest, DeleteRequest))
+	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	logExtension := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
 		return &daisy.Workflow{}, nil
@@ -127,7 +127,7 @@ func TestRunWithServerLoggingSuccess(t *testing.T) {
 }
 
 func TestRunWithServerLoggingFailed(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(DeleteRequest, DeleteRequest))
+	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	logExtension := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
 		return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
@@ -138,15 +138,15 @@ func TestRunWithServerLoggingFailed(t *testing.T) {
 }
 
 func TestSendLogToServerSuccess(t *testing.T) {
-	testSendLogToServerWithResponses(t, logResult(DeleteRequest), buildLogResponses(DeleteRequest))
+	testSendLogToServerWithResponses(t, logResult(deleteRequest), buildLogResponses(deleteRequest))
 }
 
 func TestSendLogToServerResponseActionUnknown(t *testing.T) {
-	testSendLogToServerWithResponses(t, logResult(ResponseActionUnknown), buildLogResponses(ResponseActionUnknown))
+	testSendLogToServerWithResponses(t, logResult(responseActionUnknown), buildLogResponses(responseActionUnknown))
 }
 
 func TestSendLogToServerSuccessAfterRetry(t *testing.T) {
-	testSendLogToServerWithResponses(t, logResult(DeleteRequest), buildLogResponses(RetryRequestLater, RetryRequestLater, DeleteRequest))
+	testSendLogToServerWithResponses(t, logResult(deleteRequest), buildLogResponses(retryRequestLater, retryRequestLater, deleteRequest))
 }
 
 func TestSendLogToServerFailedOnCreateRequest(t *testing.T) {
@@ -168,7 +168,7 @@ func TestSendLogToServerLogDisabled(t *testing.T) {
 	serverLogEnabled = false
 	defer func() { serverLogEnabled = true }()
 
-	testSendLogToServerWithResponses(t, serverLogDisabled, buildLogResponses(DeleteRequest))
+	testSendLogToServerWithResponses(t, serverLogDisabled, buildLogResponses(deleteRequest))
 }
 
 func TestSendLogToServerFailedToParseResponse(t *testing.T) {
@@ -184,14 +184,14 @@ func TestSendLogToServerFailedOnUndefinedResponse(t *testing.T) {
 }
 
 func TestSendLogToServerFailedOnMissingResponseDetails(t *testing.T) {
-	testSendLogToServerWithResponses(t, failedOnMissingResponseDetails, []LogResponse{{}})
+	testSendLogToServerWithResponses(t, failedOnMissingResponseDetails, []logResponse{{}})
 }
 
 func TestSendLogToServerFailedAfterRetry(t *testing.T) {
-	testSendLogToServerWithResponses(t, failedAfterRetry, buildLogResponses(RetryRequestLater, RetryRequestLater, RetryRequestLater, DeleteRequest))
+	testSendLogToServerWithResponses(t, failedAfterRetry, buildLogResponses(retryRequestLater, retryRequestLater, retryRequestLater, deleteRequest))
 }
 
-func testSendLogToServerWithResponses(t *testing.T, expectedLogResult logResult, resps []LogResponse) {
+func testSendLogToServerWithResponses(t *testing.T, expectedLogResult logResult, resps []logResponse) {
 	prepareTestLogger(t, nil, resps)
 	r := logger.sendLogToServer(buildComputeImageToolsLogExtension())
 	if r != logResult(expectedLogResult) {
@@ -199,7 +199,7 @@ func testSendLogToServerWithResponses(t *testing.T, expectedLogResult logResult,
 	}
 }
 
-func prepareTestLogger(t *testing.T, err error, resps []LogResponse) {
+func prepareTestLogger(t *testing.T, err error, resps []logResponse) {
 	var lrs []string
 	for _, resp := range resps {
 		bytes, _ := json.Marshal(resp)
@@ -244,12 +244,12 @@ func buildComputeImageToolsLogExtension() *ComputeImageToolsLogExtension {
 	return logExtension
 }
 
-func buildLogResponses(actions ...ResponseAction) []LogResponse {
-	var lrs []LogResponse
+func buildLogResponses(actions ...responseAction) []logResponse {
+	var lrs []logResponse
 	for _, a := range actions {
-		lrs = append(lrs, LogResponse{
+		lrs = append(lrs, logResponse{
 			NextRequestWaitMillis: 100,
-			LogResponseDetails: []LogResponseDetails{
+			LogResponseDetails: []logResponseDetails{
 				{
 					ResponseAction: a,
 				},

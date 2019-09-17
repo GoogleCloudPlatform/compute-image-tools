@@ -117,43 +117,33 @@ func NewLoggingServiceLogger(action string, params InputParams) *Logger {
 
 // logStart logs a "start" info to server
 func (l *Logger) logStart() (*ComputeImageToolsLogExtension, logResult) {
-	logExtension := &ComputeImageToolsLogExtension{
-		ID:           l.ID,
-		CloudBuildID: os.Getenv(daisyutils.BuildIDOSEnvVarName),
-		ToolAction:   l.Action,
-		Status:       statusStart,
-		InputParams:  &l.Params,
-	}
-
+	logExtension := l.createComputeImageToolsLogExtension(statusStart, nil)
 	return logExtension, l.sendLogToServer(logExtension)
 }
 
 // logSuccess logs a "success" info to server
 func (l *Logger) logSuccess(w *daisy.Workflow) (*ComputeImageToolsLogExtension, logResult) {
-	logExtension := &ComputeImageToolsLogExtension{
-		ID:           l.ID,
-		CloudBuildID: os.Getenv(daisyutils.BuildIDOSEnvVarName),
-		ToolAction:   l.Action,
-		Status:       statusSuccess,
-		InputParams:  &l.Params,
-		OutputInfo:   l.getOutputInfo(w, nil),
-	}
-
+	logExtension := l.createComputeImageToolsLogExtension(statusSuccess, l.getOutputInfo(w, nil))
 	return logExtension, l.sendLogToServer(logExtension)
 }
 
 // logFailure logs a "failure" info to server
 func (l *Logger) logFailure(err error, w *daisy.Workflow) (*ComputeImageToolsLogExtension, logResult) {
-	logExtension := &ComputeImageToolsLogExtension{
-		ID:           l.ID,
-		CloudBuildID: os.Getenv(daisyutils.BuildIDOSEnvVarName),
-		ToolAction:   l.Action,
-		Status:       statusFailure,
-		InputParams:  &l.Params,
-		OutputInfo:   l.getOutputInfo(w, err),
-	}
-
+	logExtension := l.createComputeImageToolsLogExtension(statusFailure, l.getOutputInfo(w, err))
 	return logExtension, l.sendLogToServer(logExtension)
+}
+
+func (l *Logger) createComputeImageToolsLogExtension(status string, outputInfo *OutputInfo) *ComputeImageToolsLogExtension {
+	return &ComputeImageToolsLogExtension{
+		ID:            l.ID,
+		CloudBuildID:  os.Getenv(daisyutils.BuildIDOSEnvVarName),
+		ToolAction:    l.Action,
+		Status:        status,
+		ElapsedTimeMs: time.Since(l.TimeStart).Milliseconds(),
+		EventTimeMs:   time.Now().UnixNano() / 1000000,
+		InputParams:   &l.Params,
+		OutputInfo:    outputInfo,
+	}
 }
 
 func getFailureReason(err error) string {
@@ -173,9 +163,7 @@ func getAnonymizedFailureReason(err error) string {
 }
 
 func (l *Logger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
-	o := OutputInfo{
-		ElapsedTimeMs: time.Since(l.TimeStart).Milliseconds(),
-	}
+	o := OutputInfo{}
 
 	if w != nil {
 		o.TargetsSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(targetSizeGb))
@@ -242,6 +230,7 @@ func RunWithServerLogging(action string, params InputParams, function func() (*d
 
 func (l *Logger) sendLogToServer(logExtension *ComputeImageToolsLogExtension) logResult {
 	r := l.sendLogToServerWithRetry(logExtension, 3)
+	fmt.Println("TODO REMOVE RESPONSE: ", r)
 	return r
 }
 
@@ -257,6 +246,7 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 		}
 
 		logRequestJSON, err := l.constructLogRequest(logExtension)
+		fmt.Println("TODO REMOVE REQUEST: ", string(logRequestJSON))
 		if err != nil {
 			fmt.Println("Failed to log to server: failed to prepare json log data.")
 			return failedOnCreateRequestJSON
@@ -283,7 +273,7 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 
 		defer resp.Body.Close()
 		body, _ := ioutil.ReadAll(resp.Body)
-		var lr LogResponse
+		var lr logResponse
 		if err = json.Unmarshal(body, &lr); err != nil {
 			fmt.Println("Failed to parse log response: ", err, "\nResponse: ", string(body))
 			return failedToParseResponse
@@ -301,10 +291,10 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 		// Honor "ResponseAction" from server to control retrying
 		if len(lr.LogResponseDetails) > 0 {
 			action := lr.LogResponseDetails[0].ResponseAction
-			if action == DeleteRequest || action == ResponseActionUnknown {
+			if action == deleteRequest || action == responseActionUnknown {
 				// Log success or unknown status, just return
 				return logResult(action)
-			} else if action == RetryRequestLater {
+			} else if action == retryRequestLater {
 				// Retry as server asked
 				continue
 			}
@@ -332,15 +322,15 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 	}
 
 	now := time.Now().UnixNano() / 1000000
-	req := LogRequest{
-		ClientInfo: ClientInfo{
+	req := logRequest{
+		ClientInfo: clientInfo{
 			// TODO: replace with "COMPUTE_IMAGE_TOOLS" when server-aside setting is ready
-			ClientType:        "DESKTOP",
+			ClientType: "DESKTOP",
 		},
 		// TODO: replace with actual log source once server side is ready: "COMPUTE_IMAGE_TOOLS"
 		LogSource:     1018,
 		RequestTimeMs: now,
-		LogEvent: []LogEvent{
+		LogEvent: []logEvent{
 			{
 				EventTimeMs:         now,
 				EventUptimeMs:       time.Since(l.TimeStart).Milliseconds(),

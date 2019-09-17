@@ -113,7 +113,11 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 		return nil, err
 	}
 
-	workflowModifier := func(w *daisy.Workflow) {
+	preValidateWorkflowModifier := func(w *daisy.Workflow) {
+		w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+	}
+
+	postValidateWorkflowModifier := func(w *daisy.Workflow) {
 		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(daisyutils.BuildIDOSEnvVarName))
 		rl := &daisyutils.ResourceLabeler{
 			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
@@ -129,7 +133,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 		rl.LabelResources(w)
 	}
 
-	err = workflow.RunWithModifiers(ctx, nil, workflowModifier)
+	err = workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
 	return workflow, err
 }
 
