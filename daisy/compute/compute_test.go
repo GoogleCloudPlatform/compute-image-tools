@@ -55,6 +55,8 @@ func TestShouldRetryWithWait(t *testing.T) {
 		{"400 error", &googleapi.Error{Code: 400}, false},
 		{"429 error", &googleapi.Error{Code: 429}, true},
 		{"500 error", &googleapi.Error{Code: 500}, true},
+		{"connection reset", errors.New("read tcp 192.168.10.2:59590->74.125.135.95:443: read: connection reset by peer"), true},
+		{"EOF", errors.New("unexpected EOF"), true},
 	}
 
 	for _, tt := range tests {
