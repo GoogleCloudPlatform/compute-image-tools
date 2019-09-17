@@ -23,6 +23,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"time"
 
@@ -59,7 +60,7 @@ func finished(result string) []byte {
 
 func gcsWrite(ctx context.Context, client *storage.Client, p string, data []byte, dataR io.Reader, ct string) error {
 	var err error
-	w := client.Bucket(bucketName).Object(gcsURLBase + p).NewWriter(ctx)
+	w := client.Bucket(bucketName).Object(path.Join(gcsURLBase, p)).NewWriter(ctx)
 	w.ObjectAttrs.ContentType = ct
 	if len(data) > 0 {
 		_, err = w.Write(data)
@@ -200,7 +201,7 @@ func main() {
 
 	// Copy artifacts.
 	buildLog.Println("Writing artifacts to GCS.")
-	filepath.Walk("artifacts", func(p string, info os.FileInfo, err error) error {
+	filepath.Walk(artifactsDir, func(p string, info os.FileInfo, err error) error {
 		if os.IsNotExist(err) {
 			buildLog.Println("No artifacts to write")
 			return nil
