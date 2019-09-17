@@ -118,7 +118,7 @@ func TestLogFailure(t *testing.T) {
 func TestRunWithServerLoggingSuccess(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
-	logExtension := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
+	logExtension, _ := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
 		return &daisy.Workflow{}, nil
 	})
 	if logExtension.Status != statusSuccess {
@@ -129,7 +129,7 @@ func TestRunWithServerLoggingSuccess(t *testing.T) {
 func TestRunWithServerLoggingFailed(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
-	logExtension := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
+	logExtension, _ := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
 		return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
 	})
 	if logExtension.Status != statusFailure {

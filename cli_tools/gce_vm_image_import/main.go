@@ -102,5 +102,7 @@ func main() {
 		},
 	}
 
-	service.RunWithServerLogging(service.ImageImportAction, paramLog, importEntry)
+	if err := service.RunWithServerLogging(service.ImageImportAction, paramLog, importEntry); err != nil {
+		os.Exit(1)
+	}
 }

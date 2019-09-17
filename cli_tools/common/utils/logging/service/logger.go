@@ -190,7 +190,7 @@ func getInt64Values(s string) []int64 {
 	return r
 }
 
-func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) *ComputeImageToolsLogExtension {
+func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) (*ComputeImageToolsLogExtension, error) {
 	var logExtension *ComputeImageToolsLogExtension
 
 	// Send log asynchronously. No need to interrupt the main flow when failed to send log, just
@@ -203,7 +203,8 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) 
 		l.logStart()
 	}()
 
-	if w, err := function(); err != nil {
+	w, err := function()
+	if err != nil {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -219,18 +220,18 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) 
 	}
 
 	wg.Wait()
-	return logExtension
+	return logExtension, err
 }
 
 // RunWithServerLogging runs the function with server logging
-func RunWithServerLogging(action string, params InputParams, function func() (*daisy.Workflow, error)) {
+func RunWithServerLogging(action string, params InputParams, function func() (*daisy.Workflow, error)) error {
 	l := NewLoggingServiceLogger(action, params)
-	l.runWithServerLogging(function)
+	_, err := l.runWithServerLogging(function)
+	return err
 }
 
 func (l *Logger) sendLogToServer(logExtension *ComputeImageToolsLogExtension) logResult {
 	r := l.sendLogToServerWithRetry(logExtension, 3)
-	fmt.Println("TODO REMOVE RESPONSE: ", r)
 	return r
 }
 
@@ -246,7 +247,6 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 		}
 
 		logRequestJSON, err := l.constructLogRequest(logExtension)
-		fmt.Println("TODO REMOVE REQUEST: ", string(logRequestJSON))
 		if err != nil {
 			fmt.Println("Failed to log to server: failed to prepare json log data.")
 			return failedOnCreateRequestJSON

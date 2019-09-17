@@ -77,5 +77,7 @@ func main() {
 		},
 	}
 
-	service.RunWithServerLogging(service.ImageExportAction, paramLog, exportEntry)
+	if err := service.RunWithServerLogging(service.ImageExportAction, paramLog, exportEntry); err != nil {
+		os.Exit(1)
+	}
 }

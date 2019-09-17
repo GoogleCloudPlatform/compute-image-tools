@@ -18,12 +18,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -90,29 +91,69 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 	}
 }
 
-func runImport() error {
-	logger := log.New(os.Stdout, "[OVF Import] ", log.LstdFlags)
-	ovfImporter, err := ovfimporter.NewOVFImporter(buildImportParams())
-	if err != nil {
-		logger.Println(err.Error())
+func runImport() (*daisy.Workflow, error) {
+	var ovfImporter *ovfimporter.OVFImporter
+	var err error
+	defer func() {
 		if ovfImporter != nil {
 			ovfImporter.CleanUp()
 		}
-		return err
-	}
-	err = ovfImporter.Import()
-	if err != nil {
-		ovfImporter.CleanUp()
-		return err
+	}()
+
+	if ovfImporter, err = ovfimporter.NewOVFImporter(buildImportParams()); err != nil {
+		return nil, err
 	}
 
-	ovfImporter.CleanUp()
-	return nil
+	return ovfImporter.Import()
 }
 
 func main() {
-	err := runImport()
-	if err != nil {
+	flag.Parse()
+
+	paramLog := service.InputParams{
+		InstanceImportParams: &service.InstanceImportParams{
+			CommonParams: &service.CommonParams{
+				ClientID:                *clientID,
+				Network:                 *network,
+				Subnet:                  *subnet,
+				Zone:                    *zoneFlag,
+				Timeout:                 *timeout,
+				Project:                 *project,
+				ObfuscatedProject:       service.Hash(*project),
+				Labels:                  *labels,
+				ScratchBucketGcsPath:    *scratchBucketGcsPath,
+				Oauth:                   *oauth,
+				ComputeEndpointOverride: *ce,
+				DisableGcsLogging:       *gcsLogsDisabled,
+				DisableCloudLogging:     *cloudLogsDisabled,
+				DisableStdoutLogging:    *stdoutLogsDisabled,
+			},
+
+			InstanceName:                *instanceNames,
+			OvfGcsPath:                  *ovfOvaGcsPath,
+			CanIPForward:                *canIPForward,
+			DeletionProtection:          *deletionProtection,
+			MachineType:                 *machineType,
+			NetworkInterface:            *network,
+			NetworkTier:                 *networkTier,
+			PrivateNetworkIP:            *privateNetworkIP,
+			NoExternalIP:                *noExternalIP,
+			NoRestartOnFailure:          *noRestartOnFailure,
+			OS:                          *osID,
+			ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring,
+			ShieldedSecureBoot:          *shieldedSecureBoot,
+			ShieldedVtpm:                *shieldedVtpm,
+			Tags:                        *tags,
+			HasBootDiskKmsKey:           *bootDiskKmskey != "",
+			HasBootDiskKmsKeyring:       *bootDiskKmsKeyring != "",
+			HasBootDiskKmsLocation:      *bootDiskKmsLocation != "",
+			HasBootDiskKmsProject:       *bootDiskKmsProject != "",
+			NoGuestEnvironment:          *noGuestEnvironment,
+			NodeAffinityLabel:           nodeAffinityLabelsFlag.String(),
+		},
+	}
+
+	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, runImport); err != nil {
 		os.Exit(1)
 	}
 }

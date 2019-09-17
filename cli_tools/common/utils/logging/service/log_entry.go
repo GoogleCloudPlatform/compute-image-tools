@@ -119,7 +119,7 @@ type InstanceImportParams struct {
 	*CommonParams
 
 	InstanceName                string `json:"instance_name,omitempty"`
-	SourceURI                   string `json:"source_uri,omitempty"`
+	OvfGcsPath                  string `json:"ovf_gcs_path,omitempty"`
 	CanIPForward                bool   `json:"can_ip_forward"`
 	DeletionProtection          bool   `json:"deletion_protection"`
 	MachineType                 string `json:"machine_type,omitempty"`

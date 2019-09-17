@@ -184,7 +184,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	if err != nil {
 		return nil, err
 	}
-	
+
 	preValidateWorkflowModifier := func(w *daisy.Workflow) {
 		w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	}
