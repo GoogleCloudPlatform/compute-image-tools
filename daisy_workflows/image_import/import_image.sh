@@ -86,6 +86,12 @@ function copyImageToScratchDisk() {
     echo "ImportFailed: Failed to prepare scratch disk."
   fi
 
+  # Output the size of the persistent disks for debugging.
+  # The '-i' parameter is for ascii; without it the output is
+  # garbled in serial output.
+  lsblk -i
+  df
+
   # Standard error for `gsutil cp` contains a progress meter that when written
   # to the console will exceed the logging daemon's buffer for large files.
   # The stream may contain useful debugging messages, however, so if there's an
@@ -142,6 +148,14 @@ if ! out=$(gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zo
   exit
 fi
 echo ${out}
+
+# Output the size of the persistent disks for debugging.
+# The '-i' parameter is for ascii; without it the output is
+# garbled in serial output.
+#
+# No df here since we're interested in /dev/sdc which doesn't
+# have a filesystem yet.
+lsblk -i
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
 # /dev/sdc is used since we're manually attaching this disk, and sdb was already
