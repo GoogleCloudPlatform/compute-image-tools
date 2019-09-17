@@ -38,7 +38,11 @@ sleep 5
 done` + curlPost
 
 	zypperInstallAgent = `
-while ! zypper -n --no-gpg-checks install google-osconfig-agent; do
+wget https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+wget https://packages.cloud.google.com/yum/doc/yum-key.gpg
+rpm --import yum-key.gpg
+rpm --import rpm-package-key.gpg
+while ! zypper -n install google-osconfig-agent; do
 if [[ n -gt 3 ]]; then
   exit 1
 fi
@@ -63,7 +67,7 @@ cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 name=Google OSConfig Agent Repository
 baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-%s-%s
 enabled=1
-gpgcheck=0
+gpgcheck=%s
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
 		https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
@@ -75,7 +79,7 @@ cat > /etc/zypp/repos.d/google-osconfig-agent.repo <<EOM
 name=Google OSConfig Agent Repository
 baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-%s-%s
 enabled=1
-gpgcheck=0
+gpgcheck=%s
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
 		https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
@@ -100,16 +104,19 @@ func InstallOSConfigGooGet() string {
 
 // InstallOSConfigSUSE installs the osconfig agent on suse systems.
 func InstallOSConfigSUSE() string {
-	if config.AgentRepo() == "stable" {
-		return zypperInstallAgent
+	if config.AgentRepo() == "staging" || config.AgentRepo() == "stable" {
+		return fmt.Sprintf(zypperRepoSetup+zypperInstallAgent, "el8", config.AgentRepo(), "1")
 	}
-	return fmt.Sprintf(zypperRepoSetup+zypperInstallAgent, "el8", config.AgentRepo())
+	return fmt.Sprintf(zypperRepoSetup+zypperInstallAgent, "el8", config.AgentRepo(), "0")
 }
 
 // InstallOSConfigEL8 installs the osconfig agent on el8 based systems.
 func InstallOSConfigEL8() string {
 	if config.AgentRepo() == "stable" {
 		return yumInstallAgent
+	}
+	if config.AgentRepo() == "staging" {
+		return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el8", config.AgentRepo(), "1")
 	}
 	return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el8", config.AgentRepo())
 }
@@ -119,6 +126,9 @@ func InstallOSConfigEL7() string {
 	if config.AgentRepo() == "stable" {
 		return yumInstallAgent
 	}
+	if config.AgentRepo() == "staging" {
+		return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el7", config.AgentRepo(), "1")
+	}
 	return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el7", config.AgentRepo())
 }
 
@@ -126,6 +136,9 @@ func InstallOSConfigEL7() string {
 func InstallOSConfigEL6() string {
 	if config.AgentRepo() == "stable" {
 		return "sleep 10" + yumInstallAgent
+	}
+	if config.AgentRepo() == "staging" {
+		return fmt.Sprintf("sleep 10"+yumRepoSetup+yumInstallAgent, "el6", config.AgentRepo(), "1")
 	}
 	return fmt.Sprintf("sleep 10"+yumRepoSetup+yumInstallAgent, "el6", config.AgentRepo())
 }

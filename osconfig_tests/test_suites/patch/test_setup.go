@@ -181,3 +181,12 @@ func yumHeadImageTestSetup() []*patchTestSetup {
 
 	return imageTestSetup(mapping)
 }
+
+func suseHeadImageTestSetup() []*patchTestSetup {
+	// This maps a specific patchTestSetup to test setup names and associated images.
+	mapping := map[*patchTestSetup]map[string]string{
+		suseSetup: utils.HeadSUSEImages,
+	}
+
+	return imageTestSetup(mapping)
+}

@@ -109,6 +109,17 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		}
 		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
 	}
+	// Test Zypper specific functionality, this just tests that using these settings doesn't break anything.
+	for _, setup := range suseHeadImageTestSetup() {
+		wg.Add(1)
+		s := setup
+		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Zypper WithOptional, WithUpdate, Categories and Severities] [%s]", s.testName))
+		f := func() {
+			runExecutePatchJobTest(ctx, tc, s, testProjectConfig, &osconfigpb.PatchConfig{
+				Zypper: &osconfigpb.ZypperSettings{WithOptional: true, WithUpdate: true, Categories: []string{"security", "recommended", "feature"}, Severities: []string{"critical", "important", "moderate", "low"}}})
+		}
+		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
+	}
 
 	go func() {
 		wg.Wait()

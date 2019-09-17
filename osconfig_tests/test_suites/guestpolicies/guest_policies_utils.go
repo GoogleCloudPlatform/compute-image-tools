@@ -89,10 +89,6 @@ while(1) {
 
 	case "zypper":
 		ss = `%s
-wget https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-wget https://packages.cloud.google.com/yum/doc/yum-key.gpg
-rpm --import yum-key.gpg
-rpm --import rpm-package-key.gpg
 systemctl restart google-osconfig-agent
 while true; do
   isinstalled=$(/usr/bin/rpmquery -a %[2]s)
@@ -221,14 +217,7 @@ baseurl=https://packages.cloud.google.com/yum/repos/osconfig-agent-test-reposito
 enabled=1
 gpgcheck=0
 EOM
-n=0
-while ! zypper -n remove %[2]s; do
-  if [[ n -gt 5 ]]; then
-    exit 1
-  fi
-  n=$[$n+1]
-  sleep 10
-done
+zypper -n remove %[2]s
 zypper -n --no-gpg-checks install %[2]s-3.03-2.fc7 || exit 1
 systemctl restart google-osconfig-agent
 sleep 20
