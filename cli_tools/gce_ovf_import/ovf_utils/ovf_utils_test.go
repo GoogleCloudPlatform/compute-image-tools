@@ -106,6 +106,19 @@ func TestGetDiskFileInfosAllocationUnitExtraSpace(t *testing.T) {
 	assert.Equal(t, 12, diskInfos[1].SizeInGB)
 }
 
+func TestGetDiskFileInfosFromVirtualbox(t *testing.T) {
+	envelope := parseOVF(t, "testdata/from-virtualbox.ovf")
+
+	virtualHardware, e := GetVirtualHardwareSectionFromDescriptor(envelope)
+	assert.NoError(t, e)
+
+	diskInfo, e := GetDiskInfos(virtualHardware, envelope.Disk, &envelope.References)
+	assert.NoError(t, e)
+
+	assert.Equal(t, 1, len(diskInfo))
+	assert.Equal(t, 10, diskInfo[0].SizeInGB)
+}
+
 func TestGetDiskFileInfosDisksOnSeparateControllersOutOfOrder(t *testing.T) {
 	virtualHardware := &ovf.VirtualHardwareSection{
 		Item: []ovf.ResourceAllocationSettingData{

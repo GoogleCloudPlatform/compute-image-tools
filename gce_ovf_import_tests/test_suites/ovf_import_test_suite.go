@@ -184,6 +184,25 @@ func TestSuite(
 			expectedMachineType:   "n1-standard-4",
 			expectedStartupOutput: "All tests passed!",
 		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-virtualbox-6-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
+				OsID:          "ubuntu-1604",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+			},
+			name:        fmt.Sprintf("ovf-import-test-virtualbox-%s", suffix),
+			description: "Ubuntu 1604 from Virtualbox",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", startupScriptLinuxSingleDisk),
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-standard-4",
+			expectedStartupOutput: "All tests passed!",
+		},
 	}
 
 	var wg sync.WaitGroup

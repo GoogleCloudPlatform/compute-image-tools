@@ -170,8 +170,9 @@ type VirtualHardwareSection struct {
 	ID        *string `xml:"id,attr"`
 	Transport *string `xml:"transport,attr"`
 
-	System *VirtualSystemSettingData       `xml:"System"`
-	Item   []ResourceAllocationSettingData `xml:"Item"`
+	System      *VirtualSystemSettingData       `xml:"System"`
+	Item        []ResourceAllocationSettingData `xml:"Item"`
+	StorageItem []StorageAllocationSettingData  `xml:"StorageItem"`
 }
 
 // VirtualSystemSettingData represents OVF Virtual System Setting Data
@@ -182,6 +183,15 @@ type VirtualSystemSettingData struct {
 // ResourceAllocationSettingData represents Resource Allocation Setting Data
 type ResourceAllocationSettingData struct {
 	CIMResourceAllocationSettingData
+
+	Required      *bool   `xml:"required,attr"`
+	Configuration *string `xml:"configuration,attr"`
+	Bound         *string `xml:"bound,attr"`
+}
+
+// StorageAllocationSettingData represents OVF Resource Allocation Section
+type StorageAllocationSettingData struct {
+	CIMStorageAllocationSettingData
 
 	Required      *bool   `xml:"required,attr"`
 	Configuration *string `xml:"configuration,attr"`
