@@ -24,12 +24,13 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_impo
 ### Flags
 
 #### Required flags
-+ `-instance-name` Name of the VM instance to create.
++ `-instance-names` Name of the VM instances to create.
 + `-client-id` Identifies the client of the OVF importer. For example: `gcloud` or
   `pantheon`.
-+ `-source-uri` GCS path to OVF descriptor, OVA file or a directory with OVF package.
++ `-ovf-gcs-path` GCS path to OVF descriptor, OVA file or a directory with OVF package.
   
 #### Optional flags
++ `-no-guest-environment` Google Guest Environment will not be installed on the image
 + `-can-ip-forward` If provided, allows the instances to send and receive packets with non-matching
   destination or source IP addresses.
 + `-deletion-protection` Enables deletion protection for the instance.
@@ -43,9 +44,6 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_impo
 + `-network=NETWORK` Name of the network in your project to use for the image import. The network
   must have access to Google Cloud Storage. If not specified, the network named default is used. If
   -subnet is also specified subnet must be a subnetwork of network specified by -network.
-+ `-network-interface=[PROPERTY=VALUE,...]` Adds a network interface to the instance. Mutually
-  exclusive with any of these flags: --network, --network-tier, --subnet, --private-network-ip.
-  This flag can be repeated to specify multiple network interfaces.
 + `-network-tier=NETWORK_TIER` Specifies the network tier that will be used to configure the 
   instance. NETWORK_TIER must be one of: PREMIUM, STANDARD. The default value is PREMIUM.
 + `-subnet=SUBNET` Name of the subnetwork in your project to use for the image import. If	the
@@ -62,7 +60,7 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_impo
   OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, 
   rhel-7-byol, ubuntu-1404, ubuntu-1604, windows-10-byol, windows-2008r2, windows-2008r2-byol,
   windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016,
-  windows-2016-byol, windows-7-byol.
+  windows-2016-byol, windows-7-byol, windows-2019, windows-2019-byol, windows-8-1-x64-byol.
 + `-shielded-integrity-monitoring` Enables monitoring and attestation of the boot integrity of the
   instance. The attestation is performed against the integrity policy baseline. This baseline is
   initially derived from the implicitly trusted boot image when the instance is created. This
@@ -93,13 +91,13 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_impo
 + `-disable-gcs-logging` do not stream logs to GCS
 + `-disable-cloud-logging` do not stream logs to Cloud Logging
 + `-disable-stdout-logging` do not display individual workflow logs on stdout
-+ `-no-guest-environment` Google Guest Environment will not be installed on the image
 + `-node-affinity-label` Node affinity label used to determine sole tenant node to schedule this instance on. Label is of the format: <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'. This flag can be specified multiple times for multiple labels.
-  
++ `-release-track` Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.
+
 ### Usage
 
 ```
-gce_ova_import -instance-name=INSTANCE_NAME -client-id=CLIENT_ID 
+gce_ovf_import -instance-names=INSTANCE_NAME -client-id=CLIENT_ID 
 -source-uri=OVF_GCS_FILE_PATH
 [-can-ip-forward]
 [-custom-cpu=CUSTOM_CPU -custom-memory=CUSTOM_MEMORY]
