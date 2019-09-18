@@ -41,8 +41,8 @@ func TestPublishImage(t *testing.T) {
 	}{
 		{
 			"normal case",
-			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3", ObsoleteDate: &now},
-			&Image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature", "bar-feature"}},
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project", sourceVersion: "3", publishVersion: "3"},
+			&Image{Prefix: "foo", Family: "foo-family", GuestOsFeatures: []string{"foo-feature", "bar-feature"}, ObsoleteDate: &now},
 			[]*compute.Image{
 				{Name: "bar-2", Family: "bar-family"},
 				{Name: "foo-2", Family: "foo-family"},

@@ -60,9 +60,7 @@ type Publish struct {
 	// 24h*7*4 = ~1 month
 	// 24h*365 = ~1 year
 	DeleteAfter string `json:",omitempty"`
-	// Optional DeprecationStatus.Obsolete entry for the image (RFC 3339).
-	ObsoleteDate *time.Time `json:",omitempty"`
-	expiryDate   *time.Time
+	expiryDate  *time.Time
 	// Images to
 	Images []*Image `json:",omitempty"`
 
@@ -93,8 +91,10 @@ type Image struct {
 	Licenses []string `json:",omitempty"`
 	// GuestOsFeatures to add to the image.
 	GuestOsFeatures []string `json:",omitempty"`
-	//Ignores license validation if 403/forbidden returned
+	// Ignores license validation if 403/forbidden returned
 	IgnoreLicenseValidationIfForbidden bool `json:",omitempty"`
+	// Optional DeprecationStatus.Obsolete entry for the image (RFC 3339).
+	ObsoleteDate *time.Time `json:",omitempty"`
 }
 
 var (
@@ -250,10 +250,10 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 	}
 
 	var ds *compute.DeprecationStatus
-	if p.ObsoleteDate != nil {
+	if img.ObsoleteDate != nil {
 		ds = &compute.DeprecationStatus{
 			State:    "ACTIVE",
-			Obsolete: p.ObsoleteDate.Format(time.RFC3339),
+			Obsolete: img.ObsoleteDate.Format(time.RFC3339),
 		}
 	}
 
