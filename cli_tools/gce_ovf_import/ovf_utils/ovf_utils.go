@@ -276,11 +276,11 @@ func getDiskControllersPrioritized(virtualHardware *ovf.VirtualHardwareSection) 
 }
 
 func filterItemsByResourceTypes(virtualHardware *ovf.VirtualHardwareSection, resourceTypes ...uint16) []ovf.ResourceAllocationSettingData {
-	all := make([]ovf.ResourceAllocationSettingData, len(virtualHardware.Item))
-	copy(all, virtualHardware.Item)
+	allItems := make([]ovf.ResourceAllocationSettingData, len(virtualHardware.Item))
+	copy(allItems, virtualHardware.Item)
 
 	for _, storageItem := range virtualHardware.StorageItem {
-		all = append(all, ovf.ResourceAllocationSettingData{
+		allItems = append(allItems, ovf.ResourceAllocationSettingData{
 			CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
 				AddressOnParent: storageItem.AddressOnParent,
 				Caption:         storageItem.Caption,
@@ -293,15 +293,15 @@ func filterItemsByResourceTypes(virtualHardware *ovf.VirtualHardwareSection, res
 		})
 	}
 
-	filtered := make([]ovf.ResourceAllocationSettingData, 0)
-	for _, item := range all {
+	filteredItems := make([]ovf.ResourceAllocationSettingData, 0)
+	for _, item := range allItems {
 		for _, resourceType := range resourceTypes {
 			if *item.ResourceType == resourceType {
-				filtered = append(filtered, item)
+				filteredItems = append(filteredItems, item)
 			}
 		}
 	}
-	return filtered
+	return filteredItems
 }
 
 func getDiskFileInfo(diskHostResource string, disks *[]ovf.VirtualDiskDesc,
