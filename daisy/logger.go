@@ -118,7 +118,7 @@ func (w *Workflow) logEntry(e *LogEntry) {
 	rw := w
 	for rw != nil {
 		if rw.logProcessHook != nil {
-			e.Message = w.logProcessHook(e.Message)
+			e.Message = rw.logProcessHook(e.Message)
 		}
 		rw = rw.parent
 	}
