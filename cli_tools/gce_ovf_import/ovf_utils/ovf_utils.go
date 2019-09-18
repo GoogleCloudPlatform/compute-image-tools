@@ -276,15 +276,32 @@ func getDiskControllersPrioritized(virtualHardware *ovf.VirtualHardwareSection) 
 }
 
 func filterItemsByResourceTypes(virtualHardware *ovf.VirtualHardwareSection, resourceTypes ...uint16) []ovf.ResourceAllocationSettingData {
-	filtered := make([]ovf.ResourceAllocationSettingData, 0)
-	for _, item := range virtualHardware.Item {
+	allItems := make([]ovf.ResourceAllocationSettingData, len(virtualHardware.Item))
+	copy(allItems, virtualHardware.Item)
+
+	for _, storageItem := range virtualHardware.StorageItem {
+		allItems = append(allItems, ovf.ResourceAllocationSettingData{
+			CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
+				AddressOnParent: storageItem.AddressOnParent,
+				Caption:         storageItem.Caption,
+				Description:     storageItem.Description,
+				HostResource:    storageItem.HostResource,
+				InstanceID:      storageItem.InstanceID,
+				Parent:          storageItem.Parent,
+				ResourceType:    storageItem.ResourceType,
+			},
+		})
+	}
+
+	filteredItems := make([]ovf.ResourceAllocationSettingData, 0)
+	for _, item := range allItems {
 		for _, resourceType := range resourceTypes {
 			if *item.ResourceType == resourceType {
-				filtered = append(filtered, item)
+				filteredItems = append(filteredItems, item)
 			}
 		}
 	}
-	return filtered
+	return filteredItems
 }
 
 func getDiskFileInfo(diskHostResource string, disks *[]ovf.VirtualDiskDesc,
@@ -309,10 +326,13 @@ func getDiskFileInfo(diskHostResource string, disks *[]ovf.VirtualDiskDesc,
 }
 
 func extractDiskID(diskHostResource string) (string, error) {
-	if !strings.HasPrefix(diskHostResource, "ovf:/disk/") {
-		return "", fmt.Errorf("disk host resource %v has invalid format", diskHostResource)
+	if strings.HasPrefix(diskHostResource, "ovf:/disk/") {
+		return strings.TrimPrefix(diskHostResource, "ovf:/disk/"), nil
+	} else if strings.HasPrefix(diskHostResource, "/disk/") {
+		return strings.TrimPrefix(diskHostResource, "/disk/"), nil
 	}
-	return strings.TrimPrefix(diskHostResource, "ovf:/disk/"), nil
+
+	return "", fmt.Errorf("disk host resource %v has invalid format", diskHostResource)
 }
 
 func sortItemsByStringValue(items []ovf.ResourceAllocationSettingData, extractValue func(ovf.ResourceAllocationSettingData) string) {
