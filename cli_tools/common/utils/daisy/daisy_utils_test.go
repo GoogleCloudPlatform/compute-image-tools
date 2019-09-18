@@ -107,24 +107,45 @@ func TestRemovePrivacyLogInfoTranslateFailed(t *testing.T) {
 func TestRemovePrivacyLogInfoSingle(t *testing.T) {
 	testRemovePrivacyLogInfo(t,
 		"[Privacy-> info 1 <-Privacy] info 2",
-		"[Privacy Info] info 2",
+		" info 2",
 		"Privacy info (on the head) should be hidden")
 
 	testRemovePrivacyLogInfo(t,
 		"info 0 [Privacy-> info 1 <-Privacy]",
-		"info 0 [Privacy Info]",
+		"info 0 ",
 		"Privacy info (on the tail) should be hidden")
 }
 
 func TestRemovePrivacyLogInfoMultiple(t *testing.T) {
 	testRemovePrivacyLogInfo(t,
 		"info 0 [Privacy-> info 1 <-Privacy] info 2 [Privacy-> info 3 <-Privacy] info 4",
-		"info 0 [Privacy Info] info 2 [Privacy Info] info 4",
+		"info 0  info 2  info 4",
 		"Multiple privacy info should be hidden")
 }
 
 func testRemovePrivacyLogInfo(t *testing.T, originalMessage string, expectedMessage string, onFailure string) {
 	m := RemovePrivacyLogInfo(originalMessage)
+	if m != expectedMessage {
+		t.Errorf("%v. Expect: `%v`, actual: `%v`", onFailure, expectedMessage, m)
+	}
+}
+
+func TestRemovePrivacyTagSingle(t *testing.T) {
+	testRemovePrivacyTag(t,
+		"[Privacy-> info 1 <-Privacy]",
+		" info 1 ",
+		"Single privacy tag should be removed")
+}
+
+func TestRemovePrivacyTagMultiple(t *testing.T) {
+	testRemovePrivacyTag(t,
+		"Error: [Privacy->abc <-Privacy] [Privacy-> xyz<-Privacy] and <-Privacy]",
+		"Error: abc   xyz and ",
+		"Multiple privacy tag should be removed")
+}
+
+func testRemovePrivacyTag(t *testing.T, originalMessage string, expectedMessage string, onFailure string) {
+	m := RemovePrivacyLogTag(originalMessage)
 	if m != expectedMessage {
 		t.Errorf("%v. Expect: `%v`, actual: `%v`", onFailure, expectedMessage, m)
 	}

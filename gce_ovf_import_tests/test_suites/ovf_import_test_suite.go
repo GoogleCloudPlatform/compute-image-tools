@@ -245,7 +245,7 @@ func runOvfImportTest(
 	}
 
 	logger.Printf("[%v] Starting OVF import", testSetup.name)
-	err = ovfImporter.Import()
+	_, err = ovfImporter.Import()
 	if err != nil {
 		logger.Printf("[%v] error while performing OVF import: %v", testSetup.name, err)
 		testCase.WriteFailure("error while performing OVF import: %v", err)

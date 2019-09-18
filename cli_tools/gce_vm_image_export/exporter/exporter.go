@@ -43,7 +43,6 @@ const (
 	ClientIDFlagKey       = "client_id"
 	DestinationURIFlagKey = "destination_uri"
 	SourceImageFlagKey    = "source_image"
-	buildIDOSEnv          = "BUILD_ID"
 )
 
 func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
@@ -105,17 +104,21 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap map[string]string,
 	project string, zone string, timeout string, scratchBucketGcsPath string, oauth string, ce string,
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool,
-	userLabels map[string]string) error {
+	userLabels map[string]string) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(exportWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
 		cloudLogsDisabled, stdoutLogsDisabled)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	workflowModifier := func(w *daisy.Workflow) {
-		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(buildIDOSEnv))
+	preValidateWorkflowModifier := func(w *daisy.Workflow) {
+		w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+	}
+
+	postValidateWorkflowModifier := func(w *daisy.Workflow) {
+		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(daisyutils.BuildIDOSEnvVarName))
 		rl := &daisyutils.ResourceLabeler{
 			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
 			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
@@ -130,18 +133,19 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 		rl.LabelResources(w)
 	}
 
-	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
+	err = workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
+	return workflow, err
 }
 
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, format string,
 	project string, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
-	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) error {
+	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
 	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ctx := context.Background()
@@ -149,14 +153,14 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	storageClient, err := storage.NewStorageClient(
 		ctx, logging.NewLogger("[image-export]"), oauth)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer storageClient.Close()
 
 	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
 	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	zoneRetriever := storage.NewZoneRetriever(metadataGCE, computeClient)
 
@@ -164,15 +168,16 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		destinationURI, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region)
 
-	if err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, project,
+	var w *daisy.Workflow
+	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, project,
 		zone, timeout, scratchBucketGcsPath, oauth, ce, gcsLogsDisabled, cloudLogsDisabled,
 		stdoutLogsDisabled, userLabels); err != nil {
-		return err
+		return w, err
 	}
-	return nil
+	return w, nil
 }

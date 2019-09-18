@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	translateFailedPrefix  = "TranslateFailed"
-	privacyInfoReplacement = "[Privacy Info]"
+	// BuildIDOSEnvVarName is the os env var name to get build id
+	BuildIDOSEnvVarName   = "BUILD_ID"
+	translateFailedPrefix = "TranslateFailed"
 )
 
 var (
@@ -55,7 +56,8 @@ var (
 		"windows-8-1-x64-byol": "windows/translate_windows_8-1_x64_byol.wf.json",
 		"windows-10-byol":      "windows/translate_windows_10_byol.wf.json",
 	}
-	privacyRegex = regexp.MustCompile(`\[Privacy\->.*?<\-Privacy\]`)
+	privacyRegex    = regexp.MustCompile(`\[Privacy\->.*?<\-Privacy\]`)
+	privacyTagRegex = regexp.MustCompile(`(\[Privacy\->)|(<\-Privacy\])`)
 )
 
 // ValidateOS validates that osID is supported by Daisy image import
@@ -116,7 +118,16 @@ func RemovePrivacyLogInfo(message string) string {
 
 	// All import/export bash scripts enclose privacy info inside "[Privacy-> XXX <-Privacy]". Let's
 	// remove it for privacy.
-	message = privacyRegex.ReplaceAllString(message, privacyInfoReplacement)
+	message = privacyRegex.ReplaceAllString(message, "")
+
+	return message
+}
+
+// RemovePrivacyLogTag removes privacy log tag.
+func RemovePrivacyLogTag(message string) string {
+	// All import/export bash scripts enclose privacy info inside a pair of tag "[Privacy->XXX<-Privacy]".
+	// Let's remove the tag to improve the readability.
+	message = privacyTagRegex.ReplaceAllString(message, "")
 
 	return message
 }

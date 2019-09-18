@@ -308,6 +308,7 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 }
 
 func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
+	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	daisyovfutils.AddDiskImportSteps(w, (*oi.diskInfos)[1:])
 	oi.updateInstance(w)
 }
@@ -413,20 +414,20 @@ func validateReleaseTrack(releaseTrack string) error {
 }
 
 // Import runs OVF import
-func (oi *OVFImporter) Import() error {
+func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
 	oi.Logger.Log("Starting OVF import workflow.")
 	w, err := oi.setUpImportWorkflow()
 	if err != nil {
 		oi.Logger.Log(err.Error())
-		return err
+		return w, err
 	}
 
 	if err := w.RunWithModifiers(oi.ctx, oi.modifyWorkflowPreValidate, oi.modifyWorkflowPostValidate); err != nil {
 		oi.Logger.Log(err.Error())
-		return err
+		return w, err
 	}
 	oi.Logger.Log("OVF import workflow finished successfully.")
-	return nil
+	return w, nil
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import

@@ -46,7 +46,6 @@ var (
 const (
 	ImageNameFlagKey = "image_name"
 	ClientIDFlagKey  = "client_id"
-	buildIDOSEnv     = "BUILD_ID"
 )
 
 func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
@@ -177,19 +176,24 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
 	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
-	userLabels map[string]string, storageLocation string) error {
+	userLabels map[string]string, storageLocation string) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
 		cloudLogsDisabled, stdoutLogsDisabled)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	workflowModifier := func(w *daisy.Workflow) {
-		workflow.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(buildIDOSEnv))
+	preValidateWorkflowModifier := func(w *daisy.Workflow) {
+		w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+	}
+
+	postValidateWorkflowModifier := func(w *daisy.Workflow) {
+		buildID := os.Getenv(daisyutils.BuildIDOSEnvVarName)
+		workflow.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisyutils.ResourceLabeler{
-			BuildID:         os.Getenv(buildIDOSEnv),
+			BuildID:         buildID,
 			UserLabels:      userLabels,
 			BuildIDLabelKey: "gce-image-import-build-id",
 			ImageLocation:   storageLocation,
@@ -210,7 +214,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 		daisyutils.UpdateAllInstanceNoExternalIP(w, noExternalIP)
 	}
 
-	return workflow.RunWithModifiers(ctx, nil, workflowModifier)
+	return workflow, workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
 }
 
 // Run runs import workflow.
@@ -219,12 +223,12 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	network string, subnet string, zone string, timeout string, project string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
-	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string) error {
+	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string) (*daisy.Workflow, error) {
 
 	sourceBucketName, sourceObjectName, userLabels, err := validateAndParseFlags(clientID, imageName,
 		sourceFile, sourceImage, dataDisk, osID, customTranWorkflow, labels)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ctx := context.Background()
@@ -232,14 +236,14 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	storageClient, err := storage.NewStorageClient(
 		ctx, logging.NewLogger("[image-import]"), oauth)
 	if err != nil {
-		return daisy.Errf("error creating storage client: %v", err)
+		return nil, err
 	}
 	defer storageClient.Close()
 
 	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
 	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	zoneRetriever := storage.NewZoneRetriever(metadataGCE, computeClient)
 
@@ -247,14 +251,14 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if sourceFile != "" {
 		err = validateSourceFile(storageClient, sourceBucketName, sourceObjectName)
 	}
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(dataDisk, osID, sourceImage,
@@ -263,11 +267,12 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	varMap := buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family,
 		description, *region, subnet, network, noGuestEnvironment)
 
-	if err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, project, scratchBucketGcsPath,
+	var w *daisy.Workflow
+	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
 		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation); err != nil {
 
-		return err
+		return w, err
 	}
-	return nil
+	return w, nil
 }
