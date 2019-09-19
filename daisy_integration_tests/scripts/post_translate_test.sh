@@ -142,6 +142,7 @@ function check_package_install {
   # Yum
   if [[ -d /etc/yum ]]; then
     status "Checking if yum can install a package."
+    yum -y update make
     yum -y reinstall make
     if [[ $? -ne 0 ]]; then
       fail "yum cannot install make."
