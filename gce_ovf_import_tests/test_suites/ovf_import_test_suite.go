@@ -176,11 +176,10 @@ func TestSuite(
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-4",
 			},
-			name:        fmt.Sprintf("ovf-import-test-debian-9-%s", suffix),
-			description: "Debian 9",
-			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", startupScriptLinuxSingleDisk),
-			assertTimeout:         7200 * time.Second,
+			// no startup script as this OVA has issues running it (possibly due to no SSH allowed)
+			// b/141321520
+			name:                  fmt.Sprintf("ovf-import-test-debian-9-%s", suffix),
+			description:           "Debian 9",
 			expectedMachineType:   "n1-standard-4",
 			expectedStartupOutput: "All tests passed!",
 		},
@@ -319,6 +318,11 @@ func runOvfImportTest(
 
 	if err != nil {
 		testCase.WriteFailure("Error stopping imported instance: %v", err)
+		return
+	}
+
+	if testSetup.startup == nil {
+		logger.Printf("[%v] Will not set test startup script to instance metadata as it's not defined", testSetup.name)
 		return
 	}
 
