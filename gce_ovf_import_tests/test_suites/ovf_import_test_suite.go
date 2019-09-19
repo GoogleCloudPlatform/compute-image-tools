@@ -324,7 +324,7 @@ func runOvfImportTest(
 	logger.Printf("[%v] Waiting for `%v` in instance serial console.", testSetup.name,
 		testSetup.expectedStartupOutput)
 	if err := instanceWrapper.WaitForSerialOutput(
-		testSetup.expectedStartupOutput, 1, 5*time.Second, 7*time.Minute); err != nil {
+		testSetup.expectedStartupOutput, 1, 5*time.Second, 15*time.Minute); err != nil {
 		testCase.WriteFailure("Error during VM validation: %v", err)
 		return
 	}
