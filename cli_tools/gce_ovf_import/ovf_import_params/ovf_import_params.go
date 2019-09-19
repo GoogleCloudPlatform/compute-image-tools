@@ -15,7 +15,7 @@
 package ovfimportparams
 
 import (
-	"encoding/json"
+	"fmt"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"google.golang.org/api/compute/v1"
@@ -65,9 +65,5 @@ type OVFImportParams struct {
 }
 
 func (oip *OVFImportParams) String() string {
-	out, err := json.Marshal(oip)
-	if err != nil {
-		return ""
-	}
-	return string(out)
+	return fmt.Sprintf("%#v", oip)
 }
