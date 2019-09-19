@@ -15,6 +15,8 @@
 package ovfimportparams
 
 import (
+	"encoding/json"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"google.golang.org/api/compute/v1"
 )
@@ -60,4 +62,12 @@ type OVFImportParams struct {
 	UserLabels            map[string]string
 	NodeAffinities        []*compute.SchedulingNodeAffinity
 	CurrentExecutablePath string
+}
+
+func (oip *OVFImportParams) String() string {
+	out, err := json.Marshal(oip)
+	if err != nil {
+		return ""
+	}
+	return string(out)
 }
