@@ -285,6 +285,7 @@ func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, e
 }
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
+	w.LogWorkflowInfo("OVF import flags: %s", oi.params)
 	w.LogWorkflowInfo("Cloud Build ID: %s", oi.BuildID)
 	rl := &daisyutils.ResourceLabeler{
 		BuildID:         oi.BuildID,
