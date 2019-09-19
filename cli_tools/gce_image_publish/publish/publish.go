@@ -91,8 +91,10 @@ type Image struct {
 	Licenses []string `json:",omitempty"`
 	// GuestOsFeatures to add to the image.
 	GuestOsFeatures []string `json:",omitempty"`
-	//Ignores license validation if 403/forbidden returned
+	// Ignores license validation if 403/forbidden returned
 	IgnoreLicenseValidationIfForbidden bool `json:",omitempty"`
+	// Optional DeprecationStatus.Obsolete entry for the image (RFC 3339).
+	ObsoleteDate *time.Time `json:",omitempty"`
 }
 
 var (
@@ -247,12 +249,21 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 		sourceName = fmt.Sprintf("%s-%s", sourceName, p.sourceVersion)
 	}
 
+	var ds *compute.DeprecationStatus
+	if img.ObsoleteDate != nil {
+		ds = &compute.DeprecationStatus{
+			State:    "ACTIVE",
+			Obsolete: img.ObsoleteDate.Format(time.RFC3339),
+		}
+	}
+
 	ci := daisy.Image{
 		Image: compute.Image{
 			Name:        publishName,
 			Description: img.Description,
 			Licenses:    img.Licenses,
 			Family:      img.Family,
+			Deprecated:  ds,
 		},
 		ImageBase: daisy.ImageBase{
 			Resource: daisy.Resource{
