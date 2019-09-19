@@ -176,11 +176,10 @@ func TestSuite(
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-4",
 			},
-			name:        fmt.Sprintf("ovf-import-test-debian-9-%s", suffix),
-			description: "Debian 9",
-			startup: computeUtils.BuildInstanceMetadataItem(
-				"startup-script", startupScriptLinuxSingleDisk),
-			assertTimeout:         7200 * time.Second,
+			// no startup script as this OVA has issues running it (possibly due to no SSH allowed)
+			// b/141321520
+			name:                  fmt.Sprintf("ovf-import-test-debian-9-%s", suffix),
+			description:           "Debian 9",
 			expectedMachineType:   "n1-standard-4",
 			expectedStartupOutput: "All tests passed!",
 		},
@@ -322,30 +321,34 @@ func runOvfImportTest(
 		return
 	}
 
-	logger.Printf("[%v] Setting instance metadata with test startup script", testSetup.name)
-	err = client.SetInstanceMetadata(testProjectConfig.TestProjectID, testProjectConfig.TestZone,
-		instanceName, &api.Metadata{Items: []*api.MetadataItems{testSetup.startup},
-			Fingerprint: instance.Metadata.Fingerprint})
+	if testSetup.startup != nil {
+		logger.Printf("[%v] Setting instance metadata with test startup script", testSetup.name)
+		err = client.SetInstanceMetadata(testProjectConfig.TestProjectID, testProjectConfig.TestZone,
+			instanceName, &api.Metadata{Items: []*api.MetadataItems{testSetup.startup},
+				Fingerprint: instance.Metadata.Fingerprint})
 
-	if err != nil {
-		testCase.WriteFailure("Couldn't set instance metadata to verify OVF import: %v", err)
-		return
-	}
+		if err != nil {
+			testCase.WriteFailure("Couldn't set instance metadata to verify OVF import: %v", err)
+			return
+		}
 
-	logger.Printf("[%v] Starting instance with test startup script", testSetup.name)
-	err = client.StartInstance(
-		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
-	if err != nil {
-		testCase.WriteFailure("Couldn't start instance to verify OVF import: %v", err)
-		return
-	}
+		logger.Printf("[%v] Starting instance with test startup script", testSetup.name)
+		err = client.StartInstance(
+			testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
+		if err != nil {
+			testCase.WriteFailure("Couldn't start instance to verify OVF import: %v", err)
+			return
+		}
 
-	logger.Printf("[%v] Waiting for `%v` in instance serial console.", testSetup.name,
-		testSetup.expectedStartupOutput)
-	if err := instanceWrapper.WaitForSerialOutput(
-		testSetup.expectedStartupOutput, 1, 5*time.Second, 7*time.Minute); err != nil {
-		testCase.WriteFailure("Error during VM validation: %v", err)
-		return
+		logger.Printf("[%v] Waiting for `%v` in instance serial console.", testSetup.name,
+			testSetup.expectedStartupOutput)
+		if err := instanceWrapper.WaitForSerialOutput(
+			testSetup.expectedStartupOutput, 1, 5*time.Second, 7*time.Minute); err != nil {
+			testCase.WriteFailure("Error during VM validation: %v", err)
+			return
+		}
+	} else {
+		logger.Printf("[%v] Will not set test startup script to instance metadata as it's nil", testSetup.name)
 	}
 }
 
