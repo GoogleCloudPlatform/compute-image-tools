@@ -17,6 +17,7 @@ package daisy
 import (
 	"context"
 	"sort"
+	"strconv"
 	"sync"
 
 	"google.golang.org/api/compute/v1"
@@ -50,8 +51,8 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 		go func(cd *Disk) {
 			defer wg.Done()
 
-			if cd.IsWindows {
-				cd.GuestOsFeatures = addGuestOSFeatures(cd.GuestOsFeatures, "WINDOWS")
+			if res, _ := strconv.ParseBool(cd.IsWindows); res {
+				cd.GuestOsFeatures = combineGuestOSFeatures(cd.GuestOsFeatures, "WINDOWS")
 			}
 
 			// Get the source image link if using a source image.
@@ -84,7 +85,10 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 	}
 }
 
-func addGuestOSFeatures(currentFeatures []*compute.GuestOsFeature, additionalFeatures ...string) []*compute.GuestOsFeature {
+// Merges two slices of features and returns a new slice instance.
+// Duplicates are removed, and the result is sorted lexically.
+func combineGuestOSFeatures(currentFeatures []*compute.GuestOsFeature,
+	additionalFeatures ...string) []*compute.GuestOsFeature {
 	featureSet := map[string]bool{}
 	for _, feature := range additionalFeatures {
 		featureSet[feature] = true

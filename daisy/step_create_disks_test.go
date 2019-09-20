@@ -54,7 +54,7 @@ func TestCreateDisksRun(t *testing.T) {
 					SourceImage:     "i1",
 					GuestOsFeatures: featuresOf("UEFI_COMPATIBLE"),
 				},
-				IsWindows: true},
+				IsWindows: "true"},
 			wantDisk: compute.Disk{
 				SourceImage:     "i1link",
 				GuestOsFeatures: featuresOf("UEFI_COMPATIBLE", "WINDOWS"),
@@ -80,7 +80,7 @@ func TestCreateDisksRun(t *testing.T) {
 	}
 }
 
-func TestAddGuestOSFeatures(t *testing.T) {
+func TestCombineGuestOSFeatures(t *testing.T) {
 
 	tests := []struct {
 		currentFeatures    []*compute.GuestOsFeature
@@ -120,10 +120,10 @@ func TestAddGuestOSFeatures(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := addGuestOSFeatures(test.currentFeatures, test.additionalFeatures...)
+		got := combineGuestOSFeatures(test.currentFeatures, test.additionalFeatures...)
 
 		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("addGuestOSFeatures(%v, %v) = %v, want %v",
+			t.Errorf("combineGuestOSFeatures(%v, %v) = %v, want %v",
 				test.currentFeatures, test.additionalFeatures, got, test.want)
 		}
 	}

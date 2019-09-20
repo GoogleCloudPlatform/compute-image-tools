@@ -67,8 +67,11 @@ type Disk struct {
 	Resource
 
 	// If this is enabled, then WINDOWS will be added to the
-	// disk's guestOsFeatures.
-	IsWindows bool
+	// disk's guestOsFeatures. This is a string since daisy
+	// replaces variables after JSON has been parsed.
+	// (If it were boolean, the JSON marshaller throws
+	// an error when it sees something like `${is_windows}`)
+	IsWindows string `json:"is_windows,omitempty"`
 
 	// Size of this disk.
 	SizeGb string `json:"sizeGb,omitempty"`
