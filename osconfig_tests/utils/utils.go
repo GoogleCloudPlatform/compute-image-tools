@@ -63,10 +63,10 @@ cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 name=Google OSConfig Agent Repository
 baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-%s-%s
 enabled=1
-gpgcheck=%s
+gpgcheck=%d
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-		https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+	   https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOM`
 
 	zypperRepoSetup = `
@@ -75,10 +75,10 @@ cat > /etc/zypp/repos.d/google-osconfig-agent.repo <<EOM
 name=Google OSConfig Agent Repository
 baseurl=https://packages.cloud.google.com/yum/repos/google-osconfig-agent-%s-%s
 enabled=1
-gpgcheck=%s
+gpgcheck=%d
 repo_gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
-		https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+	   https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 EOM`
 )
 
@@ -101,9 +101,9 @@ func InstallOSConfigGooGet() string {
 // InstallOSConfigSUSE installs the osconfig agent on suse systems.
 func InstallOSConfigSUSE() string {
 	if config.AgentRepo() == "staging" || config.AgentRepo() == "stable" {
-		return fmt.Sprintf(zypperRepoSetup+zypperInstallAgent, "el8", config.AgentRepo(), "1")
+		return fmt.Sprintf(zypperRepoSetup+zypperInstallAgent, "el8", config.AgentRepo(), 1)
 	}
-	return fmt.Sprintf(zypperRepoSetup+zypperInstallAgent, "el8", config.AgentRepo(), "0")
+	return fmt.Sprintf(zypperRepoSetup+zypperInstallAgent, "el8", config.AgentRepo(), 0)
 }
 
 // InstallOSConfigEL8 installs the osconfig agent on el8 based systems.
@@ -112,9 +112,9 @@ func InstallOSConfigEL8() string {
 		return yumInstallAgent
 	}
 	if config.AgentRepo() == "staging" {
-		return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el8", config.AgentRepo(), "1")
+		return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el8", config.AgentRepo(), 1)
 	}
-	return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el8", config.AgentRepo())
+	return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el8", config.AgentRepo(), 0)
 }
 
 // InstallOSConfigEL7 installs the osconfig agent on el7 based systems.
@@ -123,9 +123,9 @@ func InstallOSConfigEL7() string {
 		return yumInstallAgent
 	}
 	if config.AgentRepo() == "staging" {
-		return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el7", config.AgentRepo(), "1")
+		return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el7", config.AgentRepo(), 1)
 	}
-	return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el7", config.AgentRepo())
+	return fmt.Sprintf(yumRepoSetup+yumInstallAgent, "el7", config.AgentRepo(), 0)
 }
 
 // InstallOSConfigEL6 installs the osconfig agent on el6 based systems.
@@ -134,9 +134,9 @@ func InstallOSConfigEL6() string {
 		return "sleep 10" + yumInstallAgent
 	}
 	if config.AgentRepo() == "staging" {
-		return fmt.Sprintf("sleep 10"+yumRepoSetup+yumInstallAgent, "el6", config.AgentRepo(), "1")
+		return fmt.Sprintf("sleep 10"+yumRepoSetup+yumInstallAgent, "el6", config.AgentRepo(), 1)
 	}
-	return fmt.Sprintf("sleep 10"+yumRepoSetup+yumInstallAgent, "el6", config.AgentRepo())
+	return fmt.Sprintf("sleep 10"+yumRepoSetup+yumInstallAgent, "el6", config.AgentRepo(), 0)
 }
 
 // HeadAptImages is a map of names to image paths for public image families that use APT.
