@@ -113,6 +113,8 @@ type Workflow struct {
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
 	DefaultTimeout string `json:",omitempty"`
 	defaultTimeout time.Duration
+	// Async cleanup configuration
+	AsyncCleanup bool
 
 	// Working fields.
 	autovars              map[string]string
@@ -736,6 +738,9 @@ func New() *Workflow {
 	w.objects = newObjectRegistry(w)
 	w.targetInstances = newTargetInstanceRegistry(w)
 	w.addCleanupHook(func() DError {
+		// We need to set AutoDelete for those attached disk so that they can be deleted along with
+		// instances. Otherwise, async deletion will fail due that the disk is still in use by instance.
+		w.prepareAsyncDelete()
 		w.instances.cleanup() // instances need to be done before disks/networks
 		w.images.cleanup()
 		w.disks.cleanup()
@@ -749,6 +754,34 @@ func New() *Workflow {
 
 	w.id = randString(5)
 	return w
+}
+
+func (w *Workflow)prepareAsyncDelete() {
+	if !w.AsyncCleanup {
+		return
+	}
+
+	for dName, d := range w.disks.m {
+		fmt.Printf("Checking disk: %v\n", d.RealName)
+		dRes := w.disks.m[dName]
+		if dRes.NoCleanup {
+			continue
+		}
+
+		// Try to set AutoDelete for all instances that the disk may attached to. We can't assume the
+		// disk is attached to the last instance of the workflow, because when workflow is interrupted
+		// by a failure on half way, the disk may be attached to any instances.
+		iNames := w.disks.getAttachedInstances(dName)
+		for _, iName := range iNames {
+			fmt.Printf("Set AutoDelete for disk: %v instance: %v\n", dName, w.instances.m[iName].RealName)
+			err := w.ComputeClient.SetDiskAutoDelete(w.Project, w.Zone, w.instances.m[iName].RealName, true, dName)
+			if err == nil {
+				// Mark as deleted to avoid duplicate deletion by w.disks.cleanup()
+				dRes.deleted = true
+				break
+			}
+		}
+	}
 }
 
 // NewFromFile reads and unmarshals a workflow file.

@@ -145,9 +145,9 @@ func (dr *diskRegistry) init() {
 	dr.attachments = map[string]map[string]*diskAttachment{}
 }
 
-func (dr *diskRegistry) deleteFn(res *Resource) DError {
+func (dr *diskRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(diskURLRgx, res.link)
-	err := dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"])
+	err := dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete disk", err)
 	}
@@ -236,4 +236,16 @@ func (dr *diskRegistry) regDetachAll(iName string, s *Step) DError {
 		errs = addErrs(dr.detachHelper(dName, iName, s))
 	}
 	return errs
+}
+
+func (dr *diskRegistry) getAttachedInstances(dName string) []string {
+	attachedInstance := []string{}
+	var im map[string]*diskAttachment
+	if im, _ = dr.attachments[dName]; im != nil {
+		for iName, att := range im {
+			fmt.Printf("--Checking disk: %v instance:%v has attacher:%v has detacher:%v\n", dName, iName, att.attacher != nil, att.detacher != nil)
+			attachedInstance = append(attachedInstance, iName)
+		}
+	}
+	return attachedInstance
 }

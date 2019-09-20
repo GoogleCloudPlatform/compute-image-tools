@@ -121,9 +121,9 @@ func newForwardingRuleRegistry(w *Workflow) *forwardingRuleRegistry {
 	return tir
 }
 
-func (tir *forwardingRuleRegistry) deleteFn(res *Resource) DError {
+func (tir *forwardingRuleRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(forwardingRuleURLRegex, res.link)
-	err := tir.w.ComputeClient.DeleteForwardingRule(m["project"], m["region"], m["forwardingRule"])
+	err := tir.w.ComputeClient.DeleteForwardingRule(m["project"], m["region"], m["forwardingRule"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete forwarding rule", err)
 	}

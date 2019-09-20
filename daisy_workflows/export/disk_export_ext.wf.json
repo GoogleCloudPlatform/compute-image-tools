@@ -61,7 +61,7 @@
           "Name": "inst-${NAME}",
           "Disks": [
             {"Source": "disk-${NAME}-os"},
-            {"Source": "${source_disk}", "Mode": "READ_ONLY"},
+            {"Source": "${source_disk}"},
             {"Source": "disk-${NAME}-buffer-${ID}"}
           ],
           "MachineType": "n1-highcpu-4",
@@ -96,12 +96,6 @@
         }
       ]
     },
-    "delete-inst": {
-      "DeleteResources": {
-        "Instances": ["inst-${NAME}"],
-        "Disks": ["disk-${NAME}-os", "disk-${NAME}-buffer-${ID}"]
-      }
-    },
     "copy-image-object": {
       "CopyGCSObjects": [
         {
@@ -114,7 +108,6 @@
   "Dependencies": {
     "run-${NAME}": ["setup-disks"],
     "wait-for-inst-${NAME}": ["run-${NAME}"],
-    "delete-inst": ["wait-for-inst-${NAME}"],
     "copy-image-object": ["wait-for-inst-${NAME}"]
   }
 }

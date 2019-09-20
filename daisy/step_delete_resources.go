@@ -35,6 +35,7 @@ type DeleteResources struct {
 	Networks    []string `json:",omitempty"`
 	Subnetworks []string `json:",omitempty"`
 	GCSPaths    []string `json:",omitempty"`
+	Async bool
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
@@ -219,7 +220,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		go func(i string) {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting instance %q.", i)
-			if err := w.instances.delete(i); err != nil {
+			if err := w.instances.delete(i, d.Async); err != nil {
 				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting instance %q: %v", i, err)
 					return
@@ -234,7 +235,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		go func(i string) {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting image %q.", i)
-			if err := w.images.delete(i); err != nil {
+			if err := w.images.delete(i, d.Async); err != nil {
 				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting image %q: %v", i, err)
 					return
@@ -276,19 +277,19 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 
 	// Delete disks only after instances have been deleted.
 	e = make(chan DError)
-	for _, d := range d.Disks {
+	for _, disk := range d.Disks {
 		wg.Add(1)
-		go func(d string) {
+		go func(disk string) {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting disk %q.", d)
-			if err := w.disks.delete(d); err != nil {
+			if err := w.disks.delete(d, d.Async); err != nil {
 				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting disk %q: %v", d, err)
 					return
 				}
 				e <- err
 			}
-		}(d)
+		}(disk)
 	}
 
 	// Delete subnetworks after instances.
@@ -297,7 +298,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		go func(sn string) {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting subnetwork %q.", sn)
-			if err := w.subnetworks.delete(sn); err != nil {
+			if err := w.subnetworks.delete(sn, d.Async); err != nil {
 				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting subnetwork %q: %v", sn, err)
 				}
@@ -316,7 +317,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		go func(n string) {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting network %q.", n)
-			if err := w.networks.delete(n); err != nil {
+			if err := w.networks.delete(n, d.Async); err != nil {
 				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting network %q: %v", n, err)
 				}

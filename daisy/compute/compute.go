@@ -44,16 +44,14 @@ type Client interface {
 	CreateNetwork(project string, n *compute.Network) error
 	CreateSubnetwork(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
-	DeleteDisk(project, zone, name string) error
-	DeleteForwardingRule(project, region, name string) error
-	DeleteFirewallRule(project, name string) error
-	DeleteImage(project, name string) error
-	DeleteInstance(project, zone, name string) error
-	StartInstance(project, zone, name string) error
-	StopInstance(project, zone, name string) error
-	DeleteNetwork(project, name string) error
-	DeleteSubnetwork(project, region, name string) error
-	DeleteTargetInstance(project, zone, name string) error
+	DeleteDisk(project, zone, name string, async bool) error
+	DeleteForwardingRule(project, region, name string, async bool) error
+	DeleteFirewallRule(project, name string, async bool) error
+	DeleteImage(project, name string, async bool) error
+	DeleteInstance(project, zone, name string, async bool) error
+	DeleteNetwork(project, name string, async bool) error
+	DeleteSubnetwork(project, region, name string, async bool) error
+	DeleteTargetInstance(project, zone, name string, async bool) error
 	DeprecateImage(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineType(project, zone, machineType string) (*compute.MachineType, error)
 	GetProject(project string) (*compute.Project, error)
@@ -86,6 +84,9 @@ type Client interface {
 	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
+	SetDiskAutoDelete(project, zone, instance string, autoDelete bool, disk string) error
+	StartInstance(project, zone, name string) error
+	StopInstance(project, zone, name string) error
 
 	// Beta API calls
 	GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
@@ -526,103 +527,115 @@ func (c *client) CreateTargetInstance(project, zone string, ti *compute.TargetIn
 }
 
 // DeleteFirewallRule deletes a GCE FirewallRule.
-func (c *client) DeleteFirewallRule(project, name string) error {
+func (c *client) DeleteFirewallRule(project, name string, async bool) error {
 	op, err := c.Retry(c.raw.Firewalls.Delete(project, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.globalOperationsWait(project, op.Name)
+	if async {
+		return nil
+	} else {
+		return c.i.globalOperationsWait(project, op.Name)
+	}
 }
 
 // DeleteImage deletes a GCE image.
-func (c *client) DeleteImage(project, name string) error {
+func (c *client) DeleteImage(project, name string, async bool) error {
 	op, err := c.Retry(c.raw.Images.Delete(project, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.globalOperationsWait(project, op.Name)
+	if async {
+		return nil
+	} else {
+		return c.i.globalOperationsWait(project, op.Name)
+	}
 }
 
 // DeleteDisk deletes a GCE persistent disk.
-func (c *client) DeleteDisk(project, zone, name string) error {
+func (c *client) DeleteDisk(project, zone, name string, async bool) error {
 	op, err := c.Retry(c.raw.Disks.Delete(project, zone, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.zoneOperationsWait(project, zone, op.Name)
+	if async {
+		return nil
+	} else {
+		return c.i.zoneOperationsWait(project, zone, op.Name)
+	}
 }
 
 // DeleteForwardingRule deletes a GCE ForwardingRule.
-func (c *client) DeleteForwardingRule(project, region, name string) error {
+func (c *client) DeleteForwardingRule(project, region, name string, async bool) error {
 	op, err := c.Retry(c.raw.ForwardingRules.Delete(project, region, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.regionOperationsWait(project, region, op.Name)
+	if async {
+		return nil
+	} else {
+		return c.i.regionOperationsWait(project, region, op.Name)
+	}
 }
 
 // DeleteInstance deletes a GCE instance.
-func (c *client) DeleteInstance(project, zone, name string) error {
+func (c *client) DeleteInstance(project, zone, name string, async bool) error {
 	op, err := c.Retry(c.raw.Instances.Delete(project, zone, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.zoneOperationsWait(project, zone, op.Name)
-}
-
-// StartInstance starts a GCE instance.
-func (c *client) StartInstance(project, zone, name string) error {
-	op, err := c.Retry(c.raw.Instances.Start(project, zone, name).Do)
-	if err != nil {
-		return err
+	if async {
+		return nil
+	} else {
+		return c.i.zoneOperationsWait(project, zone, op.Name)
 	}
-
-	return c.i.zoneOperationsWait(project, zone, op.Name)
-}
-
-// StopInstance stops a GCE instance.
-func (c *client) StopInstance(project, zone, name string) error {
-	op, err := c.Retry(c.raw.Instances.Stop(project, zone, name).Do)
-	if err != nil {
-		return err
-	}
-
-	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // DeleteNetwork deletes a GCE network.
-func (c *client) DeleteNetwork(project, name string) error {
+func (c *client) DeleteNetwork(project, name string, async bool) error {
 	op, err := c.Retry(c.raw.Networks.Delete(project, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.globalOperationsWait(project, op.Name)
+	if async {
+		return nil
+	} else {
+		return c.i.globalOperationsWait(project, op.Name)
+	}
 }
 
 // DeleteSubnetwork deletes a GCE subnetwork.
-func (c *client) DeleteSubnetwork(project, region, name string) error {
+func (c *client) DeleteSubnetwork(project, region, name string, async bool) error {
 	op, err := c.Retry(c.raw.Subnetworks.Delete(project, region, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.regionOperationsWait(project, region, op.Name)
+	if async {
+		return nil
+	} else {
+		return c.i.regionOperationsWait(project, region, op.Name)
+	}
 }
 
 // DeleteTargetInstance deletes a GCE TargetInstance.
-func (c *client) DeleteTargetInstance(project, zone, name string) error {
+func (c *client) DeleteTargetInstance(project, zone, name string, async bool) error {
 	op, err := c.Retry(c.raw.TargetInstances.Delete(project, zone, name).Do)
 	if err != nil {
 		return err
 	}
 
-	return c.i.zoneOperationsWait(project, zone, op.Name)
+	if async {
+		return nil
+	} else {
+		return c.i.zoneOperationsWait(project, zone, op.Name)
+	}
 }
 
 // DeprecateImage sets deprecation status on a GCE image.
@@ -1090,6 +1103,36 @@ func (c *client) SetCommonInstanceMetadata(project string, md *compute.Metadata)
 	}
 
 	return c.i.globalOperationsWait(project, op.Name)
+}
+
+// SetDiskAutoDelete sets auto deletion for the disk
+func (c *client) SetDiskAutoDelete(project, zone, instance string, autoDelete bool, disk string) error {
+	op, err := c.Retry(c.raw.Instances.SetDiskAutoDelete(project, zone, instance, autoDelete, disk).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// StartInstance starts a GCE instance.
+func (c *client) StartInstance(project, zone, name string) error {
+	op, err := c.Retry(c.raw.Instances.Start(project, zone, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// StopInstance stops a GCE instance.
+func (c *client) StopInstance(project, zone, name string) error {
+	op, err := c.Retry(c.raw.Instances.Stop(project, zone, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // GetGuestAttributes gets a Guest Attributes.

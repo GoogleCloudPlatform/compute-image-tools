@@ -115,9 +115,9 @@ func newTargetInstanceRegistry(w *Workflow) *targetInstanceRegistry {
 	return tir
 }
 
-func (tir *targetInstanceRegistry) deleteFn(res *Resource) DError {
+func (tir *targetInstanceRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(targetInstanceURLRegex, res.link)
-	err := tir.w.ComputeClient.DeleteTargetInstance(m["project"], m["zone"], m["targetInstance"])
+	err := tir.w.ComputeClient.DeleteTargetInstance(m["project"], m["zone"], m["targetInstance"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete target instance", err)
 	}

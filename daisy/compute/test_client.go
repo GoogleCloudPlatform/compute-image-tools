@@ -60,14 +60,14 @@ type TestClient struct {
 	CreateTargetInstanceFn      func(project, zone string, ti *compute.TargetInstance) error
 	StartInstanceFn             func(project, zone, name string) error
 	StopInstanceFn              func(project, zone, name string) error
-	DeleteDiskFn                func(project, zone, name string) error
-	DeleteForwardingRuleFn      func(project, region, name string) error
-	DeleteFirewallRuleFn        func(project, name string) error
-	DeleteImageFn               func(project, name string) error
-	DeleteInstanceFn            func(project, zone, name string) error
-	DeleteNetworkFn             func(project, name string) error
-	DeleteSubnetworkFn          func(project, region, name string) error
-	DeleteTargetInstanceFn      func(project, zone, name string) error
+	DeleteDiskFn                func(project, zone, name string, async bool) error
+	DeleteForwardingRuleFn      func(project, region, name string, async bool) error
+	DeleteFirewallRuleFn        func(project, name string, async bool) error
+	DeleteImageFn               func(project, name string, async bool) error
+	DeleteInstanceFn            func(project, zone, name string, async bool) error
+	DeleteNetworkFn             func(project, name string, async bool) error
+	DeleteSubnetworkFn          func(project, region, name string, async bool) error
+	DeleteTargetInstanceFn      func(project, zone, name string, async bool) error
 	DeprecateImageFn            func(project, name string, deprecationstatus *compute.DeprecationStatus) error
 	GetMachineTypeFn            func(project, zone, machineType string) (*compute.MachineType, error)
 	ListMachineTypesFn          func(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
@@ -213,67 +213,67 @@ func (c *TestClient) StopInstance(project, zone, name string) error {
 }
 
 // DeleteDisk uses the override method DeleteDiskFn or the real implementation.
-func (c *TestClient) DeleteDisk(project, zone, name string) error {
+func (c *TestClient) DeleteDisk(project, zone, name string, async bool) error {
 	if c.DeleteDiskFn != nil {
-		return c.DeleteDiskFn(project, zone, name)
+		return c.DeleteDiskFn(project, zone, name, async)
 	}
-	return c.client.DeleteDisk(project, zone, name)
+	return c.client.DeleteDisk(project, zone, name, async)
 }
 
 // DeleteForwardingRule uses the override method DeleteForwardingRuleFn or the real implementation.
-func (c *TestClient) DeleteForwardingRule(project, region, name string) error {
+func (c *TestClient) DeleteForwardingRule(project, region, name string, async bool) error {
 	if c.DeleteForwardingRuleFn != nil {
-		return c.DeleteForwardingRuleFn(project, region, name)
+		return c.DeleteForwardingRuleFn(project, region, name, async)
 	}
-	return c.client.DeleteForwardingRule(project, region, name)
+	return c.client.DeleteForwardingRule(project, region, name, async)
 }
 
 // DeleteFirewallRule uses the override method DeleteFirewallRuleFn or the real implementation.
-func (c *TestClient) DeleteFirewallRule(project, name string) error {
+func (c *TestClient) DeleteFirewallRule(project, name string, async bool) error {
 	if c.DeleteFirewallRuleFn != nil {
-		return c.DeleteFirewallRuleFn(project, name)
+		return c.DeleteFirewallRuleFn(project, name, async)
 	}
-	return c.client.DeleteFirewallRule(project, name)
+	return c.client.DeleteFirewallRule(project, name, async)
 }
 
 // DeleteImage uses the override method DeleteImageFn or the real implementation.
-func (c *TestClient) DeleteImage(project, name string) error {
+func (c *TestClient) DeleteImage(project, name string, async bool) error {
 	if c.DeleteImageFn != nil {
-		return c.DeleteImageFn(project, name)
+		return c.DeleteImageFn(project, name, async)
 	}
-	return c.client.DeleteImage(project, name)
+	return c.client.DeleteImage(project, name, async)
 }
 
 // DeleteInstance uses the override method DeleteInstanceFn or the real implementation.
-func (c *TestClient) DeleteInstance(project, zone, name string) error {
+func (c *TestClient) DeleteInstance(project, zone, name string, async bool) error {
 	if c.DeleteInstanceFn != nil {
-		return c.DeleteInstanceFn(project, zone, name)
+		return c.DeleteInstanceFn(project, zone, name, async)
 	}
-	return c.client.DeleteInstance(project, zone, name)
+	return c.client.DeleteInstance(project, zone, name, async)
 }
 
 // DeleteNetwork uses the override method DeleteNetworkFn or the real implementation.
-func (c *TestClient) DeleteNetwork(project, name string) error {
+func (c *TestClient) DeleteNetwork(project, name string, async bool) error {
 	if c.DeleteNetworkFn != nil {
-		return c.DeleteNetworkFn(project, name)
+		return c.DeleteNetworkFn(project, name, async)
 	}
-	return c.client.DeleteNetwork(project, name)
+	return c.client.DeleteNetwork(project, name, async)
 }
 
 // DeleteSubnetwork uses the override method DeleteSubnetworkFn or the real implementation.
-func (c *TestClient) DeleteSubnetwork(project, region, name string) error {
+func (c *TestClient) DeleteSubnetwork(project, region, name string, async bool) error {
 	if c.DeleteSubnetworkFn != nil {
-		return c.DeleteSubnetworkFn(project, region, name)
+		return c.DeleteSubnetworkFn(project, region, name, async)
 	}
-	return c.client.DeleteSubnetwork(project, region, name)
+	return c.client.DeleteSubnetwork(project, region, name, async)
 }
 
 // DeleteTargetInstance uses the override method DeleteTargetInstanceFn or the real implementation.
-func (c *TestClient) DeleteTargetInstance(project, zone, name string) error {
+func (c *TestClient) DeleteTargetInstance(project, zone, name string, async bool) error {
 	if c.DeleteTargetInstanceFn != nil {
-		return c.DeleteTargetInstanceFn(project, zone, name)
+		return c.DeleteTargetInstanceFn(project, zone, name, async)
 	}
-	return c.client.DeleteTargetInstance(project, zone, name)
+	return c.client.DeleteTargetInstance(project, zone, name, async)
 }
 
 // DeprecateImage uses the override method DeprecateImageFn or the real implementation.

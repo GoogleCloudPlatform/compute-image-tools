@@ -62,5 +62,6 @@
   },
   "Dependencies": {
     "${NAME}-export-disk": ["setup-disks"]
-  }
+  },
+  "AsyncCleanup": true
 }

@@ -105,7 +105,7 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) DError {
 		// Delete existing if OverWrite is true.
 		if overwrite {
 			// Just try to delete it, a 404 here indicates the image doesn't exist.
-			if err := ci.delete(w.ComputeClient); err != nil {
+			if err := ci.delete(w.ComputeClient, false, false); err != nil {
 				if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
 					e <- Errf("error deleting existing image: %v", err)
 					return

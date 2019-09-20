@@ -64,12 +64,14 @@
     },
     "cleanup": {
       "DeleteResources": {
-        "Disks": ["${translation-disk-name}"]
+        "Disks": ["${translation-disk-name}"],
+        "AsyncCleanup": true
       }
     }
   },
   "Dependencies": {
     "translate": ["import"],
     "cleanup": ["translate"]
-  }
+  },
+  "AsyncCleanup": true
 }

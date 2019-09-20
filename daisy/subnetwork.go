@@ -117,9 +117,9 @@ func newSubnetworkRegistry(w *Workflow) *subnetworkRegistry {
 	return nr
 }
 
-func (nr *subnetworkRegistry) deleteFn(res *Resource) DError {
+func (nr *subnetworkRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(subnetworkURLRegex, res.link)
-	err := nr.w.ComputeClient.DeleteSubnetwork(m["project"], m["region"], m["subnetwork"])
+	err := nr.w.ComputeClient.DeleteSubnetwork(m["project"], m["region"], m["subnetwork"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete subnetwork", err)
 	}

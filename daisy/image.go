@@ -405,9 +405,9 @@ func newImageRegistry(w *Workflow) *imageRegistry {
 	return ir
 }
 
-func (ir *imageRegistry) deleteFn(res *Resource) DError {
+func (ir *imageRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(imageURLRgx, res.link)
-	err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"])
+	err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete image", err)
 	}
