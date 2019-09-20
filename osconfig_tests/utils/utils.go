@@ -38,11 +38,7 @@ sleep 5
 done` + curlPost
 
 	zypperInstallAgent = `
-wget https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-wget https://packages.cloud.google.com/yum/doc/yum-key.gpg
-rpm --import yum-key.gpg
-rpm --import rpm-package-key.gpg
-while ! zypper -n install google-osconfig-agent; do
+while ! zypper -n --no-gpg-checks install google-osconfig-agent; do
 if [[ n -gt 3 ]]; then
   exit 1
 fi
