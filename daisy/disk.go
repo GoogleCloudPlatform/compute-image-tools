@@ -66,6 +66,10 @@ type Disk struct {
 	compute.Disk
 	Resource
 
+	// If this is enabled, then WINDOWS will be added to the
+	// disk's guestOsFeatures.
+	IsWindows bool
+
 	// Size of this disk.
 	SizeGb string `json:"sizeGb,omitempty"`
 }

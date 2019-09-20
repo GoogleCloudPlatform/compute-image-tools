@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -31,25 +32,109 @@ func TestCreateDisksRun(t *testing.T) {
 	e := Errf("error")
 	tests := []struct {
 		desc      string
-		d         compute.Disk
-		wantD     compute.Disk
+		inputDisk Disk
+		wantDisk  compute.Disk
 		clientErr error
 		wantErr   DError
 	}{
-		{"blank case", compute.Disk{}, compute.Disk{}, nil, nil},
-		{"resolve source image case", compute.Disk{SourceImage: "i1"}, compute.Disk{SourceImage: "i1link"}, nil, nil},
-		{"client error case", compute.Disk{}, compute.Disk{}, e, e},
+		{
+			desc:      "generic disks shouldn't be modified",
+			inputDisk: Disk{Disk: compute.Disk{}},
+			wantDisk:  compute.Disk{},
+		},
+		{
+			desc:      "replace source image's name with its link",
+			inputDisk: Disk{Disk: compute.Disk{SourceImage: "i1"}},
+			wantDisk:  compute.Disk{SourceImage: "i1link"},
+		},
+		{
+			desc: "if disk is marked as Windows, add WINDOWS guest os feature",
+			inputDisk: Disk{
+				Disk: compute.Disk{
+					SourceImage:     "i1",
+					GuestOsFeatures: featuresOf("UEFI_COMPATIBLE"),
+				},
+				IsWindows: true},
+			wantDisk: compute.Disk{
+				SourceImage:     "i1link",
+				GuestOsFeatures: featuresOf("UEFI_COMPATIBLE", "WINDOWS"),
+			},
+		},
+		{
+			desc:      "propagate errors unchanged",
+			clientErr: e,
+			wantErr:   e,
+		},
 	}
 	for _, tt := range tests {
 		var gotD compute.Disk
 		fake := func(_, _ string, d *compute.Disk) error { gotD = *d; return tt.clientErr }
 		w.ComputeClient = &daisyCompute.TestClient{CreateDiskFn: fake}
-		cds := &CreateDisks{{Disk: tt.d}}
+		cds := &CreateDisks{&tt.inputDisk}
 		if err := cds.run(ctx, s); err != tt.wantErr {
 			t.Errorf("%s: unexpected error returned, got: %v, want: %v", tt.desc, err, tt.wantErr)
 		}
-		if diffRes := diff(gotD, tt.wantD, 0); diffRes != "" {
-			t.Errorf("%s: client got incorrect disk, got: %v, want: %v", tt.desc, gotD, tt.wantD)
+		if diffRes := diff(gotD, tt.wantDisk, 0); diffRes != "" {
+			t.Errorf("%s: client got incorrect disk, got: %v, want: %v", tt.desc, gotD, tt.wantDisk)
 		}
 	}
+}
+
+func TestAddGuestOSFeatures(t *testing.T) {
+
+	tests := []struct {
+		currentFeatures    []*compute.GuestOsFeature
+		additionalFeatures []string
+		want               []*compute.GuestOsFeature
+	}{
+		{
+			currentFeatures:    featuresOf(),
+			additionalFeatures: []string{},
+			want:               featuresOf(),
+		},
+		{
+			currentFeatures:    featuresOf("WINDOWS"),
+			additionalFeatures: []string{},
+			want:               featuresOf("WINDOWS"),
+		},
+		{
+			currentFeatures:    featuresOf(),
+			additionalFeatures: []string{"WINDOWS"},
+			want:               featuresOf("WINDOWS"),
+		},
+		{
+			currentFeatures:    featuresOf("WINDOWS"),
+			additionalFeatures: []string{"WINDOWS"},
+			want:               featuresOf("WINDOWS"),
+		},
+		{
+			currentFeatures:    featuresOf("SECURE_BOOT"),
+			additionalFeatures: []string{"WINDOWS"},
+			want:               featuresOf("SECURE_BOOT", "WINDOWS"),
+		},
+		{
+			currentFeatures:    featuresOf("SECURE_BOOT", "UEFI_COMPATIBLE"),
+			additionalFeatures: []string{"WINDOWS", "UEFI_COMPATIBLE"},
+			want:               featuresOf("SECURE_BOOT", "UEFI_COMPATIBLE", "WINDOWS"),
+		},
+	}
+
+	for _, test := range tests {
+		got := addGuestOSFeatures(test.currentFeatures, test.additionalFeatures...)
+
+		if !reflect.DeepEqual(got, test.want) {
+			t.Errorf("addGuestOSFeatures(%v, %v) = %v, want %v",
+				test.currentFeatures, test.additionalFeatures, got, test.want)
+		}
+	}
+}
+
+func featuresOf(features ...string) []*compute.GuestOsFeature {
+	ret := make([]*compute.GuestOsFeature, 0)
+	for _, feature := range features {
+		ret = append(ret, &compute.GuestOsFeature{
+			Type: feature,
+		})
+	}
+	return ret
 }
