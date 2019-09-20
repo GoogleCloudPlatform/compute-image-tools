@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -83,7 +84,7 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 
 	varMap["destination"] = destinationURI
 
-	varMap["source_image"] = sourceImage
+	varMap["source_image"] = getFullImagePath(sourceImage)
 
 	if format != "" {
 		varMap["format"] = format
@@ -99,6 +100,14 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 		varMap["export_network"] = fmt.Sprintf("global/networks/%v", network)
 	}
 	return varMap
+}
+
+func getFullImagePath(imageName string) string {
+	if !strings.Contains(imageName, "/") {
+		// Extend simple image name to full image name
+		return fmt.Sprintf("global/images/%v", imageName)
+	}
+	return imageName
 }
 
 func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap map[string]string,
