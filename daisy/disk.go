@@ -72,7 +72,7 @@ type Disk struct {
 	// replaces variables after JSON has been parsed.
 	// (If it were boolean, the JSON marshaller throws
 	// an error when it sees something like `${is_windows}`)
-	IsWindows string `json:"IsWindows,omitempty"`
+	IsWindows string `json:"isWindows,omitempty"`
 
 	// Size of this disk.
 	SizeGb string `json:"sizeGb,omitempty"`

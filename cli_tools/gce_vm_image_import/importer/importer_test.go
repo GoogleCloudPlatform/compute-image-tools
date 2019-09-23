@@ -270,7 +270,7 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	assert.Equal(t, got["description"], "a-description")
 	assert.Equal(t, got["import_network"], "global/networks/a-network")
 	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
-	assert.Equal(t, got["IsWindows"], "false")
+	assert.Equal(t, got["isWindows"], "false")
 	assert.Equal(t, len(got), 9)
 }
 
@@ -297,7 +297,7 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 	assert.Equal(t, got["description"], "a-description")
 	assert.Equal(t, got["import_network"], "global/networks/a-network")
 	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
-	assert.Equal(t, got["IsWindows"], "false")
+	assert.Equal(t, got["isWindows"], "false")
 	assert.Equal(t, len(got), 9)
 }
 
@@ -309,7 +309,7 @@ func TestBuildDaisyVarsWindow(t *testing.T) {
 	got := buildDaisyVars("translate/workflow/path/windows", imageName, sourceFile,
 		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
 
-	assert.Equal(t, "true", got["IsWindows"])
+	assert.Equal(t, "true", got["isWindows"])
 }
 
 func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
