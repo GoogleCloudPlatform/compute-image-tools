@@ -17,10 +17,6 @@
       "Value": "true",
       "Description": "Whether to install GCE packages."
     },
-    "is_windows": {
-      "Value": "false",
-      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
-    },
     "family": {
       "Value": "",
       "Description": "Optional family to set for the translated image"
@@ -37,6 +33,10 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
+    },
+    "is_windows": {
+      "Value": "false",
+      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
     }
   },
   "Steps": {
