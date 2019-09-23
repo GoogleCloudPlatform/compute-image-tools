@@ -46,7 +46,7 @@
         "Type": "pd-ssd",
         "ExactName": true,
         "SourceImage": "${source_image}",
-        "is_windows": "${is_windows}"
+        "IsWindows": "${is_windows}"
       }]
     },
     "translate-disk": {

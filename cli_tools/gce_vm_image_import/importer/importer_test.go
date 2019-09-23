@@ -247,109 +247,69 @@ func TestFlagsInvalidOS(t *testing.T) {
 	}
 }
 
-func TestBuildDaisyVars(t *testing.T) {
+func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	resetArgs()
+	imageName = "image-a"
+	noGuestEnvironment = true
+	sourceFile = "source-file-path"
+	sourceImage = ""
+	family = "a-family"
+	description = "a-description"
+	network = "a-network"
+	subnet = "a-subnet"
+	region := "a-region"
 
-	testCases := []struct {
-		imageName             string
-		translateWorkflowPath string
-		noGuestEnvironment    bool
-		sourceFile            string
-		sourceImage           string
-		family                string
-		description           string
-		network               string
-		subnet                string
-		region                string
-		want                  map[string]string
-	}{
-		{
-			imageName:             "image-a",
-			translateWorkflowPath: "translate/workflow/path",
-			noGuestEnvironment:    true,
-			sourceFile:            "",
-			sourceImage:           "source-image",
-			family:                "a-family",
-			description:           "a-description",
-			network:               "a-network",
-			subnet:                "a-subnet",
-			region:                "a-region",
-			want: map[string]string{
-				"image_name":           "image-a",
-				"translate_workflow":   "translate/workflow/path",
-				"install_gce_packages": "false",
-				"source_image":         "global/images/source-image",
-				"family":               "a-family",
-				"description":          "a-description",
-				"import_network":       "global/networks/a-network",
-				"import_subnet":        "regions/a-region/subnetworks/a-subnet",
-				"is_windows":           "false",
-			},
-		},
-		{
-			imageName:             "image-a",
-			translateWorkflowPath: "windows/translate_windows_2008_r2.wf.json",
-			noGuestEnvironment:    true,
-			sourceFile:            "source-file-path",
-			sourceImage:           "",
-			family:                "a-family",
-			description:           "a-description",
-			network:               "a-network",
-			subnet:                "a-subnet",
-			region:                "a-region",
-			want: map[string]string{
-				"image_name":           "image-a",
-				"translate_workflow":   "windows/translate_windows_2008_r2.wf.json",
-				"install_gce_packages": "false",
-				"source_disk_file":     "source-file-path",
-				"family":               "a-family",
-				"description":          "a-description",
-				"import_network":       "global/networks/a-network",
-				"import_subnet":        "regions/a-region/subnetworks/a-subnet",
-				"is_windows":           "true",
-			},
-		},
-		{
-			imageName:             "image-a",
-			translateWorkflowPath: "translate/workflow/path",
-			noGuestEnvironment:    true,
-			sourceFile:            "source-file-path",
-			sourceImage:           "",
-			family:                "a-family",
-			description:           "a-description",
-			network:               "a-network",
-			subnet:                "a-subnet",
-			region:                "a-region",
-			want: map[string]string{
-				"image_name":           "image-a",
-				"translate_workflow":   "translate/workflow/path",
-				"install_gce_packages": "false",
-				"source_disk_file":     "source-file-path",
-				"family":               "a-family",
-				"description":          "a-description",
-				"import_network":       "global/networks/a-network",
-				"import_subnet":        "regions/a-region/subnetworks/a-subnet",
-				"is_windows":           "false",
-			},
-		},
-	}
+	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
+		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
 
-	for _, testCase := range testCases {
-		resetArgs()
-		got := buildDaisyVars(
-			testCase.translateWorkflowPath,
-			testCase.imageName,
-			testCase.sourceFile,
-			testCase.sourceImage,
-			testCase.family,
-			testCase.description,
-			testCase.region,
-			testCase.subnet,
-			testCase.network,
-			testCase.noGuestEnvironment)
+	assert.Equal(t, got["image_name"], "image-a")
+	assert.Equal(t, got["translate_workflow"], "translate/workflow/path")
+	assert.Equal(t, got["install_gce_packages"], "false")
+	assert.Equal(t, got["source_disk_file"], "source-file-path")
+	assert.Equal(t, got["family"], "a-family")
+	assert.Equal(t, got["description"], "a-description")
+	assert.Equal(t, got["import_network"], "global/networks/a-network")
+	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
+	assert.Equal(t, got["IsWindows"], "false")
+	assert.Equal(t, len(got), 9)
+}
 
-		assert.Equal(t, testCase.want, got)
-	}
+func TestBuildDaisyVarsFromImage(t *testing.T) {
+	resetArgs()
+	imageName = "image-a"
+	noGuestEnvironment = true
+	sourceFile = ""
+	sourceImage = "source-image"
+	family = "a-family"
+	description = "a-description"
+	network = "a-network"
+	subnet = "a-subnet"
+	region := "a-region"
+
+	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
+		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
+
+	assert.Equal(t, got["image_name"], "image-a")
+	assert.Equal(t, got["translate_workflow"], "translate/workflow/path")
+	assert.Equal(t, got["install_gce_packages"], "false")
+	assert.Equal(t, got["source_image"], "global/images/source-image")
+	assert.Equal(t, got["family"], "a-family")
+	assert.Equal(t, got["description"], "a-description")
+	assert.Equal(t, got["import_network"], "global/networks/a-network")
+	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
+	assert.Equal(t, got["IsWindows"], "false")
+	assert.Equal(t, len(got), 9)
+}
+
+func TestBuildDaisyVarsWindow(t *testing.T) {
+	resetArgs()
+	imageName = "image-a"
+
+	region := ""
+	got := buildDaisyVars("translate/workflow/path/windows", imageName, sourceFile,
+		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
+
+	assert.Equal(t, "true", got["IsWindows"])
 }
 
 func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {

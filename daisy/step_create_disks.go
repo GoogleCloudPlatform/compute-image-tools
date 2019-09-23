@@ -16,11 +16,7 @@ package daisy
 
 import (
 	"context"
-	"sort"
-	"strconv"
 	"sync"
-
-	"google.golang.org/api/compute/v1"
 )
 
 // CreateDisks is a Daisy CreateDisks workflow step.
@@ -51,10 +47,6 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 		go func(cd *Disk) {
 			defer wg.Done()
 
-			if res, _ := strconv.ParseBool(cd.IsWindows); res {
-				cd.GuestOsFeatures = combineGuestOSFeatures(cd.GuestOsFeatures, "WINDOWS")
-			}
-
 			// Get the source image link if using a source image.
 			if cd.SourceImage != "" {
 				if image, ok := w.images.get(cd.SourceImage); ok {
@@ -83,29 +75,4 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 		wg.Wait()
 		return nil
 	}
-}
-
-// Merges two slices of features and returns a new slice instance.
-// Duplicates are removed, and the result is sorted lexically.
-func combineGuestOSFeatures(currentFeatures []*compute.GuestOsFeature,
-	additionalFeatures ...string) []*compute.GuestOsFeature {
-	featureSet := map[string]bool{}
-	for _, feature := range additionalFeatures {
-		featureSet[feature] = true
-	}
-	for _, feature := range currentFeatures {
-		featureSet[feature.Type] = true
-	}
-	ret := make([]*compute.GuestOsFeature, 0)
-	for feature := range featureSet {
-		ret = append(ret, &compute.GuestOsFeature{
-			Type: feature,
-		})
-	}
-	// Sort elements by type, lexically. This ensures
-	// stability of output ordering for tests.
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].Type < ret[j].Type
-	})
-	return ret
 }

@@ -150,7 +150,7 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 	if translateWorkflowPath != "" {
 		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!noGuestEnvironment)
-		varMap["is_windows"] = strconv.FormatBool(strings.Contains(translateWorkflowPath, "windows"))
+		varMap["IsWindows"] = strconv.FormatBool(strings.Contains(translateWorkflowPath, "windows"))
 	}
 	if sourceFile != "" {
 		varMap["source_disk_file"] = sourceFile

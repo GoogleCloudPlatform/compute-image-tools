@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -71,7 +72,7 @@ type Disk struct {
 	// replaces variables after JSON has been parsed.
 	// (If it were boolean, the JSON marshaller throws
 	// an error when it sees something like `${is_windows}`)
-	IsWindows string `json:"is_windows,omitempty"`
+	IsWindows string `json:"IsWindows,omitempty"`
 
 	// Size of this disk.
 	SizeGb string `json:"sizeGb,omitempty"`
@@ -94,6 +95,17 @@ func (d *Disk) populate(ctx context.Context, s *Step) DError {
 		}
 		d.Disk.SizeGb = size
 	}
+
+	if d.IsWindows != "" {
+		isWindows, err := strconv.ParseBool(d.IsWindows)
+		if err != nil {
+			errs = addErrs(errs, Errf("cannot parse IsWindows as boolean: %s, err: %v", d.IsWindows, err))
+		}
+		if isWindows {
+			d.GuestOsFeatures = combineGuestOSFeatures(d.GuestOsFeatures, "WINDOWS")
+		}
+	}
+
 	if imageURLRgx.MatchString(d.SourceImage) {
 		d.SourceImage = extendPartialURL(d.SourceImage, d.Project)
 	}
@@ -243,4 +255,30 @@ func (dr *diskRegistry) regDetachAll(iName string, s *Step) DError {
 		errs = addErrs(dr.detachHelper(dName, iName, s))
 	}
 	return errs
+}
+
+// Merges two slices of features and returns a new slice instance.
+// Duplicates are removed.
+func combineGuestOSFeatures(features1 []*compute.GuestOsFeature,
+	features2 ...string) []*compute.GuestOsFeature {
+
+	featureSet := map[string]bool{}
+	for _, feature := range features2 {
+		featureSet[feature] = true
+	}
+	for _, feature := range features1 {
+		featureSet[feature.Type] = true
+	}
+	ret := make([]*compute.GuestOsFeature, 0)
+	for feature := range featureSet {
+		ret = append(ret, &compute.GuestOsFeature{
+			Type: feature,
+		})
+	}
+	// Sort elements by type, lexically. This ensures
+	// stability of output ordering for tests.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Type < ret[j].Type
+	})
+	return ret
 }
