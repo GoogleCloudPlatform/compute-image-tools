@@ -202,6 +202,20 @@ func TestSuite(
 			expectedMachineType:   "n1-standard-4",
 			expectedStartupOutput: "All tests passed!",
 		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("aws-ova-ubuntu-1604-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/aws-ova-ubuntu-1604.ova", ovaBucket),
+				OsID:          "ubuntu-1604",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+			},
+			name:        fmt.Sprintf("aws-ova-ubuntu-1604-%s", suffix),
+			description: "Ubuntu 1604 from AWS",
+		},
 	}
 
 	var wg sync.WaitGroup
