@@ -278,6 +278,20 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
     custom_post = '\n'.join([rhel_post, el_post])
     cleanup = FetchConfigPart('el8-cleanup.cfg')
     repo_version = 'el8'
+  elif release == "centos8":
+    logging.info('Building CentOS 8 image.')
+    if uefi:
+      logging.info('Building CentOS 8 for UEFI')
+      ks_options = FetchConfigPart('el8-uefi-options.cfg')
+    else:
+      ks_options = FetchConfigPart('el8-options.cfg')
+    custom_post = FetchConfigPart('el8-post.cfg')
+    if uefi:
+      el8_uefi_post = FetchConfigPart('el8-uefi-post.cfg').replace("redhat",
+                                                                   "centos")
+      custom_post = '\n'.join([custom_post, el8_uefi_post])
+    cleanup = FetchConfigPart('el8-cleanup.cfg')
+    repo_version = 'el8'
   else:
     logging.error('Unknown Image Name: %s' % release)
 
