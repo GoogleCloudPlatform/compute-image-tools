@@ -102,7 +102,7 @@ def main():
 
     # Change labels to explicit partitions.
     if release.startswith(('centos7', 'rhel7', 'rhel-7', 'oraclelinux7',
-                           'rhel8')):
+                           'centos8', 'rhel8')):
       cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.

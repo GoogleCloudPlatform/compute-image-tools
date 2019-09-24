@@ -109,7 +109,7 @@ def main():
       args += ' inst.nosave=all'
     cfg = re.sub(r'inst\.stage2.*', r'\g<0> %s' % args, cfg)
 
-    if release in ['centos7', 'rhel7', 'oraclelinux7', 'rhel8']:
+    if release in ['centos7', 'rhel7', 'oraclelinux7', 'centos8', 'rhel8']:
       cfg = re.sub(r'LABEL=[^ :]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.
