@@ -22,6 +22,10 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
+    },
+    "is_windows": {
+      "Value": "false",
+      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
     }
   },
   "Sources": {
@@ -42,7 +46,8 @@
           "SizeGb": "10",
           "Type": "pd-ssd",
           "ExactName": true,
-          "NoCleanup": true
+          "NoCleanup": true,
+          "isWindows": "${is_windows}"
         },
         {
           "Name": "disk-${NAME}-scratch-${ID}",

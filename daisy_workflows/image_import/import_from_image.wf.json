@@ -33,6 +33,10 @@
     "import_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the import instance"
+    },
+    "is_windows": {
+      "Value": "false",
+      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
     }
   },
   "Steps": {
@@ -41,7 +45,8 @@
         "Name": "${disk_name}",
         "Type": "pd-ssd",
         "ExactName": true,
-        "SourceImage": "${source_image}"
+        "SourceImage": "${source_image}",
+        "isWindows": "${is_windows}"
       }]
     },
     "translate-disk": {
