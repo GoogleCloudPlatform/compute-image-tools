@@ -17,7 +17,6 @@ package guestpolicies
 import (
 	"fmt"
 	"path"
-	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/google/logger"
@@ -34,12 +33,40 @@ var (
 	}
 )
 
+var waitForRestartLinux = `
+echo 'Waiting for signal to restart agent'
+while [[ -z $restarted ]]; do
+  sleep 1
+  restart=$(curl -f "http://metadata.google.internal/computeMetadata/v1/instance/attributes/restart-agent" -H "Metadata-Flavor: Google")
+  if [[ -n $restart ]]; then
+    systemctl restart google-osconfig-agent
+    restart -q -n google-osconfig-agent  # required for EL6
+    restarted=true
+    sleep 30
+  fi
+done
+`
+
+var waitForRestartWin = `
+echo 'Waiting for signal to restart agent'
+while (! $restarted) {
+  sleep 1
+  $restart = Invoke-WebRequest -UseBasicParsing http://metadata.google.internal/computeMetadata/v1/instance/attributes/restart-agent -Headers @{"Metadata-Flavor"="Google"}
+  if ($restart) {
+    Restart-Service google_osconfig_agent
+    $restarted = $true
+    sleep 30
+  }
+}
+`
+
 func getStartupScript(image, pkgManager, packageName string) *computeApi.MetadataItems {
 	var ss, key string
 
 	switch pkgManager {
 	case "apt":
 		ss = `%s
+%s
 while true; do
   isinstalled=$(/usr/bin/dpkg-query -s %s)
   if [[ $isinstalled =~ "Status: install ok installed" ]]; then
@@ -52,14 +79,15 @@ while true; do
   sleep 5
 done`
 
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb(), packageName, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb(), waitForRestartLinux, packageName, packageInstalled, packageNotInstalled)
 		key = "startup-script"
 
 	case "yum":
 		ss = `%s
+%s
 while true; do
-  isinstalled=$(/usr/bin/rpmquery -a %[2]s)
-  if [[ $isinstalled =~ ^%[2]s-* ]]; then
+  isinstalled=$(/usr/bin/rpmquery -a %[3]s)
+  if [[ $isinstalled =~ ^%[3]s-* ]]; then
     uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s
     curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
   else
@@ -68,11 +96,13 @@ while true; do
   fi
   sleep 5
 done`
-		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], waitForRestartLinux, packageName, packageInstalled, packageNotInstalled)
 		key = "startup-script"
 
 	case "googet":
 		ss = `%s
+googet addrepo test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository
+%s
 while(1) {
   $installed_packages = googet installed
   if ($installed_packages -like "*%s*") {
@@ -84,15 +114,15 @@ while(1) {
   }
   sleep 5
 }`
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), waitForRestartWin, packageName, packageInstalled, packageNotInstalled)
 		key = "windows-startup-script-ps1"
 
 	case "zypper":
 		ss = `%s
-systemctl restart google-osconfig-agent
+%s
 while true; do
-  isinstalled=$(/usr/bin/rpmquery -a %[2]s)
-  if [[ $isinstalled =~ ^%[2]s-* ]]; then
+  isinstalled=$(/usr/bin/rpmquery -a %[3]s)
+  if [[ $isinstalled =~ ^%[3]s-* ]]; then
 	uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s
 	curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
   else
@@ -101,7 +131,7 @@ while true; do
   fi
   sleep 5
 done`
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigSUSE(), packageName, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigSUSE(), waitForRestartLinux, packageName, packageInstalled, packageNotInstalled)
 		key = "startup-script"
 
 	default:
@@ -120,39 +150,34 @@ func getUpdateStartupScript(image, pkgManager, packageName string) *computeApi.M
 	switch pkgManager {
 	case "apt":
 		ss = `%s
-sleep 30
+echo 'Adding test repo'
+echo 'deb http://packages.cloud.google.com/apt osconfig-agent-test-repository main' >> /etc/apt/sources.list
+curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do
    sleep 5
 done
+apt-get update
 apt-get -y remove %[2]s || exit 1
 apt-get -y install %[2]s=3.03+dfsg1-10 || exit 1
-systemctl restart google-osconfig-agent
-sleep 30
-while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-   sleep 5
-done
+%[3]s
 while true; do
   isinstalled=$(/usr/bin/dpkg-query -s %[2]s)
   if [[ $isinstalled =~ "Version: 3.03+dfsg1-10" ]]; then
-    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s
+    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[4]s
     curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
   else
-    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s
+    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[5]s
     curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
   fi
   sleep 5;
 done`
 
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb(), packageName, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigDeb(), packageName, waitForRestartLinux, packageInstalled, packageNotInstalled)
 		key = "startup-script"
 
 	case "yum":
-		restartAgent := "systemctl restart google-osconfig-agent"
-		if strings.HasSuffix(image, "-6") {
-			restartAgent = "restart -q -n google-osconfig-agent"
-		}
 		ss = `%s
-sleep 20
+echo 'Adding test repo'
 cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [test-repo]
 name=test repo
@@ -170,7 +195,6 @@ while ! yum -y remove %[2]s; do
 done
 yum -y install %[2]s-3.03-2.fc7 || exit 1
 %[3]s
-sleep 20
 while true; do
   isinstalled=$(/usr/bin/rpmquery -a %[2]s)
   if [[ $isinstalled =~ 3.03-2.fc7 ]]; then
@@ -182,34 +206,34 @@ while true; do
   fi
   sleep 5
 done`
-		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, restartAgent, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, yumStartupScripts[path.Base(image)], packageName, waitForRestartLinux, packageInstalled, packageNotInstalled)
 		key = "startup-script"
 
 	case "googet":
 		ss = `%s
-sleep 60
+echo 'Adding test repo'
+googet addrepo test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository
 googet -noconfirm remove %[2]s
 googet -noconfirm install %[2]s.x86_64.0.1.0@1
-Restart-Service google_osconfig_agent
-sleep 60
+%[3]s
 while(1) {
   $installed_packages = googet installed %[2]s
   Write-Host $installed_packages
   if ($installed_packages -like "*0.1.0@1*") {
-    $uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s'
+    $uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[4]s'
     Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body 1
   } else {
-    $uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%s'
+    $uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[5]s'
     Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body 1
   }
   sleep 5
 }`
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigGooGet(), packageName, waitForRestartWin, packageInstalled, packageNotInstalled)
 		key = "windows-startup-script-ps1"
 
 	case "zypper":
 		ss = `%s
-sleep 20
+echo 'Adding test repo'
 cat > /etc/zypp/repos.d/google-osconfig-agent.repo <<EOM
 [test-repo]
 name=test repo
@@ -219,20 +243,19 @@ gpgcheck=0
 EOM
 zypper -n remove %[2]s
 zypper -n --no-gpg-checks install %[2]s-3.03-2.fc7 || exit 1
-systemctl restart google-osconfig-agent
-sleep 20
+%[3]s
 while true; do
   isinstalled=$(/usr/bin/rpmquery -a %[2]s)
   if [[ $isinstalled =~ 3.03-2.fc7 ]]; then
-    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[3]s
+    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[4]s
     curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
   else
-    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[4]s
+    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/%[5]s
     curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
   fi
   sleep 5
 done`
-		ss = fmt.Sprintf(ss, utils.InstallOSConfigSUSE(), packageName, packageInstalled, packageNotInstalled)
+		ss = fmt.Sprintf(ss, utils.InstallOSConfigSUSE(), packageName, waitForRestartLinux, packageInstalled, packageNotInstalled)
 		key = "startup-script"
 
 	default:

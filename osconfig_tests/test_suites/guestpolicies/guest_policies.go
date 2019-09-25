@@ -121,27 +121,6 @@ func createGuestPolicy(ctx context.Context, client *osconfigV1alpha2.Client, req
 }
 
 func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *guestPolicyTestSetup, logger *log.Logger, logwg *sync.WaitGroup, testProjectConfig *testconfig.Project) {
-	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
-
-	client, err := gcpclients.GetOsConfigClientV1alpha2()
-	if err != nil {
-		testCase.WriteFailure("Error getting osconfig client: %v", err)
-		return
-	}
-
-	req := &osconfigpb.CreateGuestPolicyRequest{
-		Parent:        parent,
-		GuestPolicyId: testSetup.guestPolicyID,
-		GuestPolicy:   testSetup.guestPolicy,
-	}
-
-	res, err := createGuestPolicy(ctx, client, req)
-	if err != nil {
-		testCase.WriteFailure("Error running CreateGuestPolicy: %s", utils.GetStatusFromError(err))
-		return
-	}
-	defer cleanupGuestPolicy(ctx, testCase, res)
-
 	computeClient, err := gcpclients.GetComputeClient()
 	if err != nil {
 		testCase.WriteFailure("Error getting compute client: %v", err)
@@ -169,6 +148,31 @@ func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *guestP
 	testCase.Logf("Waiting for agent install to complete")
 	if _, err := inst.WaitForGuestAttributes("osconfig_tests/install_done", 5*time.Second, 10*time.Minute); err != nil {
 		testCase.WriteFailure("Error waiting for osconfig agent install: %v", err)
+		return
+	}
+
+	// Only create the guest policy after the instance has installed the agent.
+	client, err := gcpclients.GetOsConfigClientV1alpha2()
+	if err != nil {
+		testCase.WriteFailure("Error getting osconfig client: %v", err)
+		return
+	}
+
+	req := &osconfigpb.CreateGuestPolicyRequest{
+		Parent:        fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID),
+		GuestPolicyId: testSetup.guestPolicyID,
+		GuestPolicy:   testSetup.guestPolicy,
+	}
+
+	res, err := createGuestPolicy(ctx, client, req)
+	if err != nil {
+		testCase.WriteFailure("Error running CreateGuestPolicy: %s", utils.GetStatusFromError(err))
+		return
+	}
+	defer cleanupGuestPolicy(ctx, testCase, res)
+
+	if err := inst.AddMetadata(compute.BuildInstanceMetadataItem("restart-agent", "true")); err != nil {
+		testCase.WriteFailure("Error running AddMetadata: %s", utils.GetStatusFromError(err))
 		return
 	}
 

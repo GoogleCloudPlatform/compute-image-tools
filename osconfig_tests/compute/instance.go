@@ -127,6 +127,17 @@ func (i *Instance) GetGuestAttributes(queryPath string) ([]*computeApiBeta.Guest
 	return resp.QueryValue.Items, nil
 }
 
+// AddMetadata adds metadata to the instance.
+func (i *Instance) AddMetadata(mdi ...*computeApi.MetadataItems) error {
+	resp, err := i.client.GetInstance(i.Project, i.Zone, i.Name)
+	if err != nil {
+		return err
+	}
+
+	resp.Metadata.Items = append(resp.Metadata.Items, mdi...)
+	return i.client.SetInstanceMetadata(i.Project, i.Zone, i.Name, resp.Metadata)
+}
+
 // StreamSerialOutput stores the serial output of an instance to GCS bucket
 func (i *Instance) StreamSerialOutput(ctx context.Context, storageClient *storage.Client, logsPath, bucket string, logwg *sync.WaitGroup, port int64, interval time.Duration) {
 	defer logwg.Done()
