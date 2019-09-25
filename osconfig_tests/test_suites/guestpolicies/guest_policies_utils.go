@@ -242,7 +242,7 @@ enabled=1
 gpgcheck=0
 EOM
 zypper -n remove %[2]s
-zypper -n --no-gpg-checks install %[2]s-3.03-2.fc7 || exit 1
+zypper -n --no-gpg-checks install %[2]s-3.03-2.fc7
 %[3]s
 while true; do
   isinstalled=$(/usr/bin/rpmquery -a %[2]s)
