@@ -38,9 +38,9 @@ func PrintPerfProfile(workflow *daisy.Workflow) {
 		if wfEndTime.Before(r.EndTime) {
 			wfEndTime = r.EndTime
 		}
-		fmt.Printf("- %v: %v\n", r.Name, formatDuration(r.EndTime.Sub(r.StartTime)))
+		fmt.Printf("- %v: [%v ~ %v] %v\n", r.Name, r.StartTime, r.EndTime, formatDuration(r.EndTime.Sub(r.StartTime)))
 	}
-	fmt.Printf("Total time: %v\n\n", formatDuration(wfEndTime.Sub(wfStartTime)))
+	fmt.Printf("Total time: [%v ~ %v] %v\n\n", wfStartTime, wfEndTime, formatDuration(wfEndTime.Sub(wfStartTime)))
 }
 
 func formatDuration(d time.Duration) string {

@@ -140,7 +140,8 @@
     "delete-inst-translate": {
       "DeleteResources": {
         "Instances":["inst-translate"]
-      }
+      },
+      "IsOrphan": true
     }
   },
   "Dependencies": {

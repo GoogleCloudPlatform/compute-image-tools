@@ -65,7 +65,7 @@
     "cleanup": {
       "DeleteResources": {
         "Disks": ["${translation-disk-name}"],
-        "AsyncCleanup": true
+        "Async": true
       }
     }
   },

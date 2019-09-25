@@ -191,7 +191,7 @@ func (i *Image) create(cc daisyCompute.Client) error {
 }
 
 func (i *Image) delete(cc daisyCompute.Client) error {
-	return cc.DeleteImage(i.Project, i.Name)
+	return cc.DeleteImage(i.Project, i.Name, false)
 }
 
 func (i *Image) appendGuestOsFeatures(featureType string) {
@@ -261,7 +261,7 @@ func (i *ImageBeta) create(cc daisyCompute.Client) error {
 }
 
 func (i *ImageBeta) delete(cc daisyCompute.Client) error {
-	return cc.DeleteImage(i.Project, i.Name)
+	return cc.DeleteImage(i.Project, i.Name, false)
 }
 
 func (i *ImageBeta) appendGuestOsFeatures(featureType string) {

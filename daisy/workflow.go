@@ -114,7 +114,7 @@ type Workflow struct {
 	DefaultTimeout string `json:",omitempty"`
 	defaultTimeout time.Duration
 	// Async cleanup configuration
-	AsyncCleanup bool
+	AsyncCleanup bool `json:",omitempty"`
 
 	// Working fields.
 	autovars              map[string]string
@@ -650,7 +650,8 @@ func (w *Workflow) traverseDAG(f func(*Step) DError) DError {
 	// start = map of steps' start channels/semaphores.
 	// done = map of steps' done channels for signaling step completion.
 	waiting := map[string][]string{}
-	var running []string
+	var runningCritical []string
+	var runningNonCritical []string
 	start := map[string]chan DError{}
 	done := map[string]chan DError{}
 
@@ -756,7 +757,7 @@ func New() *Workflow {
 	return w
 }
 
-func (w *Workflow)prepareAsyncDelete() {
+func (w *Workflow) prepareAsyncDelete() {
 	if !w.AsyncCleanup {
 		return
 	}

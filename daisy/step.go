@@ -66,6 +66,8 @@ type Step struct {
 	WaitForInstancesSignal *WaitForInstancesSignal `json:",omitempty"`
 	// Used for unit tests.
 	testType stepImpl
+	// IsOrphan indicates whether this step should be waited by its following steps
+	IsOrphan bool  `json:",omitempty"`
 }
 
 // NewStep creates a Step with given name and timeout  with the specified workflow
@@ -182,6 +184,9 @@ func (s *Step) depends(other *Step) bool {
 			continue
 		}
 		seen[name] = true
+		if steps[name].IsOrphan {
+			continue
+		}
 		if steps[name] == other {
 			return true
 		}

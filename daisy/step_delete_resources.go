@@ -35,7 +35,7 @@ type DeleteResources struct {
 	Networks    []string `json:",omitempty"`
 	Subnetworks []string `json:",omitempty"`
 	GCSPaths    []string `json:",omitempty"`
-	Async bool
+	Async       bool `json:",omitempty"`
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
@@ -282,7 +282,7 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		go func(disk string) {
 			defer wg.Done()
 			w.LogStepInfo(s.name, "DeleteResources", "Deleting disk %q.", d)
-			if err := w.disks.delete(d, d.Async); err != nil {
+			if err := w.disks.delete(disk, d.Async); err != nil {
 				if err.etype() == resourceDNEError {
 					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting disk %q: %v", d, err)
 					return

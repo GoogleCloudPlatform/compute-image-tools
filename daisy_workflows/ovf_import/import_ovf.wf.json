@@ -112,7 +112,8 @@
     "cleanup": {
       "DeleteResources": {
         "Disks": ["${translation_disk_name}"],
-        "Images": ["${boot_image_name}"]
+        "Images": ["${boot_image_name}"],
+        "Async": true
       }
     }
   },
@@ -121,5 +122,6 @@
     "create-boot-disk": ["translate"],
     "create-instance": ["create-boot-disk"],
     "cleanup": ["create-instance"]
-  }
+  },
+  "AsyncCleanup": true
 }

@@ -535,9 +535,9 @@ func (c *client) DeleteFirewallRule(project, name string, async bool) error {
 
 	if async {
 		return nil
-	} else {
-		return c.i.globalOperationsWait(project, op.Name)
 	}
+
+	return c.i.globalOperationsWait(project, op.Name)
 }
 
 // DeleteImage deletes a GCE image.
@@ -549,9 +549,9 @@ func (c *client) DeleteImage(project, name string, async bool) error {
 
 	if async {
 		return nil
-	} else {
-		return c.i.globalOperationsWait(project, op.Name)
 	}
+
+	return c.i.globalOperationsWait(project, op.Name)
 }
 
 // DeleteDisk deletes a GCE persistent disk.
@@ -563,9 +563,9 @@ func (c *client) DeleteDisk(project, zone, name string, async bool) error {
 
 	if async {
 		return nil
-	} else {
-		return c.i.zoneOperationsWait(project, zone, op.Name)
 	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // DeleteForwardingRule deletes a GCE ForwardingRule.
@@ -577,9 +577,9 @@ func (c *client) DeleteForwardingRule(project, region, name string, async bool) 
 
 	if async {
 		return nil
-	} else {
-		return c.i.regionOperationsWait(project, region, op.Name)
 	}
+
+	return c.i.regionOperationsWait(project, region, op.Name)
 }
 
 // DeleteInstance deletes a GCE instance.
@@ -591,9 +591,9 @@ func (c *client) DeleteInstance(project, zone, name string, async bool) error {
 
 	if async {
 		return nil
-	} else {
-		return c.i.zoneOperationsWait(project, zone, op.Name)
 	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // DeleteNetwork deletes a GCE network.
@@ -605,9 +605,9 @@ func (c *client) DeleteNetwork(project, name string, async bool) error {
 
 	if async {
 		return nil
-	} else {
-		return c.i.globalOperationsWait(project, op.Name)
 	}
+
+	return c.i.globalOperationsWait(project, op.Name)
 }
 
 // DeleteSubnetwork deletes a GCE subnetwork.
@@ -619,9 +619,9 @@ func (c *client) DeleteSubnetwork(project, region, name string, async bool) erro
 
 	if async {
 		return nil
-	} else {
-		return c.i.regionOperationsWait(project, region, op.Name)
 	}
+
+	return c.i.regionOperationsWait(project, region, op.Name)
 }
 
 // DeleteTargetInstance deletes a GCE TargetInstance.
@@ -633,9 +633,9 @@ func (c *client) DeleteTargetInstance(project, zone, name string, async bool) er
 
 	if async {
 		return nil
-	} else {
-		return c.i.zoneOperationsWait(project, zone, op.Name)
 	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
 }
 
 // DeprecateImage sets deprecation status on a GCE image.
