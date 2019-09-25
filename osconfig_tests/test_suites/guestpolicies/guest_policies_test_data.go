@@ -59,10 +59,7 @@ func buildPkgInstallTestSetup(name, image, pkgManager, key string) *guestPolicyT
 	instanceName := fmt.Sprintf("%s-%s-%s-%s", path.Base(name), testName, key, utils.RandString(3))
 	gp := &osconfigpb.GuestPolicy{
 		Packages:   osconfigserver.BuildPackagePolicy([]string{packageName}, nil, nil),
-		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
-		PackageRepositories: []*osconfigpb.PackageRepository{
-			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildGooRepository("Google OSConfig Agent Test Repository", gooTestRepoURL)},
-		},
+		Assignment: &osconfigpb.Assignment{InstanceNamePrefixes: []string{instanceName}},
 	}
 	ss := getStartupScript(name, pkgManager, packageName)
 	return newGuestPolicyTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
@@ -96,11 +93,7 @@ func buildPkgUpdateTestSetup(name, image, pkgManager, key string) *guestPolicyTe
 	instanceName := fmt.Sprintf("%s-%s-%s-%s", path.Base(name), testName, key, utils.RandString(3))
 	gp := &osconfigpb.GuestPolicy{
 		Packages:   osconfigserver.BuildPackagePolicy(nil, nil, []string{packageName}),
-		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
-		PackageRepositories: []*osconfigpb.PackageRepository{
-			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildAptRepository(osconfigpb.AptRepository_DEB, aptTestRepoBaseURL, osconfigTestRepo, aptRaptureGpgKey, []string{"main"})},
-			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildGooRepository("test", gooTestRepoURL)},
-		},
+		Assignment: &osconfigpb.Assignment{InstanceNamePrefixes: []string{instanceName}},
 	}
 	ss := getUpdateStartupScript(name, pkgManager, packageName)
 	return newGuestPolicyTestSetup(image, instanceName, testName, packageNotInstalled, machineType, gp, ss, assertTimeout)
@@ -135,11 +128,7 @@ func buildPkgDoesNotUpdateTestSetup(name, image, pkgManager, key string) *guestP
 	instanceName := fmt.Sprintf("%s-%s-%s-%s", path.Base(name), testName, key, utils.RandString(3))
 	gp := &osconfigpb.GuestPolicy{
 		Packages:   osconfigserver.BuildPackagePolicy([]string{packageName}, nil, nil),
-		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
-		PackageRepositories: []*osconfigpb.PackageRepository{
-			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildAptRepository(osconfigpb.AptRepository_DEB, aptTestRepoBaseURL, osconfigTestRepo, aptRaptureGpgKey, []string{"main"})},
-			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildGooRepository("test", gooTestRepoURL)},
-		},
+		Assignment: &osconfigpb.Assignment{InstanceNamePrefixes: []string{instanceName}},
 	}
 	ss := getUpdateStartupScript(name, pkgManager, packageName)
 	return newGuestPolicyTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
@@ -175,7 +164,7 @@ func buildPkgRemoveTestSetup(name, image, pkgManager, key string) *guestPolicyTe
 	instanceName := fmt.Sprintf("%s-%s-%s-%s", path.Base(name), testName, key, utils.RandString(3))
 	gp := &osconfigpb.GuestPolicy{
 		Packages:   osconfigserver.BuildPackagePolicy(nil, []string{packageName}, nil),
-		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
+		Assignment: &osconfigpb.Assignment{InstanceNamePrefixes: []string{instanceName}},
 	}
 	ss := getStartupScript(name, pkgManager, packageName)
 	return newGuestPolicyTestSetup(image, instanceName, testName, packageNotInstalled, machineType, gp, ss, assertTimeout)
@@ -211,7 +200,7 @@ func buildPkgInstallFromNewRepoTestSetup(name, image, pkgManager, key string) *g
 	gp := &osconfigpb.GuestPolicy{
 		// Test that upgrade also installs.
 		Packages:   osconfigserver.BuildPackagePolicy(nil, nil, []string{packageName}),
-		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
+		Assignment: &osconfigpb.Assignment{InstanceNamePrefixes: []string{instanceName}},
 		PackageRepositories: []*osconfigpb.PackageRepository{
 			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildAptRepository(osconfigpb.AptRepository_DEB, aptTestRepoBaseURL, osconfigTestRepo, aptRaptureGpgKey, []string{"main"})},
 			&osconfigpb.PackageRepository{Repository: osconfigserver.BuildYumRepository(osconfigTestRepo, "Google OSConfig Agent Test Repository", yumTestRepoBaseURL, yumRaptureGpgKeys)},

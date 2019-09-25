@@ -29,6 +29,7 @@ import (
 
 var (
 	yumInstallAgent = `
+systemctl stop google-osconfig-agent
 while ! yum install -y google-osconfig-agent; do
 if [[ n -gt 3 ]]; then
   exit 1
@@ -38,9 +39,12 @@ sleep 5
 done` + curlPost
 
 	zypperInstallAgent = `
-while ! zypper -n --no-gpg-checks install google-osconfig-agent; do
-if [[ n -gt 3 ]]; then
-  exit 1
+systemctl stop google-osconfig-agent
+while ! zypper -n -i --no-gpg-checks install google-osconfig-agent; do
+if [[ n -gt 2 ]]; then
+  # Zypper repos are flaky, we retry 3 times then just continue, the agent may be installed fine.
+  zypper −−no−refresh -n -i --no-gpg-checks install google-osconfig-agent
+  break
 fi
 n=$[$n+1]
 sleep 5
@@ -86,6 +90,10 @@ EOM`
 func InstallOSConfigDeb() string {
 	return fmt.Sprintf(`echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-%s main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+systemctl stop google-osconfig-agent
+while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
+  sleep 5
+done
 apt-get update
 apt-get install -y google-osconfig-agent`+curlPost, config.AgentRepo())
 }
