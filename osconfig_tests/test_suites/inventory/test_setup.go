@@ -32,43 +32,48 @@ type inventoryTestSetup struct {
 	machineType string
 }
 
-var windowsSetup = &inventoryTestSetup{
-	packageType: []string{"googet", "wua", "qfe"},
-	shortName:   "windows",
+var (
+	linuxStop  = "systemctl stop google-osconfig-agent\nstop -q -n google-osconfig-agent  # required for EL6\n"
+	linuxStart = "\nsystemctl start google-osconfig-agent\nstart -q -n google-osconfig-agent  # required for EL6"
 
-	startup:     compute.BuildInstanceMetadataItem("windows-startup-script-ps1", utils.InstallOSConfigGooGet()),
-	machineType: "n1-standard-4",
-}
+	windowsSetup = &inventoryTestSetup{
+		packageType: []string{"googet", "wua", "qfe"},
+		shortName:   "windows",
 
-var aptSetup = &inventoryTestSetup{
-	packageType: []string{"deb"},
-	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigDeb()),
-	machineType: "n1-standard-2",
-}
+		startup:     compute.BuildInstanceMetadataItem("windows-startup-script-ps1", "Stop-Service google_osconfig_agent\n"+utils.InstallOSConfigGooGet()+"\nStart-Service google_osconfig_agent"),
+		machineType: "n1-standard-4",
+	}
 
-var el6Setup = &inventoryTestSetup{
-	packageType: []string{"rpm"},
-	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigEL6()),
-	machineType: "n1-standard-2",
-}
+	aptSetup = &inventoryTestSetup{
+		packageType: []string{"deb"},
+		startup:     compute.BuildInstanceMetadataItem("startup-script", linuxStop+utils.InstallOSConfigDeb()+linuxStart),
+		machineType: "n1-standard-2",
+	}
 
-var el7Setup = &inventoryTestSetup{
-	packageType: []string{"rpm"},
-	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigEL7()),
-	machineType: "n1-standard-2",
-}
+	el6Setup = &inventoryTestSetup{
+		packageType: []string{"rpm"},
+		startup:     compute.BuildInstanceMetadataItem("startup-script", linuxStop+utils.InstallOSConfigEL6()+linuxStart),
+		machineType: "n1-standard-2",
+	}
 
-var el8Setup = &inventoryTestSetup{
-	packageType: []string{"rpm"},
-	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigEL8()),
-	machineType: "n1-standard-2",
-}
+	el7Setup = &inventoryTestSetup{
+		packageType: []string{"rpm"},
+		startup:     compute.BuildInstanceMetadataItem("startup-script", linuxStop+utils.InstallOSConfigEL7()+linuxStart),
+		machineType: "n1-standard-2",
+	}
 
-var suseSetup = &inventoryTestSetup{
-	packageType: []string{"zypper"},
-	startup:     compute.BuildInstanceMetadataItem("startup-script", utils.InstallOSConfigSUSE()),
-	machineType: "n1-standard-2",
-}
+	el8Setup = &inventoryTestSetup{
+		packageType: []string{"rpm"},
+		startup:     compute.BuildInstanceMetadataItem("startup-script", linuxStop+utils.InstallOSConfigEL8()+linuxStart),
+		machineType: "n1-standard-2",
+	}
+
+	suseSetup = &inventoryTestSetup{
+		packageType: []string{"zypper"},
+		startup:     compute.BuildInstanceMetadataItem("startup-script", linuxStop+utils.InstallOSConfigSUSE()+linuxStart),
+		machineType: "n1-standard-2",
+	}
+)
 
 func headImageTestSetup() (setup []*inventoryTestSetup) {
 	// This maps a specific inventoryTestSetup to test setup names and associated images.
