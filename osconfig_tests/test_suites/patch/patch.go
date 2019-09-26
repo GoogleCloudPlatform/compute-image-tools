@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
+	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
@@ -87,6 +88,15 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		pc := &osconfigpb.PatchConfig{RebootConfig: osconfigpb.PatchConfig_NEVER, Apt: &osconfigpb.AptSettings{Type: osconfigpb.AptSettings_DIST}}
 		shouldReboot := false
 		f := func() { runRebootPatchTest(ctx, tc, s, testProjectConfig, pc, shouldReboot) }
+		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
+	}
+	// Test that pre- and post-patch steps run as expected.
+	for _, setup := range headImageTestSetup() {
+		wg.Add(1)
+		s := setup
+		tc := junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[PatchJob runs pre-step and post-step] [%s]", s.testName))
+		pc := patchConfigWithPrePostSteps()
+		f := func() { runExecutePatchJobTest(ctx, tc, s, testProjectConfig, pc) }
 		go runTestCase(tc, f, tests, &wg, logger, testCaseRegex)
 	}
 	// Test APT specific functionality, this just tests that using these settings doesn't break anything.
@@ -215,6 +225,11 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	testCase.Logf("Started patch job %q", job.GetName())
 	if _, err := awaitPatchJob(ctx, job, testSetup.assertTimeout); err != nil {
 		testCase.WriteFailure("Patch job %q error: %v", job.GetName(), err)
+		return
+	}
+
+	if pc.GetPreStep() != nil && pc.GetPostStep() != nil {
+		validatePrePostStepSuccess(inst, testCase)
 	}
 }
 
@@ -321,5 +336,28 @@ func runTestCase(tc *junitxml.TestCase, f func(), tests chan *junitxml.TestCase,
 		f()
 		tc.Finish(tests)
 		logger.Printf("TestCase %q finished in %fs", tc.Name, tc.Time)
+	}
+}
+
+func patchConfigWithPrePostSteps() *osconfigpb.PatchConfig {
+	linuxPreStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_LocalPath{LocalPath: "./linux_local_pre_patch_script.sh"}, Interpreter: osconfigpb.ExecStepConfig_SHELL}
+	windowsPreStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_GcsObject{GcsObject: &osconfigpb.GcsObject{Bucket: "osconfig-agent-end2end-test-resources", Object: "OSPatch/windows_gcs_pre_patch_script.ps1", GenerationNumber: 1570569007607578}}, Interpreter: osconfigpb.ExecStepConfig_POWERSHELL}
+	linuxPostStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_GcsObject{GcsObject: &osconfigpb.GcsObject{Bucket: "osconfig-agent-end2end-test-resources", Object: "OSPatch/linux_gcs_post_patch_script", GenerationNumber: 1570567792146617}}}
+	windowsPostStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_LocalPath{LocalPath: "C:\\Windows\\System32\\windows_local_post_patch_script.ps1"}, Interpreter: osconfigpb.ExecStepConfig_POWERSHELL}
+
+	preStep := &osconfigpb.ExecStep{LinuxExecStepConfig: linuxPreStepConfig, WindowsExecStepConfig: windowsPreStepConfig}
+	postStep := &osconfigpb.ExecStep{LinuxExecStepConfig: linuxPostStepConfig, WindowsExecStepConfig: windowsPostStepConfig}
+
+	return &osconfigpb.PatchConfig{PreStep: preStep, PostStep: postStep}
+}
+
+func validatePrePostStepSuccess(inst *compute.Instance, testCase *junitxml.TestCase) {
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/pre_step_ran", 5*time.Second, 1*time.Minute); err != nil {
+		testCase.WriteFailure("error while asserting: %v", err)
+		return
+	}
+	if _, err := inst.WaitForGuestAttributes("osconfig_tests/post_step_ran", 5*time.Second, 1*time.Minute); err != nil {
+		testCase.WriteFailure("error while asserting: %v", err)
+		return
 	}
 }

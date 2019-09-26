@@ -37,11 +37,11 @@ while ($true) {
   $old = Invoke-RestMethod -Method GET -Uri $uri -Headers @{"Metadata-Flavor" = "Google"}
   $new = $old+1
   try {
-	Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body $new -ErrorAction Stop
+    Invoke-RestMethod -Method PUT -Uri $uri -Headers @{"Metadata-Flavor" = "Google"} -Body $new -ErrorAction Stop
   }
   catch {
-	Write-Output $_.Exception.Message
-	Start-Sleep 1
+    Write-Output $_.Exception.Message
+    Start-Sleep 1
     continue
   }
   break
@@ -63,11 +63,21 @@ if (Test-Connection $wu_server -Count 1 -ErrorAction SilentlyContinue) {
 }
 `
 
+	windowsLocalPostPatchScript = `
+$uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/post_step_ran'
+New-Item -Path . -Name "windows_local_post_patch_script.ps1" -ItemType "file" -Value "Invoke-RestMethod -Method PUT -Uri $uri -Headers @{\"Metadata-Flavor\" = \"Google\"} -Body 1"
+`
+
 	linuxRecordBoot = `
 uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/boot_count
 old=$(curl $uri -H "Metadata-Flavor: Google" -f)
 new=$(($old + 1))
 curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
+`
+
+	linuxLocalPrePatchScript = `
+echo 'curl -X PUT --data "1" http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/pre_step_ran -H "Metadata-Flavor: Google"' >> ./linux_local_pre_patch_script.sh
+chmod +x ./linux_local_pre_patch_script.sh
 `
 
 	enablePatch = compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospatch")
@@ -76,7 +86,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 		assertTimeout: 60 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
 			compute.BuildInstanceMetadataItem("sysprep-specialize-script-ps1", windowsSetWsus),
-			compute.BuildInstanceMetadataItem("windows-startup-script-ps1", windowsRecordBoot+utils.InstallOSConfigGooGet()),
+			compute.BuildInstanceMetadataItem("windows-startup-script-ps1", windowsRecordBoot+utils.InstallOSConfigGooGet()+windowsLocalPostPatchScript),
 			enablePatch,
 		},
 		machineType: "n1-standard-4",
@@ -84,7 +94,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	aptSetup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigDeb()),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigDeb()+linuxLocalPrePatchScript),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -92,7 +102,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	el6Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL6()),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL6()+linuxLocalPrePatchScript),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -100,7 +110,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	el7Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL7()),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL7()+linuxLocalPrePatchScript),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -108,7 +118,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	el8Setup = &patchTestSetup{
 		assertTimeout: 5 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL8()),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigEL8()+linuxLocalPrePatchScript),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
@@ -116,7 +126,7 @@ curl -X PUT --data "${new}" $uri -H "Metadata-Flavor: Google"
 	suseSetup = &patchTestSetup{
 		assertTimeout: 10 * time.Minute,
 		metadata: []*computeApi.MetadataItems{
-			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigSUSE()),
+			compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot+utils.InstallOSConfigSUSE()+linuxLocalPrePatchScript),
 			enablePatch,
 		},
 		machineType: "n1-standard-2",
