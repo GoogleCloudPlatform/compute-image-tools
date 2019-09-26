@@ -91,6 +91,14 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 	assert.Equal(t, 5, len(got))
 }
 
+func TestBuildDaisyVarsWithSimpleImageName(t *testing.T) {
+	resetArgs()
+	sourceImage = "anImage"
+	got := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, "aRegion")
+
+	assert.Equal(t, "global/images/anImage", got["source_image"])
+}
+
 func resetArgs() {
 	clientID = "aClient"
 	destinationURI = "gs://bucket/exported_image"

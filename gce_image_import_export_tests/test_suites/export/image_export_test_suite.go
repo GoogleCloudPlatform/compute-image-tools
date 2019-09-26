@@ -130,7 +130,7 @@ func runImageExportWithRichParamsTest(ctx context.Context, testCase *junitxml.Te
 
 	argsMap := map[testsuiteutils.TestType][]string{
 		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+			"-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
 			fmt.Sprintf("-network=%v-vpc-1", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
