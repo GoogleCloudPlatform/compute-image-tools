@@ -15,8 +15,13 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"math"
+	"os"
+	"regexp"
+	"strings"
 	"time"
 )
 
@@ -28,7 +33,77 @@ var (
 	bucketDefault          = "osconfig-agent-end2end-tests"
 	logPushIntervalDefault = 3 * time.Second
 	logsPath               = fmt.Sprintf("logs-%s", time.Now().Format("2006-01-02-15:04:05"))
+	testSuiteRegex         *regexp.Regexp
+	testSuiteFilter        = flag.String("test_suite_filter", "", "test suite filter")
+	testCaseRegex          *regexp.Regexp
+	testCaseFilter         = flag.String("test_case_filter", "", "test case filter")
+	zones                  map[string]int
+	testZone               = flag.String("test_zone", "", "test zone")
+	testZones              = flag.String("test_zones", "{}", "test zones")
+
+	// OutDir is the out directory to use.
+	OutDir = flag.String("out_dir", "/tmp", "junit xml directory")
+	// TestProjectID is the test project to use.
+	TestProjectID = flag.String("test_project_id", "", "test project id")
 )
+
+func init() {
+	flag.Parse()
+
+	if *testSuiteFilter != "" {
+		var err error
+		testSuiteRegex, err = regexp.Compile(*testSuiteFilter)
+		if err != nil {
+			fmt.Println("-test_suite_filter flag not valid:", err)
+			os.Exit(1)
+		}
+	}
+
+	if *testCaseFilter != "" {
+		var err error
+		testCaseRegex, err = regexp.Compile(*testCaseFilter)
+		if err != nil {
+			fmt.Println("-test_case_filter flag not valid:", err)
+			os.Exit(1)
+		}
+	}
+
+	if len(strings.TrimSpace(*TestProjectID)) == 0 {
+		fmt.Println("-test_project_id must be specified")
+		os.Exit(1)
+	}
+
+	zones = make(map[string]int)
+	if len(strings.TrimSpace(*testZone)) != 0 {
+		zones[*testZone] = math.MaxInt32
+	} else {
+		err := json.Unmarshal([]byte(*testZones), &zones)
+		if err != nil {
+			fmt.Printf("Error parsing zones `%s`\n", *testZones)
+			os.Exit(1)
+		}
+	}
+
+	if len(zones) == 0 {
+		fmt.Println("Error, no zones specified")
+		os.Exit(1)
+	}
+}
+
+// Zones are the zones and associated quota to use.
+func Zones() map[string]int {
+	return zones
+}
+
+// TestSuiteFilter is the test suite filter regex.
+func TestSuiteFilter() *regexp.Regexp {
+	return testSuiteRegex
+}
+
+// TestCaseFilter is the test case filter regex.
+func TestCaseFilter() *regexp.Regexp {
+	return testCaseRegex
+}
 
 // AgentRepo returns the agentRepo
 func AgentRepo() string {
