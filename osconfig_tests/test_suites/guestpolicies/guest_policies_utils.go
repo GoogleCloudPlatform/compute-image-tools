@@ -65,7 +65,8 @@ func getStartupScript(image, pkgManager, packageName string) *computeApi.Metadat
 
 	switch pkgManager {
 	case "apt":
-		ss = `%s
+		ss = `systemctl stop google-osconfig-agent
+%s
 %s
 while true; do
   isinstalled=$(/usr/bin/dpkg-query -s %s)
@@ -83,7 +84,9 @@ done`
 		key = "startup-script"
 
 	case "yum":
-		ss = `%s
+		ss = `systemctl stop google-osconfig-agent
+stop -q -n google-osconfig-agent  # required for EL6
+%s
 %s
 while true; do
   isinstalled=$(/usr/bin/rpmquery -a %[3]s)
@@ -100,8 +103,9 @@ done`
 		key = "startup-script"
 
 	case "googet":
-		ss = `%s
+		ss = `Stop-Service google_osconfig_agent
 googet addrepo test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository
+%s
 %s
 while(1) {
   $installed_packages = googet installed
@@ -118,7 +122,8 @@ while(1) {
 		key = "windows-startup-script-ps1"
 
 	case "zypper":
-		ss = `%s
+		ss = `systemctl stop google-osconfig-agent
+%s
 %s
 while true; do
   isinstalled=$(/usr/bin/rpmquery -a %[3]s)
@@ -149,7 +154,7 @@ func getUpdateStartupScript(image, pkgManager, packageName string) *computeApi.M
 
 	switch pkgManager {
 	case "apt":
-		ss = `%s
+		ss = `systemctl stop google-osconfig-agent
 echo 'Adding test repo'
 echo 'deb http://packages.cloud.google.com/apt osconfig-agent-test-repository main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
@@ -159,6 +164,7 @@ done
 apt-get update
 apt-get -y remove %[2]s || exit 1
 apt-get -y install %[2]s=3.03+dfsg1-10 || exit 1
+%[1]s
 %[3]s
 while true; do
   isinstalled=$(/usr/bin/dpkg-query -s %[2]s)
@@ -176,7 +182,8 @@ done`
 		key = "startup-script"
 
 	case "yum":
-		ss = `%s
+		ss = `systemctl stop google-osconfig-agent
+stop -q -n google-osconfig-agent  # required for EL6
 echo 'Adding test repo'
 cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [test-repo]
@@ -194,6 +201,7 @@ while ! yum -y remove %[2]s; do
   sleep 10
 done
 yum -y install %[2]s-3.03-2.fc7 || exit 1
+%[1]s
 %[3]s
 while true; do
   isinstalled=$(/usr/bin/rpmquery -a %[2]s)
@@ -210,11 +218,12 @@ done`
 		key = "startup-script"
 
 	case "googet":
-		ss = `%s
+		ss = `Stop-Service google_osconfig_agent
 echo 'Adding test repo'
 googet addrepo test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository
 googet -noconfirm remove %[2]s
 googet -noconfirm install %[2]s.x86_64.0.1.0@1
+%[1]s
 %[3]s
 while(1) {
   $installed_packages = googet installed %[2]s
@@ -232,7 +241,7 @@ while(1) {
 		key = "windows-startup-script-ps1"
 
 	case "zypper":
-		ss = `%s
+		ss = `systemctl stop google-osconfig-agent
 echo 'Adding test repo'
 cat > /etc/zypp/repos.d/google-osconfig-agent.repo <<EOM
 [test-repo]
@@ -243,6 +252,7 @@ gpgcheck=0
 EOM
 zypper -n remove %[2]s
 zypper -n --no-gpg-checks install %[2]s-3.03-2.fc7
+%[1]s
 %[3]s
 while true; do
   isinstalled=$(/usr/bin/rpmquery -a %[2]s)
