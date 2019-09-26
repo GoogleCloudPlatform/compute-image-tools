@@ -38,7 +38,7 @@ var (
 	httpClient            httpClientInterface = &http.Client{Timeout: 5 * time.Second}
 	serverURL                                 = deinterleave(serverURLProdP1, serverURLProdP2)
 	key                                       = deinterleave(keyP1, keyP2)
-	serverLogEnabled                          = false
+	serverLogEnabled                          = true
 	logMutex                                  = sync.Mutex{}
 	nextRequestWaitMillis int64
 )
@@ -324,11 +324,9 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 	now := time.Now().UnixNano() / 1000000
 	req := logRequest{
 		ClientInfo: clientInfo{
-			// TODO: replace with "COMPUTE_IMAGE_TOOLS" when server-aside setting is ready
-			ClientType: "DESKTOP",
+			ClientType: "COMPUTE_IMAGE_TOOLS",
 		},
-		// TODO: replace with actual log source once server side is ready: "COMPUTE_IMAGE_TOOLS"
-		LogSource:     1018,
+		LogSource:     1197,
 		RequestTimeMs: now,
 		LogEvent: []logEvent{
 			{
