@@ -281,10 +281,10 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 		wg.Add(1)
 		go func(disk string) {
 			defer wg.Done()
-			w.LogStepInfo(s.name, "DeleteResources", "Deleting disk %q.", d)
+			w.LogStepInfo(s.name, "DeleteResources", "Deleting disk %q.", disk)
 			if err := w.disks.delete(disk, d.Async); err != nil {
 				if err.etype() == resourceDNEError {
-					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting disk %q: %v", d, err)
+					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting disk %q: %v", disk, err)
 					return
 				}
 				e <- err

@@ -162,6 +162,9 @@ type Workflow struct {
 	ForceCleanupOnError bool
 	// forceCleanup is set to true when resources should be forced clean, even when NoCleanup is set to true
 	forceCleanup bool
+	nonCriticalSteps []string
+	nonCriticalStepsMx sync.Mutex
+	nonCriticalStepDone chan string
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -289,12 +292,14 @@ func (w *Workflow) RunWithModifiers(
 			w.LogWorkflowInfo("Serial-output value -> %v:%v", k, v)
 		}
 	}()
-	if err = w.run(ctx); err != nil {
+
+	err = w.run(ctx)
+	if err != nil {
 		w.LogWorkflowInfo("Error running workflow: %v", err)
-		return err
 	}
 
-	return nil
+	w.waitNonCriticalSteps()
+	return err
 }
 
 func (w *Workflow) recordStepTime(stepName string, startTime time.Time, endTime time.Time) {
@@ -310,6 +315,42 @@ func (w *Workflow) recordStepTime(stepName string, startTime time.Time, endTime 
 // GetStepTimeRecords returns time records of each steps
 func (w *Workflow) GetStepTimeRecords() []TimeRecord {
 	return w.stepTimeRecords
+}
+
+func (w *Workflow) addNonCriticalStep(stepName string) {
+	if w.parent == nil {
+		w.nonCriticalStepsMx.Lock()
+		w.nonCriticalSteps = append(w.nonCriticalSteps, stepName)
+		w.nonCriticalStepsMx.Unlock()
+	} else {
+		w.parent.addNonCriticalStep(fmt.Sprintf("%s.%s", w.Name, stepName))
+	}
+}
+
+func (w *Workflow) removeNonCriticalStepAndGetIsPurged(stepName string) bool {
+	if w.parent == nil {
+		w.nonCriticalStepsMx.Lock()
+		w.nonCriticalSteps = filter(w.nonCriticalSteps, stepName)
+		isPurged := len(w.nonCriticalSteps) == 0
+		w.nonCriticalStepsMx.Unlock()
+		return isPurged
+	}
+
+	return w.parent.removeNonCriticalStepAndGetIsPurged(fmt.Sprintf("%s.%s", w.Name, stepName))
+}
+
+// wait all started non-critical steps to be finished
+func (w *Workflow) waitNonCriticalSteps() {
+	if len(w.nonCriticalSteps) == 0 {
+		return
+	}
+	select {
+	case stepName := <-w.nonCriticalStepDone:
+		isPurged := w.removeNonCriticalStepAndGetIsPurged(stepName)
+		if isPurged {
+			close(w.nonCriticalStepDone)
+		}
+	}
 }
 
 func (w *Workflow) cleanup() {
@@ -618,6 +659,16 @@ func (w *Workflow) Print(ctx context.Context) {
 
 func (w *Workflow) run(ctx context.Context) DError {
 	return w.traverseDAG(func(s *Step) DError {
+		if s.NonCritical {
+			w.addNonCriticalStep(s.name)
+			go func() {
+				err := w.runStep(ctx, s)
+				if err != nil {
+					w.LogWorkflowInfo("Non-critical error running workflow: %v", err)
+				}
+				w.nonCriticalStepDone <- s.name
+			}()
+		}
 		return w.runStep(ctx, s)
 	})
 }
@@ -650,8 +701,7 @@ func (w *Workflow) traverseDAG(f func(*Step) DError) DError {
 	// start = map of steps' start channels/semaphores.
 	// done = map of steps' done channels for signaling step completion.
 	waiting := map[string][]string{}
-	var runningCritical []string
-	var runningNonCritical []string
+	var running []string
 	start := map[string]chan DError{}
 	done := map[string]chan DError{}
 

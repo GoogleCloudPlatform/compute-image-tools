@@ -112,30 +112,33 @@ func TestValidateDAG(t *testing.T) {
 			return errs[i]
 		}
 	}
+	var w* Workflow
 	reset := func() {
 		rw.Lock()
 		defer rw.Unlock()
 		calls = make([]int, 5)
 		errs = make([]DError, 5)
+
+		// s0---->s1---->s3
+		//   \         /
+		//    --->s2---
+		// s4
+		w = testWorkflow()
+		w.Steps = map[string]*Step{
+			"s0": {name: "s0", testType: &mockStep{validateImpl: mockValidate(0)}, w: w},
+			"s1": {name: "s0", testType: &mockStep{validateImpl: mockValidate(1)}, w: w},
+			"s2": {name: "s0", testType: &mockStep{validateImpl: mockValidate(2)}, w: w},
+			"s3": {name: "s0", testType: &mockStep{validateImpl: mockValidate(3)}, w: w},
+			"s4": {name: "s0", testType: &mockStep{validateImpl: mockValidate(4)}, w: w},
+		}
+		w.Dependencies = map[string][]string{
+			"s1": {"s0"},
+			"s2": {"s0", "s0"}, // Check that dupes are removed.
+			"s3": {"s1", "s2"},
+		}
 	}
 
-	// s0---->s1---->s3
-	//   \         /
-	//    --->s2---
-	// s4
-	w := testWorkflow()
-	w.Steps = map[string]*Step{
-		"s0": {testType: &mockStep{validateImpl: mockValidate(0)}, w: w},
-		"s1": {testType: &mockStep{validateImpl: mockValidate(1)}, w: w},
-		"s2": {testType: &mockStep{validateImpl: mockValidate(2)}, w: w},
-		"s3": {testType: &mockStep{validateImpl: mockValidate(3)}, w: w},
-		"s4": {testType: &mockStep{validateImpl: mockValidate(4)}, w: w},
-	}
-	w.Dependencies = map[string][]string{
-		"s1": {"s0"},
-		"s2": {"s0", "s0"}, // Check that dupes are removed.
-		"s3": {"s1", "s2"},
-	}
+	reset()
 
 	// Normal case -- no issues.
 	if err := w.populate(ctx); err != nil {
@@ -171,15 +174,30 @@ func TestValidateDAG(t *testing.T) {
 		t.Error("validation should have failed due to missing dependency")
 	}
 
+	// Reset.
+	reset()
+
 	// Fail, missing step.
 	w.Dependencies["dne"] = []string{"s0"}
 	if err := w.validateDAG(ctx); err == nil {
 		t.Error("validation should have failed due to missing dependency")
 	}
 
+	// Reset.
+	reset()
+
 	// Fail, cyclical deps.
 	w.Dependencies["s0"] = []string{"s3"}
 	if err := w.validateDAG(ctx); err == nil {
 		t.Error("validation should have failed due to dependency cycle")
+	}
+
+	// Reset.
+	reset()
+
+	// Fail, dependency to a non-critical step
+	w.Steps["s2"].NonCritical = true
+	if err := w.validateDAG(ctx); err == nil {
+		t.Error("validation should have failed due to dependency to a non-critical step")
 	}
 }

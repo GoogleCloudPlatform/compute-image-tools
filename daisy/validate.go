@@ -80,9 +80,14 @@ func (w *Workflow) validateDAG(ctx context.Context) DError {
 		seen := map[string]bool{}
 		var clean []string
 		for _, dep := range deps {
+			depStep, ok := w.Steps[dep]
 			// Check for missing dependencies.
-			if _, ok := w.Steps[dep]; !ok {
+			if !ok {
 				return Errf("dependencies reference non existent step %q: %q:%q", dep, s, deps)
+			}
+			// Check for dependencies to non-critical steps
+			if depStep.NonCritical {
+				return Errf("step %q depends on a non-critical step %q", s, dep)
 			}
 			// Remove duplicate dependencies.
 			if !seen[dep] {
@@ -96,7 +101,7 @@ func (w *Workflow) validateDAG(ctx context.Context) DError {
 	// Check for cycles.
 	for _, s := range w.Steps {
 		if s.depends(s) {
-			return Errf("cyclic dependency on step %v", s)
+			return Errf("cyclic dependency on step %v", s.name)
 		}
 	}
 	return w.traverseDAG(func(s *Step) DError { return s.validate(ctx) })
