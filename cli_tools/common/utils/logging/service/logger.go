@@ -139,8 +139,8 @@ func (l *Logger) createComputeImageToolsLogExtension(status string, outputInfo *
 		CloudBuildID:  os.Getenv(daisyutils.BuildIDOSEnvVarName),
 		ToolAction:    l.Action,
 		Status:        status,
-		ElapsedTimeMs: time.Since(l.TimeStart).Milliseconds(),
-		EventTimeMs:   time.Now().UnixNano() / 1000000,
+		ElapsedTimeMs: time.Since(l.TimeStart).Nanoseconds() / 1e6,
+		EventTimeMs:   time.Now().UnixNano() / 1e6,
 		InputParams:   &l.Params,
 		OutputInfo:    outputInfo,
 	}
@@ -333,7 +333,7 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 		LogEvent: []logEvent{
 			{
 				EventTimeMs:         now,
-				EventUptimeMs:       time.Since(l.TimeStart).Milliseconds(),
+				EventUptimeMs:       time.Since(l.TimeStart).Nanoseconds() / 1e6,
 				SourceExtensionJSON: string(eventStr),
 			},
 		},
