@@ -41,7 +41,7 @@ done` + curlPost
 while ! zypper -n -i --no-gpg-checks install google-osconfig-agent; do
 if [[ n -gt 2 ]]; then
   # Zypper repos are flaky, we retry 3 times then just continue, the agent may be installed fine.
-  zypper −−no−refresh -n -i --no-gpg-checks install google-osconfig-agent
+  zypper --no-refresh -n -i --no-gpg-checks install google-osconfig-agent
   break
 fi
 n=$[$n+1]
