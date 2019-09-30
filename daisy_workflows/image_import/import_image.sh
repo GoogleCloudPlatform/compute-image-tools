@@ -43,6 +43,27 @@ echo "DISKNAME: ${DISKNAME}" 2> /dev/null
 echo "ME: ${ME}" 2> /dev/null
 echo "ZONE: ${ZONE}" 2> /dev/null
 
+function waitUntilDeviceAttached() {
+  local devPath="${1}"
+  local capacityGb="${2}"
+
+  echo "Import: Checking for $devPath ${capacityGb}G"
+  for t in {1..60}; do
+    if [[ -e ${devPath} ]]; then
+      capacity=$(lsblk ${devPath})
+      if [[ "${capacity}" =~ "${capacityGb}G" ]]; then
+          echo "Import: $devPath is attached and ready."
+        return
+      fi
+    fi
+
+    sleep 5
+  done
+  echo "ImportFailed: Failed to attach disk $devPath"
+  exit
+}
+
+
 function resizeDisk() {
   local diskId="${1}"
   local newSizeInGb="${2}"
@@ -72,7 +93,12 @@ function copyImageToScratchDisk() {
   # Enlarge it if that's insufficient to hold the input image.
   if [[ ${scratchDiskSizeGigabytes} -gt 10 ]]; then
     resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}"
+    waitUntilDeviceAttached /dev/sdb "${scratchDiskSizeGigabytes}"
+  else
+    waitUntilDeviceAttached /dev/sdb "10"
   fi
+
+
 
   mkdir -p /daisy-scratch
   # /dev/sdb is used since the scratch disk is the second
@@ -85,12 +111,6 @@ function copyImageToScratchDisk() {
   if [[ $? -ne 0 ]]; then
     echo "ImportFailed: Failed to prepare scratch disk."
   fi
-
-  # Output the size of the persistent disks for debugging.
-  # The '-i' parameter is for ascii; without it the output is
-  # garbled in serial output.
-  lsblk -i
-  df
 
   # Standard error for `gsutil cp` contains a progress meter that when written
   # to the console will exceed the logging daemon's buffer for large files.
@@ -149,13 +169,11 @@ if ! out=$(gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zo
 fi
 echo ${out}
 
-# Output the size of the persistent disks for debugging.
-# The '-i' parameter is for ascii; without it the output is
-# garbled in serial output.
-#
-# No df here since we're interested in /dev/sdc which doesn't
-# have a filesystem yet.
-lsblk -i
+if [[ ${SIZE_GB} -gt 10 ]]; then
+  waitUntilDeviceAttached /dev/sdc "${SIZE_GB}"
+else
+  waitUntilDeviceAttached /dev/sdc "10"
+fi
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
 # /dev/sdc is used since we're manually attaching this disk, and sdb was already
