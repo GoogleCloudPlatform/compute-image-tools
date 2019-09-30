@@ -52,7 +52,7 @@ function waitUntilDeviceAttached() {
     if [[ -e ${devPath} ]]; then
       capacity=$(lsblk ${devPath})
       if [[ "${capacity}" =~ "${capacityGb}G" ]]; then
-          echo "Import: $devPath is attached and ready."
+        echo "Import: $devPath is attached and ready."
         return
       fi
     fi
