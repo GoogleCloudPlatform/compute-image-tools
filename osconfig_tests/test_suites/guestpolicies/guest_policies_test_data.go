@@ -279,7 +279,7 @@ func buildRecipeInstallTestSetup(name, image, pkgManager, key string) *guestPoli
 
 func buildRecipeStepsTestSetup(name, image, pkgManager, key string) *guestPolicyTestSetup {
 	assertTimeout := 60 * time.Second
-	testName := recipeInstallFunction
+	testName := recipeStepsFunction
 	recipeName := "testrecipe"
 	machineType := "n1-standard-2"
 

@@ -58,6 +58,7 @@ const (
 	packageUpdateFunction             = "pkgupdate"
 	packageNoUpdateFunction           = "pkgnoupdate"
 	recipeInstallFunction             = "recipeinstall"
+	recipeStepsFunction               = "recipesteps"
 )
 
 type guestPolicyTestSetup struct {
@@ -279,6 +280,8 @@ func getTestCaseFromTestSetUp(testSetup *guestPolicyTestSetup) (*junitxml.TestCa
 		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package install doesn't update] [%s]", path.Base(testSetup.image)))
 	case recipeInstallFunction:
 		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Recipe installation] [%s]", path.Base(testSetup.image)))
+	case recipeStepsFunction:
+		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Recipe steps] [%s]", path.Base(testSetup.image)))
 	default:
 		return nil, fmt.Errorf("unknown test function name: %s", testSetup.testName)
 	}
