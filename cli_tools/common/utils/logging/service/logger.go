@@ -326,7 +326,7 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 		ClientInfo: clientInfo{
 			ClientType: "COMPUTE_IMAGE_TOOLS",
 		},
-		LogSource:     1197,
+		LogSource:     1201,
 		RequestTimeMs: now,
 		LogEvent: []logEvent{
 			{
