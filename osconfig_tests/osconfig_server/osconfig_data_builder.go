@@ -104,3 +104,13 @@ func BuildPackage(name string) *osconfigpb.Package {
 		Name: name,
 	}
 }
+
+// BuildSoftwareRecipe create a SoftwareRecipe with the specified name, version, artifacts, and installSteps
+func BuildSoftwareRecipe(name, version string, artifacts []*osconfigpb.SoftwareRecipe_Artifact, installSteps []*osconfigpb.SoftwareRecipe_Step) *osconfigpb.SoftwareRecipe {
+	return &osconfigpb.SoftwareRecipe{
+		Name:         name,
+		Version:      version,
+		Artifacts:    artifacts,
+		InstallSteps: installSteps,
+	}
+}

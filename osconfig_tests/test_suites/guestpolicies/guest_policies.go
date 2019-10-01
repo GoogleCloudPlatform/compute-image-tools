@@ -18,12 +18,17 @@ package guestpolicies
 import (
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sync"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
@@ -42,7 +47,8 @@ var (
 )
 
 var (
-	dump = &pretty.Config{IncludeUnexported: true}
+	dump           = &pretty.Config{IncludeUnexported: true}
+	tempBucketName = fmt.Sprintf("guestpolicy-e2e-%d", time.Now().Unix())
 )
 
 const (
@@ -51,6 +57,7 @@ const (
 	packageInstallFromNewRepoFunction = "pkgfromnewrepo"
 	packageUpdateFunction             = "pkgupdate"
 	packageNoUpdateFunction           = "pkgnoupdate"
+	recipeInstallFunction             = "recipeinstall"
 )
 
 type guestPolicyTestSetup struct {
@@ -90,6 +97,43 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	testSuite := junitxml.NewTestSuite(testSuiteName)
 	defer testSuite.Finish(testSuites)
 
+	storage, err := gcpclients.GetStorageClient()
+	if err != nil {
+		logger.Printf("error retrieving storage client: %s", err)
+		logger.Printf("skipping test suite %s due to error", testSuiteName)
+		return
+	}
+	bucket := storage.Bucket(tempBucketName)
+	bucket.Create(ctx, testProjectConfig.TestProjectID, nil)
+	defer deleteBucket(ctx, bucket, logger)
+
+	filesDir := filepath.Join("test_suites", "guestpolicies", "testfiles")
+	files, err := ioutil.ReadDir(filesDir)
+	if err != nil {
+		logger.Printf("error listing test files: %s", err)
+		logger.Printf("skipping test suite %s due to error", testSuiteName)
+		return
+	}
+	for _, f := range files {
+		obj := bucket.Object(filepath.Base(f.Name()))
+		defer deleteObject(ctx, obj, logger)
+		file, err := os.Open(filepath.Join(filesDir, f.Name()))
+		if err != nil {
+			logger.Printf("error opening %s: %s", f.Name(), err)
+			logger.Printf("skipping test suite %s due to error", testSuiteName)
+			return
+		}
+		w := obj.NewWriter(ctx)
+		_, err = io.Copy(w, file)
+		file.Close()
+		w.Close()
+		if err != nil {
+			logger.Printf("error writing %s to storage: %s", f.Name(), err)
+			logger.Printf("skipping test suite %s due to error", testSuiteName)
+			return
+		}
+	}
+
 	logger.Printf("Running TestSuite %q", testSuite.Name)
 	testSetup := generateAllTestSetup(testProjectConfig)
 	var wg sync.WaitGroup
@@ -113,6 +157,20 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 // We only want to create one GuestPolicy at a time to limit QPS.
 var gpMx sync.Mutex
+
+func deleteObject(ctx context.Context, obj *storage.ObjectHandle, logger *log.Logger) {
+	err := obj.Delete(ctx)
+	if err != nil {
+		logger.Printf("Failed to delete object from gcs %s: %v", obj.ObjectName(), err)
+	}
+}
+
+func deleteBucket(ctx context.Context, bucket *storage.BucketHandle, logger *log.Logger) {
+	err := bucket.Delete(ctx)
+	if err != nil {
+		logger.Printf("Failed to delete temporary bucket from gcs: %v", err)
+	}
+}
 
 func createGuestPolicy(ctx context.Context, client *osconfigV1alpha2.Client, req *osconfigpb.CreateGuestPolicyRequest) (*osconfigpb.GuestPolicy, error) {
 	gpMx.Lock()
@@ -219,6 +277,8 @@ func getTestCaseFromTestSetUp(testSetup *guestPolicyTestSetup) (*junitxml.TestCa
 		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package update] [%s]", path.Base(testSetup.image)))
 	case packageNoUpdateFunction:
 		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Package install doesn't update] [%s]", path.Base(testSetup.image)))
+	case recipeInstallFunction:
+		tc = junitxml.NewTestCase(testSuiteName, fmt.Sprintf("[Recipe installation] [%s]", path.Base(testSetup.image)))
 	default:
 		return nil, fmt.Errorf("unknown test function name: %s", testSetup.testName)
 	}

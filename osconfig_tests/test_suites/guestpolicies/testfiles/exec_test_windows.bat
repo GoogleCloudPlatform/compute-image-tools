@@ -1,0 +1,1 @@
+echo "hello world" > C:\exec-test-bat

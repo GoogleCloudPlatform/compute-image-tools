@@ -229,6 +229,130 @@ func addPackageInstallFromNewRepoTest(key string) []*guestPolicyTestSetup {
 	return pkgTestSetup
 }
 
+func addRecipeInstallTest(key string) []*guestPolicyTestSetup {
+	var recipeTestSetup []*guestPolicyTestSetup
+	for name, image := range utils.HeadAptImages {
+		recipeTestSetup = append(recipeTestSetup, buildRecipeInstallTestSetup(name, image, "apt", key))
+	}
+	for name, image := range utils.HeadELImages {
+		recipeTestSetup = append(recipeTestSetup, buildRecipeInstallTestSetup(name, image, "yum", key))
+	}
+	for name, image := range utils.HeadSUSEImages {
+		recipeTestSetup = append(recipeTestSetup, buildRecipeInstallTestSetup(name, image, "zypper", key))
+	}
+	return recipeTestSetup
+}
+
+func addRecipeStepsTest(key string) []*guestPolicyTestSetup {
+	var recipeTestSetup []*guestPolicyTestSetup
+	for name, image := range utils.HeadAptImages {
+		recipeTestSetup = append(recipeTestSetup, buildRecipeStepsTestSetup(name, image, "apt", key))
+	}
+	for name, image := range utils.HeadELImages {
+		recipeTestSetup = append(recipeTestSetup, buildRecipeStepsTestSetup(name, image, "yum", key))
+	}
+	for name, image := range utils.HeadSUSEImages {
+		recipeTestSetup = append(recipeTestSetup, buildRecipeStepsTestSetup(name, image, "zypper", key))
+	}
+	return recipeTestSetup
+}
+
+func buildRecipeInstallTestSetup(name, image, pkgManager, key string) *guestPolicyTestSetup {
+	assertTimeout := 60 * time.Second
+	testName := recipeInstallFunction
+	recipeName := "testrecipe"
+	machineType := "n1-standard-2"
+	if strings.HasPrefix(image, "windows") {
+		machineType = "n1-standard-4"
+	}
+
+	instanceName := fmt.Sprintf("%s-%s-%s-%s", path.Base(name), testName, key, utils.RandString(3))
+	gp := &osconfigpb.GuestPolicy{
+		Recipes: []*osconfigpb.SoftwareRecipe{
+			osconfigserver.BuildSoftwareRecipe(recipeName, "", nil, nil),
+		},
+		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
+	}
+	ss := getRecipeInstallStartupScript(name, recipeName, pkgManager)
+	return newGuestPolicyTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
+}
+
+func buildRecipeStepsTestSetup(name, image, pkgManager, key string) *guestPolicyTestSetup {
+	assertTimeout := 60 * time.Second
+	testName := recipeInstallFunction
+	recipeName := "testrecipe"
+	machineType := "n1-standard-2"
+
+	instanceName := fmt.Sprintf("%s-%s-%s-%s", path.Base(name), testName, key, utils.RandString(3))
+	gp := &osconfigpb.GuestPolicy{
+		Recipes: []*osconfigpb.SoftwareRecipe{
+			osconfigserver.BuildSoftwareRecipe(recipeName, "",
+				[]*osconfigpb.SoftwareRecipe_Artifact{
+					&osconfigpb.SoftwareRecipe_Artifact{
+						AllowInsecure: true,
+						Id:            "copy-test",
+						Artifact: &osconfigpb.SoftwareRecipe_Artifact_Remote_{
+							Remote: &osconfigpb.SoftwareRecipe_Artifact_Remote{
+								Uri: "https://example.com",
+							},
+						},
+					},
+					&osconfigpb.SoftwareRecipe_Artifact{
+						AllowInsecure: true,
+						Id:            "exec-test",
+						Artifact: &osconfigpb.SoftwareRecipe_Artifact_Gcs_{
+							Gcs: &osconfigpb.SoftwareRecipe_Artifact_Gcs{
+								Bucket: tempBucketName,
+								Object: "exec_test",
+							},
+						},
+					},
+					&osconfigpb.SoftwareRecipe_Artifact{
+						AllowInsecure: true,
+						Id:            "tar-test",
+						Artifact: &osconfigpb.SoftwareRecipe_Artifact_Gcs_{
+							Gcs: &osconfigpb.SoftwareRecipe_Artifact_Gcs{
+								Bucket: tempBucketName,
+								Object: "tar_test.tar.gz",
+							},
+						},
+					},
+					&osconfigpb.SoftwareRecipe_Artifact{
+						AllowInsecure: true,
+						Id:            "zip-test",
+						Artifact: &osconfigpb.SoftwareRecipe_Artifact_Gcs_{
+							Gcs: &osconfigpb.SoftwareRecipe_Artifact_Gcs{
+								Bucket: tempBucketName,
+								Object: "zip_test.zip",
+							},
+						},
+					},
+				},
+				[]*osconfigpb.SoftwareRecipe_Step{
+					&osconfigpb.SoftwareRecipe_Step{Step: &osconfigpb.SoftwareRecipe_Step_ScriptRun{
+						ScriptRun: &osconfigpb.SoftwareRecipe_Step_RunScript{Script: "#!/bin/bash\necho 'hello world' > /tmp/osconfig-script-test"},
+					}},
+					&osconfigpb.SoftwareRecipe_Step{Step: &osconfigpb.SoftwareRecipe_Step_FileExec{
+						FileExec: &osconfigpb.SoftwareRecipe_Step_ExecFile{LocationType: &osconfigpb.SoftwareRecipe_Step_ExecFile_ArtifactId{ArtifactId: "exec-test"}},
+					}},
+					&osconfigpb.SoftwareRecipe_Step{Step: &osconfigpb.SoftwareRecipe_Step_FileCopy{
+						FileCopy: &osconfigpb.SoftwareRecipe_Step_CopyFile{ArtifactId: "copy-test", Destination: "/tmp/osconfig-copy-test"},
+					}},
+					&osconfigpb.SoftwareRecipe_Step{Step: &osconfigpb.SoftwareRecipe_Step_ArchiveExtraction{
+						ArchiveExtraction: &osconfigpb.SoftwareRecipe_Step_ExtractArchive{ArtifactId: "tar-test", Destination: "/tmp/tar-test", Type: osconfigpb.SoftwareRecipe_Step_ExtractArchive_TAR_GZIP},
+					}},
+					&osconfigpb.SoftwareRecipe_Step{Step: &osconfigpb.SoftwareRecipe_Step_ArchiveExtraction{
+						ArchiveExtraction: &osconfigpb.SoftwareRecipe_Step_ExtractArchive{ArtifactId: "zip-test", Destination: "/tmp/zip-test", Type: osconfigpb.SoftwareRecipe_Step_ExtractArchive_ZIP},
+					}},
+				},
+			),
+		},
+		Assignment: &osconfigpb.Assignment{GroupLabels: []*osconfigpb.Assignment_GroupLabel{{Labels: map[string]string{"name": instanceName}}}},
+	}
+	ss := getRecipeStepsStartupScript(name, recipeName, pkgManager)
+	return newGuestPolicyTestSetup(image, instanceName, testName, packageInstalled, machineType, gp, ss, assertTimeout)
+}
+
 func generateAllTestSetup(testProjectConfig *testconfig.Project) []*guestPolicyTestSetup {
 	key := utils.RandString(3)
 
@@ -238,5 +362,7 @@ func generateAllTestSetup(testProjectConfig *testconfig.Project) []*guestPolicyT
 	pkgTestSetup = append(pkgTestSetup, addPackageInstallFromNewRepoTest(key)...)
 	pkgTestSetup = append(pkgTestSetup, addPackageUpdateTest(key)...)
 	pkgTestSetup = append(pkgTestSetup, addPackageDoesNotUpdateTest(key)...)
+	pkgTestSetup = append(pkgTestSetup, addRecipeInstallTest(key)...)
+	pkgTestSetup = append(pkgTestSetup, addRecipeStepsTest(key)...)
 	return pkgTestSetup
 }

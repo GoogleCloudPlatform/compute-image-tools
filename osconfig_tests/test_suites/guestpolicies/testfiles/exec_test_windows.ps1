@@ -1,0 +1,1 @@
+Write-Output "hello world" > C:\exec-test-ps1
