@@ -1,4 +1,4 @@
-timeout: 600s
+timeout: 900s
 steps:
 # Setup workspace
 - name: 'alpine'
