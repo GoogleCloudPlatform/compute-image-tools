@@ -18,6 +18,25 @@
 FAIL=0
 FAILURES=""
 
+function wait_for_connectivity {
+  if [[ $(cat /etc/centos-release) =~ "CentOS release 6" ]]; then
+    status "CentOS 6: Waiting for network connectivity."
+  else
+    return
+  fi
+
+  for i in {0..60}; do
+    if [[ $(nmcli -t -f STATE nm) == "connected" ]]; then
+      status "Network ready."
+      return
+    fi
+    sleep 5s
+  done
+
+  echo "FAILED: Unable to initialize network connection."
+  exit 1
+}
+
 function status {
   local message="${1}"
   echo "STATUS: ${message}"
@@ -158,6 +177,9 @@ function check_package_install {
     fi
   fi
 }
+
+# Ensure there's network connectivity before running the tests.
+wait_for_connectivity
 
 # Run tests.
 check_google_services
