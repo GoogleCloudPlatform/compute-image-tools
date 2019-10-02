@@ -43,37 +43,33 @@ echo "DISKNAME: ${DISKNAME}" 2> /dev/null
 echo "ME: ${ME}" 2> /dev/null
 echo "ZONE: ${ZONE}" 2> /dev/null
 
-function waitUntilDeviceAttached() {
-  local devPath="${1}"
-  local capacityGb="${2}"
-
-  echo "Import: Checking for $devPath ${capacityGb}G"
-  for t in {1..60}; do
-    if [[ -e ${devPath} ]]; then
-      capacity=$(lsblk ${devPath})
-      if [[ "${capacity}" =~ "${capacityGb}G" ]]; then
-        echo "Import: $devPath is attached and ready."
-        return
-      fi
-    fi
-
-    sleep 5
-  done
-  echo "ImportFailed: Failed to attach disk $devPath"
-  exit
-}
-
 
 function resizeDisk() {
   local diskId="${1}"
   local newSizeInGb="${2}"
   local zone="${3}"
+  local deviceId="${4}"
 
   echo "Import: Resizing ${diskId} to ${newSizeInGb}GB in ${zone}."
   if ! out=$(gcloud -q compute disks resize ${diskId} --size=${newSizeInGb}GB --zone=${zone} 2>&1); then
     echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${newSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
     exit
   fi
+
+  echo "Import: Checking for ${deviceId} ${newSizeInGb}G"
+  for t in {1..60}; do
+    if [[ -e ${deviceId} ]]; then
+      capacity=$(lsblk ${deviceId})
+      if [[ "${capacity}" =~ "${newSizeInGb}G" ]]; then
+        echo "Import: ${deviceId} is attached and ready."
+        return
+      fi
+    fi
+    sleep 5
+  done
+
+  echo "ImportFailed: Failed to attach disk ${deviceId}"
+  exit
 }
 
 function copyImageToScratchDisk() {
@@ -92,10 +88,7 @@ function copyImageToScratchDisk() {
   # This disk is initially created with 10GB of space.
   # Enlarge it if that's insufficient to hold the input image.
   if [[ ${scratchDiskSizeGigabytes} -gt 10 ]]; then
-    resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}"
-    waitUntilDeviceAttached /dev/sdb "${scratchDiskSizeGigabytes}"
-  else
-    waitUntilDeviceAttached /dev/sdb "10"
+    resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}" /dev/sdb
   fi
 
 
@@ -160,24 +153,11 @@ set -x
 # it to have a capacity of 10 GB, and then resize it if qemu-img
 # tells us that it will be larger than 10 GB.
 if [[ ${SIZE_GB} -gt 10 ]]; then
-  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}"
-fi
-
-if ! out=$(gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE} 2>&1); then
-  echo "ImportFailed: Failed to attach disk [Privacy-> from ${DISKNAME} to ${ME}, error: ${out} <-Privacy]"
-  exit
-fi
-echo ${out}
-
-if [[ ${SIZE_GB} -gt 10 ]]; then
-  waitUntilDeviceAttached /dev/sdc "${SIZE_GB}"
-else
-  waitUntilDeviceAttached /dev/sdc "10"
+  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 fi
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
-# /dev/sdc is used since we're manually attaching this disk, and sdb was already
-# used by the scratch disk.
+# /dev/sdc is used since it's the third disk that's attached in import_disk.wf.json.
 if ! out=$(qemu-img convert ${IMAGE_PATH} -p -O raw -S 512b /dev/sdc 2>&1); then
   echo "ImportFailed: Failed to convert source to raw. [Privacy-> error: ${out} <-Privacy]"
   exit
@@ -185,6 +165,5 @@ fi
 echo ${out}
 
 sync
-gcloud -q compute instances detach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE}
 
 echo "ImportSuccess: Finished import." 2> /dev/null
