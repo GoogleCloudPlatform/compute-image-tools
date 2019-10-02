@@ -272,6 +272,7 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
     ks_packages = FetchConfigPart('el8-packages.cfg')
     ks_options = FetchConfigPart('el8-options.cfg')
     if uefi:
+      logging.info('Building RHEL 8 for UEFI')
       ks_options = FetchConfigPart('el8-uefi-options.cfg')
     rhel_post = FetchConfigPart('rhel8-post.cfg')
     el_post = FetchConfigPart('el8-post.cfg')
@@ -286,10 +287,6 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
       logging.info('Building CentOS 8 for UEFI')
       ks_options = FetchConfigPart('el8-uefi-options.cfg')
     custom_post = FetchConfigPart('el8-post.cfg')
-    if uefi:
-      el8_uefi_post = FetchConfigPart('el8-uefi-post.cfg').replace("redhat",
-                                                                   "centos")
-      custom_post = '\n'.join([custom_post, el8_uefi_post])
     cleanup = FetchConfigPart('el8-cleanup.cfg')
     repo_version = 'el8'
   else:
