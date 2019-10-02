@@ -349,10 +349,10 @@ func getRecipeStepsStartupScript(image, recipeName, pkgManager string) *computeA
     echo "zip step verified"
 
     isinstalled=$(grep '{"Name":"%[1]s","Version":\[0],"InstallTime":[0-9]*,"Success":true}' /tmp/var/lib/google/osconfig_recipedb)
-    if [[ -n $isinstalled ]]
+    if [[ -n $isinstalled ]]; then
       set_metadata %[2]s
     else
-    set_metadata %[3]s
+      set_metadata %[3]s
     fi
     sleep 5
   done
