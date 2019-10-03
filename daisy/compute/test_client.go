@@ -76,8 +76,13 @@ type TestClient struct {
 	GetZoneFn                   func(project, zone string) (*compute.Zone, error)
 	ListZonesFn                 func(project string, opts ...ListCallOption) ([]*compute.Zone, error)
 	GetInstanceFn               func(project, zone, name string) (*compute.Instance, error)
+	AggregatedListInstancesFn   func(project string, opts ...ListCallOption) ([]*compute.Instance, error)
 	ListInstancesFn             func(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
+	ListSnapshotsFn             func(project string, opts ...ListCallOption) ([]*compute.Snapshot, error)
+	GetSnapshotFn               func(project, name string) (*compute.Snapshot, error)
+	DeleteSnapshotFn            func(project, name string) error
 	GetDiskFn                   func(project, zone, name string) (*compute.Disk, error)
+	AggregatedListDisksFn       func(project string, opts ...ListCallOption) ([]*compute.Disk, error)
 	ListDisksFn                 func(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	GetForwardingRuleFn         func(project, region, name string) (*compute.ForwardingRule, error)
 	ListForwardingRulesFn       func(project, region string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
@@ -88,6 +93,7 @@ type TestClient struct {
 	ListImagesFn                func(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	GetLicenseFn                func(project, name string) (*compute.License, error)
 	GetNetworkFn                func(project, name string) (*compute.Network, error)
+	AggregatedListSubnetworksFn func(project string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListNetworksFn              func(project string, opts ...ListCallOption) ([]*compute.Network, error)
 	GetSubnetworkFn             func(project, region, name string) (*compute.Subnetwork, error)
 	ListSubnetworksFn           func(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
@@ -324,6 +330,30 @@ func (c *TestClient) ListZones(project string, opts ...ListCallOption) ([]*compu
 	return c.client.ListZones(project, opts...)
 }
 
+// GetSnapshot uses the override method GetSnapshotFn or the real implementation.
+func (c *TestClient) GetSnapshot(project, name string) (*compute.Snapshot, error) {
+	if c.GetInstanceFn != nil {
+		return c.GetSnapshotFn(project, name)
+	}
+	return c.client.GetSnapshot(project, name)
+}
+
+// ListSnapshots uses the override method ListSnapshotsFn or the real implementation.
+func (c *TestClient) ListSnapshots(project string, opts ...ListCallOption) ([]*compute.Snapshot, error) {
+	if c.GetInstanceFn != nil {
+		return c.ListSnapshotsFn(project, opts...)
+	}
+	return c.client.ListSnapshots(project, opts...)
+}
+
+// DeleteSnapshot uses the override method DeleteSnapshotFn or the real implementation.
+func (c *TestClient) DeleteSnapshot(project, name string) error {
+	if c.GetInstanceFn != nil {
+		return c.DeleteSnapshotFn(project, name)
+	}
+	return c.client.DeleteSnapshot(project, name)
+}
+
 // GetInstance uses the override method GetZoneFn or the real implementation.
 func (c *TestClient) GetInstance(project, zone, name string) (*compute.Instance, error) {
 	if c.GetInstanceFn != nil {
@@ -340,12 +370,28 @@ func (c *TestClient) ListInstances(project, zone string, opts ...ListCallOption)
 	return c.client.ListInstances(project, zone, opts...)
 }
 
+// AggregatedListInstances uses the override method ListInstancesFn or the real implementation.
+func (c *TestClient) AggregatedListInstances(project string, opts ...ListCallOption) ([]*compute.Instance, error) {
+	if c.AggregatedListInstancesFn != nil {
+		return c.AggregatedListInstancesFn(project, opts...)
+	}
+	return c.client.AggregatedListInstances(project, opts...)
+}
+
 // GetDisk uses the override method GetZoneFn or the real implementation.
 func (c *TestClient) GetDisk(project, zone, name string) (*compute.Disk, error) {
 	if c.GetDiskFn != nil {
 		return c.GetDiskFn(project, zone, name)
 	}
 	return c.client.GetDisk(project, zone, name)
+}
+
+// AggregatedListDisks uses the override method ListInstancesFn or the real implementation.
+func (c *TestClient) AggregatedListDisks(project string, opts ...ListCallOption) ([]*compute.Disk, error) {
+	if c.AggregatedListDisksFn != nil {
+		return c.AggregatedListDisksFn(project, opts...)
+	}
+	return c.client.AggregatedListDisks(project, opts...)
 }
 
 // ListDisks uses the override method ListDisksFn or the real implementation.
@@ -442,6 +488,14 @@ func (c *TestClient) GetSubnetwork(project, region, name string) (*compute.Subne
 		return c.GetSubnetworkFn(project, region, name)
 	}
 	return c.client.GetSubnetwork(project, region, name)
+}
+
+// AggregatedListSubnetworks uses the override method AggregatedListSubnetworksFn or the real implementation.
+func (c *TestClient) AggregatedListSubnetworks(project string, opts ...ListCallOption) ([]*compute.Subnetwork, error) {
+	if c.AggregatedListSubnetworksFn != nil {
+		return c.AggregatedListSubnetworksFn(project, opts...)
+	}
+	return c.client.AggregatedListSubnetworks(project, opts...)
 }
 
 // ListSubnetworks uses the override method ListSubnetworksFn or the real implementation.

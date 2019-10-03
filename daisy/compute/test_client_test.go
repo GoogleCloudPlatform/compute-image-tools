@@ -71,6 +71,7 @@ func TestTestClient(t *testing.T) {
 		{"get zone", func() { c.GetZone("a", "b") }, "/a/zones/b?alt=json&prettyPrint=false"},
 		{"list zones", func() { c.ListZones("a", listOpts...) }, "/a/zones?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"get instance", func() { c.GetInstance("a", "b", "c") }, "/a/zones/b/instances/c?alt=json&prettyPrint=false"},
+		{"aggregated list instances", func() { c.AggregatedListInstances("a", listOpts...) }, "/a/aggregated/instances?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"list instances", func() { c.ListInstances("a", "b", listOpts...) }, "/a/zones/b/instances?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"get image from family", func() { c.GetImageFromFamily("a", "b") }, "/a/global/images/family/b?alt=json&prettyPrint=false"},
 		{"get image", func() { c.GetImage("a", "b") }, "/a/global/images/b?alt=json&prettyPrint=false"},
@@ -79,8 +80,10 @@ func TestTestClient(t *testing.T) {
 		{"get network", func() { c.GetNetwork("a", "b") }, "/a/global/networks/b?alt=json&prettyPrint=false"},
 		{"list networks", func() { c.ListNetworks("a", listOpts...) }, "/a/global/networks?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"get subnetwork", func() { c.GetSubnetwork("a", "b", "c") }, "/a/regions/b/subnetworks/c?alt=json&prettyPrint=false"},
+		{"aggregated list subnetworks", func() { c.AggregatedListSubnetworks("a", listOpts...) }, "/a/aggregated/subnetworks?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"list subnetworks", func() { c.ListSubnetworks("a", "b", listOpts...) }, "/a/regions/b/subnetworks?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"get disk", func() { c.GetDisk("a", "b", "c") }, "/a/zones/b/disks/c?alt=json&prettyPrint=false"},
+		{"aggregated list disks", func() { c.AggregatedListDisks("a", listOpts...) }, "/a/aggregated/disks?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"list disks", func() { c.ListDisks("a", "b", listOpts...) }, "/a/zones/b/disks?alt=json&filter=foo&orderBy=foo&pageToken=&prettyPrint=false"},
 		{"instance status", func() { c.InstanceStatus("a", "b", "c") }, "/a/zones/b/instances/c?alt=json&prettyPrint=false"},
 		{"instance stopped", func() { c.InstanceStopped("a", "b", "c") }, "/a/zones/b/instances/c?alt=json&prettyPrint=false"},
@@ -153,11 +156,19 @@ func TestTestClient(t *testing.T) {
 		return nil, nil
 	}
 	c.GetInstanceFn = func(_, _, _ string) (*compute.Instance, error) { fakeCalled = true; return nil, nil }
+	c.AggregatedListInstancesFn = func(_ string, _ ...ListCallOption) ([]*compute.Instance, error) {
+		fakeCalled = true
+		return nil, nil
+	}
 	c.ListInstancesFn = func(_, _ string, _ ...ListCallOption) ([]*compute.Instance, error) {
 		fakeCalled = true
 		return nil, nil
 	}
 	c.GetDiskFn = func(_, _, _ string) (*compute.Disk, error) { fakeCalled = true; return nil, nil }
+	c.AggregatedListDisksFn = func(_ string, _ ...ListCallOption) ([]*compute.Disk, error) {
+		fakeCalled = true
+		return nil, nil
+	}
 	c.ListDisksFn = func(_, _ string, _ ...ListCallOption) ([]*compute.Disk, error) {
 		fakeCalled = true
 		return nil, nil
@@ -175,6 +186,10 @@ func TestTestClient(t *testing.T) {
 		return nil, nil
 	}
 	c.GetSubnetworkFn = func(_, _, _ string) (*compute.Subnetwork, error) { fakeCalled = true; return nil, nil }
+	c.AggregatedListSubnetworksFn = func(_ string, _ ...ListCallOption) ([]*compute.Subnetwork, error) {
+		fakeCalled = true
+		return nil, nil
+	}
 	c.ListSubnetworksFn = func(_, _ string, _ ...ListCallOption) ([]*compute.Subnetwork, error) {
 		fakeCalled = true
 		return nil, nil

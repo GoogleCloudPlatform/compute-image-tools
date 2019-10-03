@@ -75,12 +75,18 @@ type Client interface {
 	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
 	ListZones(project string, opts ...ListCallOption) ([]*compute.Zone, error)
 	ListRegions(project string, opts ...ListCallOption) ([]*compute.Region, error)
+	AggregatedListInstances(project string, opts ...ListCallOption) ([]*compute.Instance, error)
 	ListInstances(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error)
+	AggregatedListDisks(project string, opts ...ListCallOption) ([]*compute.Disk, error)
 	ListDisks(project, zone string, opts ...ListCallOption) ([]*compute.Disk, error)
 	ListForwardingRules(project, zone string, opts ...ListCallOption) ([]*compute.ForwardingRule, error)
 	ListFirewallRules(project string, opts ...ListCallOption) ([]*compute.Firewall, error)
 	ListImages(project string, opts ...ListCallOption) ([]*compute.Image, error)
+	GetSnapshot(project, name string) (*compute.Snapshot, error)
+	ListSnapshots(project string, opts ...ListCallOption) ([]*compute.Snapshot, error)
+	DeleteSnapshot(project, name string) error
 	ListNetworks(project string, opts ...ListCallOption) ([]*compute.Network, error)
+	AggregatedListSubnetworks(project string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListSubnetworks(project, region string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListTargetInstances(project, zone string, opts ...ListCallOption) ([]*compute.TargetInstance, error)
 	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
@@ -123,6 +129,12 @@ func (o OrderBy) listCallOptionApply(i interface{}) interface{} {
 		return c.OrderBy(string(o))
 	case *compute.SubnetworksListCall:
 		return c.OrderBy(string(o))
+	case *compute.InstancesAggregatedListCall:
+		return c.OrderBy(string(o))
+	case *compute.DisksAggregatedListCall:
+		return c.OrderBy(string(o))
+	case *compute.SubnetworksAggregatedListCall:
+		return c.OrderBy(string(o))
 	}
 	return i
 }
@@ -149,6 +161,12 @@ func (o Filter) listCallOptionApply(i interface{}) interface{} {
 	case *compute.NetworksListCall:
 		return c.Filter(string(o))
 	case *compute.SubnetworksListCall:
+		return c.Filter(string(o))
+	case *compute.InstancesAggregatedListCall:
+		return c.Filter(string(o))
+	case *compute.DisksAggregatedListCall:
+		return c.Filter(string(o))
+	case *compute.SubnetworksAggregatedListCall:
 		return c.Filter(string(o))
 	}
 	return i
@@ -752,6 +770,31 @@ func (c *client) GetInstance(project, zone, name string) (*compute.Instance, err
 	return i, err
 }
 
+// AggregatedListInstances gets an aggregated list of GCE Instances.
+func (c *client) AggregatedListInstances(project string, opts ...ListCallOption) ([]*compute.Instance, error) {
+	var is []*compute.Instance
+	var pt string
+	call := c.raw.Instances.AggregatedList(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.InstancesAggregatedListCall)
+	}
+	for ial, err := call.PageToken(pt).Do(); ; ial, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			ial, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, isl := range ial.Items {
+			is = append(is, isl.Instances...)
+		}
+		if ial.NextPageToken == "" {
+			return is, nil
+		}
+		pt = ial.NextPageToken
+	}
+}
+
 // ListInstances gets a list of GCE Instances.
 func (c *client) ListInstances(project, zone string, opts ...ListCallOption) ([]*compute.Instance, error) {
 	var is []*compute.Instance
@@ -783,6 +826,31 @@ func (c *client) GetDisk(project, zone, name string) (*compute.Disk, error) {
 		return c.raw.Disks.Get(project, zone, name).Do()
 	}
 	return d, err
+}
+
+// AggregatedListDisks gets an aggregated list of GCE Disks.
+func (c *client) AggregatedListDisks(project string, opts ...ListCallOption) ([]*compute.Disk, error) {
+	var is []*compute.Disk
+	var pt string
+	call := c.raw.Disks.AggregatedList(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.DisksAggregatedListCall)
+	}
+	for ial, err := call.PageToken(pt).Do(); ; ial, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			ial, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, isl := range ial.Items {
+			is = append(is, isl.Disks...)
+		}
+		if ial.NextPageToken == "" {
+			return is, nil
+		}
+		pt = ial.NextPageToken
+	}
 }
 
 // ListDisks gets a list of GCE Disks.
@@ -926,6 +994,49 @@ func (c *client) ListImages(project string, opts ...ListCallOption) ([]*compute.
 	}
 }
 
+// GetSnapshot gets a GCE Snapshot.
+func (c *client) GetSnapshot(project, name string) (*compute.Snapshot, error) {
+	n, err := c.raw.Snapshots.Get(project, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.raw.Snapshots.Get(project, name).Do()
+	}
+	return n, err
+}
+
+// DeleteSnapshot deletes a GCE Snapshot.
+func (c *client) DeleteSnapshot(project, name string) error {
+	op, err := c.Retry(c.raw.Snapshots.Delete(project, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.globalOperationsWait(project, op.Name)
+}
+
+// ListSnapshots gets a list of GCE Snapshots.
+func (c *client) ListSnapshots(project string, opts ...ListCallOption) ([]*compute.Snapshot, error) {
+	var ss []*compute.Snapshot
+	var pt string
+	call := c.raw.Snapshots.List(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.SnapshotsListCall)
+	}
+	for sl, err := call.PageToken(pt).Do(); ; sl, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			sl, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		ss = append(ss, sl.Items...)
+
+		if sl.NextPageToken == "" {
+			return ss, nil
+		}
+		pt = sl.NextPageToken
+	}
+}
+
 // GetNetwork gets a GCE Network.
 func (c *client) GetNetwork(project, name string) (*compute.Network, error) {
 	n, err := c.raw.Networks.Get(project, name).Do()
@@ -966,6 +1077,31 @@ func (c *client) GetSubnetwork(project, region, name string) (*compute.Subnetwor
 		return c.raw.Subnetworks.Get(project, region, name).Do()
 	}
 	return n, err
+}
+
+// AggregatedListSubnetworks gets an aggregated list of GCE Subnetworks.
+func (c *client) AggregatedListSubnetworks(project string, opts ...ListCallOption) ([]*compute.Subnetwork, error) {
+	var ss []*compute.Subnetwork
+	var pt string
+	call := c.raw.Subnetworks.AggregatedList(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.SubnetworksAggregatedListCall)
+	}
+	for sal, err := call.PageToken(pt).Do(); ; sal, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			sal, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		for _, sl := range sal.Items {
+			ss = append(ss, sl.Subnetworks...)
+		}
+		if sal.NextPageToken == "" {
+			return ss, nil
+		}
+		pt = sal.NextPageToken
+	}
 }
 
 // ListSubnetworks gets a list of GCE subnetworks.

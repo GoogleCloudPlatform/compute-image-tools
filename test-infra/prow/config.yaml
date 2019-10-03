@@ -114,6 +114,24 @@ presubmits:
        secretName: compute-image-tools-test-service-account
 
 periodics:
+ - name: cleanerupper
+   interval: 24h
+   agent: kubernetes
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/cleanerupper:latest
+      args:
+      - "-dry_run=false"
+      - "-duration=24h"
+      - "-projects=compute-image-test-pool-001,compute-image-test-pool-002,compute-image-test-pool-003,compute-image-test-pool-004,compute-image-test-pool-005,compute-image-osconfig-agent"
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
  - name: ci-daisy-e2e
    interval: 3h
    agent: kubernetes
