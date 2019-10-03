@@ -316,39 +316,39 @@ func getRecipeInstallStartupScript(image, recipeName, pkgManager string) *comput
 
 func getRecipeStepsStartupScript(image, recipeName, pkgManager string) *computeApi.MetadataItems {
 	scriptLinux := fmt.Sprintf(`
-    # loop and check for recipedb entry
-    function set_metadata {
-      uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/$1
-      curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
-    }
-    while true; do
-    while [[ ! -f /tmp/osconfig-script-test ]]; do
-      set_metadata %[3]s
-      sleep 5
-    done
-    echo "script step verified"
-    while [[ ! -f /tmp/osconfig-exec-test ]]; do
-      set_metadata %[3]s
-      sleep 5
-    done
-    echo "exec step verified"
-    while [[ ! -f /tmp/osconfig-copy-test ]]; do
-      set_metadata %[3]s
-      sleep 5
-    done
-    echo "copy step verified"
-    while [[ ! -f /tmp/tar-test/tar/test.txt ]]; do
-      set_metadata %[3]s
-      sleep 5
-    done
-    echo "tar step verified"
-    while [[ ! -f /tmp/zip-test/zip/test.txt ]]; do
-      set_metadata %[3]s
-      sleep 5
-    done
-    echo "zip step verified"
+  function set_metadata {
+    uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/$1
+    curl -X PUT --data "1" $uri -H "Metadata-Flavor: Google"
+  }
 
-    isinstalled=$(grep '{"Name":"%[1]s","Version":\[0],"InstallTime":[0-9]*,"Success":true}' /tmp/var/lib/google/osconfig_recipedb)
+  while [[ ! -f /tmp/osconfig-script-test ]]; do
+    set_metadata %[3]s
+    sleep 5
+  done
+  echo "script step verified"
+  while [[ ! -f /tmp/osconfig-exec-test ]]; do
+    set_metadata %[3]s
+    sleep 5
+  done
+  echo "exec step verified"
+  while [[ ! -f /tmp/osconfig-copy-test ]]; do
+    set_metadata %[3]s
+    sleep 5
+  done
+  echo "copy step verified"
+  while [[ ! -f /tmp/tar-test/tar/test.txt ]]; do
+    set_metadata %[3]s
+    sleep 5
+  done
+  echo "tar step verified"
+  while [[ ! -f /tmp/zip-test/zip/test.txt ]]; do
+    set_metadata %[3]s
+    sleep 5
+  done
+  echo "zip step verified"
+
+  while true; do
+    isinstalled=$(grep '{"Name":"%[1]s","Version":\[0],"InstallTime":[0-9]*,"Success":true}' /var/lib/google/osconfig_recipedb)
     if [[ -n $isinstalled ]]; then
       set_metadata %[2]s
     else
@@ -362,11 +362,11 @@ func getRecipeStepsStartupScript(image, recipeName, pkgManager string) *computeA
 	key := "startup-script"
 	switch pkgManager {
 	case "apt":
-		script = fmt.Sprintf("%s\n\n%s", utils.InstallOSConfigDeb(), scriptLinux)
+		script = fmt.Sprintf("%s\n%s\n%s", utils.InstallOSConfigDeb(), waitForRestartLinux, scriptLinux)
 	case "yum":
-		script = fmt.Sprintf("%s\n\n%s", yumStartupScripts[path.Base(image)], scriptLinux)
+		script = fmt.Sprintf("%s\n%s\n%s", yumStartupScripts[path.Base(image)], waitForRestartLinux, scriptLinux)
 	case "zypper":
-		script = fmt.Sprintf("%s\n\n%s", utils.InstallOSConfigSUSE(), scriptLinux)
+		script = fmt.Sprintf("%s\n%s\n%s", utils.InstallOSConfigSUSE(), waitForRestartLinux, scriptLinux)
 
 	default:
 		logger.Errorf(fmt.Sprintf("invalid package manager: %s", pkgManager))
