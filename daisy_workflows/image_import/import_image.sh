@@ -43,16 +43,33 @@ echo "DISKNAME: ${DISKNAME}" 2> /dev/null
 echo "ME: ${ME}" 2> /dev/null
 echo "ZONE: ${ZONE}" 2> /dev/null
 
+
 function resizeDisk() {
   local diskId="${1}"
   local newSizeInGb="${2}"
   local zone="${3}"
+  local deviceId="${4}"
 
   echo "Import: Resizing ${diskId} to ${newSizeInGb}GB in ${zone}."
   if ! out=$(gcloud -q compute disks resize ${diskId} --size=${newSizeInGb}GB --zone=${zone} 2>&1); then
     echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${newSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
     exit
   fi
+
+  echo "Import: Checking for ${deviceId} ${newSizeInGb}G"
+  for t in {1..60}; do
+    if [[ -e ${deviceId} ]]; then
+      capacity=$(lsblk ${deviceId})
+      if [[ "${capacity}" =~ "${newSizeInGb}G" ]]; then
+        echo "Import: ${deviceId} is attached and ready."
+        return
+      fi
+    fi
+    sleep 5
+  done
+
+  echo "ImportFailed: Failed to attach disk ${deviceId}"
+  exit
 }
 
 function copyImageToScratchDisk() {
@@ -71,8 +88,10 @@ function copyImageToScratchDisk() {
   # This disk is initially created with 10GB of space.
   # Enlarge it if that's insufficient to hold the input image.
   if [[ ${scratchDiskSizeGigabytes} -gt 10 ]]; then
-    resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}"
+    resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}" /dev/sdb
   fi
+
+
 
   mkdir -p /daisy-scratch
   # /dev/sdb is used since the scratch disk is the second
@@ -85,12 +104,6 @@ function copyImageToScratchDisk() {
   if [[ $? -ne 0 ]]; then
     echo "ImportFailed: Failed to prepare scratch disk."
   fi
-
-  # Output the size of the persistent disks for debugging.
-  # The '-i' parameter is for ascii; without it the output is
-  # garbled in serial output.
-  lsblk -i
-  df
 
   # Standard error for `gsutil cp` contains a progress meter that when written
   # to the console will exceed the logging daemon's buffer for large files.
@@ -140,26 +153,11 @@ set -x
 # it to have a capacity of 10 GB, and then resize it if qemu-img
 # tells us that it will be larger than 10 GB.
 if [[ ${SIZE_GB} -gt 10 ]]; then
-  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}"
+  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 fi
-
-if ! out=$(gcloud -q compute instances attach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE} 2>&1); then
-  echo "ImportFailed: Failed to attach disk [Privacy-> from ${DISKNAME} to ${ME}, error: ${out} <-Privacy]"
-  exit
-fi
-echo ${out}
-
-# Output the size of the persistent disks for debugging.
-# The '-i' parameter is for ascii; without it the output is
-# garbled in serial output.
-#
-# No df here since we're interested in /dev/sdc which doesn't
-# have a filesystem yet.
-lsblk -i
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
-# /dev/sdc is used since we're manually attaching this disk, and sdb was already
-# used by the scratch disk.
+# /dev/sdc is used since it's the third disk that's attached in import_disk.wf.json.
 if ! out=$(qemu-img convert ${IMAGE_PATH} -p -O raw -S 512b /dev/sdc 2>&1); then
   echo "ImportFailed: Failed to convert source to raw. [Privacy-> error: ${out} <-Privacy]"
   exit
@@ -167,6 +165,5 @@ fi
 echo ${out}
 
 sync
-gcloud -q compute instances detach-disk ${ME} --disk=${DISKNAME} --zone=${ZONE}
 
 echo "ImportSuccess: Finished import." 2> /dev/null

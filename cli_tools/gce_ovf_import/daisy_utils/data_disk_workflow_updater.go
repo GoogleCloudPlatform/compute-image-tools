@@ -92,7 +92,8 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					Name: dataDiskImporterInstanceName,
 					Disks: []*compute.AttachedDisk{
 						{Source: diskImporterDiskName},
-						{Source: scratchDiskDiskName}},
+						{Source: scratchDiskDiskName},
+						{Source: diskNames[i]}},
 					MachineType: "n1-standard-4",
 					Metadata: &compute.Metadata{
 						Items: []*compute.MetadataItems{
