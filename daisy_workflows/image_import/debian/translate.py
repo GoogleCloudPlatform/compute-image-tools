@@ -77,8 +77,8 @@ def DistroSpecific(g):
 
   # Update grub config to log to console.
   g.command(
-      ['sed', '-i',
-      r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#',
+      ['sed', '-i""',
+      r'/GRUB_CMDLINE_LINUX/s#"$# console=ttyS0,38400n8"#',
       '/etc/default/grub'])
 
   # Disable predictive network interface naming in Stretch.

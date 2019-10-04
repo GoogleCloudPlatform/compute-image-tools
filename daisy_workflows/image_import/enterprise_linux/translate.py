@@ -73,7 +73,7 @@ GRUB_DEFAULT=saved
 GRUB_DISABLE_SUBMENU=true
 GRUB_TERMINAL="serial console"
 GRUB_SERIAL_COMMAND="serial --speed=38400"
-GRUB_CMDLINE_LINUX="crashkernel=auto console=ttyS0,38400n8"
+GRUB_CMDLINE_LINUX="crashkernel=auto console=ttyS0,38400n8 elevator=noop"
 GRUB_DISABLE_RECOVERY="true"
 '''
 
