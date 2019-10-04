@@ -19,8 +19,8 @@ FAIL=0
 FAILURES=""
 
 function wait_for_connectivity {
-  if [[ $(cat /etc/centos-release) =~ "CentOS release 6" ]]; then
-    status "CentOS 6: Waiting for network connectivity."
+  if grep -q 'CentOS release 6' /etc/centos-release && command -v nmcli; then
+    status "CentOS 6: Waiting for network connectivity using nmcli."
   else
     return
   fi
