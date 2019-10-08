@@ -48,12 +48,28 @@ function resizeDisk() {
   local diskId="${1}"
   local newSizeInGb="${2}"
   local zone="${3}"
+  local deviceId="${4}"
 
   echo "Import: Resizing ${diskId} to ${newSizeInGb}GB in ${zone}."
   if ! out=$(gcloud -q compute disks resize ${diskId} --size=${newSizeInGb}GB --zone=${zone} 2>&1); then
     echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${newSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
     exit
   fi
+
+  echo "Import: Checking for ${deviceId} ${newSizeInGb}G"
+  for t in {1..60}; do
+    if [[ -e ${deviceId} ]]; then
+      capacity=$(lsblk ${deviceId})
+      if [[ "${capacity}" =~ "${newSizeInGb}G" ]]; then
+        echo "Import: ${deviceId} is attached and ready."
+        return
+      fi
+    fi
+    sleep 5
+  done
+
+  echo "ImportFailed: Failed to attach disk ${deviceId}"
+  exit
 }
 
 function copyImageToScratchDisk() {
@@ -72,8 +88,10 @@ function copyImageToScratchDisk() {
   # This disk is initially created with 10GB of space.
   # Enlarge it if that's insufficient to hold the input image.
   if [[ ${scratchDiskSizeGigabytes} -gt 10 ]]; then
-    resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}"
+    resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}" /dev/sdb
   fi
+
+
 
   mkdir -p /daisy-scratch
   # /dev/sdb is used since the scratch disk is the second
@@ -135,7 +153,7 @@ set -x
 # it to have a capacity of 10 GB, and then resize it if qemu-img
 # tells us that it will be larger than 10 GB.
 if [[ ${SIZE_GB} -gt 10 ]]; then
-  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}"
+  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 fi
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
