@@ -46,21 +46,22 @@ echo "ZONE: ${ZONE}" 2> /dev/null
 
 function resizeDisk() {
   local diskId="${1}"
-  local newSizeInGb="${2}"
+  local requiredSizeInGb="${2}"
   local zone="${3}"
   local deviceId="${4}"
 
-  echo "Import: Resizing ${diskId} to ${newSizeInGb}GB in ${zone}."
-  if ! out=$(gcloud -q compute disks resize ${diskId} --size=${newSizeInGb}GB --zone=${zone} 2>&1); then
-    echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${newSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
+  echo "Import: Resizing ${diskId} to ${requiredSizeInGb}GB in ${zone}."
+  if ! out=$(gcloud -q compute disks resize ${diskId} --size=${requiredSizeInGb}GB --zone=${zone} 2>&1); then
+    echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${requiredSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
     exit
   fi
 
-  echo "Import: Checking for ${deviceId} ${newSizeInGb}G"
+  echo "Import: Checking for ${deviceId} ${requiredSizeInGb}G"
   for t in {1..60}; do
     if [[ -e ${deviceId} ]]; then
-      capacity=$(lsblk ${deviceId})
-      if [[ "${capacity}" =~ "${newSizeInGb}G" ]]; then
+      local actualSizeBytes=$(lsblk "${deviceId}" --output=size -b | sed -n 2p)
+      local actualSizeGb=$(awk "BEGIN {print int(${actualSizeBytes}/${BYTES_1GB})}")
+      if [[ "${actualSizeGb}" == "${requiredSizeInGb}" ]]; then
         echo "Import: ${deviceId} is attached and ready."
         return
       fi
