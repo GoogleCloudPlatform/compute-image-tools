@@ -123,6 +123,8 @@ func (oi *OVFImporter) buildDaisyVars(
 	if translateWorkflowPath != "" {
 		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!oi.params.NoGuestEnvironment)
+		varMap["is_windows"] = strconv.FormatBool(
+			strings.Contains(strings.ToLower(translateWorkflowPath), "windows"))
 	}
 	if bootDiskGcsPath != "" {
 		varMap["boot_disk_file"] = bootDiskGcsPath

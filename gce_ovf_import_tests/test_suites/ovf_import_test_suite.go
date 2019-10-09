@@ -54,6 +54,7 @@ var vf = func(
 type ovfImportTestSetup struct {
 	importParams          *ovfimportparams.OVFImportParams
 	name                  string
+	isWindows             bool
 	description           string
 	startup               *api.MetadataItems
 	assertTimeout         time.Duration
@@ -140,6 +141,7 @@ func TestSuite(
 				MachineType:   "n1-standard-8",
 			},
 			name:        fmt.Sprintf("ovf-import-test-w2k12-r2-%s", suffix),
+			isWindows:   true,
 			description: "Windows 2012 R2 two disks",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"windows-startup-script-ps1", startupScriptWindowsTwoDisks),
@@ -158,6 +160,7 @@ func TestSuite(
 				Zone:          testProjectConfig.TestZone,
 			},
 			name:        fmt.Sprintf("ovf-import-test-w2k16-%s", suffix),
+			isWindows:   true,
 			description: "Windows 2016",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"windows-startup-script-ps1", startupScriptWindowsSingleDisk),
@@ -307,6 +310,25 @@ func runOvfImportTest(
 
 	instanceWrapper := computeUtils.Instance{Instance: instance, Client: client,
 		Project: testProjectConfig.TestProjectID, Zone: testProjectConfig.TestZone}
+
+	for _, disk := range instance.Disks {
+		windowsFound := false
+		for _, feature := range disk.GuestOsFeatures {
+			if "WINDOWS" == feature.Type {
+				windowsFound = true
+				break
+			}
+		}
+		if testSetup.isWindows && !windowsFound {
+			testCase.WriteFailure(
+				"Windows import missing WINDOWS GuestOsFeature. Features found=%v",
+				disk.GuestOsFeatures)
+		} else if !testSetup.isWindows && windowsFound {
+			testCase.WriteFailure(
+				"Non-Windows import had WINDOWS GuestOsFeature. Features found=%v",
+				disk.GuestOsFeatures)
+		}
+	}
 
 	defer func() {
 		logger.Printf("[%v] Deleting instance `%v`", testSetup.name, instanceName)
