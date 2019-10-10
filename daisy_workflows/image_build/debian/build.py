@@ -67,7 +67,7 @@ def main():
   logging.info('Google Cloud repo: %s' % repo)
 
   # Download and setup bootstrap_vz.
-  bvz_url = 'https://github.com/andsens/bootstrap-vz/archive/%s.zip'
+  bvz_url = 'https://github.com/zmarano/bootstrap-vz/archive/%s.zip'
   bvz_url %= bvz_version
   bvz_zip_dir = 'bvz_zip'
   logging.info('Downloading bootstrap-vz at commit %s' % bvz_version)
