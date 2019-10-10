@@ -70,7 +70,6 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					ExactName: true,
 					NoCleanup: true,
 				},
-				IsWindows: w.Vars["is_windows"].Value,
 			},
 			{
 				Disk: compute.Disk{

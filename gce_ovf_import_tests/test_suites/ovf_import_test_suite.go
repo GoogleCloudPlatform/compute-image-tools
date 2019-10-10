@@ -311,21 +311,28 @@ func runOvfImportTest(
 	instanceWrapper := computeUtils.Instance{Instance: instance, Client: client,
 		Project: testProjectConfig.TestProjectID, Zone: testProjectConfig.TestZone}
 
+	// The boot disk for a Windows instance must have the WINDOWS GuestOSFeature,
+	// while the boot disk for other operating systems shouldn't have it.
 	for _, disk := range instance.Disks {
-		windowsFound := false
+		if !disk.Boot {
+			continue
+		}
+
+		hasWindowsFeature := false
 		for _, feature := range disk.GuestOsFeatures {
 			if "WINDOWS" == feature.Type {
-				windowsFound = true
+				hasWindowsFeature = true
 				break
 			}
 		}
-		if testSetup.isWindows && !windowsFound {
+
+		if testSetup.isWindows && !hasWindowsFeature {
 			testCase.WriteFailure(
-				"Windows import missing WINDOWS GuestOsFeature. Features found=%v",
+				"Windows boot disk missing WINDOWS GuestOsFeature. Features found=%v",
 				disk.GuestOsFeatures)
-		} else if !testSetup.isWindows && windowsFound {
+		} else if !testSetup.isWindows && hasWindowsFeature {
 			testCase.WriteFailure(
-				"Non-Windows import had WINDOWS GuestOsFeature. Features found=%v",
+				"Non-Windows boot disk includes WINDOWS GuestOsFeature. Features found=%v",
 				disk.GuestOsFeatures)
 		}
 	}
