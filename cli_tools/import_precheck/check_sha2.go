@@ -20,8 +20,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
 )
 
-const sha2Windows2008R2KB = "KB3033929"
-const windows2008R2RollupKB = "KB3125574"
+const sha2Windows2008R2KB = "KB4474419"
 
 type sha2DriverSigningCheck struct{}
 
@@ -56,6 +55,6 @@ func (s *sha2DriverSigningCheck) run() (*report, error) {
 			return r, nil
 		}
 	}
-	r.Fatal("SHA2 driver signing support not found.")
+	r.Fatal(fmt.Sprintf("%s is required to support SHA2-signed drivers.", sha2Windows2008R2KB))
 	return r, nil
 }
