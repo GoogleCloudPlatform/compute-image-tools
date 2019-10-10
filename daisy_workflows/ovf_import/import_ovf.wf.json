@@ -40,6 +40,10 @@
     "network_tier": {
       "Value": "PREMIUM",
       "Description": "Network tier that will be used to configure the instance"
+    },
+    "is_windows": {
+      "Value": "false",
+      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
     }
   },
   "Steps": {
@@ -50,7 +54,8 @@
           "source_disk_file": "${boot_disk_file}",
           "disk_name": "${translation_disk_name}",
           "import_network": "${network}",
-          "import_subnet": "${subnet}"
+          "import_subnet": "${subnet}",
+          "is_windows": "${is_windows}"
         }
       }
     },

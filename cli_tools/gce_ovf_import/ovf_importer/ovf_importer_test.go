@@ -479,8 +479,9 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	assert.Equal(t, "aDescription", varMap["description"])
 	assert.Equal(t, "10.0.0.1", varMap["private_network_ip"])
 	assert.Equal(t, "PREMIUM", varMap["network_tier"])
+	assert.Equal(t, "false", varMap["is_windows"])
 
-	assert.Equal(t, len(varMap), 10)
+	assert.Equal(t, len(varMap), 11)
 }
 
 func TestGetZoneFromGCE(t *testing.T) {
