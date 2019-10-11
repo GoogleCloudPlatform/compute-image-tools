@@ -4,7 +4,7 @@
     "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "bootstrap_vz_version": {
-      "Value": "8715d5e969e9452d0c975c1d1949535fa60b71fe",
+      "Value": "9b81ff0858fceb9ec2b635ddcc7b79f6d5af650c",
       "Description": "The bootstrap-vz github commit ID to use."
     }
   },
@@ -16,7 +16,7 @@
         "Vars": {
           "bootstrap_vz_manifest": "official/gce/stretch.yml",
           "bootstrap_vz_version": "${bootstrap_vz_version}",
-          "builder_source_image": "projects/debian-cloud/global/images/family/debian-9",
+          "builder_source_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
           "google_cloud_repo": "${google_cloud_repo}",
           "image_dest": "${image_dest}"
         }

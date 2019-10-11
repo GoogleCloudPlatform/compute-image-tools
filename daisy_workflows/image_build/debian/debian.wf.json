@@ -5,7 +5,7 @@
     "bootstrap_vz_manifest": {"Required": true, "Description": "The bootstrap-vz manifest to build."},
     "bootstrap_vz_version": {"Required": true, "Description": "The bootstrap-vz github commit ID to use."},
     "builder_source_image": {
-      "Value": "projects/debian-cloud/global/images/family/debian-9",
+      "Value": "projects/compute-image-tools/global/images/family/debian-9-worker",
       "Description": "The image used to run bootstrap-vz."
     },
     "google_cloud_repo": {"Required": true, "Description": "The Google Cloud Repo branch to use."},
