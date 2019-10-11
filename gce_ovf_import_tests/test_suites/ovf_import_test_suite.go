@@ -171,6 +171,23 @@ func TestSuite(
 		{
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-w2k8r2-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
+				OsID:          "windows-2008r2",
+				Project:       testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+			},
+			name:        fmt.Sprintf("ovf-import-test-w2k8r2-%s", suffix),
+			isWindows:   true,
+			description: "Windows 2008r2 - Four NICs",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"windows-startup-script-ps1", startupScriptWindowsSingleDisk),
+			assertTimeout:         7200 * time.Second,
+			expectedStartupOutput: "All Tests Passed",
+		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-instance-debian-9-%v", suffix),
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/bitnami-tomcat-8.5.43-0-linux-debian-9-x86_64.ova", ovaBucket),
 				OsID:          "debian-9",
