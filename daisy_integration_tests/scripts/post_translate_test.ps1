@@ -63,12 +63,16 @@ function Check-Activation {
   $out = & cscript C:\Windows\system32\slmgr.vbs /dli
   Write-Output $out
   if ($out -notcontains 'License Status: Licensed') {
-    throw 'Windows is not activated'
+    Write-Output 'Windows is not activated'
+    return $false
   }
 
   if ($out -notcontains '    Registered KMS machine name: kms.windows.googlecloud.com:1688') {
-    throw 'Windows is not activated against GCE kms server'
+    Write-Output  'Windows is not activated against GCE kms server'
+    return $false
   }
+
+  return $true
 }
 
 function Check-SkipActivation {
@@ -93,7 +97,17 @@ try {
   }
   else {
     Write-Output 'Test: Check-Activation'
-    Check-Activation
+    $activated = $false
+    for ($i = 0; $i -le 10; $i += 1) {
+      $activated = Check-Activation
+      if ($activated) {
+        break
+      }
+      Start-Sleep -s 10
+    }
+    if (!$activated) {
+      throw 'Activation failed'
+    }
   }
   Write-Output 'All Tests Passed'
 }
