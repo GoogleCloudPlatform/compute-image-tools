@@ -21,7 +21,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '--tag=gcr.io/$PROJECT_ID/gce-ovf-import-tests:latest', '--tag=gcr.io/$PROJECT_ID/gce-ovf-import-tests:$COMMIT_SHA', '--file=./test-infra/prowjobs/gce-ovf-import-tests/Dockerfile', '.']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--tag=gcr.io/$PROJECT_ID/cleanerupper:latest', '--tag=gcr.io/$PROJECT_ID/cleanerupper:$COMMIT_SHA', '--file=./test-infra/prowjobs/cleanerupper/Dockerfile', '.']
+  args: ['build', '--tag=gcr.io/$PROJECT_ID/cleanerupper:latest', '--tag=gcr.io/$PROJECT_ID/cleanerupper:$COMMIT_SHA', './test-infra/prowjobs/cleanerupper']
 
 images:
   - 'gcr.io/$PROJECT_ID/wrapper:latest'
