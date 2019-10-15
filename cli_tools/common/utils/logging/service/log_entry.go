@@ -14,6 +14,8 @@
 
 package service
 
+import "fmt"
+
 // logRequest is a server-side pre-defined data structure
 type logRequest struct {
 	ClientInfo    clientInfo `json:"client_info"`
@@ -169,4 +171,26 @@ type OutputInfo struct {
 	FailureMessage string `json:"failure_message,omitempty"`
 	// Failure message of the command without privacy info
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
+}
+
+func (i *InputParams) updateParams(p *string) {
+	if p == nil {
+		return
+	}
+
+	project := *p
+	obfuscatedProject := Hash(project)
+
+	if i.ImageImportParams != nil {
+		i.ImageImportParams.CommonParams.Project = project
+		i.ImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	}
+	if i.ImageExportParams != nil {
+		i.ImageExportParams.CommonParams.Project = project
+		i.ImageExportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	}
+	if i.InstanceImportParams != nil {
+		i.InstanceImportParams.CommonParams.Project = project
+		i.InstanceImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	}
 }

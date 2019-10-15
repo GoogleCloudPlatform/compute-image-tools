@@ -118,9 +118,10 @@ func TestLogFailure(t *testing.T) {
 func TestRunWithServerLoggingSuccess(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
-	logExtension, _ := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
-		return &daisy.Workflow{}, nil
-	})
+	logExtension, _ := logger.runWithServerLogging(
+		func() (*daisy.Workflow, error) {
+			return &daisy.Workflow{}, nil
+		}, nil)
 	if logExtension.Status != statusSuccess {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)
 	}
@@ -129,11 +130,29 @@ func TestRunWithServerLoggingSuccess(t *testing.T) {
 func TestRunWithServerLoggingFailed(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
-	logExtension, _ := logger.runWithServerLogging(func() (*daisy.Workflow, error) {
-		return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
-	})
+	logExtension, _ := logger.runWithServerLogging(
+		func() (*daisy.Workflow, error) {
+			return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
+		}, nil)
 	if logExtension.Status != statusFailure {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusFailure)
+	}
+}
+
+func TestRunWithServerLoggingSuccessWithUpdatedProject(t *testing.T) {
+	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
+
+	project := "dummy-project"
+	logExtension, _ := logger.runWithServerLogging(
+		func() (*daisy.Workflow, error) {
+			return &daisy.Workflow{}, nil
+		}, &project)
+	if logExtension.Status != statusSuccess {
+		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)
+	}
+	if logExtension.InputParams.ImageImportParams.Project != project {
+		t.Errorf("Unexpected Updated Project: %v, expect: %v",
+			logExtension.InputParams.ImageImportParams.Project, project)
 	}
 }
 

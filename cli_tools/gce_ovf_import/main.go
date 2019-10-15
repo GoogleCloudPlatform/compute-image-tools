@@ -153,12 +153,7 @@ func main() {
 		},
 	}
 
-	updateParamsFunc := func () {
-		paramLog.InstanceImportParams.CommonParams.Project = *project
-		paramLog.InstanceImportParams.CommonParams.ObfuscatedProject = service.Hash(*project)
-	}
-
-	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, runImport, updateParamsFunc); err != nil {
+	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, project, runImport); err != nil {
 		os.Exit(1)
 	}
 }

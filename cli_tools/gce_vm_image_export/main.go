@@ -77,12 +77,7 @@ func main() {
 		},
 	}
 
-	updateParamsFunc := func () {
-		paramLog.ImageExportParams.CommonParams.Project = *project
-		paramLog.ImageExportParams.CommonParams.ObfuscatedProject = service.Hash(*project)
-	}
-
-	if err := service.RunWithServerLogging(service.ImageExportAction, paramLog, exportEntry, updateParamsFunc); err != nil {
+	if err := service.RunWithServerLogging(service.ImageExportAction, paramLog, project, exportEntry); err != nil {
 		os.Exit(1)
 	}
 }

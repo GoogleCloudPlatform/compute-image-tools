@@ -190,7 +190,9 @@ func getInt64Values(s string) []int64 {
 	return r
 }
 
-func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error), updateParams func()) (*ComputeImageToolsLogExtension, error) {
+func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
+	projectPointer *string) (*ComputeImageToolsLogExtension, error) {
+
 	var logExtension *ComputeImageToolsLogExtension
 
 	// Send log asynchronously. No need to interrupt the main flow when failed to send log, just
@@ -204,7 +206,7 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error), 
 	}()
 
 	w, err := function()
-	updateParams()
+	l.Params.updateParams(projectPointer)
 	if err != nil {
 		wg.Add(1)
 		go func() {
@@ -225,9 +227,10 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error), 
 }
 
 // RunWithServerLogging runs the function with server logging
-func RunWithServerLogging(action string, params InputParams, function func() (*daisy.Workflow, error), updateParams func()) error {
+func RunWithServerLogging(action string, params InputParams, projectPointer *string,
+	function func() (*daisy.Workflow, error)) error {
 	l := NewLoggingServiceLogger(action, params)
-	_, err := l.runWithServerLogging(function, updateParams)
+	_, err := l.runWithServerLogging(function, projectPointer)
 	return err
 }
 
