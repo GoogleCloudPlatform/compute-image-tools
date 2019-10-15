@@ -29,7 +29,6 @@ import (
 
 // GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
 func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string, error) {
-	return "haha", nil //TODO: remove
 	if projectFlag == "" {
 		if !mgce.OnGCE() {
 			return "", daisy.Errf("project cannot be determined because build is not running on GCE")

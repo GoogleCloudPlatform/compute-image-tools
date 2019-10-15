@@ -205,8 +205,6 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error), 
 
 	w, err := function()
 	updateParams()
-	fmt.Println(">>>1: ", l.Params.ImageExportParams.ObfuscatedProject)
-	fmt.Println(">>>1: ", l.Params.ImageExportParams.Project)
 	if err != nil {
 		wg.Add(1)
 		go func() {
