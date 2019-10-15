@@ -154,9 +154,8 @@ func main() {
 	}
 
 	updateParamsFunc := func () {
-		projectPointer := project
-		paramLog.InstanceImportParams.CommonParams.Project = *projectPointer
-		paramLog.InstanceImportParams.CommonParams.ObfuscatedProject = service.Hash(*projectPointer)
+		paramLog.InstanceImportParams.CommonParams.Project = *project
+		paramLog.InstanceImportParams.CommonParams.ObfuscatedProject = service.Hash(*project)
 	}
 
 	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, runImport, updateParamsFunc); err != nil {
