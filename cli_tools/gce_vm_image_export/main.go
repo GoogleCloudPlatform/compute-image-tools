@@ -45,7 +45,7 @@ var (
 
 func exportEntry() (*daisy.Workflow, error) {
 	currentExecutablePath := string(os.Args[0])
-	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
+	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
 }
@@ -77,7 +77,12 @@ func main() {
 		},
 	}
 
-	if err := service.RunWithServerLogging(service.ImageExportAction, paramLog, exportEntry); err != nil {
+	updateParamsFunc := func () {
+		paramLog.ImageExportParams.CommonParams.Project = *project
+		paramLog.ImageExportParams.CommonParams.ObfuscatedProject = service.Hash(*project)
+	}
+
+	if err := service.RunWithServerLogging(service.ImageExportAction, paramLog, exportEntry, updateParamsFunc); err != nil {
 		os.Exit(1)
 	}
 }

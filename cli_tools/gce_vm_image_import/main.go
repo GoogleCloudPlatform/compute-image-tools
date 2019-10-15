@@ -102,7 +102,13 @@ func main() {
 		},
 	}
 
-	if err := service.RunWithServerLogging(service.ImageImportAction, paramLog, importEntry); err != nil {
+	updateParamsFunc := func () {
+		projectPointer := project
+		paramLog.ImageImportParams.CommonParams.Project = *projectPointer
+		paramLog.ImageImportParams.CommonParams.ObfuscatedProject = service.Hash(*projectPointer)
+	}
+
+	if err := service.RunWithServerLogging(service.ImageImportAction, paramLog, importEntry, updateParamsFunc); err != nil {
 		os.Exit(1)
 	}
 }
