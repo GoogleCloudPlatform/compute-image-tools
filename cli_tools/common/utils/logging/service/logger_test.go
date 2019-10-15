@@ -29,7 +29,6 @@ import (
 )
 
 var (
-	logger                    *Logger
 	serverLogEnabledPrevValue bool
 )
 
@@ -50,7 +49,7 @@ func shutdown() {
 }
 
 func TestLogStart(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
+	logger := prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
 
 	e, r := logger.logStart()
 
@@ -63,7 +62,7 @@ func TestLogStart(t *testing.T) {
 }
 
 func TestLogSuccess(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
+	logger := prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
 	time.Sleep(20 * time.Millisecond)
 
 	w := daisy.Workflow{}
@@ -89,7 +88,7 @@ func TestLogSuccess(t *testing.T) {
 }
 
 func TestLogFailure(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
+	logger := prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
 	time.Sleep(20 * time.Millisecond)
 
 	w := daisy.Workflow{}
@@ -116,7 +115,7 @@ func TestLogFailure(t *testing.T) {
 }
 
 func TestRunWithServerLoggingSuccess(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
+	logger := prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	logExtension, _ := logger.runWithServerLogging(
 		func() (*daisy.Workflow, error) {
@@ -128,7 +127,7 @@ func TestRunWithServerLoggingSuccess(t *testing.T) {
 }
 
 func TestRunWithServerLoggingFailed(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
+	logger := prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	logExtension, _ := logger.runWithServerLogging(
 		func() (*daisy.Workflow, error) {
@@ -140,7 +139,7 @@ func TestRunWithServerLoggingFailed(t *testing.T) {
 }
 
 func TestRunWithServerLoggingSuccessWithUpdatedProject(t *testing.T) {
-	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
+	logger := prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	project := "dummy-project"
 	logExtension, _ := logger.runWithServerLogging(
@@ -176,7 +175,7 @@ func TestSendLogToServerFailedOnCreateRequest(t *testing.T) {
 }
 
 func TestSendLogToServerFailedOnCreateRequestJSON(t *testing.T) {
-	prepareTestLogger(t, nil, nil)
+	logger := prepareTestLogger(t, nil, nil)
 	r := logger.sendLogToServer(nil)
 	if r != logResult(failedOnCreateRequestJSON) {
 		t.Errorf("Unexpected Status: %v, expect: %v", r, failedOnCreateRequestJSON)
@@ -191,7 +190,7 @@ func TestSendLogToServerLogDisabled(t *testing.T) {
 }
 
 func TestSendLogToServerFailedToParseResponse(t *testing.T) {
-	prepareTestLoggerWithJSONLogResponse(t, nil, []string{"bad-json"})
+	logger := prepareTestLoggerWithJSONLogResponse(t, nil, []string{"bad-json"})
 	r := logger.sendLogToServer(buildComputeImageToolsLogExtension())
 	if r != logResult(failedToParseResponse) {
 		t.Errorf("Unexpected Status: %v, expect: %v", r, failedToParseResponse)
@@ -211,31 +210,31 @@ func TestSendLogToServerFailedAfterRetry(t *testing.T) {
 }
 
 func testSendLogToServerWithResponses(t *testing.T, expectedLogResult logResult, resps []logResponse) {
-	prepareTestLogger(t, nil, resps)
+	logger := prepareTestLogger(t, nil, resps)
 	r := logger.sendLogToServer(buildComputeImageToolsLogExtension())
 	if r != logResult(expectedLogResult) {
 		t.Errorf("Unexpected Status: %v, expect: %v", r, expectedLogResult)
 	}
 }
 
-func prepareTestLogger(t *testing.T, err error, resps []logResponse) {
+func prepareTestLogger(t *testing.T, err error, resps []logResponse) *Logger {
 	var lrs []string
 	for _, resp := range resps {
 		bytes, _ := json.Marshal(resp)
 		lrs = append(lrs, string(bytes))
 	}
 
-	prepareTestLoggerWithJSONLogResponse(t, err, lrs)
+	return prepareTestLoggerWithJSONLogResponse(t, err, lrs)
 }
 
-func prepareTestLoggerWithJSONLogResponse(t *testing.T, err error, lrs []string) {
+func prepareTestLoggerWithJSONLogResponse(t *testing.T, err error, lrs []string) *Logger {
 	httpClient = &MockHTTPClient{
 		t:   t,
 		lrs: lrs,
 		err: err,
 	}
 
-	logger = NewLoggingServiceLogger(ImageImportAction, InputParams{
+	return NewLoggingServiceLogger(ImageImportAction, InputParams{
 		ImageImportParams: &ImageImportParams{
 			CommonParams: &CommonParams{
 				ClientID: "test-client",
