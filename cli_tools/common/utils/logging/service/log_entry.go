@@ -14,8 +14,6 @@
 
 package service
 
-import "fmt"
-
 // logRequest is a server-side pre-defined data structure
 type logRequest struct {
 	ClientInfo    clientInfo `json:"client_info"`
