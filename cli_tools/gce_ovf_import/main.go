@@ -153,7 +153,7 @@ func main() {
 		},
 	}
 
-	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, runImport); err != nil {
+	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, project, runImport); err != nil {
 		os.Exit(1)
 	}
 }

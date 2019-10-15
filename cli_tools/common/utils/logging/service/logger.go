@@ -190,7 +190,9 @@ func getInt64Values(s string) []int64 {
 	return r
 }
 
-func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) (*ComputeImageToolsLogExtension, error) {
+func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
+	projectPointer *string) (*ComputeImageToolsLogExtension, error) {
+
 	var logExtension *ComputeImageToolsLogExtension
 
 	// Send log asynchronously. No need to interrupt the main flow when failed to send log, just
@@ -204,6 +206,7 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) 
 	}()
 
 	w, err := function()
+	l.Params.updateParams(projectPointer)
 	if err != nil {
 		wg.Add(1)
 		go func() {
@@ -224,9 +227,10 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error)) 
 }
 
 // RunWithServerLogging runs the function with server logging
-func RunWithServerLogging(action string, params InputParams, function func() (*daisy.Workflow, error)) error {
+func RunWithServerLogging(action string, params InputParams, projectPointer *string,
+	function func() (*daisy.Workflow, error)) error {
 	l := NewLoggingServiceLogger(action, params)
-	_, err := l.runWithServerLogging(function)
+	_, err := l.runWithServerLogging(function, projectPointer)
 	return err
 }
 
@@ -344,5 +348,6 @@ func (l *Logger) constructLogRequest(logExtension *ComputeImageToolsLogExtension
 // Hash a given string for obfuscation
 func Hash(s string) string {
 	hash, _ := highwayhash.New([]byte("compute-image-tools-obfuscate-01"))
-	return hex.EncodeToString(hash.Sum([]byte(s)))
+	hash.Write([]byte(s))
+	return hex.EncodeToString(hash.Sum(nil))
 }
