@@ -46,6 +46,8 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
 + `-labels=[KEY=VALUE,...]` labels: List of label KEY=VALUE pairs to add. Keys must start with a
   lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and 
   numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.
++ `-buffer_disk_type=DISK_TYPE` Buffer disk type to use for exporting. By default it's pd-ssd.
+  Using pd-standard instead when it's lack of SSD quota.
   
 ### Usage
 

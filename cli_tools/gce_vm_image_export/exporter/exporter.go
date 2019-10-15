@@ -78,7 +78,7 @@ func getWorkflowPath(format string, currentExecutablePath string) string {
 }
 
 func buildDaisyVars(destinationURI string, sourceImage string, format string, network string,
-	subnet string, region string) map[string]string {
+	subnet string, region string, bufferDiskType string) map[string]string {
 
 	varMap := map[string]string{}
 
@@ -98,6 +98,9 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 	}
 	if network != "" {
 		varMap["export_network"] = fmt.Sprintf("global/networks/%v", network)
+	}
+	if bufferDiskType != "" {
+		varMap["export_instance_disk_type"] = bufferDiskType
 	}
 	return varMap
 }
@@ -150,7 +153,8 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 func Run(clientID string, destinationURI string, sourceImage string, format string,
 	project *string, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
-	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
+	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, bufferDiskType string,
+	currentExecutablePath string) (*daisy.Workflow, error) {
 
 	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels)
 	if err != nil {
@@ -180,7 +184,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 		return nil, err
 	}
 
-	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region)
+	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region, bufferDiskType)
 
 	var w *daisy.Workflow
 	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, *project,

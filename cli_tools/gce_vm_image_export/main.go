@@ -41,13 +41,14 @@ var (
 	cloudLogsDisabled    = flag.Bool("disable_cloud_logging", false, "do not stream logs to Cloud Logging.")
 	stdoutLogsDisabled   = flag.Bool("disable_stdout_logging", false, "do not display individual workflow logs on stdout.")
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
+	bufferDiskType       = flag.String("buffer_disk_type", "", "Buffer disk type to use for exporting. By default it's pd-ssd. Using pd-standard instead when it's lack of SSD quota.")
 )
 
 func exportEntry() (*daisy.Workflow, error) {
 	currentExecutablePath := string(os.Args[0])
 	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
-		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
+		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, *bufferDiskType, currentExecutablePath)
 }
 
 func main() {
@@ -70,6 +71,7 @@ func main() {
 				DisableGcsLogging:       *gcsLogsDisabled,
 				DisableCloudLogging:     *cloudLogsDisabled,
 				DisableStdoutLogging:    *stdoutLogsDisabled,
+				BufferDiskType:          *bufferDiskType,
 			},
 			DestinationURI: *destinationURI,
 			SourceImage:    *sourceImage,

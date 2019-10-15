@@ -157,6 +157,7 @@ type CommonParams struct {
 	DisableGcsLogging       bool   `json:"disable_gcs_logging"`
 	DisableCloudLogging     bool   `json:"disable_cloud_logging"`
 	DisableStdoutLogging    bool   `json:"disable_stdout_logging"`
+	BufferDiskType          string `json:"buffer_disk_type,omitempty"`
 }
 
 // OutputInfo contains output values from the tools execution
