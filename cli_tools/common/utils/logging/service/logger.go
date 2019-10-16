@@ -40,7 +40,6 @@ var (
 	key                                       = deinterleave(keyP1, keyP2)
 	serverLogEnabled                          = true
 	logMutex                                  = sync.Mutex{}
-	logParamsMutex                            = sync.Mutex{}
 	nextRequestWaitMillis int64
 )
 
@@ -103,6 +102,7 @@ type Logger struct {
 	Action    string
 	TimeStart time.Time
 	Params    InputParams
+	mutex     sync.Mutex
 }
 
 // NewLoggingServiceLogger creates a new server logger
@@ -113,6 +113,7 @@ func NewLoggingServiceLogger(action string, params InputParams) *Logger {
 		Action:    action,
 		TimeStart: time.Now(),
 		Params:    params,
+		mutex:     sync.Mutex{},
 	}
 }
 
@@ -135,8 +136,8 @@ func (l *Logger) logFailure(err error, w *daisy.Workflow) (*ComputeImageToolsLog
 }
 
 func (l *Logger) createComputeImageToolsLogExtension(status string, outputInfo *OutputInfo) *ComputeImageToolsLogExtension {
-	logParamsMutex.Lock()
-	defer logParamsMutex.Unlock()
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 	return &ComputeImageToolsLogExtension{
 		ID:            l.ID,
