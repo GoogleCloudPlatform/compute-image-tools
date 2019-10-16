@@ -172,8 +172,8 @@ type OutputInfo struct {
 }
 
 func (i *InputParams) updateParams(projectPointer *string) {
-	logParamsMutex.Lock()
-	defer logParamsMutex.Unlock()
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 	if projectPointer == nil {
 		return
