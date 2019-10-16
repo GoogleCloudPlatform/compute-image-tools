@@ -65,7 +65,7 @@ if (Test-Connection $wu_server -Count 1 -ErrorAction SilentlyContinue) {
 
 	windowsLocalPostPatchScript = `
 $uri = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/post_step_ran'
-New-Item -Path . -Name "windows_local_post_patch_script.ps1" -ItemType "file" -Value "Invoke-RestMethod -Method PUT -Uri $uri -Headers @{\"Metadata-Flavor\" = \"Google\"} -Body 1"
+New-Item -Path . -Name "windows_local_post_patch_script.ps1" -ItemType "file" -Value "Invoke-RestMethod -Method PUT -Uri $uri -Headers @{'Metadata-Flavor' = 'Google'} -Body 1"
 `
 
 	linuxRecordBoot = `

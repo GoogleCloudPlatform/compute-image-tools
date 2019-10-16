@@ -341,7 +341,7 @@ func runTestCase(tc *junitxml.TestCase, f func(), tests chan *junitxml.TestCase,
 
 func patchConfigWithPrePostSteps() *osconfigpb.PatchConfig {
 	linuxPreStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_LocalPath{LocalPath: "./linux_local_pre_patch_script.sh"}, Interpreter: osconfigpb.ExecStepConfig_SHELL}
-	windowsPreStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_GcsObject{GcsObject: &osconfigpb.GcsObject{Bucket: "osconfig-agent-end2end-test-resources", Object: "OSPatch/windows_gcs_pre_patch_script.ps1", GenerationNumber: 1570569007607578}}, Interpreter: osconfigpb.ExecStepConfig_POWERSHELL}
+	windowsPreStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_GcsObject{GcsObject: &osconfigpb.GcsObject{Bucket: "osconfig-agent-end2end-test-resources", Object: "OSPatch/windows_gcs_pre_patch_script.ps1", GenerationNumber: 1571249543230832}}, Interpreter: osconfigpb.ExecStepConfig_POWERSHELL}
 	linuxPostStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_GcsObject{GcsObject: &osconfigpb.GcsObject{Bucket: "osconfig-agent-end2end-test-resources", Object: "OSPatch/linux_gcs_post_patch_script", GenerationNumber: 1570567792146617}}}
 	windowsPostStepConfig := &osconfigpb.ExecStepConfig{Executable: &osconfigpb.ExecStepConfig_LocalPath{LocalPath: "C:\\Windows\\System32\\windows_local_post_patch_script.ps1"}, Interpreter: osconfigpb.ExecStepConfig_POWERSHELL}
 
