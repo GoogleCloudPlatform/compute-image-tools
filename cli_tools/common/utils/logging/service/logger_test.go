@@ -235,7 +235,7 @@ func prepareTestLoggerWithJSONLogResponse(t *testing.T, err error, lrs []string)
 		err: err,
 	}
 
-	NewLoggingServiceLogger(ImageImportAction, InputParams{
+	logger = NewLoggingServiceLogger(ImageImportAction, InputParams{
 		ImageImportParams: &ImageImportParams{
 			CommonParams: &CommonParams{
 				ClientID: "test-client",
