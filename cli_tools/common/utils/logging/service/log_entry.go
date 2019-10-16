@@ -173,8 +173,6 @@ type OutputInfo struct {
 }
 
 func (i *InputParams) updateParams(p *string) {
-	logParamsMutex.Lock()
-	defer logParamsMutex.Unlock()
 	if p == nil {
 		return
 	}

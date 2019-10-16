@@ -40,7 +40,6 @@ var (
 	key                                       = deinterleave(keyP1, keyP2)
 	serverLogEnabled                          = true
 	logMutex                                  = sync.Mutex{}
-	logParamsMutex                            = sync.Mutex{}
 	nextRequestWaitMillis int64
 )
 
@@ -135,8 +134,6 @@ func (l *Logger) logFailure(err error, w *daisy.Workflow) (*ComputeImageToolsLog
 }
 
 func (l *Logger) createComputeImageToolsLogExtension(status string, outputInfo *OutputInfo) *ComputeImageToolsLogExtension {
-	logParamsMutex.Lock()
-	defer logParamsMutex.Unlock()
 	return &ComputeImageToolsLogExtension{
 		ID:            l.ID,
 		CloudBuildID:  os.Getenv(daisyutils.BuildIDOSEnvVarName),
