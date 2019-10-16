@@ -171,12 +171,15 @@ type OutputInfo struct {
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
 }
 
-func (i *InputParams) updateParams(p *string) {
-	if p == nil {
+func (i *InputParams) updateParams(projectPointer *string) {
+	logParamsMutex.Lock()
+	defer logParamsMutex.Unlock()
+
+	if projectPointer == nil {
 		return
 	}
 
-	project := *p
+	project := *projectPointer
 	obfuscatedProject := Hash(project)
 
 	if i.ImageImportParams != nil {
