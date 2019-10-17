@@ -211,7 +211,7 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 	}()
 
 	w, err := function()
-	l.Params.updateParams(projectPointer)
+	l.updateParams(projectPointer)
 	if err != nil {
 		wg.Add(1)
 		go func() {
