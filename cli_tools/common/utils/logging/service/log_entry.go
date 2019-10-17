@@ -171,9 +171,9 @@ type OutputInfo struct {
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
 }
 
-func (i *InputParams) updateParams(projectPointer *string) {
-	logParamsMutex.Lock()
-	defer logParamsMutex.Unlock()
+func (l *Logger) updateParams(projectPointer *string) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 	if projectPointer == nil {
 		return
@@ -182,16 +182,16 @@ func (i *InputParams) updateParams(projectPointer *string) {
 	project := *projectPointer
 	obfuscatedProject := Hash(project)
 
-	if i.ImageImportParams != nil {
-		i.ImageImportParams.CommonParams.Project = project
-		i.ImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	if l.Params.ImageImportParams != nil {
+		l.Params.ImageImportParams.CommonParams.Project = project
+		l.Params.ImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
 	}
-	if i.ImageExportParams != nil {
-		i.ImageExportParams.CommonParams.Project = project
-		i.ImageExportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	if l.Params.ImageExportParams != nil {
+		l.Params.ImageExportParams.CommonParams.Project = project
+		l.Params.ImageExportParams.CommonParams.ObfuscatedProject = obfuscatedProject
 	}
-	if i.InstanceImportParams != nil {
-		i.InstanceImportParams.CommonParams.Project = project
-		i.InstanceImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	if l.Params.InstanceImportParams != nil {
+		l.Params.InstanceImportParams.CommonParams.Project = project
+		l.Params.InstanceImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
 	}
 }
