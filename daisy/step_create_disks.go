@@ -65,8 +65,8 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 				// Fallback to pd-standard to avoid quota issue. There isn't a reliable way
 				// to determine whether it's failed by QUOTA_EXCEEDED, so just simply retry.
 				if cd.FallbackToPdStandard && strings.HasSuffix(cd.Type, pdSsd) {
-					w.LogStepInfo(s.name, "CreateDisks", "Failed on: %v.", err)
-					w.LogStepInfo(s.name, "CreateDisks", "Disk %v falls back to pd-standard due to quota limit. Trying again.", cd.Name)
+					w.LogStepInfo(s.name, "CreateDisks", "Disk %v falls back to pd-standard to workaround quota limit. " +
+						"Trying again. Consider increase pd-ssd quota to avoid fallback to ps-standard for better performance.", cd.Name)
 					cd.Type = strings.TrimRight(cd.Type, pdSsd) + pdStandard
 					err = w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk)
 				}
