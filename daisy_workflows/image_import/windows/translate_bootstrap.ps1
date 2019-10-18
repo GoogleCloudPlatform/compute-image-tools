@@ -140,7 +140,14 @@ try {
   Write-Output 'Copying googet.'
   Copy-Item 'C:\ProgramData\GooGet\googet.exe' "${script:os_drive}\ProgramData\GooGet\googet.exe" -Force -Verbose
 
-  Run-Command bcdboot "${script:os_drive}\Windows" /s $bcd_drive
+  $partition_type = Get-Disk | Select-Object -Expand PartitionStyle
+  if !($partition_type -eq "GPT") {
+    Write-Output 'MBR partition detected. Resetting bootloader.'
+    Run-Command bcdboot "${script:os_drive}\Windows" /s $bcd_drive
+  }
+  else {
+    Write-Output 'GPT partition detected.'
+  }
 
   # Turn off startup animation which breaks headless installation.
   # See http://support.microsoft.com/kb/2955372/en-us
