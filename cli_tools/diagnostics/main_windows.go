@@ -34,6 +34,11 @@ const (
 	crashDump = `C:\Windows\MEMORY.dmp`
 )
 
+type winEvt struct {
+	logName      string
+	fromProvider bool
+}
+
 type cmd struct {
 	path           string
 	args           string
@@ -118,8 +123,7 @@ func runAll(commands []runner, errCh chan error) []string {
 	for _, command := range commands {
 		path, err := command.run()
 		if err != nil {
-			log.Printf("Error: %s while running %v", err, command)
-			errCh <- err
+			errCh <- fmt.Errorf("Error: %s while running %v", err, command)
 		} else {
 			paths = append(paths, path)
 		}
@@ -204,6 +208,30 @@ func collectFilePaths(roots []string) ([]string, []error) {
 	return filePaths, errs
 }
 
+// getPlainEventLogs generates plain text event logs thru `Get-WinEvent` powershell cmd,
+// return list file paths and errors(if any).
+func getPlainEventLogs(evts []winEvt, errs chan error) []string {
+	pwshPath, err := exec.LookPath("powershell")
+	if err != nil {
+		errs <- err
+		return []string{}
+	}
+	argStr := `Get-WinEvent %s'%s' | Format-Table -Auto -Wrap`
+	commands := make([]runner, 0)
+	for _, evt := range evts {
+		source := "-LogName "
+		if evt.fromProvider {
+			source = "-ProviderName "
+		}
+		commands = append(commands, cmd{
+			path:            pwshPath,
+			args:            fmt.Sprintf(argStr, source, evt.logName),
+			outputFileName:  evt.logName + ".log",
+			cmdProducesFile: false})
+	}
+	return runAll(commands, errs)
+}
+
 // gatherEventLogs put all the event log file paths in logFolder channel
 // and errors in error channel.
 func gatherEventLogs(logs chan logFolder, errs chan error) {
@@ -212,6 +240,11 @@ func gatherEventLogs(logs chan logFolder, errs chan error) {
 	for _, err := range ers {
 		errs <- err
 	}
+	plainEvtLogPaths := getPlainEventLogs([]winEvt{
+		{logName: "Application", fromProvider: false},
+		{logName: "System", fromProvider: false},
+	}, errs)
+	filePaths = append(filePaths, plainEvtLogPaths...)
 	logs <- logFolder{"Event", filePaths}
 }
 
@@ -223,6 +256,10 @@ func gatherKubernetesLogs(logs chan logFolder, errs chan error) {
 	for _, err := range ers {
 		errs <- err
 	}
+	plainEvtLogPaths := getPlainEventLogs([]winEvt{
+		{logName: "docker", fromProvider: true},
+	}, errs)
+	filePaths = append(filePaths, plainEvtLogPaths...)
 	logs <- logFolder{"Kubernetes", filePaths}
 }
 
@@ -276,10 +313,7 @@ func gatherLogs(trace bool) ([]logFolder, error) {
 			break
 		}
 	}
-	// TODO: errors are swallowed if error count <= gathterxxxLogs func count.
-	// Not sure this behavior is intented or not. Will check that if we can modify it like:
-	// if len(errStrings) > 0
-	if len(errs) > 0 {
+	if len(errStrings) > 0 {
 		return folders, errors.New(strings.Join(errStrings, "\n"))
 	}
 	return folders, nil
