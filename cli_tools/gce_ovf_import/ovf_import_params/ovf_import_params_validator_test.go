@@ -59,6 +59,7 @@ func assertErrorOnValidate(t *testing.T, params *OVFImportParams) {
 }
 
 func getAllParams() *OVFImportParams {
+	project := "aProject"
 	return &OVFImportParams{
 		InstanceNames:               "instance1",
 		ClientID:                    "aClient",
@@ -86,7 +87,7 @@ func getAllParams() *OVFImportParams {
 		BootDiskKmsLocation:         "aKmsLocation",
 		BootDiskKmsProject:          "aKmsProject",
 		Timeout:                     "3h",
-		Project:                     "aProject",
+		Project:                     &project,
 		ScratchBucketGcsPath:        "gs://bucket/folder",
 		Oauth:                       "oAuthFilePath",
 		Ce:                          "us-east1-c",
