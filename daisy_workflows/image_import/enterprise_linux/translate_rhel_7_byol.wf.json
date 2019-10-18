@@ -37,7 +37,8 @@
           "Name": "disk-translator",
           "SourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker",
           "SizeGb": "10",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+          "FallbackToPdStandard": true
         }
       ]
     },

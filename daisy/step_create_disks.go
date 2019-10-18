@@ -16,7 +16,13 @@ package daisy
 
 import (
 	"context"
+	"strings"
 	"sync"
+)
+
+const (
+	pdStandard = "pd-standard"
+	pdSsd      = "pd-ssd"
 )
 
 // CreateDisks is a Daisy CreateDisks workflow step.
@@ -56,8 +62,18 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 
 			w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
-				e <- newErr("failed to create disk", err)
-				return
+				// Fallback to pd-standard to avoid quota issue. There isn't a reliable way
+				// to determine whether it's failed by QUOTA_EXCEEDED, so just simply retry.
+				if cd.FallbackToPdStandard && strings.HasSuffix(cd.Type, pdSsd) {
+					w.LogStepInfo(s.name, "CreateDisks", "Failed on: %v.", err)
+					w.LogStepInfo(s.name, "CreateDisks", "Disk %v falls back to pd-standard due to quota limit. Trying again.", cd.Name)
+					cd.Type = strings.TrimRight(cd.Type, pdSsd) + pdStandard
+					err = w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk)
+				}
+
+				if err != nil {
+					e <- newErr("failed to create disk", err)
+				}
 			}
 		}(d)
 	}
