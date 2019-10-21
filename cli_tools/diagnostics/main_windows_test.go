@@ -30,7 +30,6 @@ const (
 	systemLogPath              = `C:\Windows\System32\winevt\Logs\System.evtx`
 	kubeletLogFileName         = "kubelet.log"
 	applicationTextLogFileName = "Application.log"
-	systemTextLogFileName      = "System.log"
 )
 
 func pathNonExist(e error) bool {
@@ -62,12 +61,36 @@ func TestGetPlainEventLogs(t *testing.T) {
 		want         []string
 		expectErrStr string
 	}{
-		{name: "Nil events", args: nil, want: []string{}, expectErrStr: ""},
-		{name: "Empty events", args: []winEvt{}, want: []string{}, expectErrStr: ""},
-		{name: "Existing events logName", args: []winEvt{{"Application", false}}, want: []string{filepath.Join(tmpFolder, applicationTextLogFileName)}, expectErrStr: ""},
-		{name: "Non-Existing events logName", args: []winEvt{{"xxx", false}}, want: []string{}, expectErrStr: "xxx"},
-		{name: "Existing events providerName", args: []winEvt{{"GCEWindowsAgent", true}}, want: []string{}, expectErrStr: ""},
-		{name: "Non-Existing events providerName", args: []winEvt{{"System", true}}, want: []string{}, expectErrStr: "System"},
+		{name: "Nil events",
+			args:         nil,
+			want:         []string{},
+			expectErrStr: "",
+		},
+		{name: "Empty events",
+			args:         []winEvt{},
+			want:         []string{},
+			expectErrStr: "",
+		},
+		{name: "Existing events logName",
+			args:         []winEvt{{"Application", false}},
+			want:         []string{filepath.Join(tmpFolder, applicationTextLogFileName)},
+			expectErrStr: "",
+		},
+		{name: "Non-Existing events logName",
+			args:         []winEvt{{"xxx", false}},
+			want:         []string{},
+			expectErrStr: "xxx",
+		},
+		{name: "Existing events providerName",
+			args:         []winEvt{{"GCEWindowsAgent", true}},
+			want:         []string{},
+			expectErrStr: "",
+		},
+		{name: "Non-Existing events providerName",
+			args:         []winEvt{{"System", true}},
+			want:         []string{},
+			expectErrStr: "System",
+		},
 	}
 	errCh := make(chan error)
 	gotFilesCh := make(chan []string)
@@ -129,7 +152,7 @@ func TestCollectFilePaths(t *testing.T) {
 	}
 }
 
-func stringArrayIncludesString(stringArray []string, target string) bool {
+func stringArrayIncludesSubstring(stringArray []string, target string) bool {
 	for _, s := range stringArray {
 		if strings.Contains(s, target) {
 			return true
@@ -141,16 +164,13 @@ func stringArrayIncludesString(stringArray []string, target string) bool {
 func TestGatherEventLogs(t *testing.T) {
 	logFolderCh := make(chan logFolder, 2)
 	errCh := make(chan error)
-	expectedFiles := []string{systemLogPath, applicationTextLogFileName, systemTextLogFileName}
 
 	t.Run("Gathers Expected SystemLog File", func(t *testing.T) {
 		go gatherEventLogs(logFolderCh, errCh)
 		select {
 		case l := <-logFolderCh:
-			for _, expectFile := range expectedFiles {
-				if !stringArrayIncludesString(l.files, expectFile) {
-					t.Errorf("Expect %s, but it's missing", expectFile)
-				}
+			if !stringArrayIncludesSubstring(l.files, systemLogPath) {
+				t.Errorf("Expect %s, but it's missing", systemLogPath)
 			}
 		case e := <-errCh:
 			t.Errorf(e.Error())

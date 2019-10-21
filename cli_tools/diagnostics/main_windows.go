@@ -34,8 +34,11 @@ const (
 	crashDump = `C:\Windows\MEMORY.dmp`
 )
 
+// struct used to construct `Get-WinEvent (-ProviderName/-LogName) ${logName}` cmd string.
 type winEvt struct {
-	logName      string
+	logName string
+	// If event logs are from provider i.e. docker, should be True,
+	// Otherwise should be false, i.e. Application, System, etc.
 	fromProvider bool
 }
 
@@ -208,24 +211,29 @@ func collectFilePaths(roots []string) ([]string, []error) {
 	return filePaths, errs
 }
 
+// Returns a Get-WinEvent command to get the event log for the specified log source.
+func getCommandToConvertEvt(evt winEvt) string {
+	cmdStr := `Get-WinEvent %s'%s' | Format-Table -Auto -Wrap`
+	source := "-LogName "
+	if evt.fromProvider {
+		source = "-ProviderName "
+	}
+	return fmt.Sprintf(cmdStr, source, evt.logName)
+}
+
 // getPlainEventLogs generates plain text event logs thru `Get-WinEvent` powershell cmd,
-// return list file paths and errors(if any).
+// return list file paths and errors in error channel.
 func getPlainEventLogs(evts []winEvt, errs chan error) []string {
 	pwshPath, err := exec.LookPath("powershell")
 	if err != nil {
 		errs <- err
 		return []string{}
 	}
-	argStr := `Get-WinEvent %s'%s' | Format-Table -Auto -Wrap`
 	commands := make([]runner, 0)
 	for _, evt := range evts {
-		source := "-LogName "
-		if evt.fromProvider {
-			source = "-ProviderName "
-		}
 		commands = append(commands, cmd{
 			path:            pwshPath,
-			args:            fmt.Sprintf(argStr, source, evt.logName),
+			args:            getCommandToConvertEvt(evt),
 			outputFileName:  evt.logName + ".log",
 			cmdProducesFile: false})
 	}
