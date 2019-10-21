@@ -177,6 +177,19 @@ func TestFlagsSourceFile(t *testing.T) {
 	}
 }
 
+func TestFlagSourceFileEmpty(t *testing.T) {
+	emptyReader := ioutil.NopCloser(strings.NewReader(""))
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(emptyReader, nil)
+
+	err := validateSourceFile(mockStorageClient, "", "")
+	assert.NotNil(t, err, "Expected error")
+	assert.Contains(t, err.Error(), "cannot import an image from an empty file")
+}
+
 func TestFlagSourceFileCompressed(t *testing.T) {
 	fileString := test.CreateCompressedFile()
 

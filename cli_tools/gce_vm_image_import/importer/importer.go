@@ -17,6 +17,7 @@ package importer
 import (
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -115,9 +116,17 @@ func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucke
 	}
 	defer rc.Close()
 
+	byteCountingReader := daisycommon.NewByteCountingReader(rc)
 	// Detect whether it's a compressed file by extracting compressed file header
-	if _, err = gzip.NewReader(rc); err == nil {
+	if _, err = gzip.NewReader(byteCountingReader); err == nil {
 		return daisy.Errf("cannot import an image from a compressed file. Please provide a path to an uncompressed image file. If the compressed file is an image exported from Google Compute Engine, please use 'images create' instead")
+	}
+
+	// By calling gzip.NewReader above, a few bytes were read from the Reader in
+	// an attempt to decode the compression header. If the Reader represents
+	// an empty file, then BytesRead will be zero.
+	if byteCountingReader.BytesRead <= 0 {
+		return errors.New("cannot import an image from an empty file")
 	}
 
 	return nil
