@@ -10,6 +10,7 @@ type ByteCountingReader struct {
 	BytesRead int64
 }
 
+// NewByteCountingReader is a contructor for ByteCountingReader.
 func NewByteCountingReader(r io.Reader) *ByteCountingReader {
 	return &ByteCountingReader{r, 0}
 }

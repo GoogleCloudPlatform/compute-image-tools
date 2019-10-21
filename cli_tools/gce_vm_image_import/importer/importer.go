@@ -127,9 +127,9 @@ func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucke
 	// an empty file, then BytesRead will be zero.
 	if byteCountingReader.BytesRead <= 0 {
 		return errors.New("cannot import an image from an empty file")
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 // Returns main workflow and translate workflow paths (if any)
