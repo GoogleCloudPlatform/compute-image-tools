@@ -40,7 +40,7 @@ var (
 	ExportAndConvertWorkflow = "image_export_ext.wf.json"
 )
 
-// Parameter key shared with other packages
+// Parameter key shared with external packages
 const (
 	ClientIDFlagKey       = "client_id"
 	DestinationURIFlagKey = "destination_uri"
@@ -49,7 +49,6 @@ const (
 
 const (
 	logPrefix = "[image-export]"
-
 )
 
 func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
