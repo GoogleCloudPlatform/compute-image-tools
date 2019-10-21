@@ -91,6 +91,22 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 	}
 }
 
+func runImport() (*daisy.Workflow, error) {
+	var ovfImporter *ovfimporter.OVFImporter
+	var err error
+	defer func() {
+		if ovfImporter != nil {
+			ovfImporter.CleanUp()
+		}
+	}()
+
+	if ovfImporter, err = ovfimporter.NewOVFImporter(buildImportParams()); err != nil {
+		return nil, err
+	}
+
+	return ovfImporter.Import()
+}
+
 func main() {
 	flag.Parse()
 
@@ -137,24 +153,7 @@ func main() {
 		},
 	}
 
-	params := buildImportParams()
-	runImport := func() (*daisy.Workflow, error) {
-		var ovfImporter *ovfimporter.OVFImporter
-		var err error
-		defer func() {
-			if ovfImporter != nil {
-				ovfImporter.CleanUp()
-			}
-		}()
-
-		if ovfImporter, err = ovfimporter.NewOVFImporter(params); err != nil {
-			return nil, err
-		}
-
-		return ovfImporter.Import()
-	}
-
-	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, params.Project, runImport); err != nil {
+	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, project, runImport); err != nil {
 		os.Exit(1)
 	}
 }
