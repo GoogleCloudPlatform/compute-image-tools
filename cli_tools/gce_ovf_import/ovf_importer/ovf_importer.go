@@ -17,6 +17,7 @@ package ovfimporter
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -48,6 +49,7 @@ import (
 const (
 	ovfWorkflowDir    = "daisy_workflows/ovf_import/"
 	ovfImportWorkflow = ovfWorkflowDir + "import_ovf.wf.json"
+	logPrefix         = "[import-ovf]"
 )
 
 const (
@@ -86,7 +88,8 @@ type OVFImporter struct {
 // such as compute/storage clients.
 func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, error) {
 	ctx := context.Background()
-	logger := logging.NewLogger("[import-ovf]")
+	log.SetPrefix(logPrefix)
+	logger := logging.NewLogger(logPrefix)
 	storageClient, err := storageutils.NewStorageClient(ctx, logger, "")
 	if err != nil {
 		return nil, err

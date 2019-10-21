@@ -18,6 +18,7 @@ import (
 	"compress/gzip"
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -46,6 +47,10 @@ var (
 const (
 	ImageNameFlagKey = "image_name"
 	ClientIDFlagKey  = "client_id"
+)
+
+const (
+	logPrefix = "[image-import]"
 )
 
 func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
@@ -230,6 +235,8 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
 	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string) (*daisy.Workflow, error) {
 
+	log.SetPrefix(logPrefix)
+
 	sourceBucketName, sourceObjectName, userLabels, err := validateAndParseFlags(clientID, imageName,
 		sourceFile, sourceImage, dataDisk, osID, customTranWorkflow, labels)
 	if err != nil {
@@ -239,7 +246,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger("[image-import]"), oauth)
+		ctx, logging.NewLogger(logPrefix), oauth)
 	if err != nil {
 		return nil, err
 	}
