@@ -3,7 +3,7 @@
   "Vars": {
     "about-this-test": {
       "Value": "",
-      "Description": "This test checks that the workflow still works when ssd quota exceeded."
+      "Description": "This test checks that the workflow still works when ssd quota exceeded by fallback to pd-standard."
     },
     "gcs_export": {
       "Value": "${SCRATCHPATH}/created-by-export-test-latest.tar.gz"
