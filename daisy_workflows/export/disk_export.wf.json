@@ -44,7 +44,8 @@
           "Name": "disk-${NAME}",
           "SourceImage": "${export_instance_disk_image}",
           "SizeGb": "${export_instance_disk_size}",
-          "Type": "${export_instance_disk_type}"
+          "Type": "${export_instance_disk_type}",
+          "FallbackToPdStandard": true
         }
       ]
     },

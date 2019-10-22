@@ -39,7 +39,8 @@
           "Name": "disk-importer",
           "SourceImage": "${import_instance_disk_image}",
           "SizeGb": "${importer_instance_disk_size}",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+          "FallbackToPdStandard": true
         },
         {
           "Name": "${disk_name}",
@@ -47,13 +48,15 @@
           "Type": "pd-ssd",
           "ExactName": true,
           "NoCleanup": true,
-          "isWindows": "${is_windows}"
+          "isWindows": "${is_windows}",
+          "FallbackToPdStandard": true
         },
         {
           "Name": "disk-${NAME}-scratch-${ID}",
           "SizeGb": "10",
           "Type": "pd-ssd",
-          "ExactName": true
+          "ExactName": true,
+          "FallbackToPdStandard": true
         }
       ]
     },
