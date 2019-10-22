@@ -18,6 +18,7 @@ package exporter
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -44,6 +45,10 @@ const (
 	ClientIDFlagKey       = "client_id"
 	DestinationURIFlagKey = "destination_uri"
 	SourceImageFlagKey    = "source_image"
+)
+
+const (
+	logPrefix = "[image-export]"
 )
 
 func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
@@ -152,6 +157,8 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
+	log.SetPrefix(logPrefix + " ")
+
 	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels)
 	if err != nil {
 		return nil, err
@@ -160,7 +167,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger("[image-export]"), oauth)
+		ctx, logging.NewLogger(logPrefix), oauth)
 	if err != nil {
 		return nil, err
 	}
