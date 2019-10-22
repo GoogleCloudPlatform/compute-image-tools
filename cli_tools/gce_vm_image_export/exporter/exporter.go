@@ -157,7 +157,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
-	log.SetPrefix(logPrefix)
+	log.SetPrefix(logPrefix + " ")
 
 	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels)
 	if err != nil {

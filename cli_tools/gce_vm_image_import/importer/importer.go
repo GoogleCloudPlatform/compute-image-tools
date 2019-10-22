@@ -235,7 +235,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
 	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string) (*daisy.Workflow, error) {
 
-	log.SetPrefix(logPrefix)
+	log.SetPrefix(logPrefix + " ")
 
 	sourceBucketName, sourceObjectName, userLabels, err := validateAndParseFlags(clientID, imageName,
 		sourceFile, sourceImage, dataDisk, osID, customTranWorkflow, labels)
