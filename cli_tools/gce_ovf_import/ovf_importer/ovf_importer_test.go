@@ -37,7 +37,8 @@ import (
 
 func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	params := GetAllParams()
-	params.Project = ""
+	projectParam := ""
+	params.Project = &projectParam
 	params.Zone = ""
 	params.MachineType = ""
 	params.ScratchBucketGcsPath = ""
@@ -130,7 +131,8 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 
 func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t *testing.T) {
 	params := GetAllParams()
-	params.Project = "aProject"
+	project := "aProject"
+	params.Project = &project
 	params.Zone = "europe-west2-b"
 	params.MachineType = ""
 
@@ -273,7 +275,8 @@ func TestSetUpWorkflowInvalidReleaseTrack(t *testing.T) {
 
 func TestSetUpWorkflowPopulateMissingParametersError(t *testing.T) {
 	params := GetAllParams()
-	params.Project = ""
+	project := ""
+	params.Project = &project
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -307,7 +310,8 @@ func TestSetUpWorkflowPopulateFlagValidationFailed(t *testing.T) {
 
 func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 	params := GetAllParams()
-	params.Project = "aProject"
+	project := "aProject"
+	params.Project = &project
 	params.Zone = "europe-north1-b"
 	params.MachineType = ""
 
@@ -340,7 +344,8 @@ func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 
 func TestSetUpWorkflowErrorLoadingDescriptor(t *testing.T) {
 	params := GetAllParams()
-	params.Project = "aProject"
+	project := "aProject"
+	params.Project = &project
 	params.Zone = "europe-north1-b"
 	params.OvfOvaGcsPath = "gs://ovfbucket/ovffolder/"
 	params.MachineType = ""
@@ -696,6 +701,7 @@ func createMemoryItem(instanceID string, quantityMB uint) ovf.ResourceAllocation
 }
 
 func GetAllParams() *ovfimportparams.OVFImportParams {
+	project := "aProject"
 	return &ovfimportparams.OVFImportParams{
 		InstanceNames:               "instance1",
 		ClientID:                    "aClient",
@@ -723,7 +729,7 @@ func GetAllParams() *ovfimportparams.OVFImportParams {
 		BootDiskKmsLocation:         "aKmsLocation",
 		BootDiskKmsProject:          "aKmsProject",
 		Timeout:                     "3h",
-		Project:                     "aProject",
+		Project:                     &project,
 		ScratchBucketGcsPath:        "gs://bucket/folder",
 		Oauth:                       "oAuthFilePath",
 		Ce:                          "us-east1-c",

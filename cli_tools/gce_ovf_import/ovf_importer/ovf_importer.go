@@ -192,10 +192,6 @@ func createComputeClient(ctx *context.Context, params *ovfimportparams.OVFImport
 	return computeClient, nil
 }
 
-func (oi *OVFImporter) getProject() (string, error) {
-	return param.GetProjectID(oi.mgce, oi.params.Project)
-}
-
 func (oi *OVFImporter) getZone(project string) (string, error) {
 	if oi.params.Zone != "" {
 		if err := oi.zoneValidator.ZoneValid(project, oi.params.Zone); err != nil {
@@ -341,9 +337,10 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		region  string
 		err     error
 	)
-	if project, err = param.GetProjectID(oi.mgce, oi.params.Project); err != nil {
+	if project, err = param.GetProjectID(oi.mgce, *oi.params.Project); err != nil {
 		return nil, err
 	}
+	*oi.params.Project = project
 	if zone, err = oi.getZone(project); err != nil {
 		return nil, err
 	}

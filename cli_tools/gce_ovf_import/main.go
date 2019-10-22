@@ -83,7 +83,7 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring, ShieldedSecureBoot: *shieldedSecureBoot,
 		ShieldedVtpm: *shieldedVtpm, Tags: *tags, Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey,
 		BootDiskKmsKeyring: *bootDiskKmsKeyring, BootDiskKmsLocation: *bootDiskKmsLocation,
-		BootDiskKmsProject: *bootDiskKmsProject, Timeout: *timeout, Project: *project,
+		BootDiskKmsProject: *bootDiskKmsProject, Timeout: *timeout, Project: project,
 		ScratchBucketGcsPath: *scratchBucketGcsPath, Oauth: *oauth, Ce: *ce,
 		GcsLogsDisabled: *gcsLogsDisabled, CloudLogsDisabled: *cloudLogsDisabled,
 		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
