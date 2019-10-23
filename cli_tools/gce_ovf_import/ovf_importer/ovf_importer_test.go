@@ -775,3 +775,4 @@ type DummyLogger struct{}
 func (dl DummyLogger) WriteLogEntry(e *daisy.LogEntry)                                          {}
 func (dl DummyLogger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf bytes.Buffer) {}
 func (dl DummyLogger) Flush()                                                                   {}
+func (dl DummyLogger) ReadSerialPortLogs() []string                                             { return nil }

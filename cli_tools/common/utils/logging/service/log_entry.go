@@ -171,6 +171,9 @@ type OutputInfo struct {
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
 	// ImportFileFormat shows what is the actual image format of the imported file
 	ImportFileFormat string `json:"import_file_format,omitempty"`
+	// Serial output from worker instances; only populated
+	// if workflow failed.
+	SerialOutputs []string `json:"serial_outputs,omitempty"`
 }
 
 func (l *Logger) updateParams(projectPointer *string) {

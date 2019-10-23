@@ -181,6 +181,9 @@ func (l *Logger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
 	if err != nil {
 		o.FailureMessage = getFailureReason(err)
 		o.FailureMessageWithoutPrivacyInfo = getAnonymizedFailureReason(err)
+		if w != nil && w.Logger != nil {
+			o.SerialOutputs = w.Logger.ReadSerialPortLogs()
+		}
 	}
 
 	return &o
