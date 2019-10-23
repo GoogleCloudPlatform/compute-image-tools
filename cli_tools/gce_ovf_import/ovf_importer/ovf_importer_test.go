@@ -132,6 +132,7 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 	params := GetAllParams()
 	params.Project = "aProject"
 	params.Zone = "europe-west2-b"
+	params.UefiCompatible = true
 	params.MachineType = ""
 
 	mockCtrl := gomock.NewController(t)
@@ -185,6 +186,12 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 		Instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["userkey2"])
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-boot-disk"].CreateDisks)[0].Disk.GuestOsFeatures[0].Type)
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].GuestOsFeatures[0])
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].Image.GuestOsFeatures[0].Type)
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).ImagesBeta[0].GuestOsFeatures[0])
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).ImagesBeta[0].Image.GuestOsFeatures[0].Type)
+
 	assert.Equal(t, "gs://bucket/folder/ovf-import-build123/ovf/", oi.gcsPathToClean)
 }
 
@@ -426,32 +433,6 @@ func TestSetUpWorkOSFlagInvalid(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
-	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
-
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
-
-	descriptor := createOVFDescriptor()
-	if osType != "" {
-		descriptor.VirtualSystem.OperatingSystem = []ovf.OperatingSystemSection{{OSType: &osType}}
-	}
-	mockOvfDescriptorLoader.EXPECT().Load("gs://ovfbucket/ovffolder/").Return(
-		descriptor, nil)
-
-	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
-	mockZoneValidator.EXPECT().
-		ZoneValid("aProject", "us-central1-c").Return(nil)
-
-	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		storageClient: mockStorageClient, BuildID: "build123",
-		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewLogger("test"),
-		zoneValidator: mockZoneValidator, params: params}
-	return oi.setUpImportWorkflow()
-}
-
 func TestCleanUp(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -606,6 +587,32 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "europe-north1-b", params.Zone)
+}
+
+func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
+	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+
+	descriptor := createOVFDescriptor()
+	if osType != "" {
+		descriptor.VirtualSystem.OperatingSystem = []ovf.OperatingSystemSection{{OSType: &osType}}
+	}
+	mockOvfDescriptorLoader.EXPECT().Load("gs://ovfbucket/ovffolder/").Return(
+		descriptor, nil)
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid("aProject", "us-central1-c").Return(nil)
+
+	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
+		storageClient: mockStorageClient, BuildID: "build123",
+		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewLogger("test"),
+		zoneValidator: mockZoneValidator, params: params}
+	return oi.setUpImportWorkflow()
 }
 
 func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAllocationSettingData {

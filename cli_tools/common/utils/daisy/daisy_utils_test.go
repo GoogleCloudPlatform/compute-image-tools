@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/stretchr/testify/assert"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -151,6 +153,28 @@ func testRemovePrivacyTag(t *testing.T, originalMessage string, expectedMessage 
 	}
 }
 
+func TestUpdateToUEFICompatible(t *testing.T) {
+	w := createWorkflowWithCreateDiskImageAndIncludeWorkflow()
+
+	UpdateToUEFICompatible(w)
+
+	assert.Equal(t, 1, len((*w.Steps["cd"].CreateDisks)[0].GuestOsFeatures))
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cd"].CreateDisks)[0].GuestOsFeatures[0].Type)
+
+	assert.Equal(t, 0, len((*w.Steps["cd"].CreateDisks)[1].GuestOsFeatures))
+
+	assert.Equal(t, 1, len((*w.Steps["iw"].IncludeWorkflow.Workflow.Steps["iw-cd"].CreateDisks)[0].GuestOsFeatures))
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["iw"].IncludeWorkflow.Workflow.Steps["iw-cd"].CreateDisks)[0].GuestOsFeatures[0].Type)
+
+	assert.Equal(t, 1, len((*w.Steps["cimg"].CreateImages).Images[0].GuestOsFeatures))
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cimg"].CreateImages).Images[0].GuestOsFeatures[0])
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cimg"].CreateImages).Images[0].Image.GuestOsFeatures[0].Type)
+
+	assert.Equal(t, 1, len((*w.Steps["cimg"].CreateImages).ImagesBeta[0].GuestOsFeatures))
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].GuestOsFeatures[0])
+	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.GuestOsFeatures[0].Type)
+}
+
 func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
 	w := daisy.New()
 	w.Steps = map[string]*daisy.Step{
@@ -172,5 +196,67 @@ func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
 			},
 		},
 	}
+	return w
+}
+
+func createWorkflowWithCreateDiskImageAndIncludeWorkflow() *daisy.Workflow {
+	w := daisy.New()
+	w.Steps = map[string]*daisy.Step{
+		"cd": {
+			CreateDisks: &daisy.CreateDisks{
+				{
+					Disk: compute.Disk{},
+				},
+				{
+					Disk: compute.Disk{
+						SourceImage: "something-debian-9-worker-something-something",
+					},
+				},
+			},
+		},
+		"cimg": {
+			CreateImages: &daisy.CreateImages{
+				Images: []*daisy.Image{
+					{
+						Image: compute.Image{
+							Name: "final-image-1",
+						},
+					},
+				},
+				ImagesBeta: []*daisy.ImageBeta{
+					{
+						Image: computeBeta.Image{
+							Name: "final-image-1",
+						},
+					},
+				},
+			},
+		},
+		"cins": {
+			CreateInstances: &daisy.CreateInstances{
+				{
+					Instance: compute.Instance{
+						Disks: []*compute.AttachedDisk{{Source: "key1"}},
+					},
+				},
+			},
+		},
+		"iw": {
+			IncludeWorkflow: &daisy.IncludeWorkflow{
+				Workflow: &daisy.Workflow{
+					Steps: map[string]*daisy.Step{
+						"iw-cd": {
+							CreateDisks: &daisy.CreateDisks{
+								{
+									Disk: compute.Disk{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	return w
 }

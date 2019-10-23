@@ -32,7 +32,7 @@ import (
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
+	daisyovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/daisy_utils"
 	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/gce_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
@@ -286,6 +286,12 @@ func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, e
 		fmt.Sprintf("ovf-import-%v", oi.BuildID)), nil
 }
 
+func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
+	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+	daisyovfutils.AddDiskImportSteps(w, (*oi.diskInfos)[1:])
+	oi.updateInstance(w)
+}
+
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 	w.LogWorkflowInfo("OVF import flags: %s", oi.params)
 	w.LogWorkflowInfo("Cloud Build ID: %s", oi.BuildID)
@@ -308,12 +314,9 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 		}}
 	rl.LabelResources(w)
 	daisyutils.UpdateAllInstanceNoExternalIP(w, oi.params.NoExternalIP)
-}
-
-func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
-	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	daisyovfutils.AddDiskImportSteps(w, (*oi.diskInfos)[1:])
-	oi.updateInstance(w)
+	if oi.params.UefiCompatible {
+		daisyutils.UpdateToUEFICompatible(w)
+	}
 }
 
 func (oi *OVFImporter) getMachineType(
