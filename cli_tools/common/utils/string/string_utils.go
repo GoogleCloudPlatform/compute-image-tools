@@ -16,7 +16,7 @@ package string
 
 import "sort"
 
-// CombineStringSlices merges two slices of Beta Guest OS features and
+// CombineStringSlices merges two slices of strings and
 // returns a new slice instance. Duplicates are removed.
 func CombineStringSlices(s1 []string, s2 ...string) []string {
 
