@@ -85,7 +85,7 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 	if !noExternalIP {
 		return
 	}
-	WorkflowStepIterator(workflow, func(step *daisy.Step) {
+	daisy.WorkflowStepIterator(workflow, func(step *daisy.Step) {
 		if step.CreateInstances != nil {
 			for _, instance := range *step.CreateInstances {
 				if instance.Instance.NetworkInterfaces == nil {
@@ -103,7 +103,7 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 // compatible by adding "UEFI_COMPATIBLE" to GuestOSFeatures. Debian 9 workers
 // are excluded until UEFI becomes the default boot method.
 func UpdateToUEFICompatible(workflow *daisy.Workflow) {
-	WorkflowStepIterator(workflow, func(step *daisy.Step) {
+	daisy.WorkflowStepIterator(workflow, func(step *daisy.Step) {
 		if step.CreateDisks != nil {
 			for _, disk := range *step.CreateDisks {
 				// for the time being, don't run Debian 9 worker in UEFI mode
@@ -149,20 +149,4 @@ func RemovePrivacyLogTag(message string) string {
 	message = privacyTagRegex.ReplaceAllString(message, "")
 
 	return message
-}
-
-// WorkflowStepIterator iterates over all workflow steps, including included
-// workflow steps, and calls cb callback function
-func WorkflowStepIterator(workflow *daisy.Workflow, cb func(step *daisy.Step)) {
-	if workflow == nil {
-		return
-	}
-
-	for _, step := range workflow.Steps {
-		if step.IncludeWorkflow != nil {
-			//recurse into included workflow
-			WorkflowStepIterator(step.IncludeWorkflow.Workflow, cb)
-		}
-		cb(step)
-	}
 }
