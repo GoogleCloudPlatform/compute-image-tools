@@ -85,7 +85,7 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 	if !noExternalIP {
 		return
 	}
-	daisy.WorkflowStepIterator(workflow, func(step *daisy.Step) {
+	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateInstances != nil {
 			for _, instance := range *step.CreateInstances {
 				if instance.Instance.NetworkInterfaces == nil {
@@ -103,7 +103,7 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 // compatible by adding "UEFI_COMPATIBLE" to GuestOSFeatures. Debian 9 workers
 // are excluded until UEFI becomes the default boot method.
 func UpdateToUEFICompatible(workflow *daisy.Workflow) {
-	daisy.WorkflowStepIterator(workflow, func(step *daisy.Step) {
+	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateDisks != nil {
 			for _, disk := range *step.CreateDisks {
 				// for the time being, don't run Debian 9 worker in UEFI mode

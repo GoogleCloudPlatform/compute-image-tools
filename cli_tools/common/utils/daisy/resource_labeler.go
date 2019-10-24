@@ -40,7 +40,7 @@ type ImageLabelKeyRetrieverFunc func(imageName string) string
 // LabelResources labels workflow resources temporary and permanent resources with appropriate
 // labels
 func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
-	daisy.WorkflowStepIterator(workflow, rl.labelResourcesInStep)
+	workflow.IterateWorkflowSteps(rl.labelResourcesInStep)
 }
 
 func (rl *ResourceLabeler) labelResourcesInStep(step *daisy.Step) {
