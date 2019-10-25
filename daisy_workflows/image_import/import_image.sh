@@ -139,7 +139,9 @@ fi
 
 # Ensure the output disk has sufficient space to accept the disk image.
 # Disk image size info.
-SIZE_BYTES=$(qemu-img info --output "json" "${IMAGE_PATH}" | grep -m1 "virtual-size" | grep -o '[0-9]\+')
+FILE_INFO=$(qemu-img info --output "json" "${IMAGE_PATH}")
+SIZE_BYTES=$(echo $FILE_INFO | grep -oP  '(?<="virtual-size":[ *])[0-9]+' | head -1)
+IMPORT_FILE_FORMAT=$(echo $FILE_INFO | grep -oP  '(?<="format":[ *]").*?(?=")')
  # Round up to the next GB.
 SIZE_GB=$(awk "BEGIN {print int(((${SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
 echo "Import: Importing ${IMAGE_PATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
@@ -147,7 +149,10 @@ echo "Import: Importing ${IMAGE_PATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${Z
 set +x
 echo "Import: $(serialOutputKeyValuePair "target-size-gb" "${SIZE_GB}")"
 echo "Import: $(serialOutputKeyValuePair "source-size-gb" "${SOURCE_SIZE_GB}")"
+echo "Import: $(serialOutputKeyValuePair "import-file-format" "${IMPORT_FILE_FORMAT}")"
 set -x
+
+echo "ImportFailed: Failed to convert source to raw. [Privacy-> test <-Privacy]" # TODO remove
 
 # Ensure the disk referenced by $DISKNAME is large enough to
 # hold the inflated disk. For the common case, we initialize

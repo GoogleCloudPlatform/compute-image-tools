@@ -58,6 +58,7 @@ const (
 
 	targetSizeGb  = "target-size-gb"
 	sourceSizeGb  = "source-size-gb"
+	importFileFormat  = "import-file-format"
 	statusStart   = "Start"
 	statusSuccess = "Success"
 	statusFailure = "Failure"
@@ -173,6 +174,7 @@ func (l *Logger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
 	if w != nil {
 		o.TargetsSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(targetSizeGb))
 		o.SourcesSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(sourceSizeGb))
+		o.ImportFileFormat = w.GetSerialConsoleOutputValue(importFileFormat)
 	}
 
 	if err != nil {
@@ -256,6 +258,7 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 		}
 
 		logRequestJSON, err := l.constructLogRequest(logExtension)
+		fmt.Println(">>>request:", string(logRequestJSON)) //TODO remove
 		if err != nil {
 			fmt.Println("Failed to log to server: failed to prepare json log data.")
 			return failedOnCreateRequestJSON
