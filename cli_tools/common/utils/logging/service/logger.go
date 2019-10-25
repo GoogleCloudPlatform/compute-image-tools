@@ -258,7 +258,6 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 		}
 
 		logRequestJSON, err := l.constructLogRequest(logExtension)
-		fmt.Println(">>>request:", string(logRequestJSON)) //TODO remove
 		if err != nil {
 			fmt.Println("Failed to log to server: failed to prepare json log data.")
 			return failedOnCreateRequestJSON
