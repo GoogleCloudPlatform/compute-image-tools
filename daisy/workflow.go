@@ -713,6 +713,15 @@ func (w *Workflow) traverseDAG(f func(*Step) DError) DError {
 	return nil
 }
 
+func (w *Workflow) isCanceled() bool {
+	select {
+	case <-w.Cancel:
+		return true
+	default:
+		return false
+	}
+}
+
 // New instantiates a new workflow.
 func New() *Workflow {
 	// We can't use context.WithCancel as we use the context even after cancel for cleanup.
