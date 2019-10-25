@@ -169,6 +169,8 @@ type OutputInfo struct {
 	FailureMessage string `json:"failure_message,omitempty"`
 	// Failure message of the command without privacy info
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
+	// ImportFileFormat shows what is the actual image format of the imported file
+	ImportFileFormat string `json:"import_file_format,omitempty"`
 }
 
 func (l *Logger) updateParams(projectPointer *string) {
