@@ -152,8 +152,6 @@ echo "Import: $(serialOutputKeyValuePair "source-size-gb" "${SOURCE_SIZE_GB}")"
 echo "Import: $(serialOutputKeyValuePair "import-file-format" "${IMPORT_FILE_FORMAT}")"
 set -x
 
-echo "ImportFailed: Failed to convert source to raw. [Privacy-> test <-Privacy]" # TODO remove
-
 # Ensure the disk referenced by $DISKNAME is large enough to
 # hold the inflated disk. For the common case, we initialize
 # it to have a capacity of 10 GB, and then resize it if qemu-img
