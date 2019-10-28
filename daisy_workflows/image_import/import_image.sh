@@ -139,9 +139,8 @@ fi
 
 # Ensure the output disk has sufficient space to accept the disk image.
 # Disk image size info.
-FILE_INFO=$(qemu-img info --output "json" "${IMAGE_PATH}")
-SIZE_BYTES=$(echo $FILE_INFO | grep -oP  '(?<="virtual-size":[ *])[0-9]+' | head -1)
-IMPORT_FILE_FORMAT=$(echo $FILE_INFO | grep -oP  '(?<="format":[ *]").*?(?=")')
+SIZE_BYTES=$(qemu-img info --output "json" "${IMAGE_PATH}" | grep -m1 "virtual-size" | grep -o '[0-9]\+')
+IMPORT_FILE_FORMAT=$(qemu-img info "${IMAGE_PATH}" | grep -m1 "file format" | grep -oP '(?<=^file format:[ *]).*')
  # Round up to the next GB.
 SIZE_GB=$(awk "BEGIN {print int(((${SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
 echo "Import: Importing ${IMAGE_PATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
