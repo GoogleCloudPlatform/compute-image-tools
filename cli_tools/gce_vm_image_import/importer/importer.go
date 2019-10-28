@@ -195,7 +195,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
 	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
-	userLabels map[string]string, storageLocation string) (*daisy.Workflow, error) {
+	userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
@@ -210,7 +210,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 
 	postValidateWorkflowModifier := func(w *daisy.Workflow) {
 		buildID := os.Getenv(daisyutils.BuildIDOSEnvVarName)
-		workflow.LogWorkflowInfo("Cloud Build ID: %s", buildID)
+		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisyutils.ResourceLabeler{
 			BuildID:         buildID,
 			UserLabels:      userLabels,
@@ -231,6 +231,9 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 			}}
 		rl.LabelResources(w)
 		daisyutils.UpdateAllInstanceNoExternalIP(w, noExternalIP)
+		if uefiCompatible {
+			daisyutils.UpdateToUEFICompatible(w)
+		}
 	}
 
 	return workflow, workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
@@ -242,7 +245,8 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	network string, subnet string, zone string, timeout string, project *string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
-	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string) (*daisy.Workflow, error) {
+	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
+	uefiCompatible bool) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
@@ -291,7 +295,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	var w *daisy.Workflow
 	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
-		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation); err != nil {
+		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
 
 		return w, err
 	}

@@ -830,3 +830,15 @@ func stepsListen(names []string, chans map[string]chan DError) (string, DError) 
 	}
 	return name, nil
 }
+
+// IterateWorkflowSteps iterates over all workflow steps, including included
+// workflow steps, and calls cb callback function
+func (w *Workflow) IterateWorkflowSteps(cb func(step *Step)) {
+	for _, step := range w.Steps {
+		if step.IncludeWorkflow != nil {
+			//recurse into included workflow
+			step.IncludeWorkflow.Workflow.IterateWorkflowSteps(cb)
+		}
+		cb(step)
+	}
+}

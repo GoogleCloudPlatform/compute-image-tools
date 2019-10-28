@@ -58,6 +58,7 @@ type OVFImportParams struct {
 	StdoutLogsDisabled          bool
 	NodeAffinityLabelsFlag      flags.StringArrayFlag
 	ReleaseTrack                string
+	UefiCompatible              bool
 
 	UserLabels            map[string]string
 	NodeAffinities        []*compute.SchedulingNodeAffinity

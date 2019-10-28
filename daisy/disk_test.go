@@ -3,7 +3,6 @@ package daisy
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 
 	"google.golang.org/api/compute/v1"
@@ -412,63 +411,4 @@ func TestDiskValidate(t *testing.T) {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		}
 	}
-}
-
-func TestCombineGuestOSFeatures(t *testing.T) {
-
-	tests := []struct {
-		currentFeatures    []*compute.GuestOsFeature
-		additionalFeatures []string
-		want               []*compute.GuestOsFeature
-	}{
-		{
-			currentFeatures:    featuresOf(),
-			additionalFeatures: []string{},
-			want:               featuresOf(),
-		},
-		{
-			currentFeatures:    featuresOf("WINDOWS"),
-			additionalFeatures: []string{},
-			want:               featuresOf("WINDOWS"),
-		},
-		{
-			currentFeatures:    featuresOf(),
-			additionalFeatures: []string{"WINDOWS"},
-			want:               featuresOf("WINDOWS"),
-		},
-		{
-			currentFeatures:    featuresOf("WINDOWS"),
-			additionalFeatures: []string{"WINDOWS"},
-			want:               featuresOf("WINDOWS"),
-		},
-		{
-			currentFeatures:    featuresOf("SECURE_BOOT"),
-			additionalFeatures: []string{"WINDOWS"},
-			want:               featuresOf("SECURE_BOOT", "WINDOWS"),
-		},
-		{
-			currentFeatures:    featuresOf("SECURE_BOOT", "UEFI_COMPATIBLE"),
-			additionalFeatures: []string{"WINDOWS", "UEFI_COMPATIBLE"},
-			want:               featuresOf("SECURE_BOOT", "UEFI_COMPATIBLE", "WINDOWS"),
-		},
-	}
-
-	for _, test := range tests {
-		got := combineGuestOSFeatures(test.currentFeatures, test.additionalFeatures...)
-
-		if !reflect.DeepEqual(got, test.want) {
-			t.Errorf("combineGuestOSFeatures(%v, %v) = %v, want %v",
-				test.currentFeatures, test.additionalFeatures, got, test.want)
-		}
-	}
-}
-
-func featuresOf(features ...string) []*compute.GuestOsFeature {
-	ret := make([]*compute.GuestOsFeature, 0)
-	for _, feature := range features {
-		ret = append(ret, &compute.GuestOsFeature{
-			Type: feature,
-		})
-	}
-	return ret
 }

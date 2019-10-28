@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"strings"
 
+	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
@@ -84,28 +85,46 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 	if !noExternalIP {
 		return
 	}
-	updateAllInstanceAccessConfig(workflow, func() []*compute.AccessConfig {
-		return []*compute.AccessConfig{}
-	})
-}
-
-func updateAllInstanceAccessConfig(workflow *daisy.Workflow, accessConfigProvider func() []*compute.AccessConfig) {
-	for _, step := range workflow.Steps {
-		if step.IncludeWorkflow != nil {
-			//recurse into included workflow
-			updateAllInstanceAccessConfig(step.IncludeWorkflow.Workflow, accessConfigProvider)
-		}
+	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateInstances != nil {
 			for _, instance := range *step.CreateInstances {
 				if instance.Instance.NetworkInterfaces == nil {
 					return
 				}
 				for _, networkInterface := range instance.Instance.NetworkInterfaces {
-					networkInterface.AccessConfigs = accessConfigProvider()
+					networkInterface.AccessConfigs = []*compute.AccessConfig{}
 				}
 			}
 		}
-	}
+	})
+}
+
+// UpdateToUEFICompatible marks workflow resources (disks and images) to be UEFI
+// compatible by adding "UEFI_COMPATIBLE" to GuestOSFeatures. Debian 9 workers
+// are excluded until UEFI becomes the default boot method.
+func UpdateToUEFICompatible(workflow *daisy.Workflow) {
+	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
+		if step.CreateDisks != nil {
+			for _, disk := range *step.CreateDisks {
+				// for the time being, don't run Debian 9 worker in UEFI mode
+				if strings.Contains(disk.SourceImage, "projects/compute-image-tools/global/images/family/debian-9-worker") {
+					continue
+				}
+				disk.Disk.GuestOsFeatures = daisy.CombineGuestOSFeatures(disk.Disk.GuestOsFeatures, "UEFI_COMPATIBLE")
+			}
+		}
+		if step.CreateImages != nil {
+			for _, image := range step.CreateImages.Images {
+				image.GuestOsFeatures = stringutils.CombineStringSlices(image.GuestOsFeatures, "UEFI_COMPATIBLE")
+				image.Image.GuestOsFeatures = daisy.CombineGuestOSFeatures(image.Image.GuestOsFeatures, "UEFI_COMPATIBLE")
+
+			}
+			for _, image := range step.CreateImages.ImagesBeta {
+				image.GuestOsFeatures = stringutils.CombineStringSlices(image.GuestOsFeatures, "UEFI_COMPATIBLE")
+				image.Image.GuestOsFeatures = daisy.CombineGuestOSFeaturesBeta(image.Image.GuestOsFeatures, "UEFI_COMPATIBLE")
+			}
+		}
+	})
 }
 
 // RemovePrivacyLogInfo removes privacy log information.

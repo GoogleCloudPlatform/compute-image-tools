@@ -21,8 +21,12 @@ import (
 	"os/user"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
+
+	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/compute/v1"
 )
 
 func getUser() string {
@@ -223,4 +227,56 @@ func traverseData(v reflect.Value, f func(reflect.Value) DError) DError {
 
 func xor(x, y bool) bool {
 	return x != y
+}
+
+// CombineGuestOSFeatures merges two slices of Guest OS features and returns a
+// new slice instance. Duplicates are removed.
+func CombineGuestOSFeatures(features1 []*compute.GuestOsFeature,
+	features2 ...string) []*compute.GuestOsFeature {
+
+	featureSet := map[string]bool{}
+	for _, feature := range features2 {
+		featureSet[feature] = true
+	}
+	for _, feature := range features1 {
+		featureSet[feature.Type] = true
+	}
+	ret := make([]*compute.GuestOsFeature, 0)
+	for feature := range featureSet {
+		ret = append(ret, &compute.GuestOsFeature{
+			Type: feature,
+		})
+	}
+	// Sort elements by type, lexically. This ensures
+	// stability of output ordering for tests.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Type < ret[j].Type
+	})
+	return ret
+}
+
+// CombineGuestOSFeaturesBeta merges two slices of Beta Guest OS features and
+// returns a new slice instance. Duplicates are removed.
+func CombineGuestOSFeaturesBeta(features1 []*computeBeta.GuestOsFeature,
+	features2 ...string) []*computeBeta.GuestOsFeature {
+
+	featureSet := map[string]bool{}
+	for _, feature := range features2 {
+		featureSet[feature] = true
+	}
+	for _, feature := range features1 {
+		featureSet[feature.Type] = true
+	}
+	ret := make([]*computeBeta.GuestOsFeature, 0)
+	for feature := range featureSet {
+		ret = append(ret, &computeBeta.GuestOsFeature{
+			Type: feature,
+		})
+	}
+	// Sort elements by type, lexically. This ensures
+	// stability of output ordering for tests.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Type < ret[j].Type
+	})
+	return ret
 }

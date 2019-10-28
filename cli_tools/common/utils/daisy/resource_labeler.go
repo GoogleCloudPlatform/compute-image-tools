@@ -40,35 +40,33 @@ type ImageLabelKeyRetrieverFunc func(imageName string) string
 // LabelResources labels workflow resources temporary and permanent resources with appropriate
 // labels
 func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
-	for _, step := range workflow.Steps {
-		if step.IncludeWorkflow != nil {
-			//recurse into included workflow
-			rl.LabelResources(step.IncludeWorkflow.Workflow)
+	workflow.IterateWorkflowSteps(rl.labelResourcesInStep)
+}
+
+func (rl *ResourceLabeler) labelResourcesInStep(step *daisy.Step) {
+	if step.CreateInstances != nil {
+		for _, instance := range *step.CreateInstances {
+			instance.Instance.Labels =
+				rl.updateResourceLabels(instance.Instance.Labels, rl.InstanceLabelKeyRetriever(instance))
 		}
-		if step.CreateInstances != nil {
-			for _, instance := range *step.CreateInstances {
-				instance.Instance.Labels =
-					rl.updateResourceLabels(instance.Instance.Labels, rl.InstanceLabelKeyRetriever(instance))
-			}
+	}
+	if step.CreateDisks != nil {
+		for _, disk := range *step.CreateDisks {
+			disk.Disk.Labels =
+				rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk))
 		}
-		if step.CreateDisks != nil {
-			for _, disk := range *step.CreateDisks {
-				disk.Disk.Labels =
-					rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk))
-			}
+	}
+	if step.CreateImages != nil {
+		for _, image := range step.CreateImages.Images {
+			image.Image.Labels =
+				rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
 		}
-		if step.CreateImages != nil {
-			for _, image := range step.CreateImages.Images {
-				image.Image.Labels =
-					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
+		for _, image := range step.CreateImages.ImagesBeta {
+			if rl.ImageLocation != "" {
+				image.Image.StorageLocations = []string{rl.ImageLocation}
 			}
-			for _, image := range step.CreateImages.ImagesBeta {
-				if rl.ImageLocation != "" {
-					image.Image.StorageLocations = []string{rl.ImageLocation}
-				}
-				image.Image.Labels =
-					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
-			}
+			image.Image.Labels =
+				rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
 		}
 	}
 }
