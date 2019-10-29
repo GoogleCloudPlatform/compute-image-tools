@@ -17,11 +17,13 @@ package daisy
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"regexp"
 	"sync"
 	"testing"
 
 	"cloud.google.com/go/logging"
+	"github.com/stretchr/testify/assert"
 )
 
 type MockLogger struct {
@@ -31,6 +33,10 @@ type MockLogger struct {
 
 func (l *MockLogger) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer) {
 	// nop
+}
+
+func (l *MockLogger) ReadSerialPortLogs() []string {
+	return nil
 }
 
 func (l *MockLogger) WriteLogEntry(e *LogEntry) {
@@ -51,7 +57,7 @@ func (l *MockLogger) getEntries() []*LogEntry {
 func TestWriteWorkflowInfo(t *testing.T) {
 	w := New()
 	w.Name = "Test"
-	w.Logger = &daisyLog{}
+	w.Logger = newDaisyLogger(false)
 
 	var b bytes.Buffer
 	w.Logger.(*daisyLog).gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
@@ -73,7 +79,7 @@ func TestWriteWorkflowInfo(t *testing.T) {
 func TestWriteStepInfo(t *testing.T) {
 	w := New()
 	w.Name = "Test"
-	w.Logger = &daisyLog{}
+	w.Logger = newDaisyLogger(false)
 
 	var b bytes.Buffer
 	w.Logger.(*daisyLog).gcsLogWriter = &syncedWriter{buf: bufio.NewWriter(&b)}
@@ -107,7 +113,7 @@ func (cl *MockCloudLogWriter) Flush() error {
 func TestSendSerialPortLogsToCloud(t *testing.T) {
 	w := New()
 	w.Name = "Test"
-	w.Logger = &daisyLog{}
+	w.Logger = newDaisyLogger(false)
 	cl := &MockCloudLogWriter{}
 	w.Logger.(*daisyLog).cloudLogger = cl
 	var buf bytes.Buffer
@@ -120,16 +126,57 @@ func TestSendSerialPortLogsToCloud(t *testing.T) {
 	if len(cl.entries) != 14 {
 		t.Errorf("Wanted %d", len(cl.entries))
 	}
+
+	assertLogOutput(t, w.Logger.ReadSerialPortLogs(),
+		[]string{"Serial logs for instance: instance-name\n" + buf.String()})
+}
+
+func TestSendSerialPortLogsToCloudMultipleInstances(t *testing.T) {
+	w := New()
+	w.Name = "Test"
+	w.Logger = newDaisyLogger(false)
+	cl := &MockCloudLogWriter{}
+	w.Logger.(*daisyLog).cloudLogger = cl
+
+	contentOfLogs := []string{
+		"line1\nline2",
+		"more log info\t",
+	}
+
+	instanceAnnotatedLogs := []string{
+		"Serial logs for instance: instance-0\nline1\nline2",
+		"Serial logs for instance: instance-1\nmore log info\t",
+	}
+
+	for i, log := range contentOfLogs {
+		var buf bytes.Buffer
+		buf.WriteString(log)
+		w.Logger.WriteSerialPortLogs(w, fmt.Sprintf("instance-%d", i), buf)
+	}
+
+	assertLogOutput(t, w.Logger.ReadSerialPortLogs(), instanceAnnotatedLogs)
 }
 
 func TestSendSerialPortLogsToCloudDisabled(t *testing.T) {
 	w := New()
 	w.Name = "Test"
-	w.Logger = &daisyLog{}
+	w.Logger = newDaisyLogger(false)
 	var buf bytes.Buffer
 	buf.WriteString("Serial output\n")
 
 	w.Logger.WriteSerialPortLogs(w, "instance-name", buf)
 
-	// Nothing to verify. Nothing happened.
+	assert.Equal(t, len(w.Logger.ReadSerialPortLogs()), 0,
+		"Don't retain logs if cloud logging disabled.")
+}
+
+func assertLogOutput(t *testing.T, actualLogs []string, expectedLogs []string) {
+	if len(actualLogs) != len(expectedLogs) {
+		t.Errorf("Expected %d serial logs. Found %d",
+			len(expectedLogs), len(actualLogs))
+	}
+
+	for _, log := range expectedLogs {
+		assert.Contains(t, actualLogs, log)
+	}
 }

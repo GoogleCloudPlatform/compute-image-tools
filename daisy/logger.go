@@ -33,6 +33,7 @@ import (
 type Logger interface {
 	WriteLogEntry(e *LogEntry)
 	WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer)
+	ReadSerialPortLogs() []string
 	Flush()
 }
 
@@ -47,13 +48,13 @@ type daisyLog struct {
 	cloudLogger     cloudLogWriter
 	stdoutLogging   bool
 	logCleanupRegex *regexp.Regexp
+	// A map of instance name to its serial logs.
+	serialLogs map[string]string
 }
 
 // createLogger builds a Logger.
 func (w *Workflow) createLogger(ctx context.Context) {
-	l := &daisyLog{
-		stdoutLogging: !w.stdoutLoggingDisabled,
-	}
+	l := newDaisyLogger(!w.stdoutLoggingDisabled)
 
 	w.addCleanupHook(func() DError {
 		w.logWait.Wait()
@@ -88,6 +89,13 @@ func (w *Workflow) createLogger(ctx context.Context) {
 		w.Logger.Flush()
 		return nil
 	})
+}
+
+func newDaisyLogger(stdOutLoggingEnabled bool) *daisyLog {
+	return &daisyLog{
+		stdoutLogging: stdOutLoggingEnabled,
+		serialLogs:    map[string]string{},
+	}
 }
 
 // LogStepInfo logs information for the workflow step.
@@ -132,6 +140,9 @@ func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.B
 		return
 	}
 
+	logs := buf.String()
+	l.serialLogs[instance] = logs
+
 	writeLog := func(str string) {
 		entry := &LogEntry{
 			LocalTimestamp: time.Now(),
@@ -146,7 +157,7 @@ func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.B
 	// Write the output to cloud logging only after instance has stopped.
 	// Type assertion check is needed for tests not to panic.
 	// Split if output is too long for log entry (100K max, we leave a 2K buffer).
-	ss := strings.SplitAfter(buf.String(), "\n")
+	ss := strings.SplitAfter(logs, "\n")
 	var str string
 	for _, s := range ss {
 		if len(str)+len(s) > 98*1024 {
@@ -157,6 +168,14 @@ func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.B
 		}
 	}
 	writeLog(str)
+}
+
+func (l *daisyLog) ReadSerialPortLogs() []string {
+	allLogs := make([]string, 0, len(l.serialLogs))
+	for instance, log := range l.serialLogs {
+		allLogs = append(allLogs, fmt.Sprintf("Serial logs for instance: %s\n%s", instance, log))
+	}
+	return allLogs
 }
 
 // Flush flushes all loggers.

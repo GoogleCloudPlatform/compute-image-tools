@@ -150,6 +150,10 @@ func (l *logger) WriteSerialPortLogs(w *daisy.Workflow, instance string, buf byt
 	return
 }
 
+func (l *logger) ReadSerialPortLogs() []string {
+	return nil
+}
+
 func (l *logger) Flush() { return }
 
 func createTestCase(ctx context.Context, testLogger *logger, path, project, zone, oauthPath, ce string, varMap map[string]string) (*daisy.Workflow, error) {
