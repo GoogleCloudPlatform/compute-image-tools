@@ -87,7 +87,7 @@ func getAllParams() *OVFImportParams {
 		BootDiskKmsLocation:         "aKmsLocation",
 		BootDiskKmsProject:          "aKmsProject",
 		Timeout:                     "3h",
-		Project:                     &project,
+		Project:                     project,
 		ScratchBucketGcsPath:        "gs://bucket/folder",
 		Oauth:                       "oAuthFilePath",
 		Ce:                          "us-east1-c",

@@ -84,7 +84,7 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring, ShieldedSecureBoot: *shieldedSecureBoot,
 		ShieldedVtpm: *shieldedVtpm, Tags: *tags, Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey,
 		BootDiskKmsKeyring: *bootDiskKmsKeyring, BootDiskKmsLocation: *bootDiskKmsLocation,
-		BootDiskKmsProject: *bootDiskKmsProject, Timeout: *timeout, Project: project,
+		BootDiskKmsProject: *bootDiskKmsProject, Timeout: *timeout, Project: *project,
 		ScratchBucketGcsPath: *scratchBucketGcsPath, Oauth: *oauth, Ce: *ce,
 		GcsLogsDisabled: *gcsLogsDisabled, CloudLogsDisabled: *cloudLogsDisabled,
 		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
@@ -93,7 +93,18 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 	}
 }
 
-func runImport() (*daisy.Workflow, error) {
+// InstanceExportTool is the tool for instance import
+type InstanceExportTool struct {
+	service.CliToolWithLogging
+}
+
+// ActionType implements CliToolWithLogging
+func (t *InstanceExportTool) ActionType() service.ActionType {
+	return service.InstanceImportAction
+}
+
+// MainFunc implements CliToolWithLogging
+func (t *InstanceExportTool) MainFunc() (*daisy.Workflow, map[string]string, error) {
 	var ovfImporter *ovfimporter.OVFImporter
 	var err error
 	defer func() {
@@ -103,16 +114,15 @@ func runImport() (*daisy.Workflow, error) {
 	}()
 
 	if ovfImporter, err = ovfimporter.NewOVFImporter(buildImportParams()); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return ovfImporter.Import()
 }
 
-func main() {
-	flag.Parse()
-
-	paramLog := service.InputParams{
+// InitParamLog implements CliToolWithLogging
+func (t *InstanceExportTool) InitParamLog() service.InputParams {
+	return service.InputParams{
 		InstanceImportParams: &service.InstanceImportParams{
 			CommonParams: &service.CommonParams{
 				ClientID:                *clientID,
@@ -154,8 +164,8 @@ func main() {
 			NodeAffinityLabel:           nodeAffinityLabelsFlag.String(),
 		},
 	}
+}
 
-	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, project, runImport); err != nil {
-		os.Exit(1)
-	}
+func main() {
+	service.RunCliToolWithLogging(&InstanceExportTool{})
 }

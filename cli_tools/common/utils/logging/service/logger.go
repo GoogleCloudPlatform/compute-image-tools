@@ -43,11 +43,14 @@ var (
 	nextRequestWaitMillis int64
 )
 
+// ActionType of the tool
+type ActionType string
+
 // constants used by logging
 const (
-	ImageImportAction    = "ImageImport"
-	ImageExportAction    = "ImageExport"
-	InstanceImportAction = "InstanceImport"
+	ImageImportAction    ActionType = "ImageImport"
+	ImageExportAction    ActionType = "ImageExport"
+	InstanceImportAction ActionType = "InstanceImport"
 
 	// These strings should be interleaved to construct the real URL. This is just to (hopefully)
 	// fool github URL scanning bots.
@@ -106,11 +109,11 @@ type Logger struct {
 }
 
 // NewLoggingServiceLogger creates a new server logger
-func NewLoggingServiceLogger(action string, params InputParams) *Logger {
+func NewLoggingServiceLogger(action ActionType, params InputParams) *Logger {
 	return &Logger{
 		ServerURL: serverURL,
 		ID:        uuid.New().String(),
-		Action:    action,
+		Action:    string(action),
 		TimeStart: time.Now(),
 		Params:    params,
 		mutex:     sync.Mutex{},
@@ -195,8 +198,8 @@ func getInt64Values(s string) []int64 {
 	return r
 }
 
-func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
-	projectPointer *string) (*ComputeImageToolsLogExtension, error) {
+func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow,
+	map[string]string, error)) (*ComputeImageToolsLogExtension, error) {
 
 	var logExtension *ComputeImageToolsLogExtension
 
@@ -210,8 +213,8 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 		l.logStart()
 	}()
 
-	w, err := function()
-	l.updateParams(projectPointer)
+	w, updatedParams, err := function()
+	l.updateParams(updatedParams)
 	if err != nil {
 		wg.Add(1)
 		go func() {
@@ -231,14 +234,6 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 	return logExtension, err
 }
 
-// RunWithServerLogging runs the function with server logging
-func RunWithServerLogging(action string, params InputParams, projectPointer *string,
-	function func() (*daisy.Workflow, error)) error {
-	l := NewLoggingServiceLogger(action, params)
-	_, err := l.runWithServerLogging(function, projectPointer)
-	return err
-}
-
 func (l *Logger) sendLogToServer(logExtension *ComputeImageToolsLogExtension) logResult {
 	r := l.sendLogToServerWithRetry(logExtension, 3)
 	return r
@@ -251,8 +246,8 @@ func (l *Logger) sendLogToServerWithRetry(logExtension *ComputeImageToolsLogExte
 	for i := 0; i < maxRetry; i++ {
 		// Before sending a new request, wait for a while if server asked to do so
 		if nextRequestWaitMillis > 0 {
-			nextRequestWaitMillis = 0
 			time.Sleep(time.Duration(nextRequestWaitMillis) * time.Millisecond)
+			nextRequestWaitMillis = 0
 		}
 
 		logRequestJSON, err := l.constructLogRequest(logExtension)

@@ -49,7 +49,7 @@ type OVFImportParams struct {
 	BootDiskKmsLocation         string
 	BootDiskKmsProject          string
 	Timeout                     string
-	Project                     *string
+	Project                     string
 	ScratchBucketGcsPath        string
 	Oauth                       string
 	Ce                          string

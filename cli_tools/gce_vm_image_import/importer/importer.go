@@ -242,18 +242,20 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 // Run runs import workflow.
 func Run(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string,
 	sourceFile string, sourceImage string, noGuestEnvironment bool, family string, description string,
-	network string, subnet string, zone string, timeout string, project *string,
+	network string, subnet string, zone string, timeout string, project string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
 	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
-	uefiCompatible bool) (*daisy.Workflow, error) {
+	uefiCompatible bool) (*daisy.Workflow, map[string]string, error) {
+
+	updatedParams := map[string]string{}
 
 	log.SetPrefix(logPrefix + " ")
 
 	sourceBucketName, sourceObjectName, userLabels, err := validateAndParseFlags(clientID, imageName,
 		sourceFile, sourceImage, dataDisk, osID, customTranWorkflow, labels)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 
 	ctx := context.Background()
@@ -261,29 +263,30 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	storageClient, err := storage.NewStorageClient(
 		ctx, logging.NewLogger(logPrefix), oauth)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	defer storageClient.Close()
 
 	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
 	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	zoneRetriever := storage.NewZoneRetriever(metadataGCE, computeClient)
 
 	region := new(string)
-	err = param.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath,
+	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
+	updatedParams["project"] = project
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 
 	if sourceFile != "" {
 		err = validateSourceFile(storageClient, sourceBucketName, sourceObjectName)
 	}
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(dataDisk, osID, sourceImage,
@@ -293,11 +296,11 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		description, *region, subnet, network, noGuestEnvironment)
 
 	var w *daisy.Workflow
-	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
+	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
 		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
 
-		return w, err
+		return w, updatedParams, err
 	}
-	return w, nil
+	return w, updatedParams, nil
 }

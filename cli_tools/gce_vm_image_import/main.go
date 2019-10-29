@@ -56,19 +56,29 @@ var (
 	uefiCompatible       = flag.Bool("uefi_compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
 )
 
-func importEntry() (*daisy.Workflow, error) {
+// ImageImportTool is the tool for image import
+type ImageImportTool struct {
+	service.CliToolWithLogging
+}
+
+// ActionType implements CliToolWithLogging
+func (t *ImageImportTool) ActionType() service.ActionType {
+	return service.ImageImportAction
+}
+
+// MainFunc implements CliToolWithLogging
+func (t *ImageImportTool) MainFunc() (*daisy.Workflow, map[string]string, error) {
 	currentExecutablePath := string(os.Args[0])
 	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
-		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
+		*project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
 		*labels, currentExecutablePath, *storageLocation, *uefiCompatible)
 }
 
-func main() {
-	flag.Parse()
-
-	paramLog := service.InputParams{
+// InitParamLog implements CliToolWithLogging
+func (t *ImageImportTool) InitParamLog() service.InputParams {
+	return service.InputParams{
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{
 				ClientID:                *clientID,
@@ -102,8 +112,8 @@ func main() {
 			StorageLocation:    *storageLocation,
 		},
 	}
+}
 
-	if err := service.RunWithServerLogging(service.ImageImportAction, paramLog, project, importEntry); err != nil {
-		os.Exit(1)
-	}
+func main() {
+	service.RunCliToolWithLogging(&ImageImportTool{})
 }

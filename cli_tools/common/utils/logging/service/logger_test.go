@@ -119,9 +119,9 @@ func TestRunWithServerLoggingSuccess(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	logExtension, _ := logger.runWithServerLogging(
-		func() (*daisy.Workflow, error) {
-			return &daisy.Workflow{}, nil
-		}, nil)
+		func() (*daisy.Workflow, map[string]string, error) {
+			return &daisy.Workflow{}, nil, nil
+		})
 	if logExtension.Status != statusSuccess {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)
 	}
@@ -131,9 +131,9 @@ func TestRunWithServerLoggingFailed(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	logExtension, _ := logger.runWithServerLogging(
-		func() (*daisy.Workflow, error) {
-			return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
-		}, nil)
+		func() (*daisy.Workflow, map[string]string, error) {
+			return &daisy.Workflow{}, nil, fmt.Errorf("test msg - failure by purpose")
+		})
 	if logExtension.Status != statusFailure {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusFailure)
 	}
@@ -144,9 +144,9 @@ func TestRunWithServerLoggingSuccessWithUpdatedProject(t *testing.T) {
 
 	project := "dummy-project"
 	logExtension, _ := logger.runWithServerLogging(
-		func() (*daisy.Workflow, error) {
-			return &daisy.Workflow{}, nil
-		}, &project)
+		func() (*daisy.Workflow, map[string]string, error) {
+			return &daisy.Workflow{}, map[string]string{"project": project}, nil
+		})
 	if logExtension.Status != statusSuccess {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)
 	}
@@ -248,7 +248,7 @@ func buildComputeImageToolsLogExtension() *ComputeImageToolsLogExtension {
 	logExtension := &ComputeImageToolsLogExtension{
 		ID:           "dummy-id",
 		CloudBuildID: "dummy-cloud-build-id",
-		ToolAction:   ImageImportAction,
+		ToolAction:   string(ImageImportAction),
 		Status:       statusStart,
 		InputParams: &InputParams{
 			ImageImportParams: &ImageImportParams{

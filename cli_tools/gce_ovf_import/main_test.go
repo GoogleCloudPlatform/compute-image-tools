@@ -56,7 +56,7 @@ func TestBuildParams(t *testing.T) {
 	assert.Equal(t, cliArgs["boot-disk-kms-location"], params.BootDiskKmsLocation)
 	assert.Equal(t, cliArgs["boot-disk-kms-project"], params.BootDiskKmsProject)
 	assert.Equal(t, cliArgs["timeout"], params.Timeout)
-	assert.Equal(t, cliArgs["project"], *params.Project)
+	assert.Equal(t, cliArgs["project"], params.Project)
 	assert.Equal(t, cliArgs["scratch-bucket-gcs-path"], params.ScratchBucketGcsPath)
 	assert.Equal(t, cliArgs["oauth"], params.Oauth)
 	assert.Equal(t, cliArgs["compute-endpoint-override"], params.Ce)

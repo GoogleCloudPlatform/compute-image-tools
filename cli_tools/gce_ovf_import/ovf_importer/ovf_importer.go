@@ -330,9 +330,10 @@ func (oi *OVFImporter) getMachineType(
 	return machineTypeProvider.GetMachineType()
 }
 
-func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
+func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, map[string]string, error) {
+	updatedParams := map[string]string{}
 	if err := ovfimportparams.ValidateAndParseParams(oi.params); err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	var (
 		project string
@@ -340,18 +341,18 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		region  string
 		err     error
 	)
-	if project, err = param.GetProjectID(oi.mgce, *oi.params.Project); err != nil {
-		return nil, err
+	if project, err = param.GetProjectID(oi.mgce, oi.params.Project); err != nil {
+		return nil, updatedParams, err
 	}
-	*oi.params.Project = project
+	updatedParams["project"] = project
 	if zone, err = oi.getZone(project); err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	if region, err = oi.getRegion(zone); err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	if err := validateReleaseTrack(oi.params.ReleaseTrack); err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	if oi.params.ReleaseTrack == Alpha || oi.params.ReleaseTrack == Beta {
 		oi.imageLocation = region
@@ -359,7 +360,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 
 	tmpGcsPath, err := oi.buildTmpGcsPath(project, region)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 
 	ovfGcsPath, shouldCleanup, err := oi.getOvfGcsPath(tmpGcsPath)
@@ -367,26 +368,26 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		oi.gcsPathToClean = ovfGcsPath
 	}
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 
 	ovfDescriptor, diskInfos, err := ovfutils.GetOVFDescriptorAndDiskPaths(
 		oi.ovfDescriptorLoader, ovfGcsPath)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	oi.diskInfos = &diskInfos
 
 	var osIDValue string
 	if oi.params.OsID == "" {
 		if osIDValue, err = ovfutils.GetOSId(ovfDescriptor); err != nil {
-			return nil, err
+			return nil, updatedParams, err
 		}
 		oi.Logger.Log(
 			fmt.Sprintf("Found valid osType in OVF descriptor, importing VM with `%v` as OS.",
 				osIDValue))
 	} else if err = daisyutils.ValidateOS(oi.params.OsID); err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	} else {
 		osIDValue = oi.params.OsID
 	}
@@ -394,7 +395,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	translateWorkflowPath := "../image_import/" + daisyutils.GetTranslateWorkflowPath(osIDValue)
 	machineTypeStr, err := oi.getMachineType(ovfDescriptor, project, zone)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 
 	oi.Logger.Log(fmt.Sprintf("Will create instance of `%v` machine type.", machineTypeStr))
@@ -406,10 +407,10 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		oi.params.GcsLogsDisabled, oi.params.CloudLogsDisabled, oi.params.StdoutLogsDisabled)
 
 	if err != nil {
-		return nil, fmt.Errorf("error parsing workflow %q: %v", ovfImportWorkflow, err)
+		return nil, updatedParams, fmt.Errorf("error parsing workflow %q: %v", ovfImportWorkflow, err)
 	}
 	workflow.ForceCleanupOnError = true
-	return workflow, nil
+	return workflow, updatedParams, nil
 }
 
 func validateReleaseTrack(releaseTrack string) error {
@@ -420,20 +421,20 @@ func validateReleaseTrack(releaseTrack string) error {
 }
 
 // Import runs OVF import
-func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
+func (oi *OVFImporter) Import() (*daisy.Workflow, map[string]string, error) {
 	oi.Logger.Log("Starting OVF import workflow.")
-	w, err := oi.setUpImportWorkflow()
+	w, updatedParams, err := oi.setUpImportWorkflow()
 	if err != nil {
 		oi.Logger.Log(err.Error())
-		return w, err
+		return w, updatedParams, err
 	}
 
 	if err := w.RunWithModifiers(oi.ctx, oi.modifyWorkflowPreValidate, oi.modifyWorkflowPostValidate); err != nil {
 		oi.Logger.Log(err.Error())
-		return w, err
+		return w, updatedParams, err
 	}
 	oi.Logger.Log("OVF import workflow finished successfully.")
-	return w, nil
+	return w, updatedParams, nil
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import

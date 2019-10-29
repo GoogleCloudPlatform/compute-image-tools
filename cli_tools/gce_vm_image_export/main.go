@@ -43,17 +43,27 @@ var (
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 )
 
-func exportEntry() (*daisy.Workflow, error) {
+// ImageExportTool is the tool for image export
+type ImageExportTool struct {
+	service.CliToolWithLogging
+}
+
+// ActionType implements CliToolWithLogging
+func (t *ImageExportTool) ActionType() service.ActionType {
+	return service.ImageExportAction
+}
+
+// MainFunc implements CliToolWithLogging
+func (t *ImageExportTool) MainFunc() (*daisy.Workflow, map[string]string, error) {
 	currentExecutablePath := string(os.Args[0])
-	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, project,
+	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
 }
 
-func main() {
-	flag.Parse()
-
-	paramLog := service.InputParams{
+// InitParamLog implements CliToolWithLogging
+func (t *ImageExportTool) InitParamLog() service.InputParams {
+	return service.InputParams{
 		ImageExportParams: &service.ImageExportParams{
 			CommonParams: &service.CommonParams{
 				ClientID:                *clientID,
@@ -76,8 +86,8 @@ func main() {
 			Format:         *format,
 		},
 	}
+}
 
-	if err := service.RunWithServerLogging(service.ImageExportAction, paramLog, project, exportEntry); err != nil {
-		os.Exit(1)
-	}
+func main() {
+	service.RunCliToolWithLogging(&ImageExportTool{})
 }

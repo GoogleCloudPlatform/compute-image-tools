@@ -37,8 +37,7 @@ import (
 
 func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	params := GetAllParams()
-	projectParam := ""
-	params.Project = &projectParam
+	params.Project = ""
 	params.Zone = ""
 	params.MachineType = ""
 	params.ScratchBucketGcsPath = ""
@@ -96,7 +95,7 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		ctx: ctx, bucketIteratorCreator: mockBucketIteratorCreator,
 		Logger: logging.NewLogger("test"), params: params}
-	w, err := oi.setUpImportWorkflow()
+	w, _, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
@@ -131,8 +130,7 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 
 func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t *testing.T) {
 	params := GetAllParams()
-	project := "aProject"
-	params.Project = &project
+	params.Project = "aProject"
 	params.Zone = "europe-west2-b"
 	params.UefiCompatible = true
 	params.MachineType = ""
@@ -166,7 +164,7 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
-	w, err := oi.setUpImportWorkflow()
+	w, _, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
@@ -234,7 +232,7 @@ func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
-	w, err := oi.setUpImportWorkflow()
+	w, _, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
@@ -274,7 +272,7 @@ func TestSetUpWorkflowInvalidReleaseTrack(t *testing.T) {
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
-	w, err := oi.setUpImportWorkflow()
+	w, _, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
 	assert.Nil(t, w)
@@ -282,8 +280,7 @@ func TestSetUpWorkflowInvalidReleaseTrack(t *testing.T) {
 
 func TestSetUpWorkflowPopulateMissingParametersError(t *testing.T) {
 	params := GetAllParams()
-	project := ""
-	params.Project = &project
+	params.Project = ""
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -292,7 +289,7 @@ func TestSetUpWorkflowPopulateMissingParametersError(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
 	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
-	w, err := oi.setUpImportWorkflow()
+	w, _, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
 	assert.Nil(t, w)
@@ -309,7 +306,7 @@ func TestSetUpWorkflowPopulateFlagValidationFailed(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
 	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
-	w, err := oi.setUpImportWorkflow()
+	w, _, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
 	assert.Nil(t, w)
@@ -317,8 +314,7 @@ func TestSetUpWorkflowPopulateFlagValidationFailed(t *testing.T) {
 
 func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 	params := GetAllParams()
-	project := "aProject"
-	params.Project = &project
+	params.Project = "aProject"
 	params.Zone = "europe-north1-b"
 	params.MachineType = ""
 
@@ -343,7 +339,7 @@ func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 		storageClient: mockStorageClient, BuildID: "build123",
 		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
-	w, err := oi.setUpImportWorkflow()
+	w, _, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
 	assert.Nil(t, w)
@@ -351,8 +347,7 @@ func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 
 func TestSetUpWorkflowErrorLoadingDescriptor(t *testing.T) {
 	params := GetAllParams()
-	project := "aProject"
-	params.Project = &project
+	params.Project = "aProject"
 	params.Zone = "europe-north1-b"
 	params.OvfOvaGcsPath = "gs://ovfbucket/ovffolder/"
 	params.MachineType = ""
@@ -374,7 +369,7 @@ func TestSetUpWorkflowErrorLoadingDescriptor(t *testing.T) {
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
 		BuildID: "build123", ovfDescriptorLoader: mockOvfDescriptorLoader,
 		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
-	w, err := oi.setUpImportWorkflow()
+	w, _, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
 	assert.Nil(t, w)
@@ -436,6 +431,33 @@ func TestSetUpWorkOSFlagInvalid(t *testing.T) {
 
 	assert.Nil(t, w)
 	assert.NotNil(t, err)
+}
+
+func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
+	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
+
+	descriptor := createOVFDescriptor()
+	if osType != "" {
+		descriptor.VirtualSystem.OperatingSystem = []ovf.OperatingSystemSection{{OSType: &osType}}
+	}
+	mockOvfDescriptorLoader.EXPECT().Load("gs://ovfbucket/ovffolder/").Return(
+		descriptor, nil)
+
+	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
+	mockZoneValidator.EXPECT().
+		ZoneValid("aProject", "us-central1-c").Return(nil)
+
+	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
+		storageClient: mockStorageClient, BuildID: "build123",
+		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewLogger("test"),
+		zoneValidator: mockZoneValidator, params: params}
+	w, _, err := oi.setUpImportWorkflow()
+	return w, err
 }
 
 func TestCleanUp(t *testing.T) {
@@ -594,32 +616,6 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 	assert.Equal(t, "europe-north1-b", params.Zone)
 }
 
-func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
-	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
-	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
-	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
-
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockOvfDescriptorLoader := mocks.NewMockOvfDescriptorLoaderInterface(mockCtrl)
-
-	descriptor := createOVFDescriptor()
-	if osType != "" {
-		descriptor.VirtualSystem.OperatingSystem = []ovf.OperatingSystemSection{{OSType: &osType}}
-	}
-	mockOvfDescriptorLoader.EXPECT().Load("gs://ovfbucket/ovffolder/").Return(
-		descriptor, nil)
-
-	mockZoneValidator := mocks.NewMockZoneValidatorInterface(mockCtrl)
-	mockZoneValidator.EXPECT().
-		ZoneValid("aProject", "us-central1-c").Return(nil)
-
-	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
-		storageClient: mockStorageClient, BuildID: "build123",
-		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewLogger("test"),
-		zoneValidator: mockZoneValidator, params: params}
-	return oi.setUpImportWorkflow()
-}
-
 func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAllocationSettingData {
 	return ovf.ResourceAllocationSettingData{
 		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
@@ -708,7 +704,6 @@ func createMemoryItem(instanceID string, quantityMB uint) ovf.ResourceAllocation
 }
 
 func GetAllParams() *ovfimportparams.OVFImportParams {
-	project := "aProject"
 	return &ovfimportparams.OVFImportParams{
 		InstanceNames:               "instance1",
 		ClientID:                    "aClient",
@@ -736,7 +731,7 @@ func GetAllParams() *ovfimportparams.OVFImportParams {
 		BootDiskKmsLocation:         "aKmsLocation",
 		BootDiskKmsProject:          "aKmsProject",
 		Timeout:                     "3h",
-		Project:                     &project,
+		Project:                     "aProject",
 		ScratchBucketGcsPath:        "gs://bucket/folder",
 		Oauth:                       "oAuthFilePath",
 		Ce:                          "us-east1-c",

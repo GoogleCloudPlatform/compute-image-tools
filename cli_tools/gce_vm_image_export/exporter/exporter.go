@@ -153,15 +153,18 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, format string,
-	project *string, network string, subnet string, zone string, timeout string,
+	project string, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
-	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
+	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string,
+	currentExecutablePath string) (*daisy.Workflow, map[string]string, error) {
+
+	updatedParams := map[string]string{}
 
 	log.SetPrefix(logPrefix + " ")
 
 	userLabels, err := validateAndParseFlags(clientID, destinationURI, sourceImage, labels)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 
 	ctx := context.Background()
@@ -169,31 +172,32 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	storageClient, err := storage.NewStorageClient(
 		ctx, logging.NewLogger(logPrefix), oauth)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	defer storageClient.Close()
 
 	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
 	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 	zoneRetriever := storage.NewZoneRetriever(metadataGCE, computeClient)
 
 	region := new(string)
-	err = param.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath,
+	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		destinationURI, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
+	updatedParams["project"] = project
 	if err != nil {
-		return nil, err
+		return nil, updatedParams, err
 	}
 
 	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region)
 
 	var w *daisy.Workflow
-	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, *project,
+	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, project,
 		zone, timeout, scratchBucketGcsPath, oauth, ce, gcsLogsDisabled, cloudLogsDisabled,
 		stdoutLogsDisabled, userLabels); err != nil {
-		return w, err
+		return w, updatedParams, err
 	}
-	return w, nil
+	return w, updatedParams, nil
 }
