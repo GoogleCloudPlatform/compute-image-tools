@@ -384,7 +384,7 @@ func TestSetUpWorkOSIdFromOVFDescriptor(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	w, err := setupMocksForOSIdTesting(mockCtrl, "rhel7_64Guest", params)
+	w, _, err := setupMocksForOSIdTesting(mockCtrl, "rhel7_64Guest", params)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, w)
@@ -399,7 +399,7 @@ func TestSetUpWorkOSIdFromDescriptorInvalidAndOSFlagNotSpecified(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	w, err := setupMocksForOSIdTesting(mockCtrl, "no-OS-ID", params)
+	w, _, err := setupMocksForOSIdTesting(mockCtrl, "no-OS-ID", params)
 
 	assert.Nil(t, w)
 	assert.NotNil(t, err)
@@ -413,7 +413,7 @@ func TestSetUpWorkOSIdFromDescriptorNonDeterministicAndOSFlagNotSpecified(t *tes
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	w, err := setupMocksForOSIdTesting(mockCtrl, "ubuntu64Guest", params)
+	w, _, err := setupMocksForOSIdTesting(mockCtrl, "ubuntu64Guest", params)
 
 	assert.Nil(t, w)
 	assert.NotNil(t, err)
@@ -427,7 +427,7 @@ func TestSetUpWorkOSFlagInvalid(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	w, err := setupMocksForOSIdTesting(mockCtrl, "", params)
+	w, _, err := setupMocksForOSIdTesting(mockCtrl, "", params)
 
 	assert.Nil(t, w)
 	assert.NotNil(t, err)
@@ -590,7 +590,7 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 }
 
 func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
-		params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
+	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, map[string]string, error) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
