@@ -55,9 +55,11 @@ func TestCopyGCSObjectsValidate(t *testing.T) {
 			fmt.Fprint(w, `{}`)
 		} else if m == "GET" && u == "/b/bucket2?alt=json&prettyPrint=false&projection=full" {
 			fmt.Fprint(w, `{}`)
-		} else if m == "POST" && u == "/b/bucket1/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart" {
+		} else if m == "POST" && (u == "/b/bucket1/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart" ||
+			u == "/upload/storage/v1/b/bucket1/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart") {
 			fmt.Fprint(w, `{}`)
-		} else if m == "POST" && u == "/b/bucket2/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart" {
+		} else if m == "POST" && (u == "/b/bucket2/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart" ||
+			u == "/upload/storage/v1/b/bucket2/o?alt=json&prettyPrint=false&projection=full&uploadType=multipart") {
 			fmt.Fprint(w, `{}`)
 		} else if m == "DELETE" && u == "/b/bucket1/o/abcdef?alt=json&prettyPrint=false" {
 			fmt.Fprint(w, `{}`)
