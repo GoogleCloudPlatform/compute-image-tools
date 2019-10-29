@@ -56,8 +56,10 @@ const (
 	keyP1           = "AzSCO1066k_gFH2sJg3I"
 	keyP2           = "IaymztUIWu9U8THBeTx"
 
-	targetSizeGb  = "target-size-gb"
-	sourceSizeGb  = "source-size-gb"
+	targetSizeGb     = "target-size-gb"
+	sourceSizeGb     = "source-size-gb"
+	importFileFormat = "import-file-format"
+
 	statusStart   = "Start"
 	statusSuccess = "Success"
 	statusFailure = "Failure"
@@ -173,6 +175,7 @@ func (l *Logger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
 	if w != nil {
 		o.TargetsSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(targetSizeGb))
 		o.SourcesSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(sourceSizeGb))
+		o.ImportFileFormat = w.GetSerialConsoleOutputValue(importFileFormat)
 	}
 
 	if err != nil {
