@@ -24,7 +24,8 @@ import (
 // CliToolWithLogging abstracts the interface of a cli tool with logging. A tool
 // which implemented this interface adopts log service automatically.
 type CliToolWithLogging interface {
-	// ActionType indicates the action type of the tool
+	// ActionType indicates the action type of the tool. It represents which tool
+	// function this log line is about. "ImageImport" is an example.
 	ActionType() ActionType
 
 	// InitParamLog initializes tool's input params in order to be logged
