@@ -171,11 +171,11 @@ func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.B
 }
 
 func (l *daisyLog) ReadSerialPortLogs() []string {
-	logs := make([]string, 0, len(l.serialLogs))
-	for _, v := range l.serialLogs {
-		logs = append(logs, v)
+	allLogs := make([]string, 0, len(l.serialLogs))
+	for instance, log := range l.serialLogs {
+		allLogs = append(allLogs, fmt.Sprintf("Serial logs for instance: %s\n%s", instance, log))
 	}
-	return logs
+	return allLogs
 }
 
 // Flush flushes all loggers.

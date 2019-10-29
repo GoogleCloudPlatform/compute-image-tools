@@ -127,7 +127,8 @@ func TestSendSerialPortLogsToCloud(t *testing.T) {
 		t.Errorf("Wanted %d", len(cl.entries))
 	}
 
-	assertLogOutput(t, w.Logger.ReadSerialPortLogs(), []string{buf.String()})
+	assertLogOutput(t, w.Logger.ReadSerialPortLogs(),
+		[]string{"Serial logs for instance: instance-name\n" + buf.String()})
 }
 
 func TestSendSerialPortLogsToCloudMultipleInstances(t *testing.T) {
@@ -137,18 +138,23 @@ func TestSendSerialPortLogsToCloudMultipleInstances(t *testing.T) {
 	cl := &MockCloudLogWriter{}
 	w.Logger.(*daisyLog).cloudLogger = cl
 
-	actualLogs := []string{
+	contentOfLogs := []string{
 		"line1\nline2",
 		"more log info\t",
 	}
 
-	for i, log := range actualLogs {
+	instanceAnnotatedLogs := []string{
+		"Serial logs for instance: instance-0\nline1\nline2",
+		"Serial logs for instance: instance-1\nmore log info\t",
+	}
+
+	for i, log := range contentOfLogs {
 		var buf bytes.Buffer
 		buf.WriteString(log)
 		w.Logger.WriteSerialPortLogs(w, fmt.Sprintf("instance-%d", i), buf)
 	}
 
-	assertLogOutput(t, w.Logger.ReadSerialPortLogs(), actualLogs)
+	assertLogOutput(t, w.Logger.ReadSerialPortLogs(), instanceAnnotatedLogs)
 }
 
 func TestSendSerialPortLogsToCloudDisabled(t *testing.T) {
