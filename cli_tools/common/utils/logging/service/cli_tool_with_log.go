@@ -21,16 +21,17 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// CliToolWithLogging abstracts the interface of a cli tool with logging
+// CliToolWithLogging abstracts the interface of a cli tool with logging. A tool
+// which implemented this interface adopts log service automatically.
 type CliToolWithLogging interface {
 	// ActionType indicates the action type of the tool
 	ActionType() ActionType
 
-	// InitParamLog initialize tool params in the log
+	// InitParamLog initializes tool's input params in order to be logged
 	InitParamLog() InputParams
 
-	// MainFunc is the main function of the tool
-	MainFunc() (*daisy.Workflow, map[string]string, error)
+	// Run is the entry function of the tool
+	Run() (*daisy.Workflow, map[string]string, error)
 }
 
 // RunCliToolWithLogging runs the cli tool with server logging
@@ -38,7 +39,7 @@ func RunCliToolWithLogging(t CliToolWithLogging) {
 	flag.Parse()
 	paramLog := t.InitParamLog()
 	l := NewLoggingServiceLogger(t.ActionType(), paramLog)
-	if _, err := l.runWithServerLogging(t.MainFunc); err != nil {
+	if _, err := l.runWithServerLogging(t.Run); err != nil {
 		os.Exit(1)
 	}
 }

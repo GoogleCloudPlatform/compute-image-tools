@@ -197,7 +197,7 @@ func main() {
 		buffered.Flush()
 		os.Exit(1)
 	}
-	buildLog.Printf("Main logic finished with result %q.", result)
+	buildLog.Printf("Run logic finished with result %q.", result)
 
 	// Copy artifacts.
 	buildLog.Println("Writing artifacts to GCS.")

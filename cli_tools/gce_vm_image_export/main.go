@@ -53,8 +53,8 @@ func (t *ImageExportTool) ActionType() service.ActionType {
 	return service.ImageExportAction
 }
 
-// MainFunc implements CliToolWithLogging
-func (t *ImageExportTool) MainFunc() (*daisy.Workflow, map[string]string, error) {
+// Run implements CliToolWithLogging
+func (t *ImageExportTool) Run() (*daisy.Workflow, map[string]string, error) {
 	currentExecutablePath := string(os.Args[0])
 	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,

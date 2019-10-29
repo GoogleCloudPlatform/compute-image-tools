@@ -344,7 +344,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, map[string]string
 	if project, err = param.GetProjectID(oi.mgce, oi.params.Project); err != nil {
 		return nil, updatedParams, err
 	}
-	updatedParams["project"] = project
+	updatedParams[param.UpdatedParamProject] = project
 	if zone, err = oi.getZone(project); err != nil {
 		return nil, updatedParams, err
 	}

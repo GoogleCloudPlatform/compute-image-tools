@@ -671,7 +671,7 @@ func (w *Workflow) traverseDAG(f func(*Step) DError) DError {
 		}(name, s)
 	}
 
-	// Main signaling logic.
+	// Run signaling logic.
 	for len(waiting) != 0 || len(running) != 0 {
 		// If we got a Cancel signal, kill all waiting steps.
 		// Let running steps finish.

@@ -65,7 +65,6 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) DError {
 	i.Workflow.Logger = i.Workflow.parent.Logger
 	i.Workflow.Name = s.name
 	i.Workflow.DefaultTimeout = s.Timeout
-	fmt.Println("incldued_wf name:", i.Workflow.Name, " timeout:", i.Workflow.DefaultTimeout)
 
 	var errs DError
 Loop:

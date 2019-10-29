@@ -14,6 +14,10 @@
 
 package service
 
+import (
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
+)
+
 // logRequest is a server-side pre-defined data structure
 type logRequest struct {
 	ClientInfo    clientInfo `json:"client_info"`
@@ -192,7 +196,7 @@ func (l *Logger) updateParams(params map[string]string) {
 }
 
 func (l *Logger) updateProject(params map[string]string) {
-	project, ok := params["project"]
+	project, ok := params[param.UpdatedParamProject]
 	if !ok {
 		return
 	}

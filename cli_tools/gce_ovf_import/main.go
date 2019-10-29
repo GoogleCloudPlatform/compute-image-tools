@@ -93,18 +93,18 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 	}
 }
 
-// InstanceExportTool is the tool for instance import
-type InstanceExportTool struct {
+// InstanceImportTool is the tool for instance import
+type InstanceImportTool struct {
 	service.CliToolWithLogging
 }
 
 // ActionType implements CliToolWithLogging
-func (t *InstanceExportTool) ActionType() service.ActionType {
+func (t *InstanceImportTool) ActionType() service.ActionType {
 	return service.InstanceImportAction
 }
 
-// MainFunc implements CliToolWithLogging
-func (t *InstanceExportTool) MainFunc() (*daisy.Workflow, map[string]string, error) {
+// Run implements CliToolWithLogging
+func (t *InstanceImportTool) Run() (*daisy.Workflow, map[string]string, error) {
 	var ovfImporter *ovfimporter.OVFImporter
 	var err error
 	defer func() {
@@ -121,7 +121,7 @@ func (t *InstanceExportTool) MainFunc() (*daisy.Workflow, map[string]string, err
 }
 
 // InitParamLog implements CliToolWithLogging
-func (t *InstanceExportTool) InitParamLog() service.InputParams {
+func (t *InstanceImportTool) InitParamLog() service.InputParams {
 	return service.InputParams{
 		InstanceImportParams: &service.InstanceImportParams{
 			CommonParams: &service.CommonParams{
@@ -167,5 +167,5 @@ func (t *InstanceExportTool) InitParamLog() service.InputParams {
 }
 
 func main() {
-	service.RunCliToolWithLogging(&InstanceExportTool{})
+	service.RunCliToolWithLogging(&InstanceImportTool{})
 }

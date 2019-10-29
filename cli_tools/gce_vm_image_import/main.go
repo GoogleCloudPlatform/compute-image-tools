@@ -66,8 +66,8 @@ func (t *ImageImportTool) ActionType() service.ActionType {
 	return service.ImageImportAction
 }
 
-// MainFunc implements CliToolWithLogging
-func (t *ImageImportTool) MainFunc() (*daisy.Workflow, map[string]string, error) {
+// Run implements CliToolWithLogging
+func (t *ImageImportTool) Run() (*daisy.Workflow, map[string]string, error) {
 	currentExecutablePath := string(os.Args[0])
 	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
