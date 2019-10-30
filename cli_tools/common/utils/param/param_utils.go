@@ -27,6 +27,28 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
+// UpdatableParam represents a param that can be updated
+type UpdatableParam struct {
+	value interface{}
+}
+
+// StringValue returns current value of the param represented by a string
+func (p *UpdatableParam) StringValue() string {
+	return fmt.Sprintf("%v", p.value)
+}
+
+// Update updates the value of the param
+func (p *UpdatableParam) Update(newValue interface{}) {
+	p.value = newValue
+}
+
+// CreateUpdatableParam creates a new updatable param
+func CreateUpdatableParam(value interface{}) *UpdatableParam {
+	return &UpdatableParam{
+		value: value,
+	}
+}
+
 // GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
 func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string, error) {
 	if projectFlag == "" {
@@ -43,7 +65,7 @@ func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string,
 }
 
 // PopulateMissingParameters populate missing params for import/export cli tools
-func PopulateMissingParameters(project *string, zone *string, region *string,
+func PopulateMissingParameters(project *UpdatableParam, zone *string, region *string,
 	scratchBucketGcsPath *string, file string, mgce domain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface,
 	zoneRetriever domain.ZoneRetrieverInterface,
@@ -54,13 +76,13 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 	}
 
 	scratchBucketRegion, err := populateScratchBucketGcsPath(scratchBucketGcsPath, *zone, mgce,
-		scratchBucketCreator, file, project, storageClient)
+		scratchBucketCreator, file, project.StringValue(), storageClient)
 	if err != nil {
 		return err
 	}
 
 	if *zone == "" {
-		if aZone, err := zoneRetriever.GetZone(scratchBucketRegion, *project); err == nil {
+		if aZone, err := zoneRetriever.GetZone(scratchBucketRegion, project.StringValue()); err == nil {
 			*zone = aZone
 		} else {
 			return err
@@ -74,7 +96,7 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 }
 
 func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgce domain.MetadataGCEInterface,
-	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
+	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project string,
 	storageClient domain.StorageClientInterface) (string, error) {
 
 	scratchBucketRegion := ""
@@ -88,7 +110,7 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 			}
 		}
 
-		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(file, *project, fallbackZone)
+		scratchBucketName, sbr, err := scratchBucketCreator.CreateScratchBucket(file, project, fallbackZone)
 		scratchBucketRegion = sbr
 		if err != nil {
 			return "", daisy.Errf("failed to create scratch bucket: %v", err)
@@ -110,9 +132,11 @@ func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgc
 }
 
 // PopulateProjectIfMissing populates project id for cli tools
-func PopulateProjectIfMissing(mgce domain.MetadataGCEInterface, projectFlag *string) error {
-	var err error
-	*projectFlag, err = GetProjectID(mgce, *projectFlag)
+func PopulateProjectIfMissing(mgce domain.MetadataGCEInterface, project *UpdatableParam) error {
+	updatedProject, err := GetProjectID(mgce, project.StringValue())
+	if err == nil {
+		project.Update(updatedProject)
+	}
 	return err
 }
 

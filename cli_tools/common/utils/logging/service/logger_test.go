@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -121,7 +122,7 @@ func TestRunWithServerLoggingSuccess(t *testing.T) {
 	logExtension, _ := logger.runWithServerLogging(
 		func() (*daisy.Workflow, error) {
 			return &daisy.Workflow{}, nil
-		}, nil)
+		})
 	if logExtension.Status != statusSuccess {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)
 	}
@@ -133,7 +134,7 @@ func TestRunWithServerLoggingFailed(t *testing.T) {
 	logExtension, _ := logger.runWithServerLogging(
 		func() (*daisy.Workflow, error) {
 			return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
-		}, nil)
+		})
 	if logExtension.Status != statusFailure {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusFailure)
 	}
@@ -143,10 +144,13 @@ func TestRunWithServerLoggingSuccessWithUpdatedProject(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	project := "dummy-project"
+	updatableProject := param.CreateUpdatableParam(project)
+	logger.Params.commonParams().UpdatableProject = updatableProject
 	logExtension, _ := logger.runWithServerLogging(
 		func() (*daisy.Workflow, error) {
+			updatableProject.Update(project)
 			return &daisy.Workflow{}, nil
-		}, &project)
+		})
 	if logExtension.Status != statusSuccess {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)
 	}
@@ -248,7 +252,7 @@ func buildComputeImageToolsLogExtension() *ComputeImageToolsLogExtension {
 	logExtension := &ComputeImageToolsLogExtension{
 		ID:           "dummy-id",
 		CloudBuildID: "dummy-cloud-build-id",
-		ToolAction:   ImageImportAction,
+		ToolAction:   string(ImageImportAction),
 		Status:       statusStart,
 		InputParams: &InputParams{
 			ImageImportParams: &ImageImportParams{

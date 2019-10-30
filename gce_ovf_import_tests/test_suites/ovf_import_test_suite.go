@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
@@ -98,7 +99,7 @@ func TestSuite(
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/Ubuntu_for_Horizon_three_disks_mounted.ova", ovaBucket),
 				OsID:          "ubuntu-1404",
 				Labels:        "lk1=lv1,lk2=kv2",
-				Project:       &testProjectConfig.TestProjectID,
+				Project:       param.CreateUpdatableParam(testProjectConfig.TestProjectID),
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-1",
 			},
@@ -117,7 +118,7 @@ func TestSuite(
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/centos-6.8", ovaBucket),
 				OsID:          "centos-6",
 				Labels:        "lk1=lv1,lk2=kv2",
-				Project:       &testProjectConfig.TestProjectID,
+				Project:       param.CreateUpdatableParam(testProjectConfig.TestProjectID),
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-4",
 			},
@@ -136,7 +137,7 @@ func TestSuite(
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/w2k12-r2", ovaBucket),
 				OsID:          "windows-2012r2",
 				Labels:        "lk1=lv1,lk2=kv2",
-				Project:       &testProjectConfig.TestProjectID,
+				Project:       param.CreateUpdatableParam(testProjectConfig.TestProjectID),
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-8",
 			},
@@ -156,7 +157,7 @@ func TestSuite(
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/w2k16/w2k16.ovf", ovaBucket),
 				OsID:          "windows-2016",
 				Labels:        "lk1=lv1,lk2=kv2",
-				Project:       &testProjectConfig.TestProjectID,
+				Project:       param.CreateUpdatableParam(testProjectConfig.TestProjectID),
 				Zone:          testProjectConfig.TestZone,
 			},
 			name:        fmt.Sprintf("ovf-import-test-w2k16-%s", suffix),
@@ -174,7 +175,7 @@ func TestSuite(
 				InstanceNames: fmt.Sprintf("test-instance-w2k8r2-%v", suffix),
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
 				OsID:          "windows-2008r2",
-				Project:       &testProjectConfig.TestProjectID,
+				Project:       param.CreateUpdatableParam(testProjectConfig.TestProjectID),
 				Zone:          testProjectConfig.TestZone,
 			},
 			name:        fmt.Sprintf("ovf-import-test-w2k8r2-%s", suffix),
@@ -192,7 +193,7 @@ func TestSuite(
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/bitnami-tomcat-8.5.43-0-linux-debian-9-x86_64.ova", ovaBucket),
 				OsID:          "debian-9",
 				Labels:        "lk1=lv1,lk2=kv2",
-				Project:       &testProjectConfig.TestProjectID,
+				Project:       param.CreateUpdatableParam(testProjectConfig.TestProjectID),
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-4",
 			},
@@ -210,7 +211,7 @@ func TestSuite(
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
 				OsID:          "ubuntu-1604",
 				Labels:        "lk1=lv1,lk2=kv2",
-				Project:       &testProjectConfig.TestProjectID,
+				Project:       param.CreateUpdatableParam(testProjectConfig.TestProjectID),
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-4",
 			},
@@ -229,7 +230,7 @@ func TestSuite(
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/aws-ova-ubuntu-1604.ova", ovaBucket),
 				OsID:          "ubuntu-1604",
 				Labels:        "lk1=lv1,lk2=kv2",
-				Project:       &testProjectConfig.TestProjectID,
+				Project:       param.CreateUpdatableParam(testProjectConfig.TestProjectID),
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-4",
 			},

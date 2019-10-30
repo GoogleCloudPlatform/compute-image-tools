@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -49,7 +50,7 @@ type OVFImportParams struct {
 	BootDiskKmsLocation         string
 	BootDiskKmsProject          string
 	Timeout                     string
-	Project                     *string
+	Project                     *param.UpdatableParam
 	ScratchBucketGcsPath        string
 	Oauth                       string
 	Ce                          string

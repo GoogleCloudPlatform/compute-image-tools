@@ -340,10 +340,10 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		region  string
 		err     error
 	)
-	if project, err = param.GetProjectID(oi.mgce, *oi.params.Project); err != nil {
+	if err = param.PopulateProjectIfMissing(oi.mgce, oi.params.Project); err != nil {
 		return nil, err
 	}
-	*oi.params.Project = project
+	project = oi.params.Project.StringValue()
 	if zone, err = oi.getZone(project); err != nil {
 		return nil, err
 	}

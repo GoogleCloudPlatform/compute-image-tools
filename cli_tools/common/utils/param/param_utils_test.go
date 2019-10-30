@@ -91,7 +91,7 @@ func TestPopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath,
 		file, mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.NotNil(t, err)
@@ -113,7 +113,7 @@ func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNotRunnin
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath,
 		file, mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.NotNil(t, err)
@@ -136,7 +136,7 @@ func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCEProjec
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath,
 		file, mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.NotNil(t, err)
@@ -159,7 +159,7 @@ func TestPopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMetadataR
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath,
 		file, mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.NotNil(t, err)
@@ -182,7 +182,7 @@ func TestPopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath,
 		file, mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.NotNil(t, err)
@@ -203,7 +203,7 @@ func TestPopulateMissingParametersReturnsErrorWhenScratchBucketInvalidFormat(t *
 	mockZoneRetriever := mocks.NewMockZoneRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath,
 		file, mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.NotNil(t, err)
@@ -225,7 +225,7 @@ func TestPopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *testing
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath,
 		file, mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.NotNil(t, err)
@@ -252,7 +252,7 @@ func TestPopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRe
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs(expectedBucketName).Return(&storage.BucketAttrs{Location: expectedRegion}, nil)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath, file,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath, file,
 		mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.Nil(t, err)
@@ -288,7 +288,7 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T
 	mockZoneRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath, file,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath, file,
 		mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.Nil(t, err)
@@ -325,7 +325,7 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t *test
 	mockZoneRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := PopulateMissingParameters(&project, &zone, &region, &scratchBucketGcsPath, file,
+	err := PopulateMissingParameters(CreateUpdatableParam(project), &zone, &region, &scratchBucketGcsPath, file,
 		mockMetadataGce, mockScratchBucketCreator, mockZoneRetriever, mockStorageClient)
 
 	assert.Nil(t, err)
@@ -336,7 +336,7 @@ func TestPopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t *test
 }
 
 func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
-	project := ""
+	updatableProject := CreateUpdatableParam("")
 	expectedProject := "gce_project"
 
 	mockCtrl := gomock.NewController(t)
@@ -346,10 +346,10 @@ func TestPopulateProjectIfMissingProjectPopulatedFromGCE(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true)
 	mockMetadataGce.EXPECT().ProjectID().Return(expectedProject, nil)
 
-	err := PopulateProjectIfMissing(mockMetadataGce, &project)
+	err := PopulateProjectIfMissing(mockMetadataGce, updatableProject)
 
 	assert.Nil(t, err)
-	assert.Equal(t, expectedProject, project)
+	assert.Equal(t, expectedProject, updatableProject.StringValue())
 }
 
 func TestPopulateProjectIfMissingProjectNotOnGCE(t *testing.T) {
@@ -362,7 +362,7 @@ func TestPopulateProjectIfMissingProjectNotOnGCE(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false)
 
-	err := PopulateProjectIfMissing(mockMetadataGce, &project)
+	err := PopulateProjectIfMissing(mockMetadataGce, CreateUpdatableParam(project))
 
 	assert.NotNil(t, err)
 	assert.Equal(t, expectedProject, project)
@@ -377,7 +377,7 @@ func TestPopulateProjectIfNotMissingProject(t *testing.T) {
 
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 
-	err := PopulateProjectIfMissing(mockMetadataGce, &project)
+	err := PopulateProjectIfMissing(mockMetadataGce, CreateUpdatableParam(project))
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedProject, project)
@@ -394,7 +394,7 @@ func TestPopulateProjectIfMissingProjectWithErrorRetrievingFromGCE(t *testing.T)
 	mockMetadataGce.EXPECT().OnGCE().Return(true)
 	mockMetadataGce.EXPECT().ProjectID().Return("", daisy.Errf("gce error"))
 
-	err := PopulateProjectIfMissing(mockMetadataGce, &project)
+	err := PopulateProjectIfMissing(mockMetadataGce, CreateUpdatableParam(project))
 
 	assert.NotNil(t, err)
 	assert.Equal(t, expectedProject, project)

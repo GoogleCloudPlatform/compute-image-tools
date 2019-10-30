@@ -14,6 +14,10 @@
 
 package service
 
+import (
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
+)
+
 // logRequest is a server-side pre-defined data structure
 type logRequest struct {
 	ClientInfo    clientInfo `json:"client_info"`
@@ -83,6 +87,19 @@ type InputParams struct {
 	ImageImportParams    *ImageImportParams    `json:"image_import_input_params,omitempty"`
 	ImageExportParams    *ImageExportParams    `json:"image_export_input_params,omitempty"`
 	InstanceImportParams *InstanceImportParams `json:"instance_import_input_params,omitempty"`
+}
+
+func (p *InputParams) commonParams() *CommonParams {
+	if p.ImageImportParams != nil {
+		return p.ImageImportParams.CommonParams
+	}
+	if p.ImageExportParams != nil {
+		return p.ImageExportParams.CommonParams
+	}
+	if p.InstanceImportParams != nil {
+		return p.InstanceImportParams.CommonParams
+	}
+	return nil
 }
 
 // ImageImportParams contains all input params for image import
@@ -157,6 +174,8 @@ type CommonParams struct {
 	DisableGcsLogging       bool   `json:"disable_gcs_logging"`
 	DisableCloudLogging     bool   `json:"disable_cloud_logging"`
 	DisableStdoutLogging    bool   `json:"disable_stdout_logging"`
+
+	UpdatableProject *param.UpdatableParam
 }
 
 // OutputInfo contains output values from the tools execution
@@ -171,27 +190,22 @@ type OutputInfo struct {
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
 }
 
-func (l *Logger) updateParams(projectPointer *string) {
+func (l *Logger) updateParams() {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	if projectPointer == nil {
-		return
-	}
+	l.updateProject()
+}
 
-	project := *projectPointer
-	obfuscatedProject := Hash(project)
+func (l *Logger) updateProject() {
+	if commonParams := l.Params.commonParams(); commonParams != nil {
+		if commonParams.UpdatableProject == nil {
+			return
+		}
+		project := commonParams.UpdatableProject.StringValue()
+		obfuscatedProject := Hash(project)
 
-	if l.Params.ImageImportParams != nil {
-		l.Params.ImageImportParams.CommonParams.Project = project
-		l.Params.ImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
-	}
-	if l.Params.ImageExportParams != nil {
-		l.Params.ImageExportParams.CommonParams.Project = project
-		l.Params.ImageExportParams.CommonParams.ObfuscatedProject = obfuscatedProject
-	}
-	if l.Params.InstanceImportParams != nil {
-		l.Params.InstanceImportParams.CommonParams.Project = project
-		l.Params.InstanceImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+		commonParams.Project = project
+		commonParams.ObfuscatedProject = obfuscatedProject
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export/exporter"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -43,16 +44,9 @@ var (
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 )
 
-func exportEntry() (*daisy.Workflow, error) {
-	currentExecutablePath := string(os.Args[0])
-	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, project,
-		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
-		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
-}
-
 func main() {
 	flag.Parse()
-
+	updatableProject := param.CreateUpdatableParam(*project)
 	paramLog := service.InputParams{
 		ImageExportParams: &service.ImageExportParams{
 			CommonParams: &service.CommonParams{
@@ -61,7 +55,7 @@ func main() {
 				Subnet:                  *subnet,
 				Zone:                    *zone,
 				Timeout:                 *timeout,
-				Project:                 *project,
+				Project:                 updatableProject.StringValue(),
 				ObfuscatedProject:       service.Hash(*project),
 				Labels:                  *labels,
 				ScratchBucketGcsPath:    *scratchBucketGcsPath,
@@ -70,6 +64,8 @@ func main() {
 				DisableGcsLogging:       *gcsLogsDisabled,
 				DisableCloudLogging:     *cloudLogsDisabled,
 				DisableStdoutLogging:    *stdoutLogsDisabled,
+
+				UpdatableProject: updatableProject,
 			},
 			DestinationURI: *destinationURI,
 			SourceImage:    *sourceImage,
@@ -77,7 +73,10 @@ func main() {
 		},
 	}
 
-	if err := service.RunWithServerLogging(service.ImageExportAction, paramLog, project, exportEntry); err != nil {
-		os.Exit(1)
-	}
+	currentExecutablePath := string(os.Args[0])
+	service.RunWithServerLogging(service.ImageExportAction, paramLog, func() (*daisy.Workflow, error) {
+		return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, updatableProject,
+			*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
+			*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
+	})
 }

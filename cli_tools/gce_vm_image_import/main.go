@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -56,18 +57,9 @@ var (
 	uefiCompatible       = flag.Bool("uefi_compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
 )
 
-func importEntry() (*daisy.Workflow, error) {
-	currentExecutablePath := string(os.Args[0])
-	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
-		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
-		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
-		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
-		*labels, currentExecutablePath, *storageLocation, *uefiCompatible)
-}
-
 func main() {
 	flag.Parse()
-
+	updatableProject := param.CreateUpdatableParam(*project)
 	paramLog := service.InputParams{
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{
@@ -85,6 +77,8 @@ func main() {
 				DisableGcsLogging:       *gcsLogsDisabled,
 				DisableCloudLogging:     *cloudLogsDisabled,
 				DisableStdoutLogging:    *stdoutLogsDisabled,
+
+				UpdatableProject: updatableProject,
 			},
 			ImageName:          *imageName,
 			DataDisk:           *dataDisk,
@@ -103,7 +97,12 @@ func main() {
 		},
 	}
 
-	if err := service.RunWithServerLogging(service.ImageImportAction, paramLog, project, importEntry); err != nil {
-		os.Exit(1)
-	}
+	currentExecutablePath := string(os.Args[0])
+	service.RunWithServerLogging(service.ImageImportAction, paramLog, func() (*daisy.Workflow, error) {
+		return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
+			*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
+			updatableProject, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
+			*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
+			*labels, currentExecutablePath, *storageLocation, *uefiCompatible)
+	})
 }

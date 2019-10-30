@@ -153,9 +153,10 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, format string,
-	project *string, network string, subnet string, zone string, timeout string,
+	project *param.UpdatableParam, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
-	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
+	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string,
+	currentExecutablePath string) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
@@ -190,7 +191,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	varMap := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, *region)
 
 	var w *daisy.Workflow
-	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, *project,
+	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, project.StringValue(),
 		zone, timeout, scratchBucketGcsPath, oauth, ce, gcsLogsDisabled, cloudLogsDisabled,
 		stdoutLogsDisabled, userLabels); err != nil {
 		return w, err

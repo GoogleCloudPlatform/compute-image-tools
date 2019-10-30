@@ -242,7 +242,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 // Run runs import workflow.
 func Run(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string,
 	sourceFile string, sourceImage string, noGuestEnvironment bool, family string, description string,
-	network string, subnet string, zone string, timeout string, project *string,
+	network string, subnet string, zone string, timeout string, project *param.UpdatableParam,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
 	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
@@ -275,6 +275,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	region := new(string)
 	err = param.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath,
 		sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
+	project.Update(project)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +294,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		description, *region, subnet, network, noGuestEnvironment)
 
 	var w *daisy.Workflow
-	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
+	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, project.StringValue(), scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
 		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
 

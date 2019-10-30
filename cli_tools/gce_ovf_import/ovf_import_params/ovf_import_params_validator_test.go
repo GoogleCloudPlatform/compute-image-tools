@@ -17,6 +17,7 @@ package ovfimportparams
 import (
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -87,7 +88,7 @@ func getAllParams() *OVFImportParams {
 		BootDiskKmsLocation:         "aKmsLocation",
 		BootDiskKmsProject:          "aKmsProject",
 		Timeout:                     "3h",
-		Project:                     &project,
+		Project:                     param.CreateUpdatableParam(project),
 		ScratchBucketGcsPath:        "gs://bucket/folder",
 		Oauth:                       "oAuthFilePath",
 		Ce:                          "us-east1-c",
