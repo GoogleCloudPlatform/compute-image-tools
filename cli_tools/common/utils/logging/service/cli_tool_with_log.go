@@ -18,6 +18,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -32,7 +33,7 @@ type CliToolWithLogging interface {
 	InitParamLog() InputParams
 
 	// Run is the entry function of the tool
-	Run() (*daisy.Workflow, map[string]string, error)
+	Run() (*daisy.Workflow, *param.UpdatedParams, error)
 }
 
 // RunCliToolWithLogging runs the cli tool with server logging

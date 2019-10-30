@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
@@ -590,7 +591,7 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 }
 
 func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
-	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, map[string]string, error) {
+	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, *param.UpdatedParams, error) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 

@@ -200,7 +200,7 @@ func getInt64Values(s string) []int64 {
 }
 
 func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow,
-		*param.UpdatedParams, error)) (*ComputeImageToolsLogExtension, error) {
+	*param.UpdatedParams, error)) (*ComputeImageToolsLogExtension, error) {
 
 	var logExtension *ComputeImageToolsLogExtension
 

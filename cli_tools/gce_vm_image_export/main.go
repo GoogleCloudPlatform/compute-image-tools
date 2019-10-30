@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export/exporter"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -54,7 +55,7 @@ func (t *ImageExportTool) ActionType() service.ActionType {
 }
 
 // Run implements CliToolWithLogging
-func (t *ImageExportTool) Run() (*daisy.Workflow, map[string]string, error) {
+func (t *ImageExportTool) Run() (*daisy.Workflow, *param.UpdatedParams, error) {
 	currentExecutablePath := string(os.Args[0])
 	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, *project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,

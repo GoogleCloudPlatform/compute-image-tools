@@ -27,11 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-// List name of updated params here
-const (
-	UpdatedParamProject = "project"
-)
-
+// UpdatedParams represents parameters that will be updated in the preparation stage
 type UpdatedParams struct {
 	Project *string
 }

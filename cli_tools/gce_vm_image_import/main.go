@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -67,7 +68,7 @@ func (t *ImageImportTool) ActionType() service.ActionType {
 }
 
 // Run implements CliToolWithLogging
-func (t *ImageImportTool) Run() (*daisy.Workflow, map[string]string, error) {
+func (t *ImageImportTool) Run() (*daisy.Workflow, *param.UpdatedParams, error) {
 	currentExecutablePath := string(os.Args[0])
 	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,

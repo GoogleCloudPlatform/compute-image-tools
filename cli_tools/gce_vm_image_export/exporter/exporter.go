@@ -186,7 +186,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	region := new(string)
 	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		destinationURI, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
-	*updatedParams.Project = project
+	updatedParams.Project = &project
 	if err != nil {
 		return nil, updatedParams, err
 	}

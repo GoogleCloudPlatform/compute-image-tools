@@ -277,7 +277,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	region := new(string)
 	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
-	*updatedParams.Project = project
+	updatedParams.Project = &project
 	if err != nil {
 		return nil, updatedParams, err
 	}

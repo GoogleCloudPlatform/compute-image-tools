@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -104,7 +105,7 @@ func (t *InstanceImportTool) ActionType() service.ActionType {
 }
 
 // Run implements CliToolWithLogging
-func (t *InstanceImportTool) Run() (*daisy.Workflow, map[string]string, error) {
+func (t *InstanceImportTool) Run() (*daisy.Workflow, *param.UpdatedParams, error) {
 	var ovfImporter *ovfimporter.OVFImporter
 	var err error
 	defer func() {

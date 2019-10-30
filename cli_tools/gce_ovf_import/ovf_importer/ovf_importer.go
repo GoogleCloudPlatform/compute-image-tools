@@ -344,7 +344,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, *param.UpdatedPar
 	if project, err = param.GetProjectID(oi.mgce, oi.params.Project); err != nil {
 		return nil, updatedParams, err
 	}
-	*updatedParams.Project = project
+	updatedParams.Project = &project
 	if zone, err = oi.getZone(project); err != nil {
 		return nil, updatedParams, err
 	}
@@ -421,7 +421,7 @@ func validateReleaseTrack(releaseTrack string) error {
 }
 
 // Import runs OVF import
-func (oi *OVFImporter) Import() (*daisy.Workflow, map[string]string, error) {
+func (oi *OVFImporter) Import() (*daisy.Workflow, *param.UpdatedParams, error) {
 	oi.Logger.Log("Starting OVF import workflow.")
 	w, updatedParams, err := oi.setUpImportWorkflow()
 	if err != nil {
