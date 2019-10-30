@@ -175,7 +175,7 @@ type CommonParams struct {
 	DisableCloudLogging     bool   `json:"disable_cloud_logging"`
 	DisableStdoutLogging    bool   `json:"disable_stdout_logging"`
 
-	UpdatableProject *param.UpdatableParam
+	UpdatableProject *param.UpdatableParam `json:"-"`
 }
 
 // OutputInfo contains output values from the tools execution
