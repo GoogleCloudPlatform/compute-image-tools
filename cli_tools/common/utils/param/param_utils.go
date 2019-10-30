@@ -32,6 +32,10 @@ const (
 	UpdatedParamProject = "project"
 )
 
+type UpdatedParams struct {
+	Project *string
+}
+
 // GetProjectID gets project id from flag if exists; otherwise, try to retrieve from GCE metadata.
 func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string, error) {
 	if projectFlag == "" {

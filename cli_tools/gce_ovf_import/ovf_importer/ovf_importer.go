@@ -330,8 +330,8 @@ func (oi *OVFImporter) getMachineType(
 	return machineTypeProvider.GetMachineType()
 }
 
-func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, map[string]string, error) {
-	updatedParams := map[string]string{}
+func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, *param.UpdatedParams, error) {
+	updatedParams := &param.UpdatedParams{}
 	if err := ovfimportparams.ValidateAndParseParams(oi.params); err != nil {
 		return nil, updatedParams, err
 	}
@@ -344,7 +344,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, map[string]string
 	if project, err = param.GetProjectID(oi.mgce, oi.params.Project); err != nil {
 		return nil, updatedParams, err
 	}
-	updatedParams[param.UpdatedParamProject] = project
+	*updatedParams.Project = project
 	if zone, err = oi.getZone(project); err != nil {
 		return nil, updatedParams, err
 	}

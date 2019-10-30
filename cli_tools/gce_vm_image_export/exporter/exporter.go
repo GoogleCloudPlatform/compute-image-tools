@@ -156,9 +156,9 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	project string, network string, subnet string, zone string, timeout string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
 	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string,
-	currentExecutablePath string) (*daisy.Workflow, map[string]string, error) {
+	currentExecutablePath string) (*daisy.Workflow, *param.UpdatedParams, error) {
 
-	updatedParams := map[string]string{}
+	updatedParams := &param.UpdatedParams{}
 
 	log.SetPrefix(logPrefix + " ")
 
@@ -186,7 +186,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	region := new(string)
 	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		destinationURI, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
-	updatedParams[param.UpdatedParamProject] = project
+	*updatedParams.Project = project
 	if err != nil {
 		return nil, updatedParams, err
 	}

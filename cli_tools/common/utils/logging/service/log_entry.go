@@ -188,19 +188,21 @@ type OutputInfo struct {
 	FailureMessageWithoutPrivacyInfo string `json:"failure_message_without_privacy_info,omitempty"`
 }
 
-func (l *Logger) updateParams(params map[string]string) {
+func (l *Logger) updateParams(updatedParams *param.UpdatedParams) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 
-	l.updateProject(params)
-}
-
-func (l *Logger) updateProject(params map[string]string) {
-	project, ok := params[param.UpdatedParamProject]
-	if !ok {
+	if updatedParams == nil {
 		return
 	}
+	l.updateProject(updatedParams)
+}
 
+func (l *Logger) updateProject(updatedParams *param.UpdatedParams) {
+	if updatedParams.Project == nil {
+		return
+	}
+	project := *updatedParams.Project
 	obfuscatedProject := Hash(project)
 
 	if commonParams := l.Params.commonParams(); commonParams != nil {

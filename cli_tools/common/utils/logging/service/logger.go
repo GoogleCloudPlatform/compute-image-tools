@@ -29,6 +29,7 @@ import (
 	"time"
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/google/uuid"
 	"github.com/minio/highwayhash"
@@ -199,7 +200,7 @@ func getInt64Values(s string) []int64 {
 }
 
 func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow,
-	map[string]string, error)) (*ComputeImageToolsLogExtension, error) {
+		*param.UpdatedParams, error)) (*ComputeImageToolsLogExtension, error) {
 
 	var logExtension *ComputeImageToolsLogExtension
 

@@ -246,9 +246,9 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
 	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
-	uefiCompatible bool) (*daisy.Workflow, map[string]string, error) {
+	uefiCompatible bool) (*daisy.Workflow, *param.UpdatedParams, error) {
 
-	updatedParams := map[string]string{}
+	updatedParams := &param.UpdatedParams{}
 
 	log.SetPrefix(logPrefix + " ")
 
@@ -277,7 +277,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	region := new(string)
 	err = param.PopulateMissingParameters(&project, &zone, region, &scratchBucketGcsPath,
 		sourceFile, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
-	updatedParams[param.UpdatedParamProject] = project
+	*updatedParams.Project = project
 	if err != nil {
 		return nil, updatedParams, err
 	}
