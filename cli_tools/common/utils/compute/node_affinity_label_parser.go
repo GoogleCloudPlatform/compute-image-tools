@@ -15,9 +15,9 @@
 package compute
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -31,16 +31,16 @@ func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity
 	for _, label := range labels {
 		labelParts := strings.Split(label, ",")
 		if len(labelParts) < 3 {
-			return nil, fmt.Errorf(
+			return nil, daisy.Errf(
 				"node affinity label `%v` should be of <key>,<operator>,<values> format", label)
 		}
 		key := strings.TrimSpace(labelParts[0])
 		if key == "" {
-			return nil, fmt.Errorf("affinity label key cannot be empty")
+			return nil, daisy.Errf("affinity label key cannot be empty")
 		}
 		operator := strings.TrimSpace(labelParts[1])
 		if operator != "IN" && operator != "NOT_IN" && operator != "OPERATOR_UNSPECIFIED" {
-			return nil, fmt.Errorf(
+			return nil, daisy.Errf(
 				"node affinity label operator should be one of: `IN`, `NOT_IN` or `OPERATOR_UNSPECIFIED`, but instead received `%v`",
 				operator,
 			)
@@ -50,7 +50,7 @@ func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity
 		for i, value := range values {
 			values[i] = strings.TrimSpace(value)
 			if values[i] == "" {
-				return nil, fmt.Errorf("affinity label value cannot be empty")
+				return nil, daisy.Errf("affinity label value cannot be empty")
 			}
 		}
 		nodeAffinities = append(nodeAffinities, &compute.SchedulingNodeAffinity{

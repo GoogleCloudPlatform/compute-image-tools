@@ -16,13 +16,13 @@ package storage
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"strings"
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/iterator"
 )
 
@@ -66,7 +66,7 @@ func (c *ScratchBucketCreator) getBucketAttrs(fileGcsPath string, project string
 	fallbackZone string) (*storage.BucketAttrs, error) {
 
 	if project == "" {
-		return nil, fmt.Errorf("can't get bucket attributes if project not specified")
+		return nil, daisy.Errf("can't get bucket attributes if project not specified")
 	}
 
 	if fileGcsPath != "" {
@@ -83,7 +83,7 @@ func (c *ScratchBucketCreator) getBucketAttrsFromInputFile(fileGcsPath string, p
 
 	fileBucket, _, err := SplitGCSPath(fileGcsPath)
 	if err != nil || fileBucket == "" {
-		return nil, fmt.Errorf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
+		return nil, daisy.Errf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
 	}
 
 	fileBucketAttrs, err := c.StorageClient.GetBucketAttrs(fileBucket)

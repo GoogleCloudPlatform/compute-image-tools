@@ -156,7 +156,7 @@ func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*s
 
 		return sc.GetBucket(bucketName).Object(attrs.Name), nil
 	}
-	return nil, fmt.Errorf(
+	return nil, daisy.Errf(
 		"path %v doesn't contain a file with %v extension", gcsDirectoryPath, fileExtension)
 }
 
@@ -196,7 +196,7 @@ func SplitGCSPath(p string) (string, string, error) {
 		return matches[1], matches[2], nil
 	}
 
-	return "", "", fmt.Errorf("%q is not a valid GCS path", p)
+	return "", "", daisy.Errf("%q is not a valid GCS path", p)
 }
 
 // GetBucketNameFromGCSPath splits GCS path to get bucket name
@@ -206,7 +206,7 @@ func GetBucketNameFromGCSPath(p string) (string, error) {
 		return matches[1], nil
 	}
 
-	return "", fmt.Errorf("%q is not a valid GCS bucket path", p)
+	return "", daisy.Errf("%q is not a valid GCS bucket path", p)
 }
 
 // HTTPClient implements domain.HTTPClientInterface which abstracts HTTP functionality used by

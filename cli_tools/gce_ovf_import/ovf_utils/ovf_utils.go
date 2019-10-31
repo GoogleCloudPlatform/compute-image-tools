@@ -15,12 +15,12 @@
 package ovfutils
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/vmware/govmomi/ovf"
 )
 
@@ -75,18 +75,18 @@ type DiskInfo struct {
 func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, diskSection *ovf.DiskSection,
 	references *[]ovf.File) ([]DiskInfo, error) {
 	if virtualHardware == nil {
-		return nil, fmt.Errorf("virtualHardware cannot be nil")
+		return nil, daisy.Errf("virtualHardware cannot be nil")
 	}
 	if diskSection == nil || diskSection.Disks == nil || len(diskSection.Disks) == 0 {
-		return nil, fmt.Errorf("diskSection cannot be nil")
+		return nil, daisy.Errf("diskSection cannot be nil")
 	}
 	if references == nil || *references == nil {
-		return nil, fmt.Errorf("references cannot be nil")
+		return nil, daisy.Errf("references cannot be nil")
 	}
 
 	diskControllers := getDiskControllersPrioritized(virtualHardware)
 	if len(diskControllers) == 0 {
-		return nil, fmt.Errorf("no disk controllers found in OVF, can't retrieve disk info")
+		return nil, daisy.Errf("no disk controllers found in OVF, can't retrieve disk info")
 	}
 
 	allDiskItems := filterItemsByResourceTypes(virtualHardware, disk)
@@ -138,12 +138,12 @@ func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, diskSection *ovf.
 // defined, the first one will be returned.
 func GetNumberOfCPUs(virtualHardware *ovf.VirtualHardwareSection) (int64, error) {
 	if virtualHardware == nil {
-		return 0, fmt.Errorf("virtualHardware cannot be nil")
+		return 0, daisy.Errf("virtualHardware cannot be nil")
 	}
 
 	cpuItems := filterItemsByResourceTypes(virtualHardware, cpu)
 	if len(cpuItems) == 0 {
-		return 0, fmt.Errorf("no CPUs found in OVF")
+		return 0, daisy.Errf("no CPUs found in OVF")
 	}
 
 	// Returning the first CPU item found. Doesn't support multiple deployment configurations.
@@ -154,18 +154,18 @@ func GetNumberOfCPUs(virtualHardware *ovf.VirtualHardwareSection) (int64, error)
 // elements defining memory for the same virtual system, the first memory element will be used.
 func GetMemoryInMB(virtualHardware *ovf.VirtualHardwareSection) (int64, error) {
 	if virtualHardware == nil {
-		return 0, fmt.Errorf("virtualHardware cannot be nil")
+		return 0, daisy.Errf("virtualHardware cannot be nil")
 	}
 
 	memoryItems := filterItemsByResourceTypes(virtualHardware, memory)
 	if len(memoryItems) == 0 {
-		return 0, fmt.Errorf("no memory section found in OVF")
+		return 0, daisy.Errf("no memory section found in OVF")
 	}
 
 	// Using the first memory item found. Doesn't support multiple deployment configurations.
 	memoryItem := memoryItems[0]
 	if memoryItem.AllocationUnits == nil || *memoryItem.AllocationUnits == "" {
-		return 0, fmt.Errorf("memory allocation unit not specified")
+		return 0, daisy.Errf("memory allocation unit not specified")
 	}
 
 	byteCapacity, err := Parse(int64(*memoryItems[0].VirtualQuantity), *memoryItem.AllocationUnits)
@@ -182,10 +182,10 @@ func GetVirtualHardwareSection(virtualSystem *ovf.VirtualSystem) (*ovf.VirtualHa
 	//TODO: support for multiple VirtualHardwareSection for different environments
 	//More on page 50, https://www.dmtf.org/sites/default/files/standards/documents/DSP2017_2.0.0.pdf
 	if virtualSystem == nil {
-		return nil, fmt.Errorf("virtual system is nil, can't extract Virtual hardware")
+		return nil, daisy.Errf("virtual system is nil, can't extract Virtual hardware")
 	}
 	if virtualSystem.VirtualHardware == nil || len(virtualSystem.VirtualHardware) == 0 {
-		return nil, fmt.Errorf("virtual hardware is nil or empty")
+		return nil, daisy.Errf("virtual hardware is nil or empty")
 	}
 	return &virtualSystem.VirtualHardware[0], nil
 }
@@ -193,10 +193,10 @@ func GetVirtualHardwareSection(virtualSystem *ovf.VirtualSystem) (*ovf.VirtualHa
 // GetVirtualSystem returns VirtualSystem element from OVF descriptor envelope
 func GetVirtualSystem(ovfDescriptor *ovf.Envelope) (*ovf.VirtualSystem, error) {
 	if ovfDescriptor == nil {
-		return nil, fmt.Errorf("OVF descriptor is nil, can't extract virtual system")
+		return nil, daisy.Errf("OVF descriptor is nil, can't extract virtual system")
 	}
 	if ovfDescriptor.VirtualSystem == nil {
-		return nil, fmt.Errorf("OVF descriptor doesn't contain a virtual system")
+		return nil, daisy.Errf("OVF descriptor doesn't contain a virtual system")
 	}
 
 	return ovfDescriptor.VirtualSystem, nil
@@ -242,11 +242,11 @@ func GetOVFDescriptorAndDiskPaths(ovfDescriptorLoader domain.OvfDescriptorLoader
 func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 
 	if ovfDescriptor.VirtualSystem == nil {
-		return "", fmt.Errorf("VirtualSystem must be defined to retrieve OS info")
+		return "", daisy.Errf("VirtualSystem must be defined to retrieve OS info")
 	}
 	if ovfDescriptor.VirtualSystem.OperatingSystem == nil ||
 		len(ovfDescriptor.VirtualSystem.OperatingSystem) == 0 {
-		return "", fmt.Errorf("OperatingSystemSection must be defined to retrieve OS info")
+		return "", daisy.Errf("OperatingSystemSection must be defined to retrieve OS info")
 	}
 	var osID string
 	var validOSType bool
@@ -254,13 +254,13 @@ func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 	if osID, validOSType = ovfOSTypeToOSID[osType]; !validOSType {
 		if osIDCandidates, hasOSIDCandidates := noMappingOSTypes[osType]; hasOSIDCandidates {
 			return "",
-				fmt.Errorf(
+				daisy.Errf(
 					"cannot determine OS from osType attribute value `%v` found in OVF descriptor. Use --os flag to specify OS for this VM. Potential valid values for given osType attribute are: %v",
 					osType,
 					strings.Join(osIDCandidates, ", "),
 				)
 		}
-		return "", fmt.Errorf("osType attribute value `%v` found in OVF descriptor cannot be mapped to an OS supported by Google Compute Engine. Use --os flag to specify OS for this VM", osType)
+		return "", daisy.Errf("osType attribute value `%v` found in OVF descriptor cannot be mapped to an OS supported by Google Compute Engine. Use --os flag to specify OS for this VM", osType)
 	}
 
 	return osID, nil
@@ -318,10 +318,10 @@ func getDiskFileInfo(diskHostResource string, disks *[]ovf.VirtualDiskDesc,
 					return file.Href, &disk, nil
 				}
 			}
-			return "", nil, fmt.Errorf("file reference '%v' for disk '%v' not found in OVF descriptor", *disk.FileRef, diskID)
+			return "", nil, daisy.Errf("file reference '%v' for disk '%v' not found in OVF descriptor", *disk.FileRef, diskID)
 		}
 	}
-	return "", nil, fmt.Errorf(
+	return "", nil, daisy.Errf(
 		"disk with reference %v couldn't be found in OVF descriptor", diskHostResource)
 }
 
@@ -332,7 +332,7 @@ func extractDiskID(diskHostResource string) (string, error) {
 		return strings.TrimPrefix(diskHostResource, "/disk/"), nil
 	}
 
-	return "", fmt.Errorf("disk host resource %v has invalid format", diskHostResource)
+	return "", daisy.Errf("disk host resource %v has invalid format", diskHostResource)
 }
 
 func sortItemsByStringValue(items []ovf.ResourceAllocationSettingData, extractValue func(ovf.ResourceAllocationSettingData) string) {

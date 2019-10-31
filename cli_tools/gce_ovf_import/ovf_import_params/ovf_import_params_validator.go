@@ -15,13 +15,13 @@
 package ovfimportparams
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (
@@ -45,7 +45,7 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 
 	instanceNameSplits := strings.Split(params.InstanceNames, ",")
 	if len(instanceNameSplits) > 1 {
-		return fmt.Errorf("OVF import doesn't support multi instance import at this time")
+		return daisy.Errf("OVF import doesn't support multi instance import at this time")
 	}
 
 	if err := validation.ValidateStringFlagNotEmpty(params.OvfOvaGcsPath, OvfGcsPathFlagKey); err != nil {
@@ -57,7 +57,7 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 	}
 
 	if _, _, err := storage.SplitGCSPath(params.OvfOvaGcsPath); err != nil {
-		return fmt.Errorf("%v should be a path to OVF or OVA package in GCS", OvfGcsPathFlagKey)
+		return daisy.Errf("%v should be a path to OVF or OVA package in GCS", OvfGcsPathFlagKey)
 	}
 
 	if params.Labels != "" {

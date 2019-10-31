@@ -15,10 +15,10 @@
 package ovfgceutils
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
@@ -84,7 +84,7 @@ func (mp *MachineTypeProvider) GetMachineType() (string, error) {
 		return cpuCountToMachineTypes[cpuCounts[cpuIndex]][memoryIndex].Name, nil
 	}
 
-	return "", fmt.Errorf(
+	return "", daisy.Errf(
 		"no machine type has at least %v MBs of memory and %v vCPUs", memoryMB, cpuCount)
 }
 
