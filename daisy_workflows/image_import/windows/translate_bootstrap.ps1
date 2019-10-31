@@ -90,6 +90,13 @@ function Setup-ScriptRunner {
 try {
   Write-Output 'TranslateBootstrap: Beginning translation bootstrap powershell script.'
 
+  Get-Disk 1 | Get-Partition | ForEach-Object {
+    if (-not $_.DriveLetter) {
+      Write-Output "Assigning drive letter to partition #$($_.PartitionNumber)"
+      Add-PartitionAccessPath -DiskNumber 1 -PartitionNumber $_.PartitionNumber -AssignDriveLetter -ErrorAction SilentlyContinue
+    }
+  }
+
   $bcd_drive = ''
   Get-Disk 1 | Get-Partition | ForEach-Object {
     if (Test-Path "$($_.DriveLetter):\Windows") {
