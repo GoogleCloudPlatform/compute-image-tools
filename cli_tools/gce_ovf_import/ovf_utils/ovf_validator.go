@@ -15,9 +15,8 @@
 package ovfutils
 
 import (
-	"fmt"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/vmware/govmomi/ovf"
 )
 
@@ -36,7 +35,7 @@ func NewOvfValidator(
 func (v *OvfValidator) ValidateOvfPackage(
 	ovfDescriptor *ovf.Envelope, ovfGcsPath string) (*ovf.Envelope, error) {
 	if ovfDescriptor == nil {
-		return nil, fmt.Errorf("OVF descriptor cannot be nil")
+		return nil, daisy.Errf("OVF descriptor cannot be nil")
 	}
 
 	if err := v.validateReferencesExistInGcs(ovfDescriptor.References, ovfGcsPath); err != nil {
@@ -55,7 +54,7 @@ func (v *OvfValidator) validateReferencesExistInGcs(
 	for _, reference := range references {
 		referenceGcsHandle, err := v.storageClient.FindGcsFile(ovfGcsPath, reference.Href)
 		if referenceGcsHandle == nil || err != nil {
-			return fmt.Errorf("OVF reference %v not found in OVF package in %v", reference.Href, ovfGcsPath)
+			return daisy.Errf("OVF reference %v not found in OVF package in %v", reference.Href, ovfGcsPath)
 		}
 	}
 	return nil

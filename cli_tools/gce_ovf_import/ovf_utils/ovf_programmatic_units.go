@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (
@@ -52,7 +54,7 @@ type ByteCapacity struct {
 // https://www.dmtf.org/sites/default/files/standards/documents/DSP0004_2.7.pdf
 func Parse(quantity int64, unit string) (*ByteCapacity, error) {
 	if quantity <= 0 {
-		return nil, fmt.Errorf("expected a positive value for capacity. Given: `%d`", quantity)
+		return nil, daisy.Errf("expected a positive value for capacity. Given: `%d`", quantity)
 	}
 
 	// In the wild, we've seen examples such as 'MegaBytes' and 'byte* 2 ^ 10 '.
@@ -71,7 +73,7 @@ func Parse(quantity int64, unit string) (*ByteCapacity, error) {
 	case "tb", "terabyte", "terabytes", "byte*2^40":
 		bytes = tera * quantity
 	default:
-		return nil, fmt.Errorf("invalid allocation unit: " + unit)
+		return nil, daisy.Errf("invalid allocation unit: " + unit)
 	}
 
 	return &ByteCapacity{bytes}, nil

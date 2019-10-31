@@ -15,8 +15,7 @@
 package compute
 
 import (
-	"fmt"
-
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
@@ -37,5 +36,5 @@ func (zv *ZoneValidator) ZoneValid(project string, zone string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("%v is not a valid zone", zone)
+	return daisy.Errf("%v is not a valid zone", zone)
 }

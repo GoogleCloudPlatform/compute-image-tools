@@ -17,7 +17,6 @@ package storage
 import (
 	"archive/tar"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -25,6 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // TarGcsExtractor is responsible for extracting TAR archives from GCS to GCS
@@ -48,14 +48,14 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 	}
 	tarGcsReader, err := tge.storageClient.GetObjectReader(tarBucketName, tarPath)
 	if err != nil {
-		return fmt.Errorf("error while opening archive %v: %v", tarGcsPath, err)
+		return daisy.Errf("error while opening archive %v: %v", tarGcsPath, err)
 	}
 	tarReader := tar.NewReader(tarGcsReader)
 	defer tarGcsReader.Close()
 
 	destinationBucketName, destinationPath, err := SplitGCSPath(destinationGcsPath)
 	if err != nil {
-		return fmt.Errorf("invalid destination path: %v", destinationGcsPath)
+		return daisy.Errf("invalid destination path: %v", destinationGcsPath)
 	}
 
 	for {
@@ -78,7 +78,7 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			return errors.New("tar subdirectories not supported")
+			return daisy.Errf("tar subdirectories not supported")
 
 		case tar.TypeReg:
 			destinationFilePath := pathutils.JoinURL(destinationPath, header.Name)
