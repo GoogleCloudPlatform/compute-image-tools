@@ -17,33 +17,37 @@ function serialOutputKeyValuePair() {
   echo "<serial-output key:'$1' value:'$2'>"
 }
 
-BYTES_1GB=1073741824
-URL="http://metadata/computeMetadata/v1/instance/attributes"
-GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
-LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
+function main() {
+  BYTES_1GB=1073741824
+  URL="http://metadata/computeMetadata/v1/instance/attributes"
+  GCS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
+  LICENSES=$(curl -f -H Metadata-Flavor:Google ${URL}/licenses)
 
-mkdir ~/upload
+  mkdir ~/upload
 
-# Source disk size info.
-SOURCE_SIZE_BYTES=$(lsblk /dev/sdb --output=size -b | sed -n 2p)
-SOURCE_SIZE_GB=$(awk "BEGIN {print int(((${SOURCE_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
-echo "GCEExport: $(serialOutputKeyValuePair "source-size-gb" "${SOURCE_SIZE_GB}")"
+  # Source disk size info.
+  SOURCE_SIZE_BYTES=$(lsblk /dev/sdb --output=size -b | sed -n 2p)
+  SOURCE_SIZE_GB=$(awk "BEGIN {print int(((${SOURCE_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
+  echo "GCEExport: $(serialOutputKeyValuePair "source-size-gb" "${SOURCE_SIZE_GB}")"
 
-echo "GCEExport: Running export tool."
-if [[ -n $LICENSES ]]; then
-  gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
-else
-  gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk /dev/sdb -y
-fi
-if [[ $? -ne 0 ]]; then
-  echo "ExportFailed: Failed to export disk source to GCS [Privacy-> ${GCS_PATH}. <-Privacy]."
-  exit 1
-fi
+  echo "GCEExport: Running export tool."
+  if [[ -n $LICENSES ]]; then
+    gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk /dev/sdb -licenses "$LICENSES" -y
+  else
+    gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk /dev/sdb -y
+  fi
+  if [[ $? -ne 0 ]]; then
+    echo "ExportFailed: Failed to export disk source to GCS [Privacy-> ${GCS_PATH}. <-Privacy]."
+    exit 1
+  fi
 
-# Exported image size info.
-TARGET_SIZE_BYTES=$(gsutil ls -l "${GCS_PATH}" | head -n 1 | awk '{print $1}')
-TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
-echo "GCEExport: $(serialOutputKeyValuePair "target-size-gb" "${TARGET_SIZE_GB}")"
+  # Exported image size info.
+  TARGET_SIZE_BYTES=$(gsutil ls -l "${GCS_PATH}" | head -n 1 | awk '{print $1}')
+  TARGET_SIZE_GB=$(awk "BEGIN {print int(((${TARGET_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
+  echo "GCEExport: $(serialOutputKeyValuePair "target-size-gb" "${TARGET_SIZE_GB}")"
 
-echo "ExportSuccess"
-sync
+  echo "ExportSuccess"
+  sync
+}
+
+main &

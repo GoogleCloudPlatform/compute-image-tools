@@ -126,47 +126,51 @@ function serialOutputKeyValuePair() {
   echo "<serial-output key:'$1' value:'$2'>"
 }
 
-copyImageToScratchDisk
+function main() {
+  copyImageToScratchDisk
 
-# If the image is an OVA, then copy out its VMDK.
-if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
-  echo "Import: Unpacking VMDK files from ova."
-  VMDK="$(tar --list -f "${IMAGE_PATH}" | grep -m1 vmdk)"
-  tar -C /daisy-scratch -xf "${IMAGE_PATH}" ${VMDK}
-  IMAGE_PATH="/daisy-scratch/${VMDK}"
-  echo "Import: New source file is ${VMDK}"
-fi
+  # If the image is an OVA, then copy out its VMDK.
+  if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
+    echo "Import: Unpacking VMDK files from ova."
+    VMDK="$(tar --list -f "${IMAGE_PATH}" | grep -m1 vmdk)"
+    tar -C /daisy-scratch -xf "${IMAGE_PATH}" ${VMDK}
+    IMAGE_PATH="/daisy-scratch/${VMDK}"
+    echo "Import: New source file is ${VMDK}"
+  fi
 
-# Ensure the output disk has sufficient space to accept the disk image.
-# Disk image size info.
-SIZE_BYTES=$(qemu-img info --output "json" "${IMAGE_PATH}" | grep -m1 "virtual-size" | grep -o '[0-9]\+')
-IMPORT_FILE_FORMAT=$(qemu-img info "${IMAGE_PATH}" | grep -m1 "file format" | grep -oP '(?<=^file format:[ *]).*')
- # Round up to the next GB.
-SIZE_GB=$(awk "BEGIN {print int(((${SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
-echo "Import: Importing ${IMAGE_PATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
+  # Ensure the output disk has sufficient space to accept the disk image.
+  # Disk image size info.
+  SIZE_BYTES=$(qemu-img info --output "json" "${IMAGE_PATH}" | grep -m1 "virtual-size" | grep -o '[0-9]\+')
+  IMPORT_FILE_FORMAT=$(qemu-img info "${IMAGE_PATH}" | grep -m1 "file format" | grep -oP '(?<=^file format:[ *]).*')
+   # Round up to the next GB.
+  SIZE_GB=$(awk "BEGIN {print int(((${SIZE_BYTES} - 1)/${BYTES_1GB}) + 1)}")
+  echo "Import: Importing ${IMAGE_PATH} of size ${SIZE_GB}GB to ${DISKNAME} in ${ZONE}." 2> /dev/null
 
-set +x
-echo "Import: $(serialOutputKeyValuePair "target-size-gb" "${SIZE_GB}")"
-echo "Import: $(serialOutputKeyValuePair "source-size-gb" "${SOURCE_SIZE_GB}")"
-echo "Import: $(serialOutputKeyValuePair "import-file-format" "${IMPORT_FILE_FORMAT}")"
-set -x
+  set +x
+  echo "Import: $(serialOutputKeyValuePair "target-size-gb" "${SIZE_GB}")"
+  echo "Import: $(serialOutputKeyValuePair "source-size-gb" "${SOURCE_SIZE_GB}")"
+  echo "Import: $(serialOutputKeyValuePair "import-file-format" "${IMPORT_FILE_FORMAT}")"
+  set -x
 
-# Ensure the disk referenced by $DISKNAME is large enough to
-# hold the inflated disk. For the common case, we initialize
-# it to have a capacity of 10 GB, and then resize it if qemu-img
-# tells us that it will be larger than 10 GB.
-if [[ ${SIZE_GB} -gt 10 ]]; then
-  resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
-fi
+  # Ensure the disk referenced by $DISKNAME is large enough to
+  # hold the inflated disk. For the common case, we initialize
+  # it to have a capacity of 10 GB, and then resize it if qemu-img
+  # tells us that it will be larger than 10 GB.
+  if [[ ${SIZE_GB} -gt 10 ]]; then
+    resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
+  fi
 
-# Convert the image and write it to the disk referenced by $DISKNAME.
-# /dev/sdc is used since it's the third disk that's attached in import_disk.wf.json.
-if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); then
-  echo "ImportFailed: Failed to convert source to raw. [Privacy-> error: ${out} <-Privacy]"
-  exit
-fi
-echo ${out}
+  # Convert the image and write it to the disk referenced by $DISKNAME.
+  # /dev/sdc is used since it's the third disk that's attached in import_disk.wf.json.
+  if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); then
+    echo "ImportFailed: Failed to convert source to raw. [Privacy-> error: ${out} <-Privacy]"
+    exit
+  fi
+  echo ${out}
 
-sync
+  sync
 
-echo "ImportSuccess: Finished import." 2> /dev/null
+  echo "ImportSuccess: Finished import." 2> /dev/null
+}
+
+main &
