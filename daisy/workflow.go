@@ -319,6 +319,11 @@ func (w *Workflow) cleanup() {
 	default:
 		close(w.Cancel)
 	}
+
+	// Allow goroutines that are watching w.Cancel an opportunity
+	// to detect that the workflow was cancelled and to cleanup.
+	time.Sleep(4 * time.Second)
+
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
 			w.LogWorkflowInfo("Error returned from cleanup hook: %s", err)
@@ -711,6 +716,15 @@ func (w *Workflow) traverseDAG(f func(*Step) DError) DError {
 		running = filter(running, finished)
 	}
 	return nil
+}
+
+func (w *Workflow) isCanceled() bool {
+	select {
+	case <-w.Cancel:
+		return true
+	default:
+		return false
+	}
 }
 
 // New instantiates a new workflow.

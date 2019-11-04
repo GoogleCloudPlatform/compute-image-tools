@@ -41,8 +41,6 @@ func logSerialOutput(ctx context.Context, s *Step, i *Instance, port int64, inte
 Loop:
 	for {
 		select {
-		case <-w.Cancel:
-			break Loop
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(path.Base(i.Project), path.Base(i.Zone), i.Name, port, start)
 			if err != nil {
@@ -72,6 +70,10 @@ Loop:
 				gcsErr = true
 				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", i.Name, err)
 				continue
+			}
+
+			if w.isCanceled() {
+				break Loop
 			}
 		}
 	}
