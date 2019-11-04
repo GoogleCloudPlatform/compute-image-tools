@@ -124,7 +124,7 @@ func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucke
 	byteCountingReader := daisycommon.NewByteCountingReader(rc)
 	// Detect whether it's a compressed file by extracting compressed file header
 	if _, err = gzip.NewReader(byteCountingReader); err == nil {
-		return daisy.Errf("the input file appears to be a tar.gz, which is not supported by 'gcloud compute images import'. To import a tar.gz that was exported from Google Compute Engine, please use 'gcloud compute images create' instead")
+		return daisy.Errf("the input file is a gzip file, which is not supported by 'gcloud compute images import'. To import a file that was exported from Google Compute Engine, please use 'gcloud compute images create' instead")
 	}
 
 	// By calling gzip.NewReader above, a few bytes were read from the Reader in
