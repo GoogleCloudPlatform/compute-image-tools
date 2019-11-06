@@ -223,6 +223,12 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 		go func() {
 			defer wg.Done()
 			logExtension, _ = l.logFailure(err, w)
+
+			// Remove new lines from multi-line failure messages as gcloud depends on
+			// log prefix to filter out relevant log lines. Making this change in
+			// daisy/error.go Error() func would potentially affect other clients of
+			// Daisy with unclear consequences, thus limiting the change to
+			// import/export wrappers
 			log.Println(removeNewLinesFromMultilineError(logExtension.OutputInfo.FailureMessage))
 		}()
 	} else {
@@ -240,7 +246,7 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 func removeNewLinesFromMultilineError(s string) string {
 	// first line in a multi error line is of "Multiple errors" type and doesn't need a separator
 	firstNewLineRemoved := strings.Replace(s, "\n", " ", 1)
-	return strings.Replace(firstNewLineRemoved, "\n", "; ", -1)
+	return strings.ReplaceAll(firstNewLineRemoved, "\n", "; ")
 }
 
 // RunWithServerLogging runs the function with server logging
