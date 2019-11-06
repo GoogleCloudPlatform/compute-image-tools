@@ -173,8 +173,15 @@ func TestInstancePopulateMachineType(t *testing.T) {
 func TestInstancePopulateMetadata(t *testing.T) {
 	w := testWorkflow()
 	w.populate(context.Background())
-	w.Sources = map[string]string{"file": "foo/bar"}
-	filePath := "gs://" + path.Join(w.bucket, w.sourcesPath, "file")
+	w.Sources = map[string]string{
+		"file":                   "test_data/test_sub.wf.json",
+		"startup.sh":             "test_data/startup.sh",
+		"startup.ps1":            "test_data/startup.ps1",
+		"startup.bat":            "test_data/startup.bat",
+		"startup.cmd":            "test_data/startup.cmd",
+		"257k-startup-script.sh": "test_data/257k-startup-script.sh",
+	}
+	gcsPath := "gs://" + path.Join(w.bucket, w.sourcesPath) + "/"
 
 	baseMd := map[string]string{
 		"daisy-sources-path": "gs://" + path.Join(w.bucket, w.sourcesPath),
@@ -200,14 +207,32 @@ func TestInstancePopulateMetadata(t *testing.T) {
 		wantMd        *compute.Metadata
 		shouldErr     bool
 	}{
-		{"defaults case", nil, "", getWantMd(map[string]string{}), false},
-		{"startup script case", nil, "file", getWantMd(map[string]string{"startup-script-url": filePath, "windows-startup-script-url": filePath}), false},
-		{"bad startup script case", nil, "foo", nil, true},
+		{"no startup script", nil, "", getWantMd(map[string]string{}), false},
+
+		{"unrecognized extension startup script", nil, "file",
+			getWantMd(map[string]string{"startup-script-url": gcsPath + "file", "windows-startup-script-url": gcsPath + "file"}), false},
+
+		{"startup script too large for inlining", nil, "257k-startup-script.sh",
+			getWantMd(map[string]string{"startup-script-url": gcsPath + "257k-startup-script.sh", "windows-startup-script-url": gcsPath + "257k-startup-script.sh"}), false},
+
+		{"bash startup script", nil, "startup.sh",
+			getWantMd(map[string]string{"startup-script": "#!/bin/bash\n\nenv\n"}), false},
+
+		{"powershell startup script", nil, "startup.ps1",
+			getWantMd(map[string]string{"windows-startup-script-ps1": "#hello\n#ps\n"}), false},
+
+		{"batch startup script", nil, "startup.bat",
+			getWantMd(map[string]string{"windows-startup-script-bat": "#hello\n#bat\n"}), false},
+
+		{"cmd startup script", nil, "startup.cmd",
+			getWantMd(map[string]string{"windows-startup-script-cmd": "#hello\n#cmd\n"}), false},
+
+		{"startup script not defined as source", nil, "foo", nil, true},
 	}
 
 	for _, tt := range tests {
 		i := Instance{Metadata: tt.md, StartupScript: tt.startupScript}
-		err := i.populateMetadata(w)
+		err := i.populateMetadata(nil, w)
 		if err == nil {
 			if tt.shouldErr {
 				t.Errorf("%s: populateMetadata should have erred but didn't", tt.desc)

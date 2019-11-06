@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"net/http"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -106,7 +107,7 @@ func (i *Instance) populate(ctx context.Context, s *Step) DError {
 
 	errs = addErrs(errs, i.populateDisks(s.w))
 	errs = addErrs(errs, i.populateMachineType())
-	errs = addErrs(errs, i.populateMetadata(s.w))
+	errs = addErrs(errs, i.populateMetadata(ctx, s.w))
 	errs = addErrs(errs, i.populateNetworks())
 	errs = addErrs(errs, i.populateScopes())
 	i.link = fmt.Sprintf("projects/%s/zones/%s/instances/%s", i.Project, i.Zone, i.Name)
@@ -170,7 +171,7 @@ func (i *Instance) populateMachineType() DError {
 	return nil
 }
 
-func (i *Instance) populateMetadata(w *Workflow) DError {
+func (i *Instance) populateMetadata(ctx context.Context, w *Workflow) DError {
 	if i.Metadata == nil {
 		i.Metadata = map[string]string{}
 	}
@@ -180,18 +181,54 @@ func (i *Instance) populateMetadata(w *Workflow) DError {
 	i.Metadata["daisy-sources-path"] = "gs://" + path.Join(w.bucket, w.sourcesPath)
 	i.Metadata["daisy-logs-path"] = "gs://" + path.Join(w.bucket, w.logsPath)
 	i.Metadata["daisy-outs-path"] = "gs://" + path.Join(w.bucket, w.outsPath)
-	if i.StartupScript != "" {
-		if !w.sourceExists(i.StartupScript) {
-			return Errf("bad value for StartupScript, source not found: %s", i.StartupScript)
-		}
-		i.StartupScript = "gs://" + path.Join(w.bucket, w.sourcesPath, i.StartupScript)
-		i.Metadata["startup-script-url"] = i.StartupScript
-		i.Metadata["windows-startup-script-url"] = i.StartupScript
+
+	if err := i.populateStartupScriptMetadata(ctx, w); err != nil {
+		return err
 	}
+
 	for k, v := range i.Metadata {
 		vCopy := v
 		i.Instance.Metadata.Items = append(i.Instance.Metadata.Items, &compute.MetadataItems{Key: k, Value: &vCopy})
 	}
+	return nil
+}
+
+func (i *Instance) populateStartupScriptMetadata(ctx context.Context, w *Workflow) DError {
+	if i.StartupScript == "" {
+		return nil
+	}
+
+	if !w.sourceExists(i.StartupScript) {
+		return Errf("bad value for StartupScript, source not found: %s", i.StartupScript)
+	}
+
+	scriptContent, err := w.sourceContent(ctx, i.StartupScript)
+	if err != nil {
+		return newErr("failed to read content of startup script", err)
+	}
+
+	// GCE uses metadata for startup script inlining. The key specifies
+	// the script's type, and the value is the content of the script.
+	// The maximum size of a script is 256kb.
+	// https://cloud.google.com/compute/docs/startupscript
+	//
+	// Inline scripts are preferable since they don't require the
+	// instance to have read access to GCS.
+	key := map[string]string{
+		".sh":  "startup-script",
+		".cmd": "windows-startup-script-cmd",
+		".bat": "windows-startup-script-bat",
+		".ps1": "windows-startup-script-ps1",
+	}[strings.ToLower(filepath.Ext(i.StartupScript))]
+
+	if key != "" && len(scriptContent) > 0 && len(scriptContent) < 256*1024 {
+		i.Metadata[key] = scriptContent
+	} else {
+		i.StartupScript = "gs://" + path.Join(w.bucket, w.sourcesPath, i.StartupScript)
+		i.Metadata["startup-script-url"] = i.StartupScript
+		i.Metadata["windows-startup-script-url"] = i.StartupScript
+	}
+
 	return nil
 }
 
