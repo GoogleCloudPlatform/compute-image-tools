@@ -238,7 +238,7 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 }
 
 func removeNewLinesFromMultilineError(s string) string {
-	// first line in a multi error line is of "Multiple errors" and doesn't need a separator
+	// first line in a multi error line is of "Multiple errors" type and doesn't need a separator
 	firstNewLineRemoved := strings.Replace(s, "\n", " ", 1)
 	return strings.Replace(firstNewLineRemoved, "\n", "; ", -1)
 }
