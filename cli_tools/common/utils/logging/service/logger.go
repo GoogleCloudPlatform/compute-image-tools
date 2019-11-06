@@ -223,7 +223,7 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 		go func() {
 			defer wg.Done()
 			logExtension, _ = l.logFailure(err, w)
-			log.Println(logExtension.OutputInfo.FailureMessage)
+			log.Println(removeNewLinesFromMultilineError(logExtension.OutputInfo.FailureMessage))
 		}()
 	} else {
 		wg.Add(1)
@@ -235,6 +235,12 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 
 	wg.Wait()
 	return logExtension, err
+}
+
+func removeNewLinesFromMultilineError(s string) string {
+	// first line in a multi error line is of "Multiple errors" and doesn't need a separator
+	firstNewLineRemoved := strings.Replace(s, "\n", " ", 1)
+	return strings.Replace(firstNewLineRemoved, "\n", "; ", -1)
 }
 
 // RunWithServerLogging runs the function with server logging
