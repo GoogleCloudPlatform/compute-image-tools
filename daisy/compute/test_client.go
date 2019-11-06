@@ -564,7 +564,7 @@ func (c *TestClient) ResizeDisk(project, zone, disk string, drr *compute.DisksRe
 
 // SetInstanceMetadata uses the override method SetInstancemetadataFn or the real implementation.
 func (c *TestClient) SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error {
-	if c.InstanceStoppedFn != nil {
+	if c.SetInstanceMetadata != nil {
 		return c.SetInstanceMetadataFn(project, zone, name, md)
 	}
 	return c.client.SetInstanceMetadata(project, zone, name, md)
@@ -572,7 +572,7 @@ func (c *TestClient) SetInstanceMetadata(project, zone, name string, md *compute
 
 // SetCommonInstanceMetadata uses the override method SetCommonInstanceMetadataFn or the real implementation.
 func (c *TestClient) SetCommonInstanceMetadata(project string, md *compute.Metadata) error {
-	if c.InstanceStoppedFn != nil {
+	if c.SetCommonInstanceMetadataFn != nil {
 		return c.SetCommonInstanceMetadataFn(project, md)
 	}
 	return c.client.SetCommonInstanceMetadata(project, md)
