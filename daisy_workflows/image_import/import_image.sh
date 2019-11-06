@@ -53,7 +53,7 @@ function resizeDisk() {
   echo "Import: Resizing ${diskId} to ${requiredSizeInGb}GB in ${zone}."
   if ! out=$(gcloud -q compute disks resize "${diskId}" --size="${requiredSizeInGb}"GB --zone="${zone}" 2>&1 | tr "\n\r" " "); then
     if echo "$out" | grep -q "Required .compute.disks.resize. permission"; then
-      echo "ImportFailed: The Compute Engine default service account needs the compute.disks.resize permission."
+      echo "ImportFailed: Failed to resize disk. The Compute Engine default service account needs the compute.disks.resize permission."
     else
       echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${requiredSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
     fi
