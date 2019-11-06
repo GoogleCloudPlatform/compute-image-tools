@@ -41,6 +41,10 @@ func (c *UpdateInstancesMetadata) populate(ctx context.Context, s *Step) DError 
 
 func (c *UpdateInstancesMetadata) validate(ctx context.Context, s *Step) (errs DError) {
 	for _, sm := range *c {
+		if (len(sm.Metadata) == 0) {
+			errs = addErrs(errs, Errf("Instance %v: Metadata must contain at least one value to update", sm.Instance))
+		}
+
 		ir, err := s.w.instances.regUse(sm.Instance, s)
 		if ir == nil {
 			// Return now, the rest of this function can't be run without ir.
