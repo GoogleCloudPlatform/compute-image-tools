@@ -218,6 +218,25 @@ func testSendLogToServerWithResponses(t *testing.T, expectedLogResult logResult,
 	}
 }
 
+func TestRemoveNewLinesFromMultilineErrorSingleLine(t *testing.T) {
+	testRemoveNewLinesFromMultilineError(t, "Single line", "Single line")
+}
+
+func TestRemoveNewLinesFromMultilineErrorMultiLine(t *testing.T) {
+	testRemoveNewLinesFromMultilineError(t, "Header:\nFirst line\nSecond line", "Header: First line; Second line")
+}
+
+func TestRemoveNewLinesFromMultilineErrorEmptyString(t *testing.T) {
+	testRemoveNewLinesFromMultilineError(t, "", "")
+}
+
+func testRemoveNewLinesFromMultilineError(t *testing.T, input string, expected string) {
+	result := removeNewLinesFromMultilineError(input)
+	if result != expected {
+		t.Errorf("Expected %v, got %v", expected, result)
+	}
+}
+
 func prepareTestLogger(t *testing.T, err error, resps []logResponse) {
 	var lrs []string
 	for _, resp := range resps {
