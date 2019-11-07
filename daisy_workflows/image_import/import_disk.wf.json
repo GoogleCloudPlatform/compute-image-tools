@@ -74,7 +74,8 @@
             "block-project-ssh-keys": "true",
             "disk_name": "${disk_name}",
             "scratch_disk_name": "disk-${NAME}-scratch-${ID}",
-            "source_disk_file": "${source_disk_file}"
+            "source_disk_file": "${source_disk_file}",
+            "startup-script": "${SOURCE:import_image.sh}"
           },
           "networkInterfaces": [
             {
@@ -85,8 +86,7 @@
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write",
             "https://www.googleapis.com/auth/compute"
-          ],
-          "StartupScript": "import_image.sh"
+          ]
         }
       ]
     },
