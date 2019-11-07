@@ -110,6 +110,11 @@ func UpdateToUEFICompatible(workflow *daisy.Workflow) {
 				if strings.Contains(disk.SourceImage, "projects/compute-image-tools/global/images/family/debian-9-worker") {
 					continue
 				}
+				// also, don't run Windows bootstrap worker in UEFI mode
+				if strings.Contains(disk.SourceImage, "projects/windows-cloud/global/images/family/windows-2019-core") && strings.Contains(disk.Name, "disk-bootstrap") {
+					continue
+				}
+
 				disk.Disk.GuestOsFeatures = daisy.CombineGuestOSFeatures(disk.Disk.GuestOsFeatures, "UEFI_COMPATIBLE")
 			}
 		}
