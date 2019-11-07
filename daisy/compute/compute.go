@@ -213,6 +213,13 @@ func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) b
 	case apiErr.Code >= 429:
 		// Too many API requests.
 		retry = true
+	case apiErr.Code == 403 && strings.Contains(apiErr.Message, "rateLimitExceeded"):
+		// quoting directly from https://cloud.google.com/compute/docs/api-rate-limits
+		// If you receive a 403 error with the error message rateLimitExceeded,
+		// wait a few seconds and try your request again.
+		// Quota buckets are refilled every 100 seconds so your
+		// request should succeed once you have passed that interval.
+		retry = true
 	case !tkValid:
 		// This was probably a failure to get new token from metadata server.
 		retry = true

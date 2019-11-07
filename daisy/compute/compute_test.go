@@ -57,6 +57,8 @@ func TestShouldRetryWithWait(t *testing.T) {
 		{"500 error", &googleapi.Error{Code: 500}, true},
 		{"connection reset", errors.New("read tcp 192.168.10.2:59590->74.125.135.95:443: read: connection reset by peer"), true},
 		{"EOF", errors.New("unexpected EOF"), true},
+		{"403 ratelimitexceeded", &googleapi.Error{Code:403, Message: "error creating instance: rateLimitExceeded"}, true},
+		{"403 Forbidden", &googleapi.Error{Code:403, Message: "Read access forbidden"}, false},
 	}
 
 	for _, tt := range tests {
