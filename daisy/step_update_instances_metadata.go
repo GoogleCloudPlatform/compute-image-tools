@@ -1,4 +1,4 @@
-//  Copyright 2017 Google Inc. All Rights Reserved.
+//  Copyright 2019 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ type UpdateInstanceMetadata struct {
 }
 
 func (c *UpdateInstancesMetadata) populate(ctx context.Context, s *Step) DError {
-	// We need to validate for duplicates agains the existing metadata so we will do this in the running.
+	// We need to validate for duplicates against the existing metadata so we will do this in the running.
 	return nil
 }
 
