@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -x
+set -o pipefail
 
 # Enable case-insensitive match when checking for
 # the ova filetype.
@@ -51,8 +51,12 @@ function resizeDisk() {
   local deviceId="${4}"
 
   echo "Import: Resizing ${diskId} to ${requiredSizeInGb}GB in ${zone}."
-  if ! out=$(gcloud -q compute disks resize ${diskId} --size=${requiredSizeInGb}GB --zone=${zone} 2>&1); then
-    echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${requiredSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
+  if ! out=$(gcloud -q compute disks resize "${diskId}" --size="${requiredSizeInGb}"GB --zone="${zone}" 2>&1 | tr "\n\r" " "); then
+    if echo "$out" | grep -q "Required .compute.disks.resize. permission"; then
+      echo "ImportFailed: Failed to resize disk. The Compute Engine default service account needs the compute.disks.resize permission."
+    else
+      echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${requiredSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
+    fi
     exit
   fi
 
