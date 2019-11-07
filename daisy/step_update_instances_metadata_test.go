@@ -3,8 +3,8 @@ package daisy
 import (
 	"context"
 	"fmt"
-	"testing"
 	"reflect"
+	"testing"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -18,7 +18,7 @@ func TestUpdateInstancesMetadataValidate(t *testing.T) {
 
 	tests := []struct {
 		desc    string
-		sm     *UpdateInstancesMetadata
+		sm      *UpdateInstancesMetadata
 		wantErr bool
 	}{
 		{"empty metadata case", &UpdateInstancesMetadata{{Instance: testInstance, Metadata: map[string]string{}}}, true},
@@ -35,7 +35,6 @@ func TestUpdateInstancesMetadataValidate(t *testing.T) {
 		}
 	}
 }
-
 
 func computeMetataToMap(md compute.Metadata) map[string]string {
 	mdMap := map[string]string{}
@@ -61,27 +60,27 @@ func TestUpdateInstancesMetadataRun(t *testing.T) {
 	w.instances.m = map[string]*Resource{testInstance: {Project: testProject, RealName: testInstance, link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, testInstance)}}
 
 	tests := []struct {
-		desc    string
+		desc             string
 		originalMetadata map[string]string
 		expectedMetadata map[string]string
-		sm     *UpdateInstancesMetadata
-		wantErr bool
-		getInstErr error
-		setMetaErr error
+		sm               *UpdateInstancesMetadata
+		wantErr          bool
+		getInstErr       error
+		setMetaErr       error
 	}{
 		{"blank case", map[string]string{}, map[string]string{}, &UpdateInstancesMetadata{}, false, nil, nil},
 		{"Add metadata case", map[string]string{"orig1": "value1"}, map[string]string{"orig1": "value1", "new1": "value2"}, &UpdateInstancesMetadata{{Instance: testInstance, Metadata: map[string]string{"new1": "value2"}}}, false, nil, nil},
 		{"override metadata case", map[string]string{"key1": "value1"}, map[string]string{"key1": "value2"}, &UpdateInstancesMetadata{{Instance: testInstance, Metadata: map[string]string{"key1": "value2"}}}, false, nil, nil},
 		{"get instance error case", map[string]string{}, map[string]string{}, &UpdateInstancesMetadata{{Instance: testInstance, Metadata: map[string]string{"key1": "value1"}}}, true, Errf("error"), nil},
-		{"set metadata error case", map[string]string{}, map[string]string{"key1": "value1"}, &UpdateInstancesMetadata{{Instance: testInstance, Metadata: map[string]string{"key1": "value1"}}}, true, nil,  Errf("error")},
+		{"set metadata error case", map[string]string{}, map[string]string{"key1": "value1"}, &UpdateInstancesMetadata{{Instance: testInstance, Metadata: map[string]string{"key1": "value1"}}}, true, nil, Errf("error")},
 	}
 	for _, tt := range tests {
 		originalCompMetadata := mapToComputeMetadata(tt.originalMetadata)
 		instance := compute.Instance{Metadata: &originalCompMetadata}
-		mockGetInstance := func(_ string, _ string , _ string) (*compute.Instance, error) { return &instance, tt.getInstErr}
+		mockGetInstance := func(_ string, _ string, _ string) (*compute.Instance, error) { return &instance, tt.getInstErr }
 
 		var gotM compute.Metadata
-		mockSetInstanceMetadata := func(_ string, _ string, _ string, md *compute.Metadata) error { gotM = *md; return tt.setMetaErr}
+		mockSetInstanceMetadata := func(_ string, _ string, _ string, md *compute.Metadata) error { gotM = *md; return tt.setMetaErr }
 		w.ComputeClient = &daisyCompute.TestClient{GetInstanceFn: mockGetInstance, SetInstanceMetadataFn: mockSetInstanceMetadata}
 		err := tt.sm.run(ctx, s)
 		if !tt.wantErr && err != nil {
@@ -91,8 +90,8 @@ func TestUpdateInstancesMetadataRun(t *testing.T) {
 			t.Errorf("%s: expected error, got none", tt.desc)
 		}
 		resMetadata := computeMetataToMap(gotM)
-		if (!reflect.DeepEqual(tt.expectedMetadata, resMetadata)) {
-			t.Errorf("%s: expected metadata %v, got %v", tt.desc, tt.expectedMetadata, resMetadata)	
+		if !reflect.DeepEqual(tt.expectedMetadata, resMetadata) {
+			t.Errorf("%s: expected metadata %v, got %v", tt.desc, tt.expectedMetadata, resMetadata)
 		}
 	}
 }

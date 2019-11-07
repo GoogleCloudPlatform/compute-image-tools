@@ -41,7 +41,7 @@ func (c *UpdateInstancesMetadata) populate(ctx context.Context, s *Step) DError 
 
 func (c *UpdateInstancesMetadata) validate(ctx context.Context, s *Step) (errs DError) {
 	for _, sm := range *c {
-		if (len(sm.Metadata) == 0) {
+		if len(sm.Metadata) == 0 {
 			errs = addErrs(errs, Errf("Instance %v: Metadata must contain at least one value to update", sm.Instance))
 		}
 
@@ -91,7 +91,7 @@ func (c *UpdateInstancesMetadata) run(ctx context.Context, s *Step) DError {
 			for _, item := range resp.Metadata.Items {
 				// Put only keys that were not updated
 				if _, ok := sm.Metadata[item.Key]; !ok {
-   					metadata.Items = append(metadata.Items, item)
+					metadata.Items = append(metadata.Items, item)
 				}
 			}
 
