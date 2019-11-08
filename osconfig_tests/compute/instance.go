@@ -134,7 +134,20 @@ func (i *Instance) AddMetadata(mdi ...*computeApi.MetadataItems) error {
 		return err
 	}
 
-	resp.Metadata.Items = append(resp.Metadata.Items, mdi...)
+	for _, old := range resp.Metadata.Items {
+		found := false
+		for _, new := range mdi {
+			if old.Key == new.Key {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+		mdi = append(mdi, old)
+	}
+	resp.Metadata.Items = mdi
 	return i.client.SetInstanceMetadata(i.Project, i.Zone, i.Name, resp.Metadata)
 }
 

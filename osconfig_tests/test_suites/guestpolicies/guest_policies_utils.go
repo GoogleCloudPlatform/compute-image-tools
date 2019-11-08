@@ -182,8 +182,7 @@ done`
 		key = "startup-script"
 
 	case "yum":
-		ss = `systemctl stop google-osconfig-agent
-stop -q -n google-osconfig-agent  # required for EL6
+		ss = `
 echo 'Adding test repo'
 cat > /etc/yum.repos.d/google-osconfig-agent.repo <<EOM
 [test-repo]
@@ -218,7 +217,7 @@ done`
 		key = "startup-script"
 
 	case "googet":
-		ss = `Stop-Service google_osconfig_agent
+		ss = `
 echo 'Adding test repo'
 googet addrepo test https://packages.cloud.google.com/yuck/repos/osconfig-agent-test-repository
 googet -noconfirm remove %[2]s
@@ -241,7 +240,7 @@ while(1) {
 		key = "windows-startup-script-ps1"
 
 	case "zypper":
-		ss = `systemctl stop google-osconfig-agent
+		ss = `
 echo 'Adding test repo'
 cat > /etc/zypp/repos.d/google-osconfig-agent.repo <<EOM
 [test-repo]

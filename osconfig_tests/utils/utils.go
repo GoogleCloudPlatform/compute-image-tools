@@ -29,15 +29,20 @@ import (
 
 var (
 	yumInstallAgent = `
+systemctl stop google-osconfig-agent
+stop -q -n google-osconfig-agent  # required for EL6
 while ! yum install -y google-osconfig-agent; do
 if [[ n -gt 3 ]]; then
   exit 1
 fi
 n=$[$n+1]
 sleep 5
-done` + curlPost
+done
+systemctl start google-osconfig-agent
+start -q -n google-osconfig-agent  # required for EL6` + curlPost
 
 	zypperInstallAgent = `
+systemctl stop google-osconfig-agent
 while ! zypper -n -i --no-gpg-checks install google-osconfig-agent; do
 if [[ n -gt 2 ]]; then
   # Zypper repos are flaky, we retry 3 times then just continue, the agent may be installed fine.
@@ -46,7 +51,8 @@ if [[ n -gt 2 ]]; then
 fi
 n=$[$n+1]
 sleep 5
-done` + curlPost
+done
+systemctl start google-osconfig-agent` + curlPost
 
 	curlPost = `
 uri=http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes/osconfig_tests/install_done
@@ -86,18 +92,24 @@ EOM`
 
 // InstallOSConfigDeb installs the osconfig agent on deb based systems.
 func InstallOSConfigDeb() string {
-	return fmt.Sprintf(`echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-%s main' >> /etc/apt/sources.list
+	return fmt.Sprintf(`systemctl stop google-osconfig-agent
+echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-%s main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
-apt-get install -y google-osconfig-agent`+curlPost, config.AgentRepo())
+apt-get install -y google-osconfig-agent
+systemctl start google-osconfig-agent`+curlPost, config.AgentRepo())
 }
 
 // InstallOSConfigGooGet installs the osconfig agent on Windows systems.
 func InstallOSConfigGooGet() string {
 	if config.AgentRepo() == "stable" {
-		return `c:\programdata\googet\googet.exe -noconfirm install google-osconfig-agent` + windowsPost
+		return `Stop-Service google_osconfig_agent
+c:\programdata\googet\googet.exe -noconfirm install google-osconfig-agent
+Start-Service google_osconfig_agent` + windowsPost
 	}
-	return fmt.Sprintf(`c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-%s google-osconfig-agent`+windowsPost, config.AgentRepo())
+	return fmt.Sprintf(`Stop-Service google_osconfig_agent
+c:\programdata\googet\googet.exe -noconfirm install -sources https://packages.cloud.google.com/yuck/repos/google-osconfig-agent-%s google-osconfig-agent
+Start-Service google_osconfig_agent`+windowsPost, config.AgentRepo())
 }
 
 // InstallOSConfigSUSE installs the osconfig agent on suse systems.
@@ -199,7 +211,8 @@ var HeadEL7Images = map[string]string{
 
 // HeadEL8Images is a map of names to image paths for public EL8 image families.
 var HeadEL8Images = map[string]string{
-	"rhel-cloud/rhel-8": "projects/rhel-cloud/global/images/family/rhel-8",
+	"rhel-cloud/rhel-8":     "projects/rhel-cloud/global/images/family/rhel-8",
+	"centos-cloud/centos-8": "projects/centos-cloud/global/images/family/centos-8",
 }
 
 // OldEL7Images is a map of names to image paths for old EL7 images.
@@ -276,6 +289,7 @@ func CreateComputeInstance(metadataitems []*api.MetadataItems, client daisyCompu
 	// enable debug logging and guest-attributes for all test instances
 	items = append(items, compute.BuildInstanceMetadataItem("enable-os-config-debug", "true"))
 	items = append(items, compute.BuildInstanceMetadataItem("enable-guest-attributes", "true"))
+	items = append(items, compute.BuildInstanceMetadataItem("os-config-endpoint", config.SvcEndpoint()))
 
 	for _, item := range metadataitems {
 		items = append(items, item)
