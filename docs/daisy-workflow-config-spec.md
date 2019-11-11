@@ -29,6 +29,7 @@
     * [IncludeWorkflow](#type-includeworkflow)
     * [SubWorkflow](#type-subworkflow)
     * [WaitForInstancesSignal](#type-waitforinstancessignal)
+    * [UpdateInstancesMetadata](#type-UpdateInstancesMetadata)
   * [Dependencies](#dependencies)
   * [Vars](#vars)
     * [Autovars](#autovars)
@@ -753,6 +754,31 @@ To output to the serial port from a startup script (launched using the
 `StartupScript` field of the `CreateInstances` step type), it is sufficient to
 write output to "standard out": On Unix systems this might be using `echo` or
 `print`, on Windows `Write-Host` or `Write-Console`.
+
+
+#### Type: UpdateInstancesMetadata
+Update instances metadata. This step can update the value of and existing key
+ or add new keys. However this step will not remove metadata keys.
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| Instance | string | The Name or [partial URL](#glossary-partialurl) of the VM. |
+| Metadata | map[string]string | Simple key-value map of the keys and values to update. |
+
+This UpdateInstancesMetadata step example updating an instance metdata in the project.
+```json
+"step-name": {
+  "UpdateInstancesMetadata": [
+    {
+      "Instance": "instance1",
+      "Metdata": {
+        "foo" : "bar",
+        "foobar": "barfoo"
+      }
+    }
+  ]
+}
+```
 
 ### Dependencies
 
