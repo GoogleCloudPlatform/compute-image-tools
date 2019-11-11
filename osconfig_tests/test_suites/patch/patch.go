@@ -153,7 +153,7 @@ func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.D
 	for {
 		select {
 		case <-timedout:
-			return nil, errors.New("timed out")
+			return nil, errors.New("timed out while waiting for patch job to complete")
 		case <-tick:
 			req := &osconfigpb.GetPatchJobRequest{
 				Name: job.GetName(),
@@ -200,6 +200,10 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 	}
 
 	testCase.Logf("Agent installed successfully")
+	if err := inst.AddMetadata(compute.BuildInstanceMetadataItem("windows-startup-script-ps1", windowsRecordBoot), compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot)); err != nil {
+		testCase.WriteFailure("Error setting metadata: %v", err)
+		return
+	}
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	osconfigClient, err := gcpclients.GetOsConfigClientV1alpha2()
@@ -256,6 +260,10 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 	}
 
 	testCase.Logf("Agent installed successfully")
+	if err := inst.AddMetadata(compute.BuildInstanceMetadataItem("windows-startup-script-ps1", windowsRecordBoot), compute.BuildInstanceMetadataItem("startup-script", linuxRecordBoot)); err != nil {
+		testCase.WriteFailure("Error setting metadata: %v", err)
+		return
+	}
 
 	parent := fmt.Sprintf("projects/%s", testProjectConfig.TestProjectID)
 	osconfigClient, err := gcpclients.GetOsConfigClientV1alpha2()

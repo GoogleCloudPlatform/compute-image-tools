@@ -38,7 +38,7 @@ import (
 )
 
 var (
-	testSuiteName = "OSPackage"
+	testSuiteName = "GuestPolicies"
 )
 
 var (

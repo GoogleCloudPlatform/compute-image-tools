@@ -28,6 +28,7 @@ import (
 var (
 	// TODO: allow this to be configurable through flag to test against staging
 	prodEndpoint           = "osconfig.googleapis.com:443"
+	endpoint               = flag.String("endpoint", prodEndpoint, "API endpoint to use for the tests")
 	oauthDefault           = flag.String("local_oauth", "", "path to service creds file")
 	agentRepo              = flag.String("agent_repo", "unstable", "repo to pull agent from (unstable, staging, or stable)")
 	bucketDefault          = "osconfig-agent-end2end-tests"
@@ -112,7 +113,7 @@ func AgentRepo() string {
 
 // SvcEndpoint returns the svcEndpoint
 func SvcEndpoint() string {
-	return prodEndpoint
+	return *endpoint
 }
 
 // OauthPath returns the oauthPath file path
