@@ -72,7 +72,8 @@
             "gcs-path": "${OUTSPATH}/${NAME}",
             "format": "${format}",
             "buffer-disk": "disk-${NAME}-buffer-${ID}",
-            "resizing-script-name": "${NAME}_disk_resizing_mon.sh"
+            "resizing-script-name": "${NAME}_disk_resizing_mon.sh",
+            "startup-script": "${SOURCE:${NAME}_export_disk_ext.sh}"
           },
           "networkInterfaces": [
             {
@@ -80,8 +81,7 @@
               "subnetwork": "${export_subnet}"
             }
           ],
-          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control", "https://www.googleapis.com/auth/compute"],
-          "StartupScript": "${NAME}_export_disk_ext.sh"
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control", "https://www.googleapis.com/auth/compute"]
         }
       ]
     },
