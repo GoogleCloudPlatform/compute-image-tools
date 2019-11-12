@@ -30,6 +30,7 @@ var (
 		"rhel-8":   utils.InstallOSConfigEL8(),
 		"centos-6": utils.InstallOSConfigEL6(),
 		"centos-7": utils.InstallOSConfigEL7(),
+		"centos-8": utils.InstallOSConfigEL8(),
 	}
 )
 

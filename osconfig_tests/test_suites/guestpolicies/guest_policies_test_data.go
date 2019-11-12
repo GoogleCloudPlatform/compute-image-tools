@@ -52,7 +52,7 @@ func buildPkgInstallTestSetup(name, image, pkgManager, key string) *guestPolicyT
 	if pkgManager == "zypper" {
 		packageName = "xeyes"
 	}
-	if strings.Contains(image, "rhel-8") {
+	if strings.Contains(image, "rhel-8") || strings.Contains(image, "centos-8") {
 		packageName = "xorg-x11-apps"
 	}
 
