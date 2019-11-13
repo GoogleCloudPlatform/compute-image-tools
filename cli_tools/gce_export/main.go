@@ -29,6 +29,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -39,20 +40,22 @@ import (
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/dustin/go-humanize"
 	gzip "github.com/klauspost/pgzip"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	htransport "google.golang.org/api/transport/http"
 )
 
 var (
-	disk         = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive1'")
-	bufferPrefix = flag.String("buffer_prefix", "", "if set will use this local path as the local buffer prefix")
-	gcsPath      = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
-	oauth        = flag.String("oauth", "", "path to oauth json file")
-	licenses     = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
-	noconfirm    = flag.Bool("y", false, "skip confirmation")
-	level        = flag.Int("level", 3, "level of compression from 1-9, 1 being best speed, 9 being best compression")
-	bufferSize   = flag.String("buffer_size", "1GiB", "max buffer size to use")
-	workers      = flag.Int("workers", runtime.NumCPU(), "number of upload workers to utilize")
+	disk                     = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive1'")
+	bufferPrefix             = flag.String("buffer_prefix", "", "if set will use this local path as the local buffer prefix")
+	gcsPath                  = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
+	oauth                    = flag.String("oauth", "", "path to oauth json file")
+	licenses                 = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
+	noconfirm                = flag.Bool("y", false, "skip confirmation")
+	level                    = flag.Int("level", 3, "level of compression from 1-9, 1 being best speed, 9 being best compression")
+	bufferSize               = flag.String("buffer_size", "1GiB", "max buffer size to use")
+	workers                  = flag.Int("workers", runtime.NumCPU(), "number of upload workers to utilize")
+	gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
 )
 
 // progress is a io.Writer that updates total in Write.
@@ -144,10 +147,18 @@ func (b *bufferedWriter) uploadWorker() {
 				return dst.Close()
 			}()
 			if err != nil {
+				// Don't retry if permission error as it's not recoverable.
+				gAPIErr, isGAPIErr := err.(*googleapi.Error)
+				if isGAPIErr && gAPIErr.Code == 403 && gcsPermissionErrorRegExp.MatchString(gAPIErr.Message) {
+					fmt.Printf("GCEExport: %v", err)
+					os.Exit(2)
+				}
+
 				fmt.Printf("Failed %v time(s) to upload '%v', error: %v\n", i, in, err)
 				if i > 16 {
 					log.Fatal(err)
 				}
+
 				fmt.Printf("Retrying upload '%v' after %v second(s)...\n", in, i)
 				time.Sleep(time.Duration(1*i) * time.Second)
 				continue
