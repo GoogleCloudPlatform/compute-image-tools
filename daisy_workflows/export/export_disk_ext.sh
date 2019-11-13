@@ -18,6 +18,13 @@ function serialOutputKeyValuePair() {
   echo "<serial-output key:'$1' value:'$2'>"
 }
 
+# Verify VM has access to Google APIs
+curl --silent --fail "https://www.googleapis.com/discovery/v1/apis" &> /dev/null;
+if [[ $? -ne 0 ]]; then
+  echo "ExportFailed: Cannot access Google APIs. Ensure that VPC settings allow VMs to access Google APIs either via external IP or Private Google Access. More info at: https://cloud.google.com/vpc/docs/configure-private-google-access"
+  exit
+fi
+
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance/attributes"
 GS_PATH=$(curl -f -H Metadata-Flavor:Google ${URL}/gcs-path)
