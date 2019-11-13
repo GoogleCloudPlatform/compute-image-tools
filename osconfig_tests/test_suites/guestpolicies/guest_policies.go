@@ -25,16 +25,16 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
+	osconfigV1alpha2 "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/_internal/cloud.google.com/go/osconfig/apiv1alpha2"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	gcpclients "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/gcp_clients"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
-	osconfigV1alpha2 "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha2"
 	"github.com/kylelemons/godebug/pretty"
 	computeApi "google.golang.org/api/compute/v1"
 
-	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/_internal/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
 )
 
 var (
