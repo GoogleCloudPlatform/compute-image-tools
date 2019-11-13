@@ -147,13 +147,18 @@ func (b *bufferedWriter) uploadWorker() {
 				return dst.Close()
 			}()
 			if err != nil {
-				fmt.Printf("Failed %v time(s) to upload '%v', error: %v\n", i, in, err)
-
 				// Don't retry if permission error as it's not recoverable.
 				gAPIErr, isGAPIErr := err.(*googleapi.Error)
-				if i > 16 || (isGAPIErr && gAPIErr.Code == 403 && gcsPermissionErrorRegExp.MatchString(gAPIErr.Message)) {
-					log.Fatalf("ExportFailed: Failed to export disk source to GCS. [Privacy->%v<-Privacy]", err)
+				if isGAPIErr && gAPIErr.Code == 403 && gcsPermissionErrorRegExp.MatchString(gAPIErr.Message) {
+					fmt.Printf("GCEExport: %v", err)
+					os.Exit(2)
 				}
+
+				fmt.Printf("Failed %v time(s) to upload '%v', error: %v\n", i, in, err)
+				if i > 16 {
+					log.Fatal(err)
+				}
+
 
 				fmt.Printf("Retrying upload '%v' after %v second(s)...\n", in, i)
 				time.Sleep(time.Duration(1*i) * time.Second)
