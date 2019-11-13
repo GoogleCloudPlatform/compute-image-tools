@@ -20,9 +20,9 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	osconfigV1alpha2 "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/_internal/cloud.google.com/go/osconfig/apiv1alpha2"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/config"
 	"github.com/GoogleCloudPlatform/guest-logging-go/logger"
-	osconfigV1alpha2 "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/cloud.google.com/go/osconfig/apiv1alpha2"
 	"google.golang.org/api/option"
 )
 

@@ -24,7 +24,7 @@ import (
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/test_config"
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 
-	osconfigpb "github.com/GoogleCloudPlatform/osconfig/_internal/gapi-cloud-osconfig-go/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
+	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/_internal/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
 )
 
 const (

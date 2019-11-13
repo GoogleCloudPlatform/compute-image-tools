@@ -93,6 +93,7 @@ EOM`
 // InstallOSConfigDeb installs the osconfig agent on deb based systems.
 func InstallOSConfigDeb() string {
 	return fmt.Sprintf(`systemctl stop google-osconfig-agent
+dpkg --configure -a
 echo 'deb http://packages.cloud.google.com/apt google-osconfig-agent-stretch-%s main' >> /etc/apt/sources.list
 curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 apt-get update
