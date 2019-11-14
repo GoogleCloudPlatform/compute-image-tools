@@ -91,7 +91,10 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("enable-os-inventory", "true"))
 
-	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, "n1-standard-2", testSetup.image, testSetup.hostname, testProjectConfig.TestProjectID, testProjectConfig.GetZone(), testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
+	zone := testProjectConfig.AquireZone()
+	defer testProjectConfig.ReleaseZone(zone)
+
+	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, "n1-standard-2", testSetup.image, testSetup.hostname, testProjectConfig.TestProjectID, zone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %v", err)
 		return nil, false

@@ -19,13 +19,13 @@ import (
 	"testing"
 )
 
-func TestGetZone(t *testing.T) {
+func TestAquireZone(t *testing.T) {
 	in := map[string]int{"zone1": 10, "zone2": 20, "zone3": 30}
 	p := GetProject("projectID", in)
 
 	got := map[string]int{"zone1": 0, "zone2": 0, "zone3": 0}
 	for i := 0; i < 60; i++ {
-		zone := p.GetZone()
+		zone := p.AquireZone()
 		for z := range got {
 			if z == zone {
 				got[z]++
@@ -41,5 +41,22 @@ func TestGetZone(t *testing.T) {
 	want = map[string]int{"zone1": 0, "zone2": 0, "zone3": 0}
 	if !reflect.DeepEqual(want, in) {
 		t.Errorf("testZones end state:\nwant: %+v\ngot: %+v", want, in)
+	}
+	if len(p.zoneIndices) != 0 {
+		t.Errorf("len(p.zoneIndices) != 0: %d", len(p.zoneIndices))
+	}
+
+	// Return all the zones.
+	for z, n := range got {
+		for i := 0; i < n; i++ {
+			p.ReleaseZone(z)
+		}
+	}
+	want = map[string]int{"zone1": 10, "zone2": 20, "zone3": 30}
+	if !reflect.DeepEqual(want, in) {
+		t.Errorf("GetZone output:\nwant: %+v\ngot: %+v", want, in)
+	}
+	if len(p.zoneIndices) != 3 {
+		t.Errorf("len(p.zoneIndices) != 3: %d", len(p.zoneIndices))
 	}
 }
