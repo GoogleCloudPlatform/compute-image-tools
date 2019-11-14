@@ -94,7 +94,7 @@ func TestSuite(
 		{
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
-				InstanceNames: fmt.Sprintf("test-instance-ubuntu-3mounteddisks-%v", suffix),
+				InstanceNames: fmt.Sprintf("test-instance-ubuntu14-3-disks-%v", suffix),
 				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/Ubuntu_for_Horizon_three_disks_mounted.ova", ovaBucket),
 				OsID:          "ubuntu-1404",
 				Labels:        "lk1=lv1,lk2=kv2",
@@ -108,6 +108,23 @@ func TestSuite(
 				"startup-script", startupScriptUbuntu3disks),
 			assertTimeout:         7200 * time.Second,
 			expectedMachineType:   "n1-standard-1",
+			expectedStartupOutput: "All tests passed!",
+		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-ubuntu16-3-disks-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
+				OsID:          "ubuntu-1604",
+				Project:       &testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+			},
+			name:        fmt.Sprintf("ovf-import-test-ubuntu-1604-three-disks-%s", suffix),
+			description: "Ubuntu 3 disks mounted",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", startupScriptUbuntu3disks),
+			assertTimeout:         7200 * time.Second,
 			expectedStartupOutput: "All tests passed!",
 		},
 		{
