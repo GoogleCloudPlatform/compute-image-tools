@@ -48,7 +48,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 
 		setupDataDiskStepName := fmt.Sprintf("setup-data-disk-%v", dataDiskIndex)
 		diskImporterDiskName := fmt.Sprintf("disk-importer-%v", dataDiskIndex)
-		scratchDiskDiskName := fmt.Sprintf("disk-importer-scratch-%v", dataDiskIndex)
+		scratchDiskDiskName := fmt.Sprintf("disk-importer-scratch-%v-%v", dataDiskIndex, w.Vars["instance_name"].Value)
 
 		setupDataDiskStep := daisy.NewStep(setupDataDiskStepName, w, time.Hour)
 		setupDataDiskStep.CreateDisks = &daisy.CreateDisks{
@@ -77,6 +77,9 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					Type: "pd-ssd",
 				},
 				SizeGb: "10",
+				Resource: daisy.Resource{
+					ExactName: true,
+				},
 			},
 		}
 		w.Steps[setupDataDiskStepName] = setupDataDiskStep
