@@ -42,4 +42,21 @@ func TestGetZone(t *testing.T) {
 	if !reflect.DeepEqual(want, in) {
 		t.Errorf("testZones end state:\nwant: %+v\ngot: %+v", want, in)
 	}
+	if len(p.zoneIndices) != 0 {
+		t.Errorf("len(p.zoneIndices) != 0: %d", len(p.zoneIndices))
+	}
+
+	// Return all the zones.
+	for z, n := range got {
+		for i := 0; i < n; i++ {
+			p.ReturnZone(z)
+		}
+	}
+	want = map[string]int{"zone1": 10, "zone2": 20, "zone3": 30}
+	if !reflect.DeepEqual(want, in) {
+		t.Errorf("GetZone output:\nwant: %+v\ngot: %+v", want, in)
+	}
+	if len(p.zoneIndices) != 3 {
+		t.Errorf("len(p.zoneIndices) != 3: %d", len(p.zoneIndices))
+	}
 }

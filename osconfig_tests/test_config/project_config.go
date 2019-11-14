@@ -15,9 +15,9 @@
 package testconfig
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
+	"time"
 )
 
 // Project is details of test Project.
@@ -30,7 +30,7 @@ type Project struct {
 	mux                  sync.Mutex
 }
 
-// GetProject ...
+// GetProject creates a test Project to be used.
 func GetProject(projectID string, testZones map[string]int) *Project {
 	var zoneIndices []string
 
@@ -52,24 +52,45 @@ func GetProject(projectID string, testZones map[string]int) *Project {
 
 // GetZone gets a random zone that still has capacity.
 func (p *Project) GetZone() string {
+	for {
+		p.mux.Lock()
+
+		zc := len(p.zoneIndices)
+		if zc == 0 {
+			p.mux.Unlock()
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
+		// Pick a random zone.
+		zi := rand.Intn(zc)
+		z := p.zoneIndices[zi]
+
+		// Decrement the number of instances that this zone can host.
+		p.testZones[z]--
+		// Remove this zone from zoneIndices if it can't host any more instances.
+		if p.testZones[z] == 0 {
+			p.zoneIndices = append(p.zoneIndices[:zi], p.zoneIndices[zi+1:]...)
+		}
+
+		p.mux.Unlock()
+		return z
+	}
+}
+
+// ReturnZone returns a zone so other tests can use it.
+func (p *Project) ReturnZone(z string) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 
-	zc := len(p.zoneIndices)
-	if zc == 0 {
-		// TODO: return an error instead of stopping the process.
-		msg := "Not enough zone quota sepcified. Specify additional quota in `test_zones`."
-		fmt.Println(msg)
-		return msg
+	n, ok := p.testZones[z]
+	if !ok {
+		// This shouldn't happen, but if it does just ignore it.
+		return
+	}
+	if n == 0 {
+		p.zoneIndices = append(p.zoneIndices, z)
 	}
 
-	zi := rand.Intn(zc)
-	z := p.zoneIndices[zi]
-
-	p.testZones[z]--
-	if p.testZones[z] == 0 {
-		p.zoneIndices = append(p.zoneIndices[:zi], p.zoneIndices[zi+1:]...)
-	}
-
-	return z
+	p.testZones[z]++
 }
