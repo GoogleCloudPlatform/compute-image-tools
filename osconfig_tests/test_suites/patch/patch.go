@@ -33,6 +33,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/utils"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/kylelemons/godebug/pretty"
+	"google.golang.org/api/iterator"
 
 	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/_internal/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
 )
@@ -143,6 +144,26 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 	logger.Printf("Finished TestSuite %q", testSuite.Name)
 }
 
+func getPatchJobInstanceDetails(ctx context.Context, parent string) ([]string, error) {
+	client, err := gcpclients.GetOsConfigClientV1alpha2()
+	if err != nil {
+		return nil, err
+	}
+	it := client.ListPatchJobInstanceDetails(ctx, &osconfigpb.ListPatchJobInstanceDetailsRequest{Parent: parent})
+	var ret []string
+	for {
+		item, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, item.String())
+	}
+	return ret, nil
+}
+
 func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.Duration) (*osconfigpb.PatchJob, error) {
 	client, err := gcpclients.GetOsConfigClientV1alpha2()
 	if err != nil {
@@ -155,16 +176,17 @@ func awaitPatchJob(ctx context.Context, job *osconfigpb.PatchJob, timeout time.D
 		case <-timedout:
 			return nil, errors.New("timed out while waiting for patch job to complete")
 		case <-tick:
-			req := &osconfigpb.GetPatchJobRequest{
-				Name: job.GetName(),
-			}
-			res, err := client.GetPatchJob(ctx, req)
+			res, err := client.GetPatchJob(ctx, &osconfigpb.GetPatchJobRequest{Name: job.GetName()})
 			if err != nil {
 				return nil, fmt.Errorf("error while fetching patch job: %s", utils.GetStatusFromError(err))
 			}
 
 			if isPatchJobFailureState(res.State) {
-				return nil, fmt.Errorf("failure status %v with message '%s'", res.State, job.GetErrorMessage())
+				details, err := getPatchJobInstanceDetails(ctx, job.GetName())
+				if err != nil {
+					details = []string{err.Error()}
+				}
+				return nil, fmt.Errorf("failure status %v with message: %q, InstanceDetails: %q", res.State, job.GetErrorMessage(), details)
 			}
 
 			if res.State == osconfigpb.PatchJob_SUCCEEDED {
@@ -186,7 +208,7 @@ func runExecutePatchJobTest(ctx context.Context, testCase *junitxml.TestCase, te
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	name := fmt.Sprintf("patch-test-%s-%s-%s", path.Base(testSetup.testName), testSuffix, utils.RandString(5))
-	zone := testProjectConfig.AquireZone()
+	zone := testProjectConfig.AcquireZone()
 	defer testProjectConfig.ReleaseZone(zone)
 	inst, err := utils.CreateComputeInstance(testSetup.metadata, computeClient, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, zone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
@@ -248,7 +270,7 @@ func runRebootPatchTest(ctx context.Context, testCase *junitxml.TestCase, testSe
 
 	testCase.Logf("Creating instance with image %q", testSetup.image)
 	name := fmt.Sprintf("patch-reboot-%s-%s-%s", path.Base(testSetup.testName), testSuffix, utils.RandString(5))
-	zone := testProjectConfig.AquireZone()
+	zone := testProjectConfig.AcquireZone()
 	defer testProjectConfig.ReleaseZone(zone)
 	inst, err := utils.CreateComputeInstance(testSetup.metadata, computeClient, testSetup.machineType, testSetup.image, name, testProjectConfig.TestProjectID, zone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {

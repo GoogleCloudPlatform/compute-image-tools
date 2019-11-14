@@ -25,7 +25,7 @@ func TestAquireZone(t *testing.T) {
 
 	got := map[string]int{"zone1": 0, "zone2": 0, "zone3": 0}
 	for i := 0; i < 60; i++ {
-		zone := p.AquireZone()
+		zone := p.AcquireZone()
 		for z := range got {
 			if z == zone {
 				got[z]++

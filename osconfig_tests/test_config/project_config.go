@@ -50,8 +50,8 @@ func GetProject(projectID string, testZones map[string]int) *Project {
 	}
 }
 
-// AquireZone returns a random zone that still has capacity, or waits until there is one.
-func (p *Project) AquireZone() string {
+// AcquireZone returns a random zone that still has capacity, or waits until there is one.
+func (p *Project) AcquireZone() string {
 	timer := time.NewTimer(30 * time.Minute)
 	for {
 		p.mux.Lock()
