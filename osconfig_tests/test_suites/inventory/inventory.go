@@ -91,8 +91,8 @@ func runGatherInventoryTest(ctx context.Context, testSetup *inventoryTestSetup, 
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("enable-os-inventory", "true"))
 
-	zone := testProjectConfig.GetZone()
-	defer testProjectConfig.ReturnZone(zone)
+	zone := testProjectConfig.AquireZone()
+	defer testProjectConfig.ReleaseZone(zone)
 
 	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, "n1-standard-2", testSetup.image, testSetup.hostname, testProjectConfig.TestProjectID, zone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {

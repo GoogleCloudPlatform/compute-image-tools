@@ -50,16 +50,22 @@ func GetProject(projectID string, testZones map[string]int) *Project {
 	}
 }
 
-// GetZone gets a random zone that still has capacity.
-func (p *Project) GetZone() string {
+// AquireZone returns a random zone that still has capacity, or waits until there is one.
+func (p *Project) AquireZone() string {
+	timer := time.NewTimer(30 * time.Minute)
 	for {
 		p.mux.Lock()
 
 		zc := len(p.zoneIndices)
 		if zc == 0 {
 			p.mux.Unlock()
-			time.Sleep(10 * time.Second)
-			continue
+			select {
+			case <-timer.C:
+				return "Not enough zone quota sepcified. Specify additional quota in `test_zones`."
+			default:
+				time.Sleep(10 * time.Second)
+				continue
+			}
 		}
 
 		// Pick a random zone.
@@ -78,8 +84,8 @@ func (p *Project) GetZone() string {
 	}
 }
 
-// ReturnZone returns a zone so other tests can use it.
-func (p *Project) ReturnZone(z string) {
+// ReleaseZone returns a zone so other tests can use it.
+func (p *Project) ReleaseZone(z string) {
 	p.mux.Lock()
 	defer p.mux.Unlock()
 

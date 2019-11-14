@@ -131,8 +131,8 @@ func runTest(ctx context.Context, testCase *junitxml.TestCase, testSetup *guestP
 	var metadataItems []*computeApi.MetadataItems
 	metadataItems = append(metadataItems, testSetup.startup)
 	metadataItems = append(metadataItems, compute.BuildInstanceMetadataItem("os-config-enabled-prerelease-features", "ospackage"))
-	zone := testProjectConfig.GetZone()
-	defer testProjectConfig.ReturnZone(zone)
+	zone := testProjectConfig.AquireZone()
+	defer testProjectConfig.ReleaseZone(zone)
 	inst, err := utils.CreateComputeInstance(metadataItems, computeClient, testSetup.machineType, testSetup.image, testSetup.instanceName, testProjectConfig.TestProjectID, zone, testProjectConfig.ServiceAccountEmail, testProjectConfig.ServiceAccountScopes)
 	if err != nil {
 		testCase.WriteFailure("Error creating instance: %s", utils.GetStatusFromError(err))
