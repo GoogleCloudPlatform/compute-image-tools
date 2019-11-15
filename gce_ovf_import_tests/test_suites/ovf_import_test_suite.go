@@ -121,7 +121,7 @@ func TestSuite(
 				MachineType:   "n1-standard-4",
 			},
 			name:        fmt.Sprintf("ovf-import-test-ubuntu-1604-three-disks-%s", suffix),
-			description: "Ubuntu 3 disks mounted",
+			description: "Data disk VMDK larger than 10GB.",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", startupScriptUbuntu3disks),
 			assertTimeout:         7200 * time.Second,
