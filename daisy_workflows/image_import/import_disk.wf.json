@@ -26,6 +26,10 @@
     "is_windows": {
       "Value": "false",
       "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
+    },
+    "import_license": {
+      "Value": "",
+      "Description": "Import License used for tracking migration workflow use."
     }
   },
   "Sources": {
@@ -49,7 +53,8 @@
           "ExactName": true,
           "NoCleanup": true,
           "isWindows": "${is_windows}",
-          "FallbackToPdStandard": true
+          "FallbackToPdStandard": true,
+          "Licenses": ["${import_license}"]
         },
         {
           "Name": "disk-${NAME}-scratch-${ID}",
