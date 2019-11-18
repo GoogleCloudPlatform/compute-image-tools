@@ -94,6 +94,7 @@ iface ens4 inet dhcp
 source /etc/network/interfaces.d/*.cfg
 '''
 
+
 def DistroSpecific(g):
   ubu_release = utils.GetMetadataAttribute('ubuntu_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
@@ -157,6 +158,7 @@ def DistroSpecific(g):
 
   g.command(['update-grub2'])
 
+
 def remove_azure_agents(g):
   try:
     g.command(['apt-get', 'remove', '-y', '-f', 'walinuxagent'])
@@ -169,6 +171,7 @@ def remove_azure_agents(g):
   except Exception as e:
     logging.debug(str(e))
     logging.warn('Could not uninstall Azure agent. Continuing anyway.')
+
 
 def main():
   g = diskutils.MountDisk('/dev/sdb')
