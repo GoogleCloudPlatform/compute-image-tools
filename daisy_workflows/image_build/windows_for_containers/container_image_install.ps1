@@ -186,6 +186,7 @@ function Run-SecondBootSteps {
 }
 
 & googet -noconfirm update
+& ping 127.0.0.1 -n 60
 try {
   $windows_version = Get-MetadataValue 'version'
   Write-Host "Windows version: $windows_version"

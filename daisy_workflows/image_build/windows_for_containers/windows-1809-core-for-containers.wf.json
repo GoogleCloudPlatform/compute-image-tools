@@ -1,9 +1,9 @@
 {
-  "Name": "windows-1809-core-for-containers-image-build",
+  "Name": "windows-1809-core-containers-build",
   "Vars": {
     "build_date": "${TIMESTAMP}",
     "publish_project": "${PROJECT}",
-    "install_disk": {"Value": "disk-install", "Description": "Name of the GCE disk to use for the installation"},
+    "install_disk": {"Value": "disk-install", "Description": "Name of the disk to use for the installation."},
     "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."}
   },
   "Sources": {
@@ -61,7 +61,7 @@
           "SourceDisk": "${install_disk}",
           "Licenses": ["projects/windows-cloud/global/licenses/windows-for-containers"],
           "Description": "Microsoft, Windows Server, version 1809 Core for Containers, Server Core, x64 built on ${build_date}",
-          "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"],
+          "GuestOsFeatures": ["MULTI_IP_SUBNET", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS"],
           "Family": "windows-1809-core-for-containers",
           "Project": "${publish_project}",
           "NoCleanup": true,
