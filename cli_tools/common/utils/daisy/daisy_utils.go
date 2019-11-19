@@ -53,7 +53,8 @@ var (
 		"windows-2016-byol":    "windows/translate_windows_2016_byol.wf.json",
 		"windows-2019":         "windows/translate_windows_2019.wf.json",
 		"windows-2019-byol":    "windows/translate_windows_2019_byol.wf.json",
-		"windows-7-byol":       "windows/translate_windows_7_byol.wf.json",
+		"windows-7-x64-byol":   "windows/translate_windows_7_x64_byol.wf.json",
+		"windows-7-x86-byol":   "windows/translate_windows_7_x86_byol.wf.json",
 		"windows-8-1-x64-byol": "windows/translate_windows_8-1_x64_byol.wf.json",
 		"windows-10-byol":      "windows/translate_windows_10_byol.wf.json",
 	}
