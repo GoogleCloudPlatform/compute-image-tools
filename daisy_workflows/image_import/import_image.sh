@@ -19,6 +19,13 @@ set -o pipefail
 # the ova filetype.
 shopt -s nocasematch
 
+# Verify VM has access to Google APIs
+curl --silent --fail "https://www.googleapis.com/discovery/v1/apis" &> /dev/null;
+if [[ $? -ne 0 ]]; then
+  echo "ImportFailed: Cannot access Google APIs. Ensure that VPC settings allow VMs to access Google APIs either via external IP or Private Google Access. More info at: https://cloud.google.com/vpc/docs/configure-private-google-access"
+  exit
+fi
+
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance"
 DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)"
