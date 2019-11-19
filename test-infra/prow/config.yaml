@@ -295,6 +295,8 @@ periodics:
       - "-endpoint=staging-osconfig.sandbox.googleapis.com:443"
       - "-test_zones={\"us-central1-a\":10,\"us-central1-b\":10,\"us-central1-c\":10,\"us-central1-f\":10,\"us-west1-a\":10,\"us-west1-b\":10,\"us-west1-c\":10,\"us-east1-b\":10,\"us-east1-c\":10,\"us-east1-d\":10,\"us-east4-a\":10,\"us-east4-b\":10,\"us-east4-c\":10,\"europe-west4-a\":10,\"europe-west4-b\":10,\"europe-west4-c\":10,\"europe-west1-d\":10,\"europe-west1-b\":10,\"europe-west1-c\":10,\"asia-east1-a\":10,\"asia-east1-b\":10,\"asia-east1-c\":10}"
       env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/compute-image-tools-test-service-account/creds.json
       - name: ARTIFACTS
         value: /artifacts
       volumeMounts:
@@ -317,6 +319,8 @@ periodics:
       - "-test_project_id=compute-image-osconfig-agent"
       - "-test_zones={\"us-central1-a\":10,\"us-central1-b\":10,\"us-central1-c\":10,\"us-central1-f\":10,\"us-west1-a\":10,\"us-west1-b\":10,\"us-west1-c\":10,\"us-east1-b\":10,\"us-east1-c\":10,\"us-east1-d\":10,\"us-east4-a\":10,\"us-east4-b\":10,\"us-east4-c\":10,\"europe-west4-a\":10,\"europe-west4-b\":10,\"europe-west4-c\":10,\"europe-west1-d\":10,\"europe-west1-b\":10,\"europe-west1-c\":10,\"asia-east1-a\":10,\"asia-east1-b\":10,\"asia-east1-c\":10}"
       env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/compute-image-tools-test-service-account/creds.json
       - name: ARTIFACTS
         value: /artifacts
       volumeMounts:
@@ -339,6 +343,8 @@ periodics:
       - "-test_project_id=compute-image-osconfig-agent"
       - "-test_zones={\"us-central1-a\":10,\"us-central1-b\":10,\"us-central1-c\":10,\"us-central1-f\":10,\"us-west1-a\":10,\"us-west1-b\":10,\"us-west1-c\":10,\"us-east1-b\":10,\"us-east1-c\":10,\"us-east1-d\":10,\"us-east4-a\":10,\"us-east4-b\":10,\"us-east4-c\":10,\"europe-west4-a\":10,\"europe-west4-b\":10,\"europe-west4-c\":10,\"europe-west1-d\":10,\"europe-west1-b\":10,\"europe-west1-c\":10,\"asia-east1-a\":10,\"asia-east1-b\":10,\"asia-east1-c\":10}"
       env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/compute-image-tools-test-service-account/creds.json
       - name: ARTIFACTS
         value: /artifacts
       volumeMounts:
