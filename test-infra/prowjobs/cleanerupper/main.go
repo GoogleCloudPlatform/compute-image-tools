@@ -26,11 +26,11 @@ import (
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	osconfigV1alpha2 "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/_internal/cloud.google.com/go/osconfig/apiv1alpha2"
+	osconfigV1alpha2 "github.com/GoogleCloudPlatform/osconfig/e2e_tests/_internal/cloud.google.com/go/osconfig/apiv1alpha2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
-	osconfigpb "github.com/GoogleCloudPlatform/compute-image-tools/osconfig_tests/_internal/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
+	osconfigpb "github.com/GoogleCloudPlatform/osconfig/e2e_tests/_internal/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
 )
 
 const (
