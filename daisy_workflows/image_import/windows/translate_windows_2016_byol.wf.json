@@ -46,7 +46,7 @@
           "version": "10.0",
           "task_reg": "./task_reg_2016",
           "task_xml": "./task_xml",
-          "byol": "true",
+          "is_byol": "true",
           "import_network": "${import_network}",
           "import_subnet": "${import_subnet}"
         }

@@ -46,8 +46,8 @@
           "version": "6.1",
           "task_reg": "./task_reg_2008r2",
           "task_xml": "./task_xml",
-          "byol": "true",
           "import_network": "${import_network}",
+          "is_byol": "true",
           "import_subnet": "${import_subnet}"
         }
       },

@@ -56,7 +56,8 @@ var ovfOSTypeToOSID = map[string]string{
 
 // Mapping potentially supported OVF osType values to possible importer OS ID values
 // Some might have only one option but we can't select it automatically as we cannot guarantee
-// correctness.
+// correctness. All Windows Client imports will be included here, to check that they
+// expect a Bring Your Own License import.
 var noMappingOSTypes = map[string][]string{
 	"ubuntuGuest":           {"ubuntu-1404"},
 	"ubuntu64Guest":         {"ubuntu-1404", "ubuntu-1604"},

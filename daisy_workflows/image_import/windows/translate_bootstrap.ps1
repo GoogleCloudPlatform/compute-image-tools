@@ -87,11 +87,43 @@ function Setup-ScriptRunner {
   Run-Command reg unload 'HKLM\MountedSoftware'
 }
 
+function Test-ProductName {
+  Run-Command reg load 'HKLM\MountedSoftware' "${script:os_drive}\Windows\System32\config\SOFTWARE"
+  $pn_path = 'HKLM:\MountedSoftware\Microsoft\Windows NT\CurrentVersion'
+  $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
+  Write-Output "Product Name: ${pn}"
+  Run-Command reg unload 'HKLM\MountedSoftware'
+  $product_name = Get-MetadataValue -key 'product_name'
+  Write-Output "*${product_name}*"
+  if ($pn -like "*${product_name}*") {
+    Write-Output 'TranslateBootstrap: Product and import workflow match.'
+  }
+  else {
+    Write-Output "TranslateBootstrap: Incorrect translate workflow selected. Found: $pn, Expected: $product_name."
+  }
+}
+
+function Copy-Packages {
+  Write-Output 'TranslateBootstrap: Creating directory.'
+  $googet_dir = "${script:os_drive}\ProgramData\GooGet"
+  New-Item -Path $googet_dir -Type Directory
+  Write-Output 'TranslateBootstrap: Copying googet.'
+  Copy-Item "${script:components_dir}\googet.exe" "${script:os_drive}\ProgramData\GooGet\googet.exe" -Force -Verbose
+  Write-Output 'TranslateBootstrap: Attempt to run GooGet.'
+  & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -help
+  Write-Output 'TranslateBootstrap: Copying additional googet files.'
+  $goofiles_dir = "${script:os_drive}\ProgramData\GooGet\components\"
+  New-Item -Path $goofiles_dir -Type Directory
+  Copy-Item "${script:components_dir}\*.goo" "${script:os_drive}\ProgramData\GooGet\components\" -Force -Verbose -Recurse
+}
+
 try {
   Write-Output 'TranslateBootstrap: Beginning translation bootstrap powershell script.'
+  $script:is_x86 = Get-MetadataValue -key 'is_x86'
 
   Get-Disk 1 | Get-Partition | ForEach-Object {
     if (-not $_.DriveLetter) {
+      # Ensure all available partitions on the import disk are accessible via drive letter.
       Write-Output "Assigning drive letter to partition #$($_.PartitionNumber)"
       Add-PartitionAccessPath -DiskNumber 1 -PartitionNumber $_.PartitionNumber -AssignDriveLetter -ErrorAction SilentlyContinue
     }
@@ -113,6 +145,8 @@ try {
     $partitions = Get-Disk 1 | Get-Partition
     throw "No Windows folder found on any partition: $partitions"
   }
+  Write-Output "Detected BCD folder drive letter: ${bcd_drive}"
+  Write-Output "Detected Windows folder drive letter: ${script:os_drive}"
 
   $kernel32_ver = (Get-Command "${script:os_drive}\Windows\System32\kernel32.dll").Version
   $os_version = "$($kernel32_ver.Major).$($kernel32_ver.Minor)"
@@ -120,6 +154,11 @@ try {
   $version = Get-MetadataValue -key 'version'
   if ($version -ne $os_version) {
     throw "Incorrect Windows version to translate, mounted image is $os_version, not $version"
+  }
+
+  if ($script:is_x86.ToLower() -eq 'true') {
+    # For 32-bit image imports, test a new method to verify image matches the selected workflow.
+    Test-ProductName
   }
 
   $driver_dir = 'c:\drivers'
@@ -137,16 +176,25 @@ try {
   Copy-Item "${driver_dir}\netkvmco.dll" "${script:os_drive}\Windows\System32\netkvmco.dll" -Verbose
 
   Write-Output 'TranslateBootstrap: Slipstreaming drivers.'
-  Add-WindowsDriver -Path "${script:os_drive}\" -Driver $driver_dir -Recurse -Verbose
+  if ($script:is_x86.ToLower() -ne 'true') {
+    Add-WindowsDriver -Path "${script:os_drive}\" -Driver $driver_dir -Recurse -Verbose
+  }
+  else {
+    Run-Command DISM /Image:$script:os_drive /Add-Driver /Driver:$script:driver_dir
+  }
 
   Write-Output 'TranslateBootstrap: Setting up script runner.'
   Setup-ScriptRunner
 
-  Write-Output 'Setting up cloud repo.'
-  Run-Command 'C:\ProgramData\GooGet\googet.exe' -root "${script:os_drive}\ProgramData\GooGet" addrepo 'google-compute-engine-stable' 'https://packages.cloud.google.com/yuck/repos/google-compute-engine-stable'
-  Write-Output 'Copying googet.'
-  Copy-Item 'C:\ProgramData\GooGet\googet.exe' "${script:os_drive}\ProgramData\GooGet\googet.exe" -Force -Verbose
-
+  if ($script:is_x86.ToLower() -ne 'true') {
+    Write-Output 'Setting up cloud repo.'
+    Run-Command 'C:\ProgramData\GooGet\googet.exe' -root "${script:os_drive}\ProgramData\GooGet" addrepo 'google-compute-engine-stable' 'https://packages.cloud.google.com/yuck/repos/google-compute-engine-stable'
+    Write-Output 'Copying googet.'
+    Copy-Item 'C:\ProgramData\GooGet\googet.exe' "${script:os_drive}\ProgramData\GooGet\googet.exe" -Force -Verbose
+  }
+  else {
+    Copy-Packages
+  }
   Run-Command bcdboot "${script:os_drive}\Windows" /s $bcd_drive
 
   # Turn off startup animation which breaks headless installation.
@@ -155,7 +203,8 @@ try {
   Run-Command reg add 'HKLM\MountedSoftware\Microsoft\Windows\CurrentVersion\Authentication\LogonUI' /v 'AnimationDisabled' /t 'REG_DWORD' /d 1 /f
   Run-Command reg unload 'HKLM\MountedSoftware'
 
-  Write-Output 'Translate bootstrap complete'
+  Write-Output 'TranslateBootstrap: Rewriting boot files.'
+  Write-Output 'Translate bootstrap complete.'
 }
 catch {
   Write-Output 'Exception caught in script:'

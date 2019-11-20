@@ -1,25 +1,25 @@
 {
-  "Name": "translate-windows",
+  "Name": "windows-translate",
   "Vars": {
     "source_disk": {
       "Required": true,
-      "Description": "Disk to translate"
+      "Description": "Import disk."
     },
     "install_gce_packages": {
       "Value": "true",
-      "Description": "Whether to install GCE packages."
+      "Description": "Install software that improves the experience of running Windows on GCE."
     },
     "sysprep": {
       "Value": "false",
-      "Description": "Whether to run sysprep before capturing the image."
+      "Description": "Run sysprep after image import is complete."
     },
     "drivers": {
       "Required": true,
-      "Description": "Path containing GCE drivers"
+      "Description": "Path to network and storage drivers."
     },
     "version": {
       "Required": true,
-      "Description": "Windows OS Version to translate (https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx)"
+      "Description": "Windows OS Version to import (https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx)"
     },
     "task_reg": {
       "Required": true
@@ -27,14 +27,21 @@
     "task_xml": {
       "Required": true
     },
-    "byol": "false",
+    "is_byol": {
+      "Value": "false",
+      "Description": "Set to true for a BYOL import, which uses Customer-provided licensing."
+    },
+    "is_x86": {
+      "Value": "false",
+      "Description": "Set to true for a 32-bit Windows OS."
+    },
     "import_network": {
       "Value": "global/networks/default",
-      "Description": "Network to use for the import instance"
+      "Description": "Network to use for the import."
     },
     "import_subnet": {
       "Value": "",
-      "Description": "SubNetwork to use for the import instance"
+      "Description": "SubNetwork to use for the import."
     }
   },
   "Sources": {
@@ -67,7 +74,8 @@
           "MachineType": "n1-standard-2",
           "Metadata": {
             "install-gce-packages": "${install_gce_packages}",
-            "version": "${version}"
+            "version": "${version}",
+            "is_x86": "${is_x86}"
           },
           "networkInterfaces": [
             {
@@ -110,7 +118,8 @@
           "Metadata": {
             "install-gce-packages": "${install_gce_packages}",
             "sysprep": "${sysprep}",
-            "byol": "${byol}"
+            "is_byol": "${is_byol}",
+            "is_x86": "${is_x86}"
           },
           "networkInterfaces": [
             {
