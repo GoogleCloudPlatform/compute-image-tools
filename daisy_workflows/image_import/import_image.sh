@@ -59,8 +59,8 @@ function resizeDisk() {
 
   echo "Import: Resizing ${diskId} to ${requiredSizeInGb}GB in ${zone}."
   if ! out=$(gcloud -q compute disks resize "${diskId}" --size="${requiredSizeInGb}"GB --zone="${zone}" 2>&1 | tr "\n\r" " "); then
-    if echo "$out" | grep -q "Required .compute.disks.resize. permission"; then
-      echo "ImportFailed: Failed to resize disk. The Compute Engine default service account needs the compute.disks.resize permission."
+    if echo "$out" | grep -qP "compute\.disks\.resize"; then
+      echo "ImportFailed: Failed to resize disk. The Compute Engine default service account needs the role: roles/compute.storageAdmin"
     else
       echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${requiredSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
     fi
@@ -127,8 +127,12 @@ function copyImageToScratchDisk() {
     grep -v '[[:cntrl:]]' gsutil.cp.err | while read line; do
       echo "Import: ${line}"
     done
-    echo "ImportFailed: Failed to download image to scratch [Privacy-> from ${SOURCE_URL} to ${IMAGE_PATH} <-Privacy]."
-  exit
+    if grep -qP "storage\.objects\.(list|get)" gsutil.cp.err; then
+      echo "ImportFailed: Failed to resize disk. The Compute Engine default service account needs the role: roles/storage.objectViewer"
+    else
+      echo "ImportFailed: Failed to download image to scratch [Privacy-> from ${SOURCE_URL} to ${IMAGE_PATH} <-Privacy]."
+    fi
+    exit
   fi
   echo "Import: Copied image from ${SOURCE_URL} to ${IMAGE_PATH}: ${out}"
 }
