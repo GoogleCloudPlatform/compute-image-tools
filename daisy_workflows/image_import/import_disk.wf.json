@@ -28,7 +28,7 @@
       "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
     },
     "import_license": {
-      "Value": "",
+      "Value": "projects/compute-image-tools/global/licenses/virtual-disk-import",
       "Description": "Import License used for tracking migration workflow use."
     }
   },
