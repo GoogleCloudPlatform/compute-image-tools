@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Untar secure boot keys.
-tar -C $target/boot/efi/EFI/Google/gsetup -xzf $target/boot/secure-boot-keys.tar.gz
-rm -rf $target/boot/secure-boot-keys.tar.gz
-
 # Remove unnecessary packages.
 chroot $target apt-get -y autoremove
 
