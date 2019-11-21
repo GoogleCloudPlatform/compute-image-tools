@@ -103,14 +103,12 @@ function Test-ProductName {
   }
 }
 
-function Copy-Packages {
+function Copy-32bitPackages {
   Write-Output 'TranslateBootstrap: Creating directory.'
   $googet_dir = "${script:os_drive}\ProgramData\GooGet"
   New-Item -Path $googet_dir -Type Directory
   Write-Output 'TranslateBootstrap: Copying googet.'
   Copy-Item "${script:components_dir}\googet.exe" "${script:os_drive}\ProgramData\GooGet\googet.exe" -Force -Verbose
-  Write-Output 'TranslateBootstrap: Attempt to run GooGet.'
-  & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -help
   Write-Output 'TranslateBootstrap: Copying additional googet files.'
   $goofiles_dir = "${script:os_drive}\ProgramData\GooGet\components\"
   New-Item -Path $goofiles_dir -Type Directory
@@ -193,7 +191,7 @@ try {
     Copy-Item 'C:\ProgramData\GooGet\googet.exe' "${script:os_drive}\ProgramData\GooGet\googet.exe" -Force -Verbose
   }
   else {
-    Copy-Packages
+    Copy-32bitPackages
   }
   Run-Command bcdboot "${script:os_drive}\Windows" /s $bcd_drive
 

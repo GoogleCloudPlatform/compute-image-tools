@@ -227,7 +227,7 @@ function Enable-RemoteDesktop {
   Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
 }
 
-function Install-Packages {
+function Install-32bitPackages {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install googet
   # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
   # if install_packages is set to false.
@@ -271,7 +271,7 @@ try {
 
   if ($script:is_x86.ToLower() -ne 'true') {
     Configure-Power
-    Install-Packages
+    Install-32bitPackages
   }
   else {
     # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
