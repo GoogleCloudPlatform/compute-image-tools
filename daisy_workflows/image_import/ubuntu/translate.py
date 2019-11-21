@@ -164,13 +164,13 @@ def remove_azure_agents(g):
     g.command(['apt-get', 'remove', '-y', '-f', 'walinuxagent'])
   except Exception as e:
     logging.debug(str(e))
-    logging.warn('Could not uninstall Azure agent. Continuing anyway.')
+    logging.warn('Could not remove Azure\'s walinuxagent. Continuing anyway.')
 
   try:
     g.command(['apt-get', 'remove', '-y', '-f', 'waagent'])
   except Exception as e:
     logging.debug(str(e))
-    logging.warn('Could not uninstall Azure agent. Continuing anyway.')
+    logging.warn('Could not remove Azure\'s waagent. Continuing anyway.')
 
 
 def main():
