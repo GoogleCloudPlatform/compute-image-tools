@@ -154,7 +154,7 @@ func (oi *OVFImporter) buildDaisyVars(
 	return varMap
 }
 
-func (oi *OVFImporter) updateInstance(w *daisy.Workflow) {
+func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
 	instance := (*w.Steps["create-instance"].CreateInstances)[0]
 	instance.CanIpForward = oi.params.CanIPForward
 	instance.DeletionProtection = oi.params.DeletionProtection
@@ -167,6 +167,9 @@ func (oi *OVFImporter) updateInstance(w *daisy.Workflow) {
 	}
 	if oi.params.NodeAffinities != nil {
 		instance.Scheduling.NodeAffinities = oi.params.NodeAffinities
+	}
+	if oi.params.Hostname != "" {
+		instance.Hostname = oi.params.Hostname
 	}
 }
 
@@ -288,7 +291,7 @@ func (oi *OVFImporter) buildTmpGcsPath(project string, region string) (string, e
 func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
 	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	daisyovfutils.AddDiskImportSteps(w, (*oi.diskInfos)[1:])
-	oi.updateInstance(w)
+	oi.updateImportedInstance(w)
 }
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
