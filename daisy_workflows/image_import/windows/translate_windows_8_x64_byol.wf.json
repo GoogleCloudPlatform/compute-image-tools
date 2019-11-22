@@ -1,5 +1,5 @@
 {
-  "Name": "windows-8-1-x64-byol",
+  "Name": "windows-8-x64-byol",
   "Vars": {
     "source_disk": {
       "Required": true,
@@ -14,7 +14,7 @@
       "Description": "Run sysprep before capturing the image."
     },
     "image_name": {
-      "Value": "windows-8-1-x64-${ID}",
+      "Value": "windows-8-x64-${ID}",
       "Description": "The name of the imported image."
     },
     "family": {
@@ -46,7 +46,7 @@
           "version": "6.3",
           "task_reg": "./task_reg_2012r2",
           "task_xml": "./task_xml",
-          "byol": "true",
+          "is_byol": "true",
           "import_network": "${import_network}",
           "import_subnet": "${import_subnet}"
         }
@@ -58,7 +58,7 @@
         {
           "Name": "${image_name}",
           "SourceDisk": "${source_disk}",
-          "Licenses": ["projects/windows-cloud/global/licenses/windows-81-x64-byol"],
+          "Licenses": ["projects/windows-cloud/global/licenses/windows-8-x64-byol"],
           "GuestOsFeatures": [{"Type":"MULTI_IP_SUBNET"}, {"Type":"VIRTIO_SCSI_MULTIQUEUE"}, {"Type":"WINDOWS"}],
           "Family": "${family}",
           "Description": "${description}",
