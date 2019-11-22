@@ -35,8 +35,7 @@ const (
 	usbController          uint16 = 23
 )
 
-//TODO: add Windows 7 and 10 once BYOL is supported
-//Full list: https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/ApiReference/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
+//Full list: https://vdc-download.vmware.com/vmwb-repository/dcr-public/da47f910-60ac-438b-8b9b-6122f4d14524/16b7274a-bf8b-4b4c-a05e-746f2aa93c8c/doc/vim.vm.GuestOsDescriptor.GuestOsIdentifier.html
 
 // Mapping OVF osType attribute to importer OS ID
 var ovfOSTypeToOSID = map[string]string{
@@ -57,12 +56,15 @@ var ovfOSTypeToOSID = map[string]string{
 
 // Mapping potentially supported OVF osType values to possible importer OS ID values
 // Some might have only one option but we can't select it automatically as we cannot guarantee
-// correctness.
+// correctness. All Windows Client imports will be included here, to check that they
+// expect a Bring Your Own License import.
 var noMappingOSTypes = map[string][]string{
 	"ubuntuGuest":           {"ubuntu-1404"},
 	"ubuntu64Guest":         {"ubuntu-1404", "ubuntu-1604"},
+	"windows7Guest":         {"windows-7-x86-byol"},
+	"windows7_64Guest":      {"windows-7-x64-byol"},
 	"windows8Server64Guest": {"windows-2012", "windows-2012r2"},
-	"windows9Server64Guest": {"windows-2016"}, //TODO: this will also be Windows 2019 unless VMWare introduces a separate key for it.
+	"windows9Server64Guest": {"windows-2016", "windows-2019"},
 }
 
 // DiskInfo holds information about virtual disks in an OVF package

@@ -227,7 +227,7 @@ function Enable-RemoteDesktop {
   Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
 }
 
-function Install-Packages {
+function Install-32bitPackages {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install googet
   # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
   # if install_packages is set to false.
@@ -241,22 +241,51 @@ function Install-Packages {
   }
 }
 
+function Install-LocalPackages {
+  & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\googet-x86.x86_32.2.16.3@1.goo
+  # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
+  # if install_packages is set to false.
+  & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\google-compute-engine-powershell.noarch.1.1.1@4.goo
+  & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\certgen-x86.x86_32.1.0.0@2.goo
+  & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\google-compute-engine-sysprep.noarch.3.10.1@1.goo
+  if ($script:install_packages.ToLower() -eq 'true') {
+    Write-Output 'Translate: Installing GCE packages...'
+    # Install each individually in order to catch individual errors
+    & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\google-compute-engine-windows-x86.x86_32.4.6.0@1.goo
+  }
+}
+
 try {
-  Write-Output 'Translate: Beginning translate powershell script.'
+  Write-Output 'Translate: Beginning translate PowerShell script.'
   $script:outs_dir = Get-MetadataValue -key 'daisy-outs-path'
   $script:install_packages = Get-MetadataValue -key 'install-gce-packages'
   $script:sysprep = Get-MetadataValue -key 'sysprep'
-  $script:byol = Get-MetadataValue -key 'byol'
+  $script:is_byol = Get-MetadataValue -key 'is_byol'
+  $script:is_x86 = Get-MetadataValue -key 'is_x86'
 
   Remove-VMWareTools
   Change-InstanceProperties
   Configure-Network
-  Configure-Power
   Setup-NTP
-  Install-Packages
   Configure-RDPSecurity
 
-  # Only needed and applicable for 2008R2.
+  if ($script:is_x86.ToLower() -ne 'true') {
+    Configure-Power
+    Install-32bitPackages
+  }
+  else {
+    # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
+    Install-LocalPackages
+    # The following function will halt a 32-bit Windows 10 version 1909 import, so skip it.
+    $pn_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
+    Write-Output "Product Name: ${pn}"
+    if ($pn -notlike '*Windows 10*') {
+      Configure-Power
+    }
+  }
+
+  # Only needed and applicable to 2008R2.
   $netkvm = Get-WMIObject Win32_NetworkAdapter -filter "ServiceName='netkvm'"
   $netkvm | ForEach-Object {
     & netsh interface ipv4 set dnsservers "$($_.NetConnectionID)" dhcp | Out-Null
@@ -265,7 +294,7 @@ try {
   if ($script:sysprep.ToLower() -ne 'true') {
     Enable-RemoteDesktop
 
-    if ($script:byol.ToLower() -ne 'true') {
+    if ($script:is_byol.ToLower() -ne 'true') {
       Write-Output 'Translate: Setting up KMS activation'
       . 'C:\Program Files\Google\Compute Engine\sysprep\activate_instance.ps1' | Out-Null
     }
@@ -279,7 +308,7 @@ try {
     exit 0
   }
 
-  if ($script:byol.ToLower() -eq 'true') {
+  if ($script:is_byol.ToLower() -eq 'true') {
     'Image imported into GCE using BYOL worklfow' > 'C:\Program Files\Google\Compute Engine\sysprep\byol_image'
   }
 

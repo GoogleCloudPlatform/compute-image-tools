@@ -21,6 +21,10 @@
       "Required": true,
       "Description": "Windows OS Version to import (https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx)"
     },
+    "product_name": {
+      "Required": true,
+      "Description": "Windows Product Name, used for workflow validation."
+    },
     "task_reg": {
       "Required": true
     },
@@ -48,9 +52,16 @@
     "translate.ps1": "./translate.ps1",
     "translate_bootstrap.ps1": "./translate_bootstrap.ps1",
     "drivers": "${drivers}",
-    "components/run_startup_scripts.cmd": "./run_startup_scripts.cmd",
+    "components/run_startup_scripts.cmd": "./run_startup_scripts_x86.cmd",
     "components/GCEStartup.reg": "${task_reg}",
-    "components/GCEStartup": "${task_xml}"
+    "components/GCEStartup": "${task_xml}",
+    "components/googet.exe": "gs://win-32bit-files/googet/googet.exe",
+    "components/google-compute-engine-windows-x86.x86_32.4.6.0@1.goo": "gs://win-32bit-files/googet/google-compute-engine-windows-x86.x86_32.4.6.0@1.goo",
+    "components/google-compute-engine-powershell.noarch.1.1.1@4.goo": "gs://win-32bit-files/googet/google-compute-engine-powershell.noarch.1.1.1@4.goo",
+    "components/certgen-x86.x86_32.1.0.0@2.goo": "gs://win-32bit-files/googet/certgen-x86.x86_32.1.0.0@2.goo",
+    "components/google-compute-engine-metadata-scripts-x86.x86_32.4.2.1@1.goo": "gs://win-32bit-files/googet/google-compute-engine-metadata-scripts-x86.x86_32.4.2.1@1.goo",
+    "components/google-compute-engine-sysprep.noarch.3.10.1@1.goo": "gs://win-32bit-files/googet/google-compute-engine-sysprep.noarch.3.10.1@1.goo",
+    "components/googet-x86.x86_32.2.16.3@1.goo": "gs://win-32bit-files/googet/googet-x86.x86_32.2.16.3@1.goo"
   },
   "Steps": {
     "setup-disk": {
@@ -75,6 +86,7 @@
           "Metadata": {
             "install-gce-packages": "${install_gce_packages}",
             "version": "${version}",
+            "product_name": "${product_name}",
             "is_x86": "${is_x86}"
           },
           "networkInterfaces": [
