@@ -1,14 +1,14 @@
 {
-  "Name": "windows-8-1-x64",
+  "Name": "windows-10-x86-byol",
   "Sources": {
     "post_translate_test.ps1": "./scripts/post_translate_test.ps1"
   },
   "Vars": {
     "image_name": {
-      "Value": "windows-8-1-x64-translate-test-${ID}"
+      "Value": "translated-windows-10-x86-byol-${ID}"
     },
     "source_image": {
-      "Value": "projects/compute-image-tools-test/global/images/windows-8-1-x64"
+      "Value": "projects/compute-image-tools-test/global/images/windows-10-1909-ent-x86-nodrivers"
     }
   },
   "Steps": {
@@ -20,16 +20,6 @@
           "type": "pd-ssd"
         }
       ]
-    },
-    "run": {
-      "Timeout": "30m",
-      "IncludeWorkflow": {
-        "Path": "../daisy_workflows/image_import/windows/translate_windows_8-1_x64_byol.wf.json",
-        "Vars": {
-          "source_disk": "pre-translate",
-          "image_name": "${image_name}"
-        }
-      }
     },
     "create-test-disk-from-image": {
       "CreateDisks": [
@@ -62,6 +52,16 @@
         "Images": [
           "${image_name}"
         ]
+      }
+    },
+    "run": {
+      "Timeout": "30m",
+      "IncludeWorkflow": {
+        "Path": "../daisy_workflows/image_import/windows/translate_windows_10_x86_byol.wf.json",
+        "Vars": {
+          "source_disk": "pre-translate",
+          "image_name": "${image_name}"
+        }
       }
     },
     "wait-for-test": {
