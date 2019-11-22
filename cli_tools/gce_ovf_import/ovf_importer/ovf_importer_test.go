@@ -129,11 +129,12 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 		oi.gcsPathToClean)
 }
 
-func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t *testing.T) {
+func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHostnameAsFlags(t *testing.T) {
 	params := GetAllParams()
 	project := "aProject"
 	params.Project = &project
 	params.Zone = "europe-west2-b"
+	params.Hostname = "ahost"
 	params.UefiCompatible = true
 	params.MachineType = ""
 
@@ -188,6 +189,8 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneAsFlags(t 
 		Instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["userkey2"])
+	assert.Equal(t, "ahost", (*w.Steps["create-instance"].CreateInstances)[0].Hostname)
+
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-boot-disk"].CreateDisks)[0].Disk.GuestOsFeatures[0].Type)
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].GuestOsFeatures[0])
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].Image.GuestOsFeatures[0].Type)
