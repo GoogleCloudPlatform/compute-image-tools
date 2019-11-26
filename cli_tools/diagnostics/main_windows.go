@@ -31,7 +31,8 @@ const (
 	// TODO: user can change the dump path, so better fetch the path from Registry:
 	// https://support.microsoft.com/en-us/help/254649/overview-of-memory-dump-file-options-for-windows
 	// But it's not likely people will do that.
-	crashDump = `C:\Windows\MEMORY.dmp`
+	crashDump         = `C:\Windows\MEMORY.dmp`
+	rdpStatusFileName = "rdp_status.txt"
 )
 
 // struct used to construct `Get-WinEvent (-ProviderName/-LogName) ${logName}` cmd string.
@@ -183,6 +184,21 @@ func gatherProgramLogs(logs chan logFolder, errs chan error) {
 	logs <- logFolder{"Program", runAll(commands, errs)}
 }
 
+// gatherRDPSettings invokes rdp_status.ps1 to collect rdp settings,
+// return rdp_status.txt file path and errors(if any).
+func gatherRDPSettings(logs chan logFolder, errs chan error) {
+	pwshPath, err := exec.LookPath("powershell")
+	if err != nil {
+		errs <- err
+		return
+	}
+	var commands = []runner{
+		cmd{pwshPath, "-File rdp_status.ps1", rdpStatusFileName, false},
+	}
+
+	logs <- logFolder{"RDP", runAll(commands, errs)}
+}
+
 // collectFilePaths recursively collect all the file paths under given list of roots,
 // return list of file paths and errors(if any).
 func collectFilePaths(roots []string) ([]string, []error) {
@@ -294,6 +310,7 @@ func gatherLogs(trace bool) ([]logFolder, error) {
 		gatherProgramLogs,
 		gatherEventLogs,
 		gatherKubernetesLogs,
+		gatherRDPSettings,
 	}
 	if trace {
 		runFuncs = append(runFuncs, gatherTraceLogs)

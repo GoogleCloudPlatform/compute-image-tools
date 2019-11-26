@@ -1,20 +1,23 @@
 {
   "name": "google-compute-engine-diagnostics",
-  "version": "1.0.0@1",
+  "version": "1.1.0@0",
   "arch": "x86_64",
   "authors": "Google Inc.",
   "license": "http://www.apache.org/licenses/LICENSE-2.0",
   "description": "Google Compute Engine diagnostics tool",
   "files": {
-    "diagnostics.exe": "<ProgramFiles>/Google/Compute Engine/diagnostics/diagnostics.exe"
+    "diagnostics.exe": "<ProgramFiles>/Google/Compute Engine/diagnostics/diagnostics.exe",
+    "rdp_status.ps1": "<ProgramFiles>/Google/Compute Engine/diagnostics/rdp_status.ps1"
   },
   "releaseNotes": [
-    "1.0.0 - GCE diagnostics tool for Windows instances"
+    "1.0.0 - GCE diagnostics tool for Windows instances",
+    "1.1.0 - Dump RDP settings"
   ],
   "sources": [{
-      "include": [
-        "diagnostics.exe"
-      ]
+    "include": [
+      "diagnostics.exe",
+      "rdp_status.ps1"
+    ]
   }],
  "build": {
     "linux": "/bin/bash",
