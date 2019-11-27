@@ -234,6 +234,22 @@ func TestSuite(
 			name:        fmt.Sprintf("aws-ova-ubuntu-1604-%s", suffix),
 			description: "Ubuntu 1604 from AWS",
 		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-no-translate-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
+				Project:       &testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+				NoTranslate:   true,
+			},
+			name:        fmt.Sprintf("ovf-import-test-no-translate-%s", suffix),
+			description: "No translate import of Ubuntu 3 disks, one data disk larger than 10GB.",
+			// no startup script as this import doesn't run translate and doesn't boot in GCE
+			assertTimeout:         7200 * time.Second,
+			expectedStartupOutput: "All tests passed!",
+		},
 	}
 
 	var wg sync.WaitGroup

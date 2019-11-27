@@ -64,6 +64,7 @@ var (
 	releaseTrack                = flag.String("release-track", ovfimporter.GA, fmt.Sprintf("Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.", ovfimporter.Alpha, ovfimporter.Beta, ovfimporter.GA))
 	uefiCompatible              = flag.Bool("uefi-compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
 	hostname                    = flag.String("hostname", "", "Specify the hostname of the instance to be created. The specified	hostname must be RFC1035 compliant.")
+	noTranslate                 = flag.Bool("no-translate", false, "Don't run boot disk translation which converts it to one that is bootable on Google Compute Engine")
 
 	nodeAffinityLabelsFlag flags.StringArrayFlag
 	currentExecutablePath  string
@@ -90,7 +91,7 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		GcsLogsDisabled: *gcsLogsDisabled, CloudLogsDisabled: *cloudLogsDisabled,
 		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
 		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,
-		UefiCompatible: *uefiCompatible, Hostname: *hostname,
+		UefiCompatible: *uefiCompatible, Hostname: *hostname, NoTranslate: *noTranslate,
 	}
 }
 

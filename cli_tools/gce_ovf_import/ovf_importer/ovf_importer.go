@@ -47,9 +47,10 @@ import (
 )
 
 const (
-	ovfWorkflowDir    = "daisy_workflows/ovf_import/"
-	ovfImportWorkflow = ovfWorkflowDir + "import_ovf.wf.json"
-	logPrefix         = "[import-ovf]"
+	ovfWorkflowDir              = "daisy_workflows/ovf_import/"
+	translateWorkflowFileName   = "import_ovf.wf.json"
+	noTranslateWorkflowFileName = "import_ovf_no_translate.wf.json"
+	logPrefix                   = "[import-ovf]"
 )
 
 const (
@@ -104,7 +105,7 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 	if buildID == "" {
 		buildID = pathutils.RandString(5)
 	}
-	workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow, params)
+	workingDirOVFImportWorkflow := toWorkingDir(getOvfImportWorkflowPath(params.NoTranslate), params)
 	bic := &storageutils.BucketIteratorCreator{}
 
 	ovfImporter := &OVFImporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
@@ -113,6 +114,13 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic, Logger: logger,
 		zoneValidator: &computeutils.ZoneValidator{ComputeClient: computeClient}, params: params}
 	return ovfImporter, nil
+}
+
+func getOvfImportWorkflowPath(noTranslate bool) string {
+	if noTranslate {
+		return ovfWorkflowDir + noTranslateWorkflowFileName
+	}
+	return ovfWorkflowDir + translateWorkflowFileName
 }
 
 func (oi *OVFImporter) buildDaisyVars(
@@ -380,21 +388,24 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	}
 	oi.diskInfos = &diskInfos
 
-	var osIDValue string
-	if oi.params.OsID == "" {
-		if osIDValue, err = ovfutils.GetOSId(ovfDescriptor); err != nil {
+	var translateWorkflowPath string
+	if !oi.params.NoTranslate {
+		var osIDValue string
+		if oi.params.OsID == "" {
+			if osIDValue, err = ovfutils.GetOSId(ovfDescriptor); err != nil {
+				return nil, err
+			}
+			oi.Logger.Log(
+				fmt.Sprintf("Found valid osType in OVF descriptor, importing VM with `%v` as OS.",
+					osIDValue))
+		} else if err = daisyutils.ValidateOS(oi.params.OsID); err != nil {
 			return nil, err
+		} else {
+			osIDValue = oi.params.OsID
 		}
-		oi.Logger.Log(
-			fmt.Sprintf("Found valid osType in OVF descriptor, importing VM with `%v` as OS.",
-				osIDValue))
-	} else if err = daisyutils.ValidateOS(oi.params.OsID); err != nil {
-		return nil, err
-	} else {
-		osIDValue = oi.params.OsID
+		translateWorkflowPath = "../image_import/" + daisyutils.GetTranslateWorkflowPath(osIDValue)
 	}
 
-	translateWorkflowPath := "../image_import/" + daisyutils.GetTranslateWorkflowPath(osIDValue)
 	machineTypeStr, err := oi.getMachineType(ovfDescriptor, project, zone)
 	if err != nil {
 		return nil, err
@@ -409,7 +420,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		oi.params.GcsLogsDisabled, oi.params.CloudLogsDisabled, oi.params.StdoutLogsDisabled)
 
 	if err != nil {
-		return nil, fmt.Errorf("error parsing workflow %q: %v", ovfImportWorkflow, err)
+		return nil, fmt.Errorf("error parsing workflow %q: %v", oi.workflowPath, err)
 	}
 	workflow.ForceCleanupOnError = true
 	return workflow, nil

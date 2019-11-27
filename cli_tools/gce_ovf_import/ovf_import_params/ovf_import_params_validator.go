@@ -76,5 +76,9 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 		}
 	}
 
+	if params.NoTranslate && params.OsID != "" {
+		return daisy.Errf("`no-translate` flag can't be set if `os` flag is set")
+	}
+
 	return nil
 }

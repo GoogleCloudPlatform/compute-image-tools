@@ -105,6 +105,7 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	oi.modifyWorkflowPreValidate(w)
 	oi.modifyWorkflowPostValidate(w)
 	assert.Equal(t, "n1-highcpu-16", w.Vars["machine_type"].Value)
+	assert.Equal(t, "../image_import/ubuntu/translate_ubuntu_1404.wf.json", w.Vars["translate_workflow"].Value)
 	assert.Equal(t, project, w.Project)
 	assert.Equal(t, "europe-north1-b", w.Zone)
 	assert.Equal(t, fmt.Sprintf("gs://%v/", createdScratchBucketName), w.GCSPath)
@@ -177,6 +178,7 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHostnameAs
 	oi.modifyWorkflowPreValidate(w)
 	oi.modifyWorkflowPostValidate(w)
 	assert.Equal(t, "n1-highcpu-16", w.Vars["machine_type"].Value)
+	assert.Equal(t, "../image_import/ubuntu/translate_ubuntu_1404.wf.json", w.Vars["translate_workflow"].Value)
 	assert.Equal(t, "aProject", w.Project)
 	assert.Equal(t, "europe-west2-b", w.Zone)
 	assert.Equal(t, "gs://bucket/folder", w.GCSPath)
@@ -441,6 +443,24 @@ func TestSetUpWorkOSFlagInvalid(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestSetUpWorkNoTranslate(t *testing.T) {
+	params := GetAllParams()
+	params.OsID = ""
+	params.OvfOvaGcsPath = "gs://ovfbucket/ovffolder/"
+	params.NoTranslate = true
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	w, err := setupMocksForTranslateTesting(mockCtrl, "", params, "../../test_data/test_import_ovf_no_translate.wf.json")
+
+	assert.Nil(t, err)
+	assert.NotNil(t, w)
+
+	_, hasTranslateVar := w.Vars["translate_workflow"]
+	assert.Equal(t, false, hasTranslateVar)
+}
+
 func TestCleanUp(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -599,6 +619,11 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 
 func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
 	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
+	return setupMocksForTranslateTesting(mockCtrl, osType, params, "../../test_data/test_import_ovf.wf.json")
+}
+
+func setupMocksForTranslateTesting(mockCtrl *gomock.Controller, osType string,
+	params *ovfimportparams.OVFImportParams, workflowPath string) (*daisy.Workflow, error) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
@@ -616,7 +641,7 @@ func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
 	mockZoneValidator.EXPECT().
 		ZoneValid("aProject", "us-central1-c").Return(nil)
 
-	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: "../../test_data/test_import_ovf.wf.json",
+	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: workflowPath,
 		storageClient: mockStorageClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}

@@ -50,6 +50,12 @@ func TestFlagsLabelsInvalid(t *testing.T) {
 	assertErrorOnValidate(t, params)
 }
 
+func TestFlagsOSAndNoTranslateBothSet(t *testing.T) {
+	params := getAllParams()
+	params.NoTranslate = true
+	assertErrorOnValidate(t, params)
+}
+
 func TestFlagsAllValid(t *testing.T) {
 	assert.Nil(t, ValidateAndParseParams(getAllParams()))
 }
