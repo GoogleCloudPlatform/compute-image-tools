@@ -107,7 +107,7 @@ def DistroSpecific(g):
   # Try to reset the network to DHCP.
   if ubu_release == 'trusty':
     g.write('/etc/network/interfaces', trusty_network)
-  elif ubu_release in ('xenial', 'bionic'):
+  elif ubu_release == 'xenial':
     g.write('/etc/network/interfaces', xenial_network)
 
   if install_gce == 'true':
@@ -119,17 +119,16 @@ def DistroSpecific(g):
 
     # Try to remove azure or aws configs so cloud-init has a chance.
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*azure*')
+    g.sh('rm -f /etc/cloud/cloud.cfg.d/*curtin*')
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*waagent*')
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*walinuxagent*')
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*aws*')
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*amazon*')
+    if ubu_release == 'bionic':
+      g.sh('rm -f /etc/netplan/*')
+      logging.debug(g.sh('cloud-init clean'))
 
-    # Remove Azure agent.
-    try:
-      g.command(['apt-get', 'remove', '-y', '-f', 'waagent', 'walinuxagent'])
-    except Exception as e:
-      logging.debug(str(e))
-      logging.warn('Could not uninstall Azure agent. Continuing anyway.')
+    remove_azure_agents(g)
 
     g.write(
         '/etc/apt/sources.list.d/partner.list',
@@ -158,6 +157,18 @@ def DistroSpecific(g):
       '/etc/default/grub'])
 
   g.command(['update-grub2'])
+
+
+def remove_azure_agents(g):
+  try:
+    g.command(['apt-get', 'remove', '-y', '-f', 'walinuxagent'])
+  except Exception as e:
+    logging.debug(str(e))
+
+  try:
+    g.command(['apt-get', 'remove', '-y', '-f', 'waagent'])
+  except Exception as e:
+    logging.debug(str(e))
 
 
 def main():

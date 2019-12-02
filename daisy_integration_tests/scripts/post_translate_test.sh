@@ -145,17 +145,13 @@ function check_cloud_init {
 function check_package_install {
   # Apt
   if [[ -d /etc/apt ]]; then
-    status "Checking if apt can update cache."
-    apt-get update
-    if [[ $? -ne 0 ]]; then
-      fail "apt-get update failed."
-    fi
-
     status "Checking if apt can install a package."
-    apt-get install --reinstall make
-    if [[ $? -ne 0 ]]; then
-      fail "apt-get cannot install make."
-    fi
+    for i in $(seq 1 20) ; do
+      apt-get update && apt-get install --reinstall make && return 0
+      status "Waiting until apt is available."
+      sleep $((i**2))
+    done
+    fail "apt-get cannot install make."
   fi
 
   # Yum

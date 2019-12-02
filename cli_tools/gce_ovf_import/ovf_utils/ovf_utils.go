@@ -60,7 +60,7 @@ var ovfOSTypeToOSID = map[string]string{
 // expect a Bring Your Own License import.
 var noMappingOSTypes = map[string][]string{
 	"ubuntuGuest":           {"ubuntu-1404"},
-	"ubuntu64Guest":         {"ubuntu-1404", "ubuntu-1604"},
+	"ubuntu64Guest":         {"ubuntu-1404", "ubuntu-1604", "ubuntu-1804"},
 	"windows7Guest":         {"windows-7-x86-byol"},
 	"windows7_64Guest":      {"windows-7-x64-byol"},
 	"windows8Guest":         {"windows-8-x86-byol"},
