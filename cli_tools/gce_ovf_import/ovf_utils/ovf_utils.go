@@ -61,6 +61,12 @@ var ovfOSTypeToOSID = map[string]string{
 var noMappingOSTypes = map[string][]string{
 	"ubuntuGuest":           {"ubuntu-1404"},
 	"ubuntu64Guest":         {"ubuntu-1404", "ubuntu-1604", "ubuntu-1804"},
+	"windows7Guest":         {"windows-7-x86-byol"},
+	"windows7_64Guest":      {"windows-7-x64-byol"},
+	"windows8Guest":         {"windows-8-x86-byol"},
+	"windows8_64Guest":      {"windows-8-x64-byol"},
+	"windows9Guest":         {"windows-10-x86-byol"},
+	"windows9_64Guest":      {"windows-10-x64-byol"},
 	"windows8Server64Guest": {"windows-2012", "windows-2012r2"},
 	"windows9Server64Guest": {"windows-2016", "windows-2019"},
 }
