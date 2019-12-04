@@ -20,6 +20,7 @@ import (
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func TestCreateDisksRun(t *testing.T) {
@@ -29,6 +30,7 @@ func TestCreateDisksRun(t *testing.T) {
 	w.images.m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
 
 	e := Errf("error")
+	quotaExceededErr := &googleapi.Error{Code: http.StatusNotFound, Message: "QUOTA_EXCEEDED: error"}
 	tests := []struct {
 		desc                 string
 		d                    compute.Disk
@@ -40,7 +42,8 @@ func TestCreateDisksRun(t *testing.T) {
 		{"blank case", compute.Disk{}, compute.Disk{}, nil, nil, false},
 		{"resolve source image case", compute.Disk{SourceImage: "i1"}, compute.Disk{SourceImage: "i1link"}, nil, nil, false},
 		{"client error case", compute.Disk{}, compute.Disk{}, e, e, false},
-		{"fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-standard"}, e, e, true},
+		{"not fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-ssd"}, e, e, true},
+		{"fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-standard"}, quotaExceededErr, e, true},
 	}
 	for _, tt := range tests {
 		var gotD compute.Disk
