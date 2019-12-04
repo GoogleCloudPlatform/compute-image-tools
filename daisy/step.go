@@ -79,7 +79,7 @@ func NewStep(name string, w *Workflow, timeout time.Duration) *Step {
 }
 
 // NewStepDefaultTimeout creates a Step with given name using default timeout from the workflow
-func NewStepDefaultTimeout(name string, w *Workflow, timeout time.Duration) *Step {
+func NewStepDefaultTimeout(name string, w *Workflow) *Step {
 	return NewStep(name, w, 0)
 }
 
