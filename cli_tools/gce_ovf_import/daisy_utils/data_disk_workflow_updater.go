@@ -48,7 +48,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		diskImporterDiskName := fmt.Sprintf("disk-importer-%v", dataDiskIndex)
 		scratchDiskDiskName := fmt.Sprintf("disk-importer-scratch-%v-%v", dataDiskIndex, w.Vars["instance_name"].Value)
 
-		setupDataDiskStep := daisy.NewStep(setupDataDiskStepName, w, 0)
+		setupDataDiskStep := daisy.NewStepDefaultTimeout(setupDataDiskStepName, w, 0)
 		setupDataDiskStep.CreateDisks = &daisy.CreateDisks{
 			{
 				Disk: compute.Disk{
@@ -83,7 +83,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		w.Steps[setupDataDiskStepName] = setupDataDiskStep
 
 		createDiskImporterInstanceStepName := fmt.Sprintf("create-data-disk-import-instance-%v", dataDiskIndex)
-		createDiskImporterInstanceStep := daisy.NewStep(createDiskImporterInstanceStepName, w, 0)
+		createDiskImporterInstanceStep := daisy.NewStepDefaultTimeout(createDiskImporterInstanceStepName, w, 0)
 
 		sTrue := "true"
 		dataDiskImporterInstanceName := fmt.Sprintf("data-disk-importer-%v", dataDiskIndex)
@@ -121,7 +121,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		w.Steps[createDiskImporterInstanceStepName] = createDiskImporterInstanceStep
 
 		waitForDataDiskImportInstanceSignalStepName := fmt.Sprintf("wait-for-data-disk-%v-signal", dataDiskIndex)
-		waitForDataDiskImportInstanceSignalStep := daisy.NewStep(waitForDataDiskImportInstanceSignalStepName, w, 0)
+		waitForDataDiskImportInstanceSignalStep := daisy.NewStepDefaultTimeout(waitForDataDiskImportInstanceSignalStepName, w, 0)
 		waitForDataDiskImportInstanceSignalStep.WaitForInstancesSignal = &daisy.WaitForInstancesSignal{
 			{
 				Name: dataDiskImporterInstanceName,
@@ -136,7 +136,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		w.Steps[waitForDataDiskImportInstanceSignalStepName] = waitForDataDiskImportInstanceSignalStep
 
 		deleteDataDiskImportInstanceSignalStepName := fmt.Sprintf("delete-data-disk-%v-import-instance", dataDiskIndex)
-		deleteDataDiskImportInstanceSignalStep := daisy.NewStep(deleteDataDiskImportInstanceSignalStepName, w, 0)
+		deleteDataDiskImportInstanceSignalStep := daisy.NewStepDefaultTimeout(deleteDataDiskImportInstanceSignalStepName, w, 0)
 		deleteDataDiskImportInstanceSignalStep.DeleteResources = &daisy.DeleteResources{
 			Instances: []string{dataDiskImporterInstanceName},
 		}
