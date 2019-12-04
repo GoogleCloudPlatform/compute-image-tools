@@ -69,9 +69,18 @@ type Step struct {
 	testType stepImpl
 }
 
-// NewStep creates a Step with given name and timeout  with the specified workflow
+// NewStep creates a Step with given name and timeout with the specified workflow.
+// If timeout is less or equal to zero, defaultTimeout from the workflow will be used
 func NewStep(name string, w *Workflow, timeout time.Duration) *Step {
+	if timeout <= 0 {
+		return &Step{name: name, w: w, Timeout: w.DefaultTimeout}
+	}
 	return &Step{name: name, w: w, timeout: timeout}
+}
+
+// NewStepDefaultTimeout creates a Step with given name using default timeout from the workflow
+func NewStepDefaultTimeout(name string, w *Workflow) *Step {
+	return NewStep(name, w, 0)
 }
 
 func (s *Step) stepImpl() (stepImpl, DError) {

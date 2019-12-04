@@ -27,6 +27,7 @@ func TestAddDiskImportSteps(t *testing.T) {
 
 	w := daisy.New()
 	w.Vars["instance_name"] = daisy.Var{Value: "an_instance"}
+	w.DefaultTimeout = "180m"
 
 	diskInfos := []ovfutils.DiskInfo{
 		{FilePath: "gs://abucket/apath/disk1.vmdk", SizeInGB: 20},
@@ -111,8 +112,15 @@ func TestAddDiskImportSteps(t *testing.T) {
 	assert.Equal(t, diskInfos[0].FilePath, getMetadataValue((*w.Steps["create-data-disk-import-instance-1"].CreateInstances)[0].Instance.Metadata, "source_disk_file"))
 	assert.Equal(t, diskInfos[1].FilePath, getMetadataValue((*w.Steps["create-data-disk-import-instance-2"].CreateInstances)[0].Instance.Metadata, "source_disk_file"))
 
-	//TODO: further assertion to validate the workflow if deemed necessary
+	assert.Equal(t, w.DefaultTimeout, w.Steps["setup-data-disk-1"].Timeout)
+	assert.Equal(t, w.DefaultTimeout, w.Steps["create-data-disk-import-instance-1"].Timeout)
+	assert.Equal(t, w.DefaultTimeout, w.Steps["wait-for-data-disk-1-signal"].Timeout)
+	assert.Equal(t, w.DefaultTimeout, w.Steps["delete-data-disk-1-import-instance"].Timeout)
 
+	assert.Equal(t, w.DefaultTimeout, w.Steps["setup-data-disk-2"].Timeout)
+	assert.Equal(t, w.DefaultTimeout, w.Steps["create-data-disk-import-instance-2"].Timeout)
+	assert.Equal(t, w.DefaultTimeout, w.Steps["wait-for-data-disk-2-signal"].Timeout)
+	assert.Equal(t, w.DefaultTimeout, w.Steps["delete-data-disk-2-import-instance"].Timeout)
 }
 
 func getMetadataValue(metadata *compute.Metadata, key string) string {

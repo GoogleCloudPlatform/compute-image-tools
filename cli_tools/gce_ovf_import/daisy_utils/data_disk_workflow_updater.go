@@ -16,7 +16,6 @@ package daisyovfutils
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -26,7 +25,6 @@ import (
 const (
 	createInstanceStepName = "create-instance"
 	importerDiskSize       = "10"
-	dataDiskImportTimeout  = "3600s"
 )
 
 // AddDiskImportSteps adds Daisy steps to OVF import workflow to import disks defined in
@@ -50,7 +48,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		diskImporterDiskName := fmt.Sprintf("disk-importer-%v", dataDiskIndex)
 		scratchDiskDiskName := fmt.Sprintf("disk-importer-scratch-%v-%v", dataDiskIndex, w.Vars["instance_name"].Value)
 
-		setupDataDiskStep := daisy.NewStep(setupDataDiskStepName, w, time.Hour)
+		setupDataDiskStep := daisy.NewStepDefaultTimeout(setupDataDiskStepName, w)
 		setupDataDiskStep.CreateDisks = &daisy.CreateDisks{
 			{
 				Disk: compute.Disk{
@@ -85,7 +83,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		w.Steps[setupDataDiskStepName] = setupDataDiskStep
 
 		createDiskImporterInstanceStepName := fmt.Sprintf("create-data-disk-import-instance-%v", dataDiskIndex)
-		createDiskImporterInstanceStep := daisy.NewStep(createDiskImporterInstanceStepName, w, time.Hour)
+		createDiskImporterInstanceStep := daisy.NewStepDefaultTimeout(createDiskImporterInstanceStepName, w)
 
 		sTrue := "true"
 		dataDiskImporterInstanceName := fmt.Sprintf("data-disk-importer-%v", dataDiskIndex)
@@ -123,8 +121,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		w.Steps[createDiskImporterInstanceStepName] = createDiskImporterInstanceStep
 
 		waitForDataDiskImportInstanceSignalStepName := fmt.Sprintf("wait-for-data-disk-%v-signal", dataDiskIndex)
-		waitForDataDiskImportInstanceSignalStep := daisy.NewStep(waitForDataDiskImportInstanceSignalStepName, w, time.Hour)
-		waitForDataDiskImportInstanceSignalStep.Timeout = dataDiskImportTimeout
+		waitForDataDiskImportInstanceSignalStep := daisy.NewStepDefaultTimeout(waitForDataDiskImportInstanceSignalStepName, w)
 		waitForDataDiskImportInstanceSignalStep.WaitForInstancesSignal = &daisy.WaitForInstancesSignal{
 			{
 				Name: dataDiskImporterInstanceName,
@@ -139,7 +136,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		w.Steps[waitForDataDiskImportInstanceSignalStepName] = waitForDataDiskImportInstanceSignalStep
 
 		deleteDataDiskImportInstanceSignalStepName := fmt.Sprintf("delete-data-disk-%v-import-instance", dataDiskIndex)
-		deleteDataDiskImportInstanceSignalStep := daisy.NewStep(deleteDataDiskImportInstanceSignalStepName, w, time.Hour)
+		deleteDataDiskImportInstanceSignalStep := daisy.NewStepDefaultTimeout(deleteDataDiskImportInstanceSignalStepName, w)
 		deleteDataDiskImportInstanceSignalStep.DeleteResources = &daisy.DeleteResources{
 			Instances: []string{dataDiskImporterInstanceName},
 		}
