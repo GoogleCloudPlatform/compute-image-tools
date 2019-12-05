@@ -4,7 +4,7 @@
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "debian_cloud_images_version": {
-      "Value": "master",
+      "Value": "c6229b38a95ba2dd9eedf679a36d3168272ac157",
       "Description": "The debian-cloud-images scripts git commit ID or branch to use."
     },
     "debian_version": {
