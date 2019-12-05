@@ -2,7 +2,7 @@
 Precheck runs on your virtual machine before attempting to import it into
 Google Compute Engine (GCE). It attempts to identify compatibility issues that
 will either cause import to fail or will cause potentially unexpected behavior
-post-import. See our [image import documentation](https://googlecloudplatform.github.io/compute-image-tools/image-import.md)
+post-import. See our [image import documentation](https://googlecloudplatform.github.io/compute-image-tools/image-import.html)
 for more information.
 
 Precheck must be run as root or Administrator on the running system you want to import.
