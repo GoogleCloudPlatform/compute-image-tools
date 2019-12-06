@@ -17,6 +17,7 @@ package daisyovfutils
 import (
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
@@ -24,46 +25,10 @@ import (
 )
 
 func TestAddDiskImportSteps(t *testing.T) {
-
-	w := daisy.New()
-	w.Vars["instance_name"] = daisy.Var{Value: "an_instance"}
-	w.DefaultTimeout = "180m"
-
+	w := createBaseImportWorkflow("an_instance")
 	diskInfos := []ovfutils.DiskInfo{
 		{FilePath: "gs://abucket/apath/disk1.vmdk", SizeInGB: 20},
 		{FilePath: "gs://abucket/apath/disk2.vmdk", SizeInGB: 1},
-	}
-
-	w.Steps = map[string]*daisy.Step{
-		"create-boot-disk": {
-			CreateDisks: &daisy.CreateDisks{
-				{
-					Disk: compute.Disk{
-						Name:        "instance-boot-disk",
-						SourceImage: "source_image",
-						Type:        "pd-ssd",
-					},
-				},
-			},
-		},
-		"create-instance": {
-			CreateInstances: &daisy.CreateInstances{
-				{
-					Instance: compute.Instance{
-						Disks:  []*compute.AttachedDisk{{Source: "boot_disk", Boot: true}},
-						Labels: map[string]string{"labelKey": "labelValue"},
-					},
-				},
-				{
-					Instance: compute.Instance{
-						Disks: []*compute.AttachedDisk{{Source: "key2"}},
-					},
-				},
-			},
-		},
-	}
-	w.Dependencies = map[string][]string{
-		"create-instance": {"create-boot-disk"},
 	}
 
 	AddDiskImportSteps(w, diskInfos)
@@ -104,8 +69,8 @@ func TestAddDiskImportSteps(t *testing.T) {
 	assert.Equal(t,
 		[]*compute.AttachedDisk{
 			{Source: "boot_disk", Boot: true},
-			{Source: "an_instance-data-disk-1", AutoDelete: true},
-			{Source: "an_instance-data-disk-2", AutoDelete: true},
+			{Source: "an_instance-1", AutoDelete: true},
+			{Source: "an_instance-2", AutoDelete: true},
 		},
 		(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks)
 
@@ -122,6 +87,29 @@ func TestAddDiskImportSteps(t *testing.T) {
 	assert.Equal(t, w.DefaultTimeout, w.Steps["wait-for-data-disk-2-signal"].Timeout)
 	assert.Equal(t, w.DefaultTimeout, w.Steps["delete-data-disk-2-import-instance"].Timeout)
 }
+func TestAddDiskImportStepsLongInstanceName(t *testing.T) {
+	w := createBaseImportWorkflow("a-very-long-instance-name-that-is-at-the-limit-of-allowed-leng")
+
+	diskInfos := []ovfutils.DiskInfo{
+		{FilePath: "gs://abucket/apath/disk1.vmdk", SizeInGB: 20},
+		{FilePath: "gs://abucket/apath/disk2.vmdk", SizeInGB: 1},
+	}
+	AddDiskImportSteps(w, diskInfos)
+
+	assert.NotNil(t, w)
+	assert.Equal(t, 2+4*len(diskInfos), len(w.Steps))
+
+	assert.NotNil(t, w.Steps["setup-data-disk-1"])
+	assert.NotNil(t, w.Steps["setup-data-disk-2"])
+
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-1"].CreateDisks)[0].Name))
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-1"].CreateDisks)[1].Name))
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-1"].CreateDisks)[2].Name))
+
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[0].Name))
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[1].Name))
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[2].Name))
+}
 
 func getMetadataValue(metadata *compute.Metadata, key string) string {
 	for _, metadataItem := range metadata.Items {
@@ -130,4 +118,43 @@ func getMetadataValue(metadata *compute.Metadata, key string) string {
 		}
 	}
 	return ""
+}
+
+func createBaseImportWorkflow(instanceName string) *daisy.Workflow {
+	w := daisy.New()
+	w.Vars["instance_name"] = daisy.Var{Value: instanceName}
+	w.DefaultTimeout = "180m"
+
+	w.Steps = map[string]*daisy.Step{
+		"create-boot-disk": {
+			CreateDisks: &daisy.CreateDisks{
+				{
+					Disk: compute.Disk{
+						Name:        "instance-boot-disk",
+						SourceImage: "source_image",
+						Type:        "pd-ssd",
+					},
+				},
+			},
+		},
+		"create-instance": {
+			CreateInstances: &daisy.CreateInstances{
+				{
+					Instance: compute.Instance{
+						Disks:  []*compute.AttachedDisk{{Source: "boot_disk", Boot: true}},
+						Labels: map[string]string{"labelKey": "labelValue"},
+					},
+				},
+				{
+					Instance: compute.Instance{
+						Disks: []*compute.AttachedDisk{{Source: "key2"}},
+					},
+				},
+			},
+		},
+	}
+	w.Dependencies = map[string][]string{
+		"create-instance": {"create-boot-disk"},
+	}
+	return w
 }

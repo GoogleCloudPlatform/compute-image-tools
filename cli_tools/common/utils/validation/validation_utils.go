@@ -22,7 +22,9 @@ import (
 )
 
 var (
-	fqdnRegexp = regexp.MustCompile("^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)+([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$")
+	rfc1035LabelRegexpStr = "[A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9]"
+	rfc1035LabelRegexp    = regexp.MustCompile(rfc1035LabelRegexpStr)
+	fqdnRegexp            = regexp.MustCompile(fmt.Sprintf("^((%v)\\.)+(%v)$", rfc1035LabelRegexpStr, rfc1035LabelRegexpStr))
 )
 
 // ValidateStringFlagNotEmpty returns error with error message stating field must be provided if
@@ -41,6 +43,13 @@ func ValidateFqdn(flagValue string, flagKey string) error {
 		return daisy.Errf(fmt.Sprintf("The flag `%v` must conform to RFC 1035 requirements for valid hostnames. "+
 			"To meet this requirement, the value must contain a series of labels and each label is concatenated with a dot."+
 			"Each label can be 1-63 characters long, and the entire sequence must not exceed 253 characters.", flagKey))
+	}
+	return nil
+}
+
+func ValidateRfc1035Label(value string) error {
+	if len(value) > 63 || !rfc1035LabelRegexp.MatchString(value) {
+		return daisy.Errf(fmt.Sprintf("Value `%v` must conform to RFC 1035 requirements for valid labels.", value))
 	}
 	return nil
 }
