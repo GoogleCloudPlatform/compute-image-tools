@@ -36,6 +36,7 @@ func logSerialOutput(ctx context.Context, s *Step, i *Instance, port int64, inte
 	var start int64
 	var buf bytes.Buffer
 	var gcsErr bool
+	var numErr int
 	tick := time.Tick(interval)
 
 Loop:
@@ -44,17 +45,22 @@ Loop:
 		case <-tick:
 			resp, err := w.ComputeClient.GetSerialPortOutput(path.Base(i.Project), path.Base(i.Zone), i.Name, port, start)
 			if err != nil {
-				// Instance is stopped or stopping.
+				numErr++
 				status, sErr := w.ComputeClient.InstanceStatus(path.Base(i.Project), path.Base(i.Zone), i.Name)
 				switch status {
 				case "TERMINATED", "STOPPED", "STOPPING":
+					// Instance is stopped or stopping.
 					if sErr == nil {
 						break Loop
 					}
 				}
-				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error getting serial port: %v", i.Name, err)
-				break Loop
+				if numErr > 10 {
+					w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error getting serial port: %v", i.Name, err)
+					break Loop
+				}
+				continue
 			}
+			numErr++
 			start = resp.Next
 			buf.WriteString(resp.Contents)
 			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
@@ -134,7 +140,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) DError {
 				eChan <- newErr("failed to create instances", err)
 				return
 			}
-			go logSerialOutput(ctx, s, i, 1, 3*time.Second)
+			go logSerialOutput(ctx, s, i, 1, 5*time.Second)
 		}(ci)
 	}
 
