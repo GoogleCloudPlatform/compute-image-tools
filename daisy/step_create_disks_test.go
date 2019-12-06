@@ -49,11 +49,10 @@ func TestCreateDisksRun(t *testing.T) {
 		var gotD compute.Disk
 		var errIndex = 0
 		fake := func(_, _ string, d *compute.Disk) error {
-			gotD = *d;
+			gotD = *d
 			if tt.clientErr == nil {
 				return nil
 			}
-			
 			var ret = tt.clientErr[errIndex]
 			errIndex = (errIndex + 1) % len(tt.clientErr)
 			return ret
