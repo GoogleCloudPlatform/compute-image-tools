@@ -34,6 +34,10 @@ func TestAddDiskImportSteps(t *testing.T) {
 	AddDiskImportSteps(w, diskInfos)
 
 	assert.NotNil(t, w)
+
+	// 2 for create boot disk step and create instance from the base workflow
+	// 4 for each disk (setup-data-disk, create-data-disk-import-instance,
+	// wait-for-data-disk-signal and delete-data-disk-import-instance)
 	assert.Equal(t, 2+4*len(diskInfos), len(w.Steps))
 
 	assert.NotNil(t, w.Steps["setup-data-disk-1"])
@@ -86,8 +90,17 @@ func TestAddDiskImportSteps(t *testing.T) {
 	assert.Equal(t, w.DefaultTimeout, w.Steps["create-data-disk-import-instance-2"].Timeout)
 	assert.Equal(t, w.DefaultTimeout, w.Steps["wait-for-data-disk-2-signal"].Timeout)
 	assert.Equal(t, w.DefaultTimeout, w.Steps["delete-data-disk-2-import-instance"].Timeout)
+
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-1"].CreateDisks)[0].Name))
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-1"].CreateDisks)[1].Name))
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-1"].CreateDisks)[2].Name))
+
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[0].Name))
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[1].Name))
+	assert.NoError(t, validation.ValidateRfc1035Label((*w.Steps["setup-data-disk-2"].CreateDisks)[2].Name))
 }
-func TestAddDiskImportStepsLongInstanceName(t *testing.T) {
+
+func TestAddDiskImportStepsDiskNamesValidWhenInstanceNameLong(t *testing.T) {
 	w := createBaseImportWorkflow("a-very-long-instance-name-that-is-at-the-limit-of-allowed-leng")
 
 	diskInfos := []ovfutils.DiskInfo{
