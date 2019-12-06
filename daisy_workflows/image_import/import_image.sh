@@ -128,9 +128,9 @@ function copyImageToScratchDisk() {
       echo "Import: ${line}"
     done
     if grep -qP "storage\.objects\.(list|get)" gsutil.cp.err; then
-      echo "ImportFailed: Failed to download image to scratch. The Compute Engine default service account needs the role: roles/storage.objectViewer"
+      echo "ImportFailed: Failed to download image to worker instance. The Compute Engine default service account needs the role: roles/storage.objectViewer"
     else
-      echo "ImportFailed: Failed to download image to scratch [Privacy-> from ${SOURCE_URL} to ${IMAGE_PATH} <-Privacy]."
+      echo "ImportFailed: Failed to download image to worker instance [Privacy-> from ${SOURCE_URL} to ${IMAGE_PATH} <-Privacy]."
     fi
     exit
   fi
