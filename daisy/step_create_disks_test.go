@@ -43,7 +43,7 @@ func TestCreateDisksRun(t *testing.T) {
 		{"resolve source image case", compute.Disk{SourceImage: "i1"}, compute.Disk{SourceImage: "i1link"}, nil, nil, false},
 		{"client error case", compute.Disk{}, compute.Disk{}, e, e, false},
 		{"not fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-ssd"}, e, e, true},
-		{"fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-standard"}, quotaExceededErr, quotaExceededErr, true},
+		{"fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-standard"}, quotaExceededErr, nil, true},
 	}
 	for _, tt := range tests {
 		var gotD compute.Disk
