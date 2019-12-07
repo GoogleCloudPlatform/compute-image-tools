@@ -47,6 +47,7 @@ func ValidateFqdn(flagValue string, flagKey string) error {
 	return nil
 }
 
+// ValidateRfc1035Label validates a single label per RFC 1035
 func ValidateRfc1035Label(value string) error {
 	if len(value) > 63 || !rfc1035LabelRegexp.MatchString(value) {
 		return daisy.Errf(fmt.Sprintf("Value `%v` must conform to RFC 1035 requirements for valid labels.", value))
