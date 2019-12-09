@@ -32,6 +32,30 @@ const (
 	applicationTextLogFileName = "Application.log"
 )
 
+func TestGatherRDPSettings(t *testing.T) {
+	logFolderCh := make(chan logFolder, 2)
+	errCh := make(chan error)
+	// Test setup: create temp folder for test, clean it up afterwards
+	var err error
+	tmpFolder, err = ioutil.TempDir("", "gatherRDPSettingsTest")
+	if err != nil {
+		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
+	}
+	defer os.RemoveAll(tmpFolder)
+
+	t.Run("Gathers Expected RDP Status File", func(t *testing.T) {
+		go gatherRDPSettings(logFolderCh, errCh)
+		select {
+		case l := <-logFolderCh:
+			if !stringArrayIncludesSubstring(l.files, rdpStatusFileName) {
+				t.Errorf("Expect %s, but it's missing", rdpStatusFileName)
+			}
+		case e := <-errCh:
+			t.Errorf(e.Error())
+		}
+	})
+}
+
 func pathNonExist(e error) bool {
 	if strings.Contains(e.Error(), pathNotExistErr) {
 		return true
@@ -117,7 +141,10 @@ func TestGetPlainEventLogs(t *testing.T) {
 func TestCollectFilePaths(t *testing.T) {
 	// Test setup: create dummy test folder and file for test, clean it up afterwards
 	dir := os.TempDir()
-	testRoot := filepath.Join(dir, "collectFilePathsTest")
+	testRoot, err := ioutil.TempDir("", "collectFilePathsTest")
+	if err != nil {
+		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
+	}
 	defer os.RemoveAll(testRoot)
 	kubeletlogFilePath := filepath.Join(testRoot, kubeletLogFileName)
 	os.Create(kubeletlogFilePath)
