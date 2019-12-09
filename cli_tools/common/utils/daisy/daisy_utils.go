@@ -60,6 +60,11 @@ var (
 		"windows-8-x86-byol":  "windows/translate_windows_8_x86_byol.wf.json",
 		"windows-10-x64-byol": "windows/translate_windows_10_x64_byol.wf.json",
 		"windows-10-x86-byol": "windows/translate_windows_10_x86_byol.wf.json",
+
+		// for backward compatibility, to be removed once clients (gcloud and UI) and docs are all updated
+		"windows-7-byol":       "windows/translate_windows_7_x64_byol.wf.json",
+		"windows-8-1-x64-byol": "windows/translate_windows_8_x64_byol.wf.json",
+		"windows-10-byol":      "windows/translate_windows_10_x64_byol.wf.json",
 	}
 	privacyRegex    = regexp.MustCompile(`\[Privacy\->.*?<\-Privacy\]`)
 	privacyTagRegex = regexp.MustCompile(`(\[Privacy\->)|(<\-Privacy\])`)
