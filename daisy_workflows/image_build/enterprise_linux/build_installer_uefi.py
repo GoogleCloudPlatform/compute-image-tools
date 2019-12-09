@@ -85,7 +85,6 @@ def main():
   utils.Execute(['rsync', '-Pav', 'iso/EFI', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
-  utils.Execute(['cp', '-r', '/files/sb_keys', 'installer/'])
 
   # Modify boot config.
   with open('boot/EFI/BOOT/grub.cfg', 'r+') as f:
@@ -121,11 +120,6 @@ def main():
     f.seek(0)
     f.write(cfg)
     f.truncate()
-
-  logging.info("Creating gsetup boot path file\n")
-  utils.Execute(['mkdir', '-p', 'boot/EFI/Google/gsetup'])
-  with open('boot/EFI/Google/gsetup/boot', 'w') as g:
-    g.write("\\EFI\\BOOT\\grubx64.efi\n")
 
   utils.Execute(['umount', 'installer'])
   utils.Execute(['umount', 'iso'])
