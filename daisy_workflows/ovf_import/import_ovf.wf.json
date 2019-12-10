@@ -76,7 +76,7 @@
     "create-boot-disk": {
       "CreateDisks": [
         {
-          "Name": "${instance_name}-boot-disk",
+          "Name": "${instance_name}",
           "SourceImage": "${boot_image_name}",
           "Type": "pd-ssd",
           "ExactName": true,
@@ -91,7 +91,7 @@
           "Name": "${instance_name}",
           "Disks": [
             {
-              "Source": "${instance_name}-boot-disk",
+              "Source": "${instance_name}",
               "AutoDelete": true,
               "boot": true
             }

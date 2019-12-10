@@ -40,13 +40,11 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 	for i, dataDiskInfo := range dataDiskInfos {
 		dataDiskIndex := i + 1
 		dataDiskFilePath := dataDiskInfo.FilePath
-		diskNames = append(
-			diskNames,
-			fmt.Sprintf("%v-data-disk-%v", w.Vars["instance_name"].Value, dataDiskIndex))
+		diskNames = append(diskNames, generateDataDiskName(w.Vars["instance_name"].Value, dataDiskIndex))
 
 		setupDataDiskStepName := fmt.Sprintf("setup-data-disk-%v", dataDiskIndex)
-		diskImporterDiskName := fmt.Sprintf("disk-importer-%v", dataDiskIndex)
-		scratchDiskDiskName := fmt.Sprintf("disk-importer-scratch-%v-%v", dataDiskIndex, w.Vars["instance_name"].Value)
+		diskImporterDiskName := fmt.Sprintf("disk-importer-%v-%v", dataDiskIndex, w.ID())
+		scratchDiskDiskName := fmt.Sprintf("disk-importer-scratch-%v-%v", dataDiskIndex, w.ID())
 
 		setupDataDiskStep := daisy.NewStepDefaultTimeout(setupDataDiskStepName, w)
 		setupDataDiskStep.CreateDisks = &daisy.CreateDisks{
@@ -157,4 +155,13 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 				(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks,
 				&compute.AttachedDisk{Source: diskName, AutoDelete: true})
 	}
+}
+
+func generateDataDiskName(instanceName string, dataDiskIndex int) string {
+	diskSuffix := fmt.Sprintf("-%v", dataDiskIndex)
+	if len(instanceName)+len(diskSuffix) > 63 {
+		instanceNameRunes := []rune(instanceName)
+		instanceName = string(instanceNameRunes[0 : 63-len(diskSuffix)])
+	}
+	return fmt.Sprintf("%v%v", instanceName, diskSuffix)
 }
