@@ -98,5 +98,5 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 
 func isQuotaExceeded(err error) bool {
 	gAPIErr, isGAPIErr := err.(*googleapi.Error)
-	return isGAPIErr && gAPIErr.Code == 403 && strings.Contains(gAPIErr.Message, "QUOTA_EXCEEDED")
+	return isGAPIErr && gAPIErr.Code == 429 && strings.Contains(gAPIErr.Message, "QUOTA_EXCEEDED")
 }
