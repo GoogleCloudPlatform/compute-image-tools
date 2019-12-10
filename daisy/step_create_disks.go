@@ -18,8 +18,6 @@ import (
 	"context"
 	"strings"
 	"sync"
-
-	"google.golang.org/api/googleapi"
 )
 
 const (
@@ -64,8 +62,7 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 
 			w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
-				// Fallback to pd-standard to avoid quota issue. There isn't a reliable way
-				// to determine whether it's failed by QUOTA_EXCEEDED, so just simply retry.
+				// Fallback to pd-standard to avoid quota issue.
 				if cd.FallbackToPdStandard && strings.HasSuffix(cd.Type, pdSsd) && isQuotaExceeded(err) {
 					w.LogStepInfo(s.name, "CreateDisks", "Falling back to pd-standard for disk %v. "+
 						"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
@@ -97,6 +94,5 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 }
 
 func isQuotaExceeded(err error) bool {
-	gAPIErr, isGAPIErr := err.(*googleapi.Error)
-	return isGAPIErr && gAPIErr.Code == 429 && strings.Contains(gAPIErr.Message, "QUOTA_EXCEEDED")
+	return strings.Contains(err.Error(), "QUOTA_EXCEEDED")
 }

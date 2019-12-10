@@ -20,7 +20,6 @@ import (
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
-	"google.golang.org/api/googleapi"
 )
 
 func TestCreateDisksRun(t *testing.T) {
@@ -30,7 +29,7 @@ func TestCreateDisksRun(t *testing.T) {
 	w.images.m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
 
 	e := Errf("error")
-	quotaExceededErr := &googleapi.Error{Code: 429, Message: "QUOTA_EXCEEDED: error"}
+	quotaExceededErr := Errf("QUOTA_EXCEEDED: error")
 	tests := []struct {
 		desc                 string
 		d                    compute.Disk
