@@ -884,46 +884,52 @@ func TestPopulateClients(t *testing.T) {
 	w := testWorkflow()
 
 	initialComputeClient := w.ComputeClient
-	w.PopulateClients(context.Background())
+	tryPopulateClients(t, w)
 	if w.ComputeClient != initialComputeClient {
 		t.Errorf("Should not repopulate compute client.")
 	}
 
 	w.ComputeClient = nil
-	w.PopulateClients(context.Background())
+	tryPopulateClients(t, w)
 	if w.ComputeClient == nil {
 		t.Errorf("Did not populate compute client.")
 	}
 
 	initialStorageClient := w.StorageClient
-	w.PopulateClients(context.Background())
+	tryPopulateClients(t, w)
 	if w.StorageClient != initialStorageClient {
 		t.Errorf("Should not repopulate storage client.")
 	}
 
 	w.StorageClient = nil
-	w.PopulateClients(context.Background())
+	tryPopulateClients(t, w)
 	if w.StorageClient == nil {
 		t.Errorf("Did not populate storage client.")
 	}
 
 	initialCloudLoggingClient := w.cloudLoggingClient
-	w.PopulateClients(context.Background())
+	tryPopulateClients(t, w)
 	if w.cloudLoggingClient != initialCloudLoggingClient {
 		t.Errorf("Should not repopulate logging client.")
 	}
 
 	w.cloudLoggingClient = nil
 	w.externalLogging = false
-	w.PopulateClients(context.Background())
+	tryPopulateClients(t, w)
 	if w.cloudLoggingClient != nil {
 		t.Errorf("Should not populate Cloud Logging client.")
 	}
 
 	w.cloudLoggingClient = nil
 	w.externalLogging = true
-	w.PopulateClients(context.Background())
+	tryPopulateClients(t, w)
 	if w.cloudLoggingClient == nil {
 		t.Errorf("Did not populate Cloud Logging client.")
+	}
+}
+
+func tryPopulateClients(t *testing.T, w *Workflow) {
+	if err := w.PopulateClients(context.Background()); err != nil {
+		t.Errorf("Failed to populate clients for workflow: %v", err)
 	}
 }

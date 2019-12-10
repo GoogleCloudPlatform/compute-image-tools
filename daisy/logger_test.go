@@ -67,7 +67,7 @@ func TestWriteWorkflowInfo(t *testing.T) {
 	w.Logger.(*daisyLog).gcsLogWriter.Flush()
 
 	got := b.String()
-	want := "\\[Test\\]: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(-\\d{2}:\\d{2})|Z test a"
+	want := "\\[Test\\]: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([+-]\\d{2}:\\d{2})|Z test a"
 	match, err := regexp.MatchString(want, got)
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +89,7 @@ func TestWriteStepInfo(t *testing.T) {
 	w.Logger.Flush()
 
 	got := b.String()
-	want := "\\[Test.StepName\\]: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(-\\d{2}:\\d{2})|Z StepType: test a"
+	want := "\\[Test.StepName\\]: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}([+-]\\d{2}:\\d{2})|Z StepType: test a"
 	match, _ := regexp.MatchString(want, got)
 	if !match {
 		t.Errorf("Wanted to match %s, got %s", want, got)
