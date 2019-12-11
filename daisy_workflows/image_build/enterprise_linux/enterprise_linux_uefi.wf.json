@@ -33,6 +33,10 @@
     "rhel_uefi": {
       "Value": "true",
       "Description": "Create a RHEL UEFI image."
+    },
+    "install_nge": {
+      "Value": "false",
+      "Description": "Whether to install the new guest agent"
     }
   },
   "Sources": {
@@ -86,7 +90,8 @@
             "google_cloud_repo": "${google_cloud_repo}",
             "rhel_byol": "${rhel_byol}",
             "rhel_sap": "${rhel_sap}",
-            "rhel_uefi": "${rhel_uefi}"
+            "rhel_uefi": "${rhel_uefi}",
+            "install_nge": "${install_nge}"
           },
           "StartupScript": "installerprep_startup_script"
         }
