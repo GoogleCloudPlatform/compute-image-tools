@@ -399,3 +399,23 @@ func TestPopulateProjectIfMissingProjectWithErrorRetrievingFromGCE(t *testing.T)
 	assert.NotNil(t, err)
 	assert.Equal(t, expectedProject, project)
 }
+
+func TestGetGlobalResourceName(t *testing.T) {
+	var n string
+
+	n = GetGlobalResourcePath("networks", "aNetwork")
+	assert.Equal(t, "global/networks/aNetwork", n)
+
+	n = GetGlobalResourcePath("networks", "x/blabla")
+	assert.Equal(t, "x/blabla", n)
+}
+
+func TestGetRegionalResourceName(t *testing.T) {
+	var n string
+
+	n = GetRegionalResourcePath("aRegion", "subnetworks", "aSubnetwork")
+	assert.Equal(t, "regions/aRegion/subnetworks/aSubnetwork", n)
+
+	n = GetRegionalResourcePath("aRegion","subnetworks", "x/blabla")
+	assert.Equal(t, "x/blabla", n)
+}

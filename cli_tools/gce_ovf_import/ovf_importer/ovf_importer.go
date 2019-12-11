@@ -132,11 +132,15 @@ func (oi *OVFImporter) buildDaisyVars(
 	if bootDiskGcsPath != "" {
 		varMap["boot_disk_file"] = bootDiskGcsPath
 	}
-	if oi.params.Network != "" {
-		varMap["network"] = fmt.Sprintf("global/networks/%v", oi.params.Network)
-	}
 	if oi.params.Subnet != "" {
-		varMap["subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", region, oi.params.Subnet)
+		varMap["subnet"] = param.GetRegionalResourcePath(region, "subnetworks", oi.params.Subnet)
+		// When subnet is set, we need to grant a value to network to avoid fallback to default
+		if oi.params.Network == "" {
+			varMap["network"] = ""
+		}
+	}
+	if oi.params.Network != "" {
+		varMap["network"] = param.GetGlobalResourcePath("networks", oi.params.Network)
 	}
 	if machineType != "" {
 		varMap["machine_type"] = machineType

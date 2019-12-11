@@ -17,6 +17,7 @@ package param
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"google.golang.org/api/option"
 
@@ -138,4 +139,22 @@ func CreateComputeClient(ctx *context.Context, oauth string, ce string) (compute
 		return nil, daisy.Errf("failed to create compute client: %v", err)
 	}
 	return computeClient, nil
+}
+
+func getResourcePath(scope string, resourceType string, resourceName string) string {
+	if strings.Contains(resourceName, "/") {
+		return resourceName
+	} else {
+		return fmt.Sprintf("%v/%v/%v", scope, resourceType, resourceName)
+	}
+}
+
+// GetGlobalResourcePath gets global resource path based on either a local resource name or a path
+func GetGlobalResourcePath(resourceType string, resourceName string) string {
+	return getResourcePath("global", resourceType, resourceName)
+}
+
+// GetRegionalResourcePath gets regional resource path based on either a local resource name or a path
+func GetRegionalResourcePath(region string, resourceType string, resourceName string) string {
+	return getResourcePath(fmt.Sprintf("regions/%v", region), resourceType, resourceName)
 }

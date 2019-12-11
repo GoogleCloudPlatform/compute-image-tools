@@ -234,6 +234,28 @@ func TestSuite(
 			name:        fmt.Sprintf("aws-ova-ubuntu-1604-%s", suffix),
 			description: "Ubuntu 1604 from AWS",
 		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-centos-6-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/centos-6.8", ovaBucket),
+				OsID:          "centos-6",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       &testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+				Network:       fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+				Subnet:        fmt.Sprintf("projects/%v/regions/us-east1/subnetworks/%v-subnet-1",
+					testProjectConfig.TestProjectID, testProjectConfig.TestProjectID),
+			},
+			name:        fmt.Sprintf("ovf-import-test-centos-6-with-network-%s", suffix),
+			description: "Centos 6.8 with network setting",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", startupScriptLinuxSingleDisk),
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-standard-4",
+			expectedStartupOutput: "All tests passed!",
+		},
 	}
 
 	var wg sync.WaitGroup
