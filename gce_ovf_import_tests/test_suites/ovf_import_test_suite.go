@@ -245,7 +245,7 @@ func TestSuite(
 				Zone:          testProjectConfig.TestZone,
 				MachineType:   "n1-standard-4",
 				Network:       fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
-				Subnet:        fmt.Sprintf("projects/%v/regions/us-east1/subnetworks/%v-subnet-1",
+				Subnet:        fmt.Sprintf("projects/%v/regions/us-east1/subnetworks/%v-subnet-2",
 					testProjectConfig.TestProjectID, testProjectConfig.TestProjectID),
 			},
 			name:        fmt.Sprintf("ovf-import-test-centos-6-with-network-%s", suffix),
