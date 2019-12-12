@@ -46,11 +46,6 @@ func (ci *CreateImages) UnmarshalJSON(b []byte) error {
 }
 
 func usesBetaFeatures(imagesBeta []*ImageBeta) bool {
-	for _, imageBeta := range imagesBeta {
-		if imageBeta != nil && len(imageBeta.StorageLocations) > 0 {
-			return true
-		}
-	}
 	return false
 }
 

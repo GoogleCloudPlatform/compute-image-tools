@@ -44,9 +44,9 @@ func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string,
 
 // PopulateMissingParameters populate missing params for import/export cli tools
 func PopulateMissingParameters(project *string, zone *string, region *string,
-	scratchBucketGcsPath *string, file string, mgce domain.MetadataGCEInterface,
-	scratchBucketCreator domain.ScratchBucketCreatorInterface,
-	zoneRetriever domain.ZoneRetrieverInterface,
+	scratchBucketGcsPath *string, file string, storageLocation *string,
+	mgce domain.MetadataGCEInterface, scratchBucketCreator domain.ScratchBucketCreatorInterface,
+	resourceLocationRetrieverInterface domain.ResourceLocationRetrieverInterface,
 	storageClient domain.StorageClientInterface) error {
 
 	if err := PopulateProjectIfMissing(mgce, project); err != nil {
@@ -59,8 +59,12 @@ func PopulateMissingParameters(project *string, zone *string, region *string,
 		return err
 	}
 
+	if storageLocation != nil && *storageLocation == "" {
+		*storageLocation = resourceLocationRetrieverInterface.GetLargestStorageLocation(scratchBucketRegion)
+	}
+
 	if *zone == "" {
-		if aZone, err := zoneRetriever.GetZone(scratchBucketRegion, *project); err == nil {
+		if aZone, err := resourceLocationRetrieverInterface.GetZone(scratchBucketRegion, *project); err == nil {
 			*zone = aZone
 		} else {
 			return err

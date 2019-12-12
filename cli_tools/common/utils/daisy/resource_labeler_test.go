@@ -168,16 +168,6 @@ func TestUpdateWorkflowImagesLabelled(t *testing.T) {
 		"gce-image-import-tmp", buildID, &existingLabels)
 	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[3].Image.Labels,
 		"gce-image-import-tmp", buildID)
-
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.Labels, "gce-image-import",
-		buildID, &existingLabels)
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[1].Image.Labels, "gce-image-import",
-		buildID)
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[2].Image.Labels,
-		"gce-image-import-tmp", buildID, &existingLabels)
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[3].Image.Labels,
-		"gce-image-import-tmp", buildID)
-
 }
 
 func TestUpdateWorkflowImageStorageLocationSet(t *testing.T) {
@@ -188,9 +178,9 @@ func TestUpdateWorkflowImageStorageLocationSet(t *testing.T) {
 	w.Steps = map[string]*daisy.Step{
 		"cimg": {
 			CreateImages: &daisy.CreateImages{
-				ImagesBeta: []*daisy.ImageBeta{
+				Images: []*daisy.Image{
 					{
-						Image: computeBeta.Image{
+						Image: compute.Image{
 							Name:   "final-image-1",
 							Labels: map[string]string{"labelKey": "labelValue"},
 						},
@@ -205,11 +195,11 @@ func TestUpdateWorkflowImageStorageLocationSet(t *testing.T) {
 
 	rl.LabelResources(w)
 
-	validateLabels(t, &(*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.Labels, "gce-image-import",
+	validateLabels(t, &(*w.Steps["cimg"].CreateImages).Images[0].Image.Labels, "gce-image-import",
 		buildID, &existingLabels)
 
-	assert.Equal(t, 1, len((*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.StorageLocations))
-	assert.Equal(t, "europe-west5", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.StorageLocations[0])
+	assert.Equal(t, 1, len((*w.Steps["cimg"].CreateImages).Images[0].Image.StorageLocations))
+	assert.Equal(t, "europe-west5", (*w.Steps["cimg"].CreateImages).Images[0].Image.StorageLocations[0])
 }
 
 func createTestResourceLabeler(buildID string, userLabels map[string]string) *ResourceLabeler {

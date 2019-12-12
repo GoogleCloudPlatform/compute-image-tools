@@ -50,8 +50,8 @@ func TestGetZoneFromGCEMetadata(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true).Times(1)
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("", projectID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", zone)
@@ -67,8 +67,8 @@ func TestGetZoneErrorWhenGCEMetadataReturnsError(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true)
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("", projectID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "", zone)
@@ -84,8 +84,8 @@ func TestGetZoneErrorWhenGCEMetadataReturnsEmtpyZone(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true)
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("", projectID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "", zone)
@@ -100,8 +100,8 @@ func TestGetZoneErrorWhenNotOnGCEAndNoStorageRegion(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(false)
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("", projectID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "", zone)
@@ -128,8 +128,8 @@ func TestGetZoneFromStorageRegion(t *testing.T) {
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 	mockComputeService.EXPECT().ListZones(projectID).Return(zones, nil)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("EUROPE-NORTH2", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("EUROPE-NORTH2", projectID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north2-a", zone)
@@ -152,8 +152,8 @@ func TestGetZoneFromGCEWhenNoMatchingZone(t *testing.T) {
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 	mockComputeService.EXPECT().ListZones(projectID).Return(zones, nil)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("EUROPE-NORTH2", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("EUROPE-NORTH2", projectID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", zone)
@@ -168,7 +168,7 @@ func TestGetZoneFromStorageMultiRegion(t *testing.T) {
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 	mockComputeService.EXPECT().ListZones(projectID).Return(defaultZones, nil)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
+	zr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
 	zone, err := zr.GetZone("US", projectID)
 
 	assert.Nil(t, err)
@@ -193,8 +193,8 @@ func TestGetZoneFromGCEWhenMultiRegionHasNoValidZones(t *testing.T) {
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 	mockComputeService.EXPECT().ListZones(projectID).Return(zones, nil)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("ASIA", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("ASIA", projectID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", zone)
@@ -223,8 +223,8 @@ func TestGetZoneFromGCEWhenMultiRegionHasNoZonesUP(t *testing.T) {
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 	mockComputeService.EXPECT().ListZones(projectID).Return(zones, nil)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("US", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("US", projectID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "asia-east1-c", zone)
@@ -240,8 +240,8 @@ func TestGetZoneErrorWhenNoMatchingZoneAndNotOnGCE(t *testing.T) {
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 	mockComputeService.EXPECT().ListZones(projectID).Return(defaultZones, nil)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("ASIA-EAST1", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("ASIA-EAST1", projectID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "", zone)
@@ -258,8 +258,8 @@ func TestGetZoneFromGCEWhenGetComputeServiceReturnsZoneError(t *testing.T) {
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 	mockComputeService.EXPECT().ListZones(projectID).Return(nil, fmt.Errorf("zone error"))
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("EUROPE-NORTH2", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("EUROPE-NORTH2", projectID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", zone)
@@ -275,8 +275,8 @@ func TestGetZoneErrorWhenGetComputeServiceReturnsZoneErrorAndNotOnGCE(t *testing
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 	mockComputeService.EXPECT().ListZones(projectID).Return(nil, fmt.Errorf("zone error"))
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("EUROPE-NORTH2", projectID)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("EUROPE-NORTH2", projectID)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "", zone)
@@ -291,8 +291,8 @@ func TestGetZoneFromGCEWhenProjectNotSetAndStorageRegionSet(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true).Times(1)
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("EUROPE-NORTH2", "")
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("EUROPE-NORTH2", "")
 
 	assert.Nil(t, err)
 	assert.Equal(t, "europe-north1-c", zone)
@@ -306,8 +306,8 @@ func TestGetZoneErrorWhenProjectNotSetAndStorageRegionSetAndNotOnGCE(t *testing.
 	mockMetadataGce.EXPECT().OnGCE().Return(false).Times(1)
 	mockComputeService := mocks.NewMockClient(mockCtrl)
 
-	zr := ZoneRetriever{mockMetadataGce, mockComputeService}
-	zone, err := zr.GetZone("EUROPE-NORTH2", "")
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+	zone, err := rlr.GetZone("EUROPE-NORTH2", "")
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "", zone)
@@ -323,4 +323,52 @@ func createDownZone(region string, zoneSuffix string) *compute.Zone {
 
 func createZone(region string, zoneSuffix string, status string) *compute.Zone {
 	return &compute.Zone{Name: region + "-" + zoneSuffix, Region: "/regions/" + region, Status: status}
+}
+
+func TestGetLargestStorageLocationForMultiRegion(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockComputeService := mocks.NewMockClient(mockCtrl)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+
+	location := rlr.GetLargestStorageLocation("US")
+	assert.Equal(t, "US", location)
+}
+
+func TestGetLargestStorageLocationForRegionInMultiRegion(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockComputeService := mocks.NewMockClient(mockCtrl)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+
+	location := rlr.GetLargestStorageLocation("europe-west2")
+	assert.Equal(t, "EU", location)
+}
+
+func TestGetLargestStorageLocationForRegionAllCapsInMultiRegion(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockComputeService := mocks.NewMockClient(mockCtrl)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+
+	location := rlr.GetLargestStorageLocation("EUROPE-WEST2")
+	assert.Equal(t, "EU", location)
+}
+
+func TestGetLargestStorageLocationForRegionNotInMultiRegion(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockComputeService := mocks.NewMockClient(mockCtrl)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+
+	location := rlr.GetLargestStorageLocation("australia-southeast1")
+	assert.Equal(t, "australia-southeast1", location)
 }

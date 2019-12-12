@@ -88,9 +88,10 @@ type ScratchBucketCreatorInterface interface {
 	CreateScratchBucket(sourceFileFlag string, projectFlag string, fallbackZone string) (string, string, error)
 }
 
-// ZoneRetrieverInterface represents Daisy GCE zone retriever
-type ZoneRetrieverInterface interface {
+// ResourceLocationRetrieverInterface represents Daisy GCE/GCS resource location retriever
+type ResourceLocationRetrieverInterface interface {
 	GetZone(storageRegion string, project string) (string, error)
+	GetLargestStorageLocation(storageLocation string) string
 }
 
 // HTTPClientInterface represents HTTP client

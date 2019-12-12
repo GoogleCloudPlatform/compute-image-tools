@@ -178,11 +178,12 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	if err != nil {
 		return nil, err
 	}
-	zoneRetriever := storage.NewZoneRetriever(metadataGCE, computeClient)
+	resourceLocationRetriever := storage.NewResourceLocationRetriever(metadataGCE, computeClient)
 
 	region := new(string)
 	err = param.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath,
-		destinationURI, metadataGCE, scratchBucketCreator, zoneRetriever, storageClient)
+		destinationURI, nil, metadataGCE, scratchBucketCreator,
+		resourceLocationRetriever, storageClient)
 	if err != nil {
 		return nil, err
 	}
