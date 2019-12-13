@@ -21,6 +21,7 @@ import (
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -99,6 +100,32 @@ func TestLogSerialOutput(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestLogSerialOutputStopsAfterTenRetries(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+
+	callNum := 0
+	responses := []string{"", "", "hello", "", " go", "", "", "", "", "", "", "", "", "", "", "", "lang"}
+	nexts := []int64{0, 0, 0, 5, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}
+
+	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, next int64) (*compute.SerialPortOutput, error) {
+		response := responses[callNum]
+		assert.Equal(t, nexts[callNum], next)
+		callNum++
+		switch response {
+		case "":
+			return nil, errors.New("fail")
+		default:
+			return &compute.SerialPortOutput{Contents: response, Next: next + int64(len(response))}, nil
+		}
+	}
+	logSerialOutput(ctx, &Step{name: "foo", w: w}, &Instance{Instance: compute.Instance{Name: "i1"}}, 0, 1*time.Microsecond)
+
+	logs := w.Logger.ReadSerialPortLogs()
+	assert.Equal(t, 1, len(logs))
+	assert.Equal(t, "hello go", logs[0])
 }
 
 func TestCreateInstancesRun(t *testing.T) {

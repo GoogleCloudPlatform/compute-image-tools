@@ -27,16 +27,17 @@ import (
 )
 
 type MockLogger struct {
-	entries []*LogEntry
-	mx      sync.Mutex
+	entries        []*LogEntry
+	mx             sync.Mutex
+	serialPortLogs []string
 }
 
 func (l *MockLogger) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.Buffer) {
-	// nop
+	l.serialPortLogs = append(l.serialPortLogs, buf.String())
 }
 
 func (l *MockLogger) ReadSerialPortLogs() []string {
-	return nil
+	return l.serialPortLogs
 }
 
 func (l *MockLogger) WriteLogEntry(e *LogEntry) {
