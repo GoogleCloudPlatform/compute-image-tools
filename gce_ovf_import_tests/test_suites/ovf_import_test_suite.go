@@ -156,6 +156,7 @@ func TestSuite(
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       &testProjectConfig.TestProjectID,
 				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n2-standard-2",
 			},
 			name:        fmt.Sprintf("ovf-import-test-w2k16-%s", suffix),
 			isWindows:   true,
