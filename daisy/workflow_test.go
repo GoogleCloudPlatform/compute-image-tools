@@ -296,7 +296,7 @@ func TestNewFromFile(t *testing.T) {
 			name: "create-image-locality",
 			CreateImages: &CreateImages{
 				Images: []*Image{{
-					Image: compute.Image{Name: "image-from-local-disk", SourceDisk: "local-image", Description: "Some Ubuntu", Family: "ubuntu-1404"},
+					Image: compute.Image{Name: "image-from-local-disk", SourceDisk: "local-image", StorageLocations: []string{"europe-west1"}, Description: "Some Ubuntu", Family: "ubuntu-1404"},
 					ImageBase: ImageBase{OverWrite: false,
 						Resource: Resource{Project: "a_project", NoCleanup: true, ExactName: false},
 					},
