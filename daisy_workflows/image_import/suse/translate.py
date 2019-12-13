@@ -72,10 +72,7 @@ def DistroSpecific(g):
   # Update grub config to log to console, remove quiet and timeouts.
   g.command(
       ['sed', '-i',
-       '-e', r'/GRUB_CMDLINE_LINUX/s#"$# console=ttyS0,38400n8'
-       ' scsi_mod.use_blk_mq=Y"#',
-       '-e', r'/GRUB_CMDLINE_LINUX/s#quiet##',
-       '-e', r'/GRUB_[^=]*TIMEOUT=/s#=.*#=0',
+       r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#',
        '/etc/default/grub'])
 
   g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
