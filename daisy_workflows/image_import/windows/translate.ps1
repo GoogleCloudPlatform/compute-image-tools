@@ -303,17 +303,19 @@ try {
       Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-engine-metadata-scripts
       Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm remove google-compute-powershell
     }
-    Write-Output 'Translate complete.'
-    Stop-Computer -force
-    exit 0
+  } else {
+    Write-Output 'Translate: Launching sysprep.'
+    & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat -NoShutdown'
   }
 
   if ($script:is_byol.ToLower() -eq 'true') {
     'Image imported into GCE using BYOL worklfow' > 'C:\Program Files\Google\Compute Engine\sysprep\byol_image'
   }
 
-  Write-Output 'Translate: Launching sysprep.'
-  & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat'
+  Write-Output 'Translate complete.'
+  Stop-Computer -force
+  exit 0
+
 }
 catch {
   Write-Output 'Exception caught in script:'
