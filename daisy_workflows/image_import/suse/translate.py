@@ -16,8 +16,8 @@
 """Translate the SUSE image on a GCE VM.
 
 Parameters (retrieved from instance metadata):
-
-install_gce_packages: True if GCE agent and SDK should be installed
+  install_gce_packages: True if GCE agent and SDK should be installed
+  licensing: Applicable for SLES. Either `gcp` or `byol`.
 """
 
 import logging
@@ -26,67 +26,159 @@ import utils
 import utils.diskutils as diskutils
 
 
-network = '''
-BOOTPROTO='dhcp'
-STARTMODE='auto'
-DHCLIENT_SET_HOSTNAME='yes'
-'''
+class Package:
+  name = ''
+  gce = False
+  required = False
+
+  def __init__(self, name, gce, required):
+    self.name = name
+    self.gce = gce
+    self.required = required
 
 
-def DistroSpecific(g):
-  install_gce = utils.GetMetadataAttribute('install_gce_packages')
+class SuseRelease:
+  flavor = ''
+  major = ''
+  minor = ''
+  packages = None
+  subscriptions = None
 
-  # Remove any hard coded DNS settings in resolvconf.
-  logging.info('Resetting resolvconf base.')
-  g.sh('echo "" > /etc/resolv.conf')
+  def __init__(self, flavor, major, minor, packages, subscriptions=None):
+    self.flavor = flavor
+    self.major = major
+    self.minor = minor
+    self.packages = packages
+    self.subscriptions = subscriptions
 
-  # Try to reset the network to DHCP.
-  g.write('/etc/sysconfig/network/ifcfg-eth0', network)
 
-  if install_gce == 'true':
-    g.command(['zypper', 'refresh'])
+cloud_init = Package('cloud-init', gce=False, required=False)
+gcp_sdk = Package('google-cloud-sdk', gce=True, required=False)
+gce_init = Package('google-compute-engine-init', gce=True, required=True)
+gce_oslogin = Package('google-compute-engine-oslogin', gce=True, required=True)
 
-    logging.info('Installing cloud-init.')
-    g.command(['zypper', '-n', 'install', '--no-recommends', 'cloud-init'])
+_distros = [
+    SuseRelease(
+        flavor='opensuse',
+        major='15',
+        minor='1',
+        packages=[cloud_init, gcp_sdk, gce_init, gce_oslogin]
+    ),
+    SuseRelease(
+        flavor='sles',
+        major='15',
+        minor='1',
+        packages=[cloud_init, gcp_sdk, gce_init, gce_oslogin],
+        subscriptions=['sle-module-public-cloud/15.1/x86_64']
+    ),
+    SuseRelease(
+        flavor='sles',
+        major='12',
+        minor='5',
+        packages=[cloud_init, gcp_sdk, gce_init, gce_oslogin],
+        subscriptions=['sle-module-public-cloud/12/x86_64']
+    ),
+]
 
-    # Installing google-compute-engine-init and not installing
-    # gce-compute-image-packages as there is no port to SUSE
-    logging.info('Installing GCE packages.')
-    g.command(
-        ['zypper', '-n', 'install', '--no-recommends',
-        'google-compute-engine-init'])
 
-    logging.info('Enable google services.')
-    g.sh('systemctl enable /usr/lib/systemd/system/google-*')
+def get_distro(g) -> SuseRelease:
+  for d in _distros:
+    if d.flavor == g.gcp_image_distro:
+      if d.major == g.gcp_image_major or d.major == '*':
+        if d.minor == g.gcp_image_minor or d.minor == '*':
+          return d
+  raise AssertionError('Import script not defined for {} {}.{}'.format(
+      g.gcp_image_distro, g.gcp_image_major, g.gcp_image_minor))
 
-    # Try to install the google-cloud-sdk package. It may be not available on
-    # all Leap versions so don't raise an error if it fails.
+
+def install_subscriptions(distro, g):
+  if distro.subscriptions:
+    for subscription in distro.subscriptions:
+      try:
+        g.command(['SUSEConnect', '-p', subscription])
+      except Exception as e:
+        raise ValueError(
+          'Failed when executing SUSEConnect -p {}: {}'.format(subscription, e))
+
+
+def install_packages(distro, g, install_gce):
+  g.command(['zypper', 'refresh'])
+  for package in distro.packages:
+    if package.gce and not install_gce:
+      continue
     try:
-      g.command(
-          ['zypper', '-n', 'install', '--no-recommends',
-          'google-cloud-sdk'])
+      g.command(('zypper', '-n', 'install', '--no-recommends', package.name))
     except Exception as e:
-      logging.warn("Optional google-cloud-sdk package couldn't be installed: "
-                   "%s" % e)
+      if package.required:
+        raise AssertionError(
+            'Failed to install required package {}: {}'.format(package.name, e))
+      else:
+        logging.warning(
+            'Failed to install optional package {}: {}'.format(package.name, e))
 
-  # Update grub config to log to console, remove quiet and timeouts.
+
+def update_grub(g):
   g.command(
       ['sed', '-i',
-       '-e', r'/GRUB_CMDLINE_LINUX/s#"$# console=ttyS0,38400n8'
-       ' scsi_mod.use_blk_mq=Y"#',
-       '-e', r'/GRUB_CMDLINE_LINUX/s#quiet##',
-       '-e', r'/GRUB_[^=]*TIMEOUT=/s#=.*#=0',
+       r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#',
        '/etc/default/grub'])
-
   g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
 
 
-def main():
+def reset_network(g):
+  logging.info('Updating network to use DHCP.')
+  g.sh('echo "" > /etc/resolv.conf')
+  g.write('/etc/sysconfig/network/ifcfg-eth0', '\n'.join((
+      'BOOTPROTO=dhcp',
+      'STARTMODE=auto',
+      'DHCLIENT_SET_HOSTNAME=yes')
+  ))
+
+
+def install_gcp_licensing(distro, g):
+  if distro.flavor == 'opensuse':
+    return
+  licensing = utils.GetMetadataAttribute('licensing')
+  if not licensing:
+    raise AssertionError(
+        'licensing attribute must be set to either gcp or byol.')
+  if licensing == 'byol':
+    return
+
+  # TODO: Implement GCP licensing for SLES.
+  # Here are SUSE's instructions:
+  #   https://www.suse.com/c/create-sles-demand-images-gce/
+
+  raise AssertionError(
+      'GCP licensing not supported for imported SLES images. Please use BYOL.')
+
+
+def install_virtio_drivers(g):
+  logging.info('Installing virtio drivers.')
+  for kernel in g.ls('/lib/modules'):
+    g.command(['dracut', '-v', '-f', '--kver', kernel])
+
+
+def translate():
+  include_gce_packages = utils.GetMetadataAttribute(
+      'install_gce_packages', 'true').lower() == 'true'
+
   g = diskutils.MountDisk('/dev/sdb')
-  DistroSpecific(g)
+  distro = get_distro(g)
+
+  install_virtio_drivers(g)
+  install_gcp_licensing(distro, g)
+  install_subscriptions(distro, g)
+  install_packages(distro, g, include_gce_packages)
+  if include_gce_packages:
+    logging.info('Enabling google services.')
+    g.sh('systemctl enable /usr/lib/systemd/system/google-*')
+
+  reset_network(g)
+  update_grub(g)
   utils.CommonRoutines(g)
   diskutils.UnmountDisk(g)
 
 
 if __name__ == '__main__':
-  utils.RunTranslate(main)
+  utils.RunTranslate(translate)

@@ -56,6 +56,10 @@ def MountDisk(disk):
   # mounting the filesystems in the correct order.
   mps = g.inspect_get_mountpoints(roots[0])
 
+  g.gcp_image_distro = g.inspect_get_distro(roots[0])
+  g.gcp_image_major = str(g.inspect_get_major_version(roots[0]))
+  g.gcp_image_minor = str(g.inspect_get_minor_version(roots[0]))
+
   for device in sorted(list(mps.keys()), key=len):
     try:
       g.mount(mps[device], device)
