@@ -291,6 +291,11 @@ func (c *client) globalOperationsWait(project, name string) error {
 	})
 }
 
+// OperationErrorCodeFormat is the format of operation error code.
+var OperationErrorCodeFormat = "Code: %s"
+
+var operationErrorMessageFormat = "Message: %s"
+
 func (c *client) operationsWaitHelper(project, name string, getOperation operationGetterFunc) error {
 	for {
 		op, err := getOperation()
@@ -306,7 +311,9 @@ func (c *client) operationsWaitHelper(project, name string, getOperation operati
 			if op.Error != nil {
 				var operrs string
 				for _, operr := range op.Error.Errors {
-					operrs = operrs + fmt.Sprintf("\n  Code: %s, Message: %s", operr.Code, operr.Message)
+					operrs = operrs + fmt.Sprintf(
+						fmt.Sprintf("\n%v\n%v", OperationErrorCodeFormat, operationErrorMessageFormat),
+						operr.Code, operr.Message)
 				}
 				return fmt.Errorf("operation failed %+v: %s", op, operrs)
 			}

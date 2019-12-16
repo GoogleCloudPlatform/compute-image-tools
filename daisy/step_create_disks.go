@@ -16,8 +16,12 @@ package daisy
 
 import (
 	"context"
+	"fmt"
+	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 const (
@@ -93,6 +97,8 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 	}
 }
 
+var operationErrorCodeRegex = regexp.MustCompile(fmt.Sprintf("^" + compute.OperationErrorCodeFormat + "$", "QUOTA_EXCEEDED"))
+
 func isQuotaExceeded(err error) bool {
-	return strings.Contains(err.Error(), "QUOTA_EXCEEDED")
+	return operationErrorCodeRegex.FindIndex([]byte(err.Error())) != nil
 }
