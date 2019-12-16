@@ -356,9 +356,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 	if err := validateReleaseTrack(oi.params.ReleaseTrack); err != nil {
 		return nil, err
 	}
-	if oi.params.ReleaseTrack == Alpha || oi.params.ReleaseTrack == Beta {
-		oi.imageLocation = region
-	}
+	oi.imageLocation = region
 
 	tmpGcsPath, err := oi.buildTmpGcsPath(project, region)
 	if err != nil {

@@ -58,13 +58,10 @@ func (rl *ResourceLabeler) labelResourcesInStep(step *daisy.Step) {
 	}
 	if step.CreateImages != nil {
 		for _, image := range step.CreateImages.Images {
-			image.Image.Labels =
-				rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
-		}
-		for _, image := range step.CreateImages.ImagesBeta {
 			if rl.ImageLocation != "" {
 				image.Image.StorageLocations = []string{rl.ImageLocation}
 			}
+
 			image.Image.Labels =
 				rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
 		}

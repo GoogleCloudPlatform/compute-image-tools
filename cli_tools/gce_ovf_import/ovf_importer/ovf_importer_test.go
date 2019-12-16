@@ -111,7 +111,7 @@ func TestSetUpWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, "oAuthFilePath", w.OAuthPath)
 	assert.Equal(t, "3h", w.DefaultTimeout)
 	assert.Equal(t, 3+3*3, len(w.Steps))
-	assert.Equal(t, "", oi.imageLocation)
+	assert.Equal(t, "europe-north1", oi.imageLocation)
 
 	instance := (*w.Steps["create-instance"].CreateInstances)[0].Instance
 	assert.Equal(t, "build123", instance.Labels["gce-ovf-import-build-id"])
@@ -194,14 +194,12 @@ func TestSetUpWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHostnameAs
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-boot-disk"].CreateDisks)[0].Disk.GuestOsFeatures[0].Type)
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].GuestOsFeatures[0])
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].Image.GuestOsFeatures[0].Type)
-	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).ImagesBeta[0].GuestOsFeatures[0])
-	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).ImagesBeta[0].Image.GuestOsFeatures[0].Type)
 
 	assert.Equal(t, "gs://bucket/folder/ovf-import-build123/ovf/", oi.gcsPathToClean)
 }
 
 func TestSetUpWorkflowUsesImageLocationForGAReleaseTrack(t *testing.T) {
-	doTestSetUpWorkflowUsesImageLocationForReleaseTrack(t, GA, "europe-west2-b", "")
+	doTestSetUpWorkflowUsesImageLocationForReleaseTrack(t, GA, "europe-west2-b", "europe-west2")
 }
 
 func TestSetUpWorkflowUsesImageLocationForBetaReleaseTrack(t *testing.T) {
@@ -247,13 +245,13 @@ func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(
 	oi.modifyWorkflowPreValidate(w)
 	oi.modifyWorkflowPostValidate(w)
 
-	imageBeta := (*w.Steps["create-image"].CreateImages).ImagesBeta[0].Image
+	images := (*w.Steps["create-image"].CreateImages).Images[0].Image
 
 	if expectedImageLocation != "" {
-		assert.Equal(t, 1, len(imageBeta.StorageLocations))
-		assert.Equal(t, expectedImageLocation, imageBeta.StorageLocations[0])
+		assert.Equal(t, 1, len(images.StorageLocations))
+		assert.Equal(t, expectedImageLocation, images.StorageLocations[0])
 	} else {
-		assert.Nil(t, imageBeta.StorageLocations)
+		assert.Nil(t, images.StorageLocations)
 	}
 }
 
