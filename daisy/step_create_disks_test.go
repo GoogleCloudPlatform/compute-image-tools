@@ -29,7 +29,7 @@ func TestCreateDisksRun(t *testing.T) {
 	w.images.m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
 
 	e := Errf("error")
-	quotaExceededErr := Errf("QUOTA_EXCEEDED: error")
+	quotaExceededErr := Errf("Some error\nCode: QUOTA_EXCEEDED\nMessage: some message.")
 	tests := []struct {
 		desc                 string
 		d                    compute.Disk
