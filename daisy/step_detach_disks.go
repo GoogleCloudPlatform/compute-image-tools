@@ -37,7 +37,7 @@ func (a *DetachDisks) populate(ctx context.Context, s *Step) DError {
 			dd.DeviceName = path.Base(dd.DeviceName)
 		}
 		if diskURLRgx.MatchString(dd.DeviceName) {
-			dd.DeviceName = extendPartialURL(dd.DeviceName, s.w.Project)
+			dd.DeviceName = normalizeToPartialURL(dd.DeviceName, s.w.Project)
 		}
 	}
 

@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
@@ -80,6 +81,7 @@ func TestSuite(
 	suffix := path.RandString(5)
 	ovaBucket := "compute-image-tools-test-resources"
 	logger.Printf("Running TestSuite %q", testSuite.Name)
+	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
 
 	startupScriptUbuntu3disks := loadScriptContent(
 		"gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh", logger)
@@ -234,6 +236,48 @@ func TestSuite(
 			},
 			name:        fmt.Sprintf("aws-ova-ubuntu-1604-%s", suffix),
 			description: "Ubuntu 1604 from AWS",
+		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-centos-6-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/centos-6.8", ovaBucket),
+				OsID:          "centos-6",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       &testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+				Network:       fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
+				Subnet:        fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
+			},
+			name:        fmt.Sprintf("ovf-import-test-centos-6-with-network-%s", suffix),
+			description: "Test network setting (name only)",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", startupScriptLinuxSingleDisk),
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-standard-4",
+			expectedStartupOutput: "All tests passed!",
+		},
+		{
+			importParams: &ovfimportparams.OVFImportParams{
+				ClientID:      "test",
+				InstanceNames: fmt.Sprintf("test-instance-centos-6-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/centos-6.8", ovaBucket),
+				OsID:          "centos-6",
+				Labels:        "lk1=lv1,lk2=kv2",
+				Project:       &testProjectConfig.TestProjectID,
+				Zone:          testProjectConfig.TestZone,
+				MachineType:   "n1-standard-4",
+				Network:       fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+				Subnet:        fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			},
+			name:        fmt.Sprintf("ovf-import-test-centos-6-with-network-%s", suffix),
+			description: "Test network setting (path)",
+			startup: computeUtils.BuildInstanceMetadataItem(
+				"startup-script", startupScriptLinuxSingleDisk),
+			assertTimeout:         7200 * time.Second,
+			expectedMachineType:   "n1-standard-4",
+			expectedStartupOutput: "All tests passed!",
 		},
 	}
 

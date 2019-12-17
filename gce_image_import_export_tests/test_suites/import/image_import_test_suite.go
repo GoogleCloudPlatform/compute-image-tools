@@ -23,6 +23,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites"
@@ -58,6 +59,8 @@ func TestSuite(
 			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import OS from image"))
 		imageImportWithRichParamsTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import with rich params"))
+		imageImportWithDifferentNetworkParamStylesTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import with different network param styles"))
 		imageImportWithSubnetWithoutNetworkSpecifiedTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import with subnet but without network"))
 
@@ -67,6 +70,7 @@ func TestSuite(
 		testsMap[testType][imageImportOSTestCase] = runImageImportOSTest
 		testsMap[testType][imageImportOSFromImageTestCase] = runImageImportOSFromImageTest
 		testsMap[testType][imageImportWithRichParamsTestCase] = runImageImportWithRichParamsTest
+		testsMap[testType][imageImportWithDifferentNetworkParamStylesTestCase] = runImageImportWithDifferentNetworkParamStyles
 		testsMap[testType][imageImportWithSubnetWithoutNetworkSpecifiedTestCase] = runImageImportWithSubnetWithoutNetworkSpecified
 
 	}
@@ -198,29 +202,70 @@ func runImageImportWithRichParamsTest(ctx context.Context, testCase *junitxml.Te
 		logger, testCase, family, description, labels)
 }
 
-func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCase *junitxml.TestCase,
+func runImageImportWithDifferentNetworkParamStyles(ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project, testType testsuiteutils.TestType) {
 
 	suffix := path.RandString(5)
 	imageName := "e2e-test-image-import-subnet-" + suffix
+	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
 
 	argsMap := map[testsuiteutils.TestType][]string{
 		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
 			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-network=global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		},
 		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--network=global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 		},
 		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
 			"--docker-image-tag=latest", "--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--network=global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+	}
+
+	runImportTest(ctx, argsMap[testType], testType, testProjectConfig, imageName, logger, testCase)
+}
+
+func runImageImportWithSubnetWithoutNetworkSpecified(ctx context.Context, testCase *junitxml.TestCase,
+	logger *log.Logger, testProjectConfig *testconfig.Project, testType testsuiteutils.TestType) {
+
+	suffix := path.RandString(5)
+	imageName := "e2e-test-image-import-subnet-" + suffix
+	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
+
+	argsMap := map[testsuiteutils.TestType][]string{
+		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-image_name=%s", imageName), "-data_disk",
+			fmt.Sprintf("-source_file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-subnet=https://www.googleapis.com/compute/v1/projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "import", imageName, "--quiet",
+			"--docker-image-tag=latest", "--data-disk", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-file=gs://%v-test-image/image-file-10g-vmdk", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 		},
 	}

@@ -74,7 +74,7 @@ func (fr *ForwardingRule) populate(ctx context.Context, s *Step) DError {
 	fr.Name, fr.Region, errs = fr.Resource.populateWithRegion(ctx, s, fr.Name, fr.Region)
 
 	if targetInstanceURLRegex.MatchString(fr.Target) {
-		fr.Target = extendPartialURL(fr.Target, fr.Project)
+		fr.Target = normalizeToPartialURL(fr.Target, fr.Project)
 	} else {
 		fr.Target = fmt.Sprintf("projects/%s/zones/%s/targetInstances/%s", fr.Project, s.w.Zone, fr.Target)
 	}

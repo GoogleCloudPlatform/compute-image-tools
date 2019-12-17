@@ -41,7 +41,7 @@ func (a *AttachDisks) populate(ctx context.Context, s *Step) DError {
 			ad.DeviceName = path.Base(ad.Source)
 		}
 		if diskURLRgx.MatchString(ad.Source) {
-			ad.Source = extendPartialURL(ad.Source, s.w.Project)
+			ad.Source = normalizeToPartialURL(ad.Source, s.w.Project)
 		}
 	}
 
