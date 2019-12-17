@@ -205,21 +205,25 @@ func runImageExportWithSubnetWithoutNetworkParamsTest(ctx context.Context, testC
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-subnet-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
+	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
 
 	argsMap := map[testsuiteutils.TestType][]string{
 		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
-			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+			fmt.Sprintf("-subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			"-source_image=https://www.googleapis.com/compute/v1/projects/global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		},
 		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
 			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 		},
 		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
 			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 		},
 	}
