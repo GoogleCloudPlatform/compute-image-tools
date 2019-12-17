@@ -211,7 +211,7 @@ func runImageExportWithSubnetWithoutNetworkParamsTest(ctx context.Context, testC
 		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
 				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
-			"-source_image=projects/global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		},
 		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
