@@ -137,7 +137,6 @@ func normalizeToPartialURL(url, project string) string {
 }
 
 func resourceExists(client compute.Client, url string) (bool, DError) {
-
 	if !strings.HasPrefix(url, "projects/") {
 		return false, Errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
