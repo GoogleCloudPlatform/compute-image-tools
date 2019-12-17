@@ -36,6 +36,7 @@ func logSerialOutput(ctx context.Context, s *Step, i *Instance, port int64, inte
 	var start int64
 	var buf bytes.Buffer
 	var gcsErr bool
+	var readFromSerial bool
 	var numErr int
 	tick := time.Tick(interval)
 
@@ -55,11 +56,18 @@ Loop:
 					}
 				}
 				if numErr > 10 {
-					w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error getting serial port: %v", i.Name, err)
+					// Quit silently if we were able to read *some* data from the instance,
+					// since there's a race condition where an instance can shut down
+					// fast enough that the call to InstanceStatus will return a 404.
+					if !readFromSerial {
+						w.LogStepInfo(s.name, "CreateInstances",
+							"Instance %q: error getting serial port: %v", i.Name, err)
+					}
 					break Loop
 				}
 				continue
 			}
+			readFromSerial = true
 			numErr = 0
 			start = resp.Next
 			buf.WriteString(resp.Contents)
