@@ -56,9 +56,9 @@ Loop:
 					}
 				}
 				if numErr > 10 {
-					// Quit silently if we were able to read *some* data from the instance,
-					// since there's a race condition where an instance can shut down
-					// fast enough that the call to InstanceStatus will return a 404.
+					// Only emit an error log if we were able to read *some* data from the
+					// instance, since there's a race condition where an instance can shut
+					// down fast enough that the call to InstanceStatus will return a 404.
 					if !readFromSerial {
 						w.LogStepInfo(s.name, "CreateInstances",
 							"Instance %q: error getting serial port: %v", i.Name, err)
