@@ -98,23 +98,23 @@ def install_subscriptions(distro, g):
         g.command(['SUSEConnect', '-p', subscription])
       except Exception as e:
         raise ValueError(
-          'Failed when executing SUSEConnect -p {}: {}'.format(subscription, e))
+            'Command failed: SUSEConnect -p {}: {}'.format(subscription, e))
 
 
 def install_packages(distro, g, install_gce):
   g.command(['zypper', 'refresh'])
-  for package in distro.packages:
-    if package.gce and not install_gce:
+  for pkg in distro.packages:
+    if pkg.gce and not install_gce:
       continue
     try:
-      g.command(('zypper', '-n', 'install', '--no-recommends', package.name))
+      g.command(('zypper', '-n', 'install', '--no-recommends', pkg.name))
     except Exception as e:
-      if package.required:
+      if pkg.required:
         raise AssertionError(
-            'Failed to install required package {}: {}'.format(package.name, e))
+            'Failed to install required package {}: {}'.format(pkg.name, e))
       else:
         logging.warning(
-            'Failed to install optional package {}: {}'.format(package.name, e))
+            'Failed to install optional package {}: {}'.format(pkg.name, e))
 
 
 def update_grub(g):

@@ -117,7 +117,7 @@ function check_google_cloud_sdk {
     fi
   fi
 
-  # Skip for SUSE (gcloud and gsutil aren't in their repo)
+  # Skip for SUSE (gcloud and gsutil aren't in all of their repos)
   if [ -f /etc/os-release ]; then
     grep -qi "suse" /etc/os-release
     if [ $? -eq 0 ]; then
