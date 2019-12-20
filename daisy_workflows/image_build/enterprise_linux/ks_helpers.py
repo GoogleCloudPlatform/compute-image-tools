@@ -158,7 +158,7 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
+def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi, nge):
   """Builds kickstart config from shards.
 
   Args:
@@ -179,6 +179,15 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
   # pre and post
   # Each section must be in a specific order, but items in that section do not
   # have to be.
+  packages = "google-compute-engine google-osconfig-agent"
+  if nge:
+    packages += " google-guest-agent"
+  if release != "rhel6" and release != "centos6":
+    # SDK installed manually on EL6
+    packages += "google-cloud-sdk"
+  if not release.endswith("8"):
+    # TODO: disk-expand not yet working on EL8
+    packages += " gce-disk-expand"
 
   # Common
   pre = ''
@@ -192,7 +201,8 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
     logging.info('Building RHEL 6 image.')
     pre = FetchConfigPart('el6-pre.cfg')
     ks_options = FetchConfigPart('el6-options.cfg')
-    rhel_post = FetchConfigPart('rhel6-post.cfg')
+    rhel_post = FetchConfigPart('rhel6-post.cfg').replace("__PACKAGES__",
+                                                          packages)
     el_post = FetchConfigPart('el6-post.cfg')
     custom_post = '\n'.join([rhel_post, el_post])
     if byol:
@@ -206,14 +216,15 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
     custom_post = FetchConfigPart('el6-post.cfg')
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
-  elif release.startswith('rhel7') or release.startswith('rhel-7'):
+  elif release == 'rhel7' or release.startswith('rhel-7'):
     logging.info('Building RHEL 7 image.')
     if uefi:
       logging.info('Building RHEL 7 for UEFI')
       ks_options = FetchConfigPart('el7-uefi-options.cfg')
     else:
       ks_options = FetchConfigPart('el7-options.cfg')
-    rhel_post = FetchConfigPart('rhel7-post.cfg')
+    rhel_post = FetchConfigPart('rhel7-post.cfg').replace("__PACKAGES__",
+                                                          packages)
     if sap:
       logging.info('Building RHEL 7 for SAP')
       point = ''
@@ -274,7 +285,8 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi):
     if uefi:
       logging.info('Building RHEL 8 for UEFI')
       ks_options = FetchConfigPart('el8-uefi-options.cfg')
-    rhel_post = FetchConfigPart('rhel8-post.cfg')
+    rhel_post = FetchConfigPart('rhel8-post.cfg').replace("__PACKAGES__",
+                                                          packages)
     el_post = FetchConfigPart('el8-post.cfg')
     custom_post = '\n'.join([rhel_post, el_post])
     cleanup = FetchConfigPart('el8-cleanup.cfg')
