@@ -33,8 +33,7 @@ var (
 		exists map[string][]string
 		mu     sync.Mutex
 	}
-	networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(%[1]s)?(projects/(?P<project>%[2]s)/)?global/networks/(?P<network>%[3]s)$`,
-		FullResourceURLPrefix, projectRgxStr, rfc1035))
+	networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 func networkExists(client daisyCompute.Client, project, name string) (bool, DError) {

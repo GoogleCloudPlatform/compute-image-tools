@@ -27,7 +27,7 @@ type StartInstances struct {
 func (st *StartInstances) populate(ctx context.Context, s *Step) DError {
 	for i, instance := range st.Instances {
 		if instanceURLRgx.MatchString(instance) {
-			st.Instances[i] = normalizeToPartialURL(instance, s.w.Project)
+			st.Instances[i] = extendPartialURL(instance, s.w.Project)
 		}
 	}
 	return nil

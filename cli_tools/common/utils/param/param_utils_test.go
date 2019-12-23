@@ -435,22 +435,32 @@ func TestPopulateMissingParametersPopulatesStorageLocationWithScratchBucketLocat
 	assert.Equal(t, "US", storageLocation)
 }
 
-func TestGetGlobalResourceName(t *testing.T) {
-	var n string
-
-	n = GetGlobalResourcePath("networks", "aNetwork")
+func TestGetGlobalResourceNameFromNameOnly(t *testing.T) {
+	var n = GetGlobalResourcePath("networks", "aNetwork")
 	assert.Equal(t, "global/networks/aNetwork", n)
+}
 
-	n = GetGlobalResourcePath("networks", "x/blabla")
+func TestGetGlobalResourceNameFromRelativeURL(t *testing.T) {
+	var n = GetGlobalResourcePath("networks", "x/blabla")
 	assert.Equal(t, "x/blabla", n)
 }
 
-func TestGetRegionalResourceName(t *testing.T) {
-	var n string
+func TestGetGlobalResourceNameFromFullURL(t *testing.T) {
+	var n = GetGlobalResourcePath("networks", fmt.Sprintf("%sx/blabla", fullResourceURLPrefix))
+	assert.Equal(t, "x/blabla", n)
+}
 
-	n = GetRegionalResourcePath("aRegion", "subnetworks", "aSubnetwork")
+func TestGetRegionalResourceNameFromNameOnly(t *testing.T) {
+	var n = GetRegionalResourcePath("aRegion", "subnetworks", "aSubnetwork")
 	assert.Equal(t, "regions/aRegion/subnetworks/aSubnetwork", n)
+}
 
-	n = GetRegionalResourcePath("aRegion", "subnetworks", "x/blabla")
+func TestGetRegionalResourceNameFromRelativeURL(t *testing.T) {
+	var n = GetRegionalResourcePath("aRegion", "subnetworks", "x/blabla")
+	assert.Equal(t, "x/blabla", n)
+}
+
+func TestGetRegionalResourceNameFromFullURL(t *testing.T) {
+	var n = GetRegionalResourcePath("aRegion", "subnetworks", fmt.Sprintf("%sx/blabla", fullResourceURLPrefix))
 	assert.Equal(t, "x/blabla", n)
 }

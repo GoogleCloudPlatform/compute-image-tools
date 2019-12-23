@@ -301,11 +301,11 @@ func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) DE
 	ii.setDescription(strOr(ii.getDescription(), fmt.Sprintf("Image created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username)))
 
 	if diskURLRgx.MatchString(ii.getSourceDisk()) {
-		ii.setSourceDisk(normalizeToPartialURL(ii.getSourceDisk(), ib.Project))
+		ii.setSourceDisk(extendPartialURL(ii.getSourceDisk(), ib.Project))
 	}
 
 	if imageURLRgx.MatchString(ii.getSourceImage()) {
-		ii.setSourceImage(normalizeToPartialURL(ii.getSourceImage(), ib.Project))
+		ii.setSourceImage(extendPartialURL(ii.getSourceImage(), ib.Project))
 	}
 
 	if ii.hasRawDisk() {

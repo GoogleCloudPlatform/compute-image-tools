@@ -33,8 +33,7 @@ var (
 		exists map[string]map[string][]string
 		mu     sync.Mutex
 	}
-	subnetworkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(%[1]s)?(projects/(?P<project>%[2]s)/)?regions/(?P<region>%[3]s)/subnetworks/(?P<subnetwork>%[3]s)$`,
-		FullResourceURLPrefix, projectRgxStr, rfc1035))
+	subnetworkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/subnetworks/(?P<subnetwork>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 func subnetworkExists(client daisyCompute.Client, project, region, name string) (bool, DError) {

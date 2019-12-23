@@ -35,7 +35,7 @@ type ResizeDisk struct {
 func (r *ResizeDisks) populate(ctx context.Context, s *Step) DError {
 	for _, rd := range *r {
 		if diskURLRgx.MatchString(rd.Name) {
-			rd.Name = normalizeToPartialURL(rd.Name, s.w.Project)
+			rd.Name = extendPartialURL(rd.Name, s.w.Project)
 		}
 	}
 	return nil

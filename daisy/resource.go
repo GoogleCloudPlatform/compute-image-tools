@@ -17,7 +17,6 @@ package daisy
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -122,17 +121,10 @@ func defaultDescription(resourceTypeName, wfName, user string) string {
 	return fmt.Sprintf("%s created by Daisy in workflow %q on behalf of %s.", resourceTypeName, wfName, user)
 }
 
-var fullResourceURLRegex = regexp.MustCompile(fmt.Sprintf("^(%s).*", FullResourceURLPrefix))
-
-func normalizeToPartialURL(url, project string) string {
+func extendPartialURL(url, project string) string {
 	if strings.HasPrefix(url, "projects") {
 		return url
 	}
-
-	if fullResourceURLRegex.MatchString(url) {
-		return fullResourceURLRegex.ReplaceAllString(url, "")
-	}
-
 	return fmt.Sprintf("projects/%s/%s", project, url)
 }
 

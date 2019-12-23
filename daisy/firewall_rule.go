@@ -71,7 +71,7 @@ func (fir *FirewallRule) populate(ctx context.Context, s *Step) DError {
 	fir.Name, errs = fir.Resource.populateWithGlobal(ctx, s, fir.Name)
 
 	if networkURLRegex.MatchString(fir.Network) {
-		fir.Network = normalizeToPartialURL(fir.Network, fir.Project)
+		fir.Network = extendPartialURL(fir.Network, fir.Project)
 	}
 
 	fir.Description = strOr(fir.Description, defaultDescription("FirewallRule", s.w.Name, s.w.username))

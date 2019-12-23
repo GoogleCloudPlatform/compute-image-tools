@@ -17,6 +17,7 @@ package param
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"google.golang.org/api/option"
@@ -145,11 +146,33 @@ func CreateComputeClient(ctx *context.Context, oauth string, ce string) (compute
 	return computeClient, nil
 }
 
+var fullResourceURLPrefix = "https://www.googleapis.com/compute/[^/]*/"
+var fullResourceURLRegex = regexp.MustCompile(fmt.Sprintf("^(%s).*", fullResourceURLPrefix))
+
+func extendPartialURL(url, project string) string {
+	if strings.HasPrefix(url, "projects") {
+		return url
+	}
+
+	if fullResourceURLRegex.MatchString(url) {
+		return fullResourceURLRegex.ReplaceAllString(url, "")
+	}
+
+	return fmt.Sprintf("projects/%s/%s", project, url)
+}
+
 func getResourcePath(scope string, resourceType string, resourceName string) string {
+	// handle full URL: transform to relative URL
+	if fullResourceURLRegex.MatchString(resourceName) {
+		return strings.TrimPrefix(resourceName, fullResourceURLPrefix)
+	}
+
+	// handle relative (partial) URL: use it as-is
 	if strings.Contains(resourceName, "/") {
 		return resourceName
 	}
 
+	// handle pure name: treat it as current project
 	return fmt.Sprintf("%v/%v/%v", scope, resourceType, resourceName)
 }
 

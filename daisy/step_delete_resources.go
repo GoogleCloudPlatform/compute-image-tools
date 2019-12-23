@@ -40,27 +40,27 @@ type DeleteResources struct {
 func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
 	for i, disk := range d.Disks {
 		if diskURLRgx.MatchString(disk) {
-			d.Disks[i] = normalizeToPartialURL(disk, s.w.Project)
+			d.Disks[i] = extendPartialURL(disk, s.w.Project)
 		}
 	}
 	for i, image := range d.Images {
 		if imageURLRgx.MatchString(image) {
-			d.Images[i] = normalizeToPartialURL(image, s.w.Project)
+			d.Images[i] = extendPartialURL(image, s.w.Project)
 		}
 	}
 	for i, instance := range d.Instances {
 		if instanceURLRgx.MatchString(instance) {
-			d.Instances[i] = normalizeToPartialURL(instance, s.w.Project)
+			d.Instances[i] = extendPartialURL(instance, s.w.Project)
 		}
 	}
 	for i, network := range d.Networks {
 		if networkURLRegex.MatchString(network) {
-			d.Networks[i] = normalizeToPartialURL(network, s.w.Project)
+			d.Networks[i] = extendPartialURL(network, s.w.Project)
 		}
 	}
 	for i, subnetwork := range d.Subnetworks {
 		if subnetworkURLRegex.MatchString(subnetwork) {
-			d.Subnetworks[i] = normalizeToPartialURL(subnetwork, s.w.Project)
+			d.Subnetworks[i] = extendPartialURL(subnetwork, s.w.Project)
 		}
 	}
 	return nil

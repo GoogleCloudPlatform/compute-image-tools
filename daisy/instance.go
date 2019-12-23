@@ -119,7 +119,7 @@ func (i *Instance) populateDisks(w *Workflow) DError {
 		d.Boot = di == 0
 		d.Mode = strOr(d.Mode, defaultDiskMode)
 		if diskURLRgx.MatchString(d.Source) {
-			d.Source = normalizeToPartialURL(d.Source, i.Project)
+			d.Source = extendPartialURL(d.Source, i.Project)
 		}
 		p := d.InitializeParams
 		if p != nil {
@@ -137,13 +137,13 @@ func (i *Instance) populateDisks(w *Workflow) DError {
 
 			// Extend SourceImage if short URL.
 			if imageURLRgx.MatchString(p.SourceImage) {
-				p.SourceImage = normalizeToPartialURL(p.SourceImage, i.Project)
+				p.SourceImage = extendPartialURL(p.SourceImage, i.Project)
 			}
 
 			// Extend DiskType if short URL, or create extended URL.
 			p.DiskType = strOr(p.DiskType, defaultDiskType)
 			if diskTypeURLRgx.MatchString(p.DiskType) {
-				p.DiskType = normalizeToPartialURL(p.DiskType, i.Project)
+				p.DiskType = extendPartialURL(p.DiskType, i.Project)
 			} else {
 				p.DiskType = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", i.Project, i.Zone, p.DiskType)
 			}
@@ -163,7 +163,7 @@ func (i *Instance) populateDisks(w *Workflow) DError {
 func (i *Instance) populateMachineType() DError {
 	i.MachineType = strOr(i.MachineType, "n1-standard-1")
 	if machineTypeURLRegex.MatchString(i.MachineType) {
-		i.MachineType = normalizeToPartialURL(i.MachineType, i.Project)
+		i.MachineType = extendPartialURL(i.MachineType, i.Project)
 	} else {
 		i.MachineType = fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", i.Project, i.Zone, i.MachineType)
 	}
@@ -212,11 +212,11 @@ func (i *Instance) populateNetworks() DError {
 		}
 
 		if networkURLRegex.MatchString(n.Network) {
-			n.Network = normalizeToPartialURL(n.Network, i.Project)
+			n.Network = extendPartialURL(n.Network, i.Project)
 		}
 
 		if subnetworkURLRegex.MatchString(n.Subnetwork) {
-			n.Subnetwork = normalizeToPartialURL(n.Subnetwork, i.Project)
+			n.Subnetwork = extendPartialURL(n.Subnetwork, i.Project)
 		}
 	}
 

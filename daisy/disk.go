@@ -109,12 +109,12 @@ func (d *Disk) populate(ctx context.Context, s *Step) DError {
 	}
 
 	if imageURLRgx.MatchString(d.SourceImage) {
-		d.SourceImage = normalizeToPartialURL(d.SourceImage, d.Project)
+		d.SourceImage = extendPartialURL(d.SourceImage, d.Project)
 	}
 	if d.Type == "" {
 		d.Type = fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-standard", d.Project, d.Zone)
 	} else if diskTypeURLRgx.MatchString(d.Type) {
-		d.Type = normalizeToPartialURL(d.Type, d.Project)
+		d.Type = extendPartialURL(d.Type, d.Project)
 	} else {
 		d.Type = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", d.Project, d.Zone, d.Type)
 	}

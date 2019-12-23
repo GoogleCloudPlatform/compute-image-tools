@@ -21,11 +21,11 @@ import (
 
 func TestExtendPartialURL(t *testing.T) {
 	want := "projects/foo/zones/bar/disks/baz"
-	if s := normalizeToPartialURL("zones/bar/disks/baz", "foo"); s != want {
+	if s := extendPartialURL("zones/bar/disks/baz", "foo"); s != want {
 		t.Errorf("got: %q, want: %q", s, want)
 	}
 
-	if s := normalizeToPartialURL("projects/foo/zones/bar/disks/baz", "gaz"); s != want {
+	if s := extendPartialURL("projects/foo/zones/bar/disks/baz", "gaz"); s != want {
 		t.Errorf("got: %q, want %q", s, want)
 	}
 }

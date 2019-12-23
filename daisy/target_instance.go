@@ -74,7 +74,7 @@ func (ti *TargetInstance) populate(ctx context.Context, s *Step) DError {
 	ti.Name, ti.Zone, errs = ti.Resource.populateWithZone(ctx, s, ti.Name, ti.Zone)
 
 	if instanceURLRgx.MatchString(ti.Instance) {
-		ti.Instance = normalizeToPartialURL(ti.Instance, ti.Project)
+		ti.Instance = extendPartialURL(ti.Instance, ti.Project)
 	} else {
 		ti.Instance = fmt.Sprintf("projects/%s/zones/%s/instances/%s", ti.Project, ti.Zone, ti.Instance)
 	}
