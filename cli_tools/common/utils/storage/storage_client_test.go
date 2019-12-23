@@ -268,6 +268,18 @@ func TestSplitGCSPathBucketOnlyNoTrailingSlash(t *testing.T) {
 	assert.Equal(t, "", object)
 }
 
+func TestSplitGCSPathObjectNameNonLetters(t *testing.T) {
+	bucket, object, err := SplitGCSPath("gs://bucket_name/|||")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", bucket)
+	assert.Equal(t, "|||", object)
+}
+
+func TestSplitGCSPathOErrorOnMissingSlashWhenObjectNameNonLetters(t *testing.T) {
+	_, _, err := SplitGCSPath("gs://bucket_name|||")
+	assert.NotNil(t, err)
+}
+
 func TestSplitGCSPathErrorOnNoBucket(t *testing.T) {
 	_, _, err := SplitGCSPath("gs://")
 	assert.NotNil(t, err)
