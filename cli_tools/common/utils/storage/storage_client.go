@@ -33,8 +33,8 @@ import (
 )
 
 var (
-	bucketNameRegex = `([a-z0-9][-_.a-z0-9]*)`
-	gsPathRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/?(.*)$`, bucketNameRegex))
+	bucketNameRegex = `[a-z0-9][-_.a-z0-9]*`
+	gsPathRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://(%s\/?)(.*)$`, bucketNameRegex))
 )
 
 // Client implements domain.StorageClientInterface. It implements main Storage functions
@@ -191,7 +191,7 @@ func (sc *Client) Close() error {
 func SplitGCSPath(p string) (string, string, error) {
 	matches := gsPathRegex.FindStringSubmatch(p)
 	if matches != nil {
-		return matches[1], matches[2], nil
+		return strings.TrimRight(matches[1], "/"), matches[2], nil
 	}
 
 	return "", "", daisy.Errf("%q is not a valid Cloud Storage path", p)
