@@ -443,7 +443,7 @@ func main() {
 		log.Fatal("The flag -disk must be provided")
 	}
 
-	bkt, obj, err := storageutils.SplitGCSPath(*gcsPath)
+	bkt, obj, err := storageutils.GetGCSObjectPathElements(*gcsPath)
 	if err != nil {
 		log.Fatal(err)
 	}

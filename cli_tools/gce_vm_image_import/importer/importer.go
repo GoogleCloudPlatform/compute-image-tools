@@ -94,9 +94,9 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 
 	if sourceFile != "" {
 		var err error
-		sourceBucketName, sourceObjectName, err = storage.SplitGCSPath(sourceFile)
+		sourceBucketName, sourceObjectName, err = storage.GetGCSObjectPathElements(sourceFile)
 		if err != nil {
-			return "", "", nil, daisy.Errf("failed to split source file GCS path: %v", err)
+			return "", "", nil, daisy.Errf("failed to split source file Cloud Storage path: %v", err)
 		}
 	}
 

@@ -34,8 +34,7 @@ import (
 
 var (
 	bucketNameRegex = `([a-z0-9][-_.a-z0-9]*)`
-	bucketPathRegex = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.*)$`, bucketNameRegex))
-	gsPathRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/(.+)$`, bucketNameRegex))
+	gsPathRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://%s/?(.*)$`, bucketNameRegex))
 )
 
 // Client implements domain.StorageClientInterface. It implements main Storage functions
@@ -134,7 +133,6 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 // FindGcsFile finds a file in a GCS directory path for given file extension. File extension can
 // be a file name as well.
 func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error) {
-
 	bucketName, objectPath, err := SplitGCSPath(gcsDirectoryPath)
 	if err != nil {
 		return nil, err
@@ -196,17 +194,23 @@ func SplitGCSPath(p string) (string, string, error) {
 		return matches[1], matches[2], nil
 	}
 
-	return "", "", daisy.Errf("%q is not a valid GCS path", p)
+	return "", "", daisy.Errf("%q is not a valid Cloud Storage path", p)
+}
+
+// GetGCSObjectPathElements returns bucket name, object path within the bucket
+// for a valid object path. Error is returned otherwise.
+func GetGCSObjectPathElements(p string) (string, string, error) {
+	bucket, object, err := SplitGCSPath(p)
+	if err != nil || bucket == "" || object == "" {
+		return "", "", daisy.Errf("%q is not a valid Cloud Storage object path", p)
+	}
+	return bucket, object, err
 }
 
 // GetBucketNameFromGCSPath splits GCS path to get bucket name
 func GetBucketNameFromGCSPath(p string) (string, error) {
-	matches := bucketPathRegex.FindStringSubmatch(p)
-	if matches != nil {
-		return matches[1], nil
-	}
-
-	return "", daisy.Errf("%q is not a valid GCS bucket path", p)
+	bucket, _, err := SplitGCSPath(p)
+	return bucket, err
 }
 
 // HTTPClient implements domain.HTTPClientInterface which abstracts HTTP functionality used by
