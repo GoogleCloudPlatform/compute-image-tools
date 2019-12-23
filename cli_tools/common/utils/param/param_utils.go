@@ -149,18 +149,6 @@ func CreateComputeClient(ctx *context.Context, oauth string, ce string) (compute
 var fullResourceURLPrefix = "https://www.googleapis.com/compute/[^/]*/"
 var fullResourceURLRegex = regexp.MustCompile(fmt.Sprintf("^(%s).*", fullResourceURLPrefix))
 
-func extendPartialURL(url, project string) string {
-	if strings.HasPrefix(url, "projects") {
-		return url
-	}
-
-	if fullResourceURLRegex.MatchString(url) {
-		return fullResourceURLRegex.ReplaceAllString(url, "")
-	}
-
-	return fmt.Sprintf("projects/%s/%s", project, url)
-}
-
 func getResourcePath(scope string, resourceType string, resourceName string) string {
 	// handle full URL: transform to relative URL
 	if fullResourceURLRegex.MatchString(resourceName) {
