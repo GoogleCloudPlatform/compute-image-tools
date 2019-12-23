@@ -26,10 +26,20 @@ import utils
 import utils.diskutils as diskutils
 
 
-class Package:
-  name = ''
-  gce = False
-  required = False
+class _Package:
+  """A Zypper package to be installed.
+
+  Attributes:
+      name (str): Zypper's name for the package.
+      gce (bool): Is the package specific to GCP? When set to true, this
+                  package will only be installed if when `install_gce_packages`
+                  is also true.
+      required (bool): Can the workflow proceed if there's a failure to install
+                       this package? When set to true, the workflow will
+                       terminate if there's an error installing the package.
+                       When set to false, the error is logged but the workflow
+                       will continue.
+  """
 
   def __init__(self, name, gce, required):
     self.name = name
@@ -37,61 +47,75 @@ class Package:
     self.required = required
 
 
-class SuseRelease:
-  flavor = ''
-  major = ''
-  minor = ''
-  packages = None
-  subscriptions = None
+class _SuseRelease:
+  """Describes which packages and subscriptions are required for
+     a particular SUSE release.
 
-  def __init__(self, flavor, major, minor, packages, subscriptions=None):
+  Attributes:
+      flavor (str): The SUSE release variant. Either `opensuse` or `sles`.
+      major (str): The major release number. For example, for SLES 12 SP1,
+                   the major version is 12.
+      minor (str): The minor release number. For example, for SLES 12 SP1,
+                   the major version is 1. SLES 12, it is 0.
+      subscriptions (list of str): The subscriptions to be added.
+  """
+
+  def __init__(self, flavor, major, minor, subscriptions=None):
     self.flavor = flavor
     self.major = major
     self.minor = minor
-    self.packages = packages
     self.subscriptions = subscriptions
 
 
-cloud_init = Package('cloud-init', gce=False, required=False)
-gcp_sdk = Package('google-cloud-sdk', gce=True, required=False)
-gce_init = Package('google-compute-engine-init', gce=True, required=True)
-gce_oslogin = Package('google-compute-engine-oslogin', gce=True, required=True)
+_packages = [
+    _Package('cloud-init', gce=False, required=False),
+    _Package('google-cloud-sdk', gce=True, required=False),
+    _Package('google-compute-engine-init', gce=True, required=True),
+    _Package('google-compute-engine-oslogin', gce=True, required=True)
+]
 
 _distros = [
-    SuseRelease(
+    _SuseRelease(
         flavor='opensuse',
         major='15',
         minor='1',
-        packages=[cloud_init, gcp_sdk, gce_init, gce_oslogin]
     ),
-    SuseRelease(
+    _SuseRelease(
         flavor='sles',
         major='15',
         minor='1',
-        packages=[cloud_init, gcp_sdk, gce_init, gce_oslogin],
         subscriptions=['sle-module-public-cloud/15.1/x86_64']
     ),
-    SuseRelease(
+    _SuseRelease(
         flavor='sles',
         major='12',
         minor='5',
-        packages=[cloud_init, gcp_sdk, gce_init, gce_oslogin],
         subscriptions=['sle-module-public-cloud/12/x86_64']
     ),
 ]
 
 
-def get_distro(g) -> SuseRelease:
+def _get_distro(g) -> _SuseRelease:
+  """Gets the SuseRelease object for the OS installed on the disk.
+
+  Raises:
+    ValueError: If there's not a SuseObject for the the OS on the disk.
+  """
   for d in _distros:
     if d.flavor == g.gcp_image_distro:
       if d.major == g.gcp_image_major or d.major == '*':
         if d.minor == g.gcp_image_minor or d.minor == '*':
           return d
-  raise AssertionError('Import script not defined for {} {}.{}'.format(
+  raise ValueError('Import script not defined for {} {}.{}'.format(
       g.gcp_image_distro, g.gcp_image_major, g.gcp_image_minor))
 
 
-def install_subscriptions(distro, g):
+def _install_subscriptions(distro, g):
+  """Executes SuseConnect -p for each subscription on `distro`.
+
+  Raises:
+    ValueError: If there was a failure adding the subscription.
+  """
   if distro.subscriptions:
     for subscription in distro.subscriptions:
       try:
@@ -101,23 +125,36 @@ def install_subscriptions(distro, g):
             'Command failed: SUSEConnect -p {}: {}'.format(subscription, e))
 
 
-def install_packages(distro, g, install_gce):
-  g.command(['zypper', 'refresh'])
-  for pkg in distro.packages:
+def _install_packages(distro, g, install_gce):
+  """Installs the packages listed on `distro`.
+
+  Respects the user's request of whether to include GCE packages
+  via the `install_gce` argument.
+
+  Raises:
+    ValueError: If there's a failure to refresh zypper, or if there's
+                a failure to install a required package.
+  """
+  try:
+    g.command(['zypper', 'refresh'])
+  except Exception as e:
+    raise ValueError('Failed to call zypper refresh', e)
+  for pkg in _packages:
     if pkg.gce and not install_gce:
       continue
     try:
       g.command(('zypper', '-n', 'install', '--no-recommends', pkg.name))
     except Exception as e:
       if pkg.required:
-        raise AssertionError(
+        raise ValueError(
             'Failed to install required package {}: {}'.format(pkg.name, e))
       else:
         logging.warning(
             'Failed to install optional package {}: {}'.format(pkg.name, e))
 
 
-def update_grub(g):
+def _update_grub(g):
+  """Update and rebuild grub to ensure image is bootable."""
   g.command(
       ['sed', '-i',
        r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#',
@@ -125,7 +162,8 @@ def update_grub(g):
   g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
 
 
-def reset_network(g):
+def _reset_network(g):
+  """Update network to use DHCP."""
   logging.info('Updating network to use DHCP.')
   g.sh('echo "" > /etc/resolv.conf')
   g.write('/etc/sysconfig/network/ifcfg-eth0', '\n'.join((
@@ -135,47 +173,30 @@ def reset_network(g):
   ))
 
 
-def install_gcp_licensing(distro, g):
-  if distro.flavor == 'opensuse':
-    return
-  licensing = utils.GetMetadataAttribute('licensing')
-  if not licensing:
-    raise AssertionError(
-        'licensing attribute must be set to either gcp or byol.')
-  if licensing == 'byol':
-    return
-
-  # TODO: Implement GCP licensing for SLES.
-  # Here are SUSE's instructions:
-  #   https://www.suse.com/c/create-sles-demand-images-gce/
-
-  raise AssertionError(
-      'GCP licensing not supported for imported SLES images. Please use BYOL.')
-
-
-def install_virtio_drivers(g):
+def _install_virtio_drivers(g):
+  """Rebuilds initramfs to ensure that virtio drivers are present."""
   logging.info('Installing virtio drivers.')
   for kernel in g.ls('/lib/modules'):
     g.command(['dracut', '-v', '-f', '--kver', kernel])
 
 
 def translate():
+  """Mounts the disk, runs translation steps, then unmounts the disk."""
   include_gce_packages = utils.GetMetadataAttribute(
       'install_gce_packages', 'true').lower() == 'true'
 
   g = diskutils.MountDisk('/dev/sdb')
-  distro = get_distro(g)
+  distro = _get_distro(g)
 
-  install_virtio_drivers(g)
-  install_gcp_licensing(distro, g)
-  install_subscriptions(distro, g)
-  install_packages(distro, g, include_gce_packages)
+  _install_virtio_drivers(g)
+  _install_subscriptions(distro, g)
+  _install_packages(distro, g, include_gce_packages)
   if include_gce_packages:
     logging.info('Enabling google services.')
     g.sh('systemctl enable /usr/lib/systemd/system/google-*')
 
-  reset_network(g)
-  update_grub(g)
+  _reset_network(g)
+  _update_grub(g)
   utils.CommonRoutines(g)
   diskutils.UnmountDisk(g)
 
