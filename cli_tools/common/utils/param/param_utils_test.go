@@ -446,7 +446,7 @@ func TestGetGlobalResourceNameFromRelativeURL(t *testing.T) {
 }
 
 func TestGetGlobalResourceNameFromFullURL(t *testing.T) {
-	var n = GetGlobalResourcePath("networks", fmt.Sprintf("%sx/blabla", fullResourceURLPrefix))
+	var n = GetGlobalResourcePath("networks", "https://www.googleapis.com/compute/v1/x/blabla")
 	assert.Equal(t, "x/blabla", n)
 }
 
@@ -461,6 +461,6 @@ func TestGetRegionalResourceNameFromRelativeURL(t *testing.T) {
 }
 
 func TestGetRegionalResourceNameFromFullURL(t *testing.T) {
-	var n = GetRegionalResourcePath("aRegion", "subnetworks", fmt.Sprintf("%sx/blabla", fullResourceURLPrefix))
+	var n = GetRegionalResourcePath("aRegion", "subnetworks", "https://www.googleapis.com/compute/v1/x/blabla")
 	assert.Equal(t, "x/blabla", n)
 }
