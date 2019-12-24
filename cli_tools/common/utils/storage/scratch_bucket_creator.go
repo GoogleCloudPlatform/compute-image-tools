@@ -81,7 +81,7 @@ func (c *ScratchBucketCreator) getBucketAttrs(fileGcsPath string, project string
 func (c *ScratchBucketCreator) getBucketAttrsFromInputFile(fileGcsPath string, project string,
 	fallbackZone string) (*storage.BucketAttrs, error) {
 
-	fileBucket, _, err := SplitGCSPath(fileGcsPath)
+	fileBucket, err := GetBucketNameFromGCSPath(fileGcsPath)
 	if err != nil || fileBucket == "" {
 		return nil, daisy.Errf("file GCS path `%v` is invalid: %v", fileGcsPath, err)
 	}

@@ -42,7 +42,7 @@ func NewTarGcsExtractor(ctx context.Context, sc domain.StorageClientInterface, l
 // ExtractTarToGcs extracts a tar file in GCS back into GCS directory
 func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPath string) error {
 
-	tarBucketName, tarPath, err := SplitGCSPath(tarGcsPath)
+	tarBucketName, tarPath, err := GetGCSObjectPathElements(tarGcsPath)
 	if err != nil {
 		return err
 	}

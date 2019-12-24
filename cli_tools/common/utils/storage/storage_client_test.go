@@ -195,3 +195,131 @@ func TestFindGcsFileErrorWhileIteratingThroughFilesInPath(t *testing.T) {
 	assert.Nil(t, objectHandle)
 	assert.NotNil(t, err)
 }
+
+func TestGetBucketNameFromGCSPathObjectInFolderPath(t *testing.T) {
+	result, err := GetBucketNameFromGCSPath("gs://bucket_name/folder_name/object_name")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", result)
+}
+
+func TestGetBucketNameFromGCSPathObjectPath(t *testing.T) {
+	result, err := GetBucketNameFromGCSPath("gs://bucket_name/object_name")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", result)
+}
+
+func TestGetBucketNameFromGCSPathBucketOnlyWithTrailingSlash(t *testing.T) {
+	result, err := GetBucketNameFromGCSPath("gs://bucket_name/")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", result)
+}
+
+func TestGetBucketNameFromGCSPathBucketOnlyWithNoTrailingSlash(t *testing.T) {
+	result, err := GetBucketNameFromGCSPath("gs://bucket_name")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", result)
+}
+
+func TestGetBucketNameFromGCSPathBucketErrorWhenNoBucketName(t *testing.T) {
+	_, err := GetBucketNameFromGCSPath("gs://")
+	assert.NotNil(t, err)
+}
+
+func TestGetBucketNameFromGCSPathBucketErrorWhenNoBucketNameTrailingSlash(t *testing.T) {
+	_, err := GetBucketNameFromGCSPath("gs:///")
+	assert.NotNil(t, err)
+}
+
+func TestGetBucketNameFromGCSPathBucketErrorWhenNoBucketNameWithObjectName(t *testing.T) {
+	_, err := GetBucketNameFromGCSPath("gs:///object_name")
+	assert.NotNil(t, err)
+}
+
+func TestGetBucketNameFromGCSPathBucketErrorOnInvalidPath(t *testing.T) {
+	_, err := GetBucketNameFromGCSPath("NOT_A_GCS_PATH")
+	assert.NotNil(t, err)
+}
+
+func TestSplitGCSPathObjectInFolder(t *testing.T) {
+	bucket, object, err := SplitGCSPath("gs://bucket_name/folder_name/object_name")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", bucket)
+	assert.Equal(t, "folder_name/object_name", object)
+}
+
+func TestSplitGCSPathObjectDirectlyInBucket(t *testing.T) {
+	bucket, object, err := SplitGCSPath("gs://bucket_name/object_name")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", bucket)
+	assert.Equal(t, "object_name", object)
+}
+
+func TestSplitGCSPathBucketOnlyTrailingSlash(t *testing.T) {
+	bucket, object, err := SplitGCSPath("gs://bucket_name/")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", bucket)
+	assert.Equal(t, "", object)
+}
+
+func TestSplitGCSPathBucketOnlyNoTrailingSlash(t *testing.T) {
+	bucket, object, err := SplitGCSPath("gs://bucket_name")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", bucket)
+	assert.Equal(t, "", object)
+}
+
+func TestSplitGCSPathObjectNameNonLetters(t *testing.T) {
+	bucket, object, err := SplitGCSPath("gs://bucket_name/|||")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", bucket)
+	assert.Equal(t, "|||", object)
+}
+
+func TestSplitGCSPathOErrorOnMissingSlashWhenObjectNameNonLetters(t *testing.T) {
+	_, _, err := SplitGCSPath("gs://bucket_name|||")
+	assert.NotNil(t, err)
+}
+
+func TestSplitGCSPathErrorOnNoBucket(t *testing.T) {
+	_, _, err := SplitGCSPath("gs://")
+	assert.NotNil(t, err)
+}
+
+func TestSplitGCSPathErrorOnNoBucketButObjectPath(t *testing.T) {
+	_, _, err := SplitGCSPath("gs:///object_name")
+	assert.NotNil(t, err)
+}
+
+func TestSplitGCSPathErrorOnInvalidPath(t *testing.T) {
+	_, _, err := SplitGCSPath("NOT_A_GCS_PATH")
+	assert.NotNil(t, err)
+}
+
+func TestGetGCSObjectPathElementsInFolder(t *testing.T) {
+	bucket, object, err := GetGCSObjectPathElements("gs://bucket_name/folder_name/object_name")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", bucket)
+	assert.Equal(t, "folder_name/object_name", object)
+}
+
+func TestGetGCSObjectPathElementsNoFolder(t *testing.T) {
+	bucket, object, err := GetGCSObjectPathElements("gs://bucket_name/object_name")
+	assert.Nil(t, err)
+	assert.Equal(t, "bucket_name", bucket)
+	assert.Equal(t, "object_name", object)
+}
+
+func TestGetGCSObjectPathElementsErrorOnBucketOnlyTrailingSlash(t *testing.T) {
+	_, _, err := GetGCSObjectPathElements("gs://bucket_name/")
+	assert.NotNil(t, err)
+}
+
+func TestGetGCSObjectPathElementsErrorOnBucketOnlyNoTrailingSlash(t *testing.T) {
+	_, _, err := GetGCSObjectPathElements("gs://bucket_name")
+	assert.NotNil(t, err)
+}
+
+func TestGetGCSObjectPathElementsErrorOnInvalidPath(t *testing.T) {
+	_, _, err := GetGCSObjectPathElements("NOT_GCS_PATH")
+	assert.NotNil(t, err)
+}

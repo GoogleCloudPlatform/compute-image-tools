@@ -54,6 +54,18 @@ func TestFlagsAllValid(t *testing.T) {
 	assert.Nil(t, ValidateAndParseParams(getAllParams()))
 }
 
+func TestFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {
+	params := getAllParams()
+	params.OvfOvaGcsPath = "gs://bucket_name/"
+	assert.Nil(t, ValidateAndParseParams(getAllParams()))
+}
+
+func TestFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) {
+	params := getAllParams()
+	params.OvfOvaGcsPath = "gs://bucket_name"
+	assert.Nil(t, ValidateAndParseParams(getAllParams()))
+}
+
 func assertErrorOnValidate(t *testing.T, params *OVFImportParams) {
 	assert.NotNil(t, ValidateAndParseParams(params))
 }

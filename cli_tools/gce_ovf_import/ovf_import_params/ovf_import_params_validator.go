@@ -56,8 +56,8 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 		return err
 	}
 
-	if _, _, err := storage.SplitGCSPath(params.OvfOvaGcsPath); err != nil {
-		return daisy.Errf("%v should be a path to OVF or OVA package in GCS", OvfGcsPathFlagKey)
+	if _, err := storage.GetBucketNameFromGCSPath(params.OvfOvaGcsPath); err != nil {
+		return daisy.Errf("%v should be a path to OVF or OVA package in Cloud Storage", OvfGcsPathFlagKey)
 	}
 
 	if params.Labels != "" {
