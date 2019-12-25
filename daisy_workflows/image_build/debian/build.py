@@ -53,11 +53,15 @@ def main():
   bvz_url = utils.GetMetadataAttribute(
       'bootstrap_vz_version', raise_on_not_found=True)
   repo = utils.GetMetadataAttribute('google_cloud_repo',
-      raise_on_not_found=True).strip()
+                                    raise_on_not_found=True).strip()
   image_dest = utils.GetMetadataAttribute('image_dest',
-      raise_on_not_found=True)
+                                          raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
-      raise_on_not_found=True)
+                                         raise_on_not_found=True)
+
+  if utils.GetMetadataAttribute('install_nge') == 'true':
+    bvz_url = 'https://github.com/hopkiw/bootstrap-vz/archive/master.zip'
+
   if repo not in REPOS:
     raise ValueError(
         'Metadata "google_cloud_repo" must be one of %s.' % REPOS)
