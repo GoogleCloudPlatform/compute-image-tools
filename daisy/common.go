@@ -29,9 +29,6 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-// FullResourceURLPrefix represents the prefix of full resource url
-var FullResourceURLPrefix = "https://www.googleapis.com/compute/[^/]*/"
-
 func getUser() string {
 	if cu, err := user.Current(); err == nil {
 		return cu.Username

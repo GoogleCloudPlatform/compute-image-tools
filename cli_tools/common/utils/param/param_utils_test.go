@@ -435,32 +435,32 @@ func TestPopulateMissingParametersPopulatesStorageLocationWithScratchBucketLocat
 	assert.Equal(t, "US", storageLocation)
 }
 
-func TestGetGlobalResourceNameFromNameOnly(t *testing.T) {
+func TestGetGlobalResourcePathFromNameOnly(t *testing.T) {
 	var n = GetGlobalResourcePath("networks", "aNetwork")
 	assert.Equal(t, "global/networks/aNetwork", n)
 }
 
-func TestGetGlobalResourceNameFromRelativeURL(t *testing.T) {
+func TestGetGlobalResourcePathFromRelativeURL(t *testing.T) {
 	var n = GetGlobalResourcePath("networks", "x/blabla")
 	assert.Equal(t, "x/blabla", n)
 }
 
-func TestGetGlobalResourceNameFromFullURL(t *testing.T) {
+func TestGetGlobalResourcePathFromFullURL(t *testing.T) {
 	var n = GetGlobalResourcePath("networks", "https://www.googleapis.com/compute/v1/x/blabla")
 	assert.Equal(t, "x/blabla", n)
 }
 
-func TestGetRegionalResourceNameFromNameOnly(t *testing.T) {
+func TestGetRegionalResourcePathFromNameOnly(t *testing.T) {
 	var n = GetRegionalResourcePath("aRegion", "subnetworks", "aSubnetwork")
 	assert.Equal(t, "regions/aRegion/subnetworks/aSubnetwork", n)
 }
 
-func TestGetRegionalResourceNameFromRelativeURL(t *testing.T) {
+func TestGetRegionalResourcePathFromRelativeURL(t *testing.T) {
 	var n = GetRegionalResourcePath("aRegion", "subnetworks", "x/blabla")
 	assert.Equal(t, "x/blabla", n)
 }
 
-func TestGetRegionalResourceNameFromFullURL(t *testing.T) {
+func TestGetRegionalResourcePathFromFullURL(t *testing.T) {
 	var n = GetRegionalResourcePath("aRegion", "subnetworks", "https://www.googleapis.com/compute/v1/x/blabla")
 	assert.Equal(t, "x/blabla", n)
 }
