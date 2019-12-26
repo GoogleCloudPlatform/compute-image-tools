@@ -184,7 +184,7 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi, nge):
     packages += " google-guest-agent"
   if release != "rhel6" and release != "centos6":
     # SDK installed manually on EL6
-    packages += "google-cloud-sdk"
+    packages += " google-cloud-sdk"
   if not release.endswith("8"):
     # TODO: disk-expand not yet working on EL8
     packages += " gce-disk-expand"
