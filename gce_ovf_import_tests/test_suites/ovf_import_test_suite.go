@@ -114,7 +114,7 @@ func TestSuite(
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-instance-centos-6-%v", suffix),
-				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/centos-6.8", ovaBucket),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/", ovaBucket),
 				OsID:          "centos-6",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       &testProjectConfig.TestProjectID,
