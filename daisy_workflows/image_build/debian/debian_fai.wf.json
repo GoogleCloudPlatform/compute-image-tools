@@ -10,11 +10,13 @@
       "Description": "The image used to run fai-tool."
     },
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
+    "install_nge": {"Value": "false", "Description": "Whether to install NGE."},
     "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."}
   },
   "Sources": {
     "build_files/build.py": "./build_fai.py",
     "build_files/fai_config/packages/GCE_SPECIFIC": "./fai_config/packages/GCE_SPECIFIC",
+    "build_files/fai_config/packages/GCE_SPECIFIC_NGE": "./fai_config/packages/GCE_SPECIFIC_NGE",
     "build_files/fai_config/scripts/10-gce-clean": "./fai_config/scripts/10-gce-clean",
     "build_files/fai_config/sources/file_modes": "./fai_config/sources/file_modes",
     "build_files/fai_config/sources/GCE_SPECIFIC": "./fai_config/sources/GCE_SPECIFIC",
@@ -54,6 +56,7 @@
             "google_cloud_repo": "${google_cloud_repo}",
             "script": "build.py",
             "prefix": "Build",
+            "install_nge": "${install_nge}",
             "image_dest": "${image_dest}"
           },
           "Scopes": [
