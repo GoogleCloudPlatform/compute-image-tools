@@ -18,7 +18,6 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -170,23 +169,19 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 		varMap["source_disk_file"] = sourceFile
 	}
 	if sourceImage != "" {
-		if strings.Contains(sourceImage, "global/images") {
-			varMap["source_image"] = sourceImage
-		} else {
-			varMap["source_image"] = fmt.Sprintf("global/images/%v", sourceImage)
-		}
+		varMap["source_image"] = param.GetGlobalResourcePath("images", sourceImage)
 	}
 	varMap["family"] = family
 	varMap["description"] = description
 	if subnet != "" {
-		varMap["import_subnet"] = fmt.Sprintf("regions/%v/subnetworks/%v", region, subnet)
+		varMap["import_subnet"] = param.GetRegionalResourcePath(region, "subnetworks", subnet)
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
 		if network == "" {
 			varMap["import_network"] = ""
 		}
 	}
 	if network != "" {
-		varMap["import_network"] = fmt.Sprintf("global/networks/%v", network)
+		varMap["import_network"] = param.GetGlobalResourcePath("networks", network)
 	}
 	return varMap
 }

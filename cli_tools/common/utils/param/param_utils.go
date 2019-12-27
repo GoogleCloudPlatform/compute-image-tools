@@ -17,6 +17,8 @@ package param
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"google.golang.org/api/option"
 
@@ -142,4 +144,32 @@ func CreateComputeClient(ctx *context.Context, oauth string, ce string) (compute
 		return nil, daisy.Errf("failed to create compute client: %v", err)
 	}
 	return computeClient, nil
+}
+
+var fullResourceURLPrefix = "https://www.googleapis.com/compute/[^/]*/"
+var fullResourceURLRegex = regexp.MustCompile(fmt.Sprintf("^(%s)", fullResourceURLPrefix))
+
+func getResourcePath(scope string, resourceType string, resourceName string) string {
+	// handle full URL: transform to relative URL
+	if prefix := fullResourceURLRegex.FindString(resourceName); prefix != "" {
+		return strings.TrimPrefix(resourceName, prefix)
+	}
+
+	// handle relative (partial) URL: use it as-is
+	if strings.Contains(resourceName, "/") {
+		return resourceName
+	}
+
+	// handle pure name: treat it as current project
+	return fmt.Sprintf("%v/%v/%v", scope, resourceType, resourceName)
+}
+
+// GetGlobalResourcePath gets global resource path based on either a local resource name or a path
+func GetGlobalResourcePath(resourceType string, resourceName string) string {
+	return getResourcePath("global", resourceType, resourceName)
+}
+
+// GetRegionalResourcePath gets regional resource path based on either a local resource name or a path
+func GetRegionalResourcePath(region string, resourceType string, resourceName string) string {
+	return getResourcePath(fmt.Sprintf("regions/%v", region), resourceType, resourceName)
 }

@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/test_suites"
@@ -53,6 +54,8 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export VMDK"))
 		imageExportWithRichParamsTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export with rich params"))
+		imageExportWithDifferentNetworkParamStyles := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export with different network param styles"))
 		imageExportWithSubnetWithoutNetworkTestCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][ImageExport] %v", testType, "Export with subnet but without network"))
 
@@ -61,6 +64,7 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 		testsMap[testType][imageExportRawTestCase] = runImageExportRawTest
 		testsMap[testType][imageExportVMDKTestCase] = runImageExportVMDKTest
 		testsMap[testType][imageExportWithRichParamsTestCase] = runImageExportWithRichParamsTest
+		testsMap[testType][imageExportWithDifferentNetworkParamStyles] = runImageExportWithDifferentNetworkParamStyles
 		testsMap[testType][imageExportWithSubnetWithoutNetworkTestCase] = runImageExportWithSubnetWithoutNetworkParamsTest
 	}
 
@@ -130,7 +134,7 @@ func runImageExportWithRichParamsTest(ctx context.Context, testCase *junitxml.Te
 
 	argsMap := map[testsuiteutils.TestType][]string{
 		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			"-source_image=e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
 			fmt.Sprintf("-network=%v-vpc-1", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
@@ -156,6 +160,44 @@ func runImageExportWithRichParamsTest(ctx context.Context, testCase *junitxml.Te
 	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
 }
 
+func runImageExportWithDifferentNetworkParamStyles(ctx context.Context, testCase *junitxml.TestCase,
+	logger *log.Logger, testProjectConfig *testconfig.Project, testType testsuiteutils.TestType) {
+
+	suffix := path.RandString(5)
+	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
+	objectName := fmt.Sprintf("e2e-export-subnet-test-%v", suffix)
+	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
+	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
+
+	argsMap := map[testsuiteutils.TestType][]string{
+		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-network=global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
+			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--network=global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			"--image=e2e-test-image-10g",
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
+			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--network=global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			"--image=e2e-test-image-10g",
+			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+		},
+	}
+
+	runExportTest(ctx, argsMap[testType], testType, logger, testCase, bucketName, objectName)
+}
+
 func runImageExportWithSubnetWithoutNetworkParamsTest(ctx context.Context, testCase *junitxml.TestCase,
 	logger *log.Logger, testProjectConfig *testconfig.Project, testType testsuiteutils.TestType) {
 
@@ -163,21 +205,27 @@ func runImageExportWithSubnetWithoutNetworkParamsTest(ctx context.Context, testC
 	bucketName := fmt.Sprintf("%v-test-image", testProjectConfig.TestProjectID)
 	objectName := fmt.Sprintf("e2e-export-subnet-test-%v", suffix)
 	fileURI := fmt.Sprintf("gs://%v/%v", bucketName, objectName)
+	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
 
 	argsMap := map[testsuiteutils.TestType][]string{
 		testsuiteutils.Wrapper: {"-client_id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("-subnet=%v-subnet-1", testProjectConfig.TestProjectID),
+			fmt.Sprintf("-subnet=projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 			"-source_image=global/images/e2e-test-image-10g", fmt.Sprintf("-destination_uri=%v", fileURI),
 			fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 		},
 		testsuiteutils.GcloudProdWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
 			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			"--image=e2e-test-image-10g",
 			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 		},
 		testsuiteutils.GcloudLatestWrapperLatest: {"beta", "compute", "images", "export", "--quiet",
 			"--docker-image-tag=latest", fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-			fmt.Sprintf("--subnet=%v-subnet-1", testProjectConfig.TestProjectID), "--image=e2e-test-image-10g",
+			fmt.Sprintf("--subnet=https://www.googleapis.com/compute/v1/projects/projects/%v/regions/%v/subnetworks/%v-subnet-1",
+				testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
+			"--image=e2e-test-image-10g",
 			fmt.Sprintf("--destination-uri=%v", fileURI), fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 		},
 	}
