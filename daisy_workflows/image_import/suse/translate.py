@@ -16,8 +16,8 @@
 """Translate the SUSE image on a GCE VM.
 
 Parameters (retrieved from instance metadata):
-
-install_gce_packages: True if GCE agent and SDK should be installed
+  install_gce_packages: True if GCE agent and SDK should be installed
+  licensing: Applicable for SLES. Either `gcp` or `byol`.
 """
 
 import logging
@@ -26,67 +26,180 @@ import utils
 import utils.diskutils as diskutils
 
 
-network = '''
-BOOTPROTO='dhcp'
-STARTMODE='auto'
-DHCLIENT_SET_HOSTNAME='yes'
-'''
+class _Package:
+  """A Zypper package to be installed.
+
+  Attributes:
+      name (str): Zypper's name for the package.
+      gce (bool): Is the package specific to GCP? When set to true, this
+                  package will only be installed if when `install_gce_packages`
+                  is also true.
+      required (bool): Can the workflow proceed if there's a failure to install
+                       this package? When set to true, the workflow will
+                       terminate if there's an error installing the package.
+                       When set to false, the error is logged but the workflow
+                       will continue.
+  """
+
+  def __init__(self, name, gce, required):
+    self.name = name
+    self.gce = gce
+    self.required = required
 
 
-def DistroSpecific(g):
-  install_gce = utils.GetMetadataAttribute('install_gce_packages')
+class _SuseRelease:
+  """Describes which packages and subscriptions are required for
+     a particular SUSE release.
 
-  # Remove any hard coded DNS settings in resolvconf.
-  logging.info('Resetting resolvconf base.')
-  g.sh('echo "" > /etc/resolv.conf')
+  Attributes:
+      flavor (str): The SUSE release variant. Either `opensuse` or `sles`.
+      major (str): The major release number. For example, for SLES 12 SP1,
+                   the major version is 12.
+      minor (str): The minor release number. For example, for SLES 12 SP1,
+                   the major version is 1. SLES 12, it is 0.
+      subscriptions (list of str): The subscriptions to be added.
+  """
 
-  # Try to reset the network to DHCP.
-  g.write('/etc/sysconfig/network/ifcfg-eth0', network)
+  def __init__(self, flavor, major, minor, subscriptions=None):
+    self.flavor = flavor
+    self.major = major
+    self.minor = minor
+    self.subscriptions = subscriptions
 
-  if install_gce == 'true':
+
+_packages = [
+    _Package('cloud-init', gce=False, required=False),
+    _Package('google-cloud-sdk', gce=True, required=False),
+    _Package('google-compute-engine-init', gce=True, required=True),
+    _Package('google-compute-engine-oslogin', gce=True, required=True)
+]
+
+_distros = [
+    _SuseRelease(
+        flavor='opensuse',
+        major='15',
+        minor='1',
+    ),
+    _SuseRelease(
+        flavor='sles',
+        major='15',
+        minor='1',
+        subscriptions=['sle-module-public-cloud/15.1/x86_64']
+    ),
+    _SuseRelease(
+        flavor='sles',
+        major='12',
+        minor='5',
+        subscriptions=['sle-module-public-cloud/12/x86_64']
+    ),
+]
+
+
+def _get_distro(g) -> _SuseRelease:
+  """Gets the SuseRelease object for the OS installed on the disk.
+
+  Raises:
+    ValueError: If there's not a SuseObject for the the OS on the disk.
+  """
+  for d in _distros:
+    if d.flavor == g.gcp_image_distro:
+      if d.major == g.gcp_image_major or d.major == '*':
+        if d.minor == g.gcp_image_minor or d.minor == '*':
+          return d
+  raise ValueError('Import script not defined for {} {}.{}'.format(
+      g.gcp_image_distro, g.gcp_image_major, g.gcp_image_minor))
+
+
+def _install_subscriptions(distro, g):
+  """Executes SuseConnect -p for each subscription on `distro`.
+
+  Raises:
+    ValueError: If there was a failure adding the subscription.
+  """
+  if distro.subscriptions:
+    for subscription in distro.subscriptions:
+      try:
+        g.command(['SUSEConnect', '-p', subscription])
+      except Exception as e:
+        raise ValueError(
+            'Command failed: SUSEConnect -p {}: {}'.format(subscription, e))
+
+
+def _install_packages(distro, g, install_gce):
+  """Installs the packages listed on `distro`.
+
+  Respects the user's request of whether to include GCE packages
+  via the `install_gce` argument.
+
+  Raises:
+    ValueError: If there's a failure to refresh zypper, or if there's
+                a failure to install a required package.
+  """
+  try:
     g.command(['zypper', 'refresh'])
-
-    logging.info('Installing cloud-init.')
-    g.command(['zypper', '-n', 'install', '--no-recommends', 'cloud-init'])
-
-    # Installing google-compute-engine-init and not installing
-    # gce-compute-image-packages as there is no port to SUSE
-    logging.info('Installing GCE packages.')
-    g.command(
-        ['zypper', '-n', 'install', '--no-recommends',
-        'google-compute-engine-init'])
-
-    logging.info('Enable google services.')
-    g.sh('systemctl enable /usr/lib/systemd/system/google-*')
-
-    # Try to install the google-cloud-sdk package. It may be not available on
-    # all Leap versions so don't raise an error if it fails.
+  except Exception as e:
+    raise ValueError('Failed to call zypper refresh', e)
+  for pkg in _packages:
+    if pkg.gce and not install_gce:
+      continue
     try:
-      g.command(
-          ['zypper', '-n', 'install', '--no-recommends',
-          'google-cloud-sdk'])
+      g.command(('zypper', '-n', 'install', '--no-recommends', pkg.name))
     except Exception as e:
-      logging.warn("Optional google-cloud-sdk package couldn't be installed: "
-                   "%s" % e)
+      if pkg.required:
+        raise ValueError(
+            'Failed to install required package {}: {}'.format(pkg.name, e))
+      else:
+        logging.warning(
+            'Failed to install optional package {}: {}'.format(pkg.name, e))
 
-  # Update grub config to log to console, remove quiet and timeouts.
+
+def _update_grub(g):
+  """Update and rebuild grub to ensure image is bootable."""
   g.command(
       ['sed', '-i',
-       '-e', r'/GRUB_CMDLINE_LINUX/s#"$# console=ttyS0,38400n8'
-       ' scsi_mod.use_blk_mq=Y"#',
-       '-e', r'/GRUB_CMDLINE_LINUX/s#quiet##',
-       '-e', r'/GRUB_[^=]*TIMEOUT=/s#=.*#=0',
+       r's#^\(GRUB_CMDLINE_LINUX=".*\)"$#\1 console=ttyS0,38400n8"#',
        '/etc/default/grub'])
-
   g.command(['grub2-mkconfig', '-o', '/boot/grub2/grub.cfg'])
 
 
-def main():
+def _reset_network(g):
+  """Update network to use DHCP."""
+  logging.info('Updating network to use DHCP.')
+  g.sh('echo "" > /etc/resolv.conf')
+  g.write('/etc/sysconfig/network/ifcfg-eth0', '\n'.join((
+      'BOOTPROTO=dhcp',
+      'STARTMODE=auto',
+      'DHCLIENT_SET_HOSTNAME=yes')
+  ))
+
+
+def _install_virtio_drivers(g):
+  """Rebuilds initramfs to ensure that virtio drivers are present."""
+  logging.info('Installing virtio drivers.')
+  for kernel in g.ls('/lib/modules'):
+    g.command(['dracut', '-v', '-f', '--kver', kernel])
+
+
+def translate():
+  """Mounts the disk, runs translation steps, then unmounts the disk."""
+  include_gce_packages = utils.GetMetadataAttribute(
+      'install_gce_packages', 'true').lower() == 'true'
+
   g = diskutils.MountDisk('/dev/sdb')
-  DistroSpecific(g)
+  distro = _get_distro(g)
+
+  _install_virtio_drivers(g)
+  _install_subscriptions(distro, g)
+  _install_packages(distro, g, include_gce_packages)
+  if include_gce_packages:
+    logging.info('Enabling google services.')
+    g.sh('systemctl enable /usr/lib/systemd/system/google-*')
+
+  _reset_network(g)
+  _update_grub(g)
   utils.CommonRoutines(g)
   diskutils.UnmountDisk(g)
 
 
 if __name__ == '__main__':
-  utils.RunTranslate(main)
+  utils.RunTranslate(translate)
