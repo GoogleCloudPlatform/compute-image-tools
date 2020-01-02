@@ -394,7 +394,6 @@ func (w *Workflow) PopulateClients(ctx context.Context) error {
 func (w *Workflow) populateStep(ctx context.Context, s *Step) DError {
 	if s.Timeout == "" {
 		s.Timeout = w.DefaultTimeout
-
 	}
 	timeout, err := time.ParseDuration(s.Timeout)
 	if err != nil {
