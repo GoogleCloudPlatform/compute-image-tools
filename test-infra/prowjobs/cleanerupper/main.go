@@ -25,12 +25,12 @@ import (
 	"sync"
 	"time"
 
+	osconfig "cloud.google.com/go/osconfig/apiv1beta"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	osconfigV1alpha2 "github.com/GoogleCloudPlatform/osconfig/e2e_tests/_internal/cloud.google.com/go/osconfig/apiv1alpha2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
-	osconfigpb "github.com/GoogleCloudPlatform/osconfig/e2e_tests/_internal/google.golang.org/genproto/googleapis/cloud/osconfig/v1alpha2"
+	osconfigpb "google.golang.org/genproto/googleapis/cloud/osconfig/v1beta"
 )
 
 const (
@@ -296,7 +296,7 @@ func cleanNetworks(client daisyCompute.Client, project string) {
 	wg.Wait()
 }
 
-func cleanGuestPolicies(ctx context.Context, client *osconfigV1alpha2.Client, project string) {
+func cleanGuestPolicies(ctx context.Context, client *osconfig.Client, project string) {
 	fmt.Println("Cleaning GuestPolicies:")
 	var wg sync.WaitGroup
 	itr := client.ListGuestPolicies(ctx, &osconfigpb.ListGuestPoliciesRequest{Parent: "projects/" + project})
@@ -344,7 +344,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	osconfigClientV1alpha2, err := osconfigV1alpha2.NewClient(ctx, option.WithCredentialsFile(*oauthPath))
+	osconfigClientV1alpha2, err := osconfig.NewClient(ctx, option.WithCredentialsFile(*oauthPath))
 	if err != nil {
 		log.Fatal(err)
 	}
