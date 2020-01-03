@@ -28,7 +28,6 @@ import os
 import utils
 import utils.diskutils as diskutils
 
-
 repo_compute = '''
 [google-compute-engine]
 name=Google Compute Engine
@@ -95,8 +94,7 @@ def DistroSpecific(g):
       g.command(['yum', 'remove', '-y', '*rhui*'])
       logging.info('Adding in GCE RHUI package.')
       g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
-      g.command(
-          ['yum', 'install', '-y', 'google-rhui-client-rhel%s' % el_release])
+      yum_install(g, 'google-rhui-client-rhel' + el_release)
 
   if install_gce == 'true':
     logging.info('Installing GCE packages.')
@@ -104,16 +102,16 @@ def DistroSpecific(g):
     if el_release == '7':
       g.write_append(
           '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
-      g.command(['yum', '-y', 'install', 'google-cloud-sdk'])
+      yum_install(g, 'google-cloud-sdk')
     if el_release == '6':
       if 'CentOS' in g.cat('/etc/redhat-release'):
         logging.info('Installing CentOS SCL.')
         g.command(['rm', '-f', '/etc/yum.repos.d/CentOS-SCL.repo'])
-        g.command(['yum', '-y', 'install', 'centos-release-scl'])
+        yum_install(g, 'centos-release-scl')
       # Install Google Cloud SDK from the upstream tar and create links for the
       # python27 SCL environment.
       logging.info('Installing python27 from SCL.')
-      g.command(['yum', '-y', 'install', 'python27'])
+      yum_install(g, 'python27')
       g.command(['scl', 'enable', 'python27',
                  'pip2.7 install --upgrade google_compute_engine'])
 
@@ -149,9 +147,7 @@ def DistroSpecific(g):
         g.write(new_bin_path, bin_str)
         g.chmod(0o755, new_bin_path)
 
-    g.command([
-        'yum', '-y', 'install', 'google-compute-engine',
-        'python-google-compute-engine'])
+    yum_install(g, 'google-compute-engine', 'python-google-compute-engine')
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
@@ -179,6 +175,26 @@ def DistroSpecific(g):
   # Reset network for DHCP.
   logging.info('Resetting network to DHCP for eth0.')
   g.write('/etc/sysconfig/network-scripts/ifcfg-eth0', ifcfg_eth0)
+
+
+def yum_install(g, *packages):
+  """Install one or more packages using YUM.
+
+  Args:
+    g (guestfs.GuestFS): A mounted GuestFS instance.
+    *packages (list of str): The YUM packages to be installed.
+
+  Raises:
+      RuntimeError: If there is a failure during installation.
+  """
+  try:
+    g.command(['yum', 'install', '-y'] + list(packages))
+  except Exception as e:
+    logging.info('Failed to install {}. Detail: {}.'.format(packages, e))
+    raise RuntimeError(
+        'Ensure that you have the correct --os specified. If this '
+        'is BYOL, also verify that your subscription '
+        'is eligible to be run on GCP.'.format(packages))
 
 
 def main():
