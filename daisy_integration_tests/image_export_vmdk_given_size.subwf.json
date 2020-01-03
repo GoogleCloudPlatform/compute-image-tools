@@ -27,11 +27,22 @@
           "gcs_export": "${gcs_export}"
         }
       }
+    },
+    "cleanup": {
+      "DeleteResources": {
+        "GCSPaths": [
+          "${SCRATCHPATH}/created-by-export-test-given-size.vmdk",
+          "${SCRATCHPATH}/outs/"
+        ]
+      }
     }
   },
   "Dependencies": {
     "verify": [
       "export"
+    ],
+    "cleanup": [
+      "verify"
     ]
   }
 }
