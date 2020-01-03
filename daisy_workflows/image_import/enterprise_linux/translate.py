@@ -190,11 +190,11 @@ def yum_install(g, *packages):
   try:
     g.command(['yum', 'install', '-y'] + list(packages))
   except Exception as e:
-    logging.info('Failed to install {}. Detail: {}.'.format(packages, e))
+    logging.debug('Failed to install {}. Details: {}.'.format(packages, e))
     raise RuntimeError(
-        'Ensure that you have the correct --os specified. If this '
-        'is BYOL, also verify that your subscription '
-        'is eligible to be run on GCP.'.format(packages))
+        'Verify that you have specified the correct operating system '
+        'in the `--os` flag.  If you are bringing your own license (BYOL), '
+        'also verify that your subscription is eligible to be run on GCP.')
 
 
 def main():
