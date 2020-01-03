@@ -50,8 +50,7 @@
           "is_byol": "true",
           "import_subnet": "${import_subnet}"
         }
-      },
-      "Timeout": "60m"
+      }
     },
     "create-image": {
       "CreateImages": [

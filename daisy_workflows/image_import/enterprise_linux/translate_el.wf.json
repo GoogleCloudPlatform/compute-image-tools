@@ -76,7 +76,6 @@
           }
         }
       ],
-      "Timeout": "60m",
       "TimeoutDescription": "Ensure that the disk is bootable on Google Compute Engine. For more information about disk requirements for import, see [Importing virtual disks](https://cloud.google.com/compute/docs/import/importing-virtual-disks)."
     },
     "delete-instance": {
