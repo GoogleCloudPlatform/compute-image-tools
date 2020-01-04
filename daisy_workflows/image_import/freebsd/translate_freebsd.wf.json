@@ -90,7 +90,8 @@
     "delete-instance": {
       "DeleteResources": {
         "Instances":["inst-translator"]
-      }
+      },
+      "IsOrphan": true
     },
     "create-image": {
       "CreateImages": [
@@ -109,6 +110,6 @@
     "translate-disk-inst": ["setup-disk"],
     "wait-for-translator": ["translate-disk-inst"],
     "delete-instance": ["wait-for-translator"],
-    "create-image": ["delete-instance"]
+    "create-image": ["wait-for-translator"]
   }
 }

@@ -83,7 +83,8 @@
     "delete-instance": {
       "DeleteResources": {
         "Instances":["inst-translator"]
-      }
+      },
+      "IsOrphan": true
     }
   },
   "Dependencies": {

@@ -67,6 +67,11 @@ type Step struct {
 	UpdateInstancesMetadata *UpdateInstancesMetadata `json:",omitempty"`
 	// Used for unit tests.
 	testType stepImpl
+	// NonCritical means:
+	// 1. This step shouldn't be waited by any other steps. Once emitted, it's executed async
+	// 2. This step won't fail the whole workflow
+	// Even it's async, it still finishes before auto cleanup.
+	NonCritical bool `json:",omitempty"`
 }
 
 // NewStep creates a Step with given name and timeout with the specified workflow.
@@ -196,6 +201,9 @@ func (s *Step) depends(other *Step) bool {
 			continue
 		}
 		seen[name] = true
+		if steps[name].NonCritical {
+			continue
+		}
 		if steps[name] == other {
 			return true
 		}

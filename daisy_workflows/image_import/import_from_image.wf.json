@@ -68,5 +68,6 @@
   },
   "Dependencies": {
     "translate-disk": ["create-disk"]
-  }
+  },
+  "AsyncCleanup": true
 }

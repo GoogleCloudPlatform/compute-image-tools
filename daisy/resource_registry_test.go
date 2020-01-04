@@ -110,7 +110,7 @@ func TestResourceRegistryConcurrency(t *testing.T) {
 func TestResourceRegistryDelete(t *testing.T) {
 	var deleteFnErr DError
 	r := &baseResourceRegistry{m: map[string]*Resource{}}
-	r.deleteFn = func(r *Resource) DError {
+	r.deleteFn = func(r *Resource, async bool) DError {
 		return deleteFnErr
 	}
 
@@ -130,7 +130,7 @@ func TestResourceRegistryDelete(t *testing.T) {
 
 	for _, tt := range tests {
 		deleteFnErr = tt.deleteFnErr
-		err := r.delete(tt.input)
+		err := r.delete(tt.input, false)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have erred but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {

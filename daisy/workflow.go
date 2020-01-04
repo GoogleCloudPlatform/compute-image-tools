@@ -113,6 +113,8 @@ type Workflow struct {
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
 	DefaultTimeout string `json:",omitempty"`
 	defaultTimeout time.Duration
+	// Async cleanup configuration
+	AsyncCleanup bool `json:",omitempty"`
 
 	// Working fields.
 	autovars              map[string]string
@@ -160,6 +162,9 @@ type Workflow struct {
 	ForceCleanupOnError bool
 	// forceCleanup is set to true when resources should be forced clean, even when NoCleanup is set to true
 	forceCleanup bool
+	nonCriticalSteps []string
+	nonCriticalStepsMx sync.Mutex
+	nonCriticalStepDone chan string
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -287,12 +292,14 @@ func (w *Workflow) RunWithModifiers(
 			w.LogWorkflowInfo("Serial-output value -> %v:%v", k, v)
 		}
 	}()
-	if err = w.run(ctx); err != nil {
+
+	err = w.run(ctx)
+	if err != nil {
 		w.LogWorkflowInfo("Error running workflow: %v", err)
-		return err
 	}
 
-	return nil
+	w.waitNonCriticalSteps()
+	return err
 }
 
 func (w *Workflow) recordStepTime(stepName string, startTime time.Time, endTime time.Time) {
@@ -308,6 +315,42 @@ func (w *Workflow) recordStepTime(stepName string, startTime time.Time, endTime 
 // GetStepTimeRecords returns time records of each steps
 func (w *Workflow) GetStepTimeRecords() []TimeRecord {
 	return w.stepTimeRecords
+}
+
+func (w *Workflow) addNonCriticalStep(stepName string) {
+	if w.parent == nil {
+		w.nonCriticalStepsMx.Lock()
+		w.nonCriticalSteps = append(w.nonCriticalSteps, stepName)
+		w.nonCriticalStepsMx.Unlock()
+	} else {
+		w.parent.addNonCriticalStep(fmt.Sprintf("%s.%s", w.Name, stepName))
+	}
+}
+
+func (w *Workflow) removeNonCriticalStepAndGetIsPurged(stepName string) bool {
+	if w.parent == nil {
+		w.nonCriticalStepsMx.Lock()
+		w.nonCriticalSteps = filter(w.nonCriticalSteps, stepName)
+		isPurged := len(w.nonCriticalSteps) == 0
+		w.nonCriticalStepsMx.Unlock()
+		return isPurged
+	}
+
+	return w.parent.removeNonCriticalStepAndGetIsPurged(fmt.Sprintf("%s.%s", w.Name, stepName))
+}
+
+// wait all started non-critical steps to be finished
+func (w *Workflow) waitNonCriticalSteps() {
+	if len(w.nonCriticalSteps) == 0 {
+		return
+	}
+	select {
+	case stepName := <-w.nonCriticalStepDone:
+		isPurged := w.removeNonCriticalStepAndGetIsPurged(stepName)
+		if isPurged {
+			close(w.nonCriticalStepDone)
+		}
+	}
 }
 
 func (w *Workflow) cleanup() {
@@ -620,6 +663,16 @@ func (w *Workflow) Print(ctx context.Context) {
 
 func (w *Workflow) run(ctx context.Context) DError {
 	return w.traverseDAG(func(s *Step) DError {
+		if s.NonCritical {
+			w.addNonCriticalStep(s.name)
+			go func() {
+				err := w.runStep(ctx, s)
+				if err != nil {
+					w.LogWorkflowInfo("Non-critical error running workflow: %v", err)
+				}
+				w.nonCriticalStepDone <- s.name
+			}()
+		}
 		return w.runStep(ctx, s)
 	})
 }
@@ -749,6 +802,9 @@ func New() *Workflow {
 	w.objects = newObjectRegistry(w)
 	w.targetInstances = newTargetInstanceRegistry(w)
 	w.addCleanupHook(func() DError {
+		// We need to set AutoDelete for those attached disk so that they can be deleted along with
+		// instances. Otherwise, async deletion will fail due that the disk is still in use by instance.
+		w.prepareAsyncDelete()
 		w.instances.cleanup() // instances need to be done before disks/networks
 		w.images.cleanup()
 		w.disks.cleanup()
@@ -762,6 +818,34 @@ func New() *Workflow {
 
 	w.id = randString(5)
 	return w
+}
+
+func (w *Workflow) prepareAsyncDelete() {
+	if !w.AsyncCleanup {
+		return
+	}
+
+	for dName, d := range w.disks.m {
+		fmt.Printf("Checking disk: %v\n", d.RealName)
+		dRes := w.disks.m[dName]
+		if dRes.NoCleanup {
+			continue
+		}
+
+		// Try to set AutoDelete for all instances that the disk may attached to. We can't assume the
+		// disk is attached to the last instance of the workflow, because when workflow is interrupted
+		// by a failure on half way, the disk may be attached to any instances.
+		iNames := w.disks.getAttachedInstances(dName)
+		for _, iName := range iNames {
+			fmt.Printf("Set AutoDelete for disk: %v instance: %v\n", dName, w.instances.m[iName].RealName)
+			err := w.ComputeClient.SetDiskAutoDelete(w.Project, w.Zone, w.instances.m[iName].RealName, true, dName)
+			if err == nil {
+				// Mark as deleted to avoid duplicate deletion by w.disks.cleanup()
+				dRes.deleted = true
+				break
+			}
+		}
+	}
 }
 
 // NewFromFile reads and unmarshals a workflow file.

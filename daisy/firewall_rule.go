@@ -110,9 +110,9 @@ func newFirewallRuleRegistry(w *Workflow) *firewallRuleRegistry {
 	return frr
 }
 
-func (frr *firewallRuleRegistry) deleteFn(res *Resource) DError {
+func (frr *firewallRuleRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(firewallRuleURLRegex, res.link)
-	err := frr.w.ComputeClient.DeleteFirewallRule(m["project"], m["firewallRule"])
+	err := frr.w.ComputeClient.DeleteFirewallRule(m["project"], m["firewallRule"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete firewall", err)
 	}

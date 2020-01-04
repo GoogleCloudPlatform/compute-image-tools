@@ -641,6 +641,92 @@ func TestTraverseDAG(t *testing.T) {
 	}
 }
 
+// TODO: test a parallel non critical, faster/slower X success/critical-fail/non-critical-fail than critical path.
+// TODO: test above, embedded in included workflow
+// TODO: test above, embedded in subworkflow
+/*
+func TestTraverseDAGWithNonCriticalStep(t *testing.T) {
+	ctx := context.Background()
+	var callOrder []int
+	errs := make([]DError, 5)
+	var rw sync.Mutex
+	mockRun := func(order int, length int) func(context.Context, *Step) DError {
+		return func(_ context.Context, _ *Step) DError {
+			time.Sleep(time.Millisecond * time.Duration(length))
+			rw.Lock()
+			defer rw.Unlock()
+			callOrder = append(callOrder, order)
+			return errs[order]
+		}
+	}
+
+	w := testWorkflow()
+	w.Steps = map[string]*Step{
+		"s0": {name: "s0", testType: &mockStep{runImpl: mockRun(0, 1)}, w: w},
+		"s1": {name: "s1", testType: &mockStep{runImpl: mockRun(1, 1)}, w: w},
+		"n2": {name: "n2", testType: &mockStep{runImpl: mockRun(2, 500)}, w: w},
+		"s3": {name: "s3", testType: &mockStep{runImpl: mockRun(3, 100)}, w: w},
+		"s4": {name: "s4", testType: &mockStep{runImpl: mockRun(4, 100)}, w: w},
+	}
+	w.Dependencies = map[string][]string{
+		"s1": {"s0"},
+		"n2": {"s1"},
+		"s3": {"s1"},
+		"s4": {"n2", "s3"},
+	}
+
+	// Check call order: s1 and s2 must be after s0, s3 must be after s1 and s2.
+	checkCallOrder := func() error {
+		rw.Lock()
+		defer rw.Unlock()
+		stepOrderNum := []int{-1, -1, -1, -1, -1}
+		for i, stepNum := range callOrder {
+			stepOrderNum[stepNum] = i
+		}
+		// If s1 was called, check it was called after s0.
+		if stepOrderNum[1] != -1 && stepOrderNum[1] < stepOrderNum[0] {
+			return errors.New("s1 was called before s0")
+		}
+		// If s2 was called, check it was called after s0.
+		if stepOrderNum[2] != -1 && stepOrderNum[2] < stepOrderNum[0] {
+			return errors.New("s2 was called before s0")
+		}
+		// If s3 was called, check it was called after s1 and s2.
+		if stepOrderNum[3] != -1 {
+			if stepOrderNum[3] < stepOrderNum[1] {
+				return errors.New("s3 was called before s1")
+			}
+			if stepOrderNum[3] < stepOrderNum[2] {
+				return errors.New("s3 was called before s2")
+			}
+		}
+		return nil
+	}
+
+	// Normal, good run.
+	w := testTraverseWorkflow(mockRun)
+	if err := w.Run(ctx); err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if err := checkCallOrder(); err != nil {
+		t.Errorf("call order error: %s", err)
+	}
+
+	callOrder = []int{}
+	errs = make([]DError, 5)
+
+	// s2 failure.
+	w = testTraverseWorkflow(mockRun)
+	errs[2] = Errf("failure")
+	want := w.Steps["s2"].wrapRunError(errs[2])
+	if err := w.Run(ctx); err.Error() != want.Error() {
+		t.Errorf("unexpected error: %s != %s", err, want)
+	}
+	if err := checkCallOrder(); err != nil {
+		t.Errorf("call order error: %s", err)
+	}
+}
+*/
 func TestForceCleanupSetOnRunError(t *testing.T) {
 	doTestForceCleanup(t, true, true, true)
 }

@@ -70,12 +70,14 @@
     },
     "cleanup": {
       "DeleteResources": {
-        "Disks": ["${translation-disk-name}"]
+        "Disks": ["${translation-disk-name}"],
+        "Async": true
       }
     }
   },
   "Dependencies": {
     "translate": ["import"],
     "cleanup": ["translate"]
-  }
+  },
+  "AsyncCleanup": true
 }

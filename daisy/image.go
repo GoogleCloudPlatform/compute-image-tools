@@ -191,7 +191,7 @@ func (i *Image) create(cc daisyCompute.Client) error {
 }
 
 func (i *Image) delete(cc daisyCompute.Client) error {
-	return cc.DeleteImage(i.Project, i.Name)
+	return cc.DeleteImage(i.Project, i.Name, false)
 }
 
 func (i *Image) appendGuestOsFeatures(featureType string) {
@@ -261,7 +261,7 @@ func (i *ImageBeta) create(cc daisyCompute.Client) error {
 }
 
 func (i *ImageBeta) delete(cc daisyCompute.Client) error {
-	return cc.DeleteImage(i.Project, i.Name)
+	return cc.DeleteImage(i.Project, i.Name, false)
 }
 
 func (i *ImageBeta) appendGuestOsFeatures(featureType string) {
@@ -405,9 +405,9 @@ func newImageRegistry(w *Workflow) *imageRegistry {
 	return ir
 }
 
-func (ir *imageRegistry) deleteFn(res *Resource) DError {
+func (ir *imageRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(imageURLRgx, res.link)
-	err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"])
+	err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete image", err)
 	}

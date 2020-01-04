@@ -62,15 +62,10 @@
           "NoCleanup": true
         }
       ]
-    },
-    "delete-disk": {
-      "DeleteResources": {
-        "Disks": ["${import_disk_name}"]
-      }
     }
   },
   "Dependencies": {
-    "create-image": ["import-disk"],
-    "delete-disk": ["create-image"]
-  }
+    "create-image": ["import-disk"]
+  },
+  "AsyncCleanup": true
 }

@@ -120,9 +120,9 @@ func newNetworkRegistry(w *Workflow) *networkRegistry {
 	return nr
 }
 
-func (nr *networkRegistry) deleteFn(res *Resource) DError {
+func (nr *networkRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(networkURLRegex, res.link)
-	err := nr.w.ComputeClient.DeleteNetwork(m["project"], m["network"])
+	err := nr.w.ComputeClient.DeleteNetwork(m["project"], m["network"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete network", err)
 	}

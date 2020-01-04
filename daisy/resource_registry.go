@@ -26,7 +26,7 @@ type baseResourceRegistry struct {
 	m  map[string]*Resource
 	mx sync.Mutex
 
-	deleteFn func(res *Resource) DError
+	deleteFn func(res *Resource, async bool) DError
 	startFn  func(res *Resource) DError
 	stopFn   func(res *Resource) DError
 	typeName string
@@ -46,7 +46,7 @@ func (r *baseResourceRegistry) cleanup() {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			if err := r.delete(name); err != nil && err.etype() != resourceDNEError {
+			if err := r.delete(name, r.w.AsyncCleanup); err != nil && err.etype() != resourceDNEError {
 				fmt.Println(err)
 			}
 		}(name)
@@ -54,7 +54,7 @@ func (r *baseResourceRegistry) cleanup() {
 	wg.Wait()
 }
 
-func (r *baseResourceRegistry) delete(name string) DError {
+func (r *baseResourceRegistry) delete(name string, async bool) DError {
 	res, ok := r.get(name)
 	if !ok {
 		return Errf("cannot delete %s %q; does not exist in registry", r.typeName, name)
@@ -73,7 +73,7 @@ func (r *baseResourceRegistry) delete(name string) DError {
 	if res.deleted {
 		return Errf("cannot delete %q; already deleted", name)
 	}
-	if err := r.deleteFn(res); err != nil {
+	if err := r.deleteFn(res, async); err != nil {
 		return err
 	}
 	res.deleted = true

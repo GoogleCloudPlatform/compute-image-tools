@@ -370,7 +370,7 @@ func newInstanceRegistry(w *Workflow) *instanceRegistry {
 // SleepFn function is mocked on testing.
 var SleepFn = time.Sleep
 
-func (ir *instanceRegistry) deleteFn(res *Resource) DError {
+func (ir *instanceRegistry) deleteFn(res *Resource, async bool) DError {
 	m := namedSubexp(instanceURLRgx, res.link)
 	for i := 1; i < 4; i++ {
 		if _, err := ir.w.ComputeClient.GetInstance(m["project"], m["zone"], m["instance"]); err != nil {
@@ -381,7 +381,7 @@ func (ir *instanceRegistry) deleteFn(res *Resource) DError {
 		}
 	}
 	// Proceed to instance deletion
-	err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"])
+	err := ir.w.ComputeClient.DeleteInstance(m["project"], m["zone"], m["instance"], async)
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete instance", err)
 	}
