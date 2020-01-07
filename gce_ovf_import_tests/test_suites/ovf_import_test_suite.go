@@ -240,8 +240,8 @@ func TestSuite(
 		{
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
-				InstanceNames: fmt.Sprintf("test-instance-centos-6-%v", suffix),
-				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/centos-6.8", ovaBucket),
+				InstanceNames: fmt.Sprintf("test-network-name-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/", ovaBucket),
 				OsID:          "centos-6",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       &testProjectConfig.TestProjectID,
@@ -250,7 +250,7 @@ func TestSuite(
 				Network:       fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
 				Subnet:        fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
 			},
-			name:        fmt.Sprintf("ovf-import-test-centos-6-with-network-%s", suffix),
+			name:        fmt.Sprintf("ovf-import-test-network-name-%s", suffix),
 			description: "Test network setting (name only)",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", startupScriptLinuxSingleDisk),
@@ -261,8 +261,8 @@ func TestSuite(
 		{
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
-				InstanceNames: fmt.Sprintf("test-instance-centos-6-%v", suffix),
-				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/centos-6.8", ovaBucket),
+				InstanceNames: fmt.Sprintf("test-network-path-%v", suffix),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/", ovaBucket),
 				OsID:          "centos-6",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       &testProjectConfig.TestProjectID,
@@ -271,7 +271,7 @@ func TestSuite(
 				Network:       fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
 				Subnet:        fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 			},
-			name:        fmt.Sprintf("ovf-import-test-centos-6-with-network-%s", suffix),
+			name:        fmt.Sprintf("ovf-import-test-network-path-%s", suffix),
 			description: "Test network setting (path)",
 			startup: computeUtils.BuildInstanceMetadataItem(
 				"startup-script", startupScriptLinuxSingleDisk),
