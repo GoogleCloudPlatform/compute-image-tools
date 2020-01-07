@@ -46,6 +46,7 @@ var (
 	instances     = flag.Bool("instances", true, "clean instances")
 	disks         = flag.Bool("disks", true, "clean disks")
 	images        = flag.Bool("images", true, "clean images")
+	machineImages = flag.Bool("machine_images", true, "clean machine images")
 	networks      = flag.Bool("networks", true, "clean networks")
 	snapshots     = flag.Bool("snapshots", true, "clean snapshots")
 	guestPolicies = flag.Bool("guest_policies", true, "clean guest policies")
@@ -165,6 +166,32 @@ func cleanImages(client daisyCompute.Client, project string) {
 			defer wg.Done()
 			if err := client.DeleteImage(project, name); err != nil {
 				fmt.Printf("Error deleting image: %v\n", err)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func cleanMachineImages(client daisyCompute.Client, project string) {
+	machineImages, err := client.ListMachineImages(project)
+	if err != nil {
+		fmt.Printf("Error listing machine images in project %q: %v\n", project, err)
+		return
+	}
+
+	fmt.Println("Cleaning machine images:")
+	var wg sync.WaitGroup
+	for _, d := range machineImages {
+		name := path.Base(d.SelfLink)
+		fmt.Printf("- projects/%s/global/machineImages/%s\n", project, name)
+		if *dryRun {
+			continue
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := client.DeleteMachineImage(project, name); err != nil {
+				fmt.Printf("Error deleting machine image: %v\n", err)
 			}
 		}()
 	}
@@ -363,6 +390,9 @@ func main() {
 		}
 		if *images {
 			cleanImages(computeClient, p)
+		}
+		if *machineImages {
+			cleanMachineImages(computeClient, p)
 		}
 		if *snapshots {
 			cleanSnapshots(computeClient, p)
