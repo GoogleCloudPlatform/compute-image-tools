@@ -68,7 +68,7 @@ func (c *CreateMachineImages) run(ctx context.Context, s *Step) DError {
 				}
 			}
 
-			w.LogStepInfo(s.name, "CreateMachineImages", "Creating machine images %q.", mi.Name)
+			w.LogStepInfo(s.name, "CreateMachineImages", "Creating machine image %q.", mi.Name)
 
 			if err := w.ComputeClient.CreateMachineImage(mi.Project, &mi.MachineImage); err != nil {
 				eChan <- newErr("failed to create machine image", err)
