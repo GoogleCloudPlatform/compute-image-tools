@@ -177,10 +177,13 @@ fi
 # Convert the image and write it to the disk referenced by $DISKNAME.
 # /dev/sdc is used since it's the third disk that's attached in import_disk.wf.json.
 if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); then
-  echo "ImportFailed: Failed to convert source to raw. [Privacy-> error: ${out} <-Privacy]"
+  if [[ "${IMAGE_PATH}" =~ \.vmdk$ ]]; then
+    hint="Verify that you have a monolithic VMDK with an embedded descriptor file."
+  fi
+  echo "ImportFailed: Failed to decode image file. $hint [Privacy-> error: ${out} <-Privacy]"
   exit
 fi
-echo ${out}
+echo "${out}"
 
 sync
 
