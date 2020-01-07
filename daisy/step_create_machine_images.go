@@ -53,14 +53,14 @@ func (c *CreateMachineImages) run(ctx context.Context, s *Step) DError {
 			defer wg.Done()
 
 			// Get source instance link if SourceInstance is a Daisy reference to an instance.
-			if i, ok := w.instances.get(ci.SourceInstance); ok {
-				ci.SourceInstance = i.link
+			if i, ok := w.instances.get(mi.SourceInstance); ok {
+				mi.SourceInstance = i.link
 			}
 
 			// Delete existing machine image if OverWrite is true.
 			if mi.OverWrite {
 				// Just try to delete it, a 404 here indicates the machine image doesn't exist.
-				if err := w.ComputeClient.DeleteMachineImage(ci.Project, ci.Name); err != nil {
+				if err := w.ComputeClient.DeleteMachineImage(mi.Project, mi.Name); err != nil {
 					if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
 						eChan <- Errf("error deleting existing machine image: %v", err)
 						return
