@@ -384,6 +384,36 @@ workflow's specified Project.
 }
 ```
 
+#### Type: CreateMachineImages
+Creates GCE machine images. A list of GCE Machine Image resources. 
+See https://cloud.google.com/compute/docs/reference/rest/beta/machineImages for
+the Machine Image JSON representation. Daisy uses the same representation with a
+few modifications:
+
+| Field Name | Type   | Description of Modification |
+|------------|--------|-----------------------------|
+| Name       | string | If RealName is unset, the **literal** machine image name will have a generated suffix for the running instance of the workflow. |
+
+Added fields:
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| Project   | string | *Optional.* Defaults to the workflow Project. The GCP project in which to create this machine image. |
+| NoCleanup | bool   | *Optional.* Defaults to false. Set this to true if you do not want Daisy to automatically delete this machine image when the workflow terminates. |
+| RealName  | string | *Optional.* If set Daisy will use this as the resource name instead generating a name. **Be advised**: this circumvents Daisy's efforts to prevent resource name collisions. |
+
+This CreateMachineImages example creates a machine image from a source instance.
+```json
+"step-name": {
+  "CreateMachineImages": [
+    {
+      "Name": "image1",
+      "SourceInstance": "instance1",
+    }
+  ]
+}
+```
+
 #### Type: CreateInstances
 Creates GCE instances. A list of GCE Instance resources. See https://cloud.google.com/compute/docs/reference/latest/instances for
 the Instance JSON representation. Daisy uses the same representation with a few modifications:

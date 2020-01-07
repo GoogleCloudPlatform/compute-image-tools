@@ -1,0 +1,40 @@
+{
+  "Name": "create-machine-images-test",
+  "Vars": {
+    "about-this-test": {
+      "Value": "",
+      "Description": "This test creates a machine image and checks it was created OK."
+    }
+  },
+  "Steps": {
+    "create-source-instance": {
+      "CreateInstances": [
+        {
+          "disks": [
+            {
+              "initializeParams": {
+                "diskType": "pd-ssd",
+                "sourceImage": "projects/debian-cloud/global/images/family/debian-9"
+              }
+            }
+          ],
+          "name": "source-instance"
+        }
+      ]
+    },
+    "create-machine-images": {
+      "CreateMachineImages": [
+        {
+          "Name": "from-source-instance",
+          "SourceInstance": "source-instance",
+          "StorageLocations": ["us-west2"]
+        }
+      ]
+    }
+  },
+  "Dependencies": {
+    "create-machine-images": [
+      "create-source-instance"
+    ]
+  }
+}

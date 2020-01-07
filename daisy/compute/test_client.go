@@ -108,6 +108,10 @@ type TestClient struct {
 
 	// Beta API calls
 	GetGuestAttributesFn func(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
+	ListMachineImagesFn  func(project string, opts ...ListCallOption) ([]*computeBeta.MachineImage, error)
+	DeleteMachineImageFn func(project, name string) error
+	CreateMachineImageFn func(project string, i *computeBeta.MachineImage) error
+	GetMachineImageFn    func(project, name string) (*computeBeta.MachineImage, error)
 
 	zoneOperationsWaitFn   func(project, zone, name string) error
 	regionOperationsWaitFn func(project, region, name string) error
@@ -600,4 +604,36 @@ func (c *TestClient) globalOperationsWait(project, name string) error {
 		return c.globalOperationsWaitFn(project, name)
 	}
 	return c.client.globalOperationsWait(project, name)
+}
+
+// ListMachineImages uses the override method ListMachineImagesFn or the real implementation.
+func (c *TestClient) ListMachineImages(project string, opts ...ListCallOption) ([]*computeBeta.MachineImage, error) {
+	if c.ListMachineImagesFn != nil {
+		return c.ListMachineImagesFn(project, opts...)
+	}
+	return c.client.ListMachineImages(project, opts...)
+}
+
+// DeleteMachineImage uses the override method DeleteMachineImageFn or the real implementation.
+func (c *TestClient) DeleteMachineImage(project, name string) error {
+	if c.DeleteMachineImageFn != nil {
+		return c.DeleteMachineImageFn(project, name)
+	}
+	return c.client.DeleteMachineImage(project, name)
+}
+
+// CreateMachineImage uses the override method CreateMachineImageFn or the real implementation.
+func (c *TestClient) CreateMachineImage(project string, mi *computeBeta.MachineImage) error {
+	if c.CreateMachineImageFn != nil {
+		return c.CreateMachineImageFn(project, mi)
+	}
+	return c.client.CreateMachineImage(project, mi)
+}
+
+// GetMachineImage uses the override method GetMachineImageFn or the real implementation.
+func (c *TestClient) GetMachineImage(project, name string) (*computeBeta.MachineImage, error) {
+	if c.GetMachineImageFn != nil {
+		return c.GetMachineImageFn(project, name)
+	}
+	return c.client.GetMachineImage(project, name)
 }

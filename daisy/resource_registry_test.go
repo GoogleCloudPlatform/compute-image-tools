@@ -31,13 +31,16 @@ func TestResourceRegistryCleanup(t *testing.T) {
 	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true}
 	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false}
 	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true}
+	mi1 := &Resource{RealName: "mi1", link: "link", NoCleanup: false}
+	mi2 := &Resource{RealName: "mi2", link: "link", NoCleanup: true}
 	w.disks.m = map[string]*Resource{"d1": d1, "d2": d2}
 	w.images.m = map[string]*Resource{"im1": im1, "im2": im2}
+	w.machineImages.m = map[string]*Resource{"mi1": mi1, "mi2": mi2}
 	w.instances.m = map[string]*Resource{"in1": in1, "in2": in2}
 
 	w.cleanup()
 
-	for _, r := range []*Resource{d1, d2, im1, im2, in1, in2} {
+	for _, r := range []*Resource{d1, d2, im1, im2, in1, in2, mi1, mi2} {
 		if r.NoCleanup && r.deleted {
 			t.Errorf("cleanup deleted %q which was marked for NoCleanup", r.RealName)
 		} else if !r.NoCleanup && !r.deleted {
@@ -56,13 +59,16 @@ func TestResourceRegistryForcedCleanup(t *testing.T) {
 	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true}
 	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false}
 	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true}
+	mi1 := &Resource{RealName: "mi1", link: "link", NoCleanup: false}
+	mi2 := &Resource{RealName: "mi2", link: "link", NoCleanup: true}
 	w.disks.m = map[string]*Resource{"d1": d1, "d2": d2}
 	w.images.m = map[string]*Resource{"im1": im1, "im2": im2}
+	w.machineImages.m = map[string]*Resource{"mi1": mi1, "mi2": mi2}
 	w.instances.m = map[string]*Resource{"in1": in1, "in2": in2}
 
 	w.cleanup()
 
-	for _, r := range []*Resource{d1, d2, im1, im2, in1, in2} {
+	for _, r := range []*Resource{d1, d2, im1, im2, in1, in2, mi1, mi2} {
 		if !r.deleted {
 			t.Errorf("cleanup didn't delete %q", r.RealName)
 		}

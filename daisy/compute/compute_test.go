@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -38,6 +39,7 @@ var (
 	testForwardingRule       = "test-forwarding-rule"
 	testFirewallRule         = "test-firewall-rule"
 	testImage                = "test-image"
+	testMachineImage         = "test-machine-image"
 	testInstance             = "test-instance"
 	testNetwork              = "test-network"
 	testSubnetwork           = "test-subnetwork"
@@ -119,6 +121,7 @@ func TestCreates(t *testing.T) {
 	fr := &compute.ForwardingRule{Name: testForwardingRule}
 	fir := &compute.Firewall{Name: testFirewallRule}
 	im := &compute.Image{Name: testImage}
+	mi := &computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance}
 	in := &compute.Instance{Name: testInstance}
 	n := &compute.Network{Name: testNetwork}
 	sn := &compute.Subnetwork{Name: testSubnetwork}
@@ -160,6 +163,14 @@ func TestCreates(t *testing.T) {
 			fmt.Sprintf("/%s/global/images?alt=json&prettyPrint=false", testProject),
 			&compute.Image{Name: testImage, SelfLink: "foo"},
 			im,
+		},
+		{
+			"machineImages",
+			func() error { return c.CreateMachineImage(testProject, mi) },
+			fmt.Sprintf("/%s/global/machineImages/%s?alt=json&prettyPrint=false", testProject, testMachineImage),
+			fmt.Sprintf("/%s/global/machineImages?alt=json&prettyPrint=false", testProject),
+			&computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance, SelfLink: "foo"},
+			mi,
 		},
 		{
 			"instances",
@@ -308,6 +319,12 @@ func TestDeletes(t *testing.T) {
 			"images",
 			func() error { return c.DeleteImage(testProject, testImage) },
 			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImage),
+			fmt.Sprintf("/%s/global/operations/?alt=json&prettyPrint=false", testProject),
+		},
+		{
+			"machineImages",
+			func() error { return c.DeleteMachineImage(testProject, testMachineImage) },
+			fmt.Sprintf("/%s/global/machineImages/%s?alt=json&prettyPrint=false", testProject, testMachineImage),
 			fmt.Sprintf("/%s/global/operations/?alt=json&prettyPrint=false", testProject),
 		},
 		{

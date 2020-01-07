@@ -19,13 +19,12 @@
 package mocks
 
 import (
-	reflect "reflect"
-
 	compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	gomock "github.com/golang/mock/gomock"
 	v0_beta "google.golang.org/api/compute/v0.beta"
 	v1 "google.golang.org/api/compute/v1"
 	googleapi "google.golang.org/api/googleapi"
+	reflect "reflect"
 )
 
 // MockClient is a mock of Client interface
@@ -223,6 +222,20 @@ func (mr *MockClientMockRecorder) CreateInstance(arg0, arg1, arg2 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInstance", reflect.TypeOf((*MockClient)(nil).CreateInstance), arg0, arg1, arg2)
 }
 
+// CreateMachineImage mocks base method
+func (m *MockClient) CreateMachineImage(arg0 string, arg1 *v0_beta.MachineImage) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateMachineImage", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateMachineImage indicates an expected call of CreateMachineImage
+func (mr *MockClientMockRecorder) CreateMachineImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMachineImage", reflect.TypeOf((*MockClient)(nil).CreateMachineImage), arg0, arg1)
+}
+
 // CreateNetwork mocks base method
 func (m *MockClient) CreateNetwork(arg0 string, arg1 *v1.Network) error {
 	m.ctrl.T.Helper()
@@ -333,6 +346,20 @@ func (m *MockClient) DeleteInstance(arg0, arg1, arg2 string) error {
 func (mr *MockClientMockRecorder) DeleteInstance(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInstance", reflect.TypeOf((*MockClient)(nil).DeleteInstance), arg0, arg1, arg2)
+}
+
+// DeleteMachineImage mocks base method
+func (m *MockClient) DeleteMachineImage(arg0, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteMachineImage", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteMachineImage indicates an expected call of DeleteMachineImage
+func (mr *MockClientMockRecorder) DeleteMachineImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMachineImage", reflect.TypeOf((*MockClient)(nil).DeleteMachineImage), arg0, arg1)
 }
 
 // DeleteNetwork mocks base method
@@ -552,6 +579,21 @@ func (m *MockClient) GetLicense(arg0, arg1 string) (*v1.License, error) {
 func (mr *MockClientMockRecorder) GetLicense(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLicense", reflect.TypeOf((*MockClient)(nil).GetLicense), arg0, arg1)
+}
+
+// GetMachineImage mocks base method
+func (m *MockClient) GetMachineImage(arg0, arg1 string) (*v0_beta.MachineImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMachineImage", arg0, arg1)
+	ret0, _ := ret[0].(*v0_beta.MachineImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMachineImage indicates an expected call of GetMachineImage
+func (mr *MockClientMockRecorder) GetMachineImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMachineImage", reflect.TypeOf((*MockClient)(nil).GetMachineImage), arg0, arg1)
 }
 
 // GetMachineType mocks base method
@@ -802,6 +844,26 @@ func (mr *MockClientMockRecorder) ListInstances(arg0, arg1 interface{}, arg2 ...
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInstances", reflect.TypeOf((*MockClient)(nil).ListInstances), varargs...)
+}
+
+// ListMachineImages mocks base method
+func (m *MockClient) ListMachineImages(arg0 string, arg1 ...compute.ListCallOption) ([]*v0_beta.MachineImage, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListMachineImages", varargs...)
+	ret0, _ := ret[0].([]*v0_beta.MachineImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListMachineImages indicates an expected call of ListMachineImages
+func (mr *MockClientMockRecorder) ListMachineImages(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMachineImages", reflect.TypeOf((*MockClient)(nil).ListMachineImages), varargs...)
 }
 
 // ListMachineTypes mocks base method

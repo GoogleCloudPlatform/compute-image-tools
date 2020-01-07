@@ -29,12 +29,13 @@ import (
 
 // DeleteResources deletes GCE/GCS resources.
 type DeleteResources struct {
-	Disks       []string `json:",omitempty"`
-	Images      []string `json:",omitempty"`
-	Instances   []string `json:",omitempty"`
-	Networks    []string `json:",omitempty"`
-	Subnetworks []string `json:",omitempty"`
-	GCSPaths    []string `json:",omitempty"`
+	Disks         []string `json:",omitempty"`
+	Images        []string `json:",omitempty"`
+	MachineImages []string `json:",omitempty"`
+	Instances     []string `json:",omitempty"`
+	Networks      []string `json:",omitempty"`
+	Subnetworks   []string `json:",omitempty"`
+	GCSPaths      []string `json:",omitempty"`
 }
 
 func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
@@ -46,6 +47,11 @@ func (d *DeleteResources) populate(ctx context.Context, s *Step) DError {
 	for i, image := range d.Images {
 		if imageURLRgx.MatchString(image) {
 			d.Images[i] = extendPartialURL(image, s.w.Project)
+		}
+	}
+	for i, machineImage := range d.MachineImages {
+		if machineImageURLRgx.MatchString(machineImage) {
+			d.MachineImages[i] = extendPartialURL(machineImage, s.w.Project)
 		}
 	}
 	for i, instance := range d.Instances {
@@ -123,6 +129,13 @@ func (d *DeleteResources) validate(ctx context.Context, s *Step) DError {
 	// Image checking.
 	for _, i := range d.Images {
 		if err := s.w.images.regDelete(i, s); d.checkError(err, s) != nil {
+			return err
+		}
+	}
+
+	// Machine image checking.
+	for _, i := range d.MachineImages {
+		if err := s.w.machineImages.regDelete(i, s); d.checkError(err, s) != nil {
 			return err
 		}
 	}
@@ -243,6 +256,22 @@ func (d *DeleteResources) run(ctx context.Context, s *Step) DError {
 			}
 		}(i)
 	}
+
+	for _, i := range d.MachineImages {
+		wg.Add(1)
+		go func(i string) {
+			defer wg.Done()
+			w.LogStepInfo(s.name, "DeleteResources", "Deleting machine image %q.", i)
+			if err := w.machineImages.delete(i); err != nil {
+				if err.etype() == resourceDNEError {
+					w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error deleting machine image %q: %v", i, err)
+					return
+				}
+				e <- err
+			}
+		}(i)
+	}
+
 	for _, p := range d.GCSPaths {
 		wg.Add(1)
 		go func(p string) {
