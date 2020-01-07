@@ -241,7 +241,7 @@ func TestSuite(
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-network-name-%v", suffix),
-				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/network-name", ovaBucket),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/", ovaBucket),
 				OsID:          "centos-6",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       &testProjectConfig.TestProjectID,
@@ -262,7 +262,7 @@ func TestSuite(
 			importParams: &ovfimportparams.OVFImportParams{
 				ClientID:      "test",
 				InstanceNames: fmt.Sprintf("test-network-path-%v", suffix),
-				OvfOvaGcsPath: fmt.Sprintf("gs://%v/ova/network-path", ovaBucket),
+				OvfOvaGcsPath: fmt.Sprintf("gs://%v/", ovaBucket),
 				OsID:          "centos-6",
 				Labels:        "lk1=lv1,lk2=kv2",
 				Project:       &testProjectConfig.TestProjectID,
