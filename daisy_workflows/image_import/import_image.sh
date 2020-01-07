@@ -147,7 +147,7 @@ copyImageToScratchDisk
 if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
   echo "Import: Unpacking VMDK files from ova."
   VMDK="$(tar --list -f "${IMAGE_PATH}" | grep -m1 vmdk)"
-  tar -C /daisy-scratch -xf "${IMAGE_PATH}" ${VMDK}
+  tar -C /daisy-scratch -xf "${IMAGE_PATH}" "${VMDK}"
   IMAGE_PATH="/daisy-scratch/${VMDK}"
   echo "Import: New source file is ${VMDK}"
 fi
