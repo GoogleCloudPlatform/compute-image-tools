@@ -171,6 +171,10 @@ func TestStepImpl(t *testing.T) {
 			reflect.TypeOf(&CreateImages{}),
 		},
 		{
+			Step{CreateMachineImages: &CreateMachineImages{}},
+			reflect.TypeOf(&CreateMachineImages{}),
+		},
+		{
 			Step{CreateInstances: &CreateInstances{}},
 			reflect.TypeOf(&CreateInstances{}),
 		},

@@ -118,6 +118,15 @@
         }
       ]
     },
+    "create-machine-image": {
+      "createMachineImages": [
+        {
+          "Name": "machine-image-from-instance",
+          "SourceInstance": "source-instance",
+          "StorageLocations": ["eu", "us-west2"]
+        }
+      ]
+    },
 
     "include-workflow": {
       "IncludeWorkflow": {
@@ -140,6 +149,7 @@
     "postinstall-stopped": ["postinstall"],
     "create-image-locality": ["postinstall-stopped"],
     "create-image": ["create-image-locality"],
+    "create-machine-image": ["create-image"],
     "include-workflow": ["create-image"],
     "sub-workflow": ["create-image"]
   }

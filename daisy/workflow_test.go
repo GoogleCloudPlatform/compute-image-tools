@@ -217,6 +217,7 @@ func TestNewFromFile(t *testing.T) {
 	want.cleanupHooks = got.cleanupHooks
 	want.disks = newDiskRegistry(want)
 	want.images = newImageRegistry(want)
+	want.machineImages = newMachineImageRegistry(want)
 	want.instances = newInstanceRegistry(want)
 	want.networks = newNetworkRegistry(want)
 
@@ -349,6 +350,16 @@ func TestNewFromFile(t *testing.T) {
 				}},
 			},
 		},
+		"create-machine-image": {
+			name: "create-machine-image",
+			CreateMachineImages: &CreateMachineImages{
+				{MachineImage: computeBeta.MachineImage{
+					Name:             "machine-image-from-instance",
+					SourceInstance:   "source-instance",
+					StorageLocations: []string{"eu", "us-west2"},
+				}},
+			},
+		},
 		"include-workflow": {
 			name: "include-workflow",
 			IncludeWorkflow: &IncludeWorkflow{
@@ -376,6 +387,7 @@ func TestNewFromFile(t *testing.T) {
 		"postinstall-stopped":   {"postinstall"},
 		"create-image-locality": {"postinstall-stopped"},
 		"create-image":          {"create-image-locality"},
+		"create-machine-image":  {"create-image"},
 		"include-workflow":      {"create-image"},
 		"sub-workflow":          {"create-image"},
 	}
@@ -473,6 +485,7 @@ func TestPopulate(t *testing.T) {
 	want.Logger = got.Logger
 	want.disks = newDiskRegistry(want)
 	want.images = newImageRegistry(want)
+	want.machineImages = newMachineImageRegistry(want)
 	want.instances = newInstanceRegistry(want)
 	want.networks = newNetworkRegistry(want)
 

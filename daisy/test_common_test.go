@@ -78,6 +78,7 @@ var (
 	testForwardingRule = "test-forwarding-rule"
 	testFirewallRule   = "test-firewall-rule"
 	testImage          = "test-image"
+	testMachineImage   = "test-machine-image"
 	testInstance       = "test-instance"
 	testMachineType    = "test-machine-type"
 	testLicense        = "test-license"

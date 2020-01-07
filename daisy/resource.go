@@ -145,6 +145,9 @@ func resourceExists(client compute.Client, url string) (bool, DError) {
 	case imageURLRgx.MatchString(url):
 		result := namedSubexp(imageURLRgx, url)
 		return imageExists(client, result["project"], result["family"], result["image"])
+	case machineImageURLRgx.MatchString(url):
+		result := namedSubexp(machineImageURLRgx, url)
+		return machineImageExists(client, result["project"], result["machineImage"])
 	case networkURLRegex.MatchString(url):
 		result := namedSubexp(networkURLRegex, url)
 		return networkExists(client, result["project"], result["network"])
