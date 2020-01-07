@@ -8,7 +8,7 @@
       "Value": "image-${ID}"
     },
     "file": {
-      "Value": "gs://compute-image-tools-test-resources/ubuntu-1804-vmdk-spaces.ova"
+      "Value": "gs://compute-image-tools-test-resources/ubuntu-1804-ova-vmdk-spaces-in-filename.ova"
     }
   },
   "Steps": {
@@ -65,14 +65,14 @@
     }
   },
   "Dependencies": {
-    "cleanup": [
-      "wait-for-test"
+    "test-the-image": [
+      "import-image"
     ],
     "wait-for-test": [
       "test-the-image"
     ],
-    "test-the-image": [
-      "import-image"
+    "cleanup": [
+      "wait-for-test"
     ]
   }
 }
