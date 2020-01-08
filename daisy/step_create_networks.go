@@ -52,6 +52,7 @@ func (c *CreateNetworks) run(ctx context.Context, s *Step) DError {
 				e <- newErr("failed to create networks", err)
 				return
 			}
+			n.createdInWorkflow = true
 		}(n)
 	}
 

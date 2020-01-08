@@ -43,8 +43,9 @@ type Resource struct {
 	stopped  bool
 	deleteMx *sync.Mutex
 
-	creator, deleter *Step
-	users            []*Step
+	creator, deleter  *Step
+	createdInWorkflow bool
+	users             []*Step
 }
 
 func (r *Resource) populateWithGlobal(ctx context.Context, s *Step, name string) (string, DError) {

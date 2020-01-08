@@ -56,6 +56,7 @@ func (c *CreateFirewallRules) run(ctx context.Context, s *Step) DError {
 				e <- newErr("failed to create firewall", err)
 				return
 			}
+			fir.createdInWorkflow = true
 		}(fir)
 	}
 

@@ -116,6 +116,7 @@ type ImageInterface interface {
 	getRawDiskSource() string
 	setRawDiskSource(rawDiskSource string)
 	create(cc daisyCompute.Client) error
+	markCreatedInWorkflow()
 	delete(cc daisyCompute.Client) error
 	appendGuestOsFeatures(featureType string)
 	getGuestOsFeatures() guestOsFeatures
@@ -190,6 +191,10 @@ func (i *Image) create(cc daisyCompute.Client) error {
 	return cc.CreateImage(i.Project, &i.Image)
 }
 
+func (i *Image) markCreatedInWorkflow() {
+	i.createdInWorkflow = true
+}
+
 func (i *Image) delete(cc daisyCompute.Client) error {
 	return cc.DeleteImage(i.Project, i.Name)
 }
@@ -258,6 +263,10 @@ func (i *ImageBeta) setRawDiskSource(rawDiskSource string) {
 
 func (i *ImageBeta) create(cc daisyCompute.Client) error {
 	return cc.CreateImageBeta(i.Project, &i.Image)
+}
+
+func (i *ImageBeta) markCreatedInWorkflow() {
+	i.createdInWorkflow = true
 }
 
 func (i *ImageBeta) delete(cc daisyCompute.Client) error {

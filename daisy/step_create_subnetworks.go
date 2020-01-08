@@ -56,6 +56,7 @@ func (c *CreateSubnetworks) run(ctx context.Context, s *Step) DError {
 				e <- newErr("failed to create subnetworks", err)
 				return
 			}
+			sn.createdInWorkflow = true
 		}(sn)
 	}
 

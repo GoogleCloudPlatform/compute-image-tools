@@ -52,6 +52,7 @@ func (c *CreateForwardingRules) run(ctx context.Context, s *Step) DError {
 				e <- newErr("failed to create forwarding rules", err)
 				return
 			}
+			fr.createdInWorkflow = true
 		}(fr)
 	}
 
