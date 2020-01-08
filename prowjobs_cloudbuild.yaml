@@ -5,8 +5,10 @@ options:
   - GO111MODULE=on
   - GOPROXY=https://proxy.golang.org
   volumes:
-  - name: go-modules
-    path: /go
+  - name: go-pkg
+    path: /go/pkg
+  - name: go-src
+    path: /go/src
 
 steps:
 - id: cleanerupper
