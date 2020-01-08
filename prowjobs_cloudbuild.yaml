@@ -95,18 +95,6 @@ steps:
   waitFor: ['wrapper']
 
 images:
-  - 'gcr.io/$PROJECT_ID/wrapper:latest'
-  - 'gcr.io/$PROJECT_ID/wrapper:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/unittests:latest'
-  - 'gcr.io/$PROJECT_ID/unittests:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/gocheck:latest'
-  - 'gcr.io/$PROJECT_ID/gocheck:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/gobuild:latest'
-  - 'gcr.io/$PROJECT_ID/gobuild:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/flake8:latest'
-  - 'gcr.io/$PROJECT_ID/flake8:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/test-runner:latest'
-  - 'gcr.io/$PROJECT_ID/test-runner:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/gce-image-import-export-tests:latest'
   - 'gcr.io/$PROJECT_ID/gce-image-import-export-tests:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/gce-ovf-import-tests:latest'
