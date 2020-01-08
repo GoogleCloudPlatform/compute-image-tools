@@ -11,14 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/compute-image-tools-test/wrapper:latest
+FROM gcr.io/$PROJECT_ID/wrapper:latest
 
 FROM golang
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
-
-RUN apt-get update && apt-get install -y git && \
-    rm -rf /var/cache/apt/archives
 RUN go get -u golang.org/x/lint/golint
 
 COPY --from=0 /wrapper wrapper

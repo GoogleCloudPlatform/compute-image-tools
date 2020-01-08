@@ -11,27 +11,30 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM golang:alpine
-
-RUN apk add --no-cache git
+FROM golang
 
 # Build test runner
-WORKDIR /
-RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests
-RUN CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests
+WORKDIR /gce_image_import_export_tests
+COPY gce_image_import_export_tests/ .
+RUN go get -d ./...
+RUN CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner
 RUN chmod +x /gce_image_import_export_test_runner
 
 # Build binaries to test
-WORKDIR /
-RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import
-RUN CGO_ENABLED=0 go build -o /gce_vm_image_import github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import
+WORKDIR /gce_vm_image_import
+COPY cli_tools/gce_vm_image_import/ .
+RUN go get -d ./...
+RUN CGO_ENABLED=0 go build -o /gce_vm_image_import
 RUN chmod +x /gce_vm_image_import
-RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export
-RUN CGO_ENABLED=0 go build -o /gce_vm_image_export github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export
+
+WORKDIR /gce_vm_image_export
+COPY cli_tools/gce_vm_image_export/ .
+RUN go get -d ./...
+RUN CGO_ENABLED=0 go build -o /gce_vm_image_export
 RUN chmod +x /gce_vm_image_export
 
-# Prepare content of docker
-FROM gcr.io/compute-image-tools-test/wrapper-with-gcloud:latest
+# Build test container
+FROM gcr.io/$PROJECT_ID/wrapper-with-gcloud:latest
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /gce_image_import_export_test_runner gce_image_import_export_test_runner

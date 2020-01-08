@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/compute-image-tools-test/wrapper:latest
+FROM gcr.io/$PROJECT_ID/wrapper:latest
 
 FROM golang
 
@@ -20,7 +20,7 @@ RUN mkdir -p ${ARTIFACTS}
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 ENV CODECOV_TOKEN /etc/codecov/codecov
 
-RUN apt-get update && apt-get -y install bash ca-certificates curl git libssl-dev wget && \
+RUN apt-get update && apt-get -y install libssl-dev && \
     rm -rf /var/cache/apt/archives
 
 # Go test junit xml output

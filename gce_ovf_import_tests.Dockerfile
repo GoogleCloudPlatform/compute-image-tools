@@ -15,12 +15,13 @@ FROM golang:alpine
 
 RUN apk add --no-cache git
 
-WORKDIR /
-RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests
-RUN CGO_ENABLED=0 go build -o /gce_ovf_import_test_runner github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests
+WORKDIR /gce_ovf_import_tests
+COPY gce_ovf_import_tests/ .
+RUN go get -d ./...
+RUN CGO_ENABLED=0 go build -o /gce_ovf_import_test_runner
 RUN chmod +x /gce_ovf_import_test_runner
 
-FROM gcr.io/compute-image-tools-test/wrapper:latest
+FROM gcr.io/$PROJECT_ID/wrapper:latest
 
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 
