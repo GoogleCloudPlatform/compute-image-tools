@@ -22,8 +22,9 @@ import (
 	"time"
 )
 
-func TestResourceRegistryCleanup(t *testing.T) {
+func TestPlaceholderResourceRegistryCleanup(t *testing.T) {
 	w := testWorkflow()
+	w.forceCleanup = true
 
 	d1 := &Resource{RealName: "d1", link: "link", NoCleanup: false}
 	d2 := &Resource{RealName: "d2", link: "link", NoCleanup: true}
@@ -33,6 +34,59 @@ func TestResourceRegistryCleanup(t *testing.T) {
 	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true}
 	mi1 := &Resource{RealName: "mi1", link: "link", NoCleanup: false}
 	mi2 := &Resource{RealName: "mi2", link: "link", NoCleanup: true}
+	w.disks.m = map[string]*Resource{"d1": d1, "d2": d2}
+	w.images.m = map[string]*Resource{"im1": im1, "im2": im2}
+	w.machineImages.m = map[string]*Resource{"mi1": mi1, "mi2": mi2}
+	w.instances.m = map[string]*Resource{"in1": in1, "in2": in2}
+
+	w.cleanup()
+
+	for _, r := range []*Resource{d1, d2, im1, im2, in1, in2, mi1, mi2} {
+		if r.deleted {
+			t.Errorf("cleanup deleted %q which was a placeholder resource", r.RealName)
+		}
+	}
+}
+
+func TestResourceRegistryNotCreatedByWorkflowCleanup(t *testing.T) {
+	w := testWorkflow()
+	w.forceCleanup = true
+	s := &Step{}
+
+	d1 := &Resource{RealName: "d1", link: "link", NoCleanup: false, creator: s}
+	d2 := &Resource{RealName: "d2", link: "link", NoCleanup: true, creator: s}
+	im1 := &Resource{RealName: "im1", link: "link", NoCleanup: false, creator: s}
+	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true, creator: s}
+	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false, creator: s}
+	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true, creator: s}
+	mi1 := &Resource{RealName: "mi1", link: "link", NoCleanup: false, creator: s}
+	mi2 := &Resource{RealName: "mi2", link: "link", NoCleanup: true, creator: s}
+	w.disks.m = map[string]*Resource{"d1": d1, "d2": d2}
+	w.images.m = map[string]*Resource{"im1": im1, "im2": im2}
+	w.machineImages.m = map[string]*Resource{"mi1": mi1, "mi2": mi2}
+	w.instances.m = map[string]*Resource{"in1": in1, "in2": in2}
+
+	w.cleanup()
+
+	for _, r := range []*Resource{d1, d2, im1, im2, in1, in2, mi1, mi2} {
+		if r.deleted {
+			t.Errorf("cleanup deleted %q which was not created in current workflow", r.RealName)
+		}
+	}
+}
+
+func TestResourceRegistryCleanup(t *testing.T) {
+	w := testWorkflow()
+	s := &Step{}
+
+	d1 := &Resource{RealName: "d1", link: "link", NoCleanup: false, creator: s, createdInWorkflow: true}
+	d2 := &Resource{RealName: "d2", link: "link", NoCleanup: true, creator: s, createdInWorkflow: true}
+	im1 := &Resource{RealName: "im1", link: "link", NoCleanup: false, creator: s, createdInWorkflow: true}
+	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true, creator: s, createdInWorkflow: true}
+	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false, creator: s, createdInWorkflow: true}
+	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true, creator: s, createdInWorkflow: true}
+	mi1 := &Resource{RealName: "mi1", link: "link", NoCleanup: false, creator: s, createdInWorkflow: true}
+	mi2 := &Resource{RealName: "mi2", link: "link", NoCleanup: true, creator: s, createdInWorkflow: true}
 	w.disks.m = map[string]*Resource{"d1": d1, "d2": d2}
 	w.images.m = map[string]*Resource{"im1": im1, "im2": im2}
 	w.machineImages.m = map[string]*Resource{"mi1": mi1, "mi2": mi2}
@@ -52,15 +106,16 @@ func TestResourceRegistryCleanup(t *testing.T) {
 func TestResourceRegistryForcedCleanup(t *testing.T) {
 	w := testWorkflow()
 	w.forceCleanup = true
+	s := &Step{}
 
-	d1 := &Resource{RealName: "d1", link: "link", NoCleanup: false}
-	d2 := &Resource{RealName: "d2", link: "link", NoCleanup: true}
-	im1 := &Resource{RealName: "im1", link: "link", NoCleanup: false}
-	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true}
-	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false}
-	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true}
-	mi1 := &Resource{RealName: "mi1", link: "link", NoCleanup: false}
-	mi2 := &Resource{RealName: "mi2", link: "link", NoCleanup: true}
+	d1 := &Resource{RealName: "d1", link: "link", NoCleanup: false, creator: s, createdInWorkflow: true}
+	d2 := &Resource{RealName: "d2", link: "link", NoCleanup: true, creator: s, createdInWorkflow: true}
+	im1 := &Resource{RealName: "im1", link: "link", NoCleanup: false, creator: s, createdInWorkflow: true}
+	im2 := &Resource{RealName: "im2", link: "link", NoCleanup: true, creator: s, createdInWorkflow: true}
+	in1 := &Resource{RealName: "in1", link: "link", NoCleanup: false, creator: s, createdInWorkflow: true}
+	in2 := &Resource{RealName: "in2", link: "link", NoCleanup: true, creator: s, createdInWorkflow: true}
+	mi1 := &Resource{RealName: "mi1", link: "link", NoCleanup: false, creator: s, createdInWorkflow: true}
+	mi2 := &Resource{RealName: "mi2", link: "link", NoCleanup: true, creator: s, createdInWorkflow: true}
 	w.disks.m = map[string]*Resource{"d1": d1, "d2": d2}
 	w.images.m = map[string]*Resource{"im1": im1, "im2": im2}
 	w.machineImages.m = map[string]*Resource{"mi1": mi1, "mi2": mi2}

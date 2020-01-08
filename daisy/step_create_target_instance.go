@@ -52,6 +52,7 @@ func (c *CreateTargetInstances) run(ctx context.Context, s *Step) DError {
 				e <- newErr("failed to create target instances", err)
 				return
 			}
+			ti.createdInWorkflow = true
 		}(ti)
 	}
 

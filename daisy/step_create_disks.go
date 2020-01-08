@@ -77,8 +77,10 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 
 				if err != nil {
 					e <- newErr("failed to create disk", err)
+					return
 				}
 			}
+			cd.createdInWorkflow = true
 		}(d)
 	}
 

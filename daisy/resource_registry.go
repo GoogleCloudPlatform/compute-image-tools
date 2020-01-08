@@ -40,7 +40,10 @@ func (r *baseResourceRegistry) init() {
 func (r *baseResourceRegistry) cleanup() {
 	var wg sync.WaitGroup
 	for name, res := range r.m {
-		if (res.NoCleanup && !r.w.forceCleanup) || res.deleted {
+		if res.creator == nil || // placeholder resource
+			(res.creator != nil && !res.createdInWorkflow) || // resource isn‘t created successfully
+			(res.NoCleanup && !r.w.forceCleanup) || // resource is flagged to avoid cleanup
+			res.deleted { // resource has been deleted
 			continue
 		}
 		wg.Add(1)

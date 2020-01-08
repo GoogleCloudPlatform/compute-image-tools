@@ -74,6 +74,7 @@ func (c *CreateMachineImages) run(ctx context.Context, s *Step) DError {
 				eChan <- newErr("failed to create machine image", err)
 				return
 			}
+			mi.createdInWorkflow = true
 		}(ci)
 	}
 

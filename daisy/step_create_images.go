@@ -113,6 +113,7 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) DError {
 			e <- newErr("failed to create images", err)
 			return
 		}
+		ci.markCreatedInWorkflow()
 	}
 
 	if usesBetaFeatures(ci.ImagesBeta) {

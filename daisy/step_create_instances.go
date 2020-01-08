@@ -148,6 +148,7 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) DError {
 				eChan <- newErr("failed to create instances", err)
 				return
 			}
+			i.createdInWorkflow = true
 			go logSerialOutput(ctx, s, i, 1, 3*time.Second)
 		}(ci)
 	}
