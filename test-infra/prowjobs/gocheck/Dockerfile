@@ -18,7 +18,6 @@ FROM golang
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 RUN go get -u golang.org/x/lint/golint
 
-COPY /go/bin/golint golint
 COPY --from=0 /wrapper wrapper
 COPY main.sh main.sh
 ENTRYPOINT ["./wrapper", "./main.sh"]
