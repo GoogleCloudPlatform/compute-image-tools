@@ -93,11 +93,3 @@ steps:
   - --context=/workspace/test-infra/prowjobs/unittests
   - --build-arg=PROJECT_ID=$PROJECT_ID
   waitFor: ['wrapper']
-
-images:
-  - 'gcr.io/$PROJECT_ID/gce-image-import-export-tests:latest'
-  - 'gcr.io/$PROJECT_ID/gce-image-import-export-tests:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/gce-ovf-import-tests:latest'
-  - 'gcr.io/$PROJECT_ID/gce-ovf-import-tests:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/cleanerupper:latest'
-  - 'gcr.io/$PROJECT_ID/cleanerupper:$COMMIT_SHA'
