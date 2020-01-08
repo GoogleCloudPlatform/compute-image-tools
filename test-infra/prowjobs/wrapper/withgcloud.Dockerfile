@@ -11,15 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM golang:alpine
-
-RUN apk add --no-cache git
-
-WORKDIR /tmp
-COPY main.go main.go
-RUN go get -d ./...
-RUN CGO_ENABLED=0 go build -o /wrapper .
-RUN chmod +x /wrapper
+FROM gcr.io/$PROJECT_ID/wrapper:latest
 
 FROM google/cloud-sdk:alpine
 

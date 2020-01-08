@@ -11,15 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM gcr.io/compute-image-tools-test/wrapper:latest
+FROM gcr.io/$PROJECT_ID/wrapper:latest
 
-FROM golang:alpine
+FROM golang
 
-RUN apk add --no-cache git
-
-WORKDIR /tmp
-RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_test_runner
-RUN CGO_ENABLED=0 go build -o /daisy_test_runner github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy_test_runner
+WORKDIR /build
+COPY . .
+RUN go get -d ./...
+RUN CGO_ENABLED=0 go build -o /daisy_test_runner
 RUN chmod +x /daisy_test_runner
 
 FROM alpine
