@@ -178,9 +178,19 @@ fi
 # /dev/sdc is used since it's the third disk that's attached in import_disk.wf.json.
 if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); then
   if [[ "${IMAGE_PATH}" =~ \.vmdk$ ]]; then
-    hint="Verify that you have a monolithic VMDK with an embedded descriptor file."
+    if file "${IMAGE_PATH}" | grep -qiP ascii; then
+      hint="When importing a VMDK disk image, ensure that you specify the VMDK disk "
+      hint+="image file, rather than its text descriptor file. In some virtual "
+      hint+="machine managers, given a text descriptor called <disk.vmdk>, "
+      hint+="the disk image file would be called <disk-flat.vmdk>."
+    else
+      hint="When preparing a VM import, ensure that you create a monolithic "
+      hint+="image file, where the disk is contained in a single VMDK file, as "
+      hint+="opposed to a split file, where the disk is spread across multiple files."
+    fi
   fi
-  echo "ImportFailed: Failed to decode image file. $hint [Privacy-> error: ${out} <-Privacy]"
+  echo "Import: [Privacy-> error: ${out} <-Privacy] "
+  echo "ImportFailed: Failed to decode image file. $hint"
   exit
 fi
 echo "${out}"
