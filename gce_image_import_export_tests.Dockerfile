@@ -21,16 +21,12 @@ RUN CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner
 RUN chmod +x /gce_image_import_export_test_runner
 
 # Build binaries to test
-WORKDIR /gce_vm_image_import
-COPY cli_tools/gce_vm_image_import/ .
-RUN go get -d ./...
-RUN CGO_ENABLED=0 go build -o /gce_vm_image_import
+WORKDIR /
+RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import
+RUN CGO_ENABLED=0 go build -o /gce_vm_image_import github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import
 RUN chmod +x /gce_vm_image_import
-
-WORKDIR /gce_vm_image_export
-COPY cli_tools/gce_vm_image_export/ .
-RUN go get -d ./...
-RUN CGO_ENABLED=0 go build -o /gce_vm_image_export
+RUN go get -d github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export
+RUN CGO_ENABLED=0 go build -o /gce_vm_image_export github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export
 RUN chmod +x /gce_vm_image_export
 
 # Build test container
