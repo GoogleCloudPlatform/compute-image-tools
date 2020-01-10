@@ -97,7 +97,7 @@ Exactly one of these must be specified:
 + `-node-affinity-label` Node affinity label used to determine sole tenant node to schedule this instance on. Label is of the format: <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'. This flag can be specified multiple times for multiple labels.
 + `-release-track` Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.
 + `-hostname` Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.
-+ `-machine-image-storage-location` GCS bucket storage location of the machine image being imported (regional or multi-regional). Applicable only if `-instance-names` is provided.
++ `-machine-image-storage-location` GCS bucket storage location of the machine image being imported (regional or multi-regional). Applicable only if `-machine-image-name` is provided.
 
 ### Usage
 
