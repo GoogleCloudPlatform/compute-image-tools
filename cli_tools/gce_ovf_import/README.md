@@ -1,7 +1,8 @@
 ## Compute Engine OVF Import
 
-The `gce_ovf_import` tool imports a virtual appliance in OVF format created in VMware environments
-to Google Compute Engine VM or machine image. It supports importing OVF and OVA archives.
+The `gce_ovf_import` tool imports a virtual appliance in OVF format created in 
+VMware environments to a Google Compute Engine VM or a Google Compute Engine
+machine image. It supports importing OVF and OVA archives.
 
 The following configurations of the OVF virtual appliance are imported:
 + Virtual Disks (represented by the DiskSection of the OVF format) 
