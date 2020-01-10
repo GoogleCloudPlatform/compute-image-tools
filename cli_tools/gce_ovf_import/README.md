@@ -1,7 +1,7 @@
 ## Compute Engine OVF Import
 
 The `gce_ovf_import` tool imports a virtual appliance in OVF format created in VMware environments
-to Google Compute Engine VM. It supports importing OVF and OVA archives.
+to Google Compute Engine VM or machine image. It supports importing OVF and OVA archives.
 
 The following configurations of the OVF virtual appliance are imported:
 + Virtual Disks (represented by the DiskSection of the OVF format) 
@@ -24,11 +24,14 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_impo
 ### Flags
 
 #### Required flags
-+ `-instance-names` Name of the VM instances to create.
++ `-ovf-gcs-path` GCS path to OVF descriptor, OVA file or a directory with OVF package.
 + `-client-id` Identifies the client of the OVF importer. For example: `gcloud` or
   `pantheon`.
-+ `-ovf-gcs-path` GCS path to OVF descriptor, OVA file or a directory with OVF package.
-  
+ 
+Exactly one of these must be specified:
++ `-instance-names` Name of the VM instances to create.
++ `-machine-image-name` Name of the machine image to create.
+
 #### Optional flags
 + `-no-guest-environment` Google Guest Environment will not be installed on the image
 + `-can-ip-forward` If provided, allows the instances to send and receive packets with non-matching
@@ -93,33 +96,50 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_impo
 + `-disable-stdout-logging` do not display individual workflow logs on stdout
 + `-node-affinity-label` Node affinity label used to determine sole tenant node to schedule this instance on. Label is of the format: <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'. This flag can be specified multiple times for multiple labels.
 + `-release-track` Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.
++ `-hostname` Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.
++ `-machine-image-storage-location` GCS bucket storage location of the machine image being imported (regional or multi-regional). Applicable only if `-instance-names` is provided.
 
 ### Usage
 
+Import into a VM instance:
 ```
 gce_ovf_import -instance-names=INSTANCE_NAME -client-id=CLIENT_ID 
 -source-uri=OVF_GCS_FILE_PATH
-[-can-ip-forward]
-[-custom-cpu=CUSTOM_CPU -custom-memory=CUSTOM_MEMORY]
+[-can-ip-forward] [-custom-cpu=CUSTOM_CPU -custom-memory=CUSTOM_MEMORY]
 [-deletion-protection] [-description=DESCRIPTION]
-[-labels=[KEY=VALUE,…]]
-[-machine-type=MACHINE_TYPE]
+[-labels=[KEY=VALUE,…]] [-machine-type=MACHINE_TYPE]
 [-network=NETWORK] [-network-interface=[PROPERTY=VALUE,…]]
-[-network-tier=NETWORK_TIER] 
-[-subnet=SUBNET]
-[-private-network-ip=PRIVATE_NETWORK_IP] 
-[-no-external-ip]
-[-no-restart-on-failure]
-[-os=OS]
+[-network-tier=NETWORK_TIER]  [-subnet=SUBNET]
+[-private-network-ip=PRIVATE_NETWORK_IP] [-no-external-ip]
+[-no-restart-on-failure] [-os=OS]
 [-shielded-integrity-monitoring] [-shielded-secure-boot] [-shielded-vtpm]
-[-tags=TAG,[TAG,…]] 
-[-zone=ZONE] 
-[-address=ADDRESS    | -no-address]
+[-tags=TAG,[TAG,…]] [-zone=ZONE] [-address=ADDRESS    | -no-address]
 [-boot-disk-kms-key=KMS_KEY : -boot-disk-kms-keyring=KMS_KEYRING
  -boot-disk-kms-location=KMS_LOCATION -boot-disk-kms-project=KMS_PROJECT]
 [-timeout=TIMEOUT; default="2h"] [-project=PROJECT]
 [-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
 [-compute-endpoint-override=CE_ENDPOINT] [-disable-gcs-logging] 
 [-disable-cloud-logging] [-disable-stdout-logging] [-no-guest-environment]
-
+[-hostname]
 ```
+
+Import into a machine image:
+```
+gce_ovf_import -machine-image-name=MACHINE_IMAGE_NAME -client-id=CLIENT_ID 
+-source-uri=OVF_GCS_FILE_PATH
+[-can-ip-forward] [-custom-cpu=CUSTOM_CPU -custom-memory=CUSTOM_MEMORY]
+[-deletion-protection] [-description=DESCRIPTION]
+[-labels=[KEY=VALUE,…]] [-machine-type=MACHINE_TYPE]
+[-network=NETWORK] [-network-interface=[PROPERTY=VALUE,…]]
+[-network-tier=NETWORK_TIER]  [-subnet=SUBNET]
+[-private-network-ip=PRIVATE_NETWORK_IP] [-no-external-ip]
+[-no-restart-on-failure] [-os=OS]
+[-shielded-integrity-monitoring] [-shielded-secure-boot] [-shielded-vtpm]
+[-tags=TAG,[TAG,…]] [-zone=ZONE] [-address=ADDRESS    | -no-address]
+[-boot-disk-kms-key=KMS_KEY : -boot-disk-kms-keyring=KMS_KEYRING
+ -boot-disk-kms-location=KMS_LOCATION -boot-disk-kms-project=KMS_PROJECT]
+[-timeout=TIMEOUT; default="2h"] [-project=PROJECT]
+[-scratch-bucket-gcs-path=SCRATCH_BUCKET_PATH] [-oauth=OAUTH_FILE_PATH]
+[-compute-endpoint-override=CE_ENDPOINT] [-disable-gcs-logging] 
+[-disable-cloud-logging] [-disable-stdout-logging] [-no-guest-environment]
+[-hostname] [-machine-image-storage-location]

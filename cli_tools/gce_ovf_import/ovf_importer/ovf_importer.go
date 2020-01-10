@@ -47,9 +47,10 @@ import (
 )
 
 const (
-	ovfWorkflowDir    = "daisy_workflows/ovf_import/"
-	ovfImportWorkflow = ovfWorkflowDir + "import_ovf.wf.json"
-	logPrefix         = "[import-ovf]"
+	ovfWorkflowDir             = "daisy_workflows/ovf_import/"
+	instanceImportWorkflow     = ovfWorkflowDir + "import_ovf_to_instance.wf.json"
+	machineImageImportWorkflow = ovfWorkflowDir + "import_ovf_to_machine_image.wf.json"
+	logPrefix                  = "[import-ovf]"
 )
 
 const (
@@ -104,7 +105,7 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 	if buildID == "" {
 		buildID = pathutils.RandString(5)
 	}
-	workingDirOVFImportWorkflow := toWorkingDir(ovfImportWorkflow, params)
+	workingDirOVFImportWorkflow := toWorkingDir(getImportWorkflowPath(params), params)
 	bic := &storageutils.BucketIteratorCreator{}
 
 	ovfImporter := &OVFImporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
@@ -115,14 +116,30 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 	return ovfImporter, nil
 }
 
+func getImportWorkflowPath(params *ovfimportparams.OVFImportParams) string {
+	if params.IsInstanceImport() {
+		return instanceImportWorkflow
+	}
+	return machineImageImportWorkflow
+}
+
 func (oi *OVFImporter) buildDaisyVars(
 	translateWorkflowPath string,
 	bootDiskGcsPath string,
 	machineType string,
 	region string) map[string]string {
-	varMap := map[string]string{}
 
-	varMap["instance_name"] = strings.ToLower(oi.params.InstanceNames)
+	varMap := map[string]string{}
+	if oi.params.IsInstanceImport() {
+		// instance import specific vars
+		varMap["instance_name"] = strings.ToLower(oi.params.InstanceNames)
+
+	} else {
+		// machine image import specific vars
+		varMap["machine_image_name"] = strings.ToLower(oi.params.MachineImageName)
+	}
+
+	// common vars
 	if translateWorkflowPath != "" {
 		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!oi.params.NoGuestEnvironment)
@@ -174,6 +191,13 @@ func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
 	}
 	if oi.params.Hostname != "" {
 		instance.Hostname = oi.params.Hostname
+	}
+}
+
+func (oi *OVFImporter) updateMachineImage(w *daisy.Workflow) {
+	if oi.params.MachineImageStorageLocation != "" {
+		(*w.Steps["create-machine-image"].CreateMachineImages)[0].StorageLocations =
+			[]string{oi.params.MachineImageStorageLocation}
 	}
 }
 
@@ -296,6 +320,9 @@ func (oi *OVFImporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
 	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	daisyovfutils.AddDiskImportSteps(w, (*oi.diskInfos)[1:])
 	oi.updateImportedInstance(w)
+	if oi.params.IsMachineImageImport() {
+		oi.updateMachineImage(w)
+	}
 }
 
 func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
@@ -411,7 +438,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 		oi.params.GcsLogsDisabled, oi.params.CloudLogsDisabled, oi.params.StdoutLogsDisabled)
 
 	if err != nil {
-		return nil, fmt.Errorf("error parsing workflow %q: %v", ovfImportWorkflow, err)
+		return nil, fmt.Errorf("error parsing workflow %q: %v", oi.workflowPath, err)
 	}
 	workflow.ForceCleanupOnError = true
 	return workflow, nil

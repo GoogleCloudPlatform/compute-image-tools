@@ -120,7 +120,7 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 		if err != nil {
 			return err
 		}
-		sc.Logger.Log(fmt.Sprintf("Deleting gs://%v/%v\n", bucketName, attrs.Name))
+		sc.Logger.Log(fmt.Sprintf("Deleting gs://%v/%v", bucketName, attrs.Name))
 
 		if err := sc.DeleteObject(bucketName, attrs.Name); err != nil {
 			return err
@@ -150,7 +150,7 @@ func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*s
 		if !strings.HasSuffix(attrs.Name, fileExtension) {
 			continue
 		}
-		sc.Logger.Log(fmt.Sprintf("Found gs://%v/%v\n", bucketName, attrs.Name))
+		sc.Logger.Log(fmt.Sprintf("Found gs://%v/%v", bucketName, attrs.Name))
 
 		return sc.GetBucket(bucketName).Object(attrs.Name), nil
 	}

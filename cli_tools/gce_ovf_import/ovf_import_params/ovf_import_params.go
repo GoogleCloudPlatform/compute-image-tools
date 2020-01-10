@@ -23,7 +23,15 @@ import (
 
 // OVFImportParams holds flags for OVF import as well as derived (parsed) params
 type OVFImportParams struct {
-	InstanceNames               string
+
+	// Instance import specific flags
+	InstanceNames string
+
+	// Machine image specific flags
+	MachineImageName            string
+	MachineImageStorageLocation string
+
+	// Common flags
 	ClientID                    string
 	OvfOvaGcsPath               string
 	NoGuestEnvironment          bool
@@ -61,6 +69,7 @@ type OVFImportParams struct {
 	UefiCompatible              bool
 	Hostname                    string
 
+	// Non-flags
 	UserLabels            map[string]string
 	NodeAffinities        []*compute.SchedulingNodeAffinity
 	CurrentExecutablePath string
@@ -68,4 +77,16 @@ type OVFImportParams struct {
 
 func (oip *OVFImportParams) String() string {
 	return fmt.Sprintf("%#v", oip)
+}
+
+// IsInstanceImport returns true if import represented by these params is
+// instance import. False otherwise.
+func (oip *OVFImportParams) IsInstanceImport() bool {
+	return oip.InstanceNames != ""
+}
+
+// IsMachineImageImport returns true if import represented by these params is
+// a machine image import. False otherwise.
+func (oip *OVFImportParams) IsMachineImageImport() bool {
+	return !oip.IsInstanceImport()
 }
