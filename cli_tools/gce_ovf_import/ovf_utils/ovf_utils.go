@@ -47,6 +47,8 @@ var ovfOSTypeToOSID = map[string]string{
 	"centos6_64Guest":       "centos-6",
 	"centos7Guest":          "centos-7",
 	"centos7_64Guest":       "centos-7",
+	"centos8Guest":          "centos-8",
+	"centos8_64Guest":       "centos-8",
 	"rhel6Guest":            "rhel-6",
 	"rhel6_64Guest":         "rhel-6",
 	"rhel7Guest":            "rhel-7",

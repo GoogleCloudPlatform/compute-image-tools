@@ -37,6 +37,7 @@ var (
 		"debian-9":            "debian/translate_debian_9.wf.json",
 		"centos-6":            "enterprise_linux/translate_centos_6.wf.json",
 		"centos-7":            "enterprise_linux/translate_centos_7.wf.json",
+		"centos-8":            "enterprise_linux/translate_centos_8.wf.json",
 		"opensuse-15":         "suse/translate_opensuse_15.wf.json",
 		"sles-12-byol":        "suse/translate_sles_12_byol.wf.json",
 		"sles-15-byol":        "suse/translate_sles_15_byol.wf.json",

@@ -99,10 +99,6 @@ def DistroSpecific(g):
   if install_gce == 'true':
     logging.info('Installing GCE packages.')
     g.write('/etc/yum.repos.d/google-cloud.repo', repo_compute % el_release)
-    if el_release == '7':
-      g.write_append(
-          '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
-      yum_install(g, 'google-cloud-sdk')
     if el_release == '6':
       if 'CentOS' in g.cat('/etc/redhat-release'):
         logging.info('Installing CentOS SCL.')
@@ -146,11 +142,21 @@ def DistroSpecific(g):
             binary_path
         g.write(new_bin_path, bin_str)
         g.chmod(0o755, new_bin_path)
+    else:
+      g.write_append(
+          '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
+      yum_install(g, 'google-cloud-sdk')
 
-    yum_install(g, 'google-compute-engine', 'python-google-compute-engine')
+    if el_release == '8':
+      yum_install(g, 'google-compute-engine', 'python3-google-compute-engine')
+    else:
+      yum_install(g, 'google-compute-engine', 'python-google-compute-engine')
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
+    if el_release == '8' and not g.exists(
+        os.path.join('/lib/modules', kver, 'modules.dep')):
+      g.command(['depmod', kver])
     if el_release == '6':
       # Version 6 doesn't have option --kver
       g.command(['dracut', '-v', '-f', kver])
@@ -174,6 +180,10 @@ def DistroSpecific(g):
 
   # Reset network for DHCP.
   logging.info('Resetting network to DHCP for eth0.')
+  # Remove NetworkManager-config-server if it's present. The package configures
+  # NetworkManager to *not* use DHCP.
+  #  https://access.redhat.com/solutions/894763
+  g.command(['yum', 'remove', '-y', 'NetworkManager-config-server'])
   g.write('/etc/sysconfig/network-scripts/ifcfg-eth0', ifcfg_eth0)
 
 
