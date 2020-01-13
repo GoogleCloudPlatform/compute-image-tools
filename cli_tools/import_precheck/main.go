@@ -18,7 +18,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/osinfo"
+	"github.com/GoogleCloudPlatform/osconfig/inventory/osinfo"
 	"github.com/google/logger"
 )
 
@@ -26,7 +26,7 @@ const logPath = "out.log"
 
 var (
 	log    *logger.Logger
-	osInfo *osinfo.DistributionInfo
+	osInfo *osinfo.OSInfo
 )
 
 func getChecks() []check {
@@ -54,7 +54,7 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	osInfo, err = osinfo.GetDistributionInfo()
+	osInfo, err = osinfo.Get()
 	if err != nil {
 		logger.Fatal(err)
 	}

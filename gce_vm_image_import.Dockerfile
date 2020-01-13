@@ -1,4 +1,4 @@
-# Copyright 2019 Google Inc. All Rights Reserved.
+# Copyright 2018 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,7 @@
 
 FROM gcr.io/distroless/base
 
-COPY linux/gce_ovf_import /gce_ovf_import
+COPY linux/gce_vm_image_import /gce_vm_image_import
 COPY daisy_workflows/ /daisy_workflows/
 
-WORKDIR /
-ENTRYPOINT ["/gce_ovf_import"]
+ENTRYPOINT ["/gce_vm_image_import"]

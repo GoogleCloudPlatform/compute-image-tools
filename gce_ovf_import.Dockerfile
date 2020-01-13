@@ -14,8 +14,7 @@
 
 FROM gcr.io/distroless/base
 
-COPY linux/gce_vm_image_export /gce_vm_image_export
+COPY linux/gce_ovf_import /gce_ovf_import
 COPY daisy_workflows/ /daisy_workflows/
 
-WORKDIR /
-ENTRYPOINT ["/gce_vm_image_export"]
+ENTRYPOINT ["/gce_ovf_import"]

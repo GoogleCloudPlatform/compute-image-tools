@@ -123,7 +123,7 @@ periodics:
       args:
       - "-dry_run=false"
       - "-duration=24h"
-      - "-projects=compute-image-test-pool-001,compute-image-test-pool-002,compute-image-test-pool-003,compute-image-test-pool-004,compute-image-test-pool-005,compute-image-osconfig-agent"
+      - "-projects=compute-image-test-pool-001,compute-image-test-pool-002,compute-image-test-pool-003,compute-image-test-pool-004,compute-image-test-pool-005,compute-image-osconfig-agent,compute-image-osconfig-agent-2"
       volumeMounts:
       - name: compute-image-tools-test-service-account
         mountPath: /etc/compute-image-tools-test-service-account
