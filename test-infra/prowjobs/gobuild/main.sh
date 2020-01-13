@@ -13,41 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Check this out in GOPATH since go package handling requires it to be here.
-REPO_PATH=${GOPATH}/src/github.com/${REPO_OWNER}/${REPO_NAME}
+cd /
+REPO_PATH=${REPO_NAME}
 mkdir -p ${REPO_PATH}
 git clone https://github.com/${REPO_OWNER}/${REPO_NAME} ${REPO_PATH}
-cd ${REPO_PATH}
 
 # Pull PR if this is a PR.
 if [ ! -z "${PULL_NUMBER}" ]; then
+  cd ${REPO_PATH}
   git fetch origin pull/${PULL_NUMBER}/head:${PULL_NUMBER}
   git checkout ${PULL_NUMBER}
 fi
 
-echo 'Pulling imports...'
-go get -d ./...
-GOOS=windows go get -d ./...
-
 GOBUILD_OUT=0
-cd /
-
-TARGETS=("github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/daisy"
-         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_export"
-         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_image_publish" 
-         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/gce_inventory_agent" 
-         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/import_precheck"
-         "github.com/${REPO_OWNER}/${REPO_NAME}/cli_tools/daisy_test_runner")
+TARGETS=("daisy/cli"
+         "cli_tools/gce_export"
+         "cli_tools/gce_image_publish" 
+         "cli_tools/gce_inventory_agent" 
+         "cli_tools/import_precheck"
+         "cli_tools/daisy_test_runner")
 for TARGET in "${TARGETS[@]}"; do
   echo "Building ${TARGET} for Linux"
-  go build $TARGET
+  cd /${REPO_PATH}/${TARGET}
+  go build
   RET=$?
   if [ $RET != 0 ]; then
     GOBUILD_OUT=$RET
     echo "'go build' exited with ${GOBUILD_OUT}"
   fi
   echo "Building ${TARGET} for Windows"
-  GOOS=windows go build $TARGET
+  GOOS=windows go build
   RET=$?
   if [ $RET != 0 ]; then
     GOBUILD_OUT=$RET

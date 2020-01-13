@@ -15,10 +15,9 @@ FROM gcr.io/$PROJECT_ID/wrapper:latest
 
 FROM golang
 
-WORKDIR /build
-COPY . .
-RUN go get -d ./...
-RUN CGO_ENABLED=0 go build -o /daisy_test_runner
+WORKDIR /cli_tools
+COPY cli_tools/ .
+RUN cd daisy_test_runner && CGO_ENABLED=0 go build -o /daisy_test_runner
 RUN chmod +x /daisy_test_runner
 
 FROM alpine
@@ -28,5 +27,5 @@ ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account
 
 COPY --from=0 /wrapper wrapper
 COPY --from=1 /daisy_test_runner daisy_test_runner
-COPY main.sh main.sh
+COPY cli_tools/daisy_test_runner/main.sh main.sh
 ENTRYPOINT ["./wrapper", "./main.sh"]

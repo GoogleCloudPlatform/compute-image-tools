@@ -15,8 +15,9 @@ FROM gcr.io/$PROJECT_ID/wrapper:latest
 
 FROM golang
 
-ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
 RUN go get -u golang.org/x/lint/golint
+ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
+ENV GO111MODULE on
 
 COPY --from=0 /wrapper wrapper
 COPY main.sh main.sh
