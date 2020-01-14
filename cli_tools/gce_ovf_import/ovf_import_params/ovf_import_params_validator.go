@@ -28,6 +28,12 @@ const (
 	// InstanceNameFlagKey is key for instance name CLI flag
 	InstanceNameFlagKey = "instance-names"
 
+	// MachineImageNameFlagKey is key for machine image name CLI flag
+	MachineImageNameFlagKey = "machine-image-name"
+
+	// MachineImageStorageLocationFlagKey is key for machine image storage location CLI flag
+	MachineImageStorageLocationFlagKey = "machine-image-storage-location"
+
 	// ClientIDFlagKey is key for client ID CLI flag
 	ClientIDFlagKey = "client-id"
 
@@ -39,13 +45,24 @@ const (
 // invalid. If params are valid, additional fields in OVFImportParams will be populated with
 // parsed values
 func ValidateAndParseParams(params *OVFImportParams) error {
-	if err := validation.ValidateStringFlagNotEmpty(params.InstanceNames, InstanceNameFlagKey); err != nil {
-		return err
+	if params.InstanceNames == "" && params.MachineImageName == "" {
+		return daisy.Errf("Either the flag -%v or -%v must be provided", InstanceNameFlagKey, MachineImageNameFlagKey)
 	}
 
-	instanceNameSplits := strings.Split(params.InstanceNames, ",")
-	if len(instanceNameSplits) > 1 {
-		return daisy.Errf("OVF import doesn't support multi instance import at this time")
+	if params.InstanceNames != "" && params.MachineImageName != "" {
+		return daisy.Errf("-%v and -%v can't be provided at the same time", InstanceNameFlagKey, MachineImageNameFlagKey)
+	}
+
+	if params.IsInstanceImport() {
+		// instance import specific validation
+		instanceNameSplits := strings.Split(params.InstanceNames, ",")
+		if len(instanceNameSplits) > 1 {
+			return daisy.Errf("OVF import doesn't support multi instance import at this time")
+		}
+
+		if params.MachineImageStorageLocation != "" {
+			return daisy.Errf("-%v can't be provided when importing an instance", MachineImageStorageLocationFlagKey)
+		}
 	}
 
 	if err := validation.ValidateStringFlagNotEmpty(params.OvfOvaGcsPath, OvfGcsPathFlagKey); err != nil {

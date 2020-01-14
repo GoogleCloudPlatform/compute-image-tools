@@ -20,60 +20,159 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFlagsInstanceNameNotProvided(t *testing.T) {
-	params := getAllParams()
+func TestInstanceNameAndMachineImageNameProvidedAtTheSameTime(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.MachineImageName = "machine-image-name"
+	assertErrorOnValidate(t, params)
+}
+
+func TestMachineImageStorageLocationProvidedForInstanceImport(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.MachineImageStorageLocation = "us-west2"
+	assertErrorOnValidate(t, params)
+}
+
+func TestInstanceImportFlagsInstanceNameNotProvided(t *testing.T) {
+	params := getAllInstanceImportParams()
 	params.InstanceNames = ""
 	assertErrorOnValidate(t, params)
 }
 
-func TestFlagsOvfGcsPathFlagKeyNotProvided(t *testing.T) {
-	params := getAllParams()
+func TestInstanceImportFlagsOvfGcsPathFlagKeyNotProvided(t *testing.T) {
+	params := getAllInstanceImportParams()
 	params.OvfOvaGcsPath = ""
 	assertErrorOnValidate(t, params)
 }
 
-func TestFlagsOvfGcsPathFlagNotValid(t *testing.T) {
-	params := getAllParams()
+func TestInstanceImportFlagsOvfGcsPathFlagNotValid(t *testing.T) {
+	params := getAllInstanceImportParams()
 	params.OvfOvaGcsPath = "NOT_GCS_PATH"
 	assertErrorOnValidate(t, params)
 }
 
-func TestFlagsClientIdNotProvided(t *testing.T) {
-	params := getAllParams()
+func TestInstanceImportFlagsClientIdNotProvided(t *testing.T) {
+	params := getAllInstanceImportParams()
 	params.ClientID = ""
 	assertErrorOnValidate(t, params)
 }
 
-func TestFlagsLabelsInvalid(t *testing.T) {
-	params := getAllParams()
+func TestInstanceImportFlagsLabelsInvalid(t *testing.T) {
+	params := getAllInstanceImportParams()
 	params.Labels = "NOT_VALID_LABEL_DEFINITION"
 	assertErrorOnValidate(t, params)
 }
 
-func TestFlagsAllValid(t *testing.T) {
-	assert.Nil(t, ValidateAndParseParams(getAllParams()))
+func TestInstanceImportFlagsAllValid(t *testing.T) {
+	assert.Nil(t, ValidateAndParseParams(getAllInstanceImportParams()))
 }
 
-func TestFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {
-	params := getAllParams()
+func TestInstanceImportFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {
+	params := getAllInstanceImportParams()
 	params.OvfOvaGcsPath = "gs://bucket_name/"
-	assert.Nil(t, ValidateAndParseParams(getAllParams()))
+	assert.Nil(t, ValidateAndParseParams(getAllInstanceImportParams()))
 }
 
-func TestFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) {
-	params := getAllParams()
+func TestInstanceImportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) {
+	params := getAllInstanceImportParams()
 	params.OvfOvaGcsPath = "gs://bucket_name"
-	assert.Nil(t, ValidateAndParseParams(getAllParams()))
+	assert.Nil(t, ValidateAndParseParams(getAllInstanceImportParams()))
+}
+
+func TestMachineImageImportFlagsAllValid(t *testing.T) {
+	assert.Nil(t, ValidateAndParseParams(getAllMachineImageImportParams()))
+}
+
+func TestMachineImageImportFlagsMachineImageNameNotProvided(t *testing.T) {
+	params := getAllMachineImageImportParams()
+	params.MachineImageName = ""
+	assertErrorOnValidate(t, params)
+}
+
+func TestMachineImageImportFlagsOvfGcsPathFlagKeyNotProvided(t *testing.T) {
+	params := getAllMachineImageImportParams()
+	params.OvfOvaGcsPath = ""
+	assertErrorOnValidate(t, params)
+}
+
+func TestMachineImageImportFlagsOvfGcsPathFlagNotValid(t *testing.T) {
+	params := getAllMachineImageImportParams()
+	params.OvfOvaGcsPath = "NOT_GCS_PATH"
+	assertErrorOnValidate(t, params)
+}
+
+func TestMachineImageImportFlagsClientIdNotProvided(t *testing.T) {
+	params := getAllMachineImageImportParams()
+	params.ClientID = ""
+	assertErrorOnValidate(t, params)
+}
+
+func TestMachineImageImportFlagsLabelsInvalid(t *testing.T) {
+	params := getAllMachineImageImportParams()
+	params.Labels = "NOT_VALID_LABEL_DEFINITION"
+	assertErrorOnValidate(t, params)
+}
+
+func TestMachineImageImportFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {
+	params := getAllMachineImageImportParams()
+	params.OvfOvaGcsPath = "gs://bucket_name/"
+	assert.Nil(t, ValidateAndParseParams(getAllMachineImageImportParams()))
+}
+
+func TestMachineImageImportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) {
+	params := getAllMachineImageImportParams()
+	params.OvfOvaGcsPath = "gs://bucket_name"
+	assert.Nil(t, ValidateAndParseParams(getAllMachineImageImportParams()))
 }
 
 func assertErrorOnValidate(t *testing.T, params *OVFImportParams) {
 	assert.NotNil(t, ValidateAndParseParams(params))
 }
 
-func getAllParams() *OVFImportParams {
+func getAllInstanceImportParams() *OVFImportParams {
 	project := "aProject"
 	return &OVFImportParams{
 		InstanceNames:               "instance1",
+		ClientID:                    "aClient",
+		OvfOvaGcsPath:               "gs://ovfbucket/ovfpath/vmware.ova",
+		NoGuestEnvironment:          true,
+		CanIPForward:                true,
+		DeletionProtection:          true,
+		Description:                 "aDescription",
+		Labels:                      "userkey1=uservalue1,userkey2=uservalue2",
+		MachineType:                 "n1-standard-2",
+		Network:                     "aNetwork",
+		Subnet:                      "aSubnet",
+		NetworkTier:                 "PREMIUM",
+		PrivateNetworkIP:            "10.0.0.1",
+		NoExternalIP:                true,
+		NoRestartOnFailure:          true,
+		OsID:                        "ubuntu-1404",
+		ShieldedIntegrityMonitoring: true,
+		ShieldedSecureBoot:          true,
+		ShieldedVtpm:                true,
+		Tags:                        "tag1=val1",
+		Zone:                        "us-central1-c",
+		BootDiskKmskey:              "aKey",
+		BootDiskKmsKeyring:          "aKeyring",
+		BootDiskKmsLocation:         "aKmsLocation",
+		BootDiskKmsProject:          "aKmsProject",
+		Timeout:                     "3h",
+		Project:                     &project,
+		ScratchBucketGcsPath:        "gs://bucket/folder",
+		Oauth:                       "oAuthFilePath",
+		Ce:                          "us-east1-c",
+		GcsLogsDisabled:             true,
+		CloudLogsDisabled:           true,
+		StdoutLogsDisabled:          true,
+		NodeAffinityLabelsFlag:      []string{"env,IN,prod,test"},
+	}
+}
+
+func getAllMachineImageImportParams() *OVFImportParams {
+	project := "aProject"
+	return &OVFImportParams{
+		MachineImageName:            "machineImage1",
+		MachineImageStorageLocation: "us-west2",
 		ClientID:                    "aClient",
 		OvfOvaGcsPath:               "gs://ovfbucket/ovfpath/vmware.ova",
 		NoGuestEnvironment:          true,

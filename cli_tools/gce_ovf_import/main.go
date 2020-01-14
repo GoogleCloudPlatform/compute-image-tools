@@ -29,6 +29,7 @@ import (
 
 var (
 	instanceNames               = flag.String(ovfimportparams.InstanceNameFlagKey, "", "VM Instance names to be created, separated by commas.")
+	machineImageName            = flag.String(ovfimportparams.MachineImageNameFlagKey, "", "Name of the machine image to create.")
 	clientID                    = flag.String(ovfimportparams.ClientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
 	ovfOvaGcsPath               = flag.String(ovfimportparams.OvfGcsPathFlagKey, "", " Google Cloud Storage URI of the OVF or OVA file to import. For example: gs://my-bucket/my-vm.ovf.")
 	noGuestEnvironment          = flag.Bool("no-guest-environment", false, "Google Guest Environment will not be installed on the image.")
@@ -63,7 +64,8 @@ var (
 	stdoutLogsDisabled          = flag.Bool("disable-stdout-logging", false, "do not display individual workflow logs on stdout")
 	releaseTrack                = flag.String("release-track", ovfimporter.GA, fmt.Sprintf("Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.", ovfimporter.Alpha, ovfimporter.Beta, ovfimporter.GA))
 	uefiCompatible              = flag.Bool("uefi-compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
-	hostname                    = flag.String("hostname", "", "Specify the hostname of the instance to be created. The specified	hostname must be RFC1035 compliant.")
+	hostname                    = flag.String("hostname", "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
+	machineImageStorageLocation = flag.String(ovfimportparams.MachineImageStorageLocationFlagKey, "", "GCS bucket storage location of the machine image being imported (regional or multi-regional)")
 
 	nodeAffinityLabelsFlag flags.StringArrayFlag
 	currentExecutablePath  string
@@ -76,7 +78,8 @@ func init() {
 
 func buildImportParams() *ovfimportparams.OVFImportParams {
 	flag.Parse()
-	return &ovfimportparams.OVFImportParams{InstanceNames: *instanceNames, ClientID: *clientID,
+	return &ovfimportparams.OVFImportParams{InstanceNames: *instanceNames,
+		MachineImageName: *machineImageName, ClientID: *clientID,
 		OvfOvaGcsPath: *ovfOvaGcsPath, NoGuestEnvironment: *noGuestEnvironment,
 		CanIPForward: *canIPForward, DeletionProtection: *deletionProtection, Description: *description,
 		Labels: *labels, MachineType: *machineType, Network: *network, NetworkTier: *networkTier,
@@ -91,6 +94,7 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
 		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,
 		UefiCompatible: *uefiCompatible, Hostname: *hostname,
+		MachineImageStorageLocation: *machineImageStorageLocation,
 	}
 }
 

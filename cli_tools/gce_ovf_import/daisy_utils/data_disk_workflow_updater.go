@@ -27,8 +27,8 @@ const (
 	importerDiskSize       = "10"
 )
 
-// AddDiskImportSteps adds Daisy steps to OVF import workflow to import disks defined in
-// dataDiskInfos.
+// AddDiskImportSteps adds Daisy steps to OVF import workflow to import disks
+// defined in dataDiskInfos.
 func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 	if dataDiskInfos == nil || len(dataDiskInfos) == 0 {
 		return
