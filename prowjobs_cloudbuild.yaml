@@ -42,7 +42,8 @@ steps:
   args: 
   - --destination=gcr.io/$PROJECT_ID/test-runner:latest
   - --destination=gcr.io/$PROJECT_ID/test-runner:$COMMIT_SHA
-  - --context=/workspace/cli_tools/daisy_test_runner
+  - --context=/workspace
+  - --dockerfile=daisy_test_runner.Dockerfile
   - --build-arg=PROJECT_ID=$PROJECT_ID
 - id: gce-image-import-export-tests
   name: 'gcr.io/kaniko-project/executor'
@@ -57,7 +58,6 @@ steps:
   args: 
   - --destination=gcr.io/$PROJECT_ID/gce-ovf-import-tests:latest
   - --destination=gcr.io/$PROJECT_ID/gce-ovf-import-tests:$COMMIT_SHA
-  - --context=/workspace/test-infra/prowjobs/gce-ovf-import-tests
   - --context=/workspace
   - --dockerfile=gce_ovf_import_tests.Dockerfile
   - --build-arg=PROJECT_ID=$PROJECT_ID
