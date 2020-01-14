@@ -13,55 +13,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export GOCOVPATH=/gocov.txt
-export PYCOVPATH=/pycov.txt
-
-# Check this out in GOPATH since go package handling requires it to be here.
-REPO_PATH=${GOPATH}/src/github.com/${REPO_OWNER}/${REPO_NAME}
+cd /
+REPO_PATH=${REPO_NAME}
 mkdir -p ${REPO_PATH}
 git clone https://github.com/${REPO_OWNER}/${REPO_NAME} ${REPO_PATH}
-cd ${REPO_PATH}
 
 # Pull PR if this is a PR.
 if [ ! -z "${PULL_NUMBER}" ]; then
+  cd ${REPO_PATH}
   git fetch origin pull/${PULL_NUMBER}/head:${PULL_NUMBER}
   git checkout ${PULL_NUMBER}
 fi
 
-# Execute all unittests.sh scripts in their directories.
-# Each script should APPEND coverage data to GOCOVPATH or PYCOVPATH.
-echo 0 > runnerret
-find . -type f -name "unittests.sh" | while read script; do
-  echo "Running ${script}."
-  # Change to the containing directory and run script.
-  cd $(dirname ${script})
-  ./$(basename ${script})
-  UNITTESTRET=$?
-  echo "${script} returned ${UNITTESTRET}."
+RET=0
 
-  mkdir -p ${ARTIFACTS}/$(dirname ${script})
-  cp -R artifacts/* ${ARTIFACTS}/$(dirname ${script})/
+TARGETS=("daisy"
+         "cli_tools")
+for TARGET in "${TARGETS[@]}"; do
+  echo "Running tests on ${TARGET}"
+  cd /${REPO_PATH}/${TARGET}
 
-  # Return to repo base dir.
-  cd ${REPO_PATH}
+  OUT=${ARTIFACTS}/${TARGET}
+  mkdir -p ${OUT}
 
-  # Set the return value if tests failed.
-  if [ ${UNITTESTRET} -ne 0 ]; then
-    echo "Unit test runner return code set to ${UNITTESTRET}."
-    echo ${UNITTESTRET} > runnerret
+  go test -race -coverprofile=${OUT}/test-report.out -covermode=atomic -v 2>&1 > test.out
+  PARTRET=$?
+  echo "${TARGET} test returned ${PARTRET}."
+  if [ ${PARTRET} -ne 0 ]; then
+    RET=${PARTRET}
   fi
+
+  # Output test report.
+  cat test.out | go-junit-report > ${ARTIFACTS}/${TARGET//\//_}_report.xml
+  rm test.out
 done
 
-# Upload coverage results to Codecov.
-CODEV_COV_ARGS="-v -t $(cat ${CODECOV_TOKEN}) -B master -C $(git rev-parse HEAD)"
-if [ ! -z "${PULL_NUMBER}" ]; then
-  CODEV_COV_ARGS="${CODEV_COV_ARGS} -P ${PULL_NUMBER}"
-fi
-if [ -e ${GOCOVPATH} ]; then
-  bash <(curl -s https://codecov.io/bash) -f ${GOCOVPATH} -F go_unittests ${CODEV_COV_ARGS}
-fi
-if [ -e ${PYCOVPATH} ]; then
-  bash <(curl -s https://codecov.io/bash) -f ${PYCOVPATH} -F py_unittests ${CODEV_COV_ARGS}
-fi
-echo "Unit test runner returning $(cat runnerret)."
-exit $(cat runnerret)
+exit $RET

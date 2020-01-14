@@ -17,7 +17,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/go/packages"
+	"github.com/GoogleCloudPlatform/osconfig/inventory/packages"
 )
 
 const sha2Windows2008R2KB = "KB4474419"
@@ -36,9 +36,9 @@ func (s *sha2DriverSigningCheck) run() (*report, error) {
 		return r, nil
 	}
 
-	pkgs, errs := packages.GetInstalledPackages()
-	if errs != nil {
-		return nil, fmt.Errorf("GetInstalledPackages errors:\n* %s", strings.Join(errs, "\n* "))
+	pkgs, err := packages.GetInstalledPackages()
+	if err != nil {
+		return nil, fmt.Errorf("GetInstalledPackages error: %s", err)
 	}
 
 	for _, pkg := range pkgs.WUA {

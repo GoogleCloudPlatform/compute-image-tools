@@ -26,9 +26,9 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"time"
 
 	"cloud.google.com/go/compute/metadata"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/performance"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
@@ -195,6 +195,32 @@ func fmtWorkflow(path string) error {
 	return nil
 }
 
+func printPerfProfile(workflow *daisy.Workflow) {
+	timeRecords := workflow.GetStepTimeRecords()
+	if len(timeRecords) == 0 {
+		return
+	}
+
+	wfStartTime := time.Now()
+	wfEndTime := time.Time{}
+	fmt.Println("\nPerf Profile:")
+	for _, r := range timeRecords {
+		if wfStartTime.After(r.StartTime) {
+			wfStartTime = r.StartTime
+		}
+		if wfEndTime.Before(r.EndTime) {
+			wfEndTime = r.EndTime
+		}
+		fmt.Printf("- %v: %v\n", r.Name, formatDuration(r.EndTime.Sub(r.StartTime)))
+	}
+	fmt.Printf("Total time: %v\n\n", formatDuration(wfEndTime.Sub(wfStartTime)))
+}
+
+func formatDuration(d time.Duration) string {
+	s := int(d.Seconds())
+	return fmt.Sprintf("[hh:mm:ss] %v:%v:%v", s/3600, s/60%60, s%60)
+}
+
 func main() {
 	addFlags(os.Args[1:])
 	flag.Parse()
@@ -256,7 +282,7 @@ func main() {
 		go func(w *daisy.Workflow) {
 			defer wg.Done()
 			if *printPerf {
-				defer performance.PrintPerfProfile(w)
+				defer printPerfProfile(w)
 			}
 			fmt.Printf("[Daisy] Running workflow %q (id=%s)\n", w.Name, w.ID())
 			if err := w.Run(ctx); err != nil {

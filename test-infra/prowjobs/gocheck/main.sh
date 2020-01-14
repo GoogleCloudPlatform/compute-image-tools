@@ -13,51 +13,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Check this out in GOPATH since go package handling requires it to be here.
-REPO_PATH=${GOPATH}/src/github.com/${REPO_OWNER}/${REPO_NAME}
+cd /
+REPO_PATH=${REPO_NAME}
 mkdir -p ${REPO_PATH}
 git clone https://github.com/${REPO_OWNER}/${REPO_NAME} ${REPO_PATH}
-cd ${REPO_PATH}
 
 # Pull PR if this is a PR.
 if [ ! -z "${PULL_NUMBER}" ]; then
+  cd ${REPO_PATH}
   git fetch origin pull/${PULL_NUMBER}/head:${PULL_NUMBER}
   git checkout ${PULL_NUMBER}
 fi
 
-echo 'Pulling imports...'
-go get -d -t ./...
-GOOS=windows go get -d -t ./...
+GOFMT_RET=0
+GOLINT_RET=0
+GOVET_RET=0
 
-# We dont run golint on Windows only code as style often matches win32 api 
-# style, not golang style
-golint -set_exit_status ./...
-GOLINT_RET=$?
+TARGETS=("daisy"
+         "cli_tools"
+         "test-infra/prowjobs/cleanerupper"
+         "test-infra/prowjobs/wrapper")
+for TARGET in "${TARGETS[@]}"; do
+  echo "Checking ${TARGET}"
+  cd "/${REPO_PATH}/${TARGET}"
+  # We dont run golint on Windows only code as style often matches win32 api 
+  # style, not golang style
+  golint -set_exit_status ./...
+  RET=$?
+  if [ $RET != 0 ]; then
+    GOLINT_RET=$RET
+    echo "'golint ${TARGET}/...' returned ${GOLINT_RET}"
+  fi
 
-GOFMT_OUT=$(gofmt -d $(find . -type f -name "*.go") 2>&1)
+  GOFMT_OUT=$(gofmt -d $(find . -type f -name "*.go") 2>&1)
+  if [ ! -z "${GOFMT_OUT}" ]; then
+    echo "'gofmt -d \$(find ${TARGET} -type f -name \"*.go\")' returned:"
+    echo ${GOFMT_OUT}
+    GOFMT_RET=1
+  fi
 
-go vet --structtag=false ./...
-GOVET_RET=$?
-GOOS=windows go vet --structtag=false ./...
-RET=$?
-if [ $RET != 0 ]; then
-  GOVET_RET=$RET
-fi
+  go vet --structtag=false ./...
+  RET=$?
+  if [ $RET != 0 ]; then
+    GOVET_RET=$RET
+    echo "'go vet ${TARGET}/...' returned ${GOVET_RET}"
+  fi
+  GOOS=windows go vet --structtag=false ./...
+  RET=$?
+  if [ $RET != 0 ]; then
+    GOVET_RET=$RET
+    echo "'GOOS=windows go vet ${TARGET}/...' returned ${GOVET_RET}"
+  fi
+done
 
-# Print results and return.
-if [ ${GOLINT_RET} != 0 ]; then
-  echo "'golint ./...' returned ${GOLINT_RET}"
-fi
-if [ ! -z "${GOFMT_OUT}" ]; then
-  echo "'gofmt -d \$(find . -type f -name \"*.go\")' returned:"
-  echo ${GOFMT_OUT}
-  GOFMT_RET=1
-else
-  GOFMT_RET=0
-fi
-if [ ${GOVET_RET} != 0 ]; then
-  echo "'go vet ./...' returned ${GOVET_RET}"
-fi
 if [ ${GOLINT_RET} != 0 ] || [ ${GOFMT_RET} != 0 ] || [ ${GOVET_RET} != 0 ]; then
   exit 1
 fi
