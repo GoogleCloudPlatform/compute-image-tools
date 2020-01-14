@@ -179,15 +179,9 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi, nge):
   # pre and post
   # Each section must be in a specific order, but items in that section do not
   # have to be.
-  packages = "google-compute-engine google-osconfig-agent"
+  packages = ""
   if nge:
-    packages += " google-guest-agent"
-  if release != "rhel6" and release != "centos6":
-    # SDK installed manually on EL6
-    packages += " google-cloud-sdk"
-  if not release.endswith("8"):
-    # TODO: disk-expand not yet working on EL8
-    packages += " gce-disk-expand"
+    packages = "google-guest-agent"
 
   # Common
   pre = ''
