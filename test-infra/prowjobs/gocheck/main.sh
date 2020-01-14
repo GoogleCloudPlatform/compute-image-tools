@@ -32,7 +32,8 @@ GOVET_RET=0
 TARGETS=("daisy"
          "cli_tools"
          "test-infra/prowjobs/cleanerupper"
-         "test-infra/prowjobs/wrapper")
+         "test-infra/prowjobs/wrapper"
+         "gce_image_import_export_tests")
 for TARGET in "${TARGETS[@]}"; do
   echo "Checking ${TARGET}"
   cd "/${REPO_PATH}/${TARGET}"
