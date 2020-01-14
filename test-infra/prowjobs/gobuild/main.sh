@@ -26,13 +26,13 @@ if [ ! -z "${PULL_NUMBER}" ]; then
 fi
 
 GOBUILD_OUT=0
-TARGETS=("daisy/cli"
-         "cli_tools/gce_export"
-         "cli_tools/gce_image_publish" 
-         "cli_tools/gce_inventory_agent" 
-         "cli_tools/import_precheck"
-         "cli_tools/daisy_test_runner")
-for TARGET in "${TARGETS[@]}"; do
+LINUX_TARGETS=("daisy/cli"
+               "cli_tools/gce_export"
+               "cli_tools/gce_image_publish" 
+               "cli_tools/import_precheck"
+               "cli_tools/daisy_test_runner"
+               "gce_image_import_export_tests")
+for TARGET in "${LINUX_TARGETS[@]}"; do
   echo "Building ${TARGET} for Linux"
   cd /${REPO_PATH}/${TARGET}
   go build
@@ -41,6 +41,14 @@ for TARGET in "${TARGETS[@]}"; do
     GOBUILD_OUT=$RET
     echo "'go build' exited with ${GOBUILD_OUT}"
   fi
+done
+
+WINDOWS_TARGETS=("daisy/cli"
+                 "cli_tools/gce_export"
+                 "cli_tools/import_precheck")
+for TARGET in "${WINDOWS_TARGETS[@]}"; do
+  echo "Building ${TARGET} for Linux"
+  cd /${REPO_PATH}/${TARGET}
   echo "Building ${TARGET} for Windows"
   GOOS=windows go build
   RET=$?

@@ -28,7 +28,8 @@ fi
 RET=0
 
 TARGETS=("daisy"
-         "cli_tools")
+         "cli_tools"
+         "gce_image_import_export_tests")
 for TARGET in "${TARGETS[@]}"; do
   echo "Running tests on ${TARGET}"
   cd /${REPO_PATH}/${TARGET}
@@ -36,7 +37,7 @@ for TARGET in "${TARGETS[@]}"; do
   OUT=${ARTIFACTS}/${TARGET}
   mkdir -p ${OUT}
 
-  go test -race -coverprofile=${OUT}/test-report.out -covermode=atomic -v 2>&1 > test.out
+  go test ./... -race -coverprofile=${OUT}/test-report.out -covermode=atomic -v 2>&1 > test.out
   PARTRET=$?
   echo "${TARGET} test returned ${PARTRET}."
   if [ ${PARTRET} -ne 0 ]; then
