@@ -35,39 +35,35 @@ TARGETS=("daisy"
          "test-infra/prowjobs/wrapper")
 for TARGET in "${TARGETS[@]}"; do
   echo "Checking ${TARGET}"
-  cd /${REPO_PATH}/${TARGET}
+  TARGET_PATH="/${REPO_PATH}/${TARGET}"
+  cd $TARGET_PATH
   # We dont run golint on Windows only code as style often matches win32 api 
   # style, not golang style
-  golint -set_exit_status ./...
+  golint -set_exit_status "${TARGET_PATH}/..."
   RET=$?
   if [ $RET != 0 ]; then
     GOLINT_RET=$RET
+    echo "'golint ${TARGET_PATH}/...' returned ${GOLINT_RET}"
   fi
 
-  GOFMT_OUT=$(gofmt -d $(find . -type f -name "*.go") 2>&1)
-
-  go vet --structtag=false ./...
-  RET=$?
-  if [ $RET != 0 ]; then
-    GOVET_RET=$RET
-  fi
-  GOOS=windows go vet --structtag=false ./...
-  RET=$?
-  if [ $RET != 0 ]; then
-    GOVET_RET=$RET
-  fi
-
-  # Print results and return.
-  if [ ${GOLINT_RET} != 0 ]; then
-    echo "'golint ./...' returned ${GOLINT_RET}"
-  fi
+  GOFMT_OUT=$(gofmt -d $(find ${TARGET_PATH} -type f -name "*.go") 2>&1)
   if [ ! -z "${GOFMT_OUT}" ]; then
-    echo "'gofmt -d \$(find . -type f -name \"*.go\")' returned:"
+    echo "'gofmt -d \$(find ${TARGET_PATH} -type f -name \"*.go\")' returned:"
     echo ${GOFMT_OUT}
     GOFMT_RET=1
   fi
-  if [ ${GOVET_RET} != 0 ]; then
-    echo "'go vet ./...' returned ${GOVET_RET}"
+
+  go vet --structtag=false "${TARGET_PATH}/..."
+  RET=$?
+  if [ $RET != 0 ]; then
+    GOVET_RET=$RET
+    echo "'go vet ${TARGET_PATH}/...' returned ${GOVET_RET}"
+  fi
+  GOOS=windows go vet --structtag=false "${TARGET_PATH}/..."
+  RET=$?
+  if [ $RET != 0 ]; then
+    GOVET_RET=$RET
+    echo "'GOOS=windows go vet ${TARGET_PATH}/...' returned ${GOVET_RET}"
   fi
 done
 

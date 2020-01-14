@@ -36,15 +36,15 @@ for TARGET in "${TARGETS[@]}"; do
   OUT=${ARTIFACTS}/${TARGET}
   mkdir -p ${OUT}
 
-  go test ${d} -race -coverprofile=${OUT}/test-report.out -covermode=atomic -v 2>&1 > test.out
+  go test ${TARGET} -race -coverprofile=${OUT}/test-report.out -covermode=atomic -v 2>&1 > test.out
   PARTRET=$?
-  echo "${d} test returned ${PARTRET}."
+  echo "${TARGET} test returned ${PARTRET}."
   if [ ${PARTRET} -ne 0 ]; then
     RET=${PARTRET}
   fi
 
   # Output test report.
-  cat test.out | go-junit-report > ${OUT}/${TARGET//\//_}_report.xml
+  cat test.out | go-junit-report > ${ARTIFACTS}/${TARGET//\//_}_report.xml
   rm test.out
 done
 
