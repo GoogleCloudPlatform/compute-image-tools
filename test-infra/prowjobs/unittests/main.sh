@@ -36,7 +36,7 @@ for TARGET in "${TARGETS[@]}"; do
   OUT=${ARTIFACTS}/${TARGET}
   mkdir -p ${OUT}
 
-  go test ${TARGET} -race -coverprofile=${OUT}/test-report.out -covermode=atomic -v 2>&1 > test.out
+  go test -race -coverprofile=${OUT}/test-report.out -covermode=atomic -v 2>&1 > test.out
   PARTRET=$?
   echo "${TARGET} test returned ${PARTRET}."
   if [ ${PARTRET} -ne 0 ]; then
