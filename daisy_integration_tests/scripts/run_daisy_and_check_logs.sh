@@ -18,7 +18,7 @@ INSTANCE_ID="$(curl -f -H Metadata-Flavor:Google ${URL}/id)"
 SHOULD_HAVE_LOGS="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/should_have_logs)"
 
 # Pull daisy
-gcloud cp gs://compute-image-tools/latest/linux/daisy .
+gsutil cp gs://compute-image-tools/latest/linux/daisy .
 if [ $? -ne 0 ]; then
   echo "BuildFailed: Error pulling Daisy."
   exit 1
