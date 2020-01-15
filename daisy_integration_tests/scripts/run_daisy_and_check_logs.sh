@@ -17,29 +17,16 @@ URL="http://metadata/computeMetadata/v1/instance"
 INSTANCE_ID="$(curl -f -H Metadata-Flavor:Google ${URL}/id)"
 SHOULD_HAVE_LOGS="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/should_have_logs)"
 
-# Install build dependencies.
-apt-get update
-apt-get -y install git
-if [ $? -ne 0 ]; then
-  echo "BuildFailed: Unable to install build dependencies."
-  exit 1
-fi
-
-wget --quiet https://dl.google.com/go/go1.10.3.linux-amd64.tar.gz
-tar -C /usr/local -xzf go1.10.3.linux-amd64.tar.gz
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=$HOME/go
-export PATH=$PATH:$GOPATH/bin
-
 # Pull daisy
-go get -v github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisy
+gcloud cp gs://compute-image-tools/latest/linux/daisy .
 if [ $? -ne 0 ]; then
   echo "BuildFailed: Error pulling Daisy."
   exit 1
 fi
+chmod +x ./daisy
 
 # Run daisy
-daisy go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_integration_tests/step_create_disks.wf.json
+./daisy go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_integration_tests/step_create_disks.wf.json
 if [ $? -ne 0 ]; then
   echo "BuildFailed: Error executing Daisy."
   exit 1
