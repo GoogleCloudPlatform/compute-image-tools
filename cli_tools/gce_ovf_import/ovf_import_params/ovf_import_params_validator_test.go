@@ -78,6 +78,18 @@ func TestInstanceImportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) 
 	assert.Nil(t, ValidateAndParseParams(getAllInstanceImportParams()))
 }
 
+func TestInstanceImportHostnameInvalid(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.Hostname = "an_invalid_host_name.an_invalid_domain"
+	assertErrorOnValidate(t, params)
+}
+
+func TestInstanceImportHostnameTooLong(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.Hostname = "a-host.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain"
+	assertErrorOnValidate(t, params)
+}
+
 func TestMachineImageImportFlagsAllValid(t *testing.T) {
 	assert.Nil(t, ValidateAndParseParams(getAllMachineImageImportParams()))
 }
@@ -124,6 +136,18 @@ func TestMachineImageImportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing
 	assert.Nil(t, ValidateAndParseParams(getAllMachineImageImportParams()))
 }
 
+func TestMachineImageImportHostnameInvalid(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.Hostname = "an_invalid_host_name.an_invalid_domain"
+	assertErrorOnValidate(t, params)
+}
+
+func TestMachineImageImportHostnameTooLong(t *testing.T) {
+	params := getAllInstanceImportParams()
+	params.Hostname = "a-host.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain.a-domain"
+	assertErrorOnValidate(t, params)
+}
+
 func assertErrorOnValidate(t *testing.T, params *OVFImportParams) {
 	assert.NotNil(t, ValidateAndParseParams(params))
 }
@@ -165,6 +189,7 @@ func getAllInstanceImportParams() *OVFImportParams {
 		CloudLogsDisabled:           true,
 		StdoutLogsDisabled:          true,
 		NodeAffinityLabelsFlag:      []string{"env,IN,prod,test"},
+		Hostname:                    "a-host.a-domain",
 	}
 }
 
@@ -206,5 +231,6 @@ func getAllMachineImageImportParams() *OVFImportParams {
 		CloudLogsDisabled:           true,
 		StdoutLogsDisabled:          true,
 		NodeAffinityLabelsFlag:      []string{"env,IN,prod,test"},
+		Hostname:                    "a-host.a-domain",
 	}
 }

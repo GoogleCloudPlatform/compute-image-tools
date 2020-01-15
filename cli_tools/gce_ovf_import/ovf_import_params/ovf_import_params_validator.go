@@ -39,6 +39,9 @@ const (
 
 	// OvfGcsPathFlagKey is key for OVF/OVA GCS path CLI flag
 	OvfGcsPathFlagKey = "ovf-gcs-path"
+
+	// HostnameFlagKey is key for hostname CLI flag
+	HostnameFlagKey = "hostname"
 )
 
 // ValidateAndParseParams validates and parses OVFImportParams. It returns an error if params are
@@ -88,6 +91,13 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 	if params.NodeAffinityLabelsFlag != nil {
 		var err error
 		params.NodeAffinities, err = compute.ParseNodeAffinityLabels(params.NodeAffinityLabelsFlag)
+		if err != nil {
+			return err
+		}
+	}
+
+	if params.Hostname != "" {
+		err := validation.ValidateFqdn(params.Hostname, HostnameFlagKey)
 		if err != nil {
 			return err
 		}

@@ -137,7 +137,7 @@ func TestSetUpInstanceWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHo
 	project := "aProject"
 	params.Project = &project
 	params.Zone = "europe-west2-b"
-	params.Hostname = "ahost"
+	params.Hostname = "a-host.a-domain"
 	params.UefiCompatible = true
 	params.MachineType = ""
 
@@ -192,7 +192,7 @@ func TestSetUpInstanceWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHo
 		Instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["userkey2"])
-	assert.Equal(t, "ahost", (*w.Steps["create-instance"].CreateInstances)[0].Hostname)
+	assert.Equal(t, "a-host.a-domain", (*w.Steps["create-instance"].CreateInstances)[0].Hostname)
 
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-boot-disk"].CreateDisks)[0].Disk.GuestOsFeatures[0].Type)
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].GuestOsFeatures[0])
