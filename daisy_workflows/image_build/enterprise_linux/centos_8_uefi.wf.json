@@ -36,7 +36,7 @@
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",
-	  "install_nge": "${install_nge}"
+          "install_nge": "${install_nge}"
         }
       }
     },
