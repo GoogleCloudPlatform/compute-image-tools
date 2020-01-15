@@ -64,7 +64,7 @@ var (
 	stdoutLogsDisabled          = flag.Bool("disable-stdout-logging", false, "do not display individual workflow logs on stdout")
 	releaseTrack                = flag.String("release-track", ovfimporter.GA, fmt.Sprintf("Release track of OVF import. One of: %s, %s or %s. Impacts which compute API release track is used by the import tool.", ovfimporter.Alpha, ovfimporter.Beta, ovfimporter.GA))
 	uefiCompatible              = flag.Bool("uefi-compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
-	hostname                    = flag.String("hostname", "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
+	hostname                    = flag.String(ovfimportparams.HostnameFlagKey, "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
 	machineImageStorageLocation = flag.String(ovfimportparams.MachineImageStorageLocationFlagKey, "", "GCS bucket storage location of the machine image being imported (regional or multi-regional)")
 
 	nodeAffinityLabelsFlag flags.StringArrayFlag
