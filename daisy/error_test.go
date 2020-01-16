@@ -85,10 +85,10 @@ func TestTypedErrf(t *testing.T) {
 
 func TestDErrImplAdd(t *testing.T) {
 	tests := []struct {
-		desc string
-		base *dErrImpl
-		add  error
-		want *dErrImpl
+		desc        string
+		base        *dErrImpl
+		add         error
+		want        *dErrImpl
 		wantErrType string
 	}{
 		{
