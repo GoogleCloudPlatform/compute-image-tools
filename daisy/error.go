@@ -127,7 +127,6 @@ type dErrImpl struct {
 	errs           []error
 	errsType       []string
 	anonymizedErrs []string
-	errType        string
 }
 
 func (e *dErrImpl) add(err error) {
@@ -146,7 +145,7 @@ func (e *dErrImpl) Error() string {
 	}
 	if e.len() == 1 {
 		errStr := e.errs[0].Error()
-		if e.errsType[0] != "" {
+		if len(e.errsType) == 1 && e.errsType[0] != "" {
 			return fmt.Sprintf("%s: %s", e.errsType[0], errStr)
 		}
 		return errStr
@@ -181,7 +180,7 @@ func (e *dErrImpl) merge(e2 *dErrImpl) {
 func (e *dErrImpl) etype() string {
 	if e.len() > 1 {
 		return multiError
-	} else if e.len() == 1 {
+	} else if e.len() == 1 && len(e.errsType) == 1 {
 		return e.errsType[0]
 	} else {
 		return ""
