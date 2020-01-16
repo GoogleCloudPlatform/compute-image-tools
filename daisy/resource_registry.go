@@ -49,7 +49,7 @@ func (r *baseResourceRegistry) cleanup() {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			if err := r.delete(name); err != nil && err.etype() != resourceDNEError {
+			if err := r.delete(name); err != nil && err.ErrType() != resourceDNEError {
 				fmt.Println(err)
 			}
 		}(name)
@@ -197,7 +197,7 @@ func (r *baseResourceRegistry) regURL(url string) (*Resource, DError) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, typedErrf(resourceDNEError, "%s does not exist", url)
+		return nil, typedErrf("%s does not exist", url)
 	}
 
 	parts := strings.Split(url, "/")

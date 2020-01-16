@@ -292,7 +292,20 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
 		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
 
+		postProcessErrorForNetwork(err, network, w)
+
 		return w, err
 	}
 	return w, nil
+}
+
+func postProcessErrorForNetwork(err error, network string, w *daisy.Workflow) {
+	if derr, ok := err.(daisy.DError); ok {
+		if derr.ErrType() == "networkResourceDoesNotExist" && network == "" {
+			w.LogWorkflowInfo("A VPC network is required for running image import," +
+				" and the default VPC network does not exist in your project. You will need to" +
+				" specify a VPC network with the --network flag. For more information about" +
+				" VPC networks, see https://cloud.google.com/vpc.")
+		}
+	}
 }

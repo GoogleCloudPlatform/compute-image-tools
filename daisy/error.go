@@ -45,7 +45,8 @@ type DError interface {
 	// add shouldn't be called directly, instead call addErrs(DError, error).
 	// This assists with nil dErrs. addErrs(nil, e) will return a new DError.
 	add(error)
-	etype() string
+
+	ErrType() string
 	AnonymizedErrs() []string
 }
 
@@ -176,6 +177,6 @@ func (e *dErrImpl) merge(e2 *dErrImpl) {
 	}
 }
 
-func (e *dErrImpl) etype() string {
+func (e *dErrImpl) ErrType() string {
 	return e.errType
 }
