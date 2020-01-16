@@ -46,8 +46,11 @@ type DError interface {
 	// This assists with nil dErrs. addErrs(nil, e) will return a new DError.
 	add(error)
 
-	ErrType() string
+	etype() string
+	errors() []error
+	errorsType() []string
 	AnonymizedErrs() []string
+	CausedByErrType(t string) bool
 }
 
 // addErrs adds an error to a DError.
@@ -73,6 +76,11 @@ func Errf(format string, a ...interface{}) DError {
 	return newErr(format, fmt.Errorf(format, a...))
 }
 
+// wrapErrf returns a DError by keeping errors type and replacing original error message.
+func wrapErrf(e DError, format string, a ...interface{}) DError {
+	return &dErrImpl{errs: []error{fmt.Errorf(format, a...)}, errsType: e.errorsType(), anonymizedErrs: []string{format}}
+}
+
 // newErr returns a DError. newErr is used to wrap another error as a DError.
 // If e is already a DError, e is copied and returned.
 // If e is a normal error, anonymizedErrMsg is used to hide privacy info.
@@ -84,7 +92,7 @@ func newErr(anonymizedErrMsg string, e error) DError {
 	if dE, ok := e.(*dErrImpl); ok {
 		return dE
 	}
-	return &dErrImpl{errs: []error{e}, anonymizedErrs: []string{anonymizedErrMsg}}
+	return &dErrImpl{errs: []error{e}, errsType: []string{""}, anonymizedErrs: []string{anonymizedErrMsg}}
 }
 
 // ToDError returns a DError. ToDError is used to wrap another error as a DError.
@@ -98,7 +106,7 @@ func ToDError(e error) DError {
 	if dE, ok := e.(*dErrImpl); ok {
 		return dE
 	}
-	return &dErrImpl{errs: []error{e}, anonymizedErrs: []string{e.Error()}}
+	return &dErrImpl{errs: []error{e}, errsType: []string{""}, anonymizedErrs: []string{e.Error()}}
 }
 
 func typedErr(errType string, safeErrMsg string, e error) DError {
@@ -107,7 +115,7 @@ func typedErr(errType string, safeErrMsg string, e error) DError {
 	}
 	safeErrMsg = fmt.Sprintf("%v: %v", errType, safeErrMsg)
 	dE := newErr(safeErrMsg, e)
-	dE.(*dErrImpl).errType = errType
+	dE.(*dErrImpl).errsType = []string{errType}
 	return dE
 }
 
@@ -117,6 +125,7 @@ func typedErrf(errType, format string, a ...interface{}) DError {
 
 type dErrImpl struct {
 	errs           []error
+	errsType       []string
 	anonymizedErrs []string
 	errType        string
 }
@@ -127,9 +136,7 @@ func (e *dErrImpl) add(err error) {
 	} else if !ok {
 		// This is some other error type. Add it.
 		e.errs = append(e.errs, err)
-	}
-	if e.len() > 1 {
-		e.errType = multiError
+		e.errsType = append(e.errsType, "")
 	}
 }
 
@@ -139,8 +146,8 @@ func (e *dErrImpl) Error() string {
 	}
 	if e.len() == 1 {
 		errStr := e.errs[0].Error()
-		if e.errType != "" {
-			return fmt.Sprintf("%s: %s", e.errType, errStr)
+		if e.errsType[0] != "" {
+			return fmt.Sprintf("%s: %s", e.errsType[0], errStr)
 		}
 		return errStr
 	}
@@ -166,17 +173,34 @@ func (e *dErrImpl) len() int {
 func (e *dErrImpl) merge(e2 *dErrImpl) {
 	if e2.len() > 0 {
 		e.errs = append(e.errs, e2.errs...)
+		e.errsType = append(e.errsType, e2.errsType...)
 		e.anonymizedErrs = append(e.anonymizedErrs, e2.anonymizedErrs...)
-		// Take e2's type. This solves the situation of e having 0 errors, and e2 having 1.
-		// Of course, there is a possibility of len(e) > 0 and len(e2) > 1, in which case,
-		// the type should be a multiError.
-		e.errType = e2.errType
-		if e.len() > 1 {
-			e.errType = multiError
-		}
 	}
 }
 
-func (e *dErrImpl) ErrType() string {
-	return e.errType
+func (e *dErrImpl) etype() string {
+	if e.len() > 1 {
+		return multiError
+	} else if e.len() == 1 {
+		return e.errsType[0]
+	} else {
+		return ""
+	}
+}
+
+func (e *dErrImpl) errorsType() []string {
+	return e.errsType
+}
+
+func (e *dErrImpl) errors() []error {
+	return e.errs
+}
+
+func (e *dErrImpl) CausedByErrType(t string) bool {
+	for _, et := range e.errsType {
+		if et == t {
+			return true
+		}
+	}
+	return false
 }

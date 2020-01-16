@@ -76,8 +76,8 @@ func TestUploadSources(t *testing.T) {
 		} else if tt.wantErrType != NOERR {
 			if derr == nil {
 				t.Errorf("should have returned error, test case: %q; i: %s", tt.desc, tt.sources)
-			} else if derr.ErrType() != tt.wantErrType {
-				t.Errorf("unexpected error, test case: %q; i: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.ErrType())
+			} else if derr.etype() != tt.wantErrType {
+				t.Errorf("unexpected error, test case: %q; i: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.etype())
 			}
 		}
 
@@ -100,8 +100,8 @@ func TestUploadSources(t *testing.T) {
 		} else if tt.wantErrType != NOERR {
 			if derr == nil {
 				t.Errorf("should have returned error, test case: %q; i: %s", tt.desc, tt.sources)
-			} else if derr.ErrType() != tt.wantErrType {
-				t.Errorf("unexpected error, test case: %q; i: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.ErrType())
+			} else if derr.etype() != tt.wantErrType {
+				t.Errorf("unexpected error, test case: %q; i: %s; want error type: %q, got error type: %q", tt.desc, tt.sources, tt.wantErrType, derr.etype())
 			}
 		}
 

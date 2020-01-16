@@ -27,9 +27,9 @@ func TestAddErrs(t *testing.T) {
 		want DError
 	}{
 		{"add nil to nil case", nil, nil, nil},
-		{"add error to nil case", nil, []error{errors.New("foo")}, &dErrImpl{errs: []error{errors.New("foo")}}},
-		{"add nil to DError case", &dErrImpl{errs: []error{errors.New("foo")}}, nil, &dErrImpl{errs: []error{errors.New("foo")}}},
-		{"add errors to DError case", &dErrImpl{errs: []error{errors.New("foo")}}, []error{errors.New("bar"), errors.New("baz")}, &dErrImpl{errs: []error{errors.New("foo"), errors.New("bar"), errors.New("baz")}, errType: multiError}},
+		{"add error to nil case", nil, []error{errors.New("foo")}, &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}},
+		{"add nil to DError case", &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}, nil, &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}},
+		{"add errors to DError case", &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}, []error{errors.New("bar"), errors.New("baz")}, &dErrImpl{errs: []error{errors.New("foo"), errors.New("bar"), errors.New("baz")}, errsType: []string{"", "", ""}}},
 	}
 
 	for _, tt := range tests {
