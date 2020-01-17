@@ -168,7 +168,7 @@ func RemovePrivacyLogTag(message string) string {
 	return message
 }
 
-// PostProcessDErrorForNetworkFlag processes DError for network flag
+// PostProcessDErrorForNetworkFlag determines whether to show more hints for network flag
 func PostProcessDErrorForNetworkFlag(action string, err error, network string, w *daisy.Workflow) {
 	if derr, ok := err.(daisy.DError); ok {
 		if derr.CausedByErrType("networkResourceDoesNotExist") && network == "" {
