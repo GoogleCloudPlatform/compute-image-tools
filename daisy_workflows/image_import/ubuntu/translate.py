@@ -149,7 +149,8 @@ def DistroSpecific(g):
       raise RuntimeError(
         'Failed to run cloud-init. Connect to a shell in the original VM '
         'and ensure that the following command executes successfully: '
-        'apt-get install -y --no-install-recommends cloud-init && cloud-init -d init')
+        'apt-get install -y --no-install-recommends cloud-init '
+        '&& cloud-init -d init')
     logging.info('Installing GCE packages.')
     g.command(['apt-get', 'update'])
     g.sh(
