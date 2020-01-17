@@ -298,5 +298,3 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	}
 	return w, nil
 }
-
-

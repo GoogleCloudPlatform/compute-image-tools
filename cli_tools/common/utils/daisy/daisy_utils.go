@@ -173,9 +173,9 @@ func PostProcessDErrorForNetworkFlag(action string, err error, network string, w
 	if derr, ok := err.(daisy.DError); ok {
 		if derr.CausedByErrType("networkResourceDoesNotExist") && network == "" {
 			w.LogWorkflowInfo("A VPC network is required for running %v," +
-					" and the default VPC network does not exist in your project. You will need to" +
-					" specify a VPC network with the --network flag. For more information about" +
-					" VPC networks, see https://cloud.google.com/vpc.", action)
+																" and the default VPC network does not exist in your project. You will need to" +
+																" specify a VPC network with the --network flag. For more information about" +
+																" VPC networks, see https://cloud.google.com/vpc.", action)
 		}
 	}
 }
