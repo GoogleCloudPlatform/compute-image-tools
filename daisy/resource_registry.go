@@ -197,7 +197,7 @@ func (r *baseResourceRegistry) regURL(url string) (*Resource, DError) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, typedErrf(resourceDNEError, "%s does not exist", url)
+		return nil, typedErrf(r.typeName+resourceDNEError, "%s does not exist", url)
 	}
 
 	parts := strings.Split(url, "/")

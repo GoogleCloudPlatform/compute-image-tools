@@ -27,9 +27,9 @@ func TestAddErrs(t *testing.T) {
 		want DError
 	}{
 		{"add nil to nil case", nil, nil, nil},
-		{"add error to nil case", nil, []error{errors.New("foo")}, &dErrImpl{errs: []error{errors.New("foo")}}},
-		{"add nil to DError case", &dErrImpl{errs: []error{errors.New("foo")}}, nil, &dErrImpl{errs: []error{errors.New("foo")}}},
-		{"add errors to DError case", &dErrImpl{errs: []error{errors.New("foo")}}, []error{errors.New("bar"), errors.New("baz")}, &dErrImpl{errs: []error{errors.New("foo"), errors.New("bar"), errors.New("baz")}, errType: multiError}},
+		{"add error to nil case", nil, []error{errors.New("foo")}, &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}},
+		{"add nil to DError case", &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}, nil, &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}},
+		{"add errors to DError case", &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}, []error{errors.New("bar"), errors.New("baz")}, &dErrImpl{errs: []error{errors.New("foo"), errors.New("bar"), errors.New("baz")}, errsType: []string{"", "", ""}}},
 	}
 
 	for _, tt := range tests {
@@ -49,11 +49,11 @@ func TestDErrError(t *testing.T) {
 		err  DError
 		want string
 	}{
-		{"no error type case", &dErrImpl{errs: []error{errors.New("foo")}}, "foo"},
-		{"error type case", &dErrImpl{errs: []error{errors.New("foo")}, errType: "FOO"}, "FOO: foo"},
+		{"no error type case", &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{""}}, "foo"},
+		{"error type case", &dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{"FOO"}}, "FOO: foo"},
 		{
 			"multierror case",
-			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar")}, errType: multiError},
+			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar")}, errsType: []string{"", ""}},
 			"Multiple errors:\n* foo\n* bar",
 		},
 	}
@@ -69,7 +69,7 @@ func TestDErrError(t *testing.T) {
 func TestErrf(t *testing.T) {
 	got := Errf("%s %s", "hello", "world")
 
-	want := &dErrImpl{errs: []error{errors.New("hello world")}}
+	want := &dErrImpl{errs: []error{errors.New("hello world")}, errsType: []string{""}}
 	if diffRes := diff(got, want, 0); diffRes != "" {
 		t.Errorf("Error not created as expected: (-got,+want)\n%s", diffRes)
 	}
@@ -77,7 +77,7 @@ func TestErrf(t *testing.T) {
 
 func TestTypedErrf(t *testing.T) {
 	got := typedErrf("FOO", "%s %s", "hello", "world")
-	want := &dErrImpl{errs: []error{errors.New("hello world")}, errType: "FOO"}
+	want := &dErrImpl{errs: []error{errors.New("hello world")}, errsType: []string{"FOO"}}
 	if diffRes := diff(got, want, 0); diffRes != "" {
 		t.Errorf("Error not created as expected: (-got,+want)\n%s", diffRes)
 	}
@@ -85,33 +85,41 @@ func TestTypedErrf(t *testing.T) {
 
 func TestDErrImplAdd(t *testing.T) {
 	tests := []struct {
-		desc string
-		base *dErrImpl
-		add  error
-		want *dErrImpl
+		desc        string
+		base        *dErrImpl
+		add         error
+		want        *dErrImpl
+		wantErrType string
 	}{
 		{
 			"add error case",
-			&dErrImpl{errs: []error{errors.New("foo")}, errType: "FOO"},
+			&dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{"FOO"}},
 			errors.New("bar"),
-			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar")}, errType: multiError}},
+			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar")}, errsType: []string{"FOO", ""}},
+			multiError,
+		},
 		{
 			"add dErrImpl case",
-			&dErrImpl{errs: []error{errors.New("foo")}, errType: "FOO"},
-			&dErrImpl{errs: []error{errors.New("bar")}, errType: "BAR"},
-			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar")}, errType: multiError},
+			&dErrImpl{errs: []error{errors.New("foo")}, errsType: []string{"FOO"}},
+			&dErrImpl{errs: []error{errors.New("bar")}, errsType: []string{"FOO"}},
+			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar")}, errsType: []string{"FOO", "BAR"}},
+			multiError,
 		},
 		{
 			"add " + multiError + " case",
-			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar")}, errType: multiError},
-			&dErrImpl{errs: []error{errors.New("baz"), errors.New("gaz")}, errType: multiError},
-			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar"), errors.New("baz"), errors.New("gaz")}, errType: multiError},
+			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar")}, errsType: []string{"FOO", "BAR"}},
+			&dErrImpl{errs: []error{errors.New("baz"), errors.New("gaz")}, errsType: []string{"FOO", "BAR"}},
+			&dErrImpl{errs: []error{errors.New("foo"), errors.New("bar"), errors.New("baz"), errors.New("gaz")}, errsType: []string{"FOO", "BAR", "FOO", "BAR"}},
+			multiError,
 		},
 	}
 
 	for _, tt := range tests {
 		tt.base.add(tt.add)
 		if diffRes := diff(tt.base, tt.want, 0); diffRes != "" {
+			t.Errorf("%s: base dErrImpl not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
+		}
+		if diffRes := diff(tt.base.etype(), tt.wantErrType, 0); diffRes != "" {
 			t.Errorf("%s: base dErrImpl not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 	}
