@@ -185,6 +185,9 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	if w, err = runExportWorkflow(ctx, getWorkflowPath(format, currentExecutablePath), varMap, *project,
 		zone, timeout, scratchBucketGcsPath, oauth, ce, gcsLogsDisabled, cloudLogsDisabled,
 		stdoutLogsDisabled, userLabels); err != nil {
+
+		daisyutils.PostProcessDErrorForNetworkFlag("image export", err, network, w)
+
 		return w, err
 	}
 	return w, nil

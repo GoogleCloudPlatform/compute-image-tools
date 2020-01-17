@@ -462,6 +462,7 @@ func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
 
 	if err := w.RunWithModifiers(oi.ctx, oi.modifyWorkflowPreValidate, oi.modifyWorkflowPostValidate); err != nil {
 		oi.Logger.Log(err.Error())
+		daisyutils.PostProcessDErrorForNetworkFlag("instance import", err, oi.params.Network, w)
 		return w, err
 	}
 	oi.Logger.Log("OVF import workflow finished successfully.")
