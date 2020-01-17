@@ -30,6 +30,7 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
+github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20200111002017-35d3756114c9/go.mod h1:fZ41ZusKqa5cT+fzLarvG09dT6eBbEpoyPnYw/1lKfA=
 github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20200114193945-760dc9647411 h1:UjuB07ebwQtDHm1aq3oPKNMT5EqlnJrDKKi6FGyE7rU=
 github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20200114193945-760dc9647411/go.mod h1:fZ41ZusKqa5cT+fzLarvG09dT6eBbEpoyPnYw/1lKfA=
 github.com/GoogleCloudPlatform/compute-image-tools v0.0.0-20200114194943-8842c1d85084 h1:kFP/5JD0Vtc9XzU8K/m77UvExDHR0lakqx5DkFieHgc=

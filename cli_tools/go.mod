@@ -21,5 +21,3 @@ require (
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50
 	google.golang.org/api v0.15.0
 )
-
-replace github.com/GoogleCloudPlatform/compute-image-tools/daisy => ../daisy
