@@ -141,9 +141,15 @@ def DistroSpecific(g):
         cfg.write(tinyproxy_cfg)
     utils.Execute(['/etc/init.d/tinyproxy', 'restart'])
     default_gw = g.sh("ip route | awk '/default/ { printf $3 }'")
-    logging.debug(
-        g.sh('http_proxy="http://%s:8888" cloud-init -d init' % default_gw))
-
+    try:
+      logging.debug(
+          g.sh('http_proxy="http://%s:8888" cloud-init -d init' % default_gw))
+    except Exception as e:
+      logging.debug('Failed to run cloud-init. Details: {}.'.format(e))
+      raise RuntimeError(
+        'Failed to run cloud-init. Connect to a shell in the original VM '
+        'and ensure that the following command executes successfully: '
+        'apt-get install -y --no-install-recommends cloud-init && cloud-init -d init')
     logging.info('Installing GCE packages.')
     g.command(['apt-get', 'update'])
     g.sh(
