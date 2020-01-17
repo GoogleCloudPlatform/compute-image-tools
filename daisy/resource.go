@@ -129,7 +129,7 @@ func extendPartialURL(url, project string) string {
 	return fmt.Sprintf("projects/%s/%s", project, url)
 }
 
-func resourceExists(client compute.Client, url string) (bool, DError) {
+func 	resourceExists(client compute.Client, url string) (bool, DError) {
 	if !strings.HasPrefix(url, "projects/") {
 		return false, Errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}

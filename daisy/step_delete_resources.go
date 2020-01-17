@@ -102,7 +102,7 @@ func (d *DeleteResources) validateInstance(i string, s *Step) DError {
 }
 
 func (d *DeleteResources) checkError(err DError, s *Step) DError {
-	if err != nil && err.etype() == resourceDNEError {
+	if err != nil && strings.HasSuffix(err.etype(), resourceDNEError) {
 		s.w.LogStepInfo(s.name, "DeleteResources", "WARNING: Error validating deletion: %v", err)
 		return nil
 	} else if err != nil && err.etype() == imageObsoleteDeletedError {
