@@ -44,6 +44,7 @@ var (
 		"rhel-6":              "enterprise_linux/translate_rhel_6_licensed.wf.json",
 		"rhel-6-byol":         "enterprise_linux/translate_rhel_6_byol.wf.json",
 		"rhel-7":              "enterprise_linux/translate_rhel_7_licensed.wf.json",
+		"rhel-8":              "enterprise_linux/translate_rhel_8_licensed.wf.json",
 		"rhel-7-byol":         "enterprise_linux/translate_rhel_7_byol.wf.json",
 		"ubuntu-1404":         "ubuntu/translate_ubuntu_1404.wf.json",
 		"ubuntu-1604":         "ubuntu/translate_ubuntu_1604.wf.json",
