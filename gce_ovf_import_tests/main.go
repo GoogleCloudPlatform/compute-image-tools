@@ -17,19 +17,21 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"regexp"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/test_suites"
+	ovfinstanceimporttestsuite "github.com/GoogleCloudPlatform/compute-image-tools/gce_ovf_import_tests/test_suites/ovf_instance_import"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
-var testFunctions = []func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger, *regexp.Regexp, *regexp.Regexp, *testconfig.Project){
-	ovftestsuite.TestSuite,
-}
-
 func main() {
-	e2etestutils.LaunchTests(testFunctions, "[OvfImportTests]")
+	ovfInstanceImportTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){ovfinstanceimporttestsuite.TestSuite},
+		"[OVFInstanceImportTests]")
+	if !ovfInstanceImportTestSuccess {
+		os.Exit(1)
+	}
 }
