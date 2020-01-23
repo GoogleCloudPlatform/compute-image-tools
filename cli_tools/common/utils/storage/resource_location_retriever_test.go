@@ -372,3 +372,16 @@ func TestGetLargestStorageLocationForRegionNotInMultiRegion(t *testing.T) {
 	location := rlr.GetLargestStorageLocation("australia-southeast1")
 	assert.Equal(t, "australia-southeast1", location)
 }
+
+func TestGetLargestStorageLocationForMultiRegionNoDualRegions(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
+	mockComputeService := mocks.NewMockClient(mockCtrl)
+	rlr := ResourceLocationRetriever{mockMetadataGce, mockComputeService}
+
+	location := rlr.GetLargestStorageLocation("us-central1")
+	// We don't want NAM4 here
+	assert.Equal(t, "US", location)
+}

@@ -24,18 +24,23 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
+type multiRegion struct {
+	regions                      []string
+	isRegionToMultiRegionAllowed bool
+}
+
 var (
 	// for each GCS multi region, regions are sorted by GCE cost in ascending order as of the time of writing
 	// this code.
 	// GCE cost per region: https://cloud.google.com/compute/vm-instance-pricing
 	// GCS multi-regions: https://cloud.google.com/storage/docs/locations#location-mr
-	multiRegions = map[string][]string{
-		"US":   {"us-central1", "us-east1", "us-east4", "us-west1", "us-west2"},
-		"EU":   {"europe-north1", "europe-west1", "europe-west2", "europe-west3", "europe-west4", "europe-west6"},
-		"ASIA": {"asia-east1", "asia-east2", "asia-south1", "asia-southeast1", "asia-northeast1", "asia-northeast2"},
+	multiRegions = map[string]multiRegion{
+		"US":   {[]string{"us-central1", "us-east1", "us-east4", "us-west1", "us-west2"}, true},
+		"EU":   {[]string{"europe-north1", "europe-west1", "europe-west2", "europe-west3", "europe-west4", "europe-west6"}, true},
+		"ASIA": {[]string{"asia-east1", "asia-east2", "asia-northeast1", "asia-northeast2", "asia-south1", "asia-southeast1"}, true},
 
-		"EUR4": {"europe-north1", "europe-west4"},
-		"NAM4": {"us-central1", "us-east1"},
+		"EUR4": {[]string{"europe-north1", "europe-west4"}, false},
+		"NAM4": {[]string{"us-central1", "us-east1"}, false},
 	}
 )
 
@@ -105,10 +110,14 @@ func (rlr *ResourceLocationRetriever) getZoneForRegion(region string, zones []*c
 }
 
 func (rlr *ResourceLocationRetriever) getMultiRegionForRegion(region string) string {
-	for multiRegion, regions := range multiRegions {
-		for _, aRegion := range regions {
+	for multiRegionID, multiRegion := range multiRegions {
+		if !multiRegion.isRegionToMultiRegionAllowed {
+			continue
+		}
+
+		for _, aRegion := range multiRegion.regions {
 			if strings.EqualFold(aRegion, region) {
-				return multiRegion
+				return multiRegionID
 			}
 		}
 	}
@@ -117,7 +126,7 @@ func (rlr *ResourceLocationRetriever) getMultiRegionForRegion(region string) str
 }
 
 func (rlr *ResourceLocationRetriever) getBestZoneForMultiRegion(multiRegion string, zones []*compute.Zone) (string, daisy.DError) {
-	for _, region := range multiRegions[multiRegion] {
+	for _, region := range multiRegions[multiRegion].regions {
 		if zone, err := rlr.getZoneForRegion(region, zones); err == nil {
 			return zone, nil
 		}
