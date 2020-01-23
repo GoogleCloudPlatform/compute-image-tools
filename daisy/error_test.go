@@ -130,7 +130,7 @@ func TestNestedAnonymizedDErrorMessage(t *testing.T) {
 	innerDErr1 := Errf("inner error 1: %v %v", "root cause 1", "root cause 2")
 	innerDErr2 := Errf("inner error 2: %v %v", "root cause 3", "root cause 4")
 	innerDErr1.add(innerDErr2)
-	outerDErr := wrapErrf(innerDErr1, "outer error: %v: ", "bad news")
+	outerDErr := wrapErrf(innerDErr1, "outer error: %v", "bad news")
 	got := strings.Join(outerDErr.AnonymizedErrs(), ",")
 	want := "outer error: %v: inner error 1: %v %v; inner error 2: %v %v"
 	if diffRes := diff(want, got, 0); diffRes != "" {
