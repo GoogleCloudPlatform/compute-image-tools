@@ -131,9 +131,19 @@ func TestNestedAnonymizedDErrorMessage(t *testing.T) {
 	innerDErr2 := Errf("inner error 2: %v %v", "root cause 3", "root cause 4")
 	innerDErr1.add(innerDErr2)
 	outerDErr := wrapErrf(innerDErr1, "outer error: %v", "bad news")
-	got := strings.Join(outerDErr.AnonymizedErrs(), ",")
-	want := "outer error: %v: inner error 1: %v %v; inner error 2: %v %v"
-	if diffRes := diff(want, got, 0); diffRes != "" {
+
+	gotAnonymizedMsg := strings.Join(outerDErr.AnonymizedErrs(), ",")
+	wantAnonymizedMsg := "outer error: %v: inner error 1: %v %v; inner error 2: %v %v"
+	if diffRes := diff(wantAnonymizedMsg, gotAnonymizedMsg, 0); diffRes != "" {
 		t.Errorf("nested DError doesn't have correct anonymized error message: (-got,+want)\n%s", diffRes)
 	}
+
+	gotMsg := outerDErr.Error()
+	wantMsg := "outer error: bad news: Multiple errors:\n" +
+		"* inner error 1: root cause 1 root cause 2\n" +
+		"* inner error 2: root cause 3 root cause 4"
+	if diffRes := diff(wantMsg, gotMsg, 0); diffRes != "" {
+		t.Errorf("nested DError doesn't have correct error message: (-got,+want)\n%s", diffRes)
+	}
+
 }

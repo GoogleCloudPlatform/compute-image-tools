@@ -80,7 +80,7 @@ func Errf(format string, a ...interface{}) DError {
 func wrapErrf(e DError, formatPrefix string, a ...interface{}) DError {
 	f := fmt.Sprintf("%v: %v", formatPrefix, strings.Join(e.AnonymizedErrs(), "; "))
 	return &dErrImpl{
-		errs:           []error{fmt.Errorf(fmt.Sprintf(formatPrefix, a...) + e.Error())},
+		errs:           []error{fmt.Errorf("%v: %v", fmt.Sprintf(formatPrefix, a...), e.Error())},
 		errsType:       e.errorsType(),
 		anonymizedErrs: []string{f},
 	}
