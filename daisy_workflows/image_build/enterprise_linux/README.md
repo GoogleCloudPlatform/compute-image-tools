@@ -25,13 +25,13 @@ daisy -project my-project \
       -var:installer_iso=rhel-server-7.3-x86_64-dvd.iso \
       rhel_7.wf.json
 
-# RHEL 7 BYOL
+# RHEL 7 BYOS
 daisy -project my-project \
       -zone us-west1-a \
       -gcs_path gs://bucket/daisyscratch \
       -oauth creds.json \
       -var:installer_iso=rhel-server-7.3-x86_64-dvd.iso \
-      rhel_7_byol.wf.json
+      rhel_7_byos.wf.json
 
 # Oracle Linux 7
 daisy -project my-project \

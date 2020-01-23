@@ -20,7 +20,7 @@ google_cloud_repo: The package repo to use. Can be stable (default), staging,
   or unstable.
 el_release: rhel6, rhel7, centos6, centos7, oraclelinux6, or oraclelinux7
 el_savelogs: true to ask Anaconda to save logs (for debugging).
-rhel_byol: true if building a RHEL BYOL image.
+rhel_byos: true if building a RHEL BYOS image.
 """
 
 import difflib
@@ -39,7 +39,7 @@ def main():
   release = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
   savelogs = utils.GetMetadataAttribute('el_savelogs',
                                         raise_on_not_found=False) == 'true'
-  byol = utils.GetMetadataAttribute('rhel_byol',
+  byos = utils.GetMetadataAttribute('rhel_byos',
                                     raise_on_not_found=False) == 'true'
   sap = utils.GetMetadataAttribute('rhel_sap',
                                    raise_on_not_found=False) == 'true'
@@ -57,7 +57,7 @@ def main():
 
   # Build the kickstart file.
   uefi = False
-  ks_content = ks_helpers.BuildKsConfig(release, repo, byol, sap, uefi, nge)
+  ks_content = ks_helpers.BuildKsConfig(release, repo, byos, sap, uefi, nge)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 
