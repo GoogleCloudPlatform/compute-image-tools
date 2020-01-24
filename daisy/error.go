@@ -77,8 +77,13 @@ func Errf(format string, a ...interface{}) DError {
 }
 
 // wrapErrf returns a DError by keeping errors type and replacing original error message.
-func wrapErrf(e DError, format string, a ...interface{}) DError {
-	return &dErrImpl{errs: []error{fmt.Errorf(format, a...)}, errsType: e.errorsType(), anonymizedErrs: []string{format}}
+func wrapErrf(e DError, formatPrefix string, a ...interface{}) DError {
+	f := fmt.Sprintf("%v: %v", formatPrefix, strings.Join(e.AnonymizedErrs(), "; "))
+	return &dErrImpl{
+		errs:           []error{fmt.Errorf("%v: %v", fmt.Sprintf(formatPrefix, a...), e.Error())},
+		errsType:       e.errorsType(),
+		anonymizedErrs: []string{f},
+	}
 }
 
 // newErr returns a DError. newErr is used to wrap another error as a DError.

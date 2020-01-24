@@ -318,15 +318,15 @@ func (s *Step) validate(ctx context.Context) DError {
 }
 
 func (s *Step) wrapPopulateError(e DError) DError {
-	return wrapErrf(e, "step %q populate error: %s", s.name, e)
+	return wrapErrf(e, "step %q populate error", s.name)
 }
 
 func (s *Step) wrapRunError(e DError) DError {
-	return wrapErrf(e, "step %q run error: %s", s.name, e)
+	return wrapErrf(e, "step %q run error", s.name)
 }
 
 func (s *Step) wrapValidateError(e DError) DError {
-	return wrapErrf(e, "step %q validation error: %s", s.name, e)
+	return wrapErrf(e, "step %q validation error", s.name)
 }
 
 func (s *Step) getTimeoutError() DError {

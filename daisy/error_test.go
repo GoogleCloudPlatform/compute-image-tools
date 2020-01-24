@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -123,4 +124,26 @@ func TestDErrImplAdd(t *testing.T) {
 			t.Errorf("%s: base dErrImpl not modified as expected: (-got,+want)\n%s", tt.desc, diffRes)
 		}
 	}
+}
+
+func TestNestedAnonymizedDErrorMessage(t *testing.T) {
+	innerDErr1 := Errf("inner error 1: %v %v", "root cause 1", "root cause 2")
+	innerDErr2 := Errf("inner error 2: %v %v", "root cause 3", "root cause 4")
+	innerDErr1.add(innerDErr2)
+	outerDErr := wrapErrf(innerDErr1, "outer error: %v", "bad news")
+
+	gotAnonymizedMsg := strings.Join(outerDErr.AnonymizedErrs(), ",")
+	wantAnonymizedMsg := "outer error: %v: inner error 1: %v %v; inner error 2: %v %v"
+	if diffRes := diff(wantAnonymizedMsg, gotAnonymizedMsg, 0); diffRes != "" {
+		t.Errorf("nested DError doesn't have correct anonymized error message: (-got,+want)\n%s", diffRes)
+	}
+
+	gotMsg := outerDErr.Error()
+	wantMsg := "outer error: bad news: Multiple errors:\n" +
+		"* inner error 1: root cause 1 root cause 2\n" +
+		"* inner error 2: root cause 3 root cause 4"
+	if diffRes := diff(wantMsg, gotMsg, 0); diffRes != "" {
+		t.Errorf("nested DError doesn't have correct error message: (-got,+want)\n%s", diffRes)
+	}
+
 }
