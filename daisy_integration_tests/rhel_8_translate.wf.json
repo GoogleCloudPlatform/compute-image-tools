@@ -16,7 +16,7 @@
     }
   },
   "Steps": {
-    "create-disk-from-image": {
+    "create-disk-to-be-translated": {
       "CreateDisks": [
         {
           "name": "translate-me",
@@ -24,7 +24,17 @@
         }
       ]
     },
-    "create-test-disk": {
+    "run-translation": {
+      "Timeout": "90m",
+      "IncludeWorkflow": {
+        "Path": "../daisy_workflows/image_import/enterprise_linux/translate_rhel_8_licensed.wf.json",
+        "Vars": {
+          "image_name": "${image_name}",
+          "source_disk": "translate-me"
+        }
+      }
+    },
+    "create-disk-to-be-verified": {
       "CreateDisks": [
         {
           "name": "disk-import-test",
@@ -33,7 +43,7 @@
         }
       ]
     },
-    "create-test-instance": {
+    "verify-translation-result": {
       "CreateInstances": [
         {
           "disks": [
@@ -54,17 +64,7 @@
         ]
       }
     },
-    "translate-disk": {
-      "Timeout": "90m",
-      "IncludeWorkflow": {
-        "Path": "../daisy_workflows/image_import/enterprise_linux/translate_rhel_8_licensed.wf.json",
-        "Vars": {
-          "image_name": "${image_name}",
-          "source_disk": "translate-me"
-        }
-      }
-    },
-    "wait-for-test-instance": {
+    "wait-for-verification-results": {
       "Timeout": "30m",
       "WaitForInstancesSignal": [
         {
@@ -80,20 +80,20 @@
     }
   },
   "Dependencies": {
-    "create-test-disk": [
-      "translate-disk"
+    "run-translation": [
+      "create-disk-to-be-translated"
     ],
-    "create-test-instance": [
-      "create-test-disk"
+    "create-disk-to-be-verified": [
+      "run-translation"
+    ],
+    "verify-translation-result": [
+      "create-disk-to-be-verified"
     ],
     "delete-image": [
-      "create-test-disk"
+      "create-disk-to-be-verified"
     ],
-    "translate-disk": [
-      "create-disk-from-image"
-    ],
-    "wait-for-test-instance": [
-      "create-test-instance"
+    "wait-for-verification-results": [
+      "verify-translation-result"
     ]
   }
 }
