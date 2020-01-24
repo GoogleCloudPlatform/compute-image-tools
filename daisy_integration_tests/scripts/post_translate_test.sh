@@ -142,10 +142,12 @@ function check_google_cloud_sdk {
 function check_cloud_init {
   if [[ -x /usr/bin/cloud-init ]]; then
     status "Checking if cloud-init runs."
-    cloud-init init
-    if [[ $? -ne 0 ]]; then
-      fail "cloud-init failed to run."
-    fi
+    for i in $(seq 1 20) ; do
+      cloud-init init && return 0
+      status "Waiting until cloud-init finishes its startup run."
+      sleep $((i**2))
+    done
+    fail "cloud-init failed to run."
   fi
 }
 
