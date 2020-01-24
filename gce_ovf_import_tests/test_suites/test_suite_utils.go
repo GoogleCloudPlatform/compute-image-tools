@@ -200,16 +200,16 @@ func RunTestForTestType(cmd string, args []string, testType TestType, logger *lo
 			return false
 		}
 	case GcloudProdWrapperLatest:
-		//if !gcloudUpdate(logger, testCase, false) {
-		//	return false
-		//}
+		if !gcloudUpdate(logger, testCase, false) {
+			return false
+		}
 		if !RunTestCommand(cmd, args, logger, testCase) {
 			return false
 		}
 	case GcloudLatestWrapperLatest:
-		//if !gcloudUpdate(logger, testCase, true) {
-		//	return false
-		//}
+		if !gcloudUpdate(logger, testCase, true) {
+			return false
+		}
 		if !RunTestCommand(cmd, args, logger, testCase) {
 			return false
 		}

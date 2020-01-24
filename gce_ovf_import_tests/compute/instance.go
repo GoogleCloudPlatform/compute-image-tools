@@ -94,7 +94,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 			}
 			start = resp.Next
 			for _, ln := range strings.Split(resp.Contents, "\n") {
-				if i := strings.Index(ln, match); i != -1 {
+				if i := strings.Index(strings.ToLower(ln), strings.ToLower(match)); i != -1 {
 					return nil
 				}
 			}
