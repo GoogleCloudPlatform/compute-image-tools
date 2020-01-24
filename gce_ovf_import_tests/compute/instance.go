@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	computeApi "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	api "google.golang.org/api/compute/v1"
 )
@@ -106,7 +105,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 
 // CreateInstanceObject creates an image object to be operated by API client
 func CreateInstanceObject(ctx context.Context, project string, zone string, name string, isWindows bool) (*Instance, error) {
-	client, err := computeApi.NewClient(ctx)
+	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}

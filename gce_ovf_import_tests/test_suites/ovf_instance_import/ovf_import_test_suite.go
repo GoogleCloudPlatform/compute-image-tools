@@ -111,12 +111,6 @@ func TestSuite(
 		testsMap[testType][instanceImportNetworkSettingsPath] = runOVFInstanceImportNetworkSettingsPath
 	}
 
-	//testsMap[ovftestsuite.Wrapper] = map[*junitxml.TestCase]func(
-	//		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, ovftestsuite.TestType){}
-	//
-	//testsMap[ovftestsuite.Wrapper][junitxml.NewTestCase(
-	//	testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", ovftestsuite.Wrapper, "Windows 2016"))] = runOVFInstanceImportWindows2016
-
 	ovftestsuite.TestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
 }
