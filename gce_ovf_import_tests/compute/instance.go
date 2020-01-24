@@ -39,6 +39,7 @@ func (i *Instance) Cleanup() error {
 	return i.Client.DeleteInstance(i.Project, i.Zone, i.Name)
 }
 
+// StartWithScript starts the instance with given startup script.
 func (i *Instance) StartWithScript(script string) error {
 	startupScriptKey := "startup-script"
 	if i.IsWindows {
@@ -103,7 +104,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 	}
 }
 
-// CreateImageObject creates an image object to be operated by API client
+// CreateInstanceObject creates an image object to be operated by API client
 func CreateInstanceObject(ctx context.Context, project string, zone string, name string, isWindows bool) (*Instance, error) {
 	client, err := computeApi.NewClient(ctx)
 	if err != nil {

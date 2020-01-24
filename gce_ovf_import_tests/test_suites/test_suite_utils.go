@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package testsuiteutils contains e2e tests utils for image import/export cli tools
+// Package ovftestsuite contains e2e tests utils for OVF import cli tools
 package ovftestsuite
 
 import (

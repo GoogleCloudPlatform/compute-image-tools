@@ -54,7 +54,7 @@ type ovfImportTestProperties struct {
 	expectedStartupOutput     string
 	verificationStartupScript string
 	zone                      string
-	sourceUri                 string
+	sourceURI                 string
 	os                        string
 	machineType               string
 	network                   string
@@ -68,7 +68,7 @@ func TestSuite(
 	testProjectConfig *testconfig.Project) {
 
 	testsMap := map[ovftestsuite.TestType]map[*junitxml.TestCase]func(
-			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, ovftestsuite.TestType){}
+		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, ovftestsuite.TestType){}
 
 	testTypes := []ovftestsuite.TestType{
 		ovftestsuite.Wrapper,
@@ -131,7 +131,7 @@ func runOVFInstanceImportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 			"gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
-		sourceUri:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
+		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
 		os:                    "ubuntu-1604",
 		machineType:           "n1-standard-4"}
 
@@ -148,7 +148,7 @@ func runOVFInstanceImportCentos68(ctx context.Context, testCase *junitxml.TestCa
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
-		sourceUri:             fmt.Sprintf("gs://%v/", ovaBucket),
+		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
 		os:                    "centos-6",
 		machineType:           "n1-standard-4",
 	}
@@ -166,7 +166,7 @@ func runOVFInstanceImportWindows2012R2TwoDisks(ctx context.Context, testCase *ju
 			"gce_ovf_import_tests/scripts/ovf_import_test_windows_two_disks.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All Tests Passed",
-		sourceUri:             fmt.Sprintf("gs://%v/ova/w2k12-r2", ovaBucket),
+		sourceURI:             fmt.Sprintf("gs://%v/ova/w2k12-r2", ovaBucket),
 		os:                    "windows-2012r2",
 		machineType:           "n1-standard-8",
 		isWindows:             true,
@@ -185,7 +185,7 @@ func runOVFInstanceImportWindows2016(ctx context.Context, testCase *junitxml.Tes
 			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All Tests Passed",
-		sourceUri:             fmt.Sprintf("gs://%v/ova/w2k16/w2k16.ovf", ovaBucket),
+		sourceURI:             fmt.Sprintf("gs://%v/ova/w2k16/w2k16.ovf", ovaBucket),
 		os:                    "windows-2016",
 		machineType:           "n2-standard-2",
 		isWindows:             true,
@@ -204,7 +204,7 @@ func runOVFInstanceImportWindows2008R2FourNICs(ctx context.Context, testCase *ju
 			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All Tests Passed",
-		sourceUri:             fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
+		sourceURI:             fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
 		os:                    "windows-2008r2",
 		isWindows:             true,
 	}
@@ -221,7 +221,7 @@ func runOVFInstanceImportDebian9(ctx context.Context, testCase *junitxml.TestCas
 	props := &ovfImportTestProperties{
 		instanceName: fmt.Sprintf("test-instance-debian-9-%v", suffix),
 		zone:         testProjectConfig.TestZone,
-		sourceUri:    fmt.Sprintf("gs://%v/ova/bitnami-tomcat-8.5.43-0-linux-debian-9-x86_64.ova", ovaBucket),
+		sourceURI:    fmt.Sprintf("gs://%v/ova/bitnami-tomcat-8.5.43-0-linux-debian-9-x86_64.ova", ovaBucket),
 		os:           "debian-9",
 		machineType:  "n1-standard-4",
 	}
@@ -239,7 +239,7 @@ func runOVFInstanceImportUbuntu16FromVirtualBox(ctx context.Context, testCase *j
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
-		sourceUri:             fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
+		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
 		os:                    "ubuntu-1604",
 		machineType:           "n1-standard-4",
 	}
@@ -253,10 +253,10 @@ func runOVFInstanceImportUbuntu16FromAWS(ctx context.Context, testCase *junitxml
 	suffix := path.RandString(5)
 	props := &ovfImportTestProperties{
 		instanceName: fmt.Sprintf("test-instance-aws-ova-ubuntu-1604-%v", suffix),
-		zone: testProjectConfig.TestZone,
-		sourceUri:   fmt.Sprintf("gs://%v/ova/aws-ova-ubuntu-1604.ova", ovaBucket),
-		os:          "ubuntu-1604",
-		machineType: "n1-standard-4",
+		zone:         testProjectConfig.TestZone,
+		sourceURI:    fmt.Sprintf("gs://%v/ova/aws-ova-ubuntu-1604.ova", ovaBucket),
+		os:           "ubuntu-1604",
+		machineType:  "n1-standard-4",
 	}
 
 	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
@@ -272,7 +272,7 @@ func runOVFInstanceImportNetworkSettingsName(ctx context.Context, testCase *juni
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
-		sourceUri:             fmt.Sprintf("gs://%v/", ovaBucket),
+		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
 		os:                    "centos-6",
 		machineType:           "n1-standard-4",
 		network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
@@ -293,7 +293,7 @@ func runOVFInstanceImportNetworkSettingsPath(ctx context.Context, testCase *juni
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
-		sourceUri:             fmt.Sprintf("gs://%v/", ovaBucket),
+		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
 		os:                    "centos-6",
 		machineType:           "n1-standard-4",
 		network:               fmt.Sprintf("global/networks/%v-vpc-1", testProjectConfig.TestProjectID),
@@ -308,12 +308,12 @@ func buildTestArgs(props *ovfImportTestProperties, testProjectConfig *testconfig
 		"beta", "compute", "instances", "import", props.instanceName, "--quiet",
 		"--docker-image-tag=latest",
 		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
-		fmt.Sprintf("--source-uri=%v", props.sourceUri),
+		fmt.Sprintf("--source-uri=%v", props.sourceURI),
 		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 	}
 	wrapperArgs := []string{"-client-id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("-instance-names=%s", props.instanceName),
-		fmt.Sprintf("-ovf-gcs-path=%v", props.sourceUri),
+		fmt.Sprintf("-ovf-gcs-path=%v", props.sourceURI),
 		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
 	}
 
@@ -455,20 +455,4 @@ func loadScriptContent(scriptPath string, logger *log.Logger) string {
 		os.Exit(1)
 	}
 	return string(scriptContent)
-}
-
-func contains(arr []string, subarr []string) bool {
-	for item := range subarr {
-		exists := false
-		for i := range arr {
-			if item == i {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			return false
-		}
-	}
-	return true
 }
