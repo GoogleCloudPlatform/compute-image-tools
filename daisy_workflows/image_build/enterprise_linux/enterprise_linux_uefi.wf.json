@@ -22,9 +22,9 @@
       "Required": true,
       "Description": "The path to the EL installation ISO."
     },
-    "rhel_byol": {
+    "rhel_byos": {
       "Value": "false",
-      "Description": "Create a BYOL RHEL image."
+      "Description": "Create a BYOS RHEL image."
     },
     "rhel_sap": {
       "Value": "false",
@@ -88,7 +88,7 @@
             "el_release": "${el_release}",
             "el_savelogs": "${el_savelogs}",
             "google_cloud_repo": "${google_cloud_repo}",
-            "rhel_byol": "${rhel_byol}",
+            "rhel_byos": "${rhel_byos}",
             "rhel_sap": "${rhel_sap}",
             "rhel_uefi": "${rhel_uefi}",
             "install_nge": "${install_nge}"

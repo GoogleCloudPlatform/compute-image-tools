@@ -158,13 +158,13 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi, nge):
+def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
   """Builds kickstart config from shards.
 
   Args:
     release: string; image from metadata.
     google_cloud_repo: string; expects 'stable', 'unstable', or 'staging'.
-    byol: bool; true if using a BYOL RHEL license.
+    byos: bool; true if using a BYOS RHEL license.
     sap: bool; true if building RHEL for SAP.
     uefi: bool; true if building uefi image.
 
@@ -186,10 +186,10 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi, nge):
   # Common
   pre = ''
   ks_packages = FetchConfigPart('common-packages.cfg')
-  # For BYOL RHEL, don't remove subscription-manager.
-  if byol:
-    logging.info('Building RHEL BYOL image.')
-    rhel_byol_post = FetchConfigPart('rhel-byol-post.cfg')
+  # For BYOS RHEL, don't remove subscription-manager.
+  if byos:
+    logging.info('Building RHEL BYOS image.')
+    rhel_byos_post = FetchConfigPart('rhel-byos-post.cfg')
 
   if release == 'rhel6':
     logging.info('Building RHEL 6 image.')
@@ -198,8 +198,8 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi, nge):
     rhel_post = FetchConfigPart('rhel6-post.cfg')
     el_post = FetchConfigPart('el6-post.cfg').replace('__PACKAGES__', packages)
     custom_post = '\n'.join([rhel_post, el_post])
-    if byol:
-      custom_post = '\n'.join([custom_post, rhel_byol_post])
+    if byos:
+      custom_post = '\n'.join([custom_post, rhel_byos_post])
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == "centos6":
@@ -233,8 +233,8 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi, nge):
       rhel_post = '\n'.join([point, FetchConfigPart('rhel7-sap-post.cfg')])
     el_post = FetchConfigPart('el7-post.cfg').replace('__PACKAGES__', packages)
     custom_post = '\n'.join([rhel_post, el_post])
-    if byol:
-      custom_post = '\n'.join([custom_post, rhel_byol_post])
+    if byos:
+      custom_post = '\n'.join([custom_post, rhel_byos_post])
     if uefi:
       el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg')
       custom_post = '\n'.join([custom_post, el7_uefi_post])
@@ -282,6 +282,8 @@ def BuildKsConfig(release, google_cloud_repo, byol, sap, uefi, nge):
     rhel_post = FetchConfigPart('rhel8-post.cfg')
     el_post = FetchConfigPart('el8-post.cfg').replace('__PACKAGES__', packages)
     custom_post = '\n'.join([rhel_post, el_post])
+    if byos:
+      custom_post = '\n'.join([custom_post, rhel_byos_post])
     cleanup = FetchConfigPart('el8-cleanup.cfg')
     repo_version = 'el8'
   elif release == "centos8":
