@@ -51,13 +51,13 @@ function fail {
 # Check network connectivity.
 function check_connectivity {
   status "Checking metadata connection."
-  ping -q -c 2 metadata.google.internal
+  ping -q -w 10 metadata.google.internal
   if [[ $? -ne 0 ]]; then
     fail "Failed to connect to metadata.google.internal."
   fi
 
   status "Checking external connectivity."
-  ping -q -c 2 google.com
+  ping -q -w 10 google.com
   if [[ $? -ne 0 ]]; then
     fail "Failed to ping google.com."
   fi
