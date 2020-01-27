@@ -24,6 +24,7 @@ use_rhel_gce_license: True if GCE RHUI package should be installed
 
 import logging
 import os
+import time
 
 import utils
 import utils.diskutils as diskutils
@@ -197,14 +198,18 @@ def yum_install(g, *packages):
   Raises:
       RuntimeError: If there is a failure during installation.
   """
-  try:
-    g.command(['yum', 'install', '-y'] + list(packages))
-  except Exception as e:
-    logging.debug('Failed to install {}. Details: {}.'.format(packages, e))
-    raise RuntimeError(
-        'Verify that you have specified the correct operating system '
-        'in the `--os` flag.  If you are bringing your own license (BYOL), '
-        'also verify that your subscription is eligible to be run on GCP.')
+  for i in range(6):
+    try:
+      # There's no sleep on the first iteration since `i` is zero.
+      time.sleep(i**2)
+      g.command(['yum', 'install', '-y'] + list(packages))
+      return
+    except Exception as e:
+      logging.debug('Failed to install {}. Details: {}.'.format(packages, e))
+  raise RuntimeError(
+      'Verify that you have specified the correct operating system '
+      'in the `--os` flag.  If you are bringing your own license (BYOL), '
+      'also verify that your subscription is eligible to be run on GCP.')
 
 
 def main():
