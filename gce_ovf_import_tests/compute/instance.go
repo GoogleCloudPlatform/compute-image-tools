@@ -16,6 +16,7 @@
 package compute
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -29,13 +30,33 @@ type Instance struct {
 	*api.Instance
 	Client        daisyCompute.Client
 	Project, Zone string
+	IsWindows     bool
 }
 
 // Cleanup deletes the Instance.
-func (i *Instance) Cleanup() {
-	if err := i.Client.DeleteInstance(i.Project, i.Zone, i.Name); err != nil {
-		fmt.Printf("Error deleting instance: %v\n", err)
+func (i *Instance) Cleanup() error {
+	return i.Client.DeleteInstance(i.Project, i.Zone, i.Name)
+}
+
+// StartWithScript starts the instance with given startup script.
+func (i *Instance) StartWithScript(script string) error {
+	startupScriptKey := "startup-script"
+	if i.IsWindows {
+		startupScriptKey = "windows-startup-script-ps1"
 	}
+	err := i.Client.SetInstanceMetadata(i.Project, i.Zone,
+		i.Name, &api.Metadata{Items: []*api.MetadataItems{BuildInstanceMetadataItem(
+			startupScriptKey, script)},
+			Fingerprint: i.Metadata.Fingerprint})
+
+	if err != nil {
+		return err
+	}
+
+	if err = i.Client.StartInstance(i.Project, i.Zone, i.Name); err != nil {
+		return err
+	}
+	return nil
 }
 
 // WaitForSerialOutput waits to a string match on a serial port.
@@ -73,7 +94,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 			}
 			start = resp.Next
 			for _, ln := range strings.Split(resp.Contents, "\n") {
-				if i := strings.Index(ln, match); i != -1 {
+				if i := strings.Index(strings.ToLower(ln), strings.ToLower(match)); i != -1 {
 					return nil
 				}
 			}
@@ -82,12 +103,16 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 	}
 }
 
-// CreateInstance creates a compute instance.
-func CreateInstance(client daisyCompute.Client, project, zone string, i *api.Instance) (*Instance, error) {
-	if err := client.CreateInstance(project, zone, i); err != nil {
+// CreateInstanceObject creates an image object to be operated by API client
+func CreateInstanceObject(ctx context.Context, project string, zone string, name string, isWindows bool) (*Instance, error) {
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
 		return nil, err
 	}
-	return &Instance{Instance: i, Client: client, Project: project, Zone: zone}, nil
+
+	var apiInstance *api.Instance
+	apiInstance, err = client.GetInstance(project, zone, name)
+	return &Instance{apiInstance, client, project, zone, isWindows}, err
 }
 
 // BuildInstanceMetadataItem create an metadata item

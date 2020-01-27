@@ -15,18 +15,25 @@ FROM golang:alpine
 
 RUN apk add --no-cache git
 
+# Build test runner
 WORKDIR /gce_ovf_import_tests
 COPY gce_ovf_import_tests/ .
 RUN go get -d ./...
 RUN CGO_ENABLED=0 go build -o /gce_ovf_import_test_runner
 RUN chmod +x /gce_ovf_import_test_runner
 
+# Build binaries to test
+WORKDIR /cli_tools
+COPY cli_tools/ .
+RUN cd gce_ovf_import && CGO_ENABLED=0 go build -o /gce_ovf_import
+RUN chmod +x /gce_ovf_import
+
+# Build test container
 FROM gcr.io/$PROJECT_ID/wrapper:latest
-
 ENV GOOGLE_APPLICATION_CREDENTIALS /etc/compute-image-tools-test-service-account/creds.json
-
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=0 /gce_ovf_import_test_runner gce_ovf_import_test_runner
+COPY --from=0 /gce_ovf_import gce_ovf_import
 COPY /gce_ovf_import_tests/scripts/ /gce_ovf_import_tests/scripts/
 COPY /daisy_integration_tests/scripts/ /daisy_integration_tests/scripts/
 COPY /daisy_workflows/ /daisy_workflows/
