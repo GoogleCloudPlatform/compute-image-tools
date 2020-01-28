@@ -34,7 +34,7 @@ const (
 	testSuiteName = "ImageExportTests"
 )
 
-// CLITestSuite is image export test suite.
+// TestSuite is image export test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
 
