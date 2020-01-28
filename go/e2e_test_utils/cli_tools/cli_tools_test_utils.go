@@ -1,4 +1,4 @@
-//  Copyright 2019 Google Inc. All Rights Reserved.
+//  Copyright 2020 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package testsuiteutils contains e2e tests utils for image import/export cli tools
-package testsuiteutils
+// Package clitools contains e2e tests utils for cli tools e2e tests
+package clitoolstestutils
 
 import (
 	"context"
@@ -29,25 +29,25 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
-// TestType defines which type of test is going to be executed
-type TestType string
+// CLITestType defines which type of test is going to be executed
+type CLITestType string
 
 // List all test types here
 const (
-	Wrapper                   TestType = "1 wrapper"
-	GcloudProdWrapperLatest   TestType = "2 gcloud-prod wrapper-latest"
-	GcloudLatestWrapperLatest TestType = "3 gcloud-latest wrapper-latest"
+	Wrapper                   CLITestType = "1 wrapper"
+	GcloudProdWrapperLatest   CLITestType = "2 gcloud-prod wrapper-latest"
+	GcloudLatestWrapperLatest CLITestType = "3 gcloud-latest wrapper-latest"
 )
 
 var (
 	gcloudUpdateLock = sync.Mutex{}
 )
 
-// TestSuite executes given test suite.
-func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
+// CLITestSuite executes given test suite.
+func CLITestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project, testSuiteName string, testsMap map[TestType]map[*junitxml.TestCase]func(
-		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, TestType)) {
+	testProjectConfig *testconfig.Project, testSuiteName string, testsMap map[CLITestType]map[*junitxml.TestCase]func(
+		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, CLITestType)) {
 
 	defer tswg.Done()
 
@@ -57,19 +57,19 @@ func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junit
 
 	testSuite := junitxml.NewTestSuite(testSuiteName)
 	defer testSuite.Finish(testSuites)
-	logger.Printf("Running TestSuite %q", testSuite.Name)
+	logger.Printf("Running CLITestSuite %q", testSuite.Name)
 	tests := runTestCases(ctx, logger, testCaseRegex, testProjectConfig, testSuite.Name, testsMap)
 
 	for ret := range tests {
 		testSuite.TestCase = append(testSuite.TestCase, ret)
 	}
 
-	logger.Printf("Finished TestSuite %q", testSuite.Name)
+	logger.Printf("Finished CLITestSuite %q", testSuite.Name)
 }
 
 func runTestCases(ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
-	testProjectConfig *testconfig.Project, testSuiteName string, testsMap map[TestType]map[*junitxml.TestCase]func(
-		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, TestType)) chan *junitxml.TestCase {
+	testProjectConfig *testconfig.Project, testSuiteName string, testsMap map[CLITestType]map[*junitxml.TestCase]func(
+		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, CLITestType)) chan *junitxml.TestCase {
 
 	tests := make(chan *junitxml.TestCase)
 	var ttwg sync.WaitGroup
@@ -81,15 +81,15 @@ func runTestCases(ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
 	sort.Strings(tts)
 	go func() {
 		for _, ttStr := range tts {
-			tt := TestType(ttStr)
+			tt := CLITestType(ttStr)
 			m := testsMap[tt]
-			logger.Printf("=== Running TestSuite %v for test type %v ===", testSuiteName, tt)
+			logger.Printf("=== Running CLITestSuite %v for test type %v ===", testSuiteName, tt)
 
 			var wg sync.WaitGroup
 			for tc, f := range m {
 				wg.Add(1)
-				go func(ctx context.Context, wg *sync.WaitGroup, tc *junitxml.TestCase, tt TestType, f func(
-					context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, TestType)) {
+				go func(ctx context.Context, wg *sync.WaitGroup, tc *junitxml.TestCase, tt CLITestType, f func(
+					context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, CLITestType)) {
 
 					defer wg.Done()
 					if tc.FilterTestCase(regex) {
@@ -105,7 +105,7 @@ func runTestCases(ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
 			wg.Wait()
 
 			ttwg.Done()
-			logger.Printf("=== Fnished running TestSuite %v for test type %v ===", testSuiteName, tt)
+			logger.Printf("=== Finished running CLITestSuite %v for test type %v ===", testSuiteName, tt)
 		}
 	}()
 
@@ -193,7 +193,7 @@ func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) 
 }
 
 // RunTestForTestType runs test for given test type
-func RunTestForTestType(cmd string, args []string, testType TestType, logger *log.Logger, testCase *junitxml.TestCase) bool {
+func RunTestForTestType(cmd string, args []string, testType CLITestType, logger *log.Logger, testCase *junitxml.TestCase) bool {
 	switch testType {
 	case Wrapper:
 		if !RunTestCommand(cmd, args, logger, testCase) {
