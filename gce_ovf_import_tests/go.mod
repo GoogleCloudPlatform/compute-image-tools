@@ -9,5 +9,3 @@ require (
 	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200117185841-203d88ed91bb
 	google.golang.org/api v0.15.0
 )
-
-replace github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils => ../go/e2e_test_utils
