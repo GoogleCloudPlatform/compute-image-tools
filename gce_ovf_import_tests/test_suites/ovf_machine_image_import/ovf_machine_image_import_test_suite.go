@@ -1,4 +1,4 @@
-//  Copyright 2019 Google Inc. All Rights Reserved.
+//  Copyright 2020 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -12,8 +12,9 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package ovfinstanceimporttestsuite contains e2e tests for instance import cli tools
-package ovfinstanceimporttestsuite
+// Package ovfmachineimageimporttestsuite contains e2e tests for machine image
+// import cli tools
+package ovfmachineimageimporttestsuite
 
 import (
 	"context"
@@ -43,13 +44,16 @@ const (
 var (
 	cmds = map[clitoolstestutils.CLITestType]string{
 		clitoolstestutils.Wrapper:                   "./gce_ovf_import",
-		clitoolstestutils.GcloudProdWrapperLatest:   "gcloud",
-		clitoolstestutils.GcloudLatestWrapperLatest: "gcloud",
+
+		// TODO: uncomment once `gcloud beta compute machine-images import`
+		//  available for public consumption
+		//clitoolstestutils.GcloudProdWrapperLatest:   "gcloud",
+		//clitoolstestutils.GcloudLatestWrapperLatest: "gcloud",
 	}
 )
 
-type ovfInstanceImportTestProperties struct {
-	instanceName              string
+type ovfMachineImageImportTestProperties struct {
+	machineImageName          string
 	isWindows                 bool
 	expectedStartupOutput     string
 	verificationStartupScript string
@@ -59,6 +63,7 @@ type ovfInstanceImportTestProperties struct {
 	machineType               string
 	network                   string
 	subnet                    string
+	storageLocation           string
 }
 
 // TestSuite is image import test suite.
@@ -76,51 +81,37 @@ func TestSuite(
 		clitoolstestutils.GcloudLatestWrapperLatest,
 	}
 	for _, testType := range testTypes {
-		instanceImportUbuntu3DisksTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB"))
-		instanceImportCentos68 := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Centos 6.8"))
-		instanceImportWindows2012R2TwoDisks := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2012 R2 two disks"))
-		instanceImportWindows2016 := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2016"))
-		instanceImportWindows2008R2FourNICs := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Windows 2008r2 - Four NICs"))
-		instanceImportDebian9 := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Debian 9"))
-		instanceImportUbuntu16FromVirtualBox := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 1604 from Virtualbox"))
-		instanceImportUbuntu16FromAWS := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Ubuntu 1604 from AWS"))
-		instanceImportNetworkSettingsName := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Test network setting (name only)"))
-		instanceImportNetworkSettingsPath := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][OVFInstanceImport] %v", testType, "Test network setting (path)"))
+		machineImageImportUbuntu3DisksTestCase := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Ubuntu 3 disks, one data disk larger than 10GB"))
+		machineImageImportWindows2012R2TwoDisks := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Windows 2012 R2 two disks"))
+		machineImageImportNetworkSettingsName := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Network setting (name only)"))
+		machineImageImportNetworkSettingsPath := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Network setting (path)"))
+		machineImageImportStorageLocation := junitxml.NewTestCase(
+			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Storage location"))
+
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, clitoolstestutils.CLITestType){}
-		testsMap[testType][instanceImportUbuntu3DisksTestCase] = runOVFInstanceImportUbuntu3Disks
-		testsMap[testType][instanceImportCentos68] = runOVFInstanceImportCentos68
-		testsMap[testType][instanceImportWindows2012R2TwoDisks] = runOVFInstanceImportWindows2012R2TwoDisks
-		testsMap[testType][instanceImportWindows2016] = runOVFInstanceImportWindows2016
-		testsMap[testType][instanceImportWindows2008R2FourNICs] = runOVFInstanceImportWindows2008R2FourNICs
-		testsMap[testType][instanceImportDebian9] = runOVFInstanceImportDebian9
-		testsMap[testType][instanceImportUbuntu16FromVirtualBox] = runOVFInstanceImportUbuntu16FromVirtualBox
-		testsMap[testType][instanceImportUbuntu16FromAWS] = runOVFInstanceImportUbuntu16FromAWS
-		testsMap[testType][instanceImportNetworkSettingsName] = runOVFInstanceImportNetworkSettingsName
-		testsMap[testType][instanceImportNetworkSettingsPath] = runOVFInstanceImportNetworkSettingsPath
+		testsMap[testType][machineImageImportUbuntu3DisksTestCase] = runOVFMachineImageImportUbuntu3Disks
+		testsMap[testType][machineImageImportWindows2012R2TwoDisks] = runOVFMachineImageImportWindows2012R2TwoDisks
+		testsMap[testType][machineImageImportNetworkSettingsName] = runOVFMachineImageImportNetworkSettingsName
+		testsMap[testType][machineImageImportNetworkSettingsPath] = runOVFMachineImageImportNetworkSettingsPath
+		testsMap[testType][machineImageImportStorageLocation] = runOVFMachineImageImportStorageLocation
 	}
 
 	clitoolstestutils.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
 }
 
-func runOVFInstanceImportUbuntu3Disks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportUbuntu3Disks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
 
 	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-ubuntu-3-disks-%v", suffix),
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-machine-image-ubuntu-3-disks-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
 		zone:                  testProjectConfig.TestZone,
@@ -129,15 +120,15 @@ func runOVFInstanceImportUbuntu3Disks(ctx context.Context, testCase *junitxml.Te
 		os:                    "ubuntu-1604",
 		machineType:           "n1-standard-4"}
 
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFInstanceImportCentos68(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportCentos68(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
 
 	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-centos-6-%v", suffix),
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-machine-image-centos-6-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
@@ -147,15 +138,15 @@ func runOVFInstanceImportCentos68(ctx context.Context, testCase *junitxml.TestCa
 		machineType:           "n1-standard-4",
 	}
 
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFInstanceImportWindows2012R2TwoDisks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportWindows2012R2TwoDisks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
 
 	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-w2k12-r2-%v", suffix),
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-machine-image-w2k12-r2-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"gce_ovf_import_tests/scripts/ovf_import_test_windows_two_disks.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
@@ -166,15 +157,15 @@ func runOVFInstanceImportWindows2012R2TwoDisks(ctx context.Context, testCase *ju
 		isWindows:             true,
 	}
 
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFInstanceImportWindows2016(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportStorageLocation(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
 
 	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-w2k16-%v", suffix),
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-machine-image-w2k16-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
@@ -183,85 +174,18 @@ func runOVFInstanceImportWindows2016(ctx context.Context, testCase *junitxml.Tes
 		os:                    "windows-2016",
 		machineType:           "n2-standard-2",
 		isWindows:             true,
+		storageLocation:       "us-west2",
 	}
 
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFInstanceImportWindows2008R2FourNICs(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
 
 	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-w2k8r2-%v", suffix),
-		verificationStartupScript: loadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.ps1", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All Tests Passed",
-		sourceURI:             fmt.Sprintf("gs://%v/ova/win2008r2-all-updates-four-nic.ova", ovaBucket),
-		os:                    "windows-2008r2",
-		isWindows:             true,
-	}
-
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFInstanceImportDebian9(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
-
-	suffix := path.RandString(5)
-	// no startup script as this OVA has issues running it (possibly due to no SSH allowed)
-	// b/141321520
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-debian-9-%v", suffix),
-		zone:         testProjectConfig.TestZone,
-		sourceURI:    fmt.Sprintf("gs://%v/ova/bitnami-tomcat-8.5.43-0-linux-debian-9-x86_64.ova", ovaBucket),
-		os:           "debian-9",
-		machineType:  "n1-standard-4",
-	}
-
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFInstanceImportUbuntu16FromVirtualBox(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
-
-	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-virtualbox-6-%v", suffix),
-		verificationStartupScript: loadScriptContent(
-			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
-		zone:                  testProjectConfig.TestZone,
-		expectedStartupOutput: "All tests passed!",
-		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-16.04-virtualbox.ova", ovaBucket),
-		os:                    "ubuntu-1604",
-		machineType:           "n1-standard-4",
-	}
-
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFInstanceImportUbuntu16FromAWS(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
-
-	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-instance-aws-ova-ubuntu-1604-%v", suffix),
-		zone:         testProjectConfig.TestZone,
-		sourceURI:    fmt.Sprintf("gs://%v/ova/aws-ova-ubuntu-1604.ova", ovaBucket),
-		os:           "ubuntu-1604",
-		machineType:  "n1-standard-4",
-	}
-
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
-}
-
-func runOVFInstanceImportNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
-
-	suffix := path.RandString(5)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-network-name-%v", suffix),
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-network-name-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
@@ -273,16 +197,16 @@ func runOVFInstanceImportNetworkSettingsName(ctx context.Context, testCase *juni
 		subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
 	}
 
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func runOVFInstanceImportNetworkSettingsPath(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
+func runOVFMachineImageImportNetworkSettingsPath(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
 
 	suffix := path.RandString(5)
 	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
-	props := &ovfInstanceImportTestProperties{
-		instanceName: fmt.Sprintf("test-network-path-%v", suffix),
+	props := &ovfMachineImageImportTestProperties{
+		machineImageName: fmt.Sprintf("test-network-path-%v", suffix),
 		verificationStartupScript: loadScriptContent(
 			"daisy_integration_tests/scripts/post_translate_test.sh", logger),
 		zone:                  testProjectConfig.TestZone,
@@ -294,22 +218,21 @@ func runOVFInstanceImportNetworkSettingsPath(ctx context.Context, testCase *juni
 		subnet:                fmt.Sprintf("projects/%v/regions/%v/subnetworks/%v-subnet-1", testProjectConfig.TestProjectID, region, testProjectConfig.TestProjectID),
 	}
 
-	runOVFInstanceImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
+	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func buildTestArgs(props *ovfInstanceImportTestProperties, testProjectConfig *testconfig.Project) map[clitoolstestutils.CLITestType][]string {
+func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig *testconfig.Project) map[clitoolstestutils.CLITestType][]string {
 	gcloudArgs := []string{
-		"beta", "compute", "instances", "import", props.instanceName, "--quiet",
+		"beta", "compute", "machine-images", "import", props.machineImageName, "--quiet",
 		"--docker-image-tag=latest",
 		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 		fmt.Sprintf("--source-uri=%v", props.sourceURI),
 		fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 	}
 	wrapperArgs := []string{"-client-id=e2e", fmt.Sprintf("-project=%v", testProjectConfig.TestProjectID),
-		fmt.Sprintf("-instance-names=%s", props.instanceName),
+		fmt.Sprintf("-machine-image-name=%s", props.machineImageName),
 		fmt.Sprintf("-ovf-gcs-path=%v", props.sourceURI),
 		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
-		fmt.Sprintf("-build-id=%v", path.RandString(10)),
 	}
 
 	if props.os != "" {
@@ -328,6 +251,11 @@ func buildTestArgs(props *ovfInstanceImportTestProperties, testProjectConfig *te
 		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--subnet=%v", props.subnet))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-subnet=%v", props.subnet))
 	}
+	if props.storageLocation != "" {
+		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--storage-location=%v", props.storageLocation))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-machine-image-storage-location=%v", props.storageLocation))
+
+	}
 
 	argsMap := map[clitoolstestutils.CLITestType][]string{
 		clitoolstestutils.Wrapper:                   wrapperArgs,
@@ -337,9 +265,9 @@ func buildTestArgs(props *ovfInstanceImportTestProperties, testProjectConfig *te
 	return argsMap
 }
 
-func runOVFInstanceImportTest(ctx context.Context, args []string, testType clitoolstestutils.CLITestType,
+func runOVFMachineImageImportTest(ctx context.Context, args []string, testType clitoolstestutils.CLITestType,
 	testProjectConfig *testconfig.Project, logger *log.Logger, testCase *junitxml.TestCase,
-	props *ovfInstanceImportTestProperties) {
+	props *ovfMachineImageImportTestProperties) {
 
 	if clitoolstestutils.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
 		verifyImportedInstance(ctx, testCase, testProjectConfig, logger, props)
@@ -353,7 +281,7 @@ func failure(testCase *junitxml.TestCase, logger *log.Logger, msg string) {
 
 func verifyImportedInstance(
 	ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project,
-	logger *log.Logger, props *ovfInstanceImportTestProperties) {
+	logger *log.Logger, props *ovfMachineImageImportTestProperties) {
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -362,18 +290,18 @@ func verifyImportedInstance(
 	}
 
 	logger.Printf("Verifying imported instance...")
-	instance, err := computeUtils.CreateInstanceObject(ctx, testProjectConfig.TestProjectID, props.zone, props.instanceName, props.isWindows)
+	instance, err := computeUtils.CreateInstanceObject(ctx, testProjectConfig.TestProjectID, props.zone, props.machineImageName, props.isWindows)
 	if err != nil {
-		failure(testCase, logger, fmt.Sprintf("Image '%v' doesn't exist after import: %v", props.instanceName, err))
+		failure(testCase, logger, fmt.Sprintf("Image '%v' doesn't exist after import: %v", props.machineImageName, err))
 		return
 	}
 
 	defer func() {
-		logger.Printf("Deleting instance `%v`", props.instanceName)
+		logger.Printf("Deleting instance `%v`", props.machineImageName)
 		if err := instance.Cleanup(); err != nil {
-			logger.Printf("Instance '%v' failed to clean up: %v", props.instanceName, err)
+			logger.Printf("Instance '%v' failed to clean up: %v", props.machineImageName, err)
 		} else {
-			logger.Printf("Instance '%v' cleaned up.", props.instanceName)
+			logger.Printf("Instance '%v' cleaned up.", props.machineImageName)
 		}
 	}()
 
@@ -416,9 +344,9 @@ func verifyImportedInstance(
 		return
 	}
 
-	logger.Printf("[%v] Stopping instance before restarting with test startup script", props.instanceName)
+	logger.Printf("[%v] Stopping instance before restarting with test startup script", props.machineImageName)
 	err = client.StopInstance(
-		testProjectConfig.TestProjectID, props.zone, props.instanceName)
+		testProjectConfig.TestProjectID, props.zone, props.machineImageName)
 
 	if err != nil {
 		testCase.WriteFailure("Error stopping imported instance: %v", err)
@@ -426,16 +354,16 @@ func verifyImportedInstance(
 	}
 
 	if props.verificationStartupScript == "" {
-		logger.Printf("[%v] Will not set test startup script to instance metadata as it's not defined", props.instanceName)
+		logger.Printf("[%v] Will not set test startup script to instance metadata as it's not defined", props.machineImageName)
 		return
 	}
 
 	err = instance.StartWithScript(props.verificationStartupScript)
 	if err != nil {
-		testCase.WriteFailure("Error starting instance `%v` with script: %v", props.instanceName, err)
+		testCase.WriteFailure("Error starting instance `%v` with script: %v", props.machineImageName, err)
 		return
 	}
-	logger.Printf("[%v] Waiting for `%v` in instance serial console.", props.instanceName,
+	logger.Printf("[%v] Waiting for `%v` in instance serial console.", props.machineImageName,
 		props.expectedStartupOutput)
 	if err := instance.WaitForSerialOutput(
 		props.expectedStartupOutput, 1, 5*time.Second, 15*time.Minute); err != nil {
