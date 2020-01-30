@@ -46,6 +46,7 @@ var (
 // constants used by logging
 const (
 	ImageImportAction    = "ImageImport"
+	ImageOneStepImportAction    = "ImageOneStepImport"
 	ImageExportAction    = "ImageExport"
 	InstanceImportAction = "InstanceImport"
 
