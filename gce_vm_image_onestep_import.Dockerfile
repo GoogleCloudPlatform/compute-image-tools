@@ -19,15 +19,15 @@ COPY cli_tools/ .
 RUN cd gce_onestep_image_import && CGO_ENABLED=0 go build -o /gce_onestep_image_import
 RUN chmod +x /gce_onestep_image_import
 
-FROM ubuntu:18.04
-# Build container 1 - aws cli, gsutil
+# Build container
+FROM google/cloud-sdk:slim
+# 1 - aws cli
 RUN apt-get update
-RUN apt-get -y install zip unzip gsutil curl
+RUN apt-get -y install zip unzip curl
 RUN curl "https://d1vvhvl2y92vvt.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 RUN unzip awscliv2.zip
 RUN ./aws/install
-
-# Build container 2 - onestep-importer cli
+# 2 - onestep-importer cli
 COPY --from=0 /gce_onestep_image_import gce_onestep_image_import
 COPY /daisy_workflows/ /daisy_workflows/
 

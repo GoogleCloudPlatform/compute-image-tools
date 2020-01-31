@@ -59,6 +59,8 @@ var (
 	awsAccessKeyId      = flag.String("aws_access_key_id", "", ".")
 	awsSecrectAccessKey = flag.String("aws_secret_access_key", "", ".")
 	awsRegion           = flag.String("aws_region", "", ".")
+	awsRand             = flag.String("aws_rand", "", ".")
+	awsExportTid        = flag.String("aws_export_tid", "", ".")
 )
 
 func importEntry() (*daisy.Workflow, error) {
@@ -67,7 +69,7 @@ func importEntry() (*daisy.Workflow, error) {
 		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
 		*labels, currentExecutablePath, *storageLocation, *uefiCompatible,
-		*awsImageId, *awsExportBucket, *awsExportFolder, *awsAccessKeyId, *awsSecrectAccessKey, *awsRegion)
+		*awsImageId, *awsExportBucket, *awsExportFolder, *awsAccessKeyId, *awsSecrectAccessKey, *awsRegion, *awsRand, *awsExportTid)
 }
 
 func main() {

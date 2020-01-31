@@ -53,16 +53,6 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 	return "", "", nil, nil
 }
 
-func runImport(zone string,
-		timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
-		gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
-		kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
-		userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
-
-	// call original importer
-	return nil, nil
-}
-
 // Run runs import workflow.
 func Run(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string,
 		noGuestEnvironment bool, family string, description string,
@@ -71,11 +61,15 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
 		noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
 		uefiCompatible bool, awsImageId string, awsExportBucket string, awsExportFolder string,
-		awsAccessKeyId string, awsSecrectAccessKey string, awsRegion string) (*daisy.Workflow, error) {
+		awsAccessKeyId string, awsSecrectAccessKey string, awsRegion string, awsRand string, awsExportTid string) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
-	tmpFilePath := fmt.Sprintf("gs://tzz-noogler-3-daisy-bkt/onestep-import/tmp-%v/tmp-%v.vmdk", rand.Int() % 1000000)
+	skipAwsExport := awsRand != ""
+	if !skipAwsExport {
+		awsRand = string(rand.Int() % 1000000)
+	}
+	tmpFilePath := fmt.Sprintf("gs://tzz-noogler-3-daisy-bkt/onestep-import/tmp-%v/tmp-%v.vmdk", awsRand, awsRand)
 
 	// 0. aws2 configure
 	err := configure(awsAccessKeyId, awsSecrectAccessKey, awsRegion)
@@ -83,12 +77,18 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		return nil, err
 	}
 
-	// 1. export: aws2 ec2 export-image --image-id ami-0bdc89ef2ef39dd0a --disk-image-format VMDK --s3-export-location S3Bucket=dntczdx,S3Prefix=exports/
-	//runCliTool("./gce_onestep_image_import", []string{""})
-	exportedFilePath, err := exportAwsImage(awsImageId, awsExportBucket, awsExportFolder)
-	if err != nil {
-		return nil, err
+	var exportedFilePath string
+	if !skipAwsExport {
+		// 1. export: aws2 ec2 export-image --image-id ami-0bdc89ef2ef39dd0a --disk-image-format VMDK --s3-export-location S3Bucket=dntczdx,S3Prefix=exports/
+		//runCliTool("./gce_onestep_image_import", []string{""})
+		exportedFilePath, err = exportAwsImage(awsImageId, awsExportBucket, awsExportFolder)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		exportedFilePath = fmt.Sprintf("s3://%v/%v/%v.vmdk", awsExportBucket, awsExportFolder, awsExportTid)
 	}
+
 
 	// 2. copy: gsutil cp s3://dntczdx/exports/export-ami-0b768c1d619f93184.vmdk gs://tzz-noogler-3-daisy-bkt/amazon1.vmdk
 	if err := copyToGcs(exportedFilePath, tmpFilePath); err != nil {
