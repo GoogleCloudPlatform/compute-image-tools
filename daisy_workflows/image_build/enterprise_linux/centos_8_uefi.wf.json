@@ -48,13 +48,12 @@
           "Licenses": [
             "projects/centos-cloud/global/licenses/centos-8"
           ],
-          "Description": "CentOS, CentOS, 8, x86_64 built on ${build_date} with UEFI support",
+          "Description": "CentOS, CentOS, 8, x86_64 built on ${build_date}",
           "Family": "centos-8-uefi",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
           "GuestOsFeatures": [
-            "SECURE_BOOT",
             "UEFI_COMPATIBLE"
           ]
         }

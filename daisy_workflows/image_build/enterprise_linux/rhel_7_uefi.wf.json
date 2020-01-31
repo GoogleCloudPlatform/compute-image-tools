@@ -48,13 +48,12 @@
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-7-server"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 7, x86_64 built on ${build_date} with UEFI support",
+          "Description": "Red Hat, Red Hat Enterprise Linux, 7, x86_64 built on ${build_date}",
           "Family": "rhel-7-uefi",
           "Project": "${publish_project}",
           "NoCleanup": true,
           "ExactName": true,
           "GuestOsFeatures": [
-            "SECURE_BOOT",
             "UEFI_COMPATIBLE"
           ]
 
