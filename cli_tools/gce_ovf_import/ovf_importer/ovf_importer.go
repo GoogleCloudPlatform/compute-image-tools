@@ -100,20 +100,26 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 		return nil, err
 	}
 	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient, logger)
-	buildID := os.Getenv("BUILD_ID")
-
-	if buildID == "" {
-		buildID = pathutils.RandString(5)
-	}
 	workingDirOVFImportWorkflow := toWorkingDir(getImportWorkflowPath(params), params)
 	bic := &storageutils.BucketIteratorCreator{}
 
 	ovfImporter := &OVFImporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
-		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, BuildID: buildID,
+		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, BuildID: getBuildID(params),
 		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
 		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic, Logger: logger,
 		zoneValidator: &computeutils.ZoneValidator{ComputeClient: computeClient}, params: params}
 	return ovfImporter, nil
+}
+
+func getBuildID(params *ovfimportparams.OVFImportParams) string {
+	if params != nil && params.BuildID != "" {
+		return params.BuildID
+	}
+	buildID := os.Getenv("BUILD_ID")
+	if buildID == "" {
+		buildID = pathutils.RandString(5)
+	}
+	return buildID
 }
 
 func getImportWorkflowPath(params *ovfimportparams.OVFImportParams) string {

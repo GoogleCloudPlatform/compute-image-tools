@@ -68,6 +68,7 @@ type OVFImportParams struct {
 	ReleaseTrack                string
 	UefiCompatible              bool
 	Hostname                    string
+	BuildID                     string
 
 	// Non-flags
 	UserLabels            map[string]string
