@@ -58,7 +58,10 @@ func TestUpdateWorkflowInstancesConfiguredForNoExternalIP(t *testing.T) {
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
 	UpdateAllInstanceNoExternalIP(w, true)
 
-	if len((*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces[0].AccessConfigs) != 0 {
+	if len((*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces[0].AccessConfigs) != 0 {
+		t.Errorf("Instance AccessConfigs not empty")
+	}
+	if len((*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces[0].AccessConfigs) != 0 {
 		t.Errorf("Instance AccessConfigs not empty")
 	}
 }
@@ -67,17 +70,24 @@ func TestUpdateWorkflowInstancesNotModifiedIfExternalIPAllowed(t *testing.T) {
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
 	UpdateAllInstanceNoExternalIP(w, false)
 
-	if len((*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces[0].AccessConfigs) != 1 {
+	if len((*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces[0].AccessConfigs) != 1 {
+		t.Errorf("Instance AccessConfigs doesn't have exactly one instance")
+	}
+	if len((*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces[0].AccessConfigs) != 1 {
 		t.Errorf("Instance AccessConfigs doesn't have exactly one instance")
 	}
 }
 
 func TestUpdateWorkflowInstancesNotModifiedIfNoNetworkInterfaceElement(t *testing.T) {
 	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
-	(*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces = nil
+	(*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces = nil
+	(*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces = nil
 	UpdateAllInstanceNoExternalIP(w, true)
 
-	if (*w.Steps["ci"].CreateInstances)[0].Instance.NetworkInterfaces != nil {
+	if (*w.Steps["ci"].CreateInstances).Instances[0].Instance.NetworkInterfaces != nil {
+		t.Errorf("Instance NetworkInterfaces should stay nil if nil before update")
+	}
+	if (*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.NetworkInterfaces != nil {
 		t.Errorf("Instance NetworkInterfaces should stay nil if nil before update")
 	}
 }
@@ -180,14 +190,31 @@ func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {
 	w.Steps = map[string]*daisy.Step{
 		"ci": {
 			CreateInstances: &daisy.CreateInstances{
-				{
-					Instance: compute.Instance{
-						Disks: []*compute.AttachedDisk{{Source: "key1"}},
-						NetworkInterfaces: []*compute.NetworkInterface{
-							{
-								Network: "n",
-								AccessConfigs: []*compute.AccessConfig{
-									{Type: "ONE_TO_ONE_NAT"},
+				Instances: []*daisy.Instance{
+					{
+						Instance: compute.Instance{
+							Disks: []*compute.AttachedDisk{{Source: "key1"}},
+							NetworkInterfaces: []*compute.NetworkInterface{
+								{
+									Network: "n",
+									AccessConfigs: []*compute.AccessConfig{
+										{Type: "ONE_TO_ONE_NAT"},
+									},
+								},
+							},
+						},
+					},
+				},
+				InstancesBeta: []*daisy.InstanceBeta{
+					{
+						Instance: computeBeta.Instance{
+							Disks: []*computeBeta.AttachedDisk{{Source: "key1"}},
+							NetworkInterfaces: []*computeBeta.NetworkInterface{
+								{
+									Network: "n",
+									AccessConfigs: []*computeBeta.AccessConfig{
+										{Type: "ONE_TO_ONE_NAT"},
+									},
 								},
 							},
 						},
@@ -234,9 +261,18 @@ func createWorkflowWithCreateDiskImageAndIncludeWorkflow() *daisy.Workflow {
 		},
 		"cins": {
 			CreateInstances: &daisy.CreateInstances{
-				{
-					Instance: compute.Instance{
-						Disks: []*compute.AttachedDisk{{Source: "key1"}},
+				Instances: []*daisy.Instance{
+					{
+						Instance: compute.Instance{
+							Disks: []*compute.AttachedDisk{{Source: "key1"}},
+						},
+					},
+				},
+				InstancesBeta: []*daisy.InstanceBeta{
+					{
+						Instance: computeBeta.Instance{
+							Disks: []*computeBeta.AttachedDisk{{Source: "key1"}},
+						},
 					},
 				},
 			},

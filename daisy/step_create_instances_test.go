@@ -83,7 +83,7 @@ func TestLogSerialOutput(t *testing.T) {
 		mockLogger := &MockLogger{}
 		w.Logger = mockLogger
 		s := &Step{name: "foo", w: w}
-		logSerialOutput(ctx, s, tt.instance, 0, 1*time.Microsecond)
+		logSerialOutput(ctx, s, tt.instance, &tt.instance.InstanceBase, 0, 1*time.Microsecond)
 		logEntries := mockLogger.getEntries()
 		gotStep := logEntries[0].StepName
 		if gotStep != "foo" {
@@ -121,7 +121,8 @@ func TestLogSerialOutputStopsAfterTenRetries(t *testing.T) {
 			return &compute.SerialPortOutput{Contents: response, Next: next + int64(len(response))}, nil
 		}
 	}
-	logSerialOutput(ctx, &Step{name: "foo", w: w}, &Instance{Instance: compute.Instance{Name: "i1"}}, 0, 1*time.Microsecond)
+	i := Instance{Instance: compute.Instance{Name: "i1"}}
+	logSerialOutput(ctx, &Step{name: "foo", w: w}, &i, &i.InstanceBase, 0, 1*time.Microsecond)
 
 	logs := w.Logger.ReadSerialPortLogs()
 	assert.Equal(t, 1, len(logs))
@@ -143,10 +144,10 @@ func TestCreateInstancesRun(t *testing.T) {
 	w.subnetworks.m = map[string]*Resource{"s": {link: "sLink"}}
 
 	// Good case: check disk and network links get resolved.
-	i0 := &Instance{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Network: "n"}}}}
-	i1 := &Instance{Resource: Resource{daisyName: "i1", Project: "foo"}, Instance: compute.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "other"}}, Zone: "bar"}}
-	i2 := &Instance{Resource: Resource{daisyName: "i2"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: "s"}}}}
-	ci := &CreateInstances{i0, i1, i2}
+	i0 := &Instance{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i0"}}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Network: "n"}}}}
+	i1 := &Instance{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i1", Project: "foo"}}, Instance: compute.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "other"}}, Zone: "bar"}}
+	i2 := &Instance{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i2"}}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: "s"}}}}
+	ci := &CreateInstances{Instances: []*Instance{i0, i1, i2}}
 	if err := ci.run(ctx, s); err != nil {
 		t.Errorf("unexpected error running CreateInstances.run(): %v", err)
 	}
@@ -167,7 +168,9 @@ func TestCreateInstancesRun(t *testing.T) {
 	w.instances.m = map[string]*Resource{}
 	createErr = Errf("client error")
 	ci = &CreateInstances{
-		{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},
+		Instances: []*Instance{
+			{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i0"}}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},
+		},
 	}
 	if err := ci.run(ctx, s); err != createErr {
 		t.Errorf("CreateInstances.run() should have return compute client error: %v != %v", err, createErr)

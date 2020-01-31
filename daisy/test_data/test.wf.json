@@ -44,7 +44,8 @@
             "test_metadata": "this was a test"
           },
           "MachineType": "${machine_type}",
-          "StartupScript": "shutdown /h"
+          "StartupScript": "shutdown /h",
+          "Scopes": ["scope1", "scope2"]
         }
       ]
     },
@@ -65,7 +66,8 @@
             }
           ],
           "MachineType": "${machine_type}",
-          "StartupScript": "shutdown /h"
+          "StartupScript": "shutdown /h",
+          "Scopes": ["scope3", "scope4"]
         }
       ]
     },

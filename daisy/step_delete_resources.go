@@ -22,7 +22,6 @@ import (
 	"sync"
 
 	"cloud.google.com/go/storage"
-	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iterator"
 )
@@ -79,25 +78,51 @@ func (d *DeleteResources) validateInstance(i string, s *Step) DError {
 	ir, _ := s.w.instances.get(i)
 
 	// Get the Instance that created this instance, if any.
-	var attachedDisks []*compute.AttachedDisk
+
 	if ir.creator != nil {
-		for _, createI := range *ir.creator.CreateInstances {
-			if createI.daisyName == i {
-				attachedDisks = createI.Disks
+		//Try GA
+		for _, createI := range (*ir.creator.CreateInstances).Instances {
+			if createI.daisyName != i {
+				continue
+			}
+			attachedDisks := createI.Disks
+			for _, ad := range attachedDisks {
+				if !ad.AutoDelete {
+					continue
+				}
+				dName := ad.Source
+				if ad.InitializeParams != nil {
+					dName = ad.InitializeParams.DiskName
+				}
+				if err := s.w.disks.regDelete(dName, s); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+
+		//Try Beta
+		for _, createI := range (*ir.creator.CreateInstances).InstancesBeta {
+			if createI.daisyName != i {
+				continue
+			}
+			attachedDisks := createI.Disks
+			for _, ad := range attachedDisks {
+				if !ad.AutoDelete {
+					continue
+				}
+				dName := ad.Source
+				if ad.InitializeParams != nil {
+					dName = ad.InitializeParams.DiskName
+				}
+				if err := s.w.disks.regDelete(dName, s); err != nil {
+					return err
+				}
+				return nil
 			}
 		}
 	}
-	for _, ad := range attachedDisks {
-		if ad.AutoDelete {
-			dName := ad.Source
-			if ad.InitializeParams != nil {
-				dName = ad.InitializeParams.DiskName
-			}
-			if err := s.w.disks.regDelete(dName, s); err != nil {
-				return err
-			}
-		}
-	}
+
 	return nil
 }
 

@@ -303,7 +303,7 @@ func (g *guestOsFeatures) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, (*dg)(g))
 }
 
-func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) DError {
+func populateImage(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) DError {
 	name, errs := ib.Resource.populateWithGlobal(ctx, s, ii.getName())
 	ii.setName(name)
 
@@ -341,7 +341,7 @@ func populateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
 	return
 }
 
-func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []string, s *Step) DError {
+func validateImage(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []string, s *Step) DError {
 	pre := fmt.Sprintf("cannot create image %q", ib.daisyName)
 	errs := ib.Resource.validate(ctx, s, pre)
 

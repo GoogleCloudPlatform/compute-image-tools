@@ -56,12 +56,12 @@ func TestInstancePopulate(t *testing.T) {
 		shouldErr bool
 	}{
 		{"good case", &Instance{}, false},
-		{"bad case", &Instance{StartupScript: "Workflow source DNE and can't resolve!"}, true},
+		{"bad case", &Instance{InstanceBase: InstanceBase{StartupScript: "Workflow source DNE and can't resolve!"}}, true},
 	}
 
 	for testNum, tt := range tests {
 		s, _ := w.NewStep("s" + strconv.Itoa(testNum))
-		err := tt.i.populate(context.Background(), s)
+		err := populateInstance(context.Background(), tt.i, &tt.i.InstanceBase, s)
 
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned error but didn't", tt.desc)
@@ -138,7 +138,7 @@ func TestInstancePopulateDisks(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		i := Instance{Instance: compute.Instance{Name: iName, Disks: tt.ad, Zone: testZone}, Resource: Resource{Project: testProject}}
+		i := Instance{Instance: compute.Instance{Name: iName, Disks: tt.ad, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		err := i.populateDisks(w)
 		if err != nil {
 			t.Errorf("%s: populateDisks returned an unexpected error: %v", tt.desc, err)
@@ -158,8 +158,8 @@ func TestInstancePopulateMachineType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		i := Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: "bar"}, Resource: Resource{Project: "foo"}}
-		err := i.populateMachineType()
+		i := Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: "bar"}, InstanceBase: InstanceBase{Resource: Resource{Project: "foo"}}}
+		err := populateMachineType(&i, &i.InstanceBase)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: populateMachineType should have erred but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -206,8 +206,8 @@ func TestInstancePopulateMetadata(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		i := Instance{Metadata: tt.md, StartupScript: tt.startupScript}
-		err := i.populateMetadata(w)
+		i := Instance{InstanceBase: InstanceBase{StartupScript: tt.startupScript}, Metadata: tt.md}
+		err := populateMetadata(&i, &i.InstanceBase, w)
 		if err == nil {
 			if tt.shouldErr {
 				t.Errorf("%s: populateMetadata should have erred but didn't", tt.desc)
@@ -266,7 +266,7 @@ func TestInstancePopulateNetworks(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		i := &Instance{Instance: compute.Instance{NetworkInterfaces: tt.input}, Resource: Resource{Project: testProject}}
+		i := &Instance{Instance: compute.Instance{NetworkInterfaces: tt.input}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		err := i.populateNetworks()
 		if err != nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
@@ -290,7 +290,7 @@ func TestInstancePopulateScopes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		i := &Instance{Scopes: tt.input, Instance: compute.Instance{ServiceAccounts: tt.inputSas}}
+		i := &Instance{InstanceBase: InstanceBase{Scopes: tt.input}, Instance: compute.Instance{ServiceAccounts: tt.inputSas}}
 		err := i.populateScopes()
 		if err == nil {
 			if tt.shouldErr {
@@ -327,7 +327,7 @@ func TestInstancesValidate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		s.CreateInstances = &CreateInstances{tt.i}
+		s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.i}}
 
 		// Test sanitation -- clean/set irrelevant fields.
 		tt.i.daisyName = tt.i.Name
@@ -374,7 +374,7 @@ func TestInstanceValidateDisks(t *testing.T) {
 		tt.i.Project = w.Project
 		tt.i.Zone = w.Zone
 
-		if err := tt.i.validateDisks(s); tt.shouldErr && err == nil {
+		if err := validateDisks(tt.i, &tt.i.InstanceBase, s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -406,8 +406,8 @@ func TestInstanceValidateDiskSource(t *testing.T) {
 
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
-		i := &Instance{Instance: compute.Instance{Disks: tt.ads, Zone: z}, Resource: Resource{Project: p}}
-		err := i.validateDiskSource(tt.ads[0], s)
+		i := &Instance{Instance: compute.Instance{Disks: tt.ads, Zone: z}, InstanceBase: InstanceBase{Resource: Resource{Project: p}}}
+		err := validateDiskSource(tt.ads[0].Source, i, &i.InstanceBase, s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -443,9 +443,10 @@ func TestInstanceValidateDiskInitializeParams(t *testing.T) {
 
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
-		ci := &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{InitializeParams: tt.p}}, Zone: testZone}, Resource: Resource{Project: testProject}}
-		s.CreateInstances = &CreateInstances{ci}
-		if err := ci.validateDiskInitializeParams(ci.Disks[0], s); err == nil {
+		ci := &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{InitializeParams: tt.p}}, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		s.CreateInstances = &CreateInstances{Instances: []*Instance{ci}}
+		computeDisks := ci.getComputeDisks()
+		if err := validateDiskInitializeParams(computeDisks[0], ci, &ci.InstanceBase, s); err == nil {
 			if tt.shouldErr {
 				t.Errorf("%s: should have returned an error but didn't", tt.desc)
 			}
@@ -503,8 +504,8 @@ func TestInstanceValidateMachineType(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ci := &Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: testZone}, Resource: Resource{Project: testProject}}
-		if err := ci.validateMachineType(c); tt.shouldErr && err == nil {
+		ci := &Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		if err := validateMachineType(ci, &ci.InstanceBase, c); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -524,16 +525,16 @@ func TestInstanceValidateNetworks(t *testing.T) {
 		ci        *Instance
 		shouldErr bool
 	}{
-		{"good case reference", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: testNetwork, AccessConfigs: acs}}}}, false},
-		{"good case only subnetwork", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acs}}}}, false},
-		{"good case url", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acs}}}}, false},
-		{"bad name case", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acs}}}}, true},
-		{"bad project case", &Instance{Resource: r, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acs}}}}, true},
+		{"good case reference", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: testNetwork, AccessConfigs: acs}}}}, false},
+		{"good case only subnetwork", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acs}}}}, false},
+		{"good case url", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acs}}}}, false},
+		{"bad name case", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acs}}}}, true},
+		{"bad project case", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acs}}}}, true},
 	}
 
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
-		s.CreateInstances = &CreateInstances{tt.ci}
+		s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.ci}}
 		if err := tt.ci.validateNetworks(s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {

@@ -22,6 +22,7 @@ import (
 
 	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -102,7 +103,7 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 	}
 	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateInstances != nil {
-			for _, instance := range *step.CreateInstances {
+			for _, instance := range step.CreateInstances.Instances {
 				if instance.Instance.NetworkInterfaces == nil {
 					return
 				}
@@ -110,6 +111,15 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 					networkInterface.AccessConfigs = []*compute.AccessConfig{}
 				}
 			}
+			for _, instance := range step.CreateInstances.InstancesBeta {
+				if instance.Instance.NetworkInterfaces == nil {
+					return
+				}
+				for _, networkInterface := range instance.Instance.NetworkInterfaces {
+					networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
+				}
+			}
+
 		}
 	})
 }

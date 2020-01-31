@@ -45,7 +45,7 @@ func (ci *CreateImages) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func usesBetaFeatures(imagesBeta []*ImageBeta) bool {
+func imageUsesBetaFeatures(imagesBeta []*ImageBeta) bool {
 	return false
 }
 
@@ -56,13 +56,13 @@ func (ci *CreateImages) populate(ctx context.Context, s *Step) DError {
 	var errs DError
 	if ci.Images != nil {
 		for _, i := range ci.Images {
-			errs = addErrs(errs, populate(ctx, i, &i.ImageBase, s))
+			errs = addErrs(errs, populateImage(ctx, i, &i.ImageBase, s))
 		}
 	}
 
 	if ci.ImagesBeta != nil {
 		for _, i := range ci.ImagesBeta {
-			errs = addErrs(errs, populate(ctx, i, &i.ImageBase, s))
+			errs = addErrs(errs, populateImage(ctx, i, &i.ImageBase, s))
 		}
 	}
 
@@ -72,13 +72,13 @@ func (ci *CreateImages) populate(ctx context.Context, s *Step) DError {
 func (ci *CreateImages) validate(ctx context.Context, s *Step) DError {
 	var errs DError
 
-	if usesBetaFeatures(ci.ImagesBeta) {
+	if imageUsesBetaFeatures(ci.ImagesBeta) {
 		for _, i := range ci.ImagesBeta {
-			errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
+			errs = addErrs(errs, validateImage(ctx, i, &i.ImageBase, i.Licenses, s))
 		}
 	} else {
 		for _, i := range ci.Images {
-			errs = addErrs(errs, validate(ctx, i, &i.ImageBase, i.Licenses, s))
+			errs = addErrs(errs, validateImage(ctx, i, &i.ImageBase, i.Licenses, s))
 		}
 	}
 
@@ -116,7 +116,7 @@ func (ci *CreateImages) run(ctx context.Context, s *Step) DError {
 		ci.markCreatedInWorkflow()
 	}
 
-	if usesBetaFeatures(ci.ImagesBeta) {
+	if imageUsesBetaFeatures(ci.ImagesBeta) {
 		for _, i := range ci.ImagesBeta {
 			wg.Add(1)
 			go createImage(i, i.OverWrite)

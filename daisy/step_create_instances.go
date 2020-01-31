@@ -17,6 +17,7 @@ package daisy
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"path"
 	"sync"
@@ -24,15 +25,35 @@ import (
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
-type CreateInstances []*Instance
+type CreateInstances struct {
+	Instances     []*Instance
+	InstancesBeta []*InstanceBeta
+}
 
-func logSerialOutput(ctx context.Context, s *Step, i *Instance, port int64, interval time.Duration) {
+// UnmarshalJSON unmarshals Instance.
+func (ci *CreateInstances) UnmarshalJSON(b []byte) error {
+	var instancesBeta []*InstanceBeta
+	if err := json.Unmarshal(b, &instancesBeta); err != nil {
+		return err
+	}
+	ci.InstancesBeta = instancesBeta
+
+	var instances []*Instance
+	if err := json.Unmarshal(b, &instances); err != nil {
+		return err
+	}
+	ci.Instances = instances
+
+	return nil
+}
+
+func logSerialOutput(ctx context.Context, s *Step, ii InstanceInterface, ib *InstanceBase, port int64, interval time.Duration) {
 	w := s.w
 	w.logWait.Add(1)
 	defer w.logWait.Done()
 
-	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", i.Name, port))
-	w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", i.Name, port, w.bucket, logsObj)
+	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", ii.getName(), port))
+	w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", ii.getName(), port, w.bucket, logsObj)
 	var start int64
 	var buf bytes.Buffer
 	var gcsErr bool
@@ -44,10 +65,10 @@ Loop:
 	for {
 		select {
 		case <-tick:
-			resp, err := w.ComputeClient.GetSerialPortOutput(path.Base(i.Project), path.Base(i.Zone), i.Name, port, start)
+			resp, err := w.ComputeClient.GetSerialPortOutput(path.Base(ib.Project), path.Base(ii.getZone()), ii.getName(), port, start)
 			if err != nil {
 				numErr++
-				status, sErr := w.ComputeClient.InstanceStatus(path.Base(i.Project), path.Base(i.Zone), i.Name)
+				status, sErr := w.ComputeClient.InstanceStatus(path.Base(ib.Project), path.Base(ii.getZone()), ii.getName())
 				switch status {
 				case "TERMINATED", "STOPPED", "STOPPING":
 					// Instance is stopped or stopping.
@@ -61,7 +82,7 @@ Loop:
 					// down fast enough that the call to InstanceStatus will return a 404.
 					if !readFromSerial {
 						w.LogStepInfo(s.name, "CreateInstances",
-							"Instance %q: error getting serial port: %v", i.Name, err)
+							"Instance %q: error getting serial port: %v", ii.getName(), err)
 					}
 					break Loop
 				}
@@ -75,14 +96,14 @@ Loop:
 			wc.ContentType = "text/plain"
 			if _, err := wc.Write(buf.Bytes()); err != nil && !gcsErr {
 				gcsErr = true
-				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", i.Name, err)
+				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", ii.getName(), err)
 				continue
 			} else if err != nil { // dont try to close the writer
 				continue
 			}
 			if err := wc.Close(); err != nil && !gcsErr {
 				gcsErr = true
-				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", i.Name, err)
+				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", ii.getName(), err)
 				continue
 			}
 
@@ -92,65 +113,70 @@ Loop:
 		}
 	}
 
-	w.Logger.WriteSerialPortLogs(w, i.Name, buf)
+	w.Logger.WriteSerialPortLogs(w, ii.getName(), buf)
 }
 
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.
 // - sets defaults
 // - extends short partial URLs to include "projects/<project>"
-func (c *CreateInstances) populate(ctx context.Context, s *Step) DError {
+func (ci *CreateInstances) populate(ctx context.Context, s *Step) DError {
 	var errs DError
-	for _, i := range *c {
-		errs = addErrs(errs, i.populate(ctx, s))
+	if ci.Instances != nil {
+		for _, i := range ci.Instances {
+			errs = addErrs(errs, populateInstance(ctx, i, &i.InstanceBase, s))
+		}
+	}
+
+	if ci.InstancesBeta != nil {
+		for _, i := range ci.InstancesBeta {
+			errs = addErrs(errs, populateInstance(ctx, i, &i.InstanceBase, s))
+		}
+	}
+
+	return errs
+}
+
+func (ci *CreateInstances) validate(ctx context.Context, s *Step) DError {
+	var errs DError
+	if ci.instanceUsesBetaFeatures() {
+		for _, i := range ci.InstancesBeta {
+			errs = addErrs(errs, validateInstance(ctx, i, &i.InstanceBase, s))
+		}
+	} else {
+		for _, i := range ci.Instances {
+			errs = addErrs(errs, validateInstance(ctx, i, &i.InstanceBase, s))
+		}
 	}
 	return errs
 }
 
-func (c *CreateInstances) validate(ctx context.Context, s *Step) DError {
-	var errs DError
-	for _, i := range *c {
-		errs = addErrs(errs, i.validate(ctx, s))
-	}
-	return errs
-}
-
-func (c *CreateInstances) run(ctx context.Context, s *Step) DError {
+func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
 	eChan := make(chan DError)
-	for _, ci := range *c {
-		wg.Add(1)
-		go func(i *Instance) {
-			defer wg.Done()
+	createInstance := func(ii InstanceInterface, ib *InstanceBase) {
+		defer wg.Done()
+		ii.updateDisksAndNetworksBeforeCreate(w)
 
-			for _, d := range i.Disks {
-				if diskRes, ok := w.disks.get(d.Source); ok {
-					d.Source = diskRes.link
-				}
-				if d.InitializeParams != nil && d.InitializeParams.SourceImage != "" {
-					if image, ok := w.images.get(d.InitializeParams.SourceImage); ok {
-						d.InitializeParams.SourceImage = image.link
-					}
-				}
-			}
+		w.LogStepInfo(s.name, "CreateInstances", "Creating instance %q.", ii.getName())
+		if err := ii.create(w.ComputeClient); err != nil {
+			eChan <- newErr("failed to create instances", err)
+			return
+		}
+		ib.createdInWorkflow = true
+		go logSerialOutput(ctx, s, ii, ib, 1, 3*time.Second)
+	}
 
-			for _, n := range i.NetworkInterfaces {
-				if netRes, ok := w.networks.get(n.Network); ok {
-					n.Network = netRes.link
-				}
-				if subnetRes, ok := w.subnetworks.get(n.Subnetwork); ok {
-					n.Subnetwork = subnetRes.link
-				}
-			}
-
-			w.LogStepInfo(s.name, "CreateInstances", "Creating instance %q.", i.Name)
-			if err := w.ComputeClient.CreateInstance(i.Project, i.Zone, &i.Instance); err != nil {
-				eChan <- newErr("failed to create instances", err)
-				return
-			}
-			i.createdInWorkflow = true
-			go logSerialOutput(ctx, s, i, 1, 3*time.Second)
-		}(ci)
+	if ci.instanceUsesBetaFeatures() {
+		for _, i := range ci.InstancesBeta {
+			wg.Add(1)
+			go createInstance(i, &i.InstanceBase)
+		}
+	} else {
+		for _, i := range ci.Instances {
+			wg.Add(1)
+			go createInstance(i, &i.InstanceBase)
+		}
 	}
 
 	go func() {
@@ -166,4 +192,13 @@ func (c *CreateInstances) run(ctx context.Context, s *Step) DError {
 		wg.Wait()
 		return nil
 	}
+}
+
+func (ci *CreateInstances) instanceUsesBetaFeatures() bool {
+	for _, instanceBeta := range ci.InstancesBeta {
+		if instanceBeta != nil && instanceBeta.SourceMachineImage != "" {
+			return true
+		}
+	}
+	return false
 }

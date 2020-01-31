@@ -260,14 +260,33 @@ func TestNewFromFile(t *testing.T) {
 		"${bootstrap_instance_name}": {
 			name: "${bootstrap_instance_name}",
 			CreateInstances: &CreateInstances{
-				{
-					Instance: compute.Instance{
-						Name:        "${bootstrap_instance_name}",
-						Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
-						MachineType: "${machine_type}",
+				Instances: []*Instance{
+					{
+						Instance: compute.Instance{
+							Name:        "${bootstrap_instance_name}",
+							Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope1", "scope2"},
+						},
+						Metadata: map[string]string{"test_metadata": "this was a test"},
 					},
-					StartupScript: "shutdown /h",
-					Metadata:      map[string]string{"test_metadata": "this was a test"},
+				},
+				InstancesBeta: []*InstanceBeta{
+					{
+						Instance: computeBeta.Instance{
+							Name:        "${bootstrap_instance_name}",
+							Disks:       []*computeBeta.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope1", "scope2"},
+						},
+						Metadata: map[string]string{"test_metadata": "this was a test"},
+					},
 				},
 			},
 		},
@@ -279,13 +298,31 @@ func TestNewFromFile(t *testing.T) {
 		"postinstall": {
 			name: "postinstall",
 			CreateInstances: &CreateInstances{
-				{
-					Instance: compute.Instance{
-						Name:        "postinstall",
-						Disks:       []*compute.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
-						MachineType: "${machine_type}",
+				Instances: []*Instance{
+					{
+						Instance: compute.Instance{
+							Name:        "postinstall",
+							Disks:       []*compute.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope3", "scope4"},
+						},
 					},
-					StartupScript: "shutdown /h",
+				},
+				InstancesBeta: []*InstanceBeta{
+					{
+						Instance: computeBeta.Instance{
+							Name:        "postinstall",
+							Disks:       []*computeBeta.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope3", "scope4"},
+						},
+					},
 				},
 			},
 		},

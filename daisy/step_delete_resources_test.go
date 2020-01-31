@@ -168,7 +168,16 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 	w.networks.m = map[string]*Resource{"n0": ns[0], "n1": ns[1]}
 	ads := []*compute.AttachedDisk{{Source: "d1"}}
-	inC.CreateInstances = &CreateInstances{{Resource: Resource{daisyName: "in0"}, Instance: compute.Instance{Disks: ads}}}
+	inC.CreateInstances = &CreateInstances{
+		Instances: []*Instance{
+			{
+				InstanceBase: InstanceBase{
+					Resource: Resource{daisyName: "in0"},
+				},
+				Instance: compute.Instance{Disks: ads},
+			},
+		},
+	}
 
 	CompareResources := func(got, want []*Resource) {
 		for _, s := range []*Step{dC, imC, miC, inC, s, otherDeleter} {
