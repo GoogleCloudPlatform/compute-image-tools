@@ -19,6 +19,7 @@ require (
 	github.com/minio/highwayhash v1.0.0
 	github.com/stretchr/testify v1.4.0
 	github.com/vmware/govmomi v0.22.1
+	golang.org/x/exp v0.0.0-20200119233911-0405dc783f0a
 	golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
 	golang.org/x/tools v0.0.0-20200128220307-520188d60f50 // indirect
 	google.golang.org/api v0.15.0

@@ -30,7 +30,6 @@ var (
 	dataDisk             = flag.Bool("data_disk", false, "Specifies that the disk has no bootable OS installed on it.	Imports the disk without making it bootable or installing Google tools on it. ")
 	osID                 = flag.String("os", "", "Specifies the OS of the image being imported. OS must be one of: centos-6, centos-7, debian-8, debian-9, opensuse-15, sles-12-byol, sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, ubuntu-1804, windows-10-byol, windows-2008r2, windows-2008r2-byol, windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016, windows-2016-byol, windows-7-byol.")
 	customTranWorkflow   = flag.String("custom_translate_workflow", "", "Specifies the custom workflow used to do translation")
-	sourceFile           = flag.String("source_file", "", "Google Cloud Storage URI of the virtual disk file	to import. For example: gs://my-bucket/my-image.vmdk")
 	noGuestEnvironment   = flag.Bool("no_guest_environment", false, "Google Guest Environment will not be installed on the image.")
 	family               = flag.String("family", "", "Family to set for the translated image")
 	description          = flag.String("description", "", "Description to set for the translated image")
@@ -53,14 +52,22 @@ var (
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 	storageLocation      = flag.String("storage_location", "", "Location for the imported image which can be any GCS location. If the location parameter is not included, images are created in the multi-region associated with the source disk, image, snapshot or GCS bucket.")
 	uefiCompatible       = flag.Bool("uefi_compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
+
+	awsImageId          = flag.String("aws_image_id", "", ".")
+	awsExportBucket     = flag.String("aws_export_bucket", "", ".")
+	awsExportFolder     = flag.String("aws_export_folder", "", ".")
+	awsAccessKeyId      = flag.String("aws_access_key_id", "", ".")
+	awsSecrectAccessKey = flag.String("aws_secret_access_key", "", ".")
+	awsRegion           = flag.String("aws_region", "", ".")
 )
 
 func importEntry() (*daisy.Workflow, error) {
 	currentExecutablePath := string(os.Args[0])
-	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
+	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
 		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
-		*labels, currentExecutablePath, *storageLocation, *uefiCompatible)
+		*labels, currentExecutablePath, *storageLocation, *uefiCompatible,
+		*awsImageId, *awsExportBucket, *awsExportFolder, *awsAccessKeyId, *awsSecrectAccessKey, *awsRegion)
 }
 
 func main() {
