@@ -309,6 +309,7 @@ func buildTestArgs(props *ovfImportTestProperties, testProjectConfig *testconfig
 		fmt.Sprintf("-instance-names=%s", props.instanceName),
 		fmt.Sprintf("-ovf-gcs-path=%v", props.sourceURI),
 		fmt.Sprintf("-zone=%v", testProjectConfig.TestZone),
+		fmt.Sprintf("-build-id=%v", path.RandString(10)),
 	}
 
 	if props.os != "" {
