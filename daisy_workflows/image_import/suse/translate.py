@@ -89,7 +89,7 @@ _distros = [
     _SuseRelease(
         flavor='sles',
         major='12',
-        minor='5',
+        minor='*',
         subscriptions=['sle-module-public-cloud/12/x86_64']
     ),
 ]
