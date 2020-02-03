@@ -280,13 +280,13 @@ func TestInstancePopulateScopes(t *testing.T) {
 	defaultScopes := []string{"https://www.googleapis.com/auth/devstorage.read_only"}
 	tests := []struct {
 		desc           string
-		input          []string
+		input          *[]string
 		inputSas, want []*compute.ServiceAccount
 		shouldErr      bool
 	}{
 		{"default case", nil, nil, []*compute.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, false},
-		{"nondefault case", []string{"foo"}, nil, []*compute.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, false},
-		{"service accounts override case", []string{"foo"}, []*compute.ServiceAccount{}, []*compute.ServiceAccount{}, false},
+		{"nondefault case", &[]string{"foo"}, nil, []*compute.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, false},
+		{"service accounts override case", &[]string{"foo"}, []*compute.ServiceAccount{}, []*compute.ServiceAccount{}, false},
 	}
 
 	for _, tt := range tests {
