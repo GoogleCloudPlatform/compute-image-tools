@@ -54,7 +54,7 @@ const (
 )
 
 func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
-		string, string, map[string]string, error) {
+	string, string, map[string]string, error) {
 
 	if err := validation.ValidateStringFlagNotEmpty(imageName, ImageNameFlagKey); err != nil {
 		return "", "", nil, err
@@ -124,10 +124,10 @@ func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucke
 	// Detect whether it's a compressed file by extracting compressed file header
 	if _, err = gzip.NewReader(byteCountingReader); err == nil {
 		return daisy.Errf("the input file is a gzip file, which is not supported by" +
-				"image import. To import a file that was exported from Google Compute " +
-				"Engine, please use image create. To import a file that was exported " +
-				"from a different system, decompress it and run image import on the " +
-				"disk image file directly")
+			"image import. To import a file that was exported from Google Compute " +
+			"Engine, please use image create. To import a file that was exported " +
+			"from a different system, decompress it and run image import on the " +
+			"disk image file directly")
 	}
 
 	// By calling gzip.NewReader above, a few bytes were read from the Reader in
@@ -159,7 +159,7 @@ func getTranslateWorkflowPath(customTranslateWorkflow, osID string) string {
 }
 
 func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family, description,
-		region, subnet, network string, noGuestEnvironment bool) map[string]string {
+	region, subnet, network string, noGuestEnvironment bool) map[string]string {
 
 	varMap := map[string]string{}
 
@@ -191,10 +191,10 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 }
 
 func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath string, zone string,
-		timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
-		gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
-		kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
-		userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
+	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
+	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
+	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
+	userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
@@ -240,12 +240,12 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 
 // Run runs import workflow.
 func Run(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string,
-		sourceFile string, sourceImage string, noGuestEnvironment bool, family string, description string,
-		network string, subnet string, zone string, timeout string, project *string,
-		scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
-		stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
-		noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
-		uefiCompatible bool) (*daisy.Workflow, error) {
+	sourceFile string, sourceImage string, noGuestEnvironment bool, family string, description string,
+	network string, subnet string, zone string, timeout string, project *string,
+	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
+	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
+	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
+	uefiCompatible bool) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 

@@ -240,7 +240,7 @@ func createWorkflowWithCreateDisksStep() *daisy.Workflow {
 }
 
 func validateLabels(t *testing.T, labels *map[string]string, typeLabel string, buildID string,
-		extraLabelsArr ...*map[string]string) {
+	extraLabelsArr ...*map[string]string) {
 	var extraLabels *map[string]string
 	if len(extraLabelsArr) > 0 {
 		extraLabels = extraLabelsArr[0]

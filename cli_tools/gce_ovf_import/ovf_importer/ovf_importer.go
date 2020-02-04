@@ -124,10 +124,10 @@ func getImportWorkflowPath(params *ovfimportparams.OVFImportParams) string {
 }
 
 func (oi *OVFImporter) buildDaisyVars(
-		translateWorkflowPath string,
-		bootDiskGcsPath string,
-		machineType string,
-		region string) map[string]string {
+	translateWorkflowPath string,
+	bootDiskGcsPath string,
+	machineType string,
+	region string) map[string]string {
 
 	varMap := map[string]string{}
 	if oi.params.IsInstanceImport() {
@@ -197,7 +197,7 @@ func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
 func (oi *OVFImporter) updateMachineImage(w *daisy.Workflow) {
 	if oi.params.MachineImageStorageLocation != "" {
 		(*w.Steps["create-machine-image"].CreateMachineImages)[0].StorageLocations =
-				[]string{oi.params.MachineImageStorageLocation}
+			[]string{oi.params.MachineImageStorageLocation}
 	}
 }
 
@@ -353,7 +353,7 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 }
 
 func (oi *OVFImporter) getMachineType(
-		ovfDescriptor *ovf.Envelope, project string, zone string) (string, error) {
+	ovfDescriptor *ovf.Envelope, project string, zone string) (string, error) {
 	machineTypeProvider := ovfgceutils.MachineTypeProvider{
 		OvfDescriptor: ovfDescriptor,
 		MachineType:   oi.params.MachineType,

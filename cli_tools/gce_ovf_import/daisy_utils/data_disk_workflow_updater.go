@@ -154,9 +154,9 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 	// attach newly created disks to the instance
 	for _, diskName := range diskNames {
 		(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks =
-				append(
-					(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks,
-					&compute.AttachedDisk{Source: diskName, AutoDelete: true})
+			append(
+				(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks,
+				&compute.AttachedDisk{Source: diskName, AutoDelete: true})
 	}
 }
 
