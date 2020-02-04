@@ -80,7 +80,7 @@ func instanceExists(client daisyCompute.Client, project, zone, instance string) 
 	return strIn(instance, instanceCache.exists[project][zone]), nil
 }
 
-// MarshalJSON is a hacky workaround to prevent Instance from using compute.Instance's implementation.
+// MarshalJSON is a workaround to prevent Instance from using compute.Instance's implementation.
 func (i *Instance) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*i)
 }
@@ -106,6 +106,8 @@ type InstanceInterface interface {
 	updateDisksAndNetworksBeforeCreate(w *Workflow)
 	getMetadata() map[string]string
 	setMetadata(md map[string]string)
+	getSourceMachineImage() string
+	setSourceMachineImage(machineImage string)
 }
 
 //InstanceBase is a base struct for GA/Beta images.
@@ -215,6 +217,33 @@ func (i *Instance) setMetadata(md map[string]string) {
 	i.Metadata = md
 }
 
+func (i *Instance) getSourceMachineImage() string {
+	return ""
+}
+
+func (i *Instance) setSourceMachineImage(machineImage string) {}
+
+func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DError) {
+	// Register disk attachments.
+	for _, d := range i.Disks {
+		dName := d.Source
+		if d.InitializeParams != nil {
+			parts := namedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
+			if parts["disktype"] == "local-ssd" {
+				continue
+			}
+			dName = d.InitializeParams.DiskName
+		}
+		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))
+	}
+
+	// Register network connections.
+	for _, n := range i.NetworkInterfaces {
+		nName := n.Network
+		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
+	}
+}
+
 func (i *InstanceBeta) getMachineType() string {
 	return i.MachineType
 }
@@ -289,25 +318,12 @@ func (i *InstanceBeta) setMetadata(md map[string]string) {
 	i.Metadata = md
 }
 
-func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DError) {
-	// Register disk attachments.
-	for _, d := range i.Disks {
-		dName := d.Source
-		if d.InitializeParams != nil {
-			parts := namedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
-			if parts["disktype"] == "local-ssd" {
-				continue
-			}
-			dName = d.InitializeParams.DiskName
-		}
-		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))
-	}
+func (i *InstanceBeta) getSourceMachineImage() string {
+	return i.Instance.SourceMachineImage
+}
 
-	// Register network connections.
-	for _, n := range i.NetworkInterfaces {
-		nName := n.Network
-		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
-	}
+func (i *InstanceBeta) setSourceMachineImage(machineImage string) {
+	i.SourceMachineImage = machineImage
 }
 
 func (i *InstanceBeta) register(name string, s *Step, ir *instanceRegistry, errs DError) {
@@ -343,6 +359,12 @@ func populateInstance(ctx context.Context, ii InstanceInterface, ib *InstanceBas
 	errs = addErrs(errs, ii.populateNetworks())
 	errs = addErrs(errs, ii.populateScopes())
 	ib.link = fmt.Sprintf("projects/%s/zones/%s/instances/%s", ib.Project, ii.getZone(), ii.getName())
+
+	if machineImageURLRgx.MatchString(ii.getSourceMachineImage()) {
+		ii.setSourceMachineImage(extendPartialURL(ii.getSourceMachineImage(), ib.Project))
+	} else {
+		ii.setSourceMachineImage(fmt.Sprintf("projects/%s/global/machineImages/%s", ib.Project, ii.getSourceMachineImage()))
+	}
 	return errs
 }
 
@@ -556,10 +578,23 @@ func validateInstance(ctx context.Context, ii InstanceInterface, ib *InstanceBas
 	errs = addErrs(errs, validateDisks(ii, ib, s))
 	errs = addErrs(errs, validateMachineType(ii, ib, s.w.ComputeClient))
 	errs = addErrs(errs, ii.validateNetworks(s))
+	errs = addErrs(errs, validateSourceMachineImage(ii, ib, s))
 
 	// Register creation.
 	errs = addErrs(errs, s.w.instances.regCreate(ib.daisyName, &ib.Resource, s))
 	return errs
+}
+
+func validateSourceMachineImage(ii InstanceInterface, ib *InstanceBase, s *Step) DError {
+	// regUse needs the partal url of a non daisy resource.
+	lookup := ii.getSourceMachineImage()
+	if lookup == "" {
+		return nil
+	}
+	if _, err := s.w.machineImages.regUse(lookup, s); err != nil {
+		return newErr("failed to register use of machine image when creating an instance", err)
+	}
+	return nil
 }
 
 type computeDisk struct {
@@ -602,10 +637,12 @@ func (i *InstanceBeta) getComputeDisks() []*computeDisk {
 
 func validateDisks(ii InstanceInterface, ib *InstanceBase, s *Step) (errs DError) {
 	computeDisks := ii.getComputeDisks()
-	if len(computeDisks) == 0 {
-		errs = addErrs(errs, Errf("cannot create instance: no disks provided"))
+	if len(computeDisks) == 0 && ii.getSourceMachineImage() == "" {
+		errs = addErrs(errs, Errf("cannot create instance: no disks nor source machine image provided"))
 	}
-
+	if len(computeDisks) > 0 && ii.getSourceMachineImage() != "" {
+		errs = addErrs(errs, Errf("cannot create instance: can't provide disks when SourceMachineImage provided"))
+	}
 	for _, d := range computeDisks {
 		if !checkDiskMode(d.mode) {
 			errs = addErrs(errs, Errf("cannot create instance: bad disk mode: %q", d.mode))

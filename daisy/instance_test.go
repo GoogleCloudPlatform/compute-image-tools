@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"testing"
 
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -53,21 +54,24 @@ func TestInstancePopulate(t *testing.T) {
 	tests := []struct {
 		desc      string
 		i         *Instance
+		iBeta     *InstanceBeta
 		shouldErr bool
 	}{
-		{"good case", &Instance{}, false},
-		{"bad case", &Instance{InstanceBase: InstanceBase{StartupScript: "Workflow source DNE and can't resolve!"}}, true},
+		{"good case", &Instance{}, &InstanceBeta{}, false},
+		{"bad case", &Instance{InstanceBase: InstanceBase{StartupScript: "Workflow source DNE and can't resolve!"}}, &InstanceBeta{InstanceBase: InstanceBase{StartupScript: "Workflow source DNE and can't resolve!"}}, true},
 	}
 
+	assertTest := func(shouldErr bool, desc string, err DError) {
+		if shouldErr && err == nil {
+			t.Errorf("%s: should have returned error but didn't", desc)
+		} else if !shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", desc, err)
+		}
+	}
 	for testNum, tt := range tests {
 		s, _ := w.NewStep("s" + strconv.Itoa(testNum))
-		err := populateInstance(context.Background(), tt.i, &tt.i.InstanceBase, s)
-
-		if tt.shouldErr && err == nil {
-			t.Errorf("%s: should have returned error but didn't", tt.desc)
-		} else if !tt.shouldErr && err != nil {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-		}
+		assertTest(tt.shouldErr, tt.desc, populateInstance(context.Background(), tt.i, &tt.i.InstanceBase, s))
+		assertTest(tt.shouldErr, tt.desc+" beta", populateInstance(context.Background(), tt.i, &tt.iBeta.InstanceBase, s))
 	}
 }
 
@@ -77,48 +81,65 @@ func TestInstancePopulateDisks(t *testing.T) {
 	iName := "foo"
 	defDT := fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", testProject, testZone, defaultDiskType)
 	tests := []struct {
-		desc       string
-		ad, wantAd []*compute.AttachedDisk
+		desc               string
+		ad, wantAd         []*compute.AttachedDisk
+		adBeta, wantAdBeta []*computeBeta.AttachedDisk
 	}{
 		{
 			"normal case",
 			[]*compute.AttachedDisk{{Source: "d1"}},
 			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}},
+			[]*computeBeta.AttachedDisk{{Source: "d1"}},
+			[]*computeBeta.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}},
 		},
 		{
 			"multiple disks case",
 			[]*compute.AttachedDisk{{Source: "d1"}, {Source: "d2"}},
 			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}, {Boot: false, Source: "d2", Mode: defaultDiskMode, DeviceName: "d2"}},
+			[]*computeBeta.AttachedDisk{{Source: "d1"}, {Source: "d2"}},
+			[]*computeBeta.AttachedDisk{{Boot: true, Source: "d1", Mode: defaultDiskMode, DeviceName: "d1"}, {Boot: false, Source: "d2", Mode: defaultDiskMode, DeviceName: "d2"}},
 		},
 		{
 			"mode specified case",
 			[]*compute.AttachedDisk{{Source: "d1", Mode: diskModeRO}},
 			[]*compute.AttachedDisk{{Boot: true, Source: "d1", Mode: diskModeRO, DeviceName: "d1"}},
+			[]*computeBeta.AttachedDisk{{Source: "d1", Mode: diskModeRO}},
+			[]*computeBeta.AttachedDisk{{Boot: true, Source: "d1", Mode: diskModeRO, DeviceName: "d1"}},
 		},
 		{
 			"init params daisy image (and other defaults)",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i"}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i"}}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params image short url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "global/images/i"}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "global/images/i"}}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params image extended url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject)}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject)}}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: fmt.Sprintf("projects/%s/global/images/i", testProject), DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params disk type short url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("zones/%s/diskTypes/dt", testZone)}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("zones/%s/diskTypes/dt", testZone)}}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params disk type extended url",
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}}},
 			[]*compute.AttachedDisk{{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}}},
+			[]*computeBeta.AttachedDisk{{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: fmt.Sprintf("projects/%s/zones/%s/diskTypes/dt", testProject, testZone)}, Mode: defaultDiskMode, Boot: true, DeviceName: iName}},
 		},
 		{
 			"init params name suffixes",
@@ -134,17 +155,36 @@ func TestInstancePopulateDisks(t *testing.T) {
 				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: "foo"},
 				{InitializeParams: &compute.AttachedDiskInitializeParams{DiskName: fmt.Sprintf("%s-2", iName), SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: fmt.Sprintf("%s-2", iName)},
 			},
+			[]*computeBeta.AttachedDisk{
+				{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i"}},
+				{Source: "d"},
+				{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i"}},
+				{InitializeParams: &computeBeta.AttachedDiskInitializeParams{SourceImage: "i"}},
+			},
+			[]*computeBeta.AttachedDisk{
+				{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: iName, SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, Boot: true, DeviceName: iName},
+				{Source: "d", Mode: defaultDiskMode, DeviceName: "d"},
+				{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: "foo"},
+				{InitializeParams: &computeBeta.AttachedDiskInitializeParams{DiskName: fmt.Sprintf("%s-2", iName), SourceImage: "i", DiskType: defDT}, Mode: defaultDiskMode, DeviceName: fmt.Sprintf("%s-2", iName)},
+			},
 		},
 	}
 
+	assertTest := func(err DError, desc string, ad, wantAd interface{}) {
+		if err != nil {
+			t.Errorf("%s: populateDisks returned an unexpected error: %v", desc, err)
+		} else if diffRes := diff(ad, wantAd, 0); diffRes != "" {
+			t.Errorf("%s: AttachedDisks not modified as expected: (-got +want)\n%s", desc, diffRes)
+		}
+
+	}
 	for _, tt := range tests {
 		i := Instance{Instance: compute.Instance{Name: iName, Disks: tt.ad, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
-		err := i.populateDisks(w)
-		if err != nil {
-			t.Errorf("%s: populateDisks returned an unexpected error: %v", tt.desc, err)
-		} else if diffRes := diff(tt.ad, tt.wantAd, 0); diffRes != "" {
-			t.Errorf("%s: AttachedDisks not modified as expected: (-got +want)\n%s", tt.desc, diffRes)
-		}
+		assertTest(i.populateDisks(w), tt.desc, tt.ad, tt.wantAd)
+
+		iBeta := InstanceBeta{Instance: computeBeta.Instance{Name: iName, Disks: tt.adBeta, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		assertTest(iBeta.populateDisks(w), tt.desc+" beta", tt.adBeta, tt.wantAdBeta)
+
 	}
 }
 
@@ -157,16 +197,22 @@ func TestInstancePopulateMachineType(t *testing.T) {
 		{"expand case", "zones/bar/machineTypes/mt", "projects/foo/zones/bar/machineTypes/mt", false},
 	}
 
+	assertTest := func(shouldErr bool, err DError, desc string, machineType string, wantMachineType string) {
+		if shouldErr && err == nil {
+			t.Errorf("%s: populateMachineType should have erred but didn't", desc)
+		} else if !shouldErr && err != nil {
+			t.Errorf("%s: populateMachineType returned an unexpected error: %v", desc, err)
+		} else if err == nil && machineType != wantMachineType {
+			t.Errorf("%s: MachineType not modified as expected: got: %q, want: %q", desc, machineType, wantMachineType)
+		}
+	}
+
 	for _, tt := range tests {
 		i := Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: "bar"}, InstanceBase: InstanceBase{Resource: Resource{Project: "foo"}}}
-		err := populateMachineType(&i, &i.InstanceBase)
-		if tt.shouldErr && err == nil {
-			t.Errorf("%s: populateMachineType should have erred but didn't", tt.desc)
-		} else if !tt.shouldErr && err != nil {
-			t.Errorf("%s: populateMachineType returned an unexpected error: %v", tt.desc, err)
-		} else if err == nil && i.MachineType != tt.wantMt {
-			t.Errorf("%s: MachineType not modified as expected: got: %q, want: %q", tt.desc, i.MachineType, tt.wantMt)
-		}
+		assertTest(tt.shouldErr, populateMachineType(&i, &i.InstanceBase), tt.desc, i.MachineType, tt.wantMt)
+
+		iBeta := InstanceBeta{Instance: computeBeta.Instance{MachineType: tt.mt, Zone: "bar"}, InstanceBase: InstanceBase{Resource: Resource{Project: "foo"}}}
+		assertTest(tt.shouldErr, populateMachineType(&iBeta, &iBeta.InstanceBase), tt.desc+" beta", iBeta.MachineType, tt.wantMt)
 	}
 }
 
@@ -182,6 +228,9 @@ func TestInstancePopulateMetadata(t *testing.T) {
 		"daisy-outs-path":    "gs://" + path.Join(w.bucket, w.outsPath),
 	}
 	getWantMd := func(md map[string]string) *compute.Metadata {
+		if md == nil {
+			return nil
+		}
 		for k, v := range baseMd {
 			md[k] = v
 		}
@@ -192,46 +241,81 @@ func TestInstancePopulateMetadata(t *testing.T) {
 		}
 		return result
 	}
+	getWantMdBeta := func(md map[string]string) *computeBeta.Metadata {
+		if md == nil {
+			return nil
+		}
+		for k, v := range baseMd {
+			md[k] = v
+		}
+		result := &computeBeta.Metadata{}
+		for k, v := range md {
+			vCopy := v
+			result.Items = append(result.Items, &computeBeta.MetadataItems{Key: k, Value: &vCopy})
+		}
+		return result
+	}
 
 	tests := []struct {
 		desc          string
 		md            map[string]string
 		startupScript string
-		wantMd        *compute.Metadata
+		wantMd        map[string]string
 		shouldErr     bool
 	}{
-		{"defaults case", nil, "", getWantMd(map[string]string{}), false},
-		{"startup script case", nil, "file", getWantMd(map[string]string{"startup-script-url": filePath, "windows-startup-script-url": filePath}), false},
+		{"defaults case", nil, "", map[string]string{}, false},
+		{"startup script case", nil, "file", map[string]string{"startup-script-url": filePath, "windows-startup-script-url": filePath}, false},
 		{"bad startup script case", nil, "foo", nil, true},
+	}
+	compFactory := func(items []*compute.MetadataItems) func(i, j int) bool {
+		return func(i, j int) bool { return items[i].Key < items[j].Key }
+	}
+	compFactoryBeta := func(items []*computeBeta.MetadataItems) func(i, j int) bool {
+		return func(i, j int) bool { return items[i].Key < items[j].Key }
+	}
+
+	assertTest := func(shouldErr bool, err DError, desc string, md, wantMd interface{}) {
+		if err == nil {
+			if shouldErr {
+				t.Errorf("%s: populateMetadata should have errored but didn't", desc)
+			} else {
+
+				if diffRes := diff(md, wantMd, 0); diffRes != "" {
+					t.Errorf("%s: Metadata not modified as expected: (-got +want)\n%s", desc, diffRes)
+				}
+			}
+		} else if !shouldErr {
+			t.Errorf("%s: populateMetadata returned an unexpected error: %v", desc, err)
+		}
 	}
 
 	for _, tt := range tests {
+		wantMd := getWantMd(tt.wantMd)
+		wantMdBeta := getWantMdBeta(tt.wantMd)
+		if tt.wantMd != nil {
+			sort.Slice(wantMd.Items, compFactory(wantMd.Items))
+			sort.Slice(wantMdBeta.Items, compFactoryBeta(wantMdBeta.Items))
+		}
+
 		i := Instance{InstanceBase: InstanceBase{StartupScript: tt.startupScript}, Metadata: tt.md}
 		err := populateMetadata(&i, &i.InstanceBase, w)
-		if err == nil {
-			if tt.shouldErr {
-				t.Errorf("%s: populateMetadata should have erred but didn't", tt.desc)
-			} else {
-				compFactory := func(items []*compute.MetadataItems) func(i, j int) bool {
-					return func(i, j int) bool { return items[i].Key < items[j].Key }
-				}
-				sort.Slice(i.Instance.Metadata.Items, compFactory(i.Instance.Metadata.Items))
-				sort.Slice(tt.wantMd.Items, compFactory(tt.wantMd.Items))
-				if diffRes := diff(i.Instance.Metadata, tt.wantMd, 0); diffRes != "" {
-					t.Errorf("%s: Metadata not modified as expected: (-got +want)\n%s", tt.desc, diffRes)
-				}
-			}
-		} else if !tt.shouldErr {
-			t.Errorf("%s: populateMetadata returned an unexpected error: %v", tt.desc, err)
-		}
+		sort.Slice(i.Instance.Metadata.Items, compFactory(i.Instance.Metadata.Items))
+		assertTest(tt.shouldErr, err, tt.desc, i.Instance.Metadata, wantMd)
+
+		iBeta := Instance{InstanceBase: InstanceBase{StartupScript: tt.startupScript}, Metadata: tt.md}
+		err = populateMetadata(&iBeta, &iBeta.InstanceBase, w)
+		sort.Slice(iBeta.Instance.Metadata.Items, compFactory(iBeta.Instance.Metadata.Items))
+		assertTest(tt.shouldErr, err, tt.desc+" beta", iBeta.Instance.Metadata, wantMdBeta)
 	}
 }
 
 func TestInstancePopulateNetworks(t *testing.T) {
 	defaultAcs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
+	defaultAcsBeta := []*computeBeta.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	tests := []struct {
-		desc        string
-		input, want []*compute.NetworkInterface
+		desc                string
+		input, want         []*compute.NetworkInterface
+		inputBeta, wantBeta []*computeBeta.NetworkInterface
 	}{
 		{
 			"default case",
@@ -239,6 +323,11 @@ func TestInstancePopulateNetworks(t *testing.T) {
 			[]*compute.NetworkInterface{{
 				Network:       fmt.Sprintf("projects/%s/global/networks/default", testProject),
 				AccessConfigs: defaultAcs,
+			}},
+			nil,
+			[]*computeBeta.NetworkInterface{{
+				Network:       fmt.Sprintf("projects/%s/global/networks/default", testProject),
+				AccessConfigs: defaultAcsBeta,
 			}},
 		},
 		{
@@ -252,6 +341,15 @@ func TestInstancePopulateNetworks(t *testing.T) {
 				AccessConfigs: defaultAcs,
 				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
 			}},
+			[]*computeBeta.NetworkInterface{{
+				Network:    "global/networks/foo",
+				Subnetwork: fmt.Sprintf("regions/%s/subnetworks/bar", getRegionFromZone(testZone)),
+			}},
+			[]*computeBeta.NetworkInterface{{
+				Network:       fmt.Sprintf("projects/%s/global/networks/foo", testProject),
+				AccessConfigs: defaultAcsBeta,
+				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
+			}},
 		},
 		{
 			"subnetwork case",
@@ -262,31 +360,45 @@ func TestInstancePopulateNetworks(t *testing.T) {
 				AccessConfigs: defaultAcs,
 				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
 			}},
+			[]*computeBeta.NetworkInterface{{
+				Subnetwork: fmt.Sprintf("regions/%s/subnetworks/bar", getRegionFromZone(testZone)),
+			}},
+			[]*computeBeta.NetworkInterface{{
+				AccessConfigs: defaultAcsBeta,
+				Subnetwork:    fmt.Sprintf("projects/%s/regions/%s/subnetworks/bar", testProject, getRegionFromZone(testZone)),
+			}},
 		},
+	}
+
+	assertTest := func(err DError, desc string, got, want interface{}) {
+		if err != nil {
+			t.Errorf("%s: should have returned an error", desc)
+		} else if diffRes := diff(got, want, 0); diffRes != "" {
+			t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", desc, diffRes)
+		}
 	}
 
 	for _, tt := range tests {
 		i := &Instance{Instance: compute.Instance{NetworkInterfaces: tt.input}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
-		err := i.populateNetworks()
-		if err != nil {
-			t.Errorf("%s: should have returned an error", tt.desc)
-		} else if diffRes := diff(i.NetworkInterfaces, tt.want, 0); diffRes != "" {
-			t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc, diffRes)
-		}
+		assertTest(i.populateNetworks(), tt.desc, i.NetworkInterfaces, tt.want)
+
+		iBeta := &InstanceBeta{Instance: computeBeta.Instance{NetworkInterfaces: tt.inputBeta}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		assertTest(iBeta.populateNetworks(), tt.desc, iBeta.NetworkInterfaces, tt.wantBeta)
 	}
 }
 
 func TestInstancePopulateScopes(t *testing.T) {
 	defaultScopes := []string{"https://www.googleapis.com/auth/devstorage.read_only"}
 	tests := []struct {
-		desc           string
-		input          []string
-		inputSas, want []*compute.ServiceAccount
-		shouldErr      bool
+		desc                   string
+		input                  []string
+		inputSas, want         []*compute.ServiceAccount
+		inputSasBeta, wantBeta []*computeBeta.ServiceAccount
+		shouldErr              bool
 	}{
-		{"default case", nil, nil, []*compute.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, false},
-		{"nondefault case", []string{"foo"}, nil, []*compute.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, false},
-		{"service accounts override case", []string{"foo"}, []*compute.ServiceAccount{}, []*compute.ServiceAccount{}, false},
+		{"default case", nil, nil, []*compute.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, nil, []*computeBeta.ServiceAccount{{Email: "default", Scopes: defaultScopes}}, false},
+		{"nondefault case", []string{"foo"}, nil, []*compute.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, nil, []*computeBeta.ServiceAccount{{Email: "default", Scopes: []string{"foo"}}}, false},
+		{"service accounts override case", []string{"foo"}, []*compute.ServiceAccount{}, []*compute.ServiceAccount{}, []*computeBeta.ServiceAccount{}, []*computeBeta.ServiceAccount{}, false},
 	}
 
 	for _, tt := range tests {
@@ -300,6 +412,18 @@ func TestInstancePopulateScopes(t *testing.T) {
 			}
 		} else if !tt.shouldErr {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+
+		iBeta := &InstanceBeta{InstanceBase: InstanceBase{Scopes: tt.input}, Instance: computeBeta.Instance{ServiceAccounts: tt.inputSasBeta}}
+		err = iBeta.populateScopes()
+		if err == nil {
+			if tt.shouldErr {
+				t.Errorf("%s: should have returned an error", tt.desc+" beta")
+			} else if diffRes := diff(iBeta.ServiceAccounts, tt.wantBeta, 0); diffRes != "" {
+				t.Errorf("%s: NetworkInterfaces not modified as expected: (-got +want)\n%s", tt.desc+" beta", diffRes)
+			}
+		} else if !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc+" beta", err)
 		}
 	}
 }
@@ -316,25 +440,39 @@ func TestInstancesValidate(t *testing.T) {
 
 	mt := fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", testProject, testZone, testMachineType)
 	ad := []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", w.Project, w.Zone, testDisk), Mode: defaultDiskMode}}
+	sourceMachineImage := fmt.Sprintf("projects/%s/global/machineImages/%s", w.Project, "test-machine-image")
 
 	tests := []struct {
 		desc      string
 		i         *Instance
+		iBeta     *InstanceBeta
 		shouldErr bool
 	}{
-		{"good simple case", &Instance{Instance: compute.Instance{Name: "i", Disks: ad, MachineType: mt}}, false},
-		{"bad dupe case", &Instance{Instance: compute.Instance{Name: "i", Disks: ad, MachineType: mt}}, true},
+		{desc: "success simple case v1", i: &Instance{Instance: compute.Instance{Name: "i", Disks: ad, MachineType: mt}}, shouldErr: false},
+		{desc: "failure dupe case v1", i: &Instance{Instance: compute.Instance{Name: "i", Disks: ad, MachineType: mt}}, shouldErr: true},
+		{desc: "success simple case v0 beta", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Name: "ib", MachineType: mt, SourceMachineImage: sourceMachineImage}}, shouldErr: false},
+		{desc: "failure dupe case v0 beta", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Name: "ib", MachineType: mt, SourceMachineImage: sourceMachineImage}}, shouldErr: true},
 	}
 
 	for _, tt := range tests {
-		s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.i}}
+		var ib *InstanceBase
+		var ii InstanceInterface
+		if tt.i != nil {
+			s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.i}}
+			ib = &tt.i.InstanceBase
+			ii = tt.i
+		} else {
+			s.CreateInstances = &CreateInstances{InstancesBeta: []*InstanceBeta{tt.iBeta}}
+			ib = &tt.iBeta.InstanceBase
+			ii = tt.iBeta
+		}
 
 		// Test sanitation -- clean/set irrelevant fields.
-		tt.i.daisyName = tt.i.Name
-		tt.i.RealName = tt.i.Name
-		tt.i.link = fmt.Sprintf("projects/%s/zones/%s/instances/%s", w.Project, w.Zone, tt.i.Name)
-		tt.i.Project = w.Project // Resource{} fields are tested in resource_test.
-		tt.i.Zone = w.Zone
+		ib.daisyName = ii.getName()
+		ib.RealName = ii.getName()
+		ib.link = fmt.Sprintf("projects/%s/zones/%s/instances/%s", w.Project, w.Zone, ii.getName())
+		ib.Project = w.Project // Resource{} fields are tested in resource_test.
+		ii.setZone(w.Zone)
 
 		if err := s.validate(ctx); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
@@ -358,23 +496,38 @@ func TestInstanceValidateDisks(t *testing.T) {
 	tests := []struct {
 		desc      string
 		i         *Instance
+		iBeta     *InstanceBeta
 		shouldErr bool
 	}{
-		{"good case reference", &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: m}}, Zone: testZone}}, false},
-		{"good case url", &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", w.Project, w.Zone, testDisk), Mode: m}}}}, false},
-		{"project mismatch case", &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/foo/zones/%s/disks/%s", w.Zone, testDisk), Mode: m}}}}, true},
-		{"bad no disks case", &Instance{Instance: compute.Instance{}}, true},
-		{"bad disk mode case", &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: "bad mode!"}}, Zone: testZone}}, true},
+		{desc: "success case reference", i: &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: m}}, Zone: testZone}}, shouldErr: false},
+		{desc: "success case url", i: &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/%s/disks/%s", w.Project, w.Zone, testDisk), Mode: m}}}}, shouldErr: false},
+		{desc: "success source machine image provided no disks", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Zone: testZone, SourceMachineImage: "source-machine-image"}}, shouldErr: false},
+		{desc: "error project mismatch case", i: &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/foo/zones/%s/disks/%s", w.Zone, testDisk), Mode: m}}}}, shouldErr: true},
+		{desc: "error no disks case", i: &Instance{Instance: compute.Instance{}}, shouldErr: true},
+		{desc: "error disk mode case", i: &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{Source: testDisk, Mode: "bad mode!"}}, Zone: testZone}}, shouldErr: true},
+		{desc: "error both disks and source machine image provided", iBeta: &InstanceBeta{Instance: computeBeta.Instance{Disks: []*computeBeta.AttachedDisk{{Source: testDisk}}, Zone: testZone, SourceMachineImage: "source-machine-image"}}, shouldErr: true},
 	}
 
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
 
-		// Test sanitation -- clean/set irrelevant fields.
-		tt.i.Project = w.Project
-		tt.i.Zone = w.Zone
+		var ib *InstanceBase
+		var ii InstanceInterface
+		if tt.i != nil {
+			// Test sanitation -- clean/set irrelevant fields.
+			tt.i.Project = w.Project
+			tt.i.Zone = w.Zone
+			ib = &tt.i.InstanceBase
+			ii = tt.i
+		} else if tt.iBeta != nil {
+			// Test sanitation -- clean/set irrelevant fields.
+			tt.iBeta.Project = w.Project
+			tt.iBeta.Zone = w.Zone
+			ii = tt.iBeta
+			ib = &tt.iBeta.InstanceBase
+		}
 
-		if err := validateDisks(tt.i, &tt.i.InstanceBase, s); tt.shouldErr && err == nil {
+		if err := validateDisks(ii, ib, s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -396,12 +549,13 @@ func TestInstanceValidateDiskSource(t *testing.T) {
 	tests := []struct {
 		desc      string
 		ads       []*compute.AttachedDisk
+		adsBeta   []*computeBeta.AttachedDisk
 		shouldErr bool
 	}{
-		{"good case", []*compute.AttachedDisk{{Source: "d", Mode: m}}, false},
-		{"disk dne case", []*compute.AttachedDisk{{Source: "dne", Mode: m}}, true},
-		{"bad project case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, true},
-		{"bad zone case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, true},
+		{"good case", []*compute.AttachedDisk{{Source: "d", Mode: m}}, []*computeBeta.AttachedDisk{{Source: "d", Mode: m}}, false},
+		{"disk dne case", []*compute.AttachedDisk{{Source: "dne", Mode: m}}, []*computeBeta.AttachedDisk{{Source: "dne", Mode: m}}, true},
+		{"bad project case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, []*computeBeta.AttachedDisk{{Source: fmt.Sprintf("projects/bad/zones/%s/disks/d", z), Mode: m}}, true},
+		{"bad zone case", []*compute.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, []*computeBeta.AttachedDisk{{Source: fmt.Sprintf("projects/%s/zones/bad/disks/d", p), Mode: m}}, true},
 	}
 
 	for _, tt := range tests {
@@ -412,6 +566,14 @@ func TestInstanceValidateDiskSource(t *testing.T) {
 			t.Errorf("%s: should have returned an error but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+
+		iBeta := &InstanceBeta{Instance: computeBeta.Instance{Disks: tt.adsBeta, Zone: z}, InstanceBase: InstanceBase{Resource: Resource{Project: p}}}
+		err = validateDiskSource(tt.ads[0].Source, iBeta, &iBeta.InstanceBase, s)
+		if tt.shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error but didn't", tt.desc)
+		} else if !tt.shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", tt.desc+" beta", err)
 		}
 	}
 }
@@ -431,28 +593,37 @@ func TestInstanceValidateDiskInitializeParams(t *testing.T) {
 	tests := []struct {
 		desc      string
 		p         *compute.AttachedDiskInitializeParams
+		pBeta     *computeBeta.AttachedDiskInitializeParams
 		shouldErr bool
 	}{
-		{"good case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, false},
-		{"bad disk name case", &compute.AttachedDiskInitializeParams{DiskName: "bad!", SourceImage: "i", DiskType: dt}, true},
-		{"bad dupe disk case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, true},
-		{"bad source case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: dt}, true},
-		{"bad disk type case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, true},
-		{"bad disk type case 2", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, true},
+		{"good case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "foo-beta", SourceImage: "i", DiskType: dt}, false},
+		{"bad disk name case", &compute.AttachedDiskInitializeParams{DiskName: "bad!", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bad!2", SourceImage: "i", DiskType: dt}, true},
+		{"bad dupe disk case", &compute.AttachedDiskInitializeParams{DiskName: "foo", SourceImage: "i", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "foo-beta", SourceImage: "i", DiskType: dt}, true},
+		{"bad source case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: dt}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: dt}, true},
+		{"bad disk type case", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: fmt.Sprintf("projects/bad/zones/%s/diskTypes/pd-ssd", testZone)}, true},
+		{"bad disk type case 2", &compute.AttachedDiskInitializeParams{DiskName: "bar", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, &computeBeta.AttachedDiskInitializeParams{DiskName: "bar-beta", SourceImage: "i2", DiskType: fmt.Sprintf("projects/%s/zones/bad/diskTypes/pd-ssd", testProject)}, true},
+	}
+
+	assertTest := func(shouldErr bool, err DError, desc string) {
+		if err == nil {
+			if shouldErr {
+				t.Errorf("%s: should have returned an error but didn't", desc)
+			}
+		} else if !shouldErr {
+			t.Errorf("%s: unexpected error: %v", desc, err)
+		}
 	}
 
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
 		ci := &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{InitializeParams: tt.p}}, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		s.CreateInstances = &CreateInstances{Instances: []*Instance{ci}}
-		computeDisks := ci.getComputeDisks()
-		if err := validateDiskInitializeParams(computeDisks[0], ci, &ci.InstanceBase, s); err == nil {
-			if tt.shouldErr {
-				t.Errorf("%s: should have returned an error but didn't", tt.desc)
-			}
-		} else if !tt.shouldErr {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-		}
+		assertTest(tt.shouldErr, validateDiskInitializeParams(ci.getComputeDisks()[0], ci, &ci.InstanceBase, s), tt.desc)
+
+		sBeta, _ := w.NewStep(tt.desc + "Beta")
+		ciBeta := &InstanceBeta{Instance: computeBeta.Instance{Disks: []*computeBeta.AttachedDisk{{InitializeParams: tt.pBeta}}, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		sBeta.CreateInstances = &CreateInstances{InstancesBeta: []*InstanceBeta{ciBeta}}
+		assertTest(tt.shouldErr, validateDiskInitializeParams(ciBeta.getComputeDisks()[0], ciBeta, &ciBeta.InstanceBase, sBeta), tt.desc+" beta")
 	}
 
 	// Check good disks were created.
@@ -503,19 +674,26 @@ func TestInstanceValidateMachineType(t *testing.T) {
 		{"bad zone case 2", "zones/z2/machineTypes/mt", true},
 	}
 
+	assertTest := func(shouldErr bool, err DError, desc string) {
+		if shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error", desc)
+		} else if !shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", desc, err)
+		}
+	}
 	for _, tt := range tests {
 		ci := &Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
-		if err := validateMachineType(ci, &ci.InstanceBase, c); tt.shouldErr && err == nil {
-			t.Errorf("%s: should have returned an error", tt.desc)
-		} else if !tt.shouldErr && err != nil {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-		}
+		assertTest(tt.shouldErr, validateMachineType(ci, &ci.InstanceBase, c), tt.desc)
+
+		ciBeta := &InstanceBeta{Instance: computeBeta.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
+		assertTest(tt.shouldErr, validateMachineType(ciBeta, &ciBeta.InstanceBase, c), tt.desc+" beta")
 	}
 }
 
 func TestInstanceValidateNetworks(t *testing.T) {
 	w := testWorkflow()
 	acs := []*compute.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
+	acsBeta := []*computeBeta.AccessConfig{{Type: "ONE_TO_ONE_NAT"}}
 	w.networks.m = map[string]*Resource{testNetwork: {link: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork)}}
 	w.subnetworks.m = map[string]*Resource{testSubnetwork: {link: fmt.Sprintf("projects/%s/global/subnetworks/%s", testProject, testSubnetwork)}}
 
@@ -523,22 +701,52 @@ func TestInstanceValidateNetworks(t *testing.T) {
 	tests := []struct {
 		desc      string
 		ci        *Instance
+		ciBeta    *InstanceBeta
 		shouldErr bool
 	}{
-		{"good case reference", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: testNetwork, AccessConfigs: acs}}}}, false},
-		{"good case only subnetwork", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acs}}}}, false},
-		{"good case url", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acs}}}}, false},
-		{"bad name case", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acs}}}}, true},
-		{"bad project case", &Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acs}}}}, true},
+		{
+			"good case reference",
+			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: testNetwork, AccessConfigs: acs}}}},
+			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: testNetwork, AccessConfigs: acsBeta}}}},
+			false,
+		},
+		{
+			"good case only subnetwork",
+			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acs}}}},
+			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Subnetwork: testSubnetwork, AccessConfigs: acsBeta}}}},
+			false,
+		},
+		{
+			"good case url",
+			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acs}}}},
+			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/%s", testProject, testNetwork), AccessConfigs: acsBeta}}}},
+			false,
+		},
+		{
+			"bad name case",
+			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acs}}}},
+			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: fmt.Sprintf("projects/%s/global/networks/bad!", testProject), AccessConfigs: acsBeta}}}},
+			true,
+		},
+		{
+			"bad project case",
+			&Instance{InstanceBase: InstanceBase{Resource: r}, Instance: compute.Instance{NetworkInterfaces: []*compute.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acs}}}},
+			&InstanceBeta{InstanceBase: InstanceBase{Resource: r}, Instance: computeBeta.Instance{NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: fmt.Sprintf("projects/bad!/global/networks/%s", testNetwork), AccessConfigs: acsBeta}}}},
+			true,
+		},
 	}
 
+	assertTest := func(shouldErr bool, err DError, desc string) {
+		if shouldErr && err == nil {
+			t.Errorf("%s: should have returned an error", desc)
+		} else if !shouldErr && err != nil {
+			t.Errorf("%s: unexpected error: %v", desc, err)
+		}
+	}
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
-		s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.ci}}
-		if err := tt.ci.validateNetworks(s); tt.shouldErr && err == nil {
-			t.Errorf("%s: should have returned an error", tt.desc)
-		} else if !tt.shouldErr && err != nil {
-			t.Errorf("%s: unexpected error: %v", tt.desc, err)
-		}
+		s.CreateInstances = &CreateInstances{Instances: []*Instance{tt.ci}, InstancesBeta: []*InstanceBeta{tt.ciBeta}}
+		assertTest(tt.shouldErr, tt.ci.validateNetworks(s), tt.desc)
+		assertTest(tt.shouldErr, tt.ciBeta.validateNetworks(s), tt.desc+" beta")
 	}
 }

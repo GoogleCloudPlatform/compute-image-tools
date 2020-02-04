@@ -195,7 +195,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	dr := DeleteResources{
 		Disks:         []string{"d0"},
 		Images:        []string{"im0", "projects/foo/global/images/" + testImage, "projects/foo/global/images/family/foo"},
-		MachineImages: []string{"mi0", "projects/foo/global/machineImages/" + testMachineImage},
+		MachineImages: []string{"mi0", "projects/test-project/global/machineImages/" + testMachineImage},
 		Instances:     []string{"in0"},
 		Networks:      []string{"n0"},
 		GCSPaths:      []string{"gs://foo/bar"},
