@@ -86,10 +86,10 @@ func TestAddDiskImportSteps(t *testing.T) {
 			{Source: "an_instance-1", AutoDelete: true},
 			{Source: "an_instance-2", AutoDelete: true},
 		},
-		(*w.Steps[createInstanceStepName].CreateInstances).Instances[0].Disks)
+		(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks)
 
-	assert.Equal(t, diskInfos[0].FilePath, getMetadataValue((*w.Steps["create-data-disk-import-instance-1"].CreateInstances).Instances[0].Instance.Metadata, "source_disk_file"))
-	assert.Equal(t, diskInfos[1].FilePath, getMetadataValue((*w.Steps["create-data-disk-import-instance-2"].CreateInstances).Instances[0].Instance.Metadata, "source_disk_file"))
+	assert.Equal(t, diskInfos[0].FilePath, getMetadataValue((*w.Steps["create-data-disk-import-instance-1"].CreateInstances)[0].Instance.Metadata, "source_disk_file"))
+	assert.Equal(t, diskInfos[1].FilePath, getMetadataValue((*w.Steps["create-data-disk-import-instance-2"].CreateInstances)[0].Instance.Metadata, "source_disk_file"))
 
 	assert.Equal(t, w.DefaultTimeout, w.Steps["setup-data-disk-1"].Timeout)
 	assert.Equal(t, w.DefaultTimeout, w.Steps["create-data-disk-import-instance-1"].Timeout)
@@ -162,17 +162,15 @@ func createBaseImportWorkflow(instanceName string) *daisy.Workflow {
 		},
 		"create-instance": {
 			CreateInstances: &daisy.CreateInstances{
-				Instances: []*daisy.Instance{
-					{
-						Instance: compute.Instance{
-							Disks:  []*compute.AttachedDisk{{Source: "boot_disk", Boot: true}},
-							Labels: map[string]string{"labelKey": "labelValue"},
-						},
+				{
+					Instance: compute.Instance{
+						Disks:  []*compute.AttachedDisk{{Source: "boot_disk", Boot: true}},
+						Labels: map[string]string{"labelKey": "labelValue"},
 					},
-					{
-						Instance: compute.Instance{
-							Disks: []*compute.AttachedDisk{{Source: "key2"}},
-						},
+				},
+				{
+					Instance: compute.Instance{
+						Disks: []*compute.AttachedDisk{{Source: "key2"}},
 					},
 				},
 			},

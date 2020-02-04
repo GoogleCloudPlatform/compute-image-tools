@@ -29,10 +29,10 @@ type ResourceLabeler struct {
 }
 
 // InstanceLabelKeyRetrieverFunc returns GCE label key to be added to given instance
-type InstanceLabelKeyRetrieverFunc func(instanceName string) string
+type InstanceLabelKeyRetrieverFunc func(image *daisy.Instance) string
 
 // DiskLabelKeyRetrieverFunc returns GCE label key to be added to given disk
-type DiskLabelKeyRetrieverFunc func(disk *daisy.Disk) string
+type DiskLabelKeyRetrieverFunc func(image *daisy.Disk) string
 
 // ImageLabelKeyRetrieverFunc returns GCE label key to be added to given image
 type ImageLabelKeyRetrieverFunc func(imageName string) string
@@ -45,19 +45,15 @@ func (rl *ResourceLabeler) LabelResources(workflow *daisy.Workflow) {
 
 func (rl *ResourceLabeler) labelResourcesInStep(step *daisy.Step) {
 	if step.CreateInstances != nil {
-		for _, instance := range step.CreateInstances.Instances {
+		for _, instance := range *step.CreateInstances {
 			instance.Instance.Labels =
-				rl.updateResourceLabels(instance.Instance.Labels, rl.InstanceLabelKeyRetriever(instance.Name))
-		}
-		for _, instance := range step.CreateInstances.InstancesBeta {
-			instance.Instance.Labels =
-				rl.updateResourceLabels(instance.Instance.Labels, rl.InstanceLabelKeyRetriever(instance.Name))
+					rl.updateResourceLabels(instance.Instance.Labels, rl.InstanceLabelKeyRetriever(instance))
 		}
 	}
 	if step.CreateDisks != nil {
 		for _, disk := range *step.CreateDisks {
 			disk.Disk.Labels =
-				rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk))
+					rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk))
 		}
 	}
 	if step.CreateImages != nil {
@@ -67,7 +63,7 @@ func (rl *ResourceLabeler) labelResourcesInStep(step *daisy.Step) {
 			}
 
 			image.Image.Labels =
-				rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
+					rl.updateResourceLabels(image.Image.Labels, rl.ImageLabelKeyRetriever(image.Name))
 		}
 	}
 }

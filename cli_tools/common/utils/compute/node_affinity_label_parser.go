@@ -18,7 +18,6 @@ import (
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -26,23 +25,22 @@ import (
 // labels - array of strings with node affinity label info. Each label is of the following format:
 // <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT.
 // For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'
-func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity, []*computeBeta.SchedulingNodeAffinity, error) {
+func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity, error) {
 	var nodeAffinities []*compute.SchedulingNodeAffinity
-	var nodeAffinitiesBeta []*computeBeta.SchedulingNodeAffinity
 
 	for _, label := range labels {
 		labelParts := strings.Split(label, ",")
 		if len(labelParts) < 3 {
-			return nil, nil, daisy.Errf(
+			return nil, daisy.Errf(
 				"node affinity label `%v` should be of <key>,<operator>,<values> format", label)
 		}
 		key := strings.TrimSpace(labelParts[0])
 		if key == "" {
-			return nil, nil, daisy.Errf("affinity label key cannot be empty")
+			return nil, daisy.Errf("affinity label key cannot be empty")
 		}
 		operator := strings.TrimSpace(labelParts[1])
 		if operator != "IN" && operator != "NOT_IN" && operator != "OPERATOR_UNSPECIFIED" {
-			return nil, nil, daisy.Errf(
+			return nil, daisy.Errf(
 				"node affinity label operator should be one of: `IN`, `NOT_IN` or `OPERATOR_UNSPECIFIED`, but instead received `%v`",
 				operator,
 			)
@@ -52,7 +50,7 @@ func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity
 		for i, value := range values {
 			values[i] = strings.TrimSpace(value)
 			if values[i] == "" {
-				return nil, nil, daisy.Errf("affinity label value cannot be empty")
+				return nil, daisy.Errf("affinity label value cannot be empty")
 			}
 		}
 		nodeAffinities = append(nodeAffinities, &compute.SchedulingNodeAffinity{
@@ -60,12 +58,6 @@ func ParseNodeAffinityLabels(labels []string) ([]*compute.SchedulingNodeAffinity
 			Operator: operator,
 			Values:   values,
 		})
-		nodeAffinitiesBeta = append(nodeAffinitiesBeta, &computeBeta.SchedulingNodeAffinity{
-			Key:      key,
-			Operator: operator,
-			Values:   values,
-		})
-
 	}
-	return nodeAffinities, nodeAffinitiesBeta, nil
+	return nodeAffinities, nil
 }

@@ -89,7 +89,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		sTrue := "true"
 		dataDiskImporterInstanceName := fmt.Sprintf("data-disk-importer-%v", dataDiskIndex)
 		createDiskImporterInstanceStep.CreateInstances = &daisy.CreateInstances{
-			Instances: []*daisy.Instance{{
+			{
 				Instance: compute.Instance{
 					Name: dataDiskImporterInstanceName,
 					Disks: []*compute.AttachedDisk{
@@ -112,14 +112,11 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 						},
 					},
 				},
-				InstanceBase: daisy.InstanceBase{
-					Scopes: []string{
-						"https://www.googleapis.com/auth/devstorage.read_write",
-						"https://www.googleapis.com/auth/compute",
-					},
-					StartupScript: "import_image_data.sh",
+				Scopes: []string{
+					"https://www.googleapis.com/auth/devstorage.read_write",
+					"https://www.googleapis.com/auth/compute",
 				},
-			},
+				StartupScript: "import_image_data.sh",
 			},
 		}
 		w.Steps[createDiskImporterInstanceStepName] = createDiskImporterInstanceStep
@@ -156,10 +153,10 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 
 	// attach newly created disks to the instance
 	for _, diskName := range diskNames {
-		(*w.Steps[createInstanceStepName].CreateInstances).Instances[0].Disks =
-			append(
-				(*w.Steps[createInstanceStepName].CreateInstances).Instances[0].Disks,
-				&compute.AttachedDisk{Source: diskName, AutoDelete: true})
+		(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks =
+				append(
+					(*w.Steps[createInstanceStepName].CreateInstances)[0].Disks,
+					&compute.AttachedDisk{Source: diskName, AutoDelete: true})
 	}
 }
 

@@ -41,7 +41,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/vmware/govmomi/ovf"
-	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -125,10 +124,10 @@ func getImportWorkflowPath(params *ovfimportparams.OVFImportParams) string {
 }
 
 func (oi *OVFImporter) buildDaisyVars(
-	translateWorkflowPath string,
-	bootDiskGcsPath string,
-	machineType string,
-	region string) map[string]string {
+		translateWorkflowPath string,
+		bootDiskGcsPath string,
+		machineType string,
+		region string) map[string]string {
 
 	varMap := map[string]string{}
 	if oi.params.IsInstanceImport() {
@@ -177,36 +176,28 @@ func (oi *OVFImporter) buildDaisyVars(
 }
 
 func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
-	instance := (*w.Steps["create-instance"].CreateInstances).Instances[0]
-	instanceBeta := (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0]
-
+	instance := (*w.Steps["create-instance"].CreateInstances)[0]
 	instance.CanIpForward = oi.params.CanIPForward
-	instanceBeta.CanIpForward = oi.params.CanIPForward
 	instance.DeletionProtection = oi.params.DeletionProtection
-	instanceBeta.DeletionProtection = oi.params.DeletionProtection
 	if instance.Scheduling == nil {
 		instance.Scheduling = &compute.Scheduling{}
-		instanceBeta.Scheduling = &computeBeta.Scheduling{}
 	}
 	if oi.params.NoRestartOnFailure {
 		vFalse := false
 		instance.Scheduling.AutomaticRestart = &vFalse
-		instanceBeta.Scheduling.AutomaticRestart = &vFalse
 	}
 	if oi.params.NodeAffinities != nil {
 		instance.Scheduling.NodeAffinities = oi.params.NodeAffinities
-		instanceBeta.Scheduling.NodeAffinities = oi.params.NodeAffinitiesBeta
 	}
 	if oi.params.Hostname != "" {
 		instance.Hostname = oi.params.Hostname
-		instanceBeta.Hostname = oi.params.Hostname
 	}
 }
 
 func (oi *OVFImporter) updateMachineImage(w *daisy.Workflow) {
 	if oi.params.MachineImageStorageLocation != "" {
 		(*w.Steps["create-machine-image"].CreateMachineImages)[0].StorageLocations =
-			[]string{oi.params.MachineImageStorageLocation}
+				[]string{oi.params.MachineImageStorageLocation}
 	}
 }
 
@@ -342,8 +333,8 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 		UserLabels:      oi.params.UserLabels,
 		BuildIDLabelKey: "gce-ovf-import-build-id",
 		ImageLocation:   oi.imageLocation,
-		InstanceLabelKeyRetriever: func(instanceName string) string {
-			if strings.ToLower(oi.params.InstanceNames) == instanceName {
+		InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
+			if strings.ToLower(oi.params.InstanceNames) == instance.Name {
 				return "gce-ovf-import"
 			}
 			return "gce-ovf-import-tmp"
@@ -362,7 +353,7 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 }
 
 func (oi *OVFImporter) getMachineType(
-	ovfDescriptor *ovf.Envelope, project string, zone string) (string, error) {
+		ovfDescriptor *ovf.Envelope, project string, zone string) (string, error) {
 	machineTypeProvider := ovfgceutils.MachineTypeProvider{
 		OvfDescriptor: ovfDescriptor,
 		MachineType:   oi.params.MachineType,

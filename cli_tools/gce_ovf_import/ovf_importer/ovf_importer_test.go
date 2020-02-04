@@ -116,7 +116,7 @@ func TestSetUpInstanceWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, 3+3*3, len(w.Steps))
 	assert.Equal(t, "europe-north1", oi.imageLocation)
 
-	instance := (*w.Steps["create-instance"].CreateInstances).Instances[0].Instance
+	instance := (*w.Steps["create-instance"].CreateInstances)[0].Instance
 	assert.Equal(t, "build123", instance.Labels["gce-ovf-import-build-id"])
 	assert.Equal(t, "uservalue1", instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", instance.Labels["userkey2"])
@@ -127,18 +127,6 @@ func TestSetUpInstanceWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, 2, len(instance.Scheduling.NodeAffinities[0].Values))
 	assert.Equal(t, "prod", instance.Scheduling.NodeAffinities[0].Values[0])
 	assert.Equal(t, "test", instance.Scheduling.NodeAffinities[0].Values[1])
-
-	instanceBeta := (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].Instance
-	assert.Equal(t, "build123", instanceBeta.Labels["gce-ovf-import-build-id"])
-	assert.Equal(t, "uservalue1", instanceBeta.Labels["userkey1"])
-	assert.Equal(t, "uservalue2", instanceBeta.Labels["userkey2"])
-	assert.Equal(t, false, *instanceBeta.Scheduling.AutomaticRestart)
-	assert.Equal(t, 1, len(instanceBeta.Scheduling.NodeAffinities))
-	assert.Equal(t, "env", instanceBeta.Scheduling.NodeAffinities[0].Key)
-	assert.Equal(t, "IN", instanceBeta.Scheduling.NodeAffinities[0].Operator)
-	assert.Equal(t, 2, len(instanceBeta.Scheduling.NodeAffinities[0].Values))
-	assert.Equal(t, "prod", instanceBeta.Scheduling.NodeAffinities[0].Values[0])
-	assert.Equal(t, "test", instanceBeta.Scheduling.NodeAffinities[0].Values[1])
 
 	assert.Equal(t, fmt.Sprintf("gs://%v/ovf-import-build123/ovf/", createdScratchBucketName),
 		oi.gcsPathToClean)
@@ -198,21 +186,13 @@ func TestSetUpInstanceWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHo
 	assert.Equal(t, "oAuthFilePath", w.OAuthPath)
 	assert.Equal(t, "3h", w.DefaultTimeout)
 	assert.Equal(t, 3+3*3, len(w.Steps))
-	assert.Equal(t, "build123", (*w.Steps["create-instance"].CreateInstances).Instances[0].
+	assert.Equal(t, "build123", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["gce-ovf-import-build-id"])
-	assert.Equal(t, "uservalue1", (*w.Steps["create-instance"].CreateInstances).Instances[0].
+	assert.Equal(t, "uservalue1", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["userkey1"])
-	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances).Instances[0].
+	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
 		Instance.Labels["userkey2"])
-	assert.Equal(t, "a-host.a-domain", (*w.Steps["create-instance"].CreateInstances).Instances[0].Hostname)
-
-	assert.Equal(t, "build123", (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].
-		Instance.Labels["gce-ovf-import-build-id"])
-	assert.Equal(t, "uservalue1", (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].
-		Instance.Labels["userkey1"])
-	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].
-		Instance.Labels["userkey2"])
-	assert.Equal(t, "a-host.a-domain", (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].Hostname)
+	assert.Equal(t, "a-host.a-domain", (*w.Steps["create-instance"].CreateInstances)[0].Hostname)
 
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-boot-disk"].CreateDisks)[0].Disk.GuestOsFeatures[0].Type)
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].GuestOsFeatures[0])
@@ -299,7 +279,7 @@ func TestSetUpMachineImageWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, 4+3*3, len(w.Steps))
 	assert.Equal(t, "europe-north1", oi.imageLocation)
 
-	instance := (*w.Steps["create-instance"].CreateInstances).Instances[0].Instance
+	instance := (*w.Steps["create-instance"].CreateInstances)[0].Instance
 	assert.Equal(t, "build123", instance.Labels["gce-ovf-import-build-id"])
 	assert.Equal(t, "uservalue1", instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", instance.Labels["userkey2"])
@@ -310,18 +290,6 @@ func TestSetUpMachineImageWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, 2, len(instance.Scheduling.NodeAffinities[0].Values))
 	assert.Equal(t, "prod", instance.Scheduling.NodeAffinities[0].Values[0])
 	assert.Equal(t, "test", instance.Scheduling.NodeAffinities[0].Values[1])
-
-	instanceBeta := (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].Instance
-	assert.Equal(t, "build123", instanceBeta.Labels["gce-ovf-import-build-id"])
-	assert.Equal(t, "uservalue1", instanceBeta.Labels["userkey1"])
-	assert.Equal(t, "uservalue2", instanceBeta.Labels["userkey2"])
-	assert.Equal(t, false, *instanceBeta.Scheduling.AutomaticRestart)
-	assert.Equal(t, 1, len(instanceBeta.Scheduling.NodeAffinities))
-	assert.Equal(t, "env", instanceBeta.Scheduling.NodeAffinities[0].Key)
-	assert.Equal(t, "IN", instanceBeta.Scheduling.NodeAffinities[0].Operator)
-	assert.Equal(t, 2, len(instanceBeta.Scheduling.NodeAffinities[0].Values))
-	assert.Equal(t, "prod", instanceBeta.Scheduling.NodeAffinities[0].Values[0])
-	assert.Equal(t, "test", instanceBeta.Scheduling.NodeAffinities[0].Values[1])
 
 	machineImage := (*w.Steps["create-machine-image"].CreateMachineImages)[0].MachineImage
 	assert.Equal(t, "us-west2", machineImage.StorageLocations[0])
@@ -343,7 +311,7 @@ func TestSetUpWorkflowUsesImageLocationForAlphaReleaseTrack(t *testing.T) {
 }
 
 func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(
-	t *testing.T, releaseTrack string, zone string, expectedImageLocation string) {
+		t *testing.T, releaseTrack string, zone string, expectedImageLocation string) {
 	params := getAllInstanceImportParams()
 	params.ReleaseTrack = releaseTrack
 	params.Zone = zone
@@ -728,7 +696,7 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 }
 
 func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
-	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
+		params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
@@ -763,7 +731,7 @@ func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAl
 }
 
 func createDiskItem(instanceID string, addressOnParent string,
-	elementName string, hostResource string, parent string) ovf.ResourceAllocationSettingData {
+		elementName string, hostResource string, parent string) ovf.ResourceAllocationSettingData {
 	diskType := uint16(17)
 	return ovf.ResourceAllocationSettingData{
 		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{
