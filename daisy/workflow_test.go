@@ -310,6 +310,12 @@ func TestNewFromFile(t *testing.T) {
 							Scopes:        []string{"scope3", "scope4"},
 						},
 					},
+					{
+						Instance: compute.Instance{
+							Name:        "postinstallBeta",
+							MachineType: "${machine_type}",
+						},
+					},
 				},
 				InstancesBeta: []*InstanceBeta{
 					{
@@ -321,6 +327,13 @@ func TestNewFromFile(t *testing.T) {
 						InstanceBase: InstanceBase{
 							StartupScript: "shutdown /h",
 							Scopes:        []string{"scope3", "scope4"},
+						},
+					},
+					{
+						Instance: computeBeta.Instance{
+							Name:               "postinstallBeta",
+							MachineType:        "${machine_type}",
+							SourceMachineImage: "source-machine-image",
 						},
 					},
 				},

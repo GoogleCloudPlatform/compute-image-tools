@@ -200,5 +200,6 @@ func (ci *CreateInstances) instanceUsesBetaFeatures() bool {
 			return true
 		}
 	}
-	return false
+	// if GA instances collection is empty, switch to Beta
+	return len(ci.Instances) == 0
 }

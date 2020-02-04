@@ -68,6 +68,11 @@
           "MachineType": "${machine_type}",
           "StartupScript": "shutdown /h",
           "Scopes": ["scope3", "scope4"]
+        },
+        {
+          "Name": "postinstallBeta",
+          "MachineType": "${machine_type}",
+          "SourceMachineImage": "source-machine-image"
         }
       ]
     },
