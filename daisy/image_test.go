@@ -121,7 +121,7 @@ func TestImagePopulate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := populateImage(ctx, tt.input, &tt.input.ImageBase, s)
+		err := (&tt.input.ImageBase).populate(ctx, tt.input, s)
 
 		// Test sanitation -- clean/set irrelevant fields.
 		if tt.want != nil {
@@ -217,7 +217,7 @@ func TestImageBetaPopulate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := populateImage(ctx, tt.input, &tt.input.ImageBase, s)
+		err := (&tt.input.ImageBase).populate(ctx, tt.input, s)
 
 		// Test sanitation -- clean/set irrelevant fields.
 		if tt.want != nil {

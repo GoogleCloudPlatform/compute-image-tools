@@ -70,8 +70,8 @@ func TestInstancePopulate(t *testing.T) {
 	}
 	for testNum, tt := range tests {
 		s, _ := w.NewStep("s" + strconv.Itoa(testNum))
-		assertTest(tt.shouldErr, tt.desc, populateInstance(context.Background(), tt.i, &tt.i.InstanceBase, s))
-		assertTest(tt.shouldErr, tt.desc+" beta", populateInstance(context.Background(), tt.i, &tt.iBeta.InstanceBase, s))
+		assertTest(tt.shouldErr, tt.desc, (&tt.i.InstanceBase).populate(context.Background(), tt.i, s))
+		assertTest(tt.shouldErr, tt.desc+" beta", (&tt.i.InstanceBase).populate(context.Background(), tt.i, s))
 	}
 }
 
@@ -209,10 +209,10 @@ func TestInstancePopulateMachineType(t *testing.T) {
 
 	for _, tt := range tests {
 		i := Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: "bar"}, InstanceBase: InstanceBase{Resource: Resource{Project: "foo"}}}
-		assertTest(tt.shouldErr, populateMachineType(&i, &i.InstanceBase), tt.desc, i.MachineType, tt.wantMt)
+		assertTest(tt.shouldErr, (&i.InstanceBase).populateMachineType(&i), tt.desc, i.MachineType, tt.wantMt)
 
 		iBeta := InstanceBeta{Instance: computeBeta.Instance{MachineType: tt.mt, Zone: "bar"}, InstanceBase: InstanceBase{Resource: Resource{Project: "foo"}}}
-		assertTest(tt.shouldErr, populateMachineType(&iBeta, &iBeta.InstanceBase), tt.desc+" beta", iBeta.MachineType, tt.wantMt)
+		assertTest(tt.shouldErr, (&i.InstanceBase).populateMachineType(&iBeta), tt.desc+" beta", iBeta.MachineType, tt.wantMt)
 	}
 }
 
@@ -298,12 +298,12 @@ func TestInstancePopulateMetadata(t *testing.T) {
 		}
 
 		i := Instance{InstanceBase: InstanceBase{StartupScript: tt.startupScript}, Metadata: tt.md}
-		err := populateMetadata(&i, &i.InstanceBase, w)
+		err := (&i.InstanceBase).populateMetadata(&i, w)
 		sort.Slice(i.Instance.Metadata.Items, compFactory(i.Instance.Metadata.Items))
 		assertTest(tt.shouldErr, err, tt.desc, i.Instance.Metadata, wantMd)
 
 		iBeta := Instance{InstanceBase: InstanceBase{StartupScript: tt.startupScript}, Metadata: tt.md}
-		err = populateMetadata(&iBeta, &iBeta.InstanceBase, w)
+		err = (&iBeta.InstanceBase).populateMetadata(&iBeta, w)
 		sort.Slice(iBeta.Instance.Metadata.Items, compFactory(iBeta.Instance.Metadata.Items))
 		assertTest(tt.shouldErr, err, tt.desc+" beta", iBeta.Instance.Metadata, wantMdBeta)
 	}
@@ -527,7 +527,7 @@ func TestInstanceValidateDisks(t *testing.T) {
 			ib = &tt.iBeta.InstanceBase
 		}
 
-		if err := validateDisks(ii, ib, s); tt.shouldErr && err == nil {
+		if err := ib.validateDisks(ii, s); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
@@ -561,7 +561,7 @@ func TestInstanceValidateDiskSource(t *testing.T) {
 	for _, tt := range tests {
 		s, _ := w.NewStep(tt.desc)
 		i := &Instance{Instance: compute.Instance{Disks: tt.ads, Zone: z}, InstanceBase: InstanceBase{Resource: Resource{Project: p}}}
-		err := validateDiskSource(tt.ads[0].Source, i, &i.InstanceBase, s)
+		err := (&i.InstanceBase).validateDiskSource(tt.ads[0].Source, i, s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -569,7 +569,7 @@ func TestInstanceValidateDiskSource(t *testing.T) {
 		}
 
 		iBeta := &InstanceBeta{Instance: computeBeta.Instance{Disks: tt.adsBeta, Zone: z}, InstanceBase: InstanceBase{Resource: Resource{Project: p}}}
-		err = validateDiskSource(tt.ads[0].Source, iBeta, &iBeta.InstanceBase, s)
+		err = (&iBeta.InstanceBase).validateDiskSource(tt.ads[0].Source, iBeta, s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -618,12 +618,12 @@ func TestInstanceValidateDiskInitializeParams(t *testing.T) {
 		s, _ := w.NewStep(tt.desc)
 		ci := &Instance{Instance: compute.Instance{Disks: []*compute.AttachedDisk{{InitializeParams: tt.p}}, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		s.CreateInstances = &CreateInstances{Instances: []*Instance{ci}}
-		assertTest(tt.shouldErr, validateDiskInitializeParams(ci.getComputeDisks()[0], ci, &ci.InstanceBase, s), tt.desc)
+		assertTest(tt.shouldErr, (&ci.InstanceBase).validateDiskInitializeParams(ci.getComputeDisks()[0], ci, s), tt.desc)
 
 		sBeta, _ := w.NewStep(tt.desc + "Beta")
 		ciBeta := &InstanceBeta{Instance: computeBeta.Instance{Disks: []*computeBeta.AttachedDisk{{InitializeParams: tt.pBeta}}, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
 		sBeta.CreateInstances = &CreateInstances{InstancesBeta: []*InstanceBeta{ciBeta}}
-		assertTest(tt.shouldErr, validateDiskInitializeParams(ciBeta.getComputeDisks()[0], ciBeta, &ciBeta.InstanceBase, sBeta), tt.desc+" beta")
+		assertTest(tt.shouldErr, (&ciBeta.InstanceBase).validateDiskInitializeParams(ciBeta.getComputeDisks()[0], ciBeta, sBeta), tt.desc+" beta")
 	}
 
 	// Check good disks were created.
@@ -683,10 +683,10 @@ func TestInstanceValidateMachineType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		ci := &Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
-		assertTest(tt.shouldErr, validateMachineType(ci, &ci.InstanceBase, c), tt.desc)
+		assertTest(tt.shouldErr, (&ci.InstanceBase).validateMachineType(ci, c), tt.desc)
 
 		ciBeta := &InstanceBeta{Instance: computeBeta.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
-		assertTest(tt.shouldErr, validateMachineType(ciBeta, &ciBeta.InstanceBase, c), tt.desc+" beta")
+		assertTest(tt.shouldErr, (&ciBeta.InstanceBase).validateMachineType(ciBeta, c), tt.desc+" beta")
 	}
 }
 

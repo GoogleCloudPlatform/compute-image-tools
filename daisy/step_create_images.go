@@ -56,13 +56,13 @@ func (ci *CreateImages) populate(ctx context.Context, s *Step) DError {
 	var errs DError
 	if ci.Images != nil {
 		for _, i := range ci.Images {
-			errs = addErrs(errs, populateImage(ctx, i, &i.ImageBase, s))
+			errs = addErrs(errs, (&i.ImageBase).populate(ctx, i, s))
 		}
 	}
 
 	if ci.ImagesBeta != nil {
 		for _, i := range ci.ImagesBeta {
-			errs = addErrs(errs, populateImage(ctx, i, &i.ImageBase, s))
+			errs = addErrs(errs, (&i.ImageBase).populate(ctx, i, s))
 		}
 	}
 
@@ -74,11 +74,11 @@ func (ci *CreateImages) validate(ctx context.Context, s *Step) DError {
 
 	if imageUsesBetaFeatures(ci.ImagesBeta) {
 		for _, i := range ci.ImagesBeta {
-			errs = addErrs(errs, validateImage(ctx, i, &i.ImageBase, i.Licenses, s))
+			errs = addErrs(errs, (&i.ImageBase).validate(ctx, i, i.Licenses, s))
 		}
 	} else {
 		for _, i := range ci.Images {
-			errs = addErrs(errs, validateImage(ctx, i, &i.ImageBase, i.Licenses, s))
+			errs = addErrs(errs, (&i.ImageBase).validate(ctx, i, i.Licenses, s))
 		}
 	}
 

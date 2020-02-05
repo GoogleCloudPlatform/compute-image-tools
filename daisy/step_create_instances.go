@@ -123,13 +123,13 @@ func (ci *CreateInstances) populate(ctx context.Context, s *Step) DError {
 	var errs DError
 	if ci.Instances != nil {
 		for _, i := range ci.Instances {
-			errs = addErrs(errs, populateInstance(ctx, i, &i.InstanceBase, s))
+			errs = addErrs(errs, (&i.InstanceBase).populate(ctx, i, s))
 		}
 	}
 
 	if ci.InstancesBeta != nil {
 		for _, i := range ci.InstancesBeta {
-			errs = addErrs(errs, populateInstance(ctx, i, &i.InstanceBase, s))
+			errs = addErrs(errs, (&i.InstanceBase).populate(ctx, i, s))
 		}
 	}
 
@@ -140,11 +140,11 @@ func (ci *CreateInstances) validate(ctx context.Context, s *Step) DError {
 	var errs DError
 	if ci.instanceUsesBetaFeatures() {
 		for _, i := range ci.InstancesBeta {
-			errs = addErrs(errs, validateInstance(ctx, i, &i.InstanceBase, s))
+			errs = addErrs(errs, (&i.InstanceBase).validate(ctx, i, s))
 		}
 	} else {
 		for _, i := range ci.Instances {
-			errs = addErrs(errs, validateInstance(ctx, i, &i.InstanceBase, s))
+			errs = addErrs(errs, (&i.InstanceBase).validate(ctx, i, s))
 		}
 	}
 	return errs

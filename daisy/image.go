@@ -118,8 +118,7 @@ type ImageInterface interface {
 	create(cc daisyCompute.Client) error
 	markCreatedInWorkflow()
 	delete(cc daisyCompute.Client) error
-	appendGuestOsFeatures(featureType string)
-	getGuestOsFeatures() guestOsFeatures
+	populateGuestOSFeatures()
 }
 
 //ImageBase is a base struct for GA/Beta images. It holds the shared properties between the two.
@@ -199,12 +198,13 @@ func (i *Image) delete(cc daisyCompute.Client) error {
 	return cc.DeleteImage(i.Project, i.Name)
 }
 
-func (i *Image) appendGuestOsFeatures(featureType string) {
-	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: featureType})
-}
-
-func (i *Image) getGuestOsFeatures() guestOsFeatures {
-	return i.GuestOsFeatures
+func (i *Image) populateGuestOSFeatures() {
+	if i.GuestOsFeatures == nil {
+		return
+	}
+	for _, f := range i.GuestOsFeatures {
+		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: f})
+	}
 }
 
 // ImageBeta is used to create a GCE image using Beta API.
@@ -273,12 +273,13 @@ func (i *ImageBeta) delete(cc daisyCompute.Client) error {
 	return cc.DeleteImage(i.Project, i.Name)
 }
 
-func (i *ImageBeta) appendGuestOsFeatures(featureType string) {
-	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: featureType})
-}
-
-func (i *ImageBeta) getGuestOsFeatures() guestOsFeatures {
-	return i.GuestOsFeatures
+func (i *ImageBeta) populateGuestOSFeatures() {
+	if i.GuestOsFeatures == nil {
+		return
+	}
+	for _, f := range i.GuestOsFeatures {
+		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: f})
+	}
 }
 
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
@@ -303,7 +304,7 @@ func (g *guestOsFeatures) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, (*dg)(g))
 }
 
-func populateImage(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) DError {
+func (ib *ImageBase) populate(ctx context.Context, ii ImageInterface, s *Step) DError {
 	name, errs := ib.Resource.populateWithGlobal(ctx, s, ii.getName())
 	ii.setName(name)
 
@@ -327,21 +328,11 @@ func populateImage(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Ste
 		}
 	}
 	ib.link = fmt.Sprintf("projects/%s/global/images/%s", ib.Project, ii.getName())
-	populateGuestOSFeatures(ii, ib, s.w)
+	ii.populateGuestOSFeatures()
 	return errs
 }
 
-func populateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
-	if ii.getGuestOsFeatures() == nil {
-		return
-	}
-	for _, f := range ii.getGuestOsFeatures() {
-		ii.appendGuestOsFeatures(f)
-	}
-	return
-}
-
-func validateImage(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []string, s *Step) DError {
+func (ib *ImageBase) validate(ctx context.Context, ii ImageInterface, licenses []string, s *Step) DError {
 	pre := fmt.Sprintf("cannot create image %q", ib.daisyName)
 	errs := ib.Resource.validate(ctx, s, pre)
 

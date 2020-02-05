@@ -347,15 +347,15 @@ func (i *InstanceBeta) register(name string, s *Step, ir *instanceRegistry, errs
 	}
 }
 
-func populateInstance(ctx context.Context, ii InstanceInterface, ib *InstanceBase, s *Step) DError {
+func (ib *InstanceBase) populate(ctx context.Context, ii InstanceInterface, s *Step) DError {
 	name, zone, errs := ib.Resource.populateWithZone(ctx, s, ii.getName(), ii.getZone())
 	ii.setName(name)
 	ii.setZone(zone)
 
 	ii.setDescription(strOr(ii.getDescription(), fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username)))
 	errs = addErrs(errs, ii.populateDisks(s.w))
-	errs = addErrs(errs, populateMachineType(ii, ib))
-	errs = addErrs(errs, populateMetadata(ii, ib, s.w))
+	errs = addErrs(errs, ib.populateMachineType(ii))
+	errs = addErrs(errs, ib.populateMetadata(ii, s.w))
 	errs = addErrs(errs, ii.populateNetworks())
 	errs = addErrs(errs, ii.populateScopes())
 	ib.link = fmt.Sprintf("projects/%s/zones/%s/instances/%s", ib.Project, ii.getZone(), ii.getName())
@@ -462,7 +462,7 @@ func (i *InstanceBeta) populateDisks(w *Workflow) DError {
 	return nil
 }
 
-func populateMachineType(ii InstanceInterface, ib *InstanceBase) DError {
+func (ib *InstanceBase) populateMachineType(ii InstanceInterface) DError {
 	ii.setMachineType(strOr(ii.getMachineType(), "n1-standard-1"))
 	if machineTypeURLRegex.MatchString(ii.getMachineType()) {
 		ii.setMachineType(extendPartialURL(ii.getMachineType(), ib.Project))
@@ -472,7 +472,7 @@ func populateMachineType(ii InstanceInterface, ib *InstanceBase) DError {
 	return nil
 }
 
-func populateMetadata(ii InstanceInterface, ib *InstanceBase, w *Workflow) DError {
+func (ib *InstanceBase) populateMetadata(ii InstanceInterface, w *Workflow) DError {
 	if ii.getMetadata() == nil {
 		ii.setMetadata(map[string]string{})
 	}
@@ -572,20 +572,20 @@ func (i *InstanceBeta) populateScopes() DError {
 	return nil
 }
 
-func validateInstance(ctx context.Context, ii InstanceInterface, ib *InstanceBase, s *Step) DError {
+func (ib *InstanceBase) validate(ctx context.Context, ii InstanceInterface, s *Step) DError {
 	pre := fmt.Sprintf("cannot create instance %q", ib.daisyName)
 	errs := ib.Resource.validateWithZone(ctx, s, ii.getZone(), pre)
-	errs = addErrs(errs, validateDisks(ii, ib, s))
-	errs = addErrs(errs, validateMachineType(ii, ib, s.w.ComputeClient))
+	errs = addErrs(errs, ib.validateDisks(ii, s))
+	errs = addErrs(errs, ib.validateMachineType(ii, s.w.ComputeClient))
 	errs = addErrs(errs, ii.validateNetworks(s))
-	errs = addErrs(errs, validateSourceMachineImage(ii, ib, s))
+	errs = addErrs(errs, ib.validateSourceMachineImage(ii, s))
 
 	// Register creation.
 	errs = addErrs(errs, s.w.instances.regCreate(ib.daisyName, &ib.Resource, s))
 	return errs
 }
 
-func validateSourceMachineImage(ii InstanceInterface, ib *InstanceBase, s *Step) DError {
+func (ib *InstanceBase) validateSourceMachineImage(ii InstanceInterface, s *Step) DError {
 	// regUse needs the partal url of a non daisy resource.
 	lookup := ii.getSourceMachineImage()
 	if lookup == "" {
@@ -635,7 +635,7 @@ func (i *InstanceBeta) getComputeDisks() []*computeDisk {
 	return computeDisks
 }
 
-func validateDisks(ii InstanceInterface, ib *InstanceBase, s *Step) (errs DError) {
+func (ib *InstanceBase) validateDisks(ii InstanceInterface, s *Step) (errs DError) {
 	computeDisks := ii.getComputeDisks()
 	if len(computeDisks) == 0 && ii.getSourceMachineImage() == "" {
 		errs = addErrs(errs, Errf("cannot create instance: no disks nor source machine image provided"))
@@ -651,15 +651,15 @@ func validateDisks(ii InstanceInterface, ib *InstanceBase, s *Step) (errs DError
 			errs = addErrs(errs, Errf("cannot create instance: disk.source and disk.initializeParams are mutually exclusive"))
 		}
 		if d.hasInitializeParams {
-			errs = addErrs(errs, validateDiskInitializeParams(d, ii, ib, s))
+			errs = addErrs(errs, ib.validateDiskInitializeParams(d, ii, s))
 		} else {
-			errs = addErrs(errs, validateDiskSource(d.source, ii, ib, s))
+			errs = addErrs(errs, ib.validateDiskSource(d.source, ii, s))
 		}
 	}
 	return
 }
 
-func validateDiskInitializeParams(d *computeDisk, ii InstanceInterface, ib *InstanceBase, s *Step) (errs DError) {
+func (ib *InstanceBase) validateDiskInitializeParams(d *computeDisk, ii InstanceInterface, s *Step) (errs DError) {
 	parts := namedSubexp(diskTypeURLRgx, d.diskType)
 	if parts["project"] != ib.Project {
 		errs = addErrs(errs, Errf("cannot create instance in project %q with InitializeParams.DiskType in project %q", ib.Project, parts["project"]))
@@ -685,7 +685,7 @@ func validateDiskInitializeParams(d *computeDisk, ii InstanceInterface, ib *Inst
 	return
 }
 
-func validateDiskSource(diskSource string, ii InstanceInterface, ib *InstanceBase, s *Step) DError {
+func (ib *InstanceBase) validateDiskSource(diskSource string, ii InstanceInterface, s *Step) DError {
 	dr, errs := s.w.disks.regUse(diskSource, s)
 	if dr == nil {
 		// Return now, the rest of this function can't be run without dr.
@@ -703,7 +703,7 @@ func validateDiskSource(diskSource string, ii InstanceInterface, ib *InstanceBas
 	return errs
 }
 
-func validateMachineType(ii InstanceInterface, ib *InstanceBase, client daisyCompute.Client) (errs DError) {
+func (ib *InstanceBase) validateMachineType(ii InstanceInterface, client daisyCompute.Client) (errs DError) {
 	if !machineTypeURLRegex.MatchString(ii.getMachineType()) {
 		errs = addErrs(errs, Errf("can't create instance: bad MachineType: %q", ii.getMachineType()))
 		return
