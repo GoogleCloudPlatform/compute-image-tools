@@ -56,7 +56,6 @@
           "GuestOsFeatures": [
             "UEFI_COMPATIBLE"
           ]
-
         }
       ]
     }
