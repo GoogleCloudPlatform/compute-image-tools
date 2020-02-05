@@ -50,7 +50,7 @@ func machineImageExists(client daisyCompute.Client, project, name string) (bool,
 	if _, ok := machineImageCache.exists[project]; !ok {
 		il, err := client.ListMachineImages(project)
 		if err != nil {
-			return false, Errf("error listing images for project %q: %v", project, err)
+			return false, Errf("error listing machine images for project %q: %v", project, err)
 		}
 		machineImageCache.exists[project] = il
 	}

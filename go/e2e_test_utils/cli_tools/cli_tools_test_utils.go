@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package clitools contains e2e tests utils for cli tools e2e tests
+// Package clitoolstestutils contains e2e tests utils for cli tools e2e tests
 package clitoolstestutils
 
 import (

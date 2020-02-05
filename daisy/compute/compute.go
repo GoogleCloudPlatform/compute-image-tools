@@ -41,6 +41,7 @@ type Client interface {
 	CreateImage(project string, i *compute.Image) error
 	CreateImageBeta(project string, i *computeBeta.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
+	CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
 	CreateSubnetwork(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
@@ -60,6 +61,7 @@ type Client interface {
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZone(project, zone string) (*compute.Zone, error)
 	GetInstance(project, zone, name string) (*compute.Instance, error)
+	GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
@@ -502,6 +504,25 @@ func (c *client) CreateInstance(project, zone string, i *compute.Instance) error
 	return nil
 }
 
+// CreateInstanceBeta creates a GCE image using Beta API.
+func (c *client) CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error {
+	op, err := c.RetryBeta(c.rawBeta.Instances.Insert(project, zone, i).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
+		return err
+	}
+
+	var createdInstance *computeBeta.Instance
+	if createdInstance, err = c.i.GetInstanceBeta(project, zone, i.Name); err != nil {
+		return err
+	}
+	*i = *createdInstance
+	return nil
+}
+
 func (c *client) CreateNetwork(project string, n *compute.Network) error {
 	op, err := c.Retry(c.raw.Networks.Insert(project, n).Do)
 	if err != nil {
@@ -776,11 +797,20 @@ func (c *client) ListRegions(project string, opts ...ListCallOption) ([]*compute
 	}
 }
 
-// GetInstance gets a GCE Instance.
+// GetInstance gets a GCE Instance using GA API.
 func (c *client) GetInstance(project, zone, name string) (*compute.Instance, error) {
 	i, err := c.raw.Instances.Get(project, zone, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
 		return c.raw.Instances.Get(project, zone, name).Do()
+	}
+	return i, err
+}
+
+// GetInstance gets a GCE Instance using GA API.
+func (c *client) GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error) {
+	i, err := c.rawBeta.Instances.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.rawBeta.Instances.Get(project, zone, name).Do()
 	}
 	return i, err
 }

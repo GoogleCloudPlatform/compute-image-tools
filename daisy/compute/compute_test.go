@@ -39,8 +39,10 @@ var (
 	testForwardingRule       = "test-forwarding-rule"
 	testFirewallRule         = "test-firewall-rule"
 	testImage                = "test-image"
+	testImageBeta            = "test-image-beta"
 	testMachineImage         = "test-machine-image"
 	testInstance             = "test-instance"
+	testInstanceBeta         = "test-instance-beta"
 	testNetwork              = "test-network"
 	testSubnetwork           = "test-subnetwork"
 	testTargetInstance       = "test-target-instance"
@@ -121,8 +123,10 @@ func TestCreates(t *testing.T) {
 	fr := &compute.ForwardingRule{Name: testForwardingRule}
 	fir := &compute.Firewall{Name: testFirewallRule}
 	im := &compute.Image{Name: testImage}
+	imBeta := &computeBeta.Image{Name: testImageBeta}
 	mi := &computeBeta.MachineImage{Name: testMachineImage, SourceInstance: testInstance}
 	in := &compute.Instance{Name: testInstance}
+	inBeta := &computeBeta.Instance{Name: testInstanceBeta}
 	n := &compute.Network{Name: testNetwork}
 	sn := &compute.Subnetwork{Name: testSubnetwork}
 	ti := &compute.TargetInstance{Name: testTargetInstance}
@@ -165,6 +169,14 @@ func TestCreates(t *testing.T) {
 			im,
 		},
 		{
+			"images",
+			func() error { return c.CreateImageBeta(testProject, imBeta) },
+			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImageBeta),
+			fmt.Sprintf("/%s/global/images?alt=json&prettyPrint=false", testProject),
+			&computeBeta.Image{Name: testImageBeta, SelfLink: "foo"},
+			imBeta,
+		},
+		{
 			"machineImages",
 			func() error { return c.CreateMachineImage(testProject, mi) },
 			fmt.Sprintf("/%s/global/machineImages/%s?alt=json&prettyPrint=false", testProject, testMachineImage),
@@ -177,8 +189,16 @@ func TestCreates(t *testing.T) {
 			func() error { return c.CreateInstance(testProject, testZone, in) },
 			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstance),
 			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
-			&compute.Instance{Name: testImage, SelfLink: "foo"},
+			&compute.Instance{Name: testInstance, SelfLink: "foo"},
 			in,
+		},
+		{
+			"instancesBeta",
+			func() error { return c.CreateInstanceBeta(testProject, testZone, inBeta) },
+			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstanceBeta),
+			fmt.Sprintf("/%s/zones/%s/instances?alt=json&prettyPrint=false", testProject, testZone),
+			&computeBeta.Instance{Name: testInstanceBeta, SelfLink: "foo"},
+			inBeta,
 		},
 		{
 			"networks",

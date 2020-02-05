@@ -112,6 +112,7 @@ type TestClient struct {
 	DeleteMachineImageFn func(project, name string) error
 	CreateMachineImageFn func(project string, i *computeBeta.MachineImage) error
 	GetMachineImageFn    func(project, name string) (*computeBeta.MachineImage, error)
+	CreateInstanceBetaFn func(project, zone string, i *computeBeta.Instance) error
 
 	zoneOperationsWaitFn   func(project, zone, name string) error
 	regionOperationsWaitFn func(project, region, name string) error
@@ -636,4 +637,12 @@ func (c *TestClient) GetMachineImage(project, name string) (*computeBeta.Machine
 		return c.GetMachineImageFn(project, name)
 	}
 	return c.client.GetMachineImage(project, name)
+}
+
+// CreateInstanceBeta uses the override method CreateInstanceBetaFn or the real implementation.
+func (c *TestClient) CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error {
+	if c.CreateInstanceBetaFn != nil {
+		return c.CreateInstanceBetaFn(project, zone, i)
+	}
+	return c.client.CreateInstanceBeta(project, zone, i)
 }

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -79,13 +80,41 @@ func instanceExists(client daisyCompute.Client, project, zone, instance string) 
 	return strIn(instance, instanceCache.exists[project][zone]), nil
 }
 
-// Instance is used to create a GCE instance. Output of serial port 1 will be streamed to the daisy logs directory.
-type Instance struct {
-	compute.Instance
+// MarshalJSON is a workaround to prevent Instance from using compute.Instance's implementation.
+func (i *Instance) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*i)
+}
+
+// InstanceInterface represent abstract Instance across different API stages (Alpha, Beta, API)
+type InstanceInterface interface {
+	getName() string
+	setName(name string)
+	getDescription() string
+	setDescription(description string)
+	getZone() string
+	setZone(zone string)
+	getMachineType() string
+	setMachineType(machineType string)
+	populateDisks(w *Workflow) DError
+	populateNetworks() DError
+	populateScopes() DError
+	initializeComputeMetadata()
+	appendComputeMetadata(key string, value *string)
+	validateNetworks(s *Step) (errs DError)
+	getComputeDisks() []*computeDisk
+	create(cc daisyCompute.Client) error
+	updateDisksAndNetworksBeforeCreate(w *Workflow)
+	getMetadata() map[string]string
+	setMetadata(md map[string]string)
+	getSourceMachineImage() string
+	setSourceMachineImage(machineImage string)
+}
+
+// InstanceBase is a base struct for GA/Beta instances.
+// It holds the shared properties between the two.
+type InstanceBase struct {
 	Resource
 
-	// Additional metadata to set for the instance.
-	Metadata map[string]string `json:"metadata,omitempty"`
 	// OAuth2 scopes to give the instance. If left unset
 	// https://www.googleapis.com/auth/devstorage.read_only will be added.
 	Scopes []string `json:",omitempty"`
@@ -94,22 +123,248 @@ type Instance struct {
 	StartupScript string `json:",omitempty"`
 }
 
-// MarshalJSON is a hacky workaround to prevent Instance from using compute.Instance's implementation.
-func (i *Instance) MarshalJSON() ([]byte, error) {
-	return json.Marshal(*i)
+// Instance is used to create a GCE instance using GA API.
+// Output of serial port 1 will be streamed to the daisy logs directory.
+type Instance struct {
+	InstanceBase
+	compute.Instance
+
+	// Additional metadata to set for the instance.
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
-func (i *Instance) populate(ctx context.Context, s *Step) DError {
-	var errs DError
-	i.Name, i.Zone, errs = i.Resource.populateWithZone(ctx, s, i.Name, i.Zone)
-	i.Description = strOr(i.Description, fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
+// InstanceBeta is used to create a GCE instance using Beta API.
+// Output of serial port 1 will be streamed to the daisy logs directory.
+type InstanceBeta struct {
+	InstanceBase
+	computeBeta.Instance
 
-	errs = addErrs(errs, i.populateDisks(s.w))
-	errs = addErrs(errs, i.populateMachineType())
-	errs = addErrs(errs, i.populateMetadata(s.w))
-	errs = addErrs(errs, i.populateNetworks())
-	errs = addErrs(errs, i.populateScopes())
-	i.link = fmt.Sprintf("projects/%s/zones/%s/instances/%s", i.Project, i.Zone, i.Name)
+	// Additional metadata to set for the instance.
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+func (i *Instance) getMachineType() string {
+	return i.MachineType
+}
+
+func (i *Instance) setMachineType(machineType string) {
+	i.MachineType = machineType
+}
+
+func (i *Instance) getDescription() string {
+	return i.Description
+}
+func (i *Instance) setDescription(description string) {
+	i.Description = description
+}
+
+func (i *Instance) getName() string {
+	return i.Name
+}
+func (i *Instance) setName(name string) {
+	i.Name = name
+}
+
+func (i *Instance) getZone() string {
+	return i.Zone
+}
+
+func (i *Instance) setZone(zone string) {
+	i.Zone = zone
+}
+
+func (i *Instance) initializeComputeMetadata() {
+	if i.Instance.Metadata == nil {
+		i.Instance.Metadata = &compute.Metadata{}
+	}
+}
+
+func (i *Instance) appendComputeMetadata(key string, value *string) {
+	i.Instance.Metadata.Items = append(i.Instance.Metadata.Items, &compute.MetadataItems{Key: key, Value: value})
+}
+
+func (i *Instance) create(cc daisyCompute.Client) error {
+	return cc.CreateInstance(i.Project, i.Zone, &i.Instance)
+}
+
+func (i *Instance) updateDisksAndNetworksBeforeCreate(w *Workflow) {
+	for _, d := range i.Disks {
+		if diskRes, ok := w.disks.get(d.Source); ok {
+			d.Source = diskRes.link
+		}
+		if d.InitializeParams != nil && d.InitializeParams.SourceImage != "" {
+			if image, ok := w.images.get(d.InitializeParams.SourceImage); ok {
+				d.InitializeParams.SourceImage = image.link
+			}
+		}
+	}
+
+	for _, n := range i.NetworkInterfaces {
+		if netRes, ok := w.networks.get(n.Network); ok {
+			n.Network = netRes.link
+		}
+		if subnetRes, ok := w.subnetworks.get(n.Subnetwork); ok {
+			n.Subnetwork = subnetRes.link
+		}
+	}
+}
+
+func (i *Instance) getMetadata() map[string]string {
+	return i.Metadata
+}
+
+func (i *Instance) setMetadata(md map[string]string) {
+	i.Metadata = md
+}
+
+func (i *Instance) getSourceMachineImage() string {
+	return ""
+}
+
+func (i *Instance) setSourceMachineImage(machineImage string) {}
+
+func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DError) {
+	// Register disk attachments.
+	for _, d := range i.Disks {
+		dName := d.Source
+		if d.InitializeParams != nil {
+			parts := namedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
+			if parts["disktype"] == "local-ssd" {
+				continue
+			}
+			dName = d.InitializeParams.DiskName
+		}
+		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))
+	}
+
+	// Register network connections.
+	for _, n := range i.NetworkInterfaces {
+		nName := n.Network
+		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
+	}
+}
+
+func (i *InstanceBeta) getMachineType() string {
+	return i.MachineType
+}
+
+func (i *InstanceBeta) setMachineType(machineType string) {
+	i.MachineType = machineType
+}
+
+func (i *InstanceBeta) getDescription() string {
+	return i.Description
+}
+func (i *InstanceBeta) setDescription(description string) {
+	i.Description = description
+}
+
+func (i *InstanceBeta) getName() string {
+	return i.Name
+}
+func (i *InstanceBeta) setName(name string) {
+	i.Name = name
+}
+
+func (i *InstanceBeta) getZone() string {
+	return i.Zone
+}
+
+func (i *InstanceBeta) setZone(zone string) {
+	i.Zone = zone
+}
+
+func (i *InstanceBeta) appendComputeMetadata(key string, value *string) {
+	i.Instance.Metadata.Items = append(i.Instance.Metadata.Items, &computeBeta.MetadataItems{Key: key, Value: value})
+}
+
+func (i *InstanceBeta) initializeComputeMetadata() {
+	if i.Instance.Metadata == nil {
+		i.Instance.Metadata = &computeBeta.Metadata{}
+	}
+}
+
+func (i *InstanceBeta) create(cc daisyCompute.Client) error {
+	return cc.CreateInstanceBeta(i.Project, i.Zone, &i.Instance)
+}
+
+func (i *InstanceBeta) updateDisksAndNetworksBeforeCreate(w *Workflow) {
+	for _, d := range i.Disks {
+		if diskRes, ok := w.disks.get(d.Source); ok {
+			d.Source = diskRes.link
+		}
+		if d.InitializeParams != nil && d.InitializeParams.SourceImage != "" {
+			if image, ok := w.images.get(d.InitializeParams.SourceImage); ok {
+				d.InitializeParams.SourceImage = image.link
+			}
+		}
+	}
+
+	for _, n := range i.NetworkInterfaces {
+		if netRes, ok := w.networks.get(n.Network); ok {
+			n.Network = netRes.link
+		}
+		if subnetRes, ok := w.subnetworks.get(n.Subnetwork); ok {
+			n.Subnetwork = subnetRes.link
+		}
+	}
+}
+
+func (i *InstanceBeta) getMetadata() map[string]string {
+	return i.Metadata
+}
+
+func (i *InstanceBeta) setMetadata(md map[string]string) {
+	i.Metadata = md
+}
+
+func (i *InstanceBeta) getSourceMachineImage() string {
+	return i.Instance.SourceMachineImage
+}
+
+func (i *InstanceBeta) setSourceMachineImage(machineImage string) {
+	i.SourceMachineImage = machineImage
+}
+
+func (i *InstanceBeta) register(name string, s *Step, ir *instanceRegistry, errs DError) {
+	// Register disk attachments.
+	for _, d := range i.Disks {
+		dName := d.Source
+		if d.InitializeParams != nil {
+			parts := namedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
+			if parts["disktype"] == "local-ssd" {
+				continue
+			}
+			dName = d.InitializeParams.DiskName
+		}
+		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))
+	}
+
+	// Register network connections.
+	for _, n := range i.NetworkInterfaces {
+		nName := n.Network
+		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
+	}
+}
+
+func (ib *InstanceBase) populate(ctx context.Context, ii InstanceInterface, s *Step) DError {
+	name, zone, errs := ib.Resource.populateWithZone(ctx, s, ii.getName(), ii.getZone())
+	ii.setName(name)
+	ii.setZone(zone)
+
+	ii.setDescription(strOr(ii.getDescription(), fmt.Sprintf("Instance created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username)))
+	errs = addErrs(errs, ii.populateDisks(s.w))
+	errs = addErrs(errs, ib.populateMachineType(ii))
+	errs = addErrs(errs, ib.populateMetadata(ii, s.w))
+	errs = addErrs(errs, ii.populateNetworks())
+	errs = addErrs(errs, ii.populateScopes())
+	ib.link = fmt.Sprintf("projects/%s/zones/%s/instances/%s", ib.Project, ii.getZone(), ii.getName())
+
+	if machineImageURLRgx.MatchString(ii.getSourceMachineImage()) {
+		ii.setSourceMachineImage(extendPartialURL(ii.getSourceMachineImage(), ib.Project))
+	} else {
+		ii.setSourceMachineImage(fmt.Sprintf("projects/%s/global/machineImages/%s", ib.Project, ii.getSourceMachineImage()))
+	}
 	return errs
 }
 
@@ -160,37 +415,83 @@ func (i *Instance) populateDisks(w *Workflow) DError {
 	return nil
 }
 
-func (i *Instance) populateMachineType() DError {
-	i.MachineType = strOr(i.MachineType, "n1-standard-1")
-	if machineTypeURLRegex.MatchString(i.MachineType) {
-		i.MachineType = extendPartialURL(i.MachineType, i.Project)
-	} else {
-		i.MachineType = fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", i.Project, i.Zone, i.MachineType)
+func (i *InstanceBeta) populateDisks(w *Workflow) DError {
+	autonameIdx := 1
+	for di, d := range i.Disks {
+		d.Boot = di == 0
+		d.Mode = strOr(d.Mode, defaultDiskMode)
+		if diskURLRgx.MatchString(d.Source) {
+			d.Source = extendPartialURL(d.Source, i.Project)
+		}
+		p := d.InitializeParams
+		if p != nil {
+			// If name isn't set, set name to "instance-name", "instance-name-2", etc.
+			if p.DiskName == "" {
+				p.DiskName = i.Name
+				if autonameIdx > 1 {
+					p.DiskName = fmt.Sprintf("%s-%d", i.Name, autonameIdx)
+				}
+				autonameIdx++
+			}
+			if d.DeviceName == "" {
+				d.DeviceName = p.DiskName
+			}
+
+			// Extend SourceImage if short URL.
+			if imageURLRgx.MatchString(p.SourceImage) {
+				p.SourceImage = extendPartialURL(p.SourceImage, i.Project)
+			}
+
+			// Extend DiskType if short URL, or create extended URL.
+			p.DiskType = strOr(p.DiskType, defaultDiskType)
+			if diskTypeURLRgx.MatchString(p.DiskType) {
+				p.DiskType = extendPartialURL(p.DiskType, i.Project)
+			} else {
+				p.DiskType = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", i.Project, i.Zone, p.DiskType)
+			}
+			parts := namedSubexp(diskTypeURLRgx, p.DiskType)
+			if parts["disktype"] == "local-ssd" {
+				d.AutoDelete = true
+				d.Type = "SCRATCH"
+				p.DiskName = ""
+			}
+		} else if d.DeviceName == "" {
+			d.DeviceName = path.Base(d.Source)
+		}
 	}
 	return nil
 }
 
-func (i *Instance) populateMetadata(w *Workflow) DError {
-	if i.Metadata == nil {
-		i.Metadata = map[string]string{}
+func (ib *InstanceBase) populateMachineType(ii InstanceInterface) DError {
+	ii.setMachineType(strOr(ii.getMachineType(), "n1-standard-1"))
+	if machineTypeURLRegex.MatchString(ii.getMachineType()) {
+		ii.setMachineType(extendPartialURL(ii.getMachineType(), ib.Project))
+	} else {
+		ii.setMachineType(fmt.Sprintf("projects/%s/zones/%s/machineTypes/%s", ib.Project, ii.getZone(), ii.getMachineType()))
 	}
-	if i.Instance.Metadata == nil {
-		i.Instance.Metadata = &compute.Metadata{}
+	return nil
+}
+
+func (ib *InstanceBase) populateMetadata(ii InstanceInterface, w *Workflow) DError {
+	if ii.getMetadata() == nil {
+		ii.setMetadata(map[string]string{})
 	}
-	i.Metadata["daisy-sources-path"] = "gs://" + path.Join(w.bucket, w.sourcesPath)
-	i.Metadata["daisy-logs-path"] = "gs://" + path.Join(w.bucket, w.logsPath)
-	i.Metadata["daisy-outs-path"] = "gs://" + path.Join(w.bucket, w.outsPath)
-	if i.StartupScript != "" {
-		if !w.sourceExists(i.StartupScript) {
-			return Errf("bad value for StartupScript, source not found: %s", i.StartupScript)
+	ii.initializeComputeMetadata()
+
+	ii.getMetadata()["daisy-sources-path"] = "gs://" + path.Join(w.bucket, w.sourcesPath)
+	ii.getMetadata()["daisy-logs-path"] = "gs://" + path.Join(w.bucket, w.logsPath)
+	ii.getMetadata()["daisy-outs-path"] = "gs://" + path.Join(w.bucket, w.outsPath)
+	if ib.StartupScript != "" {
+		if !w.sourceExists(ib.StartupScript) {
+			return Errf("bad value for StartupScript, source not found: %s", ib.StartupScript)
 		}
-		i.StartupScript = "gs://" + path.Join(w.bucket, w.sourcesPath, i.StartupScript)
-		i.Metadata["startup-script-url"] = i.StartupScript
-		i.Metadata["windows-startup-script-url"] = i.StartupScript
+		ib.StartupScript = "gs://" + path.Join(w.bucket, w.sourcesPath, ib.StartupScript)
+		ii.getMetadata()["startup-script-url"] = ib.StartupScript
+		ii.getMetadata()["windows-startup-script-url"] = ib.StartupScript
 	}
-	for k, v := range i.Metadata {
+	for k, v := range ii.getMetadata() {
 		vCopy := v
-		i.Instance.Metadata.Items = append(i.Instance.Metadata.Items, &compute.MetadataItems{Key: k, Value: &vCopy})
+		ii.appendComputeMetadata(k, &vCopy)
 	}
 	return nil
 }
@@ -200,6 +501,34 @@ func (i *Instance) populateNetworks() DError {
 
 	if i.NetworkInterfaces == nil {
 		i.NetworkInterfaces = []*compute.NetworkInterface{{}}
+	}
+	for _, n := range i.NetworkInterfaces {
+		if n.AccessConfigs == nil {
+			n.AccessConfigs = defaultAcs
+		}
+
+		// Only set deafult if no subnetwork or network set.
+		if n.Subnetwork == "" {
+			n.Network = strOr(n.Network, "global/networks/default")
+		}
+
+		if networkURLRegex.MatchString(n.Network) {
+			n.Network = extendPartialURL(n.Network, i.Project)
+		}
+
+		if subnetworkURLRegex.MatchString(n.Subnetwork) {
+			n.Subnetwork = extendPartialURL(n.Subnetwork, i.Project)
+		}
+	}
+
+	return nil
+}
+
+func (i *InstanceBeta) populateNetworks() DError {
+	defaultAcs := []*computeBeta.AccessConfig{{Type: defaultAccessConfigType}}
+
+	if i.NetworkInterfaces == nil {
+		i.NetworkInterfaces = []*computeBeta.NetworkInterface{{}}
 	}
 	for _, n := range i.NetworkInterfaces {
 		if n.AccessConfigs == nil {
@@ -233,97 +562,159 @@ func (i *Instance) populateScopes() DError {
 	return nil
 }
 
-func (i *Instance) validate(ctx context.Context, s *Step) DError {
-	pre := fmt.Sprintf("cannot create instance %q", i.daisyName)
-	errs := i.Resource.validateWithZone(ctx, s, i.Zone, pre)
-	errs = addErrs(errs, i.validateDisks(s))
-	errs = addErrs(errs, i.validateMachineType(s.w.ComputeClient))
-	errs = addErrs(errs, i.validateNetworks(s))
+func (i *InstanceBeta) populateScopes() DError {
+	if i.Scopes == nil {
+		i.Scopes = append(i.Scopes, "https://www.googleapis.com/auth/devstorage.read_only")
+	}
+	if i.ServiceAccounts == nil {
+		i.ServiceAccounts = []*computeBeta.ServiceAccount{{Email: "default", Scopes: i.Scopes}}
+	}
+	return nil
+}
+
+func (ib *InstanceBase) validate(ctx context.Context, ii InstanceInterface, s *Step) DError {
+	pre := fmt.Sprintf("cannot create instance %q", ib.daisyName)
+	errs := ib.Resource.validateWithZone(ctx, s, ii.getZone(), pre)
+	errs = addErrs(errs, ib.validateDisks(ii, s))
+	errs = addErrs(errs, ib.validateMachineType(ii, s.w.ComputeClient))
+	errs = addErrs(errs, ii.validateNetworks(s))
+	errs = addErrs(errs, ib.validateSourceMachineImage(ii, s))
 
 	// Register creation.
-	errs = addErrs(errs, s.w.instances.regCreate(i.daisyName, &i.Resource, s))
+	errs = addErrs(errs, s.w.instances.regCreate(ib.daisyName, &ib.Resource, s))
 	return errs
 }
 
-func (i *Instance) validateDisks(s *Step) (errs DError) {
-	if len(i.Disks) == 0 {
-		errs = addErrs(errs, Errf("cannot create instance: no disks provided"))
+func (ib *InstanceBase) validateSourceMachineImage(ii InstanceInterface, s *Step) DError {
+	// regUse needs the partal url of a non daisy resource.
+	lookup := ii.getSourceMachineImage()
+	if lookup == "" {
+		return nil
 	}
+	if _, err := s.w.machineImages.regUse(lookup, s); err != nil {
+		return newErr("failed to register use of machine image when creating an instance", err)
+	}
+	return nil
+}
 
+type computeDisk struct {
+	mode                string
+	source              string
+	hasInitializeParams bool
+	diskName            string
+	sourceImage         string
+	autoDelete          bool
+	diskType            string
+}
+
+func (i *Instance) getComputeDisks() []*computeDisk {
+	var computeDisks []*computeDisk
 	for _, d := range i.Disks {
-		if !checkDiskMode(d.Mode) {
-			errs = addErrs(errs, Errf("cannot create instance: bad disk mode: %q", d.Mode))
+		computeDisk := computeDisk{mode: d.Mode, source: d.Source, hasInitializeParams: d.InitializeParams != nil, autoDelete: d.AutoDelete}
+		if computeDisk.hasInitializeParams {
+			computeDisk.diskName = d.InitializeParams.DiskName
+			computeDisk.sourceImage = d.InitializeParams.SourceImage
+			computeDisk.diskType = d.InitializeParams.DiskType
 		}
-		if d.Source != "" && d.InitializeParams != nil {
+		computeDisks = append(computeDisks, &computeDisk)
+	}
+	return computeDisks
+}
+
+func (i *InstanceBeta) getComputeDisks() []*computeDisk {
+	var computeDisks []*computeDisk
+	for _, d := range i.Disks {
+		computeDisk := computeDisk{mode: d.Mode, source: d.Source, hasInitializeParams: d.InitializeParams != nil, autoDelete: d.AutoDelete}
+		if computeDisk.hasInitializeParams {
+			computeDisk.diskName = d.InitializeParams.DiskName
+			computeDisk.sourceImage = d.InitializeParams.SourceImage
+			computeDisk.diskType = d.InitializeParams.DiskType
+		}
+		computeDisks = append(computeDisks, &computeDisk)
+	}
+	return computeDisks
+}
+
+func (ib *InstanceBase) validateDisks(ii InstanceInterface, s *Step) (errs DError) {
+	computeDisks := ii.getComputeDisks()
+	if len(computeDisks) == 0 && ii.getSourceMachineImage() == "" {
+		errs = addErrs(errs, Errf("cannot create instance: no disks nor source machine image provided"))
+	}
+	if len(computeDisks) > 0 && ii.getSourceMachineImage() != "" {
+		errs = addErrs(errs, Errf("cannot create instance: can't provide disks when SourceMachineImage provided"))
+	}
+	for _, d := range computeDisks {
+		if !checkDiskMode(d.mode) {
+			errs = addErrs(errs, Errf("cannot create instance: bad disk mode: %q", d.mode))
+		}
+		if d.source != "" && d.hasInitializeParams {
 			errs = addErrs(errs, Errf("cannot create instance: disk.source and disk.initializeParams are mutually exclusive"))
 		}
-		if d.InitializeParams != nil {
-			errs = addErrs(errs, i.validateDiskInitializeParams(d, s))
+		if d.hasInitializeParams {
+			errs = addErrs(errs, ib.validateDiskInitializeParams(d, ii, s))
 		} else {
-			errs = addErrs(errs, i.validateDiskSource(d, s))
+			errs = addErrs(errs, ib.validateDiskSource(d.source, ii, s))
 		}
 	}
 	return
 }
 
-func (i *Instance) validateDiskInitializeParams(d *compute.AttachedDisk, s *Step) (errs DError) {
-	p := d.InitializeParams
-
-	parts := namedSubexp(diskTypeURLRgx, p.DiskType)
-	if parts["project"] != i.Project {
-		errs = addErrs(errs, Errf("cannot create instance in project %q with InitializeParams.DiskType in project %q", i.Project, parts["project"]))
+func (ib *InstanceBase) validateDiskInitializeParams(d *computeDisk, ii InstanceInterface, s *Step) (errs DError) {
+	parts := namedSubexp(diskTypeURLRgx, d.diskType)
+	if parts["project"] != ib.Project {
+		errs = addErrs(errs, Errf("cannot create instance in project %q with InitializeParams.DiskType in project %q", ib.Project, parts["project"]))
 	}
-	if parts["zone"] != i.Zone {
-		errs = addErrs(errs, Errf("cannot create instance in zone %q with InitializeParams.DiskType in zone %q", i.Zone, parts["zone"]))
+	if parts["zone"] != ii.getZone() {
+		errs = addErrs(errs, Errf("cannot create instance in zone %q with InitializeParams.DiskType in zone %q", ii.getZone(), parts["zone"]))
 	}
 	if parts["disktype"] == "local-ssd" {
 		return
 	}
 
-	if _, err := s.w.images.regUse(p.SourceImage, s); err != nil {
-		errs = addErrs(errs, Errf("cannot create instance: can't use InitializeParams.SourceImage %q: %v", p.SourceImage, err))
+	if _, err := s.w.images.regUse(d.sourceImage, s); err != nil {
+		errs = addErrs(errs, Errf("cannot create instance: can't use InitializeParams.SourceImage %q: %v", d.sourceImage, err))
 	}
-	if !rfc1035Rgx.MatchString(p.DiskName) {
-		errs = addErrs(errs, Errf("cannot create instance: bad InitializeParams.DiskName: %q", p.DiskName))
+	if !rfc1035Rgx.MatchString(d.diskName) {
+		errs = addErrs(errs, Errf("cannot create instance: bad InitializeParams.DiskName: %q", d.diskName))
 	}
-	link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", i.Project, i.Zone, p.DiskName)
+	link := fmt.Sprintf("projects/%s/zones/%s/disks/%s", ib.Project, ii.getZone(), d.diskName)
 	// Set cleanup if not being autodeleted.
-	r := &Resource{RealName: p.DiskName, link: link, NoCleanup: d.AutoDelete}
-	errs = addErrs(errs, s.w.disks.regCreate(p.DiskName, r, s, false))
+	r := &Resource{RealName: d.diskName, link: link, NoCleanup: d.autoDelete}
+	errs = addErrs(errs, s.w.disks.regCreate(d.diskName, r, s, false))
 
 	return
 }
 
-func (i *Instance) validateDiskSource(d *compute.AttachedDisk, s *Step) DError {
-	dr, errs := s.w.disks.regUse(d.Source, s)
+func (ib *InstanceBase) validateDiskSource(diskSource string, ii InstanceInterface, s *Step) DError {
+	dr, errs := s.w.disks.regUse(diskSource, s)
 	if dr == nil {
 		// Return now, the rest of this function can't be run without dr.
-		return addErrs(errs, Errf("cannot create instance: disk %q not found in registry", d.Source))
+		return addErrs(errs, Errf("cannot create instance: disk %q not found in registry", diskSource))
 	}
 
 	// Ensure disk is in the same project and zone.
 	result := namedSubexp(diskURLRgx, dr.link)
-	if result["project"] != i.Project {
-		errs = addErrs(errs, Errf("cannot create instance in project %q with disk in project %q: %q", i.Project, result["project"], d.Source))
+	if result["project"] != ib.Project {
+		errs = addErrs(errs, Errf("cannot create instance in project %q with disk in project %q: %q", ib.Project, result["project"], diskSource))
 	}
-	if result["zone"] != i.Zone {
-		errs = addErrs(errs, Errf("cannot create instance in project %q with disk in zone %q: %q", i.Zone, result["zone"], d.Source))
+	if result["zone"] != ii.getZone() {
+		errs = addErrs(errs, Errf("cannot create instance in project %q with disk in zone %q: %q", ii.getZone(), result["zone"], diskSource))
 	}
 	return errs
 }
 
-func (i *Instance) validateMachineType(client daisyCompute.Client) (errs DError) {
-	if !machineTypeURLRegex.MatchString(i.MachineType) {
-		errs = addErrs(errs, Errf("can't create instance: bad MachineType: %q", i.MachineType))
+func (ib *InstanceBase) validateMachineType(ii InstanceInterface, client daisyCompute.Client) (errs DError) {
+	if !machineTypeURLRegex.MatchString(ii.getMachineType()) {
+		errs = addErrs(errs, Errf("can't create instance: bad MachineType: %q", ii.getMachineType()))
 		return
 	}
 
-	result := namedSubexp(machineTypeURLRegex, i.MachineType)
-	if result["project"] != i.Project {
-		errs = addErrs(errs, Errf("cannot create instance in project %q with MachineType in project %q: %q", i.Project, result["project"], i.MachineType))
+	result := namedSubexp(machineTypeURLRegex, ii.getMachineType())
+	if result["project"] != ib.Project {
+		errs = addErrs(errs, Errf("cannot create instance in project %q with MachineType in project %q: %q", ib.Project, result["project"], ii.getMachineType()))
 	}
-	if result["zone"] != i.Zone {
-		errs = addErrs(errs, Errf("cannot create instance in zone %q with MachineType in zone %q: %q", i.Zone, result["zone"], i.MachineType))
+	if result["zone"] != ii.getZone() {
+		errs = addErrs(errs, Errf("cannot create instance in zone %q with MachineType in zone %q: %q", ii.getZone(), result["zone"], ii.getMachineType()))
 	}
 
 	if exists, err := machineTypeExists(client, result["project"], result["zone"], result["machinetype"]); err != nil {
@@ -335,6 +726,26 @@ func (i *Instance) validateMachineType(client daisyCompute.Client) (errs DError)
 }
 
 func (i *Instance) validateNetworks(s *Step) (errs DError) {
+	for _, n := range i.NetworkInterfaces {
+		if n.Subnetwork != "" {
+			_, err := s.w.subnetworks.regUse(n.Subnetwork, s)
+			if err != nil {
+				errs = addErrs(errs, err)
+			}
+		}
+
+		if n.Network != "" {
+			_, err := s.w.networks.regUse(n.Network, s)
+			if err != nil {
+				errs = addErrs(errs, err)
+				continue
+			}
+		}
+	}
+	return
+}
+
+func (i *InstanceBeta) validateNetworks(s *Step) (errs DError) {
 	for _, n := range i.NetworkInterfaces {
 		if n.Subnetwork != "" {
 			_, err := s.w.subnetworks.regUse(n.Subnetwork, s)
@@ -411,29 +822,17 @@ func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) DErro
 	errs := ir.baseResourceRegistry.regCreate(name, res, s, false)
 
 	// Find the Instance responsible for this.
-	var i *Instance
-	for _, i = range *s.CreateInstances {
+	for _, i := range (*s.CreateInstances).Instances {
 		if &i.Resource == res {
-			break
+			i.register(name, s, ir, errs)
+			return errs
 		}
 	}
-	// Register disk attachments.
-	for _, d := range i.Disks {
-		dName := d.Source
-		if d.InitializeParams != nil {
-			parts := namedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
-			if parts["disktype"] == "local-ssd" {
-				continue
-			}
-			dName = d.InitializeParams.DiskName
+	for _, i := range (*s.CreateInstances).InstancesBeta {
+		if &i.Resource == res {
+			i.register(name, s, ir, errs)
+			return errs
 		}
-		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))
-	}
-
-	// Register network connections.
-	for _, n := range i.NetworkInterfaces {
-		nName := n.Network
-		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
 	}
 
 	return errs
