@@ -66,7 +66,6 @@ var (
 	uefiCompatible              = flag.Bool("uefi-compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
 	hostname                    = flag.String(ovfimportparams.HostnameFlagKey, "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
 	machineImageStorageLocation = flag.String(ovfimportparams.MachineImageStorageLocationFlagKey, "", "GCS bucket storage location of the machine image being imported (regional or multi-regional)")
-	buildID                     = flag.String("build-id", "", "Cloud Build ID override. This flag should be used if auto-generated or build ID provided by Cloud Build is not appropriate. For example, if running multiple imports in parallel in a single Cloud Build run, sharing build ID could cause premature temporary resource clean-up resulting in import failures.")
 
 	nodeAffinityLabelsFlag flags.StringArrayFlag
 	currentExecutablePath  string
@@ -95,7 +94,7 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
 		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,
 		UefiCompatible: *uefiCompatible, Hostname: *hostname,
-		MachineImageStorageLocation: *machineImageStorageLocation, BuildID: *buildID,
+		MachineImageStorageLocation: *machineImageStorageLocation,
 	}
 }
 

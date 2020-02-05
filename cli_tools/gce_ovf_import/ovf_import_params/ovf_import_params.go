@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -68,11 +69,11 @@ type OVFImportParams struct {
 	ReleaseTrack                string
 	UefiCompatible              bool
 	Hostname                    string
-	BuildID                     string
 
 	// Non-flags
 	UserLabels            map[string]string
 	NodeAffinities        []*compute.SchedulingNodeAffinity
+	NodeAffinitiesBeta    []*computeBeta.SchedulingNodeAffinity
 	CurrentExecutablePath string
 }
 
