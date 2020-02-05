@@ -126,7 +126,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(daisyutils.BuildIDOSEnvVarName))
 		rl := &daisyutils.ResourceLabeler{
 			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
-			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
+			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-export-tmp"
 			},
 			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {

@@ -21,11 +21,13 @@ import (
 )
 
 func TestParseNodeAffinities(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env,IN,prod,test,staging", "os,NOT_IN,windows-2012,windows-2016"})
+	affinities, affinitiesBeta, err := ParseNodeAffinityLabels([]string{"env,IN,prod,test,staging", "os,NOT_IN,windows-2012,windows-2016"})
 
 	assert.NotNil(t, affinities)
+	assert.NotNil(t, affinitiesBeta)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(affinities))
+	assert.Equal(t, 2, len(affinitiesBeta))
 
 	assert.Equal(t, "env", affinities[0].Key)
 	assert.Equal(t, "IN", affinities[0].Operator)
@@ -42,7 +44,7 @@ func TestParseNodeAffinities(t *testing.T) {
 }
 
 func TestParseNodeAffinitiesSingleValue(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"compute.googleapis.com/node-group-name,IN,zoran-playground-node-group"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"compute.googleapis.com/node-group-name,IN,zoran-playground-node-group"})
 
 	assert.NotNil(t, affinities)
 	assert.Nil(t, err)
@@ -55,7 +57,7 @@ func TestParseNodeAffinitiesSingleValue(t *testing.T) {
 }
 
 func TestParseNodeAffinitiesExtraSpaces(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"   env , IN   , prod,test,   staging    "})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"   env , IN   , prod,test,   staging    "})
 
 	assert.NotNil(t, affinities)
 	assert.Nil(t, err)
@@ -70,84 +72,84 @@ func TestParseNodeAffinitiesExtraSpaces(t *testing.T) {
 }
 
 func TestParseNodeAffinitiesNoValue(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env,IN"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"env,IN"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesEmptyValue(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env,IN,"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"env,IN,"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesWhiteSpaceValue(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env,IN,  "})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"env,IN,  "})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesNoOperator(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"env"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesEmptyOperator(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env,,test"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"env,,test"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesWhiteSpaceOperator(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env,  ,test"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"env,  ,test"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesEmptyOperatorNoValue(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env,"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"env,"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesInvalidOperator(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"env,CONTAINS,test"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"env,CONTAINS,test"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesEmptyKey(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{",IN,test"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{",IN,test"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesWhiteSpacesKey(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{"   ,IN,test"})
+	affinities, _, err := ParseNodeAffinityLabels([]string{"   ,IN,test"})
 
 	assert.Nil(t, affinities)
 	assert.NotNil(t, err)
 }
 
 func TestParseNodeAffinitiesEmptyString(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels([]string{})
+	affinities, _, err := ParseNodeAffinityLabels([]string{})
 
 	assert.Equal(t, 0, len(affinities))
 	assert.Nil(t, err)
 }
 
 func TestParseNodeAffinitiesNilLabels(t *testing.T) {
-	affinities, err := ParseNodeAffinityLabels(nil)
+	affinities, _, err := ParseNodeAffinityLabels(nil)
 
 	assert.Equal(t, 0, len(affinities))
 	assert.Nil(t, err)
