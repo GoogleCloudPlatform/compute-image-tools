@@ -85,7 +85,7 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*i)
 }
 
-//InstanceInterface represent abstract Instance across different API stages (Alpha, Beta, API)
+// InstanceInterface represent abstract Instance across different API stages (Alpha, Beta, API)
 type InstanceInterface interface {
 	getName() string
 	setName(name string)
@@ -110,7 +110,7 @@ type InstanceInterface interface {
 	setSourceMachineImage(machineImage string)
 }
 
-//InstanceBase is a base struct for GA/Beta images.
+// InstanceBase is a base struct for GA/Beta instances.
 // It holds the shared properties between the two.
 type InstanceBase struct {
 	Resource
