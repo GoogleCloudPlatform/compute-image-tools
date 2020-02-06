@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go v0.52.0
 	cloud.google.com/go/storage v1.5.0
 	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200206014411-426b6301f679
-	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200114194943-8842c1d85084
+	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200206014411-426b6301f679
 	github.com/GoogleCloudPlatform/osconfig v0.0.0-20200206003250-4c8360f46629
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-ole/go-ole v1.2.4
