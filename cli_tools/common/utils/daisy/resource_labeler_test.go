@@ -78,9 +78,9 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 	validateLabels(t, &(*w.Steps["ci"].CreateInstances).Instances[1].Instance.Labels,
 		"gce-image-import-tmp", buildID)
 
-	validateLabels(t, &(*w.Steps["ci"].CreateInstances).InstancesBeta[0].Instance.Labels,
+	validateLabels(t, &(*w.Steps["cibeta"].CreateInstances).InstancesBeta[0].Instance.Labels,
 		"gce-image-import-tmp", buildID, &existingLabels)
-	validateLabels(t, &(*w.Steps["ci"].CreateInstances).InstancesBeta[1].Instance.Labels,
+	validateLabels(t, &(*w.Steps["cibeta"].CreateInstances).InstancesBeta[1].Instance.Labels,
 		"gce-image-import-tmp", buildID)
 
 }

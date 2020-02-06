@@ -40,6 +40,8 @@ github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200114193104-0
 github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200114232830-6d2d59acb179/go.mod h1:LyRbPkZMX3sR7WdIxBa1OYQlAO4opSezuhOXjc5xd2I=
 github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200205235712-a9d0f67dd737 h1:/40x85lvepIFq48teDECP0/6mVg5H7ODHoNpGa6tMZE=
 github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200205235712-a9d0f67dd737/go.mod h1:3xB7Kqg2vSJvwQl3XadMt9bzjbmcuoKlD+GH12xQyr4=
+github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200206014411-426b6301f679 h1:DKVlDFYdse6EP3eNXXb5qomistCwYUlbdy80Bychnxk=
+github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200206014411-426b6301f679/go.mod h1:3xB7Kqg2vSJvwQl3XadMt9bzjbmcuoKlD+GH12xQyr4=
 github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200114232830-6d2d59acb179/go.mod h1:2hxlZPfWalIdOXnzbPATwW+Rs7FMMNWD5QnHDE49QZA=
 github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200128181915-c0775e429077/go.mod h1:2hxlZPfWalIdOXnzbPATwW+Rs7FMMNWD5QnHDE49QZA=
 github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200114194943-8842c1d85084 h1:2vh7oGDlLNk8xWmYIHoUOOr75l9cNC58wKlAvjd2uZo=
@@ -51,6 +53,8 @@ github.com/GoogleCloudPlatform/osconfig v0.0.0-20200113163233-44035fcbfdd9/go.mo
 github.com/GoogleCloudPlatform/osconfig v0.0.0-20200115000133-a7c6fc334759/go.mod h1:nljBbLz4lHbiK1P6TwNhW0tanjfrRMYgtvLnLTIxygk=
 github.com/GoogleCloudPlatform/osconfig v0.0.0-20200130224302-27a85d59cc83 h1:31ID2baVD1xW8HqfvRVc0XzYVYqSupuqOeggyxU01U0=
 github.com/GoogleCloudPlatform/osconfig v0.0.0-20200130224302-27a85d59cc83/go.mod h1:nT1RIv+FL9qTdvhWYUd85m6Vpcy2fi7ZpLwS6Yuflb0=
+github.com/GoogleCloudPlatform/osconfig v0.0.0-20200206003250-4c8360f46629 h1:n1mz9Da0Qb5cnw21ahHcdqOyct6HUNl4ZJaasuL87fY=
+github.com/GoogleCloudPlatform/osconfig v0.0.0-20200206003250-4c8360f46629/go.mod h1:nT1RIv+FL9qTdvhWYUd85m6Vpcy2fi7ZpLwS6Yuflb0=
 github.com/GoogleCloudPlatform/osconfig/e2e_tests v0.0.0-20200128231920-2ddeb2407498/go.mod h1:YHx1ltdJOZNKtDNUBBIwzyiq4Kh4EwQWm1NOcMEU/OA=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d h1:G0m3OIz70MZUWq3EgK3CesDbo8upS2Vm9/P3FtgI+Jk=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
@@ -290,6 +294,8 @@ golang.org/x/tools v0.0.0-20200121145236-13c74800b9d2/go.mod h1:TB2adYChydJhpapK
 golang.org/x/tools v0.0.0-20200130002326-2f3ba24bd6e7/go.mod h1:TB2adYChydJhpapKDTa4BR/hXlZSLoq2Wpct/0txZ28=
 golang.org/x/tools v0.0.0-20200206001521-403f1254bdfd h1:QVaOdJM5YoztlnOSf0ZiBkvuzUmFmZuMUzFZHg/ys5k=
 golang.org/x/tools v0.0.0-20200206001521-403f1254bdfd/go.mod h1:TB2adYChydJhpapKDTa4BR/hXlZSLoq2Wpct/0txZ28=
+golang.org/x/tools v0.0.0-20200206152323-64a0f23fc32d h1:pkyLs4yrjKgQPIUhG+B7dD7w1gHwtE4zjMT+5Tifnn8=
+golang.org/x/tools v0.0.0-20200206152323-64a0f23fc32d/go.mod h1:TB2adYChydJhpapKDTa4BR/hXlZSLoq2Wpct/0txZ28=
 golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
