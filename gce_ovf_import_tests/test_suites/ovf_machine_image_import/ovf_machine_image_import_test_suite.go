@@ -43,7 +43,7 @@ const (
 
 var (
 	cmds = map[clitoolstestutils.CLITestType]string{
-		clitoolstestutils.Wrapper:                   "./gce_ovf_import",
+		clitoolstestutils.Wrapper: "./gce_ovf_import",
 
 		// TODO: uncomment once `gcloud beta compute machine-images import`
 		//  available for public consumption
@@ -91,7 +91,6 @@ func TestSuite(
 			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Network setting (path)"))
 		machineImageImportStorageLocation := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Storage location"))
-
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, clitoolstestutils.CLITestType){}
@@ -193,8 +192,12 @@ func runOVFMachineImageImportNetworkSettingsName(ctx context.Context, testCase *
 		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
 		os:                    "centos-6",
 		machineType:           "n1-standard-4",
-		network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
-		subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
+
+		//TODO: uncomment
+		network: "dummy",
+		subnet:  "custom-us-central1",
+		//network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
+		//subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
 	}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
@@ -270,7 +273,7 @@ func runOVFMachineImageImportTest(ctx context.Context, args []string, testType c
 	props *ovfMachineImageImportTestProperties) {
 
 	if clitoolstestutils.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
-		verifyImportedInstance(ctx, testCase, testProjectConfig, logger, props)
+		verifyImportedMachineImage(ctx, testCase, testProjectConfig, logger, props)
 	}
 }
 
@@ -279,7 +282,7 @@ func failure(testCase *junitxml.TestCase, logger *log.Logger, msg string) {
 	logger.Printf(msg)
 }
 
-func verifyImportedInstance(
+func verifyImportedMachineImage(
 	ctx context.Context, testCase *junitxml.TestCase, testProjectConfig *testconfig.Project,
 	logger *log.Logger, props *ovfMachineImageImportTestProperties) {
 
@@ -289,19 +292,29 @@ func verifyImportedInstance(
 		return
 	}
 
-	logger.Printf("Verifying imported instance...")
-	instance, err := computeUtils.CreateInstanceObject(ctx, testProjectConfig.TestProjectID, props.zone, props.machineImageName, props.isWindows)
+	logger.Printf("Verifying imported machine image...")
+	testInstanceName := props.machineImageName + "-test-instance"
+	logger.Printf("Creating `%v` test instance.", testInstanceName)
+	instance, err := computeUtils.CreateInstanceBeta(
+		ctx, testProjectConfig.TestProjectID, props.zone, testInstanceName, props.isWindows, props.machineImageName)
 	if err != nil {
-		failure(testCase, logger, fmt.Sprintf("Image '%v' doesn't exist after import: %v", props.machineImageName, err))
+		failure(testCase, logger, fmt.Sprintf("Error when creating test instance `%v` from machine image '%v': %v", testInstanceName, props.machineImageName, err))
 		return
 	}
 
+	// Clean-up
 	defer func() {
-		logger.Printf("Deleting instance `%v`", props.machineImageName)
+		logger.Printf("Deleting instance `%v`", testInstanceName)
 		if err := instance.Cleanup(); err != nil {
-			logger.Printf("Instance '%v' failed to clean up: %v", props.machineImageName, err)
+			logger.Printf("Instance '%v' failed to clean up: %v", testInstanceName, err)
 		} else {
-			logger.Printf("Instance '%v' cleaned up.", props.machineImageName)
+			logger.Printf("Instance '%v' cleaned up.", testInstanceName)
+		}
+		logger.Printf("Deleting machine image `%v`", props.machineImageName)
+		if err := client.DeleteMachineImage(testProjectConfig.TestProjectID, props.machineImageName); err != nil {
+			logger.Printf("Machine image '%v' failed to clean up: %v", props.machineImageName, err)
+		} else {
+			logger.Printf("Machine image '%v' cleaned up.", props.machineImageName)
 		}
 	}()
 
@@ -344,26 +357,17 @@ func verifyImportedInstance(
 		return
 	}
 
-	logger.Printf("[%v] Stopping instance before restarting with test startup script", props.machineImageName)
-	err = client.StopInstance(
-		testProjectConfig.TestProjectID, props.zone, props.machineImageName)
-
-	if err != nil {
-		testCase.WriteFailure("Error stopping imported instance: %v", err)
-		return
-	}
-
 	if props.verificationStartupScript == "" {
-		logger.Printf("[%v] Will not set test startup script to instance metadata as it's not defined", props.machineImageName)
+		logger.Printf("[%v] Will not set test startup script to test instance metadata as it's not defined", props.machineImageName)
 		return
 	}
 
 	err = instance.StartWithScript(props.verificationStartupScript)
 	if err != nil {
-		testCase.WriteFailure("Error starting instance `%v` with script: %v", props.machineImageName, err)
+		testCase.WriteFailure("Error starting instance `%v` with script: `%v`: %v", testInstanceName, err)
 		return
 	}
-	logger.Printf("[%v] Waiting for `%v` in instance serial console.", props.machineImageName,
+	logger.Printf("[%v] Waiting for `%v` in instance serial console.", testInstanceName,
 		props.expectedStartupOutput)
 	if err := instance.WaitForSerialOutput(
 		props.expectedStartupOutput, 1, 5*time.Second, 15*time.Minute); err != nil {

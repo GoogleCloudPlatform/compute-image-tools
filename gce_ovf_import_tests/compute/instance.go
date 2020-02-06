@@ -22,12 +22,21 @@ import (
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	apiBeta "google.golang.org/api/compute/v0.beta"
 	api "google.golang.org/api/compute/v1"
 )
 
 // Instance is a compute instance.
 type Instance struct {
 	*api.Instance
+	Client        daisyCompute.Client
+	Project, Zone string
+	IsWindows     bool
+}
+
+// Instance is a compute instance.
+type InstanceBeta struct {
+	*apiBeta.Instance
 	Client        daisyCompute.Client
 	Project, Zone string
 	IsWindows     bool
@@ -61,6 +70,16 @@ func (i *Instance) StartWithScript(script string) error {
 
 // WaitForSerialOutput waits to a string match on a serial port.
 func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeout time.Duration) error {
+	return WaitForSerialOutput(match, port, interval, timeout, i.Project, i.Zone, i.Name, i.Client)
+}
+
+// WaitForSerialOutput waits to a string match on a serial port.
+func (i *InstanceBeta) WaitForSerialOutput(match string, port int64, interval, timeout time.Duration) error {
+	return WaitForSerialOutput(match, port, interval, timeout, i.Project, i.Zone, i.Name, i.Client)
+}
+
+// WaitForSerialOutput waits to a string match on a serial port.
+func WaitForSerialOutput(match string, port int64, interval, timeout time.Duration, project, zone, instanceName string, client daisyCompute.Client) error {
 	var start int64
 	var errs int
 	tick := time.Tick(interval)
@@ -70,9 +89,9 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 		case <-timedout:
 			return fmt.Errorf("timed out waiting for %q", match)
 		case <-tick:
-			resp, err := i.Client.GetSerialPortOutput(i.Project, i.Zone, i.Name, port, start)
+			resp, err := client.GetSerialPortOutput(project, zone, instanceName, port, start)
 			if err != nil {
-				status, sErr := i.Client.InstanceStatus(i.Project, i.Zone, i.Name)
+				status, sErr := client.InstanceStatus(project, zone, instanceName)
 				if sErr != nil {
 					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
 				} else {
@@ -103,7 +122,7 @@ func (i *Instance) WaitForSerialOutput(match string, port int64, interval, timeo
 	}
 }
 
-// CreateInstanceObject creates an image object to be operated by API client
+// CreateInstanceObject creates an image object to be operated by GA API client
 func CreateInstanceObject(ctx context.Context, project string, zone string, name string, isWindows bool) (*Instance, error) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -121,4 +140,49 @@ func BuildInstanceMetadataItem(key, value string) *api.MetadataItems {
 		Key:   key,
 		Value: func() *string { v := value; return &v }(),
 	}
+}
+
+// CreateInstanceBetaObject creates an image object to be operated by Beta API client
+func CreateInstanceBeta(ctx context.Context, project string, zone string, name string, isWindows bool, machineImageName string) (*InstanceBeta, error) {
+	client, err := daisyCompute.NewClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var apiBetaInstance *apiBeta.Instance
+	apiBetaInstance = &apiBeta.Instance{
+		SourceMachineImage: fmt.Sprintf("projects/%s/global/machineImages/%s", project, machineImageName),
+		Name: name,
+		Zone: zone,
+	}
+	i := &InstanceBeta{apiBetaInstance, client, project, zone, isWindows}
+
+	if err := client.CreateInstanceBeta(i.Project, i.Zone, i.Instance); err != nil {
+		return i, err
+	}
+	return i, nil
+}
+
+// StartWithScript starts the instance with given startup script.
+func (i *InstanceBeta) StartWithScript(script string) error {
+	startupScriptKey := "startup-script"
+	if i.IsWindows {
+		startupScriptKey = "windows-startup-script-ps1"
+	}
+	if err := i.Client.SetInstanceMetadata(i.Project, i.Zone,
+		i.Name, &api.Metadata{Items: []*api.MetadataItems{BuildInstanceMetadataItem(
+			startupScriptKey, script)},
+			Fingerprint: i.Metadata.Fingerprint}); err != nil {
+		return err
+	}
+
+	if err := i.Client.StartInstance(i.Project, i.Zone, i.Name); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Cleanup deletes the InstanceBeta.
+func (i *InstanceBeta) Cleanup() error {
+	return i.Client.DeleteInstance(i.Project, i.Zone, i.Name)
 }
