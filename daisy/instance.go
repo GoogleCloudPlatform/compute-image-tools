@@ -362,8 +362,6 @@ func (ib *InstanceBase) populate(ctx context.Context, ii InstanceInterface, s *S
 
 	if machineImageURLRgx.MatchString(ii.getSourceMachineImage()) {
 		ii.setSourceMachineImage(extendPartialURL(ii.getSourceMachineImage(), ib.Project))
-	} else {
-		ii.setSourceMachineImage(fmt.Sprintf("projects/%s/global/machineImages/%s", ib.Project, ii.getSourceMachineImage()))
 	}
 	return errs
 }
