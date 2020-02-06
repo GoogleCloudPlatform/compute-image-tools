@@ -37,15 +37,34 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 	w.Steps = map[string]*daisy.Step{
 		"ci": {
 			CreateInstances: &daisy.CreateInstances{
-				{
-					Instance: compute.Instance{
-						Disks:  []*compute.AttachedDisk{{Source: "key1"}},
-						Labels: map[string]string{"labelKey": "labelValue"},
+				Instances: []*daisy.Instance{
+					{
+						Instance: compute.Instance{
+							Disks:  []*compute.AttachedDisk{{Source: "key1"}},
+							Labels: map[string]string{"labelKey": "labelValue"},
+						},
+					},
+					{
+						Instance: compute.Instance{
+							Disks: []*compute.AttachedDisk{{Source: "key2"}},
+						},
 					},
 				},
-				{
-					Instance: compute.Instance{
-						Disks: []*compute.AttachedDisk{{Source: "key2"}},
+			},
+		},
+		"cibeta": {
+			CreateInstances: &daisy.CreateInstances{
+				InstancesBeta: []*daisy.InstanceBeta{
+					{
+						Instance: computeBeta.Instance{
+							Disks:  []*computeBeta.AttachedDisk{{Source: "key1"}},
+							Labels: map[string]string{"labelKey": "labelValue"},
+						},
+					},
+					{
+						Instance: computeBeta.Instance{
+							Disks: []*computeBeta.AttachedDisk{{Source: "key2"}},
+						},
 					},
 				},
 			},
@@ -54,10 +73,16 @@ func TestUpdateWorkflowInstancesLabelled(t *testing.T) {
 
 	rl := createTestResourceLabeler(buildID, userLabels)
 	rl.LabelResources(w)
-	validateLabels(t, &(*w.Steps["ci"].CreateInstances)[0].Instance.Labels,
+	validateLabels(t, &(*w.Steps["ci"].CreateInstances).Instances[0].Instance.Labels,
 		"gce-image-import-tmp", buildID, &existingLabels)
-	validateLabels(t, &(*w.Steps["ci"].CreateInstances)[1].Instance.Labels,
+	validateLabels(t, &(*w.Steps["ci"].CreateInstances).Instances[1].Instance.Labels,
 		"gce-image-import-tmp", buildID)
+
+	validateLabels(t, &(*w.Steps["cibeta"].CreateInstances).InstancesBeta[0].Instance.Labels,
+		"gce-image-import-tmp", buildID, &existingLabels)
+	validateLabels(t, &(*w.Steps["cibeta"].CreateInstances).InstancesBeta[1].Instance.Labels,
+		"gce-image-import-tmp", buildID)
+
 }
 
 func TestUpdateWorkflowDisksLabelled(t *testing.T) {
@@ -205,7 +230,7 @@ func TestUpdateWorkflowImageStorageLocationSet(t *testing.T) {
 func createTestResourceLabeler(buildID string, userLabels map[string]string) *ResourceLabeler {
 	return &ResourceLabeler{
 		BuildID: buildID, UserLabels: userLabels, BuildIDLabelKey: "gce-image-import-build-id",
-		InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
+		InstanceLabelKeyRetriever: func(instanceName string) string {
 			return "gce-image-import-tmp"
 		},
 		DiskLabelKeyRetriever: func(disk *daisy.Disk) string {

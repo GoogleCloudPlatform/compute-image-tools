@@ -215,7 +215,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 			UserLabels:      userLabels,
 			BuildIDLabelKey: "gce-image-import-build-id",
 			ImageLocation:   storageLocation,
-			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
+			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-import-tmp"
 			},
 			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {

@@ -90,7 +90,7 @@ func ValidateAndParseParams(params *OVFImportParams) error {
 
 	if params.NodeAffinityLabelsFlag != nil {
 		var err error
-		params.NodeAffinities, err = compute.ParseNodeAffinityLabels(params.NodeAffinityLabelsFlag)
+		params.NodeAffinities, params.NodeAffinitiesBeta, err = compute.ParseNodeAffinityLabels(params.NodeAffinityLabelsFlag)
 		if err != nil {
 			return err
 		}
