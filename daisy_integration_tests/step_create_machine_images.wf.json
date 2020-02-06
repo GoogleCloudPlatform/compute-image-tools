@@ -1,5 +1,8 @@
 {
   "Name": "create-machine-images-test",
+  "Sources": {
+    "report_success.sh": "./scripts/report_success.sh"
+  },
   "Vars": {
     "about-this-test": {
       "Value": "",
@@ -30,11 +33,32 @@
           "StorageLocations": ["us-west2"]
         }
       ]
+    },
+    "create-instance-from-machine-image": {
+      "CreateInstances": [
+        {
+          "name": "instance-from-machine-image",
+          "StartupScript": "report_success.sh",
+          "SourceMachineImage": "from-source-instance"
+        }
+      ]
+    },
+    "test-instance-from-machine-image": {
+      "Timeout": "15m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "instance-from-machine-image",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "SUCCESS JO2Pd99h4qRK5HIpc5NP"
+          }
+        }
+      ]
     }
   },
   "Dependencies": {
-    "create-machine-images": [
-      "create-source-instance"
-    ]
+    "create-machine-images": ["create-source-instance"],
+    "create-instance-from-machine-image": ["create-machine-images"],
+    "test-instance-from-machine-image":["create-instance-from-machine-image"]
   }
 }

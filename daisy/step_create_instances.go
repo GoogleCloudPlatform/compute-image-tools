@@ -155,6 +155,12 @@ func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
 	w := s.w
 	eChan := make(chan DError)
 	createInstance := func(ii InstanceInterface, ib *InstanceBase) {
+		// Get the source machine image link if using a source image.
+		if ii.getSourceMachineImage() != "" {
+			if image, ok := w.machineImages.get(ii.getSourceMachineImage()); ok {
+				ii.setSourceMachineImage(image.link)
+			}
+		}
 		defer wg.Done()
 		ii.updateDisksAndNetworksBeforeCreate(w)
 
