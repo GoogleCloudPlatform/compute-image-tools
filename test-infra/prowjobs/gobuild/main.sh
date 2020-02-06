@@ -30,7 +30,7 @@ LINUX_TARGETS=("daisy/cli"
                "cli_tools/gce_export"
                "cli_tools/gce_image_publish" 
                "cli_tools/import_precheck"
-               "cli_tools/daisy_test_runner"
+               "daisy/daisy_test_runner"
                "gce_image_import_export_tests")
 for TARGET in "${LINUX_TARGETS[@]}"; do
   echo "Building ${TARGET} for Linux"
