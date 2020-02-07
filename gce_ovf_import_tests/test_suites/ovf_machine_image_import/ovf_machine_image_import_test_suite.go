@@ -253,7 +253,6 @@ func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig
 	if props.storageLocation != "" {
 		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--storage-location=%v", props.storageLocation))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-machine-image-storage-location=%v", props.storageLocation))
-
 	}
 
 	argsMap := map[clitoolstestutils.CLITestType][]string{
