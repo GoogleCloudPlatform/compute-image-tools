@@ -34,7 +34,7 @@ type Instance struct {
 	IsWindows     bool
 }
 
-// Instance is a compute instance.
+// InstanceBeta is a compute instance using Beta API.
 type InstanceBeta struct {
 	*apiBeta.Instance
 	Client        daisyCompute.Client
@@ -142,7 +142,7 @@ func BuildInstanceMetadataItem(key, value string) *api.MetadataItems {
 	}
 }
 
-// CreateInstanceBetaObject creates an image object to be operated by Beta API client
+// CreateInstanceBeta creates an image object to be operated by Beta API client
 func CreateInstanceBeta(ctx context.Context, project string, zone string, name string, isWindows bool, machineImageName string) (*InstanceBeta, error) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -152,8 +152,8 @@ func CreateInstanceBeta(ctx context.Context, project string, zone string, name s
 	var apiBetaInstance *apiBeta.Instance
 	apiBetaInstance = &apiBeta.Instance{
 		SourceMachineImage: fmt.Sprintf("projects/%s/global/machineImages/%s", project, machineImageName),
-		Name: name,
-		Zone: zone,
+		Name:               name,
+		Zone:               zone,
 	}
 	i := &InstanceBeta{apiBetaInstance, client, project, zone, isWindows}
 

@@ -43,12 +43,9 @@ const (
 
 var (
 	cmds = map[clitoolstestutils.CLITestType]string{
-		clitoolstestutils.Wrapper: "./gce_ovf_import",
-
-		// TODO: uncomment once `gcloud beta compute machine-images import`
-		//  available for public consumption
-		//clitoolstestutils.GcloudProdWrapperLatest:   "gcloud",
-		//clitoolstestutils.GcloudLatestWrapperLatest: "gcloud",
+		clitoolstestutils.Wrapper:                   "./gce_ovf_import",
+		clitoolstestutils.GcloudProdWrapperLatest:   "gcloud",
+		clitoolstestutils.GcloudLatestWrapperLatest: "gcloud",
 	}
 )
 
@@ -77,8 +74,11 @@ func TestSuite(
 
 	testTypes := []clitoolstestutils.CLITestType{
 		clitoolstestutils.Wrapper,
-		clitoolstestutils.GcloudProdWrapperLatest,
-		clitoolstestutils.GcloudLatestWrapperLatest,
+
+		// TODO: uncomment once `gcloud beta compute machine-images import`
+		//  is available for public consumption
+		//clitoolstestutils.GcloudProdWrapperLatest,
+		//clitoolstestutils.GcloudLatestWrapperLatest,
 	}
 	for _, testType := range testTypes {
 		machineImageImportUbuntu3DisksTestCase := junitxml.NewTestCase(
@@ -192,12 +192,8 @@ func runOVFMachineImageImportNetworkSettingsName(ctx context.Context, testCase *
 		sourceURI:             fmt.Sprintf("gs://%v/", ovaBucket),
 		os:                    "centos-6",
 		machineType:           "n1-standard-4",
-
-		//TODO: uncomment
-		network: "dummy",
-		subnet:  "custom-us-central1",
-		//network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
-		//subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
+		network:               fmt.Sprintf("%v-vpc-1", testProjectConfig.TestProjectID),
+		subnet:                fmt.Sprintf("%v-subnet-1", testProjectConfig.TestProjectID),
 	}
 
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
