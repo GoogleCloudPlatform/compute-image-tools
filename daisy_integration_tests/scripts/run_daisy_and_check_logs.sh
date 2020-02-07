@@ -26,7 +26,8 @@ fi
 chmod +x ./daisy
 
 # Run daisy
-./daisy go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_integration_tests/step_create_disks.wf.json
+echo '{  "Name": "create-disks-test", "Steps": {"create-disks": {"CreateDisks": [{"name": "disk-from-image-family-url", "sourceImage": "projects/debian-cloud/global/images/family/debian-9", "type": "pd-ssd"}]}}}' > wf.json
+./daisy wf.json
 if [ $? -ne 0 ]; then
   echo "BuildFailed: Error executing Daisy."
   exit 1
