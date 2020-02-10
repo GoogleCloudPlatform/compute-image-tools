@@ -59,7 +59,7 @@ function Get-MetadataValue {
 
 function Setup-ScriptRunner {
   $metadata_scripts = "${script:os_drive}\Program Files\Google\Compute Engine\metadata_scripts"
-  New-Item "${metadata_scripts}\" -ItemType Directory | Out-Null
+  New-Item "${metadata_scripts}\"  -Force -ItemType Directory | Out-Null
   Copy-Item "${script:components_dir}\run_startup_scripts.cmd" "${metadata_scripts}\run_startup_scripts.cmd" -Verbose
   # This file must be unicode with no trailing new line and exactly match the source.
   (Get-Content "${script:components_dir}\GCEStartup" | Out-String).TrimEnd() | Out-File -Encoding Unicode -NoNewline "${script:os_drive}\Windows\System32\Tasks\GCEStartup"
@@ -106,12 +106,12 @@ function Test-ProductName {
 function Copy-32bitPackages {
   Write-Output 'TranslateBootstrap: Creating directory.'
   $googet_dir = "${script:os_drive}\ProgramData\GooGet"
-  New-Item -Path $googet_dir -Type Directory
+  New-Item -Path $googet_dir -Force -Type Directory
   Write-Output 'TranslateBootstrap: Copying googet.'
   Copy-Item "${script:components_dir}\googet.exe" "${script:os_drive}\ProgramData\GooGet\googet.exe" -Force -Verbose
   Write-Output 'TranslateBootstrap: Copying additional googet files.'
   $goofiles_dir = "${script:os_drive}\ProgramData\GooGet\components\"
-  New-Item -Path $goofiles_dir -Type Directory
+  New-Item -Path $goofiles_dir -Force -Type Directory
   Copy-Item "${script:components_dir}\*.goo" "${script:os_drive}\ProgramData\GooGet\components\" -Force -Verbose -Recurse
 }
 
