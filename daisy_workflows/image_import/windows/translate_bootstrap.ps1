@@ -160,8 +160,8 @@ try {
   }
 
   $driver_dir = 'c:\drivers'
-  New-Item $driver_dir -Force -Type Directory | Out-Null
-  New-Item $script:components_dir -Force -Type Directory | Out-Null
+  New-Item $driver_dir -Type Directory | Out-Null
+  New-Item $script:components_dir -Type Directory | Out-Null
 
   $daisy_sources = Get-MetadataValue -key 'daisy-sources-path'
 
