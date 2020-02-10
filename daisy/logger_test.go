@@ -124,8 +124,9 @@ func TestSendSerialPortLogsToCloud(t *testing.T) {
 
 	w.Logger.WriteSerialPortLogs(w, "instance-name", buf)
 
+	// We expect 14 entries
 	if len(cl.entries) != 14 {
-		t.Errorf("Wanted %d", len(cl.entries))
+		t.Errorf("Wanted %d, got %d", 14, len(cl.entries))
 	}
 
 	assertLogOutput(t, w.Logger.ReadSerialPortLogs(),

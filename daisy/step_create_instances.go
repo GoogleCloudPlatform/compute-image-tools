@@ -49,8 +49,8 @@ func (ci *CreateInstances) UnmarshalJSON(b []byte) error {
 
 func logSerialOutput(ctx context.Context, s *Step, ii InstanceInterface, ib *InstanceBase, port int64, interval time.Duration) {
 	w := s.w
-	w.logWait.Add(1)
-	defer w.logWait.Done()
+	w.stepWait.Add(1)
+	defer w.stepWait.Done()
 
 	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", ii.getName(), port))
 	w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", ii.getName(), port, w.bucket, logsObj)

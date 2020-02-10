@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"path"
 	"regexp"
-	"strings"
 	"sync"
 	"time"
 
@@ -49,17 +48,12 @@ type daisyLog struct {
 	stdoutLogging   bool
 	logCleanupRegex *regexp.Regexp
 	// A map of instance name to its serial logs.
-	serialLogs map[string]string
+	serialLogs map[string][]byte
 }
 
 // createLogger builds a Logger.
 func (w *Workflow) createLogger(ctx context.Context) {
 	l := newDaisyLogger(!w.stdoutLoggingDisabled)
-
-	w.addCleanupHook(func() DError {
-		w.logWait.Wait()
-		return nil
-	})
 
 	if !w.gcsLoggingDisabled {
 		gcsLogger := NewGCSLogger(ctx, w.StorageClient, w.bucket, path.Join(w.logsPath, "daisy.log"))
@@ -94,7 +88,7 @@ func (w *Workflow) createLogger(ctx context.Context) {
 func newDaisyLogger(stdOutLoggingEnabled bool) *daisyLog {
 	return &daisyLog{
 		stdoutLogging: stdOutLoggingEnabled,
-		serialLogs:    map[string]string{},
+		serialLogs:    map[string][]byte{},
 	}
 }
 
@@ -140,15 +134,15 @@ func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.B
 		return
 	}
 
-	logs := buf.String()
+	logs := buf.Bytes()
 	l.serialLogs[instance] = logs
 
-	writeLog := func(str string) {
+	writeLog := func(data []byte) {
 		entry := &LogEntry{
 			LocalTimestamp: time.Now(),
 			WorkflowName:   getAbsoluteName(w),
 			Message:        fmt.Sprintf("Serial port output for instance %q", instance),
-			SerialPort1:    str,
+			SerialPort1:    string(data),
 			Type:           "Daisy",
 		}
 		l.cloudLogger.Log(logging.Entry{Timestamp: entry.LocalTimestamp, Payload: entry})
@@ -157,17 +151,21 @@ func (l *daisyLog) WriteSerialPortLogs(w *Workflow, instance string, buf bytes.B
 	// Write the output to cloud logging only after instance has stopped.
 	// Type assertion check is needed for tests not to panic.
 	// Split if output is too long for log entry (100K max, we leave a 2K buffer).
-	ss := strings.SplitAfter(logs, "\n")
-	var str string
-	for _, s := range ss {
-		if len(str)+len(s) > 98*1024 {
-			writeLog(str)
-			str = s
+	if len(logs) <= 98*1024 {
+		writeLog(logs)
+		return
+	}
+	bs := bytes.SplitAfter(logs, []byte("\n"))
+	var data []byte
+	for _, b := range bs {
+		if len(data)+len(b) > 98*1024 {
+			writeLog(data)
+			data = b
 		} else {
-			str += s
+			data = append(data, b...)
 		}
 	}
-	writeLog(str)
+	writeLog(data)
 }
 
 func (l *daisyLog) ReadSerialPortLogs() []string {
