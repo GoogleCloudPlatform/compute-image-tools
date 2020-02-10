@@ -96,7 +96,7 @@ func TestCreates(t *testing.T) {
 			body, _ := json.Marshal(getResp)
 			fmt.Fprintln(w, string(body))
 		} else {
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintln(w, "URL and Method not recognized:", r.Method, url)
 		}
 	}))
@@ -104,9 +104,9 @@ func TestCreates(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer svr.Close()
-	c.zoneOperationsWaitFn = func(project, zone, name string) error { return waitErr }
-	c.regionOperationsWaitFn = func(project, region, name string) error { return waitErr }
-	c.globalOperationsWaitFn = func(project, name string) error { return waitErr }
+	c.zoneOperationsWaitFn = func(_, _, _ string) error { return waitErr }
+	c.regionOperationsWaitFn = func(_, _, _ string) error { return waitErr }
+	c.globalOperationsWaitFn = func(_, _ string) error { return waitErr }
 
 	tests := []struct {
 		desc                       string
@@ -252,7 +252,7 @@ func TestStarts(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == startURL {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == opGetURL {
+		} else if r.Method == "POST" && r.URL.String() == opGetURL {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -265,7 +265,7 @@ func TestStarts(t *testing.T) {
 	defer svr.Close()
 
 	startURL = fmt.Sprintf("/%s/zones/%s/instances/%s/start?alt=json&prettyPrint=false", testProject, testZone, testInstance)
-	opGetURL = fmt.Sprintf("/%s/zones/%s/operations/?alt=json&prettyPrint=false", testProject, testZone)
+	opGetURL = fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone)
 	if err := c.StartInstance(testProject, testZone, testInstance); err != nil {
 		t.Errorf("error running Start: %v", err)
 	}
@@ -276,7 +276,7 @@ func TestStops(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == stopURL {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == opGetURL {
+		} else if r.Method == "POST" && r.URL.String() == opGetURL {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -289,7 +289,7 @@ func TestStops(t *testing.T) {
 	defer svr.Close()
 
 	stopURL = fmt.Sprintf("/%s/zones/%s/instances/%s/stop?alt=json&prettyPrint=false", testProject, testZone, testInstance)
-	opGetURL = fmt.Sprintf("/%s/zones/%s/operations/?alt=json&prettyPrint=false", testProject, testZone)
+	opGetURL = fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone)
 	if err := c.StopInstance(testProject, testZone, testInstance); err != nil {
 		t.Errorf("error running Stop: %v", err)
 	}
@@ -300,7 +300,7 @@ func TestDeletes(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "DELETE" && r.URL.String() == *deleteURL {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == *opGetURL {
+		} else if r.Method == "POST" && r.URL.String() == *opGetURL {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -321,55 +321,55 @@ func TestDeletes(t *testing.T) {
 			"disks",
 			func() error { return c.DeleteDisk(testProject, testZone, testDisk) },
 			fmt.Sprintf("/%s/zones/%s/disks/%s?alt=json&prettyPrint=false", testProject, testZone, testDisk),
-			fmt.Sprintf("/%s/zones/%s/operations/?alt=json&prettyPrint=false", testProject, testZone),
+			fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
 		},
 		{
 			"forwardingRules",
 			func() error { return c.DeleteForwardingRule(testProject, testRegion, testForwardingRule) },
 			fmt.Sprintf("/%s/regions/%s/forwardingRules/%s?alt=json&prettyPrint=false", testProject, testRegion, testForwardingRule),
-			fmt.Sprintf("/%s/regions/%s/operations/?alt=json&prettyPrint=false", testProject, testRegion),
+			fmt.Sprintf("/%s/regions/%s/operations//wait?alt=json&prettyPrint=false", testProject, testRegion),
 		},
 		{
 			"FirewallRules",
 			func() error { return c.DeleteFirewallRule(testProject, testFirewallRule) },
 			fmt.Sprintf("/%s/global/firewalls/%s?alt=json&prettyPrint=false", testProject, testFirewallRule),
-			fmt.Sprintf("/%s/global/operations/?alt=json&prettyPrint=false", testProject),
+			fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
 		},
 		{
 			"images",
 			func() error { return c.DeleteImage(testProject, testImage) },
 			fmt.Sprintf("/%s/global/images/%s?alt=json&prettyPrint=false", testProject, testImage),
-			fmt.Sprintf("/%s/global/operations/?alt=json&prettyPrint=false", testProject),
+			fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
 		},
 		{
 			"machineImages",
 			func() error { return c.DeleteMachineImage(testProject, testMachineImage) },
 			fmt.Sprintf("/%s/global/machineImages/%s?alt=json&prettyPrint=false", testProject, testMachineImage),
-			fmt.Sprintf("/%s/global/operations/?alt=json&prettyPrint=false", testProject),
+			fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
 		},
 		{
 			"instances",
 			func() error { return c.DeleteInstance(testProject, testZone, testInstance) },
 			fmt.Sprintf("/%s/zones/%s/instances/%s?alt=json&prettyPrint=false", testProject, testZone, testInstance),
-			fmt.Sprintf("/%s/zones/%s/operations/?alt=json&prettyPrint=false", testProject, testZone),
+			fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
 		},
 		{
 			"networks",
 			func() error { return c.DeleteNetwork(testProject, testNetwork) },
 			fmt.Sprintf("/%s/global/networks/%s?alt=json&prettyPrint=false", testProject, testNetwork),
-			fmt.Sprintf("/%s/global/operations/?alt=json&prettyPrint=false", testProject),
+			fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject),
 		},
 		{
 			"subnetworks",
 			func() error { return c.DeleteSubnetwork(testProject, testRegion, testSubnetwork) },
 			fmt.Sprintf("/%s/regions/%s/subnetworks/%s?alt=json&prettyPrint=false", testProject, testRegion, testSubnetwork),
-			fmt.Sprintf("/%s/regions/%s/operations/?alt=json&prettyPrint=false", testProject, testRegion),
+			fmt.Sprintf("/%s/regions/%s/operations//wait?alt=json&prettyPrint=false", testProject, testRegion),
 		},
 		{
 			"targetInstances",
 			func() error { return c.DeleteTargetInstance(testProject, testZone, testTargetInstance) },
 			fmt.Sprintf("/%s/zones/%s/targetInstances/%s?alt=json&prettyPrint=false", testProject, testZone, testTargetInstance),
-			fmt.Sprintf("/%s/zones/%s/operations/?alt=json&prettyPrint=false", testProject, testZone),
+			fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone),
 		},
 	}
 
@@ -386,7 +386,7 @@ func TestDeprecateImage(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/images/%s/deprecate?alt=json&prettyPrint=false", testProject, testImage) {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/global/operations/?alt=json&prettyPrint=false", testProject) {
+		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/global/operations//wait?alt=json&prettyPrint=false", testProject) {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -407,7 +407,7 @@ func TestAttachDisk(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s/attachDisk?alt=json&prettyPrint=false", testProject, testZone, testInstance) {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations/?alt=json&prettyPrint=false", testProject, testZone) {
+		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone) {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)
@@ -428,7 +428,7 @@ func TestDetachDisk(t *testing.T) {
 	svr, c, err := NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/instances/%s/detachDisk?alt=json&deviceName=%s&prettyPrint=false", testProject, testZone, testInstance, testDisk) {
 			fmt.Fprint(w, `{}`)
-		} else if r.Method == "GET" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations/?alt=json&prettyPrint=false", testProject, testZone) {
+		} else if r.Method == "POST" && r.URL.String() == fmt.Sprintf("/%s/zones/%s/operations//wait?alt=json&prettyPrint=false", testProject, testZone) {
 			fmt.Fprint(w, `{"Status":"DONE"}`)
 		} else {
 			w.WriteHeader(500)

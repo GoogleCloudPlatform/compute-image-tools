@@ -482,5 +482,4 @@ func TestResourceRegistryRegUse(t *testing.T) {
 	if diffRes := diff(r2.users, []*Step(nil), 0); diffRes != "" {
 		t.Errorf("r2 users list does not match expectation: (-got +want)\n%s", diffRes)
 	}
-
 }

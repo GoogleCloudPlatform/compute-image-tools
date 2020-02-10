@@ -133,10 +133,10 @@ type Workflow struct {
 	cleanupHooks          []func() DError
 	cleanupHooksMx        sync.Mutex
 	recordTimeMx          sync.Mutex
-	logWait               sync.WaitGroup
+	stepWait              sync.WaitGroup
 	logProcessHook        func(string) string
 
-	// Optional compute endpoint override.
+	// Optional compute endpoint override.stepWait
 	ComputeEndpoint    string          `json:",omitempty"`
 	ComputeClient      compute.Client  `json:"-"`
 	StorageClient      *storage.Client `json:"-"`
@@ -323,7 +323,15 @@ func (w *Workflow) cleanup() {
 
 	// Allow goroutines that are watching w.Cancel an opportunity
 	// to detect that the workflow was cancelled and to cleanup.
-	time.Sleep(4 * time.Second)
+	c := make(chan struct{})
+	go func() {
+		w.stepWait.Wait()
+		close(c)
+	}()
+	select {
+	case <-c:
+	case <-time.After(4 * time.Second):
+	}
 
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {

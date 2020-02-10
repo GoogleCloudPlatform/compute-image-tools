@@ -273,7 +273,7 @@ type operationGetterFunc func() (*compute.Operation, error)
 
 func (c *client) zoneOperationsWait(project, zone, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.ZoneOperations.Get(project, zone, name).Do)
+		op, err = c.Retry(c.raw.ZoneOperations.Wait(project, zone, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get zone operation %s: %v", name, err)
 		}
@@ -283,7 +283,7 @@ func (c *client) zoneOperationsWait(project, zone, name string) error {
 
 func (c *client) regionOperationsWait(project, region, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.RegionOperations.Get(project, region, name).Do)
+		op, err = c.Retry(c.raw.RegionOperations.Wait(project, region, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get region operation %s: %v", name, err)
 		}
@@ -293,7 +293,7 @@ func (c *client) regionOperationsWait(project, region, name string) error {
 
 func (c *client) globalOperationsWait(project, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.GlobalOperations.Get(project, name).Do)
+		op, err = c.Retry(c.raw.GlobalOperations.Wait(project, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get global operation %s: %v", name, err)
 		}

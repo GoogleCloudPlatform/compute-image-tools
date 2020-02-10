@@ -9,7 +9,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.3.3
-	github.com/google/go-cmp v0.4.0 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/kylelemons/godebug v1.1.0
 	github.com/stretchr/testify v1.4.0
 	go.opencensus.io v0.22.3 // indirect
