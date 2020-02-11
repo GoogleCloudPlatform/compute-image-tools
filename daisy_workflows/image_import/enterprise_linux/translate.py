@@ -202,7 +202,13 @@ def yum_install(g, *packages):
     try:
       # There's no sleep on the first iteration since `i` is zero.
       time.sleep(i**2)
-      g.command(['yum', 'install', '-y'] + list(packages))
+      # Bypass HTTP proxies configured in the guest image to allow
+      # import to continue when the proxy is unreachable.
+      #   no_proxy="*": Disables proxies set by using the `http_proxy`
+      #                 environment variable.
+      #   proxy=_none_: Disables proxies set in /etc/yum.conf.
+      g.sh('no_proxy="*" yum install --setopt=proxy=_none_ -y ' + ' '.join(
+          '"{0}"'.format(p) for p in packages))
       return
     except Exception as e:
       logging.debug('Failed to install {}. Details: {}.'.format(packages, e))
