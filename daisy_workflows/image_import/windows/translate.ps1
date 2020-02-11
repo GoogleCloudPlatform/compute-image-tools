@@ -227,7 +227,7 @@ function Enable-RemoteDesktop {
   Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
 }
 
-function Install-32bitPackages {
+function Install-Packages {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install googet
   # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
   # if install_packages is set to false.
@@ -237,11 +237,13 @@ function Install-32bitPackages {
     # Install each individually in order to catch individual errors
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-windows
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-auto-updater
+    Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-balloon
+    Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-pvpanic
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss -ErrorAction SilentlyContinue
   }
 }
 
-function Install-LocalPackages {
+function Install-32bitPackages {
   & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\googet-x86.x86_32.2.16.3@1.goo
   # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
   # if install_packages is set to false.
@@ -271,11 +273,11 @@ try {
 
   if ($script:is_x86.ToLower() -ne 'true') {
     Configure-Power
-    Install-32bitPackages
+    Install-Packages
   }
   else {
     # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
-    Install-LocalPackages
+    Install-32bitPackages 
     # The following function will halt a 32-bit Windows 10 version 1909 import, so skip it.
     $pn_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
