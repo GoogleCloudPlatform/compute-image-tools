@@ -119,6 +119,7 @@ try {
   Write-Output 'TranslateBootstrap: Beginning translation bootstrap powershell script.'
   $script:is_x86 = Get-MetadataValue -key 'is_x86'
 
+  $partition_style = Get-Disk 1 | Select-Object -Expand PartitionStyle
   Get-Disk 1 | Get-Partition | ForEach-Object {
     if (-not $_.DriveLetter) {
       # Ensure all available partitions on the import disk are accessible via drive letter.
@@ -193,7 +194,13 @@ try {
   else {
     Copy-32bitPackages
   }
-  Run-Command bcdboot "${script:os_drive}\Windows" /s $bcd_drive
+  if ($partition_style -eq "MBR") {
+    Write-Output 'MBR partition detected. Resetting bootloader.'
+    Run-Command bcdboot "${script:os_drive}\Windows" /s $bcd_drive
+  }
+  else {
+    Write-Output 'GPT partition detected.'
+  }
 
   # Turn off startup animation which breaks headless installation.
   # See http://support.microsoft.com/kb/2955372/en-us
