@@ -74,11 +74,8 @@ func TestSuite(
 
 	testTypes := []clitoolstestutils.CLITestType{
 		clitoolstestutils.Wrapper,
-
-		// TODO: uncomment once `gcloud beta compute machine-images import`
-		//  is available for public consumption
-		//clitoolstestutils.GcloudProdWrapperLatest,
-		//clitoolstestutils.GcloudLatestWrapperLatest,
+		clitoolstestutils.GcloudProdWrapperLatest,
+		clitoolstestutils.GcloudLatestWrapperLatest,
 	}
 	for _, testType := range testTypes {
 		machineImageImportUbuntu3DisksTestCase := junitxml.NewTestCase(
