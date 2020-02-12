@@ -112,13 +112,11 @@ def _get_distro(g) -> _SuseRelease:
       g.gcp_image_distro, g.gcp_image_major, g.gcp_image_minor))
 
 
-def _disambiguate_suseconnect_product_error(distro, g, product,
-    error) -> Exception:
+def _disambiguate_suseconnect_product_error(g, product, error) -> Exception:
   """Creates a user-debuggable error after failing to add a product
      using SUSEConnect.
 
   Args:
-      distro (_SuseRelease): The distro detected by GuestFS.
       g (GuestFS): Mounted GuestFS instance.
       product (str): The product that failed to be added.
       error (Exception): The error returned from `SUSEConnect -p`.
@@ -148,11 +146,8 @@ def _disambiguate_suseconnect_product_error(distro, g, product,
   # Example 2: SLES 15.1, Active
   # [
   #    {
-  #       "type":"evaluation",
-  #       "starts_at":"2019-12-16 00:00:00 UTC",
   #       "status":"Registered",
   #       "version":"15.1",
-  #       "expires_at":"2020-02-14 00:00:00 UTC",
   #       "arch":"x86_64",
   #       "identifier":"SLES",
   #       "subscription_status":"ACTIVE"
@@ -169,9 +164,9 @@ def _disambiguate_suseconnect_product_error(distro, g, product,
     if status.get('identifier') not in ('SLES', 'SLES_SAP'):
       continue
 
-    if status.get('subscription_status') is 'ACTIVE':
+    if status.get('subscription_status') == 'ACTIVE':
       return ValueError(
-          'Unable to add product "%s" using SUSEConnect. Please ensure that ' \
+          'Unable to add product "%s" using SUSEConnect. Please ensure that '
           'your subscription includes access to this product.' % product,
           error)
 
@@ -190,7 +185,7 @@ def _install_product(distro, g):
       try:
         g.command(['SUSEConnect', '-p', product])
       except Exception as e:
-        raise _disambiguate_suseconnect_product_error(distro, g, product, e)
+        raise _disambiguate_suseconnect_product_error(g, product, e)
 
 
 def _install_packages(distro, g, install_gce):
