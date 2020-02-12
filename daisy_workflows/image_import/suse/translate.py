@@ -20,6 +20,7 @@ Parameters (retrieved from instance metadata):
   licensing: Applicable for SLES. Either `gcp` or `byol`.
 """
 
+import json
 import logging
 
 import utils
@@ -48,7 +49,7 @@ class _Package:
 
 
 class _SuseRelease:
-  """Describes which packages and subscriptions are required for
+  """Describes which packages and products are required for
      a particular SUSE release.
 
   Attributes:
@@ -57,14 +58,15 @@ class _SuseRelease:
                    the major version is 12.
       minor (str): The minor release number. For example, for SLES 12 SP1,
                    the major version is 1. SLES 12, it is 0.
-      subscriptions (list of str): The subscriptions to be added.
+      products (list of str): The SCC products to be added (typically to give
+                              access to required packages.)
   """
 
-  def __init__(self, flavor, major, minor, subscriptions=None):
+  def __init__(self, flavor, major, minor, products=None):
     self.flavor = flavor
     self.major = major
     self.minor = minor
-    self.subscriptions = subscriptions
+    self.products = products
 
 
 _packages = [
@@ -84,13 +86,13 @@ _distros = [
         flavor='sles',
         major='15',
         minor='1',
-        subscriptions=['sle-module-public-cloud/15.1/x86_64']
+        products=['sle-module-public-cloud/15.1/x86_64']
     ),
     _SuseRelease(
         flavor='sles',
         major='12',
         minor='*',
-        subscriptions=['sle-module-public-cloud/12/x86_64']
+        products=['sle-module-public-cloud/12/x86_64']
     ),
 ]
 
@@ -110,19 +112,85 @@ def _get_distro(g) -> _SuseRelease:
       g.gcp_image_distro, g.gcp_image_major, g.gcp_image_minor))
 
 
-def _install_subscriptions(distro, g):
-  """Executes SuseConnect -p for each subscription on `distro`.
+def _disambiguate_suseconnect_product_error(distro, g, product,
+    error) -> Exception:
+  """Creates a user-debuggable error after failing to add a product
+     using SUSEConnect.
+
+  Args:
+      distro (_SuseRelease): The distro detected by GuestFS.
+      g (GuestFS): Mounted GuestFS instance.
+      product (str): The product that failed to be added.
+      error (Exception): The error returned from `SUSEConnect -p`.
+  """
+  statuses = []
+  try:
+    statuses = json.loads(g.command(['SUSEConnect', '--status']))
+  except Exception as e:
+    return ValueError(
+        'Unable to communicate with SCC. Ensure the import '
+        'is running in a network that allows internet access.', e)
+
+  # `SUSEConnect --status` returns a list of status objects,
+  # where the triple of (identifier, version, arch) uniquely
+  # identifies a product in SCC. Below are two examples.
+  #
+  # Example 1: SLES for SAP 12.2, No subscription
+  # [
+  #    {
+  #       "identifier":"SLES_SAP",
+  #       "version":"12.2",
+  #       "arch":"x86_64",
+  #       "status":"Not Registered"
+  #    }
+  # ]
+  #
+  # Example 2: SLES 15.1, Active
+  # [
+  #    {
+  #       "type":"evaluation",
+  #       "starts_at":"2019-12-16 00:00:00 UTC",
+  #       "status":"Registered",
+  #       "version":"15.1",
+  #       "expires_at":"2020-02-14 00:00:00 UTC",
+  #       "arch":"x86_64",
+  #       "identifier":"SLES",
+  #       "subscription_status":"ACTIVE"
+  #    },
+  #    {
+  #       "status":"Registered",
+  #       "version":"15.1",
+  #       "arch":"x86_64",
+  #       "identifier":"sle-module-basesystem"
+  #    }
+  # ]
+
+  for status in statuses:
+    if status.get('identifier') not in ('SLES', 'SLES_SAP'):
+      continue
+
+    if status.get('subscription_status') is 'ACTIVE':
+      return ValueError(
+          'Unable to add product "%s" using SUSEConnect. Please ensure that ' \
+          'your subscription includes access to this product.' % product,
+          error)
+
+  return ValueError(
+    'Unable to find an active SLES subscription. SCC returned: %s' % statuses)
+
+
+def _install_product(distro, g):
+  """Executes SuseConnect -p for each product on `distro`.
 
   Raises:
     ValueError: If there was a failure adding the subscription.
   """
-  if distro.subscriptions:
-    for subscription in distro.subscriptions:
+  if distro.products:
+    for product in distro.products:
       try:
-        g.command(['SUSEConnect', '-p', subscription])
+        g.command(['SUSEConnect', '-p', product])
       except Exception as e:
-        raise ValueError(
-            'Command failed: SUSEConnect -p {}: {}'.format(subscription, e))
+        raise _disambiguate_suseconnect_product_error(distro, g, product, e)
 
 
 def _install_packages(distro, g, install_gce):
@@ -188,8 +256,8 @@ def translate():
   g = diskutils.MountDisk('/dev/sdb')
   distro = _get_distro(g)
 
+  _install_product(distro, g)
   _install_virtio_drivers(g)
-  _install_subscriptions(distro, g)
   _install_packages(distro, g, include_gce_packages)
   if include_gce_packages:
     logging.info('Enabling google services.')
