@@ -25,7 +25,7 @@ except ImportError:
   import guestfs
 
 
-def MountDisk(disk):
+def MountDisk(disk) -> guestfs.GuestFS:
   # All new Python code should pass python_return_dict=True
   # to the constructor.  It indicates that your program wants
   # to receive Python dicts for methods in the API that return
