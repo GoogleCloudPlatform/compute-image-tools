@@ -152,6 +152,20 @@ if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
   echo "Import: New source file is ${VMDK}"
 fi
 
+# Check whether the image is valid, and attempt to repair if not.
+# We skip repair if the return code is zero (the image is valid) or
+# if the return code is 63 (the image doesn't support checks).
+#
+# The magic number 63 can be found in the man pages for qemu-img, eg:
+# https://manpages.debian.org/testing/qemu-utils/qemu-img.1.en.html
+qemu-img check "${IMAGE_PATH}"
+if ! [[ $? == 0 || $? == 63 ]]; then
+  if ! out=$(qemu-img check -r all "${IMAGE_PATH}" 2>&1); then
+    echo "ImportFailed: The image file is not decodable. Details: $out"
+    exit
+  fi
+fi
+
 # Ensure the output disk has sufficient space to accept the disk image.
 # Disk image size info.
 SIZE_BYTES=$(qemu-img info --output "json" "${IMAGE_PATH}" | grep -m1 "virtual-size" | grep -o '[0-9]\+')
