@@ -5,7 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.53.0
 	cloud.google.com/go/storage v1.5.0
-	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200213173537-bc24f837b282
+	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200214212030-cdab85f8f241
 	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200206014411-426b6301f679
 	github.com/GoogleCloudPlatform/osconfig v0.0.0-20200211005319-080372593330
 	github.com/dustin/go-humanize v1.0.0
