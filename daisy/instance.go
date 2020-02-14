@@ -121,6 +121,9 @@ type InstanceBase struct {
 	// StartupScript is the Sources path to a startup script to use in this step.
 	// This will be automatically mapped to the appropriate metadata key.
 	StartupScript string `json:",omitempty"`
+	// RetryWhenExternalIPDenied indicates whether to retry CreateInstances when
+	// it fails due to external IP denied by organization IP.
+	RetryWhenExternalIPDenied bool `json:",omitempty"`
 }
 
 // Instance is used to create a GCE instance using GA API.

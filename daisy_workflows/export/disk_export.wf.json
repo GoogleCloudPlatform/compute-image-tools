@@ -67,6 +67,7 @@
               "subnetwork": "${export_subnet}"
             }
           ],
+          "RetryWhenExternalIPDenied": true,
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"]
         }
       ]

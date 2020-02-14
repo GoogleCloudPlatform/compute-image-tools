@@ -105,7 +105,7 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 		if step.CreateInstances != nil {
 			for _, instance := range step.CreateInstances.Instances {
 				if instance.Instance.NetworkInterfaces == nil {
-					return
+					continue
 				}
 				for _, networkInterface := range instance.Instance.NetworkInterfaces {
 					networkInterface.AccessConfigs = []*compute.AccessConfig{}
@@ -113,7 +113,7 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 			}
 			for _, instance := range step.CreateInstances.InstancesBeta {
 				if instance.Instance.NetworkInterfaces == nil {
-					return
+					continue
 				}
 				for _, networkInterface := range instance.Instance.NetworkInterfaces {
 					networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
