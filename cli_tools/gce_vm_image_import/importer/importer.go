@@ -165,7 +165,7 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 
 	varMap["image_name"] = strings.ToLower(strings.TrimSpace(imageName))
 	if translateWorkflowPath != "" {
-		varMap["translate_workflow"] = strings.TrimSpace(translateWorkflowPath)
+		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!noGuestEnvironment)
 		varMap["is_windows"] = strconv.FormatBool(strings.Contains(translateWorkflowPath, "windows"))
 	}

@@ -147,18 +147,18 @@ func (oi *OVFImporter) buildDaisyVars(
 	}
 
 	// common vars
-	if strings.TrimSpace(translateWorkflowPath) != "" {
-		varMap["translate_workflow"] = strings.TrimSpace(translateWorkflowPath)
+	if translateWorkflowPath != "" {
+		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!oi.params.NoGuestEnvironment)
 		varMap["is_windows"] = strconv.FormatBool(
 			strings.Contains(strings.ToLower(translateWorkflowPath), "windows"))
 	}
-	if strings.TrimSpace(bootDiskGcsPath) != "" {
-		varMap["boot_disk_file"] = strings.TrimSpace(bootDiskGcsPath)
+	if bootDiskGcsPath != "" {
+		varMap["boot_disk_file"] = bootDiskGcsPath
 	}
 	if strings.TrimSpace(oi.params.Subnet) != "" {
 		varMap["subnet"] = param.GetRegionalResourcePath(
-			strings.TrimSpace(region), "subnetworks", strings.TrimSpace(oi.params.Subnet))
+			region, "subnetworks", strings.TrimSpace(oi.params.Subnet))
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
 		if oi.params.Network == "" {
 			varMap["network"] = ""
@@ -168,8 +168,8 @@ func (oi *OVFImporter) buildDaisyVars(
 		varMap["network"] = param.GetGlobalResourcePath(
 			"networks", strings.TrimSpace(oi.params.Network))
 	}
-	if strings.TrimSpace(machineType) != "" {
-		varMap["machine_type"] = strings.TrimSpace(machineType)
+	if machineType != "" {
+		varMap["machine_type"] = machineType
 	}
 	if strings.TrimSpace(oi.params.Description) != "" {
 		varMap["description"] = strings.TrimSpace(oi.params.Description)

@@ -597,10 +597,10 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 
 	oi := OVFImporter{params: params}
 	varMap := oi.buildDaisyVars(
-		ws+"translateworkflow.wf.json"+ws,
-		ws+"gs://abucket/apath/bootdisk.vmdk"+ws,
-		ws+"n1-standard-2"+ws,
-		ws+"aRegion"+ws)
+		"translateworkflow.wf.json",
+		"gs://abucket/apath/bootdisk.vmdk",
+		"n1-standard-2",
+		"aRegion")
 
 	assert.Equal(t, "instance1", varMap["instance_name"])
 	assert.Equal(t, "translateworkflow.wf.json", varMap["translate_workflow"])
