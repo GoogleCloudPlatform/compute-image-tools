@@ -262,56 +262,58 @@ func TestFlagsInvalidOS(t *testing.T) {
 
 func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	resetArgs()
-	imageName = "image-a"
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000\uFEFF"
+	imageName = ws + "image-a" + ws
 	noGuestEnvironment = true
-	sourceFile = "source-file-path"
-	sourceImage = ""
-	family = "a-family"
-	description = "a-description"
-	network = "a-network"
-	subnet = "a-subnet"
-	region := "a-region"
+	sourceFile = ws + "source-file-path" + ws
+	sourceImage = ws
+	family = ws + "a-family" + ws
+	description = ws + "a-description" + ws
+	network = ws + "a-network" + ws
+	subnet = ws + "a-subnet" + ws
+	region := ws + "a-region" + ws
 
 	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
 		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
 
-	assert.Equal(t, got["image_name"], "image-a")
-	assert.Equal(t, got["translate_workflow"], "translate/workflow/path")
-	assert.Equal(t, got["install_gce_packages"], "false")
-	assert.Equal(t, got["source_disk_file"], "source-file-path")
-	assert.Equal(t, got["family"], "a-family")
-	assert.Equal(t, got["description"], "a-description")
-	assert.Equal(t, got["import_network"], "global/networks/a-network")
-	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
-	assert.Equal(t, got["is_windows"], "false")
-	assert.Equal(t, len(got), 9)
+	assert.Equal(t, "image-a", got["image_name"])
+	assert.Equal(t, "translate/workflow/path", got["translate_workflow"])
+	assert.Equal(t, "false", got["install_gce_packages"])
+	assert.Equal(t, "source-file-path", got["source_disk_file"])
+	assert.Equal(t, "a-family", got["family"])
+	assert.Equal(t, "a-description", got["description"])
+	assert.Equal(t, "global/networks/a-network", got["import_network"])
+	assert.Equal(t, "regions/a-region/subnetworks/a-subnet", got["import_subnet"])
+	assert.Equal(t, "false", got["is_windows"])
+	assert.Equal(t, 9, len(got))
 }
 
 func TestBuildDaisyVarsFromImage(t *testing.T) {
 	resetArgs()
-	imageName = "image-a"
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+	imageName = ws + "image-a" + ws
 	noGuestEnvironment = true
-	sourceFile = ""
-	sourceImage = "source-image"
-	family = "a-family"
-	description = "a-description"
-	network = "a-network"
-	subnet = "a-subnet"
-	region := "a-region"
+	sourceFile = ws
+	sourceImage = ws + "global/images/source-image" + ws
+	family = ws + "a-family" + ws
+	description = ws + "a-description" + ws
+	network = ws + "a-network" + ws
+	subnet = ws + "a-subnet" + ws
+	region := ws + "a-region" + ws
 
 	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
 		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
 
-	assert.Equal(t, got["image_name"], "image-a")
-	assert.Equal(t, got["translate_workflow"], "translate/workflow/path")
-	assert.Equal(t, got["install_gce_packages"], "false")
-	assert.Equal(t, got["source_image"], "global/images/source-image")
-	assert.Equal(t, got["family"], "a-family")
-	assert.Equal(t, got["description"], "a-description")
-	assert.Equal(t, got["import_network"], "global/networks/a-network")
-	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
-	assert.Equal(t, got["is_windows"], "false")
-	assert.Equal(t, len(got), 9)
+	assert.Equal(t, "image-a", got["image_name"])
+	assert.Equal(t, "translate/workflow/path", got["translate_workflow"])
+	assert.Equal(t, "false", got["install_gce_packages"])
+	assert.Equal(t, "global/images/source-image", got["source_image"])
+	assert.Equal(t, "a-family", got["family"])
+	assert.Equal(t, "a-description", got["description"])
+	assert.Equal(t, "global/networks/a-network", got["import_network"])
+	assert.Equal(t, "regions/a-region/subnetworks/a-subnet", got["import_subnet"])
+	assert.Equal(t, "false", got["is_windows"])
+	assert.Equal(t, 9, len(got))
 }
 
 func TestBuildDaisyVarsWindow(t *testing.T) {

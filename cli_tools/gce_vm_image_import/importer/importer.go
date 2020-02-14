@@ -163,29 +163,30 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 
 	varMap := map[string]string{}
 
-	varMap["image_name"] = strings.ToLower(imageName)
+	varMap["image_name"] = strings.ToLower(strings.TrimSpace(imageName))
 	if translateWorkflowPath != "" {
-		varMap["translate_workflow"] = translateWorkflowPath
+		varMap["translate_workflow"] = strings.TrimSpace(translateWorkflowPath)
 		varMap["install_gce_packages"] = strconv.FormatBool(!noGuestEnvironment)
 		varMap["is_windows"] = strconv.FormatBool(strings.Contains(translateWorkflowPath, "windows"))
 	}
-	if sourceFile != "" {
-		varMap["source_disk_file"] = sourceFile
+	if strings.TrimSpace(sourceFile) != "" {
+		varMap["source_disk_file"] = strings.TrimSpace(sourceFile)
 	}
-	if sourceImage != "" {
-		varMap["source_image"] = param.GetGlobalResourcePath("images", sourceImage)
+	if strings.TrimSpace(sourceImage) != "" {
+		varMap["source_image"] = param.GetGlobalResourcePath("images", strings.TrimSpace(sourceImage))
 	}
-	varMap["family"] = family
-	varMap["description"] = description
+	varMap["family"] = strings.TrimSpace(family)
+	varMap["description"] = strings.TrimSpace(description)
 	if subnet != "" {
-		varMap["import_subnet"] = param.GetRegionalResourcePath(region, "subnetworks", subnet)
+		varMap["import_subnet"] = param.GetRegionalResourcePath(strings.TrimSpace(region),
+			"subnetworks", strings.TrimSpace(subnet))
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
 		if network == "" {
 			varMap["import_network"] = ""
 		}
 	}
 	if network != "" {
-		varMap["import_network"] = param.GetGlobalResourcePath("networks", network)
+		varMap["import_network"] = param.GetGlobalResourcePath("networks", strings.TrimSpace(network))
 	}
 	return varMap
 }
