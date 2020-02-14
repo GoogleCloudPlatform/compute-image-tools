@@ -139,45 +139,47 @@ func (oi *OVFImporter) buildDaisyVars(
 	varMap := map[string]string{}
 	if oi.params.IsInstanceImport() {
 		// instance import specific vars
-		varMap["instance_name"] = strings.ToLower(oi.params.InstanceNames)
+		varMap["instance_name"] = strings.ToLower(strings.TrimSpace(oi.params.InstanceNames))
 
 	} else {
 		// machine image import specific vars
-		varMap["machine_image_name"] = strings.ToLower(oi.params.MachineImageName)
+		varMap["machine_image_name"] = strings.ToLower(strings.TrimSpace(oi.params.MachineImageName))
 	}
 
 	// common vars
-	if translateWorkflowPath != "" {
-		varMap["translate_workflow"] = translateWorkflowPath
+	if strings.TrimSpace(translateWorkflowPath) != "" {
+		varMap["translate_workflow"] = strings.TrimSpace(translateWorkflowPath)
 		varMap["install_gce_packages"] = strconv.FormatBool(!oi.params.NoGuestEnvironment)
 		varMap["is_windows"] = strconv.FormatBool(
 			strings.Contains(strings.ToLower(translateWorkflowPath), "windows"))
 	}
-	if bootDiskGcsPath != "" {
-		varMap["boot_disk_file"] = bootDiskGcsPath
+	if strings.TrimSpace(bootDiskGcsPath) != "" {
+		varMap["boot_disk_file"] = strings.TrimSpace(bootDiskGcsPath)
 	}
-	if oi.params.Subnet != "" {
-		varMap["subnet"] = param.GetRegionalResourcePath(region, "subnetworks", oi.params.Subnet)
+	if strings.TrimSpace(oi.params.Subnet) != "" {
+		varMap["subnet"] = param.GetRegionalResourcePath(
+			strings.TrimSpace(region), "subnetworks", strings.TrimSpace(oi.params.Subnet))
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
 		if oi.params.Network == "" {
 			varMap["network"] = ""
 		}
 	}
-	if oi.params.Network != "" {
-		varMap["network"] = param.GetGlobalResourcePath("networks", oi.params.Network)
+	if strings.TrimSpace(oi.params.Network) != "" {
+		varMap["network"] = param.GetGlobalResourcePath(
+			"networks", strings.TrimSpace(oi.params.Network))
 	}
-	if machineType != "" {
-		varMap["machine_type"] = machineType
+	if strings.TrimSpace(machineType) != "" {
+		varMap["machine_type"] = strings.TrimSpace(machineType)
 	}
-	if oi.params.Description != "" {
-		varMap["description"] = oi.params.Description
+	if strings.TrimSpace(oi.params.Description) != "" {
+		varMap["description"] = strings.TrimSpace(oi.params.Description)
 	}
-	if oi.params.PrivateNetworkIP != "" {
-		varMap["private_network_ip"] = oi.params.PrivateNetworkIP
+	if strings.TrimSpace(oi.params.PrivateNetworkIP) != "" {
+		varMap["private_network_ip"] = strings.TrimSpace(oi.params.PrivateNetworkIP)
 	}
 
-	if oi.params.NetworkTier != "" {
-		varMap["network_tier"] = oi.params.NetworkTier
+	if strings.TrimSpace(oi.params.NetworkTier) != "" {
+		varMap["network_tier"] = strings.TrimSpace(oi.params.NetworkTier)
 	}
 	return varMap
 }

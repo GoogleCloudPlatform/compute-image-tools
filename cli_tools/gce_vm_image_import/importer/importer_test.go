@@ -262,7 +262,7 @@ func TestFlagsInvalidOS(t *testing.T) {
 
 func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	resetArgs()
-	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000\uFEFF"
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	imageName = ws + "image-a" + ws
 	noGuestEnvironment = true
 	sourceFile = ws + "source-file-path" + ws

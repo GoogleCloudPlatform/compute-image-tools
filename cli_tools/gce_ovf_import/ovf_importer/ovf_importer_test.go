@@ -585,8 +585,22 @@ func TestCleanUp(t *testing.T) {
 }
 
 func TestBuildDaisyVarsFromDisk(t *testing.T) {
-	oi := OVFImporter{params: getAllInstanceImportParams()}
-	varMap := oi.buildDaisyVars("translateworkflow.wf.json", "gs://abucket/apath/bootdisk.vmdk", "n1-standard-2", "aRegion")
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+
+	params := getAllInstanceImportParams()
+	params.InstanceNames = ws + params.InstanceNames + ws
+	params.Network = ws + params.Network + ws
+	params.Subnet = ws + params.Subnet + ws
+	params.Description = ws + params.Description + ws
+	params.PrivateNetworkIP = ws + params.PrivateNetworkIP + ws
+	params.NetworkTier = ws + params.NetworkTier + ws
+
+	oi := OVFImporter{params: params}
+	varMap := oi.buildDaisyVars(
+		ws+"translateworkflow.wf.json"+ws,
+		ws+"gs://abucket/apath/bootdisk.vmdk"+ws,
+		ws+"n1-standard-2"+ws,
+		ws+"aRegion"+ws)
 
 	assert.Equal(t, "instance1", varMap["instance_name"])
 	assert.Equal(t, "translateworkflow.wf.json", varMap["translate_workflow"])

@@ -19,6 +19,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -85,23 +86,26 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 
 	varMap := map[string]string{}
 
-	varMap["destination"] = destinationURI
+	varMap["destination"] = strings.TrimSpace(destinationURI)
 
-	varMap["source_image"] = param.GetGlobalResourcePath("images", sourceImage)
+	varMap["source_image"] = param.GetGlobalResourcePath(
+		"images", strings.TrimSpace(sourceImage))
 
-	if format != "" {
-		varMap["format"] = format
+	if strings.TrimSpace(format) != "" {
+		varMap["format"] = strings.TrimSpace(format)
 	}
-	if subnet != "" {
-		varMap["export_subnet"] = param.GetRegionalResourcePath(region, "subnetworks", subnet)
+	if strings.TrimSpace(subnet) != "" {
+		varMap["export_subnet"] = param.GetRegionalResourcePath(
+			strings.TrimSpace(region), "subnetworks", strings.TrimSpace(subnet))
 
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
-		if network == "" {
+		if strings.TrimSpace(network) == "" {
 			varMap["export_network"] = ""
 		}
 	}
-	if network != "" {
-		varMap["export_network"] = param.GetGlobalResourcePath("networks", network)
+	if strings.TrimSpace(network) != "" {
+		varMap["export_network"] = param.GetGlobalResourcePath(
+			"networks", strings.TrimSpace(network))
 	}
 	return varMap
 }
