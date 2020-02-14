@@ -69,7 +69,10 @@ func NewStorageClient(ctx context.Context,
 // CreateBucket creates a GCS bucket
 func (sc *Client) CreateBucket(
 	bucketName string, project string, attrs *storage.BucketAttrs) error {
-	return sc.StorageClient.Bucket(bucketName).Create(sc.Ctx, project, attrs)
+	if err := sc.StorageClient.Bucket(bucketName).Create(sc.Ctx, project, attrs); err != nil {
+		return daisy.Errf("Error creating bucket `%v` in project `%v`: %v", bucketName, project, err)
+	}
+	return nil
 }
 
 // Buckets returns a bucket iterator for all buckets within a project
@@ -79,12 +82,20 @@ func (sc *Client) Buckets(projectID string) *storage.BucketIterator {
 
 // GetBucketAttrs returns bucket attributes for given bucket
 func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
-	return sc.StorageClient.Bucket(bucket).Attrs(sc.Ctx)
+	bucketAttrs, err := sc.StorageClient.Bucket(bucket).Attrs(sc.Ctx)
+	if err != nil {
+		return nil, daisy.Errf("Error getting bucket attributes for bucket `%v`: %v", bucket, err)
+	}
+	return bucketAttrs, nil
 }
 
 // GetObjectReader creates a new Reader to read the contents of the object.
 func (sc *Client) GetObjectReader(bucket string, objectPath string) (io.ReadCloser, error) {
-	return sc.GetBucket(bucket).Object(objectPath).NewReader(sc.Ctx)
+	objectReader, err := sc.GetBucket(bucket).Object(objectPath).NewReader(sc.Ctx)
+	if err != nil {
+		return nil, daisy.Errf("Error getting object reader for bucket `%v` and object path `%v`: %v", bucket, objectPath, err)
+	}
+	return objectReader, nil
 }
 
 // GetBucket returns a BucketHandle, which provides operations on the named bucket.
@@ -99,7 +110,10 @@ func (sc *Client) GetObjects(bucket string, objectPath string) domain.ObjectIter
 
 // DeleteObject deletes GCS object in given bucket and object path
 func (sc *Client) DeleteObject(bucket string, objectPath string) error {
-	return sc.ObjectDeleter.DeleteObject(bucket, objectPath)
+	if err := sc.ObjectDeleter.DeleteObject(bucket, objectPath); err != nil {
+		return daisy.Errf("Error deleting object for bucket `%v` and object path `%v`: %v", bucket, objectPath, err)
+	}
+	return nil
 }
 
 // DeleteGcsPath deletes a GCS path, including files
@@ -118,12 +132,12 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 			break
 		}
 		if err != nil {
-			return err
+			return daisy.Errf("Error deleting Cloud Storage path `%v`: %v", gcsPath, err)
 		}
 		sc.Logger.Log(fmt.Sprintf("Deleting gs://%v/%v", bucketName, attrs.Name))
 
 		if err := sc.DeleteObject(bucketName, attrs.Name); err != nil {
-			return err
+			return daisy.Errf("Error deleting Cloud Storage object `%v` in bucket `%v`: %v", attrs.Name, bucketName, err)
 		}
 	}
 
@@ -144,7 +158,7 @@ func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*s
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, daisy.Errf("Error finding file with extension `%v` in Cloud Storage directory `%v`: %v", fileExtension, gcsDirectoryPath, err)
 		}
 
 		if !strings.HasSuffix(attrs.Name, fileExtension) {
@@ -162,7 +176,7 @@ func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*s
 func (sc *Client) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error) {
 	reader, err := gcsObject.NewReader(sc.Ctx)
 	if err != nil {
-		return nil, err
+		return nil, daisy.Errf("Error getting Cloud Storage file content: %v", err)
 	}
 	return ioutil.ReadAll(reader)
 }
@@ -174,7 +188,7 @@ func (sc *Client) WriteToGCS(
 	fileWriter := destinationBucket.Object(destinationObjectPath).NewWriter(sc.Ctx)
 
 	if _, err := io.Copy(fileWriter, reader); err != nil {
-		return err
+		return daisy.Errf("Error writing to Cloud Storage file path `%v` in bucket `%v`: %v", destinationObjectPath, destinationBucketName, err)
 	}
 
 	return fileWriter.Close()
@@ -184,7 +198,10 @@ func (sc *Client) WriteToGCS(
 //
 // Close need not be called at program exit.
 func (sc *Client) Close() error {
-	return sc.StorageClient.Close()
+	if err := sc.StorageClient.Close(); err != nil {
+		return daisy.Errf("Error closing storage client: %v", err)
+	}
+	return nil
 }
 
 // SplitGCSPath splits GCS path into bucket and object path portions
