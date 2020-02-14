@@ -84,7 +84,7 @@ func ValidateOS(osID string) error {
 	}
 	if _, osValid := osChoices[osID]; !osValid {
 		// Expose osID and osChoices in the anonymized error message since they are not sensitive values.
-		allowedValuesMsg := fmt.Sprintf(" Allowed values: %v", reflect.ValueOf(osChoices).MapKeys())
+		allowedValuesMsg := fmt.Sprintf("Allowed values: %v", reflect.ValueOf(osChoices).MapKeys())
 		return daisy.Errf("os `%v` is invalid. "+allowedValuesMsg, osID)
 	}
 	return nil
