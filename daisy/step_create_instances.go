@@ -19,9 +19,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"path"
+	"strings"
 	"sync"
 	"time"
+
+	"google.golang.org/api/googleapi"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
@@ -165,10 +169,23 @@ func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
 		ii.updateDisksAndNetworksBeforeCreate(w)
 
 		w.LogStepInfo(s.name, "CreateInstances", "Creating instance %q.", ii.getName())
+
 		if err := ii.create(w.ComputeClient); err != nil {
-			eChan <- newErr("failed to create instances", err)
-			return
+			// Fallback to no-external-ip mode to workaround organization policy.
+			if ib.RetryWhenExternalIPDenied && isExternalIPDeniedByOrganizationPolicy(err) {
+				w.LogStepInfo(s.name, "CreateInstances", "Falling back to no-external-ip mode "+
+					"for creating instance %v due to the fact that external IP is denied by organization policy.", ii.getName())
+
+				UpdateInstanceNoExternalIP(s)
+				err = ii.create(w.ComputeClient)
+			}
+
+			if err != nil {
+				eChan <- newErr("failed to create instances", err)
+				return
+			}
 		}
+
 		ib.createdInWorkflow = true
 		go logSerialOutput(ctx, s, ii, ib, 1, 3*time.Second)
 	}
@@ -208,4 +225,11 @@ func (ci *CreateInstances) instanceUsesBetaFeatures() bool {
 	}
 	// if GA instances collection is empty, switch to Beta
 	return len(ci.Instances) == 0
+}
+
+func isExternalIPDeniedByOrganizationPolicy(err error) bool {
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusPreconditionFailed {
+		return strings.Contains(gErr.Message, "constraints/compute.vmExternalIpAccess")
+	}
+	return false
 }
