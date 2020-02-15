@@ -32,7 +32,7 @@ func (zv *ZoneValidator) ZoneValid(project string, zone string) error {
 	if err != nil {
 		// Check for Compute Engine API disabled
 		gAPIErr, isGAPIErr := err.(*googleapi.Error)
-		if isGAPIErr && gAPIErr.Code == 403 && gAPIErr.Errors[0].Reason == "accessNotConfigured" {
+		if isGAPIErr && gAPIErr.Code == 403 && len(gAPIErr.Errors) > 0 && gAPIErr.Errors[0].Reason == "accessNotConfigured" {
 			return daisy.Errf("Compute Engine API not configured: %v", gAPIErr)
 		}
 		return daisy.Errf("Couldn't validate zone `%v`: %v", zone, gAPIErr)
