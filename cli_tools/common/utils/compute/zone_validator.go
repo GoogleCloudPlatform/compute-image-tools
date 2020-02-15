@@ -17,6 +17,7 @@ package compute
 import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/googleapi"
 )
 
 // ZoneValidator is responsible for validating zone name corresponds to a valid zone in a given
@@ -29,7 +30,12 @@ type ZoneValidator struct {
 func (zv *ZoneValidator) ZoneValid(project string, zone string) error {
 	zl, err := zv.ComputeClient.ListZones(project)
 	if err != nil {
-		return err
+		// Check for Compute Engine API disabled
+		gAPIErr, isGAPIErr := err.(*googleapi.Error)
+		if isGAPIErr && gAPIErr.Code == 403 && len(gAPIErr.Errors) > 0 && gAPIErr.Errors[0].Reason == "accessNotConfigured" {
+			return daisy.Errf("Compute Engine API not configured: %v", gAPIErr)
+		}
+		return daisy.Errf("Couldn't validate zone `%v`: %v", zone, gAPIErr)
 	}
 	for _, z := range zl {
 		if z.Name == zone {
