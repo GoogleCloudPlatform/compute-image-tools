@@ -18,6 +18,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -31,6 +32,32 @@ const (
 	kubeletLogFileName         = "kubelet.log"
 	applicationTextLogFileName = "Application.log"
 )
+
+func TestGetDockerImagesList(t *testing.T) {
+	logFolderCh := make(chan logFolder, 2)
+	errCh := make(chan error)
+	// Test setup: create temp folder for test, clean it up afterwards
+	var err error
+	tmpFolder, err = ioutil.TempDir("", "getDockerImagesListTest")
+	if err != nil {
+		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
+	}
+	defer os.RemoveAll(tmpFolder)
+
+	t.Run("Gathers docker images list", func(t *testing.T) {
+		go getDockerImagesList(logFolderCh, errCh)
+		select {
+		case l := <-logFolderCh:
+			if !stringArrayIncludesSubstring(l.files, dockerImageListFileName) {
+				t.Errorf("Expect %s, but it's missing", dockerImageListFileName)
+			}
+		case e := <-errCh:
+			if _, err := exec.LookPath("docker"); err == nil {
+				t.Errorf(e.Error())
+			}
+		}
+	})
+}
 
 func TestGatherRDPSettings(t *testing.T) {
 	logFolderCh := make(chan logFolder, 2)

@@ -31,8 +31,9 @@ const (
 	// TODO: user can change the dump path, so better fetch the path from Registry:
 	// https://support.microsoft.com/en-us/help/254649/overview-of-memory-dump-file-options-for-windows
 	// But it's not likely people will do that.
-	crashDump         = `C:\Windows\MEMORY.dmp`
-	rdpStatusFileName = "rdp_status.txt"
+	crashDump               = `C:\Windows\MEMORY.dmp`
+	rdpStatusFileName       = "rdp_status.txt"
+	dockerImageListFileName = "docker_images.log"
 )
 
 // struct used to construct `Get-WinEvent (-ProviderName/-LogName) ${logName}` cmd string.
@@ -256,6 +257,14 @@ func getPlainEventLogs(evts []winEvt, errs chan error) []string {
 	return runAll(commands, errs)
 }
 
+// getDockerImagesList put docker images list file in logFolder channel and errors in error channel.
+func getDockerImagesList(logs chan logFolder, errs chan error) {
+	var commands = []runner{
+		cmd{`C:\Program Files\Docker\docker.exe`, "image list", dockerImageListFileName, false},
+	}
+	logs <- logFolder{"Kubernetes", runAll(commands, errs)}
+}
+
 // gatherEventLogs put all the event log file paths in logFolder channel
 // and errors in error channel.
 func gatherEventLogs(logs chan logFolder, errs chan error) {
@@ -311,6 +320,7 @@ func gatherLogs(trace bool) ([]logFolder, error) {
 		gatherEventLogs,
 		gatherKubernetesLogs,
 		gatherRDPSettings,
+		getDockerImagesList,
 	}
 	if trace {
 		runFuncs = append(runFuncs, gatherTraceLogs)
