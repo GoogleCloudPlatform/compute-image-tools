@@ -108,8 +108,12 @@ def _get_distro(g) -> _SuseRelease:
       if d.major == g.gcp_image_major or d.major == '*':
         if d.minor == g.gcp_image_minor or d.minor == '*':
           return d
-  raise ValueError('Import script not defined for {} {}.{}'.format(
-      g.gcp_image_distro, g.gcp_image_major, g.gcp_image_minor))
+  supported = ', '.join(
+      ['{}-{}.{}'.format(d.flavor, d.major, d.minor) for d in _distros])
+  raise ValueError(
+      'Import of {}-{}.{} is not supported. '
+      'The following versions are supported: [{}]'.format(
+          g.gcp_image_distro, g.gcp_image_major, g.gcp_image_minor, supported))
 
 
 def _disambiguate_suseconnect_product_error(g, product, error) -> Exception:
