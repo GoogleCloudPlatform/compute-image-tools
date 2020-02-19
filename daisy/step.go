@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -31,6 +32,72 @@ type stepImpl interface {
 	populate(ctx context.Context, s *Step) DError
 	validate(ctx context.Context, s *Step) DError
 	run(ctx context.Context, s *Step) DError
+}
+
+type multiTasksStepImpl interface {
+	stepImpl
+	iterateAllTasks(ctx context.Context, f func(context.Context, interface{}))
+	runTask(ctx context.Context, t interface{}, s *Step) DError
+	waitAllTasksBeforeCleanup() bool
+}
+
+type fallbackRetryableTask struct {
+	// Used for retry logic when "run" gets an error
+	retryHook func(*Step, DError) DError
+}
+
+// GetRetryHook gets hook for retry logic
+func (m *fallbackRetryableTask) GetRetryHook() func(*Step, DError) DError {
+	return m.retryHook
+}
+
+// SetRetryHook sets hook for retry logic
+func (m *fallbackRetryableTask) SetRetryHook(h func(*Step, DError) DError) {
+	m.retryHook = h
+}
+
+func runMultiTasksStepImpl(mtsi multiTasksStepImpl, ctx context.Context, s *Step) DError {
+	var wg sync.WaitGroup
+	w := s.w
+	e := make(chan DError)
+	mtsi.iterateAllTasks(ctx, func(ctx context.Context, t interface{}) {
+		wg.Add(1)
+		go func(t interface{}) {
+			defer wg.Done()
+
+			if err := mtsi.runTask(ctx, t, s); err != nil {
+				if frt, ok := t.(fallbackRetryableTask); ok {
+					if frt.retryHook != nil {
+						err = frt.retryHook(s, err)
+					}
+				}
+
+				if err != nil {
+					e <- err
+					return
+				}
+			}
+			if r, ok := t.(Resource); ok {
+				r.createdInWorkflow = true
+			}
+		}(t)
+	})
+
+	go func() {
+		wg.Wait()
+		e <- nil
+	}()
+
+	select {
+	case err := <-e:
+		return err
+	case <-w.Cancel:
+		// Wait so all sub tasks are done so that they can be cleaned up.
+		if mtsi.waitAllTasksBeforeCleanup() {
+			wg.Wait()
+		}
+		return nil
+	}
 }
 
 // Step is a single daisy workflow step.
@@ -84,7 +151,7 @@ func NewStepDefaultTimeout(name string, w *Workflow) *Step {
 	return NewStep(name, w, 0)
 }
 
-func (s *Step) stepImpl() (stepImpl, DError) {
+func (s *Step) StepImpl() (stepImpl, DError) {
 	var result stepImpl
 	matchCount := 0
 	if s.AttachDisks != nil {
@@ -262,7 +329,7 @@ func (s *Step) getChain() []*Step {
 
 func (s *Step) populate(ctx context.Context) DError {
 	s.w.LogWorkflowInfo("Populating step %q", s.name)
-	impl, err := s.stepImpl()
+	impl, err := s.StepImpl()
 	if err != nil {
 		return s.wrapPopulateError(err)
 	}
@@ -280,7 +347,7 @@ func (s *Step) recordStepTime(startTime time.Time) {
 func (s *Step) run(ctx context.Context) DError {
 	startTime := time.Now()
 	defer s.recordStepTime(startTime)
-	impl, err := s.stepImpl()
+	impl, err := s.StepImpl()
 	if err != nil {
 		return s.wrapRunError(err)
 	}
@@ -307,7 +374,7 @@ func (s *Step) validate(ctx context.Context) DError {
 	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
 		return s.wrapValidateError(Errf("step name must start with a letter and only contain letters, numbers, and hyphens"))
 	}
-	impl, err := s.stepImpl()
+	impl, err := s.StepImpl()
 	if err != nil {
 		return s.wrapValidateError(err)
 	}
@@ -336,4 +403,9 @@ func (s *Step) getTimeoutError() DError {
 	}
 
 	return Errf("step %q did not complete within the specified timeout of %s%s", s.name, s.timeout, timeoutDescription)
+}
+
+// GetName gets name of the step
+func (s *Step) GetName() string {
+	return s.name
 }

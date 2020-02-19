@@ -81,8 +81,7 @@
           "SourceImage": "${boot_image_name}",
           "Type": "pd-ssd",
           "ExactName": true,
-          "NoCleanup": true,
-          "FallbackToPdStandard": true
+          "NoCleanup": true
         }
       ]
     },

@@ -55,7 +55,6 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					Type:        "pd-ssd",
 				},
 				SizeGb:               importerDiskSize,
-				FallbackToPdStandard: true,
 			},
 			{
 				Disk: compute.Disk{
@@ -63,7 +62,6 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					Type: "pd-ssd",
 				},
 				SizeGb:               "10",
-				FallbackToPdStandard: true,
 				Resource: daisy.Resource{
 					ExactName: true,
 					NoCleanup: true,
@@ -75,7 +73,6 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					Type: "pd-ssd",
 				},
 				SizeGb:               "10",
-				FallbackToPdStandard: true,
 				Resource: daisy.Resource{
 					ExactName: true,
 				},

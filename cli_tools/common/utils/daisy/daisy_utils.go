@@ -22,6 +22,7 @@ import (
 
 	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
@@ -30,6 +31,8 @@ const (
 	// BuildIDOSEnvVarName is the os env var name to get build id
 	BuildIDOSEnvVarName   = "BUILD_ID"
 	translateFailedPrefix = "TranslateFailed"
+	pdStandard = "pd-standard"
+	pdSsd      = "pd-ssd"
 )
 
 var (
@@ -191,4 +194,36 @@ func PostProcessDErrorForNetworkFlag(action string, err error, network string, w
 				" VPC networks, see https://cloud.google.com/vpc.", action)
 		}
 	}
+}
+
+func SetupRetryHookForCreateDisks(w *daisy.Workflow) {
+	w.IterateWorkflowSteps(func(s *daisy.Step) {
+		if s.CreateDisks == nil {
+			return
+		}
+
+		for _, cdPtr := range *s.CreateDisks {
+			cd := cdPtr
+			cd.SetRetryHook(func(s *daisy.Step, err daisy.DError) daisy.DError {
+				// Fallback to pd-standard to avoid quota issue.
+				if strings.HasSuffix(cd.Type, pdSsd) && isQuotaExceeded(err) {
+					w.LogStepInfo(s.GetName(), "CreateDisks", "Falling back to pd-standard for disk %v. "+
+							"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
+							"avoid using ps-standard for better performance.", cd.Name)
+					cd.Type = strings.TrimRight(cd.Type, pdSsd) + pdStandard
+					if retryErr := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); retryErr != nil {
+						return daisy.Errf("failed to create disk: %v", retryErr)
+					}
+					return nil
+				}
+				return err
+			})
+		}
+	})
+}
+
+var operationErrorCodeRegex = regexp.MustCompile(fmt.Sprintf("(?m)^"+daisyCompute.OperationErrorCodeFormat+"$", "QUOTA_EXCEEDED"))
+
+func isQuotaExceeded(err error) bool {
+	return operationErrorCodeRegex.FindIndex([]byte(err.Error())) != nil
 }

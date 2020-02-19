@@ -367,6 +367,7 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 	if oi.params.UefiCompatible {
 		daisyutils.UpdateToUEFICompatible(w)
 	}
+	daisyutils.SetupRetryHookForCreateDisks(w)
 }
 
 func (oi *OVFImporter) getMachineType(

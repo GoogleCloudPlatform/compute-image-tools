@@ -44,8 +44,7 @@
           "Name": "disk-translator",
           "SourceImage": "projects/debian-cloud/global/images/family/debian-10",
           "SizeGb": "10",
-          "Type": "pd-ssd",
-          "FallbackToPdStandard": true
+          "Type": "pd-ssd"
         }
       ]
     },

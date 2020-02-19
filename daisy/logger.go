@@ -125,7 +125,9 @@ func (w *Workflow) logEntry(e *LogEntry) {
 		rw = rw.parent
 	}
 
-	w.Logger.WriteLogEntry(e)
+	if w.Logger != nil {
+		w.Logger.WriteLogEntry(e)
+	}
 }
 
 // WriteSerialPortLogs writes serial port logs to cloud logging.

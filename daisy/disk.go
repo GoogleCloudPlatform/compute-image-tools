@@ -65,6 +65,7 @@ func diskExists(client daisyCompute.Client, project, zone, disk string) (bool, D
 type Disk struct {
 	compute.Disk
 	Resource
+	fallbackRetryableTask
 
 	// If this is enabled, then WINDOWS will be added to the
 	// disk's guestOsFeatures. This is a string since daisy
@@ -75,9 +76,6 @@ type Disk struct {
 
 	// Size of this disk.
 	SizeGb string `json:"sizeGb,omitempty"`
-
-	// Fallback to pd-standard when quota is not enough for higher-level pd
-	FallbackToPdStandard bool `json:"fallbackToPdStandard,omitempty"`
 }
 
 // MarshalJSON is a hacky workaround to prevent Disk from using compute.Disk's implementation.

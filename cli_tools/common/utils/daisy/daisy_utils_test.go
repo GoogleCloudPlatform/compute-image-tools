@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/stretchr/testify/assert"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
@@ -183,6 +184,35 @@ func TestUpdateToUEFICompatible(t *testing.T) {
 	assert.Equal(t, 1, len((*w.Steps["cimg"].CreateImages).ImagesBeta[0].GuestOsFeatures))
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].GuestOsFeatures[0])
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["cimg"].CreateImages).ImagesBeta[0].Image.GuestOsFeatures[0].Type)
+}
+
+func TestSetupRetryHookForCreateDisks(t *testing.T) {
+	w := createWorkflowWithCreateDiskImageAndIncludeWorkflow()
+	s := w.Steps["cd"]
+	cd := (*s.CreateDisks)[0]
+
+	fake := func(_, _ string, d *compute.Disk) error {
+		return nil
+	}
+	w.ComputeClient = &daisyCompute.TestClient{CreateDiskFn: fake}
+	w.DisableCloudLogging()
+
+	assert.Nil(t, cd.GetRetryHook())
+
+	SetupRetryHookForCreateDisks(w)
+	assert.NotNil(t, cd.GetRetryHook())
+
+	regularErr := daisy.Errf("regular error")
+	err := cd.GetRetryHook()(s, regularErr)
+	assert.Equal(t, regularErr, err, "Returned error '%v' doesn't match expected '%v'", err, regularErr)
+
+	quotaExceededErr := daisy.Errf("Some error\nCode: QUOTA_EXCEEDED\nMessage: some message.")
+	err = cd.GetRetryHook()(s, quotaExceededErr)
+	assert.Equal(t, quotaExceededErr, err, "Returned error '%v' doesn't match expected '%v'", err, quotaExceededErr)
+
+	cd.Type = pdSsd
+	err = cd.GetRetryHook()(s, quotaExceededErr)
+	assert.Nil(t, err)
 }
 
 func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {

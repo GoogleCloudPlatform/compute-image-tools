@@ -28,3 +28,5 @@ require (
 	google.golang.org/api v0.17.0
 	google.golang.org/grpc v1.27.1 // indirect
 )
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/daisy => ../daisy

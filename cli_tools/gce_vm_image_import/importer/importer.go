@@ -234,6 +234,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 		if uefiCompatible {
 			daisyutils.UpdateToUEFICompatible(w)
 		}
+		daisyutils.SetupRetryHookForCreateDisks(w)
 	}
 
 	return workflow, workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
