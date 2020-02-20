@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"context"
+	"fmt"
 )
 
 // CreateDisks is a Daisy CreateDisks workflow step.
@@ -64,6 +65,7 @@ func (c *CreateDisks) runTask(ctx context.Context, t interface{}, s *Step) (DErr
 
 	w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
 	if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
+		fmt.Println("has error!")
 		return newErr("failed to create disk", err), err
 	}
 

@@ -265,9 +265,12 @@ func SetupRetryHookForCreateDisks(w *daisy.Workflow) {
 
 		for _, cdPtr := range *s.CreateDisks {
 			cd := cdPtr
+			fmt.Println(">>>>Set hook")
 			cd.SetRetryHook(func(s *daisy.Step, err daisy.DError, originalErr error) daisy.DError {
 				// Fallback to pd-standard to avoid quota issue.
+				fmt.Println(">>>>call hook?")
 				if strings.HasSuffix(cd.Type, pdSsd) && isQuotaExceeded(originalErr) {
+					fmt.Println(">>>>Entered!")
 					w.LogStepInfo(s.GetName(), "CreateDisks", "Falling back to pd-standard for disk %v. "+
 							"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
 							"avoid using ps-standard for better performance.", cd.Name)

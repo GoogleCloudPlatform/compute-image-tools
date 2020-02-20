@@ -78,6 +78,10 @@ type Disk struct {
 	SizeGb string `json:"sizeGb,omitempty"`
 }
 
+func (d *Disk) GetFallbackRetryableTask() fallbackRetryableTask {
+	return d.fallbackRetryableTask
+}
+
 // MarshalJSON is a hacky workaround to prevent Disk from using compute.Disk's implementation.
 func (d *Disk) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*d)

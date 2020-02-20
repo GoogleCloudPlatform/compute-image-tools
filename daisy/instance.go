@@ -125,6 +125,10 @@ type InstanceBase struct {
 	StartupScript string `json:",omitempty"`
 }
 
+func (d *InstanceBase) GetFallbackRetryableTask() fallbackRetryableTask {
+	return d.fallbackRetryableTask
+}
+
 // Instance is used to create a GCE instance using GA API.
 // Output of serial port 1 will be streamed to the daisy logs directory.
 type Instance struct {
