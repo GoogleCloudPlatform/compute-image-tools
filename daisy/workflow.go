@@ -412,7 +412,7 @@ func (w *Workflow) populateStep(ctx context.Context, s *Step) DError {
 
 	var derr DError
 	var step stepImpl
-	if step, derr = s.StepImpl(); derr != nil {
+	if step, derr = s.stepImpl(); derr != nil {
 		return derr
 	}
 	return step.populate(ctx, s)

@@ -151,7 +151,7 @@ func NewStepDefaultTimeout(name string, w *Workflow) *Step {
 	return NewStep(name, w, 0)
 }
 
-func (s *Step) StepImpl() (stepImpl, DError) {
+func (s *Step) stepImpl() (stepImpl, DError) {
 	var result stepImpl
 	matchCount := 0
 	if s.AttachDisks != nil {
@@ -329,7 +329,7 @@ func (s *Step) getChain() []*Step {
 
 func (s *Step) populate(ctx context.Context) DError {
 	s.w.LogWorkflowInfo("Populating step %q", s.name)
-	impl, err := s.StepImpl()
+	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapPopulateError(err)
 	}
@@ -347,7 +347,7 @@ func (s *Step) recordStepTime(startTime time.Time) {
 func (s *Step) run(ctx context.Context) DError {
 	startTime := time.Now()
 	defer s.recordStepTime(startTime)
-	impl, err := s.StepImpl()
+	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapRunError(err)
 	}
@@ -374,7 +374,7 @@ func (s *Step) validate(ctx context.Context) DError {
 	if !rfc1035Rgx.MatchString(strings.ToLower(s.name)) {
 		return s.wrapValidateError(Errf("step name must start with a letter and only contain letters, numbers, and hyphens"))
 	}
-	impl, err := s.StepImpl()
+	impl, err := s.stepImpl()
 	if err != nil {
 		return s.wrapValidateError(err)
 	}

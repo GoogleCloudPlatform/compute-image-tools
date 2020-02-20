@@ -213,7 +213,7 @@ func TestStepImpl(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		st, err := tt.step.StepImpl()
+		st, err := tt.step.stepImpl()
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -225,7 +225,7 @@ func TestStepImpl(t *testing.T) {
 
 	// Bad. Try empty step.
 	s := Step{}
-	if _, err := s.StepImpl(); err == nil {
+	if _, err := s.stepImpl(); err == nil {
 		t.Fatal("empty step should have thrown an error")
 	}
 	// Bad. Try step with multiple real steps.
@@ -233,7 +233,7 @@ func TestStepImpl(t *testing.T) {
 		CreateDisks:  &CreateDisks{},
 		CreateImages: &CreateImages{},
 	}
-	if _, err := s.StepImpl(); err == nil {
+	if _, err := s.stepImpl(); err == nil {
 		t.Fatal("malformed step should have thrown an error")
 	}
 }
