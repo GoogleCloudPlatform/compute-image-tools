@@ -33,8 +33,8 @@ const (
 	// BuildIDOSEnvVarName is the os env var name to get build id
 	BuildIDOSEnvVarName   = "BUILD_ID"
 	translateFailedPrefix = "TranslateFailed"
-	pdStandard = "pd-standard"
-	pdSsd      = "pd-ssd"
+	pdStandard            = "pd-standard"
+	pdSsd                 = "pd-ssd"
 )
 
 var (
@@ -216,7 +216,7 @@ func SetupRetryHookForCreateInstances(w *daisy.Workflow) {
 				// Fallback to no-external-ip mode to workaround organization policy.
 				if isExternalIPDeniedByOrganizationPolicy(originalErr) {
 					w.LogStepInfo(s.GetName(), "CreateInstances", "Falling back to no-external-ip mode "+
-							"for creating instance %v due to the fact that external IP is denied by organization policy.", ci.Name)
+						"for creating instance %v due to the fact that external IP is denied by organization policy.", ci.Name)
 
 					updateInstanceNoExternalIP(s)
 					if retryErr := w.ComputeClient.CreateInstance(ci.Project, ci.Zone, &ci.Instance); retryErr != nil {
@@ -234,7 +234,7 @@ func SetupRetryHookForCreateInstances(w *daisy.Workflow) {
 				// Fallback to no-external-ip mode to workaround organization policy.
 				if isExternalIPDeniedByOrganizationPolicy(originalErr) {
 					w.LogStepInfo(s.GetName(), "CreateInstances", "Falling back to no-external-ip mode "+
-							"for creating instance %v due to the fact that external IP is denied by organization policy.", ci.Name)
+						"for creating instance %v due to the fact that external IP is denied by organization policy.", ci.Name)
 
 					updateInstanceNoExternalIP(s)
 					if retryErr := w.ComputeClient.CreateInstanceBeta(ci.Project, ci.Zone, &ci.Instance); retryErr != nil {
@@ -247,7 +247,6 @@ func SetupRetryHookForCreateInstances(w *daisy.Workflow) {
 		}
 	})
 }
-
 
 func isExternalIPDeniedByOrganizationPolicy(err error) bool {
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusPreconditionFailed {
@@ -269,8 +268,8 @@ func SetupRetryHookForCreateDisks(w *daisy.Workflow) {
 				// Fallback to pd-standard to avoid quota issue.
 				if strings.HasSuffix(cd.Type, pdSsd) && isQuotaExceeded(originalErr) {
 					w.LogStepInfo(s.GetName(), "CreateDisks", "Falling back to pd-standard for disk %v. "+
-							"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
-							"avoid using ps-standard for better performance.", cd.Name)
+						"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
+						"avoid using ps-standard for better performance.", cd.Name)
 					cd.Type = strings.TrimRight(cd.Type, pdSsd) + pdStandard
 					if retryErr := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); retryErr != nil {
 						return daisy.Errf("failed to create disk: %v", retryErr)

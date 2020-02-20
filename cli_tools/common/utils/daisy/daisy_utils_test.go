@@ -252,10 +252,10 @@ func TestSetupRetryHookForCreateInstances(t *testing.T) {
 		t.Errorf("Instance AccessConfigs empty")
 	}
 
-	externalIpAccessErr := &googleapi.Error{Code: http.StatusPreconditionFailed, Message: "Some error caused by constraints/compute.vmExternalIpAccess."}
-	err = ci.GetRetryHook()(s, regularErr, externalIpAccessErr)
+	externalIPAccessErr := &googleapi.Error{Code: http.StatusPreconditionFailed, Message: "Some error caused by constraints/compute.vmExternalIpAccess."}
+	err = ci.GetRetryHook()(s, regularErr, externalIPAccessErr)
 	assert.Nil(t, err)
-	err = ciBeta.GetRetryHook()(s, regularErr, externalIpAccessErr)
+	err = ciBeta.GetRetryHook()(s, regularErr, externalIPAccessErr)
 	assert.Nil(t, err)
 	if len(ci.NetworkInterfaces[0].AccessConfigs) != 0 {
 		t.Errorf("Instance AccessConfigs not empty")

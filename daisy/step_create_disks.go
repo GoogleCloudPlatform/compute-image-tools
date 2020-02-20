@@ -39,7 +39,7 @@ func (c *CreateDisks) validate(ctx context.Context, s *Step) DError {
 }
 
 func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
-	return runMultiTasksStepImpl(c, ctx, s)
+	return runMultiTasksStepImpl(ctx, c, s)
 }
 
 func (c *CreateDisks) iterateAllTasks(ctx context.Context, f func(context.Context, interface{})) {

@@ -78,7 +78,7 @@ type Disk struct {
 	SizeGb string `json:"sizeGb,omitempty"`
 }
 
-func (d *Disk) GetFallbackRetryableTask() fallbackRetryableTask {
+func (d *Disk) getFallbackRetryableTask() fallbackRetryableTask {
 	return d.fallbackRetryableTask
 }
 

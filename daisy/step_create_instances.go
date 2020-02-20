@@ -149,8 +149,8 @@ func (ci *CreateInstances) validate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-func (c *CreateInstances) run(ctx context.Context, s *Step) DError {
-	return runMultiTasksStepImpl(c, ctx, s)
+func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
+	return runMultiTasksStepImpl(ctx, ci, s)
 }
 
 func (ci *CreateInstances) iterateAllTasks(ctx context.Context, f func(context.Context, interface{})) {
@@ -165,7 +165,7 @@ func (ci *CreateInstances) iterateAllTasks(ctx context.Context, f func(context.C
 	}
 }
 
-func (c *CreateInstances) runTask(ctx context.Context, t interface{}, s *Step) (DError, error) {
+func (ci *CreateInstances) runTask(ctx context.Context, t interface{}, s *Step) (DError, error) {
 	ii, ok := t.(InstanceInterface)
 	if !ok {
 		return nil, nil
@@ -193,10 +193,9 @@ func (c *CreateInstances) runTask(ctx context.Context, t interface{}, s *Step) (
 	return nil, nil
 }
 
-func (c *CreateInstances) waitAllTasksBeforeCleanup() bool {
+func (ci *CreateInstances) waitAllTasksBeforeCleanup() bool {
 	return true
 }
-
 
 func (ci *CreateInstances) instanceUsesBetaFeatures() bool {
 	for _, instanceBeta := range ci.InstancesBeta {

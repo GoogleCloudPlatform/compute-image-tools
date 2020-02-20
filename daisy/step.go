@@ -41,12 +41,12 @@ type multiTasksStepImpl interface {
 	waitAllTasksBeforeCleanup() bool
 }
 
-type FallbackRetryableTaskGetter interface {
-	GetFallbackRetryableTask() fallbackRetryableTask
+type fallbackRetryableTaskGetter interface {
+	getFallbackRetryableTask() fallbackRetryableTask
 }
 
 type fallbackRetryableTask struct {
-	FallbackRetryableTaskGetter
+	fallbackRetryableTaskGetter
 
 	// Used for retry logic when "run" gets an error
 	retryHook func(*Step, DError, error) DError
@@ -62,7 +62,7 @@ func (m *fallbackRetryableTask) SetRetryHook(h func(*Step, DError, error) DError
 	m.retryHook = h
 }
 
-func runMultiTasksStepImpl(mtsi multiTasksStepImpl, ctx context.Context, s *Step) DError {
+func runMultiTasksStepImpl(ctx context.Context, mtsi multiTasksStepImpl, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan DError)
@@ -72,9 +72,9 @@ func runMultiTasksStepImpl(mtsi multiTasksStepImpl, ctx context.Context, s *Step
 			defer wg.Done()
 
 			if err, originalErr := mtsi.runTask(ctx, t, s); err != nil {
-				if frt, ok := t.(FallbackRetryableTaskGetter); ok {
-					if frt.GetFallbackRetryableTask().retryHook != nil {
-						err = frt.GetFallbackRetryableTask().retryHook(s, err, originalErr)
+				if frt, ok := t.(fallbackRetryableTaskGetter); ok {
+					if frt.getFallbackRetryableTask().retryHook != nil {
+						err = frt.getFallbackRetryableTask().retryHook(s, err, originalErr)
 					}
 				}
 

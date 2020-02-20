@@ -125,8 +125,8 @@ type InstanceBase struct {
 	StartupScript string `json:",omitempty"`
 }
 
-func (d *InstanceBase) GetFallbackRetryableTask() fallbackRetryableTask {
-	return d.fallbackRetryableTask
+func (ib *InstanceBase) getFallbackRetryableTask() fallbackRetryableTask {
+	return ib.fallbackRetryableTask
 }
 
 // Instance is used to create a GCE instance using GA API.

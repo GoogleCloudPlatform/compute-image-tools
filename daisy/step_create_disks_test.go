@@ -31,11 +31,11 @@ func TestCreateDisksRun(t *testing.T) {
 	e := Errf("error")
 	quotaExceededErr := Errf("Some error\nCode: QUOTA_EXCEEDED\nMessage: some message.")
 	tests := []struct {
-		desc                 string
-		d                    compute.Disk
-		wantD                compute.Disk
-		clientErr            error
-		wantErr              DError
+		desc      string
+		d         compute.Disk
+		wantD     compute.Disk
+		clientErr error
+		wantErr   DError
 	}{
 		{"blank case", compute.Disk{}, compute.Disk{}, nil, nil},
 		{"resolve source image case", compute.Disk{SourceImage: "i1"}, compute.Disk{SourceImage: "i1link"}, nil, nil},
