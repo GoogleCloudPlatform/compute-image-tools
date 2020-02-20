@@ -72,11 +72,8 @@ func runMultiTasksStepImpl(mtsi multiTasksStepImpl, ctx context.Context, s *Step
 			defer wg.Done()
 
 			if err, originalErr := mtsi.runTask(ctx, t, s); err != nil {
-				fmt.Println("has error!!!")
 				if frt, ok := t.(FallbackRetryableTaskGetter); ok {
-					fmt.Println(">>>>Has hook?")
 					if frt.GetFallbackRetryableTask().retryHook != nil {
-						fmt.Println(">>>>Has hook!")
 						err = frt.GetFallbackRetryableTask().retryHook(s, err, originalErr)
 					}
 				}
