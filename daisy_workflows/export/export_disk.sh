@@ -43,11 +43,11 @@ else
   gce_export -buffer_prefix ~/upload -gcs_path "$GCS_PATH" -disk /dev/sdb -y
 fi
 GCE_EXPORT_RESULT=$?
-if [[ GCE_EXPORT_RESULT -eq 2 ]]; then
+if [[ ${GCE_EXPORT_RESULT} -eq 2 ]]; then
   echo "ExportFailed: Failed to export disk source to GCS because default Compute Engine Service account does not have storage.objects.create permission for [Privacy-> ${GCS_PATH}. <-Privacy]."
   exit 1
 fi
-if [[ GCE_EXPORT_RESULT -ne 0 ]]; then
+if [[ ${GCE_EXPORT_RESULT} -ne 0 ]]; then
   echo "ExportFailed: Failed to export disk source to GCS [Privacy-> ${GCS_PATH}. <-Privacy]."
   exit 1
 fi
