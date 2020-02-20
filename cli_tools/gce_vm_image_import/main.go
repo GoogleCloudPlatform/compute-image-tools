@@ -50,7 +50,6 @@ var (
 	kmsKeyring           = flag.String("kms_keyring", "", "The KMS keyring of the key.")
 	kmsLocation          = flag.String("kms_location", "", "The Cloud location for the key.")
 	kmsProject           = flag.String("kms_project", "", "The Cloud project for the key")
-	noExternalIP         = flag.Bool("no_external_ip", false, "VPC doesn't allow external IPs")
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 	storageLocation      = flag.String("storage_location", "", "Location for the imported image which can be any GCS location. If the location parameter is not included, images are created in the multi-region associated with the source disk, image, snapshot or GCS bucket.")
 	uefiCompatible       = flag.Bool("uefi_compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
@@ -61,7 +60,7 @@ func importEntry() (*daisy.Workflow, error) {
 	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
 		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
-		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
+		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject,
 		*labels, currentExecutablePath, *storageLocation, *uefiCompatible)
 }
 
@@ -94,7 +93,6 @@ func main() {
 			NoGuestEnvironment: *noGuestEnvironment,
 			Family:             *family,
 			Description:        *description,
-			NoExternalIP:       *noExternalIP,
 			HasKmsKey:          *kmsKey != "",
 			HasKmsKeyring:      *kmsKeyring != "",
 			HasKmsLocation:     *kmsLocation != "",

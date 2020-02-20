@@ -37,22 +37,22 @@ type stepImpl interface {
 type multiTasksStepImpl interface {
 	stepImpl
 	iterateAllTasks(ctx context.Context, f func(context.Context, interface{}))
-	runTask(ctx context.Context, t interface{}, s *Step) DError
+	runTask(ctx context.Context, t interface{}, s *Step) (DError, error)
 	waitAllTasksBeforeCleanup() bool
 }
 
 type fallbackRetryableTask struct {
 	// Used for retry logic when "run" gets an error
-	retryHook func(*Step, DError) DError
+	retryHook func(*Step, DError, error) DError
 }
 
 // GetRetryHook gets hook for retry logic
-func (m *fallbackRetryableTask) GetRetryHook() func(*Step, DError) DError {
+func (m *fallbackRetryableTask) GetRetryHook() func(*Step, DError, error) DError {
 	return m.retryHook
 }
 
 // SetRetryHook sets hook for retry logic
-func (m *fallbackRetryableTask) SetRetryHook(h func(*Step, DError) DError) {
+func (m *fallbackRetryableTask) SetRetryHook(h func(*Step, DError, error) DError) {
 	m.retryHook = h
 }
 
@@ -65,10 +65,10 @@ func runMultiTasksStepImpl(mtsi multiTasksStepImpl, ctx context.Context, s *Step
 		go func(t interface{}) {
 			defer wg.Done()
 
-			if err := mtsi.runTask(ctx, t, s); err != nil {
+			if err, originalErr := mtsi.runTask(ctx, t, s); err != nil {
 				if frt, ok := t.(fallbackRetryableTask); ok {
 					if frt.retryHook != nil {
-						err = frt.retryHook(s, err)
+						err = frt.retryHook(s, err, originalErr)
 					}
 				}
 

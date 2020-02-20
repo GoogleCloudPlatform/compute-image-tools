@@ -15,6 +15,7 @@
 package daisy
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
@@ -22,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func TestValidateOsValid(t *testing.T) {
@@ -203,16 +205,64 @@ func TestSetupRetryHookForCreateDisks(t *testing.T) {
 	assert.NotNil(t, cd.GetRetryHook())
 
 	regularErr := daisy.Errf("regular error")
-	err := cd.GetRetryHook()(s, regularErr)
-	assert.Equal(t, regularErr, err, "Returned error '%v' doesn't match expected '%v'", err, regularErr)
+	err := cd.GetRetryHook()(s, regularErr, regularErr)
+	assert.Equal(t, regularErr, err)
 
 	quotaExceededErr := daisy.Errf("Some error\nCode: QUOTA_EXCEEDED\nMessage: some message.")
-	err = cd.GetRetryHook()(s, quotaExceededErr)
-	assert.Equal(t, quotaExceededErr, err, "Returned error '%v' doesn't match expected '%v'", err, quotaExceededErr)
+	err = cd.GetRetryHook()(s, regularErr, quotaExceededErr)
+	assert.Equal(t, regularErr, err)
 
 	cd.Type = pdSsd
-	err = cd.GetRetryHook()(s, quotaExceededErr)
+	err = cd.GetRetryHook()(s, regularErr, quotaExceededErr)
 	assert.Nil(t, err)
+	assert.Equal(t, pdStandard, cd.Type)
+}
+
+func TestSetupRetryHookForCreateInstances(t *testing.T) {
+	w := createWorkflowWithCreateInstanceNetworkAccessConfig()
+	s := w.Steps["ci"]
+	ci := s.CreateInstances.Instances[0]
+	ciBeta := s.CreateInstances.InstancesBeta[0]
+
+	fake := func(_, _ string, d *compute.Instance) error {
+		return nil
+	}
+	fakeBeta := func(_, _ string, d *computeBeta.Instance) error {
+		return nil
+	}
+	w.ComputeClient = &daisyCompute.TestClient{CreateInstanceFn: fake, CreateInstanceBetaFn: fakeBeta}
+	w.DisableCloudLogging()
+
+	assert.Nil(t, ci.GetRetryHook())
+	assert.Nil(t, ciBeta.GetRetryHook())
+
+	SetupRetryHookForCreateInstances(w)
+	assert.NotNil(t, ci.GetRetryHook())
+	assert.NotNil(t, ciBeta.GetRetryHook())
+
+	regularErr := daisy.Errf("regular error")
+	err := ci.GetRetryHook()(s, regularErr, regularErr)
+	assert.Equal(t, regularErr, err)
+	err = ciBeta.GetRetryHook()(s, regularErr, regularErr)
+	assert.Equal(t, regularErr, err)
+	if len(ci.NetworkInterfaces[0].AccessConfigs) == 0 {
+		t.Errorf("Instance AccessConfigs empty")
+	}
+	if len(ciBeta.NetworkInterfaces[0].AccessConfigs) == 0 {
+		t.Errorf("Instance AccessConfigs empty")
+	}
+
+	externalIpAccessErr := &googleapi.Error{Code: http.StatusPreconditionFailed, Message: "Some error caused by constraints/compute.vmExternalIpAccess."}
+	err = ci.GetRetryHook()(s, regularErr, externalIpAccessErr)
+	assert.Nil(t, err)
+	err = ciBeta.GetRetryHook()(s, regularErr, externalIpAccessErr)
+	assert.Nil(t, err)
+	if len(ci.NetworkInterfaces[0].AccessConfigs) != 0 {
+		t.Errorf("Instance AccessConfigs not empty")
+	}
+	if len(ciBeta.NetworkInterfaces[0].AccessConfigs) != 0 {
+		t.Errorf("Instance AccessConfigs not empty")
+	}
 }
 
 func createWorkflowWithCreateInstanceNetworkAccessConfig() *daisy.Workflow {

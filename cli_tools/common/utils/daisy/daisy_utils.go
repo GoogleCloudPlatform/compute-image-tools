@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"regexp"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 const (
@@ -105,26 +107,31 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 		return
 	}
 	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
-		if step.CreateInstances != nil {
-			for _, instance := range step.CreateInstances.Instances {
-				if instance.Instance.NetworkInterfaces == nil {
-					continue
-				}
-				for _, networkInterface := range instance.Instance.NetworkInterfaces {
-					networkInterface.AccessConfigs = []*compute.AccessConfig{}
-				}
-			}
-			for _, instance := range step.CreateInstances.InstancesBeta {
-				if instance.Instance.NetworkInterfaces == nil {
-					continue
-				}
-				for _, networkInterface := range instance.Instance.NetworkInterfaces {
-					networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
-				}
-			}
-
-		}
+		updateInstanceNoExternalIP(step)
 	})
+}
+
+// updateInstanceNoExternalIP updates Create Instance step to operate
+// when no external IP access is allowed by the VPC Daisy workflow is running in.
+func updateInstanceNoExternalIP(step *daisy.Step) {
+	if step.CreateInstances != nil {
+		for _, instance := range step.CreateInstances.Instances {
+			if instance.Instance.NetworkInterfaces == nil {
+				continue
+			}
+			for _, networkInterface := range instance.Instance.NetworkInterfaces {
+				networkInterface.AccessConfigs = []*compute.AccessConfig{}
+			}
+		}
+		for _, instance := range step.CreateInstances.InstancesBeta {
+			if instance.Instance.NetworkInterfaces == nil {
+				continue
+			}
+			for _, networkInterface := range instance.Instance.NetworkInterfaces {
+				networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
+			}
+		}
+	}
 }
 
 // UpdateToUEFICompatible marks workflow resources (disks and images) to be UEFI
@@ -196,6 +203,60 @@ func PostProcessDErrorForNetworkFlag(action string, err error, network string, w
 	}
 }
 
+// SetupRetryHookForCreateInstances setups retry hook for CreateInstances
+func SetupRetryHookForCreateInstances(w *daisy.Workflow) {
+	w.IterateWorkflowSteps(func(s *daisy.Step) {
+		if s.CreateInstances == nil {
+			return
+		}
+
+		for _, ciPtr := range s.CreateInstances.Instances {
+			ci := ciPtr
+			ci.SetRetryHook(func(s *daisy.Step, err daisy.DError, originalErr error) daisy.DError {
+				// Fallback to no-external-ip mode to workaround organization policy.
+				if isExternalIPDeniedByOrganizationPolicy(originalErr) {
+					w.LogStepInfo(s.GetName(), "CreateInstances", "Falling back to no-external-ip mode "+
+							"for creating instance %v due to the fact that external IP is denied by organization policy.", ci.Name)
+
+					updateInstanceNoExternalIP(s)
+					if retryErr := w.ComputeClient.CreateInstance(ci.Project, ci.Zone, &ci.Instance); retryErr != nil {
+						return daisy.Errf("failed to create instances: %v", retryErr)
+					}
+					return nil
+				}
+				return err
+			})
+		}
+
+		for _, ciPtr := range s.CreateInstances.InstancesBeta {
+			ci := ciPtr
+			ci.SetRetryHook(func(s *daisy.Step, err daisy.DError, originalErr error) daisy.DError {
+				// Fallback to no-external-ip mode to workaround organization policy.
+				if isExternalIPDeniedByOrganizationPolicy(originalErr) {
+					w.LogStepInfo(s.GetName(), "CreateInstances", "Falling back to no-external-ip mode "+
+							"for creating instance %v due to the fact that external IP is denied by organization policy.", ci.Name)
+
+					updateInstanceNoExternalIP(s)
+					if retryErr := w.ComputeClient.CreateInstanceBeta(ci.Project, ci.Zone, &ci.Instance); retryErr != nil {
+						return daisy.Errf("failed to create instances: %v", retryErr)
+					}
+					return nil
+				}
+				return err
+			})
+		}
+	})
+}
+
+
+func isExternalIPDeniedByOrganizationPolicy(err error) bool {
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusPreconditionFailed {
+		return strings.Contains(gErr.Message, "constraints/compute.vmExternalIpAccess")
+	}
+	return false
+}
+
+// SetupRetryHookForCreateDisks setups retry hook for CreateDisks
 func SetupRetryHookForCreateDisks(w *daisy.Workflow) {
 	w.IterateWorkflowSteps(func(s *daisy.Step) {
 		if s.CreateDisks == nil {
@@ -204,9 +265,9 @@ func SetupRetryHookForCreateDisks(w *daisy.Workflow) {
 
 		for _, cdPtr := range *s.CreateDisks {
 			cd := cdPtr
-			cd.SetRetryHook(func(s *daisy.Step, err daisy.DError) daisy.DError {
+			cd.SetRetryHook(func(s *daisy.Step, err daisy.DError, originalErr error) daisy.DError {
 				// Fallback to pd-standard to avoid quota issue.
-				if strings.HasSuffix(cd.Type, pdSsd) && isQuotaExceeded(err) {
+				if strings.HasSuffix(cd.Type, pdSsd) && isQuotaExceeded(originalErr) {
 					w.LogStepInfo(s.GetName(), "CreateDisks", "Falling back to pd-standard for disk %v. "+
 							"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
 							"avoid using ps-standard for better performance.", cd.Name)

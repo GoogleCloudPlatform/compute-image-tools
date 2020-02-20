@@ -280,26 +280,3 @@ func CombineGuestOSFeaturesBeta(features1 []*computeBeta.GuestOsFeature,
 	})
 	return ret
 }
-
-// UpdateInstanceNoExternalIP updates Create Instance step to operate
-// when no external IP access is allowed by the VPC Daisy workflow is running in.
-func UpdateInstanceNoExternalIP(step *Step) {
-	if step.CreateInstances != nil {
-		for _, instance := range step.CreateInstances.Instances {
-			if instance.Instance.NetworkInterfaces == nil {
-				continue
-			}
-			for _, networkInterface := range instance.Instance.NetworkInterfaces {
-				networkInterface.AccessConfigs = []*compute.AccessConfig{}
-			}
-		}
-		for _, instance := range step.CreateInstances.InstancesBeta {
-			if instance.Instance.NetworkInterfaces == nil {
-				continue
-			}
-			for _, networkInterface := range instance.Instance.NetworkInterfaces {
-				networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
-			}
-		}
-	}
-}

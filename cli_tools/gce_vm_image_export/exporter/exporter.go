@@ -140,6 +140,8 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 				return "gce-image-export"
 			}}
 		rl.LabelResources(w)
+		daisyutils.SetupRetryHookForCreateDisks(w)
+		daisyutils.SetupRetryHookForCreateInstances(w)
 	}
 
 	err = workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)

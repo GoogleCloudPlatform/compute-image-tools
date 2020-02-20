@@ -175,7 +175,7 @@ func TestCreateInstancesRun(t *testing.T) {
 		t.Errorf("unexpected error running CreateInstances.run(): %v", err)
 	}
 	if i0.Disks[0].Source != w.disks.m["d"].link {
-		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", w.disks.m["d0"].link, i0.Disks[0].Source)
+		t.Errorf("instance disk link did not resolve properly: want: %q, got: %q", w.disks.m["d"].link, i0.Disks[0].Source)
 	}
 	if i0.NetworkInterfaces[0].Network != w.networks.m["n"].link {
 		t.Errorf("instance network link did not resolve properly: want: %q, got: %q", w.networks.m["n"].link, i0.NetworkInterfaces[0].Network)

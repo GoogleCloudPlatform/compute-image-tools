@@ -19,13 +19,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"path"
-	"strings"
-	"sync"
 	"time"
-
-	"google.golang.org/api/googleapi"
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
@@ -154,68 +149,54 @@ func (ci *CreateInstances) validate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
-	var wg sync.WaitGroup
-	w := s.w
-	eChan := make(chan DError)
-	createInstance := func(ii InstanceInterface, ib *InstanceBase) {
-		// Get the source machine image link if using a source image.
-		if ii.getSourceMachineImage() != "" {
-			if image, ok := w.machineImages.get(ii.getSourceMachineImage()); ok {
-				ii.setSourceMachineImage(image.link)
-			}
-		}
-		defer wg.Done()
-		ii.updateDisksAndNetworksBeforeCreate(w)
+func (c *CreateInstances) run(ctx context.Context, s *Step) DError {
+	return runMultiTasksStepImpl(c, ctx, s)
+}
 
-		w.LogStepInfo(s.name, "CreateInstances", "Creating instance %q.", ii.getName())
-
-		if err := ii.create(w.ComputeClient); err != nil {
-			// Fallback to no-external-ip mode to workaround organization policy.
-			if ib.RetryWhenExternalIPDenied && isExternalIPDeniedByOrganizationPolicy(err) {
-				w.LogStepInfo(s.name, "CreateInstances", "Falling back to no-external-ip mode "+
-					"for creating instance %v due to the fact that external IP is denied by organization policy.", ii.getName())
-
-				UpdateInstanceNoExternalIP(s)
-				err = ii.create(w.ComputeClient)
-			}
-
-			if err != nil {
-				eChan <- newErr("failed to create instances", err)
-				return
-			}
-		}
-
-		ib.createdInWorkflow = true
-		go logSerialOutput(ctx, s, ii, ib, 1, 3*time.Second)
-	}
-
+func (ci *CreateInstances) iterateAllTasks(ctx context.Context, f func(context.Context, interface{})) {
 	if ci.instanceUsesBetaFeatures() {
-		for _, i := range ci.InstancesBeta {
-			wg.Add(1)
-			go createInstance(i, &i.InstanceBase)
+		for _, t := range ci.InstancesBeta {
+			f(ctx, t)
 		}
 	} else {
-		for _, i := range ci.Instances {
-			wg.Add(1)
-			go createInstance(i, &i.InstanceBase)
+		for _, t := range ci.Instances {
+			f(ctx, t)
 		}
 	}
-
-	go func() {
-		wg.Wait()
-		eChan <- nil
-	}()
-
-	select {
-	case err := <-eChan:
-		return err
-	case <-w.Cancel:
-		// Wait so instances being created now can be deleted.
-		wg.Wait()
-		return nil
-	}
 }
+
+func (c *CreateInstances) runTask(ctx context.Context, t interface{}, s *Step) (DError, error) {
+	ii, ok := t.(InstanceInterface)
+	if !ok {
+		return nil, nil
+	}
+	ib := ii.getBase()
+
+	w := s.w
+
+	// Get the source machine image link if using a source image.
+	if ii.getSourceMachineImage() != "" {
+		if image, ok := w.machineImages.get(ii.getSourceMachineImage()); ok {
+			ii.setSourceMachineImage(image.link)
+		}
+	}
+	ii.updateDisksAndNetworksBeforeCreate(w)
+
+	w.LogStepInfo(s.name, "CreateInstances", "Creating instance %q.", ii.getName())
+
+	if err := ii.create(w.ComputeClient); err != nil {
+		return newErr("failed to create instances", err), err
+	}
+
+	ib.createdInWorkflow = true
+	go logSerialOutput(ctx, s, ii, ib, 1, 3*time.Second)
+	return nil, nil
+}
+
+func (c *CreateInstances) waitAllTasksBeforeCleanup() bool {
+	return true
+}
+
 
 func (ci *CreateInstances) instanceUsesBetaFeatures() bool {
 	for _, instanceBeta := range ci.InstancesBeta {
@@ -225,11 +206,4 @@ func (ci *CreateInstances) instanceUsesBetaFeatures() bool {
 	}
 	// if GA instances collection is empty, switch to Beta
 	return len(ci.Instances) == 0
-}
-
-func isExternalIPDeniedByOrganizationPolicy(err error) bool {
-	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusPreconditionFailed {
-		return strings.Contains(gErr.Message, "constraints/compute.vmExternalIpAccess")
-	}
-	return false
 }

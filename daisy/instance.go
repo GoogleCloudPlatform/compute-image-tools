@@ -87,6 +87,7 @@ func (i *Instance) MarshalJSON() ([]byte, error) {
 
 // InstanceInterface represent abstract Instance across different API stages (Alpha, Beta, API)
 type InstanceInterface interface {
+	getBase() *InstanceBase
 	getName() string
 	setName(name string)
 	getDescription() string
@@ -114,6 +115,7 @@ type InstanceInterface interface {
 // It holds the shared properties between the two.
 type InstanceBase struct {
 	Resource
+	fallbackRetryableTask
 
 	// OAuth2 scopes to give the instance. If left unset
 	// https://www.googleapis.com/auth/devstorage.read_only will be added.
@@ -121,9 +123,6 @@ type InstanceBase struct {
 	// StartupScript is the Sources path to a startup script to use in this step.
 	// This will be automatically mapped to the appropriate metadata key.
 	StartupScript string `json:",omitempty"`
-	// RetryWhenExternalIPDenied indicates whether to retry CreateInstances when
-	// it fails due to external IP denied by organization IP.
-	RetryWhenExternalIPDenied bool `json:",omitempty"`
 }
 
 // Instance is used to create a GCE instance using GA API.
@@ -144,6 +143,10 @@ type InstanceBeta struct {
 
 	// Additional metadata to set for the instance.
 	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+func (i *Instance) getBase() *InstanceBase {
+	return &i.InstanceBase
 }
 
 func (i *Instance) getMachineType() string {
@@ -245,6 +248,10 @@ func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DEr
 		nName := n.Network
 		errs = addErrs(errs, ir.w.networks.regConnect(nName, name, s))
 	}
+}
+
+func (i *InstanceBeta) getBase() *InstanceBase {
+	return &i.InstanceBase
 }
 
 func (i *InstanceBeta) getMachineType() string {

@@ -194,7 +194,7 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath string, zone string,
 	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
-	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
+	kmsKeyring string, kmsLocation string, kmsProject string,
 	userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
@@ -230,11 +230,11 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		daisyutils.UpdateAllInstanceNoExternalIP(w, noExternalIP)
 		if uefiCompatible {
 			daisyutils.UpdateToUEFICompatible(w)
 		}
 		daisyutils.SetupRetryHookForCreateDisks(w)
+		daisyutils.SetupRetryHookForCreateInstances(w)
 	}
 
 	return workflow, workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
@@ -246,7 +246,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	network string, subnet string, zone string, timeout string, project *string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
-	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
+	labels string, currentExecutablePath string, storageLocation string,
 	uefiCompatible bool) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
@@ -296,7 +296,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	var w *daisy.Workflow
 	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
-		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
+		kmsLocation, kmsProject, userLabels, storageLocation, uefiCompatible); err != nil {
 
 		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, network, w)
 

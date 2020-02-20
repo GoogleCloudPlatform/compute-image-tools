@@ -47,27 +47,29 @@ func (c *CreateDisks) iterateAllTasks(ctx context.Context, f func(context.Contex
 	}
 }
 
-func (c *CreateDisks) runTask(ctx context.Context, t interface{}, s *Step) DError {
+func (c *CreateDisks) runTask(ctx context.Context, t interface{}, s *Step) (DError, error) {
 	cd, ok := t.(*Disk)
 	if !ok {
-		return nil
+		return nil, nil
 	}
+
+	w := s.w
 
 	// Get the source image link if using a source image.
 	if cd.SourceImage != "" {
-		if image, ok := s.w.images.get(cd.SourceImage); ok {
+		if image, ok := w.images.get(cd.SourceImage); ok {
 			cd.SourceImage = image.link
 		}
 	}
 
-	s.w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
-	if err := s.w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
-		return newErr("failed to create disk", err)
+	w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
+	if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
+		return newErr("failed to create disk", err), err
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (c *CreateDisks) waitAllTasksBeforeCleanup() bool {
-	return false
+	return true
 }
