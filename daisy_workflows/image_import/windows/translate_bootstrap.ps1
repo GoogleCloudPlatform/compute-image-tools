@@ -120,6 +120,7 @@ try {
   $script:is_x86 = Get-MetadataValue -key 'is_x86'
 
   $partition_style = Get-Disk 1 | Select-Object -Expand PartitionStyle
+  Get-Disk | Where-Object -Property OperationalStatus -EQ "Offline" | Set-Disk -IsOffline $false
   Get-Disk 1 | Get-Partition | ForEach-Object {
     if (-not $_.DriveLetter) {
       # Ensure all available partitions on the import disk are accessible via drive letter.
