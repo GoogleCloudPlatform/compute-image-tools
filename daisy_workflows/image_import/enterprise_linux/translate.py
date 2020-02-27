@@ -162,7 +162,7 @@ def DistroSpecific(g):
       # Version 6 doesn't have option --kver
       g.command(['dracut', '-v', '-f', kver])
     else:
-      g.command(['dracut', '-v', '-f', '--kver', kver])
+      g.command(['dracut', '--stdlog=1', '-f', '--kver', kver])
 
   logging.info('Update grub configuration')
   if el_release == '6':
