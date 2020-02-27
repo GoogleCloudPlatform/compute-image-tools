@@ -307,7 +307,7 @@ try {
     }
   } else {
     Write-Output 'Translate: Launching sysprep.'
-    & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat -NoShutdown'
+    & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat' -NoShutdown
   }
 
   if ($script:is_byol.ToLower() -eq 'true') {
