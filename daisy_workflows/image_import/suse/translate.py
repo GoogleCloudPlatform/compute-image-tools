@@ -202,22 +202,32 @@ def _install_packages(distro, g, install_gce):
     ValueError: If there's a failure to refresh zypper, or if there's
                 a failure to install a required package.
   """
+  refresh_zypper(g)
+  for pkg in _packages:
+    if pkg.gce and not install_gce:
+      continue
+    install_package(g, pkg)
+
+
+@utils.RetryOnFailure
+def install_package(g, pkg):
+  try:
+    g.command(('zypper', '-n', 'install', '--no-recommends', pkg.name))
+  except Exception as e:
+    if pkg.required:
+      raise ValueError(
+          'Failed to install required package {}: {}'.format(pkg.name, e))
+    else:
+      logging.warning(
+          'Failed to install optional package {}: {}'.format(pkg.name, e))
+
+
+@utils.RetryOnFailure
+def refresh_zypper(g):
   try:
     g.command(['zypper', 'refresh'])
   except Exception as e:
     raise ValueError('Failed to call zypper refresh', e)
-  for pkg in _packages:
-    if pkg.gce and not install_gce:
-      continue
-    try:
-      g.command(('zypper', '-n', 'install', '--no-recommends', pkg.name))
-    except Exception as e:
-      if pkg.required:
-        raise ValueError(
-            'Failed to install required package {}: {}'.format(pkg.name, e))
-      else:
-        logging.warning(
-            'Failed to install optional package {}: {}'.format(pkg.name, e))
 
 
 def _update_grub(g):

@@ -741,3 +741,14 @@ class MetadataManager:
         project=self.project, region=self.region, forwardingRule=name)
     response = request.execute()
     return response[u'IPAddress']
+
+
+@RetryOnFailure
+def install_apt_package(g, pkg):
+  g.sh('DEBIAN_FRONTEND=noninteractive apt-get '
+       'install -y --no-install-recommends ' + pkg)
+
+
+@RetryOnFailure
+def update_apt(g):
+  g.sh('apt-get update')
