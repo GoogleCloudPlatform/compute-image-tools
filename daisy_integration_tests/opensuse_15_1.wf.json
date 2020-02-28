@@ -24,6 +24,7 @@
       }
     },
     "test-the-image": {
+      "Timeout": "30m",
       "CreateInstances": [
         {
           "disks": [
