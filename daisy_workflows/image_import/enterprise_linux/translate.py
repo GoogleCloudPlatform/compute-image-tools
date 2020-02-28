@@ -90,6 +90,14 @@ def DistroSpecific(g):
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
   rhel_license = utils.GetMetadataAttribute('use_rhel_gce_license')
 
+  # This must be performed prior to making network calls from the guest.
+  # Otherwise, if /etc/resolv.conf is present, and has an immutable attribute,
+  # guestfs will fail with:
+  #
+  #   rename: /sysroot/etc/resolv.conf to
+  #     /sysroot/etc/i9r7obu6: Operation not permitted
+  utils.common.ClearEtcResolv(g)
+
   if rhel_license == 'true':
     if 'Red Hat' in g.cat('/etc/redhat-release'):
       g.command(['yum', 'remove', '-y', '*rhui*'])
