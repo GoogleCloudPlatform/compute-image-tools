@@ -123,6 +123,26 @@ def Execute(cmd, cwd=None, capture_output=False, env=None, raise_errors=True):
   return returncode, output
 
 
+def ClearEtcResolv(g):
+  """Clear /etc/resolv.conf to allow DNS settings to come from GCP's DHCP server.
+
+  Args:
+    g (guestfs.GuestFS): A mounted GuestFS instance.
+  """
+
+  # Remove immutable attr if present.
+  if g.exists('/etc/resolv.conf'):
+    try:
+      g.set_e2attrs('/etc/resolv.conf', 'i', clear=True)
+    except BaseException:
+      # set_e2attrs will throw an error if the filesystem
+      # doesn't support chattr, in which case we won't have
+      # a problem overwriting /etc/resolv.conf.
+      pass
+
+  g.sh('echo "" > /etc/resolv.conf')
+
+
 def HttpGet(url, headers=None):
   request = urllib.request.Request(url)
   if headers:
