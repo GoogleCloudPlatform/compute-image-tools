@@ -48,19 +48,24 @@ function fail {
   FAILURES+="TestFailed: $message"$'\n'
 }
 
-# Check network connectivity.
-function check_connectivity {
+function check_metadata_connectivity {
   status "Checking metadata connection."
-  ping -q -w 10 metadata.google.internal
-  if [[ $? -ne 0 ]]; then
-    fail "Failed to connect to metadata.google.internal."
-  fi
+  for i in $(seq 1 20) ; do
+    ping -q -w 10 metadata.google.internal && return 0
+    status "Waiting for connectivity to metadata.google.internal."
+    sleep $((i**2))
+  done
+  fail "Failed to connect to metadata.google.internal."
+}
 
+function check_internet_connectivity {
   status "Checking external connectivity."
-  ping -q -w 10 google.com
-  if [[ $? -ne 0 ]]; then
-    fail "Failed to ping google.com."
-  fi
+  for i in $(seq 1 20) ; do
+    ping -q -w 10 google.com && return 0
+    status "Waiting for connectivity to google.com."
+    sleep $((i**2))
+  done
+  fail "Failed to connect to google.com."
 }
 
 # Check Google services.
@@ -196,7 +201,8 @@ check_google_services
 check_google_cloud_sdk
 check_cloud_init
 check_package_install
-check_connectivity
+check_metadata_connectivity
+check_internet_connectivity
 
 # Return results.
 if [[ ${FAIL} -eq 0 ]]; then
