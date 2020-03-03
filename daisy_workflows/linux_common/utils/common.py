@@ -39,12 +39,17 @@ def RetryOnFailure(func):
   @functools.wraps(func)
   def Wrapper(*args, **kwargs):
     ratio = 1.5
-    wait = 3
+    wait = 1
     ntries = 0
     start_time = time.time()
-    end_time = start_time + 15 * 60
+    # Stop after five minutes.
+    end_time = start_time + 5 * 60
     exception = None
     while time.time() < end_time:
+      # Don't sleep on first attempt.
+      if ntries > 0:
+        time.sleep(wait)
+        wait *= ratio
       ntries += 1
       try:
         response = func(*args, **kwargs)
@@ -54,14 +59,13 @@ def RetryOnFailure(func):
         logging.info(
             'Function %s failed, waiting %d seconds, retrying %d ...',
             str(func), wait, ntries)
-        time.sleep(wait)
-        wait = wait * ratio
       else:
         logging.info(
             'Function %s executed in less then %d sec, with %d tentative(s)',
             str(func), time.time() - start_time, ntries)
         return response
     raise exception
+
   return Wrapper
 
 
