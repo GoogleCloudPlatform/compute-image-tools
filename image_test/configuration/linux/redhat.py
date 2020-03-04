@@ -25,7 +25,7 @@ class RedHatTests(generic_distro.GenericDistroTests):
   """
   __metaclass__ = abc.ABCMeta
 
-  @utils.RetryOnFailure
+  @utils.RetryOnFailure()
   def TestPackageInstallation(self):
     """
     Network instabilities can lead to errors when fetching the yum repository.

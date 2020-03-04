@@ -209,7 +209,7 @@ def _install_packages(distro, g, install_gce):
     install_package(g, pkg)
 
 
-@utils.RetryOnFailure
+@utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def install_package(g, pkg):
   try:
     g.command(('zypper', '-n', 'install', '--no-recommends', pkg.name))
@@ -222,7 +222,7 @@ def install_package(g, pkg):
           'Failed to install optional package {}: {}'.format(pkg.name, e))
 
 
-@utils.RetryOnFailure
+@utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def refresh_zypper(g):
   try:
     g.command(['zypper', 'refresh'])
