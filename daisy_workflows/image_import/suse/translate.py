@@ -105,9 +105,9 @@ def _get_distro(g) -> _SuseRelease:
     ValueError: If there's not a SuseObject for the the OS on the disk.
   """
   for d in _distros:
-    if (re.match(d.flavor, g.gcp_image_distro) and
-        re.match(d.major, g.gcp_image_major) and
-        re.match(d.minor, g.gcp_image_minor)):
+    if re.match(d.flavor, g.gcp_image_distro) \
+        and re.match(d.major, g.gcp_image_major) \
+        and re.match(d.minor, g.gcp_image_minor):
       return d
   supported = ', '.join(
       ['{}-{}.{}'.format(d.flavor, d.major, d.minor) for d in _distros])
