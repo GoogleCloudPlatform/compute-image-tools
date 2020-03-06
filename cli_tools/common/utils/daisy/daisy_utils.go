@@ -40,6 +40,7 @@ var (
 		"centos-7":            "enterprise_linux/translate_centos_7.wf.json",
 		"centos-8":            "enterprise_linux/translate_centos_8.wf.json",
 		"opensuse-15":         "suse/translate_opensuse_15.wf.json",
+		"sles-sap-12-byol":    "suse/translate_sles_sap_12_byol.wf.json",
 		"sles-12-byol":        "suse/translate_sles_12_byol.wf.json",
 		"sles-15-byol":        "suse/translate_sles_15_byol.wf.json",
 		"rhel-6":              "enterprise_linux/translate_rhel_6_licensed.wf.json",
