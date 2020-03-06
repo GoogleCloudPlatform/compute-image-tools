@@ -39,7 +39,7 @@ def MasterExecuteInSsh(machine, commands, expect_fail=False):
   return ret, output
 
 
-@utils.RetryOnFailure
+@utils.RetryOnFailure()
 def MasterExecuteInSshRetry(machine, commands, expect_fail=False):
   return MasterExecuteInSsh(machine, commands, expect_fail)
 
@@ -70,7 +70,7 @@ def GetServiceAccountUsername(machine):
   return username
 
 
-@utils.RetryOnFailure
+@utils.RetryOnFailure()
 def CheckAuthorizedKeys(user, key, expect_empty=False):
   _, auth_keys = MasterExecuteInSsh(TESTEE, ['google_authorized_keys', user])
   auth_keys = auth_keys if auth_keys else ''
@@ -82,7 +82,7 @@ def CheckAuthorizedKeys(user, key, expect_empty=False):
         'Os Login key NOT DETECTED in google_authorized_keys when expected')
 
 
-@utils.RetryOnFailure
+@utils.RetryOnFailure()
 def CheckNss(user_oslogin, user_osadminlogin, expect_empty=False):
   _, users = MasterExecuteInSsh(TESTEE, ['getent', 'passwd'])
   if expect_empty and (user_oslogin in users or user_osadminlogin in users):

@@ -33,39 +33,49 @@ import uuid
 SUCCESS_LEVELNO = logging.ERROR - 5
 
 
-def RetryOnFailure(func):
-  """Function decorator to retry on an exception."""
+def RetryOnFailure(stop_after_seconds=15 * 60, initial_delay_seconds=3):
+  """Function decorator to retry on an exception.
 
-  @functools.wraps(func)
-  def Wrapper(*args, **kwargs):
-    ratio = 1.5
-    wait = 3
-    ntries = 0
-    start_time = time.time()
-    end_time = start_time + 15 * 60
-    exception = None
-    while time.time() < end_time:
-      ntries += 1
-      try:
-        response = func(*args, **kwargs)
-      except Exception as e:
-        exception = e
-        logging.info(str(e))
-        logging.info(
-            'Function %s failed, waiting %d seconds, retrying %d ...',
-            str(func), wait, ntries)
-        time.sleep(wait)
-        wait = wait * ratio
-      else:
-        logging.info(
-            'Function %s executed in less then %d sec, with %d tentative(s)',
-            str(func), time.time() - start_time, ntries)
-        return response
-    raise exception
-  return Wrapper
+  Performs linear backoff until stop_after_seconds is reached.
+
+  Args:
+    stop_after_seconds: Maximum amount of time (in seconds) to spend retrying.
+    initial_delay_seconds: The delay before the first retry, in seconds."""
+  def decorator(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+      ratio = 1.5
+      wait = initial_delay_seconds
+      ntries = 0
+      start_time = time.time()
+      # Stop after five minutes.
+      end_time = start_time + stop_after_seconds
+      exception = None
+      while time.time() < end_time:
+        # Don't sleep on first attempt.
+        if ntries > 0:
+          time.sleep(wait)
+          wait *= ratio
+        ntries += 1
+        try:
+          response = func(*args, **kwargs)
+        except Exception as e:
+          exception = e
+          logging.info(str(e))
+          logging.info(
+              'Function %s failed, waiting %d seconds, retrying %d ...',
+              str(func), wait, ntries)
+        else:
+          logging.info(
+              'Function %s executed in less then %d sec, with %d tentative(s)',
+              str(func), time.time() - start_time, ntries)
+          return response
+      raise exception
+    return wrapper
+  return decorator
 
 
-@RetryOnFailure
+@RetryOnFailure()
 def YumInstall(package_list):
   if YumInstall.first_run:
     Execute(['yum', 'update'])
@@ -76,7 +86,7 @@ def YumInstall(package_list):
 YumInstall.first_run = True
 
 
-@RetryOnFailure
+@RetryOnFailure()
 def AptGetInstall(package_list, suite=None):
   if AptGetInstall.first_run:
     try:
@@ -444,7 +454,7 @@ class MetadataManager:
     response = request.execute()
     return response[md_id]
 
-  @RetryOnFailure
+  @RetryOnFailure()
   def StoreMetadata(self, level):
     """Store Metadata.
 
@@ -549,7 +559,7 @@ class MetadataManager:
     if store:
       self.StoreMetadata(level)
 
-  @RetryOnFailure
+  @RetryOnFailure()
   def TestSshLogin(self, key, as_root=False, expect_fail=False):
     """Try to login to self.instance using key.
 
@@ -741,3 +751,14 @@ class MetadataManager:
         project=self.project, region=self.region, forwardingRule=name)
     response = request.execute()
     return response[u'IPAddress']
+
+
+@RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
+def install_apt_package(g, pkg):
+  g.sh('DEBIAN_FRONTEND=noninteractive apt-get '
+       'install -y --no-install-recommends ' + pkg)
+
+
+@RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
+def update_apt(g):
+  g.sh('apt-get update')

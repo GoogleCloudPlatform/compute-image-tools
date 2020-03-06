@@ -111,11 +111,9 @@ def DistroSpecific(g):
     g.write('/etc/network/interfaces', xenial_network)
 
   if install_gce == 'true':
-    g.command(['apt-get', 'update'])
+    utils.update_apt(g)
     logging.info('Installing cloud-init.')
-    g.sh(
-        'DEBIAN_FRONTEND=noninteractive apt-get install -y'
-        ' --no-install-recommends cloud-init')
+    utils.install_apt_package(g, 'cloud-init')
 
     # Try to remove azure or aws configs so cloud-init has a chance.
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*azure*')
@@ -152,11 +150,9 @@ def DistroSpecific(g):
         'apt-get install -y --no-install-recommends cloud-init '
         '&& cloud-init -d init')
     logging.info('Installing GCE packages.')
-    g.command(['apt-get', 'update'])
-    g.sh(
-        'DEBIAN_FRONTEND=noninteractive apt-get install -y'
-        ' --no-install-recommends gce-compute-image-packages google-cloud-sdk')
-
+    utils.update_apt(g)
+    utils.install_apt_package(g, 'gce-compute-image-packages')
+    utils.install_apt_package(g, 'google-cloud-sdk')
   # Update grub config to log to console.
   g.command(
       ['sed', '-i',
