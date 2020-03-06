@@ -178,6 +178,7 @@ def _disambiguate_suseconnect_product_error(g, product, error) -> Exception:
     'Unable to find an active SLES subscription. SCC returned: %s' % statuses)
 
 
+@utils.RetryOnFailure(stop_after_seconds=60, initial_delay_seconds=1)
 def _install_product(distro, g):
   """Executes SuseConnect -p for each product on `distro`.
 
