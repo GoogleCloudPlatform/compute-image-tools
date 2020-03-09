@@ -22,6 +22,7 @@ Parameters (retrieved from instance metadata):
 
 import json
 import logging
+import re
 
 import utils
 import utils.diskutils as diskutils
@@ -91,7 +92,7 @@ _distros = [
     _SuseRelease(
         flavor='sles',
         major='12',
-        minor='5',
+        minor='4|5',
         products=['sle-module-public-cloud/12/x86_64']
     ),
 ]
@@ -104,10 +105,10 @@ def _get_distro(g) -> _SuseRelease:
     ValueError: If there's not a SuseObject for the the OS on the disk.
   """
   for d in _distros:
-    if d.flavor == g.gcp_image_distro:
-      if d.major == g.gcp_image_major or d.major == '*':
-        if d.minor == g.gcp_image_minor or d.minor == '*':
-          return d
+    if re.match(d.flavor, g.gcp_image_distro) \
+        and re.match(d.major, g.gcp_image_major) \
+        and re.match(d.minor, g.gcp_image_minor):
+      return d
   supported = ', '.join(
       ['{}-{}.{}'.format(d.flavor, d.major, d.minor) for d in _distros])
   raise ValueError(
