@@ -17,6 +17,7 @@ package importer
 import (
 	"fmt"
 	"io/ioutil"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -38,7 +39,7 @@ func TestGetWorkflowPathsFromImage(t *testing.T) {
 	sourceImage = "image-1"
 	osID = "ubuntu-1404"
 	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
+	if !reflect.DeepEqual(workflow, []string{path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath)}) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportFromImageWorkflow)
 	}
 }
@@ -49,7 +50,10 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 	osID = ""
 	sourceImage = ""
 	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath) || translate != "" {
+	if !reflect.DeepEqual(workflow, []string{
+		path.ToWorkingDir(WorkflowDir+ImportNativeWorkflow, currentExecutablePath),
+		path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath),
+	}) || translate != "" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportWorkflow)
 	}
 }
@@ -67,7 +71,7 @@ func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
 		t.Errorf("Unexpected flags error: %v", err)
 	}
 	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath) || translate != customTranWorkflow {
+	if !reflect.DeepEqual(workflow, []string{path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath)}) || translate != customTranWorkflow {
 		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportFromImageWorkflow)
 	}
 }
@@ -106,8 +110,14 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 
 	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
 
-	if workflow != homeDir+WorkflowDir+ImportAndTranslateWorkflow {
-		t.Errorf("resulting workflow path `%v` does not match expected `%v`", workflow, homeDir+WorkflowDir+ImportAndTranslateWorkflow)
+	if !reflect.DeepEqual(workflow, []string{
+		path.ToWorkingDir(WorkflowDir+ImportNativeAndTranslateWorkflow, homeDir),
+		path.ToWorkingDir(WorkflowDir+ImportAndTranslateWorkflow, homeDir),
+	}) {
+		t.Errorf("resulting workflow path `%v` does not match expected `%v`", workflow, []string{
+			path.ToWorkingDir(WorkflowDir+ImportNativeAndTranslateWorkflow, homeDir),
+			path.ToWorkingDir(WorkflowDir+ImportAndTranslateWorkflow, homeDir),
+		})
 	}
 
 	if translate != "ubuntu/translate_ubuntu_1404.wf.json" {
@@ -146,6 +156,8 @@ func TestFlagsDataDiskOrOSFlagsNotProvided(t *testing.T) {
 
 func TestFlagsDataDiskAndOSFlagsBothProvided(t *testing.T) {
 	resetArgs()
+	sourceFile = "gs://source_bucket/source_file"
+	sourceImage = ""
 	dataDisk = true
 	assertErrorOnValidate("Expected error for both os and data_disk set at the same time", t)
 }
@@ -357,5 +369,7 @@ func resetArgs() {
 	clientID = "aClient"
 	customTranWorkflow = ""
 	currentExecutablePath = ""
+	network = ""
+	subnet = ""
 	labels = "userkey1=uservalue1,userkey2=uservalue2"
 }

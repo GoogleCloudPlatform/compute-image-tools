@@ -24,7 +24,7 @@ type ResourceLabeler struct {
 	BuildIDLabelKey           string
 	ImageLocation             string
 	InstanceLabelKeyRetriever InstanceLabelKeyRetrieverFunc
-	DiskLabelKeyRetriever     DiskLabelKeyRetrieverFunc
+	DiskLabelKey              string
 	ImageLabelKeyRetriever    ImageLabelKeyRetrieverFunc
 }
 
@@ -56,8 +56,12 @@ func (rl *ResourceLabeler) labelResourcesInStep(step *daisy.Step) {
 	}
 	if step.CreateDisks != nil {
 		for _, disk := range *step.CreateDisks {
-			disk.Disk.Labels =
-				rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk))
+			disk.Disk.Labels = rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKey)
+		}
+	}
+	if step.CreateDisksAlpha != nil {
+		for _, disk := range *step.CreateDisksAlpha {
+			disk.Disk.Labels = rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKey)
 		}
 	}
 	if step.CreateImages != nil {

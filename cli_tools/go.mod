@@ -1,4 +1,4 @@
-module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools
+module github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common
 
 go 1.13
 
@@ -14,9 +14,6 @@ require (
 	github.com/google/logger v1.0.1
 	github.com/google/uuid v1.1.1
 	github.com/klauspost/compress v1.10.0 // indirect
-	github.com/klauspost/pgzip v1.2.1
-	github.com/kylelemons/godebug v1.1.0
-	github.com/minio/highwayhash v1.0.0
 	github.com/stretchr/testify v1.4.0
 	github.com/vmware/govmomi v0.22.2
 	go.opencensus.io v0.22.3 // indirect
@@ -28,3 +25,9 @@ require (
 	google.golang.org/api v0.17.0
 	google.golang.org/grpc v1.27.1 // indirect
 )
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/cli_tools => ./
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/daisy => ../daisy
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/mocks => ../mocks

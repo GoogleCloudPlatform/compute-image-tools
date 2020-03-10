@@ -57,15 +57,15 @@ func TestDiskPopulate(t *testing.T) {
 		},
 		{
 			"Add WINDOWS guest feature",
-			&Disk{Disk: compute.Disk{Name: name}, IsWindows: "true"},
+			&Disk{Disk: compute.Disk{Name: name}, DiskBase: DiskBase{IsWindows: "true"}},
 			&Disk{
-				Disk:      compute.Disk{Name: genName, Type: defType, Zone: w.Zone, GuestOsFeatures: featuresOf("WINDOWS")},
-				IsWindows: "true"},
+				Disk:     compute.Disk{Name: genName, Type: defType, Zone: w.Zone, GuestOsFeatures: featuresOf("WINDOWS")},
+				DiskBase: DiskBase{IsWindows: "true"}},
 			false,
 		},
 		{
 			"Fail if IsWindows cannot be parsed as boolean",
-			&Disk{Disk: compute.Disk{Name: name}, IsWindows: "garbage"},
+			&Disk{Disk: compute.Disk{Name: name}, DiskBase: DiskBase{IsWindows: "garbage"}},
 			nil,
 			true,
 		},

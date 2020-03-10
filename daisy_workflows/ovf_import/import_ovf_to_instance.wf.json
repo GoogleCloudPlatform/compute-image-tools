@@ -49,12 +49,10 @@
   "Steps": {
     "import-boot-disk": {
       "IncludeWorkflow": {
-        "Path": "../image_import/import_disk.wf.json",
+        "Path": "../image_import/import_disk_native.wf.json",
         "Vars": {
           "source_disk_file": "${boot_disk_file}",
           "disk_name": "${translation_disk_name}",
-          "import_network": "${network}",
-          "import_subnet": "${subnet}",
           "is_windows": "${is_windows}",
           "import_license": "projects/compute-image-tools/global/licenses/virtual-appliance-import"
         }

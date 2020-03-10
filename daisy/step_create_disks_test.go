@@ -57,7 +57,7 @@ func TestCreateDisksRun(t *testing.T) {
 			return ret
 		}
 		w.ComputeClient = &daisyCompute.TestClient{CreateDiskFn: fake}
-		cds := &CreateDisks{{Disk: tt.d, FallbackToPdStandard: tt.fallbackToPdStandard}}
+		cds := &CreateDisks{{Disk: tt.d, DiskBase: DiskBase{FallbackToPdStandard: tt.fallbackToPdStandard}}}
 		if err := cds.run(ctx, s); err != tt.wantErr {
 			t.Errorf("%s: unexpected error returned, got: %v, want: %v", tt.desc, err, tt.wantErr)
 		}

@@ -33,14 +33,17 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 // Make file paths mutable
 var (
-	WorkflowDir                = "daisy_workflows/image_import/"
-	ImportWorkflow             = "import_image.wf.json"
-	ImportFromImageWorkflow    = "import_from_image.wf.json"
-	ImportAndTranslateWorkflow = "import_and_translate.wf.json"
+	WorkflowDir                      = "daisy_workflows/image_import/"
+	ImportWorkflow                   = "import_image.wf.json"
+	ImportNativeWorkflow             = "import_image_native.wf.json"
+	ImportFromImageWorkflow          = "import_from_image.wf.json"
+	ImportAndTranslateWorkflow       = "import_and_translate.wf.json"
+	ImportNativeAndTranslateWorkflow = "import_native_and_translate.wf.json"
 )
 
 // Parameter key shared with other packages
@@ -53,8 +56,8 @@ const (
 	logPrefix = "[import-image]"
 )
 
-func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
-	string, string, map[string]string, error) {
+func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string,
+	customTranWorkflow string, labels string) (string, string, map[string]string, error) {
 
 	if err := validation.ValidateStringFlagNotEmpty(imageName, ImageNameFlagKey); err != nil {
 		return "", "", nil, err
@@ -140,15 +143,25 @@ func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucke
 	return nil
 }
 
-// Returns main workflow and translate workflow paths (if any)
-func getWorkflowPaths(dataDisk bool, osID, sourceImage, customTranWorkflow, currentExecutablePath string) (string, string) {
+// Returns main workflow and translate workflow paths (if any).
+func getWorkflowPaths(dataDisk bool, osID, sourceImage, customTranWorkflow, currentExecutablePath string) ([]string, string) {
 	if sourceImage != "" {
-		return path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath), getTranslateWorkflowPath(customTranWorkflow, osID)
+		return []string{
+			path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath),
+		}, getTranslateWorkflowPath(customTranWorkflow, osID)
 	}
 	if dataDisk {
-		return path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath), ""
+		return []string{
+			// ImportNativeWorkflow contains native import API. Try native API prior.
+			path.ToWorkingDir(WorkflowDir+ImportNativeWorkflow, currentExecutablePath),
+			path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath),
+		}, ""
 	}
-	return path.ToWorkingDir(WorkflowDir+ImportAndTranslateWorkflow, currentExecutablePath), getTranslateWorkflowPath(customTranWorkflow, osID)
+	return []string{
+		// ImportNativeAndTranslateWorkflow contains native import API. Try native API prior.
+		path.ToWorkingDir(WorkflowDir+ImportNativeAndTranslateWorkflow, currentExecutablePath),
+		path.ToWorkingDir(WorkflowDir+ImportAndTranslateWorkflow, currentExecutablePath),
+	}, getTranslateWorkflowPath(customTranWorkflow, osID)
 }
 
 func getTranslateWorkflowPath(customTranslateWorkflow, osID string) string {
@@ -191,52 +204,75 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 	return varMap
 }
 
-func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath string, zone string,
+func runImport(ctx context.Context, varMap map[string]string, importWorkflowPaths []string, zone string,
 	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
 	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
 	userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
 
-	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
-		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
-		cloudLogsDisabled, stdoutLogsDisabled)
-	if err != nil {
-		return nil, err
-	}
+	var finalWorkflow *daisy.Workflow
+	var finalError daisy.DError
 
-	preValidateWorkflowModifier := func(w *daisy.Workflow) {
-		w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	}
+	// Run candidate workflow in sequence. If failed, try the next one.
+	for i, importWorkflowPath := range importWorkflowPaths {
+		workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
+			project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
+			cloudLogsDisabled, stdoutLogsDisabled)
+		if err != nil {
+			return nil, err
+		}
 
-	postValidateWorkflowModifier := func(w *daisy.Workflow) {
-		buildID := os.Getenv(daisyutils.BuildIDOSEnvVarName)
-		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
-		rl := &daisyutils.ResourceLabeler{
-			BuildID:         buildID,
-			UserLabels:      userLabels,
-			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   storageLocation,
-			InstanceLabelKeyRetriever: func(instanceName string) string {
-				return "gce-image-import-tmp"
-			},
-			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-				return "gce-image-import-tmp"
-			},
-			ImageLabelKeyRetriever: func(imageName string) string {
-				imageTypeLabel := "gce-image-import"
-				if strings.Contains(imageName, "untranslated") {
-					imageTypeLabel = "gce-image-import-tmp"
-				}
-				return imageTypeLabel
-			}}
-		rl.LabelResources(w)
-		daisyutils.UpdateAllInstanceNoExternalIP(w, noExternalIP)
-		if uefiCompatible {
-			daisyutils.UpdateToUEFICompatible(w)
+		preValidateWorkflowModifier := func(w *daisy.Workflow) {
+			w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+		}
+
+		postValidateWorkflowModifier := func(w *daisy.Workflow) {
+			buildID := os.Getenv(daisyutils.BuildIDOSEnvVarName)
+			w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
+			rl := &daisyutils.ResourceLabeler{
+				BuildID:         buildID,
+				UserLabels:      userLabels,
+				BuildIDLabelKey: "gce-image-import-build-id",
+				ImageLocation:   storageLocation,
+				InstanceLabelKeyRetriever: func(instanceName string) string {
+					return "gce-image-import-tmp"
+				},
+				DiskLabelKey: "gce-image-import-tmp",
+				ImageLabelKeyRetriever: func(imageName string) string {
+					imageTypeLabel := "gce-image-import"
+					if strings.Contains(imageName, "untranslated") {
+						imageTypeLabel = "gce-image-import-tmp"
+					}
+					return imageTypeLabel
+				}}
+			rl.LabelResources(w)
+			daisyutils.UpdateAllInstanceNoExternalIP(w, noExternalIP)
+			if uefiCompatible {
+				daisyutils.UpdateToUEFICompatible(w)
+			}
+		}
+
+		derr := workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
+		finalError = derr
+		finalWorkflow = workflow
+
+		// Stop trying the next workflow if it's not caused by unsupported image file format
+		if !daisyCompute.IsCausedByOperationCode(derr, "INVALID_IMAGE_FILE") {
+			break
+		}
+
+		// Prepare for the next workflow
+		currentWorkflowIndex := i + 1
+		totalWorkflowCount := len(importWorkflowPaths)
+		workflow.LogWorkflowInfo("Workflow %v/%v failed on below error: %v",
+			currentWorkflowIndex, totalWorkflowCount, derr)
+		if currentWorkflowIndex < totalWorkflowCount {
+			workflow.LogWorkflowInfo("Starting fallback workflow %v/%v...",
+				currentWorkflowIndex, totalWorkflowCount)
 		}
 	}
 
-	return workflow, workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
+	return finalWorkflow, finalError
 }
 
 // Run runs import workflow.
@@ -286,14 +322,14 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		return nil, err
 	}
 
-	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(dataDisk, osID, sourceImage,
+	importWorkflowPaths, translateWorkflowPath := getWorkflowPaths(dataDisk, osID, sourceImage,
 		customTranWorkflow, currentExecutablePath)
 
 	varMap := buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family,
 		description, *region, subnet, network, noGuestEnvironment)
 
 	var w *daisy.Workflow
-	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
+	if w, err = runImport(ctx, varMap, importWorkflowPaths, zone, timeout, *project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
 		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
 

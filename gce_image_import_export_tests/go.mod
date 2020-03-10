@@ -4,8 +4,12 @@ go 1.13
 
 require (
 	cloud.google.com/go/storage v1.5.0
-	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200114193945-760dc9647411
-	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200114193104-06c8be9a6a7d
-	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200114194943-8842c1d85084
-	google.golang.org/api v0.15.0
+	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200131234344-9a5cb7b7d72d
+	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200214212030-cdab85f8f241
+	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200128181915-c0775e429077
+	google.golang.org/api v0.17.0
 )
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/cli_tools => ../cli_tools
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/daisy => ../daisy

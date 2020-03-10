@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
@@ -255,6 +256,29 @@ func CombineGuestOSFeatures(features1 []*compute.GuestOsFeature,
 	return ret
 }
 
+// UpdateInstanceNoExternalIP updates Create Instance step to operate
+// when no external IP access is allowed by the VPC Daisy workflow is running in.
+func UpdateInstanceNoExternalIP(step *Step) {
+	if step.CreateInstances != nil {
+		for _, instance := range step.CreateInstances.Instances {
+			if instance.Instance.NetworkInterfaces == nil {
+				continue
+			}
+			for _, networkInterface := range instance.Instance.NetworkInterfaces {
+				networkInterface.AccessConfigs = []*compute.AccessConfig{}
+			}
+		}
+		for _, instance := range step.CreateInstances.InstancesBeta {
+			if instance.Instance.NetworkInterfaces == nil {
+				continue
+			}
+			for _, networkInterface := range instance.Instance.NetworkInterfaces {
+				networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
+			}
+		}
+	}
+}
+
 // CombineGuestOSFeaturesBeta merges two slices of Beta Guest OS features and
 // returns a new slice instance. Duplicates are removed.
 func CombineGuestOSFeaturesBeta(features1 []*computeBeta.GuestOsFeature,
@@ -281,25 +305,28 @@ func CombineGuestOSFeaturesBeta(features1 []*computeBeta.GuestOsFeature,
 	return ret
 }
 
-// UpdateInstanceNoExternalIP updates Create Instance step to operate
-// when no external IP access is allowed by the VPC Daisy workflow is running in.
-func UpdateInstanceNoExternalIP(step *Step) {
-	if step.CreateInstances != nil {
-		for _, instance := range step.CreateInstances.Instances {
-			if instance.Instance.NetworkInterfaces == nil {
-				continue
-			}
-			for _, networkInterface := range instance.Instance.NetworkInterfaces {
-				networkInterface.AccessConfigs = []*compute.AccessConfig{}
-			}
-		}
-		for _, instance := range step.CreateInstances.InstancesBeta {
-			if instance.Instance.NetworkInterfaces == nil {
-				continue
-			}
-			for _, networkInterface := range instance.Instance.NetworkInterfaces {
-				networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
-			}
-		}
+// CombineGuestOSFeaturesAlpha merges two slices of Alpha Guest OS features and
+// returns a new slice instance. Duplicates are removed.
+func CombineGuestOSFeaturesAlpha(features1 []*computeAlpha.GuestOsFeature,
+	features2 ...string) []*computeAlpha.GuestOsFeature {
+
+	featureSet := map[string]bool{}
+	for _, feature := range features2 {
+		featureSet[feature] = true
 	}
+	for _, feature := range features1 {
+		featureSet[feature.Type] = true
+	}
+	ret := make([]*computeAlpha.GuestOsFeature, 0)
+	for feature := range featureSet {
+		ret = append(ret, &computeAlpha.GuestOsFeature{
+			Type: feature,
+		})
+	}
+	// Sort elements by type, lexically. This ensures
+	// stability of output ordering for tests.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Type < ret[j].Type
+	})
+	return ret
 }

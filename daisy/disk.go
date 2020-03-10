@@ -21,10 +21,12 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"google.golang.org/api/compute/v1"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
+	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
 
@@ -61,9 +63,8 @@ func diskExists(client daisyCompute.Client, project, zone, disk string) (bool, D
 	return strIn(disk, diskCache.exists[project][zone]), nil
 }
 
-// Disk is used to create a GCE disk in a project.
-type Disk struct {
-	compute.Disk
+// DiskBase is a base struct for GA/Alpha images. It holds the shared properties between the two.
+type DiskBase struct {
 	Resource
 
 	// If this is enabled, then WINDOWS will be added to the
@@ -73,11 +74,17 @@ type Disk struct {
 	// an error when it sees something like `${is_windows}`)
 	IsWindows string `json:"isWindows,omitempty"`
 
-	// Size of this disk.
-	SizeGb string `json:"sizeGb,omitempty"`
-
 	// Fallback to pd-standard when quota is not enough for higher-level pd
 	FallbackToPdStandard bool `json:"fallbackToPdStandard,omitempty"`
+}
+
+// Disk is used to create a GCE disk in a project using GA API.
+type Disk struct {
+	DiskBase
+	compute.Disk
+
+	// Size of this disk.
+	SizeGb string `json:"sizeGb,omitempty"`
 }
 
 // MarshalJSON is a hacky workaround to prevent Disk from using compute.Disk's implementation.
@@ -136,6 +143,89 @@ func (d *Disk) validate(ctx context.Context, s *Step) DError {
 		}
 	} else if d.Disk.SizeGb == 0 {
 		errs = addErrs(errs, Errf("%s: SizeGb and SourceImage not set", pre))
+	}
+
+	// Register creation.
+	errs = addErrs(errs, s.w.disks.regCreate(d.daisyName, &d.Resource, s, false))
+	return errs
+}
+
+// DiskAlpha is used to create a GCE disk in a project using alpha API.
+type DiskAlpha struct {
+	DiskBase
+	computeAlpha.Disk
+
+	// Size of this disk.
+	SizeGb string `json:"sizeGb,omitempty"`
+}
+
+// MarshalJSON is a hacky workaround to prevent Disk from using compute.Disk's implementation.
+func (d *DiskAlpha) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*d)
+}
+
+func (d *DiskAlpha) populate(ctx context.Context, s *Step) DError {
+	var errs DError
+	d.Name, d.Zone, errs = d.Resource.populateWithZone(ctx, s, d.Name, d.Zone)
+
+	d.Description = strOr(d.Description, fmt.Sprintf("Disk created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
+	if d.SizeGb != "" {
+		size, err := strconv.ParseInt(d.SizeGb, 10, 64)
+		if err != nil {
+			errs = addErrs(errs, Errf("cannot parse SizeGb: %s, err: %v", d.SizeGb, err))
+		}
+		d.Disk.SizeGb = size
+	}
+
+	if d.IsWindows != "" {
+		isWindows, err := strconv.ParseBool(d.IsWindows)
+		if err != nil {
+			errs = addErrs(errs, Errf("cannot parse IsWindows as boolean: %s, err: %v", d.IsWindows, err))
+		}
+		if isWindows {
+			d.GuestOsFeatures = CombineGuestOSFeaturesAlpha(d.GuestOsFeatures, "WINDOWS")
+		}
+	}
+
+	if imageURLRgx.MatchString(d.SourceImage) {
+		d.SourceImage = extendPartialURL(d.SourceImage, d.Project)
+	}
+
+	// workaround: convert "gs://" format to "https://" format. Remove this logic once disk API support "gs://" format.
+	if d.SourceStorageObject != "" {
+		sso := strings.TrimPrefix(d.SourceStorageObject, "gs://")
+		d.SourceStorageObject = fmt.Sprintf("https://storage.cloud.google.com/%v", sso)
+	}
+
+	if d.Type == "" {
+		d.Type = fmt.Sprintf("projects/%s/zones/%s/diskTypes/pd-standard", d.Project, d.Zone)
+	} else if diskTypeURLRgx.MatchString(d.Type) {
+		d.Type = extendPartialURL(d.Type, d.Project)
+	} else {
+		d.Type = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", d.Project, d.Zone, d.Type)
+	}
+	d.link = fmt.Sprintf("projects/%s/zones/%s/disks/%s", d.Project, d.Zone, d.Name)
+	return errs
+}
+
+func (d *DiskAlpha) validate(ctx context.Context, s *Step) DError {
+	pre := fmt.Sprintf("cannot create disk %q", d.daisyName)
+	errs := d.Resource.validateWithZone(ctx, s, d.Zone, pre)
+
+	if !diskTypeURLRgx.MatchString(d.Type) {
+		errs = addErrs(errs, Errf("%s: bad disk type: %q", pre, d.Type))
+	}
+
+	if d.SourceImage != "" && d.SourceStorageObject != "" {
+		errs = addErrs(errs, Errf("%s: SourceStorageObject and SourceImage both set", pre))
+	}
+
+	if d.SourceImage != "" {
+		if _, err := s.w.images.regUse(d.SourceImage, s); err != nil {
+			errs = addErrs(errs, Errf("%s: can't use image %q: %v", pre, d.SourceImage, err))
+		}
+	} else if d.SourceStorageObject == "" && d.Disk.SizeGb == 0 {
+		errs = addErrs(errs, Errf("%s: SizeGb, SourceStorageObject and SourceImage not set", pre))
 	}
 
 	// Register creation.

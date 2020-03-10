@@ -16,8 +16,6 @@ package daisy
 
 import (
 	"context"
-	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -29,7 +27,7 @@ const (
 	pdSsd      = "pd-ssd"
 )
 
-// CreateDisks is a Daisy CreateDisks workflow step.
+// CreateDisks is a Daisy CreateDisks workflow step via GA API.
 type CreateDisks []*Disk
 
 func (c *CreateDisks) populate(ctx context.Context, s *Step) DError {
@@ -64,10 +62,9 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 				}
 			}
 
-			w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
 				// Fallback to pd-standard to avoid quota issue.
-				if cd.FallbackToPdStandard && strings.HasSuffix(cd.Type, pdSsd) && isQuotaExceeded(err) {
+				if cd.FallbackToPdStandard && strings.HasSuffix(cd.Type, pdSsd) && compute.IsCausedByOperationCode(err, "QUOTA_EXCEEDED") {
 					w.LogStepInfo(s.name, "CreateDisks", "Falling back to pd-standard for disk %v. "+
 						"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
 						"avoid using ps-standard for better performance.", cd.Name)
@@ -99,8 +96,71 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 	}
 }
 
-var operationErrorCodeRegex = regexp.MustCompile(fmt.Sprintf("(?m)^"+compute.OperationErrorCodeFormat+"$", "QUOTA_EXCEEDED"))
+// CreateDisksAlpha is a Daisy CreateDisks workflow step via Alpha API.
+type CreateDisksAlpha []*DiskAlpha
 
-func isQuotaExceeded(err error) bool {
-	return operationErrorCodeRegex.FindIndex([]byte(err.Error())) != nil
+func (c *CreateDisksAlpha) populate(ctx context.Context, s *Step) DError {
+	var errs DError
+	for _, d := range *c {
+		errs = addErrs(errs, d.populate(ctx, s))
+	}
+	return errs
+}
+
+func (c *CreateDisksAlpha) validate(ctx context.Context, s *Step) DError {
+	var errs DError
+	for _, d := range *c {
+		errs = addErrs(errs, d.validate(ctx, s))
+	}
+	return errs
+}
+
+func (c *CreateDisksAlpha) run(ctx context.Context, s *Step) DError {
+	var wg sync.WaitGroup
+	w := s.w
+	e := make(chan DError)
+	for _, d := range *c {
+		wg.Add(1)
+		go func(cd *DiskAlpha) {
+			defer wg.Done()
+
+			// Get the source image link if using a source image.
+			if cd.SourceImage != "" {
+				if image, ok := w.images.get(cd.SourceImage); ok {
+					cd.SourceImage = image.link
+				}
+			}
+
+			if err := w.ComputeClient.CreateDiskAlpha(cd.Project, cd.Zone, &cd.Disk); err != nil {
+				// Fallback to pd-standard to avoid quota issue.
+				if cd.FallbackToPdStandard && strings.HasSuffix(cd.Type, pdSsd) && compute.IsCausedByOperationCode(err, "QUOTA_EXCEEDED") {
+					w.LogStepInfo(s.name, "CreateDisks", "Falling back to pd-standard for disk %v. "+
+						"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
+						"avoid using ps-standard for better performance.", cd.Name)
+					cd.Type = strings.TrimRight(cd.Type, pdSsd) + pdStandard
+					err = w.ComputeClient.CreateDiskAlpha(cd.Project, cd.Zone, &cd.Disk)
+				}
+
+				if err != nil {
+					e <- newErr("failed to create disk", err)
+					return
+				}
+			}
+			cd.createdInWorkflow = true
+		}(d)
+	}
+
+	go func() {
+		wg.Wait()
+		e <- nil
+	}()
+
+	select {
+	case err := <-e:
+		return err
+	case <-w.Cancel:
+		// Wait so disks being created now can be deleted.
+		wg.Wait()
+		return nil
+	}
 }
