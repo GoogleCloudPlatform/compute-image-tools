@@ -59,8 +59,8 @@ func (rl *ResourceLabeler) labelResourcesInStep(step *daisy.Step) {
 			disk.Disk.Labels = rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk.Name))
 		}
 	}
-	if step.CreateDisksAlpha != nil {
-		for _, disk := range *step.CreateDisksAlpha {
+	if step.CreateDisksBeta != nil {
+		for _, disk := range *step.CreateDisksBeta {
 			disk.Disk.Labels = rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk.Name))
 		}
 	}

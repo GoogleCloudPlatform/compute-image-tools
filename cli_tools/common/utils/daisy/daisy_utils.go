@@ -144,8 +144,8 @@ func UpdateToUEFICompatible(workflow *daisy.Workflow) {
 				disk.Disk.GuestOsFeatures = daisy.CombineGuestOSFeatures(disk.Disk.GuestOsFeatures, "UEFI_COMPATIBLE")
 			}
 		}
-		if step.CreateDisksAlpha != nil {
-			for _, disk := range *step.CreateDisksAlpha {
+		if step.CreateDisksBeta != nil {
+			for _, disk := range *step.CreateDisksBeta {
 				// for the time being, don't run Debian 9 worker in UEFI mode
 				if strings.Contains(disk.SourceImage, "projects/compute-image-tools/global/images/family/debian-9-worker") {
 					continue
@@ -155,7 +155,7 @@ func UpdateToUEFICompatible(workflow *daisy.Workflow) {
 					continue
 				}
 
-				disk.Disk.GuestOsFeatures = daisy.CombineGuestOSFeaturesAlpha(disk.Disk.GuestOsFeatures, "UEFI_COMPATIBLE")
+				disk.Disk.GuestOsFeatures = daisy.CombineGuestOSFeaturesBeta(disk.Disk.GuestOsFeatures, "UEFI_COMPATIBLE")
 			}
 		}
 		if step.CreateImages != nil {

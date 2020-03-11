@@ -45,17 +45,17 @@ type Step struct {
 	Timeout string `json:",omitempty"`
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
-	AttachDisks             *AttachDisks           `json:",omitempty"`
-	DetachDisks             *DetachDisks           `json:",omitempty"`
-	CreateDisks             *CreateDisks           `json:",omitempty"`
-	CreateDisksAlpha        *CreateDisksBeta       `json:",omitempty"`
-	CreateForwardingRules   *CreateForwardingRules `json:",omitempty"`
-	CreateFirewallRules     *CreateFirewallRules   `json:",omitempty"`
-	CreateImages            *CreateImages          `json:",omitempty"`
-	CreateMachineImages     *CreateMachineImages   `json:",omitempty"`
-	CreateInstances         *CreateInstances       `json:",omitempty"`
-	CreateNetworks          *CreateNetworks        `json:",omitempty"`
-	CreateSubnetworks       *CreateSubnetworks     `json:",omitempty"`
+	AttachDisks             *AttachDisks             `json:",omitempty"`
+	DetachDisks             *DetachDisks             `json:",omitempty"`
+	CreateDisks             *CreateDisks             `json:",omitempty"`
+	CreateDisksBeta         *CreateDisksBeta         `json:",omitempty"`
+	CreateForwardingRules   *CreateForwardingRules   `json:",omitempty"`
+	CreateFirewallRules     *CreateFirewallRules     `json:",omitempty"`
+	CreateImages            *CreateImages            `json:",omitempty"`
+	CreateMachineImages     *CreateMachineImages     `json:",omitempty"`
+	CreateInstances         *CreateInstances         `json:",omitempty"`
+	CreateNetworks          *CreateNetworks          `json:",omitempty"`
+	CreateSubnetworks       *CreateSubnetworks       `json:",omitempty"`
 	CreateTargetInstances   *CreateTargetInstances   `json:",omitempty"`
 	CopyGCSObjects          *CopyGCSObjects          `json:",omitempty"`
 	ResizeDisks             *ResizeDisks             `json:",omitempty"`
@@ -100,9 +100,9 @@ func (s *Step) stepImpl() (stepImpl, DError) {
 		matchCount++
 		result = s.CreateDisks
 	}
-	if s.CreateDisksAlpha != nil {
+	if s.CreateDisksBeta != nil {
 		matchCount++
-		result = s.CreateDisksAlpha
+		result = s.CreateDisksBeta
 	}
 	if s.CreateForwardingRules != nil {
 		matchCount++

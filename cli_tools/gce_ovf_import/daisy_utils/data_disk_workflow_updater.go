@@ -19,7 +19,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	computeAlpha "google.golang.org/api/compute/v0.alpha"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -45,9 +45,9 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		setupDataDiskStepName := fmt.Sprintf("setup-data-disk-%v", dataDiskIndex)
 
 		setupDataDiskStep := daisy.NewStepDefaultTimeout(setupDataDiskStepName, w)
-		setupDataDiskStep.CreateDisksAlpha = &daisy.CreateDisksBeta{
+		setupDataDiskStep.CreateDisksBeta = &daisy.CreateDisksBeta{
 			{
-				Disk: computeAlpha.Disk{
+				Disk: computeBeta.Disk{
 					Name:                diskNames[i],
 					Type:                "pd-ssd",
 					SourceStorageObject: dataDiskFilePath,
