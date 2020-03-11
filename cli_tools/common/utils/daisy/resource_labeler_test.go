@@ -233,7 +233,9 @@ func createTestResourceLabeler(buildID string, userLabels map[string]string) *Re
 		InstanceLabelKeyRetriever: func(instanceName string) string {
 			return "gce-image-import-tmp"
 		},
-		DiskLabelKey: "gce-image-import-tmp",
+		DiskLabelKeyRetriever: func(diskName string) string {
+			return "gce-image-import-tmp"
+		},
 		ImageLabelKeyRetriever: func(imageName string) string {
 			imageTypeLabel := "gce-image-import"
 			if strings.Contains(imageName, "untranslated") {

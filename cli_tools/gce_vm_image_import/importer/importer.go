@@ -36,14 +36,16 @@ import (
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-// Make file paths mutable
 var (
+	// File paths
 	WorkflowDir                      = "daisy_workflows/image_import/"
 	ImportWorkflow                   = "import_image.wf.json"
 	ImportNativeWorkflow             = "import_image_native.wf.json"
 	ImportFromImageWorkflow          = "import_from_image.wf.json"
 	ImportAndTranslateWorkflow       = "import_and_translate.wf.json"
 	ImportNativeAndTranslateWorkflow = "import_native_and_translate.wf.json"
+
+	clientIDForBeta = map[string]struct{}{"gcloud_beta": nil}
 )
 
 // Parameter key shared with other packages
@@ -53,11 +55,11 @@ const (
 )
 
 const (
-	logPrefix = "[import-image]"
+	logPrefix    = "[import-image]"
 )
 
-func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string,
-	customTranWorkflow string, labels string) (string, string, map[string]string, error) {
+func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool,
+	osID string, customTranWorkflow string, labels string) (string, string, map[string]string, error) {
 
 	if err := validation.ValidateStringFlagNotEmpty(imageName, ImageNameFlagKey); err != nil {
 		return "", "", nil, err
@@ -144,22 +146,34 @@ func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucke
 }
 
 // Returns main workflow and translate workflow paths (if any).
-func getWorkflowPaths(dataDisk bool, osID, sourceImage, customTranWorkflow, currentExecutablePath string) ([]string, string) {
+func getWorkflowPaths(dataDisk bool, osID, sourceImage, customTranWorkflow, currentExecutablePath string,
+	clientID string) ([]string, string) {
 	if sourceImage != "" {
 		return []string{
 			path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath),
 		}, getTranslateWorkflowPath(customTranWorkflow, osID)
 	}
 	if dataDisk {
+		if _, ok := clientIDForBeta[clientID]; ok {
+			return []string{
+				// Run workflow with native API first.
+				path.ToWorkingDir(WorkflowDir+ImportNativeWorkflow, currentExecutablePath),
+				path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath),
+			}, ""
+		}
 		return []string{
-			// ImportNativeWorkflow contains native import API. Try native API prior.
-			path.ToWorkingDir(WorkflowDir+ImportNativeWorkflow, currentExecutablePath),
 			path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath),
 		}, ""
 	}
+
+	if _, ok := clientIDForBeta[clientID]; ok {
+		return []string{
+			// Run workflow with native API first.
+			path.ToWorkingDir(WorkflowDir+ImportNativeAndTranslateWorkflow, currentExecutablePath),
+			path.ToWorkingDir(WorkflowDir+ImportAndTranslateWorkflow, currentExecutablePath),
+		}, getTranslateWorkflowPath(customTranWorkflow, osID)
+	}
 	return []string{
-		// ImportNativeAndTranslateWorkflow contains native import API. Try native API prior.
-		path.ToWorkingDir(WorkflowDir+ImportNativeAndTranslateWorkflow, currentExecutablePath),
 		path.ToWorkingDir(WorkflowDir+ImportAndTranslateWorkflow, currentExecutablePath),
 	}, getTranslateWorkflowPath(customTranWorkflow, osID)
 }
@@ -213,7 +227,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 	var finalWorkflow *daisy.Workflow
 	var finalError daisy.DError
 
-	// Run candidate workflow in sequence. If failed, try the next one.
+	// Run the 1st workflow. If failed, try the next one.
 	for i, importWorkflowPath := range importWorkflowPaths {
 		workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
 			project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
@@ -237,7 +251,9 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 				InstanceLabelKeyRetriever: func(instanceName string) string {
 					return "gce-image-import-tmp"
 				},
-				DiskLabelKey: "gce-image-import-tmp",
+				DiskLabelKeyRetriever: func(instanceName string) string {
+					return "gce-image-import-tmp"
+				},
 				ImageLabelKeyRetriever: func(imageName string) string {
 					imageTypeLabel := "gce-image-import"
 					if strings.Contains(imageName, "untranslated") {
@@ -323,7 +339,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	}
 
 	importWorkflowPaths, translateWorkflowPath := getWorkflowPaths(dataDisk, osID, sourceImage,
-		customTranWorkflow, currentExecutablePath)
+		customTranWorkflow, currentExecutablePath, clientID)
 
 	varMap := buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family,
 		description, *region, subnet, network, noGuestEnvironment)

@@ -21,7 +21,6 @@ package mocks
 import (
 	compute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	gomock "github.com/golang/mock/gomock"
-	v0_alpha "google.golang.org/api/compute/v0.alpha"
 	v0_beta "google.golang.org/api/compute/v0.beta"
 	v1 "google.golang.org/api/compute/v1"
 	googleapi "google.golang.org/api/googleapi"
@@ -153,18 +152,18 @@ func (mr *MockClientMockRecorder) CreateDisk(arg0, arg1, arg2 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDisk", reflect.TypeOf((*MockClient)(nil).CreateDisk), arg0, arg1, arg2)
 }
 
-// CreateDiskAlpha mocks base method
-func (m *MockClient) CreateDiskAlpha(arg0, arg1 string, arg2 *v0_alpha.Disk) error {
+// CreateDiskBeta mocks base method
+func (m *MockClient) CreateDiskBeta(arg0, arg1 string, arg2 *v0_beta.Disk) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateDiskAlpha", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "CreateDiskBeta", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateDiskAlpha indicates an expected call of CreateDiskAlpha
-func (mr *MockClientMockRecorder) CreateDiskAlpha(arg0, arg1, arg2 interface{}) *gomock.Call {
+// CreateDiskBeta indicates an expected call of CreateDiskBeta
+func (mr *MockClientMockRecorder) CreateDiskBeta(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiskAlpha", reflect.TypeOf((*MockClient)(nil).CreateDiskAlpha), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiskBeta", reflect.TypeOf((*MockClient)(nil).CreateDiskBeta), arg0, arg1, arg2)
 }
 
 // CreateFirewallRule mocks base method
@@ -490,19 +489,19 @@ func (mr *MockClientMockRecorder) GetDisk(arg0, arg1, arg2 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDisk", reflect.TypeOf((*MockClient)(nil).GetDisk), arg0, arg1, arg2)
 }
 
-// GetDiskAlpha mocks base method
-func (m *MockClient) GetDiskAlpha(arg0, arg1, arg2 string) (*v0_alpha.Disk, error) {
+// GetDiskBeta mocks base method
+func (m *MockClient) GetDiskBeta(arg0, arg1, arg2 string) (*v0_beta.Disk, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDiskAlpha", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v0_alpha.Disk)
+	ret := m.ctrl.Call(m, "GetDiskBeta", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*v0_beta.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDiskAlpha indicates an expected call of GetDiskAlpha
-func (mr *MockClientMockRecorder) GetDiskAlpha(arg0, arg1, arg2 interface{}) *gomock.Call {
+// GetDiskBeta indicates an expected call of GetDiskBeta
+func (mr *MockClientMockRecorder) GetDiskBeta(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDiskAlpha", reflect.TypeOf((*MockClient)(nil).GetDiskAlpha), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDiskBeta", reflect.TypeOf((*MockClient)(nil).GetDiskBeta), arg0, arg1, arg2)
 }
 
 // GetFirewallRule mocks base method

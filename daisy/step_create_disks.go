@@ -33,7 +33,7 @@ type CreateDisks []*Disk
 func (c *CreateDisks) populate(ctx context.Context, s *Step) DError {
 	var errs DError
 	for _, d := range *c {
-		errs = addErrs(errs, d.populate(ctx, s))
+		errs = addErrs(errs, d.populate(ctx, d, s))
 	}
 	return errs
 }
@@ -41,7 +41,7 @@ func (c *CreateDisks) populate(ctx context.Context, s *Step) DError {
 func (c *CreateDisks) validate(ctx context.Context, s *Step) DError {
 	var errs DError
 	for _, d := range *c {
-		errs = addErrs(errs, d.validate(ctx, s))
+		errs = addErrs(errs, d.validate(ctx, d, s))
 	}
 	return errs
 }
@@ -96,10 +96,10 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 	}
 }
 
-// CreateDisksAlpha is a Daisy CreateDisks workflow step via Alpha API.
-type CreateDisksAlpha []*DiskAlpha
+// CreateDisksBeta is a Daisy CreateDisks workflow step via Beta API.
+type CreateDisksBeta []*DiskBeta
 
-func (c *CreateDisksAlpha) populate(ctx context.Context, s *Step) DError {
+func (c *CreateDisksBeta) populate(ctx context.Context, s *Step) DError {
 	var errs DError
 	for _, d := range *c {
 		errs = addErrs(errs, d.populate(ctx, s))
@@ -107,7 +107,7 @@ func (c *CreateDisksAlpha) populate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-func (c *CreateDisksAlpha) validate(ctx context.Context, s *Step) DError {
+func (c *CreateDisksBeta) validate(ctx context.Context, s *Step) DError {
 	var errs DError
 	for _, d := range *c {
 		errs = addErrs(errs, d.validate(ctx, s))
@@ -115,13 +115,13 @@ func (c *CreateDisksAlpha) validate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-func (c *CreateDisksAlpha) run(ctx context.Context, s *Step) DError {
+func (c *CreateDisksBeta) run(ctx context.Context, s *Step) DError {
 	var wg sync.WaitGroup
 	w := s.w
 	e := make(chan DError)
 	for _, d := range *c {
 		wg.Add(1)
-		go func(cd *DiskAlpha) {
+		go func(cd *DiskBeta) {
 			defer wg.Done()
 
 			// Get the source image link if using a source image.
@@ -131,14 +131,14 @@ func (c *CreateDisksAlpha) run(ctx context.Context, s *Step) DError {
 				}
 			}
 
-			if err := w.ComputeClient.CreateDiskAlpha(cd.Project, cd.Zone, &cd.Disk); err != nil {
+			if err := w.ComputeClient.CreateDiskBeta(cd.Project, cd.Zone, &cd.Disk); err != nil {
 				// Fallback to pd-standard to avoid quota issue.
 				if cd.FallbackToPdStandard && strings.HasSuffix(cd.Type, pdSsd) && compute.IsCausedByOperationCode(err, "QUOTA_EXCEEDED") {
 					w.LogStepInfo(s.name, "CreateDisks", "Falling back to pd-standard for disk %v. "+
 						"It may be caused by insufficient pd-ssd quota. Consider increasing pd-ssd quota to "+
 						"avoid using ps-standard for better performance.", cd.Name)
 					cd.Type = strings.TrimRight(cd.Type, pdSsd) + pdStandard
-					err = w.ComputeClient.CreateDiskAlpha(cd.Project, cd.Zone, &cd.Disk)
+					err = w.ComputeClient.CreateDiskBeta(cd.Project, cd.Zone, &cd.Disk)
 				}
 
 				if err != nil {

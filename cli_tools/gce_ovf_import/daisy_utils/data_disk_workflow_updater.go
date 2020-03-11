@@ -25,7 +25,6 @@ import (
 
 const (
 	createInstanceStepName = "create-instance"
-	importerDiskSize       = "10"
 )
 
 // AddDiskImportSteps adds Daisy steps to OVF import workflow to import disks
@@ -46,7 +45,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		setupDataDiskStepName := fmt.Sprintf("setup-data-disk-%v", dataDiskIndex)
 
 		setupDataDiskStep := daisy.NewStepDefaultTimeout(setupDataDiskStepName, w)
-		setupDataDiskStep.CreateDisksAlpha = &daisy.CreateDisksAlpha{
+		setupDataDiskStep.CreateDisksAlpha = &daisy.CreateDisksBeta{
 			{
 				Disk: computeAlpha.Disk{
 					Name:                diskNames[i],

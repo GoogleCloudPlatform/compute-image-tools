@@ -25,7 +25,7 @@ import (
 	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	computeAlpha "google.golang.org/api/compute/v0.alpha"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -63,7 +63,7 @@ func diskExists(client daisyCompute.Client, project, zone, disk string) (bool, D
 	return strIn(disk, diskCache.exists[project][zone]), nil
 }
 
-// DiskBase is a base struct for GA/Alpha images. It holds the shared properties between the two.
+// DiskBase is a base struct for GA/Beta images. It holds the shared properties between the two.
 type DiskBase struct {
 	Resource
 
@@ -150,21 +150,21 @@ func (d *Disk) validate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-// DiskAlpha is used to create a GCE disk in a project using alpha API.
-type DiskAlpha struct {
+// DiskBeta is used to create a GCE disk in a project using Beta API.
+type DiskBeta struct {
 	DiskBase
-	computeAlpha.Disk
+	computeBeta.Disk
 
 	// Size of this disk.
 	SizeGb string `json:"sizeGb,omitempty"`
 }
 
 // MarshalJSON is a hacky workaround to prevent Disk from using compute.Disk's implementation.
-func (d *DiskAlpha) MarshalJSON() ([]byte, error) {
+func (d *DiskBeta) MarshalJSON() ([]byte, error) {
 	return json.Marshal(*d)
 }
 
-func (d *DiskAlpha) populate(ctx context.Context, s *Step) DError {
+func (d *DiskBeta) populate(ctx context.Context, s *Step) DError {
 	var errs DError
 	d.Name, d.Zone, errs = d.Resource.populateWithZone(ctx, s, d.Name, d.Zone)
 
@@ -183,7 +183,7 @@ func (d *DiskAlpha) populate(ctx context.Context, s *Step) DError {
 			errs = addErrs(errs, Errf("cannot parse IsWindows as boolean: %s, err: %v", d.IsWindows, err))
 		}
 		if isWindows {
-			d.GuestOsFeatures = CombineGuestOSFeaturesAlpha(d.GuestOsFeatures, "WINDOWS")
+			d.GuestOsFeatures = CombineGuestOSFeaturesBeta(d.GuestOsFeatures, "WINDOWS")
 		}
 	}
 
@@ -208,7 +208,7 @@ func (d *DiskAlpha) populate(ctx context.Context, s *Step) DError {
 	return errs
 }
 
-func (d *DiskAlpha) validate(ctx context.Context, s *Step) DError {
+func (d *DiskBeta) validate(ctx context.Context, s *Step) DError {
 	pre := fmt.Sprintf("cannot create disk %q", d.daisyName)
 	errs := d.Resource.validateWithZone(ctx, s, d.Zone, pre)
 

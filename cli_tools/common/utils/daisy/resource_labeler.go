@@ -24,7 +24,7 @@ type ResourceLabeler struct {
 	BuildIDLabelKey           string
 	ImageLocation             string
 	InstanceLabelKeyRetriever InstanceLabelKeyRetrieverFunc
-	DiskLabelKey              string
+	DiskLabelKeyRetriever     DiskLabelKeyRetrieverFunc
 	ImageLabelKeyRetriever    ImageLabelKeyRetrieverFunc
 }
 
@@ -32,7 +32,7 @@ type ResourceLabeler struct {
 type InstanceLabelKeyRetrieverFunc func(instanceName string) string
 
 // DiskLabelKeyRetrieverFunc returns GCE label key to be added to given disk
-type DiskLabelKeyRetrieverFunc func(disk *daisy.Disk) string
+type DiskLabelKeyRetrieverFunc func(diskName string) string
 
 // ImageLabelKeyRetrieverFunc returns GCE label key to be added to given image
 type ImageLabelKeyRetrieverFunc func(imageName string) string
@@ -56,12 +56,12 @@ func (rl *ResourceLabeler) labelResourcesInStep(step *daisy.Step) {
 	}
 	if step.CreateDisks != nil {
 		for _, disk := range *step.CreateDisks {
-			disk.Disk.Labels = rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKey)
+			disk.Disk.Labels = rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk.Name))
 		}
 	}
 	if step.CreateDisksAlpha != nil {
 		for _, disk := range *step.CreateDisksAlpha {
-			disk.Disk.Labels = rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKey)
+			disk.Disk.Labels = rl.updateResourceLabels(disk.Disk.Labels, rl.DiskLabelKeyRetriever(disk.Name))
 		}
 	}
 	if step.CreateImages != nil {
