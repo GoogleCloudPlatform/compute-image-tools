@@ -55,7 +55,7 @@ const (
 )
 
 const (
-	logPrefix    = "[import-image]"
+	logPrefix = "[import-image]"
 )
 
 func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool,

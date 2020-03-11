@@ -1,0 +1,56 @@
+{
+  "Name": "import-image-native",
+  "DefaultTimeout": "90m",
+  "Vars": {
+    "source_disk_file": {
+      "Required": true,
+      "Description": "The GCS path to the virtual disk to import."
+    },
+    "image_name": {
+      "Value": "imported-image-${ID}",
+      "Description": "The name of the imported image."
+    },
+    "family": {
+      "Value": "",
+      "Description": "Optional family to set for the imported image"
+    },
+    "description": {
+      "Value": "",
+      "Description": "Optional description to set for the imported image"
+    },
+    "import_disk_name": "imported-disk-${ID}"
+  },
+  "Steps": {
+    "import-disk": {
+      "IncludeWorkflow": {
+        "Path": "./import_disk_native.wf.json",
+        "Vars": {
+          "source_disk_file": "${source_disk_file}",
+          "disk_name": "${import_disk_name}",
+          "import_license": "projects/compute-image-tools/global/licenses/virtual-disk-import"
+        }
+      }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "${image_name}",
+          "SourceDisk": "${import_disk_name}",
+          "Family": "${family}",
+          "Description": "${description}",
+          "ExactName": true,
+          "NoCleanup": true
+        }
+      ]
+    },
+    "delete-disk": {
+      "DeleteResources": {
+        "Disks": ["${import_disk_name}"]
+      }
+    }
+  },
+  "Dependencies": {
+    "create-image": ["import-disk"],
+    "delete-disk": ["create-image"]
+  }
+}

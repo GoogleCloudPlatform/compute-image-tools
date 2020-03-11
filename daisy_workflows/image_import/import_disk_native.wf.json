@@ -1,0 +1,37 @@
+{
+  "Name": "import-disk",
+  "DefaultTimeout": "20m",
+  "Vars": {
+    "source_disk_file": {
+      "Required": true,
+      "Description": "The GCS path to the virtual disk to import."
+    },
+    "disk_name": "imported-disk-${ID}",
+    "is_windows": {
+      "Value": "false",
+      "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
+    },
+    "import_license": {
+      "Value": "projects/compute-image-tools/global/licenses/virtual-disk-import",
+      "Description": "Import License used for tracking migration workflow use."
+    }
+  },
+  "Steps": {
+    "create-disks": {
+      "CreateDisksBeta": [
+        {
+          "Name": "${disk_name}",
+          "SourceStorageObject": "${source_disk_file}",
+          "Type": "pd-ssd",
+          "isWindows": "${is_windows}",
+          "FallbackToPdStandard": true,
+          "Licenses": ["${import_license}"],
+          "Scopes": [
+            "https://www.googleapis.com/auth/devstorage.read_write",
+            "https://www.googleapis.com/auth/compute"
+          ]
+        }
+      ]
+    }
+  }
+}
