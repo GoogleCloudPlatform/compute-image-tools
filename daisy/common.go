@@ -39,7 +39,8 @@ func getUser() string {
 	return "unknown"
 }
 
-func namedSubexp(re *regexp.Regexp, s string) map[string]string {
+// NamedSubexp extracts sub matches in the exp
+func NamedSubexp(re *regexp.Regexp, s string) map[string]string {
 	match := re.FindStringSubmatch(s)
 	if match == nil {
 		return nil
@@ -89,6 +90,15 @@ func randString(n int) string {
 }
 
 func strIn(s string, ss []string) bool {
+	for _, x := range ss {
+		if s == x {
+			return true
+		}
+	}
+	return false
+}
+
+func strInSlice(s string, ss []interface{}) bool {
 	for _, x := range ss {
 		if s == x {
 			return true

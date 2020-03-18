@@ -218,29 +218,31 @@ func TestDiskDetachHelper(t *testing.T) {
 			"d2": {"i": {attacher: att2}},
 			"d3": {"i": {detacher: det}},
 			"d4": {},
+			"d5": {},
 		}
 	}
 
 	tests := []struct {
-		desc, dName string
-		shouldErr   bool
+		desc, dName           string
+		isAttached, shouldErr bool
 	}{
-		{"normal case", "d1", false},
-		{"not dependent on attacher case", "d2", true},
-		{"already detached case", "d3", true},
-		{"not attached case", "d4", true},
-		{"disk DNE case", "d5", true},
+		{"normal case", "d1", false, false},
+		{"not dependent on attacher case", "d2", false, true},
+		{"already detached case", "d3", false, true},
+		{"not attached case", "d4", false, true},
+		{"attached before workflow case", "d5", true, false},
+		{"disk DNE case", "d6", false, true},
 	}
 
 	for _, tt := range tests {
 		reset()
-		if err := w.disks.detachHelper(tt.dName, "i", s); err != nil {
+		if err := w.disks.detachHelper(tt.dName, "i", tt.isAttached, s); err != nil {
 			if !tt.shouldErr {
 				t.Errorf("%s: unexpected error: %v", tt.desc, err)
 			}
 		} else if tt.shouldErr {
 			t.Errorf("%s: should have erred but didn't", tt.desc)
-		} else if w.disks.attachments[tt.dName]["i"].detacher != s {
+		} else if !tt.isAttached && w.disks.attachments[tt.dName]["i"].detacher != s {
 			t.Errorf("%s: step s should have been registered as disconnector", tt.desc)
 		}
 	}
@@ -258,17 +260,20 @@ func TestDiskRegDetach(t *testing.T) {
 	}
 
 	tests := []struct {
-		desc      string
-		helperErr DError
-		shouldErr bool
+		desc       string
+		isAttached bool
+		helperErr  DError
+		shouldErr  bool
 	}{
-		{"normal case", nil, false},
-		{"disconnect helper error case", Errf("error!"), true},
+		{"normal case", false, nil, false},
+		{"disconnect helper error case", true, Errf("error!"), true},
+		{"normal attached case", false, nil, false},
+		{"disconnect helper attached error case", true, Errf("error!"), true},
 	}
 
 	for _, tt := range tests {
 		helperErr = &tt.helperErr
-		if err := w.disks.regDetach("", "", nil); tt.shouldErr && err == nil {
+		if err := w.disks.regDetach("", "", tt.isAttached, nil); tt.shouldErr && err == nil {
 			t.Errorf("%s: should have erred but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)

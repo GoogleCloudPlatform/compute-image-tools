@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -28,10 +27,7 @@ import (
 )
 
 var (
-	forwardingRuleCache struct {
-		exists map[string]map[string][]string
-		mu     sync.Mutex
-	}
+	forwardingRuleCache    regionalResourceCache
 	forwardingRuleURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/forwardingRules/(?P<forwardingRule>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
@@ -39,23 +35,23 @@ func forwardingRuleExists(client daisyCompute.Client, project, region, name stri
 	forwardingRuleCache.mu.Lock()
 	defer forwardingRuleCache.mu.Unlock()
 	if forwardingRuleCache.exists == nil {
-		forwardingRuleCache.exists = map[string]map[string][]string{}
+		forwardingRuleCache.exists = map[string]map[string][]interface{}{}
 	}
 	if _, ok := forwardingRuleCache.exists[project]; !ok {
-		forwardingRuleCache.exists[project] = map[string][]string{}
+		forwardingRuleCache.exists[project] = map[string][]interface{}{}
 	}
 	if _, ok := forwardingRuleCache.exists[project][region]; !ok {
 		nl, err := client.ListForwardingRules(project, region)
 		if err != nil {
 			return false, Errf("error listing forwarding-rules for project %q: %v", project, err)
 		}
-		var forwardingRules []string
+		var forwardingRules []interface{}
 		for _, fr := range nl {
 			forwardingRules = append(forwardingRules, fr.Name)
 		}
 		forwardingRuleCache.exists[project][region] = forwardingRules
 	}
-	return strIn(name, forwardingRuleCache.exists[project][region]), nil
+	return strInSlice(name, forwardingRuleCache.exists[project][region]), nil
 }
 
 // ForwardingRule is used to create a GCE forwardingRule.
@@ -122,7 +118,7 @@ func newForwardingRuleRegistry(w *Workflow) *forwardingRuleRegistry {
 }
 
 func (tir *forwardingRuleRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(forwardingRuleURLRegex, res.link)
+	m := NamedSubexp(forwardingRuleURLRegex, res.link)
 	err := tir.w.ComputeClient.DeleteForwardingRule(m["project"], m["region"], m["forwardingRule"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete forwarding rule", err)

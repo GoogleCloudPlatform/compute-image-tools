@@ -231,10 +231,10 @@ func TestResourceRegistryStart(t *testing.T) {
 		startFnErr  DError
 		shouldErr   bool
 	}{
-		{"good case", "stopped", nil, false},
-		{"bad restart case", "foo", nil, true},
+		{"stopped case", "stopped", nil, false},
+		{"neither stopped nor started case", "foo", nil, false},
 		{"bad resource dne case", "bar", nil, true},
-		{"checks started state on creation", "baz", Errf("error"), true},
+		{"checks startedByWf state on creation", "baz", Errf("error"), true},
 		{"bad startFn error case", "keep_stopped", Errf("error"), true},
 	}
 
@@ -249,10 +249,10 @@ func TestResourceRegistryStart(t *testing.T) {
 	}
 
 	wantM := map[string]*Resource{
-		"foo":          {stopped: false},
-		"baz":          {stopped: false},
-		"stopped":      {stopped: false},
-		"keep_stopped": {stopped: true},
+		"foo":          {startedByWf: true, stoppedByWf: false},
+		"baz":          {startedByWf: false, stoppedByWf: false},
+		"stopped":      {startedByWf: true, stoppedByWf: false},
+		"keep_stopped": {startedByWf: false, stoppedByWf: true},
 	}
 	if diffRes := diff(r.m, wantM, 0); diffRes != "" {
 		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diffRes)
@@ -291,8 +291,8 @@ func TestResourceRegistryStop(t *testing.T) {
 	}
 
 	wantM := map[string]*Resource{
-		"foo": {stopped: true},
-		"baz": {stopped: false},
+		"foo": {stoppedByWf: true},
+		"baz": {stoppedByWf: false},
 	}
 	if diffRes := diff(r.m, wantM, 0); diffRes != "" {
 		t.Errorf("resourceMap not modified as expected: (-got,+want)\n%s", diffRes)
@@ -408,7 +408,7 @@ func TestResourceRegistryRegURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		r, err := rr.regURL(tt.url)
+		r, err := rr.regURL(tt.url, true)
 		if !tt.shouldErr {
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", tt.desc, err)

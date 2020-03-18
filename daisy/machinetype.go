@@ -17,39 +17,35 @@ package daisy
 import (
 	"fmt"
 	"regexp"
-	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 var machineTypeURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/machineTypes/(?P<machinetype>%[2]s)$`, projectRgxStr, rfc1035))
 
-var machineTypeCache struct {
-	exists map[string]map[string][]string
-	mu     sync.Mutex
-}
+var machineTypeCache regionalResourceCache
 
 func machineTypeExists(client compute.Client, project, zone, machineType string) (bool, DError) {
 	machineTypeCache.mu.Lock()
 	defer machineTypeCache.mu.Unlock()
 	if machineTypeCache.exists == nil {
-		machineTypeCache.exists = map[string]map[string][]string{}
+		machineTypeCache.exists = map[string]map[string][]interface{}{}
 	}
 	if _, ok := machineTypeCache.exists[project]; !ok {
-		machineTypeCache.exists[project] = map[string][]string{}
+		machineTypeCache.exists[project] = map[string][]interface{}{}
 	}
 	if _, ok := machineTypeCache.exists[project][zone]; !ok {
 		mtl, err := client.ListMachineTypes(project, zone)
 		if err != nil {
 			return false, Errf("error listing machine types for project %q: %v", project, err)
 		}
-		var mts []string
+		var mts []interface{}
 		for _, mt := range mtl {
 			mts = append(mts, mt.Name)
 		}
 		machineTypeCache.exists[project][zone] = mts
 	}
-	if strIn(machineType, machineTypeCache.exists[project][zone]) {
+	if strInSlice(machineType, machineTypeCache.exists[project][zone]) {
 		return true, nil
 	}
 	// Check for custom machine types.

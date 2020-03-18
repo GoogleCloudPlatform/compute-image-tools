@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"path"
 	"regexp"
-	"sync"
 
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
@@ -31,15 +30,9 @@ import (
 )
 
 var (
-	imageCache struct {
-		exists map[string][]*compute.Image
-		mu     sync.Mutex
-	}
-	imageFamilyCache struct {
-		exists map[string][]string
-		mu     sync.Mutex
-	}
-	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
+	imageCache       globalResourceCache
+	imageFamilyCache globalResourceCache
+	imageURLRgx      = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
 )
 
 // imageExists should only be used during validation for existing GCE images
@@ -49,12 +42,12 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 		imageFamilyCache.mu.Lock()
 		defer imageFamilyCache.mu.Unlock()
 		if imageFamilyCache.exists == nil {
-			imageFamilyCache.exists = map[string][]string{}
+			imageFamilyCache.exists = map[string][]interface{}{}
 		}
 		if _, ok := imageFamilyCache.exists[project]; !ok {
-			imageFamilyCache.exists[project] = []string{}
+			imageFamilyCache.exists[project] = []interface{}{}
 		}
-		if strIn(name, imageFamilyCache.exists[project]) {
+		if strInSlice(name, imageFamilyCache.exists[project]) {
 			return true, nil
 		}
 
@@ -80,20 +73,24 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 	imageCache.mu.Lock()
 	defer imageCache.mu.Unlock()
 	if imageCache.exists == nil {
-		imageCache.exists = map[string][]*compute.Image{}
+		imageCache.exists = map[string][]interface{}{}
 	}
 	if _, ok := imageCache.exists[project]; !ok {
 		il, err := client.ListImages(project)
 		if err != nil {
 			return false, Errf("error listing images for project %q: %v", project, err)
 		}
-		imageCache.exists[project] = il
+		ila := make([]interface{}, len(il))
+		for _, i := range il {
+			ila = append(ila, i)
+		}
+		imageCache.exists[project] = ila
 	}
 
 	for _, i := range imageCache.exists[project] {
-		if name == i.Name {
-			if i.Deprecated != nil && (i.Deprecated.State == "OBSOLETE" || i.Deprecated.State == "DELETED") {
-				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", name, i.Deprecated.State)
+		if ic, ok := i.(*compute.Image); ok && name == ic.Name {
+			if ic.Deprecated != nil && (ic.Deprecated.State == "OBSOLETE" || ic.Deprecated.State == "DELETED") {
+				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", name, ic.Deprecated.State)
 			}
 			return true, nil
 		}
@@ -368,7 +365,7 @@ func (ib *ImageBase) validate(ctx context.Context, ii ImageInterface, licenses [
 
 	// License checking.
 	for _, l := range licenses {
-		result := namedSubexp(licenseURLRegex, l)
+		result := NamedSubexp(licenseURLRegex, l)
 		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
 			if !(isGoogleAPIForbiddenError(err) && ib.IgnoreLicenseValidationIfForbidden) {
 				errs = addErrs(errs, Errf("%s: bad license lookup: %q, error: %v", pre, l, err))
@@ -406,7 +403,7 @@ func newImageRegistry(w *Workflow) *imageRegistry {
 }
 
 func (ir *imageRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(imageURLRgx, res.link)
+	m := NamedSubexp(imageURLRgx, res.link)
 	err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete image", err)

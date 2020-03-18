@@ -159,7 +159,17 @@ func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
 	w := s.w
 	eChan := make(chan DError)
 	createInstance := func(ii InstanceInterface, ib *InstanceBase) {
-		// Get the source machine image link if using a source image.
+		// Just try to delete it, a 404 here indicates the instance doesn't exist.
+		if ib.OverWrite {
+			if err := ii.delete(w.ComputeClient, true); err != nil {
+				if apiErr, ok := err.(*googleapi.Error); !ok || apiErr.Code != 404 {
+					eChan <- Errf("error deleting existing instance: %v", err)
+					return
+				}
+			}
+		}
+
+		// Get the source machine image link if using a source machine image.
 		if ii.getSourceMachineImage() != "" {
 			if image, ok := w.machineImages.get(ii.getSourceMachineImage()); ok {
 				ii.setSourceMachineImage(image.link)

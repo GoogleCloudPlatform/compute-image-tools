@@ -23,7 +23,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
@@ -41,10 +40,7 @@ const (
 )
 
 var (
-	instanceCache struct {
-		exists map[string]map[string][]string
-		mu     sync.Mutex
-	}
+	instanceCache  regionalResourceCache
 	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/instances/(?P<instance>%[2]s)$`, projectRgxStr, rfc1035))
 	validDiskModes = []string{diskModeRO, diskModeRW}
 )
@@ -61,23 +57,23 @@ func instanceExists(client daisyCompute.Client, project, zone, instance string) 
 	instanceCache.mu.Lock()
 	defer instanceCache.mu.Unlock()
 	if instanceCache.exists == nil {
-		instanceCache.exists = map[string]map[string][]string{}
+		instanceCache.exists = map[string]map[string][]interface{}{}
 	}
 	if _, ok := instanceCache.exists[project]; !ok {
-		instanceCache.exists[project] = map[string][]string{}
+		instanceCache.exists[project] = map[string][]interface{}{}
 	}
 	if _, ok := instanceCache.exists[project][zone]; !ok {
 		il, err := client.ListInstances(project, zone)
 		if err != nil {
 			return false, Errf("error listing instances for project %q: %v", project, err)
 		}
-		var instances []string
+		var instances []interface{}
 		for _, i := range il {
 			instances = append(instances, i.Name)
 		}
 		instanceCache.exists[project][zone] = instances
 	}
-	return strIn(instance, instanceCache.exists[project][zone]), nil
+	return strInSlice(instance, instanceCache.exists[project][zone]), nil
 }
 
 // MarshalJSON is a workaround to prevent Instance from using compute.Instance's implementation.
@@ -103,6 +99,7 @@ type InstanceInterface interface {
 	validateNetworks(s *Step) (errs DError)
 	getComputeDisks() []*computeDisk
 	create(cc daisyCompute.Client) error
+	delete(cc daisyCompute.Client, deleteDisk bool) error
 	updateDisksAndNetworksBeforeCreate(w *Workflow)
 	getMetadata() map[string]string
 	setMetadata(md map[string]string)
@@ -124,6 +121,9 @@ type InstanceBase struct {
 	// RetryWhenExternalIPDenied indicates whether to retry CreateInstances when
 	// it fails due to external IP denied by organization IP.
 	RetryWhenExternalIPDenied bool `json:",omitempty"`
+	// Should an existing instance of the same name be deleted, defaults to false
+	// which will fail validation.
+	OverWrite bool `json:",omitempty"`
 }
 
 // Instance is used to create a GCE instance using GA API.
@@ -190,6 +190,10 @@ func (i *Instance) create(cc daisyCompute.Client) error {
 	return cc.CreateInstance(i.Project, i.Zone, &i.Instance)
 }
 
+func (i *Instance) delete(cc daisyCompute.Client, deleteDisk bool) error {
+	return deleteInstance(deleteDisk, cc, i.Project, i.Zone, i.Name)
+}
+
 func (i *Instance) updateDisksAndNetworksBeforeCreate(w *Workflow) {
 	for _, d := range i.Disks {
 		if diskRes, ok := w.disks.get(d.Source); ok {
@@ -231,7 +235,7 @@ func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DEr
 	for _, d := range i.Disks {
 		dName := d.Source
 		if d.InitializeParams != nil {
-			parts := namedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
+			parts := NamedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
 			if parts["disktype"] == "local-ssd" {
 				continue
 			}
@@ -291,6 +295,10 @@ func (i *InstanceBeta) create(cc daisyCompute.Client) error {
 	return cc.CreateInstanceBeta(i.Project, i.Zone, &i.Instance)
 }
 
+func (i *InstanceBeta) delete(cc daisyCompute.Client, deleteDisk bool) error {
+	return deleteInstance(deleteDisk, cc, i.Project, i.Zone, i.Name)
+}
+
 func (i *InstanceBeta) updateDisksAndNetworksBeforeCreate(w *Workflow) {
 	for _, d := range i.Disks {
 		if diskRes, ok := w.disks.get(d.Source); ok {
@@ -334,7 +342,7 @@ func (i *InstanceBeta) register(name string, s *Step, ir *instanceRegistry, errs
 	for _, d := range i.Disks {
 		dName := d.Source
 		if d.InitializeParams != nil {
-			parts := namedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
+			parts := NamedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
 			if parts["disktype"] == "local-ssd" {
 				continue
 			}
@@ -403,7 +411,7 @@ func (i *Instance) populateDisks(w *Workflow) DError {
 			} else {
 				p.DiskType = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", i.Project, i.Zone, p.DiskType)
 			}
-			parts := namedSubexp(diskTypeURLRgx, p.DiskType)
+			parts := NamedSubexp(diskTypeURLRgx, p.DiskType)
 			if parts["disktype"] == "local-ssd" {
 				d.AutoDelete = true
 				d.Type = "SCRATCH"
@@ -450,7 +458,7 @@ func (i *InstanceBeta) populateDisks(w *Workflow) DError {
 			} else {
 				p.DiskType = fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", i.Project, i.Zone, p.DiskType)
 			}
-			parts := namedSubexp(diskTypeURLRgx, p.DiskType)
+			parts := NamedSubexp(diskTypeURLRgx, p.DiskType)
 			if parts["disktype"] == "local-ssd" {
 				d.AutoDelete = true
 				d.Type = "SCRATCH"
@@ -464,6 +472,11 @@ func (i *InstanceBeta) populateDisks(w *Workflow) DError {
 }
 
 func (ib *InstanceBase) populateMachineType(ii InstanceInterface) DError {
+	// when creating instance from a machine image, don't set default machine type
+	if ii.getSourceMachineImage() != "" && ii.getMachineType() == "" {
+		return nil
+	}
+
 	ii.setMachineType(strOr(ii.getMachineType(), "n1-standard-1"))
 	if machineTypeURLRegex.MatchString(ii.getMachineType()) {
 		ii.setMachineType(extendPartialURL(ii.getMachineType(), ib.Project))
@@ -582,7 +595,7 @@ func (ib *InstanceBase) validate(ctx context.Context, ii InstanceInterface, s *S
 	errs = addErrs(errs, ib.validateSourceMachineImage(ii, s))
 
 	// Register creation.
-	errs = addErrs(errs, s.w.instances.regCreate(ib.daisyName, &ib.Resource, s))
+	errs = addErrs(errs, s.w.instances.regCreate(ib.daisyName, &ib.Resource, ib.OverWrite, s))
 	return errs
 }
 
@@ -661,7 +674,7 @@ func (ib *InstanceBase) validateDisks(ii InstanceInterface, s *Step) (errs DErro
 }
 
 func (ib *InstanceBase) validateDiskInitializeParams(d *computeDisk, ii InstanceInterface, s *Step) (errs DError) {
-	parts := namedSubexp(diskTypeURLRgx, d.diskType)
+	parts := NamedSubexp(diskTypeURLRgx, d.diskType)
 	if parts["project"] != ib.Project {
 		errs = addErrs(errs, Errf("cannot create instance in project %q with InitializeParams.DiskType in project %q", ib.Project, parts["project"]))
 	}
@@ -694,7 +707,7 @@ func (ib *InstanceBase) validateDiskSource(diskSource string, ii InstanceInterfa
 	}
 
 	// Ensure disk is in the same project and zone.
-	result := namedSubexp(diskURLRgx, dr.link)
+	result := NamedSubexp(diskURLRgx, dr.link)
 	if result["project"] != ib.Project {
 		errs = addErrs(errs, Errf("cannot create instance in project %q with disk in project %q: %q", ib.Project, result["project"], diskSource))
 	}
@@ -705,12 +718,16 @@ func (ib *InstanceBase) validateDiskSource(diskSource string, ii InstanceInterfa
 }
 
 func (ib *InstanceBase) validateMachineType(ii InstanceInterface, client daisyCompute.Client) (errs DError) {
+	if ii.getSourceMachineImage() != "" && ii.getMachineType() == "" {
+		return
+	}
+
 	if !machineTypeURLRegex.MatchString(ii.getMachineType()) {
 		errs = addErrs(errs, Errf("can't create instance: bad MachineType: %q", ii.getMachineType()))
 		return
 	}
 
-	result := namedSubexp(machineTypeURLRegex, ii.getMachineType())
+	result := NamedSubexp(machineTypeURLRegex, ii.getMachineType())
 	if result["project"] != ib.Project {
 		errs = addErrs(errs, Errf("cannot create instance in project %q with MachineType in project %q: %q", ib.Project, result["project"], ii.getMachineType()))
 	}
@@ -783,7 +800,7 @@ func newInstanceRegistry(w *Workflow) *instanceRegistry {
 var SleepFn = time.Sleep
 
 func (ir *instanceRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(instanceURLRgx, res.link)
+	m := NamedSubexp(instanceURLRgx, res.link)
 	for i := 1; i < 4; i++ {
 		if _, err := ir.w.ComputeClient.GetInstance(m["project"], m["zone"], m["instance"]); err != nil {
 			// Can't remove an instance that was not even yet created!
@@ -801,7 +818,7 @@ func (ir *instanceRegistry) deleteFn(res *Resource) DError {
 }
 
 func (ir *instanceRegistry) startFn(res *Resource) DError {
-	m := namedSubexp(instanceURLRgx, res.link)
+	m := NamedSubexp(instanceURLRgx, res.link)
 	err := ir.w.ComputeClient.StartInstance(m["project"], m["zone"], m["instance"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to start instance", err)
@@ -810,7 +827,7 @@ func (ir *instanceRegistry) startFn(res *Resource) DError {
 }
 
 func (ir *instanceRegistry) stopFn(res *Resource) DError {
-	m := namedSubexp(instanceURLRgx, res.link)
+	m := NamedSubexp(instanceURLRgx, res.link)
 	err := ir.w.ComputeClient.StopInstance(m["project"], m["zone"], m["instance"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to stop instance", err)
@@ -818,9 +835,9 @@ func (ir *instanceRegistry) stopFn(res *Resource) DError {
 	return newErr("failed to stop instance", err)
 }
 
-func (ir *instanceRegistry) regCreate(name string, res *Resource, s *Step) DError {
+func (ir *instanceRegistry) regCreate(name string, res *Resource, overWrite bool, s *Step) DError {
 	// Base creation logic.
-	errs := ir.baseResourceRegistry.regCreate(name, res, s, false)
+	errs := ir.baseResourceRegistry.regCreate(name, res, s, overWrite)
 
 	// Find the Instance responsible for this.
 	for _, i := range (*s.CreateInstances).Instances {
@@ -843,4 +860,22 @@ func (ir *instanceRegistry) regDelete(name string, s *Step) DError {
 	errs := ir.baseResourceRegistry.regDelete(name, s)
 	errs = addErrs(errs, ir.w.disks.regDetachAll(name, s))
 	return addErrs(errs, ir.w.networks.regDisconnectAll(name, s))
+}
+
+func deleteInstance(deleteDisk bool, cc daisyCompute.Client, project, zone, name string) error {
+	if !deleteDisk {
+		return cc.DeleteInstance(project, zone, name)
+	}
+	ci, err := cc.GetInstance(project, zone, name)
+	if err != nil {
+		return err
+	}
+	for _, cd := range ci.Disks {
+		if !cd.AutoDelete {
+			if err := cc.SetDiskAutoDelete(project, zone, name, true, cd.DeviceName); err != nil {
+				return err
+			}
+		}
+	}
+	return cc.DeleteInstance(project, zone, name)
 }

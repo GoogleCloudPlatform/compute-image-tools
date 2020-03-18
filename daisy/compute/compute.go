@@ -94,6 +94,7 @@ type Client interface {
 	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
+	SetDiskAutoDelete(project, zone, instance string, autoDelete bool, deviceName string) error
 
 	// Beta API calls
 	GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
@@ -602,6 +603,16 @@ func (c *client) DeleteImage(project, name string) error {
 // DeleteDisk deletes a GCE persistent disk.
 func (c *client) DeleteDisk(project, zone, name string) error {
 	op, err := c.Retry(c.raw.Disks.Delete(project, zone, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// SetDiskAutoDelete set auto-delete of an attached disk
+func (c *client) SetDiskAutoDelete(project, zone, instance string, autoDelete bool, deviceName string) error {
+	op, err := c.Retry(c.raw.Instances.SetDiskAutoDelete(project, zone, instance, autoDelete, deviceName).Do)
 	if err != nil {
 		return err
 	}
