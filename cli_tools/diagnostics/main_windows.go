@@ -274,15 +274,17 @@ func getPlainEventLogs(evts []winEvt, errs chan error) []string {
 
 // getDockerImagesList put docker images list file in logFolder channel and errors in error channel.
 func getDockerImagesList(logs chan logFolder, errs chan error) {
+	dockerImageFilePath := make([]string, 0, 1)
 	dockerPath, err := exec.LookPath("docker")
 	if err != nil {
 		log.Printf("Docker not installed, couldn't get docker images list.\n")
-		return
+	} else {
+		var commands = []runner{
+			cmd{dockerPath, "image list", dockerImageListFileName, false},
+		}
+		dockerImageFilePath = runAll(commands, errs)
 	}
-	var commands = []runner{
-		cmd{dockerPath, "image list", dockerImageListFileName, false},
-	}
-	logs <- logFolder{"Kubernetes", runAll(commands, errs)}
+	logs <- logFolder{"Kubernetes", dockerImageFilePath}
 }
 
 // gatherEventLogs put all the event log file paths in logFolder channel
