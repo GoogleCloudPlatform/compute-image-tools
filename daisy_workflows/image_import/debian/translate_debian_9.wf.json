@@ -5,6 +5,10 @@
       "Required": true,
       "Description": "The Debian 9 GCE disk to translate."
     },
+    "sysprep": {
+      "Value": "false",
+      "Description": "If enabled, run Windows Sysprep. Only applicable to Windows instances."
+    },
     "install_gce_packages": {
       "Value": "true",
       "Description": "Whether to install GCE packages."
