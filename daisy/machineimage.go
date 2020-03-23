@@ -29,7 +29,7 @@ import (
 
 var (
 	machineImageCache  oneDResourceCache
-	machineImageURLRgx  = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/machineImages\/(?P<machineImage>%[2]s)$`, projectRgxStr, rfc1035))
+	machineImageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/machineImages\/(?P<machineImage>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 // machineImageExists should only be used during validation for existing GCE

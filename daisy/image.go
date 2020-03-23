@@ -32,7 +32,7 @@ import (
 var (
 	imageCache       oneDResourceCache
 	imageFamilyCache oneDResourceCache
-	imageURLRgx            = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
+	imageURLRgx      = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
 )
 
 // imageExists should only be used during validation for existing GCE images

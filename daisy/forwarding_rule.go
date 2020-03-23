@@ -28,7 +28,7 @@ import (
 
 var (
 	forwardingRuleCache    twoDResourceCache
-	forwardingRuleURLRegex  = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/forwardingRules/(?P<forwardingRule>%[2]s)$`, projectRgxStr, rfc1035))
+	forwardingRuleURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/forwardingRules/(?P<forwardingRule>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 func forwardingRuleExists(client daisyCompute.Client, project, region, name string) (bool, DError) {

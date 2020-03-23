@@ -28,7 +28,7 @@ import (
 
 var (
 	firewallRuleCache    oneDResourceCache
-	firewallRuleURLRegex  = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/firewalls/(?P<firewallRule>%[2]s)$`, projectRgxStr, rfc1035))
+	firewallRuleURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/firewalls/(?P<firewallRule>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 func firewallRuleExists(client daisyCompute.Client, project, name string) (bool, DError) {
