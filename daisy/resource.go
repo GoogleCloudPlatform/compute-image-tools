@@ -176,23 +176,23 @@ func resourceNameHelper(name string, w *Workflow, exactName bool) string {
 	return name
 }
 
-type regionalResourceCache struct {
+type twoDResourceCache struct {
 	exists map[string]map[string][]interface{}
 	mu     sync.Mutex
 }
 
-func (rc *regionalResourceCache) cleanup() {
+func (rc *twoDResourceCache) cleanup() {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 	rc.exists = nil
 }
 
-type globalResourceCache struct {
+type oneDResourceCache struct {
 	exists map[string][]interface{}
 	mu     sync.Mutex
 }
 
-func (rc *globalResourceCache) cleanup() {
+func (rc *oneDResourceCache) cleanup() {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 	rc.exists = nil

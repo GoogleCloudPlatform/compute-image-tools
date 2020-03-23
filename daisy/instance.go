@@ -40,9 +40,9 @@ const (
 )
 
 var (
-	instanceCache  regionalResourceCache
-	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/instances/(?P<instance>%[2]s)$`, projectRgxStr, rfc1035))
-	validDiskModes = []string{diskModeRO, diskModeRW}
+	instanceCache  twoDResourceCache
+	instanceURLRgx  = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/instances/(?P<instance>%[2]s)$`, projectRgxStr, rfc1035))
+	validDiskModes  = []string{diskModeRO, diskModeRW}
 )
 
 func checkDiskMode(m string) bool {

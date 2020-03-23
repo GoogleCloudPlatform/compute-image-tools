@@ -18,7 +18,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-var zonesCache globalResourceCache
+var zonesCache oneDResourceCache
 
 func zoneExists(client compute.Client, project, zone string) (bool, DError) {
 	zonesCache.mu.Lock()

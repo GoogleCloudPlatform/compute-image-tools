@@ -27,8 +27,8 @@ import (
 )
 
 var (
-	targetInstanceCache    regionalResourceCache
-	targetInstanceURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/TargetInstances/(?P<targetInstance>%[2]s)$`, projectRgxStr, rfc1035))
+	targetInstanceCache    twoDResourceCache
+	targetInstanceURLRegex  = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/TargetInstances/(?P<targetInstance>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 func targetInstanceExists(client daisyCompute.Client, project, zone, name string) (bool, DError) {

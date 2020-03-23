@@ -23,7 +23,7 @@ import (
 
 var machineTypeURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/machineTypes/(?P<machinetype>%[2]s)$`, projectRgxStr, rfc1035))
 
-var machineTypeCache regionalResourceCache
+var machineTypeCache twoDResourceCache
 
 func machineTypeExists(client compute.Client, project, zone, machineType string) (bool, DError) {
 	machineTypeCache.mu.Lock()

@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	networkCache    globalResourceCache
-	networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[2]s)$`, projectRgxStr, rfc1035))
+	networkCache    oneDResourceCache
+	networkURLRegex  = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 func networkExists(client daisyCompute.Client, project, name string) (bool, DError) {

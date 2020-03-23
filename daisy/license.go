@@ -23,7 +23,7 @@ import (
 
 var licenseURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/licenses/(?P<license>%[2]s)$`, projectRgxStr, rfc1035))
 
-var licenseCache globalResourceCache
+var licenseCache oneDResourceCache
 
 func licenseExists(client compute.Client, project, license string) (bool, DError) {
 	licenseCache.mu.Lock()

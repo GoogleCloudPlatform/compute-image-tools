@@ -18,7 +18,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-var regionsCache globalResourceCache
+var regionsCache oneDResourceCache
 
 func regionExists(client compute.Client, project, region string) (bool, DError) {
 	regionsCache.mu.Lock()
