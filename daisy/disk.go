@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
-	"sync"
+	"strings"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -29,36 +29,49 @@ import (
 )
 
 var (
-	diskCache struct {
-		exists map[string]map[string][]string
-		mu     sync.Mutex
-	}
-	diskURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)(/resize)?$`, projectRgxStr, rfc1035))
+	diskCache        twoDResourceCache
+	diskURLRgx       = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)(/resize)?$`, projectRgxStr, rfc1035))
+	deviceNameURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/devices/(?P<disk>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 // diskExists should only be used during validation for existing GCE disks
 // and should not be relied or populated for daisy created resources.
 func diskExists(client daisyCompute.Client, project, zone, disk string) (bool, DError) {
-	diskCache.mu.Lock()
-	defer diskCache.mu.Unlock()
 	if diskCache.exists == nil {
-		diskCache.exists = map[string]map[string][]string{}
+		diskCache.exists = map[string]map[string][]interface{}{}
 	}
 	if _, ok := diskCache.exists[project]; !ok {
-		diskCache.exists[project] = map[string][]string{}
+		diskCache.exists[project] = map[string][]interface{}{}
 	}
 	if _, ok := diskCache.exists[project][zone]; !ok {
 		dl, err := client.ListDisks(project, zone)
 		if err != nil {
 			return false, Errf("error listing disks for project %q: %v", project, err)
 		}
-		var disks []string
+		var disks []interface{}
 		for _, d := range dl {
 			disks = append(disks, d.Name)
 		}
 		diskCache.exists[project][zone] = disks
 	}
-	return strIn(disk, diskCache.exists[project][zone]), nil
+	return strInSlice(disk, diskCache.exists[project][zone]), nil
+}
+
+// isDiskAttached should only be used during validation for existing attached GCE disks
+// and should not be relied or populated for daisy created resources.
+func isDiskAttached(client daisyCompute.Client, deviceName, project, zone, instance string) (bool, DError) {
+	i, err := client.GetInstance(project, zone, instance)
+	if err != nil {
+		return false, Errf("failed to get instance info for checking attached disks: %v", err)
+	}
+	parts := strings.Split(deviceName, "/")
+	realName := parts[len(parts)-1]
+	for _, d := range i.Disks {
+		if d.DeviceName == realName {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // Disk is used to create a GCE disk in a project.
@@ -167,7 +180,7 @@ func (dr *diskRegistry) init() {
 }
 
 func (dr *diskRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(diskURLRgx, res.link)
+	m := NamedSubexp(diskURLRgx, res.link)
 	err := dr.w.ComputeClient.DeleteDisk(m["project"], m["zone"], m["disk"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete disk", err)
@@ -176,12 +189,19 @@ func (dr *diskRegistry) deleteFn(res *Resource) DError {
 }
 
 // detachHelper marks s as the detacher between dName and iName.
-// Returns an error if dName and iName aren't attached or if the detacher doesn't depend on the attacher.
-func (dr *diskRegistry) detachHelper(dName, iName string, s *Step) DError {
+// Returns an error if the detacher doesn't depend on the attacher.
+func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *Step) DError {
 	if dr.testDetachHelper != nil {
 		return dr.testDetachHelper(dName, iName, s)
 	}
+
+	// if the disk has already been attached before workflow is executed, skip validating its attacher
+	if isAttached {
+		return nil
+	}
+
 	pre := fmt.Sprintf("step %q cannot detach disk %q from instance %q", s.name, dName, iName)
+
 	var att *diskAttachment
 
 	if im, _ := dr.attachments[dName]; im == nil {
@@ -193,6 +213,7 @@ func (dr *diskRegistry) detachHelper(dName, iName string, s *Step) DError {
 	} else if !s.nestedDepends(att.attacher) {
 		return Errf("%s: step %q does not depend on attaching step %q", pre, s.name, att.attacher.name)
 	}
+
 	att.detacher = s
 	return nil
 }
@@ -234,11 +255,11 @@ func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) DError {
 
 // regDetach marks s as the detacher for the dName disk and iName instance.
 // Returns an error if dName or iName don't exist or if detachHelper returns an error.
-func (dr *diskRegistry) regDetach(dName, iName string, s *Step) DError {
+func (dr *diskRegistry) regDetach(dName, iName string, isAttached bool, s *Step) DError {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 
-	return dr.detachHelper(dName, iName, s)
+	return dr.detachHelper(dName, iName, isAttached, s)
 }
 
 // regDetachAll is called by Instance.regDelete and registers Step s as the detacher for all disks currently attached to iName.
@@ -254,7 +275,7 @@ func (dr *diskRegistry) regDetachAll(iName string, s *Step) DError {
 			continue
 		}
 		// If yes, detach.
-		errs = addErrs(dr.detachHelper(dName, iName, s))
+		errs = addErrs(dr.detachHelper(dName, iName, false, s))
 	}
 	return errs
 }

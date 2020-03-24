@@ -38,10 +38,11 @@ type Resource struct {
 	// The name of the disk as known to Daisy and the Daisy user.
 	daisyName string
 
-	link     string
-	deleted  bool
-	stopped  bool
-	deleteMx *sync.Mutex
+	link        string
+	deleted     bool
+	stoppedByWf bool
+	startedByWf bool
+	deleteMx    *sync.Mutex
 
 	creator, deleter  *Step
 	createdInWorkflow bool
@@ -135,34 +136,34 @@ func resourceExists(client compute.Client, url string) (bool, DError) {
 	}
 	switch {
 	case machineTypeURLRegex.MatchString(url):
-		result := namedSubexp(machineTypeURLRegex, url)
+		result := NamedSubexp(machineTypeURLRegex, url)
 		return machineTypeExists(client, result["project"], result["zone"], result["machinetype"])
 	case instanceURLRgx.MatchString(url):
-		result := namedSubexp(instanceURLRgx, url)
+		result := NamedSubexp(instanceURLRgx, url)
 		return instanceExists(client, result["project"], result["zone"], result["instance"])
 	case diskURLRgx.MatchString(url):
-		result := namedSubexp(diskURLRgx, url)
+		result := NamedSubexp(diskURLRgx, url)
 		return diskExists(client, result["project"], result["zone"], result["disk"])
 	case imageURLRgx.MatchString(url):
-		result := namedSubexp(imageURLRgx, url)
+		result := NamedSubexp(imageURLRgx, url)
 		return imageExists(client, result["project"], result["family"], result["image"])
 	case machineImageURLRgx.MatchString(url):
-		result := namedSubexp(machineImageURLRgx, url)
+		result := NamedSubexp(machineImageURLRgx, url)
 		return machineImageExists(client, result["project"], result["machineImage"])
 	case networkURLRegex.MatchString(url):
-		result := namedSubexp(networkURLRegex, url)
+		result := NamedSubexp(networkURLRegex, url)
 		return networkExists(client, result["project"], result["network"])
 	case subnetworkURLRegex.MatchString(url):
-		result := namedSubexp(subnetworkURLRegex, url)
+		result := NamedSubexp(subnetworkURLRegex, url)
 		return subnetworkExists(client, result["project"], result["region"], result["subnetwork"])
 	case targetInstanceURLRegex.MatchString(url):
-		result := namedSubexp(targetInstanceURLRegex, url)
+		result := NamedSubexp(targetInstanceURLRegex, url)
 		return targetInstanceExists(client, result["project"], result["zone"], result["targetInstance"])
 	case forwardingRuleURLRegex.MatchString(url):
-		result := namedSubexp(forwardingRuleURLRegex, url)
+		result := NamedSubexp(forwardingRuleURLRegex, url)
 		return forwardingRuleExists(client, result["project"], result["region"], result["forwardingRule"])
 	case firewallRuleURLRegex.MatchString(url):
-		result := namedSubexp(firewallRuleURLRegex, url)
+		result := NamedSubexp(firewallRuleURLRegex, url)
 		return firewallRuleExists(client, result["project"], result["firewallRule"])
 	}
 	return false, Errf("unknown resource type: %q", url)
@@ -173,4 +174,26 @@ func resourceNameHelper(name string, w *Workflow, exactName bool) string {
 		name = w.genName(name)
 	}
 	return name
+}
+
+type twoDResourceCache struct {
+	exists map[string]map[string][]interface{}
+	mu     sync.Mutex
+}
+
+func (rc *twoDResourceCache) cleanup() {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
+	rc.exists = nil
+}
+
+type oneDResourceCache struct {
+	exists map[string][]interface{}
+	mu     sync.Mutex
+}
+
+func (rc *oneDResourceCache) cleanup() {
+	rc.mu.Lock()
+	defer rc.mu.Unlock()
+	rc.exists = nil
 }

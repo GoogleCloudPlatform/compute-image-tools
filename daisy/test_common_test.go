@@ -156,6 +156,9 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil, errors.New("bad zone")
 	}
+	c.GetInstanceFn = func(project, zone, name string) (*compute.Instance, error) {
+		return &compute.Instance{Disks: []*compute.AttachedDisk{{DeviceName: testDisk}}}, nil
+	}
 	c.GetMachineTypeFn = func(_, _, mt string) (*compute.MachineType, error) {
 		if mt == testMachineType {
 			return nil, nil

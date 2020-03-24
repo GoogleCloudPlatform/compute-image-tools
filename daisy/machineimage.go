@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"sync"
 
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/googleapi"
@@ -29,10 +28,7 @@ import (
 )
 
 var (
-	machineImageCache struct {
-		exists map[string][]*computeBeta.MachineImage
-		mu     sync.Mutex
-	}
+	machineImageCache  oneDResourceCache
 	machineImageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/machineImages\/(?P<machineImage>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
@@ -45,18 +41,22 @@ func machineImageExists(client daisyCompute.Client, project, name string) (bool,
 	machineImageCache.mu.Lock()
 	defer machineImageCache.mu.Unlock()
 	if machineImageCache.exists == nil {
-		machineImageCache.exists = map[string][]*computeBeta.MachineImage{}
+		machineImageCache.exists = map[string][]interface{}{}
 	}
 	if _, ok := machineImageCache.exists[project]; !ok {
 		il, err := client.ListMachineImages(project)
 		if err != nil {
 			return false, Errf("error listing machine images for project %q: %v", project, err)
 		}
-		machineImageCache.exists[project] = il
+		ila := make([]interface{}, len(il))
+		for _, i := range il {
+			ila = append(ila, i)
+		}
+		machineImageCache.exists[project] = ila
 	}
 
 	for _, i := range machineImageCache.exists[project] {
-		if name == i.Name {
+		if ic, ok := i.(*computeBeta.MachineImage); ok && name == ic.Name {
 			return true, nil
 		}
 	}
@@ -127,7 +127,7 @@ func newMachineImageRegistry(w *Workflow) *machineImageRegistry {
 }
 
 func (ir *machineImageRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(machineImageURLRgx, res.link)
+	m := NamedSubexp(machineImageURLRgx, res.link)
 	err := ir.w.ComputeClient.DeleteMachineImage(m["project"], m["machineImage"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete machine image", err)

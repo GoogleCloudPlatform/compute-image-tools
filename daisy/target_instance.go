@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -28,10 +27,7 @@ import (
 )
 
 var (
-	targetInstanceCache struct {
-		exists map[string]map[string][]string
-		mu     sync.Mutex
-	}
+	targetInstanceCache    twoDResourceCache
 	targetInstanceURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/TargetInstances/(?P<targetInstance>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
@@ -39,23 +35,23 @@ func targetInstanceExists(client daisyCompute.Client, project, zone, name string
 	targetInstanceCache.mu.Lock()
 	defer targetInstanceCache.mu.Unlock()
 	if targetInstanceCache.exists == nil {
-		targetInstanceCache.exists = map[string]map[string][]string{}
+		targetInstanceCache.exists = map[string]map[string][]interface{}{}
 	}
 	if _, ok := targetInstanceCache.exists[project]; !ok {
-		targetInstanceCache.exists[project] = map[string][]string{}
+		targetInstanceCache.exists[project] = map[string][]interface{}{}
 	}
 	if _, ok := targetInstanceCache.exists[project][zone]; !ok {
 		nl, err := client.ListTargetInstances(project, zone)
 		if err != nil {
 			return false, Errf("error listing target-instances for project %q: %v", project, err)
 		}
-		var targetInstances []string
+		var targetInstances []interface{}
 		for _, ti := range nl {
 			targetInstances = append(targetInstances, ti.Name)
 		}
 		targetInstanceCache.exists[project][zone] = targetInstances
 	}
-	return strIn(name, targetInstanceCache.exists[project][zone]), nil
+	return strInSlice(name, targetInstanceCache.exists[project][zone]), nil
 }
 
 // TargetInstance is used to create a GCE targetInstance.
@@ -116,7 +112,7 @@ func newTargetInstanceRegistry(w *Workflow) *targetInstanceRegistry {
 }
 
 func (tir *targetInstanceRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(targetInstanceURLRegex, res.link)
+	m := NamedSubexp(targetInstanceURLRegex, res.link)
 	err := tir.w.ComputeClient.DeleteTargetInstance(m["project"], m["zone"], m["targetInstance"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete target instance", err)

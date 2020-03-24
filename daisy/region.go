@@ -15,32 +15,27 @@
 package daisy
 
 import (
-	"sync"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-var regionsCache struct {
-	exists map[string][]string
-	mu     sync.Mutex
-}
+var regionsCache oneDResourceCache
 
 func regionExists(client compute.Client, project, region string) (bool, DError) {
 	regionsCache.mu.Lock()
 	defer regionsCache.mu.Unlock()
 	if regionsCache.exists == nil {
-		regionsCache.exists = map[string][]string{}
+		regionsCache.exists = map[string][]interface{}{}
 	}
 	if _, ok := regionsCache.exists[project]; !ok {
 		rl, err := client.ListRegions(project)
 		if err != nil {
 			return false, typedErr(apiError, "failed to list regions", err)
 		}
-		var regions []string
+		var regions []interface{}
 		for _, r := range rl {
 			regions = append(regions, r.Name)
 		}
 		regionsCache.exists[project] = regions
 	}
-	return strIn(region, regionsCache.exists[project]), nil
+	return strInSlice(region, regionsCache.exists[project]), nil
 }
