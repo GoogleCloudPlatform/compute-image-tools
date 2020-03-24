@@ -194,14 +194,15 @@ func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *St
 	if dr.testDetachHelper != nil {
 		return dr.testDetachHelper(dName, iName, s)
 	}
-	pre := fmt.Sprintf("step %q cannot detach disk %q from instance %q", s.name, dName, iName)
-
-	var att *diskAttachment
 
 	// if the disk has already been attached before workflow is executed, skip validating its attacher
 	if isAttached {
 		return nil
 	}
+
+	pre := fmt.Sprintf("step %q cannot detach disk %q from instance %q", s.name, dName, iName)
+
+	var att *diskAttachment
 
 	if im, _ := dr.attachments[dName]; im == nil {
 		return Errf("%s: not attached", pre)
