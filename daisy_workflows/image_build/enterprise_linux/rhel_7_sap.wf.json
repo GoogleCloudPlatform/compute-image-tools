@@ -34,7 +34,7 @@
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./enterprise_linux.wf.json",
+        "Path": "./enterprise_linux_uefi.wf.json",
         "Vars": {
           "el_release": "${rhel_release}",
           "google_cloud_repo": "${google_cloud_repo}",
@@ -57,7 +57,10 @@
           "Family": "${rhel_release}-sap",
           "Project": "${publish_project}",
           "NoCleanup": true,
-          "ExactName": true
+          "ExactName": true,
+          "GuestOsFeatures": [
+            "UEFI_COMPATIBLE"
+          ]
         }
       ]
     }
