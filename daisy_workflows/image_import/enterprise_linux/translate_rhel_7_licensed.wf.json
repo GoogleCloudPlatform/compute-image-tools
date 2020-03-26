@@ -5,6 +5,10 @@
       "Required": true,
       "Description": "The RHEL 7 GCE disk to translate."
     },
+    "sysprep": {
+      "Value": "false",
+      "Description": "If enabled, run sysprep. This is a no-op for Linux."
+    },
     "install_gce_packages": {
       "Value": "true",
       "Description": "Whether to install GCE packages."

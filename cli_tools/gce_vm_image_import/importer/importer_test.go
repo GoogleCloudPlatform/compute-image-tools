@@ -30,7 +30,7 @@ import (
 var (
 	currentExecutablePath, clientID, imageName, osID, customTranWorkflow, sourceFile, sourceImage,
 	family, description, network, subnet, labels string
-	dataDisk, noGuestEnvironment bool
+	dataDisk, noGuestEnvironment, sysprepWindows bool
 )
 
 func TestGetWorkflowPathsFromImage(t *testing.T) {
@@ -274,7 +274,7 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	region := ws + "a-region" + ws
 
 	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
+		sourceImage, family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "image-a", got["image_name"])
 	assert.Equal(t, "translate/workflow/path", got["translate_workflow"])
@@ -285,7 +285,8 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	assert.Equal(t, "global/networks/a-network", got["import_network"])
 	assert.Equal(t, "regions/a-region/subnetworks/a-subnet", got["import_subnet"])
 	assert.Equal(t, "false", got["is_windows"])
-	assert.Equal(t, 9, len(got))
+	assert.Equal(t, "false", got["sysprep_windows"])
+	assert.Equal(t, 10, len(got))
 }
 
 func TestBuildDaisyVarsFromImage(t *testing.T) {
@@ -302,7 +303,7 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 	region := ws + "a-region" + ws
 
 	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
+		sourceImage, family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "image-a", got["image_name"])
 	assert.Equal(t, "translate/workflow/path", got["translate_workflow"])
@@ -313,16 +314,35 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 	assert.Equal(t, "global/networks/a-network", got["import_network"])
 	assert.Equal(t, "regions/a-region/subnetworks/a-subnet", got["import_subnet"])
 	assert.Equal(t, "false", got["is_windows"])
-	assert.Equal(t, 9, len(got))
+	assert.Equal(t, "false", got["sysprep_windows"])
+	assert.Equal(t, 10, len(got))
 }
 
-func TestBuildDaisyVarsWindow(t *testing.T) {
+func TestBuildDaisyVarsWindowsSysprepEnabled(t *testing.T) {
+	resetArgs()
+	sysprepWindows = true
+	got := buildDaisyVars("translate/workflow/path/windows", "image-a",
+		sourceFile, sourceImage, family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
+
+	assert.Equal(t, "true", got["sysprep_windows"])
+}
+
+func TestBuildDaisyVarsWindowsSysprepDisabled(t *testing.T) {
+	resetArgs()
+	sysprepWindows = false
+	got := buildDaisyVars("translate/workflow/path/windows", "image-a",
+		sourceFile, sourceImage, family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
+
+	assert.Equal(t, "false", got["sysprep_windows"])
+}
+
+func TestBuildDaisyVarsIsWindows(t *testing.T) {
 	resetArgs()
 	imageName = "image-a"
 
 	region := ""
 	got := buildDaisyVars("translate/workflow/path/windows", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
+		sourceImage, family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "true", got["is_windows"])
 }
@@ -333,7 +353,7 @@ func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
 
 	region := ""
 	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
+		sourceImage, family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, got["image_name"], "image-a")
 }
@@ -353,6 +373,7 @@ func resetArgs() {
 	sourceImage = "anImage"
 	osID = "ubuntu-1404"
 	dataDisk = false
+	sysprepWindows = false
 	imageName = "img"
 	clientID = "aClient"
 	customTranWorkflow = ""

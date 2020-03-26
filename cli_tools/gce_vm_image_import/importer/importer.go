@@ -159,7 +159,7 @@ func getTranslateWorkflowPath(customTranslateWorkflow, osID string) string {
 }
 
 func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family, description,
-	region, subnet, network string, noGuestEnvironment bool) map[string]string {
+	region, subnet, network string, noGuestEnvironment bool, sysprepWindows bool) map[string]string {
 
 	varMap := map[string]string{}
 
@@ -168,6 +168,7 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 		varMap["translate_workflow"] = translateWorkflowPath
 		varMap["install_gce_packages"] = strconv.FormatBool(!noGuestEnvironment)
 		varMap["is_windows"] = strconv.FormatBool(strings.Contains(translateWorkflowPath, "windows"))
+		varMap["sysprep_windows"] = strconv.FormatBool(sysprepWindows)
 	}
 	if strings.TrimSpace(sourceFile) != "" {
 		varMap["source_disk_file"] = strings.TrimSpace(sourceFile)
@@ -246,7 +247,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
 	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
-	uefiCompatible bool) (*daisy.Workflow, error) {
+	uefiCompatible bool, sysprepWindows bool) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
@@ -290,7 +291,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		customTranWorkflow, currentExecutablePath)
 
 	varMap := buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family,
-		description, *region, subnet, network, noGuestEnvironment)
+		description, *region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	var w *daisy.Workflow
 	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
