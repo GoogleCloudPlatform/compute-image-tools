@@ -41,10 +41,12 @@ func TestExtractTarToGcs(t *testing.T) {
 	mockStorageClient.EXPECT().
 		GetObjectReader("sourcebucket", "sourcepath/sometar.tar").
 		Return(ioutil.NopCloser(testTarFileReader), nil)
+
 	first := mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/file1.txt", gomock.Any()).Return(nil)
 	second := mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/file2.txt", gomock.Any()).Return(nil)
+	third := mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/file with spaces.txt", gomock.Any()).Return(nil)
 
-	gomock.InOrder(first, second)
+	gomock.InOrder(first, second, third)
 
 	tge := TarGcsExtractor{ctx: ctx, storageClient: mockStorageClient, logger: logging.NewLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
