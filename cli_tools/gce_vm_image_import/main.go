@@ -54,7 +54,7 @@ var (
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 	storageLocation      = flag.String("storage_location", "", "Location for the imported image which can be any GCS location. If the location parameter is not included, images are created in the multi-region associated with the source disk, image, snapshot or GCS bucket.")
 	uefiCompatible       = flag.Bool("uefi_compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
-	sysprepWindows       = flag.Bool("sysprep_windows", false, "Whether to generalize image using Windows Sysprep.")
+	sysprepWindows       = flag.Bool("sysprep_windows", false, "Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
 )
 
 func importEntry() (*daisy.Workflow, error) {

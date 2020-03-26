@@ -3,7 +3,7 @@
   "Vars": {
     "sysprep": {
       "Value": "false",
-      "Description": "If enabled, run Windows Sysprep. Only applicable to Windows instances."
+      "Description": "If enabled, run sysprep. This is a no-op for Linux."
     },
     "install_gce_packages": {
       "Value": "true",

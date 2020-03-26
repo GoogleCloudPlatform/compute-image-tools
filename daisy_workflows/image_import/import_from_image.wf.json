@@ -41,7 +41,7 @@
     },
     "sysprep_windows": {
       "Value": "false",
-      "Description": "If enabled, run Windows Sysprep. Only applicable to Windows instances."
+      "Description": "If enabled, run sysprep. This is a no-op for Linux."
     }
   },
   "Steps": {
