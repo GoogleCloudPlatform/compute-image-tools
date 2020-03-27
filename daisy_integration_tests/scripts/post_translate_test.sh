@@ -70,9 +70,22 @@ function check_internet_connectivity {
 
 # Check Google services.
 function check_google_services {
-  status "Checking if instance setup ran."
-  if [[ ! -f /etc/default/instance_configs.cfg ]]; then
-    fail "Instance setup failed."
+  if [[ -f /usr/bin/google_guest_agent ]]; then
+    status "Checking google-guest-agent"
+
+    # Upstart
+    if [[ -d /etc/init ]]; then
+      if initctl status google-guest-agent | grep -qv 'running'; then
+        fail "Google guest agent not running."
+      fi
+    else
+      service google-guest-agent status
+      if [[ $? -ne 0 ]]; then
+        fail "Google guest agent not running."
+      fi
+    fi
+
+    return 0
   fi
 
   # Upstart
