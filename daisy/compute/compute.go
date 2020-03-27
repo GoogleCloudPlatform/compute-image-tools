@@ -1246,7 +1246,7 @@ func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
 		return false, err
 	}
 	switch status {
-	case "PROVISIONING", "RUNNING", "STAGING", "STOPPING":
+	case "PROVISIONING", "REPAIRING", "RUNNING", "STAGING", "STOPPING":
 		return false, nil
 	case "TERMINATED", "STOPPED":
 		return true, nil
