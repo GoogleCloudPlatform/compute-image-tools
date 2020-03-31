@@ -135,7 +135,7 @@ func (r *baseResourceRegistry) regCreate(name string, res *Resource, s *Step, ov
 	}
 
 	if !overWrite {
-		if exists, err := resourceExists(r.w.ComputeClient, res.link); err != nil {
+		if exists, err := r.w.resourceExists(res.link); err != nil {
 			return Errf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
 		} else if exists {
 			return Errf("cannot create %s %q; resource already exists", r.typeName, name)
@@ -195,7 +195,7 @@ func (r *baseResourceRegistry) regURL(url string, checkExist bool) (*Resource, D
 		return r, nil
 	}
 	if checkExist {
-		exists, err := resourceExists(r.w.ComputeClient, url)
+		exists, err := r.w.resourceExists(url)
 		if !exists {
 			if err != nil {
 				return nil, err

@@ -27,31 +27,13 @@ import (
 )
 
 var (
-	targetInstanceCache    twoDResourceCache
 	targetInstanceURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/TargetInstances/(?P<targetInstance>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func targetInstanceExists(client daisyCompute.Client, project, zone, name string) (bool, DError) {
-	targetInstanceCache.mu.Lock()
-	defer targetInstanceCache.mu.Unlock()
-	if targetInstanceCache.exists == nil {
-		targetInstanceCache.exists = map[string]map[string][]interface{}{}
-	}
-	if _, ok := targetInstanceCache.exists[project]; !ok {
-		targetInstanceCache.exists[project] = map[string][]interface{}{}
-	}
-	if _, ok := targetInstanceCache.exists[project][zone]; !ok {
-		nl, err := client.ListTargetInstances(project, zone)
-		if err != nil {
-			return false, Errf("error listing target-instances for project %q: %v", project, err)
-		}
-		var targetInstances []interface{}
-		for _, ti := range nl {
-			targetInstances = append(targetInstances, ti.Name)
-		}
-		targetInstanceCache.exists[project][zone] = targetInstances
-	}
-	return strInSlice(name, targetInstanceCache.exists[project][zone]), nil
+func (w *Workflow) targetInstanceExists(project, zone, targetInstance string) (bool, DError) {
+	return w.targetInstanceCache.resourceExists(func(project, zone string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListTargetInstances(project, zone)
+	}, project, zone, targetInstance)
 }
 
 // TargetInstance is used to create a GCE targetInstance.

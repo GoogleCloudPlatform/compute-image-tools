@@ -29,32 +29,16 @@ import (
 )
 
 var (
-	diskCache        twoDResourceCache
 	diskURLRgx       = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/disks/(?P<disk>%[2]s)(/resize)?$`, projectRgxStr, rfc1035))
 	deviceNameURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/devices/(?P<disk>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 // diskExists should only be used during validation for existing GCE disks
 // and should not be relied or populated for daisy created resources.
-func diskExists(client daisyCompute.Client, project, zone, disk string) (bool, DError) {
-	if diskCache.exists == nil {
-		diskCache.exists = map[string]map[string][]interface{}{}
-	}
-	if _, ok := diskCache.exists[project]; !ok {
-		diskCache.exists[project] = map[string][]interface{}{}
-	}
-	if _, ok := diskCache.exists[project][zone]; !ok {
-		dl, err := client.ListDisks(project, zone)
-		if err != nil {
-			return false, Errf("error listing disks for project %q: %v", project, err)
-		}
-		var disks []interface{}
-		for _, d := range dl {
-			disks = append(disks, d.Name)
-		}
-		diskCache.exists[project][zone] = disks
-	}
-	return strInSlice(disk, diskCache.exists[project][zone]), nil
+func (w *Workflow) diskExists(project, zone, disk string) (bool, DError) {
+	return w.diskCache.resourceExists(func(project, zone string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListDisks(project, zone)
+	}, project, zone, disk)
 }
 
 // isDiskAttached should only be used during validation for existing attached GCE disks

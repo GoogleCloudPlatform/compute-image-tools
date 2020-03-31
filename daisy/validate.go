@@ -48,7 +48,7 @@ func (w *Workflow) validateRequiredFields() DError {
 		return Errf("project does not exist: %q", w.Project)
 	}
 	if w.Zone != "" {
-		if exists, err := zoneExists(w.ComputeClient, w.Project, w.Zone); err != nil {
+		if exists, err := w.zoneExists(w.Project, w.Zone); err != nil {
 			return Errf("bad zone lookup: %q, error: %v", w.Zone, err)
 		} else if !exists {
 			return Errf("zone does not exist: %q", w.Zone)

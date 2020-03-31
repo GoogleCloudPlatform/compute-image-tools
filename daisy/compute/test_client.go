@@ -92,6 +92,7 @@ type TestClient struct {
 	GetImageFromFamilyFn        func(project, family string) (*compute.Image, error)
 	ListImagesFn                func(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	GetLicenseFn                func(project, name string) (*compute.License, error)
+	ListLicensesFn              func(project string, opts ...ListCallOption) ([]*compute.License, error)
 	GetNetworkFn                func(project, name string) (*compute.Network, error)
 	AggregatedListSubnetworksFn func(project string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListNetworksFn              func(project string, opts ...ListCallOption) ([]*compute.Network, error)
@@ -469,6 +470,14 @@ func (c *TestClient) GetLicense(project, name string) (*compute.License, error) 
 		return c.GetLicenseFn(project, name)
 	}
 	return c.client.GetLicense(project, name)
+}
+
+// ListLicenses uses the override method ListLicensesFn or the real implementation.
+func (c *TestClient) ListLicenses(project string, opts ...ListCallOption) ([]*compute.License, error) {
+	if c.ListLicensesFn != nil {
+		return c.ListLicensesFn(project)
+	}
+	return c.client.ListLicenses(project)
 }
 
 // GetNetwork uses the override method GetNetworkFn or the real implementation.

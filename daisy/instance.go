@@ -40,7 +40,6 @@ const (
 )
 
 var (
-	instanceCache  twoDResourceCache
 	instanceURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/instances/(?P<instance>%[2]s)$`, projectRgxStr, rfc1035))
 	validDiskModes = []string{diskModeRO, diskModeRW}
 )
@@ -53,27 +52,10 @@ func checkDiskMode(m string) bool {
 
 // instanceExists should only be used during validation for existing GCE instances
 // and should not be relied or populated for daisy created resources.
-func instanceExists(client daisyCompute.Client, project, zone, instance string) (bool, DError) {
-	instanceCache.mu.Lock()
-	defer instanceCache.mu.Unlock()
-	if instanceCache.exists == nil {
-		instanceCache.exists = map[string]map[string][]interface{}{}
-	}
-	if _, ok := instanceCache.exists[project]; !ok {
-		instanceCache.exists[project] = map[string][]interface{}{}
-	}
-	if _, ok := instanceCache.exists[project][zone]; !ok {
-		il, err := client.ListInstances(project, zone)
-		if err != nil {
-			return false, Errf("error listing instances for project %q: %v", project, err)
-		}
-		var instances []interface{}
-		for _, i := range il {
-			instances = append(instances, i.Name)
-		}
-		instanceCache.exists[project][zone] = instances
-	}
-	return strInSlice(instance, instanceCache.exists[project][zone]), nil
+func (w *Workflow) instanceExists(project, zone, instance string) (bool, DError) {
+	return w.instanceCache.resourceExists(func(project, zone string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListInstances(project, zone)
+	}, project, zone, instance)
 }
 
 // MarshalJSON is a workaround to prevent Instance from using compute.Instance's implementation.
@@ -590,7 +572,7 @@ func (ib *InstanceBase) validate(ctx context.Context, ii InstanceInterface, s *S
 	pre := fmt.Sprintf("cannot create instance %q", ib.daisyName)
 	errs := ib.Resource.validateWithZone(ctx, s, ii.getZone(), pre)
 	errs = addErrs(errs, ib.validateDisks(ii, s))
-	errs = addErrs(errs, ib.validateMachineType(ii, s.w.ComputeClient))
+	errs = addErrs(errs, ib.validateMachineType(ii, s.w))
 	errs = addErrs(errs, ii.validateNetworks(s))
 	errs = addErrs(errs, ib.validateSourceMachineImage(ii, s))
 
@@ -717,7 +699,7 @@ func (ib *InstanceBase) validateDiskSource(diskSource string, ii InstanceInterfa
 	return errs
 }
 
-func (ib *InstanceBase) validateMachineType(ii InstanceInterface, client daisyCompute.Client) (errs DError) {
+func (ib *InstanceBase) validateMachineType(ii InstanceInterface, w *Workflow) (errs DError) {
 	if ii.getSourceMachineImage() != "" && ii.getMachineType() == "" {
 		return
 	}
@@ -735,7 +717,7 @@ func (ib *InstanceBase) validateMachineType(ii InstanceInterface, client daisyCo
 		errs = addErrs(errs, Errf("cannot create instance in zone %q with MachineType in zone %q: %q", ii.getZone(), result["zone"], ii.getMachineType()))
 	}
 
-	if exists, err := machineTypeExists(client, result["project"], result["zone"], result["machinetype"]); err != nil {
+	if exists, err := w.machineTypeExists(result["project"], result["zone"], result["machinetype"]); err != nil {
 		errs = addErrs(errs, Errf("cannot create instance, bad machineType lookup: %q, error: %v", result["machinetype"], err))
 	} else if !exists {
 		errs = addErrs(errs, Errf("cannot create instance, machineType does not exist: %q", result["machinetype"]))

@@ -28,31 +28,13 @@ import (
 )
 
 var (
-	subnetworkCache    twoDResourceCache
 	subnetworkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/subnetworks/(?P<subnetwork>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func subnetworkExists(client daisyCompute.Client, project, region, name string) (bool, DError) {
-	subnetworkCache.mu.Lock()
-	defer subnetworkCache.mu.Unlock()
-	if subnetworkCache.exists == nil {
-		subnetworkCache.exists = map[string]map[string][]interface{}{}
-	}
-	if _, ok := subnetworkCache.exists[project]; !ok {
-		subnetworkCache.exists[project] = map[string][]interface{}{}
-	}
-	if _, ok := subnetworkCache.exists[project][region]; !ok {
-		nl, err := client.ListSubnetworks(project, region)
-		if err != nil {
-			return false, Errf("error listing subnetworks for project %q: %v", project, err)
-		}
-		var subnetworks []interface{}
-		for _, sn := range nl {
-			subnetworks = append(subnetworks, sn.Name)
-		}
-		subnetworkCache.exists[project][region] = subnetworks
-	}
-	return strInSlice(name, subnetworkCache.exists[project][region]), nil
+func (w *Workflow) subnetworkExists(project, region, subnetwork string) (bool, DError) {
+	return w.subnetworkCache.resourceExists(func(project, region string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListSubnetworks(project, region)
+	}, project, region, subnetwork)
 }
 
 // Subnetwork is used to create a GCE subnetwork.

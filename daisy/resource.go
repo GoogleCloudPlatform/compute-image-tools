@@ -17,6 +17,7 @@ package daisy
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -98,7 +99,7 @@ func (r *Resource) validateWithZone(ctx context.Context, s *Step, z, errPrefix s
 	if z == "" {
 		errs = addErrs(errs, Errf("%s: no zone provided in step or workflow", errPrefix))
 	}
-	if exists, err := zoneExists(s.w.ComputeClient, r.Project, z); err != nil {
+	if exists, err := s.w.zoneExists(r.Project, z); err != nil {
 		errs = addErrs(errs, Errf("%s: bad zone lookup: %q, error: %v", errPrefix, z, err))
 	} else if !exists {
 		errs = addErrs(errs, Errf("%s: zone does not exist: %q", errPrefix, z))
@@ -111,7 +112,7 @@ func (r *Resource) validateWithRegion(ctx context.Context, s *Step, re, errPrefi
 	if re == "" {
 		errs = addErrs(errs, Errf("%s: no region provided in step or workflow", errPrefix))
 	}
-	if exists, err := regionExists(s.w.ComputeClient, r.Project, re); err != nil {
+	if exists, err := s.w.regionExists(r.Project, re); err != nil {
 		errs = addErrs(errs, Errf("%s: bad region lookup: %q, error: %v", errPrefix, re, err))
 	} else if !exists {
 		errs = addErrs(errs, Errf("%s: region does not exist: %q", errPrefix, re))
@@ -130,41 +131,41 @@ func extendPartialURL(url, project string) string {
 	return fmt.Sprintf("projects/%s/%s", project, url)
 }
 
-func resourceExists(client compute.Client, url string) (bool, DError) {
+func (w *Workflow) resourceExists(url string) (bool, DError) {
 	if !strings.HasPrefix(url, "projects/") {
 		return false, Errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
 	switch {
 	case machineTypeURLRegex.MatchString(url):
 		result := NamedSubexp(machineTypeURLRegex, url)
-		return machineTypeExists(client, result["project"], result["zone"], result["machinetype"])
+		return w.machineTypeExists(result["project"], result["zone"], result["machinetype"])
 	case instanceURLRgx.MatchString(url):
 		result := NamedSubexp(instanceURLRgx, url)
-		return instanceExists(client, result["project"], result["zone"], result["instance"])
+		return w.instanceExists(result["project"], result["zone"], result["instance"])
 	case diskURLRgx.MatchString(url):
 		result := NamedSubexp(diskURLRgx, url)
-		return diskExists(client, result["project"], result["zone"], result["disk"])
+		return w.diskExists(result["project"], result["zone"], result["disk"])
 	case imageURLRgx.MatchString(url):
 		result := NamedSubexp(imageURLRgx, url)
-		return imageExists(client, result["project"], result["family"], result["image"])
+		return w.imageExists(result["project"], result["family"], result["image"])
 	case machineImageURLRgx.MatchString(url):
 		result := NamedSubexp(machineImageURLRgx, url)
-		return machineImageExists(client, result["project"], result["machineImage"])
+		return w.machineImageExists(result["project"], result["machineImage"])
 	case networkURLRegex.MatchString(url):
 		result := NamedSubexp(networkURLRegex, url)
-		return networkExists(client, result["project"], result["network"])
+		return w.networkExists(result["project"], result["network"])
 	case subnetworkURLRegex.MatchString(url):
 		result := NamedSubexp(subnetworkURLRegex, url)
-		return subnetworkExists(client, result["project"], result["region"], result["subnetwork"])
+		return w.subnetworkExists(result["project"], result["region"], result["subnetwork"])
 	case targetInstanceURLRegex.MatchString(url):
 		result := NamedSubexp(targetInstanceURLRegex, url)
-		return targetInstanceExists(client, result["project"], result["zone"], result["targetInstance"])
+		return w.targetInstanceExists(result["project"], result["zone"], result["targetInstance"])
 	case forwardingRuleURLRegex.MatchString(url):
 		result := NamedSubexp(forwardingRuleURLRegex, url)
-		return forwardingRuleExists(client, result["project"], result["region"], result["forwardingRule"])
+		return w.forwardingRuleExists(result["project"], result["region"], result["forwardingRule"])
 	case firewallRuleURLRegex.MatchString(url):
 		result := NamedSubexp(firewallRuleURLRegex, url)
-		return firewallRuleExists(client, result["project"], result["firewallRule"])
+		return w.firewallRuleExists(result["project"], result["firewallRule"])
 	}
 	return false, Errf("unknown resource type: %q", url)
 }
@@ -177,23 +178,97 @@ func resourceNameHelper(name string, w *Workflow, exactName bool) string {
 }
 
 type twoDResourceCache struct {
-	exists map[string]map[string][]interface{}
+	exists map[string]map[string]map[string]interface{}
 	mu     sync.Mutex
-}
-
-func (rc *twoDResourceCache) cleanup() {
-	rc.mu.Lock()
-	defer rc.mu.Unlock()
-	rc.exists = nil
 }
 
 type oneDResourceCache struct {
-	exists map[string][]interface{}
+	exists map[string]map[string]interface{}
 	mu     sync.Mutex
 }
 
-func (rc *oneDResourceCache) cleanup() {
-	rc.mu.Lock()
-	defer rc.mu.Unlock()
-	rc.exists = nil
+// resourceExists should only be used during validation for existing GCE
+// resources and should not be relied or populated for daisy created resources.
+func (c *twoDResourceCache) resourceExists(listResourceFunc func(project, regionOrZone string, opts ...compute.ListCallOption) (interface{}, error),
+	project, regionOrZone, resourceName string) (bool, DError) {
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	err := c.loadCache(listResourceFunc, project, regionOrZone, resourceName)
+	if err != nil {
+		return false, err
+	}
+	return nameInResourceMap(resourceName, c.exists[project][regionOrZone]), nil
+}
+
+func (c *twoDResourceCache) loadCache(listResourceFunc func(project string, regionOrZone string, opts ...compute.ListCallOption) (interface{}, error),
+	project string, regionOrZone string, resourceName string) DError {
+
+	if resourceName == "" {
+		return Errf("must provide resource name")
+	}
+	if c.exists == nil {
+		c.exists = map[string]map[string]map[string]interface{}{}
+	}
+	if _, ok := c.exists[project]; !ok {
+		c.exists[project] = map[string]map[string]interface{}{}
+	}
+	if _, ok := c.exists[project][regionOrZone]; !ok {
+		ri, err := listResourceFunc(project, regionOrZone)
+		if err != nil {
+			return Errf("error listing resource for project %q: %v", project, err)
+		}
+		c.exists[project][regionOrZone] = toMap(ri)
+	}
+	return nil
+}
+
+// resourceExists should only be used during validation for existing GCE
+// resources and should not be relied or populated for daisy created resources.
+func (c *oneDResourceCache) resourceExists(listResourceFunc func(project string, opts ...compute.ListCallOption) (interface{}, error),
+	project, resourceName string) (bool, DError) {
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	err := c.loadCache(listResourceFunc, project, resourceName)
+	if err != nil {
+		return false, err
+	}
+
+	return nameInResourceMap(resourceName, c.exists[project]), nil
+}
+
+func (c *oneDResourceCache) loadCache(listResourceFunc func(project string, opts ...compute.ListCallOption) (interface{}, error), project string, resourceName string) DError {
+	if resourceName == "" {
+		return Errf("must provide resource name")
+	}
+	if c.exists == nil {
+		c.exists = map[string]map[string]interface{}{}
+	}
+	if _, ok := c.exists[project]; !ok {
+		ri, err := listResourceFunc(project)
+		if err != nil {
+			return Errf("error listing resource for project %q: %v", project, err)
+		}
+		c.exists[project] = toMap(ri)
+	}
+	return nil
+}
+
+func toMap(slice interface{}) map[string]interface{} {
+	s := reflect.ValueOf(slice)
+	ret := make(map[string]interface{}, s.Len())
+	for i := 0; i < s.Len(); i++ {
+		r := s.Index(i).Interface()
+		v := reflect.ValueOf(r)
+		name := reflect.Indirect(v).FieldByName("Name").String()
+		ret[name] = r
+	}
+	return ret
+}
+
+func nameInResourceMap(name string, m map[string]interface{}) bool {
+	_, ok := m[name]
+	return ok
 }
