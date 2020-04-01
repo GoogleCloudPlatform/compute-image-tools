@@ -56,7 +56,8 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "BuildSuccess:",
-            "FailureMatch": "BuildFailed:"
+            "FailureMatch": "BuildFailed:",
+            "StatusMatch": "BuildStatus:"
           }
         },
         {
@@ -64,7 +65,8 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "BuildSuccess:",
-            "FailureMatch": "BuildFailed:"
+            "FailureMatch": "BuildFailed:",
+            "StatusMatch": "BuildStatus:"
           }
         }
       ]
