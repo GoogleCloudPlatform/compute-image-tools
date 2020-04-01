@@ -64,13 +64,13 @@
           "Name": "disk-installer",
           "SizeGb": "50",
           "Type": "pd-ssd",
-          "GuestOsFeatures": ["UEFI_COMPATIBLE"]
+          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
         },
         {
           "Name": "${install_disk}",
           "SizeGb": "20",
           "Type": "pd-ssd",
-          "GuestOsFeatures": ["UEFI_COMPATIBLE"]
+          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
         }
       ]
     },
