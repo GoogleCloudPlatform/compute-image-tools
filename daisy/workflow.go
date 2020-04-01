@@ -154,6 +154,22 @@ type Workflow struct {
 	targetInstances *targetInstanceRegistry
 	objects         *objectRegistry
 
+	// Cache of resources
+	machineTypeCache    twoDResourceCache
+	instanceCache       twoDResourceCache
+	diskCache           twoDResourceCache
+	subnetworkCache     twoDResourceCache
+	targetInstanceCache twoDResourceCache
+	forwardingRuleCache twoDResourceCache
+	imageCache          oneDResourceCache
+	imageFamilyCache    oneDResourceCache
+	machineImageCache   oneDResourceCache
+	networkCache        oneDResourceCache
+	firewallRuleCache   oneDResourceCache
+	zonesCache          oneDResourceCache
+	regionsCache        oneDResourceCache
+	licenseCache        oneDResourceCache
+
 	stepTimeRecords             []TimeRecord
 	serialControlOutputValues   map[string]string
 	serialControlOutputValuesMx sync.Mutex
@@ -312,9 +328,6 @@ func (w *Workflow) GetStepTimeRecords() []TimeRecord {
 }
 
 func (w *Workflow) cleanup() {
-	// cleanup cache so the next workflow can have a clean env
-	defer cleanupCache()
-
 	startTime := time.Now()
 	w.LogWorkflowInfo("Workflow %q cleaning up (this may take up to 2 minutes).", w.Name)
 
@@ -343,22 +356,6 @@ func (w *Workflow) cleanup() {
 	}
 	w.LogWorkflowInfo("Workflow %q finished cleanup.", w.Name)
 	w.recordStepTime("workflow cleanup", startTime, time.Now())
-}
-
-func cleanupCache() {
-	diskCache.cleanup()
-	instanceCache.cleanup()
-	imageCache.cleanup()
-	networkCache.cleanup()
-	machineImageCache.cleanup()
-	machineTypeCache.cleanup()
-	licenseCache.cleanup()
-	targetInstanceCache.cleanup()
-	regionsCache.cleanup()
-	subnetworkCache.cleanup()
-	zonesCache.cleanup()
-	forwardingRuleCache.cleanup()
-	firewallRuleCache.cleanup()
 }
 
 func (w *Workflow) genName(n string) string {

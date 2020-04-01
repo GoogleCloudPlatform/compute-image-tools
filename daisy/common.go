@@ -98,15 +98,6 @@ func strIn(s string, ss []string) bool {
 	return false
 }
 
-func strInSlice(s string, ss []interface{}) bool {
-	for _, x := range ss {
-		if s == x {
-			return true
-		}
-	}
-	return false
-}
-
 func strLitPtr(s string) *string {
 	return &s
 }

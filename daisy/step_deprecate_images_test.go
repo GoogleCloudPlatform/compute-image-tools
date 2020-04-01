@@ -146,5 +146,4 @@ func TestDeprecateImagesRun(t *testing.T) {
 			t.Errorf("%s: unexpected error returned, got: %v, want: %v", tt.desc, err, tt.wantErr)
 		}
 	}
-
 }

@@ -27,31 +27,13 @@ import (
 )
 
 var (
-	forwardingRuleCache    twoDResourceCache
 	forwardingRuleURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/forwardingRules/(?P<forwardingRule>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func forwardingRuleExists(client daisyCompute.Client, project, region, name string) (bool, DError) {
-	forwardingRuleCache.mu.Lock()
-	defer forwardingRuleCache.mu.Unlock()
-	if forwardingRuleCache.exists == nil {
-		forwardingRuleCache.exists = map[string]map[string][]interface{}{}
-	}
-	if _, ok := forwardingRuleCache.exists[project]; !ok {
-		forwardingRuleCache.exists[project] = map[string][]interface{}{}
-	}
-	if _, ok := forwardingRuleCache.exists[project][region]; !ok {
-		nl, err := client.ListForwardingRules(project, region)
-		if err != nil {
-			return false, Errf("error listing forwarding-rules for project %q: %v", project, err)
-		}
-		var forwardingRules []interface{}
-		for _, fr := range nl {
-			forwardingRules = append(forwardingRules, fr.Name)
-		}
-		forwardingRuleCache.exists[project][region] = forwardingRules
-	}
-	return strInSlice(name, forwardingRuleCache.exists[project][region]), nil
+func (w *Workflow) forwardingRuleExists(project, region, forwardingRule string) (bool, DError) {
+	return w.forwardingRuleCache.resourceExists(func(project, region string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListForwardingRules(project, region)
+	}, project, region, forwardingRule)
 }
 
 // ForwardingRule is used to create a GCE forwardingRule.

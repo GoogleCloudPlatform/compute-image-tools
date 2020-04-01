@@ -18,24 +18,13 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 var licenseURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/licenses/(?P<license>%[2]s)$`, projectRgxStr, rfc1035))
 
-var licenseCache oneDResourceCache
-
-func licenseExists(client compute.Client, project, license string) (bool, DError) {
-	licenseCache.mu.Lock()
-	defer licenseCache.mu.Unlock()
-	if licenseCache.exists == nil {
-		licenseCache.exists = map[string][]interface{}{}
-	}
-	if _, ok := licenseCache.exists[project]; !ok || !strInSlice(license, licenseCache.exists[project]) {
-		if _, err := client.GetLicense(project, license); err != nil {
-			return false, typedErr(apiError, "failed to get license", err)
-		}
-		licenseCache.exists[project] = append(licenseCache.exists[project], license)
-	}
-	return true, nil
+func (w *Workflow) licenseExists(project, license string) (bool, DError) {
+	return w.licenseCache.resourceExists(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListLicenses(project)
+	}, project, license)
 }

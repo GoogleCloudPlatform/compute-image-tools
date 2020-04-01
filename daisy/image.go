@@ -30,28 +30,26 @@ import (
 )
 
 var (
-	imageCache       oneDResourceCache
-	imageFamilyCache oneDResourceCache
-	imageURLRgx      = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
+	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
 )
 
 // imageExists should only be used during validation for existing GCE images
 // and should not be relied or populated for daisy created resources.
-func imageExists(client daisyCompute.Client, project, family, name string) (bool, DError) {
+func (w *Workflow) imageExists(project, family, image string) (bool, DError) {
 	if family != "" {
-		imageFamilyCache.mu.Lock()
-		defer imageFamilyCache.mu.Unlock()
-		if imageFamilyCache.exists == nil {
-			imageFamilyCache.exists = map[string][]interface{}{}
+		w.imageFamilyCache.mu.Lock()
+		defer w.imageFamilyCache.mu.Unlock()
+		if w.imageFamilyCache.exists == nil {
+			w.imageFamilyCache.exists = map[string]map[string]interface{}{}
 		}
-		if _, ok := imageFamilyCache.exists[project]; !ok {
-			imageFamilyCache.exists[project] = []interface{}{}
+		if _, ok := w.imageFamilyCache.exists[project]; !ok {
+			w.imageFamilyCache.exists[project] = map[string]interface{}{}
 		}
-		if strInSlice(name, imageFamilyCache.exists[project]) {
+		if nameInResourceMap(image, w.imageFamilyCache.exists[project]) {
 			return true, nil
 		}
 
-		img, err := client.GetImageFromFamily(project, family)
+		img, err := w.ComputeClient.GetImageFromFamily(project, family)
 		if err != nil {
 			if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
 				return false, nil
@@ -63,34 +61,26 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", img.Name, img.Deprecated.State)
 			}
 		}
-		imageFamilyCache.exists[project] = append(imageFamilyCache.exists[project], name)
+		w.imageFamilyCache.exists[project][img.Name] = img
 		return true, nil
 	}
 
-	if name == "" {
+	if image == "" {
 		return false, Errf("must provide either family or name")
 	}
-	imageCache.mu.Lock()
-	defer imageCache.mu.Unlock()
-	if imageCache.exists == nil {
-		imageCache.exists = map[string][]interface{}{}
-	}
-	if _, ok := imageCache.exists[project]; !ok {
-		il, err := client.ListImages(project)
-		if err != nil {
-			return false, Errf("error listing images for project %q: %v", project, err)
-		}
-		ila := make([]interface{}, len(il))
-		for _, i := range il {
-			ila = append(ila, i)
-		}
-		imageCache.exists[project] = ila
+	w.imageCache.mu.Lock()
+	defer w.imageCache.mu.Unlock()
+	err := w.imageCache.loadCache(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListImages(project)
+	}, project, image)
+	if err != nil {
+		return false, err
 	}
 
-	for _, i := range imageCache.exists[project] {
-		if ic, ok := i.(*compute.Image); ok && name == ic.Name {
+	for _, i := range w.imageCache.exists[project] {
+		if ic, ok := i.(*compute.Image); ok && image == ic.Name {
 			if ic.Deprecated != nil && (ic.Deprecated.State == "OBSOLETE" || ic.Deprecated.State == "DELETED") {
-				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", name, ic.Deprecated.State)
+				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", image, ic.Deprecated.State)
 			}
 			return true, nil
 		}
@@ -366,7 +356,7 @@ func (ib *ImageBase) validate(ctx context.Context, ii ImageInterface, licenses [
 	// License checking.
 	for _, l := range licenses {
 		result := NamedSubexp(licenseURLRegex, l)
-		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
+		if exists, err := s.w.licenseExists(result["project"], result["license"]); err != nil {
 			if !(isGoogleAPIForbiddenError(err) && ib.IgnoreLicenseValidationIfForbidden) {
 				errs = addErrs(errs, Errf("%s: bad license lookup: %q, error: %v", pre, l, err))
 			}

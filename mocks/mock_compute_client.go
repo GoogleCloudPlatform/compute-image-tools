@@ -861,6 +861,26 @@ func (mr *MockClientMockRecorder) ListInstances(arg0, arg1 interface{}, arg2 ...
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInstances", reflect.TypeOf((*MockClient)(nil).ListInstances), varargs...)
 }
 
+// ListLicenses mocks base method
+func (m *MockClient) ListLicenses(arg0 string, arg1 ...compute.ListCallOption) ([]*v1.License, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0}
+	for _, a := range arg1 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ListLicenses", varargs...)
+	ret0, _ := ret[0].([]*v1.License)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListLicenses indicates an expected call of ListLicenses
+func (mr *MockClientMockRecorder) ListLicenses(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0}, arg1...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLicenses", reflect.TypeOf((*MockClient)(nil).ListLicenses), varargs...)
+}
+
 // ListMachineImages mocks base method
 func (m *MockClient) ListMachineImages(arg0 string, arg1 ...compute.ListCallOption) ([]*v0_beta.MachineImage, error) {
 	m.ctrl.T.Helper()

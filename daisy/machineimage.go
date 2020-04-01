@@ -21,47 +21,21 @@ import (
 	"net/http"
 	"regexp"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/googleapi"
-
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 var (
-	machineImageCache  oneDResourceCache
 	machineImageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/machineImages\/(?P<machineImage>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 // machineImageExists should only be used during validation for existing GCE
 // machine images and should not be relied or populated for daisy created resources.
-func machineImageExists(client daisyCompute.Client, project, name string) (bool, DError) {
-	if name == "" {
-		return false, Errf("must provide machine image name")
-	}
-	machineImageCache.mu.Lock()
-	defer machineImageCache.mu.Unlock()
-	if machineImageCache.exists == nil {
-		machineImageCache.exists = map[string][]interface{}{}
-	}
-	if _, ok := machineImageCache.exists[project]; !ok {
-		il, err := client.ListMachineImages(project)
-		if err != nil {
-			return false, Errf("error listing machine images for project %q: %v", project, err)
-		}
-		ila := make([]interface{}, len(il))
-		for _, i := range il {
-			ila = append(ila, i)
-		}
-		machineImageCache.exists[project] = ila
-	}
-
-	for _, i := range machineImageCache.exists[project] {
-		if ic, ok := i.(*computeBeta.MachineImage); ok && name == ic.Name {
-			return true, nil
-		}
-	}
-
-	return false, nil
+func (w *Workflow) machineImageExists(project, machineImage string) (bool, DError) {
+	return w.machineImageCache.resourceExists(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListMachineImages(project)
+	}, project, machineImage)
 }
 
 // MachineImage is used to create a GCE machine image.

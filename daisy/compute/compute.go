@@ -75,6 +75,7 @@ type Client interface {
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
+	ListLicenses(project string, opts ...ListCallOption) ([]*compute.License, error)
 	ListZones(project string, opts ...ListCallOption) ([]*compute.Zone, error)
 	ListRegions(project string, opts ...ListCallOption) ([]*compute.Region, error)
 	AggregatedListInstances(project string, opts ...ListCallOption) ([]*compute.Instance, error)
@@ -1224,6 +1225,30 @@ func (c *client) GetLicense(project, name string) (*compute.License, error) {
 		return c.raw.Licenses.Get(project, name).Do()
 	}
 	return l, err
+}
+
+// ListLicenses gets a list GCE Licenses.
+func (c *client) ListLicenses(project string, opts ...ListCallOption) ([]*compute.License, error) {
+	var ls []*compute.License
+	var pt string
+	call := c.raw.Licenses.List(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.LicensesListCall)
+	}
+	for ll, err := call.PageToken(pt).Do(); ; ll, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			ll, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		ls = append(ls, ll.Items...)
+
+		if ll.NextPageToken == "" {
+			return ls, nil
+		}
+		pt = ll.NextPageToken
+	}
 }
 
 // InstanceStatus returns an instances Status.

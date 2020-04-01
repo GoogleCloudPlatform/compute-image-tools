@@ -27,28 +27,13 @@ import (
 )
 
 var (
-	firewallRuleCache    oneDResourceCache
 	firewallRuleURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/firewalls/(?P<firewallRule>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func firewallRuleExists(client daisyCompute.Client, project, name string) (bool, DError) {
-	firewallRuleCache.mu.Lock()
-	defer firewallRuleCache.mu.Unlock()
-	if firewallRuleCache.exists == nil {
-		firewallRuleCache.exists = map[string][]interface{}{}
-	}
-	if _, ok := firewallRuleCache.exists[project]; !ok {
-		nl, err := client.ListFirewallRules(project)
-		if err != nil {
-			return false, Errf("error listing firewall-rules for project %q: %v", project, err)
-		}
-		var firewallRules []interface{}
-		for _, fir := range nl {
-			firewallRules = append(firewallRules, fir.Name)
-		}
-		firewallRuleCache.exists[project] = firewallRules
-	}
-	return strInSlice(name, firewallRuleCache.exists[project]), nil
+func (w *Workflow) firewallRuleExists(project, firewallRule string) (bool, DError) {
+	return w.firewallRuleCache.resourceExists(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListFirewallRules(project)
+	}, project, firewallRule)
 }
 
 // FirewallRule is used to create a GCE firewallRule.

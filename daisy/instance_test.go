@@ -656,7 +656,7 @@ func TestInstanceValidateMachineType(t *testing.T) {
 		if mt != "custom" {
 			return nil, errors.New("bad machine type")
 		}
-		return nil, nil
+		return &compute.MachineType{Name: "custom"}, nil
 	}
 
 	c.GetMachineTypeFn = getMachineTypeFn
@@ -682,11 +682,12 @@ func TestInstanceValidateMachineType(t *testing.T) {
 		}
 	}
 	for _, tt := range tests {
+		w := &Workflow{ComputeClient: c}
 		ci := &Instance{Instance: compute.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
-		assertTest(tt.shouldErr, (&ci.InstanceBase).validateMachineType(ci, c), tt.desc)
+		assertTest(tt.shouldErr, (&ci.InstanceBase).validateMachineType(ci, w), tt.desc)
 
 		ciBeta := &InstanceBeta{Instance: computeBeta.Instance{MachineType: tt.mt, Zone: testZone}, InstanceBase: InstanceBase{Resource: Resource{Project: testProject}}}
-		assertTest(tt.shouldErr, (&ciBeta.InstanceBase).validateMachineType(ciBeta, c), tt.desc+" beta")
+		assertTest(tt.shouldErr, (&ciBeta.InstanceBase).validateMachineType(ciBeta, w), tt.desc+" beta")
 	}
 }
 

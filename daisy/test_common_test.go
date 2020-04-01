@@ -207,14 +207,11 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return []*compute.ForwardingRule{{Name: testForwardingRule}}, nil
 	}
-	c.GetLicenseFn = func(p, l string) (*compute.License, error) {
+	c.ListLicensesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.License, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
-		if l != testLicense {
-			return nil, errors.New("bad license: " + l)
-		}
-		return nil, nil
+		return []*compute.License{{Name: testLicense}}, nil
 	}
 	c.ListNetworksFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Network, error) {
 		if p != testProject {
