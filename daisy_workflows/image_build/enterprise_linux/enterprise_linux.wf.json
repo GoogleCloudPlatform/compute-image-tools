@@ -62,7 +62,7 @@
         },
         {
           "Name": "${install_disk}",
-          "SizeGb": "10",
+          "SizeGb": "20",
           "Type": "pd-ssd"
         }
       ]
