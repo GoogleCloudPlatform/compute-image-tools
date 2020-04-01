@@ -28,7 +28,7 @@ func (w *Workflow) machineTypeExists(project, zone, machineType string) (bool, D
 		return w.ComputeClient.ListMachineTypes(project, zone)
 	}, project, zone, machineType)
 	if err != nil {
-		return predefinedMachineTypeExists, err
+		return false, err
 	}
 	if predefinedMachineTypeExists {
 		return true, nil
