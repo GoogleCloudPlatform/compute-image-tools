@@ -87,7 +87,6 @@ def main():
   utils.Execute(['rsync', '-Pav', 'iso/EFI', 'iso/images', 'boot/'])
   utils.Execute(['cp', iso_file, 'installer/'])
   utils.Execute(['cp', ks_cfg, 'installer/'])
-  utils.Execute(['cp', '-r', '/files/sb_keys', 'installer/'])
 
   # Modify boot config.
   with open('boot/EFI/BOOT/grub.cfg', 'r+') as f:
@@ -111,8 +110,10 @@ def main():
       args += ' inst.nosave=all'
     cfg = re.sub(r'inst\.stage2.*', r'\g<0> %s' % args, cfg)
 
-    if release in ['centos7', 'rhel7', 'oraclelinux7', 'centos8', 'rhel8']:
-      cfg = re.sub(r'LABEL=[^ :]+', 'LABEL=INSTALLER', cfg)
+    # Change labels to explicit partitions.
+    if release.startswith(('centos7', 'rhel7', 'rhel-7', 'oraclelinux7',
+                           'centos8', 'rhel8')):
+      cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.
     diff = difflib.Differ().compare(
@@ -123,11 +124,6 @@ def main():
     f.seek(0)
     f.write(cfg)
     f.truncate()
-
-  logging.info("Creating gsetup boot path file\n")
-  utils.Execute(['mkdir', '-p', 'boot/EFI/Google/gsetup'])
-  with open('boot/EFI/Google/gsetup/boot', 'w') as g:
-    g.write("\\EFI\\BOOT\\grubx64.efi\n")
 
   utils.Execute(['umount', 'installer'])
   utils.Execute(['umount', 'iso'])
