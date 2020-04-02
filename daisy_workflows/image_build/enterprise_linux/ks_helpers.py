@@ -235,9 +235,6 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
     custom_post = '\n'.join([rhel_post, el_post])
     if byos:
       custom_post = '\n'.join([custom_post, rhel_byos_post])
-    if uefi:
-      el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg')
-      custom_post = '\n'.join([custom_post, el7_uefi_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
@@ -249,10 +246,6 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
       ks_options = FetchConfigPart('el7-options.cfg')
     custom_post = FetchConfigPart('el7-post.cfg').replace('__PACKAGES__',
                                                           packages)
-    if uefi:
-      el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg').replace('redhat',
-                                                                   "centos")
-      custom_post = '\n'.join([custom_post, el7_uefi_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "oraclelinux6":
