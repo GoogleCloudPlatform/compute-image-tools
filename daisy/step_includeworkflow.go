@@ -68,10 +68,9 @@ func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) DError {
 
 	var errs DError
 Loop:
-	for k, v := range i.Vars {
+	for k := range i.Vars {
 		for wv := range i.Workflow.Vars {
 			if k == wv {
-				i.Workflow.AddVar(k, v)
 				continue Loop
 			}
 		}
