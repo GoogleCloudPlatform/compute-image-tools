@@ -250,6 +250,20 @@ func (mr *MockClientMockRecorder) CreateNetwork(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNetwork", reflect.TypeOf((*MockClient)(nil).CreateNetwork), arg0, arg1)
 }
 
+// CreateSnapshot mocks base method
+func (m *MockClient) CreateSnapshot(arg0, arg1, arg2 string, arg3 *v1.Snapshot) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSnapshot", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateSnapshot indicates an expected call of CreateSnapshot
+func (mr *MockClientMockRecorder) CreateSnapshot(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSnapshot", reflect.TypeOf((*MockClient)(nil).CreateSnapshot), arg0, arg1, arg2, arg3)
+}
+
 // CreateSubnetwork mocks base method
 func (m *MockClient) CreateSubnetwork(arg0, arg1 string, arg2 *v1.Subnetwork) error {
 	m.ctrl.T.Helper()

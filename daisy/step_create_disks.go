@@ -64,6 +64,13 @@ func (c *CreateDisks) run(ctx context.Context, s *Step) DError {
 				}
 			}
 
+			// Get the source snapshot link if using a source snapshot.
+			if cd.SourceSnapshot != "" {
+				if snapshot, ok := w.snapshots.get(cd.SourceSnapshot); ok {
+					cd.SourceSnapshot = snapshot.link
+				}
+			}
+
 			w.LogStepInfo(s.name, "CreateDisks", "Creating disk %q.", cd.Name)
 			if err := w.ComputeClient.CreateDisk(cd.Project, cd.Zone, &cd.Disk); err != nil {
 				// Fallback to pd-standard to avoid quota issue.

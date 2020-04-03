@@ -27,6 +27,7 @@ func TestCreateDisksRun(t *testing.T) {
 	w := testWorkflow()
 	s := &Step{w: w}
 	w.images.m = map[string]*Resource{"i1": {RealName: "i1", link: "i1link"}}
+	w.snapshots.m = map[string]*Resource{"ss1": {RealName: "ss1", link: "ss1link"}}
 
 	e := Errf("error")
 	quotaExceededErr := Errf("Some error\nCode: QUOTA_EXCEEDED\nMessage: some message.")
@@ -43,6 +44,7 @@ func TestCreateDisksRun(t *testing.T) {
 		{"client error case", compute.Disk{}, compute.Disk{}, []error{e}, e, false},
 		{"not fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-ssd"}, []error{e}, e, true},
 		{"fallback to pd-standard case", compute.Disk{Type: "prefix/pd-ssd"}, compute.Disk{Type: "prefix/pd-standard"}, []error{quotaExceededErr, nil}, nil, true},
+		{"create from snapshot case", compute.Disk{SourceSnapshot: "ss1"}, compute.Disk{SourceSnapshot: "ss1link"}, nil, nil, false},
 	}
 	for _, tt := range tests {
 		var gotD compute.Disk

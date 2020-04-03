@@ -131,8 +131,12 @@ func (d *Disk) validate(ctx context.Context, s *Step) DError {
 		if _, err := s.w.images.regUse(d.SourceImage, s); err != nil {
 			errs = addErrs(errs, Errf("%s: can't use image %q: %v", pre, d.SourceImage, err))
 		}
+	} else if d.SourceSnapshot != "" {
+		if _, err := s.w.snapshots.regUse(d.SourceSnapshot, s); err != nil {
+			errs = addErrs(errs, Errf("%s: can't use snapshot %q: %v", pre, d.SourceSnapshot, err))
+		}
 	} else if d.Disk.SizeGb == 0 {
-		errs = addErrs(errs, Errf("%s: SizeGb and SourceImage not set", pre))
+		errs = addErrs(errs, Errf("%s: SizeGb, SourceSnapshot or SourceImage not set", pre))
 	}
 
 	// Register creation.
@@ -187,6 +191,11 @@ func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *St
 	pre := fmt.Sprintf("step %q cannot detach disk %q from instance %q", s.name, dName, iName)
 
 	var att *diskAttachment
+
+	// if the disk has already been attached before workflow is executed, skip validating its attacher
+	if isAttached {
+		return nil
+	}
 
 	if im, _ := dr.attachments[dName]; im == nil {
 		return Errf("%s: not attached", pre)

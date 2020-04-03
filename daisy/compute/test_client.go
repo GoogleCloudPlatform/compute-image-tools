@@ -56,6 +56,7 @@ type TestClient struct {
 	CreateImageFn               func(project string, i *compute.Image) error
 	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn             func(project string, n *compute.Network) error
+	CreateSnapshotFn            func(project, zone, disk string, s *compute.Snapshot) error
 	CreateSubnetworkFn          func(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstanceFn      func(project, zone string, ti *compute.TargetInstance) error
 	StartInstanceFn             func(project, zone, name string) error
@@ -336,9 +337,17 @@ func (c *TestClient) ListZones(project string, opts ...ListCallOption) ([]*compu
 	return c.client.ListZones(project, opts...)
 }
 
+// CreateSnapshot uses the override method CreateSnapshotFn or the real implementation.
+func (c *TestClient) CreateSnapshot(project, zone, disk string, s *compute.Snapshot) error {
+	if c.CreateSnapshotFn != nil {
+		return c.CreateSnapshotFn(project, zone, disk, s)
+	}
+	return c.client.CreateSnapshot(project, zone, disk, s)
+}
+
 // GetSnapshot uses the override method GetSnapshotFn or the real implementation.
 func (c *TestClient) GetSnapshot(project, name string) (*compute.Snapshot, error) {
-	if c.GetInstanceFn != nil {
+	if c.GetSnapshotFn != nil {
 		return c.GetSnapshotFn(project, name)
 	}
 	return c.client.GetSnapshot(project, name)
@@ -346,7 +355,7 @@ func (c *TestClient) GetSnapshot(project, name string) (*compute.Snapshot, error
 
 // ListSnapshots uses the override method ListSnapshotsFn or the real implementation.
 func (c *TestClient) ListSnapshots(project string, opts ...ListCallOption) ([]*compute.Snapshot, error) {
-	if c.GetInstanceFn != nil {
+	if c.ListSnapshotsFn != nil {
 		return c.ListSnapshotsFn(project, opts...)
 	}
 	return c.client.ListSnapshots(project, opts...)
@@ -354,7 +363,7 @@ func (c *TestClient) ListSnapshots(project string, opts ...ListCallOption) ([]*c
 
 // DeleteSnapshot uses the override method DeleteSnapshotFn or the real implementation.
 func (c *TestClient) DeleteSnapshot(project, name string) error {
-	if c.GetInstanceFn != nil {
+	if c.DeleteSnapshotFn != nil {
 		return c.DeleteSnapshotFn(project, name)
 	}
 	return c.client.DeleteSnapshot(project, name)

@@ -166,6 +166,9 @@ func (w *Workflow) resourceExists(url string) (bool, DError) {
 	case firewallRuleURLRegex.MatchString(url):
 		result := NamedSubexp(firewallRuleURLRegex, url)
 		return w.firewallRuleExists(result["project"], result["firewallRule"])
+	case snapshotURLRgx.MatchString(url):
+		result := NamedSubexp(snapshotURLRgx, url)
+		return w.snapshotExists(result["project"], result["snapshot"])
 	}
 	return false, Errf("unknown resource type: %q", url)
 }

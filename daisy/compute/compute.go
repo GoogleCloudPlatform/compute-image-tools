@@ -43,6 +43,7 @@ type Client interface {
 	CreateInstance(project, zone string, i *compute.Instance) error
 	CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
+	CreateSnapshot(project, zone, disk string, s *compute.Snapshot) error
 	CreateSubnetwork(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
 	DeleteDisk(project, zone, name string) error
@@ -1049,6 +1050,26 @@ func (c *client) ListImages(project string, opts ...ListCallOption) ([]*compute.
 		}
 		pt = il.NextPageToken
 	}
+}
+
+// CreateSnapshot creates a GCE snapshot.
+// SourceDisk is the url (full or partial) to the source disk.
+func (c *client) CreateSnapshot(project, zone, disk string, s *compute.Snapshot) error {
+	op, err := c.Retry(c.raw.Disks.CreateSnapshot(project, zone, disk, s).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
+		return err
+	}
+
+	var createdSnapshot *compute.Snapshot
+	if createdSnapshot, err = c.i.GetSnapshot(project, s.Name); err != nil {
+		return err
+	}
+	*s = *createdSnapshot
+	return nil
 }
 
 // GetSnapshot gets a GCE Snapshot.

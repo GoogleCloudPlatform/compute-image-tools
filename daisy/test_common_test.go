@@ -80,6 +80,7 @@ var (
 	testFirewallRule   = "test-firewall-rule"
 	testImage          = "test-image"
 	testMachineImage   = "test-machine-image"
+	testSnapshot       = "test-snapshot"
 	testInstance       = "test-instance"
 	testMachineType    = "test-machine-type"
 	testLicense        = "test-license"
@@ -197,6 +198,12 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return nil, errors.New("bad zone: " + z)
 		}
 		return []*compute.Disk{{Name: testDisk}}, nil
+	}
+	c.ListSnapshotsFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Snapshot, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		return []*compute.Snapshot{{Name: testSnapshot}}, nil
 	}
 	c.ListForwardingRulesFn = func(p, r string, _ ...daisyCompute.ListCallOption) ([]*compute.ForwardingRule, error) {
 		if p != testProject {
