@@ -45,7 +45,8 @@ func initAndValidateSource(sourceFile, sourceImage string,
 	if sourceFile == "" && sourceImage == "" {
 		return nil, daisy.Errf(
 			"either -source_file or -source_image has to be specified")
-	} else if sourceFile != "" && sourceImage != "" {
+	}
+	if sourceFile != "" && sourceImage != "" {
 		return nil, daisy.Errf(
 			"either -source_file or -source_image has to be specified, but not both %v %v",
 			sourceFile, sourceImage)
@@ -147,22 +148,15 @@ func newImageSource(imagePath string) (resource, error) {
 var imageNamePattern = regexp.MustCompile("^[a-z]([-a-z0-9]*[a-z0-9])?$")
 
 // Performs basic validation, focusing on error cases that
-// we've seen in the past.
+// we've seen in the past. Specifically:
+//  1. Using GCS paths, eg `gs://bucket/image.vmdk`
+//  2. Referencing a file, eg `image.vmdk`
 //
-// Two key offenders:
-//   1. Using a file path instead of an image name.
-//     Examples:
-//        - file://home/user/image.vmdk
-//        - gs://bucket/image.vmdk
-//        - gs://global/images/image
-//        - https://storage.googleapis.com/bucket/image
-//   2. Using a relative file path instead of an image name.
-//     Examples:
-//        - image.vmdk
-//        - path/to/image.vmdk
-//
-// This method does not validate whether the image exist, or whether
-// the calling user has access to it.
+// This method does not validate:
+//  1. Whether the image exists.
+//  2. Whether the calling user has access to it.
+//  3. Whether the user's input is a well-formed
+//     [GCP resource URI](https://cloud.google.com/apis/design/resource_names)
 func (s imageSource) validate() error {
 	parsed, err := url.Parse(s.uri)
 	if err != nil {

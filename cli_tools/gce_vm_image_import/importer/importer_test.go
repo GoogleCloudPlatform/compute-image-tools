@@ -145,16 +145,6 @@ func TestFlagsDataDiskAndOSFlagsBothProvided(t *testing.T) {
 	assertErrorOnValidate("Expected error for both os and data_disk set at the same time", t)
 }
 
-func TestFlagsSourceFile(t *testing.T) {
-	resetArgs()
-	dataDisk = false
-
-	if _, err := validateAndParseFlags(clientID, imageName, dataDisk,
-		osID, customTranWorkflow, labels); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-}
-
 func TestFlagsDataDisk(t *testing.T) {
 	resetArgs()
 	osID = ""

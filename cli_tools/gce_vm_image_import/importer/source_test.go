@@ -26,54 +26,54 @@ import (
 )
 
 func TestEmptyFilesAreRejected(t *testing.T) {
-	emptyReader := ioutil.NopCloser(strings.NewReader(""))
+	source := fileSource{
+		gcsPath: "gs://bucket/global/images/ubuntu-1604",
+		bucket:  "bucket",
+		object:  "global/images/ubuntu-1604",
+	}
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader("bucket", "empty.vmdk").Return(emptyReader, nil)
+	fileContent := ""
 
-	_, err := initAndValidateSource("gs://bucket/empty.vmdk", "", mockStorageClient)
+	_, err := initAndValidateSource(source.path(), "",
+		createMockStorageClient(t, source, fileContent))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot import an image from an empty file")
 }
 
 func TestGzipCompressedFilesAreRejected(t *testing.T) {
-	fileString := test.CreateCompressedFile()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader("bucket", "compressed.tar.gz").Return(
-		ioutil.NopCloser(strings.NewReader(fileString)), nil)
+	source := fileSource{
+		gcsPath: "gs://bucket/global/images/ubuntu-1604",
+		bucket:  "bucket",
+		object:  "global/images/ubuntu-1604",
+	}
 
-	_, err := initAndValidateSource("gs://bucket/compressed.tar.gz", "", mockStorageClient)
+	fileContent := test.CreateCompressedFile()
+
+	_, err := initAndValidateSource(source.path(), "",
+		createMockStorageClient(t, source, fileContent))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "the input file is a gzip file, which is not supported")
 }
 
 func TestUncompressedFilesAreAllowed(t *testing.T) {
-	fileString := "random content"
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader("bucket", "path/to/file.vmdk").Return(
-		ioutil.NopCloser(strings.NewReader(fileString)), nil)
-
-	source, err := initAndValidateSource("gs://bucket/path/to/file.vmdk", "", mockStorageClient)
-	assert.NoError(t, err)
-	assert.Equal(t, source, fileSource{
-		gcsPath: "gs://bucket/path/to/file.vmdk",
+	source := fileSource{
+		gcsPath: "gs://bucket/global/images/ubuntu-1604",
 		bucket:  "bucket",
-		object:  "path/to/file.vmdk",
-	})
+		object:  "global/images/ubuntu-1604",
+	}
+
+	fileContent := "fileContent"
+
+	result, err := initAndValidateSource(source.path(), "",
+		createMockStorageClient(t, source, fileContent))
+	assert.NoError(t, err)
+	assert.Equal(t, result, source)
 }
 
 func TestGcsFilePathMustBeFullyQualified(t *testing.T) {
-	cases := []string{"file.vmdk", "gs://bucket", "gs://bucket/"}
-
-	for _, invalidPath := range cases {
+	for _, invalidPath := range []string{"file.vmdk", "gs://bucket", "gs://bucket/"} {
 		_, err := initAndValidateSource(invalidPath, "", nil)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "is not a valid Cloud Storage object path")
@@ -81,13 +81,55 @@ func TestGcsFilePathMustBeFullyQualified(t *testing.T) {
 }
 
 func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
-	_, err := initAndValidateSource("", "", nil)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "either -source_file or -source_image has to be specified")
+	var cases = []struct {
+		name  string
+		file  fileSource
+		image string
+		valid bool
+	}{
+		{
+			name: "both",
+			file: fileSource{
+				gcsPath: "gs://bucket/global/images/ubuntu-1604",
+				bucket:  "bucket",
+				object:  "global/images/ubuntu-1604",
+			},
+			image: "global/images/ubuntu-1604",
+			valid: false,
+		},
+		{
+			name:  "neither",
+			valid: false,
+		},
+		{
+			name: "only file",
+			file: fileSource{
+				gcsPath: "gs://bucket/global/images/ubuntu-1604",
+				bucket:  "bucket",
+				object:  "global/images/ubuntu-1604",
+			},
+			valid: true,
+		},
+		{
+			name:  "only image",
+			image: "global/images/ubuntu-1604",
+			valid: true,
+		},
+	}
 
-	_, err = initAndValidateSource("gs://bucket/file.vmdk", "global/images/image", nil)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "either -source_file or -source_image has to be specified")
+	for _, tt := range cases {
+
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := initAndValidateSource(tt.file.path(), tt.image,
+				createMockStorageClient(t, tt.file, "file-content"))
+			if tt.valid {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), "either -source_file or -source_image has to be specified")
+			}
+		})
+	}
 }
 
 func TestUnqualifiedImagePathsAreGlobalized(t *testing.T) {
@@ -130,4 +172,12 @@ func TestImagePathIsValidated(t *testing.T) {
 		})
 
 	}
+}
+
+func createMockStorageClient(t *testing.T, filePath fileSource, fileContent string) *mocks.MockStorageClientInterface {
+	mockCtrl := gomock.NewController(t)
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().GetObjectReader(filePath.bucket, filePath.object).Return(
+		ioutil.NopCloser(strings.NewReader(fileContent)), nil)
+	return mockStorageClient
 }
