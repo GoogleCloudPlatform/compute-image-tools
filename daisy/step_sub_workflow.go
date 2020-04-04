@@ -51,9 +51,10 @@ func (s *SubWorkflow) populate(ctx context.Context, st *Step) DError {
 
 	var errs DError
 Loop:
-	for k := range s.Vars {
+	for k, v := range s.Vars {
 		for wv := range s.Workflow.Vars {
 			if k == wv {
+				s.Workflow.AddVar(k, v)
 				continue Loop
 			}
 		}
