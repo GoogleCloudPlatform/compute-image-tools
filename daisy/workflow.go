@@ -153,6 +153,7 @@ type Workflow struct {
 	subnetworks     *subnetworkRegistry
 	targetInstances *targetInstanceRegistry
 	objects         *objectRegistry
+	snapshots       *snapshotRegistry
 
 	// Cache of resources
 	machineTypeCache    twoDResourceCache
@@ -169,6 +170,7 @@ type Workflow struct {
 	zonesCache          oneDResourceCache
 	regionsCache        oneDResourceCache
 	licenseCache        oneDResourceCache
+	snapshotCache       oneDResourceCache
 
 	stepTimeRecords             []TimeRecord
 	serialControlOutputValues   map[string]string
@@ -572,6 +574,7 @@ func (w *Workflow) includeWorkflow(iw *Workflow) {
 	iw.networks = w.networks
 	iw.subnetworks = w.subnetworks
 	iw.targetInstances = w.targetInstances
+	iw.snapshots = w.snapshots
 	iw.objects = w.objects
 }
 
@@ -775,6 +778,7 @@ func New() *Workflow {
 	w.subnetworks = newSubnetworkRegistry(w)
 	w.objects = newObjectRegistry(w)
 	w.targetInstances = newTargetInstanceRegistry(w)
+	w.snapshots = newSnapshotRegistry(w)
 	w.addCleanupHook(func() DError {
 		w.instances.cleanup() // instances need to be done before disks/networks
 		w.images.cleanup()
@@ -785,6 +789,7 @@ func New() *Workflow {
 		w.firewallRules.cleanup()
 		w.subnetworks.cleanup()
 		w.networks.cleanup()
+		w.snapshots.cleanup()
 		return nil
 	})
 

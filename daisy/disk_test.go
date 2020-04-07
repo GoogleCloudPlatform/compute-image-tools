@@ -340,7 +340,8 @@ func TestDiskValidate(t *testing.T) {
 	if errs := addErrs(nil, e1, e2, e3); errs != nil {
 		t.Fatalf("test set up error: %v", errs)
 	}
-	w.images.m = map[string]*Resource{"i1": {creator: iCreator}} // "i1" resource
+	w.images.m = map[string]*Resource{"i1": {creator: iCreator}}                    // "i1" resource
+	w.snapshots.m = map[string]*Resource{"ss1": {RealName: "ss1", link: "ss1link"}} // "ss1" resource
 
 	ty := fmt.Sprintf("projects/%s/zones/%s/diskTypes/%s", w.Project, w.Zone, "pd-standard")
 	tests := []struct {
@@ -391,6 +392,21 @@ func TestDiskValidate(t *testing.T) {
 		{
 			"bad type case",
 			&Disk{Disk: compute.Disk{Name: "d7", SizeGb: 1, Type: "t!"}},
+			true,
+		},
+		{
+			"source snapshot case",
+			&Disk{Disk: compute.Disk{Name: "d8", SourceSnapshot: "ss1", Type: ty}},
+			false,
+		},
+		{
+			"source snapshot url case",
+			&Disk{Disk: compute.Disk{Name: "d9", SourceSnapshot: fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot), Type: ty}},
+			false,
+		},
+		{
+			"source snapshot dne case",
+			&Disk{Disk: compute.Disk{Name: "d10", SourceSnapshot: "dne", Type: ty}},
 			true,
 		},
 	}
