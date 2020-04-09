@@ -26,12 +26,29 @@ import (
 func TestSnapshotPopulate(t *testing.T) {
 	w := testWorkflow()
 
+	currentTestProject := "currenttestproj"
+	currentTestZone := "currenttestzone"
+	currentTestDisk := "currenttestdisk"
+
 	tests := []struct {
-		desc      string
-		ss        *Snapshot
-		shouldErr bool
+		desc                string
+		ss                  *Snapshot
+		shouldErr           bool
+		expectedExtendedURL string
+		expectedLink        string
 	}{
-		{"default case", &Snapshot{}, false},
+		{"source disk URI: only name", &Snapshot{
+			Resource: Resource{ExactName: true},
+			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("aaa")}}, false, "aaa", fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
+		},
+		{"source disk URI: with zones", &Snapshot{
+			Resource: Resource{ExactName: true},
+			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("zones/%v/disks/%v", currentTestZone, currentTestDisk)}}, false, fmt.Sprintf("projects/%v/zones/%v/disks/%v", testProject, currentTestZone, currentTestDisk), fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
+		},
+		{"source disk URI: with projects and zones", &Snapshot{
+			Resource: Resource{ExactName: true},
+			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("projects/%v/zones/%v/disks/%v", currentTestProject, currentTestZone, currentTestDisk)}}, false, fmt.Sprintf("projects/%v/zones/%v/disks/%v", currentTestProject, currentTestZone, currentTestDisk), fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
+		},
 	}
 
 	for testNum, tt := range tests {
@@ -42,6 +59,15 @@ func TestSnapshotPopulate(t *testing.T) {
 			t.Errorf("%s: should have returned error but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+
+		if !tt.shouldErr && err == nil {
+			if tt.expectedExtendedURL != tt.ss.SourceDisk {
+				t.Errorf("%s: expected extended source disk url: '%v', actual: '%v'", tt.desc, tt.expectedExtendedURL, tt.ss.SourceDisk)
+			}
+			if tt.expectedLink != tt.ss.link {
+				t.Errorf("%s: expected link: '%v', actual: '%v'", tt.desc, tt.expectedLink, tt.ss.link)
+			}
 		}
 	}
 }
@@ -60,12 +86,18 @@ func TestSnapshotValidate(t *testing.T) {
 	}
 
 	tests := []struct {
-		desc      string
-		ss        *Snapshot
-		shouldErr bool
+		desc            string
+		ss              *Snapshot
+		shouldErr       bool
+		expectedProject string
+		expectedZone    string
+		expectedDisk    string
 	}{
-		{"simple case success", &Snapshot{Snapshot: compute.Snapshot{Name: "ss1", SourceDisk: "sd"}}, false},
-		{"no source disk case failure", &Snapshot{Snapshot: compute.Snapshot{Name: "ss2"}}, true},
+		{"no source disk case failure", &Snapshot{Snapshot: compute.Snapshot{Name: "ss1"}}, true, "", "", ""},
+		{"source disk created by daisy", &Snapshot{Snapshot: compute.Snapshot{Name: "ss2", SourceDisk: "sd"}}, false, testProject, testZone, "sd"},
+		{"source disk URI: only name", &Snapshot{Snapshot: compute.Snapshot{Name: "ss3", SourceDisk: fmt.Sprintf("aaa")}}, true, "", "", ""},
+		{"source disk URI: with zones", &Snapshot{Snapshot: compute.Snapshot{Name: "ss4", SourceDisk: fmt.Sprintf("zones/%v/disks/%v", testZone, testDisk)}}, false, testProject, testZone, testDisk},
+		{"source disk URI: with projects and zones", &Snapshot{Snapshot: compute.Snapshot{Name: "ss5", SourceDisk: fmt.Sprintf("projects/%v/zones/%v/disks/%v", testProject, testZone, testDisk)}}, false, testProject, testZone, testDisk},
 	}
 
 	for _, tt := range tests {
@@ -77,10 +109,27 @@ func TestSnapshotValidate(t *testing.T) {
 		tt.ss.link = fmt.Sprintf("projects/%s/global/snapshots/%s", w.Project, tt.ss.Name)
 		tt.ss.Project = w.Project // Resource{} fields are tested in resource_test.
 
-		if err := s.validate(ctx); tt.shouldErr && err == nil {
+		err := s.populate(ctx)
+		if err == nil {
+			err = s.validate(ctx)
+		}
+
+		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have returned an error", tt.desc)
 		} else if !tt.shouldErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+
+		if !tt.shouldErr && err == nil {
+			if tt.expectedDisk != tt.ss.sourceDiskName {
+				t.Errorf("%s: expected disk: '%v', actual disk: '%v'", tt.desc, tt.expectedDisk, tt.ss.sourceDiskName)
+			}
+			if tt.expectedZone != tt.ss.sourceDiskZone {
+				t.Errorf("%s: expected zone: '%v', actual zone: '%v'", tt.desc, tt.expectedZone, tt.ss.sourceDiskZone)
+			}
+			if tt.expectedProject != tt.ss.sourceDiskProject {
+				t.Errorf("%s: expected project: '%v', actual project: '%v'", tt.desc, tt.expectedProject, tt.ss.sourceDiskProject)
+			}
 		}
 	}
 }
