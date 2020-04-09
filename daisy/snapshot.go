@@ -42,10 +42,6 @@ func (w *Workflow) snapshotExists(project, snapshot string) (bool, DError) {
 type Snapshot struct {
 	compute.Snapshot
 	Resource
-
-	sourceDiskProject string
-	sourceDiskZone    string
-	sourceDiskName    string
 }
 
 // MarshalJSON is a hacky workaround to prevent Snapshot from using compute.Snapshot's implementation.
@@ -67,6 +63,7 @@ func (ss *Snapshot) populate(ctx context.Context, s *Step) DError {
 		ss.SourceDisk = extendPartialURL(ss.SourceDisk, ss.Project)
 	}
 
+	// This link can be modified later if disk project is different. Here it's a placeholder.
 	ss.link = fmt.Sprintf("projects/%s/global/snapshots/%s", ss.Project, ss.Name)
 	return errs
 }
@@ -80,17 +77,6 @@ func (ss *Snapshot) validate(ctx context.Context, s *Step) DError {
 		errs = addErrs(errs, Errf("%s: must provide SourceDisk", pre))
 	} else if _, err := s.w.disks.regUse(ss.SourceDisk, s); err != nil {
 		errs = addErrs(errs, newErr("failed to get source disk", err))
-	} else {
-		var sourceDiskURI string
-		if diskURLRgx.MatchString(ss.SourceDisk) {
-			sourceDiskURI = ss.SourceDisk
-		} else {
-			sourceDiskURI = s.w.disks.m[ss.SourceDisk].link
-		}
-		m := NamedSubexp(diskURLRgx, sourceDiskURI)
-		ss.sourceDiskProject = m["project"]
-		ss.sourceDiskZone = m["zone"]
-		ss.sourceDiskName = m["disk"]
 	}
 
 	// Register creation.
