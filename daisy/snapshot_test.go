@@ -39,15 +39,18 @@ func TestSnapshotPopulate(t *testing.T) {
 	}{
 		{"source disk URI: only name", &Snapshot{
 			Resource: Resource{ExactName: true},
-			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("aaa")}}, false, "aaa", fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
+			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("aaa")}}, false,
+			"aaa", fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
 		},
 		{"source disk URI: with zones", &Snapshot{
 			Resource: Resource{ExactName: true},
-			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("zones/%v/disks/%v", currentTestZone, currentTestDisk)}}, false, fmt.Sprintf("projects/%v/zones/%v/disks/%v", testProject, currentTestZone, currentTestDisk), fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
+			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("zones/%v/disks/%v", currentTestZone, currentTestDisk)}}, false,
+			fmt.Sprintf("projects/%v/zones/%v/disks/%v", testProject, currentTestZone, currentTestDisk), fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
 		},
 		{"source disk URI: with projects and zones", &Snapshot{
 			Resource: Resource{ExactName: true},
-			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("projects/%v/zones/%v/disks/%v", currentTestProject, currentTestZone, currentTestDisk)}}, false, fmt.Sprintf("projects/%v/zones/%v/disks/%v", currentTestProject, currentTestZone, currentTestDisk), fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
+			Snapshot: compute.Snapshot{Name: testSnapshot, SourceDisk: fmt.Sprintf("projects/%v/zones/%v/disks/%v", currentTestProject, currentTestZone, currentTestDisk)}}, false,
+			fmt.Sprintf("projects/%v/zones/%v/disks/%v", currentTestProject, currentTestZone, currentTestDisk), fmt.Sprintf("projects/%s/global/snapshots/%s", testProject, testSnapshot),
 		},
 	}
 
@@ -92,6 +95,7 @@ func TestSnapshotValidate(t *testing.T) {
 	}{
 		{"no source disk case failure", &Snapshot{Snapshot: compute.Snapshot{Name: "ss1"}}, true},
 		{"source disk created by daisy", &Snapshot{Snapshot: compute.Snapshot{Name: "ss2", SourceDisk: "sd"}}, false},
+		{"source disk with disk size", &Snapshot{Snapshot: compute.Snapshot{Name: "ss2", SourceDisk: "sd", DiskSizeGb: 100}}, false},
 		{"source disk URI: only name", &Snapshot{Snapshot: compute.Snapshot{Name: "ss3", SourceDisk: fmt.Sprintf("aaa")}}, true},
 		{"source disk URI: with zones", &Snapshot{Snapshot: compute.Snapshot{Name: "ss4", SourceDisk: fmt.Sprintf("zones/%v/disks/%v", testZone, testDisk)}}, false},
 		{"source disk URI: with projects and zones", &Snapshot{Snapshot: compute.Snapshot{Name: "ss5", SourceDisk: fmt.Sprintf("projects/%v/zones/%v/disks/%v", testProject, testZone, testDisk)}}, false},

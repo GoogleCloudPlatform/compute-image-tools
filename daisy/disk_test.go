@@ -32,6 +32,12 @@ func TestDiskPopulate(t *testing.T) {
 			false,
 		},
 		{
+			"input size",
+			&Disk{Disk: compute.Disk{Name: name}, SizeGb: "10"},
+			&Disk{Disk: compute.Disk{Name: genName, Type: defType, SizeGb: 10, Zone: w.Zone}, SizeGb: "10"},
+			false,
+		},
+		{
 			"extend Type URL case",
 			&Disk{Disk: compute.Disk{Name: name, Type: "pd-ssd"}, SizeGb: "10"},
 			&Disk{Disk: compute.Disk{Name: genName, Type: ssdType, SizeGb: 10, Zone: w.Zone}, SizeGb: "10"},
@@ -408,6 +414,11 @@ func TestDiskValidate(t *testing.T) {
 			"source snapshot dne case",
 			&Disk{Disk: compute.Disk{Name: "d10", SourceSnapshot: "dne", Type: ty}},
 			true,
+		},
+		{
+			"source snapshot with size",
+			&Disk{Disk: compute.Disk{Name: "d11", SourceSnapshot: "ss1", Type: ty}, SizeGb: "50"},
+			false,
 		},
 	}
 
