@@ -35,7 +35,7 @@ type IncludeWorkflow struct {
 func (i *IncludeWorkflow) populate(ctx context.Context, s *Step) DError {
 	if i.Path != "" {
 		var err error
-		if i.Workflow, err = s.w.NewIncludedWorkflowFromFile(i.Path, i.Vars); err != nil {
+		if i.Workflow, err = s.w.NewIncludedWorkflowFromFile(i.Path, WithVars(i.Vars)); err != nil {
 			return newErr("failed to parse duration for step includeworkflow", err)
 		}
 	} else {

@@ -191,7 +191,7 @@ func TestNewFromFileError(t *testing.T) {
 			t.Fatalf("error creating json file: %v", err)
 		}
 
-		if _, err := NewFromFile(tf, nil); err == nil {
+		if _, err := NewFromFile(tf); err == nil {
 			t.Errorf("expected error, got nil for test %d", i+1)
 		} else if err.Error() != tt.error {
 			t.Errorf("did not get expected error from NewFromFile():\ngot: %q\nwant: %q", err.Error(), tt.error)
@@ -200,7 +200,7 @@ func TestNewFromFileError(t *testing.T) {
 }
 
 func TestNewFromFile(t *testing.T) {
-	got, derr := NewFromFile("./test_data/test.wf.json", map[string]string{"required_key1": "v"})
+	got, derr := NewFromFile("./test_data/test.wf.json", WithVars(map[string]string{"required_key1": "v"}))
 	if derr != nil {
 		t.Fatal(derr)
 	}
@@ -806,7 +806,7 @@ func TestPrint(t *testing.T) {
 	tf := filepath.Join(td, "test.wf.json")
 	ioutil.WriteFile(tf, data, 0600)
 
-	got, err := NewFromFile(tf, nil)
+	got, err := NewFromFile(tf)
 	if err != nil {
 		t.Fatal(err)
 	}

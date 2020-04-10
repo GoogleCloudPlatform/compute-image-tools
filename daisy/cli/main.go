@@ -76,7 +76,7 @@ func populateVars(input string) map[string]string {
 }
 
 func parseWorkflow(ctx context.Context, path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
-	w, err := daisy.NewFromFile(path, varMap)
+	w, err := daisy.NewFromFile(path, daisy.WithVars(varMap))
 	if err != nil {
 		return nil, err
 	}

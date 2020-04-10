@@ -583,14 +583,33 @@ func (w *Workflow) ID() string {
 	return w.id
 }
 
+type fromFileOpts struct {
+	varMap map[string]string
+}
+
+// FromFileOpt is an option to pass to *FromFile functions.
+type FromFileOpt func(*fromFileOpts)
+
+// WithVars substitutes these vars during workflow unmarshal.
+func WithVars(varMap map[string]string) FromFileOpt {
+	return func(opts *fromFileOpts) {
+		opts.varMap = varMap
+	}
+}
+
 // NewIncludedWorkflowFromFile reads and unmarshals a workflow with the same resources as the parent.
-func (w *Workflow) NewIncludedWorkflowFromFile(file string, varMap map[string]string) (*Workflow, error) {
+func (w *Workflow) NewIncludedWorkflowFromFile(file string, opts ...FromFileOpt) (*Workflow, error) {
+	ffOpts := &fromFileOpts{}
+	for _, opt := range opts {
+		opt(ffOpts)
+	}
+
 	iw := New()
 	w.includeWorkflow(iw)
 	if !filepath.IsAbs(file) {
 		file = filepath.Join(w.workflowDir, file)
 	}
-	if err := readWorkflow(file, iw, varMap); err != nil {
+	if err := readWorkflow(file, iw, ffOpts.varMap); err != nil {
 		return nil, err
 	}
 	return iw, nil
@@ -619,12 +638,17 @@ func (w *Workflow) NewSubWorkflow() *Workflow {
 }
 
 // NewSubWorkflowFromFile reads and unmarshals a workflow as a child to this workflow.
-func (w *Workflow) NewSubWorkflowFromFile(file string, varMap map[string]string) (*Workflow, error) {
+func (w *Workflow) NewSubWorkflowFromFile(file string, opts ...FromFileOpt) (*Workflow, error) {
+	ffOpts := &fromFileOpts{}
+	for _, opt := range opts {
+		opt(ffOpts)
+	}
+
 	sw := w.NewSubWorkflow()
 	if !filepath.IsAbs(file) {
 		file = filepath.Join(w.workflowDir, file)
 	}
-	if err := readWorkflow(file, sw, varMap); err != nil {
+	if err := readWorkflow(file, sw, ffOpts.varMap); err != nil {
 		return nil, err
 	}
 	return sw, nil
@@ -799,9 +823,14 @@ func New() *Workflow {
 
 // NewFromFile reads and unmarshals a workflow file.
 // Recursively reads subworkflow steps as well.
-func NewFromFile(file string, varMap map[string]string) (*Workflow, error) {
+func NewFromFile(file string, opts ...FromFileOpt) (*Workflow, error) {
+	ffOpts := &fromFileOpts{}
+	for _, opt := range opts {
+		opt(ffOpts)
+	}
+
 	w := New()
-	if err := readWorkflow(file, w, varMap); err != nil {
+	if err := readWorkflow(file, w, ffOpts.varMap); err != nil {
 		return nil, err
 	}
 	return w, nil
