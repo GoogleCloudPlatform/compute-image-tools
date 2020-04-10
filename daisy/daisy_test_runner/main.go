@@ -157,9 +157,12 @@ func (l *logger) ReadSerialPortLogs() []string {
 func (l *logger) Flush() { return }
 
 func createTestCase(ctx context.Context, testLogger *logger, path, project, zone, oauthPath, ce string, varMap map[string]string) (*daisy.Workflow, error) {
-	w, err := daisy.NewFromFile(path, varMap)
+	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
+	}
+	for k, v := range varMap {
+		w.AddVar(k, v)
 	}
 
 	if oauthPath != "" {
