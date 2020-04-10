@@ -584,13 +584,13 @@ func (w *Workflow) ID() string {
 }
 
 // NewIncludedWorkflowFromFile reads and unmarshals a workflow with the same resources as the parent.
-func (w *Workflow) NewIncludedWorkflowFromFile(file string, varMap map[string]string) (*Workflow, error) {
+func (w *Workflow) NewIncludedWorkflowFromFile(file string) (*Workflow, error) {
 	iw := New()
 	w.includeWorkflow(iw)
 	if !filepath.IsAbs(file) {
 		file = filepath.Join(w.workflowDir, file)
 	}
-	if err := readWorkflow(file, iw, varMap); err != nil {
+	if err := readWorkflow(file, iw); err != nil {
 		return nil, err
 	}
 	return iw, nil
@@ -619,12 +619,12 @@ func (w *Workflow) NewSubWorkflow() *Workflow {
 }
 
 // NewSubWorkflowFromFile reads and unmarshals a workflow as a child to this workflow.
-func (w *Workflow) NewSubWorkflowFromFile(file string, varMap map[string]string) (*Workflow, error) {
+func (w *Workflow) NewSubWorkflowFromFile(file string) (*Workflow, error) {
 	sw := w.NewSubWorkflow()
 	if !filepath.IsAbs(file) {
 		file = filepath.Join(w.workflowDir, file)
 	}
-	if err := readWorkflow(file, sw, varMap); err != nil {
+	if err := readWorkflow(file, sw); err != nil {
 		return nil, err
 	}
 	return sw, nil
@@ -799,9 +799,9 @@ func New() *Workflow {
 
 // NewFromFile reads and unmarshals a workflow file.
 // Recursively reads subworkflow steps as well.
-func NewFromFile(file string, varMap map[string]string) (*Workflow, error) {
+func NewFromFile(file string) (*Workflow, error) {
 	w := New()
-	if err := readWorkflow(file, w, varMap); err != nil {
+	if err := readWorkflow(file, w); err != nil {
 		return nil, err
 	}
 	return w, nil
@@ -835,8 +835,8 @@ func JSONError(file string, data []byte, err error) error {
 	return fmt.Errorf("%s: JSON syntax error in line %d: %s \n%s\n%s^", file, line, err, data[start:end], strings.Repeat(" ", pos))
 }
 
-func readWorkflow(file string, w *Workflow, varMap map[string]string) DError {
-	wfJSON, err := ioutil.ReadFile(file)
+func readWorkflow(file string, w *Workflow) DError {
+	data, err := ioutil.ReadFile(file)
 	if err != nil {
 		return newErr("failed to read workflow file", err)
 	}
@@ -846,20 +846,8 @@ func readWorkflow(file string, w *Workflow, varMap map[string]string) DError {
 		return newErr("failed to get absolute path of workflow file", err)
 	}
 
-	// Set input vars and run var substitution before unmarshal.
-	if varMap != nil {
-		var replacements []string
-		for k, v := range varMap {
-			replacements = append(replacements, fmt.Sprintf("${%s}", k), v)
-		}
-		wfJSON = []byte(strings.NewReplacer(replacements...).Replace(string(wfJSON)))
-	}
-
-	if err := json.Unmarshal(wfJSON, &w); err != nil {
-		return newErr("failed to unmarshal workflow file", JSONError(file, wfJSON, err))
-	}
-	for k, v := range varMap {
-		w.AddVar(k, v)
+	if err := json.Unmarshal(data, &w); err != nil {
+		return newErr("failed to unmarshal workflow file", JSONError(file, data, err))
 	}
 
 	if w.OAuthPath != "" && !filepath.IsAbs(w.OAuthPath) {

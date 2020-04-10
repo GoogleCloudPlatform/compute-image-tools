@@ -9,8 +9,7 @@
     "bootstrap_instance_name": {"Value": "bootstrap-${NAME}", "Required": true},
     "machine_type": "n1-standard-1",
     "key1": "var1",
-    "key2": "var2",
-    "required_key1": {"Value": "", "Required": true}
+    "key2": "var2"
   },
   "steps": {
     "create-disks": {
