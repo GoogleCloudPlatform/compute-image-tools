@@ -16,28 +16,24 @@ package importer
 
 import (
 	"fmt"
-	"io/ioutil"
-	"strings"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	currentExecutablePath, clientID, imageName, osID, customTranWorkflow, sourceFile, sourceImage,
+	currentExecutablePath, clientID, imageName, osID, customTranWorkflow,
 	family, description, network, subnet, labels string
 	dataDisk, noGuestEnvironment, sysprepWindows bool
+	source                                       resource
 )
 
 func TestGetWorkflowPathsFromImage(t *testing.T) {
 	resetArgs()
-	sourceImage = "image-1"
+	source = imageSource{uri: "uri"}
 	osID = "ubuntu-1404"
-	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
+	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
 	if workflow != path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportFromImageWorkflow)
 	}
@@ -47,8 +43,8 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 	resetArgs()
 	dataDisk = true
 	osID = ""
-	sourceImage = ""
-	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
+	source = fileSource{}
+	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
 	if workflow != path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath) || translate != "" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportWorkflow)
 	}
@@ -57,19 +53,18 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
 	resetArgs()
 	imageName = "image-a"
-	sourceImage = "image-1"
+	source = imageSource{}
 	customTranWorkflow = "custom.wf"
 	osID = ""
 
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
+	if _, err := validateAndParseFlags(clientID, imageName, dataDisk,
 		osID, customTranWorkflow, labels); err != nil {
 
 		t.Errorf("Unexpected flags error: %v", err)
 	}
-	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath) || translate != customTranWorkflow {
-		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportFromImageWorkflow)
-	}
+	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
+	assert.Equal(t, path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath), workflow)
+	assert.Equal(t, translate, customTranWorkflow)
 }
 
 func TestFlagsUnexpectedCustomTranslateWorkflowWithOs(t *testing.T) {
@@ -77,7 +72,7 @@ func TestFlagsUnexpectedCustomTranslateWorkflowWithOs(t *testing.T) {
 	imageName = "image-a"
 	customTranWorkflow = "custom.wf"
 
-	_, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
+	_, err := validateAndParseFlags(clientID, imageName, dataDisk,
 		osID, customTranWorkflow, labels)
 	expected := fmt.Errorf("-os and -custom_translate_workflow can't be both specified")
 	validateExpectedError(err, expected, t)
@@ -90,7 +85,7 @@ func TestFlagsUnexpectedCustomTranslateWorkflowWithDataDisk(t *testing.T) {
 	osID = ""
 	customTranWorkflow = "custom.wf"
 
-	_, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
+	_, err := validateAndParseFlags(clientID, imageName, dataDisk,
 		osID, customTranWorkflow, labels)
 	expected := fmt.Errorf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
 	validateExpectedError(err, expected, t)
@@ -101,10 +96,10 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 
 	resetArgs()
 	imageName = "image-a"
-	sourceImage = ""
+	source = fileSource{}
 	currentExecutablePath = homeDir + "executable"
 
-	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
+	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
 
 	if workflow != homeDir+WorkflowDir+ImportAndTranslateWorkflow {
 		t.Errorf("resulting workflow path `%v` does not match expected `%v`", workflow, homeDir+WorkflowDir+ImportAndTranslateWorkflow)
@@ -118,14 +113,14 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 func TestFlagsImageNameNotProvided(t *testing.T) {
 	resetArgs()
 	imageName = ""
-	_, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
+	_, err := validateAndParseFlags(clientID, imageName, dataDisk,
 		osID, customTranWorkflow, labels)
 	expected := fmt.Errorf("The flag -image_name must be provided")
 	validateExpectedError(err, expected, t)
 }
 
 func assertErrorOnValidate(errorMsg string, t *testing.T) {
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
+	if _, err := validateAndParseFlags(clientID, imageName, dataDisk,
 		osID, customTranWorkflow, labels); err == nil {
 		t.Error(errorMsg)
 	}
@@ -150,99 +145,12 @@ func TestFlagsDataDiskAndOSFlagsBothProvided(t *testing.T) {
 	assertErrorOnValidate("Expected error for both os and data_disk set at the same time", t)
 }
 
-func TestFlagsSourceFileOrSourceImageNotProvided(t *testing.T) {
-	resetArgs()
-	sourceFile = ""
-	sourceImage = ""
-	dataDisk = false
-	assertErrorOnValidate("Expected error for missing source_file or source_image flag", t)
-}
-
-func TestFlagsSourceFileAndSourceImageBothProvided(t *testing.T) {
-	resetArgs()
-	sourceFile = "gs://source_bucket/source_file"
-	dataDisk = false
-	assertErrorOnValidate("Expected error for both source_file and source_image flags set", t)
-}
-
-func TestFlagsSourceFile(t *testing.T) {
-	resetArgs()
-	sourceFile = "gs://source_bucket/source_file"
-	sourceImage = ""
-	dataDisk = false
-
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-}
-
-func TestFlagSourceFileEmpty(t *testing.T) {
-	emptyReader := ioutil.NopCloser(strings.NewReader(""))
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(emptyReader, nil)
-
-	err := validateSourceFile(mockStorageClient, "", "")
-	assert.NotNil(t, err, "Expected error")
-	assert.Contains(t, err.Error(), "cannot import an image from an empty file")
-}
-
-func TestFlagSourceFileCompressed(t *testing.T) {
-	fileString := test.CreateCompressedFile()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(fileString)), nil)
-
-	err := validateSourceFile(mockStorageClient, "", "")
-	assert.NotNil(t, err, "Expected error")
-}
-
-func TestFlagSourceFileUncompressed(t *testing.T) {
-	fileString := "random content"
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(fileString)), nil)
-
-	err := validateSourceFile(mockStorageClient, "", "")
-	assert.Nil(t, err, "Unexpected error")
-}
-
-func TestFlagsInvalidSourceFile(t *testing.T) {
-	resetArgs()
-	sourceFile = "invalidSourceFile"
-	sourceImage = ""
-
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err == nil {
-		t.Errorf("Expected error")
-	}
-}
-
-func TestFlagsSourceImage(t *testing.T) {
-	resetArgs()
-	sourceFile = ""
-
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-}
-
 func TestFlagsDataDisk(t *testing.T) {
 	resetArgs()
-	sourceFile = "gs://source_bucket/source_file"
-	sourceImage = ""
 	osID = ""
 	dataDisk = true
 
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
+	if _, err := validateAndParseFlags(clientID, imageName, dataDisk,
 		osID, customTranWorkflow, labels); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -250,11 +158,9 @@ func TestFlagsDataDisk(t *testing.T) {
 
 func TestFlagsInvalidOS(t *testing.T) {
 	resetArgs()
-	sourceFile = "gs://source_bucket/source_file"
-	sourceImage = ""
 	osID = "invalidOs"
 
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
+	if _, err := validateAndParseFlags(clientID, imageName, dataDisk,
 		osID, customTranWorkflow, labels); err == nil {
 		t.Errorf("Expected error")
 	}
@@ -265,16 +171,15 @@ func TestBuildDaisyVarsFromDisk(t *testing.T) {
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	imageName = ws + "image-a" + ws
 	noGuestEnvironment = true
-	sourceFile = ws + "source-file-path" + ws
-	sourceImage = ws
+	source = fileSource{gcsPath: "source-file-path"}
 	family = ws + "a-family" + ws
 	description = ws + "a-description" + ws
 	network = ws + "a-network" + ws
 	subnet = ws + "a-subnet" + ws
 	region := ws + "a-region" + ws
 
-	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
+	got := buildDaisyVars(source, "translate/workflow/path", imageName,
+		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "image-a", got["image_name"])
 	assert.Equal(t, "translate/workflow/path", got["translate_workflow"])
@@ -294,16 +199,15 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
 	imageName = ws + "image-a" + ws
 	noGuestEnvironment = true
-	sourceFile = ws
-	sourceImage = ws + "global/images/source-image" + ws
+	source = imageSource{uri: "global/images/source-image"}
 	family = ws + "a-family" + ws
 	description = ws + "a-description" + ws
 	network = ws + "a-network" + ws
 	subnet = ws + "a-subnet" + ws
 	region := ws + "a-region" + ws
 
-	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
+	got := buildDaisyVars(source, "translate/workflow/path", imageName,
+		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "image-a", got["image_name"])
 	assert.Equal(t, "translate/workflow/path", got["translate_workflow"])
@@ -321,8 +225,8 @@ func TestBuildDaisyVarsFromImage(t *testing.T) {
 func TestBuildDaisyVarsWindowsSysprepEnabled(t *testing.T) {
 	resetArgs()
 	sysprepWindows = true
-	got := buildDaisyVars("translate/workflow/path/windows", "image-a",
-		sourceFile, sourceImage, family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
+	got := buildDaisyVars(source, "translate/workflow/path/windows", "image-a",
+		family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "true", got["sysprep_windows"])
 }
@@ -330,8 +234,8 @@ func TestBuildDaisyVarsWindowsSysprepEnabled(t *testing.T) {
 func TestBuildDaisyVarsWindowsSysprepDisabled(t *testing.T) {
 	resetArgs()
 	sysprepWindows = false
-	got := buildDaisyVars("translate/workflow/path/windows", "image-a",
-		sourceFile, sourceImage, family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
+	got := buildDaisyVars(source, "translate/workflow/path/windows", "image-a",
+		family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "false", got["sysprep_windows"])
 }
@@ -341,8 +245,8 @@ func TestBuildDaisyVarsIsWindows(t *testing.T) {
 	imageName = "image-a"
 
 	region := ""
-	got := buildDaisyVars("translate/workflow/path/windows", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
+	got := buildDaisyVars(source, "translate/workflow/path/windows", imageName,
+		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "true", got["is_windows"])
 }
@@ -352,8 +256,8 @@ func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
 	imageName = "IMAGE-a"
 
 	region := ""
-	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
+	got := buildDaisyVars(source, "translate/workflow/path", imageName,
+		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, got["image_name"], "image-a")
 }
@@ -369,8 +273,7 @@ func validateExpectedError(err error, expected error, t *testing.T) {
 }
 
 func resetArgs() {
-	sourceFile = ""
-	sourceImage = "anImage"
+	source = imageSource{uri: "global/images/source-image"}
 	osID = "ubuntu-1404"
 	dataDisk = false
 	sysprepWindows = false

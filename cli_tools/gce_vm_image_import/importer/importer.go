@@ -15,15 +15,12 @@
 package importer
 
 import (
-	"compress/gzip"
 	"context"
-	"errors"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -53,49 +50,31 @@ const (
 	logPrefix = "[import-image]"
 )
 
-func validateAndParseFlags(clientID string, imageName string, sourceFile string, sourceImage string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
-	string, string, map[string]string, error) {
+func validateAndParseFlags(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
+	map[string]string, error) {
 
 	if err := validation.ValidateStringFlagNotEmpty(imageName, ImageNameFlagKey); err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
-		return "", "", nil, err
+		return nil, err
 	}
 
 	if !dataDisk && osID == "" && customTranWorkflow == "" {
-		return "", "", nil, daisy.Errf("-data_disk, or -os, or -custom_translate_workflow has to be specified")
+		return nil, daisy.Errf("-data_disk, or -os, or -custom_translate_workflow has to be specified")
 	}
 
 	if dataDisk && (osID != "" || customTranWorkflow != "") {
-		return "", "", nil, daisy.Errf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
+		return nil, daisy.Errf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
 	}
 
 	if osID != "" && customTranWorkflow != "" {
-		return "", "", nil, daisy.Errf("-os and -custom_translate_workflow can't be both specified")
-	}
-
-	if sourceFile == "" && sourceImage == "" {
-		return "", "", nil, daisy.Errf("-source_file or -source_image has to be specified")
-	}
-
-	if sourceFile != "" && sourceImage != "" {
-		return "", "", nil, daisy.Errf("either -source_file or -source_image has to be specified, but not both %v %v", sourceFile, sourceImage)
+		return nil, daisy.Errf("-os and -custom_translate_workflow can't be both specified")
 	}
 
 	if osID != "" {
 		if err := daisyutils.ValidateOS(osID); err != nil {
-			return "", "", nil, err
-		}
-	}
-
-	var sourceBucketName, sourceObjectName string
-
-	if sourceFile != "" {
-		var err error
-		sourceBucketName, sourceObjectName, err = storage.GetGCSObjectPathElements(sourceFile)
-		if err != nil {
-			return "", "", nil, daisy.Errf("failed to split source file Cloud Storage path: %v", err)
+			return nil, err
 		}
 	}
 
@@ -105,44 +84,16 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 		userLabels, err = param.ParseKeyValues(labels)
 		derr := daisy.ToDError(err)
 		if derr != nil {
-			return "", "", nil, derr
+			return nil, derr
 		}
 	}
 
-	return sourceBucketName, sourceObjectName, userLabels, nil
-}
-
-// validate source file is not a compression file by checking file header.
-func validateSourceFile(storageClient domain.StorageClientInterface, sourceBucketName, sourceObjectName string) error {
-	rc, err := storageClient.GetObjectReader(sourceBucketName, sourceObjectName)
-	if err != nil {
-		return daisy.Errf("failed to read GCS file when validating source file: unable to open file from bucket %q, file %q: %v", sourceBucketName, sourceObjectName, err)
-	}
-	defer rc.Close()
-
-	byteCountingReader := daisycommon.NewByteCountingReader(rc)
-	// Detect whether it's a compressed file by extracting compressed file header
-	if _, err = gzip.NewReader(byteCountingReader); err == nil {
-		return daisy.Errf("the input file is a gzip file, which is not supported by" +
-			"image import. To import a file that was exported from Google Compute " +
-			"Engine, please use image create. To import a file that was exported " +
-			"from a different system, decompress it and run image import on the " +
-			"disk image file directly")
-	}
-
-	// By calling gzip.NewReader above, a few bytes were read from the Reader in
-	// an attempt to decode the compression header. If the Reader represents
-	// an empty file, then BytesRead will be zero.
-	if byteCountingReader.BytesRead <= 0 {
-		return errors.New("cannot import an image from an empty file")
-	}
-
-	return nil
+	return userLabels, nil
 }
 
 // Returns main workflow and translate workflow paths (if any)
-func getWorkflowPaths(dataDisk bool, osID, sourceImage, customTranWorkflow, currentExecutablePath string) (string, string) {
-	if sourceImage != "" {
+func getWorkflowPaths(source resource, dataDisk bool, osID, customTranWorkflow, currentExecutablePath string) (string, string) {
+	if isImage(source) {
 		return path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath), getTranslateWorkflowPath(customTranWorkflow, osID)
 	}
 	if dataDisk {
@@ -158,7 +109,7 @@ func getTranslateWorkflowPath(customTranslateWorkflow, osID string) string {
 	return daisyutils.GetTranslateWorkflowPath(osID)
 }
 
-func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family, description,
+func buildDaisyVars(source resource, translateWorkflowPath, imageName, family, description,
 	region, subnet, network string, noGuestEnvironment bool, sysprepWindows bool) map[string]string {
 
 	varMap := map[string]string{}
@@ -170,11 +121,10 @@ func buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, f
 		varMap["is_windows"] = strconv.FormatBool(strings.Contains(translateWorkflowPath, "windows"))
 		varMap["sysprep_windows"] = strconv.FormatBool(sysprepWindows)
 	}
-	if strings.TrimSpace(sourceFile) != "" {
-		varMap["source_disk_file"] = strings.TrimSpace(sourceFile)
-	}
-	if strings.TrimSpace(sourceImage) != "" {
-		varMap["source_image"] = param.GetGlobalResourcePath("images", strings.TrimSpace(sourceImage))
+	if isFile(source) {
+		varMap["source_disk_file"] = source.path()
+	} else {
+		varMap["source_image"] = source.path()
 	}
 	varMap["family"] = strings.TrimSpace(family)
 	varMap["description"] = strings.TrimSpace(description)
@@ -251,8 +201,8 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 
 	log.SetPrefix(logPrefix + " ")
 
-	sourceBucketName, sourceObjectName, userLabels, err := validateAndParseFlags(clientID, imageName,
-		sourceFile, sourceImage, dataDisk, osID, customTranWorkflow, labels)
+	userLabels, err := validateAndParseFlags(clientID, imageName,
+		dataDisk, osID, customTranWorkflow, labels)
 	if err != nil {
 		return nil, err
 	}
@@ -280,17 +230,15 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		return nil, err
 	}
 
-	if sourceFile != "" {
-		err = validateSourceFile(storageClient, sourceBucketName, sourceObjectName)
-	}
+	source, err := initAndValidateSource(sourceFile, sourceImage, storageClient)
 	if err != nil {
 		return nil, err
 	}
 
-	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(dataDisk, osID, sourceImage,
+	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(source, dataDisk, osID,
 		customTranWorkflow, currentExecutablePath)
 
-	varMap := buildDaisyVars(translateWorkflowPath, imageName, sourceFile, sourceImage, family,
+	varMap := buildDaisyVars(source, translateWorkflowPath, imageName, family,
 		description, *region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	var w *daisy.Workflow
