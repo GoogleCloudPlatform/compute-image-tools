@@ -18,10 +18,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"regexp"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 var (
@@ -40,10 +42,6 @@ func (w *Workflow) snapshotExists(project, snapshot string) (bool, DError) {
 type Snapshot struct {
 	compute.Snapshot
 	Resource
-
-	sourceDiskProject string
-	sourceDiskZone    string
-	sourceDiskName    string
 }
 
 // MarshalJSON is a hacky workaround to prevent Snapshot from using compute.Snapshot's implementation.
@@ -57,15 +55,15 @@ func (ss *Snapshot) populate(ctx context.Context, s *Step) DError {
 
 	ss.Description = strOr(ss.Description, fmt.Sprintf("Snapshot created by Daisy in workflow %q on behalf of %s.", s.w.Name, s.w.username))
 
+	// If it's a URI, try to extend it because it may missed "project" part.
+	// Otherwise, it can be a daisy-created resource. Leave it as-is.
+	// If it matches neither daisy-created disk nor existing resource URI, "validate"
+	// will fail.
 	if diskURLRgx.MatchString(ss.SourceDisk) {
 		ss.SourceDisk = extendPartialURL(ss.SourceDisk, ss.Project)
 	}
 
-	m := NamedSubexp(diskURLRgx, ss.SourceDisk)
-	ss.sourceDiskProject = m["project"]
-	ss.sourceDiskZone = m["zone"]
-	ss.sourceDiskName = m["disk"]
-
+	// This link can be modified later if disk project is different. Here it's a placeholder.
 	ss.link = fmt.Sprintf("projects/%s/global/snapshots/%s", ss.Project, ss.Name)
 	return errs
 }
@@ -77,8 +75,7 @@ func (ss *Snapshot) validate(ctx context.Context, s *Step) DError {
 	// Source disk checking.
 	if ss.SourceDisk == "" {
 		errs = addErrs(errs, Errf("%s: must provide SourceDisk", pre))
-	}
-	if _, err := s.w.disks.regUse(ss.SourceDisk, s); err != nil {
+	} else if _, err := s.w.disks.regUse(ss.SourceDisk, s); err != nil {
 		errs = addErrs(errs, newErr("failed to get source disk", err))
 	}
 
@@ -96,4 +93,13 @@ func newSnapshotRegistry(w *Workflow) *snapshotRegistry {
 	sr.baseResourceRegistry.deleteFn = sr.deleteFn
 	sr.init()
 	return sr
+}
+
+func (sr *snapshotRegistry) deleteFn(res *Resource) DError {
+	m := NamedSubexp(snapshotURLRgx, res.link)
+	err := sr.w.ComputeClient.DeleteSnapshot(m["project"], m["snapshot"])
+	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
+		return typedErr(resourceDNEError, "failed to delete snapshot", err)
+	}
+	return newErr("failed to delete snapshot", err)
 }

@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -48,10 +49,16 @@ func (c *CreateSnapshots) run(ctx context.Context, s *Step) DError {
 		// Get source disk link if SourceDisk is a daisy reference to a disk.
 		if d, ok := w.disks.get(ss.SourceDisk); ok {
 			ss.SourceDisk = d.link
+
+			// Override snapshot link due that disk may be from a different project
+			if ss.Project != d.Project {
+				ss.link = fmt.Sprintf("projects/%s/global/snapshots/%s", d.Project, ss.Name)
+			}
 		}
 
+		m := NamedSubexp(diskURLRgx, ss.SourceDisk)
 		w.LogStepInfo(s.name, "CreateSnapshots", "Creating snapshot %q.", ss.Name)
-		if err := w.ComputeClient.CreateSnapshot(ss.sourceDiskProject, ss.sourceDiskZone, ss.sourceDiskName, &ss.Snapshot); err != nil {
+		if err := w.ComputeClient.CreateSnapshot(m["project"], m["zone"], m["disk"], &ss.Snapshot); err != nil {
 			e <- newErr("failed to create snapshots", err)
 			return
 		}
