@@ -20,14 +20,15 @@ import (
 
 // ParseWorkflow parses Daisy workflow file and returns Daisy workflow object or error in case of failure
 func ParseWorkflow(path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
-	w, err := daisy.NewFromFile(path, varMap)
+	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
 	}
 Loop:
-	for k := range varMap {
+	for k, v := range varMap {
 		for wv := range w.Vars {
 			if k == wv {
+				w.AddVar(k, v)
 				continue Loop
 			}
 		}
