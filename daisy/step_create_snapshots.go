@@ -47,15 +47,13 @@ func (c *CreateSnapshots) run(ctx context.Context, s *Step) DError {
 	createSnapshot := func(ss *Snapshot) {
 		defer wg.Done()
 		// Get source disk link if SourceDisk is a daisy reference to a disk.
-		if diskURLRgx.MatchString(ss.SourceDisk) {
-			if d, ok := w.disks.get(ss.SourceDisk); ok {
-				ss.SourceDisk = d.link
+		if d, ok := w.disks.get(ss.SourceDisk); ok {
+			ss.SourceDisk = d.link
 
-				// Override snapshot link due that disk may be from a different project
-				m := NamedSubexp(diskURLRgx, d.link)
-				if ss.Project != m["project"] {
-					ss.link = fmt.Sprintf("projects/%s/global/snapshots/%s", m["project"], ss.Name)
-				}
+			// Override snapshot link due that disk may be from a different project
+			m := NamedSubexp(diskURLRgx, d.link)
+			if ss.Project != m["project"] {
+				ss.link = fmt.Sprintf("projects/%s/global/snapshots/%s", m["project"], ss.Name)
 			}
 		}
 
