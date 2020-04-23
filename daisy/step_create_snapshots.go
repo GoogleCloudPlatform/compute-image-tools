@@ -51,8 +51,9 @@ func (c *CreateSnapshots) run(ctx context.Context, s *Step) DError {
 			ss.SourceDisk = d.link
 
 			// Override snapshot link due that disk may be from a different project
-			if ss.Project != d.Project {
-				ss.link = fmt.Sprintf("projects/%s/global/snapshots/%s", d.Project, ss.Name)
+			m := NamedSubexp(diskURLRgx, d.link)
+			if ss.Project != m["project"] {
+				ss.link = fmt.Sprintf("projects/%s/global/snapshots/%s", m["project"], ss.Name)
 			}
 		}
 
