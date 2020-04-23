@@ -45,9 +45,10 @@ var (
 
 // constants used by logging
 const (
-	ImageImportAction    = "ImageImport"
-	ImageExportAction    = "ImageExport"
-	InstanceImportAction = "InstanceImport"
+	ImageImportAction        = "ImageImport"
+	ImageExportAction        = "ImageExport"
+	InstanceImportAction     = "InstanceImport"
+	MachineImageImportAction = "MachineImageImport"
 
 	// These strings should be interleaved to construct the real URL. This is just to (hopefully)
 	// fool github URL scanning bots.
