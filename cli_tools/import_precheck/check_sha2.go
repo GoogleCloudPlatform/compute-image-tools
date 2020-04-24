@@ -17,7 +17,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/osconfig/inventory/packages"
+	"github.com/GoogleCloudPlatform/osconfig/packages"
 )
 
 const sha2Windows2008R2KB = "KB4474419"
