@@ -18,7 +18,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/osconfig/inventory/osinfo"
+	"github.com/GoogleCloudPlatform/osconfig/osinfo"
 	"github.com/google/logger"
 )
 
