@@ -62,8 +62,8 @@ func importEntry() (*daisy.Workflow, error) {
 	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
 		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
-		*stdoutLogsDisabled, *kmsKey, *kmsKeyring, *kmsLocation, *kmsProject, *noExternalIP,
-		*labels, currentExecutablePath, *storageLocation, *uefiCompatible, *sysprepWindows)
+		*stdoutLogsDisabled, *noExternalIP, *labels, currentExecutablePath, *storageLocation,
+		*uefiCompatible, *sysprepWindows)
 }
 
 func main() {

@@ -144,8 +144,7 @@ func buildDaisyVars(source resource, translateWorkflowPath, imageName, family, d
 
 func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath string, zone string,
 	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
-	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, kmsKey string,
-	kmsKeyring string, kmsLocation string, kmsProject string, noExternalIP bool,
+	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, noExternalIP bool,
 	userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
@@ -195,8 +194,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	sourceFile string, sourceImage string, noGuestEnvironment bool, family string, description string,
 	network string, subnet string, zone string, timeout string, project *string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
-	stdoutLogsDisabled bool, kmsKey string, kmsKeyring string, kmsLocation string, kmsProject string,
-	noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
+	stdoutLogsDisabled bool, noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
 	uefiCompatible bool, sysprepWindows bool) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
@@ -243,8 +241,8 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 
 	var w *daisy.Workflow
 	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
-		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled, kmsKey, kmsKeyring,
-		kmsLocation, kmsProject, noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
+		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled,
+		noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
 
 		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, network, w)
 
