@@ -70,8 +70,7 @@ def DistroSpecific(g):
     utils.install_apt_package(g, 'google-cloud-packages-archive-keyring')
     utils.install_apt_package(g, 'google-cloud-sdk')
     utils.install_apt_package(g, 'google-compute-engine')
-    utils.install_apt_package(g, 'python-google-compute-engine')
-    utils.install_apt_package(g, 'python3-google-compute-engine')
+    utils.install_apt_package(g, 'google-guest-agent')
 
   # Update grub config to log to console.
   g.command(
