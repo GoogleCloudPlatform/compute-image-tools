@@ -151,8 +151,8 @@ func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*s
 	return sc.FindGcsFileDepthLimited(gcsDirectoryPath, fileExtension, -1)
 }
 
-// FindGcsFile finds a file in a GCS directory path for given file extension up
-// to lookupDepth deep. If lookup should be only for files directly in
+// FindGcsFileDepthLimited finds a file in a GCS directory path for given file
+// extension up to lookupDepth deep. If lookup should be only for files directly in
 // gcsDirectoryPath, lookupDepth should be set as 0. For recursive lookup with
 // no limitations on depth, lookupDepth should be -1
 // File extension can be a file name as well.
