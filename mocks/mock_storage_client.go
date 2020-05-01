@@ -134,6 +134,21 @@ func (mr *MockStorageClientInterfaceMockRecorder) FindGcsFile(arg0, arg1 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindGcsFile", reflect.TypeOf((*MockStorageClientInterface)(nil).FindGcsFile), arg0, arg1)
 }
 
+// FindGcsFileDepthLimited mocks base method
+func (m *MockStorageClientInterface) FindGcsFileDepthLimited(arg0, arg1 string, arg2 int) (*storage.ObjectHandle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindGcsFileDepthLimited", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*storage.ObjectHandle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindGcsFileDepthLimited indicates an expected call of FindGcsFileDepthLimited
+func (mr *MockStorageClientInterfaceMockRecorder) FindGcsFileDepthLimited(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindGcsFileDepthLimited", reflect.TypeOf((*MockStorageClientInterface)(nil).FindGcsFileDepthLimited), arg0, arg1, arg2)
+}
+
 // GetBucket mocks base method
 func (m *MockStorageClientInterface) GetBucket(arg0 string) *storage.BucketHandle {
 	m.ctrl.T.Helper()

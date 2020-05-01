@@ -33,8 +33,9 @@ import (
 )
 
 var (
-	bucketNameRegex = `[a-z0-9][-_.a-z0-9]*`
-	gsPathRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://(%s)(\/.*)?$`, bucketNameRegex))
+	bucketNameRegex   = `[a-z0-9][-_.a-z0-9]*`
+	gsPathRegex       = regexp.MustCompile(fmt.Sprintf(`^gs://(%s)(\/.*)?$`, bucketNameRegex))
+	slashCounterRegex = regexp.MustCompile("/")
 )
 
 // Client implements domain.StorageClientInterface. It implements main Storage functions
@@ -145,13 +146,25 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 }
 
 // FindGcsFile finds a file in a GCS directory path for given file extension. File extension can
-// be a file name as well.
+// be a file name as well. The lookup is done recursively.
 func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error) {
-	bucketName, objectPath, err := SplitGCSPath(gcsDirectoryPath)
+	return sc.FindGcsFileDepthLimited(gcsDirectoryPath, fileExtension, -1)
+}
+
+// FindGcsFile finds a file in a GCS directory path for given file extension up
+// to lookupDepth deep. If lookup should be only for files directly in
+// gcsDirectoryPath, lookupDepth should be set as 0. For recursive lookup with
+// no limitations on depth, lookupDepth should be -1
+// File extension can be a file name as well.
+func (sc *Client) FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension string, lookupDepth int) (*storage.ObjectHandle, error) {
+	bucketName, lookupPath, err := SplitGCSPath(gcsDirectoryPath)
 	if err != nil {
 		return nil, err
 	}
-	it := sc.GetObjects(bucketName, objectPath)
+	if strings.HasSuffix(lookupPath, "/") {
+		lookupPath = lookupPath[:len(lookupPath)-1]
+	}
+	it := sc.GetObjects(bucketName, lookupPath)
 	for {
 		attrs, err := it.Next()
 		if err == iterator.Done {
@@ -159,6 +172,9 @@ func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*s
 		}
 		if err != nil {
 			return nil, daisy.Errf("Error finding file with extension `%v` in Cloud Storage directory `%v`: %v", fileExtension, gcsDirectoryPath, err)
+		}
+		if !isDepthValid(lookupDepth, lookupPath, attrs.Name) {
+			continue
 		}
 
 		if !strings.HasSuffix(attrs.Name, fileExtension) {
@@ -170,6 +186,24 @@ func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*s
 	}
 	return nil, daisy.Errf(
 		"path %v doesn't contain a file with %v extension", gcsDirectoryPath, fileExtension)
+}
+
+func isDepthValid(lookupDepth int, lookupPath, objectPath string) bool {
+	if lookupDepth <= -1 {
+		return true
+	}
+	lookupPathDepth := 0
+	if len(lookupPath) > 0 {
+		// lookup path is a "folder", have to count all elements as one level, thus the +1
+		lookupPathDepth = 1 + getSlashCount(lookupPath)
+	}
+	// objectPath refers to an object so its path depth is one less than if it was a folder, thus no +1
+	objectDepth := getSlashCount(objectPath)
+	return objectDepth-lookupPathDepth <= lookupDepth
+}
+
+func getSlashCount(path string) int {
+	return len(slashCounterRegex.FindAllStringIndex(path, -1))
 }
 
 // GetGcsFileContent returns content of a GCS object as byte array

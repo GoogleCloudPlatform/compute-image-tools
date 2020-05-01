@@ -52,7 +52,7 @@ func TestOvfDescriptorLoader(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().FindGcsFile(ovfPath, ".ovf").Return(ovfObjectHandle, nil).Times(1)
+	mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, ".ovf", 0).Return(ovfObjectHandle, nil).Times(1)
 	mockStorageClient.EXPECT().GetGcsFileContent(ovfObjectHandle).Return([]byte(ovfDescriptorStr), nil).Times(1)
 
 	mockOvfDescriptorValidator := mocks.NewMockAbstractOvfDescriptorValidator(mockCtrl)
@@ -71,7 +71,7 @@ func TestOvfDescriptorLoaderNoDescriptorInGcs(t *testing.T) {
 
 	err := fmt.Errorf("no OVF file")
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().FindGcsFile(ovfPath, ".ovf").Return(nil, err).Times(1)
+	mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, ".ovf", 0).Return(nil, err).Times(1)
 	mockOvfDescriptorValidator := mocks.NewMockAbstractOvfDescriptorValidator(mockCtrl)
 
 	l := OvfDescriptorLoader{storageClient: mockStorageClient, validator: mockOvfDescriptorValidator}
@@ -87,7 +87,7 @@ func TestOvfDescriptorLoaderErrorLoadingDescriptor(t *testing.T) {
 
 	err := fmt.Errorf("error loading descriptor")
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().FindGcsFile(ovfPath, ".ovf").Return(ovfObjectHandle, nil).Times(1)
+	mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, ".ovf", 0).Return(ovfObjectHandle, nil).Times(1)
 	mockStorageClient.EXPECT().GetGcsFileContent(ovfObjectHandle).Return(nil, err).Times(1)
 	mockOvfDescriptorValidator := mocks.NewMockAbstractOvfDescriptorValidator(mockCtrl)
 
@@ -105,7 +105,7 @@ func TestOvfDescriptorLoaderErrorValidatingDescriptor(t *testing.T) {
 	err := fmt.Errorf("error validating descriptor")
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().FindGcsFile(ovfPath, ".ovf").Return(ovfObjectHandle, nil).Times(1)
+	mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, ".ovf", 0).Return(ovfObjectHandle, nil).Times(1)
 	mockStorageClient.EXPECT().GetGcsFileContent(ovfObjectHandle).Return([]byte(ovfDescriptorStr), nil).Times(1)
 
 	mockOvfDescriptorValidator := mocks.NewMockAbstractOvfDescriptorValidator(mockCtrl)

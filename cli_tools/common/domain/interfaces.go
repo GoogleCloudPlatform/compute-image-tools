@@ -32,6 +32,7 @@ type StorageClientInterface interface {
 	GetObjects(bucket string, objectPath string) ObjectIteratorInterface
 	DeleteObject(bucket string, objectPath string) error
 	FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error)
+	FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension string, lookupDepth int) (*storage.ObjectHandle, error)
 	GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error)
 	WriteToGCS(destinationBucketName string, destinationObjectPath string, reader io.Reader) error
 	DeleteGcsPath(gcsPath string) error
