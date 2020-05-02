@@ -24,7 +24,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -99,7 +98,7 @@ func buildOVFImportParams() *ovfimportparams.OVFImportParams {
 	}
 }
 
-func runImport() (*daisy.Workflow, error) {
+func runImport() (service.Loggable, error) {
 	var ovfImporter *ovfimporter.OVFImporter
 	var err error
 	defer func() {
@@ -112,7 +111,8 @@ func runImport() (*daisy.Workflow, error) {
 		return nil, err
 	}
 
-	return ovfImporter.Import()
+	wf, err := ovfImporter.Import()
+	return service.WorkflowToLoggable(wf), err
 }
 
 func main() {
