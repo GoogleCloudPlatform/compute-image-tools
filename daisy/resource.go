@@ -219,7 +219,7 @@ func (c *twoDResourceCache) loadCache(listResourceFunc func(project string, regi
 	if _, ok := c.exists[project][regionOrZone]; !ok {
 		ri, err := listResourceFunc(project, regionOrZone)
 		if err != nil {
-			return Errf("error listing resource for project %q: %v", project, err)
+			return typedErr(apiError, "error listing resource for project", err)
 		}
 		c.exists[project][regionOrZone] = toMap(ri)
 	}
@@ -252,7 +252,7 @@ func (c *oneDResourceCache) loadCache(listResourceFunc func(project string, opts
 	if _, ok := c.exists[project]; !ok {
 		ri, err := listResourceFunc(project)
 		if err != nil {
-			return Errf("error listing resource for project %q: %v", project, err)
+			return typedErr(apiError, "error listing resource for project", err)
 		}
 		c.exists[project] = toMap(ri)
 	}

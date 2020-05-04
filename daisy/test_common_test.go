@@ -41,7 +41,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-const DNE = "DNE!"
+const (
+	DNE  = "DNE!"
+	p403 = "p403"
+)
 
 type mockStep struct {
 	populateImpl func(context.Context, *Step) DError
@@ -215,6 +218,9 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		return []*compute.ForwardingRule{{Name: testForwardingRule}}, nil
 	}
 	c.ListLicensesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.License, error) {
+		if p == p403 {
+			return nil, &googleapi.Error{Code: 403}
+		}
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
