@@ -161,9 +161,6 @@ func (sc *Client) FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension
 	if err != nil {
 		return nil, err
 	}
-	if strings.HasSuffix(lookupPath, "/") {
-		lookupPath = lookupPath[:len(lookupPath)-1]
-	}
 	it := sc.GetObjects(bucketName, lookupPath)
 	for {
 		attrs, err := it.Next()
@@ -176,7 +173,6 @@ func (sc *Client) FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension
 		if !isDepthValid(lookupDepth, lookupPath, attrs.Name) {
 			continue
 		}
-
 		if !strings.HasSuffix(attrs.Name, fileExtension) {
 			continue
 		}
@@ -191,6 +187,9 @@ func (sc *Client) FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension
 func isDepthValid(lookupDepth int, lookupPath, objectPath string) bool {
 	if lookupDepth <= -1 {
 		return true
+	}
+	if strings.HasSuffix(lookupPath, "/") {
+		lookupPath = lookupPath[:len(lookupPath)-1]
 	}
 	lookupPathDepth := 0
 	if len(lookupPath) > 0 {
