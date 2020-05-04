@@ -30,7 +30,7 @@ type workflowLoggable struct {
 	wf *daisy.Workflow
 }
 
-func (w workflowLoggable) GetKeyValueAsKey(key string) string {
+func (w workflowLoggable) GetKeyValueAsString(key string) string {
 	return w.wf.GetSerialConsoleOutputValue(key)
 }
 
@@ -54,7 +54,7 @@ type literalLoggable struct {
 	serials []string
 }
 
-func (w literalLoggable) GetKeyValueAsKey(key string) string { return w.strings[key] }
+func (w literalLoggable) GetKeyValueAsString(key string) string { return w.strings[key] }
 
 func (w literalLoggable) GetKeyValueAsInt64Slice(key string) []int64 { return w.int64s[key] }
 

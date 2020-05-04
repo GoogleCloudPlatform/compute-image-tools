@@ -35,8 +35,8 @@ func TestWorkflowLoggable_GetKeyValueAsKey(t *testing.T) {
 	wf.AddSerialConsoleOutputValue("hello", "world")
 	loggable := WorkflowToLoggable(&wf)
 
-	assert.Equal(t, "world", loggable.GetKeyValueAsKey("hello"))
-	assert.Empty(t, loggable.GetKeyValueAsKey("not-there"))
+	assert.Equal(t, "world", loggable.GetKeyValueAsString("hello"))
+	assert.Empty(t, loggable.GetKeyValueAsString("not-there"))
 }
 
 func TestWorkflowLoggable_ReadSerialPortLogs(t *testing.T) {
@@ -73,8 +73,8 @@ func TestLiteralLoggable_GetKeyValueAsKey(t *testing.T) {
 		strings: map[string]string{"hello": "world"},
 	}
 
-	assert.Equal(t, "world", loggable.GetKeyValueAsKey("hello"))
-	assert.Empty(t, loggable.GetKeyValueAsKey("not-there"))
+	assert.Equal(t, "world", loggable.GetKeyValueAsString("hello"))
+	assert.Empty(t, loggable.GetKeyValueAsString("not-there"))
 }
 
 func TestLiteralLoggable_ReadSerialPortLogs(t *testing.T) {
