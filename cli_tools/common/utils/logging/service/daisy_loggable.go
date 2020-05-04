@@ -20,8 +20,7 @@ import (
 	"strings"
 )
 
-// WorkflowToLoggable is a shim for a daisy workflow, exposing only those
-// fields that are pertinent to logging.
+// WorkflowToLoggable provides a Loggable from a daisy workflow.
 func WorkflowToLoggable(wf *daisy.Workflow) Loggable {
 	return workflowLoggable{wf: wf}
 }
@@ -30,11 +29,11 @@ type workflowLoggable struct {
 	wf *daisy.Workflow
 }
 
-func (w workflowLoggable) GetKeyValueAsString(key string) string {
+func (w workflowLoggable) GetValue(key string) string {
 	return w.wf.GetSerialConsoleOutputValue(key)
 }
 
-func (w workflowLoggable) GetKeyValueAsInt64Slice(key string) []int64 {
+func (w workflowLoggable) GetValueAsInt64Slice(key string) []int64 {
 	return getInt64Values(w.wf.GetSerialConsoleOutputValue(key))
 }
 
@@ -47,18 +46,6 @@ func (w workflowLoggable) ReadSerialPortLogs() []string {
 	}
 	return nil
 }
-
-type literalLoggable struct {
-	strings map[string]string
-	int64s  map[string][]int64
-	serials []string
-}
-
-func (w literalLoggable) GetKeyValueAsString(key string) string { return w.strings[key] }
-
-func (w literalLoggable) GetKeyValueAsInt64Slice(key string) []int64 { return w.int64s[key] }
-
-func (w literalLoggable) ReadSerialPortLogs() []string { return w.serials }
 
 func getInt64Values(s string) []int64 {
 	strs := strings.Split(s, ",")

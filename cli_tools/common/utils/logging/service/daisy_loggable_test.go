@@ -21,25 +21,25 @@ import (
 	"testing"
 )
 
-func TestWorkflowLoggable_GetKeyValueAsInt64Slice(t *testing.T) {
+func TestWorkflowToLoggable_GetValueAsInt64Slice(t *testing.T) {
 	wf := daisy.Workflow{}
 	wf.AddSerialConsoleOutputValue("gb", "1,2,3")
 	loggable := WorkflowToLoggable(&wf)
 
-	assert.Equal(t, []int64{1, 2, 3}, loggable.GetKeyValueAsInt64Slice("gb"))
-	assert.Empty(t, loggable.GetKeyValueAsInt64Slice("not-there"))
+	assert.Equal(t, []int64{1, 2, 3}, loggable.GetValueAsInt64Slice("gb"))
+	assert.Empty(t, loggable.GetValueAsInt64Slice("not-there"))
 }
 
-func TestWorkflowLoggable_GetKeyValueAsKey(t *testing.T) {
+func TestWorkflowToLoggable_GetValue(t *testing.T) {
 	wf := daisy.Workflow{}
 	wf.AddSerialConsoleOutputValue("hello", "world")
 	loggable := WorkflowToLoggable(&wf)
 
-	assert.Equal(t, "world", loggable.GetKeyValueAsString("hello"))
-	assert.Empty(t, loggable.GetKeyValueAsString("not-there"))
+	assert.Equal(t, "world", loggable.GetValue("hello"))
+	assert.Empty(t, loggable.GetValue("not-there"))
 }
 
-func TestWorkflowLoggable_ReadSerialPortLogs(t *testing.T) {
+func TestWorkflowToLoggable_ReadSerialPortLogs(t *testing.T) {
 	wf := daisy.Workflow{
 		Logger: daisyLogger{serialLogs: []string{
 			"log-a", "log-b",
@@ -50,39 +50,11 @@ func TestWorkflowLoggable_ReadSerialPortLogs(t *testing.T) {
 	assert.Equal(t, []string{"log-a", "log-b"}, loggable.ReadSerialPortLogs())
 }
 
-func TestWorkflowLoggable_ReadSerialPortLogs_SupportsMissingLogger(t *testing.T) {
+func TestWorkflowToLoggable_ReadSerialPortLogs_SupportsMissingDaisyLogger(t *testing.T) {
 	wf := daisy.Workflow{}
 	loggable := WorkflowToLoggable(&wf)
 
 	assert.Empty(t, loggable.ReadSerialPortLogs())
-}
-
-func TestLiteralLoggable_GetKeyValueAsInt64Slice(t *testing.T) {
-	loggable := literalLoggable{
-		int64s: map[string][]int64{
-			"gb": {1, 2, 3},
-		},
-	}
-
-	assert.Equal(t, []int64{1, 2, 3}, loggable.GetKeyValueAsInt64Slice("gb"))
-	assert.Empty(t, loggable.GetKeyValueAsInt64Slice("not-there"))
-}
-
-func TestLiteralLoggable_GetKeyValueAsKey(t *testing.T) {
-	loggable := literalLoggable{
-		strings: map[string]string{"hello": "world"},
-	}
-
-	assert.Equal(t, "world", loggable.GetKeyValueAsString("hello"))
-	assert.Empty(t, loggable.GetKeyValueAsString("not-there"))
-}
-
-func TestLiteralLoggable_ReadSerialPortLogs(t *testing.T) {
-	loggable := literalLoggable{
-		serials: []string{"log-a", "log-b"},
-	}
-
-	assert.Equal(t, []string{"log-a", "log-b"}, loggable.ReadSerialPortLogs())
 }
 
 type daisyLogger struct {

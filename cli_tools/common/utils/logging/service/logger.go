@@ -173,9 +173,9 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 	o := OutputInfo{}
 
 	if loggable != nil {
-		o.TargetsSizeGb = loggable.GetKeyValueAsInt64Slice(targetSizeGb)
-		o.SourcesSizeGb = loggable.GetKeyValueAsInt64Slice(sourceSizeGb)
-		o.ImportFileFormat = loggable.GetKeyValueAsString(importFileFormat)
+		o.TargetsSizeGb = loggable.GetValueAsInt64Slice(targetSizeGb)
+		o.SourcesSizeGb = loggable.GetValueAsInt64Slice(sourceSizeGb)
+		o.ImportFileFormat = loggable.GetValue(importFileFormat)
 	}
 
 	if err != nil {
@@ -363,9 +363,9 @@ func Hash(s string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-// Loggable contains fields pertinent to import and export logging.
+// Loggable contains fields relevant to import and export logging.
 type Loggable interface {
-	GetKeyValueAsString(key string) string
-	GetKeyValueAsInt64Slice(key string) []int64
+	GetValue(key string) string
+	GetValueAsInt64Slice(key string) []int64
 	ReadSerialPortLogs() []string
 }
