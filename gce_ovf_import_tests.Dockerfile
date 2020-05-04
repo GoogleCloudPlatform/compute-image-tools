@@ -16,8 +16,8 @@ FROM golang:alpine
 RUN apk add --no-cache git
 
 # Build test runner
-WORKDIR /gce_ovf_import_tests
-COPY gce_ovf_import_tests/ .
+WORKDIR /cli_tools_e2e_test/gce_ovf_import_tests
+COPY cli_tools_e2e_test/gce_ovf_import_tests/ .
 RUN go get -d ./...
 RUN CGO_ENABLED=0 go build -o /gce_ovf_import_test_runner
 RUN chmod +x /gce_ovf_import_test_runner
