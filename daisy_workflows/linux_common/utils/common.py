@@ -88,13 +88,12 @@ YumInstall.first_run = True
 
 @RetryOnFailure()
 def AptGetInstall(package_list, suite=None):
-  if AptGetInstall.first_run:
-    try:
-      Execute(['apt-get', 'update'])
-    except subprocess.CalledProcessError as error:
-      logging.info('Apt update failed, trying again: %s' % error)
-      Execute(['apt-get', 'update'], raise_errors=False)
-    AptGetInstall.first_run = False
+  # When `apt-get update` fails to update a repo, it returns 0.
+  # This check ensures that we retry running update until we've
+  # had one successful install.
+  # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=778357
+  if not AptGetInstall.prior_success:
+    Execute(['apt-get', 'update'])
 
   env = os.environ.copy()
   env['DEBIAN_FRONTEND'] = 'noninteractive'
@@ -103,10 +102,12 @@ def AptGetInstall(package_list, suite=None):
   if suite:
       cmd += ['-t', suite]
 
-  return Execute(cmd + package_list, env=env)
+  result = Execute(cmd + package_list, env=env)
+  AptGetInstall.prior_success = True
+  return result
 
 
-AptGetInstall.first_run = True
+AptGetInstall.prior_success = False
 
 
 def PipInstall(package_list):
