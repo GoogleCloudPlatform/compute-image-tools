@@ -1,0 +1,3 @@
+#!/bin/bash
+
+chroot $target dpkg-query -W --showformat '${Package}:${Version}\n' > /tmp/packages.txt

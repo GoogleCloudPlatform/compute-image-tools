@@ -364,6 +364,7 @@ def UploadFile(source_file, gcs_dest_file):
   bucket = client.get_bucket(match.group('bucket'))
   blob = bucket.blob(match.group('obj'))
   blob.upload_from_filename(source_file)
+  return blob.id
 
 
 class LogFormatter(logging.Formatter):

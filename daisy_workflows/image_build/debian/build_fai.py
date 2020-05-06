@@ -158,6 +158,10 @@ def main():
                     'scripts/GCE_CLEAN/10-gce-clean',
                     config_space)
   os.chmod(config_space + 'scripts/GCE_CLEAN/10-gce-clean', 0o755)
+  CopyToConfigSpace('/files/fai_config/scripts/15-gce-manifest',
+                    'scripts/GCE_CLEAN/15-gce-manifest',
+                    config_space)
+  os.chmod(config_space + 'scripts/GCE_CLEAN/15-gce-manifest', 0o755)
   fai_classes += ['GCE_CLEAN']
 
   # Remove failing test method for now.
@@ -175,12 +179,21 @@ def main():
   disk_tar_gz = 'debian-{}-{}.tar.gz'.format(debian_version, build_date)
   logging.info('Compressing it into tarball %s' % disk_tar_gz)
   tar = tarfile.open(disk_tar_gz, 'w:gz')
-  tar.add('%s/disk.raw' % work_dir, arcname='disk.raw')
+  tar.add('%s/%s' % (work_dir, disk_name), arcname=disk_name)
   tar.close()
 
   # Upload tar.
   logging.info('Saving %s to %s' % (disk_tar_gz, image_dest))
-  utils.UploadFile(disk_tar_gz, image_dest)
+  blob_id = utils.UploadFile(disk_tar_gz, image_dest)
+
+  manifest = "Image: %s\n" % blob_id
+  with open("/tmp/packages.txt") as f:
+    packagelist = f.read()
+  manifest += "Packages: %s" % packagelist
+  with open("manifest.txt", "w") as f:
+    f.write(manifest)
+  manifest_dest = "%s_manifest.txt" % image_dest
+  utils.UploadFile("manifest.txt", manifest_dest)
 
 
 if __name__ == '__main__':
