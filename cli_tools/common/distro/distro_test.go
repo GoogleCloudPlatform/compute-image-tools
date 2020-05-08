@@ -24,14 +24,14 @@ func TestParseGcloudOsParam_WindowsIsNotImplemented(t *testing.T) {
 	d, err := ParseGcloudOsParam("windows-2008")
 	assert.Nil(t, d)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "windows not yet implemented")
+	assert.Contains(t, err.Error(), "Windows not yet implemented")
 }
 
 func TestFromLibguestfs_WindowsIsNotImplemented(t *testing.T) {
 	d, err := FromLibguestfs("windows", "6", "1")
 	assert.Nil(t, d)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "windows not yet implemented")
+	assert.Contains(t, err.Error(), "Windows not yet implemented")
 }
 
 func TestParseGcloudOsParam_HappyCasesLinux(t *testing.T) {
@@ -75,7 +75,7 @@ func TestHumanReadable(t *testing.T) {
 		{release{distro: "debian", major: "8"}, "debian-8"},
 		{release{distro: "opensuse", major: "15"}, "opensuse-15"},
 		{release{distro: "sles", variant: "sap", major: "12"}, "sles-sap-12"},
-		{release{distro: "sles", major: "15", minor: "1"}, "sles-15"},
+		{release{distro: "sles", major: "15", minor: "2"}, "sles-15"},
 		{release{distro: "ubuntu", major: "14", minor: "04"}, "ubuntu-1404"},
 	}
 	for _, tt := range cases {
