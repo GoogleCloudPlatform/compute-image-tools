@@ -13,7 +13,7 @@ options:
 steps:
 - id: cleanerupper
   name: 'gcr.io/kaniko-project/executor'
-  args: 
+  args:
   - --destination=gcr.io/$PROJECT_ID/cleanerupper:latest
   - --destination=gcr.io/$PROJECT_ID/cleanerupper:$COMMIT_SHA
   - --context=/workspace/test-infra/prowjobs/cleanerupper
