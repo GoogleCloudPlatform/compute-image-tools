@@ -25,7 +25,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/gce_image_import_export_tests/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/gce_image_import_export_tests/compute"
 	clitoolstestutils "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/cli_tools"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"

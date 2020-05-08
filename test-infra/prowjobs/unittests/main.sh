@@ -28,8 +28,7 @@ fi
 RET=0
 
 TARGETS=("daisy"
-         "cli_tools"
-         "gce_image_import_export_tests")
+         "cli_tools")
 for TARGET in "${TARGETS[@]}"; do
   echo "Running tests on ${TARGET}"
   cd /${REPO_PATH}/${TARGET}
