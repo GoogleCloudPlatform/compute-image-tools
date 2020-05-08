@@ -31,7 +31,7 @@ const (
 )
 
 // Release encapsulates product and version information
-// about a Linux or Windows release.
+// about the operating systems we support.
 type Release interface {
 	ImportCompatible(other Release) bool
 	AsGcloudArg() string
