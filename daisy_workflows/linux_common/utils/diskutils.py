@@ -30,7 +30,7 @@ _STATUS_PREFIX = 'TranslateStatus: '
 def log_key_value(key, value):
   """
   Prints the key and value using the format defined by
-  Daiys's serial output inspector.
+  Daisy's serial output inspector.
 
   The format is defined in `daisy/step_wait_for_instances_signal.go`
   """

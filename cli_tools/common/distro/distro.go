@@ -20,6 +20,16 @@ import (
 	"strings"
 )
 
+const (
+	centos   = "centos"
+	debian   = "debian"
+	opensuse = "opensuse"
+	rhel     = "rhel"
+	sles     = "sles"
+	ubuntu   = "ubuntu"
+	windows  = "windows"
+)
+
 // Release encapsulates product and version information
 // about a Linux or Windows release.
 type Release interface {
@@ -38,34 +48,32 @@ type release struct {
 // that we use with the `--os` flag.
 func (l release) AsGcloudArg() string {
 	switch l.distro {
-	case "ubuntu":
+	case ubuntu:
 		return fmt.Sprintf("%s-%s%s", l.distro, l.major, l.minor)
-	case "sles":
+	case sles:
 		if l.variant != "" {
 			return fmt.Sprintf("%s-%s-%s", l.distro, l.variant, l.major)
-		} else {
-			return fmt.Sprintf("%s-%s", l.distro, l.major)
 		}
+		return fmt.Sprintf("%s-%s", l.distro, l.major)
 	default:
 		return fmt.Sprintf("%s-%s", l.distro, l.major)
 	}
 }
 
-// ImportCompatible uses product-specific information
-// to determine whether two versions are compatible for import.
+// ImportCompatible reports whether two releases are compatible for import.
 func (l release) ImportCompatible(other Release) bool {
 	realOther, ok := other.(release)
 	if !ok {
 		return false
 	}
 
-	if l.distro == "ubuntu" {
+	if l.distro == ubuntu {
 		return l.distro == realOther.distro &&
 			l.major == realOther.major &&
 			l.minor == realOther.minor
 	}
 
-	if l.distro == "sles" {
+	if l.distro == sles {
 		return l.distro == realOther.distro &&
 			l.variant == realOther.variant &&
 			l.major == realOther.major
@@ -81,13 +89,13 @@ func (l release) ImportCompatible(other Release) bool {
 // http://libguestfs.org/guestfs.3.html#guestfs_inspect_get_distro
 func FromLibguestfs(distro string, major string, minor string) (r Release, e error) {
 	distro = strings.ToLower(distro)
-	if distro == "windows" {
-		// We don't currently need windows for this parsing, and punting
+	if distro == windows {
+		// We don't currently need Windows for this parsing, and punting
 		// since it's not immediately clear how to represent their
 		// version strings, as the user-facing value (Windows 2008r2)
 		// does not match what's used internally by our tools (NT 5.2)
 		// https://en.wikipedia.org/wiki/List_of_Microsoft_Windows_versions
-		return r, errors.New("windows not yet implemented")
+		return r, errors.New("Windows not yet implemented")
 	}
 	if distro == "" || major == "" {
 		return nil, errors.New("distro and major are required")
@@ -103,30 +111,30 @@ func FromLibguestfs(distro string, major string, minor string) (r Release, e err
 // from the `gcloud compute image` tools.
 //
 // https://cloud.google.com/sdk/gcloud/reference/compute/images/import#--os
-func ParseGcloudOsParam(os string) (r Release, e error) {
-	os = strings.ToLower(os)
+func ParseGcloudOsParam(osFlagValue string) (r Release, e error) {
+	os := strings.ToLower(osFlagValue)
 	if strings.HasSuffix(os, "-byol") {
 		os = strings.TrimSuffix(os, "-byol")
 	}
-	if strings.HasPrefix(os, "windows") {
-		// We don't currently need windows for this parsing, and punting
+	if strings.HasPrefix(os, windows) {
+		// We don't currently need Windows for this parsing, and punting
 		// since it's not immediately clear how to represent their
 		// version strings, as the user-facing value (Windows 2008r2)
 		// does not match what's used internally by our tools (NT 5.2)
 		// https://en.wikipedia.org/wiki/List_of_Microsoft_Windows_versions
-		return r, errors.New("windows not yet implemented")
+		return r, errors.New("Windows not yet implemented")
 	}
 	parts := strings.Split(os, "-")
 	distro := parts[0]
 
 	// 1. Format is `(debian|centos|rhel|opensuse)-major`.
 	//   Canonical example: debian-8
-	if distro == "debian" ||
-		distro == "centos" ||
-		distro == "rhel" ||
-		distro == "opensuse" {
+	if distro == debian ||
+		distro == centos ||
+		distro == rhel ||
+		distro == opensuse {
 		if len(parts) != 2 {
-			return r, fmt.Errorf("expected pattern of `distro-version`. Actual: %q", os)
+			return r, fmt.Errorf("expected pattern of `distro-version`. Actual: `%s`", os)
 		}
 
 		return release{
@@ -137,7 +145,7 @@ func ParseGcloudOsParam(os string) (r Release, e error) {
 
 	// 2. Format is `sles(-variant)?-major`.
 	//   Canonical examples: sles-sap-12, sles-12
-	if distro == "sles" {
+	if distro == sles {
 		switch len(parts) {
 		case 2:
 			return release{
@@ -151,21 +159,21 @@ func ParseGcloudOsParam(os string) (r Release, e error) {
 				major:   parts[2],
 			}, nil
 		default:
-			return r, fmt.Errorf("unrecognized SLES identifier: %q", os)
+			return r, fmt.Errorf("unrecognized SLES identifier: `%s`", os)
 		}
 	}
 
 	// 3. Format is `ubuntu-(major)(minor)`.
 	//   Canonical example: ubuntu-1804
-	if distro == "ubuntu" {
+	if distro == ubuntu {
 		if len(parts) != 2 {
-			return r, fmt.Errorf("expected pattern of `distro-version`. Actual: %q", os)
+			return r, fmt.Errorf("expected pattern of `distro-version`. Actual: `%s`", os)
 		}
 
 		version := parts[1]
 		// We support importing LTS versions, which end in 04.
 		if len(version) != 4 {
-			return r, fmt.Errorf("expected version with length four. Actual: %q", version)
+			return r, fmt.Errorf("expected version with length four. Actual: `%s`", version)
 		}
 
 		return release{
@@ -175,5 +183,5 @@ func ParseGcloudOsParam(os string) (r Release, e error) {
 		}, nil
 	}
 
-	return r, fmt.Errorf("unrecognized identifier: %q", os)
+	return r, fmt.Errorf("unrecognized identifier: `%s`", os)
 }

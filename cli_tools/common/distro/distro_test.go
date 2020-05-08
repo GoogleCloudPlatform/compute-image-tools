@@ -90,13 +90,17 @@ func TestParseGcloudOsParam_ErrorsLinux(t *testing.T) {
 		in  string
 		err string
 	}{
-		{"sles", "unrecognized SLES identifier: \"sles\""},
-		{"kali-12", "unrecognized identifier: \"kali-12\""},
+		{"", "unrecognized identifier: ``"},
+		{"notSupported", "unrecognized identifier: `notsupported`"},
+		{"notSupported-18", "unrecognized identifier: `notsupported-18`"},
+		{"notSupported-1804", "unrecognized identifier: `notsupported-1804`"},
+		{"sles", "unrecognized SLES identifier: `sles`"},
+		{"kali-12", "unrecognized identifier: `kali-12`"},
 		{"ubuntu", "expected pattern of `distro-version`"},
 		{"ubuntu-12", "expected version with length four"},
 		{"opensuse-15-leap", "expected pattern of `distro-version`"},
 		{"debian", "expected pattern of `distro-version`"},
-		{"centos7", "unrecognized identifier: \"centos7\""},
+		{"centos7", "unrecognized identifier: `centos7`"},
 		{"rhel", "expected pattern of `distro-version`"},
 	}
 	for _, tt := range cases {
@@ -121,6 +125,14 @@ func TestImportCompatible_Libguestfs(t *testing.T) {
 	assert.True(t,
 		safeParse(t, "ubuntu-1404").ImportCompatible(
 			safeFromLibguestfs(t, "ubuntu", "14", "04")))
+
+	assert.False(t,
+		safeParse(t, "rhel-7").ImportCompatible(
+			safeFromLibguestfs(t, "centos", "7", "")))
+
+	assert.False(t,
+		safeParse(t, "centos-7").ImportCompatible(
+			safeFromLibguestfs(t, "debian", "7", "")))
 
 	assert.False(t,
 		safeParse(t, "ubuntu-1404").ImportCompatible(
