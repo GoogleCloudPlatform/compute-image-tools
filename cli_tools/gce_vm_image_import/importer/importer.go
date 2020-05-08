@@ -16,11 +16,13 @@ package importer
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -246,6 +248,19 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 
 		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, network, w)
 
+		// When translation fails, report the detection results if they don't
+		// match the user's input.
+		fromUser, _ := distro.ParseGcloudOsParam(osID)
+		detected, _ := distro.FromLibguestfs(
+			w.GetSerialConsoleOutputValue("detected_distro"),
+			w.GetSerialConsoleOutputValue("detected_major_version"),
+			w.GetSerialConsoleOutputValue("detected_minor_version"))
+		if fromUser != nil && detected != nil && !fromUser.ImportCompatible(detected) {
+			// The error is already logged by Daisy, so skipping re-logging it here.
+			return w, fmt.Errorf("%q was detected on your disk, "+
+				"but %q was specified. Please verify and re-import",
+				detected.AsGcloudArg(), fromUser.AsGcloudArg())
+		}
 		return w, err
 	}
 	return w, nil
