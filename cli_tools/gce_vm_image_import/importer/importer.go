@@ -246,7 +246,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 
 		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, network, w)
 
-		return w, err
+		return customizeErrorToDetectionResults(osID, w, err)
 	}
 	return w, nil
 }

@@ -74,7 +74,8 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "TranslateSuccess:",
-            "FailureMatch": "TranslateFailed:"
+            "FailureMatch": "TranslateFailed:",
+            "StatusMatch": "TranslateStatus:"
           }
         }
       ],
