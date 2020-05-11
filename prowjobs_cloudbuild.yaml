@@ -12,24 +12,24 @@ options:
 
 steps:
 - id: cleanerupper
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/cleanerupper:latest
   - --destination=gcr.io/$PROJECT_ID/cleanerupper:$COMMIT_SHA
   - --context=/workspace/test-infra/prowjobs/cleanerupper
   - --cache=true
   - --cache-ttl=24h
 - id: wrapper
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/wrapper:latest
   - --destination=gcr.io/$PROJECT_ID/wrapper:$COMMIT_SHA
   - --context=/workspace/test-infra/prowjobs/wrapper
   - --cache=true
   - --cache-ttl=24h
 - id: wrapper-with-gcloud
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/wrapper-with-gcloud:latest
   - --destination=gcr.io/$PROJECT_ID/wrapper-with-gcloud:$COMMIT_SHA
   - --context=/workspace/test-infra/prowjobs/wrapper
@@ -38,55 +38,55 @@ steps:
   - --cache=true
   - --cache-ttl=24h
 - id: test-runner
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/test-runner:latest
   - --destination=gcr.io/$PROJECT_ID/test-runner:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=daisy_test_runner.Dockerfile
   - --build-arg=PROJECT_ID=$PROJECT_ID
 - id: gce-image-import-export-tests
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/gce-image-import-export-tests:latest
   - --destination=gcr.io/$PROJECT_ID/gce-image-import-export-tests:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_image_import_export_tests.Dockerfile
   - --build-arg=PROJECT_ID=$PROJECT_ID
 - id: gce-ovf-import-tests
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/gce-ovf-import-tests:latest
   - --destination=gcr.io/$PROJECT_ID/gce-ovf-import-tests:$COMMIT_SHA
   - --context=/workspace
   - --dockerfile=gce_ovf_import_tests.Dockerfile
   - --build-arg=PROJECT_ID=$PROJECT_ID
 - id: gocheck
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/gocheck:latest
   - --destination=gcr.io/$PROJECT_ID/gocheck:$COMMIT_SHA
   - --context=/workspace/test-infra/prowjobs/gocheck
   - --build-arg=PROJECT_ID=$PROJECT_ID
   waitFor: ['wrapper']
 - id: gobuild
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/gobuild:latest
   - --destination=gcr.io/$PROJECT_ID/gobuild:$COMMIT_SHA
   - --context=/workspace/test-infra/prowjobs/gobuild
   - --build-arg=PROJECT_ID=$PROJECT_ID
   waitFor: ['wrapper']
 - id: flake8
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
-  args: 
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
   - --destination=gcr.io/$PROJECT_ID/flake8:latest
   - --destination=gcr.io/$PROJECT_ID/flake8:$COMMIT_SHA
   - --context=/workspace/test-infra/prowjobs/flake8
   - --build-arg=PROJECT_ID=$PROJECT_ID
   waitFor: ['wrapper']
 - id: unittests
-  name: 'gcr.io/kaniko-project/executor:debug-edge'
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args: 
   - --destination=gcr.io/$PROJECT_ID/unittests:latest
   - --destination=gcr.io/$PROJECT_ID/unittests:$COMMIT_SHA
