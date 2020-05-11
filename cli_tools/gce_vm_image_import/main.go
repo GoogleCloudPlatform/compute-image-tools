@@ -21,7 +21,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -57,13 +56,14 @@ var (
 	sysprepWindows       = flag.Bool("sysprep_windows", false, "Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
 )
 
-func importEntry() (*daisy.Workflow, error) {
+func importEntry() (service.Loggable, error) {
 	currentExecutablePath := string(os.Args[0])
-	return importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
+	wf, err := importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
 		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *noExternalIP, *labels, currentExecutablePath, *storageLocation,
 		*uefiCompatible, *sysprepWindows)
+	return service.WorkflowToLoggable(wf), err
 }
 
 func main() {

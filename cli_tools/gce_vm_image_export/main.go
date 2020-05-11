@@ -21,7 +21,6 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export/exporter"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -43,11 +42,12 @@ var (
 	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
 )
 
-func exportEntry() (*daisy.Workflow, error) {
+func exportEntry() (service.Loggable, error) {
 	currentExecutablePath := string(os.Args[0])
-	return exporter.Run(*clientID, *destinationURI, *sourceImage, *format, project,
+	wf, err := exporter.Run(*clientID, *destinationURI, *sourceImage, *format, project,
 		*network, *subnet, *zone, *timeout, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled,
 		*cloudLogsDisabled, *stdoutLogsDisabled, *labels, currentExecutablePath)
+	return service.WorkflowToLoggable(wf), err
 }
 
 func main() {
