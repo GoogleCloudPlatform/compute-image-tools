@@ -224,7 +224,7 @@ function Enable-RemoteDesktop {
   Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableCAD' -Value 1 -Force
 
   Write-Output 'Enable RDP firewall rules.'
-  Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
+  Run-Command netsh advfirewall firewall set rule group='@FirewallAPI.dll,-28752' new enable=Yes
 }
 
 function Install-Packages {
