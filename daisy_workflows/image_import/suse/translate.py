@@ -36,17 +36,11 @@ class _Package:
       gce (bool): Is the package specific to GCP? When set to true, this
                   package will only be installed if when `install_gce_packages`
                   is also true.
-      required (bool): Can the workflow proceed if there's a failure to install
-                       this package? When set to true, the workflow will
-                       terminate if there's an error installing the package.
-                       When set to false, the error is logged but the workflow
-                       will continue.
   """
 
-  def __init__(self, name, gce, required):
+  def __init__(self, name, gce):
     self.name = name
     self.gce = gce
-    self.required = required
 
 
 class _SuseRelease:
@@ -71,10 +65,9 @@ class _SuseRelease:
 
 
 _packages = [
-    _Package('cloud-init', gce=False, required=False),
-    _Package('google-cloud-sdk', gce=True, required=False),
-    _Package('google-compute-engine-init', gce=True, required=True),
-    _Package('google-compute-engine-oslogin', gce=True, required=True)
+    _Package('iputils', gce=False),
+    _Package('google-compute-engine-init', gce=True),
+    _Package('google-compute-engine-oslogin', gce=True)
 ]
 
 _distros = [
@@ -179,7 +172,7 @@ def _disambiguate_suseconnect_product_error(g, product, error) -> Exception:
     'Unable to find an active SLES subscription. SCC returned: %s' % statuses)
 
 
-@utils.RetryOnFailure(stop_after_seconds=60, initial_delay_seconds=1)
+@utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def _install_product(distro, g):
   """Executes SuseConnect -p for each product on `distro`.
 
@@ -194,8 +187,8 @@ def _install_product(distro, g):
         raise _disambiguate_suseconnect_product_error(g, product, e)
 
 
-def _install_packages(distro, g, install_gce):
-  """Installs the packages listed on `distro`.
+def _install_packages(g, install_gce):
+  """Installs packages using zypper
 
   Respects the user's request of whether to include GCE packages
   via the `install_gce` argument.
@@ -205,23 +198,21 @@ def _install_packages(distro, g, install_gce):
                 a failure to install a required package.
   """
   refresh_zypper(g)
+  to_install = []
   for pkg in _packages:
     if pkg.gce and not install_gce:
       continue
-    install_package(g, pkg)
+    to_install.append(pkg)
+  install_packages(g, *to_install)
 
 
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
-def install_package(g, pkg):
+def install_packages(g, *pkgs):
   try:
-    g.command(('zypper', '-n', 'install', '--no-recommends', pkg.name))
+    g.sh('zypper --non-interactive install --no-recommends '
+         + ' '.join([p.name for p in pkgs]))
   except Exception as e:
-    if pkg.required:
-      raise ValueError(
-          'Failed to install required package {}: {}'.format(pkg.name, e))
-    else:
-      logging.warning(
-          'Failed to install optional package {}: {}'.format(pkg.name, e))
+    raise ValueError('Failed to install {}: {}'.format(pkgs, e))
 
 
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
@@ -268,8 +259,8 @@ def translate():
   distro = _get_distro(g)
 
   _install_product(distro, g)
+  _install_packages(g, include_gce_packages)
   _install_virtio_drivers(g)
-  _install_packages(distro, g, include_gce_packages)
   if include_gce_packages:
     logging.info('Enabling google services.')
     g.sh('systemctl enable /usr/lib/systemd/system/google-*')
