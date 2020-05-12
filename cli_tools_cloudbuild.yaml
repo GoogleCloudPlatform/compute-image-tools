@@ -27,7 +27,7 @@ steps:
   dir: 'daisy/cli'
   args: ['go', 'build', '-o=/workspace/darwin/daisy']
   env: ['GOOS=darwin']
-- name: 'gcr.io/kaniko-project/executor'
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args: 
   - --destination=gcr.io/$PROJECT_ID/daisy:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/daisy:$COMMIT_SHA
@@ -47,7 +47,7 @@ steps:
   dir: 'cli_tools/gce_image_publish'
   args: ['go', 'build', '-o=/workspace/darwin/gce_image_publish']
   env: ['GOOS=darwin']
-- name: 'gcr.io/kaniko-project/executor'
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args: 
   - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_image_publish:$COMMIT_SHA
@@ -63,7 +63,7 @@ steps:
   dir: 'cli_tools/gce_export'
   args: ['go', 'build', '-o=/workspace/windows/gce_export']
   env: ['GOOS=windows']
-- name: 'gcr.io/kaniko-project/executor'
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args: 
   - --destination=gcr.io/$PROJECT_ID/gce_export:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_export:$COMMIT_SHA
@@ -85,7 +85,7 @@ steps:
   dir: 'cli_tools/gce_vm_image_import'
   args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_import']
   env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor'
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args: 
   - --destination=gcr.io/$PROJECT_ID/gce_vm_image_import:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_vm_image_import:$COMMIT_SHA
@@ -97,7 +97,7 @@ steps:
   dir: 'cli_tools/gce_vm_image_export'
   args: ['go', 'build', '-o=/workspace/linux/gce_vm_image_export']
   env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor'
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args: 
   - --destination=gcr.io/$PROJECT_ID/gce_vm_image_export:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_vm_image_export:$COMMIT_SHA
@@ -109,7 +109,7 @@ steps:
   dir: 'cli_tools/gce_ovf_import'
   args: ['go', 'build', '-o=/workspace/linux/gce_ovf_import']
   env: ['CGO_ENABLED=0']
-- name: 'gcr.io/kaniko-project/executor'
+- name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args: 
   - --destination=gcr.io/$PROJECT_ID/gce_ovf_import:$_RELEASE
   - --destination=gcr.io/$PROJECT_ID/gce_ovf_import:$COMMIT_SHA
