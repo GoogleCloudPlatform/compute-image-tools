@@ -71,7 +71,7 @@ class _SuseRelease:
 
 
 _packages = [
-    _Package('cloud-init', gce=False, required=False),
+    _Package('dhcp-client', gce=False, required=True),
     _Package('google-cloud-sdk', gce=True, required=False),
     _Package('google-compute-engine-init', gce=True, required=True),
     _Package('google-compute-engine-oslogin', gce=True, required=True)
