@@ -20,14 +20,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // Make file paths mutable
@@ -38,56 +39,9 @@ var (
 	ImportAndTranslateWorkflow = "import_and_translate.wf.json"
 )
 
-// Parameter key shared with other packages
-const (
-	ImageNameFlagKey = "image_name"
-	ClientIDFlagKey  = "client_id"
-)
-
 const (
 	logPrefix = "[import-image]"
 )
-
-func validateAndParseFlags(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string, labels string) (
-	map[string]string, error) {
-
-	if err := validation.ValidateStringFlagNotEmpty(imageName, ImageNameFlagKey); err != nil {
-		return nil, err
-	}
-	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
-		return nil, err
-	}
-
-	if !dataDisk && osID == "" && customTranWorkflow == "" {
-		return nil, daisy.Errf("-data_disk, or -os, or -custom_translate_workflow has to be specified")
-	}
-
-	if dataDisk && (osID != "" || customTranWorkflow != "") {
-		return nil, daisy.Errf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
-	}
-
-	if osID != "" && customTranWorkflow != "" {
-		return nil, daisy.Errf("-os and -custom_translate_workflow can't be both specified")
-	}
-
-	if osID != "" {
-		if err := daisyutils.ValidateOS(osID); err != nil {
-			return nil, err
-		}
-	}
-
-	var userLabels map[string]string
-	if labels != "" {
-		var err error
-		userLabels, err = param.ParseKeyValues(labels)
-		derr := daisy.ToDError(err)
-		if derr != nil {
-			return nil, derr
-		}
-	}
-
-	return userLabels, nil
-}
 
 // Returns main workflow and translate workflow paths (if any)
 func getWorkflowPaths(source resource, dataDisk bool, osID, customTranWorkflow, currentExecutablePath string) (string, string) {
@@ -140,14 +94,13 @@ func buildDaisyVars(source resource, translateWorkflowPath, imageName, family, d
 	return varMap
 }
 
-func runImport(varMap map[string]string, importWorkflowPath string, zone string,
-	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
-	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, noExternalIP bool,
-	userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
+func (i importer) runImport(varMap map[string]string, importWorkflowPath string) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
-		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
-		cloudLogsDisabled, stdoutLogsDisabled)
+		i.env.Project, i.env.Zone, i.env.ScratchBucketGcsPath, i.env.Oauth,
+		i.translation.Timeout.String(), i.translation.CustomWorkflow, i.env.GcsLogsDisabled,
+		i.env.CloudLogsDisabled, i.env.StdoutLogsDisabled)
+
 	if err != nil {
 		return nil, err
 	}
@@ -161,9 +114,9 @@ func runImport(varMap map[string]string, importWorkflowPath string, zone string,
 		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisyutils.ResourceLabeler{
 			BuildID:         buildID,
-			UserLabels:      userLabels,
+			UserLabels:      i.img.Labels,
 			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   storageLocation,
+			ImageLocation:   i.img.StorageLocation,
 			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-import-tmp"
 			},
@@ -178,8 +131,8 @@ func runImport(varMap map[string]string, importWorkflowPath string, zone string,
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		daisyutils.UpdateAllInstanceNoExternalIP(w, noExternalIP)
-		if uefiCompatible {
+		daisyutils.UpdateAllInstanceNoExternalIP(w, i.env.NoExternalIP)
+		if i.translation.UefiCompatible {
 			daisyutils.UpdateToUEFICompatible(w)
 		}
 	}
@@ -187,49 +140,92 @@ func runImport(varMap map[string]string, importWorkflowPath string, zone string,
 	return workflow, workflow.RunWithModifiers(context.Background(), preValidateWorkflowModifier, postValidateWorkflowModifier)
 }
 
-// Run runs import workflow.
-func Run(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string,
-	sourceFile string, sourceImage string, noGuestEnvironment bool, family string, description string,
-	network string, subnet string, zone string, timeout string, project *string,
-	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
-	stdoutLogsDisabled bool, noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
-	uefiCompatible bool, sysprepWindows bool, storageClient *storage.Client,
-	paramPopulator param.Populator) (*daisy.Workflow, error) {
+type importer struct {
+	storageClient *storage.Client
+	env           Environment
+	img           ImageSpec
+	translation   TranslationSpec
+}
 
+// NewImporter constructs a new Importer instance.
+func NewImporter(
+	storageClient *storage.Client,
+	env Environment,
+	img ImageSpec,
+	translation TranslationSpec) Importer {
+
+	return importer{storageClient: storageClient, env: env, img: img, translation: translation}
+}
+
+// Importer runs the import workflow.
+type Importer interface {
+	Run(ctx context.Context) (*daisy.Workflow, error)
+}
+
+// Run runs import workflow.
+func (i importer) Run(ctx context.Context) (*daisy.Workflow, error) {
 	log.SetPrefix(logPrefix + " ")
 
-	userLabels, err := validateAndParseFlags(clientID, imageName,
-		dataDisk, osID, customTranWorkflow, labels)
+	source, err := initAndValidateSource(i.translation.SourceFile, i.translation.SourceImage, i.storageClient)
 	if err != nil {
 		return nil, err
 	}
 
-	region := new(string)
-	err = paramPopulator.PopulateMissingParameters(
-		project, &zone, region, &scratchBucketGcsPath, sourceFile, &storageLocation)
-	if err != nil {
-		return nil, err
-	}
+	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(
+		source, i.translation.DataDisk, i.translation.OS,
+		i.translation.CustomWorkflow, i.env.CurrentExecutablePath)
 
-	source, err := initAndValidateSource(sourceFile, sourceImage, storageClient)
-	if err != nil {
-		return nil, err
-	}
-
-	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(source, dataDisk, osID,
-		customTranWorkflow, currentExecutablePath)
-
-	varMap := buildDaisyVars(source, translateWorkflowPath, imageName, family,
-		description, *region, subnet, network, noGuestEnvironment, sysprepWindows)
+	varMap := buildDaisyVars(source, translateWorkflowPath, i.img.Name, i.img.Family,
+		i.img.Description, i.env.Region, i.env.Subnet, i.env.Network,
+		i.translation.NoGuestEnvironment, i.translation.SysprepWindows)
 
 	var w *daisy.Workflow
-	if w, err = runImport(varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
-		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled,
-		noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
+	if w, err = i.runImport(varMap, importWorkflowPath); err != nil {
 
-		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, network, w)
+		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, i.env.Network, w)
 
-		return customizeErrorToDetectionResults(osID, w, err)
+		return customizeErrorToDetectionResults(i.translation.OS, w, err)
 	}
 	return w, nil
+}
+
+// Environment describes where the import is running.
+type Environment struct {
+	ClientID              string
+	Project               string
+	Network               string
+	Subnet                string
+	Zone                  string
+	Region                string
+	ScratchBucketGcsPath  string
+	Oauth                 string
+	ComputeEndpoint       string
+	CurrentExecutablePath string
+	GcsLogsDisabled       bool
+	CloudLogsDisabled     bool
+	StdoutLogsDisabled    bool
+	NoExternalIP          bool
+}
+
+// ImageSpec describes the metadata of the final image.
+type ImageSpec struct {
+	Name            string
+	Family          string
+	Description     string
+	Labels          map[string]string
+	StorageLocation string
+}
+
+// TranslationSpec describes the source and operations
+// applied to an imported image.
+type TranslationSpec struct {
+	SourceFile         string
+	SourceImage        string
+	DataDisk           bool
+	OS                 string
+	NoGuestEnvironment bool
+	Timeout            time.Duration
+	CustomWorkflow     string
+	UefiCompatible     bool
+	SysprepWindows     bool
 }
