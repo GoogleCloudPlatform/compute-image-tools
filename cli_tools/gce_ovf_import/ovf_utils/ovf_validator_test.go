@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
@@ -37,7 +37,7 @@ func TestValidateOvfPackage(t *testing.T) {
 	ovfDescriptorForValidation := envelope(references)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	for _, reference := range references {
-		mockStorageClient.EXPECT().FindGcsFile(ovfPath, reference.Href).Return(&storage.ObjectHandle{}, nil).Times(1)
+		mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, reference.Href, 0).Return(&storage.ObjectHandle{}, nil).Times(1)
 	}
 
 	v := OvfValidator{mockStorageClient}
@@ -83,8 +83,8 @@ func TestValidateOvfPackageMissingMiddleReferenceInGcs(t *testing.T) {
 	ovfDescriptorForValidation := envelope(references)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	mockStorageClient.EXPECT().FindGcsFile(ovfPath, references[0].Href).Return(&storage.ObjectHandle{}, nil).Times(1)
-	mockStorageClient.EXPECT().FindGcsFile(ovfPath, references[1].Href).Return(nil, err).Times(1)
+	mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, references[0].Href, 0).Return(&storage.ObjectHandle{}, nil).Times(1)
+	mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, references[1].Href, 0).Return(nil, err).Times(1)
 
 	v := OvfValidator{mockStorageClient}
 	result, resultError := v.ValidateOvfPackage(ovfDescriptorForValidation, ovfPathForValidation)
@@ -102,7 +102,7 @@ func TestValidateOvfPackageMissingFirstReferenceInGcs(t *testing.T) {
 	ovfDescriptorForValidation := envelope(references)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	mockStorageClient.EXPECT().FindGcsFile(ovfPath, references[0].Href).Return(nil, err).Times(1)
+	mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, references[0].Href, 0).Return(nil, err).Times(1)
 
 	v := OvfValidator{mockStorageClient}
 	result, resultError := v.ValidateOvfPackage(ovfDescriptorForValidation, ovfPathForValidation)
