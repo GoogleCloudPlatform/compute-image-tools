@@ -44,41 +44,6 @@ func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string,
 	return projectFlag, nil
 }
 
-// PopulateMissingParameters populate missing params for import/export cli tools
-func PopulateMissingParameters(project *string, zone *string, region *string,
-	scratchBucketGcsPath *string, file string, storageLocation *string,
-	mgce domain.MetadataGCEInterface, scratchBucketCreator domain.ScratchBucketCreatorInterface,
-	resourceLocationRetrieverInterface domain.ResourceLocationRetrieverInterface,
-	storageClient domain.StorageClientInterface) error {
-
-	if err := PopulateProjectIfMissing(mgce, project); err != nil {
-		return err
-	}
-
-	scratchBucketRegion, err := populateScratchBucketGcsPath(scratchBucketGcsPath, *zone, mgce,
-		scratchBucketCreator, file, project, storageClient)
-	if err != nil {
-		return err
-	}
-
-	if storageLocation != nil && *storageLocation == "" {
-		*storageLocation = resourceLocationRetrieverInterface.GetLargestStorageLocation(scratchBucketRegion)
-	}
-
-	if *zone == "" {
-		if aZone, err := resourceLocationRetrieverInterface.GetZone(scratchBucketRegion, *project); err == nil {
-			*zone = aZone
-		} else {
-			return err
-		}
-	}
-
-	if err := PopulateRegion(region, *zone); err != nil {
-		return err
-	}
-	return nil
-}
-
 func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgce domain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
 	storageClient domain.StorageClientInterface) (string, error) {

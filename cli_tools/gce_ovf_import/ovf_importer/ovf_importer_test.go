@@ -98,7 +98,7 @@ func TestSetUpInstanceWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		ctx: ctx, bucketIteratorCreator: mockBucketIteratorCreator,
-		Logger: logging.NewLogger("test"), params: params}
+		Logger: logging.NewStdoutLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
@@ -181,7 +181,7 @@ func TestSetUpInstanceWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHo
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
-		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+		Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
@@ -281,7 +281,7 @@ func TestSetUpMachineImageWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		ctx: ctx, bucketIteratorCreator: mockBucketIteratorCreator,
-		Logger: logging.NewLogger("test"), params: params}
+		Logger: logging.NewStdoutLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
@@ -366,7 +366,7 @@ func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
-		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+		Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
@@ -406,7 +406,7 @@ func TestSetUpWorkflowInvalidReleaseTrack(t *testing.T) {
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
-		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+		Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
@@ -424,7 +424,7 @@ func TestSetUpWorkflowPopulateMissingParametersError(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
@@ -441,7 +441,7 @@ func TestSetUpWorkflowPopulateFlagValidationFailed(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
@@ -474,7 +474,7 @@ func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, BuildID: "build123",
-		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewLogger("test"),
+		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewStdoutLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
@@ -506,7 +506,7 @@ func TestSetUpWorkflowErrorLoadingDescriptor(t *testing.T) {
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		BuildID: "build123", ovfDescriptorLoader: mockOvfDescriptorLoader,
-		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+		Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
@@ -580,7 +580,7 @@ func TestCleanUp(t *testing.T) {
 	mockStorageClient.EXPECT().Close()
 
 	oi := OVFImporter{storageClient: mockStorageClient, gcsPathToClean: "aPath",
-		Logger: logging.NewLogger("test")}
+		Logger: logging.NewStdoutLogger("test")}
 	oi.CleanUp()
 }
 
@@ -628,7 +628,7 @@ func TestGetZoneFromGCE(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
 	mockMetadataGce.EXPECT().Zone().Return("europe-north1-b", nil)
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	zone, err := oi.getZone("aProject")
 
 	assert.Nil(t, err)
@@ -639,7 +639,7 @@ func TestGetRegion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	oi := OVFImporter{Logger: logging.NewLogger("test")}
+	oi := OVFImporter{Logger: logging.NewStdoutLogger("test")}
 	region, err := oi.getRegion("europe-north1-b")
 
 	assert.Nil(t, err)
@@ -661,7 +661,7 @@ func TestGetZoneFromFlagEvenIfOnGCE(t *testing.T) {
 	mockZoneValidator.EXPECT().
 		ZoneValid("aProject123", "aZone123").Return(nil)
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"),
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
 	zone, err := oi.getZone("aProject123")
 
@@ -679,7 +679,7 @@ func TestGetZoneWhenZoneFlagNotSetNotOnGCE(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	zone, err := oi.getZone("aProject")
 
 	assert.NotNil(t, err)
@@ -715,7 +715,7 @@ func TestGetZoneEmptyZoneReturnedFromGCE(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
 	mockMetadataGce.EXPECT().Zone().Return("", nil)
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	zone, err := oi.getZone("aProject")
 
 	assert.NotNil(t, err)
@@ -733,7 +733,7 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 	mockZoneValidator.EXPECT().
 		ZoneValid("aProject", "europe-north1-b").Return(fmt.Errorf("error"))
 
-	oi := OVFImporter{Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator,
+	oi := OVFImporter{Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator,
 		params: params}
 	_, err := oi.getZone("aProject")
 
@@ -762,7 +762,7 @@ func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, BuildID: "build123",
-		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewLogger("test"),
+		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewStdoutLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
 	return oi.setUpImportWorkflow()
 }

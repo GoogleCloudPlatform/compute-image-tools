@@ -162,7 +162,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger(logPrefix), oauth)
+		ctx, logging.NewStdoutLogger(logPrefix), oauth)
 	if err != nil {
 		return nil, err
 	}
@@ -176,9 +176,8 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	resourceLocationRetriever := storage.NewResourceLocationRetriever(metadataGCE, computeClient)
 
 	region := new(string)
-	err = param.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath,
-		destinationURI, nil, metadataGCE, scratchBucketCreator,
-		resourceLocationRetriever, storageClient)
+	paramFixer := param.NewFixer(metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
+	err = paramFixer.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath, destinationURI, nil)
 	if err != nil {
 		return nil, err
 	}

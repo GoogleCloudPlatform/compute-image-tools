@@ -16,10 +16,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
@@ -57,12 +62,33 @@ var (
 )
 
 func importEntry() (service.Loggable, error) {
+
+	ctx := context.Background()
+	metadataGCE := &compute.MetadataGCE{}
+
+	storageClient, err := storage.NewStorageClient(ctx, logging.NewDefaultLogger(), *oauth)
+	if err != nil {
+		return nil, err
+	}
+
+	computeClient, err := param.CreateComputeClient(&ctx, *oauth, *ce)
+	if err != nil {
+		return nil, err
+	}
+
+	paramFixer := param.NewFixer(
+		metadataGCE,
+		storageClient,
+		storage.NewResourceLocationRetriever(metadataGCE, computeClient),
+		storage.NewScratchBucketCreator(ctx, storageClient),
+	)
+
 	currentExecutablePath := string(os.Args[0])
 	wf, err := importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
 		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *noExternalIP, *labels, currentExecutablePath, *storageLocation,
-		*uefiCompatible, *sysprepWindows)
+		*uefiCompatible, *sysprepWindows, storageClient, paramFixer)
 	return service.NewLoggableFromWorkflow(wf), err
 }
 
