@@ -140,7 +140,7 @@ func buildDaisyVars(source resource, translateWorkflowPath, imageName, family, d
 	return varMap
 }
 
-func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath string, zone string,
+func runImport(varMap map[string]string, importWorkflowPath string, zone string,
 	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, noExternalIP bool,
 	userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
@@ -184,7 +184,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 		}
 	}
 
-	return workflow, workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
+	return workflow, workflow.RunWithModifiers(context.Background(), preValidateWorkflowModifier, postValidateWorkflowModifier)
 }
 
 // Run runs import workflow.
@@ -223,7 +223,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		description, *region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	var w *daisy.Workflow
-	if w, err = runImport(context.Background(), varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
+	if w, err = runImport(varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled,
 		noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
 
