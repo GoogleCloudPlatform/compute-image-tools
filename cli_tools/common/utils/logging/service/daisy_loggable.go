@@ -15,13 +15,17 @@
 package service
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"strconv"
 	"strings"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// WorkflowToLoggable provides a Loggable from a daisy workflow.
-func WorkflowToLoggable(wf *daisy.Workflow) Loggable {
+// NewLoggableFromWorkflow provides a Loggable from a daisy workflow.
+func NewLoggableFromWorkflow(wf *daisy.Workflow) Loggable {
+	if wf == nil {
+		return nil
+	}
 	return workflowLoggable{wf: wf}
 }
 
