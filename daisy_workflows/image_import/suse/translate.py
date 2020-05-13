@@ -65,7 +65,6 @@ class _SuseRelease:
 
 
 _packages = [
-    _Package('iputils', gce=False),
     _Package('google-compute-engine-init', gce=True),
     _Package('google-compute-engine-oslogin', gce=True)
 ]
