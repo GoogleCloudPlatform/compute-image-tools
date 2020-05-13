@@ -63,7 +63,7 @@ func importEntry() (service.Loggable, error) {
 		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *noExternalIP, *labels, currentExecutablePath, *storageLocation,
 		*uefiCompatible, *sysprepWindows)
-	return service.WorkflowToLoggable(wf), err
+	return service.NewLoggableFromWorkflow(wf), err
 }
 
 func main() {
