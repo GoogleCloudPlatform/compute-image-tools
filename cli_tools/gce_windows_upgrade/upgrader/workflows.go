@@ -164,11 +164,7 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 
 	// If there isn't an original url, just skip the backup step.
 	if u.originalWindowsStartupScriptURL != nil {
-<<<<<<< HEAD
-		fmt.Printf("\nnDetected an existing metadata for key '%v', value='%v'. Will backup to '%v'.\n\n", metadataKeyWindowsStartupScriptURL,
-=======
 		fmt.Printf("\nDetected an existing metadata for key '%v', value='%v'. Will backup to '%v'.\n\n", metadataKeyWindowsStartupScriptURL,
->>>>>>> 7e7d06223d4ab99a66a26d58aed0649c376e6932
 			*u.originalWindowsStartupScriptURL, metadataKeyWindowsStartupScriptURLBackup)
 
 		stepBackupScript, err := daisyutils.NewStep(w, "backup-script", stepAttachInstallDisk)
