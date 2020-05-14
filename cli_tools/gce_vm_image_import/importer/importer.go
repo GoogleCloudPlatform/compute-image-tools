@@ -194,7 +194,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
 	uefiCompatible bool, sysprepWindows bool, storageClient *storage.Client,
-	paramFixer param.Fixer) (*daisy.Workflow, error) {
+	paramPopulator param.Populator) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
@@ -205,7 +205,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	}
 
 	region := new(string)
-	err = paramFixer.PopulateMissingParameters(
+	err = paramPopulator.PopulateMissingParameters(
 		project, &zone, region, &scratchBucketGcsPath, sourceFile, &storageLocation)
 	if err != nil {
 		return nil, err

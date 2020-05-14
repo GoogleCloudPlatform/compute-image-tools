@@ -18,19 +18,19 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 )
 
-// Fixer standardizes user input, and determines omitted values.
-type Fixer interface {
+// Populator standardizes user input, and determines omitted values.
+type Populator interface {
 	PopulateMissingParameters(project *string, zone *string, region *string,
 		scratchBucketGcsPath *string, file string, storageLocation *string) error
 }
 
-// NewFixer returns an object that implements Fixer.
-func NewFixer(
+// NewPopulator returns an object that implements Populator.
+func NewPopulator(
 	metadataClient domain.MetadataGCEInterface,
 	storageClient domain.StorageClientInterface,
 	locationClient domain.ResourceLocationRetrieverInterface,
-	scratchBucketClient domain.ScratchBucketCreatorInterface) Fixer {
-	return fixer{
+	scratchBucketClient domain.ScratchBucketCreatorInterface) Populator {
+	return populator{
 		metadataClient:      metadataClient,
 		storageClient:       storageClient,
 		locationClient:      locationClient,
@@ -38,32 +38,32 @@ func NewFixer(
 	}
 }
 
-type fixer struct {
+type populator struct {
 	metadataClient      domain.MetadataGCEInterface
 	storageClient       domain.StorageClientInterface
 	locationClient      domain.ResourceLocationRetrieverInterface
 	scratchBucketClient domain.ScratchBucketCreatorInterface
 }
 
-func (f fixer) PopulateMissingParameters(project *string, zone *string, region *string,
+func (p populator) PopulateMissingParameters(project *string, zone *string, region *string,
 	scratchBucketGcsPath *string, file string, storageLocation *string) error {
 
-	if err := PopulateProjectIfMissing(f.metadataClient, project); err != nil {
+	if err := PopulateProjectIfMissing(p.metadataClient, project); err != nil {
 		return err
 	}
 
-	scratchBucketRegion, err := populateScratchBucketGcsPath(scratchBucketGcsPath, *zone, f.metadataClient,
-		f.scratchBucketClient, file, project, f.storageClient)
+	scratchBucketRegion, err := populateScratchBucketGcsPath(scratchBucketGcsPath, *zone, p.metadataClient,
+		p.scratchBucketClient, file, project, p.storageClient)
 	if err != nil {
 		return err
 	}
 
 	if storageLocation != nil && *storageLocation == "" {
-		*storageLocation = f.locationClient.GetLargestStorageLocation(scratchBucketRegion)
+		*storageLocation = p.locationClient.GetLargestStorageLocation(scratchBucketRegion)
 	}
 
 	if *zone == "" {
-		if aZone, err := f.locationClient.GetZone(scratchBucketRegion, *project); err == nil {
+		if aZone, err := p.locationClient.GetZone(scratchBucketRegion, *project); err == nil {
 			*zone = aZone
 		} else {
 			return err

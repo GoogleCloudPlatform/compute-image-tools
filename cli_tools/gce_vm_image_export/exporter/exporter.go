@@ -176,8 +176,8 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	resourceLocationRetriever := storage.NewResourceLocationRetriever(metadataGCE, computeClient)
 
 	region := new(string)
-	paramFixer := param.NewFixer(metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
-	err = paramFixer.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath, destinationURI, nil)
+	paramPopulator := param.NewPopulator(metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
+	err = paramPopulator.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath, destinationURI, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -26,7 +26,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
-func TestFixer_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing.T) {
+func TestPopulator_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *testing.T) {
 	project := "a_project"
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
 	zone := ""
@@ -45,7 +45,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *t
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: "us-west2"}, nil).Times(1)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -56,7 +56,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenZoneCantBeRetrieved(t *t
 	assert.Contains(t, err.Error(), "zone not found")
 }
 
-func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNotRunningOnGCE(t *testing.T) {
+func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNotRunningOnGCE(t *testing.T) {
 	project := ""
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
 	zone := ""
@@ -73,7 +73,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNot
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -84,7 +84,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndNot
 	assert.Contains(t, err.Error(), "project cannot be determined because build is not running on GCE")
 }
 
-func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCEProjectIdEmpty(t *testing.T) {
+func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCEProjectIdEmpty(t *testing.T) {
 	project := ""
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
 	zone := ""
@@ -102,7 +102,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCE
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -113,7 +113,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndGCE
 	assert.Contains(t, err.Error(), "project cannot be determined")
 }
 
-func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMetadataReturnsError(t *testing.T) {
+func TestPopulator_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMetadataReturnsError(t *testing.T) {
 	project := ""
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
 	zone := ""
@@ -131,7 +131,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMet
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -142,7 +142,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenProjectNotProvidedAndMet
 	assert.Contains(t, err.Error(), "project cannot be determined")
 }
 
-func TestFixer_PopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *testing.T) {
+func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketCreationError(t *testing.T) {
 	project := "a_project"
 	scratchBucketGcsPath := ""
 	zone := ""
@@ -160,7 +160,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenScratchBucketCreationErr
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -171,7 +171,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenScratchBucketCreationErr
 	assert.Contains(t, err.Error(), "failed to create scratch bucket")
 }
 
-func TestFixer_PopulateMissingParametersReturnsErrorWhenScratchBucketInvalidFormat(t *testing.T) {
+func TestPopulator_PopulateMissingParametersReturnsErrorWhenScratchBucketInvalidFormat(t *testing.T) {
 	project := "a_project"
 	scratchBucketGcsPath := "NOT_GCS_PATH"
 	zone := ""
@@ -187,7 +187,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenScratchBucketInvalidForm
 	mockResourceLocationRetriever := mocks.NewMockResourceLocationRetrieverInterface(mockCtrl)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -198,7 +198,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenScratchBucketInvalidForm
 	assert.Contains(t, err.Error(), "invalid scratch bucket")
 }
 
-func TestFixer_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *testing.T) {
+func TestPopulator_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *testing.T) {
 	project := "a_project"
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
 	zone := "NOT_ZONE"
@@ -215,7 +215,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *t
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -226,7 +226,7 @@ func TestFixer_PopulateMissingParametersReturnsErrorWhenPopulateRegionFails(t *t
 	assert.Contains(t, err.Error(), "NOT_ZONE is not a valid zone")
 }
 
-func TestFixer_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
+func TestPopulator_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUsesItsRegion(t *testing.T) {
 	project := "a_project"
 	zone := ""
 	region := ""
@@ -248,7 +248,7 @@ func TestFixer_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUse
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetBucketAttrs(expectedBucketName).Return(&storage.BucketAttrs{Location: expectedRegion}, nil)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -263,7 +263,7 @@ func TestFixer_PopulateMissingParametersDoesNotChangeProvidedScratchBucketAndUse
 	assert.Equal(t, "gs://scratchbucket/scratchpath", scratchBucketGcsPath)
 }
 
-func TestFixer_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
+func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t *testing.T) {
 	project := "a_project"
 	zone := ""
 	region := ""
@@ -290,7 +290,7 @@ func TestFixer_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t *tes
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -305,7 +305,7 @@ func TestFixer_PopulateMissingParametersCreatesScratchBucketIfNotProvided(t *tes
 	assert.Equal(t, fmt.Sprintf("gs://%v/", expectedBucketName), scratchBucketGcsPath)
 }
 
-func TestFixer_PopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t *testing.T) {
+func TestPopulator_PopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t *testing.T) {
 	project := "a_project"
 	zone := ""
 	region := ""
@@ -333,7 +333,7 @@ func TestFixer_PopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t
 	mockResourceLocationRetriever.EXPECT().GetZone(expectedRegion, project).Return(expectedZone, nil).Times(1)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,
@@ -348,7 +348,7 @@ func TestFixer_PopulateMissingParametersCreatesScratchBucketIfNotProvidedOnGCE(t
 	assert.Equal(t, fmt.Sprintf("gs://%v/", expectedBucketName), scratchBucketGcsPath)
 }
 
-func TestFixer_PopulateMissingParametersPopulatesStorageLocationWithScratchBucketLocation(t *testing.T) {
+func TestPopulator_PopulateMissingParametersPopulatesStorageLocationWithScratchBucketLocation(t *testing.T) {
 	project := "a_project"
 	scratchBucketGcsPath := "gs://scratchbucket/scratchpath"
 	zone := "us-central1-b"
@@ -366,7 +366,7 @@ func TestFixer_PopulateMissingParametersPopulatesStorageLocationWithScratchBucke
 	mockStorageClient.EXPECT().GetBucketAttrs("scratchbucket").Return(&storage.BucketAttrs{Location: region}, nil)
 	mockResourceLocationRetriever.EXPECT().GetLargestStorageLocation(region).Return("US")
 
-	err := NewFixer(
+	err := NewPopulator(
 		mockMetadataGce,
 		mockStorageClient,
 		mockResourceLocationRetriever,

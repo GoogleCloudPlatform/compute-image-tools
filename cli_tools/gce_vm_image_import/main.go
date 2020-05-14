@@ -76,7 +76,7 @@ func importEntry() (service.Loggable, error) {
 		return nil, err
 	}
 
-	paramFixer := param.NewFixer(
+	paramPopulator := param.NewPopulator(
 		metadataGCE,
 		storageClient,
 		storage.NewResourceLocationRetriever(metadataGCE, computeClient),
@@ -88,7 +88,7 @@ func importEntry() (service.Loggable, error) {
 		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
 		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
 		*stdoutLogsDisabled, *noExternalIP, *labels, currentExecutablePath, *storageLocation,
-		*uefiCompatible, *sysprepWindows, storageClient, paramFixer)
+		*uefiCompatible, *sysprepWindows, storageClient, paramPopulator)
 	return service.NewLoggableFromWorkflow(wf), err
 }
 
