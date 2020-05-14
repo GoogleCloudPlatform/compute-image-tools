@@ -43,8 +43,6 @@ def main():
                                     raise_on_not_found=False) == 'true'
   sap = utils.GetMetadataAttribute('rhel_sap',
                                    raise_on_not_found=False) == 'true'
-  nge = utils.GetMetadataAttribute('new_guest',
-                                   raise_on_not_found=False) == 'true'
 
   logging.info('EL Release: %s' % release)
   logging.info('Google Cloud repo: %s' % repo)
@@ -57,7 +55,7 @@ def main():
 
   # Build the kickstart file.
   uefi = False
-  ks_content = ks_helpers.BuildKsConfig(release, repo, byos, sap, uefi, nge)
+  ks_content = ks_helpers.BuildKsConfig(release, repo, byos, sap, uefi)
   ks_cfg = 'ks.cfg'
   utils.WriteFile(ks_cfg, ks_content)
 

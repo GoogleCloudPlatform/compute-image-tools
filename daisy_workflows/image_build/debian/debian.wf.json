@@ -9,7 +9,6 @@
       "Description": "The image used to run bootstrap-vz."
     },
     "google_cloud_repo": {"Required": true, "Description": "The Google Cloud Repo branch to use."},
-    "install_nge": {"Value": "false", "Description": "Whether to install NGE."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."}
   },
   "Sources": {
@@ -44,7 +43,6 @@
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "script": "build.py",
             "prefix": "Build",
-            "install_nge": "${install_nge}",
             "google_cloud_repo": "${google_cloud_repo}",
             "image_dest": "${image_dest}"
           },

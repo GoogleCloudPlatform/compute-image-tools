@@ -29,10 +29,6 @@
     "rhel_sap": {
       "Value": "false",
       "Description": "Create a RHEL for SAP image."
-    },
-    "install_nge": {
-      "Value": "false",
-      "Description": "Whether to install the new guest agent"
     }
   },
   "Sources": {
@@ -82,8 +78,7 @@
             "el_savelogs": "${el_savelogs}",
             "google_cloud_repo": "${google_cloud_repo}",
             "rhel_byos": "${rhel_byos}",
-            "rhel_sap": "${rhel_sap}",
-            "install_nge": "${install_nge}"
+            "rhel_sap": "${rhel_sap}"
           },
           "StartupScript": "installerprep_startup_script"
         }

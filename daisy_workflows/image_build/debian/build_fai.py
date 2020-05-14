@@ -49,7 +49,6 @@ def main():
       'google_cloud_repo', raise_on_not_found=True)
   image_dest = utils.GetMetadataAttribute('image_dest',
                                           raise_on_not_found=True)
-  install_nge = utils.GetMetadataAttribute('install_nge') == 'true'
 
   logging.info('debian-cloud-images version: %s' % debian_cloud_images_version)
   logging.info('debian version: %s' % debian_version)
@@ -111,12 +110,6 @@ def main():
                     'hooks/repository.GCE_SPECIFIC',
                     config_space)
   fai_classes += ['GCE_SPECIFIC']
-
-  if install_nge:
-    CopyToConfigSpace('/files/fai_config/packages/GCE_SPECIFIC_NGE',
-                      'package_config/GCE_SPECIFIC_NGE',
-                      config_space)
-    fai_classes += ['GCE_SPECIFIC_NGE']
 
   # GCE staging package repo.
   if google_cloud_repo == 'staging' or google_cloud_repo == 'unstable':
