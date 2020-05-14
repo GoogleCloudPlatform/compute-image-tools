@@ -176,11 +176,11 @@ function check_package_install {
   if [[ -d /etc/apt ]]; then
     status "Checking if apt can install a package."
     for i in $(seq 1 20) ; do
-      apt-get update && apt-get install --reinstall iputils && return 0
+      apt-get update && apt-get install --reinstall iputils-ping && return 0
       status "Waiting until apt is available."
       sleep $((i**2))
     done
-    fail "apt-get cannot install iputils."
+    fail "apt-get cannot install iputils-ping."
   fi
 
   # Yum
