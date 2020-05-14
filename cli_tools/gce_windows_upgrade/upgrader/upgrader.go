@@ -195,7 +195,7 @@ func handleFailure(ui upgraderInterface, err error) {
 		fmt.Printf("\nSuccessfully upgraded instance '%v' to '%v!'\n", u.instanceURI, u.TargetOS)
 		// TODO: update the help guide link. b/154838004
 		fmt.Printf("\nPlease verify your application's functionality on the " +
-			"instance, and if you run into an issue, please manually rollback following " +
+			"instance, and if you run into any issues, please manually rollback following " +
 			"the instructions in the guide.\n\n")
 		return
 	}
