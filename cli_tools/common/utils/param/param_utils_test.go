@@ -16,6 +16,8 @@ package param
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"testing"
 
 	"cloud.google.com/go/storage"
@@ -26,6 +28,52 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
+
+func TestReverseMap(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         map[string]string
+		want          map[string]string
+		expectSuccess bool
+	}{
+		{"nil map", nil, map[string]string{}, true},
+		{"empty map", map[string]string{}, map[string]string{}, true},
+		{"single item map", map[string]string{"k1": "v1"}, map[string]string{"v1": "k1"}, true},
+		{"multiple items map", map[string]string{"k1": "v1", "k2": "v2"}, map[string]string{"v1": "k1", "v2": "k2"}, true},
+		{"dup values", map[string]string{"k1": "v1", "k2": "v1"}, nil, false},
+	}
+
+	for _, test := range tests {
+		m, ok := ReverseMap(test.input)
+		if test.expectSuccess != ok {
+			t.Errorf("[%v] Expected success: %v, actual: %v", test.name, test.expectSuccess, ok)
+		} else if test.expectSuccess && !reflect.DeepEqual(m, test.want) {
+			t.Errorf("[%v] Expected map '%v' != actual map '%v'", test.name, test.want, m)
+		}
+	}
+}
+
+func TestGetKeys(t *testing.T) {
+	tests := []struct {
+		name  string
+		input map[string]string
+		want  []string
+	}{
+		{"nil map", nil, []string{}},
+		{"empty map", map[string]string{}, []string{}},
+		{"single item map", map[string]string{"k1": "v1"}, []string{"k1"}},
+		{"multiple items map", map[string]string{"k1": "v1", "k2": "v2"}, []string{"k1", "k2"}},
+	}
+
+	for _, test := range tests {
+		keys := GetKeys(test.input)
+		sort.Strings(keys)
+		sort.Strings(test.want)
+		if !reflect.DeepEqual(keys, test.want) {
+			t.Errorf("[%v] Expected keys '%v' != actual keys '%v'", test.name, test.want, keys)
+		}
+	}
+}
 
 func TestGetRegion(t *testing.T) {
 	tests := []struct {

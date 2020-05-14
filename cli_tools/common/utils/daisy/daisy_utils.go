@@ -15,7 +15,10 @@
 package daisy
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"reflect"
 	"regexp"
 	"strings"
@@ -192,4 +195,52 @@ func PostProcessDErrorForNetworkFlag(action string, err error, network string, w
 				" VPC networks, see https://cloud.google.com/vpc.", action)
 		}
 	}
+}
+
+// RunWorkflowWithCancelSignal runs Daisy workflow with accepting Ctrl-C signal
+func RunWorkflowWithCancelSignal(ctx context.Context, w *daisy.Workflow) error {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(w *daisy.Workflow) {
+		select {
+		case <-c:
+			w.LogWorkflowInfo("\nCtrl-C caught, sending cancel signal to %q...\n", w.Name)
+			close(w.Cancel)
+		case <-w.Cancel:
+		}
+	}(w)
+	return w.Run(ctx)
+}
+
+// NewStep creates a new step for the workflow along with dependencies. It wraps 2 daisy.Workflow
+// functions together to reduce code lines and improve readabilities.
+func NewStep(w *daisy.Workflow, name string, dependencies ...*daisy.Step) (*daisy.Step, error) {
+	s, err := w.NewStep(name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = w.AddDependency(s, dependencies...)
+	return s, err
+}
+
+// GetResourceRealName gets resource's real name from its URI.
+func GetResourceRealName(resourceURI string) string {
+	dm := strings.Split(resourceURI, "/")
+	return dm[len(dm)-1]
+}
+
+// GetDeviceURI gets a URI for a device based on its attributes
+func GetDeviceURI(project, zone, name string) string {
+	return fmt.Sprintf("projects/%v/zones/%v/devices/%v", project, zone, name)
+}
+
+// GetDiskURI gets a URI for a disk based on its attributes
+func GetDiskURI(project, zone, name string) string {
+	return fmt.Sprintf("projects/%v/zones/%v/disks/%v", project, zone, name)
+}
+
+// GetInstanceURI gets a URI for a instance based on its attributes
+func GetInstanceURI(project, zone, name string) string {
+	return fmt.Sprintf("projects/%v/zones/%v/instances/%v", project, zone, name)
 }

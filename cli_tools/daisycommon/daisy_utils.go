@@ -19,7 +19,7 @@ import (
 )
 
 // ParseWorkflow parses Daisy workflow file and returns Daisy workflow object or error in case of failure
-func ParseWorkflow(path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, diableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
+func ParseWorkflow(path string, varMap map[string]string, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, disableCloudLogs, disableStdoutLogs bool) (*daisy.Workflow, error) {
 	w, err := daisy.NewFromFile(path)
 	if err != nil {
 		return nil, err
@@ -35,6 +35,13 @@ Loop:
 		return nil, daisy.Errf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
 	}
 
+	SetWorkflowAttributes(w, project, zone, gcsPath, oauth, dTimeout, cEndpoint, disableGCSLogs, disableCloudLogs, disableStdoutLogs)
+
+	return w, nil
+}
+
+// SetWorkflowAttributes sets workflow running attributes.
+func SetWorkflowAttributes(w *daisy.Workflow, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, disableCloudLogs, disableStdoutLogs bool) {
 	w.Project = project
 	w.Zone = zone
 	if gcsPath != "" {
@@ -54,12 +61,10 @@ Loop:
 	if disableGCSLogs {
 		w.DisableGCSLogging()
 	}
-	if diableCloudLogs {
+	if disableCloudLogs {
 		w.DisableCloudLogging()
 	}
 	if disableStdoutLogs {
 		w.DisableStdoutLogging()
 	}
-
-	return w, nil
 }

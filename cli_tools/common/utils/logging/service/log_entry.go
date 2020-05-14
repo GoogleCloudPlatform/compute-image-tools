@@ -84,6 +84,7 @@ type InputParams struct {
 	ImageExportParams        *ImageExportParams        `json:"image_export_input_params,omitempty"`
 	InstanceImportParams     *InstanceImportParams     `json:"instance_import_input_params,omitempty"`
 	MachineImageImportParams *MachineImageImportParams `json:"machine_image_import_input_params,omitempty"`
+	WindowsUpgradeParams     *WindowsUpgradeParams     `json:"windows_upgrade_input_params,omitempty"`
 }
 
 // ImageImportParams contains all input params for image import
@@ -233,4 +234,15 @@ func (l *Logger) updateParams(projectPointer *string) {
 		l.Params.MachineImageImportParams.CommonParams.Project = project
 		l.Params.MachineImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
 	}
+}
+
+// WindowsUpgradeParams contains all input params for windows upgrade
+type WindowsUpgradeParams struct {
+	*CommonParams
+
+	Instance               string `json:"instance,omitempty"`
+	SkipMachineImageBackup bool   `json:"skip_machine_image_backup"`
+	AutoRollback           bool   `json:"auto_rollback"`
+	SourceOS               string `json:"source_os,omitempty"`
+	TargetOS               string `json:"target_os,omitempty"`
 }
