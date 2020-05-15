@@ -17,10 +17,6 @@
       "Value": "disk-centos-7",
       "Description": "Name of the disk to install onto."
     },
-    "install_nge": {
-      "Value": "false",
-      "Description": "Whether to install the new guest agent"
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -35,8 +31,7 @@
           "el_release": "centos7",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
-          "installer_iso": "${installer_iso}",
-          "install_nge": "${install_nge}"
+          "installer_iso": "${installer_iso}"
         }
       }
     },
