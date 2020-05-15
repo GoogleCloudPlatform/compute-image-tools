@@ -327,7 +327,7 @@ func populateRebootSteps(u *upgrader, w *daisy.Workflow) error {
 }
 
 func (u *upgrader) cleanup() (*daisy.Workflow, error) {
-	return u.runWorkflowWithSteps("cleanup", "10m", populateCleanupSteps)
+	return u.runWorkflowWithSteps("cleanup", "20m", populateCleanupSteps)
 }
 
 func populateCleanupSteps(u *upgrader, w *daisy.Workflow) error {
@@ -356,6 +356,12 @@ func populateCleanupSteps(u *upgrader, w *daisy.Workflow) error {
 				Disks: []string{
 					daisyutils.GetDiskURI(u.instanceProject, u.instanceZone, u.installMediaDiskName),
 				},
+			},
+		},
+		// TODO: use a flag to determine whether to stop the instance. b/156668741
+		"stop-instance": {
+			StopInstances: &daisy.StopInstances{
+				Instances: []string{u.instanceURI},
 			},
 		},
 	}
@@ -430,15 +436,9 @@ func populateRollbackSteps(u *upgrader, w *daisy.Workflow) error {
 		},
 	}
 
-	stepStartInstance, err := daisyutils.NewStep(w, "start-instance", stepRestoreScript)
-	if err != nil {
-		return err
-	}
-	stepStartInstance.StartInstances = &daisy.StartInstances{
-		Instances: []string{u.instanceURI},
-	}
+	// TODO: use a flag to determine whether to start the instance. b/156668741
 
-	stepDeleteNewOSDiskAndInstallMediaDisk, err := daisyutils.NewStep(w, "delete-new-os-disk-and-install-media-disk", stepStartInstance)
+	stepDeleteNewOSDiskAndInstallMediaDisk, err := daisyutils.NewStep(w, "delete-new-os-disk-and-install-media-disk", stepRestoreScript)
 	if err != nil {
 		return err
 	}

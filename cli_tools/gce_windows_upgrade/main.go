@@ -27,9 +27,9 @@ import (
 
 var (
 	clientID               = flag.String(upgrader.ClientIDFlagKey, "", "Identifies the upgrade client. Set to `gcloud`, `api` or `pantheon`.")
-	project                = flag.String("project", "", "Project containing the instance to upgrade. Override by using a different project in the -instance parameter.")
-	zone                   = flag.String("zone", "", "Project containing the instance to upgrade. Override by using a different zone in the -instance parameter.")
-	instance               = flag.String("instance", "", "Instance to upgrade. Can be either the instance name or the project path to the instance, format: 'projects/<project>/zones/<zone>/instances/<instance>'.")
+	project                = flag.String("project", "", "Project containing the instance to upgrade.")
+	zone                   = flag.String("zone", "", "Project containing the instance to upgrade.")
+	instance               = flag.String("instance", "Instance to upgrade. Can be either the instance name or the full path to the instance in the following format: 'projects/<project>/zones/<zone>/instances/'. If the full path is specified, flags -project and -zone will be ignored.", "")
 	skipMachineImageBackup = flag.Bool("skip-machine-image-backup", false, "Set to false to generate a backup for the instance. Set to true to prevent generation of a backup instance. True is not recommended unless there is already a backup of the instance.")
 	autoRollback           = flag.Bool("auto-rollback", false, "Set to false to retain the OS disk after a failed upgrade. Set to true to delete the OS disk that failed to upgrade; setting to true can make debugging more difficult.")
 	sourceOS               = flag.String("source-os", "", fmt.Sprintf("OS version of the source instance to upgrade. Supported values: %v", strings.Join(upgrader.SupportedSourceOSVersions(), ", ")))
