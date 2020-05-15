@@ -169,39 +169,40 @@ function check_cloud_init {
   fi
 }
 
-# Check package installs.
+# Check package installs. Using iputils to ensure
+# ping is available for the check_metadata_connectivity test.
 function check_package_install {
   # Apt
   if [[ -d /etc/apt ]]; then
     status "Checking if apt can install a package."
     for i in $(seq 1 20) ; do
-      apt-get update && apt-get install --reinstall make && return 0
+      apt-get update && apt-get install --reinstall iputils-ping && return 0
       status "Waiting until apt is available."
       sleep $((i**2))
     done
-    fail "apt-get cannot install make."
+    fail "apt-get cannot install iputils-ping."
   fi
 
   # Yum
   if [[ -d /etc/yum ]]; then
     status "Checking if yum can install a package."
-    if rpm -q make; then
-      yum -y update make
+    if rpm -q iputils; then
+      yum -y update iputils
     else
-      yum -y install make
+      yum -y install iputils
     fi
-    yum -y reinstall make
+    yum -y reinstall iputils
     if [[ $? -ne 0 ]]; then
-      fail "yum cannot install make."
+      fail "yum cannot install iputils."
     fi
   fi
 
   # Zypper
   if [[ -d /etc/zypp ]]; then
     status "Checking if zypper can install a package."
-    zypper install -f -y make
+    zypper install -f -y iputils
     if [[ $? -ne 0 ]]; then
-      fail "zypper cannot install make."
+      fail "zypper cannot install iputils."
     fi
   fi
 }
