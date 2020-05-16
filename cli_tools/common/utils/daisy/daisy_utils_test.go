@@ -297,11 +297,11 @@ func createWorkflowWithCreateDiskImageAndIncludeWorkflow() *daisy.Workflow {
 	return w
 }
 
-func TestGetResourceRealName(t *testing.T) {
+func TestGetResourceID(t *testing.T) {
 	type testCase struct {
-		testName         string
-		resourceName     string
-		expectedRealName string
+		testName           string
+		resourceName       string
+		expectedResourceID string
 	}
 
 	tcs := []testCase{
@@ -311,9 +311,9 @@ func TestGetResourceRealName(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		realName := GetResourceRealName(tc.resourceName)
-		if realName != tc.expectedRealName {
-			t.Errorf("[%v]: Expected real name '%v' != actrual real name '%v'", tc.testName, tc.expectedRealName, realName)
+		resourceId := GetResourceID(tc.resourceName)
+		if resourceId != tc.expectedResourceID {
+			t.Errorf("[%v]: Expected resource ID '%v' != actrual resource ID '%v'", tc.testName, tc.expectedResourceID, resourceId)
 		}
 	}
 }

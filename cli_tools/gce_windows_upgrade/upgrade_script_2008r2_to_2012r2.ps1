@@ -17,7 +17,7 @@ $script:install_media_drive = ''
 try {
   Write-Host 'GCEMetadataScripts: Beginning upgrade startup script.'
 
-  # cleanup garbages from a failed upgrade to unblock a new upgrade
+  # Cleanup garbage files left by the previous failed upgrade to unblock a new upgrade.
   Remove-Item 'C:\$WINDOWS.~BT' -Recurse -ErrorAction Ignore
 
   $ver=[System.Environment]::OSVersion.Version
@@ -30,7 +30,7 @@ try {
     throw "The instance is not running Windows 2008R2!"
   }
 
-  # bring all disks online to ensure install media is accessible
+  # Bring all disks online to ensure install media is accessible.
   $Disks = Get-WmiObject Win32_DiskDrive
   foreach ($Disk in $Disks)
   {
@@ -42,7 +42,7 @@ online disk noerr
     $DiskPartScript | diskpart
   }
 
-  # find the drive which contains install media
+  # Find the drive which contains install media.
   $Drive_Letters = Get-WmiObject Win32_LogicalDisk
   ForEach ($DriveLetter in $Drive_Letters.DeviceID) {
     if (Test-Path "$($DriveLetter)\Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English") {
@@ -54,7 +54,7 @@ online disk noerr
   }
   Write-Host "Detected install media folder drive letter: $script:install_media_drive"
 
-  # run upgrade script
+  # Run upgrade script from the install media.
   Set-ExecutionPolicy Unrestricted
   Set-Location "$($script:install_media_drive)/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English"
   ./upgrade.ps1

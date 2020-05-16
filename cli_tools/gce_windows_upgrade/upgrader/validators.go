@@ -184,7 +184,7 @@ func validateAndDeriveOSDisk(osDisk *compute.AttachedDisk, derivedVars *derivedV
 	if osDisk.Boot == false {
 		return daisy.Errf("The instance has no boot disk.")
 	}
-	osDiskName := daisyutils.GetResourceRealName(osDisk.Source)
+	osDiskName := daisyutils.GetResourceID(osDisk.Source)
 	d, err := computeClient.GetDisk(derivedVars.instanceProject, derivedVars.instanceZone, osDiskName)
 	if err != nil {
 		return daisy.Errf("Failed to get OS disk info: %v", err)
@@ -193,7 +193,7 @@ func validateAndDeriveOSDisk(osDisk *compute.AttachedDisk, derivedVars *derivedV
 	derivedVars.osDiskURI = param.GetZonalResourcePath(derivedVars.instanceZone, "disks", osDisk.Source)
 	derivedVars.osDiskDeviceName = osDisk.DeviceName
 	derivedVars.osDiskAutoDelete = osDisk.AutoDelete
-	derivedVars.osDiskType = daisyutils.GetResourceRealName(d.Type)
+	derivedVars.osDiskType = daisyutils.GetResourceID(d.Type)
 	return nil
 }
 

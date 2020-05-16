@@ -37,28 +37,28 @@ func TestValidateParams(t *testing.T) {
 	var u *upgrader
 	var tcs []testCase
 
-	tcs = append(tcs, testCase{"Normal case", initTest(), "", DefaultTimeout})
+	tcs = append(tcs, testCase{"Normal case", newTestUpgrader().getUpgrader(), "", DefaultTimeout})
 
-	u = initTest()
+	u = newTestUpgrader().getUpgrader()
 	u.ClientID = ""
 	tcs = append(tcs, testCase{"No client id", u, "The flag -client-id must be provided", DefaultTimeout})
 
-	u = initTest()
+	u = newTestUpgrader().getUpgrader()
 	u.SourceOS = "android"
 	tcs = append(tcs, testCase{"validateOSVersion failure", u,
 		"Flag -source-os value 'android' unsupported. Please choose a supported version from {windows-2008r2}.", DefaultTimeout})
 
-	u = initTest()
+	u = newTestUpgrader().getUpgrader()
 	u.Instance = "bad/url"
 	tcs = append(tcs, testCase{"validateAndDeriveInstanceURI failure", u,
 		"Please provide the instance flag either with the name of the instance or in the form of 'projects/<project>/zones/<zone>/instances/<instance>', not bad/url", DefaultTimeout})
 
-	u = initTest()
+	u = newTestUpgrader().getUpgrader()
 	u.Instance = daisy.GetInstanceURI(testProject, testZone, testInstanceNoLicense)
 	tcs = append(tcs, testCase{"validateAndDeriveInstance failure", u,
 		"Can only upgrade GCE instance with projects/windows-cloud/global/licenses/windows-server-2008-r2-dc license attached", DefaultTimeout})
 
-	u = initTest()
+	u = newTestUpgrader().getUpgrader()
 	u.Timeout = "1m"
 	tcs = append(tcs, testCase{"override timeout", u, "", "1m"})
 

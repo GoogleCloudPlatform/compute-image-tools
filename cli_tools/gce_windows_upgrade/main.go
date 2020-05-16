@@ -38,13 +38,12 @@ var (
 	scratchBucketGcsPath   = flag.String("scratch-bucket-gcs-path", "", "Scratch GCS bucket. This setting overrides the workflow setting.")
 	oauth                  = flag.String("oauth", "", "Path to OAuth .json file. This setting overrides the workflow setting.")
 	ce                     = flag.String("compute-endpoint-override", "", "API endpoint. This setting overrides the default API endpoint setting.")
-	gcsLogsDisabled        = flag.Bool("disable-gcs-logging", false, "Set to false to prevent logs from streaming to GCS.")
-	cloudLogsDisabled      = flag.Bool("disable-cloud-logging", false, "Set to false to prevent logs from streaming to Cloud Logging.")
+	gcsLogsDisabled        = flag.Bool("disable-gcs-logging", false, "Set to false to prevent logs from being saved to GCS.")
+	cloudLogsDisabled      = flag.Bool("disable-cloud-logging", false, "Set to false to prevent logs from being saved to Cloud Logging.")
 	stdoutLogsDisabled     = flag.Bool("disable-stdout-logging", false, "Set to false to disable detailed stdout information.")
 )
 
 func upgradeEntry() (service.Loggable, error) {
-	currentExecutablePath := string(os.Args[0])
 	p := &upgrader.InputParams{
 		ClientID:               strings.TrimSpace(*clientID),
 		Instance:               strings.TrimSpace(*instance),
@@ -61,7 +60,6 @@ func upgradeEntry() (service.Loggable, error) {
 		GcsLogsDisabled:        *gcsLogsDisabled,
 		CloudLogsDisabled:      *cloudLogsDisabled,
 		StdoutLogsDisabled:     *stdoutLogsDisabled,
-		CurrentExecutablePath:  currentExecutablePath,
 	}
 
 	wf, err := upgrader.Run(p)

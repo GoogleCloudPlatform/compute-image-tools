@@ -84,7 +84,6 @@ type InputParams struct {
 	GcsLogsDisabled        bool
 	CloudLogsDisabled      bool
 	StdoutLogsDisabled     bool
-	CurrentExecutablePath  string
 }
 
 type upgrader struct {
@@ -96,12 +95,22 @@ type upgrader struct {
 
 type upgraderInterface interface {
 	getUpgrader() *upgrader
+
+	// Initialize vars for upgrader.
 	init() error
+
 	validateAndDeriveParams() error
 	printIntroHelpText() error
+
+	// Upgrade phase 1: prepare resources (backups, startup scripts, snapshots, and so on)
 	prepare() (*daisy.Workflow, error)
+
+	// Upgrade phase 2: do the actual upgrade work
 	upgrade() (*daisy.Workflow, error)
+
+	// Retry upgrade if a reboot happened.
 	retryUpgrade() (*daisy.Workflow, error)
+
 	reboot() (*daisy.Workflow, error)
 	cleanup() (*daisy.Workflow, error)
 	rollback() (*daisy.Workflow, error)

@@ -277,8 +277,8 @@ func TestUpgraderRunFailedWithAutoRollbackWithoutNewOSDiskAttached(t *testing.T)
 }
 
 func initTestUpgrader(t *testing.T) *TestUpgrader {
-	u := initTest()
-	tu := &TestUpgrader{upgrader: u}
+	initTest()
+	tu := newTestUpgrader()
 	tu.initFn = func() error {
 		computeClient = newTestGCEClient()
 		return nil

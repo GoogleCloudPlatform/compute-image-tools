@@ -95,7 +95,7 @@ func getIntroHelpText(u *upgrader) (string, error) {
 		"instanceName":             u.instanceName,
 		"installMediaDiskName":     u.installMediaDiskName,
 		"osDiskSnapshotName":       u.osDiskSnapshotName,
-		"osDiskName":               daisyutils.GetResourceRealName(u.osDiskURI),
+		"osDiskName":               daisyutils.GetResourceID(u.osDiskURI),
 		"osDiskDeviceName":         u.osDiskDeviceName,
 		"osDiskAutoDelete":         u.osDiskAutoDelete,
 		"newOSDiskName":            u.newOSDiskName,
@@ -130,7 +130,7 @@ func isNewOSDiskAttached(project, zone, instanceName, newOSDiskName string) bool
 
 	// ignore project / zone, only compare real name, because it's guaranteed that
 	// old OS disk and new OS disk are in the same project and zone.
-	currentBootDiskName := daisyutils.GetResourceRealName(currentBootDiskURL)
+	currentBootDiskName := daisyutils.GetResourceID(currentBootDiskURL)
 	return currentBootDiskName == newOSDiskName
 }
 
