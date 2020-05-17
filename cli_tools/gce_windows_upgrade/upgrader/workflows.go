@@ -236,8 +236,8 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         3,
-						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade.ps1 in install media.
-						FailureMatch: []string{"$WINDOWS.~BT setuperr$ :"},
+						// These errors were thrown from setup.exe.
+						FailureMatch: []string{"Windows needs to be restarted", "CheckDiskSpaceRequirements not satisfied"},
 					},
 				},
 			},
@@ -247,18 +247,11 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 				Workflow: cleanupWorkflow,
 			},
 		},
-		// TODO: use a flag to determine whether to stop the instance. b/156668741
-		"stop-instance": {
-			StopInstances: &daisy.StopInstances{
-				Instances: []string{u.instanceURI},
-			},
-		},
 	}
 	w.Dependencies = map[string][]string{
 		"wait-for-boot":          {"start-instance"},
 		"wait-for-upgrade":       {"start-instance"},
 		"cleanup-temp-resources": {"wait-for-upgrade"},
-		"stop-instance":          {"cleanup-temp-resources"},
 	}
 	return nil
 }
@@ -301,8 +294,8 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         3,
-						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade.ps1 in install media.
-						FailureMatch: []string{"$WINDOWS.~BT setuperr$ :"},
+						// These errors were thrown from setup.exe.
+						FailureMatch: []string{"Windows needs to be restarted", "CheckDiskSpaceRequirements not satisfied"},
 					},
 				},
 			},
@@ -312,16 +305,9 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 				Workflow: cleanupWorkflow,
 			},
 		},
-		// TODO: use a flag to determine whether to stop the instance. b/156668741
-		"stop-instance": {
-			StopInstances: &daisy.StopInstances{
-				Instances: []string{u.instanceURI},
-			},
-		},
 	}
 	w.Dependencies = map[string][]string{
 		"cleanup-temp-resources": {"wait-for-upgrade"},
-		"stop-instance":          {"cleanup-temp-resources"},
 	}
 	return nil
 }
@@ -379,6 +365,12 @@ func populateCleanupSteps(u *upgrader, w *daisy.Workflow) error {
 				Disks: []string{
 					daisyutils.GetDiskURI(u.instanceProject, u.instanceZone, u.installMediaDiskName),
 				},
+			},
+		},
+		// TODO: use a flag to determine whether to stop the instance. b/156668741
+		"stop-instance": {
+			StopInstances: &daisy.StopInstances{
+				Instances: []string{u.instanceURI},
 			},
 		},
 	}
