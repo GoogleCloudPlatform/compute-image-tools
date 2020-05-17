@@ -284,14 +284,6 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 						SuccessMatch: "GCEMetadataScripts: Beginning upgrade startup script.",
 					},
 				},
-				{
-					Name: u.instanceURI,
-					SerialOutput: &daisy.SerialOutput{
-						Port:         3,
-						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade setup.exe.
-						FailureMatch: []string{"$WINDOWS.~BT setuperr$ :"},
-					},
-				},
 			},
 		},
 		"wait-for-upgrade": {
@@ -301,10 +293,16 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 					SerialOutput: &daisy.SerialOutput{
 						Port:         1,
 						SuccessMatch: "windows_upgrade_current_version=6.3",
-						// "UpgradeFailed:" is emit from pre-step script.
-						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade setup.exe.
-						FailureMatch: []string{"UpgradeFailed:", "$WINDOWS.~BT setuperr$ :"},
+						FailureMatch: []string{"UpgradeFailed:"},
 						StatusMatch:  "GCEMetadataScripts:",
+					},
+				},
+				{
+					Name: u.instanceURI,
+					SerialOutput: &daisy.SerialOutput{
+						Port:         3,
+						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade setup.exe.
+						FailureMatch: []string{"$WINDOWS.~BT setuperr$ :"},
 					},
 				},
 			},
