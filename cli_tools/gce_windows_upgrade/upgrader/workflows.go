@@ -236,7 +236,7 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         3,
-						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade setup.exe.
+						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade.ps1 in install media.
 						FailureMatch: []string{"$WINDOWS.~BT setuperr$ :"},
 					},
 				},
@@ -301,7 +301,7 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
 						Port:         3,
-						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade setup.exe.
+						// "$WINDOWS.~BT setuperr$ :" is emit from upgrade.ps1 in install media.
 						FailureMatch: []string{"$WINDOWS.~BT setuperr$ :"},
 					},
 				},
