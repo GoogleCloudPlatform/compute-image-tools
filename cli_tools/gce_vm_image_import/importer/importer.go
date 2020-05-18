@@ -21,9 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
@@ -142,7 +140,7 @@ func buildDaisyVars(source resource, translateWorkflowPath, imageName, family, d
 	return varMap
 }
 
-func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath string, zone string,
+func runImport(varMap map[string]string, importWorkflowPath string, zone string,
 	timeout string, project string, scratchBucketGcsPath string, oauth string, ce string,
 	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool, noExternalIP bool,
 	userLabels map[string]string, storageLocation string, uefiCompatible bool) (*daisy.Workflow, error) {
@@ -186,7 +184,7 @@ func runImport(ctx context.Context, varMap map[string]string, importWorkflowPath
 		}
 	}
 
-	return workflow, workflow.RunWithModifiers(ctx, preValidateWorkflowModifier, postValidateWorkflowModifier)
+	return workflow, workflow.RunWithModifiers(context.Background(), preValidateWorkflowModifier, postValidateWorkflowModifier)
 }
 
 // Run runs import workflow.
@@ -195,7 +193,8 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	network string, subnet string, zone string, timeout string, project *string,
 	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool, cloudLogsDisabled bool,
 	stdoutLogsDisabled bool, noExternalIP bool, labels string, currentExecutablePath string, storageLocation string,
-	uefiCompatible bool, sysprepWindows bool) (*daisy.Workflow, error) {
+	uefiCompatible bool, sysprepWindows bool, storageClient *storage.Client,
+	paramPopulator param.Populator) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
@@ -205,25 +204,9 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		return nil, err
 	}
 
-	ctx := context.Background()
-	metadataGCE := &compute.MetadataGCE{}
-	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger(logPrefix), oauth)
-	if err != nil {
-		return nil, err
-	}
-	defer storageClient.Close()
-
-	scratchBucketCreator := storage.NewScratchBucketCreator(ctx, storageClient)
-	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
-	if err != nil {
-		return nil, err
-	}
-	resourceLocationRetriever := storage.NewResourceLocationRetriever(metadataGCE, computeClient)
-
 	region := new(string)
-	err = param.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath,
-		sourceFile, &storageLocation, metadataGCE, scratchBucketCreator, resourceLocationRetriever, storageClient)
+	err = paramPopulator.PopulateMissingParameters(
+		project, &zone, region, &scratchBucketGcsPath, sourceFile, &storageLocation)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +223,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		description, *region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	var w *daisy.Workflow
-	if w, err = runImport(ctx, varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
+	if w, err = runImport(varMap, importWorkflowPath, zone, timeout, *project, scratchBucketGcsPath,
 		oauth, ce, gcsLogsDisabled, cloudLogsDisabled, stdoutLogsDisabled,
 		noExternalIP, userLabels, storageLocation, uefiCompatible); err != nil {
 

@@ -91,7 +91,7 @@ type OVFImporter struct {
 func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, error) {
 	ctx := context.Background()
 	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewLogger(logPrefix)
+	logger := logging.NewStdoutLogger(logPrefix)
 	storageClient, err := storageutils.NewStorageClient(ctx, logger, "")
 	if err != nil {
 		return nil, err

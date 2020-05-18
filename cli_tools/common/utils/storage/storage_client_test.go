@@ -45,7 +45,7 @@ func TestDeleteGcsPath(t *testing.T) {
 	gomock.InOrder(firstDeletion, secondDeletion)
 
 	sc := Client{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
-		Logger: logging.NewLogger("[test]")}
+		Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.Nil(t, err)
 }
@@ -70,7 +70,7 @@ func TestDeleteGcsPathErrorWhenIteratorReturnsError(t *testing.T) {
 	mockObjectIteratorCreator.EXPECT().CreateObjectIterator(
 		"sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)
 }
@@ -101,7 +101,7 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 	gomock.InOrder(firstDeletion, secondDeletion)
 
 	sc := Client{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
-		Logger: logging.NewLogger("[test]")}
+		Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)
 }
@@ -136,7 +136,7 @@ func doTestFindGcsFile(t *testing.T, bucket, lookupPath string) {
 		CreateObjectIterator(bucket, lookupPath).
 		Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	objectHandle, err := sc.FindGcsFile(
 		fmt.Sprintf("gs://%v/%v", bucket, lookupPath), ".ovf")
 
@@ -171,7 +171,7 @@ func TestFindGcsFileNoFileFound(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
 		Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	objectHandle, err := sc.FindGcsFile("gs://sourcebucket/sourcepath/furtherpath", ".ovf")
 	assert.Nil(t, objectHandle)
 	assert.NotNil(t, err)
@@ -209,7 +209,7 @@ func TestFindGcsFileErrorWhileIteratingThroughFilesInPath(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
 		Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	objectHandle, err := sc.
 		FindGcsFile("gs://sourcebucket/sourcepath/furtherpath", ".ovf")
 	assert.Nil(t, objectHandle)
@@ -234,7 +234,7 @@ func TestFindGcsFileDepthLimitedFileInRoot(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "").
 		Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	objectHandle, err := sc.FindGcsFileDepthLimited(
 		"gs://sourcebucket/", ".ovf", 0)
 
@@ -265,7 +265,7 @@ func TestFindGcsFileDepthLimitedFileNotFoundInRoot(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "").
 		Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	objectHandle, err := sc.FindGcsFileDepthLimited(
 		"gs://sourcebucket/", ".ovf", 0)
 
@@ -303,7 +303,7 @@ func doTestFindGcsFileDepthLimitedFileInSubFolderlookupFromRoot(t *testing.T, gc
 		CreateObjectIterator("sourcebucket", "").
 		Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	objectHandle, err := sc.FindGcsFileDepthLimited(
 		gcsDirectoryPath, ".ovf", 2)
 
@@ -341,7 +341,7 @@ func doTestFindGcsFileDepthLimitedFileInSubFolderlookupFromSubfolder(t *testing.
 		CreateObjectIterator(bucket, lookupPath).
 		Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	objectHandle, err := sc.FindGcsFileDepthLimited(
 		fmt.Sprintf("gs://%v/%v", bucket, lookupPath), ".ovf", 0)
 
@@ -374,7 +374,7 @@ func TestFindGcsFileDepthLimitedFileNotFoundInSubFolder(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "").
 		Return(mockObjectIterator)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewLogger("[test]")}
+	sc := Client{Oic: mockObjectIteratorCreator, Logger: logging.NewStdoutLogger("[test]")}
 	objectHandle, err := sc.FindGcsFileDepthLimited(
 		"gs://sourcebucket/", ".ovf", 2)
 
