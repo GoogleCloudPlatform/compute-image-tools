@@ -116,6 +116,18 @@ steps:
   - --context=/workspace
   - --dockerfile=gce_ovf_import.Dockerfile
 
+# Build gce_windows_upgrade.
+- name: 'golang'
+  dir: 'cli_tools/gce_windows_upgrade'
+  args: ['go', 'build', '-o=/workspace/linux/gce_windows_upgrade']
+  env: ['CGO_ENABLED=0']
+- name: 'gcr.io/kaniko-project/executor'
+  args:
+  - --destination=gcr.io/$PROJECT_ID/gce_windows_upgrade:$_RELEASE
+  - --destination=gcr.io/$PROJECT_ID/gce_windows_upgrade:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_windows_upgrade.Dockerfile
+
 # Copy Linux binaries to GCS
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', '/workspace/linux/*', 'gs://$PROJECT_ID/$_RELEASE/linux/']

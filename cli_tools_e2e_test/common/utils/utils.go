@@ -13,10 +13,11 @@
 //  limitations under the License.
 
 // Package clitoolstestutils contains e2e tests utils for cli tools e2e tests
-package clitoolstestutils
+package utils
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -118,7 +119,11 @@ func runTestCases(ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
 }
 
 func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) error {
-	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmdString, strings.Join(args, " "))
+	prefix := "Test Env"
+	if testCase != nil {
+		prefix = testCase.Name
+	}
+	logger.Printf("[%v] Running command: '%s %s'", prefix, cmdString, strings.Join(args, " "))
 	cmd := exec.Command(cmdString, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -128,22 +133,40 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 // RunTestCommand runs given test command
 func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) bool {
 	if err := runCliTool(logger, testCase, cmd, args); err != nil {
-		logger.Printf("Error running cmd: %v\n", err)
-		testCase.WriteFailure("Error running cmd: %v", err)
+		Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
 		return false
 	}
 	return true
 }
 
-func auth(logger *log.Logger, testCase *junitxml.TestCase) bool {
+func runCliToolAsync(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) (*exec.Cmd, error) {
+	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmdString, strings.Join(args, " "))
+	cmd := exec.Command(cmdString, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Start()
+	return cmd, err
+}
+
+// RunTestCommandAsync runs given test command asynchronously
+func RunTestCommandAsync(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) *exec.Cmd {
+	cmdPtr, err := runCliToolAsync(logger, testCase, cmd, args)
+	if err != nil {
+		Failure(testCase, logger, fmt.Sprintf("Error starting cmd: %v\n", err))
+		return nil
+	}
+	return cmdPtr
+}
+
+// GcloudAuth runs "gcloud auth"
+func GcloudAuth(logger *log.Logger, testCase *junitxml.TestCase) bool {
 	// This file exists in test env. For local testing, download a creds file from project
 	// compute-image-tools-test.
 	credsPath := "/etc/compute-image-tools-test-service-account/creds.json"
 	cmd := "gcloud"
 	args := []string{"auth", "activate-service-account", "--key-file=" + credsPath}
 	if err := runCliTool(logger, testCase, cmd, args); err != nil {
-		logger.Printf("Error running cmd: %v\n", err)
-		testCase.WriteFailure("Error running cmd: %v", err)
+		Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
 		return false
 	}
 	return true
@@ -154,7 +177,7 @@ func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) 
 	defer gcloudUpdateLock.Unlock()
 
 	// auth is required for gcloud updates
-	if !auth(logger, testCase) {
+	if !GcloudAuth(logger, testCase) {
 		return false
 	}
 
@@ -185,7 +208,7 @@ func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) 
 	}
 
 	// an additional auth is required if updated through a different repository
-	if !auth(logger, testCase) {
+	if !GcloudAuth(logger, testCase) {
 		return false
 	}
 
@@ -215,4 +238,14 @@ func RunTestForTestType(cmd string, args []string, testType CLITestType, logger 
 		}
 	}
 	return true
+}
+
+// Failure logs failure message to both test case output and logger.
+func Failure(testCase *junitxml.TestCase, logger *log.Logger, msg string) {
+	prefix := "Test Env"
+	if testCase != nil {
+		prefix = testCase.Name
+		testCase.WriteFailure(msg)
+	}
+	logger.Printf("[%v] %v", prefix, msg)
 }

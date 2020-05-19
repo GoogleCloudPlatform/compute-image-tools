@@ -29,9 +29,9 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/paramhelper"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	computeUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/gce_ovf_import_tests/compute"
+	computeUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/utils"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	clitoolstestutils "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/cli_tools"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	testconfig "github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
@@ -42,10 +42,10 @@ const (
 )
 
 var (
-	cmds = map[clitoolstestutils.CLITestType]string{
-		clitoolstestutils.Wrapper:                   "./gce_ovf_import",
-		clitoolstestutils.GcloudProdWrapperLatest:   "gcloud",
-		clitoolstestutils.GcloudLatestWrapperLatest: "gcloud",
+	cmds = map[utils.CLITestType]string{
+		utils.Wrapper:                   "./gce_ovf_import",
+		utils.GcloudProdWrapperLatest:   "gcloud",
+		utils.GcloudLatestWrapperLatest: "gcloud",
 	}
 )
 
@@ -69,13 +69,13 @@ func TestSuite(
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
 	testProjectConfig *testconfig.Project) {
 
-	testsMap := map[clitoolstestutils.CLITestType]map[*junitxml.TestCase]func(
-		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, clitoolstestutils.CLITestType){}
+	testsMap := map[utils.CLITestType]map[*junitxml.TestCase]func(
+		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
 
-	testTypes := []clitoolstestutils.CLITestType{
-		clitoolstestutils.Wrapper,
-		clitoolstestutils.GcloudProdWrapperLatest,
-		clitoolstestutils.GcloudLatestWrapperLatest,
+	testTypes := []utils.CLITestType{
+		utils.Wrapper,
+		utils.GcloudProdWrapperLatest,
+		utils.GcloudLatestWrapperLatest,
 	}
 	for _, testType := range testTypes {
 		machineImageImportUbuntu3DisksTestCase := junitxml.NewTestCase(
@@ -90,7 +90,7 @@ func TestSuite(
 			testSuiteName, fmt.Sprintf("[%v][OVFMachineImageImport] %v", testType, "Storage location"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
-			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, clitoolstestutils.CLITestType){}
+			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
 		testsMap[testType][machineImageImportUbuntu3DisksTestCase] = runOVFMachineImageImportUbuntu3Disks
 		testsMap[testType][machineImageImportWindows2012R2TwoDisks] = runOVFMachineImageImportWindows2012R2TwoDisks
 		testsMap[testType][machineImageImportNetworkSettingsName] = runOVFMachineImageImportNetworkSettingsName
@@ -98,18 +98,18 @@ func TestSuite(
 		testsMap[testType][machineImageImportStorageLocation] = runOVFMachineImageImportStorageLocation
 	}
 
-	clitoolstestutils.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
+	utils.CLITestSuite(ctx, tswg, testSuites, logger, testSuiteRegex, testCaseRegex,
 		testProjectConfig, testSuiteName, testsMap)
 }
 
 func runOVFMachineImageImportUbuntu3Disks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-machine-image-ubuntu-3-disks-%v", suffix),
 		verificationStartupScript: loadScriptContent(
-			"gce_ovf_import_tests/scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
+			"scripts/ovf_import_test_ubuntu_3_disks.sh", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All tests passed!",
 		sourceURI:             fmt.Sprintf("gs://%v/ova/ubuntu-1604-three-disks", ovaBucket),
@@ -120,7 +120,7 @@ func runOVFMachineImageImportUbuntu3Disks(ctx context.Context, testCase *junitxm
 }
 
 func runOVFMachineImageImportCentos68(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
@@ -138,13 +138,13 @@ func runOVFMachineImageImportCentos68(ctx context.Context, testCase *junitxml.Te
 }
 
 func runOVFMachineImageImportWindows2012R2TwoDisks(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
 		machineImageName: fmt.Sprintf("test-machine-image-w2k12-r2-%v", suffix),
 		verificationStartupScript: loadScriptContent(
-			"gce_ovf_import_tests/scripts/ovf_import_test_windows_two_disks.ps1", logger),
+			"scripts/ovf_import_test_windows_two_disks.ps1", logger),
 		zone:                  testProjectConfig.TestZone,
 		expectedStartupOutput: "All Tests Passed",
 		sourceURI:             fmt.Sprintf("gs://%v/ova/w2k12-r2", ovaBucket),
@@ -157,7 +157,7 @@ func runOVFMachineImageImportWindows2012R2TwoDisks(ctx context.Context, testCase
 }
 
 func runOVFMachineImageImportStorageLocation(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
@@ -177,7 +177,7 @@ func runOVFMachineImageImportStorageLocation(ctx context.Context, testCase *juni
 }
 
 func runOVFMachineImageImportNetworkSettingsName(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	props := &ovfMachineImageImportTestProperties{
@@ -197,7 +197,7 @@ func runOVFMachineImageImportNetworkSettingsName(ctx context.Context, testCase *
 }
 
 func runOVFMachineImageImportNetworkSettingsPath(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-	testProjectConfig *testconfig.Project, testType clitoolstestutils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	region, _ := paramhelper.GetRegion(testProjectConfig.TestZone)
@@ -217,7 +217,7 @@ func runOVFMachineImageImportNetworkSettingsPath(ctx context.Context, testCase *
 	runOVFMachineImageImportTest(ctx, buildTestArgs(props, testProjectConfig)[testType], testType, testProjectConfig, logger, testCase, props)
 }
 
-func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig *testconfig.Project) map[clitoolstestutils.CLITestType][]string {
+func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig *testconfig.Project) map[utils.CLITestType][]string {
 	gcloudArgs := []string{
 		"beta", "compute", "machine-images", "import", props.machineImageName, "--quiet",
 		"--docker-image-tag=latest",
@@ -252,26 +252,21 @@ func buildTestArgs(props *ovfMachineImageImportTestProperties, testProjectConfig
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-machine-image-storage-location=%v", props.storageLocation))
 	}
 
-	argsMap := map[clitoolstestutils.CLITestType][]string{
-		clitoolstestutils.Wrapper:                   wrapperArgs,
-		clitoolstestutils.GcloudProdWrapperLatest:   gcloudArgs,
-		clitoolstestutils.GcloudLatestWrapperLatest: gcloudArgs,
+	argsMap := map[utils.CLITestType][]string{
+		utils.Wrapper:                   wrapperArgs,
+		utils.GcloudProdWrapperLatest:   gcloudArgs,
+		utils.GcloudLatestWrapperLatest: gcloudArgs,
 	}
 	return argsMap
 }
 
-func runOVFMachineImageImportTest(ctx context.Context, args []string, testType clitoolstestutils.CLITestType,
+func runOVFMachineImageImportTest(ctx context.Context, args []string, testType utils.CLITestType,
 	testProjectConfig *testconfig.Project, logger *log.Logger, testCase *junitxml.TestCase,
 	props *ovfMachineImageImportTestProperties) {
 
-	if clitoolstestutils.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
+	if utils.RunTestForTestType(cmds[testType], args, testType, logger, testCase) {
 		verifyImportedMachineImage(ctx, testCase, testProjectConfig, logger, props)
 	}
-}
-
-func failure(testCase *junitxml.TestCase, logger *log.Logger, msg string) {
-	testCase.WriteFailure(msg)
-	logger.Printf(msg)
 }
 
 func verifyImportedMachineImage(
@@ -280,7 +275,7 @@ func verifyImportedMachineImage(
 
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
-		failure(testCase, logger, fmt.Sprintf("Error creating client: %v", err))
+		utils.Failure(testCase, logger, fmt.Sprintf("Error creating client: %v", err))
 		return
 	}
 
@@ -290,7 +285,7 @@ func verifyImportedMachineImage(
 	instance, err := computeUtils.CreateInstanceBeta(
 		ctx, testProjectConfig.TestProjectID, props.zone, testInstanceName, props.isWindows, props.machineImageName)
 	if err != nil {
-		failure(testCase, logger, fmt.Sprintf("Error when creating test instance `%v` from machine image '%v': %v", testInstanceName, props.machineImageName, err))
+		utils.Failure(testCase, logger, fmt.Sprintf("Error when creating test instance `%v` from machine image '%v': %v", testInstanceName, props.machineImageName, err))
 		return
 	}
 
@@ -344,7 +339,7 @@ func verifyImportedMachineImage(
 	}
 
 	if !strings.HasSuffix(instance.Zone, props.zone) {
-		failure(testCase, logger, fmt.Sprintf("Instance zone `%v` doesn't match requested zone `%v`",
+		utils.Failure(testCase, logger, fmt.Sprintf("Instance zone `%v` doesn't match requested zone `%v`",
 			instance.Zone, props.zone))
 		return
 	}

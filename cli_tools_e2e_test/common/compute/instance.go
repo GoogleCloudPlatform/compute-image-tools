@@ -47,6 +47,15 @@ func (i *Instance) Cleanup() error {
 	return i.Client.DeleteInstance(i.Project, i.Zone, i.Name)
 }
 
+// RestartWithScript restarts the instance with given startup script.
+func (i *Instance) RestartWithScript(script string) error {
+	err := i.Client.StopInstance(i.Project, i.Zone, i.Name)
+	if err != nil {
+		return err
+	}
+	return i.StartWithScript(script)
+}
+
 // StartWithScript starts the instance with given startup script.
 func (i *Instance) StartWithScript(script string) error {
 	startupScriptKey := "startup-script"
@@ -120,6 +129,18 @@ func WaitForSerialOutput(match string, port int64, interval, timeout time.Durati
 			errs = 0
 		}
 	}
+}
+
+func SetMetadata(ctx context.Context, project, zone, name, key, value string, isWindows bool) (*Instance, error) {
+	i, err := CreateInstanceObject(ctx, project, zone, name, isWindows)
+	if err != nil {
+		return nil, err
+	}
+	err = i.Client.SetInstanceMetadata(i.Project, i.Zone,
+		i.Name, &api.Metadata{Items: []*api.MetadataItems{BuildInstanceMetadataItem(
+			key, value)},
+			Fingerprint: i.Metadata.Fingerprint})
+	return i, err
 }
 
 // CreateInstanceObject creates an image object to be operated by GA API client
