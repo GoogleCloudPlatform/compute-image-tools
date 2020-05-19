@@ -77,7 +77,9 @@ func (u *upgrader) validateAndDeriveParams() error {
 	u.newOSDiskName = fmt.Sprintf("windows-upgraded-os-%v", suffix)
 	u.installMediaDiskName = fmt.Sprintf("windows-install-media-%v", suffix)
 
-	// Update 'project' value for logging purpose
+	// Update '-project' flag value for logging purpose.
+	// Since '-project' may not be input by user explicitly, we need to populate it
+	// when it's referred in order to track usage by project number.
 	*u.ProjectPtr = u.instanceProject
 
 	return nil
