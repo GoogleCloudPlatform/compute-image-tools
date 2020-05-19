@@ -36,7 +36,7 @@ func TestGeneratePrepareWorkflow(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		u := newTestUpgrader().getUpgrader()
+		u := newTestUpgrader()
 		u.Instance = daisyutils.GetInstanceURI(testProject, testZone, tc.instanceName)
 
 		err := u.validateAndDeriveParams()
@@ -90,7 +90,7 @@ func TestGenerateStaticWorkflow(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		u := newTestUpgrader().getUpgrader()
+		u := newTestUpgrader()
 		u.Instance = daisyutils.GetInstanceURI(testProject, testZone, tc.instanceName)
 
 		err := u.validateAndDeriveParams()
@@ -127,7 +127,7 @@ func TestRunWorkflowWithSteps(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		u := newTestUpgrader().getUpgrader()
+		u := newTestUpgrader()
 		err := u.validateAndDeriveParams()
 		if err != nil {
 			t.Errorf("[%v]: validateAndDeriveParams failed: %v", tc.testName, err)
@@ -150,7 +150,7 @@ func TestRunWorkflowWithSteps(t *testing.T) {
 }
 
 func TestRunAllWorkflowFunctions(t *testing.T) {
-	u := newTestUpgrader().getUpgrader()
+	u := newTestUpgrader()
 
 	type testCase struct {
 		testName     string

@@ -29,6 +29,7 @@ import (
 const (
 	// DNE represents do-not-exist resource.
 	DNE = "dne"
+
 	testProject                                 = "test-project"
 	testProject2                                = "test-project2"
 	testZone                                    = "test-zone"
@@ -74,7 +75,6 @@ func newTestUpgrader() *TestUpgrader {
 			CloudLogsDisabled:      false,
 			StdoutLogsDisabled:     false,
 		},
-
 		ctx: context.Background(),
 	}
 	return &TestUpgrader{upgrader: u}

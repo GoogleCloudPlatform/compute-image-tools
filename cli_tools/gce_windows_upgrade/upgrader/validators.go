@@ -45,6 +45,10 @@ var (
 // from input params. For example, project and zone can be derived from the
 // instance URI.
 func (u *upgrader) validateAndDeriveParams() error {
+	if u.validateAndDeriveParamsFn != nil {
+		return u.validateAndDeriveParamsFn()
+	}
+
 	if u.derivedVars == nil {
 		u.derivedVars = &derivedVars{}
 	}

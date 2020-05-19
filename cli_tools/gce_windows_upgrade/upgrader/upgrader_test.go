@@ -24,83 +24,6 @@ import (
 
 type TestUpgrader struct {
 	*upgrader
-
-	initFn               func() error
-	printIntroHelpTextFn func() error
-	validateParamsFn     func() error
-	prepareFn            func() (*daisy.Workflow, error)
-	upgradeFn            func() (*daisy.Workflow, error)
-	retryUpgradeFn       func() (*daisy.Workflow, error)
-	rebootFn             func() (*daisy.Workflow, error)
-	cleanupFn            func() (*daisy.Workflow, error)
-	rollbackFn           func() (*daisy.Workflow, error)
-}
-
-func (tu *TestUpgrader) getUpgrader() *upgrader {
-	return tu.upgrader
-}
-
-func (tu *TestUpgrader) init() error {
-	if tu.initFn == nil {
-		return tu.upgrader.init()
-	}
-	return tu.initFn()
-}
-
-func (tu *TestUpgrader) printIntroHelpText() error {
-	if tu.printIntroHelpTextFn == nil {
-		return tu.upgrader.printIntroHelpText()
-	}
-	return tu.printIntroHelpTextFn()
-}
-
-func (tu *TestUpgrader) validateAndDeriveParams() error {
-	if tu.validateParamsFn == nil {
-		return tu.upgrader.validateAndDeriveParams()
-	}
-	return tu.validateParamsFn()
-}
-
-func (tu *TestUpgrader) prepare() (*daisy.Workflow, error) {
-	if tu.prepareFn == nil {
-		return tu.upgrader.prepare()
-	}
-	return tu.prepareFn()
-}
-
-func (tu *TestUpgrader) upgrade() (*daisy.Workflow, error) {
-	if tu.upgradeFn == nil {
-		return tu.upgrader.upgrade()
-	}
-	return tu.upgradeFn()
-}
-
-func (tu *TestUpgrader) retryUpgrade() (*daisy.Workflow, error) {
-	if tu.retryUpgradeFn == nil {
-		return tu.upgrader.retryUpgrade()
-	}
-	return tu.retryUpgradeFn()
-}
-
-func (tu *TestUpgrader) reboot() (*daisy.Workflow, error) {
-	if tu.rebootFn == nil {
-		return tu.upgrader.reboot()
-	}
-	return tu.rebootFn()
-}
-
-func (tu *TestUpgrader) cleanup() (*daisy.Workflow, error) {
-	if tu.cleanupFn == nil {
-		return tu.upgrader.cleanup()
-	}
-	return tu.cleanupFn()
-}
-
-func (tu *TestUpgrader) rollback() (*daisy.Workflow, error) {
-	if tu.rollbackFn == nil {
-		return tu.upgrader.rollback()
-	}
-	return tu.rollbackFn()
 }
 
 func TestUpgraderRunFailedOnInit(t *testing.T) {
@@ -108,17 +31,17 @@ func TestUpgraderRunFailedOnInit(t *testing.T) {
 	tu.initFn = nil
 	tu.Oauth = "bad-oauth"
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "Failed to create GCE client: error creating HTTP API client: cannot read credentials file: open bad-oauth: no such file or directory")
 }
 
 func TestUpgraderRunFailedOnValidateParams(t *testing.T) {
 	tu := initTestUpgrader(t)
-	tu.validateParamsFn = func() error {
+	tu.validateAndDeriveParamsFn = func() error {
 		return fmt.Errorf("failed")
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -128,7 +51,7 @@ func TestUpgraderRunFailedOnPrintUpgradeGuide(t *testing.T) {
 		return fmt.Errorf("failed")
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -141,7 +64,7 @@ func TestUpgraderRunFailedOnPrepare(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -154,7 +77,7 @@ func TestUpgraderRunFailedOnUpgrade(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -170,7 +93,7 @@ func TestUpgraderRunFailedOnReboot(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
@@ -189,14 +112,14 @@ func TestUpgraderRunFailedOnRetryUpgrade(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed")
 }
 
 func TestUpgraderRunSuccessWithoutReboot(t *testing.T) {
 	tu := initTestUpgrader(t)
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.NoError(t, err)
 }
 
@@ -212,7 +135,7 @@ func TestUpgraderRunSuccessWithReboot(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.NoError(t, err)
 }
 
@@ -235,7 +158,7 @@ func TestUpgraderRunFailedWithAutoRollback(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed")
 	assert.True(t, rollbackExecuted, "Rollback not executed.")
 }
@@ -255,7 +178,7 @@ func TestUpgraderRunFailedWithAutoRollbackFailed(t *testing.T) {
 		return nil, fmt.Errorf("failed2")
 	}
 
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed1")
 	assert.True(t, rollbackExecuted, "Rollback not executed.")
 }
@@ -271,7 +194,7 @@ func TestUpgraderRunFailedWithAutoRollbackWithoutNewOSDiskAttached(t *testing.T)
 		cleanupExecuted = true
 		return nil, fmt.Errorf("failed2")
 	}
-	_, err := run(tu)
+	_, err := tu.run()
 	assert.EqualError(t, err, "failed1")
 	assert.True(t, cleanupExecuted, "Cleanup not executed.")
 }

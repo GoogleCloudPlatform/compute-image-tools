@@ -29,6 +29,10 @@ var (
 )
 
 func (u *upgrader) prepare() (*daisy.Workflow, error) {
+	if u.prepareFn != nil {
+		return u.prepareFn()
+	}
+
 	return u.runWorkflowWithSteps("windows-upgrade-preparation", u.Timeout, populatePrepareSteps)
 }
 
@@ -194,6 +198,10 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 }
 
 func (u *upgrader) upgrade() (*daisy.Workflow, error) {
+	if u.upgradeFn != nil {
+		return u.upgradeFn()
+	}
+
 	return u.runWorkflowWithSteps("upgrade", u.Timeout, upgradeSteps[u.SourceOS])
 }
 
@@ -235,7 +243,7 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 				{
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
-						Port:         3,
+						Port: 3,
 						// These errors were thrown from setup.exe.
 						FailureMatch: []string{"Windows needs to be restarted", "CheckDiskSpaceRequirements not satisfied"},
 					},
@@ -257,6 +265,10 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 }
 
 func (u *upgrader) retryUpgrade() (*daisy.Workflow, error) {
+	if u.retryUpgradeFn != nil {
+		return u.retryUpgradeFn()
+	}
+
 	return u.runWorkflowWithSteps("retry-upgrade", u.Timeout, retryUpgradeSteps[u.SourceOS])
 }
 
@@ -293,7 +305,7 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 				{
 					Name: u.instanceURI,
 					SerialOutput: &daisy.SerialOutput{
-						Port:         3,
+						Port: 3,
 						// These errors were thrown from setup.exe.
 						FailureMatch: []string{"Windows needs to be restarted", "CheckDiskSpaceRequirements not satisfied"},
 					},
@@ -313,6 +325,10 @@ func populateRetryUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow)
 }
 
 func (u *upgrader) reboot() (*daisy.Workflow, error) {
+	if u.rebootFn != nil {
+		return u.rebootFn()
+	}
+
 	return u.runWorkflowWithSteps("reboot", "15m", populateRebootSteps)
 }
 
@@ -336,6 +352,10 @@ func populateRebootSteps(u *upgrader, w *daisy.Workflow) error {
 }
 
 func (u *upgrader) cleanup() (*daisy.Workflow, error) {
+	if u.cleanupFn != nil {
+		return u.cleanupFn()
+	}
+
 	return u.runWorkflowWithSteps("cleanup", "20m", populateCleanupSteps)
 }
 
@@ -381,6 +401,10 @@ func populateCleanupSteps(u *upgrader, w *daisy.Workflow) error {
 }
 
 func (u *upgrader) rollback() (*daisy.Workflow, error) {
+	if u.rollbackFn != nil {
+		return u.rollbackFn()
+	}
+
 	return u.runWorkflowWithSteps("rollback", u.Timeout, populateRollbackSteps)
 }
 

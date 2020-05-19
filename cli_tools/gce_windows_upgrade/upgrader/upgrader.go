@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/option"
@@ -91,37 +92,25 @@ type upgrader struct {
 	*derivedVars
 
 	ctx context.Context
+
+	initFn                    func() error
+	printIntroHelpTextFn      func() error
+	validateAndDeriveParamsFn func() error
+	prepareFn                 func() (*daisy.Workflow, error)
+	upgradeFn                 func() (*daisy.Workflow, error)
+	retryUpgradeFn            func() (*daisy.Workflow, error)
+	rebootFn                  func() (*daisy.Workflow, error)
+	cleanupFn                 func() (*daisy.Workflow, error)
+	rollbackFn                func() (*daisy.Workflow, error)
 }
 
-type upgraderInterface interface {
-	getUpgrader() *upgrader
-
-	// Initialize vars for upgrader.
-	init() error
-
-	validateAndDeriveParams() error
-	printIntroHelpText() error
-
-	// Upgrade phase 1: prepare resources (backups, startup scripts, snapshots, and so on)
-	prepare() (*daisy.Workflow, error)
-
-	// Upgrade phase 2: do the actual upgrade work
-	upgrade() (*daisy.Workflow, error)
-
-	// Retry upgrade if a reboot happened.
-	retryUpgrade() (*daisy.Workflow, error)
-
-	reboot() (*daisy.Workflow, error)
-	cleanup() (*daisy.Workflow, error)
-	rollback() (*daisy.Workflow, error)
+// Run runs upgrader.
+func Run(p *InputParams) (service.Loggable, error) {
+	u := upgrader{InputParams: p}
+	return u.run()
 }
 
-// Run runs upgrade workflow.
-func Run(p *InputParams) (*daisy.Workflow, error) {
-	return run(&upgrader{InputParams: p})
-}
-
-func run(u upgraderInterface) (*daisy.Workflow, error) {
+func (u *upgrader) run() (service.Loggable, error) {
 	if err := u.init(); err != nil {
 		return nil, err
 	}
@@ -131,14 +120,15 @@ func run(u upgraderInterface) (*daisy.Workflow, error) {
 	if err := u.printIntroHelpText(); err != nil {
 		return nil, err
 	}
-	return runUpgradeWorkflow(u)
-}
-
-func (u *upgrader) getUpgrader() *upgrader {
-	return u
+	w, err := u.runUpgradeWorkflow()
+	return service.NewLoggableFromWorkflow(w), err
 }
 
 func (u *upgrader) init() error {
+	if u.initFn != nil {
+		return u.initFn()
+	}
+
 	log.SetPrefix(logPrefix + " ")
 
 	var err error
@@ -152,6 +142,10 @@ func (u *upgrader) init() error {
 }
 
 func (u *upgrader) printIntroHelpText() error {
+	if u.printIntroHelpTextFn != nil {
+		return u.printIntroHelpTextFn()
+	}
+
 	guide, err := getIntroHelpText(u)
 	if err != nil {
 		return err
@@ -160,12 +154,12 @@ func (u *upgrader) printIntroHelpText() error {
 	return nil
 }
 
-func runUpgradeWorkflow(u upgraderInterface) (*daisy.Workflow, error) {
+func (u *upgrader) runUpgradeWorkflow() (*daisy.Workflow, error) {
 	var err error
 
 	// If upgrade failed, run cleanup or rollback before exiting.
 	defer func() {
-		handleFailure(u, err)
+		u.handleFailure(err)
 	}()
 
 	// step 1: preparation - take snapshot, attach install media, backup/set startup script
@@ -198,8 +192,7 @@ func runUpgradeWorkflow(u upgraderInterface) (*daisy.Workflow, error) {
 	return retryUpgradeWf, err
 }
 
-func handleFailure(ui upgraderInterface, err error) {
-	u := ui.getUpgrader()
+func (u *upgrader) handleFailure(err error) {
 	if err == nil {
 		fmt.Printf("\nSuccessfully upgraded instance '%v' to '%v!'\n", u.instanceURI, u.TargetOS)
 		// TODO: update the help guide link. b/154838004
@@ -214,7 +207,7 @@ func handleFailure(ui upgraderInterface, err error) {
 		if isNewOSDiskAttached {
 			fmt.Printf("\nUpgrade failed to finish. Rolling back to the "+
 				"original state from the original OS disk '%v'...\n\n", u.osDiskURI)
-			_, err := ui.rollback()
+			_, err := u.rollback()
 			if err != nil {
 				fmt.Printf("\nRollback failed. Error: %v\n"+
 					"Please rollback the image manually following the instructions in the guide.\n\n", err)
@@ -235,7 +228,7 @@ func handleFailure(ui upgraderInterface, err error) {
 		"instructions in the guide.\n\n")
 
 	fmt.Print("\nCleaning up temporary resources...\n\n")
-	if _, err := ui.cleanup(); err != nil {
+	if _, err := u.cleanup(); err != nil {
 		fmt.Printf("\nFailed to cleanup temporary resources: %v\n"+
 			"Please cleanup the resources manually by following the instructions in the guide.\n\n", err)
 	}

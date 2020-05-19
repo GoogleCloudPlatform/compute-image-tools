@@ -311,9 +311,9 @@ func TestGetResourceID(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		resourceId := GetResourceID(tc.resourceName)
-		if resourceId != tc.expectedResourceID {
-			t.Errorf("[%v]: Expected resource ID '%v' != actrual resource ID '%v'", tc.testName, tc.expectedResourceID, resourceId)
+		resourceID := GetResourceID(tc.resourceName)
+		if resourceID != tc.expectedResourceID {
+			t.Errorf("[%v]: Expected resource ID '%v' != actrual resource ID '%v'", tc.testName, tc.expectedResourceID, resourceID)
 		}
 	}
 }

@@ -19,8 +19,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/collections"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -62,17 +62,17 @@ const (
 
 var (
 	supportedSourceOSVersions    = map[string]string{versionWindows2008r2: versionWindows2012r2}
-	supportedTargetOSVersions, _ = param.ReverseMap(supportedSourceOSVersions)
+	supportedTargetOSVersions, _ = collections.ReverseMap(supportedSourceOSVersions)
 )
 
 // SupportedSourceOSVersions returns supported source versions of upgrading
 func SupportedSourceOSVersions() []string {
-	return param.GetKeys(supportedSourceOSVersions)
+	return collections.GetKeys(supportedSourceOSVersions)
 }
 
 // SupportedTargetOSVersions returns supported target versions of upgrading
 func SupportedTargetOSVersions() []string {
-	return param.GetKeys(supportedTargetOSVersions)
+	return collections.GetKeys(supportedTargetOSVersions)
 }
 
 func getIntroHelpText(u *upgrader) (string, error) {

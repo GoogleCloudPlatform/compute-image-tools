@@ -178,24 +178,3 @@ func GetRegionalResourcePath(region string, resourceType string, resourceName st
 func GetZonalResourcePath(zone string, resourceType string, resourceName string) string {
 	return getResourcePath(fmt.Sprintf("zones/%v", zone), resourceType, resourceName)
 }
-
-// ReverseMap reverses keys and their values.
-func ReverseMap(m map[string]string) (map[string]string, bool) {
-	newMap := make(map[string]string, len(m))
-	for k, v := range m {
-		if _, ok := newMap[v]; ok {
-			return nil, false
-		}
-		newMap[v] = k
-	}
-	return newMap, true
-}
-
-// GetKeys gets all keys of the map.
-func GetKeys(m map[string]string) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}

@@ -62,8 +62,7 @@ func upgradeEntry() (service.Loggable, error) {
 		StdoutLogsDisabled:     *stdoutLogsDisabled,
 	}
 
-	wf, err := upgrader.Run(p)
-	return service.NewLoggableFromWorkflow(wf), err
+	return upgrader.Run(p)
 }
 
 func main() {
