@@ -296,3 +296,48 @@ func createWorkflowWithCreateDiskImageAndIncludeWorkflow() *daisy.Workflow {
 
 	return w
 }
+
+func TestGetResourceID(t *testing.T) {
+	type testCase struct {
+		testName           string
+		resourceName       string
+		expectedResourceID string
+	}
+
+	tcs := []testCase{
+		{"simple resource name", "resname", "resname"},
+		{"URI", "path/resname", "resname"},
+		{"longer URI", "https://resource/path/resname", "resname"},
+	}
+
+	for _, tc := range tcs {
+		resourceID := GetResourceID(tc.resourceName)
+		if resourceID != tc.expectedResourceID {
+			t.Errorf("[%v]: Expected resource ID '%v' != actrual resource ID '%v'", tc.testName, tc.expectedResourceID, resourceID)
+		}
+	}
+}
+
+func TestGetDeviceURI(t *testing.T) {
+	uri := GetDeviceURI("p", "z", "d")
+	expectedURI := "projects/p/zones/z/devices/d"
+	if uri != expectedURI {
+		t.Errorf("URI '%v' doesn't match expected '%v'", uri, expectedURI)
+	}
+}
+
+func TestGetDiskURI(t *testing.T) {
+	uri := GetDiskURI("p", "z", "d")
+	expectedURI := "projects/p/zones/z/disks/d"
+	if uri != expectedURI {
+		t.Errorf("URI '%v' doesn't match expected '%v'", uri, expectedURI)
+	}
+}
+
+func TestGetInstanceURI(t *testing.T) {
+	uri := GetInstanceURI("p", "z", "i")
+	expectedURI := "projects/p/zones/z/instances/i"
+	if uri != expectedURI {
+		t.Errorf("URI '%v' doesn't match expected '%v'", uri, expectedURI)
+	}
+}

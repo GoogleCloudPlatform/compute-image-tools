@@ -138,3 +138,8 @@ func GetGlobalResourcePath(resourceType string, resourceName string) string {
 func GetRegionalResourcePath(region string, resourceType string, resourceName string) string {
 	return getResourcePath(fmt.Sprintf("regions/%v", region), resourceType, resourceName)
 }
+
+// GetZonalResourcePath gets zonal resource path based on either a local resource name or a path
+func GetZonalResourcePath(zone string, resourceType string, resourceName string) string {
+	return getResourcePath(fmt.Sprintf("zones/%v", zone), resourceType, resourceName)
+}

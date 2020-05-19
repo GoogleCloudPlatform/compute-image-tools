@@ -48,6 +48,7 @@ const (
 	ImageExportAction        = "ImageExport"
 	InstanceImportAction     = "InstanceImport"
 	MachineImageImportAction = "MachineImageImport"
+	WindowsUpgrade           = "WindowsUpgrade"
 
 	// These strings should be interleaved to construct the real URL. This is just to (hopefully)
 	// fool github URL scanning bots.
