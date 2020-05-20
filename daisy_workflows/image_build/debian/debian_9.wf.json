@@ -4,7 +4,7 @@
     "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "bootstrap_vz_version": {
-      "Value": "https://github.com/zmarano/bootstrap-vz/archive/master.zip",
+      "Value": "https://github.com/hopkiw/bootstrap-vz/archive/master.zip",
       "Description": "The bootstrap-vz release to use."
     }
   },
