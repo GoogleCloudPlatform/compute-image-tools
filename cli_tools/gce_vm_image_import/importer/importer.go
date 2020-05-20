@@ -16,7 +16,6 @@ package importer
 
 import (
 	"context"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -27,7 +26,6 @@ import (
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
@@ -39,12 +37,8 @@ var (
 	ImportAndTranslateWorkflow = "import_and_translate.wf.json"
 )
 
-const (
-	logPrefix = "[import-image]"
-)
-
 // Returns main workflow and translate workflow paths (if any)
-func getWorkflowPaths(source resource, dataDisk bool, osID, customTranWorkflow, currentExecutablePath string) (string, string) {
+func getWorkflowPaths(source Source, dataDisk bool, osID, customTranWorkflow, currentExecutablePath string) (string, string) {
 	if isImage(source) {
 		return path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath), getTranslateWorkflowPath(customTranWorkflow, osID)
 	}
@@ -61,7 +55,7 @@ func getTranslateWorkflowPath(customTranslateWorkflow, osID string) string {
 	return daisyutils.GetTranslateWorkflowPath(osID)
 }
 
-func buildDaisyVars(source resource, translateWorkflowPath, imageName, family, description,
+func buildDaisyVars(source Source, translateWorkflowPath, imageName, family, description,
 	region, subnet, network string, noGuestEnvironment bool, sysprepWindows bool) map[string]string {
 
 	varMap := map[string]string{}
@@ -74,9 +68,9 @@ func buildDaisyVars(source resource, translateWorkflowPath, imageName, family, d
 		varMap["sysprep_windows"] = strconv.FormatBool(sysprepWindows)
 	}
 	if isFile(source) {
-		varMap["source_disk_file"] = source.path()
+		varMap["source_disk_file"] = source.Path()
 	} else {
-		varMap["source_image"] = source.path()
+		varMap["source_image"] = source.Path()
 	}
 	varMap["family"] = strings.TrimSpace(family)
 	varMap["description"] = strings.TrimSpace(description)
@@ -141,20 +135,18 @@ func (i importer) runImport(varMap map[string]string, importWorkflowPath string)
 }
 
 type importer struct {
-	storageClient *storage.Client
-	env           Environment
-	img           ImageSpec
-	translation   TranslationSpec
+	env         Environment
+	img         ImageSpec
+	translation TranslationSpec
 }
 
 // NewImporter constructs a new Importer instance.
 func NewImporter(
-	storageClient *storage.Client,
 	env Environment,
 	img ImageSpec,
 	translation TranslationSpec) Importer {
 
-	return importer{storageClient: storageClient, env: env, img: img, translation: translation}
+	return importer{env: env, img: img, translation: translation}
 }
 
 // Importer runs the import workflow.
@@ -163,23 +155,15 @@ type Importer interface {
 }
 
 // Run runs import workflow.
-func (i importer) Run(ctx context.Context) (*daisy.Workflow, error) {
-	log.SetPrefix(logPrefix + " ")
-
-	source, err := initAndValidateSource(i.translation.SourceFile, i.translation.SourceImage, i.storageClient)
-	if err != nil {
-		return nil, err
-	}
-
+func (i importer) Run(ctx context.Context) (w *daisy.Workflow, err error) {
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(
-		source, i.translation.DataDisk, i.translation.OS,
+		i.translation.Source, i.translation.DataDisk, i.translation.OS,
 		i.translation.CustomWorkflow, i.env.CurrentExecutablePath)
 
-	varMap := buildDaisyVars(source, translateWorkflowPath, i.img.Name, i.img.Family,
+	varMap := buildDaisyVars(i.translation.Source, translateWorkflowPath, i.img.Name, i.img.Family,
 		i.img.Description, i.env.Region, i.env.Subnet, i.env.Network,
 		i.translation.NoGuestEnvironment, i.translation.SysprepWindows)
 
-	var w *daisy.Workflow
 	if w, err = i.runImport(varMap, importWorkflowPath); err != nil {
 
 		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, i.env.Network, w)
@@ -221,6 +205,7 @@ type ImageSpec struct {
 type TranslationSpec struct {
 	SourceFile         string
 	SourceImage        string
+	Source             Source
 	DataDisk           bool
 	OS                 string
 	NoGuestEnvironment bool

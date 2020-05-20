@@ -20,25 +20,38 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-// A resource that can be imported to GCE disk images. If an instance of this
+// Source is a resource that can be imported to GCE disk images. If an instance of this
 // interface exists, it is expected that validation has already occurred,
 // and that the caller can safely use the resource.
-type resource interface {
-	path() string
+type Source interface {
+	Path() string
 }
 
-// initAndValidateSource takes the sourceFile and sourceImage specified by the user
+// SourceFactory takes the sourceFile and sourceImage specified by the user
 // and determines which, if any, is importable. It is an error if both sourceFile and
 // sourceImage are specified.
-func initAndValidateSource(sourceFile, sourceImage string,
-	storageClient domain.StorageClientInterface) (resource, error) {
+type SourceFactory interface {
+	Init(sourceFile, sourceImage string) (Source, error)
+}
+
+// NewSourceFactory returns an instance of SourceFactory.
+func NewSourceFactory(storageClient domain.StorageClientInterface) SourceFactory {
+	return sourceFactory{storageClient: storageClient}
+}
+
+type sourceFactory struct {
+	storageClient domain.StorageClientInterface
+}
+
+func (factory sourceFactory) Init(sourceFile, sourceImage string) (Source, error) {
 	sourceFile = strings.TrimSpace(sourceFile)
 	sourceImage = strings.TrimSpace(sourceImage)
 
@@ -53,20 +66,20 @@ func initAndValidateSource(sourceFile, sourceImage string,
 	}
 
 	if sourceFile != "" {
-		return newFileSource(sourceFile, storageClient)
+		return newFileSource(sourceFile, factory.storageClient)
 	}
 
 	return newImageSource(sourceImage)
 }
 
 // Whether the resource is a file in GCS.
-func isFile(s resource) bool {
+func isFile(s Source) bool {
 	_, ok := s.(fileSource)
 	return ok
 }
 
 // Whether the resource is a GCE image.
-func isImage(s resource) bool {
+func isImage(s Source) bool {
 	_, ok := s.(imageSource)
 	return ok
 }
@@ -81,7 +94,7 @@ type fileSource struct {
 // Create a fileSource from a gcsPath to a disk image. This method uses storageClient
 // to read a few bytes from the file. It is an error if the file is empty, or if
 // the file is compressed with gzip.
-func newFileSource(gcsPath string, storageClient domain.StorageClientInterface) (resource, error) {
+func newFileSource(gcsPath string, storageClient domain.StorageClientInterface) (Source, error) {
 	sourceBucketName, sourceObjectName, err := storage.GetGCSObjectPathElements(gcsPath)
 	if err != nil {
 		return nil, err
@@ -94,8 +107,8 @@ func newFileSource(gcsPath string, storageClient domain.StorageClientInterface) 
 	return source, source.validate(storageClient)
 }
 
-// The resource path for fileSource is its GCS path.
-func (s fileSource) path() string {
+// The resource Path for fileSource is its GCS Path.
+func (s fileSource) Path() string {
 	return s.gcsPath
 }
 
@@ -138,7 +151,7 @@ type imageSource struct {
 // Creates an imageSource from a reference to a GCE disk image. The syntax of the
 // reference is validated, but no I/O is performed to determine whether the image
 // exists or whether the calling user has access to it.
-func newImageSource(imagePath string) (resource, error) {
+func newImageSource(imagePath string) (Source, error) {
 	source := imageSource{
 		uri: param.GetGlobalResourcePath("images", imagePath),
 	}
@@ -186,7 +199,7 @@ func (s imageSource) validate() error {
 	return nil
 }
 
-// The path to an imageSource is a fully-qualified global GCP resource path.
-func (s imageSource) path() string {
+// The Path to an imageSource is a fully-qualified global GCP resource Path.
+func (s imageSource) Path() string {
 	return s.uri
 }

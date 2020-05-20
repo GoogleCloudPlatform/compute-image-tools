@@ -45,7 +45,7 @@ type ParsedArguments struct {
 
 // ParseArgs parses, validates, and populates the CLI arguments that are
 // used by the importer tool.
-func ParseArgs(args []string, populator param.Populator) (ParsedArguments, error) {
+func ParseArgs(args []string, populator param.Populator, sf importer.SourceFactory) (ParsedArguments, error) {
 	flagSet := flag.NewFlagSet("image-import", flag.ContinueOnError)
 	// Don't write parse errors to stdout, instead propagate them via an
 	// exception since we use flag.ContinueOnError.
@@ -62,6 +62,11 @@ func ParseArgs(args []string, populator param.Populator) (ParsedArguments, error
 	registerTranslationSpec(flagSet, &translation)
 
 	err := flagSet.Parse(args)
+	if err != nil {
+		return ParsedArguments{}, err
+	}
+
+	translation.Source, err = sf.Init(translation.SourceFile, translation.SourceImage)
 	if err != nil {
 		return ParsedArguments{}, err
 	}

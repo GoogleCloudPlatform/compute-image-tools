@@ -15,11 +15,14 @@
 package args
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
 func TestImageSpec_RequireImageName(t *testing.T) {
@@ -54,7 +57,7 @@ func TestImageSpec_PopulateStorageLocationIfMissing(t *testing.T) {
 		zone:            "us-west2-a",
 		region:          "us-west2",
 		storageLocation: "us",
-	})
+	}, mockSourceFactory{})
 	assert.NoError(t, err)
 	assert.Equal(t, "us", actual.Img.StorageLocation)
 }
@@ -85,7 +88,7 @@ func TestImageSpec_PopulateProjectIfMissing(t *testing.T) {
 		zone:    "us-west2-a",
 		region:  "us-west2",
 		project: "the-project",
-	})
+	}, mockSourceFactory{})
 	assert.NoError(t, err)
 	assert.Equal(t, "the-project", actual.Env.Project)
 }
@@ -107,7 +110,7 @@ func TestImageSpec_PopulateZoneIfMissing(t *testing.T) {
 	actual, err := ParseArgs(args, mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
-	})
+	}, mockSourceFactory{})
 	assert.NoError(t, err)
 	assert.Equal(t, "us-west2-a", actual.Env.Zone)
 }
@@ -117,7 +120,7 @@ func TestEnvironment_PopulateRegion(t *testing.T) {
 	actual, err := ParseArgs(args, mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
-	})
+	}, mockSourceFactory{})
 	assert.NoError(t, err)
 	assert.Equal(t, "us-west2", actual.Env.Region)
 }
@@ -132,7 +135,7 @@ func TestImageSpec_PopulateScratchBucketIfMissing(t *testing.T) {
 		zone:          "us-west2-a",
 		region:        "us-west2",
 		scratchBucket: "gcs://custom-bucket/",
-	})
+	}, mockSourceFactory{})
 	assert.NoError(t, err)
 	assert.Equal(t, "gcs://custom-bucket/", actual.Env.ScratchBucketGcsPath)
 }
@@ -223,6 +226,50 @@ func TestTranslationSpec_TrimSourceFile(t *testing.T) {
 func TestTranslationSpec_TrimSourceImage(t *testing.T) {
 	assert.Equal(t, "path/source-image", expectSuccessfulParse(
 		t, "-source_image", "  path/source-image  ").Translation.SourceImage)
+}
+
+func TestTranslationSpec_SourceObjectFromSourceImage(t *testing.T) {
+	args := []string{"-source_image", "path/source-image", "-image_name=i", "-client_id=c", "-data_disk"}
+	actual, err := ParseArgs(args, mockPopulator{
+		zone:          "us-west2-a",
+		region:        "us-west2",
+		scratchBucket: "gcs://custom-bucket/",
+	}, mockSourceFactory{
+		expectedImage: "path/source-image",
+		t:             t,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "path/source-image", actual.Translation.SourceImage)
+	assert.Equal(t, "path/source-image", actual.Translation.Source.Path())
+}
+
+func TestTranslationSpec_SourceObjectFromSourceFile(t *testing.T) {
+	args := []string{"-source_file", "gcs://path/file", "-image_name=i", "-client_id=c", "-data_disk"}
+	actual, err := ParseArgs(args, mockPopulator{
+		zone:          "us-west2-a",
+		region:        "us-west2",
+		scratchBucket: "gcs://custom-bucket/",
+	}, mockSourceFactory{
+		expectedFile: "gcs://path/file",
+		t:            t,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "gcs://path/file", actual.Translation.SourceFile)
+	assert.Equal(t, "gcs://path/file", actual.Translation.Source.Path())
+}
+
+func TestTranslationSpec_ErrorWhenSourceValidationFails(t *testing.T) {
+	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
+	_, err := ParseArgs(args, mockPopulator{
+		zone:          "us-west2-a",
+		region:        "us-west2",
+		scratchBucket: "gcs://custom-bucket/",
+	}, mockSourceFactory{
+		t:   t,
+		err: errors.New("bad source"),
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "bad source")
 }
 
 func TestTranslationSpec_DataDiskSettable(t *testing.T) {
@@ -325,6 +372,36 @@ func (m mockPopulator) PopulateMissingParameters(project *string, zone *string, 
 	return nil
 }
 
+type mockSource struct {
+	sourcePath string
+}
+
+func (m mockSource) Path() string {
+	return m.sourcePath
+}
+
+type mockSourceFactory struct {
+	err                         error
+	expectedFile, expectedImage string
+	t                           *testing.T
+}
+
+func (m mockSourceFactory) Init(sourceFile, sourceImage string) (importer.Source, error) {
+	// Skip parameter verification unless they were provided when mock was setup.
+	if m.expectedFile != "" {
+		assert.Equal(m.t, m.expectedFile, sourceFile)
+		return mockSource{sourcePath: sourceFile}, m.err
+
+	}
+
+	if m.expectedImage != "" {
+		assert.Equal(m.t, m.expectedImage, sourceImage)
+		return mockSource{sourcePath: sourceImage}, m.err
+	}
+
+	return mockSource{}, m.err
+}
+
 func expectSuccessfulParse(t *testing.T, args ...string) ParsedArguments {
 	var hasClientID, hasImageName, hasTranslationType bool
 	for _, arg := range args {
@@ -354,7 +431,7 @@ func expectSuccessfulParse(t *testing.T, args ...string) ParsedArguments {
 	actual, err := ParseArgs(args, mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
-	})
+	}, mockSourceFactory{})
 
 	assert.NoError(t, err)
 	return actual
@@ -365,7 +442,7 @@ func expectFailedParse(t *testing.T, args ...string) error {
 	_, err := ParseArgs(args, mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
-	})
+	}, mockSourceFactory{})
 
 	assert.Error(t, err)
 	return err

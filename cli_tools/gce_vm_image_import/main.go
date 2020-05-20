@@ -32,27 +32,16 @@ import (
 )
 
 func main() {
-	// CLI arguments are parsed in two phases. First authentication flags are parsed,
-	// since those are used when validating and populating the remaining arguments.
-	oauth, ce := parseAuthArgs()
+	log.SetPrefix("[import-image] ")
 	ctx := context.Background()
 
-	storageClient, err := storage.NewStorageClient(ctx, logging.NewDefaultLogger(), oauth)
+	importArgs, err := parseAllArgs(ctx)
 	if err != nil {
 		terminate(err)
 	}
 
-	// In the second phase, we fully parse, validate, and populate all arguments.
-	importArgs, err := parseAllArgs(ctx, storageClient, oauth, ce)
-	if err != nil {
-		terminate(err)
-	}
-
-	// The logging framework executes this closure, logs the results, and then passes
-	// control back.
 	importerClosure := func() (service.Loggable, error) {
-		wf, e := importer.NewImporter(storageClient, importArgs.Env,
-			importArgs.Img, importArgs.Translation).Run(ctx)
+		wf, e := importer.NewImporter(importArgs.Env, importArgs.Img, importArgs.Translation).Run(ctx)
 		return service.NewLoggableFromWorkflow(wf), e
 	}
 
@@ -63,7 +52,9 @@ func main() {
 	}
 }
 
-func parseAuthArgs() (string, string) {
+func parseAllArgs(ctx context.Context) (args.ParsedArguments, error) {
+	// 1. Parse auth flags, which are required to initialize the API clients
+	// that are used for subsequent validation and population.
 	fs := flag.NewFlagSet("auth-flags", flag.ContinueOnError)
 	oauth := flag.String("oauth", "", "Path to oauth json file.")
 	ce := flag.String("compute_endpoint_override", "", "API endpoint to override default.")
@@ -74,7 +65,27 @@ func parseAuthArgs() (string, string) {
 	// flags (such as client_id) that are not defined. That's okay: we just want the
 	// authentication flags now, and we'll re-parse everything next.
 	_ = fs.Parse(os.Args[1:])
-	return *oauth, *ce
+
+	// 2. Setup dependencies.
+	storageClient, err := storage.NewStorageClient(ctx, logging.NewDefaultLogger(), *oauth)
+	if err != nil {
+		terminate(err)
+	}
+	sourceFactory := importer.NewSourceFactory(storageClient)
+	computeClient, err := param.CreateComputeClient(&ctx, *oauth, *ce)
+	if err != nil {
+		return args.ParsedArguments{}, err
+	}
+	metadataGCE := &compute.MetadataGCE{}
+	paramPopulator := param.NewPopulator(
+		metadataGCE,
+		storageClient,
+		storage.NewResourceLocationRetriever(metadataGCE, computeClient),
+		storage.NewScratchBucketCreator(ctx, storageClient),
+	)
+
+	// 3. Parse, validate, and populate arguments.
+	return args.ParseArgs(os.Args[1:], paramPopulator, sourceFactory)
 }
 
 // terminate is used when there is a failure prior to running import. It sends
@@ -86,23 +97,7 @@ func terminate(cause error) {
 	// Ignoring the returned error since its a copy of
 	// the return value from the callback.
 	_ = service.RunWithServerLogging(service.ImageImportAction, service.InputParams{}, nil, noopCallback)
-	log.Fatal(cause)
-}
-
-func parseAllArgs(ctx context.Context, storageClient *storage.Client,
-	oauth, ce string) (args.ParsedArguments, error) {
-	computeClient, err := param.CreateComputeClient(&ctx, oauth, ce)
-	if err != nil {
-		return args.ParsedArguments{}, err
-	}
-	metadataGCE := &compute.MetadataGCE{}
-	paramPopulator := param.NewPopulator(
-		metadataGCE,
-		storageClient,
-		storage.NewResourceLocationRetriever(metadataGCE, computeClient),
-		storage.NewScratchBucketCreator(ctx, storageClient),
-	)
-	return args.ParseArgs(os.Args[1:], paramPopulator)
+	os.Exit(1)
 }
 
 func initLogging(args args.ParsedArguments) service.InputParams {
