@@ -245,4 +245,5 @@ type WindowsUpgradeParams struct {
 	AutoRollback           bool   `json:"auto_rollback"`
 	SourceOS               string `json:"source_os,omitempty"`
 	TargetOS               string `json:"target_os,omitempty"`
+	UseStagingInstallMedia bool   `json:"use_staging_install_media"`
 }

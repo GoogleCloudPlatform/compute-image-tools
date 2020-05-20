@@ -64,7 +64,7 @@ func TestSuite(
 		normalCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Normal case"))
 		richParamsAndLatestInstallMedia := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Rich params and latest install media"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "/"))
 		failedAndCleanup := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Failed and cleanup"))
 		failedAndRollback := junitxml.NewTestCase(
@@ -125,7 +125,6 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 	instance := fmt.Sprintf("projects/%v/zones/%v/instances/%v",
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
-	// TODO: switch to the latest install media (b/156906522)
 	argsMap := map[utils.CLITestType][]string{
 		utils.Wrapper: {
 			"-client-id=e2e",
@@ -137,6 +136,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 			fmt.Sprintf("-timeout=2h"),
 			fmt.Sprintf("-project=%v", "compute-image-test-pool-002"),
 			fmt.Sprintf("-zone=%v", "fake-zone"),
+			"-use-staging-install-media",
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
@@ -417,7 +417,7 @@ func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *j
 
 	// for all cases, verify cleanup: install media, startup script & backup
 	for _, d := range instance.Disks {
-		if d.Source == "projects/compute-image-tools/global/images/family/windows-install-media" {
+		if strings.HasSuffix(d.Source, "global/images/family/windows-install-media") {
 			utils.Failure(testCase, logger, "Install media is not cleaned up.")
 		}
 	}

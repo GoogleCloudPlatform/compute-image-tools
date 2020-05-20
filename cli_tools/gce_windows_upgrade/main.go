@@ -35,6 +35,7 @@ var (
 	sourceOS               = flag.String("source-os", "", fmt.Sprintf("OS version of the source instance to upgrade. Supported values: %v", strings.Join(upgrader.SupportedSourceOSVersions(), ", ")))
 	targetOS               = flag.String("target-os", "", fmt.Sprintf("Version of the OS after upgrade. Supported values: %v", strings.Join(upgrader.SupportedTargetOSVersions(), ", ")))
 	timeout                = flag.String("timeout", "", "Maximum time limit for an upgrade. For example, if the time limit is set to 2h, the upgrade times out after two hours. For more information about time duration formats, see $ gcloud topic datetimes")
+	useStagingInstallMedia = flag.Bool("use-staging-install-media", false, "Use staging install media. This flag is for testing only. Set to true to upgrade with staging windows install media.")
 	scratchBucketGcsPath   = flag.String("scratch-bucket-gcs-path", "", "Scratch GCS bucket. This setting overrides the workflow setting.")
 	oauth                  = flag.String("oauth", "", "Path to OAuth .json file. This setting overrides the workflow setting.")
 	ce                     = flag.String("compute-endpoint-override", "", "API endpoint. This setting overrides the default API endpoint setting.")
@@ -54,6 +55,7 @@ func upgradeEntry() (service.Loggable, error) {
 		ProjectPtr:             project,
 		Zone:                   *zone,
 		Timeout:                strings.TrimSpace(*timeout),
+		UseStagingInstallMedia: *useStagingInstallMedia,
 		ScratchBucketGcsPath:   strings.TrimSpace(*scratchBucketGcsPath),
 		Oauth:                  strings.TrimSpace(*oauth),
 		Ce:                     strings.TrimSpace(*ce),
@@ -88,6 +90,7 @@ func main() {
 			AutoRollback:           *autoRollback,
 			SourceOS:               *sourceOS,
 			TargetOS:               *targetOS,
+			UseStagingInstallMedia: *useStagingInstallMedia,
 		},
 	}
 

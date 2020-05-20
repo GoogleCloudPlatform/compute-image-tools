@@ -150,6 +150,9 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 			},
 		},
 	}
+	if u.UseStagingInstallMedia {
+		(*stepCreateInstallDisk.CreateDisks)[0].SourceImage = "projects/bct-prod-images/global/images/family/windows-install-media"
+	}
 
 	stepAttachInstallDisk, err := daisyutils.NewStep(w, "attach-install-disk", stepCreateInstallDisk)
 	if err != nil {
