@@ -26,7 +26,7 @@ import (
 )
 
 func TestImageSpec_RequireImageName(t *testing.T) {
-	assert.EqualError(t, expectFailedParse(t, "-client_id=pantheon"), "-image_name has to be specified")
+	assert.EqualError(t, expectFailedValidation(t, "-client_id=pantheon"), "-image_name has to be specified")
 }
 
 func TestImageSpec_TrimAndLowerImageName(t *testing.T) {
@@ -53,7 +53,9 @@ func TestImageSpec_FailOnLabelSyntaxError(t *testing.T) {
 
 func TestImageSpec_PopulateStorageLocationIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:            "us-west2-a",
 		region:          "us-west2",
 		storageLocation: "us",
@@ -71,7 +73,7 @@ func TestEnvironment_PopulateCurrentDirectory(t *testing.T) {
 }
 
 func TestEnvironment_FailWhenClientIdMissing(t *testing.T) {
-	assert.Contains(t, expectFailedParse(t).Error(), "-client_id has to be specified")
+	assert.Contains(t, expectFailedValidation(t).Error(), "-client_id has to be specified")
 }
 
 func TestEnvironment_TrimAndLowerClientId(t *testing.T) {
@@ -84,7 +86,9 @@ func TestEnvironment_TrimProject(t *testing.T) {
 
 func TestImageSpec_PopulateProjectIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:    "us-west2-a",
 		region:  "us-west2",
 		project: "the-project",
@@ -107,7 +111,9 @@ func TestEnvironment_TrimAndLowerZone(t *testing.T) {
 
 func TestImageSpec_PopulateZoneIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
 	}, mockSourceFactory{})
@@ -117,7 +123,9 @@ func TestImageSpec_PopulateZoneIfMissing(t *testing.T) {
 
 func TestEnvironment_PopulateRegion(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
 	}, mockSourceFactory{})
@@ -131,7 +139,9 @@ func TestEnvironment_TrimScratchBucket(t *testing.T) {
 
 func TestImageSpec_PopulateScratchBucketIfMissing(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
 		scratchBucket: "gcs://custom-bucket/",
@@ -230,7 +240,9 @@ func TestTranslationSpec_TrimSourceImage(t *testing.T) {
 
 func TestTranslationSpec_SourceObjectFromSourceImage(t *testing.T) {
 	args := []string{"-source_image", "path/source-image", "-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
 		scratchBucket: "gcs://custom-bucket/",
@@ -245,7 +257,9 @@ func TestTranslationSpec_SourceObjectFromSourceImage(t *testing.T) {
 
 func TestTranslationSpec_SourceObjectFromSourceFile(t *testing.T) {
 	args := []string{"-source_file", "gcs://path/file", "-image_name=i", "-client_id=c", "-data_disk"}
-	actual, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
 		scratchBucket: "gcs://custom-bucket/",
@@ -260,7 +274,9 @@ func TestTranslationSpec_SourceObjectFromSourceFile(t *testing.T) {
 
 func TestTranslationSpec_ErrorWhenSourceValidationFails(t *testing.T) {
 	args := []string{"-image_name=i", "-client_id=c", "-data_disk"}
-	_, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:          "us-west2-a",
 		region:        "us-west2",
 		scratchBucket: "gcs://custom-bucket/",
@@ -284,7 +300,7 @@ func TestTranslationSpec_TrimAndLowerOS(t *testing.T) {
 }
 
 func TestTranslationSpec_FailWhenOSNotRegistered(t *testing.T) {
-	assert.Contains(t, expectFailedParse(t,
+	assert.Contains(t, expectFailedValidation(t,
 		"-os=android", "-client_id=c", "-image_name=i").Error(),
 		"os `android` is invalid. Allowed values:")
 }
@@ -297,7 +313,7 @@ func TestTranslationSpec_NoGuestEnvironmentSettable(t *testing.T) {
 }
 
 func TestTranslationSpec_RequireDataOSOrWorkflow(t *testing.T) {
-	assert.Contains(t, expectFailedParse(t, "-client_id=c", "-image_name=i").Error(),
+	assert.Contains(t, expectFailedValidation(t, "-client_id=c", "-image_name=i").Error(),
 		"-data_disk, -os, or -custom_translate_workflow has to be specified")
 }
 
@@ -315,15 +331,15 @@ func TestTranslationSpec_TrimCustomWorkflow(t *testing.T) {
 }
 
 func TestTranslationSpec_ValidateForConflictingArguments(t *testing.T) {
-	assert.Contains(t, expectFailedParse(t,
+	assert.Contains(t, expectFailedValidation(t,
 		"-data_disk", "-os=ubuntu-1604", "-client_id=c", "-image_name=i").Error(),
 		"when -data_disk is specified, -os and -custom_translate_workflow should be empty")
 
-	assert.Contains(t, expectFailedParse(t,
+	assert.Contains(t, expectFailedValidation(t,
 		"-data_disk", "-custom_translate_workflow=file.json", "-client_id=c", "-image_name=i").Error(),
 		"when -data_disk is specified, -os and -custom_translate_workflow should be empty")
 
-	assert.Contains(t, expectFailedParse(t,
+	assert.Contains(t, expectFailedValidation(t,
 		"-os=ubuntu-1804", "-custom_translate_workflow=file.json", "-client_id=c", "-image_name=i").Error(),
 		"-os and -custom_translate_workflow can't be both specified")
 }
@@ -402,7 +418,7 @@ func (m mockSourceFactory) Init(sourceFile, sourceImage string) (importer.Source
 	return mockSource{}, m.err
 }
 
-func expectSuccessfulParse(t *testing.T, args ...string) ImporterArguments {
+func expectSuccessfulParse(t *testing.T, args ...string) ImportArguments {
 	var hasClientID, hasImageName, hasTranslationType bool
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-client_id") {
@@ -428,7 +444,9 @@ func expectSuccessfulParse(t *testing.T, args ...string) ImporterArguments {
 		args = append(args, "-data_disk")
 	}
 
-	actual, err := ParseArgs(args, mockPopulator{
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
 	}, mockSourceFactory{})
@@ -438,8 +456,15 @@ func expectSuccessfulParse(t *testing.T, args ...string) ImporterArguments {
 }
 
 func expectFailedParse(t *testing.T, args ...string) error {
+	_, err := NewImportArguments(args)
+	assert.Error(t, err)
+	return err
+}
 
-	_, err := ParseArgs(args, mockPopulator{
+func expectFailedValidation(t *testing.T, args ...string) error {
+	actual, err := NewImportArguments(args)
+	assert.NoError(t, err)
+	err = actual.ValidateAndPopulate(mockPopulator{
 		zone:   "us-west2-a",
 		region: "us-west2",
 	}, mockSourceFactory{})

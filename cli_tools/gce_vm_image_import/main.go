@@ -17,9 +17,7 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -36,7 +34,7 @@ func main() {
 	log.SetPrefix("[import-image] ")
 	ctx := context.Background()
 
-	importArgs, err := parseAndPopulateAllArgs(ctx)
+	importArgs, err := parseAndPopulateArgs(ctx)
 	if err != nil {
 		terminate(importArgs, err)
 	}
@@ -53,29 +51,25 @@ func main() {
 	}
 }
 
-func parseAndPopulateAllArgs(ctx context.Context) (args.ImporterArguments, error) {
-	// 1. Parse auth flags, which are required to initialize the API clients
-	// that are used for subsequent validation and population.
-	fs := flag.NewFlagSet("auth-flags", flag.ContinueOnError)
-	oauth := flag.String("oauth", "", "Path to oauth json file.")
-	ce := flag.String("compute_endpoint_override", "", "API endpoint to override default.")
-	// Don't write parse errors to stdout, instead propagate them via an
-	// exception since we use flag.ContinueOnError.
-	fs.SetOutput(ioutil.Discard)
-	// Ignoring parse errors here since FlagSet.Parse reports that there are extra
-	// flags (such as client_id) that are not defined. That's okay: we just want the
-	// authentication flags now, and we'll re-parse everything next.
-	_ = fs.Parse(os.Args[1:])
+func parseAndPopulateArgs(ctx context.Context) (args.ImportArguments, error) {
+	// 1. Parse the args without validating or populating. Splitting parsing and
+	// validation allows us to log the intermediate, non-validated values, if
+	// there's an error setting up dependencies.
+	parsed, err := args.NewImportArguments(os.Args[1:])
+	if err != nil {
+		terminate(parsed, err)
+	}
 
 	// 2. Setup dependencies.
-	storageClient, err := storage.NewStorageClient(ctx, logging.NewDefaultLogger(), *oauth)
+	storageClient, err := storage.NewStorageClient(
+		ctx, logging.NewDefaultLogger(), parsed.Environment.Oauth)
 	if err != nil {
-		terminate(args.ImporterArguments{}, err)
+		terminate(parsed, err)
 	}
-	sourceFactory := importer.NewSourceFactory(storageClient)
-	computeClient, err := param.CreateComputeClient(&ctx, *oauth, *ce)
+	computeClient, err := param.CreateComputeClient(
+		&ctx, parsed.Environment.Oauth, parsed.Environment.ComputeEndpoint)
 	if err != nil {
-		return args.ImporterArguments{}, err
+		terminate(parsed, err)
 	}
 	metadataGCE := &compute.MetadataGCE{}
 	paramPopulator := param.NewPopulator(
@@ -86,49 +80,55 @@ func parseAndPopulateAllArgs(ctx context.Context) (args.ImporterArguments, error
 	)
 
 	// 3. Parse, validate, and populate arguments.
-	return args.ParseArgs(os.Args[1:], paramPopulator, sourceFactory)
+	return parsed, parsed.ValidateAndPopulate(
+		paramPopulator, importer.NewSourceFactory(storageClient))
 }
 
 // terminate is used when there is a failure prior to running import. It sends
 // a message to the logging framework, and then executes os.Exit(1).
-func terminate(args args.ImporterArguments, cause error) {
+func terminate(allArgs args.ImportArguments, cause error) {
 	noOpCallback := func() (service.Loggable, error) {
 		return nil, cause
 	}
 	// Ignoring the returned error since its a copy of
 	// the return value from the callback.
-	_ = service.RunWithServerLogging(service.ImageImportAction, initLoggingParams(args), nil, noOpCallback)
+	_ = service.RunWithServerLogging(
+		service.ImageImportAction, initLoggingParams(allArgs), nil, noOpCallback)
 	os.Exit(1)
 }
 
-func initLoggingParams(args args.ImporterArguments) service.InputParams {
+func initLoggingParams(importerArguments args.ImportArguments) service.InputParams {
+	env := importerArguments.Environment
+	img := importerArguments.Image
+	trn := importerArguments.Translation
 	return service.InputParams{
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{
-				ClientID:                args.Environment.ClientID,
-				Network:                 args.Environment.Network,
-				Subnet:                  args.Environment.Subnet,
-				Zone:                    args.Environment.Zone,
-				Timeout:                 args.Translation.Timeout.String(),
-				Project:                 args.Environment.Project,
-				ObfuscatedProject:       service.Hash(args.Environment.Project),
-				Labels:                  fmt.Sprintf("%v", args.Image.Labels),
-				ScratchBucketGcsPath:    args.Environment.ScratchBucketGcsPath,
-				Oauth:                   args.Environment.Oauth,
-				ComputeEndpointOverride: args.Environment.ComputeEndpoint,
-				DisableGcsLogging:       args.Environment.GcsLogsDisabled,
-				DisableCloudLogging:     args.Environment.CloudLogsDisabled,
-				DisableStdoutLogging:    args.Environment.StdoutLogsDisabled,
+				ClientID:                env.ClientID,
+				Network:                 env.Network,
+				Subnet:                  env.Subnet,
+				Zone:                    env.Zone,
+				Timeout:                 trn.Timeout.String(),
+				Project:                 env.Project,
+				ObfuscatedProject:       service.Hash(env.Project),
+				Labels:                  fmt.Sprintf("%v", img.Labels),
+				ScratchBucketGcsPath:    env.ScratchBucketGcsPath,
+				Oauth:                   env.Oauth,
+				ComputeEndpointOverride: env.ComputeEndpoint,
+				DisableGcsLogging:       env.GcsLogsDisabled,
+				DisableCloudLogging:     env.CloudLogsDisabled,
+				DisableStdoutLogging:    env.StdoutLogsDisabled,
 			},
-			ImageName:          args.Image.Name,
-			DataDisk:           args.Translation.DataDisk,
-			OS:                 args.Translation.OS,
-			SourceFile:         args.Translation.SourceFile,
-			SourceImage:        args.Translation.SourceImage,
-			NoGuestEnvironment: args.Translation.NoGuestEnvironment,
-			Family:             args.Image.Family,
-			NoExternalIP:       args.Environment.NoExternalIP,
-			StorageLocation:    args.Image.StorageLocation,
+			ImageName:          img.Name,
+			DataDisk:           trn.DataDisk,
+			OS:                 trn.OS,
+			SourceFile:         trn.SourceFile,
+			SourceImage:        trn.SourceImage,
+			NoGuestEnvironment: trn.NoGuestEnvironment,
+			Family:             img.Family,
+			Description:        img.Description,
+			NoExternalIP:       env.NoExternalIP,
+			StorageLocation:    img.StorageLocation,
 		},
 	}
 }

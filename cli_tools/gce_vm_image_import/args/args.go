@@ -36,22 +36,23 @@ const (
 	customWorkflowFlag = "custom_translate_workflow"
 )
 
-// ImporterArguments holds the structured results of parsing CLI arguments.
-type ImporterArguments struct {
+// ImportArguments holds the structured results of parsing CLI arguments,
+// and optionally allows for validating and populating the arguments.
+type ImportArguments struct {
 	Image       importer.ImageSpec
 	Environment importer.Environment
 	Translation importer.TranslationSpec
 }
 
-// ParseArgs parses, validates, and populates the CLI arguments that are
-// used by the importer tool.
-func ParseArgs(args []string, populator param.Populator, sf importer.SourceFactory) (ImporterArguments, error) {
+// NewImportArguments parses args to create an ImportArguments instance.
+// No validation occurs; to validate, use ValidateAndPopulate.
+func NewImportArguments(args []string) (ImportArguments, error) {
 	flagSet := flag.NewFlagSet("image-import", flag.ContinueOnError)
 	// Don't write parse errors to stdout, instead propagate them via an
 	// exception since we use flag.ContinueOnError.
 	flagSet.SetOutput(ioutil.Discard)
 
-	allArgs := ImporterArguments{
+	parsed := ImportArguments{
 		Image: importer.ImageSpec{},
 		Environment: importer.Environment{
 			CurrentExecutablePath: os.Args[0],
@@ -59,58 +60,61 @@ func ParseArgs(args []string, populator param.Populator, sf importer.SourceFacto
 		Translation: importer.TranslationSpec{},
 	}
 
-	registerImageSpec(flagSet, &allArgs.Image)
-	registerEnvironment(flagSet, &allArgs.Environment)
-	registerTranslationSpec(flagSet, &allArgs.Translation)
+	registerFlagsForImageSpec(flagSet, &parsed.Image)
+	registerFlagsForEnvironment(flagSet, &parsed.Environment)
+	registerFlagsForTranslationSpec(flagSet, &parsed.Translation)
 
-	err := flagSet.Parse(args)
-	if err != nil {
-		return allArgs, err
-	}
+	return parsed, flagSet.Parse(args)
+}
 
-	allArgs.Translation.Source, err = sf.Init(allArgs.Translation.SourceFile, allArgs.Translation.SourceImage)
+// ValidateAndPopulate parses, validates, and populates the arguments.
+func (i *ImportArguments) ValidateAndPopulate(populator param.Populator,
+	sourceFactory importer.SourceFactory) (err error) {
+
+	i.Translation.Source, err = sourceFactory.Init(
+		i.Translation.SourceFile, i.Translation.SourceImage)
 	if err != nil {
-		return allArgs, err
+		return err
 	}
 
 	if err := populator.PopulateMissingParameters(
-		&allArgs.Environment.Project,
-		&allArgs.Environment.Zone,
-		&allArgs.Environment.Region,
-		&allArgs.Environment.ScratchBucketGcsPath,
-		allArgs.Translation.SourceFile,
-		&allArgs.Image.StorageLocation); err != nil {
-		return allArgs, err
+		&i.Environment.Project,
+		&i.Environment.Zone,
+		&i.Environment.Region,
+		&i.Environment.ScratchBucketGcsPath,
+		i.Translation.SourceFile,
+		&i.Image.StorageLocation); err != nil {
+		return err
 	}
 
-	if err := populateNetwork(&allArgs.Environment); err != nil {
-		return allArgs, err
+	if err := populateNetwork(&i.Environment); err != nil {
+		return err
 	}
 
-	return allArgs, validate(allArgs)
+	return i.validate()
 }
 
-func validate(allArgs ImporterArguments) error {
-	if allArgs.Environment.ClientID == "" {
+func (i ImportArguments) validate() error {
+	if i.Environment.ClientID == "" {
 		return fmt.Errorf("-%s has to be specified", clientFlag)
 	}
-	if allArgs.Image.Name == "" {
+	if i.Image.Name == "" {
 		return fmt.Errorf("-%s has to be specified", imageFlag)
 	}
-	if !allArgs.Translation.DataDisk && allArgs.Translation.OS == "" && allArgs.Translation.CustomWorkflow == "" {
+	if !i.Translation.DataDisk && i.Translation.OS == "" && i.Translation.CustomWorkflow == "" {
 		return fmt.Errorf("-%s, -%s, or -%s has to be specified",
 			dataDiskFlag, osFlag, customWorkflowFlag)
 	}
-	if allArgs.Translation.DataDisk && (allArgs.Translation.OS != "" || allArgs.Translation.CustomWorkflow != "") {
+	if i.Translation.DataDisk && (i.Translation.OS != "" || i.Translation.CustomWorkflow != "") {
 		return fmt.Errorf("when -%s is specified, -%s and -%s should be empty",
 			dataDiskFlag, osFlag, customWorkflowFlag)
 	}
-	if allArgs.Translation.OS != "" && allArgs.Translation.CustomWorkflow != "" {
+	if i.Translation.OS != "" && i.Translation.CustomWorkflow != "" {
 		return fmt.Errorf("-%s and -%s can't be both specified",
 			osFlag, customWorkflowFlag)
 	}
-	if allArgs.Translation.OS != "" {
-		if err := daisy_utils.ValidateOS(allArgs.Translation.OS); err != nil {
+	if i.Translation.OS != "" {
+		if err := daisy_utils.ValidateOS(i.Translation.OS); err != nil {
 			return err
 		}
 	}
@@ -138,7 +142,7 @@ func populateNetwork(e *importer.Environment) error {
 	return nil
 }
 
-func registerEnvironment(flagSet *flag.FlagSet, e *importer.Environment) {
+func registerFlagsForEnvironment(flagSet *flag.FlagSet, e *importer.Environment) {
 	flagSet.Var((*lowerTrimmedString)(&e.ClientID), clientFlag,
 		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
 
@@ -181,9 +185,14 @@ func registerEnvironment(flagSet *flag.FlagSet, e *importer.Environment) {
 
 	flagSet.BoolVar(&e.NoExternalIP, "no_external_ip", false,
 		"VPC doesn't allow external IPs.")
+
+	flagSet.Bool("kms_key", false, "Reserved for future use.")
+	flagSet.Bool("kms_keyring", false, "Reserved for future use.")
+	flagSet.Bool("kms_location", false, "Reserved for future use.")
+	flagSet.Bool("kms_project", false, "Reserved for future use.")
 }
 
-func registerImageSpec(flagSet *flag.FlagSet, i *importer.ImageSpec) {
+func registerFlagsForImageSpec(flagSet *flag.FlagSet, i *importer.ImageSpec) {
 	flagSet.Var((*lowerTrimmedString)(&i.Name), imageFlag,
 		"Name of the disk image to create.")
 
@@ -203,7 +212,7 @@ func registerImageSpec(flagSet *flag.FlagSet, i *importer.ImageSpec) {
 			"location closest to the source is chosen automatically.")
 }
 
-func registerTranslationSpec(flagSet *flag.FlagSet, t *importer.TranslationSpec) {
+func registerFlagsForTranslationSpec(flagSet *flag.FlagSet, t *importer.TranslationSpec) {
 	flagSet.Var((*trimmedString)(&t.SourceFile), "source_file",
 		"The Cloud Storage URI of the virtual disk file to import.")
 
@@ -247,23 +256,23 @@ func registerTranslationSpec(flagSet *flag.FlagSet, t *importer.TranslationSpec)
 // param.ParseKeyValues.
 type keyValueString map[string]string
 
-func (l keyValueString) String() string {
+func (s keyValueString) String() string {
 	parts := []string{}
-	for k, v := range l {
+	for k, v := range s {
 		parts = append(parts, fmt.Sprintf("%s=%s", k, v))
 	}
 	return strings.Join(parts, ",")
 }
 
-func (l *keyValueString) Set(s string) error {
-	if *l != nil {
+func (s *keyValueString) Set(input string) error {
+	if *s != nil {
 		return fmt.Errorf("only one instance of this flag is allowed")
 	}
 
-	*l = make(map[string]string, 0)
-	if s != "" {
+	*s = make(map[string]string, 0)
+	if input != "" {
 		var err error
-		*l, err = param.ParseKeyValues(s)
+		*s, err = param.ParseKeyValues(input)
 		if err != nil {
 			return err
 		}
