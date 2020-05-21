@@ -40,7 +40,7 @@ func main() {
 	}
 
 	importerClosure := func() (service.Loggable, error) {
-		wf, e := importer.NewImporter(importArgs.Environment, importArgs.Image, importArgs.Translation).Run(ctx)
+		wf, e := importer.NewImporter(importArgs.Environment, importArgs.ImageSpec, importArgs.TranslationSpec).Run(ctx)
 		return service.NewLoggableFromWorkflow(wf), e
 	}
 
@@ -97,38 +97,35 @@ func terminate(allArgs args.ImportArguments, cause error) {
 	os.Exit(1)
 }
 
-func initLoggingParams(importerArguments args.ImportArguments) service.InputParams {
-	env := importerArguments.Environment
-	img := importerArguments.Image
-	trn := importerArguments.Translation
+func initLoggingParams(args args.ImportArguments) service.InputParams {
 	return service.InputParams{
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{
-				ClientID:                env.ClientID,
-				Network:                 env.Network,
-				Subnet:                  env.Subnet,
-				Zone:                    env.Zone,
-				Timeout:                 trn.Timeout.String(),
-				Project:                 env.Project,
-				ObfuscatedProject:       service.Hash(env.Project),
-				Labels:                  fmt.Sprintf("%v", img.Labels),
-				ScratchBucketGcsPath:    env.ScratchBucketGcsPath,
-				Oauth:                   env.Oauth,
-				ComputeEndpointOverride: env.ComputeEndpoint,
-				DisableGcsLogging:       env.GcsLogsDisabled,
-				DisableCloudLogging:     env.CloudLogsDisabled,
-				DisableStdoutLogging:    env.StdoutLogsDisabled,
+				ClientID:                args.ClientID,
+				Network:                 args.Network,
+				Subnet:                  args.Subnet,
+				Zone:                    args.Zone,
+				Timeout:                 args.Timeout.String(),
+				Project:                 args.Project,
+				ObfuscatedProject:       service.Hash(args.Project),
+				Labels:                  fmt.Sprintf("%v", args.Labels),
+				ScratchBucketGcsPath:    args.ScratchBucketGcsPath,
+				Oauth:                   args.Oauth,
+				ComputeEndpointOverride: args.ComputeEndpoint,
+				DisableGcsLogging:       args.GcsLogsDisabled,
+				DisableCloudLogging:     args.CloudLogsDisabled,
+				DisableStdoutLogging:    args.StdoutLogsDisabled,
 			},
-			ImageName:          img.Name,
-			DataDisk:           trn.DataDisk,
-			OS:                 trn.OS,
-			SourceFile:         trn.SourceFile,
-			SourceImage:        trn.SourceImage,
-			NoGuestEnvironment: trn.NoGuestEnvironment,
-			Family:             img.Family,
-			Description:        img.Description,
-			NoExternalIP:       env.NoExternalIP,
-			StorageLocation:    img.StorageLocation,
+			ImageName:          args.Name,
+			DataDisk:           args.DataDisk,
+			OS:                 args.OS,
+			SourceFile:         args.SourceFile,
+			SourceImage:        args.SourceImage,
+			NoGuestEnvironment: args.NoGuestEnvironment,
+			Family:             args.Family,
+			Description:        args.Description,
+			NoExternalIP:       args.NoExternalIP,
+			StorageLocation:    args.StorageLocation,
 		},
 	}
 }

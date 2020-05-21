@@ -39,9 +39,9 @@ const (
 // ImportArguments holds the structured results of parsing CLI arguments,
 // and optionally allows for validating and populating the arguments.
 type ImportArguments struct {
-	Image       importer.ImageSpec
-	Environment importer.Environment
-	Translation importer.TranslationSpec
+	importer.ImageSpec
+	importer.Environment
+	importer.TranslationSpec
 }
 
 // NewImportArguments parses args to create an ImportArguments instance.
@@ -53,68 +53,62 @@ func NewImportArguments(args []string) (ImportArguments, error) {
 	flagSet.SetOutput(ioutil.Discard)
 
 	parsed := ImportArguments{
-		Image: importer.ImageSpec{},
+		ImageSpec: importer.ImageSpec{},
 		Environment: importer.Environment{
 			CurrentExecutablePath: os.Args[0],
 		},
-		Translation: importer.TranslationSpec{},
+		TranslationSpec: importer.TranslationSpec{},
 	}
 
-	registerFlagsForImageSpec(flagSet, &parsed.Image)
+	registerFlagsForImageSpec(flagSet, &parsed.ImageSpec)
 	registerFlagsForEnvironment(flagSet, &parsed.Environment)
-	registerFlagsForTranslationSpec(flagSet, &parsed.Translation)
+	registerFlagsForTranslationSpec(flagSet, &parsed.TranslationSpec)
 
 	return parsed, flagSet.Parse(args)
 }
 
 // ValidateAndPopulate parses, validates, and populates the arguments.
-func (i *ImportArguments) ValidateAndPopulate(populator param.Populator,
+func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 	sourceFactory importer.SourceFactory) (err error) {
 
-	i.Translation.Source, err = sourceFactory.Init(
-		i.Translation.SourceFile, i.Translation.SourceImage)
+	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {
 		return err
 	}
 
-	if err := populator.PopulateMissingParameters(
-		&i.Environment.Project,
-		&i.Environment.Zone,
-		&i.Environment.Region,
-		&i.Environment.ScratchBucketGcsPath,
-		i.Translation.SourceFile,
-		&i.Image.StorageLocation); err != nil {
+	if err := populator.PopulateMissingParameters(&args.Project, &args.Zone, &args.Region,
+		&args.ScratchBucketGcsPath, args.SourceFile, &args.StorageLocation); err != nil {
 		return err
 	}
 
-	if err := populateNetwork(&i.Environment); err != nil {
+	if err := populateNetwork(&args.Environment); err != nil {
 		return err
 	}
 
-	return i.validate()
+	return args.validate()
 }
 
-func (i ImportArguments) validate() error {
-	if i.Environment.ClientID == "" {
+func (args ImportArguments) validate() error {
+	if args.Environment.ClientID == "" {
 		return fmt.Errorf("-%s has to be specified", clientFlag)
 	}
-	if i.Image.Name == "" {
+	if args.Name == "" {
 		return fmt.Errorf("-%s has to be specified", imageFlag)
 	}
-	if !i.Translation.DataDisk && i.Translation.OS == "" && i.Translation.CustomWorkflow == "" {
+	if !args.DataDisk && args.OS == "" && args.CustomWorkflow == "" {
 		return fmt.Errorf("-%s, -%s, or -%s has to be specified",
 			dataDiskFlag, osFlag, customWorkflowFlag)
 	}
-	if i.Translation.DataDisk && (i.Translation.OS != "" || i.Translation.CustomWorkflow != "") {
+	if args.DataDisk && (args.OS != "" || args.CustomWorkflow != "") {
 		return fmt.Errorf("when -%s is specified, -%s and -%s should be empty",
 			dataDiskFlag, osFlag, customWorkflowFlag)
 	}
-	if i.Translation.OS != "" && i.Translation.CustomWorkflow != "" {
+	if args.OS != "" && args.CustomWorkflow != "" {
 		return fmt.Errorf("-%s and -%s can't be both specified",
 			osFlag, customWorkflowFlag)
 	}
-	if i.Translation.OS != "" {
-		if err := daisy_utils.ValidateOS(i.Translation.OS); err != nil {
+	if args.OS != "" {
+		if err := daisy_utils.ValidateOS(args.OS); err != nil {
 			return err
 		}
 	}
@@ -142,48 +136,48 @@ func populateNetwork(e *importer.Environment) error {
 	return nil
 }
 
-func registerFlagsForEnvironment(flagSet *flag.FlagSet, e *importer.Environment) {
-	flagSet.Var((*lowerTrimmedString)(&e.ClientID), clientFlag,
+func registerFlagsForEnvironment(flagSet *flag.FlagSet, environment *importer.Environment) {
+	flagSet.Var((*lowerTrimmedString)(&environment.ClientID), clientFlag,
 		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
 
-	flagSet.Var((*trimmedString)(&e.Project), "project",
+	flagSet.Var((*trimmedString)(&environment.Project), "project",
 		"The project where workflows will be run, and where the resulting image will be stored.")
 
-	flagSet.Var((*trimmedString)(&e.Network), "network",
+	flagSet.Var((*trimmedString)(&environment.Network), "network",
 		"Name of the network in your project to use for the image import. "+
 			"The network must have access to Google Cloud Storage. "+
 			"If not specified, the network named default is used.")
 
-	flagSet.Var((*trimmedString)(&e.Subnet), "subnet",
+	flagSet.Var((*trimmedString)(&environment.Subnet), "subnet",
 		"Name of the subnetwork in your project to use for the image import. "+
 			"If the network resource is in legacy mode, do not provide this property. "+
 			"If the network is in auto subnet mode, providing the subnetwork is optional. "+
 			"If the network is in custom subnet mode, then this field should be specified. "+
 			"Zone should be specified if this field is specified.")
 
-	flagSet.Var((*lowerTrimmedString)(&e.Zone), "zone",
+	flagSet.Var((*lowerTrimmedString)(&environment.Zone), "zone",
 		"The zone where workflows will be run, and where the resulting image will be stored.")
 
-	flagSet.Var((*trimmedString)(&e.ScratchBucketGcsPath), "scratch_bucket_gcs_path",
+	flagSet.Var((*trimmedString)(&environment.ScratchBucketGcsPath), "scratch_bucket_gcs_path",
 		"A system-generated bucket name will be used if omitted. "+
 			"If the bucket doesn't exist, it will be created. If it does exist, it will be reused.")
 
-	flagSet.Var((*trimmedString)(&e.Oauth), "oauth",
+	flagSet.Var((*trimmedString)(&environment.Oauth), "oauth",
 		"Path to oauth json file.")
 
-	flagSet.Var((*trimmedString)(&e.ComputeEndpoint), "compute_endpoint_override",
+	flagSet.Var((*trimmedString)(&environment.ComputeEndpoint), "compute_endpoint_override",
 		"API endpoint to override default.")
 
-	flagSet.BoolVar(&e.GcsLogsDisabled, "disable_gcs_logging", false,
+	flagSet.BoolVar(&environment.GcsLogsDisabled, "disable_gcs_logging", false,
 		"Do not store logs in GCS.")
 
-	flagSet.BoolVar(&e.CloudLogsDisabled, "disable_cloud_logging", false,
+	flagSet.BoolVar(&environment.CloudLogsDisabled, "disable_cloud_logging", false,
 		"Do not store logs in Cloud Logging.")
 
-	flagSet.BoolVar(&e.StdoutLogsDisabled, "disable_stdout_logging", false,
+	flagSet.BoolVar(&environment.StdoutLogsDisabled, "disable_stdout_logging", false,
 		"Do not write logs to stdout.")
 
-	flagSet.BoolVar(&e.NoExternalIP, "no_external_ip", false,
+	flagSet.BoolVar(&environment.NoExternalIP, "no_external_ip", false,
 		"VPC doesn't allow external IPs.")
 
 	flagSet.Bool("kms_key", false, "Reserved for future use.")
@@ -192,38 +186,38 @@ func registerFlagsForEnvironment(flagSet *flag.FlagSet, e *importer.Environment)
 	flagSet.Bool("kms_project", false, "Reserved for future use.")
 }
 
-func registerFlagsForImageSpec(flagSet *flag.FlagSet, i *importer.ImageSpec) {
-	flagSet.Var((*lowerTrimmedString)(&i.Name), imageFlag,
+func registerFlagsForImageSpec(flagSet *flag.FlagSet, image *importer.ImageSpec) {
+	flagSet.Var((*lowerTrimmedString)(&image.Name), imageFlag,
 		"Name of the disk image to create.")
 
-	flagSet.Var((*trimmedString)(&i.Family), "family",
+	flagSet.Var((*trimmedString)(&image.Family), "family",
 		"Family to set for the imported image.")
 
-	flagSet.Var((*trimmedString)(&i.Description), "description",
+	flagSet.Var((*trimmedString)(&image.Description), "description",
 		"Description to set for the imported image.")
 
-	flagSet.Var((*keyValueString)(&i.Labels), "labels",
+	flagSet.Var((*keyValueString)(&image.Labels), "labels",
 		"List of label KEY=VALUE pairs to add. "+
 			"For more information, see: https://cloud.google.com/compute/docs/labeling-resources")
 
-	flagSet.Var((*lowerTrimmedString)(&i.StorageLocation), "storage_location",
+	flagSet.Var((*lowerTrimmedString)(&image.StorageLocation), "storage_location",
 		"Specifies a Cloud Storage location, either regional or multi-regional, "+
 			"where image content is to be stored. If not specified, the multi-region "+
 			"location closest to the source is chosen automatically.")
 }
 
-func registerFlagsForTranslationSpec(flagSet *flag.FlagSet, t *importer.TranslationSpec) {
-	flagSet.Var((*trimmedString)(&t.SourceFile), "source_file",
+func registerFlagsForTranslationSpec(flagSet *flag.FlagSet, translation *importer.TranslationSpec) {
+	flagSet.Var((*trimmedString)(&translation.SourceFile), "source_file",
 		"The Cloud Storage URI of the virtual disk file to import.")
 
-	flagSet.Var((*trimmedString)(&t.SourceImage), "source_image",
+	flagSet.Var((*trimmedString)(&translation.SourceImage), "source_image",
 		"An existing Compute Engine image from which to import.")
 
-	flagSet.BoolVar(&t.DataDisk, dataDiskFlag, false,
+	flagSet.BoolVar(&translation.DataDisk, dataDiskFlag, false,
 		"Specifies that the disk has no bootable OS installed on it. "+
 			"Imports the disk without making it bootable or installing Google tools on it.")
 
-	flagSet.Var((*lowerTrimmedString)(&t.OS), osFlag,
+	flagSet.Var((*lowerTrimmedString)(&translation.OS), osFlag,
 		"Specifies the OS of the image being imported. OS must be one of: "+
 			"centos-6, centos-7, debian-8, debian-9, opensuse-15, sles-12-byol, "+
 			"sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, "+
@@ -231,22 +225,22 @@ func registerFlagsForTranslationSpec(flagSet *flag.FlagSet, t *importer.Translat
 			"windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, "+
 			"windows-2016, windows-2016-byol, windows-7-byol.")
 
-	flagSet.BoolVar(&t.NoGuestEnvironment, "no_guest_environment", false,
+	flagSet.BoolVar(&translation.NoGuestEnvironment, "no_guest_environment", false,
 		"When enabled, the Google Guest Environment will not be installed.")
 
-	flagSet.DurationVar(&t.Timeout, "timeout", time.Hour*2,
+	flagSet.DurationVar(&translation.Timeout, "timeout", time.Hour*2,
 		"Maximum time a build can last before it is failed as TIMEOUT. For example, "+
 			"specifying 2h will fail the process after 2 hours. See $ gcloud topic datetimes "+
 			"for information on duration formats.")
 
-	flagSet.Var((*trimmedString)(&t.CustomWorkflow), customWorkflowFlag,
+	flagSet.Var((*trimmedString)(&translation.CustomWorkflow), customWorkflowFlag,
 		"A Daisy workflow JSON file to use for translation.")
 
-	flagSet.BoolVar(&t.UefiCompatible, "uefi_compatible", false,
+	flagSet.BoolVar(&translation.UefiCompatible, "uefi_compatible", false,
 		"Enables UEFI booting, which is an alternative system boot method. "+
 			"Most public images use the GRUB bootloader as their primary boot method.")
 
-	flagSet.BoolVar(&t.SysprepWindows, "sysprep_windows", false,
+	flagSet.BoolVar(&translation.SysprepWindows, "sysprep_windows", false,
 		"Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
 }
 

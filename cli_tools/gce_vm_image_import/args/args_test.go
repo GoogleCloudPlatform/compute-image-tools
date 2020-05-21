@@ -30,20 +30,20 @@ func TestImageSpec_RequireImageName(t *testing.T) {
 }
 
 func TestImageSpec_TrimAndLowerImageName(t *testing.T) {
-	assert.Equal(t, "gcp-is-great", expectSuccessfulParse(t, "-image_name", "  GCP-is-GREAT  ").Image.Name)
+	assert.Equal(t, "gcp-is-great", expectSuccessfulParse(t, "-image_name", "  GCP-is-GREAT  ").ImageSpec.Name)
 }
 
 func TestImageSpec_TrimFamily(t *testing.T) {
-	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-family", "  Ubuntu  ").Image.Family)
+	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-family", "  Ubuntu  ").ImageSpec.Family)
 }
 
 func TestImageSpec_TrimDescription(t *testing.T) {
-	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-description", "  Ubuntu  ").Image.Description)
+	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-description", "  Ubuntu  ").ImageSpec.Description)
 }
 
 func TestImageSpec_ParseLabelsToMap(t *testing.T) {
 	expected := map[string]string{"internal": "true", "private": "false"}
-	assert.Equal(t, expected, expectSuccessfulParse(t, "-labels=internal=true,private=false").Image.Labels)
+	assert.Equal(t, expected, expectSuccessfulParse(t, "-labels=internal=true,private=false").ImageSpec.Labels)
 }
 
 func TestImageSpec_FailOnLabelSyntaxError(t *testing.T) {
@@ -61,11 +61,11 @@ func TestImageSpec_PopulateStorageLocationIfMissing(t *testing.T) {
 		storageLocation: "us",
 	}, mockSourceFactory{})
 	assert.NoError(t, err)
-	assert.Equal(t, "us", actual.Image.StorageLocation)
+	assert.Equal(t, "us", actual.ImageSpec.StorageLocation)
 }
 
 func TestImageSpec_TrimAndLowerStorageLocation(t *testing.T) {
-	assert.Equal(t, "eu", expectSuccessfulParse(t, "-storage_location", "  EU  ").Image.StorageLocation)
+	assert.Equal(t, "eu", expectSuccessfulParse(t, "-storage_location", "  EU  ").ImageSpec.StorageLocation)
 }
 
 func TestEnvironment_PopulateCurrentDirectory(t *testing.T) {
@@ -230,12 +230,12 @@ func TestEnvironment_PopulateNetworkAndSubnet(t *testing.T) {
 
 func TestTranslationSpec_TrimSourceFile(t *testing.T) {
 	assert.Equal(t, "gcs://bucket/image.vmdk", expectSuccessfulParse(
-		t, "-source_file", " gcs://bucket/image.vmdk ").Translation.SourceFile)
+		t, "-source_file", " gcs://bucket/image.vmdk ").TranslationSpec.SourceFile)
 }
 
 func TestTranslationSpec_TrimSourceImage(t *testing.T) {
 	assert.Equal(t, "path/source-image", expectSuccessfulParse(
-		t, "-source_image", "  path/source-image  ").Translation.SourceImage)
+		t, "-source_image", "  path/source-image  ").TranslationSpec.SourceImage)
 }
 
 func TestTranslationSpec_SourceObjectFromSourceImage(t *testing.T) {
@@ -251,8 +251,8 @@ func TestTranslationSpec_SourceObjectFromSourceImage(t *testing.T) {
 		t:             t,
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "path/source-image", actual.Translation.SourceImage)
-	assert.Equal(t, "path/source-image", actual.Translation.Source.Path())
+	assert.Equal(t, "path/source-image", actual.TranslationSpec.SourceImage)
+	assert.Equal(t, "path/source-image", actual.TranslationSpec.Source.Path())
 }
 
 func TestTranslationSpec_SourceObjectFromSourceFile(t *testing.T) {
@@ -268,8 +268,8 @@ func TestTranslationSpec_SourceObjectFromSourceFile(t *testing.T) {
 		t:            t,
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "gcs://path/file", actual.Translation.SourceFile)
-	assert.Equal(t, "gcs://path/file", actual.Translation.Source.Path())
+	assert.Equal(t, "gcs://path/file", actual.TranslationSpec.SourceFile)
+	assert.Equal(t, "gcs://path/file", actual.TranslationSpec.Source.Path())
 }
 
 func TestTranslationSpec_ErrorWhenSourceValidationFails(t *testing.T) {
@@ -289,14 +289,14 @@ func TestTranslationSpec_ErrorWhenSourceValidationFails(t *testing.T) {
 }
 
 func TestTranslationSpec_DataDiskSettable(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-data_disk=false", "-os=ubuntu-1804").Translation.DataDisk)
-	assert.False(t, expectSuccessfulParse(t, "-os=ubuntu-1804").Translation.DataDisk)
-	assert.True(t, expectSuccessfulParse(t, "-data_disk=true").Translation.DataDisk)
-	assert.True(t, expectSuccessfulParse(t, "-data_disk").Translation.DataDisk)
+	assert.False(t, expectSuccessfulParse(t, "-data_disk=false", "-os=ubuntu-1804").TranslationSpec.DataDisk)
+	assert.False(t, expectSuccessfulParse(t, "-os=ubuntu-1804").TranslationSpec.DataDisk)
+	assert.True(t, expectSuccessfulParse(t, "-data_disk=true").TranslationSpec.DataDisk)
+	assert.True(t, expectSuccessfulParse(t, "-data_disk").TranslationSpec.DataDisk)
 }
 
 func TestTranslationSpec_TrimAndLowerOS(t *testing.T) {
-	assert.Equal(t, "ubuntu-1804", expectSuccessfulParse(t, "-os", "  UBUNTU-1804 ").Translation.OS)
+	assert.Equal(t, "ubuntu-1804", expectSuccessfulParse(t, "-os", "  UBUNTU-1804 ").TranslationSpec.OS)
 }
 
 func TestTranslationSpec_FailWhenOSNotRegistered(t *testing.T) {
@@ -306,10 +306,10 @@ func TestTranslationSpec_FailWhenOSNotRegistered(t *testing.T) {
 }
 
 func TestTranslationSpec_NoGuestEnvironmentSettable(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-data_disk=false", "-os=ubuntu-1804").Translation.DataDisk)
-	assert.False(t, expectSuccessfulParse(t, "-os=ubuntu-1804").Translation.DataDisk)
-	assert.True(t, expectSuccessfulParse(t, "-data_disk=true").Translation.DataDisk)
-	assert.True(t, expectSuccessfulParse(t, "-data_disk").Translation.DataDisk)
+	assert.False(t, expectSuccessfulParse(t, "-data_disk=false", "-os=ubuntu-1804").TranslationSpec.DataDisk)
+	assert.False(t, expectSuccessfulParse(t, "-os=ubuntu-1804").TranslationSpec.DataDisk)
+	assert.True(t, expectSuccessfulParse(t, "-data_disk=true").TranslationSpec.DataDisk)
+	assert.True(t, expectSuccessfulParse(t, "-data_disk").TranslationSpec.DataDisk)
 }
 
 func TestTranslationSpec_RequireDataOSOrWorkflow(t *testing.T) {
@@ -318,16 +318,16 @@ func TestTranslationSpec_RequireDataOSOrWorkflow(t *testing.T) {
 }
 
 func TestTranslationSpec_DurationHasDefaultValue(t *testing.T) {
-	assert.Equal(t, time.Hour*2, expectSuccessfulParse(t).Translation.Timeout)
+	assert.Equal(t, time.Hour*2, expectSuccessfulParse(t).TranslationSpec.Timeout)
 }
 
 func TestTranslationSpec_DurationIsSettable(t *testing.T) {
-	assert.Equal(t, time.Hour*5, expectSuccessfulParse(t, "-timeout=5h").Translation.Timeout)
+	assert.Equal(t, time.Hour*5, expectSuccessfulParse(t, "-timeout=5h").TranslationSpec.Timeout)
 }
 
 func TestTranslationSpec_TrimCustomWorkflow(t *testing.T) {
 	assert.Equal(t, "workflow.json", expectSuccessfulParse(t,
-		"-custom_translate_workflow", "  workflow.json  ").Translation.CustomWorkflow)
+		"-custom_translate_workflow", "  workflow.json  ").TranslationSpec.CustomWorkflow)
 }
 
 func TestTranslationSpec_ValidateForConflictingArguments(t *testing.T) {
@@ -345,15 +345,15 @@ func TestTranslationSpec_ValidateForConflictingArguments(t *testing.T) {
 }
 
 func TestTranslationSpec_UEFISettable(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-uefi_compatible=false").Translation.UefiCompatible)
-	assert.True(t, expectSuccessfulParse(t, "-uefi_compatible=true").Translation.UefiCompatible)
-	assert.True(t, expectSuccessfulParse(t, "-uefi_compatible").Translation.UefiCompatible)
+	assert.False(t, expectSuccessfulParse(t, "-uefi_compatible=false").TranslationSpec.UefiCompatible)
+	assert.True(t, expectSuccessfulParse(t, "-uefi_compatible=true").TranslationSpec.UefiCompatible)
+	assert.True(t, expectSuccessfulParse(t, "-uefi_compatible").TranslationSpec.UefiCompatible)
 }
 
 func TestTranslationSpec_SysprepSettable(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-sysprep_windows=false").Translation.SysprepWindows)
-	assert.True(t, expectSuccessfulParse(t, "-sysprep_windows=true").Translation.SysprepWindows)
-	assert.True(t, expectSuccessfulParse(t, "-sysprep_windows").Translation.SysprepWindows)
+	assert.False(t, expectSuccessfulParse(t, "-sysprep_windows=false").TranslationSpec.SysprepWindows)
+	assert.True(t, expectSuccessfulParse(t, "-sysprep_windows=true").TranslationSpec.SysprepWindows)
+	assert.True(t, expectSuccessfulParse(t, "-sysprep_windows").TranslationSpec.SysprepWindows)
 }
 
 type mockPopulator struct {
