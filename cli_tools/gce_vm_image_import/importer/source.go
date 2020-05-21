@@ -107,7 +107,7 @@ func newFileSource(gcsPath string, storageClient domain.StorageClientInterface) 
 	return source, source.validate(storageClient)
 }
 
-// The resource Path for fileSource is its GCS Path.
+// The resource path for fileSource is its GCS path.
 func (s fileSource) Path() string {
 	return s.gcsPath
 }
@@ -199,7 +199,7 @@ func (s imageSource) validate() error {
 	return nil
 }
 
-// The Path to an imageSource is a fully-qualified global GCP resource Path.
+// The path to an imageSource is a fully-qualified global GCP resource path.
 func (s imageSource) Path() string {
 	return s.uri
 }

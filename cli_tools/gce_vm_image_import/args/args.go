@@ -36,78 +36,81 @@ const (
 	customWorkflowFlag = "custom_translate_workflow"
 )
 
-// ParsedArguments holds the structured results of parsing CLI arguments.
-type ParsedArguments struct {
-	Img         importer.ImageSpec
-	Env         importer.Environment
+// ImporterArguments holds the structured results of parsing CLI arguments.
+type ImporterArguments struct {
+	Image       importer.ImageSpec
+	Environment importer.Environment
 	Translation importer.TranslationSpec
 }
 
 // ParseArgs parses, validates, and populates the CLI arguments that are
 // used by the importer tool.
-func ParseArgs(args []string, populator param.Populator, sf importer.SourceFactory) (ParsedArguments, error) {
+func ParseArgs(args []string, populator param.Populator, sf importer.SourceFactory) (ImporterArguments, error) {
 	flagSet := flag.NewFlagSet("image-import", flag.ContinueOnError)
 	// Don't write parse errors to stdout, instead propagate them via an
 	// exception since we use flag.ContinueOnError.
 	flagSet.SetOutput(ioutil.Discard)
 
-	img := importer.ImageSpec{}
-	env := importer.Environment{
-		CurrentExecutablePath: os.Args[0],
+	allArgs := ImporterArguments{
+		Image: importer.ImageSpec{},
+		Environment: importer.Environment{
+			CurrentExecutablePath: os.Args[0],
+		},
+		Translation: importer.TranslationSpec{},
 	}
-	translation := importer.TranslationSpec{}
 
-	registerImageSpec(flagSet, &img)
-	registerEnvironment(flagSet, &env)
-	registerTranslationSpec(flagSet, &translation)
+	registerImageSpec(flagSet, &allArgs.Image)
+	registerEnvironment(flagSet, &allArgs.Environment)
+	registerTranslationSpec(flagSet, &allArgs.Translation)
 
 	err := flagSet.Parse(args)
 	if err != nil {
-		return ParsedArguments{}, err
+		return allArgs, err
 	}
 
-	translation.Source, err = sf.Init(translation.SourceFile, translation.SourceImage)
+	allArgs.Translation.Source, err = sf.Init(allArgs.Translation.SourceFile, allArgs.Translation.SourceImage)
 	if err != nil {
-		return ParsedArguments{}, err
+		return allArgs, err
 	}
 
-	if err := populator.PopulateMissingParameters(&env.Project, &env.Zone, &env.Region,
-		&env.ScratchBucketGcsPath, translation.SourceFile, &img.StorageLocation); err != nil {
-		return ParsedArguments{}, err
+	if err := populator.PopulateMissingParameters(
+		&allArgs.Environment.Project,
+		&allArgs.Environment.Zone,
+		&allArgs.Environment.Region,
+		&allArgs.Environment.ScratchBucketGcsPath,
+		allArgs.Translation.SourceFile,
+		&allArgs.Image.StorageLocation); err != nil {
+		return allArgs, err
 	}
 
-	if err := populateNetwork(&env); err != nil {
-		return ParsedArguments{}, err
+	if err := populateNetwork(&allArgs.Environment); err != nil {
+		return allArgs, err
 	}
 
-	if err := validate(img, env, translation); err != nil {
-		return ParsedArguments{}, err
-	}
-
-	return ParsedArguments{img, env, translation}, err
+	return allArgs, validate(allArgs)
 }
 
-func validate(img importer.ImageSpec, env importer.Environment, rules importer.TranslationSpec) error {
-	if env.ClientID == "" {
+func validate(allArgs ImporterArguments) error {
+	if allArgs.Environment.ClientID == "" {
 		return fmt.Errorf("-%s has to be specified", clientFlag)
 	}
-	if img.Name == "" {
+	if allArgs.Image.Name == "" {
 		return fmt.Errorf("-%s has to be specified", imageFlag)
 	}
-	if !rules.DataDisk && rules.OS == "" && rules.CustomWorkflow == "" {
+	if !allArgs.Translation.DataDisk && allArgs.Translation.OS == "" && allArgs.Translation.CustomWorkflow == "" {
 		return fmt.Errorf("-%s, -%s, or -%s has to be specified",
 			dataDiskFlag, osFlag, customWorkflowFlag)
 	}
-	if rules.DataDisk && (rules.OS != "" || rules.CustomWorkflow != "") {
+	if allArgs.Translation.DataDisk && (allArgs.Translation.OS != "" || allArgs.Translation.CustomWorkflow != "") {
 		return fmt.Errorf("when -%s is specified, -%s and -%s should be empty",
 			dataDiskFlag, osFlag, customWorkflowFlag)
 	}
-	if rules.OS != "" && rules.CustomWorkflow != "" {
+	if allArgs.Translation.OS != "" && allArgs.Translation.CustomWorkflow != "" {
 		return fmt.Errorf("-%s and -%s can't be both specified",
 			osFlag, customWorkflowFlag)
 	}
-	if rules.OS != "" {
-		if err := daisy_utils.ValidateOS(rules.OS); err != nil {
+	if allArgs.Translation.OS != "" {
+		if err := daisy_utils.ValidateOS(allArgs.Translation.OS); err != nil {
 			return err
 		}
 	}
@@ -137,7 +140,7 @@ func populateNetwork(e *importer.Environment) error {
 
 func registerEnvironment(flagSet *flag.FlagSet, e *importer.Environment) {
 	flagSet.Var((*lowerTrimmedString)(&e.ClientID), clientFlag,
-		"Identifies the client of the importer, e.g. 'gcloud' or 'pantheon'")
+		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
 
 	flagSet.Var((*trimmedString)(&e.Project), "project",
 		"The project where workflows will be run, and where the resulting image will be stored.")
@@ -158,7 +161,8 @@ func registerEnvironment(flagSet *flag.FlagSet, e *importer.Environment) {
 		"The zone where workflows will be run, and where the resulting image will be stored.")
 
 	flagSet.Var((*trimmedString)(&e.ScratchBucketGcsPath), "scratch_bucket_gcs_path",
-		"GCS scratch bucket to use. A bucket will be created if omitted.")
+		"A system-generated bucket name will be used if omitted. "+
+			"If the bucket doesn't exist, it will be created. If it does exist, it will be reused.")
 
 	flagSet.Var((*trimmedString)(&e.Oauth), "oauth",
 		"Path to oauth json file.")
@@ -177,7 +181,6 @@ func registerEnvironment(flagSet *flag.FlagSet, e *importer.Environment) {
 
 	flagSet.BoolVar(&e.NoExternalIP, "no_external_ip", false,
 		"VPC doesn't allow external IPs.")
-
 }
 
 func registerImageSpec(flagSet *flag.FlagSet, i *importer.ImageSpec) {

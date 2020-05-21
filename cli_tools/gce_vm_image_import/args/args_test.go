@@ -30,20 +30,20 @@ func TestImageSpec_RequireImageName(t *testing.T) {
 }
 
 func TestImageSpec_TrimAndLowerImageName(t *testing.T) {
-	assert.Equal(t, "gcp-is-great", expectSuccessfulParse(t, "-image_name", "  GCP-is-GREAT  ").Img.Name)
+	assert.Equal(t, "gcp-is-great", expectSuccessfulParse(t, "-image_name", "  GCP-is-GREAT  ").Image.Name)
 }
 
 func TestImageSpec_TrimFamily(t *testing.T) {
-	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-family", "  Ubuntu  ").Img.Family)
+	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-family", "  Ubuntu  ").Image.Family)
 }
 
 func TestImageSpec_TrimDescription(t *testing.T) {
-	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-description", "  Ubuntu  ").Img.Description)
+	assert.Equal(t, "Ubuntu", expectSuccessfulParse(t, "-description", "  Ubuntu  ").Image.Description)
 }
 
 func TestImageSpec_ParseLabelsToMap(t *testing.T) {
 	expected := map[string]string{"internal": "true", "private": "false"}
-	assert.Equal(t, expected, expectSuccessfulParse(t, "-labels=internal=true,private=false").Img.Labels)
+	assert.Equal(t, expected, expectSuccessfulParse(t, "-labels=internal=true,private=false").Image.Labels)
 }
 
 func TestImageSpec_FailOnLabelSyntaxError(t *testing.T) {
@@ -59,15 +59,15 @@ func TestImageSpec_PopulateStorageLocationIfMissing(t *testing.T) {
 		storageLocation: "us",
 	}, mockSourceFactory{})
 	assert.NoError(t, err)
-	assert.Equal(t, "us", actual.Img.StorageLocation)
+	assert.Equal(t, "us", actual.Image.StorageLocation)
 }
 
 func TestImageSpec_TrimAndLowerStorageLocation(t *testing.T) {
-	assert.Equal(t, "eu", expectSuccessfulParse(t, "-storage_location", "  EU  ").Img.StorageLocation)
+	assert.Equal(t, "eu", expectSuccessfulParse(t, "-storage_location", "  EU  ").Image.StorageLocation)
 }
 
 func TestEnvironment_PopulateCurrentDirectory(t *testing.T) {
-	assert.NotEmpty(t, expectSuccessfulParse(t).Env.CurrentExecutablePath)
+	assert.NotEmpty(t, expectSuccessfulParse(t).Environment.CurrentExecutablePath)
 }
 
 func TestEnvironment_FailWhenClientIdMissing(t *testing.T) {
@@ -75,11 +75,11 @@ func TestEnvironment_FailWhenClientIdMissing(t *testing.T) {
 }
 
 func TestEnvironment_TrimAndLowerClientId(t *testing.T) {
-	assert.Equal(t, "pantheon", expectSuccessfulParse(t, "-client_id", " Pantheon ").Env.ClientID)
+	assert.Equal(t, "pantheon", expectSuccessfulParse(t, "-client_id", " Pantheon ").Environment.ClientID)
 }
 
 func TestEnvironment_TrimProject(t *testing.T) {
-	assert.Equal(t, "TestProject", expectSuccessfulParse(t, "-project", " TestProject ").Env.Project)
+	assert.Equal(t, "TestProject", expectSuccessfulParse(t, "-project", " TestProject ").Environment.Project)
 }
 
 func TestImageSpec_PopulateProjectIfMissing(t *testing.T) {
@@ -90,19 +90,19 @@ func TestImageSpec_PopulateProjectIfMissing(t *testing.T) {
 		project: "the-project",
 	}, mockSourceFactory{})
 	assert.NoError(t, err)
-	assert.Equal(t, "the-project", actual.Env.Project)
+	assert.Equal(t, "the-project", actual.Environment.Project)
 }
 
 func TestEnvironment_TrimNetwork(t *testing.T) {
-	assert.Equal(t, "global/networks/id", expectSuccessfulParse(t, "-network", "  id  ").Env.Network)
+	assert.Equal(t, "global/networks/id", expectSuccessfulParse(t, "-network", "  id  ").Environment.Network)
 }
 
 func TestEnvironment_TrimSubnet(t *testing.T) {
-	assert.Equal(t, "regions/us-west2/subnetworks/sub-id", expectSuccessfulParse(t, "-subnet", "  sub-id  ").Env.Subnet)
+	assert.Equal(t, "regions/us-west2/subnetworks/sub-id", expectSuccessfulParse(t, "-subnet", "  sub-id  ").Environment.Subnet)
 }
 
 func TestEnvironment_TrimAndLowerZone(t *testing.T) {
-	assert.Equal(t, "us-central4-a", expectSuccessfulParse(t, "-zone", "  us-central4-a  ").Env.Zone)
+	assert.Equal(t, "us-central4-a", expectSuccessfulParse(t, "-zone", "  us-central4-a  ").Environment.Zone)
 }
 
 func TestImageSpec_PopulateZoneIfMissing(t *testing.T) {
@@ -112,7 +112,7 @@ func TestImageSpec_PopulateZoneIfMissing(t *testing.T) {
 		region: "us-west2",
 	}, mockSourceFactory{})
 	assert.NoError(t, err)
-	assert.Equal(t, "us-west2-a", actual.Env.Zone)
+	assert.Equal(t, "us-west2-a", actual.Environment.Zone)
 }
 
 func TestEnvironment_PopulateRegion(t *testing.T) {
@@ -122,11 +122,11 @@ func TestEnvironment_PopulateRegion(t *testing.T) {
 		region: "us-west2",
 	}, mockSourceFactory{})
 	assert.NoError(t, err)
-	assert.Equal(t, "us-west2", actual.Env.Region)
+	assert.Equal(t, "us-west2", actual.Environment.Region)
 }
 
 func TestEnvironment_TrimScratchBucket(t *testing.T) {
-	assert.Equal(t, "gcs://bucket", expectSuccessfulParse(t, "-scratch_bucket_gcs_path", "  gcs://bucket  ").Env.ScratchBucketGcsPath)
+	assert.Equal(t, "gcs://bucket", expectSuccessfulParse(t, "-scratch_bucket_gcs_path", "  gcs://bucket  ").Environment.ScratchBucketGcsPath)
 }
 
 func TestImageSpec_PopulateScratchBucketIfMissing(t *testing.T) {
@@ -137,39 +137,39 @@ func TestImageSpec_PopulateScratchBucketIfMissing(t *testing.T) {
 		scratchBucket: "gcs://custom-bucket/",
 	}, mockSourceFactory{})
 	assert.NoError(t, err)
-	assert.Equal(t, "gcs://custom-bucket/", actual.Env.ScratchBucketGcsPath)
+	assert.Equal(t, "gcs://custom-bucket/", actual.Environment.ScratchBucketGcsPath)
 }
 
 func TestEnvironment_TrimOauth(t *testing.T) {
-	assert.Equal(t, "file.json", expectSuccessfulParse(t, "-oauth", "  file.json ").Env.Oauth)
+	assert.Equal(t, "file.json", expectSuccessfulParse(t, "-oauth", "  file.json ").Environment.Oauth)
 }
 
 func TestEnvironment_TrimComputeEndpoint(t *testing.T) {
-	assert.Equal(t, "http://endpoint", expectSuccessfulParse(t, "-compute_endpoint_override", "  http://endpoint ").Env.ComputeEndpoint)
+	assert.Equal(t, "http://endpoint", expectSuccessfulParse(t, "-compute_endpoint_override", "  http://endpoint ").Environment.ComputeEndpoint)
 }
 
 func TestEnvironment_GcsLogsDisabled(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-disable_gcs_logging=false").Env.GcsLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_gcs_logging=true").Env.GcsLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_gcs_logging").Env.GcsLogsDisabled)
+	assert.False(t, expectSuccessfulParse(t, "-disable_gcs_logging=false").Environment.GcsLogsDisabled)
+	assert.True(t, expectSuccessfulParse(t, "-disable_gcs_logging=true").Environment.GcsLogsDisabled)
+	assert.True(t, expectSuccessfulParse(t, "-disable_gcs_logging").Environment.GcsLogsDisabled)
 }
 
 func TestEnvironment_CloudLogsDisabled(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-disable_cloud_logging=false").Env.CloudLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_cloud_logging=true").Env.CloudLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_cloud_logging").Env.CloudLogsDisabled)
+	assert.False(t, expectSuccessfulParse(t, "-disable_cloud_logging=false").Environment.CloudLogsDisabled)
+	assert.True(t, expectSuccessfulParse(t, "-disable_cloud_logging=true").Environment.CloudLogsDisabled)
+	assert.True(t, expectSuccessfulParse(t, "-disable_cloud_logging").Environment.CloudLogsDisabled)
 }
 
 func TestEnvironment_StdoutLogsDisabled(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-disable_stdout_logging=false").Env.StdoutLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_stdout_logging=true").Env.StdoutLogsDisabled)
-	assert.True(t, expectSuccessfulParse(t, "-disable_stdout_logging").Env.StdoutLogsDisabled)
+	assert.False(t, expectSuccessfulParse(t, "-disable_stdout_logging=false").Environment.StdoutLogsDisabled)
+	assert.True(t, expectSuccessfulParse(t, "-disable_stdout_logging=true").Environment.StdoutLogsDisabled)
+	assert.True(t, expectSuccessfulParse(t, "-disable_stdout_logging").Environment.StdoutLogsDisabled)
 }
 
 func TestEnvironment_NoExternalIp(t *testing.T) {
-	assert.False(t, expectSuccessfulParse(t, "-no_external_ip=false").Env.NoExternalIP)
-	assert.True(t, expectSuccessfulParse(t, "-no_external_ip=true").Env.NoExternalIP)
-	assert.True(t, expectSuccessfulParse(t, "-no_external_ip").Env.NoExternalIP)
+	assert.False(t, expectSuccessfulParse(t, "-no_external_ip=false").Environment.NoExternalIP)
+	assert.True(t, expectSuccessfulParse(t, "-no_external_ip=true").Environment.NoExternalIP)
+	assert.True(t, expectSuccessfulParse(t, "-no_external_ip").Environment.NoExternalIP)
 }
 
 func TestEnvironment_PopulateNetworkAndSubnet(t *testing.T) {
@@ -212,8 +212,8 @@ func TestEnvironment_PopulateNetworkAndSubnet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := expectSuccessfulParse(t, tt.args...)
-			assert.Equal(t, tt.expectedNetwork, actual.Env.Network)
-			assert.Equal(t, tt.expectedSubnet, actual.Env.Subnet)
+			assert.Equal(t, tt.expectedNetwork, actual.Environment.Network)
+			assert.Equal(t, tt.expectedSubnet, actual.Environment.Subnet)
 		})
 	}
 }
@@ -402,7 +402,7 @@ func (m mockSourceFactory) Init(sourceFile, sourceImage string) (importer.Source
 	return mockSource{}, m.err
 }
 
-func expectSuccessfulParse(t *testing.T, args ...string) ParsedArguments {
+func expectSuccessfulParse(t *testing.T, args ...string) ImporterArguments {
 	var hasClientID, hasImageName, hasTranslationType bool
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "-client_id") {

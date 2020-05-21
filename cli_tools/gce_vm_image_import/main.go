@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -35,24 +36,24 @@ func main() {
 	log.SetPrefix("[import-image] ")
 	ctx := context.Background()
 
-	importArgs, err := parseAllArgs(ctx)
+	importArgs, err := parseAndPopulateAllArgs(ctx)
 	if err != nil {
-		terminate(err)
+		terminate(importArgs, err)
 	}
 
 	importerClosure := func() (service.Loggable, error) {
-		wf, e := importer.NewImporter(importArgs.Env, importArgs.Img, importArgs.Translation).Run(ctx)
+		wf, e := importer.NewImporter(importArgs.Environment, importArgs.Image, importArgs.Translation).Run(ctx)
 		return service.NewLoggableFromWorkflow(wf), e
 	}
 
-	project := importArgs.Env.Project
+	project := importArgs.Environment.Project
 	if err := service.RunWithServerLogging(
-		service.ImageImportAction, initLogging(importArgs), &project, importerClosure); err != nil {
+		service.ImageImportAction, initLoggingParams(importArgs), &project, importerClosure); err != nil {
 		os.Exit(1)
 	}
 }
 
-func parseAllArgs(ctx context.Context) (args.ParsedArguments, error) {
+func parseAndPopulateAllArgs(ctx context.Context) (args.ImporterArguments, error) {
 	// 1. Parse auth flags, which are required to initialize the API clients
 	// that are used for subsequent validation and population.
 	fs := flag.NewFlagSet("auth-flags", flag.ContinueOnError)
@@ -69,12 +70,12 @@ func parseAllArgs(ctx context.Context) (args.ParsedArguments, error) {
 	// 2. Setup dependencies.
 	storageClient, err := storage.NewStorageClient(ctx, logging.NewDefaultLogger(), *oauth)
 	if err != nil {
-		terminate(err)
+		terminate(args.ImporterArguments{}, err)
 	}
 	sourceFactory := importer.NewSourceFactory(storageClient)
 	computeClient, err := param.CreateComputeClient(&ctx, *oauth, *ce)
 	if err != nil {
-		return args.ParsedArguments{}, err
+		return args.ImporterArguments{}, err
 	}
 	metadataGCE := &compute.MetadataGCE{}
 	paramPopulator := param.NewPopulator(
@@ -90,43 +91,44 @@ func parseAllArgs(ctx context.Context) (args.ParsedArguments, error) {
 
 // terminate is used when there is a failure prior to running import. It sends
 // a message to the logging framework, and then executes os.Exit(1).
-func terminate(cause error) {
-	noopCallback := func() (service.Loggable, error) {
+func terminate(args args.ImporterArguments, cause error) {
+	noOpCallback := func() (service.Loggable, error) {
 		return nil, cause
 	}
 	// Ignoring the returned error since its a copy of
 	// the return value from the callback.
-	_ = service.RunWithServerLogging(service.ImageImportAction, service.InputParams{}, nil, noopCallback)
+	_ = service.RunWithServerLogging(service.ImageImportAction, initLoggingParams(args), nil, noOpCallback)
 	os.Exit(1)
 }
 
-func initLogging(args args.ParsedArguments) service.InputParams {
-	env := args.Env
-	translation := args.Translation
-	img := args.Img
+func initLoggingParams(args args.ImporterArguments) service.InputParams {
 	return service.InputParams{
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{
-				ClientID:             env.ClientID,
-				Network:              env.Network,
-				Subnet:               env.Subnet,
-				Zone:                 env.Zone,
-				Timeout:              translation.Timeout.String(),
-				Project:              env.Project,
-				ObfuscatedProject:    service.Hash(env.Project),
-				DisableGcsLogging:    env.GcsLogsDisabled,
-				DisableCloudLogging:  env.CloudLogsDisabled,
-				DisableStdoutLogging: env.StdoutLogsDisabled,
+				ClientID:                args.Environment.ClientID,
+				Network:                 args.Environment.Network,
+				Subnet:                  args.Environment.Subnet,
+				Zone:                    args.Environment.Zone,
+				Timeout:                 args.Translation.Timeout.String(),
+				Project:                 args.Environment.Project,
+				ObfuscatedProject:       service.Hash(args.Environment.Project),
+				Labels:                  fmt.Sprintf("%v", args.Image.Labels),
+				ScratchBucketGcsPath:    args.Environment.ScratchBucketGcsPath,
+				Oauth:                   args.Environment.Oauth,
+				ComputeEndpointOverride: args.Environment.ComputeEndpoint,
+				DisableGcsLogging:       args.Environment.GcsLogsDisabled,
+				DisableCloudLogging:     args.Environment.CloudLogsDisabled,
+				DisableStdoutLogging:    args.Environment.StdoutLogsDisabled,
 			},
-			ImageName:          img.Name,
-			DataDisk:           translation.DataDisk,
-			OS:                 translation.OS,
-			SourceFile:         translation.SourceFile,
-			SourceImage:        translation.SourceImage,
-			NoGuestEnvironment: translation.NoGuestEnvironment,
-			Family:             img.Family,
-			NoExternalIP:       env.NoExternalIP,
-			StorageLocation:    img.StorageLocation,
+			ImageName:          args.Image.Name,
+			DataDisk:           args.Translation.DataDisk,
+			OS:                 args.Translation.OS,
+			SourceFile:         args.Translation.SourceFile,
+			SourceImage:        args.Translation.SourceImage,
+			NoGuestEnvironment: args.Translation.NoGuestEnvironment,
+			Family:             args.Image.Family,
+			NoExternalIP:       args.Environment.NoExternalIP,
+			StorageLocation:    args.Image.StorageLocation,
 		},
 	}
 }

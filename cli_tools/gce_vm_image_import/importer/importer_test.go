@@ -73,18 +73,18 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
 
 	if workflow != homeDir+WorkflowDir+ImportAndTranslateWorkflow {
-		t.Errorf("resulting workflow Path `%v` does not match expected `%v`", workflow, homeDir+WorkflowDir+ImportAndTranslateWorkflow)
+		t.Errorf("resulting workflow path `%v` does not match expected `%v`", workflow, homeDir+WorkflowDir+ImportAndTranslateWorkflow)
 	}
 
 	if translate != "ubuntu/translate_ubuntu_1404.wf.json" {
-		t.Errorf("resulting translate workflow Path `%v` does not match expected `%v`", translate, "ubuntu/translate_ubuntu_1404.wf.json")
+		t.Errorf("resulting translate workflow path `%v` does not match expected `%v`", translate, "ubuntu/translate_ubuntu_1404.wf.json")
 	}
 }
 
 func TestBuildDaisyVarsWindowsSysprepEnabled(t *testing.T) {
 	resetArgs()
 	sysprepWindows = true
-	got := buildDaisyVars(source, "translate/workflow/Path/windows", "image-a",
+	got := buildDaisyVars(source, "translate/workflow/path/windows", "image-a",
 		family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "true", got["sysprep_windows"])
@@ -93,7 +93,7 @@ func TestBuildDaisyVarsWindowsSysprepEnabled(t *testing.T) {
 func TestBuildDaisyVarsWindowsSysprepDisabled(t *testing.T) {
 	resetArgs()
 	sysprepWindows = false
-	got := buildDaisyVars(source, "translate/workflow/Path/windows", "image-a",
+	got := buildDaisyVars(source, "translate/workflow/path/windows", "image-a",
 		family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "false", got["sysprep_windows"])
@@ -104,7 +104,7 @@ func TestBuildDaisyVarsIsWindows(t *testing.T) {
 	imageName = "image-a"
 
 	region := ""
-	got := buildDaisyVars(source, "translate/workflow/Path/windows", imageName,
+	got := buildDaisyVars(source, "translate/workflow/path/windows", imageName,
 		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "true", got["is_windows"])
@@ -115,7 +115,7 @@ func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
 	imageName = "IMAGE-a"
 
 	region := ""
-	got := buildDaisyVars(source, "translate/workflow/Path", imageName,
+	got := buildDaisyVars(source, "translate/workflow/path", imageName,
 		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, got["image_name"], "image-a")

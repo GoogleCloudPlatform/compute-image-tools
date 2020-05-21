@@ -91,9 +91,9 @@ func buildDaisyVars(source Source, translateWorkflowPath, imageName, family, des
 func (i importer) runImport(varMap map[string]string, importWorkflowPath string) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap,
-		i.env.Project, i.env.Zone, i.env.ScratchBucketGcsPath, i.env.Oauth,
-		i.translation.Timeout.String(), i.translation.CustomWorkflow, i.env.GcsLogsDisabled,
-		i.env.CloudLogsDisabled, i.env.StdoutLogsDisabled)
+		i.environment.Project, i.environment.Zone, i.environment.ScratchBucketGcsPath, i.environment.Oauth,
+		i.translation.Timeout.String(), i.translation.CustomWorkflow, i.environment.GcsLogsDisabled,
+		i.environment.CloudLogsDisabled, i.environment.StdoutLogsDisabled)
 
 	if err != nil {
 		return nil, err
@@ -108,9 +108,9 @@ func (i importer) runImport(varMap map[string]string, importWorkflowPath string)
 		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
 		rl := &daisyutils.ResourceLabeler{
 			BuildID:         buildID,
-			UserLabels:      i.img.Labels,
+			UserLabels:      i.image.Labels,
 			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   i.img.StorageLocation,
+			ImageLocation:   i.image.StorageLocation,
 			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-import-tmp"
 			},
@@ -125,7 +125,7 @@ func (i importer) runImport(varMap map[string]string, importWorkflowPath string)
 				return imageTypeLabel
 			}}
 		rl.LabelResources(w)
-		daisyutils.UpdateAllInstanceNoExternalIP(w, i.env.NoExternalIP)
+		daisyutils.UpdateAllInstanceNoExternalIP(w, i.environment.NoExternalIP)
 		if i.translation.UefiCompatible {
 			daisyutils.UpdateToUEFICompatible(w)
 		}
@@ -135,8 +135,8 @@ func (i importer) runImport(varMap map[string]string, importWorkflowPath string)
 }
 
 type importer struct {
-	env         Environment
-	img         ImageSpec
+	environment Environment
+	image       ImageSpec
 	translation TranslationSpec
 }
 
@@ -146,7 +146,7 @@ func NewImporter(
 	img ImageSpec,
 	translation TranslationSpec) Importer {
 
-	return importer{env: env, img: img, translation: translation}
+	return importer{environment: env, image: img, translation: translation}
 }
 
 // Importer runs the import workflow.
@@ -158,15 +158,15 @@ type Importer interface {
 func (i importer) Run(ctx context.Context) (w *daisy.Workflow, err error) {
 	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(
 		i.translation.Source, i.translation.DataDisk, i.translation.OS,
-		i.translation.CustomWorkflow, i.env.CurrentExecutablePath)
+		i.translation.CustomWorkflow, i.environment.CurrentExecutablePath)
 
-	varMap := buildDaisyVars(i.translation.Source, translateWorkflowPath, i.img.Name, i.img.Family,
-		i.img.Description, i.env.Region, i.env.Subnet, i.env.Network,
+	varMap := buildDaisyVars(i.translation.Source, translateWorkflowPath, i.image.Name, i.image.Family,
+		i.image.Description, i.environment.Region, i.environment.Subnet, i.environment.Network,
 		i.translation.NoGuestEnvironment, i.translation.SysprepWindows)
 
 	if w, err = i.runImport(varMap, importWorkflowPath); err != nil {
 
-		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, i.env.Network, w)
+		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, i.environment.Network, w)
 
 		return customizeErrorToDetectionResults(i.translation.OS, w, err)
 	}
