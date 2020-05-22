@@ -26,14 +26,14 @@ var (
 	currentExecutablePath, imageName, osID, customTranWorkflow,
 	family, description, network, subnet string
 	dataDisk, noGuestEnvironment, sysprepWindows bool
-	source                                       Source
+	src                                          Source
 )
 
 func TestGetWorkflowPathsFromImage(t *testing.T) {
 	resetArgs()
-	source = imageSource{uri: "uri"}
+	src = imageSource{uri: "uri"}
 	osID = "ubuntu-1404"
-	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
+	workflow, translate := getWorkflowPaths(src, dataDisk, osID, customTranWorkflow, currentExecutablePath)
 	if workflow != path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportFromImageWorkflow)
 	}
@@ -43,8 +43,8 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 	resetArgs()
 	dataDisk = true
 	osID = ""
-	source = fileSource{}
-	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
+	src = fileSource{}
+	workflow, translate := getWorkflowPaths(src, dataDisk, osID, customTranWorkflow, currentExecutablePath)
 	if workflow != path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath) || translate != "" {
 		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportWorkflow)
 	}
@@ -53,11 +53,11 @@ func TestGetWorkflowPathsDataDisk(t *testing.T) {
 func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
 	resetArgs()
 	imageName = "image-a"
-	source = imageSource{}
+	src = imageSource{}
 	customTranWorkflow = "custom.wf"
 	osID = ""
 
-	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
+	workflow, translate := getWorkflowPaths(src, dataDisk, osID, customTranWorkflow, currentExecutablePath)
 	assert.Equal(t, path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath), workflow)
 	assert.Equal(t, translate, customTranWorkflow)
 }
@@ -67,10 +67,10 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 
 	resetArgs()
 	imageName = "image-a"
-	source = fileSource{}
+	src = fileSource{}
 	currentExecutablePath = homeDir + "executable"
 
-	workflow, translate := getWorkflowPaths(source, dataDisk, osID, customTranWorkflow, currentExecutablePath)
+	workflow, translate := getWorkflowPaths(src, dataDisk, osID, customTranWorkflow, currentExecutablePath)
 
 	if workflow != homeDir+WorkflowDir+ImportAndTranslateWorkflow {
 		t.Errorf("resulting workflow path `%v` does not match expected `%v`", workflow, homeDir+WorkflowDir+ImportAndTranslateWorkflow)
@@ -84,7 +84,7 @@ func TestGetWorkflowPathsFromFile(t *testing.T) {
 func TestBuildDaisyVarsWindowsSysprepEnabled(t *testing.T) {
 	resetArgs()
 	sysprepWindows = true
-	got := buildDaisyVars(source, "translate/workflow/path/windows", "image-a",
+	got := buildDaisyVars(src, "translate/workflow/path/windows", "image-a",
 		family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "true", got["sysprep_windows"])
@@ -93,7 +93,7 @@ func TestBuildDaisyVarsWindowsSysprepEnabled(t *testing.T) {
 func TestBuildDaisyVarsWindowsSysprepDisabled(t *testing.T) {
 	resetArgs()
 	sysprepWindows = false
-	got := buildDaisyVars(source, "translate/workflow/path/windows", "image-a",
+	got := buildDaisyVars(src, "translate/workflow/path/windows", "image-a",
 		family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "false", got["sysprep_windows"])
@@ -104,7 +104,7 @@ func TestBuildDaisyVarsIsWindows(t *testing.T) {
 	imageName = "image-a"
 
 	region := ""
-	got := buildDaisyVars(source, "translate/workflow/path/windows", imageName,
+	got := buildDaisyVars(src, "translate/workflow/path/windows", imageName,
 		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, "true", got["is_windows"])
@@ -115,14 +115,14 @@ func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
 	imageName = "IMAGE-a"
 
 	region := ""
-	got := buildDaisyVars(source, "translate/workflow/path", imageName,
+	got := buildDaisyVars(src, "translate/workflow/path", imageName,
 		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
 
 	assert.Equal(t, got["image_name"], "image-a")
 }
 
 func resetArgs() {
-	source = imageSource{uri: "global/images/source-image"}
+	src = imageSource{uri: "global/images/source-image"}
 	osID = "ubuntu-1404"
 	dataDisk = false
 	sysprepWindows = false

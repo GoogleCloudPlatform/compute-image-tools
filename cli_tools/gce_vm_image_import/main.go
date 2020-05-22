@@ -26,7 +26,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/args"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
@@ -39,35 +38,35 @@ func main() {
 		terminate(importArgs, err)
 	}
 
-	importerClosure := func() (service.Loggable, error) {
-		wf, e := importer.NewImporter(importArgs.Environment, importArgs.ImageSpec, importArgs.TranslationSpec).Run(ctx)
+	importClosure := func() (service.Loggable, error) {
+		wf, e := importer.NewImporter(importArgs).Run(ctx)
 		return service.NewLoggableFromWorkflow(wf), e
 	}
 
-	project := importArgs.Environment.Project
+	project := importArgs.Project
 	if err := service.RunWithServerLogging(
-		service.ImageImportAction, initLoggingParams(importArgs), &project, importerClosure); err != nil {
+		service.ImageImportAction, initLoggingParams(importArgs), &project, importClosure); err != nil {
 		os.Exit(1)
 	}
 }
 
-func parseAndPopulateArgs(ctx context.Context) (args.ImportArguments, error) {
+func parseAndPopulateArgs(ctx context.Context) (importer.ImportArguments, error) {
 	// 1. Parse the args without validating or populating. Splitting parsing and
 	// validation allows us to log the intermediate, non-validated values, if
 	// there's an error setting up dependencies.
-	parsed, err := args.NewImportArguments(os.Args[1:])
+	parsed, err := importer.NewImportArguments(os.Args[1:])
 	if err != nil {
 		terminate(parsed, err)
 	}
 
 	// 2. Setup dependencies.
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewDefaultLogger(), parsed.Environment.Oauth)
+		ctx, logging.NewDefaultLogger(), parsed.Oauth)
 	if err != nil {
 		terminate(parsed, err)
 	}
 	computeClient, err := param.CreateComputeClient(
-		&ctx, parsed.Environment.Oauth, parsed.Environment.ComputeEndpoint)
+		&ctx, parsed.Oauth, parsed.ComputeEndpoint)
 	if err != nil {
 		terminate(parsed, err)
 	}
@@ -86,7 +85,7 @@ func parseAndPopulateArgs(ctx context.Context) (args.ImportArguments, error) {
 
 // terminate is used when there is a failure prior to running import. It sends
 // a message to the logging framework, and then executes os.Exit(1).
-func terminate(allArgs args.ImportArguments, cause error) {
+func terminate(allArgs importer.ImportArguments, cause error) {
 	noOpCallback := func() (service.Loggable, error) {
 		return nil, cause
 	}
@@ -97,7 +96,7 @@ func terminate(allArgs args.ImportArguments, cause error) {
 	os.Exit(1)
 }
 
-func initLoggingParams(args args.ImportArguments) service.InputParams {
+func initLoggingParams(args importer.ImportArguments) service.InputParams {
 	return service.InputParams{
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{
@@ -116,7 +115,7 @@ func initLoggingParams(args args.ImportArguments) service.InputParams {
 				DisableCloudLogging:     args.CloudLogsDisabled,
 				DisableStdoutLogging:    args.StdoutLogsDisabled,
 			},
-			ImageName:          args.Name,
+			ImageName:          args.ImageName,
 			DataDisk:           args.DataDisk,
 			OS:                 args.OS,
 			SourceFile:         args.SourceFile,

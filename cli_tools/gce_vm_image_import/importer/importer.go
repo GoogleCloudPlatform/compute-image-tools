@@ -19,7 +19,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 
@@ -134,18 +133,12 @@ func (importer importer) runImport(varMap map[string]string, importWorkflowPath 
 }
 
 type importer struct {
-	Environment
-	ImageSpec
-	TranslationSpec
+	ImportArguments
 }
 
-// NewImporter constructs a new Importer instance.
-func NewImporter(
-	environment Environment,
-	imageSpec ImageSpec,
-	translationSpec TranslationSpec) Importer {
-
-	return importer{Environment: environment, ImageSpec: imageSpec, TranslationSpec: translationSpec}
+// NewImporter constructs an Importer instance.
+func NewImporter(importArguments ImportArguments) Importer {
+	return importer{ImportArguments: importArguments}
 }
 
 // Importer runs the import workflow.
@@ -159,8 +152,8 @@ func (importer importer) Run(ctx context.Context) (w *daisy.Workflow, err error)
 		importer.Source, importer.DataDisk, importer.OS,
 		importer.CustomWorkflow, importer.CurrentExecutablePath)
 
-	varMap := buildDaisyVars(importer.Source, translateWorkflowPath, importer.ImageSpec.Name,
-		importer.ImageSpec.Family, importer.ImageSpec.Description, importer.Region, importer.Subnet,
+	varMap := buildDaisyVars(importer.Source, translateWorkflowPath, importer.ImageName,
+		importer.Family, importer.Description, importer.Region, importer.Subnet,
 		importer.Network, importer.NoGuestEnvironment, importer.SysprepWindows)
 
 	if w, err = importer.runImport(varMap, importWorkflowPath); err != nil {
@@ -170,46 +163,4 @@ func (importer importer) Run(ctx context.Context) (w *daisy.Workflow, err error)
 		return customizeErrorToDetectionResults(importer.OS, w, err)
 	}
 	return w, nil
-}
-
-// Environment describes where the import is running.
-type Environment struct {
-	ClientID              string
-	Project               string
-	Network               string
-	Subnet                string
-	Zone                  string
-	Region                string
-	ScratchBucketGcsPath  string
-	Oauth                 string
-	ComputeEndpoint       string
-	CurrentExecutablePath string
-	GcsLogsDisabled       bool
-	CloudLogsDisabled     bool
-	StdoutLogsDisabled    bool
-	NoExternalIP          bool
-}
-
-// ImageSpec describes the metadata of the final image.
-type ImageSpec struct {
-	Name            string
-	Family          string
-	Description     string
-	Labels          map[string]string
-	StorageLocation string
-}
-
-// TranslationSpec describes the source and operations
-// applied to an imported image.
-type TranslationSpec struct {
-	SourceFile         string
-	SourceImage        string
-	Source             Source
-	DataDisk           bool
-	OS                 string
-	NoGuestEnvironment bool
-	Timeout            time.Duration
-	CustomWorkflow     string
-	UefiCompatible     bool
-	SysprepWindows     bool
 }
