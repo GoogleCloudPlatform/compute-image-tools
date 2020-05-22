@@ -425,7 +425,7 @@ func verifyImportedInstance(
 		return
 	}
 
-	err = instance.StartWithScript(props.verificationStartupScript)
+	err = instance.StartWithScriptCode(props.verificationStartupScript)
 	if err != nil {
 		testCase.WriteFailure("Error starting instance `%v` with script: %v", props.instanceName, err)
 		return

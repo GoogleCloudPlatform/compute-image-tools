@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-// Package clitoolstestutils contains e2e tests utils for cli tools e2e tests
+// Package utils contains e2e tests utils for cli tools e2e tests
 package utils
 
 import (
@@ -248,4 +248,14 @@ func Failure(testCase *junitxml.TestCase, logger *log.Logger, msg string) {
 		testCase.WriteFailure(msg)
 	}
 	logger.Printf("[%v] %v", prefix, msg)
+}
+
+// ContainsSubString checks whether the string slice contains a substring anywhere.
+func ContainsSubString(strs []string, s string) bool {
+	for _, str := range strs {
+		if strings.Contains(str, s) {
+			return true
+		}
+	}
+	return false
 }

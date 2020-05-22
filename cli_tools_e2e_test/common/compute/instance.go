@@ -1,4 +1,4 @@
-//  Copyright 2019 Google Inc. All Rights Reserved.
+//  Copyright 2020 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -47,17 +47,17 @@ func (i *Instance) Cleanup() error {
 	return i.Client.DeleteInstance(i.Project, i.Zone, i.Name)
 }
 
-// RestartWithScript restarts the instance with given startup script.
-func (i *Instance) RestartWithScript(script string) error {
+// RestartWithScriptCode restarts the instance with given startup script.
+func (i *Instance) RestartWithScriptCode(script string) error {
 	err := i.Client.StopInstance(i.Project, i.Zone, i.Name)
 	if err != nil {
 		return err
 	}
-	return i.StartWithScript(script)
+	return i.StartWithScriptCode(script)
 }
 
-// StartWithScript starts the instance with given startup script.
-func (i *Instance) StartWithScript(script string) error {
+// StartWithScriptCode starts the instance with given startup script.
+func (i *Instance) StartWithScriptCode(script string) error {
 	startupScriptKey := "startup-script"
 	if i.IsWindows {
 		startupScriptKey = "windows-startup-script-ps1"
@@ -143,7 +143,7 @@ func SetMetadata(ctx context.Context, project, zone, name, key, value string, is
 	return i, err
 }
 
-// CreateInstanceObject creates an image object to be operated by GA API client
+// CreateInstanceObject creates an instance object to be operated by GA API client
 func CreateInstanceObject(ctx context.Context, project string, zone string, name string, isWindows bool) (*Instance, error) {
 	client, err := daisyCompute.NewClient(ctx)
 	if err != nil {
@@ -184,7 +184,7 @@ func CreateInstanceBeta(ctx context.Context, project string, zone string, name s
 	return i, nil
 }
 
-// StartWithScript starts the instance with given startup script.
+// StartWithScriptCode starts the instance with given startup script.
 func (i *InstanceBeta) StartWithScript(script string) error {
 	startupScriptKey := "startup-script"
 	if i.IsWindows {

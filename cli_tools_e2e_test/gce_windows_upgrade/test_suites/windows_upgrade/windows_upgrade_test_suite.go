@@ -64,7 +64,7 @@ func TestSuite(
 		normalCase := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Normal case"))
 		richParamsAndLatestInstallMedia := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v] %v", testType, "/"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Rich params and latest install media"))
 		failedAndCleanup := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Failed and cleanup"))
 		failedAndRollback := junitxml.NewTestCase(
@@ -72,7 +72,7 @@ func TestSuite(
 		insufficientDiskSpace := junitxml.NewTestCase(
 			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Insufficiant disk space"))
 		testBYOL := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v] %v", testType, "Test BYOL"))
+			testSuiteName, fmt.Sprintf("[%v] %v", testType, "BYOL"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}
@@ -101,7 +101,7 @@ func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCas
 	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
-	instanceName := fmt.Sprintf("test-upgrade-1-%v", suffix)
+	instanceName := fmt.Sprintf("test-upgrade-normal-case-%v", suffix)
 	instance := fmt.Sprintf("projects/%v/zones/%v/instances/%v",
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
@@ -121,7 +121,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
-	instanceName := fmt.Sprintf("test-upgrade-2-%v", suffix)
+	instanceName := fmt.Sprintf("test-upgrade-rich-params-%v", suffix)
 	instance := fmt.Sprintf("projects/%v/zones/%v/instances/%v",
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
@@ -148,7 +148,7 @@ func runWindowsUpgradeFailedAndCleanup(ctx context.Context, testCase *junitxml.T
 		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
-	instanceName := fmt.Sprintf("test-upgrade-3-%v", suffix)
+	instanceName := fmt.Sprintf("test-upgrade-failed-and-cleanup-%v", suffix)
 	instance := fmt.Sprintf("projects/%v/zones/%v/instances/%v",
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
@@ -169,7 +169,7 @@ func runWindowsUpgradeFailedAndRollback(ctx context.Context, testCase *junitxml.
 		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
-	instanceName := fmt.Sprintf("test-upgrade-4-%v", suffix)
+	instanceName := fmt.Sprintf("test-upgrade-failed-and-rollback-%v", suffix)
 	instance := fmt.Sprintf("projects/%v/zones/%v/instances/%v",
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
@@ -191,7 +191,7 @@ func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junit
 		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
-	instanceName := fmt.Sprintf("test-upgrade-5-%v", suffix)
+	instanceName := fmt.Sprintf("test-upgrade-insufficient-disk-space-%v", suffix)
 	instance := fmt.Sprintf("projects/%v/zones/%v/instances/%v",
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
@@ -212,7 +212,7 @@ func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, log
 		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
-	instanceName := fmt.Sprintf("test-upgrade-5-%v", suffix)
+	instanceName := fmt.Sprintf("test-upgrade-byol-%v", suffix)
 	instance := fmt.Sprintf("projects/%v/zones/%v/instances/%v",
 		testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 
@@ -247,7 +247,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 		return
 	}
 
-	// attach data disk
+	// create and attach data disks
 	for dataDiskIndex := 1; dataDiskIndex <= dataDiskCount; dataDiskIndex++ {
 		diskName := fmt.Sprintf("%v-%v", instanceName, dataDiskIndex)
 		if !utils.RunTestCommand("gcloud", []string{
@@ -268,7 +268,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 		}
 	}
 
-	// set original startup script
+	// set original startup script to metadata
 	if expectedScriptURL != "" {
 		key := "windows-startup-script-url"
 		if expectedScriptURL == "original-backup" {
@@ -287,7 +287,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 		cmd := utils.RunTestCommandAsync(cmd, args, logger, testCase)
 
 		go func() {
-			// send a INT signal to fail the upgrade
+			// send an INT signal to fail the upgrade
 			if triggerFailure {
 				// wait for "preparation" to finish
 				instance, err := computeUtils.CreateInstanceObject(ctx, testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName, true)
@@ -341,9 +341,26 @@ func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *j
 		return
 	}
 
-	logger.Printf("Verifying upgraded instance...")
+	logger.Printf("Verifying upgraded instance `%v`...", instanceName)
+	
+	if !verifyLicensesAndDisks(instance, expectValidationFailure, logger, testCase, expectSuccess, autoRollback, dataDiskCount) {
+		return
+	}
 
-	// verify licenses and disks
+	if expectSuccess {
+		if !verifyOSVersion(instance, testCase, instanceName, logger) {
+			return
+		}
+	} else {
+		verifyRollback(autoRollback, instance, testProjectConfig, instanceName, testCase, logger)
+	}
+
+	verifyCleanup(instance, testCase, logger, expectedScriptURL)
+}
+
+func verifyLicensesAndDisks(instance *computeUtils.Instance, expectValidationFailure bool, logger *log.Logger,
+	testCase *junitxml.TestCase, expectSuccess bool, autoRollback bool, dataDiskCount int) bool {
+
 	hasBootDisk := false
 	for _, disk := range instance.Disks {
 		if !disk.Boot {
@@ -352,10 +369,10 @@ func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *j
 
 		if !expectValidationFailure {
 			logger.Printf("Existing licenses: %v", disk.Licenses)
-			if !containsSubString(disk.Licenses, "projects/windows-cloud/global/licenses/windows-server-2008-r2-dc") {
+			if !utils.ContainsSubString(disk.Licenses, "projects/windows-cloud/global/licenses/windows-server-2008-r2-dc") {
 				utils.Failure(testCase, logger, "Original 2008r2 license not found.")
 			}
-			containsAdditionalLicense := containsSubString(disk.Licenses, "projects/windows-cloud/global/licenses/windows-server-2012-r2-dc-in-place-upgrade")
+			containsAdditionalLicense := utils.ContainsSubString(disk.Licenses, "projects/windows-cloud/global/licenses/windows-server-2012-r2-dc-in-place-upgrade")
 			// success case
 			if expectSuccess {
 				if !containsAdditionalLicense {
@@ -380,42 +397,46 @@ func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *j
 	}
 	if !hasBootDisk {
 		utils.Failure(testCase, logger, "Boot disk not found.")
-		return
+		return false
 	}
-	if len(instance.Disks) != dataDiskCount + 1 {
+	if len(instance.Disks) != dataDiskCount+1 {
 		utils.Failure(testCase, logger, fmt.Sprintf("Count of disks not match: expect %v, actual %v.", dataDiskCount+1, len(instance.Disks)))
 	}
+	return true
+}
 
-	if expectSuccess {
-		// for success case, verify OS version by startup script
-		err = instance.RestartWithScript("$ver=[System.Environment]::OSVersion.Version\n" +
+func verifyOSVersion(instance *computeUtils.Instance, testCase *junitxml.TestCase, instanceName string, logger *log.Logger) bool {
+	err := instance.RestartWithScriptCode("$ver=[System.Environment]::OSVersion.Version\n" +
 			"Write-Host \"windows_upgrade_verify_version=$($ver.Major).$($ver.Minor)\"")
+	if err != nil {
+		testCase.WriteFailure("Error starting instance `%v` with script: `%v`", instanceName, err)
+		return false
+	}
+	expectedOutput := "windows_upgrade_verify_version=6.3"
+	logger.Printf("[%v] Waiting for `%v` in instance serial console.", instanceName,
+		expectedOutput)
+	if err := instance.WaitForSerialOutput(
+		expectedOutput, 1, 15*time.Second, 15*time.Minute); err != nil {
+		testCase.WriteFailure("Error during validation: %v", err)
+	}
+	return true
+}
+
+func verifyRollback(autoRollback bool, instance *computeUtils.Instance, testProjectConfig *testconfig.Project, instanceName string, testCase *junitxml.TestCase, logger *log.Logger) {
+	if autoRollback {
+		// original boot disk name == instance name by default
+		originalOSDisk, err := instance.Client.GetDisk(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
 		if err != nil {
-			testCase.WriteFailure("Error starting instance `%v` with script: `%v`", instanceName, err)
-			return
+			utils.Failure(testCase, logger, "Failed to get original OS disk.")
 		}
-		expectedOutput := "windows_upgrade_verify_version=6.3"
-		logger.Printf("[%v] Waiting for `%v` in instance serial console.", instanceName,
-			expectedOutput)
-		if err := instance.WaitForSerialOutput(
-			expectedOutput, 1, 15*time.Second, 15*time.Minute); err != nil {
-			testCase.WriteFailure("Error during validation: %v", err)
-		}
-	} else {
-		// for failed case, verify rollback
-		if autoRollback {
-			// original boot disk name == instance name by default
-			originalOSDisk, err := instance.Client.GetDisk(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName)
-			if err != nil {
-				utils.Failure(testCase, logger, "Failed to get original OS disk.")
-			}
-			if len(originalOSDisk.Users) == 0 {
-				utils.Failure(testCase, logger, "Original OS disk didn't get rollback.")
-			}
+		if len(originalOSDisk.Users) == 0 {
+			utils.Failure(testCase, logger, "Original OS disk didn't get rollback.")
 		}
 	}
+}
 
-	// for all cases, verify cleanup: install media, startup script & backup
+// verify cleanup: install media, startup script & backup
+func verifyCleanup(instance *computeUtils.Instance, testCase *junitxml.TestCase, logger *log.Logger, expectedScriptURL string) {
 	for _, d := range instance.Disks {
 		if strings.HasSuffix(d.Source, "global/images/family/windows-install-media") {
 			utils.Failure(testCase, logger, "Install media is not cleaned up.")
@@ -436,13 +457,4 @@ func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *j
 	if windowsStartupScriptURLBackup != "" {
 		utils.Failure(testCase, logger, fmt.Sprintf("Unexpected startup script URL backup: %v", windowsStartupScriptURLBackup))
 	}
-}
-
-func containsSubString(strs []string, s string) bool {
-	for _, str := range strs {
-		if strings.Contains(str, s) {
-			return true
-		}
-	}
-	return false
 }
