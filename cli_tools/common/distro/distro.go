@@ -52,9 +52,6 @@ type Release interface {
 // a Release if the arguments are syntactically correct, and represent a
 // release that we *may* support. The caller is responsible for verifying
 // whether a translator is available elsewhere in the system.
-//
-// Prefer this method for generating a new Release object. It is lenient, and
-// returns nice errors. The distro-specific constructors are strict and may panic.
 func FromComponents(distro string, major string, minor string) (r Release, e error) {
 	distro = strings.ToLower(distro)
 	majorInt, e := strconv.Atoi(major)
@@ -107,20 +104,17 @@ func FromComponents(distro string, major string, minor string) (r Release, e err
 // release we *may* support. The caller is responsible for verifying
 // whether a translator is available elsewhere in the system.
 //
-// Prefer this method for generating a new Release object. It is lenient, and
-// returns nice errors. The distro-specific constructors are strict and may panic.
-//
 // https://cloud.google.com/sdk/gcloud/reference/compute/images/import#--os
 func FromGcloudOSArgument(osFlagValue string) (r Release, e error) {
 	os := strings.ToLower(osFlagValue)
 	if strings.HasSuffix(os, "-byol") {
 		os = strings.TrimSuffix(os, "-byol")
 	}
-	hyphen := strings.LastIndex(os, "-")
-	if hyphen < 0 || hyphen == len(os) {
+	lastHyphenIndex := strings.LastIndex(os, "-")
+	if lastHyphenIndex < 0 || lastHyphenIndex == len(os) {
 		return r, fmt.Errorf("expected pattern of `distro-version`. Actual: `%s`", os)
 	}
-	distro, version := os[:hyphen], os[hyphen+1:]
+	distro, version := os[:lastHyphenIndex], os[lastHyphenIndex+1:]
 
 	if distro == ubuntu {
 		// In gcloud, major and minor are combined as MMmm, such as ubuntu-1804
@@ -154,14 +148,18 @@ func (r commonLinuxRelease) ImportCompatible(other Release) bool {
 		r.major == realOther.major
 }
 
+func commonLinuxDistros() []string {
+	return []string{centos, debian, opensuse, rhel}
+}
+
 // The caller is responsible for verifying the syntax of the arguments.
 // Verify the following before calling:
-//   - distro is one of {centos, debian, opensuse, rhel}
+//   - distro is one of the distros returned by commonLinuxDistros().
 //   - major is >= 1 and minor is >= 0
 func newCommonLinuxRelease(distro string, major, minor int) (Release, error) {
 	verify.GreaterThanOrEqualTo(major, 1)
 	verify.GreaterThanOrEqualTo(minor, 0)
-	verify.Contains(distro, []string{centos, debian, opensuse, rhel})
+	verify.Contains(distro, commonLinuxDistros())
 	return commonLinuxRelease{
 		distro: distro,
 		major:  major,
