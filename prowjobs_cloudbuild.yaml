@@ -61,6 +61,14 @@ steps:
   - --context=/workspace
   - --dockerfile=gce_ovf_import_tests.Dockerfile
   - --build-arg=PROJECT_ID=$PROJECT_ID
+- id: gce-windows-upgrade-tests
+  name: 'gcr.io/kaniko-project/executor:v0.22.0'
+  args:
+  - --destination=gcr.io/$PROJECT_ID/gce-windows-upgrade-tests:latest
+  - --destination=gcr.io/$PROJECT_ID/gce-windows-upgrade-tests:$COMMIT_SHA
+  - --context=/workspace
+  - --dockerfile=gce_windows_upgrade_tests.Dockerfile
+  - --build-arg=PROJECT_ID=$PROJECT_ID
 - id: gocheck
   name: 'gcr.io/kaniko-project/executor:v0.22.0'
   args:
