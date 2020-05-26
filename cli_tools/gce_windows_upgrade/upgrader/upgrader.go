@@ -79,6 +79,7 @@ type InputParams struct {
 	SourceOS               string
 	TargetOS               string
 	Timeout                string
+	UseStagingInstallMedia bool
 	ScratchBucketGcsPath   string
 	Oauth                  string
 	Ce                     string

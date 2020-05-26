@@ -33,8 +33,8 @@ TARGETS=("daisy"
          "cli_tools"
          "test-infra/prowjobs/cleanerupper"
          "test-infra/prowjobs/wrapper"
-         "cli_tools_e2e_test/gce_image_import_export_tests"
-         "cli_tools_e2e_test/gce_ovf_import_tests")
+         "cli_tools_e2e_test/gce_image_import_export"
+         "cli_tools_e2e_test/gce_ovf_import")
 for TARGET in "${TARGETS[@]}"; do
   echo "Checking ${TARGET}"
   cd "/${REPO_PATH}/${TARGET}"

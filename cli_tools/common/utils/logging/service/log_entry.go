@@ -190,6 +190,18 @@ type CommonParams struct {
 	DisableStdoutLogging    bool   `json:"disable_stdout_logging"`
 }
 
+// WindowsUpgradeParams contains all input params for windows upgrade
+type WindowsUpgradeParams struct {
+	*CommonParams
+
+	Instance               string `json:"instance,omitempty"`
+	SkipMachineImageBackup bool   `json:"skip_machine_image_backup"`
+	AutoRollback           bool   `json:"auto_rollback"`
+	SourceOS               string `json:"source_os,omitempty"`
+	TargetOS               string `json:"target_os,omitempty"`
+	UseStagingInstallMedia bool   `json:"use_staging_install_media"`
+}
+
 // OutputInfo contains output values from the tools execution
 type OutputInfo struct {
 	// Size of import/export sources (image or file)
@@ -234,15 +246,8 @@ func (l *Logger) updateParams(projectPointer *string) {
 		l.Params.MachineImageImportParams.CommonParams.Project = project
 		l.Params.MachineImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
 	}
-}
-
-// WindowsUpgradeParams contains all input params for windows upgrade
-type WindowsUpgradeParams struct {
-	*CommonParams
-
-	Instance               string `json:"instance,omitempty"`
-	SkipMachineImageBackup bool   `json:"skip_machine_image_backup"`
-	AutoRollback           bool   `json:"auto_rollback"`
-	SourceOS               string `json:"source_os,omitempty"`
-	TargetOS               string `json:"target_os,omitempty"`
+	if l.Params.WindowsUpgradeParams != nil {
+		l.Params.WindowsUpgradeParams.CommonParams.Project = project
+		l.Params.WindowsUpgradeParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	}
 }

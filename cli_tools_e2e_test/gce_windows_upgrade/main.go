@@ -21,21 +21,17 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/gce_image_import_export_tests/test_suites/export"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/gce_image_import_export_tests/test_suites/import"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/gce_windows_upgrade/test_suites/windows_upgrade"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
 )
 
 func main() {
-	exportTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){exporttestsuites.TestSuite},
-		"[ImageExportTests]")
-	importTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){importtestsuites.TestSuite},
-		"[ImageImportTests]")
-	if !exportTestSuccess || !importTestSuccess {
+	windowsUpgradeTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){testsuite.TestSuite},
+		"[WindowsUpgradeTests]")
+	if !windowsUpgradeTestSuccess {
 		os.Exit(1)
 	}
 }

@@ -31,8 +31,8 @@ LINUX_TARGETS=("daisy/cli"
                "cli_tools/gce_image_publish" 
                "cli_tools/import_precheck"
                "daisy/daisy_test_runner"
-               "cli_tools_e2e_test/gce_image_import_export_tests"
-               "cli_tools_e2e_test/gce_ovf_import_tests")
+               "cli_tools_e2e_test/gce_image_import_export"
+               "cli_tools_e2e_test/gce_ovf_import")
 for TARGET in "${LINUX_TARGETS[@]}"; do
   echo "Building ${TARGET} for Linux"
   cd /${REPO_PATH}/${TARGET}
