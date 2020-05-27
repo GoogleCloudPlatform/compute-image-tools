@@ -5,7 +5,8 @@
     "install_disk": "disk-install",
     "publish_project": "${PROJECT}",
     "sql_server_media": {"Required": true, "Description": "GCS or local path to Windows installer media"},
-    "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."}
+    "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."},
+    "ssms_exe": {"Required": true, "Description": "GCS or local path to SSMS installer"}
   },
   "Steps": {
     "build-sql-image": {
@@ -16,7 +17,8 @@
           "sql_server_config": "./configs/sql_server_2014.ini",
           "sql_server_media": "${sql_server_media}",
           "source_image": "projects/${source_image_project}/global/images/family/windows-2012-r2",
-          "install_disk": "${install_disk}"
+          "install_disk": "${install_disk}",
+          "ssms_exe": "${ssms_exe}"
         }
       }
     },
@@ -28,8 +30,8 @@
           "Licenses": [
             "projects/windows-sql-cloud/global/licenses/sql-server-2014-web"
           ],
-          "Description": "Microsoft, SQL Server 2014 Web, on Windows Server 2012 R2, x64 built on ${build_date}",
-          "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE", "WINDOWS", "MULTI_IP_SUBNET"],
+          "Description": "Microsoft, SQL Server 2014 Web, on Windows Server 2012 R2, x64 built on ${build_date}, supports Shielded VM features",
+          "GuestOsFeatures": ["MULTI_IP_SUBNET", "UEFI_COMPATIBLE", "VIRTIO_SCSI_MULTIQUEUE", "WINDOWS"],
           "Family": "sql-web-2014-win-2012-r2",
           "Project": "${publish_project}",
           "NoCleanup": true,
