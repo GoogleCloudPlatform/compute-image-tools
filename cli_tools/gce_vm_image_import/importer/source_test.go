@@ -19,10 +19,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 func TestEmptyFilesAreRejected(t *testing.T) {
@@ -34,8 +35,8 @@ func TestEmptyFilesAreRejected(t *testing.T) {
 
 	fileContent := ""
 
-	_, err := initAndValidateSource(source.path(), "",
-		createMockStorageClient(t, source, fileContent))
+	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent))
+	_, err := factory.Init(source.Path(), "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot import an image from an empty file")
 }
@@ -50,8 +51,8 @@ func TestGzipCompressedFilesAreRejected(t *testing.T) {
 
 	fileContent := test.CreateCompressedFile()
 
-	_, err := initAndValidateSource(source.path(), "",
-		createMockStorageClient(t, source, fileContent))
+	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent))
+	_, err := factory.Init(source.Path(), "")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "the input file is a gzip file, which is not supported")
 }
@@ -66,15 +67,15 @@ func TestUncompressedFilesAreAllowed(t *testing.T) {
 
 	fileContent := "fileContent"
 
-	result, err := initAndValidateSource(source.path(), "",
-		createMockStorageClient(t, source, fileContent))
+	factory := NewSourceFactory(createMockStorageClient(t, source, fileContent))
+	result, err := factory.Init(source.Path(), "")
 	assert.NoError(t, err)
 	assert.Equal(t, result, source)
 }
 
 func TestGcsFilePathMustBeFullyQualified(t *testing.T) {
 	for _, invalidPath := range []string{"file.vmdk", "gs://bucket", "gs://bucket/"} {
-		_, err := initAndValidateSource(invalidPath, "", nil)
+		_, err := NewSourceFactory(nil).Init(invalidPath, "")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "is not a valid Cloud Storage object path")
 	}
@@ -120,8 +121,8 @@ func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 	for _, tt := range cases {
 
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := initAndValidateSource(tt.file.path(), tt.image,
-				createMockStorageClient(t, tt.file, "file-content"))
+			factory := NewSourceFactory(createMockStorageClient(t, tt.file, "file-content"))
+			_, err := factory.Init(tt.file.Path(), tt.image)
 			if tt.valid {
 				assert.NoError(t, err)
 			} else {
@@ -134,8 +135,8 @@ func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 
 func TestUnqualifiedImagePathsAreGlobalized(t *testing.T) {
 	var cases = []struct {
-		input          string
-		expectedResult string
+		originalURI string
+		expectedURI string
 	}{
 		{"ubuntu-1604", "global/images/ubuntu-1604"},
 		{"projects/daisy/global/images/ubuntu-1604", "projects/daisy/global/images/ubuntu-1604"},
@@ -143,10 +144,10 @@ func TestUnqualifiedImagePathsAreGlobalized(t *testing.T) {
 
 	for _, tt := range cases {
 
-		t.Run(tt.input, func(t *testing.T) {
-			source, err := initAndValidateSource("", tt.input, nil)
+		t.Run(tt.originalURI, func(t *testing.T) {
+			source, err := NewSourceFactory(nil).Init("", tt.originalURI)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedResult, source.path())
+			assert.Equal(t, tt.expectedURI, source.Path())
 		})
 
 	}
@@ -154,8 +155,8 @@ func TestUnqualifiedImagePathsAreGlobalized(t *testing.T) {
 
 func TestImagePathIsValidated(t *testing.T) {
 	var cases = []struct {
-		path       string
-		errMessage string
+		originalURI string
+		errMessage  string
 	}{
 		{"file.vmdk", "invalid image name"},
 		{"gs://bucket/file.vmdk", "invalid image reference"},
@@ -165,8 +166,8 @@ func TestImagePathIsValidated(t *testing.T) {
 
 	for _, tt := range cases {
 
-		t.Run(tt.path, func(t *testing.T) {
-			_, err := initAndValidateSource("", tt.path, nil)
+		t.Run(tt.originalURI, func(t *testing.T) {
+			_, err := NewSourceFactory(nil).Init("", tt.originalURI)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errMessage)
 		})

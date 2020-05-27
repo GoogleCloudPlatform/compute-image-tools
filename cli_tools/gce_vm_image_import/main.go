@@ -17,7 +17,8 @@ package main
 
 import (
 	"context"
-	"flag"
+	"fmt"
+	"log"
 	"os"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
@@ -28,54 +29,48 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
-var (
-	clientID             = flag.String(importer.ClientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
-	imageName            = flag.String(importer.ImageNameFlagKey, "", "Image name to be imported.")
-	dataDisk             = flag.Bool("data_disk", false, "Specifies that the disk has no bootable OS installed on it.	Imports the disk without making it bootable or installing Google tools on it. ")
-	osID                 = flag.String("os", "", "Specifies the OS of the image being imported. OS must be one of: centos-6, centos-7, debian-8, debian-9, opensuse-15, sles-12-byol, sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, ubuntu-1604, ubuntu-1804, windows-10-byol, windows-2008r2, windows-2008r2-byol, windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016, windows-2016-byol, windows-7-byol.")
-	customTranWorkflow   = flag.String("custom_translate_workflow", "", "Specifies the custom workflow used to do translation")
-	sourceFile           = flag.String("source_file", "", "Google Cloud Storage URI of the virtual disk file	to import. For example: gs://my-bucket/my-image.vmdk")
-	sourceImage          = flag.String("source_image", "", "Compute Engine image from which to import")
-	noGuestEnvironment   = flag.Bool("no_guest_environment", false, "Google Guest Environment will not be installed on the image.")
-	family               = flag.String("family", "", "Family to set for the translated image")
-	description          = flag.String("description", "", "Description to set for the translated image")
-	network              = flag.String("network", "", "Name of the network in your project to use for the image import. The network must have access to Google Cloud Storage. If not specified, the network named default is used.")
-	subnet               = flag.String("subnet", "", "Name of the subnetwork in your project to use for the image import. If	the network resource is in legacy mode, do not provide this property. If the network is in auto subnet mode, providing the subnetwork is optional. If the network is in custom subnet mode, then this field should be specified. Zone should be specified if this field is specified.")
-	zone                 = flag.String("zone", "", "Zone of the image to import. The zone in which to do the work of importing the image. Overrides the default compute/zone property value for this command invocation.")
-	timeout              = flag.String("timeout", "", "Maximum time a build can last before it is failed as TIMEOUT. For example, specifying 2h will fail the process after 2 hours. See $ gcloud topic datetimes for information on duration formats.")
-	project              = flag.String("project", "", "project to run in, overrides what is set in workflow")
-	scratchBucketGcsPath = flag.String("scratch_bucket_gcs_path", "", "GCS scratch bucket to use, overrides what is set in workflow")
-	oauth                = flag.String("oauth", "", "path to oauth json file, overrides what is set in workflow")
-	ce                   = flag.String("compute_endpoint_override", "", "API endpoint to override default")
-	gcsLogsDisabled      = flag.Bool("disable_gcs_logging", false, "do not stream logs to GCS")
-	cloudLogsDisabled    = flag.Bool("disable_cloud_logging", false, "do not stream logs to Cloud Logging")
-	stdoutLogsDisabled   = flag.Bool("disable_stdout_logging", false, "do not display individual workflow logs on stdout")
-	kmsKey               = flag.String("kms_key", "", "ID of the key or fully qualified identifier for the key. This flag must be specified if any of the other arguments below are specified.")
-	kmsKeyring           = flag.String("kms_keyring", "", "The KMS keyring of the key.")
-	kmsLocation          = flag.String("kms_location", "", "The Cloud location for the key.")
-	kmsProject           = flag.String("kms_project", "", "The Cloud project for the key")
-	noExternalIP         = flag.Bool("no_external_ip", false, "VPC doesn't allow external IPs")
-	labels               = flag.String("labels", "", "List of label KEY=VALUE pairs to add. Keys must start with a lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.")
-	storageLocation      = flag.String("storage_location", "", "Location for the imported image which can be any GCS location. If the location parameter is not included, images are created in the multi-region associated with the source disk, image, snapshot or GCS bucket.")
-	uefiCompatible       = flag.Bool("uefi_compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
-	sysprepWindows       = flag.Bool("sysprep_windows", false, "Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
-)
-
-func importEntry() (service.Loggable, error) {
-
+func main() {
+	log.SetPrefix("[import-image] ")
 	ctx := context.Background()
+
+	importArgs, err := parseAndPopulateArgs(ctx)
+	if err != nil {
+		terminate(importArgs, err)
+	}
+
+	importClosure := func() (service.Loggable, error) {
+		wf, e := importer.NewImporter(importArgs).Run(ctx)
+		return service.NewLoggableFromWorkflow(wf), e
+	}
+
+	project := importArgs.Project
+	if err := service.RunWithServerLogging(
+		service.ImageImportAction, initLoggingParams(importArgs), &project, importClosure); err != nil {
+		os.Exit(1)
+	}
+}
+
+func parseAndPopulateArgs(ctx context.Context) (importer.ImportArguments, error) {
+	// 1. Parse the args without validating or populating. Splitting parsing and
+	// validation allows us to log the intermediate, non-validated values, if
+	// there's an error setting up dependencies.
+	parsed, err := importer.NewImportArguments(os.Args[1:])
+	if err != nil {
+		terminate(parsed, err)
+	}
+
+	// 2. Setup dependencies.
+	storageClient, err := storage.NewStorageClient(
+		ctx, logging.NewDefaultLogger(), parsed.Oauth)
+	if err != nil {
+		terminate(parsed, err)
+	}
+	computeClient, err := param.CreateComputeClient(
+		&ctx, parsed.Oauth, parsed.ComputeEndpoint)
+	if err != nil {
+		terminate(parsed, err)
+	}
 	metadataGCE := &compute.MetadataGCE{}
-
-	storageClient, err := storage.NewStorageClient(ctx, logging.NewDefaultLogger(), *oauth)
-	if err != nil {
-		return nil, err
-	}
-
-	computeClient, err := param.CreateComputeClient(&ctx, *oauth, *ce)
-	if err != nil {
-		return nil, err
-	}
-
 	paramPopulator := param.NewPopulator(
 		metadataGCE,
 		storageClient,
@@ -83,54 +78,53 @@ func importEntry() (service.Loggable, error) {
 		storage.NewScratchBucketCreator(ctx, storageClient),
 	)
 
-	currentExecutablePath := string(os.Args[0])
-	wf, err := importer.Run(*clientID, *imageName, *dataDisk, *osID, *customTranWorkflow, *sourceFile,
-		*sourceImage, *noGuestEnvironment, *family, *description, *network, *subnet, *zone, *timeout,
-		project, *scratchBucketGcsPath, *oauth, *ce, *gcsLogsDisabled, *cloudLogsDisabled,
-		*stdoutLogsDisabled, *noExternalIP, *labels, currentExecutablePath, *storageLocation,
-		*uefiCompatible, *sysprepWindows, storageClient, paramPopulator)
-	return service.NewLoggableFromWorkflow(wf), err
+	// 3. Parse, validate, and populate arguments.
+	return parsed, parsed.ValidateAndPopulate(
+		paramPopulator, importer.NewSourceFactory(storageClient))
 }
 
-func main() {
-	flag.Parse()
+// terminate is used when there is a failure prior to running import. It sends
+// a message to the logging framework, and then executes os.Exit(1).
+func terminate(allArgs importer.ImportArguments, cause error) {
+	noOpCallback := func() (service.Loggable, error) {
+		return nil, cause
+	}
+	// Ignoring the returned error since its a copy of
+	// the return value from the callback.
+	_ = service.RunWithServerLogging(
+		service.ImageImportAction, initLoggingParams(allArgs), nil, noOpCallback)
+	os.Exit(1)
+}
 
-	paramLog := service.InputParams{
+func initLoggingParams(args importer.ImportArguments) service.InputParams {
+	return service.InputParams{
 		ImageImportParams: &service.ImageImportParams{
 			CommonParams: &service.CommonParams{
-				ClientID:                *clientID,
-				Network:                 *network,
-				Subnet:                  *subnet,
-				Zone:                    *zone,
-				Timeout:                 *timeout,
-				Project:                 *project,
-				ObfuscatedProject:       service.Hash(*project),
-				Labels:                  *labels,
-				ScratchBucketGcsPath:    *scratchBucketGcsPath,
-				Oauth:                   *oauth,
-				ComputeEndpointOverride: *ce,
-				DisableGcsLogging:       *gcsLogsDisabled,
-				DisableCloudLogging:     *cloudLogsDisabled,
-				DisableStdoutLogging:    *stdoutLogsDisabled,
+				ClientID:                args.ClientID,
+				Network:                 args.Network,
+				Subnet:                  args.Subnet,
+				Zone:                    args.Zone,
+				Timeout:                 args.Timeout.String(),
+				Project:                 args.Project,
+				ObfuscatedProject:       service.Hash(args.Project),
+				Labels:                  fmt.Sprintf("%v", args.Labels),
+				ScratchBucketGcsPath:    args.ScratchBucketGcsPath,
+				Oauth:                   args.Oauth,
+				ComputeEndpointOverride: args.ComputeEndpoint,
+				DisableGcsLogging:       args.GcsLogsDisabled,
+				DisableCloudLogging:     args.CloudLogsDisabled,
+				DisableStdoutLogging:    args.StdoutLogsDisabled,
 			},
-			ImageName:          *imageName,
-			DataDisk:           *dataDisk,
-			OS:                 *osID,
-			SourceFile:         *sourceFile,
-			SourceImage:        *sourceImage,
-			NoGuestEnvironment: *noGuestEnvironment,
-			Family:             *family,
-			Description:        *description,
-			NoExternalIP:       *noExternalIP,
-			HasKmsKey:          *kmsKey != "",
-			HasKmsKeyring:      *kmsKeyring != "",
-			HasKmsLocation:     *kmsLocation != "",
-			HasKmsProject:      *kmsProject != "",
-			StorageLocation:    *storageLocation,
+			ImageName:          args.ImageName,
+			DataDisk:           args.DataDisk,
+			OS:                 args.OS,
+			SourceFile:         args.SourceFile,
+			SourceImage:        args.SourceImage,
+			NoGuestEnvironment: args.NoGuestEnvironment,
+			Family:             args.Family,
+			Description:        args.Description,
+			NoExternalIP:       args.NoExternalIP,
+			StorageLocation:    args.StorageLocation,
 		},
-	}
-
-	if err := service.RunWithServerLogging(service.ImageImportAction, paramLog, project, importEntry); err != nil {
-		os.Exit(1)
 	}
 }
