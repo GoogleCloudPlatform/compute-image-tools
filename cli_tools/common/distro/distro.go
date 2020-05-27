@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/verify"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/assert"
 )
 
 const (
@@ -157,9 +157,9 @@ func commonLinuxDistros() []string {
 //   - distro is one of the distros returned by commonLinuxDistros().
 //   - major is >= 1 and minor is >= 0
 func newCommonLinuxRelease(distro string, major, minor int) (Release, error) {
-	verify.GreaterThanOrEqualTo(major, 1)
-	verify.GreaterThanOrEqualTo(minor, 0)
-	verify.Contains(distro, commonLinuxDistros())
+	assert.GreaterThanOrEqualTo(major, 1)
+	assert.GreaterThanOrEqualTo(minor, 0)
+	assert.Contains(distro, commonLinuxDistros())
 	return commonLinuxRelease{
 		distro: distro,
 		major:  major,
@@ -184,15 +184,15 @@ type slesRelease struct {
 // arguments do not follow SLES's naming system. Specifically:
 //   - variant may not have a hyphen in its name
 func newSLESRelease(distroAndVariant string, major, minor int) (Release, error) {
-	verify.GreaterThanOrEqualTo(major, 1)
-	verify.GreaterThanOrEqualTo(minor, 0)
+	assert.GreaterThanOrEqualTo(major, 1)
+	assert.GreaterThanOrEqualTo(minor, 0)
 	release := slesRelease{major: major, minor: minor}
 	parts := strings.Split(strings.ToLower(distroAndVariant), "-")
 	switch len(parts) {
 	case 1:
-		verify.Contains(distroAndVariant, []string{sles})
+		assert.Contains(distroAndVariant, []string{sles})
 	case 2:
-		verify.Contains(parts[0], []string{sles})
+		assert.Contains(parts[0], []string{sles})
 		release.variant = parts[1]
 	default:
 		return nil, fmt.Errorf("unrecognized SLES identifier: `%s`", distroAndVariant)
@@ -229,8 +229,8 @@ type ubuntuRelease struct {
 // arguments do not follow Ubuntu's naming system. Specifically:
 //   - minor version must be 4 or 10
 func newUbuntuRelease(major, minor int) (Release, error) {
-	verify.GreaterThanOrEqualTo(major, 1)
-	verify.GreaterThanOrEqualTo(minor, 0)
+	assert.GreaterThanOrEqualTo(major, 1)
+	assert.GreaterThanOrEqualTo(minor, 0)
 	if minor == 4 || minor == 10 {
 		return ubuntuRelease{major, minor}, nil
 	}
