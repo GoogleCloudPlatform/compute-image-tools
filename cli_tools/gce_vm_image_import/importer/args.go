@@ -24,6 +24,7 @@ import (
 
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 )
 
 // Flags that are validated.
@@ -38,6 +39,7 @@ const (
 // ImportArguments holds the structured results of parsing CLI arguments,
 // and optionally allows for validating and populating the arguments.
 type ImportArguments struct {
+	ExecutionID           string
 	ClientID              string
 	CloudLogsDisabled     bool
 	ComputeEndpoint       string
@@ -78,6 +80,7 @@ func NewImportArguments(args []string) (ImportArguments, error) {
 	flagSet.SetOutput(ioutil.Discard)
 
 	parsed := ImportArguments{
+		ExecutionID:           path.RandString(5),
 		CurrentExecutablePath: os.Args[0],
 	}
 

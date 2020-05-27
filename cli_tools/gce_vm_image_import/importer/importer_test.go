@@ -15,118 +15,192 @@
 package importer
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 )
 
-var (
-	currentExecutablePath, imageName, osID, customTranWorkflow,
-	family, description, network, subnet string
-	dataDisk, noGuestEnvironment, sysprepWindows bool
-	src                                          Source
-)
-
-func TestGetWorkflowPathsFromImage(t *testing.T) {
-	resetArgs()
-	src = imageSource{uri: "uri"}
-	osID = "ubuntu-1404"
-	workflow, translate := getWorkflowPaths(src, dataDisk, osID, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
-		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportFromImageWorkflow)
+func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
+	inflaterLogs := []string{"log-a", "log-b"}
+	finisherLogs := []string{"log-c", "log-d"}
+	expectedLogs := []string{"log-a", "log-b", "log-c", "log-d"}
+	mockFinisher := mockFinisher{
+		serialLogs: finisherLogs,
 	}
-}
-
-func TestGetWorkflowPathsDataDisk(t *testing.T) {
-	resetArgs()
-	dataDisk = true
-	osID = ""
-	src = fileSource{}
-	workflow, translate := getWorkflowPaths(src, dataDisk, osID, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath) || translate != "" {
-		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportWorkflow)
+	importer := importer{
+		inflater: &mockInflater{
+			serialLogs: inflaterLogs,
+			pd: pd{
+				sizeGb:     100,
+				sourceGb:   10,
+				sourceType: "vmdk",
+			},
+		},
+		finisherProvider: &mockFinisherProvider{
+			finisher: &mockFinisher,
+		},
 	}
+	loggable, actualError := importer.Run(context.Background())
+	assert.Nil(t, actualError)
+	assert.NotNil(t, loggable)
+	assert.Equal(t, expectedLogs, loggable.ReadSerialPortLogs())
+	assert.Equal(t, "vmdk", loggable.GetValue("import-file-format"))
+	assert.Equal(t, []int64{10}, loggable.GetValueAsInt64Slice("source-size-gb"))
+	assert.Equal(t, []int64{100}, loggable.GetValueAsInt64Slice("target-size-gb"))
+	assert.Equal(t, 1, mockFinisher.interactions)
 }
 
-func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
-	resetArgs()
-	imageName = "image-a"
-	src = imageSource{}
-	customTranWorkflow = "custom.wf"
-	osID = ""
+func TestRun_DeleteDisk(t *testing.T) {
+	project := "project"
+	zone := "zone"
+	diskURI := "uri"
+	mockDiskClient := mockDiskClient{}
 
-	workflow, translate := getWorkflowPaths(src, dataDisk, osID, customTranWorkflow, currentExecutablePath)
-	assert.Equal(t, path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath), workflow)
-	assert.Equal(t, translate, customTranWorkflow)
-}
-
-func TestGetWorkflowPathsFromFile(t *testing.T) {
-	homeDir := "/home/gce/"
-
-	resetArgs()
-	imageName = "image-a"
-	src = fileSource{}
-	currentExecutablePath = homeDir + "executable"
-
-	workflow, translate := getWorkflowPaths(src, dataDisk, osID, customTranWorkflow, currentExecutablePath)
-
-	if workflow != homeDir+WorkflowDir+ImportAndTranslateWorkflow {
-		t.Errorf("resulting workflow path `%v` does not match expected `%v`", workflow, homeDir+WorkflowDir+ImportAndTranslateWorkflow)
+	importer := importer{
+		project:    project,
+		zone:       zone,
+		diskClient: &mockDiskClient,
+		inflater: &mockInflater{
+			pd: pd{
+				uri: diskURI,
+			},
+		},
+		finisherProvider: &mockFinisherProvider{
+			finisher: &mockFinisher{},
+		},
 	}
+	_, actualError := importer.Run(context.Background())
+	assert.NoError(t, actualError)
+	assert.Equal(t, 1, mockDiskClient.interactions)
+	assert.Equal(t, project, mockDiskClient.project)
+	assert.Equal(t, zone, mockDiskClient.zone)
+	assert.Equal(t, diskURI, mockDiskClient.uri)
+}
 
-	if translate != "ubuntu/translate_ubuntu_1404.wf.json" {
-		t.Errorf("resulting translate workflow path `%v` does not match expected `%v`", translate, "ubuntu/translate_ubuntu_1404.wf.json")
+func TestRun_DontRunFinishIfInflateFails(t *testing.T) {
+	expectedError := errors.New("the errors")
+	mockFinisherProvider := mockFinisherProvider{}
+	importer := importer{
+		inflater: &mockInflater{
+			err: expectedError,
+		},
+		finisherProvider: &mockFinisherProvider,
 	}
+	loggable, actualError := importer.Run(context.Background())
+	assert.NotNil(t, loggable)
+	assert.Equal(t, expectedError, actualError)
+	assert.Equal(t, 0, mockFinisherProvider.interactions)
 }
 
-func TestBuildDaisyVarsWindowsSysprepEnabled(t *testing.T) {
-	resetArgs()
-	sysprepWindows = true
-	got := buildDaisyVars(src, "translate/workflow/path/windows", "image-a",
-		family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
-
-	assert.Equal(t, "true", got["sysprep_windows"])
+func TestRun_IncludeInflaterLogs_WhenFailureToCreateFinisher(t *testing.T) {
+	mockFinisher := mockFinisher{}
+	expectedError := errors.New("the errors")
+	expectedLogs := []string{"log-a", "log-b"}
+	importer := importer{
+		inflater: &mockInflater{
+			serialLogs: expectedLogs,
+			pd: pd{
+				sizeGb:     100,
+				sourceGb:   10,
+				sourceType: "vmdk",
+			},
+		},
+		finisherProvider: &mockFinisherProvider{
+			err:      expectedError,
+			finisher: &mockFinisher,
+		},
+	}
+	loggable, actualError := importer.Run(context.Background())
+	assert.Equal(t, expectedError, actualError)
+	assert.NotNil(t, loggable)
+	assert.Equal(t, expectedLogs, loggable.ReadSerialPortLogs())
+	assert.Equal(t, "vmdk", loggable.GetValue("import-file-format"))
+	assert.Equal(t, []int64{10}, loggable.GetValueAsInt64Slice("source-size-gb"))
+	assert.Equal(t, []int64{100}, loggable.GetValueAsInt64Slice("target-size-gb"))
+	assert.Equal(t, 0, mockFinisher.interactions)
 }
 
-func TestBuildDaisyVarsWindowsSysprepDisabled(t *testing.T) {
-	resetArgs()
-	sysprepWindows = false
-	got := buildDaisyVars(src, "translate/workflow/path/windows", "image-a",
-		family, description, "", subnet, network, noGuestEnvironment, sysprepWindows)
+func TestRun_DeleteDisk_WhenFailureToCreateFinisher(t *testing.T) {
+	project := "project"
+	zone := "zone"
+	diskURI := "uri"
+	mockDiskClient := mockDiskClient{}
 
-	assert.Equal(t, "false", got["sysprep_windows"])
+	expectedError := errors.New("the errors")
+	importer := importer{
+		project:    project,
+		zone:       zone,
+		diskClient: &mockDiskClient,
+		inflater: &mockInflater{
+			pd: pd{
+				uri: diskURI,
+			},
+		},
+		finisherProvider: &mockFinisherProvider{
+			err: expectedError,
+		},
+	}
+	_, actualError := importer.Run(context.Background())
+	assert.Equal(t, expectedError, actualError)
+	assert.Equal(t, 1, mockDiskClient.interactions)
+	assert.Equal(t, project, mockDiskClient.project)
+	assert.Equal(t, zone, mockDiskClient.zone)
+	assert.Equal(t, diskURI, mockDiskClient.uri)
 }
 
-func TestBuildDaisyVarsIsWindows(t *testing.T) {
-	resetArgs()
-	imageName = "image-a"
-
-	region := ""
-	got := buildDaisyVars(src, "translate/workflow/path/windows", imageName,
-		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
-
-	assert.Equal(t, "true", got["is_windows"])
+type mockFinisherProvider struct {
+	finisher     finisher
+	err          error
+	interactions int
 }
 
-func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
-	resetArgs()
-	imageName = "IMAGE-a"
-
-	region := ""
-	got := buildDaisyVars(src, "translate/workflow/path", imageName,
-		family, description, region, subnet, network, noGuestEnvironment, sysprepWindows)
-
-	assert.Equal(t, got["image_name"], "image-a")
+func (m *mockFinisherProvider) provide(pd pd) (finisher, error) {
+	m.interactions++
+	return m.finisher, m.err
 }
 
-func resetArgs() {
-	src = imageSource{uri: "global/images/source-image"}
-	osID = "ubuntu-1404"
-	dataDisk = false
-	sysprepWindows = false
-	imageName = "img"
-	customTranWorkflow = ""
-	currentExecutablePath = ""
+type mockFinisher struct {
+	serialLogs   []string
+	err          error
+	interactions int
+}
+
+func (m *mockFinisher) run(ctx context.Context) error {
+	m.interactions++
+	return m.err
+}
+
+func (m mockFinisher) serials() []string {
+	return m.serialLogs
+}
+
+type mockInflater struct {
+	serialLogs   []string
+	pd           pd
+	err          error
+	interactions int
+}
+
+func (m *mockInflater) inflate(ctx context.Context) (pd, error) {
+	m.interactions++
+	return m.pd, m.err
+}
+
+func (m mockInflater) serials() []string {
+	return m.serialLogs
+}
+
+type mockDiskClient struct {
+	interactions       int
+	project, zone, uri string
+}
+
+func (m *mockDiskClient) DeleteDisk(project, zone, uri string) error {
+	m.interactions++
+	m.project = project
+	m.zone = zone
+	m.uri = uri
+	return nil
 }
