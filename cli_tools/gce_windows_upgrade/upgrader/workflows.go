@@ -16,8 +16,10 @@ package upgrader
 
 import (
 	"fmt"
+	"os"
 
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
@@ -37,7 +39,8 @@ func (u *upgrader) prepare() (*daisy.Workflow, error) {
 }
 
 func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
-	w.Sources = map[string]string{"upgrade_script.ps1": fmt.Sprintf("./%v", upgradeScriptName[u.SourceOS])}
+	currentExecutablePath := os.Args[0]
+	w.Sources = map[string]string{"upgrade_script.ps1": path.ToWorkingDir(upgradeScriptName[u.SourceOS], currentExecutablePath)}
 
 	stepStopInstance, err := daisyutils.NewStep(w, "stop-instance")
 	if err != nil {
