@@ -15,7 +15,6 @@
 package importer
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -27,7 +26,6 @@ import (
   "os"
   "os/exec"
   "path"
-  "path/filepath"
   "regexp"
   "runtime"
 	"strconv"
@@ -39,10 +37,8 @@ import (
   storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/aws/aws-sdk-go/aws"
-  "github.com/aws/aws-sdk-go/aws/client"
   "github.com/aws/aws-sdk-go/aws/session"
   "github.com/aws/aws-sdk-go/service/s3"
-  "github.com/aws/aws-sdk-go/service/s3/s3manager"
   "github.com/dustin/go-humanize"
   "google.golang.org/api/googleapi"
   "google.golang.org/api/option"
@@ -59,7 +55,6 @@ var (
 
 	workers = runtime.NumCPU()
   gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
-  oauth string
 )
 
 // Parameter key shared with other packages
@@ -253,7 +248,6 @@ func (b *bufferedWriter) Write(d []byte) (int, error) {
 			return 0, err
 		}
 	}
-
 	b.bytes += int64(len(d))
 	if b.bytes >= b.cSize {
 		if err := b.flush(); err != nil {
@@ -317,14 +311,13 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	}
 	tmpFilePath := fmt.Sprintf("gs://fionaliu-daisy-bkt-us-east1/onestep-import/tmp-%v/tmp-%v.vmdk", awsRand, awsRand)
 
-	// 0. aws configure
-	// use values in ~/.aws/config and ~/.aws/credentials
-  sess := session.Must(session.NewSessionWithOptions(session.Options {
-    SharedConfigState: session.SharedConfigEnable,
-  }))
+// 0. aws2 configure
+	err := configure(awsAccessKeyId, awsSecrectAccessKey, awsRegion)
+	if err != nil {
+		return nil, err
+	}
 
 	var exportedFilePath string
-	var err error
 	if !skipAwsExport {
 		// 1. export: aws ec2 export-image --image-id ami-0bdc89ef2ef39dd0a --disk-image-format VMDK --s3-export-location S3Bucket=dntczdx,S3Prefix=exports/
 		//runCliTool("./gce_onestep_image_import", []string{""})
@@ -336,14 +329,13 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		exportedFilePath = fmt.Sprintf("s3://%v/%v/%v.vmdk", awsExportBucket, awsExportFolder, awsExportTid)
 	}
 
-  key, size, err := getAwsFileInfo(exportedFilePath, awsExportBucket)
+  awsExportKey := strings.TrimPrefix(exportedFilePath, "s3://"+awsExportBucket+"/")
+  fileSize, err := getAwsFileSize(awsExportBucket, awsExportKey)
   if err != nil {
     return nil, err
   }
-  awsFileInfo := AwsFileInfo{awsExportBucket, key, size}
-
 	// 2. copy: gsutil cp s3://dntczdx/exports/export-ami-0b768c1d619f93184.vmdk gs://tzz-noogler-3-daisy-bkt/amazon1.vmdk
-	if err := copyToGcs(&awsFileInfo, tmpFilePath, oauth, sess); err != nil {
+	if err := copyToGcs(awsExportBucket, awsExportKey, fileSize, tmpFilePath, oauth); err != nil {
 		return nil, err
 	}
 
@@ -354,6 +346,22 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		project, scratchBucketGcsPath, oauth, ce, gcsLogsDisabled, cloudLogsDisabled,
 		stdoutLogsDisabled, kmsKey, kmsKeyring, kmsLocation, kmsProject, noExternalIP,
 		labels, currentExecutablePath, storageLocation, uefiCompatible)
+}
+
+func getAwsFileSize(awsExportBucket string, awsExportKey string) (int64, error) {
+  output, err := runCmdAndGetOutput("aws", []string{"s3api", "head-object", "--bucket", fmt.Sprintf("%v", awsExportBucket), "--key", fmt.Sprintf("%v", awsExportKey)})
+  if err != nil {
+    return 0, err
+  }
+  var resp map[string]interface{}
+  if err := json.Unmarshal(output, &resp); err != nil {
+    return 0, err
+  }
+  fileSize := int64(resp["ContentLength"].(float64))
+  if fileSize == 0 {
+    return 0, fmt.Errorf("File is empty")
+  }
+  return fileSize, nil
 }
 
 func configure(awsAccessKeyId string, awsSecrectAccessKey string, awsRegion string) error {
@@ -381,14 +389,6 @@ type AwsExportImageTasks struct {
 	StatusMessage string `json:omitempty`
 	Progress string `json:omitempty`
 }
-
-type AwsFileInfo struct {
-  Bucket string
-  Key string
-  Size int64
-}
-
-
 
 func exportAwsImage(awsImageId string, awsExportBucket string, awsExportFolder string) (string, error) {
 	output, err := runCmdAndGetOutput("aws", []string{"ec2", "export-image", "--image-id", awsImageId, "--disk-image-format", "VMDK", "--s3-export-location",
@@ -436,86 +436,71 @@ func exportAwsImage(awsImageId string, awsExportBucket string, awsExportFolder s
 }
 
 
-func downloadFromS3(fileInfo *AwsFileInfo, sess client.ConfigProvider) (io.Reader, error) {
-  downloader := s3manager.NewDownloader(sess, func(d *s3manager.Downloader) {
-    d.PartSize = 50 * 1024 * 1024 // 50MB per part
-    d.Concurrency = 8
-  })
-  buf := aws.NewWriteAtBuffer(make([]byte, fileInfo.Size))
-  n, err := downloader.Download(buf,
-          &s3.GetObjectInput{
-              Bucket: aws.String(fileInfo.Bucket),
-              Key:    aws.String(fileInfo.Key),
-              Range:  aws.String("bytes=0-9"),
-          })
-  if err != nil {
-    log.Println(fmt.Sprintf("Error in downloading from bucket %v, key %v: %v \n", fileInfo.Bucket, fileInfo.Key, err))
-    return nil, err
-  }
-  log.Println("downloaded: ", n)
-  return bytes.NewReader(buf.Bytes()), nil
-}
+func stream(awsBucket string, awsKey string, size int64, writer *bufferedWriter) (error) {
+  log.Println("Downloading from s3 ...")
+  sess := session.Must(session.NewSessionWithOptions(session.Options {
+    SharedConfigState: session.SharedConfigEnable,
+  }))
+  client := s3.New(sess)
+  wg := new(sync.WaitGroup)
+  var dmutex sync.Mutex
+  readers := workers/2
+  readSize := int(math.Ceil(float64(size)/float64(readers)))
 
+  for i := 0; i < readers; i++ {
+    offset := i*int(readSize)
+    readRange := strconv.Itoa(offset)+"-"+strconv.Itoa(offset+int(readSize)-1)
 
-func stream(ctx context.Context, oauth string, src io.Reader, size int64, prefix, bkt, obj string) error {
-  bs, err := humanize.ParseBytes("500MB")
-  if err != nil {
-    return err
-  }
+    res, err := client.GetObject(&s3.GetObjectInput{
+                  Bucket: aws.String(awsBucket),
+                  Key: aws.String(awsKey),
+                  Range: aws.String("bytes="+readRange),
+                })
 
-  prefix, err = filepath.Abs(prefix)
-  if err != nil {
-    return err
-  }
-  writer := newBuffer(ctx, oauth, int64(bs), int64(workers), prefix, bkt, obj)
-
-  if _, err := io.CopyN(writer, src, size); err != nil {
-  		return err
+    if err != nil {
+      log.Println(fmt.Sprintf("Error in downloading from bucket %v, key %v: %v \n", awsBucket, awsKey, err))
+      return err
+    }
+    wg.Add(1)
+    go func(writer *bufferedWriter, res *s3.GetObjectOutput) {
+      defer wg.Done()
+      dmutex.Lock()
+      defer dmutex.Unlock()
+      defer res.Body.Close()
+      io.Copy(writer, res.Body)
+    }(writer, res)
   }
 
+  wg.Wait()
   if err := writer.Close(); err != nil {
-  		return err
+    return err
   }
   return nil
 }
 
-func getAwsFileInfo(awsFilePath string, awsExportBucket string) (string, int64, error) {
-  awsExportKey := strings.TrimPrefix(awsFilePath, "s3://"+awsExportBucket+"/")
-  output, err := runCmdAndGetOutput("aws", []string{"s3api", "head-object", "--bucket", fmt.Sprintf("%v", awsExportBucket), "--key", fmt.Sprintf("%v", awsExportKey)})
+func copyToGcs(awsBucket string, awsKey string, size int64,gcsFilePath string, oauth string) error {
+	log.Println("Copying from ec2 to s3...")
+	bs, err := humanize.ParseBytes("500MB")
   if err != nil {
-    return "", 0, err
-  }
-  var resp map[string]interface{}
-  if err := json.Unmarshal(output, &resp); err != nil {
-    return "", 0, err
-  }
-  fileSize := int64(resp["ContentLength"].(float64))
-  if fileSize == 0 {
-    return "", 0, fmt.Errorf("File is empty")
-  }
-  return awsExportKey, fileSize, nil
-}
-
-func copyToGcs(awsFileInfo *AwsFileInfo, gcsFilePath string, oauth string, sess client.ConfigProvider) error {
-	log.Println("Copying from ec2 to cache...")
-	src, err := downloadFromS3(awsFileInfo, sess)
-	if err != nil {
-  		return err
+    return err
   }
 
-	log.Println("Copying from buffer to gcs...")
   ctx := context.Background()
   bkt, obj, err := storageutils.GetGCSObjectPathElements(gcsFilePath)
   if err != nil {
     log.Fatal(err)
   }
-  err = stream(ctx, oauth, src, awsFileInfo.Size, "/tmp", bkt, obj)
+  writer := newBuffer(ctx, oauth, int64(bs), int64(workers), "/tmp", bkt, obj)
+  err = stream(awsBucket, awsKey,size, writer)
+  if err != nil {
+    return err
+  }
 	log.Println("Copied.")
 
   return nil
 
 
-	// gsutil cp tmp gs://tzz-noogler-3-daisy-bkt/amazon1.vmdk
+//   gsutil cp tmp gs://tzz-noogler-3-daisy-bkt/amazon1.vmdk
 // 	log.Println("Copying from cache to gcs...")
 // 	err = runCmd("gsutil", []string{"cp", awsFilePath, gcsFilePath})
 // 	if err != nil {
