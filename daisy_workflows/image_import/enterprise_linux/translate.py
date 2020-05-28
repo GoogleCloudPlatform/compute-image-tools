@@ -118,6 +118,8 @@ def DistroSpecific(g):
       logging.info('Installing python27 from SCL.')
       yum_install(g, 'python27')
       g.command(['scl', 'enable', 'python27',
+                 'pip2.7 install --upgrade pip'])
+      g.command(['scl', 'enable', 'python27',
                  'pip2.7 install --upgrade google_compute_engine'])
 
       logging.info('Installing Google Cloud SDK from tar.')
