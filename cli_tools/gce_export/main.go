@@ -40,15 +40,15 @@ import (
 )
 
 var (
-	disk                     = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive1'")
-	bufferPrefix             = flag.String("buffer_prefix", "", "if set will use this local path as the local buffer prefix")
-	gcsPath                  = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
-	oauth                    = flag.String("oauth", "", "path to oauth json file")
-	licenses                 = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
-	noconfirm                = flag.Bool("y", false, "skip confirmation")
-	level                    = flag.Int("level", 3, "level of compression from 1-9, 1 being best speed, 9 being best compression")
-	bufferSize               = flag.String("buffer_size", "1GiB", "max buffer size to use")
-	workers                  = flag.Int("workers", runtime.NumCPU(), "number of upload workers to utilize")
+	disk         = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive1'")
+	bufferPrefix = flag.String("buffer_prefix", "", "if set will use this local path as the local buffer prefix")
+	gcsPath      = flag.String("gcs_path", "", "GCS path to upload the image to, gs://my-bucket/image.tar.gz")
+	oauth        = flag.String("oauth", "", "path to oauth json file")
+	licenses     = flag.String("licenses", "", "comma delimited list of licenses to add to the image")
+	noconfirm    = flag.Bool("y", false, "skip confirmation")
+	level        = flag.Int("level", 3, "level of compression from 1-9, 1 being best speed, 9 being best compression")
+	bufferSize   = flag.String("buffer_size", "1GiB", "max buffer size to use")
+	workers      = flag.Int("workers", runtime.NumCPU(), "number of upload workers to utilize")
 )
 
 // progress is a io.Writer that updates total in Write.
@@ -63,7 +63,6 @@ func (p *progress) Write(b []byte) (int, error) {
 	p.lock.Unlock()
 	return len(b), nil
 }
-
 
 func splitLicenses(input string) []string {
 	if input == "" {
@@ -215,8 +214,8 @@ func stream(ctx context.Context, src *os.File, size int64, prefix, bkt, obj stri
 		}
 		client, err := gcsClient(ctx)
 		if err != nil {
-    		return err
-    }
+			return err
+		}
 		buf := storageutils.NewBuffer(ctx, client, int64(bs), int64(*workers), prefix, bkt, obj)
 
 		fmt.Printf("GCEExport: Using %q as the buffer prefix, %s as the buffer size, and %d as the number of workers.\n", prefix, humanize.IBytes(bs), *workers)

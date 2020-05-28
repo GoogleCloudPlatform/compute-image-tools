@@ -15,25 +15,26 @@
 package storage
 
 import (
-  "context"
-  "fmt"
-  "io"
-  "log"
-  "math"
-  "math/rand"
-  "os"
-  "path"
-  "regexp"
-  "strconv"
-  "strings"
-  "sync"
-  "time"
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"math"
+	"math/rand"
+	"os"
+	"path"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 
 	"cloud.google.com/go/storage"
-  "google.golang.org/api/googleapi"
+	"google.golang.org/api/googleapi"
 )
 
-var	gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
+var gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
+
 const letters = "bdghjlmnpqrstvwxyz0123456789"
 
 func randString(n int) string {
@@ -50,7 +51,7 @@ type bufferedWriter struct {
 	cSize    int64
 	prefix   string
 	ctx      context.Context
-  clientMx sync.Mutex
+	clientMx sync.Mutex
 	client   *storage.Client
 	id       string
 	bkt, obj string
@@ -88,7 +89,7 @@ func (b *bufferedWriter) uploadWorker() {
 
 				b.clientMx.Lock()
 				dst := b.client.Bucket(b.bkt).Object(tmpObj).NewWriter(b.ctx)
-        b.clientMx.Unlock()
+				b.clientMx.Unlock()
 
 				if _, err := io.Copy(dst, file); err != nil {
 					if io.EOF != err {
