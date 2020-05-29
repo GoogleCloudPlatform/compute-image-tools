@@ -1,0 +1,15 @@
+# This file enables automatic assignment of PR reviewers.
+# See the OWNERS docs at https://go.k8s.io/owners
+
+approvers:
+  - adjackura
+  - zoran15
+  - hopkiw
+  - EricEdens
+  - dntczdx
+reviewers:
+  - adjackura
+  - zoran15
+  - hopkiw
+  - EricEdens
+  - dntczdx
