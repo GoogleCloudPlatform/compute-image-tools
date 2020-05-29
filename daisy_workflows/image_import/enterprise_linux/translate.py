@@ -165,8 +165,7 @@ def DistroSpecific(g):
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
-    if el_release == '8' and not g.exists(
-        os.path.join('/lib/modules', kver, 'modules.dep')):
+    if not g.exists(os.path.join('/lib/modules', kver, 'modules.dep')):
       g.command(['depmod', kver])
     if el_release == '6':
       # Version 6 doesn't have option --kver
