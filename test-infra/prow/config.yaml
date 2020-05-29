@@ -210,7 +210,7 @@ periodics:
    agent: kubernetes
    spec:
      containers:
-     - image: gcr.io/compute-image-tools-test/gce-windwos-upgrade-tests:latest
+     - image: gcr.io/compute-image-tools-test/gce-windows-upgrade-tests:latest
        args:
        - "-out_dir=/artifacts"
        - "-test_project_id=compute-image-test-pool-001"
