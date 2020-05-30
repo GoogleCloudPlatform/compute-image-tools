@@ -263,7 +263,7 @@ import. Below is a list of known compatibility requirements and issues:
 
 | Name | Severity | Description |
 |---|---|---|
-| OS Version | Required | We support the following OS versions: Windows Server 2008 R2, 2012 R2, or 2016. |
+| OS Version | Required | We support the following OS versions: Windows Server 2008 R2, 2012 R2, 2016, or 2019. |
 | OS Disk | Required | The disk containing the OS must be bootable and must be MBR. |
 | Multiple Disks | Warning  | Image import cannot directly handle multiple disk scenarios. Additional disks must be imported and attached separately. |
 | Powershell (Windows) | Warning | Warn if Powershell Version < 3. Powershell versions older than 3.0 can cause issues with GCE startup and shutdown scripts. |
