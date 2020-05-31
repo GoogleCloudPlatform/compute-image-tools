@@ -21,6 +21,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"net/http"
 	"os"
 	"path"
 	"regexp"
@@ -31,6 +32,8 @@ import (
 
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
 )
 
 var gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
@@ -51,8 +54,7 @@ type bufferedWriter struct {
 	cSize    int64
 	prefix   string
 	ctx      context.Context
-	clientMx sync.Mutex
-	client   *storage.Client
+	oauth    string
 	id       string
 	bkt, obj string
 
@@ -78,6 +80,12 @@ func (b *bufferedWriter) uploadWorker() {
 	for in := range b.upload {
 		for i := 1; ; i++ {
 			err := func() error {
+				client, err := gcsClient(b.ctx, b.oauth)
+				if err != nil {
+					return err
+				}
+				defer client.Close()
+
 				file, err := os.Open(in)
 				if err != nil {
 					return err
@@ -86,16 +94,13 @@ func (b *bufferedWriter) uploadWorker() {
 
 				tmpObj := path.Join(b.obj, strings.TrimPrefix(in, b.prefix))
 				b.addObj(tmpObj)
-
-				b.clientMx.Lock()
-				dst := b.client.Bucket(b.bkt).Object(tmpObj).NewWriter(b.ctx)
-				b.clientMx.Unlock()
-
+				dst := client.Bucket(b.bkt).Object(tmpObj).NewWriter(b.ctx)
 				if _, err := io.Copy(dst, file); err != nil {
 					if io.EOF != err {
 						return err
 					}
 				}
+
 				return dst.Close()
 			}()
 			if err != nil {
@@ -151,9 +156,11 @@ func (b *bufferedWriter) Close() error {
 	close(b.upload)
 	b.Wait()
 
-	b.clientMx.Lock()
-	defer b.clientMx.Unlock()
-	defer b.client.Close()
+	client, err := gcsClient(b.ctx, b.oauth)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
 
 	// Compose the object.
 	for i := 0; ; i++ {
@@ -161,16 +168,16 @@ func (b *bufferedWriter) Close() error {
 		// Max 32 components in a single compose.
 		l := math.Min(float64(32), float64(len(b.tmpObjs)))
 		for _, obj := range b.tmpObjs[:int(l)] {
-			objs = append(objs, b.client.Bucket(b.bkt).Object(obj))
+			objs = append(objs, client.Bucket(b.bkt).Object(obj))
 		}
 		if len(objs) == 1 {
-			if _, err := b.client.Bucket(b.bkt).Object(b.obj).CopierFrom(objs[0]).Run(b.ctx); err != nil {
+			if _, err := client.Bucket(b.bkt).Object(b.obj).CopierFrom(objs[0]).Run(b.ctx); err != nil {
 				return err
 			}
 			objs[0].Delete(b.ctx)
 			break
 		}
-		newObj := b.client.Bucket(b.bkt).Object(path.Join(b.obj, b.id+"_compose_"+strconv.Itoa(i)))
+		newObj := client.Bucket(b.bkt).Object(path.Join(b.obj, b.id+"_compose_"+strconv.Itoa(i)))
 		b.tmpObjs = append([]string{newObj.ObjectName()}, b.tmpObjs[int(l):]...)
 		if _, err := newObj.ComposerFrom(objs...).Run(b.ctx); err != nil {
 			return err
@@ -210,7 +217,27 @@ func (b *bufferedWriter) Write(d []byte) (int, error) {
 	return n, nil
 }
 
-func NewBuffer(ctx context.Context, client *storage.Client, size, workers int64, prefix, bkt, obj string) *bufferedWriter {
+func gcsClient(ctx context.Context, oauth string) (*storage.Client, error) {
+	//return storage.NewClient(ctx)
+	baseTransport := &http.Transport{
+		DisableKeepAlives:     false,
+		MaxIdleConns:          0,
+		MaxIdleConnsPerHost:   1000,
+		MaxConnsPerHost:       0,
+		IdleConnTimeout:       60 * time.Second,
+		ResponseHeaderTimeout: 5 * time.Second,
+		TLSHandshakeTimeout:   5 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+	transport, err := htransport.NewTransport(ctx, baseTransport)
+	if err != nil {
+		return nil, err
+	}
+	return storage.NewClient(ctx, option.WithHTTPClient(&http.Client{Transport: transport}),
+		option.WithCredentialsFile(oauth))
+}
+
+func NewBuffer(ctx context.Context, size, workers int64, oauth, prefix, bkt, obj string) *bufferedWriter {
 	b := &bufferedWriter{
 		cSize:  size / workers,
 		prefix: prefix,
@@ -220,7 +247,7 @@ func NewBuffer(ctx context.Context, client *storage.Client, size, workers int64,
 		bkt:    bkt,
 		obj:    obj,
 		ctx:    ctx,
-		client: client,
+		oauth:  oauth,
 	}
 	for i := int64(0); i < workers; i++ {
 		b.Add(1)
