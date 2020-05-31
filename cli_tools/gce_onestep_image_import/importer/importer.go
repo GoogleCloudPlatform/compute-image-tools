@@ -21,29 +21,29 @@ import (
 	"io"
 	"log"
 	"math"
-  "math/rand"
-  "net/http"
-  "os"
-  "os/exec"
-  "path"
-  "regexp"
-  "runtime"
+	"math/rand"
+	"net/http"
+	"os"
+	"os/exec"
+	"path"
+	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
-  "sync"
+	"sync"
 	"time"
 
-  "cloud.google.com/go/storage"
-  storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"cloud.google.com/go/storage"
+	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/aws/aws-sdk-go/aws"
-  "github.com/aws/aws-sdk-go/aws/session"
-  "github.com/aws/aws-sdk-go/service/s3"
-  "github.com/dustin/go-humanize"
-  "google.golang.org/api/googleapi"
-  "google.golang.org/api/option"
-  htransport "google.golang.org/api/transport/http"
-  imageImporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/dustin/go-humanize"
+	"google.golang.org/api/googleapi"
+	"google.golang.org/api/option"
+	htransport "google.golang.org/api/transport/http"
+	imageImporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
 )
 
 // Make file paths mutable
@@ -53,8 +53,8 @@ var (
 	ImportFromImageWorkflow    = "import_from_image.wf.json"
 	ImportAndTranslateWorkflow = "import_and_translate.wf.json"
 
-	workers = runtime.NumCPU()
-  gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
+	workers                  = runtime.NumCPU()
+	gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
 )
 
 // Parameter key shared with other packages
@@ -65,9 +65,8 @@ const (
 
 const (
 	logPrefix = "[import-image]"
-	letters = "bdghjlmnpqrstvwxyz0123456789"
+	letters   = "bdghjlmnpqrstvwxyz0123456789"
 )
-
 
 func randString(n int) string {
 	gen := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -95,7 +94,7 @@ func gcsClient(ctx context.Context, oauth string) (*storage.Client, error) {
 		return nil, err
 	}
 	return storage.NewClient(ctx, option.WithHTTPClient(&http.Client{Transport: transport}),
-	option.WithCredentialsFile(oauth))
+		option.WithCredentialsFile(oauth))
 }
 
 // Upload buffer writer
@@ -292,7 +291,6 @@ func validateAndParseFlags(clientID string, imageName string, sourceFile string,
 	return "", "", nil, nil
 }
 
-
 // Run runs import workflow.
 func Run(clientID string, imageName string, dataDisk bool, osID string, customTranWorkflow string,
 		noGuestEnvironment bool, family string, description string,
@@ -311,7 +309,7 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 	}
 	tmpFilePath := fmt.Sprintf("gs://fionaliu-daisy-bkt-us-east1/onestep-import/tmp-%v/tmp-%v.vmdk", awsRand, awsRand)
 
-// 0. aws2 configure
+	// 0. aws2 configure
 	err := configure(awsAccessKeyId, awsSecrectAccessKey, awsRegion)
 	if err != nil {
 		return nil, err
@@ -329,11 +327,11 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 		exportedFilePath = fmt.Sprintf("s3://%v/%v/%v.vmdk", awsExportBucket, awsExportFolder, awsExportTid)
 	}
 
-  awsExportKey := strings.TrimPrefix(exportedFilePath, "s3://"+awsExportBucket+"/")
-  fileSize, err := getAwsFileSize(awsExportBucket, awsExportKey)
-  if err != nil {
-    return nil, err
-  }
+	awsExportKey := strings.TrimPrefix(exportedFilePath, "s3://"+awsExportBucket+"/")
+	fileSize, err := getAwsFileSize(awsExportBucket, awsExportKey)
+	if err != nil {
+		return nil, err
+	}
 	// 2. copy: gsutil cp s3://dntczdx/exports/export-ami-0b768c1d619f93184.vmdk gs://tzz-noogler-3-daisy-bkt/amazon1.vmdk
 	if err := copyToGcs(awsExportBucket, awsExportKey, fileSize, tmpFilePath, oauth); err != nil {
 		return nil, err
@@ -349,19 +347,19 @@ func Run(clientID string, imageName string, dataDisk bool, osID string, customTr
 }
 
 func getAwsFileSize(awsExportBucket string, awsExportKey string) (int64, error) {
-  output, err := runCmdAndGetOutput("aws", []string{"s3api", "head-object", "--bucket", fmt.Sprintf("%v", awsExportBucket), "--key", fmt.Sprintf("%v", awsExportKey)})
-  if err != nil {
-    return 0, err
-  }
-  var resp map[string]interface{}
-  if err := json.Unmarshal(output, &resp); err != nil {
-    return 0, err
-  }
-  fileSize := int64(resp["ContentLength"].(float64))
-  if fileSize == 0 {
-    return 0, fmt.Errorf("File is empty")
-  }
-  return fileSize, nil
+	output, err := runCmdAndGetOutput("aws", []string{"s3api", "head-object", "--bucket", fmt.Sprintf("%v", awsExportBucket), "--key", fmt.Sprintf("%v", awsExportKey)})
+	if err != nil {
+		return 0, err
+	}
+	var resp map[string]interface{}
+	if err := json.Unmarshal(output, &resp); err != nil {
+		return 0, err
+	}
+	fileSize := int64(resp["ContentLength"].(float64))
+	if fileSize == 0 {
+		return 0, fmt.Errorf("File is empty")
+	}
+	return fileSize, nil
 }
 
 func configure(awsAccessKeyId string, awsSecrectAccessKey string, awsRegion string) error {
@@ -385,9 +383,9 @@ type AwsTaskResponse struct {
 }
 
 type AwsExportImageTasks struct {
-	Status string `json:omitempty`
+	Status        string `json:omitempty`
 	StatusMessage string `json:omitempty`
-	Progress string `json:omitempty`
+	Progress      string `json:omitempty`
 }
 
 func exportAwsImage(awsImageId string, awsExportBucket string, awsExportFolder string) (string, error) {
@@ -422,7 +420,7 @@ func exportAwsImage(awsImageId string, awsExportBucket string, awsExportFolder s
 		}
 		log.Println(fmt.Sprintf("AWS export task status: %v, status message: %v, progress: %v", taskResp.ExportImageTasks[0].Status, taskResp.ExportImageTasks[0].StatusMessage, taskResp.ExportImageTasks[0].Progress))
 
-		if taskResp.ExportImageTasks[0].Status !=  "active" {
+		if taskResp.ExportImageTasks[0].Status != "active" {
 			if taskResp.ExportImageTasks[0].Status != "completed" {
 				return "", fmt.Errorf("AWS export task wasn't completed successfully.")
 			}
@@ -435,80 +433,83 @@ func exportAwsImage(awsImageId string, awsExportBucket string, awsExportFolder s
 	return fmt.Sprintf("s3://%v/%v/%v.vmdk", awsExportBucket, awsExportFolder, tid), nil
 }
 
-
 func stream(awsBucket string, awsKey string, size int64, writer *bufferedWriter) (error) {
-  log.Println("Downloading from s3 ...")
-  sess := session.Must(session.NewSessionWithOptions(session.Options {
-    SharedConfigState: session.SharedConfigEnable,
-  }))
-  client := s3.New(sess)
-  wg := new(sync.WaitGroup)
-  var dmutex sync.Mutex
-  readers := workers/2
-  readSize := int(math.Ceil(float64(size)/float64(readers)))
+	log.Println("Downloading from s3 ...")
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+	client := s3.New(sess)
+	wg := new(sync.WaitGroup)
+	var dmutex sync.Mutex
+	readers := workers * 2
+	readSize := int(math.Ceil(float64(size) / float64(readers)))
+	log.Println("readers:", readers)
+	start := time.Now()
+	for i := 0; i < readers; i++ {
+		offset := i * int(readSize)
+		readRange := strconv.Itoa(offset) + "-" + strconv.Itoa(offset+int(readSize)-1)
 
-  for i := 0; i < readers; i++ {
-    offset := i*int(readSize)
-    readRange := strconv.Itoa(offset)+"-"+strconv.Itoa(offset+int(readSize)-1)
+		res, err := client.GetObject(&s3.GetObjectInput{
+			Bucket: aws.String(awsBucket),
+			Key:    aws.String(awsKey),
+			Range:  aws.String("bytes=" + readRange),
+		})
 
-    res, err := client.GetObject(&s3.GetObjectInput{
-                  Bucket: aws.String(awsBucket),
-                  Key: aws.String(awsKey),
-                  Range: aws.String("bytes="+readRange),
-                })
+		if err != nil {
+			log.Println(fmt.Sprintf("Error in downloading from bucket %v, key %v: %v \n", awsBucket, awsKey, err))
+			return err
+		}
+		log.Println("downloaded")
+		wg.Add(1)
+		go func(writer *bufferedWriter, res *s3.GetObjectOutput) {
+			defer wg.Done()
+			dmutex.Lock()
+			defer dmutex.Unlock()
+			defer res.Body.Close()
+			io.Copy(writer, res.Body)
+			log.Println("uploaded")
+		}(writer, res)
+	}
 
-    if err != nil {
-      log.Println(fmt.Sprintf("Error in downloading from bucket %v, key %v: %v \n", awsBucket, awsKey, err))
-      return err
-    }
-    wg.Add(1)
-    go func(writer *bufferedWriter, res *s3.GetObjectOutput) {
-      defer wg.Done()
-      dmutex.Lock()
-      defer dmutex.Unlock()
-      defer res.Body.Close()
-      io.Copy(writer, res.Body)
-    }(writer, res)
-  }
-
-  wg.Wait()
-  if err := writer.Close(); err != nil {
-    return err
-  }
-  return nil
+	wg.Wait()
+	if err := writer.Close(); err != nil {
+		return err
+	}
+	since := time.Since(start)
+	log.Printf("Finished transferring in %s.", since)
+	return nil
 }
 
-func copyToGcs(awsBucket string, awsKey string, size int64,gcsFilePath string, oauth string) error {
+func copyToGcs(awsBucket string, awsKey string, size int64, gcsFilePath string, oauth string) error {
 	log.Println("Copying from ec2 to s3...")
 	bs, err := humanize.ParseBytes("500MB")
-  if err != nil {
-    return err
-  }
+	if err != nil {
+		return err
+	}
 
-  ctx := context.Background()
-  bkt, obj, err := storageutils.GetGCSObjectPathElements(gcsFilePath)
-  if err != nil {
-    log.Fatal(err)
-  }
-  writer := newBuffer(ctx, oauth, int64(bs), int64(workers), "/tmp", bkt, obj)
-  err = stream(awsBucket, awsKey,size, writer)
-  if err != nil {
-    return err
-  }
+	ctx := context.Background()
+	bkt, obj, err := storageutils.GetGCSObjectPathElements(gcsFilePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	writer := newBuffer(ctx, oauth, int64(bs), int64(workers), "/tmp", bkt, obj)
+	err = stream(awsBucket, awsKey, size, writer)
+	if err != nil {
+		return err
+	}
 	log.Println("Copied.")
 
-  return nil
+	return nil
 
-
-//   gsutil cp tmp gs://tzz-noogler-3-daisy-bkt/amazon1.vmdk
-// 	log.Println("Copying from cache to gcs...")
-// 	err = runCmd("gsutil", []string{"cp", awsFilePath, gcsFilePath})
-// 	if err != nil {
-// 		return err
-// 	}
-// 	log.Println("Copied.")
-//
-// 	return nil
+	//   gsutil cp tmp gs://tzz-noogler-3-daisy-bkt/amazon1.vmdk
+	// 	log.Println("Copying from cache to gcs...")
+	// 	err = runCmd("gsutil", []string{"cp", awsFilePath, gcsFilePath})
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	log.Println("Copied.")
+	//
+	// 	return nil
 }
 
 func runCmd(cmdString string, args []string) error {

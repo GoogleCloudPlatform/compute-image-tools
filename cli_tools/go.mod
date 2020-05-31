@@ -8,6 +8,7 @@ require (
 	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200128181915-c0775e429077
 	github.com/GoogleCloudPlatform/compute-image-tools/mocks v0.0.0-20200114194943-8842c1d85084
 	github.com/GoogleCloudPlatform/osconfig v0.0.0-20200128231920-2ddeb2407498
+	github.com/aws/aws-sdk-go v1.31.7
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-ole/go-ole v1.2.4
 	github.com/golang/mock v1.3.1
@@ -17,7 +18,7 @@ require (
 	github.com/klauspost/pgzip v1.2.1
 	github.com/kylelemons/godebug v1.1.0
 	github.com/minio/highwayhash v1.0.0
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/vmware/govmomi v0.22.1
 	golang.org/x/exp v0.0.0-20200119233911-0405dc783f0a
 	golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
