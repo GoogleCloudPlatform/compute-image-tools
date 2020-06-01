@@ -64,8 +64,11 @@ const (
 )
 
 const (
-	logPrefix = "[import-image]"
-	letters   = "bdghjlmnpqrstvwxyz0123456789"
+	downloadBufSize = "100MB"
+	downloadBufNum  = 3
+	uploadBufSize   = "500MB"
+	logPrefix       = "[import-image]"
+	letters         = "bdghjlmnpqrstvwxyz0123456789"
 )
 
 func randString(n int) string {
@@ -440,12 +443,19 @@ func stream(awsBucket string, awsKey string, size int64, writer *bufferedWriter)
 	}))
 	client := s3.New(sess)
 	wg := new(sync.WaitGroup)
+	sem := make(chan struct{}, downloadBufNum)
 	var dmutex sync.Mutex
-	readers := workers * 2
-	readSize := int(math.Ceil(float64(size) / float64(readers)))
+	readSize, err := humanize.ParseBytes(downloadBufSize)
+	if err != nil {
+		return err
+	}
+	readers := int(math.Ceil(float64(size) / float64(readSize)))
+
 	log.Println("readers:", readers)
 	start := time.Now()
 	for i := 0; i < readers; i++ {
+		sem <- struct{}{}
+		wg.Add(1)
 		offset := i * int(readSize)
 		readRange := strconv.Itoa(offset) + "-" + strconv.Itoa(offset+int(readSize)-1)
 
@@ -460,13 +470,13 @@ func stream(awsBucket string, awsKey string, size int64, writer *bufferedWriter)
 			return err
 		}
 		log.Println("downloaded")
-		wg.Add(1)
 		go func(writer *bufferedWriter, res *s3.GetObjectOutput) {
 			defer wg.Done()
 			dmutex.Lock()
 			defer dmutex.Unlock()
 			defer res.Body.Close()
 			io.Copy(writer, res.Body)
+			<-sem
 			log.Println("uploaded")
 		}(writer, res)
 	}
@@ -482,7 +492,7 @@ func stream(awsBucket string, awsKey string, size int64, writer *bufferedWriter)
 
 func copyToGcs(awsBucket string, awsKey string, size int64, gcsFilePath string, oauth string) error {
 	log.Println("Copying from ec2 to s3...")
-	bs, err := humanize.ParseBytes("500MB")
+	bs, err := humanize.ParseBytes(uploadBufSize)
 	if err != nil {
 		return err
 	}
