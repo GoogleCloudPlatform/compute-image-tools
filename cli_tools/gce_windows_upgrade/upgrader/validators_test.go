@@ -26,6 +26,10 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
+func init() {
+	initTest()
+}
+
 func TestValidateParams(t *testing.T) {
 	type testCase struct {
 		testName        string
@@ -117,8 +121,6 @@ func TestValidateOSVersion(t *testing.T) {
 }
 
 func TestValidateInstance(t *testing.T) {
-	initTest()
-
 	type testCase struct {
 		testName             string
 		instance             string
@@ -340,8 +342,6 @@ func TestValidateInstance(t *testing.T) {
 }
 
 func TestValidateOSDisk(t *testing.T) {
-	initTest()
-
 	type testCase struct {
 		testName      string
 		osDisk        *compute.AttachedDisk

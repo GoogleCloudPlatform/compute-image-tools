@@ -62,7 +62,7 @@ func newTestUpgrader() *TestUpgrader {
 		InputParams: &InputParams{
 			ClientID:               "test",
 			Instance:               daisy.GetInstanceURI(testProject, testZone, testInstance),
-			SkipMachineImageBackup: false,
+			CreateMachineBackup:    true,
 			AutoRollback:           false,
 			SourceOS:               "windows-2008r2",
 			TargetOS:               "windows-2012r2",

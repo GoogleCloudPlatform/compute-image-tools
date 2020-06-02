@@ -51,7 +51,7 @@ func populatePrepareSteps(u *upgrader, w *daisy.Workflow) error {
 	}
 	prevStep := stepStopInstance
 
-	if !u.SkipMachineImageBackup {
+	if u.CreateMachineBackup {
 		stepBackupMachineImage, err := daisyutils.NewStep(w, "backup-machine-image", stepStopInstance)
 		if err != nil {
 			return err
@@ -252,6 +252,8 @@ func populateUpgradeStepsFrom2008r2To2012r2(u *upgrader, w *daisy.Workflow) erro
 						Port: 3,
 						// These errors were thrown from setup.exe.
 						FailureMatch: []string{"Windows needs to be restarted", "CheckDiskSpaceRequirements not satisfied"},
+						// This is the prefix of error log emitted from install media. Catch it and write to daisy log for debugging.
+						StatusMatch: "$WINDOWS.~BT setuperr$",
 					},
 				},
 			},

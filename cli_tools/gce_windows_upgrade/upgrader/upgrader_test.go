@@ -22,6 +22,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	initTest()
+}
+
 type TestUpgrader struct {
 	*upgrader
 }
@@ -200,7 +204,6 @@ func TestUpgraderRunFailedWithAutoRollbackWithoutNewOSDiskAttached(t *testing.T)
 }
 
 func initTestUpgrader(t *testing.T) *TestUpgrader {
-	initTest()
 	tu := newTestUpgrader()
 	tu.initFn = func() error {
 		computeClient = newTestGCEClient()
