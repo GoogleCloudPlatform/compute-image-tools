@@ -195,7 +195,7 @@ type WindowsUpgradeParams struct {
 	*CommonParams
 
 	Instance               string `json:"instance,omitempty"`
-	SkipMachineImageBackup bool   `json:"skip_machine_image_backup"`
+	CreateMachineBackup    bool   `json:"create_machine_backup"`
 	AutoRollback           bool   `json:"auto_rollback"`
 	SourceOS               string `json:"source_os,omitempty"`
 	TargetOS               string `json:"target_os,omitempty"`
