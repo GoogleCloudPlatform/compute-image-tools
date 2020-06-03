@@ -179,6 +179,8 @@ type Workflow struct {
 	ForceCleanupOnError bool
 	// forceCleanup is set to true when resources should be forced clean, even when NoCleanup is set to true
 	forceCleanup bool
+	// CancelReason provides custom reason when workflow is canceled. It replaces "is canceled" in the default error message.
+	CancelReason string `json:"-"`
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -887,4 +889,26 @@ func (w *Workflow) IterateWorkflowSteps(cb func(step *Step)) {
 		}
 		cb(step)
 	}
+}
+
+func (w *Workflow) getCancelReason() string {
+	cancelReason := w.CancelReason
+	for wi := w; cancelReason == "" && wi != nil; wi = wi.parent {
+		cancelReason = wi.CancelReason
+	}
+	return cancelReason
+}
+
+func (w *Workflow) onStepCancel(s *Step, stepClass string) DError {
+	if s == nil {
+		return nil
+	}
+	cancelReason := w.getCancelReason()
+	if cancelReason == "" {
+		cancelReason = "is canceled"
+	}
+	errorMessageFormat := "Step %q (%s) " + cancelReason + "."
+
+	s.w.LogWorkflowInfo(errorMessageFormat, s.name, stepClass)
+	return Errf(errorMessageFormat, s.name, stepClass)
 }
