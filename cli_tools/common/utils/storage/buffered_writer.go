@@ -21,7 +21,6 @@ import (
 	"log"
 	"math"
 	"math/rand"
-	"net/http"
 	"os"
 	"path"
 	"regexp"
@@ -31,9 +30,8 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"google.golang.org/api/googleapi"
-	"google.golang.org/api/option"
-	htransport "google.golang.org/api/transport/http"
 )
 
 var gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
@@ -54,7 +52,8 @@ type bufferedWriter struct {
 	cSize    int64
 	prefix   string
 	ctx      context.Context
-	oauth    string
+	oauth 	 string
+	client   gcsClient
 	id       string
 	bkt, obj string
 
@@ -80,7 +79,7 @@ func (b *bufferedWriter) uploadWorker() {
 	for in := range b.upload {
 		for i := 1; ; i++ {
 			err := func() error {
-				client, err := gcsClient(b.ctx, b.oauth)
+				client, err := b.client(b.ctx, b.oauth)
 				if err != nil {
 					return err
 				}
@@ -106,7 +105,8 @@ func (b *bufferedWriter) uploadWorker() {
 			if err != nil {
 				// Don't retry if permission error as it's not recoverable.
 				gAPIErr, isGAPIErr := err.(*googleapi.Error)
-				if isGAPIErr && gAPIErr.Code == 403 && gcsPermissionErrorRegExp.MatchString(gAPIErr.Message) {
+				//fmt.Printf("TESTING %v %v %v\n", gAPIErr.Code, isGAPIErr, gcsPermissionErrorRegExp.MatchString(gAPIErr.Message))
+				if isGAPIErr && gAPIErr.Code == 403 {
 					fmt.Printf("GCEExport: %v", err)
 					os.Exit(2)
 				}
@@ -156,7 +156,7 @@ func (b *bufferedWriter) Close() error {
 	close(b.upload)
 	b.Wait()
 
-	client, err := gcsClient(b.ctx, b.oauth)
+	client, err := b.client(b.ctx, b.oauth)
 	if err != nil {
 		return err
 	}
@@ -217,27 +217,9 @@ func (b *bufferedWriter) Write(d []byte) (int, error) {
 	return n, nil
 }
 
-func gcsClient(ctx context.Context, oauth string) (*storage.Client, error) {
-	//return storage.NewClient(ctx)
-	baseTransport := &http.Transport{
-		DisableKeepAlives:     false,
-		MaxIdleConns:          0,
-		MaxIdleConnsPerHost:   1000,
-		MaxConnsPerHost:       0,
-		IdleConnTimeout:       60 * time.Second,
-		ResponseHeaderTimeout: 5 * time.Second,
-		TLSHandshakeTimeout:   5 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
-	transport, err := htransport.NewTransport(ctx, baseTransport)
-	if err != nil {
-		return nil, err
-	}
-	return storage.NewClient(ctx, option.WithHTTPClient(&http.Client{Transport: transport}),
-		option.WithCredentialsFile(oauth))
-}
+type gcsClient func(ctx context.Context, oauth string) (domain.StorageClientInterface, error)
 
-func NewBuffer(ctx context.Context, size, workers int64, oauth, prefix, bkt, obj string) *bufferedWriter {
+func NewBuffer(ctx context.Context, size, workers int64, client gcsClient, oauth, prefix, bkt, obj string) *bufferedWriter {
 	b := &bufferedWriter{
 		cSize:  size / workers,
 		prefix: prefix,
@@ -247,7 +229,8 @@ func NewBuffer(ctx context.Context, size, workers int64, oauth, prefix, bkt, obj
 		bkt:    bkt,
 		obj:    obj,
 		ctx:    ctx,
-		oauth:  oauth,
+		oauth:	oauth,
+		client:  client,
 	}
 	for i := int64(0); i < workers; i++ {
 		b.Add(1)

@@ -25,10 +25,11 @@ import (
 // StorageClientInterface represents GCS storage client
 type StorageClientInterface interface {
 	CreateBucket(bucketName string, project string, attrs *storage.BucketAttrs) error
+	Bucket(bucket string) *storage.BucketHandle
 	Buckets(projectID string) *storage.BucketIterator
 	GetBucketAttrs(bucket string) (*storage.BucketAttrs, error)
-	GetObjectReader(bucket string, objectPath string) (io.ReadCloser, error)
 	GetBucket(bucket string) *storage.BucketHandle
+	GetObject(bucket string, objectPath string) ObjectHandleInterface
 	GetObjects(bucket string, objectPath string) ObjectIteratorInterface
 	DeleteObject(bucket string, objectPath string) error
 	FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error)
@@ -66,9 +67,20 @@ type TarGcsExtractorInterface interface {
 	ExtractTarToGcs(tarGcsPath string, destinationGcsPath string) error
 }
 
-// StorageObjectDeleterInterface represents an object that is responsible for deleting GCS objects
-type StorageObjectDeleterInterface interface {
-	DeleteObject(bucket string, objectPath string) error
+// ObjectHandleCreatorInterface represents GCS object handle creator
+type ObjectHandleCreatorInterface interface {
+	CreateObjectHandle(bucket string, objectPath string) ObjectHandleInterface
+}
+
+// ObjectHandleInterface represents GCS Object Handle
+type ObjectHandleInterface interface {
+	Delete() error
+	GetObjectHandle() *storage.ObjectHandle
+	NewReader() (io.ReadCloser, error)
+	NewWriter() io.WriteCloser
+	ObjectName() string
+	ComposerFrom(src ... *ObjectHandleInterface) *storage.Composer
+	CopierFrom(src *ObjectHandleInterface) *storage.Copier
 }
 
 // MetadataGCEInterface represents GCE metadata

@@ -41,11 +41,11 @@ var (
 // Client implements domain.StorageClientInterface. It implements main Storage functions
 // used by image import features.
 type Client struct {
-	ObjectDeleter domain.StorageObjectDeleterInterface
 	StorageClient *storage.Client
 	Logger        logging.LoggerInterface
 	Ctx           context.Context
 	Oic           domain.ObjectIteratorCreatorInterface
+	Ohc 					domain.ObjectHandleCreatorInterface
 }
 
 // NewStorageClient creates a Client
@@ -63,7 +63,7 @@ func NewStorageClient(ctx context.Context,
 	sc := &Client{StorageClient: client, Ctx: ctx,
 		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}
 
-	sc.ObjectDeleter = &ObjectDeleter{sc}
+	sc.Ohc = &ObjectHandleCreator{ctx:ctx, sc: client}
 	return sc, nil
 }
 
@@ -90,18 +90,14 @@ func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
 	return bucketAttrs, nil
 }
 
-// GetObjectReader creates a new Reader to read the contents of the object.
-func (sc *Client) GetObjectReader(bucket string, objectPath string) (io.ReadCloser, error) {
-	objectReader, err := sc.GetBucket(bucket).Object(objectPath).NewReader(sc.Ctx)
-	if err != nil {
-		return nil, daisy.Errf("Error getting object reader for bucket `%v` and object path `%v`: %v", bucket, objectPath, err)
-	}
-	return objectReader, nil
-}
-
 // GetBucket returns a BucketHandle, which provides operations on the named bucket.
 func (sc *Client) GetBucket(bucket string) *storage.BucketHandle {
 	return sc.StorageClient.Bucket(bucket)
+}
+
+
+func (sc *Client) GetObject(bucket string, objectPath string) domain.ObjectHandleInterface {
+	return sc.Ohc.CreateObjectHandle(bucket, objectPath)
 }
 
 // GetObjects returns object iterator for given bucket and path
@@ -109,13 +105,6 @@ func (sc *Client) GetObjects(bucket string, objectPath string) domain.ObjectIter
 	return sc.Oic.CreateObjectIterator(bucket, objectPath)
 }
 
-// DeleteObject deletes GCS object in given bucket and object path
-func (sc *Client) DeleteObject(bucket string, objectPath string) error {
-	if err := sc.ObjectDeleter.DeleteObject(bucket, objectPath); err != nil {
-		return daisy.Errf("Error deleting object for bucket `%v` and object path `%v`: %v", bucket, objectPath, err)
-	}
-	return nil
-}
 
 // DeleteGcsPath deletes a GCS path, including files
 func (sc *Client) DeleteGcsPath(gcsPath string) error {
@@ -137,7 +126,7 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 		}
 		sc.Logger.Log(fmt.Sprintf("Deleting gs://%v/%v", bucketName, attrs.Name))
 
-		if err := sc.DeleteObject(bucketName, attrs.Name); err != nil {
+		if err := sc.GetObject(bucketName, attrs.Name).Delete(); err != nil {
 			return daisy.Errf("Error deleting Cloud Storage object `%v` in bucket `%v`: %v", attrs.Name, bucketName, err)
 		}
 	}
@@ -272,14 +261,4 @@ type HTTPClient struct {
 // Get executes HTTP GET request for given URL
 func (hc *HTTPClient) Get(url string) (resp *http.Response, err error) {
 	return hc.httpClient.Get(url)
-}
-
-// ObjectDeleter is responsible for deleting storage object
-type ObjectDeleter struct {
-	sc *Client
-}
-
-// DeleteObject deletes GCS object in given bucket and path
-func (sod *ObjectDeleter) DeleteObject(bucket string, objectPath string) error {
-	return sod.sc.GetBucket(bucket).Object(objectPath).Delete(sod.sc.Ctx)
 }

@@ -106,7 +106,7 @@ func writeGzipProgress(start time.Time, size int64, rp, wp *progress) {
 	}
 }
 
-func gcsClient(ctx context.Context) (*storage.Client, error) {
+func gcsClient(ctx context.Context, oauth string) (*storage.Client, error) {
 	//return storage.NewClient(ctx)
 	baseTransport := &http.Transport{
 		DisableKeepAlives:     false,
@@ -123,7 +123,7 @@ func gcsClient(ctx context.Context) (*storage.Client, error) {
 		return nil, err
 	}
 	return storage.NewClient(ctx, option.WithHTTPClient(&http.Client{Transport: transport}),
-		option.WithCredentialsFile(*oauth))
+		option.WithCredentialsFile(oauth))
 }
 
 func gzipDisk(file *os.File, size int64, writer io.WriteCloser) error {
@@ -213,13 +213,13 @@ func stream(ctx context.Context, src *os.File, size int64, prefix, bkt, obj stri
 			return err
 		}
 
-		buf := storageutils.NewBuffer(ctx, int64(bs), int64(*workers), *oauth, prefix, bkt, obj)
+		buf := storageutils.NewBuffer(ctx, int64(bs), int64(*workers), gcsClient, *oauth, prefix, bkt, obj)
 
 		fmt.Printf("GCEExport: Using %q as the buffer prefix, %s as the buffer size, and %d as the number of workers.\n", prefix, humanize.IBytes(bs), *workers)
 		return gzipDisk(src, size, buf)
 	}
 
-	client, err := gcsClient(ctx)
+	client, err := gcsClient(ctx, *oauth)
 	if err != nil {
 		return err
 	}
