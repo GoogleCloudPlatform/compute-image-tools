@@ -92,7 +92,6 @@ func NewImportArguments(args []string) (ImportArguments, error) {
 // ValidateAndPopulate parses, validates, and populates the arguments.
 func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
 	sourceFactory SourceFactory) (err error) {
-
 	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {
 		return err
@@ -281,7 +280,7 @@ func (s *keyValueString) Set(input string) error {
 		return fmt.Errorf("only one instance of this flag is allowed")
 	}
 
-	*s = make(map[string]string, 0)
+	*s = make(map[string]string)
 	if input != "" {
 		var err error
 		*s, err = param.ParseKeyValues(input)

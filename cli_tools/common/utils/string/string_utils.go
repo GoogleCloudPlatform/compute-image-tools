@@ -14,7 +14,10 @@
 
 package string
 
-import "sort"
+import (
+	"sort"
+	"strconv"
+)
 
 // CombineStringSlices merges two slices of strings and
 // returns a new slice instance. Duplicates are removed.
@@ -37,4 +40,14 @@ func CombineStringSlices(s1 []string, s2 ...string) []string {
 		return ret[i] < ret[j]
 	})
 	return ret
+}
+
+// SafeStringToInt returns the base-10 integer represented by s, or zero if
+// there is a parse failure.
+func SafeStringToInt(s string) int64 {
+	i, e := strconv.Atoi(s)
+	if e != nil {
+		return 0
+	}
+	return int64(i)
 }

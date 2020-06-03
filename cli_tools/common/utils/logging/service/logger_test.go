@@ -72,7 +72,7 @@ func TestLogSuccess(t *testing.T) {
 			targetSizeGb: {5},
 			sourceSizeGb: {3, 2, 1},
 		},
-		serials: []string{
+		traceLogs: []string{
 			"serial-log1", "serial-log2",
 		},
 	}
@@ -110,7 +110,7 @@ func TestLogFailure(t *testing.T) {
 			targetSizeGb: {5},
 			sourceSizeGb: {3, 2, 1},
 		},
-		serials: []string{
+		traceLogs: []string{
 			"serial-log1", "serial-log2",
 		},
 	}

@@ -28,7 +28,7 @@ func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
 		ExecutionID: "1234",
 	})
 
-	assert.Equal(t, "zones/us-west1-b/disks/disk-1234", inflater.uri)
+	assert.Equal(t, "zones/us-west1-b/disks/disk-1234", inflater.inflatedDiskURI)
 	assert.Equal(t, "projects/test/uri/image", inflater.wf.Vars["source_image"].Value)
 	inflatedDisk := getDisk(inflater.wf, 0)
 	assert.Contains(t, inflatedDisk.Licenses,
@@ -66,7 +66,7 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 		ExecutionID: "1234",
 	})
 
-	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.uri)
+	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
 	assert.Equal(t, "gs://bucket/vmdk", inflater.wf.Vars["source_disk_file"].Value)
 	assert.Equal(t, "projects/subnet/subnet", inflater.wf.Vars["import_subnet"].Value)
 	assert.Equal(t, "projects/network/network", inflater.wf.Vars["import_network"].Value)

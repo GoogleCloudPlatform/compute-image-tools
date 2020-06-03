@@ -27,7 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
-type bootableFinisher struct {
+type bootableProcessor struct {
 	workflow        *daisy.Workflow
 	userLabels      map[string]string
 	storageLocation string
@@ -37,7 +37,7 @@ type bootableFinisher struct {
 	OS              string
 }
 
-func (d bootableFinisher) run(ctx context.Context) (err error) {
+func (d bootableProcessor) process(ctx context.Context) (err error) {
 	err = d.workflow.RunWithModifiers(ctx, d.preValidateFunc(), d.postValidateFunc())
 	if err != nil {
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, d.network, d.workflow)
@@ -49,14 +49,14 @@ func (d bootableFinisher) run(ctx context.Context) (err error) {
 	return err
 }
 
-func (d bootableFinisher) serials() []string {
+func (d bootableProcessor) traceLogs() []string {
 	if d.workflow.Logger != nil {
 		return d.workflow.Logger.ReadSerialPortLogs()
 	}
 	return []string{}
 }
 
-func newBootableFinisher(args ImportArguments, pd pd, workflowDirectory string) (finisher, error) {
+func newBootableProcessor(args ImportArguments, pd persistentDisk, workflowDirectory string) (processor, error) {
 	var translateWorkflowPath string
 	if args.CustomWorkflow != "" {
 		translateWorkflowPath = args.CustomWorkflow
@@ -84,17 +84,18 @@ func newBootableFinisher(args ImportArguments, pd pd, workflowDirectory string) 
 		return nil, err
 	}
 
-	return bootableFinisher{
+	return bootableProcessor{
 		workflow:        workflow,
 		userLabels:      args.Labels,
 		storageLocation: args.StorageLocation,
 		uefiCompatible:  args.UefiCompatible,
 		noExternalIP:    args.NoExternalIP,
 		network:         args.Network,
+		OS:              args.OS,
 	}, err
 }
 
-func (d bootableFinisher) postValidateFunc() daisy.WorkflowModifier {
+func (d bootableProcessor) postValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		buildID := os.Getenv(daisy_utils.BuildIDOSEnvVarName)
 		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
@@ -124,7 +125,7 @@ func (d bootableFinisher) postValidateFunc() daisy.WorkflowModifier {
 	}
 }
 
-func (d bootableFinisher) preValidateFunc() daisy.WorkflowModifier {
+func (d bootableProcessor) preValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		w.SetLogProcessHook(daisy_utils.RemovePrivacyLogTag)
 	}

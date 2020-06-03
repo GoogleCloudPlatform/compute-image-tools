@@ -132,7 +132,8 @@ func TestPopulateRegion(t *testing.T) {
 }
 
 func TestTrimScratchBucket(t *testing.T) {
-	assert.Equal(t, "gcs://bucket", expectSuccessfulParse(t, "-scratch_bucket_gcs_path", "  gcs://bucket  ").ScratchBucketGcsPath)
+	assert.Equal(t, "gcs://bucket",
+		expectSuccessfulParse(t, "-scratch_bucket_gcs_path", "  gcs://bucket  ").ScratchBucketGcsPath)
 }
 
 func TestPopulateScratchBucketIfMissing(t *testing.T) {
@@ -153,7 +154,8 @@ func TestTrimOauth(t *testing.T) {
 }
 
 func TestTrimComputeEndpoint(t *testing.T) {
-	assert.Equal(t, "http://endpoint", expectSuccessfulParse(t, "-compute_endpoint_override", "  http://endpoint ").ComputeEndpoint)
+	assert.Equal(t, "http://endpoint",
+		expectSuccessfulParse(t, "-compute_endpoint_override", "  http://endpoint ").ComputeEndpoint)
 }
 
 func TestGcsLogsDisabled(t *testing.T) {
@@ -181,7 +183,6 @@ func TestNoExternalIp(t *testing.T) {
 }
 
 func TestPopulateNetworkAndSubnet(t *testing.T) {
-
 	tests := []struct {
 		name            string
 		args            []string

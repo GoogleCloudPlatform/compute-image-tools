@@ -26,7 +26,8 @@ import (
 
 const WorkflowDir = "daisy_workflows/image_import/"
 
-// Importer runs the import workflow.
+// Importer runs the end-to-end import workflow, and exposes the results
+// via an error and Loggable.
 type Importer interface {
 	Run(ctx context.Context) (service.Loggable, error)
 }
@@ -38,52 +39,54 @@ func NewImporter(args ImportArguments, client compute.Client) (Importer, error) 
 		return nil, err
 	}
 	return importer{
-		project:          args.Project,
-		zone:             args.Zone,
-		inflater:         inflater,
-		finisherProvider: defaultFinisherProvider{ImportArguments: args, imageClient: client},
-		serials:          []string{},
-		diskClient:       client,
+		project:           args.Project,
+		zone:              args.Zone,
+		inflater:          inflater,
+		processorProvider: defaultProcessorProvider{ImportArguments: args, imageClient: client},
+		traceLogs:         []string{},
+		diskClient:        client,
 	}, nil
 }
 
+// importer is an implementation of Importer that uses a combination of Daisy workflows
+// and GCP API calls.
 type importer struct {
-	project, zone    string
-	pd               pd
-	inflater         inflater
-	finisherProvider finisherProvider
-	serials          []string
-	diskClient       diskClient
+	project, zone     string
+	pd                persistentDisk
+	inflater          inflater
+	processorProvider processorProvider
+	traceLogs         []string
+	diskClient        diskClient
 }
 
-func (d importer) Run(ctx context.Context) (loggable service.Loggable, err error) {
-	if err = d.runInflate(ctx); err != nil {
-		return d.buildLoggable(), err
+func (i importer) Run(ctx context.Context) (loggable service.Loggable, err error) {
+	if err = i.runInflate(ctx); err != nil {
+		return i.buildLoggable(), err
 	}
 
-	defer d.cleanupDisk()
+	defer i.cleanupDisk()
 
-	err = d.runFinish(ctx)
+	err = i.runProcess(ctx)
 	if err != nil {
-		return d.buildLoggable(), err
+		return i.buildLoggable(), err
 	}
 
-	return d.buildLoggable(), err
+	return i.buildLoggable(), err
 }
 
-func (d *importer) runInflate(ctx context.Context) (err error) {
+func (i *importer) runInflate(ctx context.Context) (err error) {
 	select {
 	case <-ctx.Done():
 		err = ctx.Err()
 	default:
-		d.pd, err = d.inflater.inflate(ctx)
-		d.serials = append(d.serials, d.inflater.serials()...)
+		i.pd, err = i.inflater.inflate(ctx)
+		i.traceLogs = append(i.traceLogs, i.inflater.traceLogs()...)
 	}
 	return err
 }
 
-func (d *importer) runFinish(ctx context.Context) (err error) {
-	finisher, err := d.finisherProvider.provide(d.pd)
+func (i *importer) runProcess(ctx context.Context) (err error) {
+	processor, err := i.processorProvider.provide(i.pd)
 	if err != nil {
 		return err
 	}
@@ -91,26 +94,27 @@ func (d *importer) runFinish(ctx context.Context) (err error) {
 	case <-ctx.Done():
 		err = ctx.Err()
 	default:
-		err = finisher.run(ctx)
-		d.serials = append(d.serials, finisher.serials()...)
+		err = processor.process(ctx)
+		i.traceLogs = append(i.traceLogs, processor.traceLogs()...)
 	}
 	return err
 }
 
-func (d *importer) cleanupDisk() {
-	if d.pd.uri != "" {
-		diskName := path.Base(d.pd.uri)
-		err := d.diskClient.DeleteDisk(d.project, d.zone, diskName)
+func (i *importer) cleanupDisk() {
+	if i.pd.uri != "" {
+		diskName := path.Base(i.pd.uri)
+		err := i.diskClient.DeleteDisk(i.project, i.zone, diskName)
 		if err != nil {
-			logger.Errorf("Failed to remove temporary disk %v: %e", d.pd, err)
+			logger.Errorf("Failed to remove temporary disk %v: %e", i.pd, err)
 		}
 	}
 }
 
-func (d importer) buildLoggable() service.Loggable {
-	return service.SingleImageImportLoggable(d.pd.sourceType, d.pd.sourceGb, d.pd.sizeGb, d.serials)
+func (i importer) buildLoggable() service.Loggable {
+	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.traceLogs)
 }
 
+// diskClient is the subset of the GCP API that is used by importer.
 type diskClient interface {
 	DeleteDisk(project, zone, uri string) error
 }

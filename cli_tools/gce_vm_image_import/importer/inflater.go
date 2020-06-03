@@ -21,71 +21,85 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 
+	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 const (
-	inflateFilePath  = "import_disk.wf.json"
+	inflateFilePath  = "inflate_file.wf.json"
 	inflateImagePath = "inflate_image.wf.json"
 )
 
+// inflater constructs a new persistentDisk, typically starting from a
+// frozen representation of a disk, such as a VMDK file or a GCP disk image.
+//
+// Implementers can expose detailed logs using the traceLogs() method.
 type inflater interface {
-	inflate(ctx context.Context) (pd, error)
-	serials() []string
+	inflate(ctx context.Context) (persistentDisk, error)
+	traceLogs() []string
 }
 
+// daisyInflater implements an inflater using daisy workflows, and is capable
+// of inflating GCP disk images and qemu-img compatible disk files.
 type daisyInflater struct {
-	wf         *daisy.Workflow
-	uri        string
-	serialLogs []string
+	wf              *daisy.Workflow
+	inflatedDiskURI string
+	serialLogs      []string
 }
 
-func (d daisyInflater) inflate(ctx context.Context) (pd, error) {
-	err := d.wf.Run(ctx)
+func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
+	err := inflater.wf.Run(ctx)
 	if err != nil {
-		return pd{}, err
+		return persistentDisk{}, err
 	}
-	if d.wf.Logger != nil {
-		d.serialLogs = d.wf.Logger.ReadSerialPortLogs()
+	if inflater.wf.Logger != nil {
+		inflater.serialLogs = inflater.wf.Logger.ReadSerialPortLogs()
 	}
-	return pd{
-		uri: d.uri,
+	// See `daisy_workflows/image_import/import_image.sh` for generation of these values.
+	targetSizeGB := inflater.wf.GetSerialConsoleOutputValue("target-size-gb")
+	sourceSizeGB := inflater.wf.GetSerialConsoleOutputValue("source-size-gb")
+	importFileFormat := inflater.wf.GetSerialConsoleOutputValue("import-file-format")
+	return persistentDisk{
+		uri:        inflater.inflatedDiskURI,
+		sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
+		sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
+		sourceType: importFileFormat,
 	}, nil
 }
 
-type pd struct {
+type persistentDisk struct {
 	uri        string
 	sizeGb     int64
 	sourceGb   int64
 	sourceType string
 }
 
-func createDaisyInflater(t ImportArguments, workflowDirectory string) (inflater, error) {
-	diskName := "disk-" + t.ExecutionID
+func createDaisyInflater(args ImportArguments, workflowDirectory string) (inflater, error) {
+	diskName := "disk-" + args.ExecutionID
 	var wfPath string
 	var vars map[string]string
 	var inflationDiskIndex int
-	if isImage(t.Source) {
+	if isImage(args.Source) {
 		wfPath = inflateImagePath
 		vars = map[string]string{
-			"source_image": t.Source.Path(),
+			"source_image": args.Source.Path(),
 			"disk_name":    diskName,
 		}
 		inflationDiskIndex = 0 // Workflow only uses one disk.
 	} else {
 		wfPath = inflateFilePath
 		vars = map[string]string{
-			"source_disk_file": t.Source.Path(),
-			"import_network":   t.Network,
-			"import_subnet":    t.Subnet,
+			"source_disk_file": args.Source.Path(),
+			"import_network":   args.Network,
+			"import_subnet":    args.Subnet,
 			"disk_name":        diskName,
 		}
 		inflationDiskIndex = 1 // First disk is for the worker
 	}
 
 	wf, err := daisycommon.ParseWorkflow(path.Join(workflowDirectory, wfPath), vars,
-		t.Project, t.Zone, t.ScratchBucketGcsPath, t.Oauth, t.Timeout.String(), t.ComputeEndpoint,
-		t.GcsLogsDisabled, t.CloudLogsDisabled, t.StdoutLogsDisabled)
+		args.Project, args.Zone, args.ScratchBucketGcsPath, args.Oauth, args.Timeout.String(), args.ComputeEndpoint,
+		args.GcsLogsDisabled, args.CloudLogsDisabled, args.StdoutLogsDisabled)
 	if err != nil {
 		return nil, err
 	}
@@ -94,22 +108,22 @@ func createDaisyInflater(t ImportArguments, workflowDirectory string) (inflater,
 		wf.AddVar(k, v)
 	}
 
-	if strings.Contains(t.OS, "windows") {
+	if strings.Contains(args.OS, "windows") {
 		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
 	}
 
 	return daisyInflater{
-		wf:  wf,
-		uri: fmt.Sprintf("zones/%s/disks/%s", t.Zone, diskName),
+		wf:              wf,
+		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", args.Zone, diskName),
 	}, nil
 }
 
-func (d daisyInflater) serials() []string {
-	return d.serialLogs
+func (inflater daisyInflater) traceLogs() []string {
+	return inflater.serialLogs
 }
 
-// If the inflated disk hold Windows, then it needs the WINDOWS GuestOSFeature
-// in order to boot during the subsequent translate step.
+// addFeatureToDisk finds the first `CreateDisk` step, and adds `feature` as
+// a guestOsFeature to the disk at index `diskIndex`.
 func addFeatureToDisk(workflow *daisy.Workflow, feature string, diskIndex int) {
 	disk := getDisk(workflow, diskIndex)
 	disk.GuestOsFeatures = append(disk.GuestOsFeatures, &compute.GuestOsFeature{
@@ -120,9 +134,13 @@ func addFeatureToDisk(workflow *daisy.Workflow, feature string, diskIndex int) {
 func getDisk(workflow *daisy.Workflow, diskIndex int) *daisy.Disk {
 	for _, step := range workflow.Steps {
 		if step.CreateDisks != nil {
-			return (*step.CreateDisks)[diskIndex]
+			disks := *step.CreateDisks
+			if diskIndex < len(disks) {
+				return disks[diskIndex]
+			}
+			panic(fmt.Sprintf("CreateDisks step did not have disk at index %d", diskIndex))
 		}
 	}
 
-	panic(fmt.Sprintf("Expected disk at index %d", diskIndex))
+	panic("Did not find CreateDisks step.")
 }

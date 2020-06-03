@@ -24,22 +24,22 @@ import (
 
 func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 	inflaterLogs := []string{"log-a", "log-b"}
-	finisherLogs := []string{"log-c", "log-d"}
+	processorLogs := []string{"log-c", "log-d"}
 	expectedLogs := []string{"log-a", "log-b", "log-c", "log-d"}
-	mockFinisher := mockFinisher{
-		serialLogs: finisherLogs,
+	mockProcessor := mockProcessor{
+		serialLogs: processorLogs,
 	}
 	importer := importer{
 		inflater: &mockInflater{
 			serialLogs: inflaterLogs,
-			pd: pd{
+			pd: persistentDisk{
 				sizeGb:     100,
 				sourceGb:   10,
 				sourceType: "vmdk",
 			},
 		},
-		finisherProvider: &mockFinisherProvider{
-			finisher: &mockFinisher,
+		processorProvider: &mockProcessorProvider{
+			processor: &mockProcessor,
 		},
 	}
 	loggable, actualError := importer.Run(context.Background())
@@ -49,7 +49,7 @@ func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 	assert.Equal(t, "vmdk", loggable.GetValue("import-file-format"))
 	assert.Equal(t, []int64{10}, loggable.GetValueAsInt64Slice("source-size-gb"))
 	assert.Equal(t, []int64{100}, loggable.GetValueAsInt64Slice("target-size-gb"))
-	assert.Equal(t, 1, mockFinisher.interactions)
+	assert.Equal(t, 1, mockProcessor.interactions)
 }
 
 func TestRun_DeleteDisk(t *testing.T) {
@@ -63,12 +63,12 @@ func TestRun_DeleteDisk(t *testing.T) {
 		zone:       zone,
 		diskClient: &mockDiskClient,
 		inflater: &mockInflater{
-			pd: pd{
+			pd: persistentDisk{
 				uri: diskURI,
 			},
 		},
-		finisherProvider: &mockFinisherProvider{
-			finisher: &mockFinisher{},
+		processorProvider: &mockProcessorProvider{
+			processor: &mockProcessor{},
 		},
 	}
 	_, actualError := importer.Run(context.Background())
@@ -79,37 +79,37 @@ func TestRun_DeleteDisk(t *testing.T) {
 	assert.Equal(t, diskURI, mockDiskClient.uri)
 }
 
-func TestRun_DontRunFinishIfInflateFails(t *testing.T) {
+func TestRun_DontRunProcessIfInflateFails(t *testing.T) {
 	expectedError := errors.New("the errors")
-	mockFinisherProvider := mockFinisherProvider{}
+	mockProcessorProvider := mockProcessorProvider{}
 	importer := importer{
 		inflater: &mockInflater{
 			err: expectedError,
 		},
-		finisherProvider: &mockFinisherProvider,
+		processorProvider: &mockProcessorProvider,
 	}
 	loggable, actualError := importer.Run(context.Background())
 	assert.NotNil(t, loggable)
 	assert.Equal(t, expectedError, actualError)
-	assert.Equal(t, 0, mockFinisherProvider.interactions)
+	assert.Equal(t, 0, mockProcessorProvider.interactions)
 }
 
-func TestRun_IncludeInflaterLogs_WhenFailureToCreateFinisher(t *testing.T) {
-	mockFinisher := mockFinisher{}
+func TestRun_IncludeInflaterLogs_WhenFailureToCreateProcessor(t *testing.T) {
+	mockProcessor := mockProcessor{}
 	expectedError := errors.New("the errors")
 	expectedLogs := []string{"log-a", "log-b"}
 	importer := importer{
 		inflater: &mockInflater{
 			serialLogs: expectedLogs,
-			pd: pd{
+			pd: persistentDisk{
 				sizeGb:     100,
 				sourceGb:   10,
 				sourceType: "vmdk",
 			},
 		},
-		finisherProvider: &mockFinisherProvider{
-			err:      expectedError,
-			finisher: &mockFinisher,
+		processorProvider: &mockProcessorProvider{
+			err:       expectedError,
+			processor: &mockProcessor,
 		},
 	}
 	loggable, actualError := importer.Run(context.Background())
@@ -119,10 +119,10 @@ func TestRun_IncludeInflaterLogs_WhenFailureToCreateFinisher(t *testing.T) {
 	assert.Equal(t, "vmdk", loggable.GetValue("import-file-format"))
 	assert.Equal(t, []int64{10}, loggable.GetValueAsInt64Slice("source-size-gb"))
 	assert.Equal(t, []int64{100}, loggable.GetValueAsInt64Slice("target-size-gb"))
-	assert.Equal(t, 0, mockFinisher.interactions)
+	assert.Equal(t, 0, mockProcessor.interactions)
 }
 
-func TestRun_DeleteDisk_WhenFailureToCreateFinisher(t *testing.T) {
+func TestRun_DeleteDisk_WhenFailureToCreateProcessor(t *testing.T) {
 	project := "project"
 	zone := "zone"
 	diskURI := "uri"
@@ -134,11 +134,11 @@ func TestRun_DeleteDisk_WhenFailureToCreateFinisher(t *testing.T) {
 		zone:       zone,
 		diskClient: &mockDiskClient,
 		inflater: &mockInflater{
-			pd: pd{
+			pd: persistentDisk{
 				uri: diskURI,
 			},
 		},
-		finisherProvider: &mockFinisherProvider{
+		processorProvider: &mockProcessorProvider{
 			err: expectedError,
 		},
 	}
@@ -150,45 +150,45 @@ func TestRun_DeleteDisk_WhenFailureToCreateFinisher(t *testing.T) {
 	assert.Equal(t, diskURI, mockDiskClient.uri)
 }
 
-type mockFinisherProvider struct {
-	finisher     finisher
+type mockProcessorProvider struct {
+	processor    processor
 	err          error
 	interactions int
 }
 
-func (m *mockFinisherProvider) provide(pd pd) (finisher, error) {
+func (m *mockProcessorProvider) provide(pd persistentDisk) (processor, error) {
 	m.interactions++
-	return m.finisher, m.err
+	return m.processor, m.err
 }
 
-type mockFinisher struct {
+type mockProcessor struct {
 	serialLogs   []string
 	err          error
 	interactions int
 }
 
-func (m *mockFinisher) run(ctx context.Context) error {
+func (m *mockProcessor) process(ctx context.Context) error {
 	m.interactions++
 	return m.err
 }
 
-func (m mockFinisher) serials() []string {
+func (m mockProcessor) traceLogs() []string {
 	return m.serialLogs
 }
 
 type mockInflater struct {
 	serialLogs   []string
-	pd           pd
+	pd           persistentDisk
 	err          error
 	interactions int
 }
 
-func (m *mockInflater) inflate(ctx context.Context) (pd, error) {
+func (m *mockInflater) inflate(ctx context.Context) (persistentDisk, error) {
 	m.interactions++
 	return m.pd, m.err
 }
 
-func (m mockInflater) serials() []string {
+func (m mockInflater) traceLogs() []string {
 	return m.serialLogs
 }
 

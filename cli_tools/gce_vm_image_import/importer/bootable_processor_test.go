@@ -24,7 +24,7 @@ import (
 )
 
 func TestWorkflow_VarsGetPopulated(t *testing.T) {
-	pd := pd{uri: "global/projects/test/pd/id"}
+	pd := persistentDisk{uri: "global/projects/test/pd/id"}
 
 	imageSpec := defaultImportArgs()
 	imageSpec.Description = "Fedora 12 customized"
@@ -50,7 +50,7 @@ func TestWorkflow_VarsGetPopulated(t *testing.T) {
 }
 
 func TestWorkflow_Vars_DefaultValues(t *testing.T) {
-	actual := asMap(createAndRunPrePostFunctions(t, pd{}, defaultImportArgs()).workflow.Vars)
+	actual := asMap(createAndRunPrePostFunctions(t, persistentDisk{}, defaultImportArgs()).workflow.Vars)
 	assert.Equal(t, map[string]string{
 		"description":          "",
 		"family":               "",
@@ -70,7 +70,7 @@ func TestWorkerDisk_ReceivesTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, pd{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
 	disk := getFirstCreatedDisk(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -87,7 +87,7 @@ func TestWorkerInstance_ReceivesTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, pd{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
 	worker := getWorkerInstance(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -104,7 +104,7 @@ func TestImage_ReceivesTrackingValues(t *testing.T) {
 	os.Setenv("BUILD_ID", "build-id")
 	imageSpec := defaultImportArgs()
 	imageSpec.Labels = userLabels
-	actual := createAndRunPrePostFunctions(t, pd{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
 	image := getImage(t, actual.workflow)
 
 	assert.Equal(t, map[string]string{
@@ -116,7 +116,7 @@ func TestImage_ReceivesTrackingValues(t *testing.T) {
 func TestUEFI_Enabled_CreatesGuestOSFeatures(t *testing.T) {
 	imageSpec := defaultImportArgs()
 	imageSpec.UefiCompatible = true
-	actual := createAndRunPrePostFunctions(t, pd{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
 	disk := getFirstCreatedDisk(t, actual.workflow)
 	image := getImage(t, actual.workflow)
 
@@ -128,7 +128,7 @@ func TestUEFI_Enabled_CreatesGuestOSFeatures(t *testing.T) {
 func TestUEFI_Disabled_DoesNotCreateGuestOSFeatures(t *testing.T) {
 	imageSpec := defaultImportArgs()
 	imageSpec.UefiCompatible = false
-	actual := createAndRunPrePostFunctions(t, pd{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
 	disk := getFirstCreatedDisk(t, actual.workflow)
 	image := getImage(t, actual.workflow)
 
@@ -139,14 +139,14 @@ func TestUEFI_Disabled_DoesNotCreateGuestOSFeatures(t *testing.T) {
 func TestImage_StorageLocation_Set(t *testing.T) {
 	imageSpec := defaultImportArgs()
 	imageSpec.StorageLocation = "north-america"
-	actual := createAndRunPrePostFunctions(t, pd{}, imageSpec)
+	actual := createAndRunPrePostFunctions(t, persistentDisk{}, imageSpec)
 	image := getImage(t, actual.workflow)
 
 	assert.Equal(t, []string{"north-america"}, image.StorageLocations)
 }
 
 func TestImage_StorageLocation_NotSet(t *testing.T) {
-	actual := createAndRunPrePostFunctions(t, pd{}, defaultImportArgs())
+	actual := createAndRunPrePostFunctions(t, persistentDisk{}, defaultImportArgs())
 	image := getImage(t, actual.workflow)
 
 	assert.Empty(t, image.StorageLocations)
@@ -154,19 +154,19 @@ func TestImage_StorageLocation_NotSet(t *testing.T) {
 
 func TestSerials_ReadsFromDaisyLogger(t *testing.T) {
 	expected := []string{"serials"}
-	translator, e := newBootableFinisher(defaultImportArgs(), pd{}, "testdata/image_import")
-	realTranslator := translator.(bootableFinisher)
+	translator, e := newBootableProcessor(defaultImportArgs(), persistentDisk{}, "testdata/image_import")
+	realTranslator := translator.(bootableProcessor)
 	realTranslator.workflow.Logger = daisyLogger{
 		serials: expected,
 	}
 	assert.NoError(t, e)
-	assert.Equal(t, expected, translator.serials())
+	assert.Equal(t, expected, translator.traceLogs())
 }
 
-func createAndRunPrePostFunctions(t *testing.T, pd pd, args ImportArguments) *bootableFinisher {
-	translator, e := newBootableFinisher(args, pd, "testdata/image_import")
+func createAndRunPrePostFunctions(t *testing.T, pd persistentDisk, args ImportArguments) *bootableProcessor {
+	translator, e := newBootableProcessor(args, pd, "testdata/image_import")
 	assert.NoError(t, e)
-	realTranslator := translator.(bootableFinisher)
+	realTranslator := translator.(bootableProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry
 	// when the workflow starts. Without this there's a panic.
 	realTranslator.workflow.Logger = daisyLogger{}

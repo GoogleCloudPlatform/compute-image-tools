@@ -9,7 +9,7 @@
   "Steps": {
     "create-disk": {
       "IncludeWorkflow": {
-        "Path": "../daisy_workflows/image_import/import_disk.wf.json",
+        "Path": "../daisy_workflows/image_import/inflate_file.wf.json",
         "Vars": {
           "disk_name": "${disk_name}",
           "importer_instance_disk_size": "200",

@@ -42,7 +42,7 @@ func TestLiteralLoggable_GetValue(t *testing.T) {
 
 func TestLiteralLoggable_ReadSerialPortLogs(t *testing.T) {
 	loggable := literalLoggable{
-		serials: []string{"log-a", "log-b"},
+		traceLogs: []string{"log-a", "log-b"},
 	}
 
 	assert.Equal(t, []string{"log-a", "log-b"}, loggable.ReadSerialPortLogs())
@@ -52,14 +52,14 @@ func TestSingleImageImportLoggable(t *testing.T) {
 	format := "vmdk"
 	sourceGb := int64(12)
 	targetGb := int64(100)
-	serials := []string{"log-a", "log-b"}
+	traceLogs := []string{"log-a", "log-b"}
 	expected := literalLoggable{
 		strings: map[string]string{importFileFormat: format},
 		int64s: map[string][]int64{
 			sourceSizeGb: {sourceGb},
 			targetSizeGb: {targetGb},
 		},
-		serials: serials,
+		traceLogs: traceLogs,
 	}
-	assert.Equal(t, expected, SingleImageImportLoggable(format, sourceGb, targetGb, serials))
+	assert.Equal(t, expected, SingleImageImportLoggable(format, sourceGb, targetGb, traceLogs))
 }

@@ -18,30 +18,31 @@ import (
 	"context"
 )
 
-// finisher represents the second (and final) phase of import. For bootable
+// processor represents the second (and final) phase of import. For bootable
 // disks, this means translation and publishing the final image. For data
 // disks, this means publishing the image.
-type finisher interface {
-	run(ctx context.Context) error
-	serials() []string
+//
+// Implementers can expose detailed logs using the traceLogs() method.
+type processor interface {
+	process(ctx context.Context) error
+	traceLogs() []string
 }
 
-// finisherProvider allows the translator to be
-// determined after the pd has been inflated.
-type finisherProvider interface {
-	provide(pd pd) (finisher, error)
+// processorProvider allows the processor to be determined after the pd has been inflated.
+type processorProvider interface {
+	provide(pd persistentDisk) (processor, error)
 }
 
-type defaultFinisherProvider struct {
+type defaultProcessorProvider struct {
 	ImportArguments
 	imageClient imageClient
 }
 
-func (d defaultFinisherProvider) provide(pd pd) (finisher, error) {
+func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) {
 	if d.DataDisk {
-		return newDataDiskFinisher(pd, d.imageClient, d.Project,
+		return newDataDiskProcessor(pd, d.imageClient, d.Project,
 			d.Labels, d.StorageLocation, d.Description,
 			d.Family, d.ImageName), nil
 	}
-	return newBootableFinisher(d.ImportArguments, pd, WorkflowDir)
+	return newBootableProcessor(d.ImportArguments, pd, WorkflowDir)
 }

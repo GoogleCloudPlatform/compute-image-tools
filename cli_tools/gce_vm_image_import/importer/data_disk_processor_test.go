@@ -29,8 +29,8 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 
 	mockClient := mockImageClient{expectedProject: "project-1234", t: t}
 
-	publisher := newDataDiskFinisher(
-		pd{uri: "global/projects/pid/pd/id"},
+	publisher := newDataDiskProcessor(
+		persistentDisk{uri: "global/projects/pid/pd/id"},
 		&mockClient,
 		"project-1234",
 		map[string]string{"user-key": "user-value"},
@@ -39,7 +39,7 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 		"family-name",
 		"image-name")
 
-	assert.NoError(t, publisher.run(context.Background()))
+	assert.NoError(t, publisher.process(context.Background()))
 	assert.Equal(t, 1, mockClient.invocations)
 	assert.Equal(t, compute.Image{
 		SourceDisk:       "global/projects/pid/pd/id",
@@ -49,7 +49,7 @@ func Test_ImageIncludesTrackingLabelAndLicense(t *testing.T) {
 		Family:           "family-name",
 		Name:             "image-name",
 		Licenses:         []string{trackingLicense},
-	}, mockClient.actualImage, "Finisher should add tracking license and tracking label.")
+	}, mockClient.actualImage, "Processor should add tracking license and tracking label.")
 }
 
 type mockImageClient struct {

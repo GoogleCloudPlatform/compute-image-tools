@@ -20,15 +20,15 @@ import (
 	"google.golang.org/api/compute/v1"
 )
 
-type dataDiskFinisher struct {
+type dataDiskProcessor struct {
 	client  imageClient
 	project string
 	request compute.Image
 }
 
-func newDataDiskFinisher(pd pd, client imageClient, project string,
+func newDataDiskProcessor(pd persistentDisk, client imageClient, project string,
 	userLabels map[string]string, userStorageLocation string,
-	description string, family string, imageName string) finisher {
+	description string, family string, imageName string) processor {
 	labels := map[string]string{"gce-image-import": "true"}
 	for k, v := range userLabels {
 		labels[k] = v
@@ -38,7 +38,7 @@ func newDataDiskFinisher(pd pd, client imageClient, project string,
 		storageLocation = []string{userStorageLocation}
 	}
 
-	return dataDiskFinisher{
+	return dataDiskProcessor{
 		client:  client,
 		project: project,
 		request: compute.Image{
@@ -53,14 +53,15 @@ func newDataDiskFinisher(pd pd, client imageClient, project string,
 	}
 }
 
-func (d dataDiskFinisher) serials() []string {
+func (d dataDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func (d dataDiskFinisher) run(ctx context.Context) (err error) {
+func (d dataDiskProcessor) process(ctx context.Context) (err error) {
 	return d.client.CreateImage(d.project, &d.request)
 }
 
+// imageClient is the subset of the GCP compute API that is used by dataDiskProcessor.
 type imageClient interface {
 	CreateImage(project string, i *compute.Image) error
 }
