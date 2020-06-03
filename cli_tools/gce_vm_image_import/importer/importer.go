@@ -160,7 +160,10 @@ func (importer importer) Run(ctx context.Context) (w *daisy.Workflow, err error)
 
 		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, importer.Network, w)
 
-		return customizeErrorToDetectionResults(importer.OS, w, err)
+		return w, customizeErrorToDetectionResults(importer.OS,
+			w.GetSerialConsoleOutputValue("detected_distro"),
+			w.GetSerialConsoleOutputValue("detected_major_version"),
+			w.GetSerialConsoleOutputValue("detected_minor_version"), err)
 	}
 	return w, nil
 }

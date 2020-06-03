@@ -16,22 +16,18 @@ import (
 	"fmt"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/distro"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-func customizeErrorToDetectionResults(osID string, w *daisy.Workflow, err error) (*daisy.Workflow, error) {
-	// When translation fails, report the detection results if they don't
-	// match the user's input.
-	fromUser, _ := distro.ParseGcloudOsParam(osID)
-	detected, _ := distro.FromLibguestfs(
-		w.GetSerialConsoleOutputValue("detected_distro"),
-		w.GetSerialConsoleOutputValue("detected_major_version"),
-		w.GetSerialConsoleOutputValue("detected_minor_version"))
+func customizeErrorToDetectionResults(osID, detectedDistro, detectedMajor,
+	detectedMinor string, original error) error {
+	fromUser, _ := distro.FromGcloudOSArgument(osID)
+	detected, _ := distro.FromComponents(
+		detectedDistro, detectedMajor, detectedMinor)
 	if fromUser != nil && detected != nil && !fromUser.ImportCompatible(detected) {
 		// The error is already logged by Daisy, so skipping re-logging it here.
-		return w, fmt.Errorf("%q was detected on your disk, "+
+		return fmt.Errorf("%q was detected on your disk, "+
 			"but %q was specified. Please verify and re-import",
 			detected.AsGcloudArg(), fromUser.AsGcloudArg())
 	}
-	return w, err
+	return original
 }
