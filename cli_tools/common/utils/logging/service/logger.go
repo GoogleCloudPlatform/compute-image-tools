@@ -191,7 +191,7 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 }
 
 func (l *Logger) runWithServerLogging(function func() (Loggable, error),
-		projectPointer *string) (*ComputeImageToolsLogExtension, error) {
+	projectPointer *string) (*ComputeImageToolsLogExtension, error) {
 
 	var logExtension *ComputeImageToolsLogExtension
 
@@ -240,7 +240,7 @@ func removeNewLinesFromMultilineError(s string) string {
 
 // RunWithServerLogging runs the function with server logging
 func RunWithServerLogging(action string, params InputParams, projectPointer *string,
-		function func() (Loggable, error)) error {
+	function func() (Loggable, error)) error {
 	l := NewLoggingServiceLogger(action, params)
 	_, err := l.runWithServerLogging(function, projectPointer)
 	return err

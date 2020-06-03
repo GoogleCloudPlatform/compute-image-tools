@@ -109,27 +109,15 @@
     },
     "cleanup": {
       "DeleteResources": {
-        "Disks": [
-          "${translation_disk_name}"
-        ],
-        "Images": [
-          "${boot_image_name}"
-        ],
-        "Instances": [
-          "${instance_name}"
-        ]
+        "Disks": ["${translation_disk_name}"],
+        "Images": ["${boot_image_name}"],
+        "Instances": ["${instance_name}"]
       }
     }
   },
   "Dependencies": {
-    "create-instance": [
-      "import-boot-disk"
-    ],
-    "create-machine-image": [
-      "create-instance"
-    ],
-    "cleanup": [
-      "create-machine-image"
-    ]
+    "create-instance": ["import-boot-disk"],
+    "create-machine-image": ["create-instance"],
+    "cleanup": ["create-machine-image"]
   }
 }

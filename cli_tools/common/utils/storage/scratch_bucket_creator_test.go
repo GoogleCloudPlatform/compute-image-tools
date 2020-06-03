@@ -372,8 +372,8 @@ func TestCreateScratchBucketErrorWhenCreatingBucket(t *testing.T) {
 }
 
 func createMockBucketIteratorWithRandomBuckets(mockCtrl *gomock.Controller, ctx *context.Context,
-		storageClient domain.StorageClientInterface,
-		project string) domain.BucketIteratorCreatorInterface {
+	storageClient domain.StorageClientInterface,
+	project string) domain.BucketIteratorCreatorInterface {
 	firstBucketAttrs := &storage.BucketAttrs{
 		Name:         "firstbucket",
 		Location:     "us-west2",

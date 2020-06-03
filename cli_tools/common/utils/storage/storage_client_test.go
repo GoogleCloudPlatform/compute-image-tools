@@ -39,17 +39,12 @@ func TestDeleteGcsPath(t *testing.T) {
 	mockObjectIteratorCreator := mocks.NewMockObjectIteratorCreatorInterface(mockCtrl)
 	mockObjectIteratorCreator.EXPECT().CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").Return(mockObjectIterator)
 
-	mockObjecthandle := mocks.NewMockObjectHandleInterface(mockCtrl)
-	mockObjecthandle.EXPECT().Delete().Return(nil).AnyTimes()
-	mockObjectHandleCreator := mocks.NewMockObjectHandleCreatorInterface(mockCtrl)
-	mockObjectHandleCreator.EXPECT().
-		CreateObjectHandle("sourcebucket", "sourcepath/furtherpath/afile1.txt").
-		Return(mockObjecthandle)
-	mockObjectHandleCreator.EXPECT().
-		CreateObjectHandle("sourcebucket", "sourcepath/furtherpath/afile2.txt").
-		Return(mockObjecthandle)
+	mockStorageObjectDeleter := mocks.NewMockStorageObjectDeleterInterface(mockCtrl)
+	firstDeletion := mockStorageObjectDeleter.EXPECT().DeleteObject("sourcebucket", "sourcepath/furtherpath/afile1.txt")
+	secondDeletion := mockStorageObjectDeleter.EXPECT().DeleteObject("sourcebucket", "sourcepath/furtherpath/afile2.txt")
+	gomock.InOrder(firstDeletion, secondDeletion)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Ohc: mockObjectHandleCreator,
+	sc := Client{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
 		Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.Nil(t, err)
@@ -96,17 +91,16 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
 		Return(mockObjectIterator)
 
-	mockObjectHandleCreator := mocks.NewMockObjectHandleCreatorInterface(mockCtrl)
-	mockObjectHandle := mocks.NewMockObjectHandleInterface(mockCtrl)
-	firstObject := mockObjectHandle.EXPECT().Delete().Return(nil)
-	secondObject := mockObjectHandle.EXPECT().Delete().Return(fmt.Errorf("can't delete second file"))
-	mockObjectHandleCreator.EXPECT().
-		CreateObjectHandle("sourcebucket", "sourcepath/furtherpath/afile1.txt").Return(mockObjectHandle)
-	mockObjectHandleCreator.EXPECT().
-		CreateObjectHandle("sourcebucket", "sourcepath/furtherpath/afile2.txt").Return(mockObjectHandle)
-	gomock.InOrder(firstObject, secondObject)
+	mockStorageObjectDeleter := mocks.NewMockStorageObjectDeleterInterface(mockCtrl)
+	firstDeletion := mockStorageObjectDeleter.EXPECT().
+		DeleteObject("sourcebucket", "sourcepath/furtherpath/afile1.txt").
+		Return(nil)
+	secondDeletion := mockStorageObjectDeleter.EXPECT().
+		DeleteObject("sourcebucket", "sourcepath/furtherpath/afile2.txt").
+		Return(fmt.Errorf("can't delete second file"))
+	gomock.InOrder(firstDeletion, secondDeletion)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Ohc: mockObjectHandleCreator,
+	sc := Client{Oic: mockObjectIteratorCreator, ObjectDeleter: mockStorageObjectDeleter,
 		Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)

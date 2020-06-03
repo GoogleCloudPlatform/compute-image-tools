@@ -21,15 +21,15 @@ import (
 // Populator standardizes user input, and determines omitted values.
 type Populator interface {
 	PopulateMissingParameters(project *string, zone *string, region *string,
-			scratchBucketGcsPath *string, file string, storageLocation *string) error
+		scratchBucketGcsPath *string, file string, storageLocation *string) error
 }
 
 // NewPopulator returns an object that implements Populator.
 func NewPopulator(
-		metadataClient domain.MetadataGCEInterface,
-		storageClient domain.StorageClientInterface,
-		locationClient domain.ResourceLocationRetrieverInterface,
-		scratchBucketClient domain.ScratchBucketCreatorInterface) Populator {
+	metadataClient domain.MetadataGCEInterface,
+	storageClient domain.StorageClientInterface,
+	locationClient domain.ResourceLocationRetrieverInterface,
+	scratchBucketClient domain.ScratchBucketCreatorInterface) Populator {
 	return populator{
 		metadataClient:      metadataClient,
 		storageClient:       storageClient,
@@ -46,7 +46,7 @@ type populator struct {
 }
 
 func (p populator) PopulateMissingParameters(project *string, zone *string, region *string,
-		scratchBucketGcsPath *string, file string, storageLocation *string) error {
+	scratchBucketGcsPath *string, file string, storageLocation *string) error {
 
 	if err := PopulateProjectIfMissing(p.metadataClient, project); err != nil {
 		return err

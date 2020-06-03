@@ -32,12 +32,12 @@ type ObjectHandleCreator struct {
 func (ohc *ObjectHandleCreator) CreateObjectHandle(
 		bucket string, object string) domain.ObjectHandleInterface {
 	return &ObjectHandle{
-		ob: ohc.sc.Bucket(bucket).Object(object), ctx: ohc.ctx}
+		ob: ohc.sc.Bucket(bucket).Object(object), ctx:ohc.ctx}
 }
 
 // ObjectHandle is a wrapper around storage.ObjectHandle. Implements ObjectHandleInterface.
 type ObjectHandle struct {
-	ob  *storage.ObjectHandle
+	ob *storage.ObjectHandle
 	ctx context.Context
 }
 
@@ -61,14 +61,15 @@ func (oh *ObjectHandle) ObjectName() string {
 	return oh.ob.ObjectName()
 }
 
-func (oh *ObjectHandle) RunComposer(srcs ...domain.ObjectHandleInterface) (*storage.ObjectAttrs, error) {
+func (oh *ObjectHandle) ComposerFrom(srcs ...domain.ObjectHandleInterface) *storage.Composer {
 	var objs []*storage.ObjectHandle
 	for _, obj := range srcs {
 		objs = append(objs, obj.GetObjectHandle())
 	}
-	return oh.ob.ComposerFrom(objs...).Run(oh.ctx)
+	return oh.ob.ComposerFrom(objs ...)
 }
 
-func (oh *ObjectHandle) RunCopier(src domain.ObjectHandleInterface) (*storage.ObjectAttrs, error) {
-	return oh.ob.CopierFrom(src.GetObjectHandle()).Run(oh.ctx)
+func (oh *ObjectHandle) CopierFrom(src domain.ObjectHandleInterface) *storage.Copier {
+	return oh.ob.CopierFrom(src.GetObjectHandle())
 }
+

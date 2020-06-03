@@ -25,11 +25,13 @@ import (
 // StorageClientInterface represents GCS storage client
 type StorageClientInterface interface {
 	CreateBucket(bucketName string, project string, attrs *storage.BucketAttrs) error
+	Bucket(bucket string) *storage.BucketHandle
 	Buckets(projectID string) *storage.BucketIterator
 	GetBucketAttrs(bucket string) (*storage.BucketAttrs, error)
 	GetBucket(bucket string) *storage.BucketHandle
 	GetObject(bucket string, objectPath string) ObjectHandleInterface
 	GetObjects(bucket string, objectPath string) ObjectIteratorInterface
+	DeleteObject(bucket string, objectPath string) error
 	FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error)
 	FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension string, lookupDepth int) (*storage.ObjectHandle, error)
 	GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error)
@@ -41,7 +43,7 @@ type StorageClientInterface interface {
 // BucketIteratorCreatorInterface represents GCS bucket creator
 type BucketIteratorCreatorInterface interface {
 	CreateBucketIterator(ctx context.Context, storageClient StorageClientInterface,
-			projectID string) BucketIteratorInterface
+		projectID string) BucketIteratorInterface
 }
 
 //BucketIteratorInterface represents GCS bucket iterator
@@ -77,8 +79,8 @@ type ObjectHandleInterface interface {
 	NewReader() (io.ReadCloser, error)
 	NewWriter() io.WriteCloser
 	ObjectName() string
-	RunComposer(src ...ObjectHandleInterface) (*storage.ObjectAttrs, error)
-	RunCopier(src ObjectHandleInterface) (*storage.ObjectAttrs, error)
+	ComposerFrom(src ... *ObjectHandleInterface) *storage.Composer
+	CopierFrom(src *ObjectHandleInterface) *storage.Copier
 }
 
 // MetadataGCEInterface represents GCE metadata

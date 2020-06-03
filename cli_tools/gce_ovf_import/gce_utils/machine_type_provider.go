@@ -73,7 +73,7 @@ func (mp *MachineTypeProvider) GetMachineType() (string, error) {
 		}
 
 		for memoryIndex < len(cpuCountToMachineTypes[cpuCounts[cpuIndex]]) &&
-				cpuCountToMachineTypes[cpuCounts[cpuIndex]][memoryIndex].MemoryMb < memoryMB {
+			cpuCountToMachineTypes[cpuCounts[cpuIndex]][memoryIndex].MemoryMb < memoryMB {
 			memoryIndex++
 		}
 		if memoryIndex >= len(cpuCountToMachineTypes[cpuCounts[cpuIndex]]) {
@@ -89,7 +89,7 @@ func (mp *MachineTypeProvider) GetMachineType() (string, error) {
 }
 
 func groupMachineTypesByCPUCount(
-		machineTypes []*compute.MachineType) (map[int64][]*compute.MachineType, []int64) {
+	machineTypes []*compute.MachineType) (map[int64][]*compute.MachineType, []int64) {
 	cpuCountToMachineTypes := make(map[int64][]*compute.MachineType)
 	cpuCounts := make([]int64, 0)
 

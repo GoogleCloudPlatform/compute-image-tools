@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	"google.golang.org/api/googleapi"
 )
@@ -51,7 +52,7 @@ type bufferedWriter struct {
 	cSize    int64
 	prefix   string
 	ctx      context.Context
-	oauth    string
+	oauth 	 string
 	client   gcsClient
 	id       string
 	bkt, obj string
@@ -91,13 +92,14 @@ func (b *bufferedWriter) uploadWorker() {
 				defer file.Close()
 
 				tmpObj := path.Join(b.obj, strings.TrimPrefix(in, b.prefix))
-				dst := client.GetObject(b.bkt, tmpObj).NewWriter()
+				dst := client.Bucket(b.bkt).Object(tmpObj).NewWriter(b.ctx)
 				if _, err := io.Copy(dst, file); err != nil {
 					if io.EOF != err {
 						return err
 					}
 				}
 				b.addObj(tmpObj)
+
 				return dst.Close()
 			}()
 			if err != nil {
@@ -162,32 +164,26 @@ func (b *bufferedWriter) Close() error {
 
 	// Compose the object.
 	for i := 0; ; i++ {
-		var objs []domain.ObjectHandleInterface
+		var objs []*storage.ObjectHandle
 		// Max 32 components in a single compose.
 		l := math.Min(float64(32), float64(len(b.tmpObjs)))
 		for _, obj := range b.tmpObjs[:int(l)] {
-			objs = append(objs, client.GetObject(b.bkt, obj))
+			objs = append(objs, client.Bucket(b.bkt).Object(obj))
 		}
 		if len(objs) == 1 {
-			if _, err := client.GetObject(b.bkt, b.obj).RunCopier(objs[0]); err != nil {
+			if _, err := client.Bucket(b.bkt).Object(b.obj).CopierFrom(objs[0]).Run(b.ctx); err != nil {
 				return err
 			}
-			err = objs[0].Delete()
-			if err != nil {
-				return err
-			}
+			objs[0].Delete(b.ctx)
 			break
 		}
-		newObj := client.GetObject(b.bkt, path.Join(b.obj, b.id+"_compose_"+strconv.Itoa(i)))
+		newObj := client.Bucket(b.bkt).Object(path.Join(b.obj, b.id+"_compose_"+strconv.Itoa(i)))
 		b.tmpObjs = append([]string{newObj.ObjectName()}, b.tmpObjs[int(l):]...)
-		if _, err := newObj.RunComposer(objs...); err != nil {
+		if _, err := newObj.ComposerFrom(objs...).Run(b.ctx); err != nil {
 			return err
 		}
 		for _, o := range objs {
-			err = o.Delete()
-			if err != nil {
-				return err
-			}
+			o.Delete(b.ctx)
 		}
 	}
 	return nil
@@ -233,8 +229,8 @@ func NewBuffer(ctx context.Context, size, workers int64, client gcsClient, oauth
 		bkt:    bkt,
 		obj:    obj,
 		ctx:    ctx,
-		oauth:  oauth,
-		client: client,
+		oauth:	oauth,
+		client:  client,
 	}
 	for i := int64(0); i < workers; i++ {
 		b.Add(1)

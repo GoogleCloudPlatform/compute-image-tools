@@ -27,13 +27,13 @@ type OvfValidator struct {
 
 // NewOvfValidator creates a new OvfValidator
 func NewOvfValidator(
-		storageClient domain.StorageClientInterface) *OvfValidator {
+	storageClient domain.StorageClientInterface) *OvfValidator {
 	return &OvfValidator{storageClient: storageClient}
 }
 
 // ValidateOvfPackage validates OVF package. This includes checking that references to resources in GCS exist.
 func (v *OvfValidator) ValidateOvfPackage(
-		ovfDescriptor *ovf.Envelope, ovfGcsPath string) (*ovf.Envelope, error) {
+	ovfDescriptor *ovf.Envelope, ovfGcsPath string) (*ovf.Envelope, error) {
 	if ovfDescriptor == nil {
 		return nil, daisy.Errf("OVF descriptor cannot be nil")
 	}
@@ -46,7 +46,7 @@ func (v *OvfValidator) ValidateOvfPackage(
 }
 
 func (v *OvfValidator) validateReferencesExistInGcs(
-		references []ovf.File, ovfGcsPath string) error {
+	references []ovf.File, ovfGcsPath string) error {
 	if references == nil {
 		return nil
 	}

@@ -27,37 +27,37 @@ import (
 
 const (
 	upgradeIntroductionTemplate = "The following resources will be created/accessed during the upgrade. " +
-			"Please note the names of the following resources in case you need to manually rollback or cleanup resources.\n" +
-			"All resources are in project '{{.project}}', zone '{{.zone}}'.\n" +
-			"1. Instance: {{.instanceName}}\n" +
-			"2. Disk for install media: {{.installMediaDiskName}}\n" +
-			"3. Snapshot for original OS disk: {{.osDiskSnapshotName}}\n" +
-			"4. Original OS disk: {{.osDiskName}}\n" +
-			"   - Device name of the attachment: {{.osDiskDeviceName}}\n" +
-			"   - AutoDelete setting of the attachment: {{.osDiskAutoDelete}}\n" +
-			"5. Name of the new OS disk: {{.newOSDiskName}}\n" +
-			"6. Name of the machine image: {{.machineImageName}}\n" +
-			"7. Original startup script URL: {{.originalStartupScriptURL}}\n" +
-			"\n" +
-			"If the upgrade succeeds but the cleanup fails, use the following steps to perform a manual cleanup:\n" +
-			"1. Delete 'windows-startup-script-url' from the instance's metadata if there isn't an original value. " +
-			"If there is an original value, restore it. The original value is backed up as metadata 'windows-startup-script-url-backup'.\n" +
-			"2. Detach the install media disk from the instance and delete it.\n" +
-			"\n" +
-			"If the upgrade fails but you didn't enable automatic rollback, auto-rollback " +
-			"failed, or the upgrade succeeded but you need to rollback for another reason, " +
-			"use the following steps to perform a manual rollback:\n" +
-			"1. Detach the new OS disk from the instance and delete the disk.\n" +
-			"2. Attach the original OS disk as a boot disk.\n" +
-			"3. Detach the install media disk from the instance and delete the disk.\n" +
-			"4. Delete 'windows-startup-script-url' from the instance's metadata if there isn't an original value for the script. " +
-			"If there is an original value for the script, restore the value. The original value is backed up as metadata 'windows-startup-script-url-backup'.\n" +
-			"\n" +
-			"After verifying that the upgrading succeeds and you no longer need to rollback:\n" +
-			"1. Delete the original OS disk.\n" +
-			"2. Delete the machine image.\n" +
-			"3. Delete the snapshot.\n" +
-			"\n"
+		"Please note the names of the following resources in case you need to manually rollback or cleanup resources.\n" +
+		"All resources are in project '{{.project}}', zone '{{.zone}}'.\n" +
+		"1. Instance: {{.instanceName}}\n" +
+		"2. Disk for install media: {{.installMediaDiskName}}\n" +
+		"3. Snapshot for original OS disk: {{.osDiskSnapshotName}}\n" +
+		"4. Original OS disk: {{.osDiskName}}\n" +
+		"   - Device name of the attachment: {{.osDiskDeviceName}}\n" +
+		"   - AutoDelete setting of the attachment: {{.osDiskAutoDelete}}\n" +
+		"5. Name of the new OS disk: {{.newOSDiskName}}\n" +
+		"6. Name of the machine image: {{.machineImageName}}\n" +
+		"7. Original startup script URL: {{.originalStartupScriptURL}}\n" +
+		"\n" +
+		"If the upgrade succeeds but the cleanup fails, use the following steps to perform a manual cleanup:\n" +
+		"1. Delete 'windows-startup-script-url' from the instance's metadata if there isn't an original value. " +
+		"If there is an original value, restore it. The original value is backed up as metadata 'windows-startup-script-url-backup'.\n" +
+		"2. Detach the install media disk from the instance and delete it.\n" +
+		"\n" +
+		"If the upgrade fails but you didn't enable automatic rollback, auto-rollback " +
+		"failed, or the upgrade succeeded but you need to rollback for another reason, " +
+		"use the following steps to perform a manual rollback:\n" +
+		"1. Detach the new OS disk from the instance and delete the disk.\n" +
+		"2. Attach the original OS disk as a boot disk.\n" +
+		"3. Detach the install media disk from the instance and delete the disk.\n" +
+		"4. Delete 'windows-startup-script-url' from the instance's metadata if there isn't an original value for the script. " +
+		"If there is an original value for the script, restore the value. The original value is backed up as metadata 'windows-startup-script-url-backup'.\n" +
+		"\n" +
+		"After verifying that the upgrading succeeds and you no longer need to rollback:\n" +
+		"1. Delete the original OS disk.\n" +
+		"2. Delete the machine image.\n" +
+		"3. Delete the snapshot.\n" +
+		"\n"
 )
 
 var (

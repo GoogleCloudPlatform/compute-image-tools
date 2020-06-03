@@ -88,7 +88,7 @@ func NewImportArguments(args []string) (ImportArguments, error) {
 
 // ValidateAndPopulate parses, validates, and populates the arguments.
 func (args *ImportArguments) ValidateAndPopulate(populator param.Populator,
-		sourceFactory SourceFactory) (err error) {
+	sourceFactory SourceFactory) (err error) {
 
 	args.Source, err = sourceFactory.Init(args.SourceFile, args.SourceImage)
 	if err != nil {
@@ -164,22 +164,22 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*trimmedString)(&args.Network), "network",
 		"Name of the network in your project to use for the image import. "+
-				"The network must have access to Google Cloud Storage. "+
-				"If not specified, the network named default is used.")
+			"The network must have access to Google Cloud Storage. "+
+			"If not specified, the network named default is used.")
 
 	flagSet.Var((*trimmedString)(&args.Subnet), "subnet",
 		"Name of the subnetwork in your project to use for the image import. "+
-				"If the network resource is in legacy mode, do not provide this property. "+
-				"If the network is in auto subnet mode, providing the subnetwork is optional. "+
-				"If the network is in custom subnet mode, then this field should be specified. "+
-				"Zone should be specified if this field is specified.")
+			"If the network resource is in legacy mode, do not provide this property. "+
+			"If the network is in auto subnet mode, providing the subnetwork is optional. "+
+			"If the network is in custom subnet mode, then this field should be specified. "+
+			"Zone should be specified if this field is specified.")
 
 	flagSet.Var((*lowerTrimmedString)(&args.Zone), "zone",
 		"The zone where workflows will be run, and where the resulting image will be stored.")
 
 	flagSet.Var((*trimmedString)(&args.ScratchBucketGcsPath), "scratch_bucket_gcs_path",
 		"A system-generated bucket name will be used if omitted. "+
-				"If the bucket doesn't exist, it will be created. If it does exist, it will be reused.")
+			"If the bucket doesn't exist, it will be created. If it does exist, it will be reused.")
 
 	flagSet.Var((*trimmedString)(&args.Oauth), "oauth",
 		"Path to oauth json file.")
@@ -215,12 +215,12 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*keyValueString)(&args.Labels), "labels",
 		"List of label KEY=VALUE pairs to add. "+
-				"For more information, see: https://cloud.google.com/compute/docs/labeling-resources")
+			"For more information, see: https://cloud.google.com/compute/docs/labeling-resources")
 
 	flagSet.Var((*lowerTrimmedString)(&args.StorageLocation), "storage_location",
 		"Specifies a Cloud Storage location, either regional or multi-regional, "+
-				"where image content is to be stored. If not specified, the multi-region "+
-				"location closest to the source is chosen automatically.")
+			"where image content is to be stored. If not specified, the multi-region "+
+			"location closest to the source is chosen automatically.")
 
 	flagSet.Var((*trimmedString)(&args.SourceFile), "source_file",
 		"The Cloud Storage URI of the virtual disk file to import.")
@@ -230,30 +230,30 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.BoolVar(&args.DataDisk, dataDiskFlag, false,
 		"Specifies that the disk has no bootable OS installed on it. "+
-				"Imports the disk without making it bootable or installing Google tools on it.")
+			"Imports the disk without making it bootable or installing Google tools on it.")
 
 	flagSet.Var((*lowerTrimmedString)(&args.OS), osFlag,
 		"Specifies the OS of the image being imported. OS must be one of: "+
-				"centos-6, centos-7, debian-8, debian-9, opensuse-15, sles-12-byol, "+
-				"sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, "+
-				"ubuntu-1604, ubuntu-1804, windows-10-byol, windows-2008r2, windows-2008r2-byol, "+
-				"windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, "+
-				"windows-2016, windows-2016-byol, windows-7-byol.")
+			"centos-6, centos-7, debian-8, debian-9, opensuse-15, sles-12-byol, "+
+			"sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, "+
+			"ubuntu-1604, ubuntu-1804, windows-10-byol, windows-2008r2, windows-2008r2-byol, "+
+			"windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, "+
+			"windows-2016, windows-2016-byol, windows-7-byol.")
 
 	flagSet.BoolVar(&args.NoGuestEnvironment, "no_guest_environment", false,
 		"When enabled, the Google Guest Environment will not be installed.")
 
 	flagSet.DurationVar(&args.Timeout, "timeout", time.Hour*2,
 		"Maximum time a build can last before it is failed as TIMEOUT. For example, "+
-				"specifying 2h will fail the process after 2 hours. See $ gcloud topic datetimes "+
-				"for information on duration formats.")
+			"specifying 2h will fail the process after 2 hours. See $ gcloud topic datetimes "+
+			"for information on duration formats.")
 
 	flagSet.Var((*trimmedString)(&args.CustomWorkflow), customWorkflowFlag,
 		"A Daisy workflow JSON file to use for translation.")
 
 	flagSet.BoolVar(&args.UefiCompatible, "uefi_compatible", false,
 		"Enables UEFI booting, which is an alternative system boot method. "+
-				"Most public images use the GRUB bootloader as their primary boot method.")
+			"Most public images use the GRUB bootloader as their primary boot method.")
 
 	flagSet.BoolVar(&args.SysprepWindows, "sysprep_windows", false,
 		"Whether to generalize image using Windows Sysprep. Only applicable to Windows.")

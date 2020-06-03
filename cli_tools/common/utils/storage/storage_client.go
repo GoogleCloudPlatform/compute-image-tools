@@ -45,27 +45,31 @@ type Client struct {
 	Logger        logging.LoggerInterface
 	Ctx           context.Context
 	Oic           domain.ObjectIteratorCreatorInterface
-	Ohc           domain.ObjectHandleCreatorInterface
+	Ohc 					domain.ObjectHandleCreatorInterface
 }
 
 // NewStorageClient creates a Client
 func NewStorageClient(ctx context.Context,
-		logger logging.LoggerInterface, option ...option.ClientOption) (*Client, error) {
+	logger logging.LoggerInterface, oauth string) (*Client, error) {
 
-	client, err := storage.NewClient(ctx, option...)
+	storageOptions := []option.ClientOption{}
+	if oauth != "" {
+		storageOptions = append(storageOptions, option.WithCredentialsFile(oauth))
+	}
+	client, err := storage.NewClient(ctx, storageOptions...)
 	if err != nil {
 		return nil, daisy.Errf("error creating storage client: %v", err)
 	}
 	sc := &Client{StorageClient: client, Ctx: ctx,
 		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}
 
-	sc.Ohc = &ObjectHandleCreator{ctx: ctx, sc: client}
+	sc.Ohc = &ObjectHandleCreator{ctx:ctx, sc: client}
 	return sc, nil
 }
 
 // CreateBucket creates a GCS bucket
 func (sc *Client) CreateBucket(
-		bucketName string, project string, attrs *storage.BucketAttrs) error {
+	bucketName string, project string, attrs *storage.BucketAttrs) error {
 	if err := sc.StorageClient.Bucket(bucketName).Create(sc.Ctx, project, attrs); err != nil {
 		return daisy.Errf("Error creating bucket `%v` in project `%v`: %v", bucketName, project, err)
 	}
@@ -77,11 +81,6 @@ func (sc *Client) Buckets(projectID string) *storage.BucketIterator {
 	return sc.StorageClient.Buckets(sc.Ctx, projectID)
 }
 
-// GetBucket returns a BucketHandle, which provides operations on the named bucket.
-func (sc *Client) GetBucket(bucket string) *storage.BucketHandle {
-	return sc.StorageClient.Bucket(bucket)
-}
-
 // GetBucketAttrs returns bucket attributes for given bucket
 func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
 	bucketAttrs, err := sc.StorageClient.Bucket(bucket).Attrs(sc.Ctx)
@@ -91,6 +90,12 @@ func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
 	return bucketAttrs, nil
 }
 
+// GetBucket returns a BucketHandle, which provides operations on the named bucket.
+func (sc *Client) GetBucket(bucket string) *storage.BucketHandle {
+	return sc.StorageClient.Bucket(bucket)
+}
+
+
 func (sc *Client) GetObject(bucket string, objectPath string) domain.ObjectHandleInterface {
 	return sc.Ohc.CreateObjectHandle(bucket, objectPath)
 }
@@ -99,6 +104,7 @@ func (sc *Client) GetObject(bucket string, objectPath string) domain.ObjectHandl
 func (sc *Client) GetObjects(bucket string, objectPath string) domain.ObjectIteratorInterface {
 	return sc.Oic.CreateObjectIterator(bucket, objectPath)
 }
+
 
 // DeleteGcsPath deletes a GCS path, including files
 func (sc *Client) DeleteGcsPath(gcsPath string) error {
@@ -199,7 +205,7 @@ func (sc *Client) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, er
 
 // WriteToGCS writes content from a reader to destination bucket and path
 func (sc *Client) WriteToGCS(
-		destinationBucketName string, destinationObjectPath string, reader io.Reader) error {
+	destinationBucketName string, destinationObjectPath string, reader io.Reader) error {
 	destinationBucket := sc.GetBucket(destinationBucketName)
 	fileWriter := destinationBucket.Object(destinationObjectPath).NewWriter(sc.Ctx)
 

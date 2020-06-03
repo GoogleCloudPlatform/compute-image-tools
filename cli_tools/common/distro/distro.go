@@ -69,18 +69,18 @@ func (l release) ImportCompatible(other Release) bool {
 
 	if l.distro == ubuntu {
 		return l.distro == realOther.distro &&
-				l.major == realOther.major &&
-				l.minor == realOther.minor
+			l.major == realOther.major &&
+			l.minor == realOther.minor
 	}
 
 	if l.distro == sles {
 		return l.distro == realOther.distro &&
-				l.variant == realOther.variant &&
-				l.major == realOther.major
+			l.variant == realOther.variant &&
+			l.major == realOther.major
 	}
 
 	return l.distro == realOther.distro &&
-			l.major == realOther.major
+		l.major == realOther.major
 }
 
 // FromLibguestfs initializes a DistroAndVersion from the fields returned by libguestfs's
@@ -130,9 +130,9 @@ func ParseGcloudOsParam(osFlagValue string) (r Release, e error) {
 	// 1. Format is `(debian|centos|rhel|opensuse)-major`.
 	//   Canonical example: debian-8
 	if distro == debian ||
-			distro == centos ||
-			distro == rhel ||
-			distro == opensuse {
+		distro == centos ||
+		distro == rhel ||
+		distro == opensuse {
 		if len(parts) != 2 {
 			return r, fmt.Errorf("expected pattern of `distro-version`. Actual: `%s`", os)
 		}

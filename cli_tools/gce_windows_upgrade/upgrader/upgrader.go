@@ -198,8 +198,8 @@ func (u *upgrader) handleFailure(err error) {
 		fmt.Printf("\nSuccessfully upgraded instance '%v' to '%v!'\n", u.instanceURI, u.TargetOS)
 		// TODO: update the help guide link. b/154838004
 		fmt.Printf("\nPlease verify your application's functionality on the " +
-				"instance, and if you run into any issues, please manually rollback following " +
-				"the instructions in the guide.\n\n")
+			"instance, and if you run into any issues, please manually rollback following " +
+			"the instructions in the guide.\n\n")
 		return
 	}
 
@@ -207,30 +207,30 @@ func (u *upgrader) handleFailure(err error) {
 	if u.AutoRollback {
 		if isNewOSDiskAttached {
 			fmt.Printf("\nUpgrade failed to finish. Rolling back to the "+
-					"original state from the original OS disk '%v'...\n\n", u.osDiskURI)
+				"original state from the original OS disk '%v'...\n\n", u.osDiskURI)
 			_, err := u.rollback()
 			if err != nil {
 				fmt.Printf("\nRollback failed. Error: %v\n"+
-						"Please rollback the image manually following the instructions in the guide.\n\n", err)
+					"Please rollback the image manually following the instructions in the guide.\n\n", err)
 			} else {
 				fmt.Printf("\nCompleted rollback to the original OS disk. Please " +
-						"verify the rollback. If the rollback does not function as expected, " +
-						"consider restoring the instance from the machine image.\n\n")
+					"verify the rollback. If the rollback does not function as expected, " +
+					"consider restoring the instance from the machine image.\n\n")
 			}
 			return
 		}
 		fmt.Printf("\nNo OS disk attached during the failure. No need to rollback. "+
-				"If the instance doesn't work as expected, please verify that the original "+
-				"OS disk (%v) is attached and whether the instance has started. If necessary, "+
-				"please manually rollback by using the instructions in the guide..\n\n", u.osDiskURI)
+			"If the instance doesn't work as expected, please verify that the original "+
+			"OS disk (%v) is attached and whether the instance has started. If necessary, "+
+			"please manually rollback by using the instructions in the guide..\n\n", u.osDiskURI)
 	}
 
 	fmt.Printf("\nUpgrade failed. Please manually rollback following the " +
-			"instructions in the guide.\n\n")
+		"instructions in the guide.\n\n")
 
 	fmt.Print("\nCleaning up temporary resources...\n\n")
 	if _, err := u.cleanup(); err != nil {
 		fmt.Printf("\nFailed to cleanup temporary resources: %v\n"+
-				"Please cleanup the resources manually by following the instructions in the guide.\n\n", err)
+			"Please cleanup the resources manually by following the instructions in the guide.\n\n", err)
 	}
 }

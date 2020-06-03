@@ -31,16 +31,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
+	"cloud.google.com/go/storage"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/dustin/go-humanize"
 	gzip "github.com/klauspost/pgzip"
 	"google.golang.org/api/option"
 	htransport "google.golang.org/api/transport/http"
 )
-
-const logPrefix = "[gce-export]"
 
 var (
 	disk         = flag.String("disk", "", "disk to export, on linux this would be something like '/dev/sda', and on Windows '\\\\.\\PhysicalDrive1'")
@@ -100,8 +97,8 @@ func writeGzipProgress(start time.Time, size int64, rp, wp *progress) {
 		if readTotal == totalSize {
 			return
 		}
-		log.Println("Read %s of %s (%s/sec),", readTotal, totalSize, diskSpd)
-		log.Println(" Total written size: %s (%s/sec)\n", uploadTotal, upldSpd)
+		fmt.Printf("GCEExport: Read %s of %s (%s/sec),", readTotal, totalSize, diskSpd)
+		fmt.Printf(" total written size: %s (%s/sec)\n", uploadTotal, upldSpd)
 		oldUpload = wpTotal
 		oldRead = rpTotal
 		oldSince = since
@@ -109,11 +106,8 @@ func writeGzipProgress(start time.Time, size int64, rp, wp *progress) {
 	}
 }
 
-func gcsClient(ctx context.Context, oauth string) (domain.StorageClientInterface, error) {
+func gcsClient(ctx context.Context, oauth string) (*storage.Client, error) {
 	//return storage.NewClient(ctx)
-	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewStdoutLogger(logPrefix)
-
 	baseTransport := &http.Transport{
 		DisableKeepAlives:     false,
 		MaxIdleConns:          0,
@@ -128,8 +122,7 @@ func gcsClient(ctx context.Context, oauth string) (domain.StorageClientInterface
 	if err != nil {
 		return nil, err
 	}
-
-	return storageutils.NewStorageClient(ctx, logger, option.WithHTTPClient(&http.Client{Transport: transport}),
+	return storage.NewClient(ctx, option.WithHTTPClient(&http.Client{Transport: transport}),
 		option.WithCredentialsFile(oauth))
 }
 
@@ -231,7 +224,7 @@ func stream(ctx context.Context, src *os.File, size int64, prefix, bkt, obj stri
 		return err
 	}
 
-	w := client.GetObject(bkt, obj).NewWriter()
+	w := client.Bucket(bkt).Object(obj).NewWriter(ctx)
 	fmt.Println("GCEExport: No local cache set, streaming directly to GCS.")
 	return gzipDisk(src, size, w)
 }
