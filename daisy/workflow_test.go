@@ -1002,13 +1002,19 @@ func TestCancelReasonEmptySingleWorkflow(t *testing.T) {
 	assertWorkflowCancelReason(t, w1, "")
 }
 
+func TestCancelReasonProvidedSingleWorkflow(t *testing.T) {
+	w1 := testWorkflow()
+	w1.CancelReason = "w1 cr"
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+}
+
 func TestCancelReasonChild(t *testing.T) {
 	w1 := testWorkflow()
 	w2 := testWorkflow()
 
 	w2.parent = w1
 	w1.CancelReason = "w1 cr"
-	w1.CancelReason = "w2 cr"
+	w2.CancelReason = "w2 cr"
 	assertWorkflowCancelReason(t, w1, "w1 cr")
 	assertWorkflowCancelReason(t, w2, "w2 cr")
 }
