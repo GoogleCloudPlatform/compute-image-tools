@@ -27,6 +27,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_import/importer"
+	"google.golang.org/api/option"
 )
 
 func main() {
@@ -61,7 +62,7 @@ func parseAndPopulateArgs(ctx context.Context) (importer.ImportArguments, error)
 
 	// 2. Setup dependencies.
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewDefaultLogger(), parsed.Oauth)
+		ctx, logging.NewDefaultLogger(), option.WithCredentialsFile(parsed.Oauth))
 	if err != nil {
 		terminate(parsed, err)
 	}

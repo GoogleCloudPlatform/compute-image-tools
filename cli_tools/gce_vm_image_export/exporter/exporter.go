@@ -30,6 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"google.golang.org/api/option"
 )
 
 // Make file paths mutable
@@ -51,7 +52,7 @@ const (
 )
 
 func validateAndParseFlags(clientID string, destinationURI string, sourceImage string, labels string) (
-	map[string]string, error) {
+		map[string]string, error) {
 
 	if err := validation.ValidateStringFlagNotEmpty(clientID, ClientIDFlagKey); err != nil {
 		return nil, err
@@ -82,7 +83,7 @@ func getWorkflowPath(format string, currentExecutablePath string) string {
 }
 
 func buildDaisyVars(destinationURI string, sourceImage string, format string, network string,
-	subnet string, region string) map[string]string {
+		subnet string, region string) map[string]string {
 
 	varMap := map[string]string{}
 
@@ -111,9 +112,9 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 }
 
 func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap map[string]string,
-	project string, zone string, timeout string, scratchBucketGcsPath string, oauth string, ce string,
-	gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool,
-	userLabels map[string]string) (*daisy.Workflow, error) {
+		project string, zone string, timeout string, scratchBucketGcsPath string, oauth string, ce string,
+		gcsLogsDisabled bool, cloudLogsDisabled bool, stdoutLogsDisabled bool,
+		userLabels map[string]string) (*daisy.Workflow, error) {
 
 	workflow, err := daisycommon.ParseWorkflow(exportWorkflowPath, varMap,
 		project, zone, scratchBucketGcsPath, oauth, timeout, ce, gcsLogsDisabled,
@@ -148,9 +149,9 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 
 // Run runs export workflow.
 func Run(clientID string, destinationURI string, sourceImage string, format string,
-	project *string, network string, subnet string, zone string, timeout string,
-	scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
-	cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
+		project *string, network string, subnet string, zone string, timeout string,
+		scratchBucketGcsPath string, oauth string, ce string, gcsLogsDisabled bool,
+		cloudLogsDisabled bool, stdoutLogsDisabled bool, labels string, currentExecutablePath string) (*daisy.Workflow, error) {
 
 	log.SetPrefix(logPrefix + " ")
 
@@ -162,7 +163,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewStdoutLogger(logPrefix), oauth)
+		ctx, logging.NewStdoutLogger(logPrefix), option.WithCredentialsFile(oauth))
 	if err != nil {
 		return nil, err
 	}
