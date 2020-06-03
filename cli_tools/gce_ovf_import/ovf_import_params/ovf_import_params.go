@@ -24,7 +24,6 @@ import (
 
 // OVFImportParams holds flags for OVF import as well as derived (parsed) params
 type OVFImportParams struct {
-
 	// Instance import specific flags
 	InstanceNames string
 

@@ -55,7 +55,7 @@ func getTranslateWorkflowPath(customTranslateWorkflow, osID string) string {
 }
 
 func buildDaisyVars(source Source, translateWorkflowPath, imageName, family, description,
-	region, subnet, network string, noGuestEnvironment bool, sysprepWindows bool) map[string]string {
+		region, subnet, network string, noGuestEnvironment bool, sysprepWindows bool) map[string]string {
 
 	varMap := map[string]string{}
 

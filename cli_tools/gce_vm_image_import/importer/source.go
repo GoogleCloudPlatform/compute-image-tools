@@ -119,7 +119,7 @@ func (s fileSource) validate(storageClient domain.StorageClientInterface) error 
 	rc, err := storageClient.GetObjectReader(s.bucket, s.object)
 	if err != nil {
 		return daisy.Errf("failed to read GCS file when validating resource file: unable to open "+
-			"file from bucket %q, file %q: %v", s.bucket, s.object, err)
+				"file from bucket %q, file %q: %v", s.bucket, s.object, err)
 	}
 	defer rc.Close()
 
@@ -127,10 +127,10 @@ func (s fileSource) validate(storageClient domain.StorageClientInterface) error 
 	// Detect whether it's a compressed file by extracting compressed file header
 	if _, err = gzip.NewReader(byteCountingReader); err == nil {
 		return daisy.Errf("the input file is a gzip file, which is not supported by " +
-			"image import. To import a file that was exported from Google Compute " +
-			"Engine, please use image create. To import a file that was exported " +
-			"from a different system, decompress it and run image import on the " +
-			"disk image file directly")
+				"image import. To import a file that was exported from Google Compute " +
+				"Engine, please use image create. To import a file that was exported " +
+				"from a different system, decompress it and run image import on the " +
+				"disk image file directly")
 	}
 
 	// By calling gzip.NewReader above, a few bytes were read from the Reader in
@@ -193,8 +193,8 @@ func (s imageSource) validate() error {
 	if !imageNamePattern.MatchString(imageName) {
 		return daisy.Errf(
 			"invalid image name %q. The first character must be a lowercase letter, and all "+
-				"following characters must be a dash, lowercase letter, or digit, except the last "+
-				"character, which cannot be a dash.", imageName)
+					"following characters must be a dash, lowercase letter, or digit, except the last "+
+					"character, which cannot be a dash.", imageName)
 	}
 	return nil
 }

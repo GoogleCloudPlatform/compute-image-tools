@@ -81,7 +81,7 @@ type DiskInfo struct {
 
 // GetDiskInfos returns disk info about disks in a virtual appliance. The first file is boot disk.
 func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, diskSection *ovf.DiskSection,
-	references *[]ovf.File) ([]DiskInfo, error) {
+		references *[]ovf.File) ([]DiskInfo, error) {
 	if virtualHardware == nil {
 		return nil, daisy.Errf("virtualHardware cannot be nil")
 	}
@@ -127,7 +127,7 @@ func GetDiskInfos(virtualHardware *ovf.VirtualHardwareSection, diskSection *ovf.
 
 			allocationUnits := "byte"
 			if virtualDiscDesc.CapacityAllocationUnits != nil &&
-				*virtualDiscDesc.CapacityAllocationUnits != "" {
+					*virtualDiscDesc.CapacityAllocationUnits != "" {
 				allocationUnits = *virtualDiscDesc.CapacityAllocationUnits
 			}
 			byteCapacity, err := Parse(int64(capacityRaw), allocationUnits)
@@ -226,7 +226,7 @@ func GetVirtualHardwareSectionFromDescriptor(ovfDescriptor *ovf.Envelope) (*ovf.
 // GetOVFDescriptorAndDiskPaths loads OVF descriptor from GCS folder location. It returns
 // descriptor object and full paths to disk files, including ovfGcsPath.
 func GetOVFDescriptorAndDiskPaths(ovfDescriptorLoader domain.OvfDescriptorLoaderInterface,
-	ovfGcsPath string) (*ovf.Envelope, []DiskInfo, error) {
+		ovfGcsPath string) (*ovf.Envelope, []DiskInfo, error) {
 	ovfDescriptor, err := ovfDescriptorLoader.Load(ovfGcsPath)
 	if err != nil {
 		return nil, nil, err
@@ -253,7 +253,7 @@ func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 		return "", daisy.Errf("VirtualSystem must be defined to retrieve OS info")
 	}
 	if ovfDescriptor.VirtualSystem.OperatingSystem == nil ||
-		len(ovfDescriptor.VirtualSystem.OperatingSystem) == 0 {
+			len(ovfDescriptor.VirtualSystem.OperatingSystem) == 0 {
 		return "", daisy.Errf("OperatingSystemSection must be defined to retrieve OS info")
 	}
 	var osID string
@@ -313,7 +313,7 @@ func filterItemsByResourceTypes(virtualHardware *ovf.VirtualHardwareSection, res
 }
 
 func getDiskFileInfo(diskHostResource string, disks *[]ovf.VirtualDiskDesc,
-	references *[]ovf.File) (string, *ovf.VirtualDiskDesc, error) {
+		references *[]ovf.File) (string, *ovf.VirtualDiskDesc, error) {
 
 	diskID, err := extractDiskID(diskHostResource)
 	if err != nil {

@@ -30,7 +30,7 @@ func customizeErrorToDetectionResults(osID string, w *daisy.Workflow, err error)
 	if fromUser != nil && detected != nil && !fromUser.ImportCompatible(detected) {
 		// The error is already logged by Daisy, so skipping re-logging it here.
 		return w, fmt.Errorf("%q was detected on your disk, "+
-			"but %q was specified. Please verify and re-import",
+				"but %q was specified. Please verify and re-import",
 			detected.AsGcloudArg(), fromUser.AsGcloudArg())
 	}
 	return w, err

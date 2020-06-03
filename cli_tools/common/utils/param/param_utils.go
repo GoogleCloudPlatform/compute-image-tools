@@ -45,8 +45,8 @@ func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string,
 }
 
 func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgce domain.MetadataGCEInterface,
-	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
-	storageClient domain.StorageClientInterface) (string, error) {
+		scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
+		storageClient domain.StorageClientInterface) (string, error) {
 
 	scratchBucketRegion := ""
 	if *scratchBucketGcsPath == "" {

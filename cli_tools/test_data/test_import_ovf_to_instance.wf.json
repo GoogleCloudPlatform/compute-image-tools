@@ -98,13 +98,22 @@
     },
     "cleanup": {
       "DeleteResources": {
-        "Disks": ["${translation_disk_name}"],
-        "Images": ["${boot_image_name_untranslated}", "${boot_image_name}"]
+        "Disks": [
+          "${translation_disk_name}"
+        ],
+        "Images": [
+          "${boot_image_name_untranslated}",
+          "${boot_image_name}"
+        ]
       }
     }
   },
   "Dependencies": {
-    "create-instance": ["import-boot-disk"],
-    "cleanup": ["create-instance"]
+    "create-instance": [
+      "import-boot-disk"
+    ],
+    "cleanup": [
+      "create-instance"
+    ]
   }
 }

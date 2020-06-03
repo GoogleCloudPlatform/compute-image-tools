@@ -682,7 +682,7 @@ func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAl
 }
 
 func createDiskItem(instanceID string, addressOnParent string,
-	elementName string, hostResource string, parent string) ovf.ResourceAllocationSettingData {
+		elementName string, hostResource string, parent string) ovf.ResourceAllocationSettingData {
 	diskType := disk
 	return ovf.ResourceAllocationSettingData{
 		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{

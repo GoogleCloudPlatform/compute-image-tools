@@ -364,7 +364,7 @@ type mockPopulator struct {
 }
 
 func (m mockPopulator) PopulateMissingParameters(project *string, zone *string, region *string,
-	scratchBucketGcsPath *string, file string, storageLocation *string) error {
+		scratchBucketGcsPath *string, file string, storageLocation *string) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -424,8 +424,8 @@ func expectSuccessfulParse(t *testing.T, args ...string) ImportArguments {
 		} else if strings.HasPrefix(arg, "-image_name") {
 			hasImageName = true
 		} else if strings.HasPrefix(arg, "-os") ||
-			strings.HasPrefix(arg, "-data_disk") ||
-			strings.HasPrefix(arg, "-custom_translate_workflow") {
+				strings.HasPrefix(arg, "-data_disk") ||
+				strings.HasPrefix(arg, "-custom_translate_workflow") {
 			hasTranslationType = true
 		}
 	}

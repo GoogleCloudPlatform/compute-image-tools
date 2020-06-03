@@ -343,7 +343,7 @@ func TestSetUpWorkflowUsesImageLocationForAlphaReleaseTrack(t *testing.T) {
 }
 
 func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(
-	t *testing.T, releaseTrack string, zone string, expectedImageLocation string) {
+		t *testing.T, releaseTrack string, zone string, expectedImageLocation string) {
 	params := getAllInstanceImportParams()
 	params.ReleaseTrack = releaseTrack
 	params.Zone = zone
@@ -742,7 +742,7 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 }
 
 func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
-	params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
+		params *ovfimportparams.OVFImportParams) (*daisy.Workflow, error) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
@@ -777,7 +777,7 @@ func createControllerItem(instanceID string, resourceType uint16) ovf.ResourceAl
 }
 
 func createDiskItem(instanceID string, addressOnParent string,
-	elementName string, hostResource string, parent string) ovf.ResourceAllocationSettingData {
+		elementName string, hostResource string, parent string) ovf.ResourceAllocationSettingData {
 	diskType := uint16(17)
 	return ovf.ResourceAllocationSettingData{
 		CIMResourceAllocationSettingData: ovf.CIMResourceAllocationSettingData{

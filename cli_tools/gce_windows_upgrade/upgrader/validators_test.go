@@ -327,7 +327,7 @@ func TestValidateInstance(t *testing.T) {
 				if derivedVars.instanceName == testInstance {
 					assert.Nil(t, derivedVars.originalWindowsStartupScriptURL, "[test name: %v] Unexpected derivedVars.originalWindowsStartupScriptURL.", tc.testName)
 				} else if derivedVars.instanceName == testInstanceWithStartupScript ||
-					derivedVars.instanceName == testInstanceWithExistingStartupScriptBackup {
+						derivedVars.instanceName == testInstanceWithExistingStartupScriptBackup {
 					if derivedVars.originalWindowsStartupScriptURL == nil || *derivedVars.originalWindowsStartupScriptURL != testOriginalStartupScript {
 						t.Errorf("[%v]: Unexpected originalWindowsStartupScriptURL: %v, expect: %v", tc.testName, derivedVars.originalWindowsStartupScriptURL, testOriginalStartupScript)
 					}

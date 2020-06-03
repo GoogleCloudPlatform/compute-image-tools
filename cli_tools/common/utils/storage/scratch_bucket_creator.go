@@ -48,7 +48,7 @@ func NewScratchBucketCreator(ctx context.Context, storageClient domain.StorageCl
 // determine region by source file, we will try to determine region by fallbackZone.
 // Returns (bucket_name, region, error)
 func (c *ScratchBucketCreator) CreateScratchBucket(sourceFileFlag string, project string,
-	fallbackZone string) (string, string, error) {
+		fallbackZone string) (string, string, error) {
 
 	bucketAttrs, err := c.getBucketAttrs(sourceFileFlag, project, fallbackZone)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *ScratchBucketCreator) CreateScratchBucket(sourceFileFlag string, projec
 }
 
 func (c *ScratchBucketCreator) getBucketAttrs(fileGcsPath string, project string,
-	fallbackZone string) (*storage.BucketAttrs, error) {
+		fallbackZone string) (*storage.BucketAttrs, error) {
 
 	if project == "" {
 		return nil, daisy.Errf("can't get bucket attributes if project not specified")
@@ -79,7 +79,7 @@ func (c *ScratchBucketCreator) getBucketAttrs(fileGcsPath string, project string
 }
 
 func (c *ScratchBucketCreator) getBucketAttrsFromInputFile(fileGcsPath string, project string,
-	fallbackZone string) (*storage.BucketAttrs, error) {
+		fallbackZone string) (*storage.BucketAttrs, error) {
 
 	fileBucket, err := GetBucketNameFromGCSPath(fileGcsPath)
 	if err != nil || fileBucket == "" {
@@ -116,7 +116,7 @@ func (c *ScratchBucketCreator) getBucketAttrsOnFallbackZone(project string, fall
 }
 
 func (c *ScratchBucketCreator) createBucketIfNotExisting(project string,
-	bucketAttrs *storage.BucketAttrs) (string, error) {
+		bucketAttrs *storage.BucketAttrs) (string, error) {
 	it := c.BucketIteratorCreator.CreateBucketIterator(c.Ctx, c.StorageClient, project)
 	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
 		if err != nil {
