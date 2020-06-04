@@ -256,6 +256,9 @@ func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 		len(ovfDescriptor.VirtualSystem.OperatingSystem) == 0 {
 		return "", daisy.Errf("OperatingSystemSection must be defined to retrieve OS info")
 	}
+	if ovfDescriptor.VirtualSystem.OperatingSystem[0].OSType == nil {
+		return "", daisy.Errf("OperatingSystemSection.OSType must be defined to retrieve OS info")
+	}
 	var osID string
 	var validOSType bool
 	osType := *ovfDescriptor.VirtualSystem.OperatingSystem[0].OSType

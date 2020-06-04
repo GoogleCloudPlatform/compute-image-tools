@@ -22,17 +22,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	initTest()
+}
+
 func TestGeneratePrepareWorkflow(t *testing.T) {
 	type testCase struct {
-		testName               string
-		populateFunc           func(*upgrader, *daisy.Workflow) error
-		instanceName           string
-		skipMachineImageBackup bool
+		testName            string
+		populateFunc        func(*upgrader, *daisy.Workflow) error
+		instanceName        string
+		createMachineBackup bool
 	}
 
 	tcs := []testCase{
-		{"prepare", populatePrepareSteps, testInstance, true},
-		{"prepare with original startup script", populatePrepareSteps, testInstanceWithStartupScript, false},
+		{"prepare", populatePrepareSteps, testInstance, false},
+		{"prepare with original startup script", populatePrepareSteps, testInstanceWithStartupScript, true},
 	}
 
 	for _, tc := range tcs {
@@ -49,9 +53,9 @@ func TestGeneratePrepareWorkflow(t *testing.T) {
 		assert.NoError(t, err, "[test name: %v] Unexpected error.", tc.testName)
 
 		_, hasBackupMachineImageStep := w.Steps["backup-machine-image"]
-		if u.SkipMachineImageBackup && hasBackupMachineImageStep {
+		if !u.CreateMachineBackup && hasBackupMachineImageStep {
 			t.Errorf("[%v]: Skiped machine image backup but still see this step in workflow.", tc.testName)
-		} else if !u.SkipMachineImageBackup && !hasBackupMachineImageStep {
+		} else if u.CreateMachineBackup && !hasBackupMachineImageStep {
 			t.Errorf("[%v]: Didn't skip machine image backup but can't see this step in workflow.", tc.testName)
 		}
 

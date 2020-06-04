@@ -20,9 +20,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsNewOSDiskAttached(t *testing.T) {
+func init() {
 	initTest()
+}
 
+func TestIsNewOSDiskAttached(t *testing.T) {
 	type testCase struct {
 		testName         string
 		project          string

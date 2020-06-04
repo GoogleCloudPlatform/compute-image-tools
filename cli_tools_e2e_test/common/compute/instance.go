@@ -131,6 +131,7 @@ func WaitForSerialOutput(match string, port int64, interval, timeout time.Durati
 	}
 }
 
+// SetMetadata sets metadata for the given instance.
 func SetMetadata(ctx context.Context, project, zone, name, key, value string, isWindows bool) (*Instance, error) {
 	i, err := CreateInstanceObject(ctx, project, zone, name, isWindows)
 	if err != nil {
@@ -185,7 +186,7 @@ func CreateInstanceBeta(ctx context.Context, project string, zone string, name s
 }
 
 // StartWithScriptCode starts the instance with given startup script.
-func (i *InstanceBeta) StartWithScript(script string) error {
+func (i *InstanceBeta) StartWithScriptCode(script string) error {
 	startupScriptKey := "startup-script"
 	if i.IsWindows {
 		startupScriptKey = "windows-startup-script-ps1"

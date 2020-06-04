@@ -33,10 +33,10 @@ import (
 )
 
 const (
-	testSuiteName = "WindowsUpgradeTests"
-	standardImage = "projects/compute-image-tools-test/global/images/test-image-win2008r2-20200414"
+	testSuiteName              = "WindowsUpgradeTests"
+	standardImage              = "projects/compute-image-tools-test/global/images/test-image-win2008r2-20200414"
 	insufficientDiskSpaceImage = "projects/compute-image-tools-test/global/images/test-image-windows-2008r2-no-space"
-	byolImage = "projects/compute-image-tools-test/global/images/test-image-windows-2008r2-byol"
+	byolImage                  = "projects/compute-image-tools-test/global/images/test-image-windows-2008r2-byol"
 )
 
 var (
@@ -118,7 +118,7 @@ func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCas
 }
 
 func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	instanceName := fmt.Sprintf("test-upgrade-rich-params-%v", suffix)
@@ -131,7 +131,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 			fmt.Sprintf("-source-os=%v", "windows-2008r2"),
 			fmt.Sprintf("-target-os=%v", "windows-2012r2"),
 			fmt.Sprintf("-instance=%v", instance),
-			fmt.Sprintf("-skip-machine-image-backup"),
+			fmt.Sprintf("-create-machine-backup=false"),
 			fmt.Sprintf("-auto-rollback"),
 			fmt.Sprintf("-timeout=2h"),
 			fmt.Sprintf("-project=%v", "compute-image-test-pool-002"),
@@ -145,7 +145,7 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 
 // this test is cli only, since gcloud can't accept ctrl+c and cleanup
 func runWindowsUpgradeFailedAndCleanup(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	instanceName := fmt.Sprintf("test-upgrade-failed-and-cleanup-%v", suffix)
@@ -166,7 +166,7 @@ func runWindowsUpgradeFailedAndCleanup(ctx context.Context, testCase *junitxml.T
 
 // this test is cli only, since gcloud can't accept ctrl+c and cleanup
 func runWindowsUpgradeFailedAndRollback(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	instanceName := fmt.Sprintf("test-upgrade-failed-and-rollback-%v", suffix)
@@ -179,7 +179,7 @@ func runWindowsUpgradeFailedAndRollback(ctx context.Context, testCase *junitxml.
 			fmt.Sprintf("-source-os=%v", "windows-2008r2"),
 			fmt.Sprintf("-target-os=%v", "windows-2012r2"),
 			fmt.Sprintf("-instance=%v", instance),
-			fmt.Sprintf("-skip-machine-image-backup"),
+			fmt.Sprintf("-create-machine-backup=false"),
 			fmt.Sprintf("-auto-rollback"),
 		},
 	}
@@ -188,7 +188,7 @@ func runWindowsUpgradeFailedAndRollback(ctx context.Context, testCase *junitxml.
 }
 
 func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	instanceName := fmt.Sprintf("test-upgrade-insufficient-disk-space-%v", suffix)
@@ -209,7 +209,7 @@ func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junit
 }
 
 func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
-		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
+	testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
 	suffix := path.RandString(5)
 	instanceName := fmt.Sprintf("test-upgrade-byol-%v", suffix)
@@ -222,7 +222,7 @@ func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, log
 			fmt.Sprintf("-source-os=%v", "windows-2008r2"),
 			fmt.Sprintf("-target-os=%v", "windows-2012r2"),
 			fmt.Sprintf("-instance=%v", instance),
-			fmt.Sprintf("-skip-machine-image-backup"),
+			fmt.Sprintf("-create-machine-backup=false"),
 		},
 	}
 	runTest(ctx, byolImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
@@ -342,7 +342,7 @@ func verifyUpgradedInstance(ctx context.Context, logger *log.Logger, testCase *j
 	}
 
 	logger.Printf("Verifying upgraded instance `%v`...", instanceName)
-	
+
 	if !verifyLicensesAndDisks(instance, expectValidationFailure, logger, testCase, expectSuccess, autoRollback, dataDiskCount) {
 		return
 	}
@@ -407,7 +407,7 @@ func verifyLicensesAndDisks(instance *computeUtils.Instance, expectValidationFai
 
 func verifyOSVersion(instance *computeUtils.Instance, testCase *junitxml.TestCase, instanceName string, logger *log.Logger) bool {
 	err := instance.RestartWithScriptCode("$ver=[System.Environment]::OSVersion.Version\n" +
-			"Write-Host \"windows_upgrade_verify_version=$($ver.Major).$($ver.Minor)\"")
+		"Write-Host \"windows_upgrade_verify_version=$($ver.Major).$($ver.Minor)\"")
 	if err != nil {
 		testCase.WriteFailure("Error starting instance `%v` with script: `%v`", instanceName, err)
 		return false

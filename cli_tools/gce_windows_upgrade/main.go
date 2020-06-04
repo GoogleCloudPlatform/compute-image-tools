@@ -30,7 +30,7 @@ var (
 	project                = flag.String("project", "", "Project containing the instance to upgrade.")
 	zone                   = flag.String("zone", "", "Project containing the instance to upgrade.")
 	instance               = flag.String("instance", "Instance to upgrade. Can be either the instance name or the full path to the instance in the following format: 'projects/<project>/zones/<zone>/instances/'. If the full path is specified, flags -project and -zone will be ignored.", "")
-	skipMachineImageBackup = flag.Bool("skip-machine-image-backup", false, "When enabled, a machine image that backs up the original state of your instance won't be created.")
+	createMachineBackup    = flag.Bool("create-machine-backup", true, "When enabled, a machine image is created that backs up the original state of your instance.")
 	autoRollback           = flag.Bool("auto-rollback", false, "When auto rollback is enabled, the instance and its resources are restored to their original state. Otherwise, the instance and any temporary resources are left in the intermediate state of the time of failure. This is useful for debugging.")
 	sourceOS               = flag.String("source-os", "", fmt.Sprintf("OS version of the source instance to upgrade. Supported values: %v", strings.Join(upgrader.SupportedSourceOSVersions(), ", ")))
 	targetOS               = flag.String("target-os", "", fmt.Sprintf("Version of the OS after upgrade. Supported values: %v", strings.Join(upgrader.SupportedTargetOSVersions(), ", ")))
@@ -48,7 +48,7 @@ func upgradeEntry() (service.Loggable, error) {
 	p := &upgrader.InputParams{
 		ClientID:               strings.TrimSpace(*clientID),
 		Instance:               strings.TrimSpace(*instance),
-		SkipMachineImageBackup: *skipMachineImageBackup,
+		CreateMachineBackup:    *createMachineBackup,
 		AutoRollback:           *autoRollback,
 		SourceOS:               strings.TrimSpace(*sourceOS),
 		TargetOS:               strings.TrimSpace(*targetOS),
@@ -86,7 +86,7 @@ func main() {
 				DisableStdoutLogging:    *stdoutLogsDisabled,
 			},
 			Instance:               *instance,
-			SkipMachineImageBackup: *skipMachineImageBackup,
+			CreateMachineBackup:    *createMachineBackup,
 			AutoRollback:           *autoRollback,
 			SourceOS:               *sourceOS,
 			TargetOS:               *targetOS,

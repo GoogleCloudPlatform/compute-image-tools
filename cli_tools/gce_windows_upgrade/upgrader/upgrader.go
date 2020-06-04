@@ -74,7 +74,7 @@ type InputParams struct {
 	ProjectPtr             *string
 	Zone                   string
 	Instance               string
-	SkipMachineImageBackup bool
+	CreateMachineBackup    bool
 	AutoRollback           bool
 	SourceOS               string
 	TargetOS               string
