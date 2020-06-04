@@ -255,21 +255,36 @@ func TestErrorWhenCopyFails(t *testing.T) {
 	assert.Equal(t, "Fail to copy", err.Error())
 }
 
-//func TestCopyFailureWhenPermissionError(t *testing.T) {
-//	resetArgs()
-//	mockCtrl := gomock.NewController(t)
-//	defer mockCtrl.Finish()
-//	ctx := context.Background()
-//	data := []byte("This is a sample data to write")
-//	buf := NewBuffer(ctx, bufferSize, worker_num, gcsClient, oauth, prefix, "bkt", obj)
-//	_, err := buf.Write(data)
-//	err = buf.Close()
-//	assert.NotNil(t, err)
-//}
-//
+func TestErrorWhenComposeFails(t *testing.T) {
+	resetArgs()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockObjectHandle := mocks.NewMockObjectHandleInterface(mockCtrl)
+	mockObjectHandle.EXPECT().Delete().Return(nil).AnyTimes()
+	mockObjectHandle.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+
+	mockObjectHandle.EXPECT().ObjectName().Return("").AnyTimes()
+	mockObjectHandle.EXPECT().RunCopier(gomock.Any()).Return(nil, nil).AnyTimes()
+
+	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockObjectHandle).AnyTimes()
+
+	ctx := context.Background()
+	f, err := os.Open("../../../test_data/test_buffered_writer.txt")
+	buf := NewBuffer(ctx, bufferSize, worker_num, mockGcsClient, oauth, prefix, bkt, obj)
+	_, err = io.Copy(buf, f)
+	assert.Nil(t, err)
+
+	mockObjectHandle.EXPECT().RunComposer(gomock.Any()).Return(nil, fmt.Errorf("Fail to compose")).AnyTimes()
+
+	err = buf.Close()
+	assert.NotNil(t, err)
+	assert.Equal(t, "Fail to compose", err.Error())
+}
 
 func resetArgs() {
-	bufferSize = 100 * 1024 * 1024
+	bufferSize = 100 * 1024
 	worker_num = 4
 	prefix = "/tmp"
 	bkt = "fionaliu-daisy-bkt-us-east1"
