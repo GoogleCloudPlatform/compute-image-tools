@@ -29,7 +29,7 @@ fi
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance"
 DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)"
-SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/source_disk_file)"
+SOURCE_URL="$DAISY_SOURCE_URL/source_disk_file"
 DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk_name)"
 SCRATCH_DISK_NAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/scratch_disk_name)"
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
