@@ -1004,7 +1004,7 @@ func TestCancelReasonEmptySingleWorkflow(t *testing.T) {
 
 func TestCancelReasonProvidedSingleWorkflow(t *testing.T) {
 	w1 := testWorkflow()
-	w1.CancelReason = "w1 cr"
+	w1.cancelReason = "w1 cr"
 	assertWorkflowCancelReason(t, w1, "w1 cr")
 }
 
@@ -1013,8 +1013,8 @@ func TestCancelReasonChild(t *testing.T) {
 	w2 := testWorkflow()
 
 	w2.parent = w1
-	w1.CancelReason = "w1 cr"
-	w2.CancelReason = "w2 cr"
+	w1.cancelReason = "w1 cr"
+	w2.cancelReason = "w2 cr"
 	assertWorkflowCancelReason(t, w1, "w1 cr")
 	assertWorkflowCancelReason(t, w2, "w2 cr")
 }
@@ -1024,7 +1024,7 @@ func TestCancelReasonInheritedFromParent(t *testing.T) {
 	w2 := testWorkflow()
 
 	w2.parent = w1
-	w1.CancelReason = "w1 cr"
+	w1.cancelReason = "w1 cr"
 	assertWorkflowCancelReason(t, w1, "w1 cr")
 	assertWorkflowCancelReason(t, w2, "w1 cr")
 }
@@ -1036,7 +1036,7 @@ func TestCancelReasonInheritedFromGrandParent(t *testing.T) {
 
 	w2.parent = w1
 	w3.parent = w2
-	w1.CancelReason = "w1 cr"
+	w1.cancelReason = "w1 cr"
 
 	assertWorkflowCancelReason(t, w1, "w1 cr")
 	assertWorkflowCancelReason(t, w2, "w1 cr")
@@ -1050,7 +1050,7 @@ func TestCancelReasonInheritedFromParentWhenGrandchild(t *testing.T) {
 
 	w2.parent = w1
 	w3.parent = w2
-	w2.CancelReason = "w2 cr"
+	w2.cancelReason = "w2 cr"
 
 	assertWorkflowCancelReason(t, w1, "")
 	assertWorkflowCancelReason(t, w2, "w2 cr")
@@ -1075,7 +1075,7 @@ func TestOnStepCancelDefaultCancelReason(t *testing.T) {
 
 func TestOnStepCancelCustomCancelReason(t *testing.T) {
 	w := testWorkflow()
-	w.CancelReason = "failed horribly"
+	w.cancelReason = "failed horribly"
 	s := &Step{name: "s", w: w}
 	err := w.onStepCancel(s, "Dummy")
 	expectedErrorMessage := "Step \"s\" (Dummy) failed horribly."
