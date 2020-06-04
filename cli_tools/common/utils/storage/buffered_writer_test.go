@@ -284,7 +284,7 @@ func TestErrorWhenComposeFails(t *testing.T) {
 }
 
 func resetArgs() {
-	bufferSize = 100 * 1024
+	bufferSize = 1 * 1024
 	worker_num = 4
 	prefix = "/tmp"
 	bkt = "fionaliu-daisy-bkt-us-east1"
