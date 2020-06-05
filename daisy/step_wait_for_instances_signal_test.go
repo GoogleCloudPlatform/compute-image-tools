@@ -24,6 +24,7 @@ import (
 	"time"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/stretchr/testify/assert"
 	compute "google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 )
@@ -71,39 +72,175 @@ func testWaitForSignalPopulate(t *testing.T, waitAny bool) {
 	}
 }
 
-func TestWaitForInstancesSignalRun(t *testing.T) {
-	testWaitForSignalRun(t, false)
+func TestWaitForSerialOutput(t *testing.T) {
+	var cases = []struct {
+		name                          string
+		serialOutput                  []string
+		expectedRemainingSerialOutput []string
+		step                          InstanceSignal
+		expectedErr                   string
+		expectedMatchedValues         map[string]string
+	}{
+		{
+			name: "on success, stop reading from channel",
+			serialOutput: []string{
+				"one", "two", "other", "success", "rest",
+			},
+			expectedRemainingSerialOutput: []string{"rest"},
+			step: InstanceSignal{
+				SerialOutput: &SerialOutput{
+					SuccessMatch: "success",
+				},
+			},
+		},
+		{
+			name: "on failure, stop reading from channel",
+			serialOutput: []string{
+				"one", "two", "other", "failure match", "rest",
+			},
+			expectedRemainingSerialOutput: []string{"rest"},
+			step: InstanceSignal{
+				SerialOutput: &SerialOutput{
+					FailureMatch: []string{"failure match"},
+				},
+			},
+			expectedErr: "failure match",
+		},
+		{
+			name: "match failure before success",
+			serialOutput: []string{
+				"one", "two", "other", "Error: success", "rest",
+			},
+			expectedRemainingSerialOutput: []string{"rest"},
+			step: InstanceSignal{
+				SerialOutput: &SerialOutput{
+					FailureMatch: []string{"Error"},
+				},
+			},
+			expectedErr: "Error: success",
+		},
+		{
+			name: "key value extraction",
+			serialOutput: []string{
+				"status: <serial-output key:'size' value:'10'>", "success", "rest",
+			},
+			expectedMatchedValues:         map[string]string{"size": "10"},
+			expectedRemainingSerialOutput: []string{"rest"},
+			step: InstanceSignal{
+				SerialOutput: &SerialOutput{
+					StatusMatch:  "status:",
+					SuccessMatch: "success",
+				},
+			},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+
+			c := make(chan string, 1)
+
+			go func() {
+				for _, element := range tt.serialOutput {
+					c <- element
+				}
+				close(c)
+			}()
+
+			ctx := context.Background()
+			s := &Step{w: testWorkflow()}
+			s.w.instances.m = map[string]*Resource{
+				"i1": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, s.w.genName("i1"))},
+			}
+			tt.step.SerialOutput.outputChannel = c
+			tt.step.Name = "i1"
+			err := getStep(false, []*InstanceSignal{&tt.step}).run(ctx, s)
+
+			var remaining []string
+
+			for element := range c {
+				fmt.Println(element)
+				remaining = append(remaining, element)
+			}
+
+			if tt.expectedErr != "" {
+				assert.Contains(t, err.Error(), tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, tt.expectedRemainingSerialOutput, remaining)
+			if tt.expectedMatchedValues != nil {
+				for key, value := range tt.expectedMatchedValues {
+					assert.Equal(t, value, s.w.GetSerialConsoleOutputValue(key))
+				}
+			}
+		})
+	}
 }
 
-func TestWaitForAnyInstancesSignalRun(t *testing.T) {
-	testWaitForSignalRun(t, true)
+func TestWaitForInstanceSignal(t *testing.T) {
+	cases := []bool{true, false}
+	for _, tt := range cases {
+		t.Run(fmt.Sprintf("waitForAny: %v", tt), func(t *testing.T) {
+
+			c := make(chan string, 1)
+
+			serialOutput := []string{
+				"status", "success",
+			}
+			go func() {
+				for _, element := range serialOutput {
+					c <- element
+				}
+				close(c)
+			}()
+
+			ctx := context.Background()
+			s := &Step{w: testWorkflow()}
+			s.w.instances.m = map[string]*Resource{
+				"i1": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, s.w.genName("i1"))},
+				"i2": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, s.w.genName("i2"))},
+			}
+			s.w.ComputeClient.(*daisyCompute.TestClient).InstanceStatusFn = func(_, _, _ string) (string, error) {
+				return "STOPPED", nil
+			}
+			s.w.ComputeClient.(*daisyCompute.TestClient).RetryFn = func(_ func(_ ...googleapi.CallOption) (*compute.Operation, error), _ ...googleapi.CallOption) (*compute.Operation, error) {
+				return nil, nil
+			}
+			err := getStep(tt, []*InstanceSignal{{
+				Name: "i1",
+				SerialOutput: &SerialOutput{
+					SuccessMatch:  "success",
+					outputChannel: c,
+				},
+			},{
+				Name: "i2",
+				Stopped: true,
+				interval: time.Nanosecond,
+			},
+			}).run(ctx, s)
+
+			assert.NoError(t, err)
+		})
+	}
 }
 
-func testWaitForSignalRun(t *testing.T, waitAny bool) {
+func TestWaitForStopped(t *testing.T) {
+	testWaitForStopped(t, false)
+}
+
+func TestWaitForAnyStopped(t *testing.T) {
+	testWaitForStopped(t, true)
+}
+
+func testWaitForStopped(t *testing.T, waitAny bool) {
 	ctx := context.Background()
 	w := testWorkflow()
-	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, _ int64) (*compute.SerialPortOutput, error) {
-		ret := &compute.SerialPortOutput{Next: 20}
-		switch n {
-		case w.genName("i1"):
-			ret.Contents = "success"
-		case w.genName("i2"):
-			ret.Contents = "success fail"
-		case w.genName("i3"):
-			ret.Contents = "fail success"
-		case w.genName("i4"):
-			return nil, errors.New("fail")
-		case w.genName("i5"):
-			return nil, errors.New("fail")
-		case w.genName("i6"):
-			return nil, errors.New("fail")
-		}
-		return ret, nil
-	}
 	i6Counter := 0
 	w.ComputeClient.(*daisyCompute.TestClient).InstanceStatusFn = func(_, _, n string) (string, error) {
 		if n == w.genName("i5") {
-			return "", errors.New("fail")
+			return "", errors.New("failed to get i5 status")
 		}
 		if n == w.genName("i4") {
 			return "RUNNING", nil
@@ -137,59 +274,18 @@ func testWaitForSignalRun(t *testing.T, waitAny bool) {
 	}
 	// Normal run, no error.
 	ws := getStep(waitAny, []*InstanceSignal{
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "success", SuccessMatch: "success"}},
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatch: []string{"fail"}}},
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success", FailureMatch: []string{"fail", "fail2"}}},
-		{Name: "i3", interval: 1 * time.Microsecond, Stopped: true},
+		{Name: "i2", Stopped: true, interval: time.Nanosecond},
+		{Name: "i6", Stopped: true, interval: time.Nanosecond},
 	})
-	if err := ws.run(ctx, s); err != nil {
-		t.Errorf("error running stepImpl.run(): %v", err)
-	}
-	// Failure match error.
+	assert.NoError(t, ws.run(ctx, s))
 	ws = getStep(waitAny, []*InstanceSignal{
-		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: []string{"fail"}, SuccessMatch: "success"}},
-		{Name: "i3", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: []string{"fail"}}},
+		{Name: "i5", Stopped: true, interval: time.Nanosecond},
 	})
-	if err := ws.run(ctx, s); err == nil {
-		t.Error("expected error")
-	}
-	// Failure matches error.
+	assert.EqualError(t, ws.run(ctx, s), "APIError: failed to get i5 status")
 	ws = getStep(waitAny, []*InstanceSignal{
-		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: []string{"fail", "fail2"}, SuccessMatch: "success"}},
-		{Name: "i3", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{FailureMatch: []string{"fail", "fail2"}}},
+		{Name: "i7", Stopped: true, interval: time.Nanosecond},
 	})
-	if err := ws.run(ctx, s); err == nil {
-		t.Error("expected error")
-	}
-	// Error from GetSerialPortOutput but instance is running.
-	ws = getStep(waitAny, []*InstanceSignal{
-		{Name: "i4", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
-	})
-	if err := ws.run(ctx, s); err == nil {
-		t.Error("expected error")
-	}
-	// Error from GetSerialPortOutput, error from InstanceStatus.
-	ws = getStep(waitAny, []*InstanceSignal{
-		{Name: "i5", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
-	})
-	if err := ws.run(ctx, s); err == nil {
-		t.Error("expected error")
-	}
-	// Error from GetSerialPortOutput but only after instance starts (kind of "i4")
-	ws = getStep(waitAny, []*InstanceSignal{
-		{Name: "i6", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{SuccessMatch: "success"}},
-	})
-	if err := ws.run(ctx, s); err == nil {
-		t.Errorf("expected error")
-	}
-	// Unresolved instance error.
-	ws = getStep(waitAny, []*InstanceSignal{
-		{Name: "i7", interval: 1 * time.Microsecond, Stopped: true},
-	})
-	want := "unresolved instance \"i7\""
-	if err := ws.run(ctx, s); err.Error() != want {
-		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
-	}
+	assert.EqualError(t, ws.run(ctx, s), "unresolved instance \"i7\"")
 }
 
 func TestWaitForInstancesSignalValidate(t *testing.T) {
@@ -232,51 +328,6 @@ func testWaitForSignalValidate(t *testing.T, waitAny bool) {
 		if err := tt.step.validate(context.Background(), s); (err != nil) != tt.shouldErr {
 			t.Errorf("fail: %s; step: %+v; error result: %s", tt.desc, tt.step, err)
 		}
-	}
-}
-
-func TestWaitForInstancesSignalGetOutputValue(t *testing.T) {
-	testWaitForSignalGetOutputValue(t, false)
-}
-
-func TestWaitForAnyInstancesSignalGetOutputValue(t *testing.T) {
-	testWaitForSignalGetOutputValue(t, true)
-}
-
-func testWaitForSignalGetOutputValue(t *testing.T, waitAny bool) {
-	ctx := context.Background()
-	w := testWorkflow()
-	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, _ int64) (*compute.SerialPortOutput, error) {
-		ret := &compute.SerialPortOutput{Next: 20}
-		switch n {
-		case w.genName("i1"):
-			ret.Contents = "status: no output value"
-		case w.genName("i2"):
-			ret.Contents = "status: <serial-output key:'my-key' value:'my-value'>"
-		}
-		return ret, nil
-	}
-
-	s := &Step{w: w}
-	w.instances.m = map[string]*Resource{
-		"i1": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i1"))},
-		"i2": {link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, w.genName("i2"))},
-	}
-
-	// No output value.
-	ws := getStep(waitAny, []*InstanceSignal{
-		{Name: "i1", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "status", SuccessMatch: "status"}},
-	})
-	if ws.run(ctx, s); w.serialControlOutputValues != nil {
-		t.Errorf("error running stepImpl.run(): there shouldn't be any output value")
-	}
-
-	// There is an output value.
-	ws = getStep(waitAny, []*InstanceSignal{
-		{Name: "i2", interval: 1 * time.Microsecond, SerialOutput: &SerialOutput{StatusMatch: "status", SuccessMatch: "status"}},
-	})
-	if ws.run(ctx, s); w.serialControlOutputValues == nil || w.serialControlOutputValues["my-key"] != "my-value" {
-		t.Errorf("error running stepImpl.run(): didn't get expected output value")
 	}
 }
 

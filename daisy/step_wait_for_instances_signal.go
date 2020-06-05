@@ -69,6 +69,7 @@ type SerialOutput struct {
 	SuccessMatch string         `json:",omitempty"`
 	FailureMatch FailureMatches `json:"failureMatch,omitempty"`
 	StatusMatch  string         `json:",omitempty"`
+	outputChannel <-chan string
 }
 
 // InstanceSignal waits for a signal from an instance.
@@ -77,8 +78,8 @@ type InstanceSignal struct {
 	Name string
 	// Interval to check for signal (default is 5s).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	Interval string `json:",omitempty"`
-	interval time.Duration
+	Interval      string `json:",omitempty"`
+	interval      time.Duration
 	// Wait for the instance to stop.
 	Stopped bool `json:",omitempty"`
 	// Wait for a string match in the serial output.
@@ -106,7 +107,7 @@ func waitForInstanceStopped(s *Step, project, zone, name string, interval time.D
 	}
 }
 
-func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, interval time.Duration) DError {
+func waitForSerialOutput(s *Step, name string, so *SerialOutput) DError {
 	w := s.w
 	msg := fmt.Sprintf("Instance %q: watching serial port %d", name, so.Port)
 	if so.SuccessMatch != "" {
@@ -119,38 +120,15 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 		msg += fmt.Sprintf(", StatusMatch: %q", so.StatusMatch)
 	}
 	w.LogStepInfo(s.name, "WaitForInstancesSignal", msg+".")
-	var start int64
-	var errs int
-	tick := time.Tick(interval)
 	for {
 		select {
 		case <-s.w.Cancel:
 			return nil
-		case <-tick:
-			resp, err := w.ComputeClient.GetSerialPortOutput(project, zone, name, so.Port, start)
-			if err != nil {
-				status, sErr := w.ComputeClient.InstanceStatus(project, zone, name)
-				if sErr != nil {
-					err = fmt.Errorf("%v, error getting InstanceStatus: %v", err, sErr)
-				} else {
-					err = fmt.Errorf("%v, InstanceStatus: %q", err, status)
-				}
-
-				// Wait until machine restarts to evaluate SerialOutput.
-				if status == "TERMINATED" || status == "STOPPED" || status == "STOPPING" {
-					continue
-				}
-
-				// Retry up to 3 times in a row on any error if we successfully got InstanceStatus.
-				if errs < 3 {
-					errs++
-					continue
-				}
-
-				return Errf("WaitForInstancesSignal: instance %q: error getting serial port: %v", name, err)
+		case chunk := <-so.outputChannel:
+			if chunk == "" {
+				return nil
 			}
-			start = resp.Next
-			for _, ln := range strings.Split(resp.Contents, "\n") {
+			for _, ln := range strings.Split(chunk, "\n") {
 				if so.StatusMatch != "" {
 					if i := strings.Index(ln, so.StatusMatch); i != -1 {
 						w.LogStepInfo(s.name, "WaitForInstancesSignal", "Instance %q: StatusMatch found: %q", name, strings.TrimSpace(ln[i:]))
@@ -173,7 +151,6 @@ func waitForSerialOutput(s *Step, project, zone, name string, so *SerialOutput, 
 					}
 				}
 			}
-			errs = 0
 		}
 	}
 }
@@ -245,8 +222,11 @@ func runForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step, waitAll bool) D
 				}()
 			}
 			if is.SerialOutput != nil {
+				if is.SerialOutput.outputChannel == nil {
+					panic("outputChannel must be initialized")
+				}
 				go func() {
-					if err := waitForSerialOutput(s, m["project"], m["zone"], m["instance"], is.SerialOutput, is.interval); err != nil || !waitAll {
+					if err := waitForSerialOutput(s, m["instance"], is.SerialOutput); err != nil || !waitAll {
 						// send a signal to end other waiting instances
 						e <- err
 					}
@@ -286,7 +266,8 @@ func (w *WaitForAnyInstancesSignal) validate(ctx context.Context, s *Step) DErro
 func validateForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step) DError {
 	// Instance checking.
 	for _, i := range *w {
-		if _, err := s.w.instances.regUse(i.Name, s); err != nil {
+		registeredInstance, err := s.w.instances.regUse(i.Name, s)
+		if err != nil {
 			return err
 		}
 		if i.interval == 0*time.Second {
@@ -302,6 +283,10 @@ func validateForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step) DError {
 			if i.SerialOutput.SuccessMatch == "" && len(i.SerialOutput.FailureMatch) == 0 {
 				return Errf("%q: cannot wait for instance signal via SerialOutput, no SuccessMatch or FailureMatch given", i.Name)
 			}
+			// A buffered channel is required, since SerialOutputWatcher doesn't block when writing to it.
+			c := make(chan string, 1)
+			s.w.registerListener(registeredInstance.RealName, c, i.SerialOutput.Port, i.interval)
+			i.SerialOutput.outputChannel = c
 		}
 	}
 	return nil

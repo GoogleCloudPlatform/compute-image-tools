@@ -32,9 +32,10 @@ import (
 
 	"cloud.google.com/go/logging"
 	"cloud.google.com/go/storage"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 const defaultTimeout = "10m"
@@ -135,6 +136,7 @@ type Workflow struct {
 	recordTimeMx          sync.Mutex
 	stepWait              sync.WaitGroup
 	logProcessHook        func(string) string
+	serialOutputWatcher   SerialOutputWatcher
 
 	// Optional compute endpoint override.stepWait
 	ComputeEndpoint    string          `json:",omitempty"`
@@ -917,4 +919,30 @@ func (w *Workflow) onStepCancel(s *Step, stepClass string) DError {
 
 	s.w.LogWorkflowInfo(errorMessageFormat, s.name, stepClass)
 	return Errf(errorMessageFormat, s.name, stepClass)
+}
+
+// SerialOutputWatcher returns a SerialOutputWatcher that can be used to subscribe to the
+// serial output of instances managed by Daisy.
+func (w *Workflow) WorkflowSerialOutputWatcher() *SerialOutputWatcher {
+	// Using late initialization for serialOutputWatcher since there are many
+	// ways to create a Daisy workflow (bare struct, json, and its New() constructor),
+	// and this is the only common point.
+	if w.serialOutputWatcher == nil {
+		w.serialOutputWatcher = NewSerialOutputWatcher(w.ComputeClient, w.Project, w.Zone)
+	}
+	return &w.serialOutputWatcher
+}
+
+func (w *Workflow) registerListener(name string, sink chan<- string, port int64, duration time.Duration) {
+	// Using late initialization for serialOutputWatcher since there are many
+	// ways to create a Daisy workflow (bare struct, json, and its New() constructor),
+	// and this is the only common point.
+	if w.serialOutputWatcher == nil {
+		w.serialOutputWatcher = NewSerialOutputWatcher(w.ComputeClient, w.Project, w.Zone)
+	}
+	w.serialOutputWatcher.Watch(name, port, sink, duration)
+}
+
+func (w *Workflow) startSerialOutputWatcher(name string) {
+	w.serialOutputWatcher.start(name)
 }

@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -26,6 +27,11 @@ import (
 	"time"
 
 	"google.golang.org/api/googleapi"
+)
+
+const (
+	serialPortToArchive     = 1
+	serialPortPollInterval  = 3 * time.Second
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.
@@ -51,73 +57,45 @@ func (ci *CreateInstances) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func logSerialOutput(ctx context.Context, s *Step, ii InstanceInterface, ib *InstanceBase, port int64, interval time.Duration) {
+func logSerialOutput(s *Step, name string, watcher *SerialOutputWatcher, wc io.WriteCloser) {
 	w := s.w
 	w.stepWait.Add(1)
+	// The buffered channel ensures that we don't lose serial output if we have delays uploading
+	// the previous chunk to GCS. Assuming a poll interval of 3 seconds, the buffer of size 1024
+	// allows ~51 minutes of backlog before we start losing logs.
+	c := make(chan string, 1024)
+	(*watcher).Watch(name, serialPortToArchive, c, serialPortPollInterval)
+	(*watcher).start(name)
 	defer w.stepWait.Done()
 
-	logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", ii.getName(), port))
-	w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s", ii.getName(), port, w.bucket, logsObj)
-	var start int64
 	var buf bytes.Buffer
 	var gcsErr bool
-	var readFromSerial bool
-	var numErr int
-	tick := time.Tick(interval)
 
-Loop:
 	for {
-		select {
-		case <-tick:
-			resp, err := w.ComputeClient.GetSerialPortOutput(path.Base(ib.Project), path.Base(ii.getZone()), ii.getName(), port, start)
-			if err != nil {
-				numErr++
-				status, sErr := w.ComputeClient.InstanceStatus(path.Base(ib.Project), path.Base(ii.getZone()), ii.getName())
-				switch status {
-				case "TERMINATED", "STOPPED", "STOPPING":
-					// Instance is stopped or stopping.
-					if sErr == nil {
-						break Loop
-					}
-				}
-				if numErr > 10 {
-					// Only emit an error log if we were able to read *some* data from the
-					// instance, since there's a race condition where an instance can shut
-					// down fast enough that the call to InstanceStatus will return a 404.
-					if !readFromSerial {
-						w.LogStepInfo(s.name, "CreateInstances",
-							"Instance %q: error getting serial port: %v", ii.getName(), err)
-					}
-					break Loop
-				}
-				continue
-			}
-			readFromSerial = true
-			numErr = 0
-			start = resp.Next
-			buf.WriteString(resp.Contents)
-			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
-			wc.ContentType = "text/plain"
-			if _, err := wc.Write(buf.Bytes()); err != nil && !gcsErr {
-				gcsErr = true
-				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", ii.getName(), err)
-				continue
-			} else if err != nil { // dont try to close the writer
-				continue
-			}
-			if err := wc.Close(); err != nil && !gcsErr {
-				gcsErr = true
-				w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", ii.getName(), err)
-				continue
-			}
+		serialOutput := <-c
+		if serialOutput == "" {
+			break
+		}
+		buf.WriteString(serialOutput)
+		if _, err := wc.Write([]byte(serialOutput)); err != nil && !gcsErr {
+			gcsErr = true
+			w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", name, err)
+			continue
+		} else if err != nil { // dont try to close the writer
+			continue
+		}
+		if err := wc.Close(); err != nil && !gcsErr {
+			gcsErr = true
+			w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error saving log to GCS: %v", name, err)
+			continue
+		}
 
-			if w.isCanceled() {
-				break Loop
-			}
+		if w.isCanceled() {
+			break
 		}
 	}
 
-	w.Logger.WriteSerialPortLogs(w, ii.getName(), buf)
+	w.Logger.WriteSerialPortLogs(w, name, buf)
 }
 
 // populate preprocesses fields: Name, Project, Zone, Description, MachineType, NetworkInterfaces, Scopes, ServiceAccounts, and daisyName.
@@ -197,7 +175,12 @@ func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
 		}
 
 		ib.createdInWorkflow = true
-		go logSerialOutput(ctx, s, ii, ib, 1, 3*time.Second)
+		logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", ii.getName(), serialPortToArchive))
+		w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s",
+			ii.getName(), serialPortToArchive, w.bucket, logsObj)
+		wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
+		wc.ContentType = "text/plain"
+		go logSerialOutput(s, ii.getName(), w.WorkflowSerialOutputWatcher(), wc)
 	}
 
 	if ci.instanceUsesBetaFeatures() {

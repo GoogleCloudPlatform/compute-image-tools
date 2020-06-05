@@ -16,18 +16,17 @@ package daisy
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
-	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/stretchr/testify/assert"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
+
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 func TestLogSerialOutput(t *testing.T) {
-	ctx := context.Background()
 	w := testWorkflow()
 	w.instances.m = map[string]*Resource{
 		"i1": {RealName: w.genName("i1"), link: "link"},
@@ -35,113 +34,16 @@ func TestLogSerialOutput(t *testing.T) {
 		"i3": {RealName: w.genName("i3"), link: "link"},
 	}
 
-	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, s int64) (*compute.SerialPortOutput, error) {
-		if n == "i3" && s == 0 {
-			return &compute.SerialPortOutput{Contents: "", Next: 1}, nil
-		}
-		return nil, errors.New("fail")
-	}
-	w.ComputeClient.(*daisyCompute.TestClient).InstanceStoppedFn = func(_, _, n string) (bool, error) {
-		if n == "i2" {
-			return false, nil
-		}
-		return true, nil
-	}
-
-	w.bucket = "test-bucket"
-
-	tests := []struct {
-		test, wantMessage1, wantMessage2 string
-		instance                         *Instance
-		instanceBeta                     *InstanceBeta
-	}{
-		{
-			"Error but instance stopped",
-			"Streaming instance \"i1\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i1-serial-port0.log",
-			"",
-			&Instance{Instance: compute.Instance{Name: "i1"}},
-			&InstanceBeta{Instance: computeBeta.Instance{Name: "i1"}},
-		},
-		{
-			"Error but instance running",
-			"Streaming instance \"i2\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i2-serial-port0.log",
-			"Instance \"i2\": error getting serial port: fail",
-			&Instance{Instance: compute.Instance{Name: "i2"}},
-			&InstanceBeta{Instance: computeBeta.Instance{Name: "i2"}},
-		},
-		{
-			"Normal flow",
-			"Streaming instance \"i3\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i3-serial-port0.log",
-			"",
-			&Instance{Instance: compute.Instance{Name: "i3"}},
-			&InstanceBeta{Instance: computeBeta.Instance{Name: "i3"}},
-		},
-		{
-			"Error but instance deleted",
-			"Streaming instance \"i4\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i4-serial-port0.log",
-			"",
-			&Instance{Instance: compute.Instance{Name: "i4"}},
-			&InstanceBeta{Instance: computeBeta.Instance{Name: "i4"}},
-		},
-	}
-
-	assertTest := func(ctx context.Context, ii InstanceInterface, ib *InstanceBase, test, wantMessage1, wantMessage2 string) {
-		mockLogger := &MockLogger{}
-		w.Logger = mockLogger
-		s := &Step{name: "foo", w: w}
-		logSerialOutput(ctx, s, ii, ib, 0, 1*time.Microsecond)
-		logEntries := mockLogger.getEntries()
-		gotStep := logEntries[0].StepName
-		if gotStep != "foo" {
-			t.Errorf("%s: got: %q, want: %q", test, gotStep, "foo")
-		}
-		gotMessage := logEntries[0].Message
-		if gotMessage != wantMessage1 {
-			t.Errorf("%s: got: %q, want: %q", test, gotMessage, wantMessage1)
-		}
-		if wantMessage2 != "" {
-			gotMessage := logEntries[1].Message
-			if gotMessage != wantMessage2 {
-				t.Errorf("%s: got: %q, want: %q", test, gotMessage, wantMessage2)
-			}
-		}
-	}
-	for _, tt := range tests {
-		assertTest(ctx, tt.instance, &tt.instance.InstanceBase, tt.test, tt.wantMessage1, tt.wantMessage2)
-	}
+	mockLogger := &MockLogger{}
+	w.Logger = mockLogger
+	s := &Step{name: "i1", w: w}
+	mockWatcher := newMockSerialOutputWatcher(t, []string{"log ","content"})
+	mockWriter := mockStorageClient{}
+	logSerialOutput(s, "instance-name", &mockWatcher, &mockWriter)
+	assert.Equal(t, "log content", mockWriter.content)
 }
 
-func TestLogSerialOutputStopsAfterTenRetries(t *testing.T) {
 
-	testSerialOutput := func(ii InstanceInterface, ib *InstanceBase) {
-		w := testWorkflow()
-
-		callNum := 0
-		responses := []string{"", "", "hello", "", " go", "", "", "", "", "", "", "", "", "", "", "", "lang"}
-		nexts := []int64{0, 0, 0, 5, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}
-
-		w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, next int64) (*compute.SerialPortOutput, error) {
-			response := responses[callNum]
-			assert.Equal(t, nexts[callNum], next)
-			callNum++
-			switch response {
-			case "":
-				return nil, errors.New("fail")
-			default:
-				return &compute.SerialPortOutput{Contents: response, Next: next + int64(len(response))}, nil
-			}
-		}
-		logSerialOutput(context.Background(), &Step{name: "foo", w: w}, ii, ib, 0, 1*time.Microsecond)
-		logs := w.Logger.ReadSerialPortLogs()
-		assert.Equal(t, 1, len(logs))
-		assert.Equal(t, "hello go", logs[0])
-	}
-	i := Instance{Instance: compute.Instance{Name: "i1"}}
-	testSerialOutput(&i, &i.InstanceBase)
-
-	iBeta := InstanceBeta{Instance: computeBeta.Instance{Name: "i1Beta"}}
-	testSerialOutput(&iBeta, &iBeta.InstanceBase)
-}
 
 func TestCreateInstancesRun(t *testing.T) {
 	ctx := context.Background()
@@ -206,4 +108,45 @@ func TestCreateInstancesRun(t *testing.T) {
 	if err := ci.run(ctx, s); err != createErr {
 		t.Errorf("CreateInstances.run() should have return compute client error: %v != %v", err, createErr)
 	}
+}
+
+func newMockSerialOutputWatcher(t *testing.T, responses    []string) SerialOutputWatcher {
+	return &mockSerialOutputWatcher{t: t, responses:responses}
+}
+
+type mockSerialOutputWatcher struct {
+	t            *testing.T
+	instanceName string
+	c            chan<- string
+	responses    []string
+}
+
+func (m *mockSerialOutputWatcher) Watch(instanceName string, port int64, c chan<- string, interval time.Duration) {
+	m.instanceName = instanceName
+	m.c = c
+}
+
+func (m *mockSerialOutputWatcher) start(instanceName string) {
+	assert.Equal(m.t, m.instanceName, instanceName)
+	for _, response := range m.responses {
+		m.c <- response
+	}
+	close(m.c)
+}
+
+type mockStorageClient struct {
+	numWrite int
+	numClose int
+	content string
+}
+
+func (m *mockStorageClient) Write(p []byte) (n int, err error) {
+	m.numWrite++
+	m.content += string(p)
+	return len(p), nil
+}
+
+func (m mockStorageClient) Close() error {
+	m.numClose++
+	return nil
 }
