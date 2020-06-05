@@ -116,7 +116,7 @@ func (s fileSource) Path() string {
 // This reads a few bytes from the file in GCS. It is an error if the file
 // is empty, or if the file is compressed with gzip.
 func (s fileSource) validate(storageClient domain.StorageClientInterface) error {
-	rc, err := storageClient.GetObjectReader(s.bucket, s.object)
+	rc, err := storageClient.GetObject(s.bucket, s.object).NewReader()
 	if err != nil {
 		return daisy.Errf("failed to read GCS file when validating resource file: unable to open "+
 			"file from bucket %q, file %q: %v", s.bucket, s.object, err)

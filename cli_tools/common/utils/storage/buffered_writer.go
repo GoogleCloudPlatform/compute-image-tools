@@ -1,4 +1,4 @@
-//  Copyright 2019 Google Inc. All Rights Reserved.
+//  Copyright 2020 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import (
 	"io"
 	"log"
 	"math"
-	"math/rand"
 	"os"
 	"path"
 	"regexp"
@@ -30,23 +29,16 @@ import (
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
+	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	"google.golang.org/api/googleapi"
 )
 
 var gcsPermissionErrorRegExp = regexp.MustCompile(".*does not have storage.objects.create access to .*")
 
-const letters = "bdghjlmnpqrstvwxyz0123456789"
+type gcsClient func(ctx context.Context, oauth string) (domain.StorageClientInterface, error)
 
-func randString(n int) string {
-	gen := rand.New(rand.NewSource(time.Now().UnixNano()))
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[gen.Int63()%int64(len(letters))]
-	}
-	return string(b)
-}
-
-type bufferedWriter struct {
+// BufferedWriter is responsible for multipart component upload while using a local buffer.
+type BufferedWriter struct {
 	// These fields are read only.
 	cSize    int64
 	prefix   string
@@ -67,13 +59,34 @@ type bufferedWriter struct {
 	file  *os.File
 }
 
-func (b *bufferedWriter) addObj(obj string) {
+// NewBuffer creates a BufferedWriter
+func NewBuffer(ctx context.Context, size, workers int64, client gcsClient, oauth, prefix, bkt, obj string) *BufferedWriter {
+	b := &BufferedWriter{
+		cSize:  size / workers,
+		prefix: prefix,
+		id:     pathutils.RandString(5),
+
+		upload: make(chan string),
+		bkt:    bkt,
+		obj:    obj,
+		ctx:    ctx,
+		oauth:  oauth,
+		client: client,
+	}
+	for i := int64(0); i < workers; i++ {
+		b.Add(1)
+		go b.uploadWorker()
+	}
+	return b
+}
+
+func (b *BufferedWriter) addObj(obj string) {
 	b.tmpObjsMx.Lock()
 	b.tmpObjs = append(b.tmpObjs, obj)
 	b.tmpObjsMx.Unlock()
 }
 
-func (b *bufferedWriter) uploadWorker() {
+func (b *BufferedWriter) uploadWorker() {
 	defer b.Done()
 	for in := range b.upload {
 		for i := 1; ; i++ {
@@ -103,8 +116,7 @@ func (b *bufferedWriter) uploadWorker() {
 			if err != nil {
 				// Don't retry if permission error as it's not recoverable.
 				gAPIErr, isGAPIErr := err.(*googleapi.Error)
-				//fmt.Printf("TESTING %v %v %v\n", gAPIErr.Code, isGAPIErr, gcsPermissionErrorRegExp.MatchString(gAPIErr.Message))
-				if isGAPIErr && gAPIErr.Code == 403 {
+				if isGAPIErr && gAPIErr.Code == 403 && gcsPermissionErrorRegExp.MatchString(gAPIErr.Message) {
 					fmt.Printf("GCEExport: %v", err)
 					os.Exit(2)
 				}
@@ -124,7 +136,7 @@ func (b *bufferedWriter) uploadWorker() {
 	}
 }
 
-func (b *bufferedWriter) newChunk() error {
+func (b *BufferedWriter) newChunk() error {
 	fp := path.Join(b.prefix, fmt.Sprint(b.id, "_part", b.part))
 	f, err := os.Create(fp)
 	if err != nil {
@@ -138,7 +150,7 @@ func (b *bufferedWriter) newChunk() error {
 	return nil
 }
 
-func (b *bufferedWriter) flush() error {
+func (b *BufferedWriter) flush() error {
 	if err := b.file.Close(); err != nil {
 		return err
 	}
@@ -147,7 +159,8 @@ func (b *bufferedWriter) flush() error {
 	return nil
 }
 
-func (b *bufferedWriter) Close() error {
+// Close composes the objects and close buffered writer.
+func (b *BufferedWriter) Close() error {
 	if err := b.flush(); err != nil {
 		return err
 	}
@@ -162,7 +175,7 @@ func (b *bufferedWriter) Close() error {
 
 	// Compose the object.
 	for i := 0; ; i++ {
-		var objs []domain.ObjectHandleInterface
+		var objs []domain.StorageObjectInterface
 		// Max 32 components in a single compose.
 		l := math.Min(float64(32), float64(len(b.tmpObjs)))
 		for _, obj := range b.tmpObjs[:int(l)] {
@@ -193,7 +206,8 @@ func (b *bufferedWriter) Close() error {
 	return nil
 }
 
-func (b *bufferedWriter) Write(d []byte) (int, error) {
+// Write writes the passed in bytes to buffer.
+func (b *BufferedWriter) Write(d []byte) (int, error) {
 	b.Lock()
 	defer b.Unlock()
 
@@ -219,26 +233,4 @@ func (b *bufferedWriter) Write(d []byte) (int, error) {
 	}
 
 	return n, nil
-}
-
-type gcsClient func(ctx context.Context, oauth string) (domain.StorageClientInterface, error)
-
-func NewBuffer(ctx context.Context, size, workers int64, client gcsClient, oauth, prefix, bkt, obj string) *bufferedWriter {
-	b := &bufferedWriter{
-		cSize:  size / workers,
-		prefix: prefix,
-		id:     randString(5),
-
-		upload: make(chan string),
-		bkt:    bkt,
-		obj:    obj,
-		ctx:    ctx,
-		oauth:  oauth,
-		client: client,
-	}
-	for i := int64(0); i < workers; i++ {
-		b.Add(1)
-		go b.uploadWorker()
-	}
-	return b
 }

@@ -100,8 +100,8 @@ func writeGzipProgress(start time.Time, size int64, rp, wp *progress) {
 		if readTotal == totalSize {
 			return
 		}
-		log.Println("Read %s of %s (%s/sec),", readTotal, totalSize, diskSpd)
-		log.Println(" Total written size: %s (%s/sec)\n", uploadTotal, upldSpd)
+		fmt.Printf("GCEExport: Read %s of %s (%s/sec),", readTotal, totalSize, diskSpd)
+		fmt.Printf(" total written size: %s (%s/sec)\n", uploadTotal, upldSpd)
 		oldUpload = wpTotal
 		oldRead = rpTotal
 		oldSince = since
@@ -110,7 +110,6 @@ func writeGzipProgress(start time.Time, size int64, rp, wp *progress) {
 }
 
 func gcsClient(ctx context.Context, oauth string) (domain.StorageClientInterface, error) {
-	//return storage.NewClient(ctx)
 	log.SetPrefix(logPrefix + " ")
 	logger := logging.NewStdoutLogger(logPrefix)
 

@@ -25,7 +25,7 @@ require (
 	golang.org/x/exp v0.0.0-20200331195152-e8c3332aa8e5 // indirect
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f // indirecresource_labeler_testt
 	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
-	golang.org/x/tools v0.0.0-20200507205054-480da3ebd79c // indirect
+	golang.org/x/tools v0.0.0-20200604183345-4d5ea46c79fe // indirect
 	google.golang.org/api v0.23.0
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/genproto v0.0.0-20200507105951-43844f6eee31 // indirect

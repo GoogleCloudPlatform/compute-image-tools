@@ -1,4 +1,4 @@
-//  Copyright 2019 Google Inc. All Rights Reserved.
+//  Copyright 2020 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -22,46 +22,52 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 )
 
-// ObjectHandleCreator is responsible for creating GCS Object Handle
+// ObjectHandleCreator is responsible for creating GCS Object Handle.
 type ObjectHandleCreator struct {
 	ctx context.Context
 	sc  *storage.Client
 }
 
-// CreateObjectHandle creates GCS Object Handle
-func (ohc *ObjectHandleCreator) CreateObjectHandle(
-		bucket string, object string) domain.ObjectHandleInterface {
+// GetObject gets GCS object interface.
+func (ohc *ObjectHandleCreator) GetObject(
+	bucket string, object string) domain.StorageObjectInterface {
 	return &ObjectHandle{
 		ob: ohc.sc.Bucket(bucket).Object(object), ctx: ohc.ctx}
 }
 
-// ObjectHandle is a wrapper around storage.ObjectHandle. Implements ObjectHandleInterface.
+// ObjectHandle is a wrapper around storage.ObjectHandle. Implements StorageObjectInterface.
 type ObjectHandle struct {
 	ob  *storage.ObjectHandle
 	ctx context.Context
 }
 
+// GetObjectHandle gets the storage object
 func (oh *ObjectHandle) GetObjectHandle() *storage.ObjectHandle {
 	return oh.ob
 }
 
-// DeleteObject deletes GCS object in given bucket and object path
+// Delete deletes GCS object in given bucket and object path.
 func (oh *ObjectHandle) Delete() error {
 	return oh.ob.Delete(oh.ctx)
 }
+
+// NewReader creates a new Reader to read the contents of the object.
 func (oh *ObjectHandle) NewReader() (io.ReadCloser, error) {
 	return oh.ob.NewReader(oh.ctx)
 }
 
+// NewWriter creates a new Writer to write to the object.
 func (oh *ObjectHandle) NewWriter() io.WriteCloser {
 	return oh.ob.NewWriter(oh.ctx)
 }
 
+// ObjectName returns the name of the object.
 func (oh *ObjectHandle) ObjectName() string {
 	return oh.ob.ObjectName()
 }
 
-func (oh *ObjectHandle) RunComposer(srcs ...domain.ObjectHandleInterface) (*storage.ObjectAttrs, error) {
+// RunComposer performs the compose operation.
+func (oh *ObjectHandle) RunComposer(srcs ...domain.StorageObjectInterface) (*storage.ObjectAttrs, error) {
 	var objs []*storage.ObjectHandle
 	for _, obj := range srcs {
 		objs = append(objs, obj.GetObjectHandle())
@@ -69,6 +75,7 @@ func (oh *ObjectHandle) RunComposer(srcs ...domain.ObjectHandleInterface) (*stor
 	return oh.ob.ComposerFrom(objs...).Run(oh.ctx)
 }
 
-func (oh *ObjectHandle) RunCopier(src domain.ObjectHandleInterface) (*storage.ObjectAttrs, error) {
+// RunCopier performs the copy operation.
+func (oh *ObjectHandle) RunCopier(src domain.StorageObjectInterface) (*storage.ObjectAttrs, error) {
 	return oh.ob.CopierFrom(src.GetObjectHandle()).Run(oh.ctx)
 }

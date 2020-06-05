@@ -45,12 +45,12 @@ type Client struct {
 	Logger        logging.LoggerInterface
 	Ctx           context.Context
 	Oic           domain.ObjectIteratorCreatorInterface
-	Ohc           domain.ObjectHandleCreatorInterface
+	Ohc           domain.StorageObjectCreatorInterface
 }
 
 // NewStorageClient creates a Client
 func NewStorageClient(ctx context.Context,
-		logger logging.LoggerInterface, option ...option.ClientOption) (*Client, error) {
+	logger logging.LoggerInterface, option ...option.ClientOption) (*Client, error) {
 
 	client, err := storage.NewClient(ctx, option...)
 	if err != nil {
@@ -65,7 +65,7 @@ func NewStorageClient(ctx context.Context,
 
 // CreateBucket creates a GCS bucket
 func (sc *Client) CreateBucket(
-		bucketName string, project string, attrs *storage.BucketAttrs) error {
+	bucketName string, project string, attrs *storage.BucketAttrs) error {
 	if err := sc.StorageClient.Bucket(bucketName).Create(sc.Ctx, project, attrs); err != nil {
 		return daisy.Errf("Error creating bucket `%v` in project `%v`: %v", bucketName, project, err)
 	}
@@ -91,8 +91,9 @@ func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
 	return bucketAttrs, nil
 }
 
-func (sc *Client) GetObject(bucket string, objectPath string) domain.ObjectHandleInterface {
-	return sc.Ohc.CreateObjectHandle(bucket, objectPath)
+// GetObject returns storage object for the given bucket and path
+func (sc *Client) GetObject(bucket string, objectPath string) domain.StorageObjectInterface {
+	return sc.Ohc.GetObject(bucket, objectPath)
 }
 
 // GetObjects returns object iterator for given bucket and path
@@ -199,7 +200,7 @@ func (sc *Client) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, er
 
 // WriteToGCS writes content from a reader to destination bucket and path
 func (sc *Client) WriteToGCS(
-		destinationBucketName string, destinationObjectPath string, reader io.Reader) error {
+	destinationBucketName string, destinationObjectPath string, reader io.Reader) error {
 	destinationBucket := sc.GetBucket(destinationBucketName)
 	fileWriter := destinationBucket.Object(destinationObjectPath).NewWriter(sc.Ctx)
 

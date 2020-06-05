@@ -37,7 +37,7 @@ func TestExtractTarToGcs(t *testing.T) {
 	testTarFile, _ := os.Open("../../../test_data/test_tar.tar")
 	testTarFileReader := bufio.NewReader(testTarFile)
 
-	mockObjectHandle := mocks.NewMockObjectHandleInterface(mockCtrl)
+	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
 	mockObjectHandle.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
@@ -72,7 +72,7 @@ func TestExtractTarToGcsErrorWhenNonExistentSourceGCSPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockObjectHandle := mocks.NewMockObjectHandleInterface(mockCtrl)
+	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
 	mockObjectHandle.EXPECT().NewReader().Return(nil, fmt.Errorf("no file"))
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
@@ -92,7 +92,7 @@ func TestExtractTarToGcsErrorWhenInvalidDestinationPath(t *testing.T) {
 	mockReader := mocks.NewMockReadCloser(mockCtrl)
 	mockReader.EXPECT().Close()
 
-	mockObjectHandle := mocks.NewMockObjectHandleInterface(mockCtrl)
+	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
 	mockObjectHandle.EXPECT().NewReader().Return(mockReader, nil)
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
@@ -114,7 +114,7 @@ func TestExtractTarToGcsErrorWhenWriteToGCSFailed(t *testing.T) {
 	testTarFile, _ := os.Open("../../../test_data/test_tar.tar")
 	testTarFileReader := bufio.NewReader(testTarFile)
 
-	mockObjectHandle := mocks.NewMockObjectHandleInterface(mockCtrl)
+	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
 	mockObjectHandle.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
@@ -141,7 +141,7 @@ func TestExtractTarToGcsErrorWhenErrorReadingTarFile(t *testing.T) {
 	mockReader.EXPECT().Read(gomock.Any()).Return(0, fmt.Errorf("error reading tar"))
 	mockReader.EXPECT().Close()
 
-	mockObjectHandle := mocks.NewMockObjectHandleInterface(mockCtrl)
+	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
 	mockObjectHandle.EXPECT().NewReader().Return(mockReader, nil)
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
@@ -162,7 +162,7 @@ func TestExtractTarToGcsErrorIfDirPresentInTar(t *testing.T) {
 	testTarFile, _ := os.Open("../../../test_data/test_tar_with_dir.tar")
 	testTarFileReader := bufio.NewReader(testTarFile)
 
-	mockObjectHandle := mocks.NewMockObjectHandleInterface(mockCtrl)
+	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
 	mockObjectHandle.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)

@@ -28,7 +28,7 @@ type StorageClientInterface interface {
 	Buckets(projectID string) *storage.BucketIterator
 	GetBucketAttrs(bucket string) (*storage.BucketAttrs, error)
 	GetBucket(bucket string) *storage.BucketHandle
-	GetObject(bucket string, objectPath string) ObjectHandleInterface
+	GetObject(bucket string, objectPath string) StorageObjectInterface
 	GetObjects(bucket string, objectPath string) ObjectIteratorInterface
 	FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error)
 	FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension string, lookupDepth int) (*storage.ObjectHandle, error)
@@ -41,7 +41,7 @@ type StorageClientInterface interface {
 // BucketIteratorCreatorInterface represents GCS bucket creator
 type BucketIteratorCreatorInterface interface {
 	CreateBucketIterator(ctx context.Context, storageClient StorageClientInterface,
-			projectID string) BucketIteratorInterface
+		projectID string) BucketIteratorInterface
 }
 
 //BucketIteratorInterface represents GCS bucket iterator
@@ -65,20 +65,20 @@ type TarGcsExtractorInterface interface {
 	ExtractTarToGcs(tarGcsPath string, destinationGcsPath string) error
 }
 
-// ObjectHandleCreatorInterface represents GCS object handle creator
-type ObjectHandleCreatorInterface interface {
-	CreateObjectHandle(bucket string, objectPath string) ObjectHandleInterface
+// StorageObjectCreatorInterface represents GCS object creator
+type StorageObjectCreatorInterface interface {
+	GetObject(bucket string, objectPath string) StorageObjectInterface
 }
 
-// ObjectHandleInterface represents GCS Object Handle
-type ObjectHandleInterface interface {
+// StorageObjectInterface represents GCS Object
+type StorageObjectInterface interface {
 	Delete() error
 	GetObjectHandle() *storage.ObjectHandle
 	NewReader() (io.ReadCloser, error)
 	NewWriter() io.WriteCloser
 	ObjectName() string
-	RunComposer(src ...ObjectHandleInterface) (*storage.ObjectAttrs, error)
-	RunCopier(src ObjectHandleInterface) (*storage.ObjectAttrs, error)
+	RunComposer(src ...StorageObjectInterface) (*storage.ObjectAttrs, error)
+	RunCopier(src StorageObjectInterface) (*storage.ObjectAttrs, error)
 }
 
 // MetadataGCEInterface represents GCE metadata
