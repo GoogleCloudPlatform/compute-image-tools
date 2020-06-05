@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -61,11 +62,15 @@ func TestCreateNewChunkWhenCurrentChunkFull(t *testing.T) {
 
 	data := []byte("This is a sample data to write")
 
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
-	// make buffer size to max size
+	// passing in mock error client so upload file behavior is not tested
+	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
+	err := buf.newChunk()
+	assert.Nil(t, err)
 	curPart := buf.part
+	// make buffer size to max size
 	buf.bytes = buf.cSize
-	_, err := buf.Write(data)
+	// write should make buffer create new chunk
+	_, err = buf.Write(data)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(len(data)), buf.bytes)
 	expectedPart := curPart + 1
@@ -297,6 +302,22 @@ func TestErrorWhenComposeFails(t *testing.T) {
 	err = buf.Close()
 	assert.NotNil(t, err)
 	assert.Equal(t, "Fail to compose", err.Error())
+}
+
+func TestClientErrorWhenUploadFailed(t *testing.T) {
+	resetArgs()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := context.Background()
+	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	buf.upload <- "file"
+	time.Sleep(time.Second * 2)
+	err := w.Close()
+	assert.Nil(t, err)
+	out, _ := ioutil.ReadAll(r)
+	assert.Contains(t, string(out), "Cannot create client")
 }
 
 func resetArgs() {
