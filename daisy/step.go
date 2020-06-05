@@ -307,8 +307,7 @@ func (s *Step) run(ctx context.Context) DError {
 	select {
 	case <-s.w.Cancel:
 		// return an error to indicate a canceled workflow is not 'success'
-		s.w.LogWorkflowInfo("Step %q (%s) is canceled.", s.name, st)
-		return Errf("Step %q (%s) is canceled.", s.name, st)
+		return s.w.onStepCancel(s, st)
 	default:
 		s.w.LogWorkflowInfo("Step %q (%s) successfully finished.", s.name, st)
 	}
