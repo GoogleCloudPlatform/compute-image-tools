@@ -79,6 +79,7 @@
             "block-project-ssh-keys": "true",
             "disk_name": "${disk_name}",
             "scratch_disk_name": "disk-${NAME}-scratch-${ID}",
+            "source_disk_file": "${source_disk_file}",
             "shutdown-script": "echo 'Worker instance terminated'",
             "startup-script": "${SOURCE:import_image.sh}"
           },
