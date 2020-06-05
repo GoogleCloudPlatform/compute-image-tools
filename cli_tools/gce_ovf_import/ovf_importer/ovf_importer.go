@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
@@ -472,6 +473,9 @@ func validateReleaseTrack(releaseTrack string) error {
 func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
 	oi.Logger.Log("Starting OVF import workflow.")
 	w, err := oi.setUpImportWorkflow()
+
+	go oi.handleTimeout(w)
+
 	if err != nil {
 		oi.Logger.Log(err.Error())
 		return w, err
@@ -484,6 +488,17 @@ func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
 	}
 	oi.Logger.Log("OVF import workflow finished successfully.")
 	return w, nil
+}
+
+func (oi *OVFImporter) handleTimeout(w *daisy.Workflow) {
+	timeout, err := time.ParseDuration(oi.params.Timeout)
+	if err != nil {
+		oi.Logger.Log(fmt.Sprintf("Error parsing timeout `%v`", oi.params.Timeout))
+		return
+	}
+	time.Sleep(timeout)
+	oi.Logger.Log(fmt.Sprintf("Timeout %v exceeded, stopping workflow %q", oi.params.Timeout, w.Name))
+	w.CancelWithReason("timed-out")
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import
