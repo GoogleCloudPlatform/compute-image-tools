@@ -104,13 +104,13 @@ func (b *BufferedWriter) uploadWorker() {
 				defer file.Close()
 
 				tmpObj := path.Join(b.obj, strings.TrimPrefix(in, b.prefix))
+				b.addObj(tmpObj)
 				dst := client.GetObject(b.bkt, tmpObj).NewWriter()
 				if _, err := io.Copy(dst, file); err != nil {
 					if io.EOF != err {
 						return err
 					}
 				}
-				b.addObj(tmpObj)
 				return dst.Close()
 			}()
 			if err != nil {
