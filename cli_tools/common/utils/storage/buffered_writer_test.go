@@ -190,7 +190,6 @@ func TestCopyObjectWhenOneChunk(t *testing.T) {
 	mockObjectHandle.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
 	mockObjectHandle.EXPECT().ObjectName().Return("").AnyTimes()
-	//mockObjectHandle.EXPECT().RunComposer(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockObjectHandle.EXPECT().RunCopier(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
