@@ -29,7 +29,9 @@ var (
 	instanceName         = flag.String(ovfexportparams.InstanceNameFlagKey, "", "VM Instance names to be created, separated by commas.")
 	machineImageName     = flag.String(ovfexportparams.MachineImageNameFlagKey, "", "Name of the machine image to create.")
 	clientID             = flag.String(ovfexportparams.ClientIDFlagKey, "", "Identifies the client of the exporter, e.g. `gcloud` or `pantheon`")
-	destinationUri       = flag.String(ovfexportparams.DestinationUriFlagKey, "", " Google Cloud Storage URI of the OVF or OVA file to export. For example: gs://my-bucket/my-vm.ovf.")
+	destinationURI       = flag.String(ovfexportparams.DestinationURIFlagKey, "", "Google Cloud Storage URI of the OVF or OVA file to export. For example: gs://my-bucket/my-vm.ovf.")
+	ovfFormat            = flag.String(ovfexportparams.OvfFormatFlagKey, "", "One of: `ovf` or `ova`. Defaults to `ovf`. If `ova` is specified, exported OVF package will be packed as an OVA archive and individual files will be removed from GCS.")
+	diskExportFormat     = flag.String("disk-export-format", "vmdk", "format for disks in OVF, such as vmdk, vhdx, vpc, or qcow2. Any format supported by qemu-img is supported by OVF export. Defaults to `vmdk`.")
 	network              = flag.String("network", "", "Name of the network in your project to use for the image export. The network must have access to Google Cloud Storage. If not specified, the network named default is used. If -subnet is also specified subnet must be a subnetwork of network specified by -network.")
 	subnet               = flag.String("subnet", "", "Name of the subnetwork in your project to use for the image export. If	the network resource is in legacy mode, do not provide this property. If the network is in auto subnet mode, providing the subnetwork is optional. If the network is in custom subnet mode, then this field should be specified. Zone should be specified if this field is specified.")
 	noExternalIP         = flag.Bool("no-external-ip", false, "Specifies that VPC used for OVF export doesn't allow external IPs.")
@@ -63,7 +65,9 @@ func buildExportParams() *ovfexportparams.OVFExportParams {
 	flag.Parse()
 	return &ovfexportparams.OVFExportParams{InstanceName: *instanceName,
 		MachineImageName: *machineImageName, ClientID: *clientID,
-		DestinationUri: *destinationUri, Network: *network, Subnet: *subnet, NoExternalIP: *noExternalIP,
+		DestinationURI: *destinationURI, OvfFormat: *ovfFormat,
+		DiskExportFormat: *diskExportFormat, Network: *network,
+		Subnet: *subnet, NoExternalIP: *noExternalIP,
 		OsID: *osID, Zone: *zoneFlag, BootDiskKmskey: *bootDiskKmskey,
 		BootDiskKmsKeyring:  *bootDiskKmsKeyring,
 		BootDiskKmsLocation: *bootDiskKmsLocation,

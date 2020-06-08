@@ -16,17 +16,16 @@ package daisyovfutils
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
+	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 )
 
-const (
-	createInstanceStepName = "create-Instance"
-	importerDiskSize       = "10"
-)
-
+// OVFExportWorkflowGenerator generates OVF export workflow
 type OVFExportWorkflowGenerator struct {
 	Instance               *compute.Instance
 	Project                string
@@ -36,43 +35,40 @@ type OVFExportWorkflowGenerator struct {
 	Network                string
 	Subnet                 string
 	InstancePath           string
-	PreviousStepName       string
+	IsInstanceRunning      bool
 }
 
 // AddDiskExportSteps adds Daisy steps to OVF export workflow to export disks.
-func (g *OVFExportWorkflowGenerator) AddDiskExportSteps(w *daisy.Workflow) ([]string, error) {
+// It returns an array of GCS paths of exported disks in the same order as Instance.Disks.
+func (g *OVFExportWorkflowGenerator) AddDiskExportSteps(w *daisy.Workflow, previousStepName, nextStepName string) ([]string, error) {
 	if g.Instance == nil || len(g.Instance.Disks) == 0 {
-		return nil, daisy.Errf("No disks found in the Instance to export")
+		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
 	}
-	disks := g.Instance.Disks
+	attachedDisks := g.Instance.Disks
 
 	var exportedDisksGCSPaths []string
-	w.Sources["export_disk_ext.sh"] = "../export/export_disk_ext.sh"
-	w.Sources["disk_resizing_mon.sh"] = "../export/disk_resizing_mon.sh"
 
-	for i, disk := range disks {
-		dataDiskIndex := i + 1
-
-
-		diskPath := disk.Source[strings.Index(disk.Source, "projects/"):]
-		exportedDiskGCSPath := g.OvfGcsDirectoryPath + disk.DeviceName
+	for i, attachedDisk := range attachedDisks {
+		diskPath := attachedDisk.Source[strings.Index(attachedDisk.Source, "projects/"):]
+		exportedDiskGCSPath := g.OvfGcsDirectoryPath + attachedDisk.DeviceName + "." + g.ExportedDiskFileFormat
 		exportedDisksGCSPaths = append(exportedDisksGCSPaths, exportedDiskGCSPath)
 
-		detachDiskStepName := fmt.Sprintf("detach-disk-%v", dataDiskIndex)
+		detachDiskStepName := fmt.Sprintf("detach-disk-%v-%v", i, attachedDisk.DeviceName)
 		detachDiskStep := daisy.NewStepDefaultTimeout(detachDiskStepName, w)
 		detachDiskStep.DetachDisks = &daisy.DetachDisks{
-			{
+			&daisy.DetachDisk{
 				Instance:   g.InstancePath,
-				DeviceName: diskPath,
+				DeviceName: daisyutils.GetDeviceURI(g.Project, g.Zone, attachedDisk.DeviceName),
 			},
 		}
 
-		exportDiskStepName := fmt.Sprintf("export-disk-%v", dataDiskIndex)
+		exportDiskStepName := fmt.Sprintf("export-disk-%v-%v", i, stringutils.Substring(attachedDisk.DeviceName, 0, 63-len("detach-disk-")-len("disk--buffer-12345")-len(strconv.Itoa(i))-2))
+		exportDiskStepName = strings.Trim(exportDiskStepName, "-")
 		exportDiskStep := daisy.NewStepDefaultTimeout(exportDiskStepName, w)
 		exportDiskStep.IncludeWorkflow = &daisy.IncludeWorkflow{
 			Path: "../export/disk_export_ext.wf.json",
 			Vars: map[string]string{
-				"source_disk":                disk.DeviceName,
+				"source_disk":                diskPath,
 				"destination":                exportedDiskGCSPath,
 				"format":                     g.ExportedDiskFileFormat,
 				"export_instance_disk_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
@@ -80,13 +76,54 @@ func (g *OVFExportWorkflowGenerator) AddDiskExportSteps(w *daisy.Workflow) ([]st
 				"export_instance_disk_type":  "pd-ssd",
 				"export_network":             g.Network,
 				"export_subnet":              g.Subnet,
+				"export_disk_ext.sh":         "../export/export_disk_ext.sh",
+				"disk_resizing_mon.sh":       "../export/disk_resizing_mon.sh",
+			},
+		}
+
+		attachDiskStepName := fmt.Sprintf("attach-disk-%v", attachedDisk.DeviceName)
+		attachDiskStep := daisy.NewStepDefaultTimeout(attachDiskStepName, w)
+		attachDiskStep.AttachDisks = &daisy.AttachDisks{
+			{
+				Instance: g.InstancePath,
+				AttachedDisk: compute.AttachedDisk{
+					Mode:       attachedDisk.Mode,
+					Source:     diskPath,
+					Boot:       attachedDisk.Boot,
+					DeviceName: attachedDisk.DeviceName,
+				},
 			},
 		}
 
 		w.Steps[detachDiskStepName] = detachDiskStep
 		w.Steps[exportDiskStepName] = exportDiskStep
-		w.Dependencies[detachDiskStepName] = append(w.Dependencies[detachDiskStepName], g.PreviousStepName)
+		w.Steps[attachDiskStepName] = attachDiskStep
+		if previousStepName != "" {
+			w.Dependencies[detachDiskStepName] = append(w.Dependencies[detachDiskStepName], previousStepName)
+		}
 		w.Dependencies[exportDiskStepName] = append(w.Dependencies[exportDiskStepName], detachDiskStepName)
+		w.Dependencies[attachDiskStepName] = append(w.Dependencies[attachDiskStepName], exportDiskStepName)
+		if nextStepName != "" {
+			w.Dependencies[nextStepName] = append(w.Dependencies[nextStepName], attachDiskStepName)
+		}
 	}
 	return exportedDisksGCSPaths, nil
+}
+
+// AddStopInstanceStep adds a StopInstance step to a workflow
+func (g *OVFExportWorkflowGenerator) AddStopInstanceStep(w *daisy.Workflow, stopInstanceStepName string) {
+	stopInstanceStep := daisy.NewStepDefaultTimeout(stopInstanceStepName, w)
+	stopInstanceStep.StopInstances = &daisy.StopInstances{
+		Instances: []string{g.InstancePath},
+	}
+	w.Steps[stopInstanceStepName] = stopInstanceStep
+}
+
+// AddStartInstanceStep adds a StartInstance step to a workflow
+func (g *OVFExportWorkflowGenerator) AddStartInstanceStep(w *daisy.Workflow, startInstanceStepName string) {
+	startInstanceStep := daisy.NewStepDefaultTimeout(startInstanceStepName, w)
+	startInstanceStep.StartInstances = &daisy.StartInstances{
+		Instances: []string{g.InstancePath},
+	}
+	w.Steps[startInstanceStepName] = startInstanceStep
 }

@@ -37,3 +37,5 @@ require (
 )
 
 replace github.com/GoogleCloudPlatform/compute-image-tools/proto/go => ../proto/go
+
+replace github.com/GoogleCloudPlatform/compute-image-tools/daisy => ../daisy

@@ -15,26 +15,11 @@
 package ovfexportparams
 
 import (
+	"strings"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-)
-
-const (
-	// InstanceNameFlagKey is key for instance name CLI flag
-	InstanceNameFlagKey = "instance-name"
-
-	// MachineImageNameFlagKey is key for machine image name CLI flag
-	MachineImageNameFlagKey = "machine-image-name"
-
-	// ClientIDFlagKey is key for client ID CLI flag
-	ClientIDFlagKey = "client-id"
-
-	// DestinationUriFlagKey is key for OVF/OVA GCS path CLI flag
-	DestinationUriFlagKey = "destination-uri"
-
-	// ReleaseTrackFlagKey is key for release track flag
-	ReleaseTrackFlagKey = "release-track"
 )
 
 // ValidateAndParseParams validates and parses OVFExportParams. It returns an
@@ -49,7 +34,7 @@ func ValidateAndParseParams(params *OVFExportParams, validReleaseTracks []string
 		return daisy.Errf("-%v and -%v can't be provided at the same time", InstanceNameFlagKey, MachineImageNameFlagKey)
 	}
 
-	if err := validation.ValidateStringFlagNotEmpty(params.DestinationUri, DestinationUriFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(params.DestinationURI, DestinationURIFlagKey); err != nil {
 		return err
 	}
 
@@ -57,8 +42,8 @@ func ValidateAndParseParams(params *OVFExportParams, validReleaseTracks []string
 		return err
 	}
 
-	if _, err := storage.GetBucketNameFromGCSPath(params.DestinationUri); err != nil {
-		return daisy.Errf("%v should be a path to OVF or OVA package in Cloud Storage", DestinationUriFlagKey)
+	if _, err := storage.GetBucketNameFromGCSPath(params.DestinationURI); err != nil {
+		return daisy.Errf("%v should be a path to OVF or OVA package in Cloud Storage", DestinationURIFlagKey)
 	}
 
 	if params.ReleaseTrack != "" {
@@ -71,6 +56,13 @@ func ValidateAndParseParams(params *OVFExportParams, validReleaseTracks []string
 
 		if !isValidReleaseTrack {
 			return daisy.Errf("%v should have one of the following values: %v", ReleaseTrackFlagKey, validReleaseTracks)
+		}
+	}
+
+	if params.OvfFormat != "" {
+		params.OvfFormat = strings.ToLower(params.OvfFormat)
+		if params.OvfFormat != "ovf" && params.OvfFormat != "ova" {
+			return daisy.Errf("%v should have one of the following values: %v", OvfFormatFlagKey, []string{"ovf", "ova"})
 		}
 	}
 

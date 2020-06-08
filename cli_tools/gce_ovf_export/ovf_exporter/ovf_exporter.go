@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 	computeutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -37,6 +38,8 @@ import (
 	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -82,7 +85,7 @@ type OVFExporter struct {
 func NewOVFExporter(params *ovfexportparams.OVFExportParams) (*OVFExporter, error) {
 	ctx := context.Background()
 	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewLogger(logPrefix)
+	logger := logging.NewStdoutLogger(logPrefix)
 	storageClient, err := storageutils.NewStorageClient(ctx, logger, "")
 	if err != nil {
 		return nil, err
@@ -199,27 +202,9 @@ func (oe *OVFExporter) buildDaisyVars(region string) map[string]string {
 	return varMap
 }
 
-func (oe *OVFExporter) modifyWorkflowPreValidate(w *daisy.Workflow) {
-	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-
-	instance, err := oe.computeClient.GetInstance(*oe.params.Project, oe.Zone, oe.params.InstanceName)
-	if err != nil {
-		//TODO
-	}
-
-	workflowGenerator := &daisyovfutils.OVFExportWorkflowGenerator{
-		Instance:               instance,
-		Project:                *oe.params.Project,
-		Zone:                   oe.params.Zone,
-		OvfGcsDirectoryPath:    oe.params.DestinationUri,
-		ExportedDiskFileFormat: oe.params.DiskExportFormat,
-		Network:                oe.params.Network,
-		Subnet:                 oe.params.Subnet,
-		InstancePath:           oe.instancePath,
-		PreviousStepName:       "stop-instance",
-	}
-
-	workflowGenerator.AddDiskExportSteps(w)
+func isInstanceRunning(instance *compute.Instance) bool {
+	return !(instance == nil || instance.Status == "STOPPED" || instance.Status == "STOPPING" ||
+		instance.Status == "SUSPENDED" || instance.Status == "SUSPENDING")
 }
 
 func (oe *OVFExporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
@@ -239,6 +224,34 @@ func (oe *OVFExporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 		}}
 	rl.LabelResources(w)
 	daisyutils.UpdateAllInstanceNoExternalIP(w, oe.params.NoExternalIP)
+}
+
+func (oe *OVFExporter) createScratchBucket(project string, region string) error {
+	safeProjectName := strings.Replace(project, "google", "elgoog", -1)
+	safeProjectName = strings.Replace(safeProjectName, ":", "-", -1)
+	if strings.HasPrefix(safeProjectName, "goog") {
+		safeProjectName = strings.Replace(safeProjectName, "goog", "ggoo", 1)
+	}
+	bucket := strings.ToLower(safeProjectName + "-ovf-export-bkt-" + region)
+	it := oe.bucketIteratorCreator.CreateBucketIterator(oe.ctx, oe.storageClient, project)
+	for itBucketAttrs, err := it.Next(); err != iterator.Done; itBucketAttrs, err = it.Next() {
+		if err != nil {
+			return err
+		}
+		if itBucketAttrs.Name == bucket {
+			oe.params.ScratchBucketGcsPath = fmt.Sprintf("gs://%v/", bucket)
+			return nil
+		}
+	}
+
+	oe.Logger.Log(fmt.Sprintf("Creating scratch bucket `%v` in %v region", bucket, region))
+	if err := oe.storageClient.CreateBucket(
+		bucket, project,
+		&storage.BucketAttrs{Name: bucket, Location: region}); err != nil {
+		return err
+	}
+	oe.params.ScratchBucketGcsPath = fmt.Sprintf("gs://%v/", bucket)
+	return nil
 }
 
 func (oe *OVFExporter) setUpExportWorkflow() (*daisy.Workflow, error) {
@@ -262,17 +275,59 @@ func (oe *OVFExporter) setUpExportWorkflow() (*daisy.Workflow, error) {
 	if region, err = oe.getRegion(zone); err != nil {
 		return nil, err
 	}
+	if oe.params.ScratchBucketGcsPath == "" {
+		if err := oe.createScratchBucket(project, region); err != nil {
+			return nil, err
+		}
+	}
 	varMap := oe.buildDaisyVars(region)
 
-	workflow, err := daisycommon.ParseWorkflow(oe.workflowPath, varMap, project,
+	w, err := daisycommon.ParseWorkflow(oe.workflowPath, varMap, project,
 		zone, oe.params.ScratchBucketGcsPath, oe.params.Oauth, oe.params.Timeout, oe.params.Ce,
 		oe.params.GcsLogsDisabled, oe.params.CloudLogsDisabled, oe.params.StdoutLogsDisabled)
 
 	if err != nil {
 		return nil, fmt.Errorf("error parsing workflow %q: %v", oe.workflowPath, err)
 	}
-	workflow.ForceCleanupOnError = true
-	return workflow, nil
+	w.ForceCleanupOnError = true
+
+	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+
+	instance, err := oe.computeClient.GetInstance(*oe.params.Project, oe.Zone, oe.params.InstanceName)
+	if err != nil {
+		return w, err
+	}
+
+	workflowGenerator := &daisyovfutils.OVFExportWorkflowGenerator{
+		Instance:               instance,
+		Project:                *oe.params.Project,
+		Zone:                   oe.params.Zone,
+		OvfGcsDirectoryPath:    oe.params.DestinationURI,
+		ExportedDiskFileFormat: oe.params.DiskExportFormat,
+		Network:                oe.params.Network,
+		Subnet:                 oe.params.Subnet,
+		InstancePath:           oe.instancePath,
+		IsInstanceRunning:      isInstanceRunning(instance),
+	}
+
+	var previousStepName, nextStepName string
+	if isInstanceRunning(instance) {
+		previousStepName = "stop-instance"
+		nextStepName = "start-instance"
+		workflowGenerator.AddStopInstanceStep(w, previousStepName)
+	}
+	exportedDisksGCSPaths, err := workflowGenerator.AddDiskExportSteps(w, previousStepName, nextStepName)
+	//TODO: use in OVF descriptor, remove print
+	print(exportedDisksGCSPaths)
+
+	if err != nil {
+		return w, err
+	}
+
+	if isInstanceRunning(instance) {
+		workflowGenerator.AddStartInstanceStep(w, nextStepName)
+	}
+	return w, nil
 }
 
 // Export runs OVF export
@@ -284,7 +339,7 @@ func (oe *OVFExporter) Export() (*daisy.Workflow, error) {
 		return w, err
 	}
 
-	if err := w.RunWithModifiers(oe.ctx, oe.modifyWorkflowPreValidate, oe.modifyWorkflowPostValidate); err != nil {
+	if err := w.RunWithModifiers(oe.ctx, nil, oe.modifyWorkflowPostValidate); err != nil {
 		oe.Logger.Log(err.Error())
 		daisyutils.PostProcessDErrorForNetworkFlag("instance export", err, oe.params.Network, w)
 		return w, err

@@ -36,13 +36,13 @@ func TestInstanceExportFlagsInstanceNameNotProvided(t *testing.T) {
 
 func TestInstanceExportFlagsOvfGcsPathFlagKeyNotProvided(t *testing.T) {
 	params := getAllInstanceExportParams()
-	params.DestinationUri = ""
+	params.DestinationURI = ""
 	assertErrorOnValidate(t, params)
 }
 
 func TestInstanceExportFlagsOvfGcsPathFlagNotValid(t *testing.T) {
 	params := getAllInstanceExportParams()
-	params.DestinationUri = "NOT_GCS_PATH"
+	params.DestinationURI = "NOT_GCS_PATH"
 	assertErrorOnValidate(t, params)
 }
 
@@ -58,14 +58,20 @@ func TestInstanceExportFlagsAllValid(t *testing.T) {
 
 func TestInstanceExportFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {
 	params := getAllInstanceExportParams()
-	params.DestinationUri = "gs://bucket_name/"
+	params.DestinationURI = "gs://bucket_name/"
 	assert.Nil(t, ValidateAndParseParams(getAllInstanceExportParams(), validReleaseTracks))
 }
 
 func TestInstanceExportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) {
 	params := getAllInstanceExportParams()
-	params.DestinationUri = "gs://bucket_name"
+	params.DestinationURI = "gs://bucket_name"
 	assert.Nil(t, ValidateAndParseParams(getAllInstanceExportParams(), validReleaseTracks))
+}
+
+func TestInstanceExportFlagsInvalidOvfFormat(t *testing.T) {
+	params := getAllInstanceExportParams()
+	params.OvfFormat = "zip"
+	assertErrorOnValidate(t, params)
 }
 
 func TestMachineImageExportFlagsAllValid(t *testing.T) {
@@ -80,13 +86,13 @@ func TestMachineImageExportFlagsMachineImageNameNotProvided(t *testing.T) {
 
 func TestMachineImageExportFlagsOvfGcsPathFlagKeyNotProvided(t *testing.T) {
 	params := getAllMachineImageExportParams()
-	params.DestinationUri = ""
+	params.DestinationURI = ""
 	assertErrorOnValidate(t, params)
 }
 
 func TestMachineImageExportFlagsOvfGcsPathFlagNotValid(t *testing.T) {
 	params := getAllMachineImageExportParams()
-	params.DestinationUri = "NOT_GCS_PATH"
+	params.DestinationURI = "NOT_GCS_PATH"
 	assertErrorOnValidate(t, params)
 }
 
@@ -98,13 +104,13 @@ func TestMachineImageExportFlagsClientIdNotProvided(t *testing.T) {
 
 func TestMachineImageExportFlagsAllValidBucketOnlyPathTrailingSlash(t *testing.T) {
 	params := getAllMachineImageExportParams()
-	params.DestinationUri = "gs://bucket_name/"
+	params.DestinationURI = "gs://bucket_name/"
 	assert.Nil(t, ValidateAndParseParams(getAllMachineImageExportParams(), validReleaseTracks))
 }
 
 func TestMachineImageExportFlagsAllValidBucketOnlyPathNoTrailingSlash(t *testing.T) {
 	params := getAllMachineImageExportParams()
-	params.DestinationUri = "gs://bucket_name"
+	params.DestinationURI = "gs://bucket_name"
 	assert.Nil(t, ValidateAndParseParams(getAllMachineImageExportParams(), validReleaseTracks))
 }
 
@@ -112,12 +118,18 @@ func assertErrorOnValidate(t *testing.T, params *OVFExportParams) {
 	assert.NotNil(t, ValidateAndParseParams(params, validReleaseTracks))
 }
 
+func TestMachineImageExportFlagsInvalidOvfFormat(t *testing.T) {
+	params := getAllMachineImageExportParams()
+	params.OvfFormat = "zip"
+	assertErrorOnValidate(t, params)
+}
+
 func getAllInstanceExportParams() *OVFExportParams {
 	project := "aProject"
 	return &OVFExportParams{
 		InstanceName:         "instance1",
 		ClientID:             "aClient",
-		DestinationUri:       "gs://ovfbucket/ovfpath/vmware.ova",
+		DestinationURI:       "gs://ovfbucket/ovfpath/vmware.ova",
 		Network:              "aNetwork",
 		Subnet:               "aSubnet",
 		Zone:                 "us-central1-c",
@@ -136,6 +148,7 @@ func getAllInstanceExportParams() *OVFExportParams {
 		StdoutLogsDisabled:   true,
 		ReleaseTrack:         "ga",
 		BuildID:              "abc123",
+		DiskExportFormat:     "vmdk",
 	}
 }
 
@@ -144,7 +157,7 @@ func getAllMachineImageExportParams() *OVFExportParams {
 	return &OVFExportParams{
 		MachineImageName:     "machine-image1",
 		ClientID:             "aClient",
-		DestinationUri:       "gs://ovfbucket/ovfpath/vmware.ova",
+		DestinationURI:       "gs://ovfbucket/ovfpath/vmware.ova",
 		Network:              "aNetwork",
 		Subnet:               "aSubnet",
 		Zone:                 "us-central1-c",
@@ -163,5 +176,7 @@ func getAllMachineImageExportParams() *OVFExportParams {
 		StdoutLogsDisabled:   true,
 		ReleaseTrack:         "ga",
 		BuildID:              "abc123",
+		DiskExportFormat:     "vmdk",
+		OvfFormat:            "ovf",
 	}
 }

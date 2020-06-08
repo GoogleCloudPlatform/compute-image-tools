@@ -1,5 +1,5 @@
 {
-  "Name": "import-ovf",
+  "Name": "export-ovf",
   "DefaultTimeout": "240m",
   "Vars": {
     "instance_name": {
@@ -16,13 +16,6 @@
     }
   },
   "Steps": {
-    "stop-instance": {
-      "StopInstances": {
-        "Instances": [
-          "${instance_name}"
-        ]
-      }
-    }
   },
   "Dependencies": {}
 }

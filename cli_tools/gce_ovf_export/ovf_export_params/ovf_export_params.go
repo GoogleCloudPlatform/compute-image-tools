@@ -18,6 +18,26 @@ import (
 	"fmt"
 )
 
+const (
+	// InstanceNameFlagKey is key for instance name CLI flag
+	InstanceNameFlagKey = "instance-name"
+
+	// MachineImageNameFlagKey is key for machine image name CLI flag
+	MachineImageNameFlagKey = "machine-image-name"
+
+	// ClientIDFlagKey is key for client ID CLI flag
+	ClientIDFlagKey = "client-id"
+
+	// DestinationURIFlagKey is key for OVF/OVA GCS path CLI flag
+	DestinationURIFlagKey = "destination-uri"
+
+	// ReleaseTrackFlagKey is key for release track flag
+	ReleaseTrackFlagKey = "release-track"
+
+	// OvfFormatFlagKey is key for OVF format flag
+	OvfFormatFlagKey = "ovf-format"
+)
+
 // OVFExportParams holds flags for OVF export
 type OVFExportParams struct {
 
@@ -29,7 +49,7 @@ type OVFExportParams struct {
 
 	// Common flags
 	ClientID             string
-	DestinationUri       string
+	DestinationURI       string
 	OvfFormat            string
 	DiskExportFormat     string
 	OsID                 string
