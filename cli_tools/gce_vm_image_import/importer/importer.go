@@ -24,7 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 )
 
-const WorkflowDir = "daisy_workflows/image_import/"
+const workflowDir = "daisy_workflows/image_import/"
 
 // Importer runs the end-to-end import workflow, and exposes the results
 // via an error and Loggable.
@@ -34,7 +34,7 @@ type Importer interface {
 
 // NewImporter constructs an Importer instance.
 func NewImporter(args ImportArguments, client compute.Client) (Importer, error) {
-	inflater, err := createDaisyInflater(args, WorkflowDir)
+	inflater, err := createDaisyInflater(args, workflowDir)
 	if err != nil {
 		return nil, err
 	}
