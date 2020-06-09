@@ -182,7 +182,7 @@ func (b *BufferedWriter) Close() error {
 			objs = append(objs, client.GetObject(b.bkt, obj))
 		}
 		if len(objs) == 1 {
-			if _, err := client.GetObject(b.bkt, b.obj).RunCopier(objs[0]); err != nil {
+			if _, err := client.GetObject(b.bkt, b.obj).Copy(objs[0]); err != nil {
 				return err
 			}
 			err = objs[0].Delete()
@@ -193,7 +193,7 @@ func (b *BufferedWriter) Close() error {
 		}
 		newObj := client.GetObject(b.bkt, path.Join(b.obj, b.id+"_compose_"+strconv.Itoa(i)))
 		b.tmpObjs = append([]string{newObj.ObjectName()}, b.tmpObjs[int(l):]...)
-		if _, err := newObj.RunComposer(objs...); err != nil {
+		if _, err := newObj.Compose(objs...); err != nil {
 			return err
 		}
 		for _, o := range objs {

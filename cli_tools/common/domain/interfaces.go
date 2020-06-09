@@ -77,8 +77,8 @@ type StorageObjectInterface interface {
 	NewReader() (io.ReadCloser, error)
 	NewWriter() io.WriteCloser
 	ObjectName() string
-	RunComposer(src ...StorageObjectInterface) (*storage.ObjectAttrs, error)
-	RunCopier(src StorageObjectInterface) (*storage.ObjectAttrs, error)
+	Compose(src ...StorageObjectInterface) (*storage.ObjectAttrs, error)
+	Copy(src StorageObjectInterface) (*storage.ObjectAttrs, error)
 }
 
 // MetadataGCEInterface represents GCE metadata

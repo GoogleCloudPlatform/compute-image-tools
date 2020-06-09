@@ -49,6 +49,40 @@ func (m *MockStorageObjectInterface) EXPECT() *MockStorageObjectInterfaceMockRec
 	return m.recorder
 }
 
+// Compose mocks base method
+func (m *MockStorageObjectInterface) Compose(arg0 ...domain.StorageObjectInterface) (*storage.ObjectAttrs, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{}
+	for _, a := range arg0 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Compose", varargs...)
+	ret0, _ := ret[0].(*storage.ObjectAttrs)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Compose indicates an expected call of Compose
+func (mr *MockStorageObjectInterfaceMockRecorder) Compose(arg0 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Compose", reflect.TypeOf((*MockStorageObjectInterface)(nil).Compose), arg0...)
+}
+
+// Copy mocks base method
+func (m *MockStorageObjectInterface) Copy(arg0 domain.StorageObjectInterface) (*storage.ObjectAttrs, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Copy", arg0)
+	ret0, _ := ret[0].(*storage.ObjectAttrs)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Copy indicates an expected call of Copy
+func (mr *MockStorageObjectInterfaceMockRecorder) Copy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockStorageObjectInterface)(nil).Copy), arg0)
+}
+
 // Delete mocks base method
 func (m *MockStorageObjectInterface) Delete() error {
 	m.ctrl.T.Helper()
@@ -118,38 +152,4 @@ func (m *MockStorageObjectInterface) ObjectName() string {
 func (mr *MockStorageObjectInterfaceMockRecorder) ObjectName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ObjectName", reflect.TypeOf((*MockStorageObjectInterface)(nil).ObjectName))
-}
-
-// RunComposer mocks base method
-func (m *MockStorageObjectInterface) RunComposer(arg0 ...domain.StorageObjectInterface) (*storage.ObjectAttrs, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range arg0 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "RunComposer", varargs...)
-	ret0, _ := ret[0].(*storage.ObjectAttrs)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RunComposer indicates an expected call of RunComposer
-func (mr *MockStorageObjectInterfaceMockRecorder) RunComposer(arg0 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunComposer", reflect.TypeOf((*MockStorageObjectInterface)(nil).RunComposer), arg0...)
-}
-
-// RunCopier mocks base method
-func (m *MockStorageObjectInterface) RunCopier(arg0 domain.StorageObjectInterface) (*storage.ObjectAttrs, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RunCopier", arg0)
-	ret0, _ := ret[0].(*storage.ObjectAttrs)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// RunCopier indicates an expected call of RunCopier
-func (mr *MockStorageObjectInterfaceMockRecorder) RunCopier(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunCopier", reflect.TypeOf((*MockStorageObjectInterface)(nil).RunCopier), arg0)
 }

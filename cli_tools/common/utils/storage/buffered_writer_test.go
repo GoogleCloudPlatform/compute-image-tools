@@ -129,12 +129,12 @@ func TestAddObjectWhenWorkerUploaded(t *testing.T) {
 
 	var output bytes.Buffer
 	writerCloser := testWriteCloser{Writer: bufio.NewWriter(&output)}
-	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
-	mockObjectHandle.EXPECT().NewWriter().Return(writerCloser).AnyTimes()
+	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject.EXPECT().NewWriter().Return(writerCloser).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
-	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockObjectHandle).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
@@ -153,12 +153,12 @@ func TestWriteToGCS(t *testing.T) {
 
 	output := bytes.NewBuffer([]byte{})
 	writerCloser := testWriteCloser{Writer: output}
-	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
-	mockObjectHandle.EXPECT().NewWriter().Return(writerCloser).AnyTimes()
+	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject.EXPECT().NewWriter().Return(writerCloser).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
-	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockObjectHandle).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
@@ -185,16 +185,16 @@ func TestCopyObjectWhenOneChunk(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
-	mockObjectHandle.EXPECT().Delete().Return(nil).AnyTimes()
-	mockObjectHandle.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
-	mockObjectHandle.EXPECT().ObjectName().Return("").AnyTimes()
-	mockObjectHandle.EXPECT().RunCopier(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
+	mockStorageObject.EXPECT().Copy(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
-	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockObjectHandle).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
@@ -210,17 +210,17 @@ func TestCopyObjectWithMultipleIterations(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
-	mockObjectHandle.EXPECT().Delete().Return(nil).AnyTimes()
-	mockObjectHandle.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
-	mockObjectHandle.EXPECT().ObjectName().Return("").Times(2)
-	mockObjectHandle.EXPECT().RunComposer(gomock.Any()).Return(nil, nil).Times(2)
-	mockObjectHandle.EXPECT().RunCopier(gomock.Any()).Return(nil, nil)
+	mockStorageObject.EXPECT().ObjectName().Return("").Times(2)
+	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, nil).Times(2)
+	mockStorageObject.EXPECT().Copy(gomock.Any()).Return(nil, nil)
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
-	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockObjectHandle).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
 
 	ctx := context.Background()
 	var err error
@@ -244,14 +244,14 @@ func TestErrorWhenCopyFails(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
-	mockObjectHandle.EXPECT().Delete().Return(nil).AnyTimes()
-	mockObjectHandle.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
-	mockObjectHandle.EXPECT().ObjectName().Return("").AnyTimes()
+	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
-	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockObjectHandle).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
@@ -259,7 +259,7 @@ func TestErrorWhenCopyFails(t *testing.T) {
 	_, err := buf.Write(data)
 	assert.Nil(t, err)
 
-	mockObjectHandle.EXPECT().RunCopier(gomock.Any()).Return(nil, fmt.Errorf("Fail to copy")).AnyTimes()
+	mockStorageObject.EXPECT().Copy(gomock.Any()).Return(nil, fmt.Errorf("Fail to copy")).AnyTimes()
 
 	err = buf.Close()
 	assert.NotNil(t, err)
@@ -270,16 +270,16 @@ func TestErrorWhenComposeFails(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockObjectHandle := mocks.NewMockStorageObjectInterface(mockCtrl)
-	mockObjectHandle.EXPECT().Delete().Return(nil).AnyTimes()
-	mockObjectHandle.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
+	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
+	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
-	mockObjectHandle.EXPECT().ObjectName().Return("").AnyTimes()
-	mockObjectHandle.EXPECT().RunCopier(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
+	mockStorageObject.EXPECT().Copy(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
-	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockObjectHandle).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
@@ -296,7 +296,7 @@ func TestErrorWhenComposeFails(t *testing.T) {
 	time.Sleep(time.Second * 2)
 	assert.Len(t, buf.tmpObjs, 33)
 
-	mockObjectHandle.EXPECT().RunComposer(gomock.Any()).Return(nil, fmt.Errorf("Fail to compose")).AnyTimes()
+	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, fmt.Errorf("Fail to compose")).AnyTimes()
 
 	err = buf.Close()
 	assert.NotNil(t, err)
