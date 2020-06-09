@@ -244,6 +244,17 @@ func SplitGCSPath(p string) (string, string, error) {
 	return "", "", daisy.Errf("%q is not a valid Cloud Storage path", p)
 }
 
+func ConcatGCSPath(pathElements ...string) string {
+	path := ""
+	for i, pathElement := range pathElements {
+		path += pathElement
+		if i != len(pathElements)-1 && !strings.HasSuffix(pathElement, "/") {
+			path += "/"
+		}
+	}
+	return path
+}
+
 // GetGCSObjectPathElements returns bucket name, object path within the bucket
 // for a valid object path. Error is returned otherwise.
 func GetGCSObjectPathElements(p string) (string, string, error) {

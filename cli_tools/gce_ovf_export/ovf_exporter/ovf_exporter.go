@@ -34,10 +34,10 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	daisyovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/daisy_utils"
 	ovfexportparams "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/ovf_export_params"
-	ovfdomain "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/domain"
-	ovfutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_utils"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/ovf_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/vmware/govmomi/ovf"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -67,7 +67,6 @@ type OVFExporter struct {
 	storageClient         domain.StorageClientInterface
 	computeClient         daisycompute.Client
 	mgce                  domain.MetadataGCEInterface
-	ovfDescriptorLoader   ovfdomain.OvfDescriptorLoaderInterface
 	bucketIteratorCreator domain.BucketIteratorCreatorInterface
 	Logger                logging.LoggerInterface
 	zoneValidator         domain.ZoneValidatorInterface
@@ -99,8 +98,7 @@ func NewOVFExporter(params *ovfexportparams.OVFExportParams) (*OVFExporter, erro
 
 	ovfImporter := &OVFExporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
 		workflowPath: workingDirOVFImportWorkflow, BuildID: getBuildID(params),
-		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
-		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic, Logger: logger,
+		mgce: &computeutils.MetadataGCE{}, bucketIteratorCreator: bic, Logger: logger,
 		zoneValidator: &computeutils.ZoneValidator{ComputeClient: computeClient}, params: params}
 	return ovfImporter, nil
 }
@@ -178,7 +176,6 @@ func (oe *OVFExporter) getRegion(zone string) (string, error) {
 }
 
 func (oe *OVFExporter) buildDaisyVars(region string) map[string]string {
-
 	varMap := map[string]string{}
 	if oe.params.IsInstanceExport() {
 		// instance import specific vars
@@ -254,16 +251,66 @@ func (oe *OVFExporter) createScratchBucket(project string, region string) error 
 	return nil
 }
 
-func (oe *OVFExporter) setUpExportWorkflow() (*daisy.Workflow, error) {
+func (oe *OVFExporter) setUpExportWorkflow(project, region, zone string, instance *compute.Instance) (*daisy.Workflow, []string, error) {
+
+	varMap := oe.buildDaisyVars(region)
+
+	workflow, err := daisycommon.ParseWorkflow(oe.workflowPath, varMap, project,
+		zone, oe.params.ScratchBucketGcsPath, oe.params.Oauth, oe.params.Timeout, oe.params.Ce,
+		oe.params.GcsLogsDisabled, oe.params.CloudLogsDisabled, oe.params.StdoutLogsDisabled)
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error parsing workflow %q: %v", oe.workflowPath, err)
+	}
+	workflow.ForceCleanupOnError = true
+	workflow.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
+
+	isInstanceRunning := isInstanceRunning(instance)
+
+	workflowGenerator := &daisyovfutils.OVFExportWorkflowGenerator{
+		Instance:               instance,
+		Project:                *oe.params.Project,
+		Zone:                   oe.params.Zone,
+		OvfGcsDirectoryPath:    oe.params.DestinationURI,
+		ExportedDiskFileFormat: oe.params.DiskExportFormat,
+		Network:                oe.params.Network,
+		Subnet:                 oe.params.Subnet,
+		InstancePath:           oe.instancePath,
+		IsInstanceRunning:      isInstanceRunning,
+	}
+
+	var previousStepName, nextStepName string
+	if isInstanceRunning {
+		previousStepName = "stop-instance"
+		nextStepName = "start-instance"
+		workflowGenerator.AddStopInstanceStep(workflow, previousStepName)
+	}
+	exportedDisksGCSPaths, err := workflowGenerator.AddDiskExportSteps(workflow, previousStepName, nextStepName)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if isInstanceRunning {
+		workflowGenerator.AddStartInstanceStep(workflow, nextStepName)
+	}
+
+	return workflow, exportedDisksGCSPaths, nil
+}
+
+// Export runs OVF export
+func (oe *OVFExporter) Export() (*daisy.Workflow, error) {
+	var project, zone, region, descriptorStr, bucketName, gcsDirectoryPath string
+	var err error
+	var descriptor *ovf.Envelope
+	var exportedDisksGCSPaths []string
+	var w *daisy.Workflow
+
+	oe.Logger.Log("Starting OVF export workflow.")
+
 	if err := ovfexportparams.ValidateAndParseParams(oe.params, []string{GA, Beta, Alpha}); err != nil {
 		return nil, err
 	}
-	var (
-		project string
-		zone    string
-		region  string
-		err     error
-	)
 	if project, err = param.GetProjectID(oe.mgce, *oe.params.Project); err != nil {
 		return nil, err
 	}
@@ -280,65 +327,31 @@ func (oe *OVFExporter) setUpExportWorkflow() (*daisy.Workflow, error) {
 			return nil, err
 		}
 	}
-	varMap := oe.buildDaisyVars(region)
-
-	w, err := daisycommon.ParseWorkflow(oe.workflowPath, varMap, project,
-		zone, oe.params.ScratchBucketGcsPath, oe.params.Oauth, oe.params.Timeout, oe.params.Ce,
-		oe.params.GcsLogsDisabled, oe.params.CloudLogsDisabled, oe.params.StdoutLogsDisabled)
-
-	if err != nil {
-		return nil, fmt.Errorf("error parsing workflow %q: %v", oe.workflowPath, err)
-	}
-	w.ForceCleanupOnError = true
-
-	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-
 	instance, err := oe.computeClient.GetInstance(*oe.params.Project, oe.Zone, oe.params.InstanceName)
 	if err != nil {
-		return w, err
+		return nil, daisy.Errf("Error retrieving instance `%v`: %v", oe.params.InstanceName, err)
 	}
-
-	workflowGenerator := &daisyovfutils.OVFExportWorkflowGenerator{
-		Instance:               instance,
-		Project:                *oe.params.Project,
-		Zone:                   oe.params.Zone,
-		OvfGcsDirectoryPath:    oe.params.DestinationURI,
-		ExportedDiskFileFormat: oe.params.DiskExportFormat,
-		Network:                oe.params.Network,
-		Subnet:                 oe.params.Subnet,
-		InstancePath:           oe.instancePath,
-		IsInstanceRunning:      isInstanceRunning(instance),
-	}
-
-	var previousStepName, nextStepName string
-	if isInstanceRunning(instance) {
-		previousStepName = "stop-instance"
-		nextStepName = "start-instance"
-		workflowGenerator.AddStopInstanceStep(w, previousStepName)
-	}
-	exportedDisksGCSPaths, err := workflowGenerator.AddDiskExportSteps(w, previousStepName, nextStepName)
-	//TODO: use in OVF descriptor, remove print
-	print(exportedDisksGCSPaths)
-
-	if err != nil {
-		return w, err
-	}
-
-	if isInstanceRunning(instance) {
-		workflowGenerator.AddStartInstanceStep(w, nextStepName)
-	}
-	return w, nil
-}
-
-// Export runs OVF export
-func (oe *OVFExporter) Export() (*daisy.Workflow, error) {
-	oe.Logger.Log("Starting OVF export workflow.")
-	w, err := oe.setUpExportWorkflow()
-	if err != nil {
+	if w, exportedDisksGCSPaths, err = oe.setUpExportWorkflow(project, region, zone, instance); err != nil {
 		oe.Logger.Log(err.Error())
 		return w, err
 	}
-
+	descriptorGenerator := ovfutils.OvfDescriptorGenerator{}
+	if descriptor, err = descriptorGenerator.Generate(exportedDisksGCSPaths); err != nil {
+		oe.Logger.Log(err.Error())
+		return w, err
+	}
+	if descriptorStr, err = ovfutils.Marshal(descriptor); err != nil {
+		oe.Logger.Log(err.Error())
+		return w, err
+	}
+	if bucketName, gcsDirectoryPath, err = storageutils.GetGCSObjectPathElements(oe.params.DestinationURI); err != nil {
+		oe.Logger.Log(err.Error())
+		return w, err
+	}
+	if err = oe.storageClient.WriteToGCS(bucketName, storageutils.ConcatGCSPath(gcsDirectoryPath, instance.Name+".ovf"), strings.NewReader(descriptorStr)); err != nil {
+		oe.Logger.Log(err.Error())
+		return w, err
+	}
 	if err := w.RunWithModifiers(oe.ctx, nil, oe.modifyWorkflowPostValidate); err != nil {
 		oe.Logger.Log(err.Error())
 		daisyutils.PostProcessDErrorForNetworkFlag("instance export", err, oe.params.Network, w)

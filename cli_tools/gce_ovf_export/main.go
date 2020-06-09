@@ -18,6 +18,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 
 	ovfexportparams "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_export/ovf_export_params"
@@ -104,6 +105,7 @@ func main() {
 
 	_, err := runExport()
 	if err != nil {
+		log.Println(err)
 		os.Exit(1)
 	}
 }
