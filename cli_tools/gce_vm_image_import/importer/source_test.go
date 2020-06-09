@@ -42,7 +42,6 @@ func TestEmptyFilesAreRejected(t *testing.T) {
 }
 
 func TestGzipCompressedFilesAreRejected(t *testing.T) {
-
 	source := fileSource{
 		gcsPath: "gs://bucket/global/images/ubuntu-1604",
 		bucket:  "bucket",
@@ -58,7 +57,6 @@ func TestGzipCompressedFilesAreRejected(t *testing.T) {
 }
 
 func TestUncompressedFilesAreAllowed(t *testing.T) {
-
 	source := fileSource{
 		gcsPath: "gs://bucket/global/images/ubuntu-1604",
 		bucket:  "bucket",
@@ -119,7 +117,6 @@ func TestEnsureEitherFileOrImageIsPresent(t *testing.T) {
 	}
 
 	for _, tt := range cases {
-
 		t.Run(tt.name, func(t *testing.T) {
 			factory := NewSourceFactory(createMockStorageClient(t, tt.file, "file-content"))
 			_, err := factory.Init(tt.file.Path(), tt.image)
@@ -143,7 +140,6 @@ func TestUnqualifiedImagePathsAreGlobalized(t *testing.T) {
 	}
 
 	for _, tt := range cases {
-
 		t.Run(tt.originalURI, func(t *testing.T) {
 			source, err := NewSourceFactory(nil).Init("", tt.originalURI)
 			assert.NoError(t, err)
