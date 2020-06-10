@@ -309,7 +309,7 @@ func main() {
 		}
 	default:
 		if !*print && !*validate {
-			fmt.Println("[Daisy] All workflows completed successfully.")
+			fmt.Println("[Daisy] All workflows completed successfull.")
 		}
 	}
 }
