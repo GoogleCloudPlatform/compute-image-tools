@@ -112,7 +112,7 @@ func TestSerialPortWatcher_AllSubscribedPortsPolled_WhenStartCalled(t *testing.T
 }
 
 func TestSerialPortWatcher_StopsWhenInstanceDeleted(t *testing.T) {
-	assert.Equal(t, 3, deletionNum404s, "These tests assume that deletionNum404s is 3.")
+	assert.Equal(t, 3, deletionRetry404s, "These tests assume that deletionRetry404s is 3.")
 	type testCase struct {
 		name           string
 		expectedOutput string
@@ -120,7 +120,7 @@ func TestSerialPortWatcher_StopsWhenInstanceDeleted(t *testing.T) {
 	}
 	for _, tt := range []testCase{
 		{
-			name:           "Tolerate intermittent 404s, but stop when deletionNum404s reached.",
+			name:           "Tolerate intermittent 404s, but stop when deletionRetry404s reached.",
 			expectedOutput: "one two three",
 			responses: []serialPortResponse{
 				{200, "one "},
@@ -244,9 +244,8 @@ func (m *mockSerialPortClient) GetSerialPortOutput(
 				HTTPStatusCode: curr.code,
 			},
 		}, nil
-	} else {
-		return nil, &googleapi.Error{Code: curr.code}
 	}
+	return nil, &googleapi.Error{Code: curr.code}
 }
 
 type mockMultiSerialPortClient struct {

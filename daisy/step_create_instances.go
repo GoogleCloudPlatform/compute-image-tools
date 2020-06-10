@@ -57,7 +57,7 @@ func (ci *CreateInstances) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func logSerialOutput(s *Step, name string, watcher *SerialOutputWatcher, wc io.WriteCloser) {
+func logSerialOutput(s *Step, name string, watcher *SerialOutputWatcher, wcProvider func() io.WriteCloser) {
 	w := s.w
 	w.stepWait.Add(1)
 	// The buffered channel ensures that we don't lose serial output if we have delays uploading
@@ -77,6 +77,7 @@ func logSerialOutput(s *Step, name string, watcher *SerialOutputWatcher, wc io.W
 			break
 		}
 		buf.WriteString(serialOutput)
+		wc := wcProvider()
 		if _, err := wc.Write([]byte(serialOutput)); err != nil && !gcsErr {
 			gcsErr = true
 			w.LogStepInfo(s.name, "CreateInstances", "Instance %q: error writing log to GCS: %v", name, err)
@@ -178,9 +179,14 @@ func (ci *CreateInstances) run(ctx context.Context, s *Step) DError {
 		logsObj := path.Join(w.logsPath, fmt.Sprintf("%s-serial-port%d.log", ii.getName(), serialPortToArchive))
 		w.LogStepInfo(s.name, "CreateInstances", "Streaming instance %q serial port %d output to https://storage.cloud.google.com/%s/%s",
 			ii.getName(), serialPortToArchive, w.bucket, logsObj)
-		wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
-		wc.ContentType = "text/plain"
-		go logSerialOutput(s, ii.getName(), w.WorkflowSerialOutputWatcher(), wc)
+		// The provider is used since logSerialOutput repeatedly closes the writer
+		// to flush the logs to GCS.
+		provider := func() io.WriteCloser {
+			wc := w.StorageClient.Bucket(w.bucket).Object(logsObj).NewWriter(ctx)
+			wc.ContentType = "text/plain"
+			return wc
+		}
+		go logSerialOutput(s, ii.getName(), w.SerialOutputWatcher(), provider)
 	}
 
 	if ci.instanceUsesBetaFeatures() {

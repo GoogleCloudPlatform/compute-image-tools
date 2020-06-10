@@ -49,7 +49,7 @@ type SerialOutputWatcher interface {
 // compute API to make periodic polling requests to check for new serial output.
 func NewSerialOutputWatcher(client serialOutputClient, project, zone string) SerialOutputWatcher {
 	return &serialOutputWatcher{
-		subscriptions: map[instanceAndPort][]watch{},
+		subscriptions: map[serialPort][]watch{},
 		client:        client,
 		project:       project,
 		zone:          zone,
@@ -57,13 +57,13 @@ func NewSerialOutputWatcher(client serialOutputClient, project, zone string) Ser
 }
 
 type serialOutputWatcher struct {
-	subscriptions map[instanceAndPort][]watch
+	subscriptions map[serialPort][]watch
 	client        serialOutputClient
 	project, zone string
 }
 
 // serialOutputWatcher assumes that 404s are returned when an instance doesn't
-// exist. The value `deletionNum404s` determines how many subsequent HTTP 404 responses to
+// exist. The value `deletionRetry404s` determines how many subsequent HTTP 404 responses to
 // see prior to deciding the instance has been deleted (assuming the
 // instance was seen earlier).
 //
@@ -75,9 +75,9 @@ type serialOutputWatcher struct {
 //  - Once deletion finished: 404
 //  - Instance stopped, but not deleted: 400
 //  - Serial output successfully returned: 200
-const deletionNum404s = 3
+const deletionRetry404s = 3
 
-type instanceAndPort struct {
+type serialPort struct {
 	instance   string
 	portNumber int64
 }
@@ -89,7 +89,7 @@ type watch struct {
 
 func (s *serialOutputWatcher) Watch(
 	instanceName string, port int64, c chan<- string, interval time.Duration) {
-	sp := instanceAndPort{instanceName, port}
+	sp := serialPort{instanceName, port}
 	s.subscriptions[sp] = append(s.subscriptions[sp], watch{c, interval})
 }
 
@@ -114,23 +114,25 @@ func (s *serialOutputWatcher) start(instanceName string) {
 	}
 }
 
-// run starts a goroutine that polls for an instance's serial output. Output is written to the
+// watchOnePort starts a goroutine that polls for an instance's serial output. Output is written to the
 // subscribing channels. Channels are closed when the instance is deleted.
 func watchOnePort(client serialOutputClient, pollingFrequency time.Duration,
 	project, zone, instanceName string, port int64, subscribers []chan<- string) {
 	go func() {
 		seenInstance := false
 		consecutive404s := 0
-		offset := int64(0)
+		// The GCE serial port API implements paging using a cursor of byte offsets:
+		// https://cloud.google.com/compute/docs/reference/rest/v1/instances/getSerialPortOutput
+		readPosition := int64(0)
 		ticker := time.NewTicker(pollingFrequency)
 		for {
-			resp, err := client.GetSerialPortOutput(project, zone, instanceName, port, offset)
+			resp, err := client.GetSerialPortOutput(project, zone, instanceName, port, readPosition)
 			var httpCode int
 			if err != nil {
 				realErr := err.(*googleapi.Error)
 				httpCode = realErr.Code
 			} else {
-				offset = resp.Next
+				readPosition = resp.Next
 				httpCode = resp.HTTPStatusCode
 				seenInstance = true
 				if len(resp.Contents) > 0 {
@@ -144,7 +146,7 @@ func watchOnePort(client serialOutputClient, pollingFrequency time.Duration,
 			}
 			if seenInstance && httpCode == http.StatusNotFound {
 				consecutive404s++
-				if consecutive404s >= deletionNum404s {
+				if consecutive404s >= deletionRetry404s {
 					for _, c := range subscribers {
 						close(c)
 					}

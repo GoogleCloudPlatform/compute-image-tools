@@ -16,6 +16,7 @@ package daisy
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -39,7 +40,9 @@ func TestLogSerialOutput(t *testing.T) {
 	s := &Step{name: "i1", w: w}
 	mockWatcher := newMockSerialOutputWatcher(t, []string{"log ","content"})
 	mockWriter := mockStorageClient{}
-	logSerialOutput(s, "instance-name", &mockWatcher, &mockWriter)
+	logSerialOutput(s, "instance-name", &mockWatcher, func() io.WriteCloser {
+		return &mockWriter
+	})
 	assert.Equal(t, "log content", mockWriter.content)
 }
 

@@ -285,7 +285,7 @@ func validateForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step) DError {
 			}
 			// A buffered channel is required, since SerialOutputWatcher doesn't block when writing to it.
 			c := make(chan string, 1)
-			s.w.registerListener(registeredInstance.RealName, c, i.SerialOutput.Port, i.interval)
+			(*s.w.SerialOutputWatcher()).Watch(registeredInstance.RealName, i.SerialOutput.Port, c, i.interval)
 			i.SerialOutput.outputChannel = c
 		}
 	}

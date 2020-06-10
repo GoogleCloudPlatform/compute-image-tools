@@ -923,7 +923,7 @@ func (w *Workflow) onStepCancel(s *Step, stepClass string) DError {
 
 // SerialOutputWatcher returns a SerialOutputWatcher that can be used to subscribe to the
 // serial output of instances managed by Daisy.
-func (w *Workflow) WorkflowSerialOutputWatcher() *SerialOutputWatcher {
+func (w *Workflow) SerialOutputWatcher() *SerialOutputWatcher {
 	// Using late initialization for serialOutputWatcher since there are many
 	// ways to create a Daisy workflow (bare struct, json, and its New() constructor),
 	// and this is the only common point.
@@ -931,18 +931,4 @@ func (w *Workflow) WorkflowSerialOutputWatcher() *SerialOutputWatcher {
 		w.serialOutputWatcher = NewSerialOutputWatcher(w.ComputeClient, w.Project, w.Zone)
 	}
 	return &w.serialOutputWatcher
-}
-
-func (w *Workflow) registerListener(name string, sink chan<- string, port int64, duration time.Duration) {
-	// Using late initialization for serialOutputWatcher since there are many
-	// ways to create a Daisy workflow (bare struct, json, and its New() constructor),
-	// and this is the only common point.
-	if w.serialOutputWatcher == nil {
-		w.serialOutputWatcher = NewSerialOutputWatcher(w.ComputeClient, w.Project, w.Zone)
-	}
-	w.serialOutputWatcher.Watch(name, port, sink, duration)
-}
-
-func (w *Workflow) startSerialOutputWatcher(name string) {
-	w.serialOutputWatcher.start(name)
 }
