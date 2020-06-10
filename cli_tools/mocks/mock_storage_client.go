@@ -180,10 +180,10 @@ func (mr *MockStorageClientInterfaceMockRecorder) GetGcsFileContent(arg0 interfa
 }
 
 // GetObject mocks base method
-func (m *MockStorageClientInterface) GetObject(arg0, arg1 string) domain.StorageObjectInterface {
+func (m *MockStorageClientInterface) GetObject(arg0, arg1 string) domain.StorageObject {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetObject", arg0, arg1)
-	ret0, _ := ret[0].(domain.StorageObjectInterface)
+	ret0, _ := ret[0].(domain.StorageObject)
 	return ret0
 }
 

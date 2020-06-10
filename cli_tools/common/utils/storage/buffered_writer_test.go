@@ -35,6 +35,7 @@ var (
 	bufferSize, workerNum   int64
 	prefix, bkt, obj, oauth string
 	mockStorageClient       *mocks.MockStorageClientInterface
+	errClient error = fmt.Errorf("Cannot create client")
 )
 
 func TestCreateNewChunkOnFirstWrite(t *testing.T) {
@@ -46,7 +47,7 @@ func TestCreateNewChunkOnFirstWrite(t *testing.T) {
 
 	data := []byte("This is a sample data to write")
 
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	_, err := buf.Write(data)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, buf.part)
@@ -63,7 +64,7 @@ func TestCreateNewChunkWhenCurrentChunkFull(t *testing.T) {
 	data := []byte("This is a sample data to write")
 
 	// passing in mock error client so upload file behavior is not tested
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
 	err := buf.newChunk()
 	assert.Nil(t, err)
 	curPart := buf.part
@@ -84,7 +85,7 @@ func TestUseSameFileWhenCurrentChunkNotFull(t *testing.T) {
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	_, err := buf.Write(data)
 	assert.Nil(t, err)
 
@@ -96,6 +97,7 @@ func TestUseSameFileWhenCurrentChunkNotFull(t *testing.T) {
 	assert.Equal(t, fileName, buf.file.Name())
 }
 
+
 func TestFlushErrorWhenInvalidFile(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
@@ -104,12 +106,59 @@ func TestFlushErrorWhenInvalidFile(t *testing.T) {
 
 	ctx := context.Background()
 	prefix = "//"
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	err := buf.flush()
 	assert.NotNil(t, err)
 }
 
-func TestWriteErrorWhenInvalidFile(t *testing.T) {
+func TestWriteErrorWhenFlushError(t *testing.T) {
+	resetArgs()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
+	ctx := context.Background()
+	data := []byte("This is a sample data to write")
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf.newChunk()
+	buf.bytes = buf.cSize
+	buf.file, _ = os.Open("//")
+	buf.file.Close()
+	_, err := buf.Write(data)
+	assert.NotNil(t, err)
+}
+
+func TestWriteErrorWhenChunkError(t *testing.T) {
+	resetArgs()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
+	ctx := context.Background()
+	data := []byte("This is a sample data to write")
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
+	buf.newChunk()
+	buf.bytes = buf.cSize
+	buf.prefix = "//"
+	_, err := buf.Write(data)
+	assert.True(t, os.IsPermission(err))
+}
+
+
+func TestWriteErrorWhenInvalidFilePermission(t *testing.T) {
+	resetArgs()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
+	ctx := context.Background()
+	data := []byte("This is a sample data to write")
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf.newChunk()
+	buf.file, _ = os.OpenFile("//", os.O_RDONLY, 0666)
+	_, err := buf.Write(data)
+	assert.NotNil(t, err)
+}
+
+func TestWriteErrorWhenInvalidFilePrefix(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -117,9 +166,52 @@ func TestWriteErrorWhenInvalidFile(t *testing.T) {
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
 	prefix = "//"
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	_, err := buf.Write(data)
 	assert.NotNil(t, err)
+}
+
+func TestUploadErrorWhenInvalidFile(t *testing.T) {
+	resetArgs()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
+	ctx := context.Background()
+	prefix = "not_an_existing_file.go"
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	buf.upload <- prefix
+	time.Sleep(time.Second * 2)
+	err := w.Close()
+	assert.Nil(t, err)
+	out, _ := ioutil.ReadAll(r)
+	assert.Contains(t, string(out), "no such file or directory")
+}
+
+func TestUploadErrorWhenCopyError(t *testing.T) {
+	resetArgs()
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().NewWriter().Return(nil).AnyTimes()
+
+	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
+	mockStorageClient.EXPECT().GetObject(gomock.Any(), gomock.Any()).Return(mockStorageObject).AnyTimes()
+	ctx := context.Background()
+	// using this as file name will succeed in os.Open() and fail in io.Copy
+	prefix = "//"
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+	buf.upload <- prefix
+	time.Sleep(time.Second * 2)
+	err := w.Close()
+	assert.Nil(t, err)
+	out, _ := ioutil.ReadAll(r)
+	assert.Contains(t, string(out), "read //: is a directory")
 }
 
 func TestAddObjectWhenWorkerUploaded(t *testing.T) {
@@ -129,7 +221,7 @@ func TestAddObjectWhenWorkerUploaded(t *testing.T) {
 
 	var output bytes.Buffer
 	writerCloser := testWriteCloser{Writer: bufio.NewWriter(&output)}
-	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().NewWriter().Return(writerCloser).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
@@ -138,7 +230,7 @@ func TestAddObjectWhenWorkerUploaded(t *testing.T) {
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	_, err := buf.Write(data)
 	assert.Nil(t, err)
 	buf.flush()
@@ -153,7 +245,7 @@ func TestWriteToGCS(t *testing.T) {
 
 	output := bytes.NewBuffer([]byte{})
 	writerCloser := testWriteCloser{Writer: output}
-	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().NewWriter().Return(writerCloser).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
@@ -162,7 +254,7 @@ func TestWriteToGCS(t *testing.T) {
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	_, err := buf.Write(data)
 	assert.Nil(t, err)
 	err = buf.flush()
@@ -176,7 +268,7 @@ func TestClientError(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	ctx := context.Background()
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
 	err := buf.Close()
 	assert.NotNil(t, err)
 }
@@ -185,7 +277,7 @@ func TestCopyObjectWhenOneChunk(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
 	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
@@ -198,7 +290,7 @@ func TestCopyObjectWhenOneChunk(t *testing.T) {
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	_, err := buf.Write(data)
 	assert.Nil(t, err)
 
@@ -210,7 +302,7 @@ func TestCopyObjectWithMultipleIterations(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
 	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
@@ -225,7 +317,7 @@ func TestCopyObjectWithMultipleIterations(t *testing.T) {
 	ctx := context.Background()
 	var err error
 	data := []byte("This is a sample data to write")
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	for i := 0; i < 33; i++ {
 		_, err = buf.Write(data)
 		assert.Nil(t, err)
@@ -244,7 +336,7 @@ func TestErrorWhenCopyFails(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
 	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
@@ -255,7 +347,7 @@ func TestErrorWhenCopyFails(t *testing.T) {
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	_, err := buf.Write(data)
 	assert.Nil(t, err)
 
@@ -270,7 +362,7 @@ func TestErrorWhenComposeFails(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
 	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
@@ -283,7 +375,7 @@ func TestErrorWhenComposeFails(t *testing.T) {
 
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
 	var err error
 	for i := 0; i < 33; i++ {
 		_, err = buf.Write(data)
@@ -308,7 +400,7 @@ func TestClientErrorWhenUploadFailed(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	ctx := context.Background()
-	buf := NewBuffer(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	buf.upload <- "file"
@@ -326,10 +418,11 @@ func resetArgs() {
 	bkt = "fionaliu-daisy-bkt-us-east1"
 	obj = "obj"
 	oauth = ""
+	errClient = fmt.Errorf("Cannot create client")
 }
 
 func mockGcsClientError(ctx context.Context, oauth string) (domain.StorageClientInterface, error) {
-	return nil, fmt.Errorf("Cannot create client")
+	return nil, errClient
 }
 
 func mockGcsClient(ctx context.Context, oauth string) (domain.StorageClientInterface, error) {

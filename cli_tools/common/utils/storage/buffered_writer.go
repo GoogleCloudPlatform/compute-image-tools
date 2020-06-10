@@ -59,8 +59,8 @@ type BufferedWriter struct {
 	file  *os.File
 }
 
-// NewBuffer creates a BufferedWriter
-func NewBuffer(ctx context.Context, size, workers int64, client gcsClient, oauth, prefix, bkt, obj string) *BufferedWriter {
+// NewBufferedWriter creates a BufferedWriter
+func NewBufferedWriter(ctx context.Context, size, workers int64, client gcsClient, oauth, prefix, bkt, obj string) *BufferedWriter {
 	b := &BufferedWriter{
 		cSize:  size / workers,
 		prefix: prefix,
@@ -175,7 +175,7 @@ func (b *BufferedWriter) Close() error {
 
 	// Compose the object.
 	for i := 0; ; i++ {
-		var objs []domain.StorageObjectInterface
+		var objs []domain.StorageObject
 		// Max 32 components in a single compose.
 		l := math.Min(float64(32), float64(len(b.tmpObjs)))
 		for _, obj := range b.tmpObjs[:int(l)] {

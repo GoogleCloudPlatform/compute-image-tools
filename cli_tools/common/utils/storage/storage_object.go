@@ -22,61 +22,61 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
 )
 
-// StorageObjectCreator is responsible for creating GCS Object.
-type StorageObjectCreator struct {
+// storageObjectCreator is responsible for creating GCS Object.
+type storageObjectCreator struct {
 	ctx context.Context
 	sc  *storage.Client
 }
 
-// GetObject gets GCS object interface.
-func (ohc *StorageObjectCreator) GetObject(
-	bucket string, object string) domain.StorageObjectInterface {
-	return &StorageObject{
+// GetObject gets GCS object.
+func (ohc *storageObjectCreator) GetObject(
+	bucket string, object string) domain.StorageObject {
+	return &storageObject{
 		oh: ohc.sc.Bucket(bucket).Object(object), ctx: ohc.ctx}
 }
 
-// StorageObject is a wrapper around storage.StorageObject. Implements StorageObjectInterface.
-type StorageObject struct {
+// storageObject implements StorageObject.
+type storageObject struct {
 	oh  *storage.ObjectHandle
 	ctx context.Context
 }
 
 // GetObjectHandle gets the storage object handle.
-func (so *StorageObject) GetObjectHandle() *storage.ObjectHandle {
+func (so *storageObject) GetObjectHandle() *storage.ObjectHandle {
 	return so.oh
 }
 
 // Delete deletes GCS object.
-func (so *StorageObject) Delete() error {
+func (so *storageObject) Delete() error {
 	return so.oh.Delete(so.ctx)
 }
 
 // NewReader creates a new Reader to read the contents of the object.
-func (so *StorageObject) NewReader() (io.ReadCloser, error) {
+func (so *storageObject) NewReader() (io.ReadCloser, error) {
 	return so.oh.NewReader(so.ctx)
 }
 
 // NewWriter creates a new Writer to write to the object.
-func (so *StorageObject) NewWriter() io.WriteCloser {
+func (so *storageObject) NewWriter() io.WriteCloser {
 	return so.oh.NewWriter(so.ctx)
 }
 
 // ObjectName returns the name of the object.
-func (so *StorageObject) ObjectName() string {
+func (so *storageObject) ObjectName() string {
 	return so.oh.ObjectName()
 }
 
 // Compose takes in srcs as source objects and compose them into the destination object (dst).
 // Up to 32 objects can be composed into a one object.
-func (dst *StorageObject) Compose(srcs ...domain.StorageObjectInterface) (*storage.ObjectAttrs, error) {
+func (so *storageObject) Compose(srcs ...domain.StorageObject) (*storage.ObjectAttrs, error) {
 	var objs []*storage.ObjectHandle
 	for _, obj := range srcs {
 		objs = append(objs, obj.GetObjectHandle())
 	}
-	return dst.oh.ComposerFrom(objs...).Run(dst.ctx)
+	return so.oh.ComposerFrom(objs...).Run(so.ctx)
 }
 
 // Copy copies the src object into the dst object.
-func (dst *StorageObject) Copy(src domain.StorageObjectInterface) (*storage.ObjectAttrs, error) {
-	return dst.oh.CopierFrom(src.GetObjectHandle()).Run(dst.ctx)
+func (so *storageObject) Copy(src domain.StorageObject) (*storage.ObjectAttrs, error) {
+	return so.oh.CopierFrom(src.GetObjectHandle()).Run(so.ctx)
 }

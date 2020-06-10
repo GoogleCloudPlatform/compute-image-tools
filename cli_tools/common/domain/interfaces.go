@@ -28,7 +28,7 @@ type StorageClientInterface interface {
 	Buckets(projectID string) *storage.BucketIterator
 	GetBucketAttrs(bucket string) (*storage.BucketAttrs, error)
 	GetBucket(bucket string) *storage.BucketHandle
-	GetObject(bucket string, objectPath string) StorageObjectInterface
+	GetObject(bucket string, objectPath string) StorageObject
 	GetObjects(bucket string, objectPath string) ObjectIteratorInterface
 	FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error)
 	FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension string, lookupDepth int) (*storage.ObjectHandle, error)
@@ -65,20 +65,20 @@ type TarGcsExtractorInterface interface {
 	ExtractTarToGcs(tarGcsPath string, destinationGcsPath string) error
 }
 
-// StorageObjectCreatorInterface represents GCS object creator
-type StorageObjectCreatorInterface interface {
-	GetObject(bucket string, objectPath string) StorageObjectInterface
+// StorageObjectInterface represents GCS object interface
+type StorageObjectInterface interface {
+	GetObject(bucket string, objectPath string) StorageObject
 }
 
-// StorageObjectInterface represents GCS Object
-type StorageObjectInterface interface {
+// StorageObject represents GCS Object
+type StorageObject interface {
 	Delete() error
 	GetObjectHandle() *storage.ObjectHandle
 	NewReader() (io.ReadCloser, error)
 	NewWriter() io.WriteCloser
 	ObjectName() string
-	Compose(src ...StorageObjectInterface) (*storage.ObjectAttrs, error)
-	Copy(src StorageObjectInterface) (*storage.ObjectAttrs, error)
+	Compose(src ...StorageObject) (*storage.ObjectAttrs, error)
+	Copy(src StorageObject) (*storage.ObjectAttrs, error)
 }
 
 // MetadataGCEInterface represents GCE metadata

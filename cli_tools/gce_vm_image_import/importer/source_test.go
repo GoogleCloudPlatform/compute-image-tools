@@ -177,7 +177,7 @@ func TestImagePathIsValidated(t *testing.T) {
 
 func createMockStorageClient(t *testing.T, filePath fileSource, fileContent string) *mocks.MockStorageClientInterface {
 	mockCtrl := gomock.NewController(t)
-	mockStorageObject := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(strings.NewReader(fileContent)), nil)
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().GetObject(filePath.bucket, filePath.object).Return(mockStorageObject)
