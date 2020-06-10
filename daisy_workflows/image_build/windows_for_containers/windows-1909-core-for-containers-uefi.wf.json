@@ -4,7 +4,7 @@
     "build_date": "${TIMESTAMP}",
     "publish_project": "${PROJECT}",
     "install_disk": {"Value": "disk-install", "Description": "Name of the disk to use for the installation."},
-    "source_image_project": {"Value": "gce-uefi-images", "Description": "Project to source base image from."}
+    "source_image_project": {"Value": "windows-cloud", "Description": "Project to source base image from."}
   },
   "Sources": {
     "container_image_install.ps1": "./container_image_install.ps1"
