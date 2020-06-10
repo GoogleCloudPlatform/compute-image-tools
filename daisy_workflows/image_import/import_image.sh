@@ -83,12 +83,14 @@ function resizeDisk() {
   exit
 }
 
-# Determines whether a file is an OVA archive.
+# Determines whether a file is an OVA archive; the check isn't
+# comprehensive to *all* OVAs, but focuses on the OVAs supported
+# by this script (OVAs that use VMDKs).
 # Arguments:
 #   File to check.
 # Returns:
 #   0 if the file is a tar file, non-zero otherwise.
-function fileIsOva() {
+function fileIsOvaWithVmdk() {
   if [[ $(file --mime-type "$1") =~ application/x-tar ]]; then
     contents=$(tar --list -f "$1")
     if [[ "$contents" =~ ovf && "$contents" =~ vmdk ]]; then
@@ -107,7 +109,7 @@ function copyImageToScratchDisk() {
   local scratchDiskSizeGigabytes=$(awk "BEGIN {print int((${SOURCE_SIZE_GB} * 1.1) + 1)}")
   # We allocate double capacity for OVA, which would
   # require making an additional copy of its enclosed VMDK.
-  if fileIsOva "${IMAGE_PATH}"; then
+  if fileIsOvaWithVmdk "${IMAGE_PATH}"; then
     scratchDiskSizeGigabytes=$((scratchDiskSizeGigabytes * 2))
   fi
 
@@ -158,7 +160,7 @@ function serialOutputKeyValuePair() {
 copyImageToScratchDisk
 
 # If the image is an OVA, then copy out its VMDK.
-if fileIsOva "${IMAGE_PATH}"; then
+if fileIsOvaWithVmdk "${IMAGE_PATH}"; then
   echo "Import: Unpacking VMDK files from ova."
   VMDK="$(tar --list -f "${IMAGE_PATH}" | grep -m1 vmdk)"
   tar -C /daisy-scratch -xf "${IMAGE_PATH}" "${VMDK}"
