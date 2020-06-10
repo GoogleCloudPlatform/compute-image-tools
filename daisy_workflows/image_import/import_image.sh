@@ -107,7 +107,7 @@ function copyImageToScratchDisk() {
 
   mkdir -p /daisy-scratch
   # /dev/sdb is used since the scratch disk is the second
-  # disk that's attached in import_disk.wf.json.
+  # disk that's attached in inflate_file.wf.json.
   #
   # We disable reserved blocks to save disk space via `-m 0`. Typically
   # this is 5% and we won't be using it.
@@ -189,7 +189,7 @@ if [[ ${SIZE_GB} -gt 10 ]]; then
 fi
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
-# /dev/sdc is used since it's the third disk that's attached in import_disk.wf.json.
+# /dev/sdc is used since it's the third disk that's attached in inflate_file.wf.json.
 if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); then
   if [[ "${IMAGE_PATH}" =~ \.vmdk$ ]]; then
     if file "${IMAGE_PATH}" | grep -qiP ascii; then

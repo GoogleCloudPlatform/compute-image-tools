@@ -996,3 +996,90 @@ func tryPopulateClients(t *testing.T, w *Workflow) {
 		t.Errorf("Failed to populate clients for workflow: %v", err)
 	}
 }
+
+func TestCancelReasonEmptySingleWorkflow(t *testing.T) {
+	w1 := testWorkflow()
+	assertWorkflowCancelReason(t, w1, "")
+}
+
+func TestCancelReasonProvidedSingleWorkflow(t *testing.T) {
+	w1 := testWorkflow()
+	w1.cancelReason = "w1 cr"
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+}
+
+func TestCancelReasonChild(t *testing.T) {
+	w1 := testWorkflow()
+	w2 := testWorkflow()
+
+	w2.parent = w1
+	w1.cancelReason = "w1 cr"
+	w2.cancelReason = "w2 cr"
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+	assertWorkflowCancelReason(t, w2, "w2 cr")
+}
+
+func TestCancelReasonInheritedFromParent(t *testing.T) {
+	w1 := testWorkflow()
+	w2 := testWorkflow()
+
+	w2.parent = w1
+	w1.cancelReason = "w1 cr"
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+	assertWorkflowCancelReason(t, w2, "w1 cr")
+}
+
+func TestCancelReasonInheritedFromGrandParent(t *testing.T) {
+	w1 := testWorkflow()
+	w2 := testWorkflow()
+	w3 := testWorkflow()
+
+	w2.parent = w1
+	w3.parent = w2
+	w1.cancelReason = "w1 cr"
+
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+	assertWorkflowCancelReason(t, w2, "w1 cr")
+	assertWorkflowCancelReason(t, w3, "w1 cr")
+}
+
+func TestCancelReasonInheritedFromParentWhenGrandchild(t *testing.T) {
+	w1 := testWorkflow()
+	w2 := testWorkflow()
+	w3 := testWorkflow()
+
+	w2.parent = w1
+	w3.parent = w2
+	w2.cancelReason = "w2 cr"
+
+	assertWorkflowCancelReason(t, w1, "")
+	assertWorkflowCancelReason(t, w2, "w2 cr")
+	assertWorkflowCancelReason(t, w3, "w2 cr")
+}
+
+func assertWorkflowCancelReason(t *testing.T, w *Workflow, expected string) {
+	if cr := w.getCancelReason(); cr != expected {
+		t.Errorf("Expected cancel reason `%v` but got `%v` ", expected, cr)
+	}
+}
+
+func TestOnStepCancelDefaultCancelReason(t *testing.T) {
+	w := testWorkflow()
+	s := &Step{name: "s", w: w}
+	err := w.onStepCancel(s, "Dummy")
+	expectedErrorMessage := "Step \"s\" (Dummy) is canceled."
+	if err.Error() != expectedErrorMessage {
+		t.Errorf("Expected error message `%v` but got `%v` ", expectedErrorMessage, err.Error())
+	}
+}
+
+func TestOnStepCancelCustomCancelReason(t *testing.T) {
+	w := testWorkflow()
+	w.cancelReason = "failed horribly"
+	s := &Step{name: "s", w: w}
+	err := w.onStepCancel(s, "Dummy")
+	expectedErrorMessage := "Step \"s\" (Dummy) failed horribly."
+	if err.Error() != expectedErrorMessage {
+		t.Errorf("Expected error message `%v` but got `%v` ", expectedErrorMessage, err.Error())
+	}
+}

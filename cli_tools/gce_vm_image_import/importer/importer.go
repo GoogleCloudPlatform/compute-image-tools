@@ -16,154 +16,105 @@ package importer
 
 import (
 	"context"
-	"os"
-	"strconv"
-	"strings"
+	"path"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/google/logger"
 
-	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 )
 
-// Make file paths mutable
-var (
-	WorkflowDir                = "daisy_workflows/image_import/"
-	ImportWorkflow             = "import_image.wf.json"
-	ImportFromImageWorkflow    = "import_from_image.wf.json"
-	ImportAndTranslateWorkflow = "import_and_translate.wf.json"
-)
+const workflowDir = "daisy_workflows/image_import/"
 
-// Returns main workflow and translate workflow paths (if any)
-func getWorkflowPaths(source Source, dataDisk bool, osID, customTranWorkflow, currentExecutablePath string) (string, string) {
-	if isImage(source) {
-		return path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath), getTranslateWorkflowPath(customTranWorkflow, osID)
-	}
-	if dataDisk {
-		return path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath), ""
-	}
-	return path.ToWorkingDir(WorkflowDir+ImportAndTranslateWorkflow, currentExecutablePath), getTranslateWorkflowPath(customTranWorkflow, osID)
-}
-
-func getTranslateWorkflowPath(customTranslateWorkflow, osID string) string {
-	if customTranslateWorkflow != "" {
-		return customTranslateWorkflow
-	}
-	return daisyutils.GetTranslateWorkflowPath(osID)
-}
-
-func buildDaisyVars(source Source, translateWorkflowPath, imageName, family, description,
-	region, subnet, network string, noGuestEnvironment bool, sysprepWindows bool) map[string]string {
-
-	varMap := map[string]string{}
-
-	varMap["image_name"] = strings.ToLower(strings.TrimSpace(imageName))
-	if translateWorkflowPath != "" {
-		varMap["translate_workflow"] = translateWorkflowPath
-		varMap["install_gce_packages"] = strconv.FormatBool(!noGuestEnvironment)
-		varMap["is_windows"] = strconv.FormatBool(strings.Contains(translateWorkflowPath, "windows"))
-		varMap["sysprep_windows"] = strconv.FormatBool(sysprepWindows)
-	}
-	if isFile(source) {
-		varMap["source_disk_file"] = source.Path()
-	} else {
-		varMap["source_image"] = source.Path()
-	}
-	varMap["family"] = strings.TrimSpace(family)
-	varMap["description"] = strings.TrimSpace(description)
-	if subnet != "" {
-		varMap["import_subnet"] = param.GetRegionalResourcePath(strings.TrimSpace(region),
-			"subnetworks", strings.TrimSpace(subnet))
-		// When subnet is set, we need to grant a value to network to avoid fallback to default
-		if network == "" {
-			varMap["import_network"] = ""
-		}
-	}
-	if network != "" {
-		varMap["import_network"] = param.GetGlobalResourcePath("networks", strings.TrimSpace(network))
-	}
-	return varMap
-}
-
-func (importer importer) runImport(varMap map[string]string, importWorkflowPath string) (*daisy.Workflow, error) {
-
-	workflow, err := daisycommon.ParseWorkflow(importWorkflowPath, varMap, importer.Project, importer.Zone,
-		importer.ScratchBucketGcsPath, importer.Oauth, importer.Timeout.String(), importer.CustomWorkflow,
-		importer.GcsLogsDisabled, importer.CloudLogsDisabled, importer.StdoutLogsDisabled)
-
-	if err != nil {
-		return nil, err
-	}
-
-	preValidateWorkflowModifier := func(w *daisy.Workflow) {
-		w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
-	}
-
-	postValidateWorkflowModifier := func(w *daisy.Workflow) {
-		buildID := os.Getenv(daisyutils.BuildIDOSEnvVarName)
-		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
-		rl := &daisyutils.ResourceLabeler{
-			BuildID:         buildID,
-			UserLabels:      importer.Labels,
-			BuildIDLabelKey: "gce-image-import-build-id",
-			ImageLocation:   importer.StorageLocation,
-			InstanceLabelKeyRetriever: func(instanceName string) string {
-				return "gce-image-import-tmp"
-			},
-			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
-				return "gce-image-import-tmp"
-			},
-			ImageLabelKeyRetriever: func(imageName string) string {
-				imageTypeLabel := "gce-image-import"
-				if strings.Contains(imageName, "untranslated") {
-					imageTypeLabel = "gce-image-import-tmp"
-				}
-				return imageTypeLabel
-			}}
-		rl.LabelResources(w)
-		daisyutils.UpdateAllInstanceNoExternalIP(w, importer.NoExternalIP)
-		if importer.UefiCompatible {
-			daisyutils.UpdateToUEFICompatible(w)
-		}
-	}
-
-	return workflow, workflow.RunWithModifiers(context.Background(), preValidateWorkflowModifier, postValidateWorkflowModifier)
-}
-
-type importer struct {
-	ImportArguments
+// Importer runs the end-to-end import workflow, and exposes the results
+// via an error and Loggable.
+type Importer interface {
+	Run(ctx context.Context) (service.Loggable, error)
 }
 
 // NewImporter constructs an Importer instance.
-func NewImporter(importArguments ImportArguments) Importer {
-	return importer{ImportArguments: importArguments}
-}
-
-// Importer runs the import workflow.
-type Importer interface {
-	Run(ctx context.Context) (*daisy.Workflow, error)
-}
-
-// Run runs import workflow.
-func (importer importer) Run(ctx context.Context) (w *daisy.Workflow, err error) {
-	importWorkflowPath, translateWorkflowPath := getWorkflowPaths(
-		importer.Source, importer.DataDisk, importer.OS,
-		importer.CustomWorkflow, importer.CurrentExecutablePath)
-
-	varMap := buildDaisyVars(importer.Source, translateWorkflowPath, importer.ImageName,
-		importer.Family, importer.Description, importer.Region, importer.Subnet,
-		importer.Network, importer.NoGuestEnvironment, importer.SysprepWindows)
-
-	if w, err = importer.runImport(varMap, importWorkflowPath); err != nil {
-
-		daisyutils.PostProcessDErrorForNetworkFlag("image import", err, importer.Network, w)
-
-		return w, customizeErrorToDetectionResults(importer.OS,
-			w.GetSerialConsoleOutputValue("detected_distro"),
-			w.GetSerialConsoleOutputValue("detected_major_version"),
-			w.GetSerialConsoleOutputValue("detected_minor_version"), err)
+func NewImporter(args ImportArguments, client compute.Client) (Importer, error) {
+	inflater, err := createDaisyInflater(args, workflowDir)
+	if err != nil {
+		return nil, err
 	}
-	return w, nil
+	return importer{
+		project:           args.Project,
+		zone:              args.Zone,
+		inflater:          inflater,
+		processorProvider: defaultProcessorProvider{ImportArguments: args, imageClient: client},
+		traceLogs:         []string{},
+		diskClient:        client,
+	}, nil
+}
+
+// importer is an implementation of Importer that uses a combination of Daisy workflows
+// and GCP API calls.
+type importer struct {
+	project, zone     string
+	pd                persistentDisk
+	inflater          inflater
+	processorProvider processorProvider
+	traceLogs         []string
+	diskClient        diskClient
+}
+
+func (i importer) Run(ctx context.Context) (loggable service.Loggable, err error) {
+	if err = i.runInflate(ctx); err != nil {
+		return i.buildLoggable(), err
+	}
+
+	defer i.cleanupDisk()
+
+	err = i.runProcess(ctx)
+	if err != nil {
+		return i.buildLoggable(), err
+	}
+
+	return i.buildLoggable(), err
+}
+
+func (i *importer) runInflate(ctx context.Context) (err error) {
+	select {
+	case <-ctx.Done():
+		err = ctx.Err()
+	default:
+		i.pd, err = i.inflater.inflate(ctx)
+		i.traceLogs = append(i.traceLogs, i.inflater.traceLogs()...)
+	}
+	return err
+}
+
+func (i *importer) runProcess(ctx context.Context) (err error) {
+	processor, err := i.processorProvider.provide(i.pd)
+	if err != nil {
+		return err
+	}
+	select {
+	case <-ctx.Done():
+		err = ctx.Err()
+	default:
+		err = processor.process(ctx)
+		i.traceLogs = append(i.traceLogs, processor.traceLogs()...)
+	}
+	return err
+}
+
+func (i *importer) cleanupDisk() {
+	if i.pd.uri != "" {
+		diskName := path.Base(i.pd.uri)
+		err := i.diskClient.DeleteDisk(i.project, i.zone, diskName)
+		if err != nil {
+			logger.Errorf("Failed to remove temporary disk %v: %e", i.pd, err)
+		}
+	}
+}
+
+func (i importer) buildLoggable() service.Loggable {
+	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.traceLogs)
+}
+
+// diskClient is the subset of the GCP API that is used by importer.
+type diskClient interface {
+	DeleteDisk(project, zone, uri string) error
 }

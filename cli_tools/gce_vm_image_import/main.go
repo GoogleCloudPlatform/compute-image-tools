@@ -34,42 +34,24 @@ func main() {
 	log.SetPrefix("[import-image] ")
 	ctx := context.Background()
 
-	importArgs, err := parseAndPopulateArgs(ctx)
+	// 1. Parse the args without validating or populating. Splitting parsing and
+	// validation allows us to log the intermediate, non-validated values, if
+	// there's an error setting up dependencies.
+	importArgs, err := importer.NewImportArguments(os.Args[1:])
 	if err != nil {
 		terminate(importArgs, err)
 	}
 
-	importClosure := func() (service.Loggable, error) {
-		wf, e := importer.NewImporter(importArgs).Run(ctx)
-		return service.NewLoggableFromWorkflow(wf), e
-	}
-
-	project := importArgs.Project
-	if err := service.RunWithServerLogging(
-		service.ImageImportAction, initLoggingParams(importArgs), &project, importClosure); err != nil {
-		os.Exit(1)
-	}
-}
-
-func parseAndPopulateArgs(ctx context.Context) (importer.ImportArguments, error) {
-	// 1. Parse the args without validating or populating. Splitting parsing and
-	// validation allows us to log the intermediate, non-validated values, if
-	// there's an error setting up dependencies.
-	parsed, err := importer.NewImportArguments(os.Args[1:])
-	if err != nil {
-		terminate(parsed, err)
-	}
-
 	// 2. Setup dependencies.
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewDefaultLogger(), option.WithCredentialsFile(parsed.Oauth))
+		ctx, logging.NewDefaultLogger(), option.WithCredentialsFile(importArgs.Oauth))
 	if err != nil {
-		terminate(parsed, err)
+		terminate(importArgs, err)
 	}
 	computeClient, err := param.CreateComputeClient(
-		&ctx, parsed.Oauth, parsed.ComputeEndpoint)
+		&ctx, importArgs.Oauth, importArgs.ComputeEndpoint)
 	if err != nil {
-		terminate(parsed, err)
+		terminate(importArgs, err)
 	}
 	metadataGCE := &compute.MetadataGCE{}
 	paramPopulator := param.NewPopulator(
@@ -80,8 +62,25 @@ func parseAndPopulateArgs(ctx context.Context) (importer.ImportArguments, error)
 	)
 
 	// 3. Parse, validate, and populate arguments.
-	return parsed, parsed.ValidateAndPopulate(
-		paramPopulator, importer.NewSourceFactory(storageClient))
+	if err = importArgs.ValidateAndPopulate(
+		paramPopulator, importer.NewSourceFactory(storageClient)); err != nil {
+		terminate(importArgs, err)
+	}
+
+	importRunner, err := importer.NewImporter(importArgs, computeClient)
+	if err != nil {
+		terminate(importArgs, err)
+	}
+
+	importClosure := func() (service.Loggable, error) {
+		return importRunner.Run(ctx)
+	}
+
+	project := importArgs.Project
+	if err := service.RunWithServerLogging(
+		service.ImageImportAction, initLoggingParams(importArgs), &project, importClosure); err != nil {
+		os.Exit(1)
+	}
 }
 
 // terminate is used when there is a failure prior to running import. It sends

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/golang/mock/gomock"
@@ -739,6 +740,50 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "europe-north1-b", params.Zone)
+}
+
+func TestHandleTimeoutSuccess(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
+	mockLogger.EXPECT().Log("Timeout 0s exceeded, stopping workflow \"wf\"")
+
+	params := getAllInstanceImportParams()
+	params.Timeout = "0s"
+
+	oi := OVFImporter{Logger: mockLogger, params: params}
+	w := daisy.New()
+	w.Name = "wf"
+	oi.handleTimeout(w)
+
+	_, channelOpen := <-w.Cancel
+	assert.False(t, channelOpen, "w.Cancel should be closed on timeout")
+}
+
+func TestHandleTimeoutInvalidTimeout(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
+	mockLogger.EXPECT().Log("Error parsing timeout `not-a-timeout`")
+
+	params := getAllInstanceImportParams()
+	params.Timeout = "not-a-timeout"
+
+	oi := OVFImporter{Logger: mockLogger, params: params}
+	w := daisy.New()
+	w.Name = "wf"
+	oi.handleTimeout(w)
+
+	channelOpen := false
+	select {
+	case _, channelOpen = <-w.Cancel:
+		break
+	case <-time.After(100 * time.Millisecond):
+		channelOpen = true
+	}
+	assert.True(t, channelOpen, "w.Cancel should be open after failed timeout handling")
 }
 
 func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,

@@ -47,7 +47,7 @@
   "Steps": {
     "import": {
       "IncludeWorkflow": {
-        "Path": "import_disk.wf.json",
+        "Path": "inflate_file.wf.json",
         "Vars": {
           "source_disk_file": "${source_disk_file}",
           "disk_name": "${translation-disk-name}",

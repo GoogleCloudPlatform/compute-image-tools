@@ -15,13 +15,26 @@
 package service
 
 type literalLoggable struct {
-	strings map[string]string
-	int64s  map[string][]int64
-	serials []string
+	strings   map[string]string
+	int64s    map[string][]int64
+	traceLogs []string
 }
 
 func (w literalLoggable) GetValue(key string) string { return w.strings[key] }
 
 func (w literalLoggable) GetValueAsInt64Slice(key string) []int64 { return w.int64s[key] }
 
-func (w literalLoggable) ReadSerialPortLogs() []string { return w.serials }
+func (w literalLoggable) ReadSerialPortLogs() []string { return w.traceLogs }
+
+// SingleImageImportLoggable returns a Loggable that is pre-initialized with the metadata
+// fields that are relevant when importing a single image file.
+func SingleImageImportLoggable(fileFormat string, sourceSize, resultSize int64, traceLogs []string) Loggable {
+	return literalLoggable{
+		strings: map[string]string{importFileFormat: fileFormat},
+		int64s: map[string][]int64{
+			sourceSizeGb: {sourceSize},
+			targetSizeGb: {resultSize},
+		},
+		traceLogs: traceLogs,
+	}
+}
