@@ -66,8 +66,8 @@ func TestTrimAndLowerStorageLocation(t *testing.T) {
 	assert.Equal(t, "eu", expectSuccessfulParse(t, "-storage_location", "  EU  ").StorageLocation)
 }
 
-func TestPopulateCurrentDirectory(t *testing.T) {
-	assert.NotEmpty(t, expectSuccessfulParse(t).CurrentExecutablePath)
+func TestPopulateWorkflowDir(t *testing.T) {
+	assert.Regexp(t, ".*/daisy_workflows/image_import", expectSuccessfulParse(t).WorkflowDir)
 }
 
 func TestFailWhenClientIdMissing(t *testing.T) {

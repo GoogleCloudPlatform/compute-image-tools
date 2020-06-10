@@ -154,7 +154,9 @@ func TestImage_StorageLocation_NotSet(t *testing.T) {
 
 func TestSerials_ReadsFromDaisyLogger(t *testing.T) {
 	expected := []string{"serials"}
-	translator, e := newBootableDiskProcessor(defaultImportArgs(), persistentDisk{}, "testdata/image_import")
+	args := defaultImportArgs()
+	args.WorkflowDir = "testdata/image_import"
+	translator, e := newBootableDiskProcessor(args, persistentDisk{})
 	realTranslator := translator.(bootableDiskProcessor)
 	realTranslator.workflow.Logger = daisyLogger{
 		serials: expected,
@@ -164,7 +166,8 @@ func TestSerials_ReadsFromDaisyLogger(t *testing.T) {
 }
 
 func createAndRunPrePostFunctions(t *testing.T, pd persistentDisk, args ImportArguments) *bootableDiskProcessor {
-	translator, e := newBootableDiskProcessor(args, pd, "testdata/image_import")
+	args.WorkflowDir = "testdata/image_import"
+	translator, e := newBootableDiskProcessor(args, pd)
 	assert.NoError(t, e)
 	realTranslator := translator.(bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry
