@@ -65,10 +65,10 @@ func (fms *FailureMatches) UnmarshalJSON(b []byte) error {
 // This step will not complete until a line in the serial output matches
 // SuccessMatch or FailureMatch. A match with FailureMatch will cause the step to fail.
 type SerialOutput struct {
-	Port         int64          `json:",omitempty"`
-	SuccessMatch string         `json:",omitempty"`
-	FailureMatch FailureMatches `json:"failureMatch,omitempty"`
-	StatusMatch  string         `json:",omitempty"`
+	Port          int64          `json:",omitempty"`
+	SuccessMatch  string         `json:",omitempty"`
+	FailureMatch  FailureMatches `json:"failureMatch,omitempty"`
+	StatusMatch   string         `json:",omitempty"`
 	outputChannel <-chan string
 }
 
@@ -78,8 +78,8 @@ type InstanceSignal struct {
 	Name string
 	// Interval to check for signal (default is 5s).
 	// Must be parsable by https://golang.org/pkg/time/#ParseDuration.
-	Interval      string `json:",omitempty"`
-	interval      time.Duration
+	Interval string `json:",omitempty"`
+	interval time.Duration
 	// Wait for the instance to stop.
 	Stopped bool `json:",omitempty"`
 	// Wait for a string match in the serial output.

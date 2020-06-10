@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	serialPortToArchive     = 1
-	serialPortPollInterval  = 3 * time.Second
+	serialPortToArchive    = 1
+	serialPortPollInterval = 3 * time.Second
 )
 
 // CreateInstances is a Daisy CreateInstances workflow step.

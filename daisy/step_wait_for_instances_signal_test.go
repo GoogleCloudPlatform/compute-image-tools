@@ -214,9 +214,9 @@ func TestWaitForInstanceSignal(t *testing.T) {
 					SuccessMatch:  "success",
 					outputChannel: c,
 				},
-			},{
-				Name: "i2",
-				Stopped: true,
+			}, {
+				Name:     "i2",
+				Stopped:  true,
 				interval: time.Nanosecond,
 			},
 			}).run(ctx, s)

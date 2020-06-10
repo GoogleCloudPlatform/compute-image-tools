@@ -38,15 +38,13 @@ func TestLogSerialOutput(t *testing.T) {
 	mockLogger := &MockLogger{}
 	w.Logger = mockLogger
 	s := &Step{name: "i1", w: w}
-	mockWatcher := newMockSerialOutputWatcher(t, []string{"log ","content"})
+	mockWatcher := newMockSerialOutputWatcher(t, []string{"log ", "content"})
 	mockWriter := mockStorageClient{}
 	logSerialOutput(s, "instance-name", &mockWatcher, func() io.WriteCloser {
 		return &mockWriter
 	})
 	assert.Equal(t, "log content", mockWriter.content)
 }
-
-
 
 func TestCreateInstancesRun(t *testing.T) {
 	ctx := context.Background()
@@ -113,8 +111,8 @@ func TestCreateInstancesRun(t *testing.T) {
 	}
 }
 
-func newMockSerialOutputWatcher(t *testing.T, responses    []string) SerialOutputWatcher {
-	return &mockSerialOutputWatcher{t: t, responses:responses}
+func newMockSerialOutputWatcher(t *testing.T, responses []string) SerialOutputWatcher {
+	return &mockSerialOutputWatcher{t: t, responses: responses}
 }
 
 type mockSerialOutputWatcher struct {
@@ -140,7 +138,7 @@ func (m *mockSerialOutputWatcher) start(instanceName string) {
 type mockStorageClient struct {
 	numWrite int
 	numClose int
-	content string
+	content  string
 }
 
 func (m *mockStorageClient) Write(p []byte) (n int, err error) {
