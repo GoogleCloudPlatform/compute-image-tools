@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,41 +35,42 @@ const (
 	dataDiskFlag       = "data_disk"
 	osFlag             = "os"
 	customWorkflowFlag = "custom_translate_workflow"
+	workflowDir        = "daisy_workflows/image_import/"
 )
 
 // ImportArguments holds the structured results of parsing CLI arguments,
 // and optionally allows for validating and populating the arguments.
 type ImportArguments struct {
-	ExecutionID           string
-	ClientID              string
-	CloudLogsDisabled     bool
-	ComputeEndpoint       string
-	CurrentExecutablePath string
-	CustomWorkflow        string
-	DataDisk              bool
-	Description           string
-	Family                string
-	GcsLogsDisabled       bool
-	ImageName             string
-	Labels                map[string]string
-	Network               string
-	NoExternalIP          bool
-	NoGuestEnvironment    bool
-	Oauth                 string
-	OS                    string
-	Project               string
-	Region                string
-	ScratchBucketGcsPath  string
-	Source                Source
-	SourceFile            string
-	SourceImage           string
-	StdoutLogsDisabled    bool
-	StorageLocation       string
-	Subnet                string
-	SysprepWindows        bool
-	Timeout               time.Duration
-	UefiCompatible        bool
-	Zone                  string
+	ExecutionID          string
+	ClientID             string
+	CloudLogsDisabled    bool
+	ComputeEndpoint      string
+	WorkflowDir          string
+	CustomWorkflow       string
+	DataDisk             bool
+	Description          string
+	Family               string
+	GcsLogsDisabled      bool
+	ImageName            string
+	Labels               map[string]string
+	Network              string
+	NoExternalIP         bool
+	NoGuestEnvironment   bool
+	Oauth                string
+	OS                   string
+	Project              string
+	Region               string
+	ScratchBucketGcsPath string
+	Source               Source
+	SourceFile           string
+	SourceImage          string
+	StdoutLogsDisabled   bool
+	StorageLocation      string
+	Subnet               string
+	SysprepWindows       bool
+	Timeout              time.Duration
+	UefiCompatible       bool
+	Zone                 string
 }
 
 // NewImportArguments parses args to create an ImportArguments instance.
@@ -80,8 +82,8 @@ func NewImportArguments(args []string) (ImportArguments, error) {
 	flagSet.SetOutput(ioutil.Discard)
 
 	parsed := ImportArguments{
-		ExecutionID:           path.RandString(5),
-		CurrentExecutablePath: os.Args[0],
+		ExecutionID: path.RandString(5),
+		WorkflowDir: filepath.Join(filepath.Dir(os.Args[0]), workflowDir),
 	}
 
 	parsed.registerFlags(flagSet)

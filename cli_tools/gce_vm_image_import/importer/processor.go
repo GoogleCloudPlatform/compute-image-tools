@@ -44,5 +44,5 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) 
 			d.Labels, d.StorageLocation, d.Description,
 			d.Family, d.ImageName), nil
 	}
-	return newBootableDiskProcessor(d.ImportArguments, pd, workflowDir)
+	return newBootableDiskProcessor(d.ImportArguments, pd)
 }

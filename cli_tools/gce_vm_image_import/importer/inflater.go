@@ -74,7 +74,7 @@ type persistentDisk struct {
 	sourceType string
 }
 
-func createDaisyInflater(args ImportArguments, workflowDirectory string) (inflater, error) {
+func createDaisyInflater(args ImportArguments) (inflater, error) {
 	diskName := "disk-" + args.ExecutionID
 	var wfPath string
 	var vars map[string]string
@@ -97,7 +97,7 @@ func createDaisyInflater(args ImportArguments, workflowDirectory string) (inflat
 		inflationDiskIndex = 1 // First disk is for the worker
 	}
 
-	wf, err := daisycommon.ParseWorkflow(path.Join(workflowDirectory, wfPath), vars,
+	wf, err := daisycommon.ParseWorkflow(path.Join(args.WorkflowDir, wfPath), vars,
 		args.Project, args.Zone, args.ScratchBucketGcsPath, args.Oauth, args.Timeout.String(), args.ComputeEndpoint,
 		args.GcsLogsDisabled, args.CloudLogsDisabled, args.StdoutLogsDisabled)
 	if err != nil {

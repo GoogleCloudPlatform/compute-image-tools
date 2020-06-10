@@ -56,13 +56,13 @@ func (b bootableDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func newBootableDiskProcessor(args ImportArguments, pd persistentDisk, workflowDirectory string) (processor, error) {
+func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processor, error) {
 	var translateWorkflowPath string
 	if args.CustomWorkflow != "" {
 		translateWorkflowPath = args.CustomWorkflow
 	} else {
 		relPath := daisy_utils.GetTranslateWorkflowPath(args.OS)
-		translateWorkflowPath = path.Join(workflowDirectory, relPath)
+		translateWorkflowPath = path.Join(args.WorkflowDir, relPath)
 	}
 
 	vars := map[string]string{
