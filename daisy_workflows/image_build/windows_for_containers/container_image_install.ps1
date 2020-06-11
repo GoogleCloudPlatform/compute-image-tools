@@ -143,7 +143,7 @@ function Run-FirstBootSteps {
   Write-Host 'Installing DockerMsftProvider module'
   Install-Module -Name DockerMsftProvider -Repository PSGallery -Force
 
-  $docker_version = "18.09"
+  $docker_version = "19.03"
   Write-Host "Installing Docker EE ${docker_version}"
   Install-Package -Name docker -ProviderName DockerMsftProvider -Force -RequiredVersion ${docker_version}
 }
