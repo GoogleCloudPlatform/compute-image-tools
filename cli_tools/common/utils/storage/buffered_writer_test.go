@@ -282,7 +282,7 @@ func TestCopyObjectWhenOneChunk(t *testing.T) {
 	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
-	mockStorageObject.EXPECT().Copy(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
@@ -308,7 +308,7 @@ func TestCopyObjectWithMultipleIterations(t *testing.T) {
 
 	mockStorageObject.EXPECT().ObjectName().Return("").Times(2)
 	mockStorageObject.EXPECT().Compose(gomock.Any()).Return(nil, nil).Times(2)
-	mockStorageObject.EXPECT().Copy(gomock.Any()).Return(nil, nil)
+	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil)
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
@@ -351,7 +351,7 @@ func TestErrorWhenCopyFails(t *testing.T) {
 	_, err := buf.Write(data)
 	assert.Nil(t, err)
 
-	mockStorageObject.EXPECT().Copy(gomock.Any()).Return(nil, fmt.Errorf("Fail to copy")).AnyTimes()
+	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, fmt.Errorf("Fail to copy")).AnyTimes()
 
 	err = buf.Close()
 	assert.NotNil(t, err)
@@ -367,7 +367,7 @@ func TestErrorWhenComposeFails(t *testing.T) {
 	mockStorageObject.EXPECT().NewWriter().Return(testWriteCloser{ioutil.Discard}).AnyTimes()
 
 	mockStorageObject.EXPECT().ObjectName().Return("").AnyTimes()
-	mockStorageObject.EXPECT().Copy(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockStorageObject.EXPECT().CopyFrom(gomock.Any()).Return(nil, nil).AnyTimes()
 
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().Close().Return(nil).AnyTimes()
@@ -415,7 +415,7 @@ func resetArgs() {
 	bufferSize = 1 * 1024
 	workerNum = 4
 	prefix = "/tmp"
-	bkt = "fionaliu-daisy-bkt-us-east1"
+	bkt = "bkt"
 	obj = "obj"
 	oauth = ""
 	errClient = fmt.Errorf("Cannot create client")

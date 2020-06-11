@@ -41,15 +41,15 @@ func TestDeleteGcsPath(t *testing.T) {
 
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	mockStorageObject.EXPECT().Delete().Return(nil).AnyTimes()
-	mockStorageObjectInterface := mocks.NewMockStorageObjectInterface(mockCtrl)
-	mockStorageObjectInterface.EXPECT().
+	mockStorageObjectCreator := mocks.NewMockStorageObjectCreatorInterface(mockCtrl)
+	mockStorageObjectCreator.EXPECT().
 		GetObject("sourcebucket", "sourcepath/furtherpath/afile1.txt").
 		Return(mockStorageObject)
-	mockStorageObjectInterface.EXPECT().
+	mockStorageObjectCreator.EXPECT().
 		GetObject("sourcebucket", "sourcepath/furtherpath/afile2.txt").
 		Return(mockStorageObject)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Soi: mockStorageObjectInterface,
+	sc := Client{Oic: mockObjectIteratorCreator, Soc: mockStorageObjectCreator,
 		Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.Nil(t, err)
@@ -96,17 +96,17 @@ func TestDeleteGcsPathErrorWhenErrorDeletingAFile(t *testing.T) {
 		CreateObjectIterator("sourcebucket", "sourcepath/furtherpath").
 		Return(mockObjectIterator)
 
-	mockStorageObjectInterface := mocks.NewMockStorageObjectInterface(mockCtrl)
+	mockStorageObjectCreator := mocks.NewMockStorageObjectCreatorInterface(mockCtrl)
 	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
 	firstObject := mockStorageObject.EXPECT().Delete().Return(nil)
 	secondObject := mockStorageObject.EXPECT().Delete().Return(fmt.Errorf("can't delete second file"))
-	mockStorageObjectInterface.EXPECT().
+	mockStorageObjectCreator.EXPECT().
 		GetObject("sourcebucket", "sourcepath/furtherpath/afile1.txt").Return(mockStorageObject)
-	mockStorageObjectInterface.EXPECT().
+	mockStorageObjectCreator.EXPECT().
 		GetObject("sourcebucket", "sourcepath/furtherpath/afile2.txt").Return(mockStorageObject)
 	gomock.InOrder(firstObject, secondObject)
 
-	sc := Client{Oic: mockObjectIteratorCreator, Soi: mockStorageObjectInterface,
+	sc := Client{Oic: mockObjectIteratorCreator, Soc: mockStorageObjectCreator,
 		Logger: logging.NewStdoutLogger("[test]")}
 	err := sc.DeleteGcsPath("gs://sourcebucket/sourcepath/furtherpath")
 	assert.NotNil(t, err)

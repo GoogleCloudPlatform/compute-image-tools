@@ -68,19 +68,19 @@ func (mr *MockStorageObjectMockRecorder) Compose(arg0 ...interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Compose", reflect.TypeOf((*MockStorageObject)(nil).Compose), arg0...)
 }
 
-// Copy mocks base method
-func (m *MockStorageObject) Copy(arg0 domain.StorageObject) (*storage.ObjectAttrs, error) {
+// CopyFrom mocks base method
+func (m *MockStorageObject) CopyFrom(arg0 domain.StorageObject) (*storage.ObjectAttrs, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Copy", arg0)
+	ret := m.ctrl.Call(m, "CopyFrom", arg0)
 	ret0, _ := ret[0].(*storage.ObjectAttrs)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Copy indicates an expected call of Copy
-func (mr *MockStorageObjectMockRecorder) Copy(arg0 interface{}) *gomock.Call {
+// CopyFrom indicates an expected call of CopyFrom
+func (mr *MockStorageObjectMockRecorder) CopyFrom(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockStorageObject)(nil).Copy), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CopyFrom", reflect.TypeOf((*MockStorageObject)(nil).CopyFrom), arg0)
 }
 
 // Delete mocks base method

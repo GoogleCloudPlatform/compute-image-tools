@@ -45,7 +45,7 @@ type Client struct {
 	Logger        logging.LoggerInterface
 	Ctx           context.Context
 	Oic           domain.ObjectIteratorCreatorInterface
-	Soi           domain.StorageObjectInterface
+	Soc           domain.StorageObjectCreatorInterface
 }
 
 // NewStorageClient creates a Client
@@ -59,7 +59,7 @@ func NewStorageClient(ctx context.Context,
 	sc := &Client{StorageClient: client, Ctx: ctx,
 		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}
 
-	sc.Soi = &storageObjectCreator{ctx: ctx, sc: client}
+	sc.Soc = &storageObjectCreator{ctx: ctx, sc: client}
 	return sc, nil
 }
 
@@ -93,7 +93,7 @@ func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
 
 // GetObject returns storage object for the given bucket and path
 func (sc *Client) GetObject(bucket string, objectPath string) domain.StorageObject {
-	return sc.Soi.GetObject(bucket, objectPath)
+	return sc.Soc.GetObject(bucket, objectPath)
 }
 
 // GetObjects returns object iterator for given bucket and path

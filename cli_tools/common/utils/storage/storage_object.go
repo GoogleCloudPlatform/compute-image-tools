@@ -66,8 +66,16 @@ func (so *storageObject) ObjectName() string {
 	return so.oh.ObjectName()
 }
 
-// Compose takes in srcs as source objects and compose them into the destination object (dst).
-// Up to 32 objects can be composed into a one object.
+/*
+Compose takes in srcs as source objects and concatenates them into the destination storage object.
+Returns the object attributes of the destination object after composed.
+Up to 32 objects can be composed into a one object.
+This function is used during uploading to GCS. To increase upload speed of a file,
+the file is split into multiple parts and concurrently uploaded to storage objects.
+At the end of the upload, the function is called to compose the objects back into one
+storage object.
+*/
+
 func (so *storageObject) Compose(srcs ...domain.StorageObject) (*storage.ObjectAttrs, error) {
 	var objs []*storage.ObjectHandle
 	for _, obj := range srcs {
@@ -77,6 +85,6 @@ func (so *storageObject) Compose(srcs ...domain.StorageObject) (*storage.ObjectA
 }
 
 // Copy copies the src object into the dst object.
-func (so *storageObject) Copy(src domain.StorageObject) (*storage.ObjectAttrs, error) {
+func (so *storageObject) CopyFrom(src domain.StorageObject) (*storage.ObjectAttrs, error) {
 	return so.oh.CopierFrom(src.GetObjectHandle()).Run(so.ctx)
 }

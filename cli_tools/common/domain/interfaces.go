@@ -65,8 +65,8 @@ type TarGcsExtractorInterface interface {
 	ExtractTarToGcs(tarGcsPath string, destinationGcsPath string) error
 }
 
-// StorageObjectInterface represents GCS object interface
-type StorageObjectInterface interface {
+// StorageObjectCreatorInterface represents GCS object creator
+type StorageObjectCreatorInterface interface {
 	GetObject(bucket string, objectPath string) StorageObject
 }
 
@@ -78,7 +78,7 @@ type StorageObject interface {
 	NewWriter() io.WriteCloser
 	ObjectName() string
 	Compose(src ...StorageObject) (*storage.ObjectAttrs, error)
-	Copy(src StorageObject) (*storage.ObjectAttrs, error)
+	CopyFrom(src StorageObject) (*storage.ObjectAttrs, error)
 }
 
 // MetadataGCEInterface represents GCE metadata

@@ -182,7 +182,7 @@ func (b *BufferedWriter) Close() error {
 			objs = append(objs, client.GetObject(b.bkt, obj))
 		}
 		if len(objs) == 1 {
-			if _, err := client.GetObject(b.bkt, b.obj).Copy(objs[0]); err != nil {
+			if _, err := client.GetObject(b.bkt, b.obj).CopyFrom(objs[0]); err != nil {
 				return err
 			}
 			err = objs[0].Delete()
