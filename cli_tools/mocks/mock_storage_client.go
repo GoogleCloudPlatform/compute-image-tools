@@ -105,20 +105,6 @@ func (mr *MockStorageClientInterfaceMockRecorder) DeleteGcsPath(arg0 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteGcsPath", reflect.TypeOf((*MockStorageClientInterface)(nil).DeleteGcsPath), arg0)
 }
 
-// DeleteObject mocks base method
-func (m *MockStorageClientInterface) DeleteObject(arg0, arg1 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteObject", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteObject indicates an expected call of DeleteObject
-func (mr *MockStorageClientInterfaceMockRecorder) DeleteObject(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObject", reflect.TypeOf((*MockStorageClientInterface)(nil).DeleteObject), arg0, arg1)
-}
-
 // FindGcsFile mocks base method
 func (m *MockStorageClientInterface) FindGcsFile(arg0, arg1 string) (*storage.ObjectHandle, error) {
 	m.ctrl.T.Helper()
@@ -193,19 +179,18 @@ func (mr *MockStorageClientInterfaceMockRecorder) GetGcsFileContent(arg0 interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGcsFileContent", reflect.TypeOf((*MockStorageClientInterface)(nil).GetGcsFileContent), arg0)
 }
 
-// GetObjectReader mocks base method
-func (m *MockStorageClientInterface) GetObjectReader(arg0, arg1 string) (io.ReadCloser, error) {
+// GetObject mocks base method
+func (m *MockStorageClientInterface) GetObject(arg0, arg1 string) domain.StorageObject {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetObjectReader", arg0, arg1)
-	ret0, _ := ret[0].(io.ReadCloser)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "GetObject", arg0, arg1)
+	ret0, _ := ret[0].(domain.StorageObject)
+	return ret0
 }
 
-// GetObjectReader indicates an expected call of GetObjectReader
-func (mr *MockStorageClientInterfaceMockRecorder) GetObjectReader(arg0, arg1 interface{}) *gomock.Call {
+// GetObject indicates an expected call of GetObject
+func (mr *MockStorageClientInterfaceMockRecorder) GetObject(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectReader", reflect.TypeOf((*MockStorageClientInterface)(nil).GetObjectReader), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObject", reflect.TypeOf((*MockStorageClientInterface)(nil).GetObject), arg0, arg1)
 }
 
 // GetObjects mocks base method

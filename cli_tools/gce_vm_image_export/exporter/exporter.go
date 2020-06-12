@@ -30,6 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"google.golang.org/api/option"
 )
 
 // Make file paths mutable
@@ -162,7 +163,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewStdoutLogger(logPrefix), oauth)
+		ctx, logging.NewStdoutLogger(logPrefix), option.WithCredentialsFile(oauth))
 	if err != nil {
 		return nil, err
 	}

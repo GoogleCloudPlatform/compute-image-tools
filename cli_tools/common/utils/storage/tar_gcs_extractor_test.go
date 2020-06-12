@@ -37,10 +37,13 @@ func TestExtractTarToGcs(t *testing.T) {
 	testTarFile, _ := os.Open("../../../test_data/test_tar.tar")
 	testTarFileReader := bufio.NewReader(testTarFile)
 
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
+
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().
-		GetObjectReader("sourcebucket", "sourcepath/sometar.tar").
-		Return(ioutil.NopCloser(testTarFileReader), nil)
+		GetObject("sourcebucket", "sourcepath/sometar.tar").
+		Return(mockStorageObject)
 
 	first := mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/file1.txt", gomock.Any()).Return(nil)
 	second := mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/file2.txt", gomock.Any()).Return(nil)
@@ -69,10 +72,13 @@ func TestExtractTarToGcsErrorWhenNonExistentSourceGCSPath(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().NewReader().Return(nil, fmt.Errorf("no file"))
+
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().
-		GetObjectReader("sourcebucket", "sourcepath/sometar.tar").
-		Return(nil, fmt.Errorf("no file"))
+		GetObject("sourcebucket", "sourcepath/sometar.tar").
+		Return(mockStorageObject)
 
 	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
@@ -86,10 +92,13 @@ func TestExtractTarToGcsErrorWhenInvalidDestinationPath(t *testing.T) {
 	mockReader := mocks.NewMockReadCloser(mockCtrl)
 	mockReader.EXPECT().Close()
 
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().NewReader().Return(mockReader, nil)
+
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().
-		GetObjectReader("sourcebucket", "sourcepath/sometar.tar").
-		Return(mockReader, nil)
+		GetObject("sourcebucket", "sourcepath/sometar.tar").
+		Return(mockStorageObject)
 
 	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "NOT_GCS_PATH")
@@ -105,10 +114,14 @@ func TestExtractTarToGcsErrorWhenWriteToGCSFailed(t *testing.T) {
 	testTarFile, _ := os.Open("../../../test_data/test_tar.tar")
 	testTarFileReader := bufio.NewReader(testTarFile)
 
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
+
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().
-		GetObjectReader("sourcebucket", "sourcepath/sometar.tar").
-		Return(ioutil.NopCloser(testTarFileReader), nil)
+		GetObject("sourcebucket", "sourcepath/sometar.tar").
+		Return(mockStorageObject)
+
 	first := mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/file1.txt", gomock.Any()).Return(nil)
 	second := mockStorageClient.EXPECT().WriteToGCS("destbucket", "destpath/file2.txt", gomock.Any()).Return(fmt.Errorf("error writing to gcs"))
 
@@ -128,10 +141,13 @@ func TestExtractTarToGcsErrorWhenErrorReadingTarFile(t *testing.T) {
 	mockReader.EXPECT().Read(gomock.Any()).Return(0, fmt.Errorf("error reading tar"))
 	mockReader.EXPECT().Close()
 
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().NewReader().Return(mockReader, nil)
+
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().
-		GetObjectReader("sourcebucket", "sourcepath/sometar.tar").
-		Return(mockReader, nil)
+		GetObject("sourcebucket", "sourcepath/sometar.tar").
+		Return(mockStorageObject)
 
 	tge := TarGcsExtractor{ctx: context.Background(), storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")
@@ -146,10 +162,13 @@ func TestExtractTarToGcsErrorIfDirPresentInTar(t *testing.T) {
 	testTarFile, _ := os.Open("../../../test_data/test_tar_with_dir.tar")
 	testTarFileReader := bufio.NewReader(testTarFile)
 
+	mockStorageObject := mocks.NewMockStorageObject(mockCtrl)
+	mockStorageObject.EXPECT().NewReader().Return(ioutil.NopCloser(testTarFileReader), nil)
+
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().
-		GetObjectReader("sourcebucket", "sourcepath/sometar.tar").
-		Return(ioutil.NopCloser(testTarFileReader), nil)
+		GetObject("sourcebucket", "sourcepath/sometar.tar").
+		Return(mockStorageObject)
 
 	tge := TarGcsExtractor{ctx: ctx, storageClient: mockStorageClient, logger: logging.NewStdoutLogger("[import-ovf]")}
 	err := tge.ExtractTarToGcs("gs://sourcebucket/sourcepath/sometar.tar", "gs://destbucket/destpath/")

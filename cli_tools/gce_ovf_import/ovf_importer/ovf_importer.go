@@ -93,7 +93,7 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 	ctx := context.Background()
 	log.SetPrefix(logPrefix + " ")
 	logger := logging.NewStdoutLogger(logPrefix)
-	storageClient, err := storageutils.NewStorageClient(ctx, logger, "")
+	storageClient, err := storageutils.NewStorageClient(ctx, logger)
 	if err != nil {
 		return nil, err
 	}

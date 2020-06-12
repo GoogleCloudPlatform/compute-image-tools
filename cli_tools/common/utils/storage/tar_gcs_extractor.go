@@ -45,7 +45,7 @@ func (tge *TarGcsExtractor) ExtractTarToGcs(tarGcsPath string, destinationGcsPat
 	if err != nil {
 		return err
 	}
-	tarGcsReader, err := tge.storageClient.GetObjectReader(tarBucketName, tarPath)
+	tarGcsReader, err := tge.storageClient.GetObject(tarBucketName, tarPath).NewReader()
 	if err != nil {
 		return daisy.Errf("error while opening archive %v: %v", tarGcsPath, err)
 	}
