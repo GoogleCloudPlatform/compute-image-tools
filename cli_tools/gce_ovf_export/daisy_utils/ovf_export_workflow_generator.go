@@ -110,6 +110,126 @@ func (g *OVFExportWorkflowGenerator) AddDiskExportSteps(w *daisy.Workflow, previ
 	return exportedDisksGCSPaths, nil
 }
 
+// AddDetachDisksSteps adds Daisy steps to OVF export workflow to detach instance disks.
+func (g *OVFExportWorkflowGenerator) AddDetachDisksSteps(w *daisy.Workflow, previousStepName, nextStepName string) ([]string, error) {
+	if g.Instance == nil || len(g.Instance.Disks) == 0 {
+		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
+	}
+	attachedDisks := g.Instance.Disks
+
+	var stepNames []string
+
+	for i, attachedDisk := range attachedDisks {
+		detachDiskStepName := fmt.Sprintf("detach-disk-%v-%v", i, attachedDisk.DeviceName)
+		stepNames = append(stepNames, detachDiskStepName)
+		detachDiskStep := daisy.NewStepDefaultTimeout(detachDiskStepName, w)
+		detachDiskStep.DetachDisks = &daisy.DetachDisks{
+			&daisy.DetachDisk{
+				Instance:   g.InstancePath,
+				DeviceName: daisyutils.GetDeviceURI(g.Project, g.Zone, attachedDisk.DeviceName),
+			},
+		}
+
+		w.Steps[detachDiskStepName] = detachDiskStep
+		if previousStepName != "" {
+			w.Dependencies[detachDiskStepName] = append(w.Dependencies[detachDiskStepName], previousStepName)
+		}
+		if nextStepName != "" {
+			w.Dependencies[nextStepName] = append(w.Dependencies[nextStepName], detachDiskStepName)
+		}
+	}
+	return stepNames, nil
+}
+
+// AddExportDisksSteps adds Daisy steps to OVF export workflow to export disks.
+// It returns an array of GCS paths of exported disks in the same order as Instance.Disks.
+func (g *OVFExportWorkflowGenerator) AddExportDisksSteps(w *daisy.Workflow, previousStepNames []string, nextStepName string) ([]string, []string, error) {
+	if g.Instance == nil || len(g.Instance.Disks) == 0 {
+		return nil, nil, daisy.Errf("No attachedDisks found in the Instance to export")
+	}
+	attachedDisks := g.Instance.Disks
+
+	var exportedDisksGCSPaths []string
+	var stepNames []string
+
+	for i, attachedDisk := range attachedDisks {
+		diskPath := attachedDisk.Source[strings.Index(attachedDisk.Source, "projects/"):]
+		exportedDiskGCSPath := g.OvfGcsDirectoryPath + attachedDisk.DeviceName + "." + g.ExportedDiskFileFormat
+		exportedDisksGCSPaths = append(exportedDisksGCSPaths, exportedDiskGCSPath)
+
+		exportDiskStepName := fmt.Sprintf("export-disk-%v-%v", i, stringutils.Substring(attachedDisk.DeviceName, 0, 63-len("detach-disk-")-len("disk--buffer-12345")-len(strconv.Itoa(i))-2))
+		exportDiskStepName = strings.Trim(exportDiskStepName, "-")
+		stepNames = append(stepNames, exportDiskStepName)
+		exportDiskStep := daisy.NewStepDefaultTimeout(exportDiskStepName, w)
+		exportDiskStep.IncludeWorkflow = &daisy.IncludeWorkflow{
+			Path: "../export/disk_export_ext.wf.json",
+			Vars: map[string]string{
+				"source_disk":                diskPath,
+				"destination":                exportedDiskGCSPath,
+				"format":                     g.ExportedDiskFileFormat,
+				"export_instance_disk_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
+				"export_instance_disk_size":  "200",
+				"export_instance_disk_type":  "pd-ssd",
+				"export_network":             g.Network,
+				"export_subnet":              g.Subnet,
+				"export_disk_ext.sh":         "../export/export_disk_ext.sh",
+				"disk_resizing_mon.sh":       "../export/disk_resizing_mon.sh",
+			},
+		}
+
+		w.Steps[exportDiskStepName] = exportDiskStep
+		if len(previousStepNames) > 0 {
+			for _, previousStepName := range previousStepNames {
+				w.Dependencies[exportDiskStepName] = append(w.Dependencies[exportDiskStepName], previousStepName)
+			}
+		}
+		if nextStepName != "" {
+			w.Dependencies[nextStepName] = append(w.Dependencies[nextStepName], exportDiskStepName)
+		}
+	}
+	return exportedDisksGCSPaths, stepNames, nil
+}
+
+// AddDiskExportSteps adds Daisy steps to OVF export workflow to export disks.
+// It returns an array of GCS paths of exported disks in the same order as Instance.Disks.
+func (g *OVFExportWorkflowGenerator) AddAttachDisksSteps(w *daisy.Workflow, previousStepNames []string, nextStepName string) ([]string, error) {
+	if g.Instance == nil || len(g.Instance.Disks) == 0 {
+		return nil, daisy.Errf("No attachedDisks found in the Instance to export")
+	}
+	attachedDisks := g.Instance.Disks
+
+	var stepNames []string
+
+	for _, attachedDisk := range attachedDisks {
+		diskPath := attachedDisk.Source[strings.Index(attachedDisk.Source, "projects/"):]
+		attachDiskStepName := fmt.Sprintf("attach-disk-%v", attachedDisk.DeviceName)
+		stepNames = append(stepNames, attachDiskStepName)
+		attachDiskStep := daisy.NewStepDefaultTimeout(attachDiskStepName, w)
+		attachDiskStep.AttachDisks = &daisy.AttachDisks{
+			{
+				Instance: g.InstancePath,
+				AttachedDisk: compute.AttachedDisk{
+					Mode:       attachedDisk.Mode,
+					Source:     diskPath,
+					Boot:       attachedDisk.Boot,
+					DeviceName: attachedDisk.DeviceName,
+				},
+			},
+		}
+
+		w.Steps[attachDiskStepName] = attachDiskStep
+		if len(previousStepNames) > 0 {
+			for _, previousStepName := range previousStepNames {
+				w.Dependencies[attachDiskStepName] = append(w.Dependencies[attachDiskStepName], previousStepName)
+			}
+		}
+		if nextStepName != "" {
+			w.Dependencies[nextStepName] = append(w.Dependencies[nextStepName], attachDiskStepName)
+		}
+	}
+	return stepNames, nil
+}
+
 // AddStopInstanceStep adds a StopInstance step to a workflow
 func (g *OVFExportWorkflowGenerator) AddStopInstanceStep(w *daisy.Workflow, stopInstanceStepName string) {
 	stopInstanceStep := daisy.NewStepDefaultTimeout(stopInstanceStepName, w)
@@ -120,10 +240,14 @@ func (g *OVFExportWorkflowGenerator) AddStopInstanceStep(w *daisy.Workflow, stop
 }
 
 // AddStartInstanceStep adds a StartInstance step to a workflow
-func (g *OVFExportWorkflowGenerator) AddStartInstanceStep(w *daisy.Workflow, startInstanceStepName string) {
+func (g *OVFExportWorkflowGenerator) AddStartInstanceStep(w *daisy.Workflow, startInstanceStepName string, previousStepNames []string) {
 	startInstanceStep := daisy.NewStepDefaultTimeout(startInstanceStepName, w)
-	startInstanceStep.StartInstances = &daisy.StartInstances{
-		Instances: []string{g.InstancePath},
-	}
+	startInstanceStep.StartInstances = &daisy.StartInstances{Instances: []string{g.InstancePath}}
 	w.Steps[startInstanceStepName] = startInstanceStep
+
+	if len(previousStepNames) > 0 {
+		for _, previousStepName := range previousStepNames {
+			w.Dependencies[previousStepName] = append(w.Dependencies[previousStepName], startInstanceStepName)
+		}
+	}
 }
