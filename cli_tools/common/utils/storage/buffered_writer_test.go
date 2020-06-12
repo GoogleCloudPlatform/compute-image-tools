@@ -35,7 +35,7 @@ var (
 	bufferSize, workerNum   int64
 	prefix, bkt, obj, oauth string
 	mockStorageClient       *mocks.MockStorageClientInterface
-	errClient error = fmt.Errorf("Cannot create client")
+	errClient               = fmt.Errorf("Cannot create client")
 )
 
 func TestCreateNewChunkOnFirstWrite(t *testing.T) {
@@ -97,7 +97,6 @@ func TestUseSameFileWhenCurrentChunkNotFull(t *testing.T) {
 	assert.Equal(t, fileName, buf.file.Name())
 }
 
-
 func TestFlushErrorWhenInvalidFile(t *testing.T) {
 	resetArgs()
 	mockCtrl := gomock.NewController(t)
@@ -142,7 +141,6 @@ func TestWriteErrorWhenChunkError(t *testing.T) {
 	_, err := buf.Write(data)
 	assert.True(t, os.IsPermission(err))
 }
-
 
 func TestWriteErrorWhenInvalidFilePermission(t *testing.T) {
 	resetArgs()
