@@ -135,11 +135,12 @@ func TestWriteErrorWhenChunkError(t *testing.T) {
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
 	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
-	buf.newChunk()
+	err := buf.newChunk()
+	assert.Nil(t, err)
 	buf.bytes = buf.cSize
-	buf.prefix = "//"
-	_, err := buf.Write(data)
-	assert.True(t, os.IsPermission(err))
+	buf.prefix = "non_existant_directory/test"
+	_, err = buf.Write(data)
+	assert.NotNil(t, err)
 }
 
 func TestWriteErrorWhenInvalidFilePermission(t *testing.T) {
@@ -163,8 +164,8 @@ func TestWriteErrorWhenInvalidFilePrefix(t *testing.T) {
 	mockStorageClient = mocks.NewMockStorageClientInterface(mockCtrl)
 	ctx := context.Background()
 	data := []byte("This is a sample data to write")
-	prefix = "//"
-	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClient, oauth, prefix, bkt, obj)
+	buf := NewBufferedWriter(ctx, bufferSize, workerNum, mockGcsClientError, oauth, prefix, bkt, obj)
+	buf.prefix = "non_existant_directory/test"
 	_, err := buf.Write(data)
 	assert.NotNil(t, err)
 }
