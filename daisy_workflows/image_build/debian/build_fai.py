@@ -23,11 +23,13 @@ debian_version: The FAI tool debian version to be requested.
 image_dest: The Cloud Storage destination for the resultant image.
 google_cloud_repo: The repository branch to use for packages.cloud.google.com.
 """
-
+import json
 import logging
 import os
 import tarfile
+import time
 import urllib.request
+import uuid
 
 import utils
 
@@ -175,6 +177,48 @@ def main():
   logging.info('Saving %s to %s' % (disk_tar_gz, image_dest))
   utils.UploadFile(disk_tar_gz, image_dest)
 
+  # Create and upload metadata of the image and packages
+  logging.info('Creating image metadata.')
+  image = {
+      "id": uuid.uuid4(),
+      "family": "debian-10",
+      "name": "debian-10" + debian_version + "v" + build_date,
+      "version": debian_version,
+      "location": image_dest,
+      "release_date": build_date,
+      "release_time": time.time(),
+      "state": "Active",
+      "environment": "prod",
+      "packages": []
+  }
+  # Read list of guest package
+  with open("guest_package") as f:
+    guest_packages = f.read().splitlines()
+
+  for package in guest_packages:
+    cmd = "dpkg-query -W --showformat '${Package} ${Version} ${Git}\n'" + package
+    code, stdout = utils.Excute(cmd, capture_output=True)
+    if code == 0:
+      splits = stdout.decode('utf-8').split('\t\b')
+      package_name = splits[0]
+      package_version = splits[1]
+      package_commit_hash = splits[2][splits[2].rindex('/'):len(splits[2])]
+      package_release_time = package_version[package_version.index(":"):package_version.rindex(".")]
+      metadata = {
+          "id": uuid.uuid4(),
+          "name": package_name,
+          "version": package_version,
+          "commit_hash": package_commit_hash,
+          "release_date": package_release_time,
+          "stage": google_cloud_repo
+      }
+      image["packages"].append(metadata)
+      with open('/tmp/metadata.json', 'w') as f:
+        f.write(json.dumps(image))
+
+      logging.info('Uploading image metadata.')
+      metadata_dest = os.path.join(image_dest.strip("root.tar.gz"), 'metadata.json')
+      utils.UploadFile('/tmp/metadata.json', metadata_dest)
 
 if __name__ == '__main__':
   try:
