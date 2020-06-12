@@ -21,13 +21,13 @@ try {
   Remove-Item 'C:\$WINDOWS.~BT' -Recurse -ErrorAction Ignore
 
   $ver=[System.Environment]::OSVersion.Version
-  Write-Host "windows_upgrade_current_version=$($ver.Major).$($ver.Minor)"
   if ("$($ver.Major).$($ver.Minor)" -ne "6.1") {
     if ("$($ver.Major).$($ver.Minor)" -eq "6.3") {
       Write-Host "GCEMetadataScripts: The instance is already running Windows 2012R2!"
-      Return
+      Write-Host "GCEMetadataScripts: Rerunning upgrade.ps1 for post-upgrade step..."
+    } else {
+      throw "The instance is not running Windows 2008R2!"
     }
-    throw "The instance is not running Windows 2008R2!"
   }
 
   # Bring all disks online to ensure install media is accessible.
@@ -58,6 +58,12 @@ online disk noerr
   Set-ExecutionPolicy Unrestricted
   Set-Location "$($script:install_media_drive)/Windows_Svr_Std_and_DataCtr_2012_R2_64Bit_English"
   ./upgrade.ps1
+  $new_ver=[System.Environment]::OSVersion.Version
+  if ("$($ver.Major).$($ver.Minor)" -eq "6.3")
+  {
+    Write-Host "GCEMetadataScripts: post-upgrade step is done!"
+  }
+  Write-Host "windows_upgrade_current_version=$($new_ver.Major).$($new_ver.Minor)"
 }
 catch {
   Write-Host "UpgradeFailed: $($_.Exception.Message)"
