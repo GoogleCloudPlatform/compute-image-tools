@@ -79,8 +79,8 @@ try {
     throw "Incorrect Windows version to translate, mounted image is $os_version, not $version"
   }
 
-  New-Item $script:driver_dir -Type Directory | Out-Null
-  New-Item $script:components_dir -Type Directory | Out-Null
+  New-Item $script:driver_dir -Force -Type Directory | Out-Null
+  New-Item $script:components_dir -Force -Type Directory | Out-Null
 
   $daisy_sources = Get-MetadataValue -key 'daisy-sources-path'
 
@@ -91,9 +91,9 @@ try {
   & 'gsutil' -m cp -r "${daisy_sources}/drivers/*" $driver_dir
  
   # Setup Agent
-  New-Item -Type Directory "${script:os_drive}\Program Files\Google\Compute Engine\agent"
+  New-Item -Force -Type Directory "${script:os_drive}\Program Files\Google\Compute Engine\agent"
   Copy-Item "${script:driver_dir}\x86_agent\GCEWindowsAgent.exe" "${script:os_drive}\Program Files\Google\Compute Engine\agent\"
-  New-Item -Type Directory "${script:os_drive}\Program Files\Google\Compute Engine\metadata_scripts"
+  New-Item -Force -Type Directory "${script:os_drive}\Program Files\Google\Compute Engine\metadata_scripts"
 
   # Copy script runner, we do not enable it
   Copy-Item "${script:driver_dir}\x86_agent\GCEMetadataScripts.exe" "${script:os_drive}\Program Files\Google\Compute Engine\metadata_scripts\"

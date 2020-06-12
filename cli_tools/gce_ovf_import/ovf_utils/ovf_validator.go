@@ -52,7 +52,7 @@ func (v *OvfValidator) validateReferencesExistInGcs(
 	}
 
 	for _, reference := range references {
-		referenceGcsHandle, err := v.storageClient.FindGcsFile(ovfGcsPath, reference.Href)
+		referenceGcsHandle, err := v.storageClient.FindGcsFileDepthLimited(ovfGcsPath, reference.Href, 0)
 		if referenceGcsHandle == nil || err != nil {
 			return daisy.Errf("OVF reference %v not found in OVF package in %v", reference.Href, ovfGcsPath)
 		}

@@ -38,7 +38,7 @@ func NewOvfDescriptorLoader(sc domain.StorageClientInterface) *OvfDescriptorLoad
 // Load finds and loads OVF descriptor from a GCS directory path.
 // ovfGcsPath is a path to OVF directory, not a path to OVF descriptor file itself.
 func (l *OvfDescriptorLoader) Load(ovfGcsPath string) (*ovf.Envelope, error) {
-	ovfDescriptorGcsReference, err := l.storageClient.FindGcsFile(ovfGcsPath, ".ovf")
+	ovfDescriptorGcsReference, err := l.storageClient.FindGcsFileDepthLimited(ovfGcsPath, ".ovf", 0)
 	if err != nil {
 		return nil, err
 	}

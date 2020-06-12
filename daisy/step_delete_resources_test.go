@@ -168,7 +168,16 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	w.disks.m = map[string]*Resource{"d0": ds[0], "d1": ds[1]}
 	w.networks.m = map[string]*Resource{"n0": ns[0], "n1": ns[1]}
 	ads := []*compute.AttachedDisk{{Source: "d1"}}
-	inC.CreateInstances = &CreateInstances{{Resource: Resource{daisyName: "in0"}, Instance: compute.Instance{Disks: ads}}}
+	inC.CreateInstances = &CreateInstances{
+		Instances: []*Instance{
+			{
+				InstanceBase: InstanceBase{
+					Resource: Resource{daisyName: "in0"},
+				},
+				Instance: compute.Instance{Disks: ads},
+			},
+		},
+	}
 
 	CompareResources := func(got, want []*Resource) {
 		for _, s := range []*Step{dC, imC, miC, inC, s, otherDeleter} {
@@ -186,7 +195,7 @@ func TestDeleteResourcesValidate(t *testing.T) {
 	dr := DeleteResources{
 		Disks:         []string{"d0"},
 		Images:        []string{"im0", "projects/foo/global/images/" + testImage, "projects/foo/global/images/family/foo"},
-		MachineImages: []string{"mi0", "projects/foo/global/machineImages/" + testMachineImage},
+		MachineImages: []string{"mi0", "projects/test-project/global/machineImages/" + testMachineImage},
 		Instances:     []string{"in0"},
 		Networks:      []string{"n0"},
 		GCSPaths:      []string{"gs://foo/bar"},

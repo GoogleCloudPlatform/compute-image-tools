@@ -17,15 +17,13 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -66,10 +64,20 @@ func TestLogSuccess(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
 	time.Sleep(20 * time.Millisecond)
 
-	w := daisy.Workflow{}
-	w.AddSerialConsoleOutputValue(targetSizeGb, "5")
-	w.AddSerialConsoleOutputValue(sourceSizeGb, "3,2,1")
-	e, r := logger.logSuccess(&w)
+	w := literalLoggable{
+		strings: map[string]string{
+			importFileFormat: "vmdk",
+		},
+		int64s: map[string][]int64{
+			targetSizeGb: {5},
+			sourceSizeGb: {3, 2, 1},
+		},
+		traceLogs: []string{
+			"serial-log1", "serial-log2",
+		},
+	}
+
+	e, r := logger.logSuccess(w)
 
 	if r != logResult(deleteRequest) {
 		t.Errorf("Unexpected logResult: %v, expect: %v", r, deleteRequest)
@@ -77,12 +85,14 @@ func TestLogSuccess(t *testing.T) {
 	if e.Status != statusSuccess {
 		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusSuccess)
 	}
-	if !reflect.DeepEqual(e.OutputInfo.TargetsSizeGb, []int64{5}) {
-		t.Errorf("Unexpected TargetSizeGb %v, expect: %v", e.OutputInfo.TargetsSizeGb, "5")
+
+	expected := OutputInfo{
+		SourcesSizeGb:    []int64{3, 2, 1},
+		TargetsSizeGb:    []int64{5},
+		ImportFileFormat: "vmdk",
+		SerialOutputs:    nil, // don't send serial output on success
 	}
-	if !reflect.DeepEqual(e.OutputInfo.SourcesSizeGb, []int64{3, 2, 1}) {
-		t.Errorf("Unexpected SourceSizeGb %v, expect: %v", e.OutputInfo.SourcesSizeGb, "3,2,1")
-	}
+	assert.Equal(t, expected, *e.OutputInfo)
 	if e.ElapsedTimeMs < 20 {
 		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.ElapsedTimeMs, 20)
 	}
@@ -92,23 +102,35 @@ func TestLogFailure(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest))
 	time.Sleep(20 * time.Millisecond)
 
-	w := daisy.Workflow{}
-	rawError := "error - [Privacy-> sensitive <-Privacy]"
-	regularError := "error -  sensitive "
-	anonymizedError := "error - "
-	e, r := logger.logFailure(fmt.Errorf(rawError), &w)
+	w := literalLoggable{
+		strings: map[string]string{
+			importFileFormat: "vmdk",
+		},
+		int64s: map[string][]int64{
+			targetSizeGb: {5},
+			sourceSizeGb: {3, 2, 1},
+		},
+		traceLogs: []string{
+			"serial-log1", "serial-log2",
+		},
+	}
+	e, r := logger.logFailure(fmt.Errorf("error - [Privacy-> sensitive <-Privacy]"), w)
+
+	expected := OutputInfo{
+		SourcesSizeGb:                    []int64{3, 2, 1},
+		TargetsSizeGb:                    []int64{5},
+		FailureMessage:                   "error -  sensitive ",
+		FailureMessageWithoutPrivacyInfo: "error - ",
+		ImportFileFormat:                 "vmdk",
+		SerialOutputs:                    []string{"serial-log1", "serial-log2"},
+	}
+	assert.Equal(t, expected, *e.OutputInfo)
 
 	if r != logResult(deleteRequest) {
 		t.Errorf("Unexpected logResult: %v, expect: %v", r, deleteRequest)
 	}
 	if e.Status != statusFailure {
 		t.Errorf("Unexpected Status %v, expect: %v", e.Status, statusFailure)
-	}
-	if e.OutputInfo.FailureMessage != regularError {
-		t.Errorf("Unexpected FailureMessage %v, expect: %v", e.OutputInfo.FailureMessage, regularError)
-	}
-	if e.OutputInfo.FailureMessageWithoutPrivacyInfo != anonymizedError {
-		t.Errorf("Unexpected FailureMessageWithoutPrivacyInfo %v, expect: %v", e.OutputInfo.FailureMessageWithoutPrivacyInfo, anonymizedError)
 	}
 	if e.ElapsedTimeMs < 20 {
 		t.Errorf("Unexpected ElapsedTimeMs %v < %v", e.ElapsedTimeMs, 20)
@@ -119,8 +141,8 @@ func TestRunWithServerLoggingSuccess(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	logExtension, _ := logger.runWithServerLogging(
-		func() (*daisy.Workflow, error) {
-			return &daisy.Workflow{}, nil
+		func() (Loggable, error) {
+			return literalLoggable{}, nil
 		}, nil)
 	if logExtension.Status != statusSuccess {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)
@@ -131,8 +153,8 @@ func TestRunWithServerLoggingFailed(t *testing.T) {
 	prepareTestLogger(t, nil, buildLogResponses(deleteRequest, deleteRequest))
 
 	logExtension, _ := logger.runWithServerLogging(
-		func() (*daisy.Workflow, error) {
-			return &daisy.Workflow{}, fmt.Errorf("test msg - failure by purpose")
+		func() (Loggable, error) {
+			return literalLoggable{}, fmt.Errorf("test msg - failure by purpose")
 		}, nil)
 	if logExtension.Status != statusFailure {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusFailure)
@@ -144,8 +166,8 @@ func TestRunWithServerLoggingSuccessWithUpdatedProject(t *testing.T) {
 
 	project := "dummy-project"
 	logExtension, _ := logger.runWithServerLogging(
-		func() (*daisy.Workflow, error) {
-			return &daisy.Workflow{}, nil
+		func() (Loggable, error) {
+			return literalLoggable{}, nil
 		}, &project)
 	if logExtension.Status != statusSuccess {
 		t.Errorf("Unexpected Status: %v, expect: %v", logExtension.Status, statusSuccess)

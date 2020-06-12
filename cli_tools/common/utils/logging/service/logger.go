@@ -23,7 +23,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -45,10 +44,12 @@ var (
 
 // constants used by logging
 const (
-	ImageImportAction    = "ImageImport"
-	ImageOneStepImportAction    = "ImageOneStepImport"
-	ImageExportAction    = "ImageExport"
-	InstanceImportAction = "InstanceImport"
+	ImageImportAction        = "ImageImport"
+	ImageOneStepImportAction = "ImageOneStepImport"
+	ImageExportAction        = "ImageExport"
+	InstanceImportAction     = "InstanceImport"
+	MachineImageImportAction = "MachineImageImport"
+	WindowsUpgrade           = "WindowsUpgrade"
 
 	// These strings should be interleaved to construct the real URL. This is just to (hopefully)
 	// fool github URL scanning bots.
@@ -127,14 +128,14 @@ func (l *Logger) logStart() (*ComputeImageToolsLogExtension, logResult) {
 }
 
 // logSuccess logs a "success" info to server
-func (l *Logger) logSuccess(w *daisy.Workflow) (*ComputeImageToolsLogExtension, logResult) {
-	logExtension := l.createComputeImageToolsLogExtension(statusSuccess, l.getOutputInfo(w, nil))
+func (l *Logger) logSuccess(loggable Loggable) (*ComputeImageToolsLogExtension, logResult) {
+	logExtension := l.createComputeImageToolsLogExtension(statusSuccess, l.getOutputInfo(loggable, nil))
 	return logExtension, l.sendLogToServer(logExtension)
 }
 
 // logFailure logs a "failure" info to server
-func (l *Logger) logFailure(err error, w *daisy.Workflow) (*ComputeImageToolsLogExtension, logResult) {
-	logExtension := l.createComputeImageToolsLogExtension(statusFailure, l.getOutputInfo(w, err))
+func (l *Logger) logFailure(err error, loggable Loggable) (*ComputeImageToolsLogExtension, logResult) {
+	logExtension := l.createComputeImageToolsLogExtension(statusFailure, l.getOutputInfo(loggable, err))
 	return logExtension, l.sendLogToServer(logExtension)
 }
 
@@ -170,39 +171,27 @@ func getAnonymizedFailureReason(err error) string {
 	return strings.Join(anonymizedErrs, "\n")
 }
 
-func (l *Logger) getOutputInfo(w *daisy.Workflow, err error) *OutputInfo {
+func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 	o := OutputInfo{}
 
-	if w != nil {
-		o.TargetsSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(targetSizeGb))
-		o.SourcesSizeGb = getInt64Values(w.GetSerialConsoleOutputValue(sourceSizeGb))
-		o.ImportFileFormat = w.GetSerialConsoleOutputValue(importFileFormat)
+	if loggable != nil {
+		o.TargetsSizeGb = loggable.GetValueAsInt64Slice(targetSizeGb)
+		o.SourcesSizeGb = loggable.GetValueAsInt64Slice(sourceSizeGb)
+		o.ImportFileFormat = loggable.GetValue(importFileFormat)
 	}
 
 	if err != nil {
 		o.FailureMessage = getFailureReason(err)
 		o.FailureMessageWithoutPrivacyInfo = getAnonymizedFailureReason(err)
-		if w != nil && w.Logger != nil {
-			o.SerialOutputs = w.Logger.ReadSerialPortLogs()
+		if loggable != nil {
+			o.SerialOutputs = loggable.ReadSerialPortLogs()
 		}
 	}
 
 	return &o
 }
 
-func getInt64Values(s string) []int64 {
-	strs := strings.Split(s, ",")
-	var r []int64
-	for _, str := range strs {
-		i, err := strconv.ParseInt(str, 0, 64)
-		if err == nil {
-			r = append(r, i)
-		}
-	}
-	return r
-}
-
-func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
+func (l *Logger) runWithServerLogging(function func() (Loggable, error),
 	projectPointer *string) (*ComputeImageToolsLogExtension, error) {
 
 	var logExtension *ComputeImageToolsLogExtension
@@ -217,13 +206,13 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 		l.logStart()
 	}()
 
-	w, err := function()
+	loggable, err := function()
 	l.updateParams(projectPointer)
 	if err != nil {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			logExtension, _ = l.logFailure(err, w)
+			logExtension, _ = l.logFailure(err, loggable)
 
 			// Remove new lines from multi-line failure messages as gcloud depends on
 			// log prefix to filter out relevant log lines. Making this change in
@@ -236,7 +225,7 @@ func (l *Logger) runWithServerLogging(function func() (*daisy.Workflow, error),
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			logExtension, _ = l.logSuccess(w)
+			logExtension, _ = l.logSuccess(loggable)
 		}()
 	}
 
@@ -252,7 +241,7 @@ func removeNewLinesFromMultilineError(s string) string {
 
 // RunWithServerLogging runs the function with server logging
 func RunWithServerLogging(action string, params InputParams, projectPointer *string,
-	function func() (*daisy.Workflow, error)) error {
+	function func() (Loggable, error)) error {
 	l := NewLoggingServiceLogger(action, params)
 	_, err := l.runWithServerLogging(function, projectPointer)
 	return err
@@ -374,4 +363,11 @@ func Hash(s string) string {
 	hash, _ := highwayhash.New([]byte("compute-image-tools-obfuscate-01"))
 	hash.Write([]byte(s))
 	return hex.EncodeToString(hash.Sum(nil))
+}
+
+// Loggable contains fields relevant to import and export logging.
+type Loggable interface {
+	GetValue(key string) string
+	GetValueAsInt64Slice(key string) []int64
+	ReadSerialPortLogs() []string
 }

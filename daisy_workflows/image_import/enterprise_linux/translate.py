@@ -90,6 +90,14 @@ def DistroSpecific(g):
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
   rhel_license = utils.GetMetadataAttribute('use_rhel_gce_license')
 
+  # This must be performed prior to making network calls from the guest.
+  # Otherwise, if /etc/resolv.conf is present, and has an immutable attribute,
+  # guestfs will fail with:
+  #
+  #   rename: /sysroot/etc/resolv.conf to
+  #     /sysroot/etc/i9r7obu6: Operation not permitted
+  utils.common.ClearEtcResolv(g)
+
   if rhel_license == 'true':
     if 'Red Hat' in g.cat('/etc/redhat-release'):
       g.command(['yum', 'remove', '-y', '*rhui*'])
@@ -109,6 +117,8 @@ def DistroSpecific(g):
       # python27 SCL environment.
       logging.info('Installing python27 from SCL.')
       yum_install(g, 'python27')
+      g.command(['scl', 'enable', 'python27',
+                 'pip2.7 install --upgrade pip'])
       g.command(['scl', 'enable', 'python27',
                  'pip2.7 install --upgrade google_compute_engine'])
 
@@ -155,14 +165,13 @@ def DistroSpecific(g):
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
-    if el_release == '8' and not g.exists(
-        os.path.join('/lib/modules', kver, 'modules.dep')):
+    if not g.exists(os.path.join('/lib/modules', kver, 'modules.dep')):
       g.command(['depmod', kver])
     if el_release == '6':
       # Version 6 doesn't have option --kver
       g.command(['dracut', '-v', '-f', kver])
     else:
-      g.command(['dracut', '-v', '-f', '--kver', kver])
+      g.command(['dracut', '--stdlog=1', '-f', '--kver', kver])
 
   logging.info('Update grub configuration')
   if el_release == '6':
@@ -202,7 +211,13 @@ def yum_install(g, *packages):
     try:
       # There's no sleep on the first iteration since `i` is zero.
       time.sleep(i**2)
-      g.command(['yum', 'install', '-y'] + list(packages))
+      # Bypass HTTP proxies configured in the guest image to allow
+      # import to continue when the proxy is unreachable.
+      #   no_proxy="*": Disables proxies set by using the `http_proxy`
+      #                 environment variable.
+      #   proxy=_none_: Disables proxies set in /etc/yum.conf.
+      g.sh('no_proxy="*" yum install --setopt=proxy=_none_ -y ' + ' '.join(
+          '"{0}"'.format(p) for p in packages))
       return
     except Exception as e:
       logging.debug('Failed to install {}. Details: {}.'.format(packages, e))

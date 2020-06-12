@@ -33,43 +33,43 @@ import (
 )
 
 var (
-	bucketNameRegex = `[a-z0-9][-_.a-z0-9]*`
-	gsPathRegex     = regexp.MustCompile(fmt.Sprintf(`^gs://(%s)(\/.*)?$`, bucketNameRegex))
+	bucketNameRegex   = `[a-z0-9][-_.a-z0-9]*`
+	gsPathRegex       = regexp.MustCompile(fmt.Sprintf(`^gs://(%s)(\/.*)?$`, bucketNameRegex))
+	slashCounterRegex = regexp.MustCompile("/")
 )
 
 // Client implements domain.StorageClientInterface. It implements main Storage functions
 // used by image import features.
 type Client struct {
-	ObjectDeleter domain.StorageObjectDeleterInterface
 	StorageClient *storage.Client
 	Logger        logging.LoggerInterface
 	Ctx           context.Context
 	Oic           domain.ObjectIteratorCreatorInterface
+	Soc           domain.StorageObjectCreatorInterface
 }
 
 // NewStorageClient creates a Client
 func NewStorageClient(ctx context.Context,
-	logger logging.LoggerInterface, oauth string) (*Client, error) {
+	logger logging.LoggerInterface, option ...option.ClientOption) (*Client, error) {
 
-	storageOptions := []option.ClientOption{}
-	if oauth != "" {
-		storageOptions = append(storageOptions, option.WithCredentialsFile(oauth))
-	}
-	client, err := storage.NewClient(ctx, storageOptions...)
+	client, err := storage.NewClient(ctx, option...)
 	if err != nil {
 		return nil, daisy.Errf("error creating storage client: %v", err)
 	}
 	sc := &Client{StorageClient: client, Ctx: ctx,
 		Oic: &ObjectIteratorCreator{ctx: ctx, sc: client}, Logger: logger}
 
-	sc.ObjectDeleter = &ObjectDeleter{sc}
+	sc.Soc = &storageObjectCreator{ctx: ctx, sc: client}
 	return sc, nil
 }
 
 // CreateBucket creates a GCS bucket
 func (sc *Client) CreateBucket(
 	bucketName string, project string, attrs *storage.BucketAttrs) error {
-	return sc.StorageClient.Bucket(bucketName).Create(sc.Ctx, project, attrs)
+	if err := sc.StorageClient.Bucket(bucketName).Create(sc.Ctx, project, attrs); err != nil {
+		return daisy.Errf("Error creating bucket `%v` in project `%v`: %v", bucketName, project, err)
+	}
+	return nil
 }
 
 // Buckets returns a bucket iterator for all buckets within a project
@@ -77,29 +77,28 @@ func (sc *Client) Buckets(projectID string) *storage.BucketIterator {
 	return sc.StorageClient.Buckets(sc.Ctx, projectID)
 }
 
-// GetBucketAttrs returns bucket attributes for given bucket
-func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
-	return sc.StorageClient.Bucket(bucket).Attrs(sc.Ctx)
-}
-
-// GetObjectReader creates a new Reader to read the contents of the object.
-func (sc *Client) GetObjectReader(bucket string, objectPath string) (io.ReadCloser, error) {
-	return sc.GetBucket(bucket).Object(objectPath).NewReader(sc.Ctx)
-}
-
 // GetBucket returns a BucketHandle, which provides operations on the named bucket.
 func (sc *Client) GetBucket(bucket string) *storage.BucketHandle {
 	return sc.StorageClient.Bucket(bucket)
 }
 
+// GetBucketAttrs returns bucket attributes for given bucket
+func (sc *Client) GetBucketAttrs(bucket string) (*storage.BucketAttrs, error) {
+	bucketAttrs, err := sc.StorageClient.Bucket(bucket).Attrs(sc.Ctx)
+	if err != nil {
+		return nil, daisy.Errf("Error getting bucket attributes for bucket `%v`: %v", bucket, err)
+	}
+	return bucketAttrs, nil
+}
+
+// GetObject returns storage object for the given bucket and path
+func (sc *Client) GetObject(bucket string, objectPath string) domain.StorageObject {
+	return sc.Soc.GetObject(bucket, objectPath)
+}
+
 // GetObjects returns object iterator for given bucket and path
 func (sc *Client) GetObjects(bucket string, objectPath string) domain.ObjectIteratorInterface {
 	return sc.Oic.CreateObjectIterator(bucket, objectPath)
-}
-
-// DeleteObject deletes GCS object in given bucket and object path
-func (sc *Client) DeleteObject(bucket string, objectPath string) error {
-	return sc.ObjectDeleter.DeleteObject(bucket, objectPath)
 }
 
 // DeleteGcsPath deletes a GCS path, including files
@@ -118,12 +117,12 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 			break
 		}
 		if err != nil {
-			return err
+			return daisy.Errf("Error deleting Cloud Storage path `%v`: %v", gcsPath, err)
 		}
 		sc.Logger.Log(fmt.Sprintf("Deleting gs://%v/%v", bucketName, attrs.Name))
 
-		if err := sc.DeleteObject(bucketName, attrs.Name); err != nil {
-			return err
+		if err := sc.GetObject(bucketName, attrs.Name).Delete(); err != nil {
+			return daisy.Errf("Error deleting Cloud Storage object `%v` in bucket `%v`: %v", attrs.Name, bucketName, err)
 		}
 	}
 
@@ -131,22 +130,33 @@ func (sc *Client) DeleteGcsPath(gcsPath string) error {
 }
 
 // FindGcsFile finds a file in a GCS directory path for given file extension. File extension can
-// be a file name as well.
+// be a file name as well. The lookup is done recursively.
 func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error) {
-	bucketName, objectPath, err := SplitGCSPath(gcsDirectoryPath)
+	return sc.FindGcsFileDepthLimited(gcsDirectoryPath, fileExtension, -1)
+}
+
+// FindGcsFileDepthLimited finds a file in a GCS directory path for given file
+// extension up to lookupDepth deep. If lookup should be only for files directly in
+// gcsDirectoryPath, lookupDepth should be set as 0. For recursive lookup with
+// no limitations on depth, lookupDepth should be -1
+// File extension can be a file name as well.
+func (sc *Client) FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension string, lookupDepth int) (*storage.ObjectHandle, error) {
+	bucketName, lookupPath, err := SplitGCSPath(gcsDirectoryPath)
 	if err != nil {
 		return nil, err
 	}
-	it := sc.GetObjects(bucketName, objectPath)
+	it := sc.GetObjects(bucketName, lookupPath)
 	for {
 		attrs, err := it.Next()
 		if err == iterator.Done {
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, daisy.Errf("Error finding file with extension `%v` in Cloud Storage directory `%v`: %v", fileExtension, gcsDirectoryPath, err)
 		}
-
+		if !isDepthValid(lookupDepth, lookupPath, attrs.Name) {
+			continue
+		}
 		if !strings.HasSuffix(attrs.Name, fileExtension) {
 			continue
 		}
@@ -158,11 +168,32 @@ func (sc *Client) FindGcsFile(gcsDirectoryPath string, fileExtension string) (*s
 		"path %v doesn't contain a file with %v extension", gcsDirectoryPath, fileExtension)
 }
 
+func isDepthValid(lookupDepth int, lookupPath, objectPath string) bool {
+	if lookupDepth <= -1 {
+		return true
+	}
+	if strings.HasSuffix(lookupPath, "/") {
+		lookupPath = lookupPath[:len(lookupPath)-1]
+	}
+	lookupPathDepth := 0
+	if len(lookupPath) > 0 {
+		// lookup path is a "folder", have to count all elements as one level, thus the +1
+		lookupPathDepth = 1 + getSlashCount(lookupPath)
+	}
+	// objectPath refers to an object so its path depth is one less than if it was a folder, thus no +1
+	objectDepth := getSlashCount(objectPath)
+	return objectDepth-lookupPathDepth <= lookupDepth
+}
+
+func getSlashCount(path string) int {
+	return len(slashCounterRegex.FindAllStringIndex(path, -1))
+}
+
 // GetGcsFileContent returns content of a GCS object as byte array
 func (sc *Client) GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error) {
 	reader, err := gcsObject.NewReader(sc.Ctx)
 	if err != nil {
-		return nil, err
+		return nil, daisy.Errf("Error getting Cloud Storage file content: %v", err)
 	}
 	return ioutil.ReadAll(reader)
 }
@@ -174,7 +205,7 @@ func (sc *Client) WriteToGCS(
 	fileWriter := destinationBucket.Object(destinationObjectPath).NewWriter(sc.Ctx)
 
 	if _, err := io.Copy(fileWriter, reader); err != nil {
-		return err
+		return daisy.Errf("Error writing to Cloud Storage file path `%v` in bucket `%v`: %v", destinationObjectPath, destinationBucketName, err)
 	}
 
 	return fileWriter.Close()
@@ -184,7 +215,10 @@ func (sc *Client) WriteToGCS(
 //
 // Close need not be called at program exit.
 func (sc *Client) Close() error {
-	return sc.StorageClient.Close()
+	if err := sc.StorageClient.Close(); err != nil {
+		return daisy.Errf("Error closing storage client: %v", err)
+	}
+	return nil
 }
 
 // SplitGCSPath splits GCS path into bucket and object path portions
@@ -222,14 +256,4 @@ type HTTPClient struct {
 // Get executes HTTP GET request for given URL
 func (hc *HTTPClient) Get(url string) (resp *http.Response, err error) {
 	return hc.httpClient.Get(url)
-}
-
-// ObjectDeleter is responsible for deleting storage object
-type ObjectDeleter struct {
-	sc *Client
-}
-
-// DeleteObject deletes GCS object in given bucket and path
-func (sod *ObjectDeleter) DeleteObject(bucket string, objectPath string) error {
-	return sod.sc.GetBucket(bucket).Object(objectPath).Delete(sod.sc.Ctx)
 }

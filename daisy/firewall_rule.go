@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -28,31 +27,13 @@ import (
 )
 
 var (
-	firewallRuleCache struct {
-		exists map[string][]string
-		mu     sync.Mutex
-	}
 	firewallRuleURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/firewalls/(?P<firewallRule>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func firewallRuleExists(client daisyCompute.Client, project, name string) (bool, DError) {
-	firewallRuleCache.mu.Lock()
-	defer firewallRuleCache.mu.Unlock()
-	if firewallRuleCache.exists == nil {
-		firewallRuleCache.exists = map[string][]string{}
-	}
-	if _, ok := firewallRuleCache.exists[project]; !ok {
-		nl, err := client.ListFirewallRules(project)
-		if err != nil {
-			return false, Errf("error listing firewall-rules for project %q: %v", project, err)
-		}
-		var firewallRules []string
-		for _, fir := range nl {
-			firewallRules = append(firewallRules, fir.Name)
-		}
-		firewallRuleCache.exists[project] = firewallRules
-	}
-	return strIn(name, firewallRuleCache.exists[project]), nil
+func (w *Workflow) firewallRuleExists(project, firewallRule string) (bool, DError) {
+	return w.firewallRuleCache.resourceExists(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListFirewallRules(project)
+	}, project, firewallRule)
 }
 
 // FirewallRule is used to create a GCE firewallRule.
@@ -111,7 +92,7 @@ func newFirewallRuleRegistry(w *Workflow) *firewallRuleRegistry {
 }
 
 func (frr *firewallRuleRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(firewallRuleURLRegex, res.link)
+	m := NamedSubexp(firewallRuleURLRegex, res.link)
 	err := frr.w.ComputeClient.DeleteFirewallRule(m["project"], m["firewallRule"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete firewall", err)

@@ -21,10 +21,6 @@
       "Value": "disk-rhel-7",
       "Description": "Name of the disk to install onto."
     },
-    "install_nge": {
-      "Value": "false",
-      "Description": "Whether to install the new guest agent"
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -34,13 +30,12 @@
     "build-rhel": {
       "Timeout": "60m",
       "IncludeWorkflow": {
-        "Path": "./enterprise_linux.wf.json",
+        "Path": "./enterprise_linux_uefi.wf.json",
         "Vars": {
           "el_release": "${rhel_release}",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",
-          "install_nge": "${install_nge}",
           "rhel_sap": "true"
         }
       }
@@ -57,7 +52,10 @@
           "Family": "${rhel_release}-sap",
           "Project": "${publish_project}",
           "NoCleanup": true,
-          "ExactName": true
+          "ExactName": true,
+          "GuestOsFeatures": [
+            "UEFI_COMPATIBLE"
+          ]
         }
       ]
     }

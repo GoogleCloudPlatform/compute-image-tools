@@ -31,8 +31,10 @@ const (
 	// TODO: user can change the dump path, so better fetch the path from Registry:
 	// https://support.microsoft.com/en-us/help/254649/overview-of-memory-dump-file-options-for-windows
 	// But it's not likely people will do that.
-	crashDump         = `C:\Windows\MEMORY.dmp`
-	rdpStatusFileName = "rdp_status.txt"
+	crashDump               = `C:\Windows\MEMORY.dmp`
+	rdpStatusFileName       = "rdp_status.txt"
+	rdpScriptFileName       = "rdp_status.ps1"
+	dockerImageListFileName = "docker_images.log"
 )
 
 // struct used to construct `Get-WinEvent (-ProviderName/-LogName) ${logName}` cmd string.
@@ -84,9 +86,12 @@ func (command cmd) run() (outPath string, err error) {
 		c.Stdout = outFile
 		c.Stderr = outFile
 	}
-
 	if command.args != "" {
-		c.Args = append(c.Args, strings.Split(argString, " ")...)
+		args := strings.Split(argString, " ")
+		for _, arg := range args {
+			// Decode the "%20" to space
+			c.Args = append(c.Args, strings.ReplaceAll(arg, "%20", " "))
+		}
 	}
 	err = c.Run()
 	return
@@ -192,8 +197,19 @@ func gatherRDPSettings(logs chan logFolder, errs chan error) {
 		errs <- err
 		return
 	}
+	// Get current runtime directory path
+	absDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		errs <- err
+		return
+	}
+	rdpScriptFilePath := filepath.Join(absDir, rdpScriptFileName)
+	// As we splits the params by spaces, but the rdp script file path has spaces,
+	// So encode the space to "%20" to keep the file path as a whole, then decode
+	// it back to space later on.
+	rdpScriptFilePath = strings.ReplaceAll(rdpScriptFilePath, " ", "%20")
 	var commands = []runner{
-		cmd{pwshPath, "-File rdp_status.ps1", rdpStatusFileName, false},
+		cmd{pwshPath, "-ExecutionPolicy Unrestricted -File " + rdpScriptFilePath, rdpStatusFileName, false},
 	}
 
 	logs <- logFolder{"RDP", runAll(commands, errs)}
@@ -256,6 +272,21 @@ func getPlainEventLogs(evts []winEvt, errs chan error) []string {
 	return runAll(commands, errs)
 }
 
+// getDockerImagesList put docker images list file in logFolder channel and errors in error channel.
+func getDockerImagesList(logs chan logFolder, errs chan error) {
+	dockerImageFilePath := make([]string, 0, 1)
+	dockerPath, err := exec.LookPath("docker")
+	if err != nil {
+		log.Printf("Docker not installed, couldn't get docker images list.\n")
+	} else {
+		var commands = []runner{
+			cmd{dockerPath, "image list", dockerImageListFileName, false},
+		}
+		dockerImageFilePath = runAll(commands, errs)
+	}
+	logs <- logFolder{"Kubernetes", dockerImageFilePath}
+}
+
 // gatherEventLogs put all the event log file paths in logFolder channel
 // and errors in error channel.
 func gatherEventLogs(logs chan logFolder, errs chan error) {
@@ -275,15 +306,43 @@ func gatherEventLogs(logs chan logFolder, errs chan error) {
 // gatherKubernetesLogs put all the kubernetes log file paths in logFolder channel
 // and errors in error channel.
 func gatherKubernetesLogs(logs chan logFolder, errs chan error) {
-	roots := []string{k8sLogsRoot, crashDump}
-	filePaths, ers := collectFilePaths(roots)
-	for _, err := range ers {
-		errs <- err
+	roots := make([]string, 0)
+	var err error
+	_, err = os.Stat(k8sLogsRoot)
+	if err == nil {
+		roots = append(roots, k8sLogsRoot)
+	} else if os.IsNotExist(err) {
+		log.Printf("%s doesn't exists, no need to collect inside logs.\n", k8sLogsRoot)
+	} else {
+		log.Printf("unexpected error happened when check existence of %s: %v", k8sLogsRoot, err)
 	}
-	plainEvtLogPaths := getPlainEventLogs([]winEvt{
-		{logName: "docker", fromProvider: true},
-	}, errs)
-	filePaths = append(filePaths, plainEvtLogPaths...)
+	_, err = os.Stat(crashDump)
+	if err == nil {
+		roots = append(roots, crashDump)
+	} else if os.IsNotExist(err) {
+		log.Printf("%s doesn't exists, no need to collect.\n", crashDump)
+	} else {
+		log.Printf("unexpected error happened when check existence of %s: %v", crashDump, err)
+	}
+	// Collect the kubernetes logs and crash dump
+	filePaths := make([]string, 0)
+	if len(roots) > 0 {
+		var ers []error
+		filePaths, ers = collectFilePaths(roots)
+		for _, err := range ers {
+			errs <- err
+		}
+	}
+	// Collect docker event logs
+	_, err = exec.LookPath("docker")
+	if err == nil {
+		plainEvtLogPaths := getPlainEventLogs([]winEvt{
+			{logName: "docker", fromProvider: true},
+		}, errs)
+		filePaths = append(filePaths, plainEvtLogPaths...)
+	} else {
+		log.Printf("Docker not installed, no docker logs.\n")
+	}
 	logs <- logFolder{"Kubernetes", filePaths}
 }
 
@@ -311,6 +370,7 @@ func gatherLogs(trace bool) ([]logFolder, error) {
 		gatherEventLogs,
 		gatherKubernetesLogs,
 		gatherRDPSettings,
+		getDockerImagesList,
 	}
 	if trace {
 		runFuncs = append(runFuncs, gatherTraceLogs)

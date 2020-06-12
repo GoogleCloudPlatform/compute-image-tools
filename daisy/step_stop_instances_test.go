@@ -45,9 +45,9 @@ func TestStopInstancesValidate(t *testing.T) {
 	w := testWorkflow()
 	s, _ := w.NewStep("s")
 	iCreator, _ := w.NewStep("iCreator")
-	iCreator.CreateInstances = &CreateInstances{&Instance{}}
+	iCreator.CreateInstances = &CreateInstances{Instances: []*Instance{&Instance{}}}
 	w.AddDependency(s, iCreator)
-	if err := w.instances.regCreate("instance1", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, iCreator); err != nil {
+	if err := w.instances.regCreate("instance1", &Resource{link: fmt.Sprintf("projects/%s/zones/%s/disks/d", testProject, testZone)}, false, iCreator); err != nil {
 		t.Fatal(err)
 	}
 
@@ -84,10 +84,10 @@ func TestStopInstancesRun(t *testing.T) {
 	}
 	for _, c := range stoppedChecks {
 		if c.shouldBeStopped {
-			if !c.r.stopped {
+			if !c.r.stoppedByWf {
 				t.Errorf("resource %q should have been stopped", c.r.RealName)
 			}
-		} else if c.r.stopped {
+		} else if c.r.stoppedByWf {
 			t.Errorf("resource %q should not have been stopped", c.r.RealName)
 		}
 	}

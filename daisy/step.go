@@ -45,27 +45,29 @@ type Step struct {
 	Timeout string `json:",omitempty"`
 	timeout time.Duration
 	// Only one of the below fields should exist for each instance of Step.
-	AttachDisks             *AttachDisks             `json:",omitempty"`
-	DetachDisks             *DetachDisks             `json:",omitempty"`
-	CreateDisks             *CreateDisks             `json:",omitempty"`
-	CreateForwardingRules   *CreateForwardingRules   `json:",omitempty"`
-	CreateFirewallRules     *CreateFirewallRules     `json:",omitempty"`
-	CreateImages            *CreateImages            `json:",omitempty"`
-	CreateMachineImages     *CreateMachineImages     `json:",omitempty"`
-	CreateInstances         *CreateInstances         `json:",omitempty"`
-	CreateNetworks          *CreateNetworks          `json:",omitempty"`
-	CreateSubnetworks       *CreateSubnetworks       `json:",omitempty"`
-	CreateTargetInstances   *CreateTargetInstances   `json:",omitempty"`
-	CopyGCSObjects          *CopyGCSObjects          `json:",omitempty"`
-	ResizeDisks             *ResizeDisks             `json:",omitempty"`
-	StartInstances          *StartInstances          `json:",omitempty"`
-	StopInstances           *StopInstances           `json:",omitempty"`
-	DeleteResources         *DeleteResources         `json:",omitempty"`
-	DeprecateImages         *DeprecateImages         `json:",omitempty"`
-	IncludeWorkflow         *IncludeWorkflow         `json:",omitempty"`
-	SubWorkflow             *SubWorkflow             `json:",omitempty"`
-	WaitForInstancesSignal  *WaitForInstancesSignal  `json:",omitempty"`
-	UpdateInstancesMetadata *UpdateInstancesMetadata `json:",omitempty"`
+	AttachDisks               *AttachDisks               `json:",omitempty"`
+	DetachDisks               *DetachDisks               `json:",omitempty"`
+	CreateDisks               *CreateDisks               `json:",omitempty"`
+	CreateForwardingRules     *CreateForwardingRules     `json:",omitempty"`
+	CreateFirewallRules       *CreateFirewallRules       `json:",omitempty"`
+	CreateImages              *CreateImages              `json:",omitempty"`
+	CreateMachineImages       *CreateMachineImages       `json:",omitempty"`
+	CreateInstances           *CreateInstances           `json:",omitempty"`
+	CreateNetworks            *CreateNetworks            `json:",omitempty"`
+	CreateSnapshots           *CreateSnapshots           `json:",omitempty"`
+	CreateSubnetworks         *CreateSubnetworks         `json:",omitempty"`
+	CreateTargetInstances     *CreateTargetInstances     `json:",omitempty"`
+	CopyGCSObjects            *CopyGCSObjects            `json:",omitempty"`
+	ResizeDisks               *ResizeDisks               `json:",omitempty"`
+	StartInstances            *StartInstances            `json:",omitempty"`
+	StopInstances             *StopInstances             `json:",omitempty"`
+	DeleteResources           *DeleteResources           `json:",omitempty"`
+	DeprecateImages           *DeprecateImages           `json:",omitempty"`
+	IncludeWorkflow           *IncludeWorkflow           `json:",omitempty"`
+	SubWorkflow               *SubWorkflow               `json:",omitempty"`
+	WaitForInstancesSignal    *WaitForInstancesSignal    `json:",omitempty"`
+	WaitForAnyInstancesSignal *WaitForAnyInstancesSignal `json:",omitempty"`
+	UpdateInstancesMetadata   *UpdateInstancesMetadata   `json:",omitempty"`
 	// Used for unit tests.
 	testType stepImpl
 }
@@ -123,6 +125,10 @@ func (s *Step) stepImpl() (stepImpl, DError) {
 		matchCount++
 		result = s.CreateNetworks
 	}
+	if s.CreateSnapshots != nil {
+		matchCount++
+		result = s.CreateSnapshots
+	}
 	if s.CreateSubnetworks != nil {
 		matchCount++
 		result = s.CreateSubnetworks
@@ -166,6 +172,10 @@ func (s *Step) stepImpl() (stepImpl, DError) {
 	if s.WaitForInstancesSignal != nil {
 		matchCount++
 		result = s.WaitForInstancesSignal
+	}
+	if s.WaitForAnyInstancesSignal != nil {
+		matchCount++
+		result = s.WaitForAnyInstancesSignal
 	}
 	if s.UpdateInstancesMetadata != nil {
 		matchCount++
@@ -296,6 +306,8 @@ func (s *Step) run(ctx context.Context) DError {
 	}
 	select {
 	case <-s.w.Cancel:
+		// return an error to indicate a canceled workflow is not 'success'
+		return s.w.onStepCancel(s, st)
 	default:
 		s.w.LogWorkflowInfo("Step %q (%s) successfully finished.", s.name, st)
 	}

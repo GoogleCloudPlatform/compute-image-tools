@@ -22,6 +22,7 @@ import (
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/stretchr/testify/assert"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -52,80 +53,94 @@ func TestLogSerialOutput(t *testing.T) {
 	tests := []struct {
 		test, wantMessage1, wantMessage2 string
 		instance                         *Instance
+		instanceBeta                     *InstanceBeta
 	}{
 		{
 			"Error but instance stopped",
 			"Streaming instance \"i1\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i1-serial-port0.log",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i1"}},
+			&InstanceBeta{Instance: computeBeta.Instance{Name: "i1"}},
 		},
 		{
 			"Error but instance running",
 			"Streaming instance \"i2\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i2-serial-port0.log",
 			"Instance \"i2\": error getting serial port: fail",
 			&Instance{Instance: compute.Instance{Name: "i2"}},
+			&InstanceBeta{Instance: computeBeta.Instance{Name: "i2"}},
 		},
 		{
 			"Normal flow",
 			"Streaming instance \"i3\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i3-serial-port0.log",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i3"}},
+			&InstanceBeta{Instance: computeBeta.Instance{Name: "i3"}},
 		},
 		{
 			"Error but instance deleted",
 			"Streaming instance \"i4\" serial port 0 output to https://storage.cloud.google.com/test-bucket/i4-serial-port0.log",
 			"",
 			&Instance{Instance: compute.Instance{Name: "i4"}},
+			&InstanceBeta{Instance: computeBeta.Instance{Name: "i4"}},
 		},
 	}
 
-	for _, tt := range tests {
+	assertTest := func(ctx context.Context, ii InstanceInterface, ib *InstanceBase, test, wantMessage1, wantMessage2 string) {
 		mockLogger := &MockLogger{}
 		w.Logger = mockLogger
 		s := &Step{name: "foo", w: w}
-		logSerialOutput(ctx, s, tt.instance, 0, 1*time.Microsecond)
+		logSerialOutput(ctx, s, ii, ib, 0, 1*time.Microsecond)
 		logEntries := mockLogger.getEntries()
 		gotStep := logEntries[0].StepName
 		if gotStep != "foo" {
-			t.Errorf("%s: got: %q, want: %q", tt.test, gotStep, "foo")
+			t.Errorf("%s: got: %q, want: %q", test, gotStep, "foo")
 		}
 		gotMessage := logEntries[0].Message
-		if gotMessage != tt.wantMessage1 {
-			t.Errorf("%s: got: %q, want: %q", tt.test, gotMessage, tt.wantMessage1)
+		if gotMessage != wantMessage1 {
+			t.Errorf("%s: got: %q, want: %q", test, gotMessage, wantMessage1)
 		}
-		if tt.wantMessage2 != "" {
+		if wantMessage2 != "" {
 			gotMessage := logEntries[1].Message
-			if gotMessage != tt.wantMessage2 {
-				t.Errorf("%s: got: %q, want: %q", tt.test, gotMessage, tt.wantMessage2)
+			if gotMessage != wantMessage2 {
+				t.Errorf("%s: got: %q, want: %q", test, gotMessage, wantMessage2)
 			}
 		}
+	}
+	for _, tt := range tests {
+		assertTest(ctx, tt.instance, &tt.instance.InstanceBase, tt.test, tt.wantMessage1, tt.wantMessage2)
 	}
 }
 
 func TestLogSerialOutputStopsAfterTenRetries(t *testing.T) {
-	ctx := context.Background()
-	w := testWorkflow()
 
-	callNum := 0
-	responses := []string{"", "", "hello", "", " go", "", "", "", "", "", "", "", "", "", "", "", "lang"}
-	nexts := []int64{0, 0, 0, 5, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}
+	testSerialOutput := func(ii InstanceInterface, ib *InstanceBase) {
+		w := testWorkflow()
 
-	w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, next int64) (*compute.SerialPortOutput, error) {
-		response := responses[callNum]
-		assert.Equal(t, nexts[callNum], next)
-		callNum++
-		switch response {
-		case "":
-			return nil, errors.New("fail")
-		default:
-			return &compute.SerialPortOutput{Contents: response, Next: next + int64(len(response))}, nil
+		callNum := 0
+		responses := []string{"", "", "hello", "", " go", "", "", "", "", "", "", "", "", "", "", "", "lang"}
+		nexts := []int64{0, 0, 0, 5, 5, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8}
+
+		w.ComputeClient.(*daisyCompute.TestClient).GetSerialPortOutputFn = func(_, _, n string, _, next int64) (*compute.SerialPortOutput, error) {
+			response := responses[callNum]
+			assert.Equal(t, nexts[callNum], next)
+			callNum++
+			switch response {
+			case "":
+				return nil, errors.New("fail")
+			default:
+				return &compute.SerialPortOutput{Contents: response, Next: next + int64(len(response))}, nil
+			}
 		}
+		logSerialOutput(context.Background(), &Step{name: "foo", w: w}, ii, ib, 0, 1*time.Microsecond)
+		logs := w.Logger.ReadSerialPortLogs()
+		assert.Equal(t, 1, len(logs))
+		assert.Equal(t, "hello go", logs[0])
 	}
-	logSerialOutput(ctx, &Step{name: "foo", w: w}, &Instance{Instance: compute.Instance{Name: "i1"}}, 0, 1*time.Microsecond)
+	i := Instance{Instance: compute.Instance{Name: "i1"}}
+	testSerialOutput(&i, &i.InstanceBase)
 
-	logs := w.Logger.ReadSerialPortLogs()
-	assert.Equal(t, 1, len(logs))
-	assert.Equal(t, "hello go", logs[0])
+	iBeta := InstanceBeta{Instance: computeBeta.Instance{Name: "i1Beta"}}
+	testSerialOutput(&iBeta, &iBeta.InstanceBase)
 }
 
 func TestCreateInstancesRun(t *testing.T) {
@@ -136,6 +151,10 @@ func TestCreateInstancesRun(t *testing.T) {
 		i.SelfLink = "insertedLink"
 		return createErr
 	}
+	w.ComputeClient.(*daisyCompute.TestClient).CreateInstanceBetaFn = func(p, z string, i *computeBeta.Instance) error {
+		i.SelfLink = "insertedLink"
+		return createErr
+	}
 	s := &Step{w: w}
 	w.Sources = map[string]string{"file": "gs://some/file"}
 	w.disks.m = map[string]*Resource{"d": {link: "dLink"}}
@@ -143,10 +162,15 @@ func TestCreateInstancesRun(t *testing.T) {
 	w.subnetworks.m = map[string]*Resource{"s": {link: "sLink"}}
 
 	// Good case: check disk and network links get resolved.
-	i0 := &Instance{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Network: "n"}}}}
-	i1 := &Instance{Resource: Resource{daisyName: "i1", Project: "foo"}, Instance: compute.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "other"}}, Zone: "bar"}}
-	i2 := &Instance{Resource: Resource{daisyName: "i2"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: "s"}}}}
-	ci := &CreateInstances{i0, i1, i2}
+	i0 := &Instance{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i0"}}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Network: "n"}}}}
+	i1 := &Instance{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i1", Project: "foo"}}, Instance: compute.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "other"}}, Zone: "bar"}}
+	i2 := &Instance{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i2"}}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*compute.NetworkInterface{{Subnetwork: "s"}}}}
+	i0Beta := &InstanceBeta{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i0"}}, Instance: computeBeta.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*computeBeta.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*computeBeta.NetworkInterface{{Network: "n"}}}}
+	i1Beta := &InstanceBeta{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i1", Project: "foo"}}, Instance: computeBeta.Instance{Name: "realI1", MachineType: "foo-type", Disks: []*computeBeta.AttachedDisk{{Source: "other"}}, Zone: "bar"}}
+	i2Beta := &InstanceBeta{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i2"}}, Instance: computeBeta.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*computeBeta.AttachedDisk{{Source: "d"}}, NetworkInterfaces: []*computeBeta.NetworkInterface{{Subnetwork: "s"}}}}
+
+	ci := &CreateInstances{Instances: []*Instance{i0, i1, i2}, InstancesBeta: []*InstanceBeta{i0Beta, i1Beta, i2Beta}}
+
 	if err := ci.run(ctx, s); err != nil {
 		t.Errorf("unexpected error running CreateInstances.run(): %v", err)
 	}
@@ -167,7 +191,17 @@ func TestCreateInstancesRun(t *testing.T) {
 	w.instances.m = map[string]*Resource{}
 	createErr = Errf("client error")
 	ci = &CreateInstances{
-		{Resource: Resource{daisyName: "i0"}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},
+		Instances: []*Instance{
+			{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i0"}}, Instance: compute.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*compute.AttachedDisk{{Source: "d0"}}}},
+		},
+	}
+	if err := ci.run(ctx, s); err != createErr {
+		t.Errorf("CreateInstances.run() should have return compute client error: %v != %v", err, createErr)
+	}
+	ci = &CreateInstances{
+		InstancesBeta: []*InstanceBeta{
+			{InstanceBase: InstanceBase{Resource: Resource{daisyName: "i0"}}, Instance: computeBeta.Instance{Name: "realI0", MachineType: "foo-type", Disks: []*computeBeta.AttachedDisk{{Source: "d0"}}}},
+		},
 	}
 	if err := ci.run(ctx, s); err != createErr {
 		t.Errorf("CreateInstances.run() should have return compute client error: %v != %v", err, createErr)

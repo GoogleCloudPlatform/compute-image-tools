@@ -18,6 +18,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -32,16 +33,50 @@ const (
 	applicationTextLogFileName = "Application.log"
 )
 
-func TestGatherRDPSettings(t *testing.T) {
+func TestGetDockerImagesList(t *testing.T) {
 	logFolderCh := make(chan logFolder, 2)
 	errCh := make(chan error)
 	// Test setup: create temp folder for test, clean it up afterwards
 	var err error
-	tmpFolder, err = ioutil.TempDir("", "gatherRDPSettingsTest")
+	tmpFolder, err = ioutil.TempDir("", "getDockerImagesListTest")
 	if err != nil {
 		t.Errorf("Error creating a temporary test folder:\n%v", err.Error())
 	}
 	defer os.RemoveAll(tmpFolder)
+
+	t.Run("Gathers docker images list", func(t *testing.T) {
+		go getDockerImagesList(logFolderCh, errCh)
+		select {
+		case l := <-logFolderCh:
+			if !stringArrayIncludesSubstring(l.files, dockerImageListFileName) {
+				t.Errorf("Expect %s, but it's missing", dockerImageListFileName)
+			}
+		case e := <-errCh:
+			if _, err := exec.LookPath("docker"); err == nil {
+				t.Errorf(e.Error())
+			}
+		}
+	})
+}
+
+func TestGatherRDPSettings(t *testing.T) {
+	logFolderCh := make(chan logFolder, 2)
+	errCh := make(chan error)
+
+	// Test setup: use the temp test build package folder for test
+	var err error
+	tmpFolder, err = filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		t.Errorf("Error getting the temp test build folder:\n%v", err.Error())
+	}
+
+	// Copy the rdp_status.ps1 over to temp test build folder for execution
+	rdpScriptFilePath := filepath.Join(tmpFolder, rdpScriptFileName)
+	input, err := ioutil.ReadFile(rdpScriptFileName)
+	if err != nil {
+		t.Errorf("Error loading the rdp_status.ps1 file:\n%v", err.Error())
+	}
+	ioutil.WriteFile(rdpScriptFilePath, input, 0644)
 
 	t.Run("Gathers Expected RDP Status File", func(t *testing.T) {
 		go gatherRDPSettings(logFolderCh, errCh)

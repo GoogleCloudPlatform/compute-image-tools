@@ -1,6 +1,10 @@
 {
   "Name": "translate-freebsd",
   "Vars": {
+    "sysprep": {
+      "Value": "false",
+      "Description": "If enabled, run sysprep. This is a no-op for Linux."
+    },
     "install_gce_packages": {
       "Value": "true",
       "Description": "Whether to install GCE packages."
@@ -81,7 +85,8 @@
           "SerialOutput": {
             "Port": 1,
             "SuccessMatch": "TranslateSuccess:",
-            "FailureMatch": "TranslateFailed:"
+            "FailureMatch": "TranslateFailed:",
+            "StatusMatch": "TranslateStatus:"
           }
         }
       ],

@@ -72,9 +72,9 @@ func TestDetachDisksValidate(t *testing.T) {
 		{"empty source case", &DetachDisks{{Instance: testInstance, DeviceName: ""}}, true},
 		{"bad source case", &DetachDisks{{Instance: testInstance, DeviceName: "bad"}}, true},
 		{"bad instance case", &DetachDisks{{Instance: "bad", DeviceName: testDisk}}, true},
-		{"bad project and zone case", &DetachDisks{{Instance: testInstance, DeviceName: "projects/bad/zones/bad/disks/bad"}}, true},
-		{"url case", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, false},
-		{"resolve instance and disk case", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, true},
+		{"bad project and zone case", &DetachDisks{{Instance: testInstance, DeviceName: "projects/bad/zones/bad/devices/bad"}}, true},
+		{"wrong url (disk url) case", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, true},
+		{"url case", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/devices/%s", testProject, testZone, testDisk)}}, false},
 	}
 	for _, tt := range tests {
 

@@ -48,26 +48,44 @@ function fail {
   FAILURES+="TestFailed: $message"$'\n'
 }
 
-# Check network connectivity.
-function check_connectivity {
+function check_metadata_connectivity {
   status "Checking metadata connection."
-  ping -q -w 10 metadata.google.internal
-  if [[ $? -ne 0 ]]; then
-    fail "Failed to connect to metadata.google.internal."
-  fi
+  for i in $(seq 1 20) ; do
+    ping -q -w 10 metadata.google.internal && return 0
+    status "Waiting for connectivity to metadata.google.internal."
+    sleep $((i**2))
+  done
+  fail "Failed to connect to metadata.google.internal."
+}
 
+function check_internet_connectivity {
   status "Checking external connectivity."
-  ping -q -w 10 google.com
-  if [[ $? -ne 0 ]]; then
-    fail "Failed to ping google.com."
-  fi
+  for i in $(seq 1 20) ; do
+    ping -q -w 10 google.com && return 0
+    status "Waiting for connectivity to google.com."
+    sleep $((i**2))
+  done
+  fail "Failed to connect to google.com."
 }
 
 # Check Google services.
 function check_google_services {
-  status "Checking if instance setup ran."
-  if [[ ! -f /etc/default/instance_configs.cfg ]]; then
-    fail "Instance setup failed."
+  if [[ -f /usr/bin/google_guest_agent ]]; then
+    status "Checking google-guest-agent"
+
+    # Upstart
+    if [[ -d /etc/init ]]; then
+      if initctl status google-guest-agent | grep -qv 'running'; then
+        fail "Google guest agent not running."
+      fi
+    else
+      service google-guest-agent status
+      if [[ $? -ne 0 ]]; then
+        fail "Google guest agent not running."
+      fi
+    fi
+
+    return 0
   fi
 
   # Upstart
@@ -151,39 +169,40 @@ function check_cloud_init {
   fi
 }
 
-# Check package installs.
+# Check package installs. Using iputils to ensure
+# ping is available for the check_metadata_connectivity test.
 function check_package_install {
   # Apt
   if [[ -d /etc/apt ]]; then
     status "Checking if apt can install a package."
     for i in $(seq 1 20) ; do
-      apt-get update && apt-get install --reinstall make && return 0
+      apt-get update && apt-get install --reinstall iputils-ping && return 0
       status "Waiting until apt is available."
       sleep $((i**2))
     done
-    fail "apt-get cannot install make."
+    fail "apt-get cannot install iputils-ping."
   fi
 
   # Yum
   if [[ -d /etc/yum ]]; then
     status "Checking if yum can install a package."
-    if rpm -q make; then
-      yum -y update make
+    if rpm -q iputils; then
+      yum -y update iputils
     else
-      yum -y install make
+      yum -y install iputils
     fi
-    yum -y reinstall make
+    yum -y reinstall iputils
     if [[ $? -ne 0 ]]; then
-      fail "yum cannot install make."
+      fail "yum cannot install iputils."
     fi
   fi
 
   # Zypper
   if [[ -d /etc/zypp ]]; then
     status "Checking if zypper can install a package."
-    zypper install -f -y make
+    zypper install -f -y iputils
     if [[ $? -ne 0 ]]; then
-      fail "zypper cannot install make."
+      fail "zypper cannot install iputils."
     fi
   fi
 }
@@ -196,7 +215,8 @@ check_google_services
 check_google_cloud_sdk
 check_cloud_init
 check_package_install
-check_connectivity
+check_metadata_connectivity
+check_internet_connectivity
 
 # Return results.
 if [[ ${FAIL} -eq 0 ]]; then

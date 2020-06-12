@@ -59,9 +59,6 @@ def main():
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
                                          raise_on_not_found=True)
 
-  if utils.GetMetadataAttribute('install_nge') == 'true':
-    bvz_url = 'https://github.com/hopkiw/bootstrap-vz/archive/master.zip'
-
   if repo not in REPOS:
     raise ValueError(
         'Metadata "google_cloud_repo" must be one of %s.' % REPOS)

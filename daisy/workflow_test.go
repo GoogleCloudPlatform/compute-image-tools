@@ -260,14 +260,33 @@ func TestNewFromFile(t *testing.T) {
 		"${bootstrap_instance_name}": {
 			name: "${bootstrap_instance_name}",
 			CreateInstances: &CreateInstances{
-				{
-					Instance: compute.Instance{
-						Name:        "${bootstrap_instance_name}",
-						Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
-						MachineType: "${machine_type}",
+				Instances: []*Instance{
+					{
+						Instance: compute.Instance{
+							Name:        "${bootstrap_instance_name}",
+							Disks:       []*compute.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope1", "scope2"},
+						},
+						Metadata: map[string]string{"test_metadata": "this was a test"},
 					},
-					StartupScript: "shutdown /h",
-					Metadata:      map[string]string{"test_metadata": "this was a test"},
+				},
+				InstancesBeta: []*InstanceBeta{
+					{
+						Instance: computeBeta.Instance{
+							Name:        "${bootstrap_instance_name}",
+							Disks:       []*computeBeta.AttachedDisk{{Source: "bootstrap"}, {Source: "image"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope1", "scope2"},
+						},
+						Metadata: map[string]string{"test_metadata": "this was a test"},
+					},
 				},
 			},
 		},
@@ -279,13 +298,44 @@ func TestNewFromFile(t *testing.T) {
 		"postinstall": {
 			name: "postinstall",
 			CreateInstances: &CreateInstances{
-				{
-					Instance: compute.Instance{
-						Name:        "postinstall",
-						Disks:       []*compute.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
-						MachineType: "${machine_type}",
+				Instances: []*Instance{
+					{
+						Instance: compute.Instance{
+							Name:        "postinstall",
+							Disks:       []*compute.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope3", "scope4"},
+						},
 					},
-					StartupScript: "shutdown /h",
+					{
+						Instance: compute.Instance{
+							Name:        "postinstallBeta",
+							MachineType: "${machine_type}",
+						},
+					},
+				},
+				InstancesBeta: []*InstanceBeta{
+					{
+						Instance: computeBeta.Instance{
+							Name:        "postinstall",
+							Disks:       []*computeBeta.AttachedDisk{{Source: "image"}, {Source: "bootstrap"}},
+							MachineType: "${machine_type}",
+						},
+						InstanceBase: InstanceBase{
+							StartupScript: "shutdown /h",
+							Scopes:        []string{"scope3", "scope4"},
+						},
+					},
+					{
+						Instance: computeBeta.Instance{
+							Name:               "postinstallBeta",
+							MachineType:        "${machine_type}",
+							SourceMachineImage: "source-machine-image",
+						},
+					},
 				},
 			},
 		},
@@ -944,5 +994,92 @@ func TestPopulateClients(t *testing.T) {
 func tryPopulateClients(t *testing.T, w *Workflow) {
 	if err := w.PopulateClients(context.Background()); err != nil {
 		t.Errorf("Failed to populate clients for workflow: %v", err)
+	}
+}
+
+func TestCancelReasonEmptySingleWorkflow(t *testing.T) {
+	w1 := testWorkflow()
+	assertWorkflowCancelReason(t, w1, "")
+}
+
+func TestCancelReasonProvidedSingleWorkflow(t *testing.T) {
+	w1 := testWorkflow()
+	w1.cancelReason = "w1 cr"
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+}
+
+func TestCancelReasonChild(t *testing.T) {
+	w1 := testWorkflow()
+	w2 := testWorkflow()
+
+	w2.parent = w1
+	w1.cancelReason = "w1 cr"
+	w2.cancelReason = "w2 cr"
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+	assertWorkflowCancelReason(t, w2, "w2 cr")
+}
+
+func TestCancelReasonInheritedFromParent(t *testing.T) {
+	w1 := testWorkflow()
+	w2 := testWorkflow()
+
+	w2.parent = w1
+	w1.cancelReason = "w1 cr"
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+	assertWorkflowCancelReason(t, w2, "w1 cr")
+}
+
+func TestCancelReasonInheritedFromGrandParent(t *testing.T) {
+	w1 := testWorkflow()
+	w2 := testWorkflow()
+	w3 := testWorkflow()
+
+	w2.parent = w1
+	w3.parent = w2
+	w1.cancelReason = "w1 cr"
+
+	assertWorkflowCancelReason(t, w1, "w1 cr")
+	assertWorkflowCancelReason(t, w2, "w1 cr")
+	assertWorkflowCancelReason(t, w3, "w1 cr")
+}
+
+func TestCancelReasonInheritedFromParentWhenGrandchild(t *testing.T) {
+	w1 := testWorkflow()
+	w2 := testWorkflow()
+	w3 := testWorkflow()
+
+	w2.parent = w1
+	w3.parent = w2
+	w2.cancelReason = "w2 cr"
+
+	assertWorkflowCancelReason(t, w1, "")
+	assertWorkflowCancelReason(t, w2, "w2 cr")
+	assertWorkflowCancelReason(t, w3, "w2 cr")
+}
+
+func assertWorkflowCancelReason(t *testing.T, w *Workflow, expected string) {
+	if cr := w.getCancelReason(); cr != expected {
+		t.Errorf("Expected cancel reason `%v` but got `%v` ", expected, cr)
+	}
+}
+
+func TestOnStepCancelDefaultCancelReason(t *testing.T) {
+	w := testWorkflow()
+	s := &Step{name: "s", w: w}
+	err := w.onStepCancel(s, "Dummy")
+	expectedErrorMessage := "Step \"s\" (Dummy) is canceled."
+	if err.Error() != expectedErrorMessage {
+		t.Errorf("Expected error message `%v` but got `%v` ", expectedErrorMessage, err.Error())
+	}
+}
+
+func TestOnStepCancelCustomCancelReason(t *testing.T) {
+	w := testWorkflow()
+	w.cancelReason = "failed horribly"
+	s := &Step{name: "s", w: w}
+	err := w.onStepCancel(s, "Dummy")
+	expectedErrorMessage := "Step \"s\" (Dummy) failed horribly."
+	if err.Error() != expectedErrorMessage {
+		t.Errorf("Expected error message `%v` but got `%v` ", expectedErrorMessage, err.Error())
 	}
 }

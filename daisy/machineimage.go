@@ -20,48 +20,22 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"sync"
-
-	computeBeta "google.golang.org/api/compute/v0.beta"
-	"google.golang.org/api/googleapi"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	computeBeta "google.golang.org/api/compute/v0.beta"
+	"google.golang.org/api/googleapi"
 )
 
 var (
-	machineImageCache struct {
-		exists map[string][]*computeBeta.MachineImage
-		mu     sync.Mutex
-	}
 	machineImageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/machineImages\/(?P<machineImage>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
 // machineImageExists should only be used during validation for existing GCE
 // machine images and should not be relied or populated for daisy created resources.
-func machineImageExists(client daisyCompute.Client, project, name string) (bool, DError) {
-	if name == "" {
-		return false, Errf("must provide machine image name")
-	}
-	machineImageCache.mu.Lock()
-	defer machineImageCache.mu.Unlock()
-	if machineImageCache.exists == nil {
-		machineImageCache.exists = map[string][]*computeBeta.MachineImage{}
-	}
-	if _, ok := machineImageCache.exists[project]; !ok {
-		il, err := client.ListMachineImages(project)
-		if err != nil {
-			return false, Errf("error listing images for project %q: %v", project, err)
-		}
-		machineImageCache.exists[project] = il
-	}
-
-	for _, i := range machineImageCache.exists[project] {
-		if name == i.Name {
-			return true, nil
-		}
-	}
-
-	return false, nil
+func (w *Workflow) machineImageExists(project, machineImage string) (bool, DError) {
+	return w.machineImageCache.resourceExists(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListMachineImages(project)
+	}, project, machineImage)
 }
 
 // MachineImage is used to create a GCE machine image.
@@ -127,7 +101,7 @@ func newMachineImageRegistry(w *Workflow) *machineImageRegistry {
 }
 
 func (ir *machineImageRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(machineImageURLRgx, res.link)
+	m := NamedSubexp(machineImageURLRgx, res.link)
 	err := ir.w.ComputeClient.DeleteMachineImage(m["project"], m["machineImage"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete machine image", err)

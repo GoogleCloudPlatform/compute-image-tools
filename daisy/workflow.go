@@ -133,10 +133,10 @@ type Workflow struct {
 	cleanupHooks          []func() DError
 	cleanupHooksMx        sync.Mutex
 	recordTimeMx          sync.Mutex
-	logWait               sync.WaitGroup
+	stepWait              sync.WaitGroup
 	logProcessHook        func(string) string
 
-	// Optional compute endpoint override.
+	// Optional compute endpoint override.stepWait
 	ComputeEndpoint    string          `json:",omitempty"`
 	ComputeClient      compute.Client  `json:"-"`
 	StorageClient      *storage.Client `json:"-"`
@@ -153,6 +153,24 @@ type Workflow struct {
 	subnetworks     *subnetworkRegistry
 	targetInstances *targetInstanceRegistry
 	objects         *objectRegistry
+	snapshots       *snapshotRegistry
+
+	// Cache of resources
+	machineTypeCache    twoDResourceCache
+	instanceCache       twoDResourceCache
+	diskCache           twoDResourceCache
+	subnetworkCache     twoDResourceCache
+	targetInstanceCache twoDResourceCache
+	forwardingRuleCache twoDResourceCache
+	imageCache          oneDResourceCache
+	imageFamilyCache    oneDResourceCache
+	machineImageCache   oneDResourceCache
+	networkCache        oneDResourceCache
+	firewallRuleCache   oneDResourceCache
+	zonesCache          oneDResourceCache
+	regionsCache        oneDResourceCache
+	licenseCache        oneDResourceCache
+	snapshotCache       oneDResourceCache
 
 	stepTimeRecords             []TimeRecord
 	serialControlOutputValues   map[string]string
@@ -161,6 +179,8 @@ type Workflow struct {
 	ForceCleanupOnError bool
 	// forceCleanup is set to true when resources should be forced clean, even when NoCleanup is set to true
 	forceCleanup bool
+	// cancelReason provides custom reason when workflow is canceled. f
+	cancelReason string
 }
 
 //DisableCloudLogging disables logging to Cloud Logging for this workflow.
@@ -323,7 +343,15 @@ func (w *Workflow) cleanup() {
 
 	// Allow goroutines that are watching w.Cancel an opportunity
 	// to detect that the workflow was cancelled and to cleanup.
-	time.Sleep(4 * time.Second)
+	c := make(chan struct{})
+	go func() {
+		w.stepWait.Wait()
+		close(c)
+	}()
+	select {
+	case <-c:
+	case <-time.After(4 * time.Second):
+	}
 
 	for _, hook := range w.cleanupHooks {
 		if err := hook(); err != nil {
@@ -548,6 +576,7 @@ func (w *Workflow) includeWorkflow(iw *Workflow) {
 	iw.networks = w.networks
 	iw.subnetworks = w.subnetworks
 	iw.targetInstances = w.targetInstances
+	iw.snapshots = w.snapshots
 	iw.objects = w.objects
 }
 
@@ -751,6 +780,7 @@ func New() *Workflow {
 	w.subnetworks = newSubnetworkRegistry(w)
 	w.objects = newObjectRegistry(w)
 	w.targetInstances = newTargetInstanceRegistry(w)
+	w.snapshots = newSnapshotRegistry(w)
 	w.addCleanupHook(func() DError {
 		w.instances.cleanup() // instances need to be done before disks/networks
 		w.images.cleanup()
@@ -761,6 +791,7 @@ func New() *Workflow {
 		w.firewallRules.cleanup()
 		w.subnetworks.cleanup()
 		w.networks.cleanup()
+		w.snapshots.cleanup()
 		return nil
 	})
 
@@ -858,4 +889,32 @@ func (w *Workflow) IterateWorkflowSteps(cb func(step *Step)) {
 		}
 		cb(step)
 	}
+}
+
+// CancelWithReason cancels workflow with a specific reason. The specific reason replaces "is canceled" in the default error message.
+func (w *Workflow) CancelWithReason(reason string) {
+	w.cancelReason = reason
+	close(w.Cancel)
+}
+
+func (w *Workflow) getCancelReason() string {
+	cancelReason := w.cancelReason
+	for wi := w; cancelReason == "" && wi != nil; wi = wi.parent {
+		cancelReason = wi.cancelReason
+	}
+	return cancelReason
+}
+
+func (w *Workflow) onStepCancel(s *Step, stepClass string) DError {
+	if s == nil {
+		return nil
+	}
+	cancelReason := w.getCancelReason()
+	if cancelReason == "" {
+		cancelReason = "is canceled"
+	}
+	errorMessageFormat := "Step %q (%s) " + cancelReason + "."
+
+	s.w.LogWorkflowInfo(errorMessageFormat, s.name, stepClass)
+	return Errf(errorMessageFormat, s.name, stepClass)
 }

@@ -15,8 +15,7 @@
 
 set -o pipefail
 
-# Enable case-insensitive match when checking for
-# the ova filetype.
+# Enable case-insensitive match; used by fileIsOva.
 shopt -s nocasematch
 
 # Verify VM has access to Google APIs
@@ -29,7 +28,7 @@ fi
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance"
 DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)"
-SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/source_disk_file)"
+SOURCE_URL="$DAISY_SOURCE_URL/source_disk_file"
 DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk_name)"
 SCRATCH_DISK_NAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/scratch_disk_name)"
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
@@ -84,6 +83,23 @@ function resizeDisk() {
   exit
 }
 
+# Determines whether a file is an OVA archive; the check isn't
+# comprehensive to *all* OVAs, but focuses on the OVAs supported
+# by this script (OVAs that use VMDKs).
+# Arguments:
+#   File to check.
+# Returns:
+#   0 if the file is a tar file, non-zero otherwise.
+function fileIsOvaWithVmdk() {
+  if [[ $(file --mime-type "$1") =~ application/x-tar ]]; then
+    contents=$(tar --list -f "$1")
+    if [[ "$contents" =~ ovf && "$contents" =~ vmdk ]]; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
 function copyImageToScratchDisk() {
   # We allocate an extra 10% capacity to account for ext4's
   # filesystem overhead. According to https://petermolnar.net/why-use-btrfs-for-media-storage/ ,
@@ -93,8 +109,8 @@ function copyImageToScratchDisk() {
   local scratchDiskSizeGigabytes=$(awk "BEGIN {print int((${SOURCE_SIZE_GB} * 1.1) + 1)}")
   # We allocate double capacity for OVA, which would
   # require making an additional copy of its enclosed VMDK.
-  if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
-     scratchDiskSizeGigabytes=$((scratchDiskSizeGigabytes * 2))
+  if fileIsOvaWithVmdk "${IMAGE_PATH}"; then
+    scratchDiskSizeGigabytes=$((scratchDiskSizeGigabytes * 2))
   fi
 
   # This disk is initially created with 10GB of space.
@@ -107,7 +123,7 @@ function copyImageToScratchDisk() {
 
   mkdir -p /daisy-scratch
   # /dev/sdb is used since the scratch disk is the second
-  # disk that's attached in import_disk.wf.json.
+  # disk that's attached in inflate_file.wf.json.
   #
   # We disable reserved blocks to save disk space via `-m 0`. Typically
   # this is 5% and we won't be using it.
@@ -144,12 +160,26 @@ function serialOutputKeyValuePair() {
 copyImageToScratchDisk
 
 # If the image is an OVA, then copy out its VMDK.
-if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
+if fileIsOvaWithVmdk "${IMAGE_PATH}"; then
   echo "Import: Unpacking VMDK files from ova."
   VMDK="$(tar --list -f "${IMAGE_PATH}" | grep -m1 vmdk)"
   tar -C /daisy-scratch -xf "${IMAGE_PATH}" "${VMDK}"
   IMAGE_PATH="/daisy-scratch/${VMDK}"
   echo "Import: New source file is ${VMDK}"
+fi
+
+# Check whether the image is valid, and attempt to repair if not.
+# We skip repair if the return code is zero (the image is valid) or
+# if the return code is 63 (the image doesn't support checks).
+#
+# The magic number 63 can be found in the man pages for qemu-img, eg:
+# https://manpages.debian.org/testing/qemu-utils/qemu-img.1.en.html
+qemu-img check "${IMAGE_PATH}"
+if ! [[ $? == 0 || $? == 63 ]]; then
+  if ! out=$(qemu-img check -r all "${IMAGE_PATH}" 2>&1); then
+    echo "ImportFailed: The image file is not decodable. Details: $out"
+    exit
+  fi
 fi
 
 # Ensure the output disk has sufficient space to accept the disk image.
@@ -175,7 +205,7 @@ if [[ ${SIZE_GB} -gt 10 ]]; then
 fi
 
 # Convert the image and write it to the disk referenced by $DISKNAME.
-# /dev/sdc is used since it's the third disk that's attached in import_disk.wf.json.
+# /dev/sdc is used since it's the third disk that's attached in inflate_file.wf.json.
 if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); then
   if [[ "${IMAGE_PATH}" =~ \.vmdk$ ]]; then
     if file "${IMAGE_PATH}" | grep -qiP ascii; then

@@ -39,7 +39,8 @@ func getUser() string {
 	return "unknown"
 }
 
-func namedSubexp(re *regexp.Regexp, s string) map[string]string {
+// NamedSubexp extracts sub matches in the exp
+func NamedSubexp(re *regexp.Regexp, s string) map[string]string {
 	match := re.FindStringSubmatch(s)
 	if match == nil {
 		return nil
@@ -279,4 +280,27 @@ func CombineGuestOSFeaturesBeta(features1 []*computeBeta.GuestOsFeature,
 		return ret[i].Type < ret[j].Type
 	})
 	return ret
+}
+
+// UpdateInstanceNoExternalIP updates Create Instance step to operate
+// when no external IP access is allowed by the VPC Daisy workflow is running in.
+func UpdateInstanceNoExternalIP(step *Step) {
+	if step.CreateInstances != nil {
+		for _, instance := range step.CreateInstances.Instances {
+			if instance.Instance.NetworkInterfaces == nil {
+				continue
+			}
+			for _, networkInterface := range instance.Instance.NetworkInterfaces {
+				networkInterface.AccessConfigs = []*compute.AccessConfig{}
+			}
+		}
+		for _, instance := range step.CreateInstances.InstancesBeta {
+			if instance.Instance.NetworkInterfaces == nil {
+				continue
+			}
+			for _, networkInterface := range instance.Instance.NetworkInterfaces {
+				networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
+			}
+		}
+	}
 }

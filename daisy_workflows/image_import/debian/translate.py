@@ -26,7 +26,6 @@ import logging
 import utils
 import utils.diskutils as diskutils
 
-
 google_cloud = '''
 deb http://packages.cloud.google.com/apt cloud-sdk-{deb_release} main
 deb http://packages.cloud.google.com/apt google-compute-engine-{deb_release}-stable main
@@ -49,8 +48,8 @@ def DistroSpecific(g):
   if install_gce == 'true':
     logging.info('Installing GCE packages.')
 
-    g.command(['apt-get', 'update'])
-    g.sh('DEBIAN_FRONTEND=noninteractive apt-get install --assume-yes gnupg')
+    utils.update_apt(g)
+    utils.install_apt_packages(g, 'gnupg')
 
     g.command(
         ['wget', 'https://packages.cloud.google.com/apt/doc/apt-key.gpg',
@@ -67,13 +66,15 @@ def DistroSpecific(g):
       logging.debug(str(e))
       logging.warn('Could not uninstall Azure agent. Continuing anyway.')
 
-    g.command(['apt-get', 'update'])
-    g.sh(
-        'DEBIAN_FRONTEND=noninteractive '
-        'apt-get install --assume-yes --no-install-recommends '
-        'google-cloud-packages-archive-keyring google-cloud-sdk '
-        'google-compute-engine python-google-compute-engine '
-        'python3-google-compute-engine')
+    utils.update_apt(g)
+    pkgs = ['google-cloud-packages-archive-keyring', 'google-cloud-sdk',
+            'google-compute-engine']
+    # Debian 8 doesn't support the new guest agent, so we need to install
+    # the legacy Python version.
+    if deb_release == 'jessie':
+      pkgs += ['python-google-compute-engine',
+               'python3-google-compute-engine']
+    utils.install_apt_packages(g, *pkgs)
 
   # Update grub config to log to console.
   g.command(

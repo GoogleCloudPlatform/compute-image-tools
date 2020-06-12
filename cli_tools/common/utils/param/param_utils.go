@@ -44,41 +44,6 @@ func GetProjectID(mgce domain.MetadataGCEInterface, projectFlag string) (string,
 	return projectFlag, nil
 }
 
-// PopulateMissingParameters populate missing params for import/export cli tools
-func PopulateMissingParameters(project *string, zone *string, region *string,
-	scratchBucketGcsPath *string, file string, storageLocation *string,
-	mgce domain.MetadataGCEInterface, scratchBucketCreator domain.ScratchBucketCreatorInterface,
-	resourceLocationRetrieverInterface domain.ResourceLocationRetrieverInterface,
-	storageClient domain.StorageClientInterface) error {
-
-	if err := PopulateProjectIfMissing(mgce, project); err != nil {
-		return err
-	}
-
-	scratchBucketRegion, err := populateScratchBucketGcsPath(scratchBucketGcsPath, *zone, mgce,
-		scratchBucketCreator, file, project, storageClient)
-	if err != nil {
-		return err
-	}
-
-	if storageLocation != nil && *storageLocation == "" {
-		*storageLocation = resourceLocationRetrieverInterface.GetLargestStorageLocation(scratchBucketRegion)
-	}
-
-	if *zone == "" {
-		if aZone, err := resourceLocationRetrieverInterface.GetZone(scratchBucketRegion, *project); err == nil {
-			*zone = aZone
-		} else {
-			return err
-		}
-	}
-
-	if err := PopulateRegion(region, *zone); err != nil {
-		return err
-	}
-	return nil
-}
-
 func populateScratchBucketGcsPath(scratchBucketGcsPath *string, zone string, mgce domain.MetadataGCEInterface,
 	scratchBucketCreator domain.ScratchBucketCreatorInterface, file string, project *string,
 	storageClient domain.StorageClientInterface) (string, error) {
@@ -172,4 +137,9 @@ func GetGlobalResourcePath(resourceType string, resourceName string) string {
 // GetRegionalResourcePath gets regional resource path based on either a local resource name or a path
 func GetRegionalResourcePath(region string, resourceType string, resourceName string) string {
 	return getResourcePath(fmt.Sprintf("regions/%v", region), resourceType, resourceName)
+}
+
+// GetZonalResourcePath gets zonal resource path based on either a local resource name or a path
+func GetZonalResourcePath(zone string, resourceType string, resourceName string) string {
+	return getResourcePath(fmt.Sprintf("zones/%v", zone), resourceType, resourceName)
 }

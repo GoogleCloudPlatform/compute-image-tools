@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/vmware/govmomi/ovf"
@@ -649,12 +649,25 @@ func TestGetOSIdNonDeterministicMultiOption(t *testing.T) {
 		err.Error())
 }
 
+func TestGetOSIdNilOSIdInDescriptor(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOSTypeAsReference(nil))
+	assert.Equal(t, "", osID)
+	assert.NotNil(t, err)
+	assert.Equal(t,
+		"OperatingSystemSection.OSType must be defined to retrieve OS info",
+		err.Error())
+}
+
 func createOVFDescriptorWithOSType(osType string) *ovf.Envelope {
+	return createOVFDescriptorWithOSTypeAsReference(&osType)
+}
+
+func createOVFDescriptorWithOSTypeAsReference(osType *string) *ovf.Envelope {
 	return &ovf.Envelope{
 		VirtualSystem: &ovf.VirtualSystem{
 			OperatingSystem: []ovf.OperatingSystemSection{
 				{
-					OSType: &osType,
+					OSType: osType,
 				},
 			},
 		},

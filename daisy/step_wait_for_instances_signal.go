@@ -35,6 +35,9 @@ var (
 // WaitForInstancesSignal is a Daisy WaitForInstancesSignal workflow step.
 type WaitForInstancesSignal []*InstanceSignal
 
+// WaitForAnyInstancesSignal is a Daisy WaitForAnyInstancesSignal workflow step.
+type WaitForAnyInstancesSignal []*InstanceSignal
+
 // FailureMatches is a list of matching failure strings.
 type FailureMatches []string
 
@@ -185,6 +188,16 @@ func extractOutputValue(w *Workflow, s string) {
 }
 
 func (w *WaitForInstancesSignal) populate(ctx context.Context, s *Step) DError {
+	is := (*[]*InstanceSignal)(w)
+	return populateForWaitForInstancesSignal(is, "wait_for_instance_signal")
+}
+
+func (w *WaitForAnyInstancesSignal) populate(ctx context.Context, s *Step) DError {
+	is := (*[]*InstanceSignal)(w)
+	return populateForWaitForInstancesSignal(is, "wait_for_any_instance_signal")
+}
+
+func populateForWaitForInstancesSignal(w *[]*InstanceSignal, sn string) DError {
 	for _, ws := range *w {
 		if ws.Interval == "" {
 			ws.Interval = defaultInterval
@@ -192,16 +205,25 @@ func (w *WaitForInstancesSignal) populate(ctx context.Context, s *Step) DError {
 		var err error
 		ws.interval, err = time.ParseDuration(ws.Interval)
 		if err != nil {
-			return newErr("failed to parse duration for step wait_for_instance_signal", err)
+			return newErr(fmt.Sprintf("failed to parse duration for step %v", sn), err)
 		}
 	}
 	return nil
 }
 
 func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) DError {
+	is := (*[]*InstanceSignal)(w)
+	return runForWaitForInstancesSignal(is, s, true)
+}
+
+func (w *WaitForAnyInstancesSignal) run(ctx context.Context, s *Step) DError {
+	is := (*[]*InstanceSignal)(w)
+	return runForWaitForInstancesSignal(is, s, false)
+}
+
+func runForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step, waitAll bool) DError {
 	var wg sync.WaitGroup
 	e := make(chan DError)
-
 	for _, is := range *w {
 		wg.Add(1)
 		go func(is *InstanceSignal) {
@@ -211,7 +233,7 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) DError {
 				e <- Errf("unresolved instance %q", is.Name)
 				return
 			}
-			m := namedSubexp(instanceURLRgx, i.link)
+			m := NamedSubexp(instanceURLRgx, i.link)
 			serialSig := make(chan struct{})
 			stoppedSig := make(chan struct{})
 			if is.Stopped {
@@ -224,7 +246,8 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) DError {
 			}
 			if is.SerialOutput != nil {
 				go func() {
-					if err := waitForSerialOutput(s, m["project"], m["zone"], m["instance"], is.SerialOutput, is.interval); err != nil {
+					if err := waitForSerialOutput(s, m["project"], m["zone"], m["instance"], is.SerialOutput, is.interval); err != nil || !waitAll {
+						// send a signal to end other waiting instances
 						e <- err
 					}
 					close(serialSig)
@@ -238,12 +261,10 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) DError {
 			}
 		}(is)
 	}
-
 	go func() {
 		wg.Wait()
 		e <- nil
 	}()
-
 	select {
 	case err := <-e:
 		return err
@@ -253,6 +274,16 @@ func (w *WaitForInstancesSignal) run(ctx context.Context, s *Step) DError {
 }
 
 func (w *WaitForInstancesSignal) validate(ctx context.Context, s *Step) DError {
+	is := (*[]*InstanceSignal)(w)
+	return validateForWaitForInstancesSignal(is, s)
+}
+
+func (w *WaitForAnyInstancesSignal) validate(ctx context.Context, s *Step) DError {
+	is := (*[]*InstanceSignal)(w)
+	return validateForWaitForInstancesSignal(is, s)
+}
+
+func validateForWaitForInstancesSignal(w *[]*InstanceSignal, s *Step) DError {
 	// Instance checking.
 	for _, i := range *w {
 		if _, err := s.w.instances.regUse(i.Name, s); err != nil {

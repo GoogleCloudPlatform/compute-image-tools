@@ -17,10 +17,6 @@
       "Value": "disk-rhel-8",
       "Description": "Name of the disk to install onto."
     },
-    "install_nge": {
-      "Value": "false",
-      "Description": "Whether to install the new guest agent"
-    },
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
@@ -36,7 +32,6 @@
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",
-          "install_nge": "${install_nge}",
           "rhel_uefi": "true"
         }
       }
@@ -49,10 +44,9 @@
           "Licenses": [
             "projects/rhel-cloud/global/licenses/rhel-8-server"
           ],
-          "Description": "Red Hat, Red Hat Enterprise Linux, 8, x86_64 built on ${build_date} with UEFI support",
+          "Description": "Red Hat, Red Hat Enterprise Linux, 8, x86_64 built on ${build_date}",
           "Family": "rhel-8",
           "GuestOsFeatures": [
-            "SECURE_BOOT",
             "UEFI_COMPATIBLE",
             "VIRTIO_SCSI_MULTIQUEUE"
           ],

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/golang/mock/gomock"
@@ -31,8 +32,8 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
 )
 
 const instanceImportWorkflowPath = "../../test_data/test_import_ovf_to_instance.wf.json"
@@ -98,7 +99,7 @@ func TestSetUpInstanceWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		ctx: ctx, bucketIteratorCreator: mockBucketIteratorCreator,
-		Logger: logging.NewLogger("test"), params: params}
+		Logger: logging.NewStdoutLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
@@ -116,7 +117,7 @@ func TestSetUpInstanceWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, 3+3*3, len(w.Steps))
 	assert.Equal(t, "europe-north1", oi.imageLocation)
 
-	instance := (*w.Steps["create-instance"].CreateInstances)[0].Instance
+	instance := (*w.Steps["create-instance"].CreateInstances).Instances[0].Instance
 	assert.Equal(t, "build123", instance.Labels["gce-ovf-import-build-id"])
 	assert.Equal(t, "uservalue1", instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", instance.Labels["userkey2"])
@@ -127,6 +128,18 @@ func TestSetUpInstanceWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, 2, len(instance.Scheduling.NodeAffinities[0].Values))
 	assert.Equal(t, "prod", instance.Scheduling.NodeAffinities[0].Values[0])
 	assert.Equal(t, "test", instance.Scheduling.NodeAffinities[0].Values[1])
+
+	instanceBeta := (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].Instance
+	assert.Equal(t, "build123", instanceBeta.Labels["gce-ovf-import-build-id"])
+	assert.Equal(t, "uservalue1", instanceBeta.Labels["userkey1"])
+	assert.Equal(t, "uservalue2", instanceBeta.Labels["userkey2"])
+	assert.Equal(t, false, *instanceBeta.Scheduling.AutomaticRestart)
+	assert.Equal(t, 1, len(instanceBeta.Scheduling.NodeAffinities))
+	assert.Equal(t, "env", instanceBeta.Scheduling.NodeAffinities[0].Key)
+	assert.Equal(t, "IN", instanceBeta.Scheduling.NodeAffinities[0].Operator)
+	assert.Equal(t, 2, len(instanceBeta.Scheduling.NodeAffinities[0].Values))
+	assert.Equal(t, "prod", instanceBeta.Scheduling.NodeAffinities[0].Values[0])
+	assert.Equal(t, "test", instanceBeta.Scheduling.NodeAffinities[0].Values[1])
 
 	assert.Equal(t, fmt.Sprintf("gs://%v/ovf-import-build123/ovf/", createdScratchBucketName),
 		oi.gcsPathToClean)
@@ -169,7 +182,7 @@ func TestSetUpInstanceWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHo
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
-		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+		Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
@@ -186,13 +199,21 @@ func TestSetUpInstanceWorkflowHappyPathFromOVAExistingScratchBucketProjectZoneHo
 	assert.Equal(t, "oAuthFilePath", w.OAuthPath)
 	assert.Equal(t, "3h", w.DefaultTimeout)
 	assert.Equal(t, 3+3*3, len(w.Steps))
-	assert.Equal(t, "build123", (*w.Steps["create-instance"].CreateInstances)[0].
+	assert.Equal(t, "build123", (*w.Steps["create-instance"].CreateInstances).Instances[0].
 		Instance.Labels["gce-ovf-import-build-id"])
-	assert.Equal(t, "uservalue1", (*w.Steps["create-instance"].CreateInstances)[0].
+	assert.Equal(t, "uservalue1", (*w.Steps["create-instance"].CreateInstances).Instances[0].
 		Instance.Labels["userkey1"])
-	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances)[0].
+	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances).Instances[0].
 		Instance.Labels["userkey2"])
-	assert.Equal(t, "a-host.a-domain", (*w.Steps["create-instance"].CreateInstances)[0].Hostname)
+	assert.Equal(t, "a-host.a-domain", (*w.Steps["create-instance"].CreateInstances).Instances[0].Hostname)
+
+	assert.Equal(t, "build123", (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].
+		Instance.Labels["gce-ovf-import-build-id"])
+	assert.Equal(t, "uservalue1", (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].
+		Instance.Labels["userkey1"])
+	assert.Equal(t, "uservalue2", (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].
+		Instance.Labels["userkey2"])
+	assert.Equal(t, "a-host.a-domain", (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].Hostname)
 
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-boot-disk"].CreateDisks)[0].Disk.GuestOsFeatures[0].Type)
 	assert.Equal(t, "UEFI_COMPATIBLE", (*w.Steps["create-image"].CreateImages).Images[0].GuestOsFeatures[0])
@@ -261,7 +282,7 @@ func TestSetUpMachineImageWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
 		ctx: ctx, bucketIteratorCreator: mockBucketIteratorCreator,
-		Logger: logging.NewLogger("test"), params: params}
+		Logger: logging.NewStdoutLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
@@ -279,7 +300,7 @@ func TestSetUpMachineImageWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, 4+3*3, len(w.Steps))
 	assert.Equal(t, "europe-north1", oi.imageLocation)
 
-	instance := (*w.Steps["create-instance"].CreateInstances)[0].Instance
+	instance := (*w.Steps["create-instance"].CreateInstances).Instances[0].Instance
 	assert.Equal(t, "build123", instance.Labels["gce-ovf-import-build-id"])
 	assert.Equal(t, "uservalue1", instance.Labels["userkey1"])
 	assert.Equal(t, "uservalue2", instance.Labels["userkey2"])
@@ -290,6 +311,18 @@ func TestSetUpMachineImageWorkflowHappyPathFromOVANoExtraFlags(t *testing.T) {
 	assert.Equal(t, 2, len(instance.Scheduling.NodeAffinities[0].Values))
 	assert.Equal(t, "prod", instance.Scheduling.NodeAffinities[0].Values[0])
 	assert.Equal(t, "test", instance.Scheduling.NodeAffinities[0].Values[1])
+
+	instanceBeta := (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0].Instance
+	assert.Equal(t, "build123", instanceBeta.Labels["gce-ovf-import-build-id"])
+	assert.Equal(t, "uservalue1", instanceBeta.Labels["userkey1"])
+	assert.Equal(t, "uservalue2", instanceBeta.Labels["userkey2"])
+	assert.Equal(t, false, *instanceBeta.Scheduling.AutomaticRestart)
+	assert.Equal(t, 1, len(instanceBeta.Scheduling.NodeAffinities))
+	assert.Equal(t, "env", instanceBeta.Scheduling.NodeAffinities[0].Key)
+	assert.Equal(t, "IN", instanceBeta.Scheduling.NodeAffinities[0].Operator)
+	assert.Equal(t, 2, len(instanceBeta.Scheduling.NodeAffinities[0].Values))
+	assert.Equal(t, "prod", instanceBeta.Scheduling.NodeAffinities[0].Values[0])
+	assert.Equal(t, "test", instanceBeta.Scheduling.NodeAffinities[0].Values[1])
 
 	machineImage := (*w.Steps["create-machine-image"].CreateMachineImages)[0].MachineImage
 	assert.Equal(t, "us-west2", machineImage.StorageLocations[0])
@@ -334,7 +367,7 @@ func doTestSetUpWorkflowUsesImageLocationForReleaseTrack(
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
-		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+		Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.Nil(t, err)
@@ -374,7 +407,7 @@ func TestSetUpWorkflowInvalidReleaseTrack(t *testing.T) {
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, computeClient: mockComputeClient, BuildID: "build123",
 		ovfDescriptorLoader: mockOvfDescriptorLoader, tarGcsExtractor: mockMockTarGcsExtractorInterface,
-		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+		Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
@@ -392,7 +425,7 @@ func TestSetUpWorkflowPopulateMissingParametersError(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
@@ -409,7 +442,7 @@ func TestSetUpWorkflowPopulateFlagValidationFailed(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
@@ -442,7 +475,7 @@ func TestSetUpWorkflowErrorUnpackingOVA(t *testing.T) {
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, BuildID: "build123",
-		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewLogger("test"),
+		tarGcsExtractor: mockMockTarGcsExtractorInterface, Logger: logging.NewStdoutLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
@@ -474,7 +507,7 @@ func TestSetUpWorkflowErrorLoadingDescriptor(t *testing.T) {
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		BuildID: "build123", ovfDescriptorLoader: mockOvfDescriptorLoader,
-		Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator, params: params}
+		Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator, params: params}
 	w, err := oi.setUpImportWorkflow()
 
 	assert.NotNil(t, err)
@@ -548,13 +581,27 @@ func TestCleanUp(t *testing.T) {
 	mockStorageClient.EXPECT().Close()
 
 	oi := OVFImporter{storageClient: mockStorageClient, gcsPathToClean: "aPath",
-		Logger: logging.NewLogger("test")}
+		Logger: logging.NewStdoutLogger("test")}
 	oi.CleanUp()
 }
 
 func TestBuildDaisyVarsFromDisk(t *testing.T) {
-	oi := OVFImporter{params: getAllInstanceImportParams()}
-	varMap := oi.buildDaisyVars("translateworkflow.wf.json", "gs://abucket/apath/bootdisk.vmdk", "n1-standard-2", "aRegion")
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+
+	params := getAllInstanceImportParams()
+	params.InstanceNames = ws + params.InstanceNames + ws
+	params.Network = ws + params.Network + ws
+	params.Subnet = ws + params.Subnet + ws
+	params.Description = ws + params.Description + ws
+	params.PrivateNetworkIP = ws + params.PrivateNetworkIP + ws
+	params.NetworkTier = ws + params.NetworkTier + ws
+
+	oi := OVFImporter{params: params}
+	varMap := oi.buildDaisyVars(
+		"translateworkflow.wf.json",
+		"gs://abucket/apath/bootdisk.vmdk",
+		"n1-standard-2",
+		"aRegion")
 
 	assert.Equal(t, "instance1", varMap["instance_name"])
 	assert.Equal(t, "translateworkflow.wf.json", varMap["translate_workflow"])
@@ -582,7 +629,7 @@ func TestGetZoneFromGCE(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
 	mockMetadataGce.EXPECT().Zone().Return("europe-north1-b", nil)
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	zone, err := oi.getZone("aProject")
 
 	assert.Nil(t, err)
@@ -593,7 +640,7 @@ func TestGetRegion(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	oi := OVFImporter{Logger: logging.NewLogger("test")}
+	oi := OVFImporter{Logger: logging.NewStdoutLogger("test")}
 	region, err := oi.getRegion("europe-north1-b")
 
 	assert.Nil(t, err)
@@ -615,7 +662,7 @@ func TestGetZoneFromFlagEvenIfOnGCE(t *testing.T) {
 	mockZoneValidator.EXPECT().
 		ZoneValid("aProject123", "aZone123").Return(nil)
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"),
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
 	zone, err := oi.getZone("aProject123")
 
@@ -633,7 +680,7 @@ func TestGetZoneWhenZoneFlagNotSetNotOnGCE(t *testing.T) {
 	mockMetadataGce := mocks.NewMockMetadataGCEInterface(mockCtrl)
 	mockMetadataGce.EXPECT().OnGCE().Return(false).AnyTimes()
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	zone, err := oi.getZone("aProject")
 
 	assert.NotNil(t, err)
@@ -669,7 +716,7 @@ func TestGetZoneEmptyZoneReturnedFromGCE(t *testing.T) {
 	mockMetadataGce.EXPECT().OnGCE().Return(true).AnyTimes()
 	mockMetadataGce.EXPECT().Zone().Return("", nil)
 
-	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewLogger("test"), params: params}
+	oi := OVFImporter{mgce: mockMetadataGce, Logger: logging.NewStdoutLogger("test"), params: params}
 	zone, err := oi.getZone("aProject")
 
 	assert.NotNil(t, err)
@@ -687,12 +734,56 @@ func TestPopulateMissingParametersInvalidZone(t *testing.T) {
 	mockZoneValidator.EXPECT().
 		ZoneValid("aProject", "europe-north1-b").Return(fmt.Errorf("error"))
 
-	oi := OVFImporter{Logger: logging.NewLogger("test"), zoneValidator: mockZoneValidator,
+	oi := OVFImporter{Logger: logging.NewStdoutLogger("test"), zoneValidator: mockZoneValidator,
 		params: params}
 	_, err := oi.getZone("aProject")
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "europe-north1-b", params.Zone)
+}
+
+func TestHandleTimeoutSuccess(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
+	mockLogger.EXPECT().Log("Timeout 0s exceeded, stopping workflow \"wf\"")
+
+	params := getAllInstanceImportParams()
+	params.Timeout = "0s"
+
+	oi := OVFImporter{Logger: mockLogger, params: params}
+	w := daisy.New()
+	w.Name = "wf"
+	oi.handleTimeout(w)
+
+	_, channelOpen := <-w.Cancel
+	assert.False(t, channelOpen, "w.Cancel should be closed on timeout")
+}
+
+func TestHandleTimeoutInvalidTimeout(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockLogger := mocks.NewMockLoggerInterface(mockCtrl)
+	mockLogger.EXPECT().Log("Error parsing timeout `not-a-timeout`")
+
+	params := getAllInstanceImportParams()
+	params.Timeout = "not-a-timeout"
+
+	oi := OVFImporter{Logger: mockLogger, params: params}
+	w := daisy.New()
+	w.Name = "wf"
+	oi.handleTimeout(w)
+
+	channelOpen := false
+	select {
+	case _, channelOpen = <-w.Cancel:
+		break
+	case <-time.After(100 * time.Millisecond):
+		channelOpen = true
+	}
+	assert.True(t, channelOpen, "w.Cancel should be open after failed timeout handling")
 }
 
 func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
@@ -716,7 +807,7 @@ func setupMocksForOSIdTesting(mockCtrl *gomock.Controller, osType string,
 
 	oi := OVFImporter{mgce: mockMetadataGce, workflowPath: instanceImportWorkflowPath,
 		storageClient: mockStorageClient, BuildID: "build123",
-		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewLogger("test"),
+		ovfDescriptorLoader: mockOvfDescriptorLoader, Logger: logging.NewStdoutLogger("test"),
 		zoneValidator: mockZoneValidator, params: params}
 	return oi.setUpImportWorkflow()
 }

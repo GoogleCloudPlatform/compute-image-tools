@@ -19,6 +19,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	daisyutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
@@ -29,6 +30,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	"google.golang.org/api/option"
 )
 
 // Make file paths mutable
@@ -85,23 +87,26 @@ func buildDaisyVars(destinationURI string, sourceImage string, format string, ne
 
 	varMap := map[string]string{}
 
-	varMap["destination"] = destinationURI
+	varMap["destination"] = strings.TrimSpace(destinationURI)
 
-	varMap["source_image"] = param.GetGlobalResourcePath("images", sourceImage)
+	varMap["source_image"] = param.GetGlobalResourcePath(
+		"images", strings.TrimSpace(sourceImage))
 
-	if format != "" {
-		varMap["format"] = format
+	if strings.TrimSpace(format) != "" {
+		varMap["format"] = strings.TrimSpace(format)
 	}
-	if subnet != "" {
-		varMap["export_subnet"] = param.GetRegionalResourcePath(region, "subnetworks", subnet)
+	if strings.TrimSpace(subnet) != "" {
+		varMap["export_subnet"] = param.GetRegionalResourcePath(
+			strings.TrimSpace(region), "subnetworks", strings.TrimSpace(subnet))
 
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
-		if network == "" {
+		if strings.TrimSpace(network) == "" {
 			varMap["export_network"] = ""
 		}
 	}
-	if network != "" {
-		varMap["export_network"] = param.GetGlobalResourcePath("networks", network)
+	if strings.TrimSpace(network) != "" {
+		varMap["export_network"] = param.GetGlobalResourcePath(
+			"networks", strings.TrimSpace(network))
 	}
 	return varMap
 }
@@ -126,7 +131,7 @@ func runExportWorkflow(ctx context.Context, exportWorkflowPath string, varMap ma
 		w.LogWorkflowInfo("Cloud Build ID: %s", os.Getenv(daisyutils.BuildIDOSEnvVarName))
 		rl := &daisyutils.ResourceLabeler{
 			BuildID: os.Getenv("BUILD_ID"), UserLabels: userLabels, BuildIDLabelKey: "gce-image-export-build-id",
-			InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
+			InstanceLabelKeyRetriever: func(instanceName string) string {
 				return "gce-image-export-tmp"
 			},
 			DiskLabelKeyRetriever: func(disk *daisy.Disk) string {
@@ -158,7 +163,7 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	ctx := context.Background()
 	metadataGCE := &compute.MetadataGCE{}
 	storageClient, err := storage.NewStorageClient(
-		ctx, logging.NewLogger(logPrefix), oauth)
+		ctx, logging.NewStdoutLogger(logPrefix), option.WithCredentialsFile(oauth))
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +177,8 @@ func Run(clientID string, destinationURI string, sourceImage string, format stri
 	resourceLocationRetriever := storage.NewResourceLocationRetriever(metadataGCE, computeClient)
 
 	region := new(string)
-	err = param.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath,
-		destinationURI, nil, metadataGCE, scratchBucketCreator,
-		resourceLocationRetriever, storageClient)
+	paramPopulator := param.NewPopulator(metadataGCE, storageClient, resourceLocationRetriever, scratchBucketCreator)
+	err = paramPopulator.PopulateMissingParameters(project, &zone, region, &scratchBucketGcsPath, destinationURI, nil)
 	if err != nil {
 		return nil, err
 	}

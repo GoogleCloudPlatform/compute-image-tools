@@ -37,7 +37,7 @@ func TestAttachDisksPopulate(t *testing.T) {
 	}
 }
 
-func TestAttachDisksValidate(t *testing.T) {
+func TestAttachDisksPopulateAndValidate(t *testing.T) {
 	ctx := context.Background()
 	w := testWorkflow()
 	s := &Step{w: w}
@@ -62,7 +62,10 @@ func TestAttachDisksValidate(t *testing.T) {
 		{"resolve instance and disk case", &AttachDisks{{Instance: testInstance, AttachedDisk: compute.AttachedDisk{Mode: diskModeRW, Source: testDisk}}}, false},
 	}
 	for _, tt := range tests {
-		err := tt.ads.validate(ctx, s)
+		var err error
+		if err = tt.ads.populate(ctx, s); err == nil {
+			err = tt.ads.validate(ctx, s)
+		}
 		if !tt.wantErr && err != nil {
 			t.Errorf("%s: unexpected error: %v", tt.desc, err)
 		}

@@ -224,10 +224,10 @@ function Enable-RemoteDesktop {
   Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'DisableCAD' -Value 1 -Force
 
   Write-Output 'Enable RDP firewall rules.'
-  Run-Command netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
+  Run-Command netsh advfirewall firewall set rule group='@FirewallAPI.dll,-28752' new enable=Yes
 }
 
-function Install-32bitPackages {
+function Install-Packages {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install googet
   # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
   # if install_packages is set to false.
@@ -237,17 +237,20 @@ function Install-32bitPackages {
     # Install each individually in order to catch individual errors
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-windows
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-auto-updater
+    Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-balloon -ErrorAction SilentlyContinue
+    Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-pvpanic -ErrorAction SilentlyContinue
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss -ErrorAction SilentlyContinue
   }
 }
 
-function Install-LocalPackages {
+function Install-32bitPackages {
   & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\googet-x86.x86_32.2.16.3@1.goo
   # We always install google-compute-engine-sysprep because it is required for instance activation, it gets removed later
   # if install_packages is set to false.
   & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\google-compute-engine-powershell.noarch.1.1.1@4.goo
   & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\certgen-x86.x86_32.1.0.0@2.goo
   & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install C:\ProgramData\GooGet\components\google-compute-engine-sysprep.noarch.3.10.1@1.goo
+  & C:\ProgramData\GooGet\googet.exe -root C:\ProgramData\GooGet -noconfirm install -reinstall C:\ProgramData\GooGet\components\google-compute-engine-metadata-scripts-x86.x86_32.4.2.1@1.goo
   if ($script:install_packages.ToLower() -eq 'true') {
     Write-Output 'Translate: Installing GCE packages...'
     # Install each individually in order to catch individual errors
@@ -271,11 +274,11 @@ try {
 
   if ($script:is_x86.ToLower() -ne 'true') {
     Configure-Power
-    Install-32bitPackages
+    Install-Packages
   }
   else {
     # Since 32-bit GooGet packages are not provided via repository, the only option is to install them from a local source.
-    Install-LocalPackages
+    Install-32bitPackages 
     # The following function will halt a 32-bit Windows 10 version 1909 import, so skip it.
     $pn_path = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
     $pn = (Get-ItemProperty -Path $pn_path -Name ProductName).ProductName
@@ -305,7 +308,7 @@ try {
     }
   } else {
     Write-Output 'Translate: Launching sysprep.'
-    & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat -NoShutdown'
+    & 'C:\Program Files\Google\Compute Engine\sysprep\gcesysprep.bat' -NoShutdown
   }
 
   if ($script:is_byol.ToLower() -eq 'true') {

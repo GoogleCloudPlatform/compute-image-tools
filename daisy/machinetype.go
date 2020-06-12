@@ -17,45 +17,30 @@ package daisy
 import (
 	"fmt"
 	"regexp"
-	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
 var machineTypeURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?zones/(?P<zone>%[2]s)/machineTypes/(?P<machinetype>%[2]s)$`, projectRgxStr, rfc1035))
 
-var machineTypeCache struct {
-	exists map[string]map[string][]string
-	mu     sync.Mutex
-}
-
-func machineTypeExists(client compute.Client, project, zone, machineType string) (bool, DError) {
-	machineTypeCache.mu.Lock()
-	defer machineTypeCache.mu.Unlock()
-	if machineTypeCache.exists == nil {
-		machineTypeCache.exists = map[string]map[string][]string{}
+func (w *Workflow) machineTypeExists(project, zone, machineType string) (bool, DError) {
+	predefinedMachineTypeExists, err := w.machineTypeCache.resourceExists(func(project, zone string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListMachineTypes(project, zone)
+	}, project, zone, machineType)
+	if err != nil {
+		return false, err
 	}
-	if _, ok := machineTypeCache.exists[project]; !ok {
-		machineTypeCache.exists[project] = map[string][]string{}
-	}
-	if _, ok := machineTypeCache.exists[project][zone]; !ok {
-		mtl, err := client.ListMachineTypes(project, zone)
-		if err != nil {
-			return false, Errf("error listing machine types for project %q: %v", project, err)
-		}
-		var mts []string
-		for _, mt := range mtl {
-			mts = append(mts, mt.Name)
-		}
-		machineTypeCache.exists[project][zone] = mts
-	}
-	if strIn(machineType, machineTypeCache.exists[project][zone]) {
+	if predefinedMachineTypeExists {
 		return true, nil
 	}
+
 	// Check for custom machine types.
-	if _, err := client.GetMachineType(project, zone, machineType); err != nil {
-		return false, typedErr(apiError, "failed to get machine type", err)
+	w.machineTypeCache.mu.Lock()
+	defer w.machineTypeCache.mu.Unlock()
+	mt, cerr := w.ComputeClient.GetMachineType(project, zone, machineType)
+	if cerr != nil {
+		return false, typedErr(apiError, "failed to get machine type", cerr)
 	}
-	machineTypeCache.exists[project][zone] = append(machineTypeCache.exists[project][zone], machineType)
+	w.machineTypeCache.exists[project][zone][mt.Name] = mt
 	return true, nil
 }

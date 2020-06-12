@@ -27,11 +27,11 @@ type StorageClientInterface interface {
 	CreateBucket(bucketName string, project string, attrs *storage.BucketAttrs) error
 	Buckets(projectID string) *storage.BucketIterator
 	GetBucketAttrs(bucket string) (*storage.BucketAttrs, error)
-	GetObjectReader(bucket string, objectPath string) (io.ReadCloser, error)
 	GetBucket(bucket string) *storage.BucketHandle
+	GetObject(bucket string, objectPath string) StorageObject
 	GetObjects(bucket string, objectPath string) ObjectIteratorInterface
-	DeleteObject(bucket string, objectPath string) error
 	FindGcsFile(gcsDirectoryPath string, fileExtension string) (*storage.ObjectHandle, error)
+	FindGcsFileDepthLimited(gcsDirectoryPath string, fileExtension string, lookupDepth int) (*storage.ObjectHandle, error)
 	GetGcsFileContent(gcsObject *storage.ObjectHandle) ([]byte, error)
 	WriteToGCS(destinationBucketName string, destinationObjectPath string, reader io.Reader) error
 	DeleteGcsPath(gcsPath string) error
@@ -65,9 +65,20 @@ type TarGcsExtractorInterface interface {
 	ExtractTarToGcs(tarGcsPath string, destinationGcsPath string) error
 }
 
-// StorageObjectDeleterInterface represents an object that is responsible for deleting GCS objects
-type StorageObjectDeleterInterface interface {
-	DeleteObject(bucket string, objectPath string) error
+// StorageObjectCreatorInterface represents GCS object creator
+type StorageObjectCreatorInterface interface {
+	GetObject(bucket string, objectPath string) StorageObject
+}
+
+// StorageObject represents GCS Object
+type StorageObject interface {
+	Delete() error
+	GetObjectHandle() *storage.ObjectHandle
+	NewReader() (io.ReadCloser, error)
+	NewWriter() io.WriteCloser
+	ObjectName() string
+	Compose(src ...StorageObject) (*storage.ObjectAttrs, error)
+	CopyFrom(src StorageObject) (*storage.ObjectAttrs, error)
 }
 
 // MetadataGCEInterface represents GCE metadata

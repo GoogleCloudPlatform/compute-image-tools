@@ -26,21 +26,15 @@ type DetachDisks []*DetachDisk
 // DetachDisk is used to detach a GCE disk from an instance.
 type DetachDisk struct {
 	// Instance to detach diskName.
-	Instance      string
-	DeviceName    string
-	project, zone string
+	Instance                string
+	DeviceName              string
+	realName, project, zone string
 }
 
 func (a *DetachDisks) populate(ctx context.Context, s *Step) DError {
 	for _, dd := range *a {
-		if dd.DeviceName == "" {
-			dd.DeviceName = path.Base(dd.DeviceName)
-		}
-		if diskURLRgx.MatchString(dd.DeviceName) {
-			dd.DeviceName = extendPartialURL(dd.DeviceName, s.w.Project)
-		}
+		dd.realName = path.Base(dd.DeviceName)
 	}
-
 	return nil
 }
 
@@ -57,7 +51,9 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		}
 		addErrs(errs, err)
 
-		dr, err := s.w.disks.regUse(dd.DeviceName, s)
+		instance := NamedSubexp(instanceURLRgx, ir.link)
+
+		dr, isAttached, err := s.w.disks.regUseDeviceName(dd.DeviceName, instance["project"], instance["zone"], instance["instance"], s)
 		if dr == nil {
 			// Return now, the rest of this function can't be run without dr.
 			return addErrs(errs, Errf("cannot detach disk: %v", err))
@@ -65,8 +61,7 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		addErrs(errs, err)
 
 		// Ensure disk is in the same project and zone.
-		disk := namedSubexp(diskURLRgx, dr.link)
-		instance := namedSubexp(instanceURLRgx, ir.link)
+		disk := NamedSubexp(deviceNameURLRgx, dr.link)
 		if disk["project"] != instance["project"] {
 			errs = addErrs(errs, Errf("cannot detach disk in project %q from instance in project %q: %q", disk["project"], instance["project"], dd.DeviceName))
 		}
@@ -78,8 +73,7 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		dd.zone = disk["zone"]
 
 		// Register disk detachments.
-		errs = addErrs(errs, s.w.instances.w.disks.regDetach(dd.DeviceName, dd.Instance, s))
-
+		errs = addErrs(errs, s.w.instances.w.disks.regDetach(dd.DeviceName, dd.Instance, isAttached, s))
 	}
 	return errs
 }
@@ -99,7 +93,7 @@ func (a *DetachDisks) run(ctx context.Context, s *Step) DError {
 			}
 
 			w.LogStepInfo(s.name, "DetachDisks", "Detaching disk %q from instance %q.", dd.DeviceName, inst)
-			if err := w.ComputeClient.DetachDisk(dd.project, dd.zone, dd.Instance, dd.DeviceName); err != nil {
+			if err := w.ComputeClient.DetachDisk(dd.project, dd.zone, dd.Instance, dd.realName); err != nil {
 				e <- newErr("failed to detach disks", err)
 				return
 			}

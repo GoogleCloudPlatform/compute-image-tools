@@ -89,13 +89,14 @@ func (r *baseResourceRegistry) start(name string) DError {
 		return Errf("cannot start %s %q; does not exist in registry", r.typeName, name)
 	}
 
-	if !res.stopped {
+	if res.startedByWf {
 		return Errf("cannot start %q; already started", name)
 	}
 	if err := r.startFn(res); err != nil {
 		return err
 	}
-	res.stopped = false
+	res.stoppedByWf = false
+	res.startedByWf = true
 	return nil
 }
 
@@ -105,13 +106,14 @@ func (r *baseResourceRegistry) stop(name string) DError {
 		return Errf("cannot stop %s %q; does not exist in registry", r.typeName, name)
 	}
 
-	if res.stopped {
+	if res.stoppedByWf {
 		return Errf("cannot stop %q; already stopped", name)
 	}
 	if err := r.stopFn(res); err != nil {
 		return err
 	}
-	res.stopped = true
+	res.startedByWf = false
+	res.stoppedByWf = true
 	return nil
 }
 
@@ -133,7 +135,7 @@ func (r *baseResourceRegistry) regCreate(name string, res *Resource, s *Step, ov
 	}
 
 	if !overWrite {
-		if exists, err := resourceExists(r.w.ComputeClient, res.link); err != nil {
+		if exists, err := r.w.resourceExists(res.link); err != nil {
 			return Errf("cannot create %s %q; resource lookup error: %v", r.typeName, name, err)
 		} else if exists {
 			return Errf("cannot create %s %q; resource already exists", r.typeName, name)
@@ -157,7 +159,7 @@ func (r *baseResourceRegistry) regDelete(name string, s *Step) DError {
 	var res *Resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
 		var err DError
-		res, err = r.regURL(name)
+		res, err = r.regURL(name, true)
 		if err != nil {
 			return err
 		}
@@ -185,25 +187,27 @@ func (r *baseResourceRegistry) regDelete(name string, s *Step) DError {
 // projects/p/global/images/i.
 // A placeholder resource will be created in the registry. The resource will have no creator and will not auto-cleanup.
 // The placeholder resource will be identified within the registry by its fully qualified resource URL.
-func (r *baseResourceRegistry) regURL(url string) (*Resource, DError) {
+func (r *baseResourceRegistry) regURL(url string, checkExist bool) (*Resource, DError) {
 	if !strings.HasPrefix(url, "projects/") {
 		return nil, Errf("partial GCE resource URL %q needs leading \"projects/PROJECT/\"", url)
 	}
 	if r, ok := r.m[url]; ok {
 		return r, nil
 	}
-	exists, err := resourceExists(r.w.ComputeClient, url)
-	if !exists {
-		if err != nil {
-			return nil, err
+	if checkExist {
+		exists, err := r.w.resourceExists(url)
+		if !exists {
+			if err != nil {
+				return nil, err
+			}
+			return nil, typedErrf(r.typeName+resourceDNEError, "%s does not exist", url)
 		}
-		return nil, typedErrf(r.typeName+resourceDNEError, "%s does not exist", url)
 	}
 
 	parts := strings.Split(url, "/")
 	res := &Resource{RealName: parts[len(parts)-1], link: url, NoCleanup: true}
 	r.m[url] = res
-	return res, err
+	return res, nil
 }
 
 // regUse registers a Step s as a user of a resource.
@@ -218,7 +222,7 @@ func (r *baseResourceRegistry) regUse(name string, s *Step) (*Resource, DError) 
 	var res *Resource
 	if r.urlRgx != nil && r.urlRgx.MatchString(name) {
 		var err DError
-		res, err = r.regURL(name)
+		res, err = r.regURL(name, true)
 		if err != nil {
 			return nil, err
 		}
@@ -235,4 +239,48 @@ func (r *baseResourceRegistry) regUse(name string, s *Step) (*Resource, DError) 
 
 	r.m[name].users = append(r.m[name].users, s)
 	return res, nil
+}
+
+// regUseDeviceName registers a Step s as a user of a disk device resource.
+// "DeviceName" is only used by DetachDisks API.
+func (dr *diskRegistry) regUseDeviceName(deviceName, project, zone, instance string, s *Step) (*Resource, bool, DError) {
+	// Check:
+	// deviceName either has a creator/attacher, or has been attached before the workflow's execution
+	// - s depends on creator of deviceName, if there is a creator.
+	// - deviceName doesn't have a registered deleter yet, usage must occur before deletion.
+	dr.mx.Lock()
+	defer dr.mx.Unlock()
+	var isAttached bool
+	var ok bool
+	var res *Resource
+
+	if deviceNameURLRgx.MatchString(deviceName) {
+		var err DError
+		// check whether it's attached before the workflow's execution
+		isAttached, err = isDiskAttached(dr.w.ComputeClient, deviceName, project, zone, instance)
+		if err != nil {
+			return nil, isAttached, err
+		}
+		if !isAttached {
+			return nil, isAttached, Errf("device name '%v' is not attached", deviceName)
+		}
+		res, err = dr.regURL(deviceName, false)
+		if err != nil {
+			return nil, isAttached, err
+		}
+	} else if strings.Contains(deviceName, "/") {
+		return nil, isAttached, Errf("unexpected url for %s: %q", dr.typeName, deviceName)
+	} else if res, ok = dr.m[deviceName]; !ok {
+		return nil, isAttached, Errf("missing reference for %s %q", dr.typeName, deviceName)
+	}
+
+	if res.creator != nil && !s.nestedDepends(res.creator) {
+		return nil, isAttached, Errf("using %s %q MUST transitively depend on step %q which creates %q", dr.typeName, deviceName, res.creator.name, deviceName)
+	}
+	if res.deleter != nil {
+		return nil, isAttached, Errf("using %s %q; step %q deletes %q and MUST transitively depend on this step", dr.typeName, deviceName, res.deleter.name, deviceName)
+	}
+
+	res.users = append(res.users, s)
+	return res, isAttached, nil
 }

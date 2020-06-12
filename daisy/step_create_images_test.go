@@ -16,11 +16,47 @@ package daisy
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
+
+func TestCreateImagesValidate(t *testing.T) {
+	ctx := context.Background()
+	w := testWorkflow()
+	s := &Step{w: w}
+	w.disks.m = map[string]*Resource{testDisk: {RealName: w.genName(testDisk), link: testDisk}}
+	lic := fmt.Sprintf("projects/%s/global/licenses/license", p403)
+
+	tests := []struct {
+		desc      string
+		ci        *Image
+		shouldErr bool
+	}{
+		{desc: "403 listing licenses",
+			ci:        &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}}, Image: compute.Image{Name: "test1", SourceDisk: testDisk, Licenses: []string{lic}}},
+			shouldErr: true,
+		},
+		{desc: "403 listing licenses, IgnoreLicenseValidationIfForbidden set",
+			ci:        &Image{ImageBase: ImageBase{Resource: Resource{Project: testProject}, IgnoreLicenseValidationIfForbidden: true}, Image: compute.Image{Name: "test2", SourceDisk: testDisk, Licenses: []string{lic}}},
+			shouldErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		cis := &CreateImages{Images: []*Image{tt.ci}}
+		if err := cis.populate(ctx, s); err != nil {
+			t.Errorf("%s: populate error: %v", tt.desc, err)
+		}
+		if err := cis.validate(ctx, s); err == nil && tt.shouldErr {
+			t.Errorf("%s: should have returned an error, but didn't", tt.desc)
+		} else if err != nil && !tt.shouldErr {
+			t.Errorf("%s: unexpected error: %v", tt.desc, err)
+		}
+	}
+}
 
 func TestCreateImagesRun(t *testing.T) {
 	ctx := context.Background()

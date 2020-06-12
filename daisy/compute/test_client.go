@@ -56,6 +56,7 @@ type TestClient struct {
 	CreateImageFn               func(project string, i *compute.Image) error
 	CreateInstanceFn            func(project, zone string, i *compute.Instance) error
 	CreateNetworkFn             func(project string, n *compute.Network) error
+	CreateSnapshotFn            func(project, zone, disk string, s *compute.Snapshot) error
 	CreateSubnetworkFn          func(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstanceFn      func(project, zone string, ti *compute.TargetInstance) error
 	StartInstanceFn             func(project, zone, name string) error
@@ -92,6 +93,7 @@ type TestClient struct {
 	GetImageFromFamilyFn        func(project, family string) (*compute.Image, error)
 	ListImagesFn                func(project string, opts ...ListCallOption) ([]*compute.Image, error)
 	GetLicenseFn                func(project, name string) (*compute.License, error)
+	ListLicensesFn              func(project string, opts ...ListCallOption) ([]*compute.License, error)
 	GetNetworkFn                func(project, name string) (*compute.Network, error)
 	AggregatedListSubnetworksFn func(project string, opts ...ListCallOption) ([]*compute.Subnetwork, error)
 	ListNetworksFn              func(project string, opts ...ListCallOption) ([]*compute.Network, error)
@@ -112,6 +114,7 @@ type TestClient struct {
 	DeleteMachineImageFn func(project, name string) error
 	CreateMachineImageFn func(project string, i *computeBeta.MachineImage) error
 	GetMachineImageFn    func(project, name string) (*computeBeta.MachineImage, error)
+	CreateInstanceBetaFn func(project, zone string, i *computeBeta.Instance) error
 
 	zoneOperationsWaitFn   func(project, zone, name string) error
 	regionOperationsWaitFn func(project, region, name string) error
@@ -334,9 +337,17 @@ func (c *TestClient) ListZones(project string, opts ...ListCallOption) ([]*compu
 	return c.client.ListZones(project, opts...)
 }
 
+// CreateSnapshot uses the override method CreateSnapshotFn or the real implementation.
+func (c *TestClient) CreateSnapshot(project, zone, disk string, s *compute.Snapshot) error {
+	if c.CreateSnapshotFn != nil {
+		return c.CreateSnapshotFn(project, zone, disk, s)
+	}
+	return c.client.CreateSnapshot(project, zone, disk, s)
+}
+
 // GetSnapshot uses the override method GetSnapshotFn or the real implementation.
 func (c *TestClient) GetSnapshot(project, name string) (*compute.Snapshot, error) {
-	if c.GetInstanceFn != nil {
+	if c.GetSnapshotFn != nil {
 		return c.GetSnapshotFn(project, name)
 	}
 	return c.client.GetSnapshot(project, name)
@@ -344,7 +355,7 @@ func (c *TestClient) GetSnapshot(project, name string) (*compute.Snapshot, error
 
 // ListSnapshots uses the override method ListSnapshotsFn or the real implementation.
 func (c *TestClient) ListSnapshots(project string, opts ...ListCallOption) ([]*compute.Snapshot, error) {
-	if c.GetInstanceFn != nil {
+	if c.ListSnapshotsFn != nil {
 		return c.ListSnapshotsFn(project, opts...)
 	}
 	return c.client.ListSnapshots(project, opts...)
@@ -352,7 +363,7 @@ func (c *TestClient) ListSnapshots(project string, opts ...ListCallOption) ([]*c
 
 // DeleteSnapshot uses the override method DeleteSnapshotFn or the real implementation.
 func (c *TestClient) DeleteSnapshot(project, name string) error {
-	if c.GetInstanceFn != nil {
+	if c.DeleteSnapshotFn != nil {
 		return c.DeleteSnapshotFn(project, name)
 	}
 	return c.client.DeleteSnapshot(project, name)
@@ -468,6 +479,14 @@ func (c *TestClient) GetLicense(project, name string) (*compute.License, error) 
 		return c.GetLicenseFn(project, name)
 	}
 	return c.client.GetLicense(project, name)
+}
+
+// ListLicenses uses the override method ListLicensesFn or the real implementation.
+func (c *TestClient) ListLicenses(project string, opts ...ListCallOption) ([]*compute.License, error) {
+	if c.ListLicensesFn != nil {
+		return c.ListLicensesFn(project)
+	}
+	return c.client.ListLicenses(project)
 }
 
 // GetNetwork uses the override method GetNetworkFn or the real implementation.
@@ -636,4 +655,12 @@ func (c *TestClient) GetMachineImage(project, name string) (*computeBeta.Machine
 		return c.GetMachineImageFn(project, name)
 	}
 	return c.client.GetMachineImage(project, name)
+}
+
+// CreateInstanceBeta uses the override method CreateInstanceBetaFn or the real implementation.
+func (c *TestClient) CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error {
+	if c.CreateInstanceBetaFn != nil {
+		return c.CreateInstanceBetaFn(project, zone, i)
+	}
+	return c.client.CreateInstanceBeta(project, zone, i)
 }

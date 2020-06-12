@@ -69,7 +69,14 @@ func assertErrorOnValidate(errorMsg string, t *testing.T) {
 
 func TestBuildDaisyVarsWithoutFormatConversion(t *testing.T) {
 	resetArgs()
-	got := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, "aRegion")
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+	got := buildDaisyVars(
+		ws+destinationURI+ws,
+		ws+sourceImage+ws,
+		ws+format+ws,
+		ws+network+ws,
+		ws+subnet+ws,
+		ws+"aRegion"+ws)
 
 	assert.Equal(t, "global/images/anImage", got["source_image"])
 	assert.Equal(t, "gs://bucket/exported_image", got["destination"])
@@ -80,8 +87,14 @@ func TestBuildDaisyVarsWithoutFormatConversion(t *testing.T) {
 
 func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 	resetArgs()
-	format = "vmdk"
-	got := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, "aRegion")
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+	got := buildDaisyVars(
+		ws+destinationURI+ws,
+		ws+sourceImage+ws,
+		ws+"vmdk"+ws,
+		ws+network+ws,
+		ws+subnet+ws,
+		ws+"aRegion"+ws)
 
 	assert.Equal(t, "global/images/anImage", got["source_image"])
 	assert.Equal(t, "gs://bucket/exported_image", got["destination"])
@@ -93,8 +106,14 @@ func TestBuildDaisyVarsWithFormatConversion(t *testing.T) {
 
 func TestBuildDaisyVarsWithSimpleImageName(t *testing.T) {
 	resetArgs()
-	sourceImage = "anImage"
-	got := buildDaisyVars(destinationURI, sourceImage, format, network, subnet, "aRegion")
+	ws := "\t \r\n\f\u0085\u00a0\u2000\u3000"
+	got := buildDaisyVars(
+		ws+destinationURI+ws,
+		ws+"anImage"+ws,
+		ws+format+ws,
+		ws+network+ws,
+		ws+subnet+ws,
+		ws+"aRegion"+ws)
 
 	assert.Equal(t, "global/images/anImage", got["source_image"])
 }

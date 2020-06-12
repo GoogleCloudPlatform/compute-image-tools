@@ -38,12 +38,16 @@
     "is_windows": {
       "Value": "false",
       "Description": "If enabled, WINDOWS will be added to GuestOsFeatures for the disk."
+    },
+    "sysprep_windows": {
+      "Value": "false",
+      "Description": "If enabled, run sysprep. This is a no-op for Linux."
     }
   },
   "Steps": {
     "import": {
       "IncludeWorkflow": {
-        "Path": "import_disk.wf.json",
+        "Path": "inflate_file.wf.json",
         "Vars": {
           "source_disk_file": "${source_disk_file}",
           "disk_name": "${translation-disk-name}",
@@ -61,6 +65,7 @@
           "source_disk": "${translation-disk-name}",
           "image_name": "${image_name}",
           "install_gce_packages": "${install_gce_packages}",
+          "sysprep": "${sysprep_windows}",
           "family": "${family}",
           "description": "${description}",
           "import_network": "${import_network}",

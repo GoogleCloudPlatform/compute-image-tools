@@ -21,7 +21,6 @@ import (
 	"net"
 	"net/http"
 	"regexp"
-	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -29,34 +28,13 @@ import (
 )
 
 var (
-	subnetworkCache struct {
-		exists map[string]map[string][]string
-		mu     sync.Mutex
-	}
 	subnetworkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?regions/(?P<region>%[2]s)/subnetworks/(?P<subnetwork>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func subnetworkExists(client daisyCompute.Client, project, region, name string) (bool, DError) {
-	subnetworkCache.mu.Lock()
-	defer subnetworkCache.mu.Unlock()
-	if subnetworkCache.exists == nil {
-		subnetworkCache.exists = map[string]map[string][]string{}
-	}
-	if _, ok := subnetworkCache.exists[project]; !ok {
-		subnetworkCache.exists[project] = map[string][]string{}
-	}
-	if _, ok := subnetworkCache.exists[project][region]; !ok {
-		nl, err := client.ListSubnetworks(project, region)
-		if err != nil {
-			return false, Errf("error listing subnetworks for project %q: %v", project, err)
-		}
-		var subnetworks []string
-		for _, sn := range nl {
-			subnetworks = append(subnetworks, sn.Name)
-		}
-		subnetworkCache.exists[project][region] = subnetworks
-	}
-	return strIn(name, subnetworkCache.exists[project][region]), nil
+func (w *Workflow) subnetworkExists(project, region, subnetwork string) (bool, DError) {
+	return w.subnetworkCache.resourceExists(func(project, region string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListSubnetworks(project, region)
+	}, project, region, subnetwork)
 }
 
 // Subnetwork is used to create a GCE subnetwork.
@@ -118,7 +96,7 @@ func newSubnetworkRegistry(w *Workflow) *subnetworkRegistry {
 }
 
 func (nr *subnetworkRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(subnetworkURLRegex, res.link)
+	m := NamedSubexp(subnetworkURLRegex, res.link)
 	err := nr.w.ComputeClient.DeleteSubnetwork(m["project"], m["region"], m["subnetwork"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete subnetwork", err)

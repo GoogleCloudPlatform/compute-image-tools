@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"
@@ -41,6 +42,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/vmware/govmomi/ovf"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
@@ -90,8 +92,8 @@ type OVFImporter struct {
 func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, error) {
 	ctx := context.Background()
 	log.SetPrefix(logPrefix + " ")
-	logger := logging.NewLogger(logPrefix)
-	storageClient, err := storageutils.NewStorageClient(ctx, logger, "")
+	logger := logging.NewStdoutLogger(logPrefix)
+	storageClient, err := storageutils.NewStorageClient(ctx, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -100,20 +102,26 @@ func NewOVFImporter(params *ovfimportparams.OVFImportParams) (*OVFImporter, erro
 		return nil, err
 	}
 	tarGcsExtractor := storageutils.NewTarGcsExtractor(ctx, storageClient, logger)
-	buildID := os.Getenv("BUILD_ID")
-
-	if buildID == "" {
-		buildID = pathutils.RandString(5)
-	}
 	workingDirOVFImportWorkflow := toWorkingDir(getImportWorkflowPath(params), params)
 	bic := &storageutils.BucketIteratorCreator{}
 
 	ovfImporter := &OVFImporter{ctx: ctx, storageClient: storageClient, computeClient: computeClient,
-		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, BuildID: buildID,
+		tarGcsExtractor: tarGcsExtractor, workflowPath: workingDirOVFImportWorkflow, BuildID: getBuildID(params),
 		ovfDescriptorLoader: ovfutils.NewOvfDescriptorLoader(storageClient),
 		mgce:                &computeutils.MetadataGCE{}, bucketIteratorCreator: bic, Logger: logger,
 		zoneValidator: &computeutils.ZoneValidator{ComputeClient: computeClient}, params: params}
 	return ovfImporter, nil
+}
+
+func getBuildID(params *ovfimportparams.OVFImportParams) string {
+	if params != nil && params.BuildID != "" {
+		return params.BuildID
+	}
+	buildID := os.Getenv("BUILD_ID")
+	if buildID == "" {
+		buildID = pathutils.RandString(5)
+	}
+	return buildID
 }
 
 func getImportWorkflowPath(params *ovfimportparams.OVFImportParams) string {
@@ -132,11 +140,11 @@ func (oi *OVFImporter) buildDaisyVars(
 	varMap := map[string]string{}
 	if oi.params.IsInstanceImport() {
 		// instance import specific vars
-		varMap["instance_name"] = strings.ToLower(oi.params.InstanceNames)
+		varMap["instance_name"] = strings.ToLower(strings.TrimSpace(oi.params.InstanceNames))
 
 	} else {
 		// machine image import specific vars
-		varMap["machine_image_name"] = strings.ToLower(oi.params.MachineImageName)
+		varMap["machine_image_name"] = strings.ToLower(strings.TrimSpace(oi.params.MachineImageName))
 	}
 
 	// common vars
@@ -149,48 +157,58 @@ func (oi *OVFImporter) buildDaisyVars(
 	if bootDiskGcsPath != "" {
 		varMap["boot_disk_file"] = bootDiskGcsPath
 	}
-	if oi.params.Subnet != "" {
-		varMap["subnet"] = param.GetRegionalResourcePath(region, "subnetworks", oi.params.Subnet)
+	if strings.TrimSpace(oi.params.Subnet) != "" {
+		varMap["subnet"] = param.GetRegionalResourcePath(
+			region, "subnetworks", strings.TrimSpace(oi.params.Subnet))
 		// When subnet is set, we need to grant a value to network to avoid fallback to default
 		if oi.params.Network == "" {
 			varMap["network"] = ""
 		}
 	}
-	if oi.params.Network != "" {
-		varMap["network"] = param.GetGlobalResourcePath("networks", oi.params.Network)
+	if strings.TrimSpace(oi.params.Network) != "" {
+		varMap["network"] = param.GetGlobalResourcePath(
+			"networks", strings.TrimSpace(oi.params.Network))
 	}
 	if machineType != "" {
 		varMap["machine_type"] = machineType
 	}
-	if oi.params.Description != "" {
-		varMap["description"] = oi.params.Description
+	if strings.TrimSpace(oi.params.Description) != "" {
+		varMap["description"] = strings.TrimSpace(oi.params.Description)
 	}
-	if oi.params.PrivateNetworkIP != "" {
-		varMap["private_network_ip"] = oi.params.PrivateNetworkIP
+	if strings.TrimSpace(oi.params.PrivateNetworkIP) != "" {
+		varMap["private_network_ip"] = strings.TrimSpace(oi.params.PrivateNetworkIP)
 	}
 
-	if oi.params.NetworkTier != "" {
-		varMap["network_tier"] = oi.params.NetworkTier
+	if strings.TrimSpace(oi.params.NetworkTier) != "" {
+		varMap["network_tier"] = strings.TrimSpace(oi.params.NetworkTier)
 	}
 	return varMap
 }
 
 func (oi *OVFImporter) updateImportedInstance(w *daisy.Workflow) {
-	instance := (*w.Steps["create-instance"].CreateInstances)[0]
+	instance := (*w.Steps["create-instance"].CreateInstances).Instances[0]
+	instanceBeta := (*w.Steps["create-instance"].CreateInstances).InstancesBeta[0]
+
 	instance.CanIpForward = oi.params.CanIPForward
+	instanceBeta.CanIpForward = oi.params.CanIPForward
 	instance.DeletionProtection = oi.params.DeletionProtection
+	instanceBeta.DeletionProtection = oi.params.DeletionProtection
 	if instance.Scheduling == nil {
 		instance.Scheduling = &compute.Scheduling{}
+		instanceBeta.Scheduling = &computeBeta.Scheduling{}
 	}
 	if oi.params.NoRestartOnFailure {
 		vFalse := false
 		instance.Scheduling.AutomaticRestart = &vFalse
+		instanceBeta.Scheduling.AutomaticRestart = &vFalse
 	}
 	if oi.params.NodeAffinities != nil {
 		instance.Scheduling.NodeAffinities = oi.params.NodeAffinities
+		instanceBeta.Scheduling.NodeAffinities = oi.params.NodeAffinitiesBeta
 	}
 	if oi.params.Hostname != "" {
 		instance.Hostname = oi.params.Hostname
+		instanceBeta.Hostname = oi.params.Hostname
 	}
 }
 
@@ -333,8 +351,8 @@ func (oi *OVFImporter) modifyWorkflowPostValidate(w *daisy.Workflow) {
 		UserLabels:      oi.params.UserLabels,
 		BuildIDLabelKey: "gce-ovf-import-build-id",
 		ImageLocation:   oi.imageLocation,
-		InstanceLabelKeyRetriever: func(instance *daisy.Instance) string {
-			if strings.ToLower(oi.params.InstanceNames) == instance.Name {
+		InstanceLabelKeyRetriever: func(instanceName string) string {
+			if strings.ToLower(oi.params.InstanceNames) == instanceName {
 				return "gce-ovf-import"
 			}
 			return "gce-ovf-import-tmp"
@@ -455,6 +473,9 @@ func validateReleaseTrack(releaseTrack string) error {
 func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
 	oi.Logger.Log("Starting OVF import workflow.")
 	w, err := oi.setUpImportWorkflow()
+
+	go oi.handleTimeout(w)
+
 	if err != nil {
 		oi.Logger.Log(err.Error())
 		return w, err
@@ -467,6 +488,17 @@ func (oi *OVFImporter) Import() (*daisy.Workflow, error) {
 	}
 	oi.Logger.Log("OVF import workflow finished successfully.")
 	return w, nil
+}
+
+func (oi *OVFImporter) handleTimeout(w *daisy.Workflow) {
+	timeout, err := time.ParseDuration(oi.params.Timeout)
+	if err != nil {
+		oi.Logger.Log(fmt.Sprintf("Error parsing timeout `%v`", oi.params.Timeout))
+		return
+	}
+	time.Sleep(timeout)
+	oi.Logger.Log(fmt.Sprintf("Timeout %v exceeded, stopping workflow %q", oi.params.Timeout, w.Name))
+	w.CancelWithReason("timed-out")
 }
 
 // CleanUp performs clean up of any temporary resources or connections used for OVF import

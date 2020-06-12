@@ -14,9 +14,9 @@
 FROM golang
 
 # Build test runner
-WORKDIR /gce_image_import_export_tests
-COPY gce_image_import_export_tests/ .
-RUN CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner
+WORKDIR /cli_tools_e2e_test
+COPY cli_tools_e2e_test/ .
+RUN cd gce_image_import_export && CGO_ENABLED=0 go build -o /gce_image_import_export_test_runner
 RUN chmod +x /gce_image_import_export_test_runner
 
 # Build binaries to test

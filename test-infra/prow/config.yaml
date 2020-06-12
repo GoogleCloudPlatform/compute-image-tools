@@ -36,83 +36,6 @@ triggers:
   - GoogleCloudPlatform/compute-image-tools
   trusted_org: GoogleCloudPlatform
 
-presubmits:
- GoogleCloudPlatform/compute-image-tools:
- - name: presubmit-unittests
-   agent: kubernetes
-   always_run: true
-   trigger: "(?m)^/unittests$"
-   rerun_command: "/unittests"
-   context: prow/presubmit/unittests
-   spec:
-    containers:
-    - image: gcr.io/compute-image-tools-test/unittests:latest
-      volumeMounts:
-      - name: codecov
-        mountPath: /etc/codecov
-        readOnly: true
-      - name: compute-image-tools-test-service-account
-        mountPath: /etc/compute-image-tools-test-service-account
-        readOnly: true
-    volumes:
-    - name: codecov
-      secret:
-       secretName: codecov
-    - name: compute-image-tools-test-service-account
-      secret:
-       secretName: compute-image-tools-test-service-account
- - name: presubmit-gocheck
-   agent: kubernetes
-   always_run: true
-   trigger: "(?m)^/gocheck$"
-   rerun_command: "/gocheck"
-   context: prow/presubmit/gocheck
-   spec:
-    containers:
-    - image: gcr.io/compute-image-tools-test/gocheck:latest
-      volumeMounts:
-      - name: compute-image-tools-test-service-account
-        mountPath: /etc/compute-image-tools-test-service-account
-        readOnly: true
-    volumes:
-    - name: compute-image-tools-test-service-account
-      secret:
-       secretName: compute-image-tools-test-service-account
- - name: presubmit-flake8
-   agent: kubernetes
-   always_run: true
-   trigger: "(?m)^/flake8$"
-   rerun_command: "/flake8"
-   context: prow/presubmit/flake8
-   spec:
-    containers:
-    - image: gcr.io/compute-image-tools-test/flake8:latest
-      volumeMounts:
-      - name: compute-image-tools-test-service-account
-        mountPath: /etc/compute-image-tools-test-service-account
-        readOnly: true
-    volumes:
-    - name: compute-image-tools-test-service-account
-      secret:
-       secretName: compute-image-tools-test-service-account
- - name: presubmit-gobuild
-   agent: kubernetes
-   always_run: true
-   trigger: "(?m)^/gobuild$"
-   rerun_command: "/gobuild"
-   context: prow/presubmit/gobuild
-   spec:
-    containers:
-    - image: gcr.io/compute-image-tools-test/gobuild:latest
-      volumeMounts:
-      - name: compute-image-tools-test-service-account
-        mountPath: /etc/compute-image-tools-test-service-account
-        readOnly: true
-    volumes:
-    - name: compute-image-tools-test-service-account
-      secret:
-       secretName: compute-image-tools-test-service-account
-
 periodics:
  - name: cleanerupper
    interval: 24h
@@ -282,6 +205,74 @@ periodics:
        - name: compute-image-tools-test-service-account
          secret:
            secretName: compute-image-tools-test-service-account
+ - name: ci-windows-upgrade-e2e-tests
+   interval: 6h
+   agent: kubernetes
+   spec:
+     containers:
+     - image: gcr.io/compute-image-tools-test/gce-windows-upgrade-tests:latest
+       args:
+       - "-out_dir=/artifacts"
+       - "-test_project_id=compute-image-test-pool-001"
+       - "-test_zone=us-central1-c"
+       env:
+       - name: ARTIFACTS
+         value: /artifacts
+       volumeMounts:
+       - name: compute-image-tools-test-service-account
+         mountPath: /etc/compute-image-tools-test-service-account
+         readOnly: true
+     volumes:
+     - name: compute-image-tools-test-service-account
+       secret:
+         secretName: compute-image-tools-test-service-account
+ - name: osconfig-head-images
+   interval: 5h
+   agent: kubernetes
+   spec:
+    containers:
+    - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
+      args:
+      - "-test_case_filter=debian|centos|rhel|windows"
+      - "-out_dir=/artifacts"
+      - "-test_project_ids=compute-image-osconfig-agent,compute-image-osconfig-agent-2"
+      - -test_zones={
+                      "us-central1-a":5,
+                      "us-central1-b":5,
+                      "us-central1-c":5,
+                      "us-central1-f":5,
+                      "us-west1-a":5,
+                      "us-west1-b":5,
+                      "us-west1-c":5,
+                      "us-east1-b":5,
+                      "us-east1-c":5,
+                      "us-east1-d":5,
+                      "us-east4-a":5,
+                      "us-east4-b":5,
+                      "us-east4-c":5,
+                      "europe-west4-a":5,
+                      "europe-west4-b":5,
+                      "europe-west4-c":5,
+                      "europe-west1-d":5,
+                      "europe-west1-b":5,
+                      "europe-west1-c":5,
+                      "asia-east1-a":5,
+                      "asia-east1-b":5,
+                      "asia-east1-c":5
+                    }
+      env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/compute-image-tools-test-service-account/creds.json
+      - name: ARTIFACTS
+        value: /artifacts
+      volumeMounts:
+      - name: compute-image-tools-test-service-account
+        mountPath: /etc/compute-image-tools-test-service-account
+        readOnly: true
+    volumes:
+    - name: compute-image-tools-test-service-account
+      secret:
+       secretName: compute-image-tools-test-service-account
  - name: osconfig-unstable
    interval: 1h
    agent: kubernetes
@@ -455,8 +446,8 @@ periodics:
           projects/centos-cloud/global/images/family/centos-7,\
           projects/rhel-cloud/global/images/family/rhel-6,\
           projects/rhel-cloud/global/images/family/rhel-7,\
-          projects/freebsd-org-cloud-dev/global/images/family/freebsd-11-2-snap,\
-          projects/freebsd-org-cloud-dev/global/images/family/freebsd-12-0-snap,\
+          projects/freebsd-org-cloud-dev/global/images/family/freebsd-11-3-snap,\
+          projects/freebsd-org-cloud-dev/global/images/family/freebsd-12-1-snap,\
           projects/freebsd-org-cloud-dev/global/images/family/freebsd-13-0-snap"
       - "-var:alias_ips=\
           10.128.3.80,\

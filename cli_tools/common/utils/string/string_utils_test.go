@@ -17,6 +17,8 @@ package string
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCombineStringSlices(t *testing.T) {
@@ -64,5 +66,24 @@ func TestCombineStringSlices(t *testing.T) {
 			t.Errorf("CombineStringSlices(%v, %v) = %v, want %v",
 				test.s1, test.s2, got, test.want)
 		}
+	}
+}
+
+func TestSafeStringToInt(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"", 0},
+		{"0", 0},
+		{"10,", 0},
+		{"ten,", 0},
+		{"10", 10},
+		{"-1", -1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			assert.Equal(t, tt.expected, SafeStringToInt(tt.input))
+		})
 	}
 }

@@ -24,7 +24,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_import_params"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_ovf_import/ovf_importer"
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 var (
@@ -66,6 +65,7 @@ var (
 	uefiCompatible              = flag.Bool("uefi-compatible", false, "Enables UEFI booting, which is an alternative system boot method. Most public images use the GRUB bootloader as their primary boot method.")
 	hostname                    = flag.String(ovfimportparams.HostnameFlagKey, "", "Specify the hostname of the instance to be created. The specified hostname must be RFC1035 compliant.")
 	machineImageStorageLocation = flag.String(ovfimportparams.MachineImageStorageLocationFlagKey, "", "GCS bucket storage location of the machine image being imported (regional or multi-regional)")
+	buildID                     = flag.String("build-id", "", "Cloud Build ID override. This flag should be used if auto-generated or build ID provided by Cloud Build is not appropriate. For example, if running multiple imports in parallel in a single Cloud Build run, sharing build ID could cause premature temporary resource clean-up resulting in import failures.")
 
 	nodeAffinityLabelsFlag flags.StringArrayFlag
 	currentExecutablePath  string
@@ -76,7 +76,7 @@ func init() {
 	flag.Var(&nodeAffinityLabelsFlag, "node-affinity-label", "Node affinity label used to determine sole tenant node to schedule this instance on. Label is of the format: <key>,<operator>,<value>,<value2>... where <operator> can be one of: IN, NOT. For example: workload,IN,prod,test is a label with key 'workload' and values 'prod' and 'test'. This flag can be specified multiple times for multiple labels.")
 }
 
-func buildImportParams() *ovfimportparams.OVFImportParams {
+func buildOVFImportParams() *ovfimportparams.OVFImportParams {
 	flag.Parse()
 	return &ovfimportparams.OVFImportParams{InstanceNames: *instanceNames,
 		MachineImageName: *machineImageName, ClientID: *clientID,
@@ -94,11 +94,11 @@ func buildImportParams() *ovfimportparams.OVFImportParams {
 		StdoutLogsDisabled: *stdoutLogsDisabled, NodeAffinityLabelsFlag: nodeAffinityLabelsFlag,
 		CurrentExecutablePath: currentExecutablePath, ReleaseTrack: *releaseTrack,
 		UefiCompatible: *uefiCompatible, Hostname: *hostname,
-		MachineImageStorageLocation: *machineImageStorageLocation,
+		MachineImageStorageLocation: *machineImageStorageLocation, BuildID: *buildID,
 	}
 }
 
-func runImport() (*daisy.Workflow, error) {
+func runImport() (service.Loggable, error) {
 	var ovfImporter *ovfimporter.OVFImporter
 	var err error
 	defer func() {
@@ -107,34 +107,38 @@ func runImport() (*daisy.Workflow, error) {
 		}
 	}()
 
-	if ovfImporter, err = ovfimporter.NewOVFImporter(buildImportParams()); err != nil {
+	if ovfImporter, err = ovfimporter.NewOVFImporter(buildOVFImportParams()); err != nil {
 		return nil, err
 	}
 
-	return ovfImporter.Import()
+	wf, err := ovfImporter.Import()
+	return service.NewLoggableFromWorkflow(wf), err
 }
 
 func main() {
 	flag.Parse()
 
-	paramLog := service.InputParams{
+	var paramLog service.InputParams
+	var action string
+
+	isInstanceImport := *instanceNames != ""
+	if isInstanceImport {
+		paramLog = createInstanceImportInputParams()
+		action = service.InstanceImportAction
+	} else {
+		paramLog = createMachineImageImportInputParams()
+		action = service.MachineImageImportAction
+	}
+
+	if err := service.RunWithServerLogging(action, paramLog, project, runImport); err != nil {
+		os.Exit(1)
+	}
+}
+
+func createInstanceImportInputParams() service.InputParams {
+	return service.InputParams{
 		InstanceImportParams: &service.InstanceImportParams{
-			CommonParams: &service.CommonParams{
-				ClientID:                *clientID,
-				Network:                 *network,
-				Subnet:                  *subnet,
-				Zone:                    *zoneFlag,
-				Timeout:                 *timeout,
-				Project:                 *project,
-				ObfuscatedProject:       service.Hash(*project),
-				Labels:                  *labels,
-				ScratchBucketGcsPath:    *scratchBucketGcsPath,
-				Oauth:                   *oauth,
-				ComputeEndpointOverride: *ce,
-				DisableGcsLogging:       *gcsLogsDisabled,
-				DisableCloudLogging:     *cloudLogsDisabled,
-				DisableStdoutLogging:    *stdoutLogsDisabled,
-			},
+			CommonParams: createCommonInputParams(),
 
 			InstanceName:                *instanceNames,
 			OvfGcsPath:                  *ovfOvaGcsPath,
@@ -159,8 +163,55 @@ func main() {
 			NodeAffinityLabel:           nodeAffinityLabelsFlag.String(),
 		},
 	}
+}
 
-	if err := service.RunWithServerLogging(service.InstanceImportAction, paramLog, project, runImport); err != nil {
-		os.Exit(1)
+func createMachineImageImportInputParams() service.InputParams {
+	return service.InputParams{
+		MachineImageImportParams: &service.MachineImageImportParams{
+			CommonParams: createCommonInputParams(),
+
+			MachineImageName:            *machineImageName,
+			OvfGcsPath:                  *ovfOvaGcsPath,
+			CanIPForward:                *canIPForward,
+			DeletionProtection:          *deletionProtection,
+			MachineType:                 *machineType,
+			NetworkInterface:            *network,
+			NetworkTier:                 *networkTier,
+			PrivateNetworkIP:            *privateNetworkIP,
+			NoExternalIP:                *noExternalIP,
+			NoRestartOnFailure:          *noRestartOnFailure,
+			OS:                          *osID,
+			ShieldedIntegrityMonitoring: *shieldedIntegrityMonitoring,
+			ShieldedSecureBoot:          *shieldedSecureBoot,
+			ShieldedVtpm:                *shieldedVtpm,
+			Tags:                        *tags,
+			HasBootDiskKmsKey:           *bootDiskKmskey != "",
+			HasBootDiskKmsKeyring:       *bootDiskKmsKeyring != "",
+			HasBootDiskKmsLocation:      *bootDiskKmsLocation != "",
+			HasBootDiskKmsProject:       *bootDiskKmsProject != "",
+			NoGuestEnvironment:          *noGuestEnvironment,
+			NodeAffinityLabel:           nodeAffinityLabelsFlag.String(),
+			Hostname:                    *hostname,
+			MachineImageStorageLocation: *machineImageStorageLocation,
+		},
+	}
+}
+
+func createCommonInputParams() *service.CommonParams {
+	return &service.CommonParams{
+		ClientID:                *clientID,
+		Network:                 *network,
+		Subnet:                  *subnet,
+		Zone:                    *zoneFlag,
+		Timeout:                 *timeout,
+		Project:                 *project,
+		ObfuscatedProject:       service.Hash(*project),
+		Labels:                  *labels,
+		ScratchBucketGcsPath:    *scratchBucketGcsPath,
+		Oauth:                   *oauth,
+		ComputeEndpointOverride: *ce,
+		DisableGcsLogging:       *gcsLogsDisabled,
+		DisableCloudLogging:     *cloudLogsDisabled,
+		DisableStdoutLogging:    *stdoutLogsDisabled,
 	}
 }

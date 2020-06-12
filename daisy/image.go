@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"path"
 	"regexp"
-	"sync"
 
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
@@ -31,34 +30,26 @@ import (
 )
 
 var (
-	imageCache struct {
-		exists map[string][]*compute.Image
-		mu     sync.Mutex
-	}
-	imageFamilyCache struct {
-		exists map[string][]string
-		mu     sync.Mutex
-	}
 	imageURLRgx = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/images\/((family/(?P<family>%[2]s))?|(?P<image>%[2]s))$`, projectRgxStr, rfc1035))
 )
 
 // imageExists should only be used during validation for existing GCE images
 // and should not be relied or populated for daisy created resources.
-func imageExists(client daisyCompute.Client, project, family, name string) (bool, DError) {
+func (w *Workflow) imageExists(project, family, image string) (bool, DError) {
 	if family != "" {
-		imageFamilyCache.mu.Lock()
-		defer imageFamilyCache.mu.Unlock()
-		if imageFamilyCache.exists == nil {
-			imageFamilyCache.exists = map[string][]string{}
+		w.imageFamilyCache.mu.Lock()
+		defer w.imageFamilyCache.mu.Unlock()
+		if w.imageFamilyCache.exists == nil {
+			w.imageFamilyCache.exists = map[string]map[string]interface{}{}
 		}
-		if _, ok := imageFamilyCache.exists[project]; !ok {
-			imageFamilyCache.exists[project] = []string{}
+		if _, ok := w.imageFamilyCache.exists[project]; !ok {
+			w.imageFamilyCache.exists[project] = map[string]interface{}{}
 		}
-		if strIn(name, imageFamilyCache.exists[project]) {
+		if nameInResourceMap(image, w.imageFamilyCache.exists[project]) {
 			return true, nil
 		}
 
-		img, err := client.GetImageFromFamily(project, family)
+		img, err := w.ComputeClient.GetImageFromFamily(project, family)
 		if err != nil {
 			if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == http.StatusNotFound {
 				return false, nil
@@ -70,30 +61,26 @@ func imageExists(client daisyCompute.Client, project, family, name string) (bool
 				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", img.Name, img.Deprecated.State)
 			}
 		}
-		imageFamilyCache.exists[project] = append(imageFamilyCache.exists[project], name)
+		w.imageFamilyCache.exists[project][img.Name] = img
 		return true, nil
 	}
 
-	if name == "" {
+	if image == "" {
 		return false, Errf("must provide either family or name")
 	}
-	imageCache.mu.Lock()
-	defer imageCache.mu.Unlock()
-	if imageCache.exists == nil {
-		imageCache.exists = map[string][]*compute.Image{}
-	}
-	if _, ok := imageCache.exists[project]; !ok {
-		il, err := client.ListImages(project)
-		if err != nil {
-			return false, Errf("error listing images for project %q: %v", project, err)
-		}
-		imageCache.exists[project] = il
+	w.imageCache.mu.Lock()
+	defer w.imageCache.mu.Unlock()
+	err := w.imageCache.loadCache(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListImages(project)
+	}, project, image)
+	if err != nil {
+		return false, err
 	}
 
-	for _, i := range imageCache.exists[project] {
-		if name == i.Name {
-			if i.Deprecated != nil && (i.Deprecated.State == "OBSOLETE" || i.Deprecated.State == "DELETED") {
-				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", name, i.Deprecated.State)
+	for _, i := range w.imageCache.exists[project] {
+		if ic, ok := i.(*compute.Image); ok && image == ic.Name {
+			if ic.Deprecated != nil && (ic.Deprecated.State == "OBSOLETE" || ic.Deprecated.State == "DELETED") {
+				return true, typedErrf(imageObsoleteDeletedError, "image %q in state %q", image, ic.Deprecated.State)
 			}
 			return true, nil
 		}
@@ -118,8 +105,7 @@ type ImageInterface interface {
 	create(cc daisyCompute.Client) error
 	markCreatedInWorkflow()
 	delete(cc daisyCompute.Client) error
-	appendGuestOsFeatures(featureType string)
-	getGuestOsFeatures() guestOsFeatures
+	populateGuestOSFeatures()
 }
 
 //ImageBase is a base struct for GA/Beta images. It holds the shared properties between the two.
@@ -199,12 +185,13 @@ func (i *Image) delete(cc daisyCompute.Client) error {
 	return cc.DeleteImage(i.Project, i.Name)
 }
 
-func (i *Image) appendGuestOsFeatures(featureType string) {
-	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: featureType})
-}
-
-func (i *Image) getGuestOsFeatures() guestOsFeatures {
-	return i.GuestOsFeatures
+func (i *Image) populateGuestOSFeatures() {
+	if i.GuestOsFeatures == nil {
+		return
+	}
+	for _, f := range i.GuestOsFeatures {
+		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &compute.GuestOsFeature{Type: f})
+	}
 }
 
 // ImageBeta is used to create a GCE image using Beta API.
@@ -273,12 +260,13 @@ func (i *ImageBeta) delete(cc daisyCompute.Client) error {
 	return cc.DeleteImage(i.Project, i.Name)
 }
 
-func (i *ImageBeta) appendGuestOsFeatures(featureType string) {
-	i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: featureType})
-}
-
-func (i *ImageBeta) getGuestOsFeatures() guestOsFeatures {
-	return i.GuestOsFeatures
+func (i *ImageBeta) populateGuestOSFeatures() {
+	if i.GuestOsFeatures == nil {
+		return
+	}
+	for _, f := range i.GuestOsFeatures {
+		i.Image.GuestOsFeatures = append(i.Image.GuestOsFeatures, &computeBeta.GuestOsFeature{Type: f})
+	}
 }
 
 // MarshalJSON is a hacky workaround to prevent Image from using compute.Image's implementation.
@@ -303,7 +291,7 @@ func (g *guestOsFeatures) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, (*dg)(g))
 }
 
-func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) DError {
+func (ib *ImageBase) populate(ctx context.Context, ii ImageInterface, s *Step) DError {
 	name, errs := ib.Resource.populateWithGlobal(ctx, s, ii.getName())
 	ii.setName(name)
 
@@ -327,21 +315,11 @@ func populate(ctx context.Context, ii ImageInterface, ib *ImageBase, s *Step) DE
 		}
 	}
 	ib.link = fmt.Sprintf("projects/%s/global/images/%s", ib.Project, ii.getName())
-	populateGuestOSFeatures(ii, ib, s.w)
+	ii.populateGuestOSFeatures()
 	return errs
 }
 
-func populateGuestOSFeatures(ii ImageInterface, ib *ImageBase, w *Workflow) {
-	if ii.getGuestOsFeatures() == nil {
-		return
-	}
-	for _, f := range ii.getGuestOsFeatures() {
-		ii.appendGuestOsFeatures(f)
-	}
-	return
-}
-
-func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []string, s *Step) DError {
+func (ib *ImageBase) validate(ctx context.Context, ii ImageInterface, licenses []string, s *Step) DError {
 	pre := fmt.Sprintf("cannot create image %q", ib.daisyName)
 	errs := ib.Resource.validate(ctx, s, pre)
 
@@ -377,8 +355,8 @@ func validate(ctx context.Context, ii ImageInterface, ib *ImageBase, licenses []
 
 	// License checking.
 	for _, l := range licenses {
-		result := namedSubexp(licenseURLRegex, l)
-		if exists, err := licenseExists(s.w.ComputeClient, result["project"], result["license"]); err != nil {
+		result := NamedSubexp(licenseURLRegex, l)
+		if exists, err := s.w.licenseExists(result["project"], result["license"]); err != nil {
 			if !(isGoogleAPIForbiddenError(err) && ib.IgnoreLicenseValidationIfForbidden) {
 				errs = addErrs(errs, Errf("%s: bad license lookup: %q, error: %v", pre, l, err))
 			}
@@ -415,7 +393,7 @@ func newImageRegistry(w *Workflow) *imageRegistry {
 }
 
 func (ir *imageRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(imageURLRgx, res.link)
+	m := NamedSubexp(imageURLRgx, res.link)
 	err := ir.w.ComputeClient.DeleteImage(m["project"], m["image"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete image", err)

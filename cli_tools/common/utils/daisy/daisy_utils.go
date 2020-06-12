@@ -15,13 +15,17 @@
 package daisy
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"reflect"
 	"regexp"
 	"strings"
 
 	stringutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
 
@@ -39,6 +43,7 @@ var (
 		"centos-7":            "enterprise_linux/translate_centos_7.wf.json",
 		"centos-8":            "enterprise_linux/translate_centos_8.wf.json",
 		"opensuse-15":         "suse/translate_opensuse_15.wf.json",
+		"sles-sap-12-byol":    "suse/translate_sles_sap_12_byol.wf.json",
 		"sles-12-byol":        "suse/translate_sles_12_byol.wf.json",
 		"sles-15-byol":        "suse/translate_sles_15_byol.wf.json",
 		"rhel-6":              "enterprise_linux/translate_rhel_6_licensed.wf.json",
@@ -83,8 +88,8 @@ func ValidateOS(osID string) error {
 	}
 	if _, osValid := osChoices[osID]; !osValid {
 		// Expose osID and osChoices in the anonymized error message since they are not sensitive values.
-		errMsg := fmt.Sprintf("os `%v` is invalid. Allowed values: %v", osID, reflect.ValueOf(osChoices).MapKeys())
-		return daisy.Errf(errMsg)
+		allowedValuesMsg := fmt.Sprintf("Allowed values: %v", reflect.ValueOf(osChoices).MapKeys())
+		return daisy.Errf("os `%v` is invalid. "+allowedValuesMsg, osID)
 	}
 	return nil
 }
@@ -102,14 +107,23 @@ func UpdateAllInstanceNoExternalIP(workflow *daisy.Workflow, noExternalIP bool) 
 	}
 	workflow.IterateWorkflowSteps(func(step *daisy.Step) {
 		if step.CreateInstances != nil {
-			for _, instance := range *step.CreateInstances {
+			for _, instance := range step.CreateInstances.Instances {
 				if instance.Instance.NetworkInterfaces == nil {
-					return
+					continue
 				}
 				for _, networkInterface := range instance.Instance.NetworkInterfaces {
 					networkInterface.AccessConfigs = []*compute.AccessConfig{}
 				}
 			}
+			for _, instance := range step.CreateInstances.InstancesBeta {
+				if instance.Instance.NetworkInterfaces == nil {
+					continue
+				}
+				for _, networkInterface := range instance.Instance.NetworkInterfaces {
+					networkInterface.AccessConfigs = []*computeBeta.AccessConfig{}
+				}
+			}
+
 		}
 	})
 }
@@ -181,4 +195,55 @@ func PostProcessDErrorForNetworkFlag(action string, err error, network string, w
 				" VPC networks, see https://cloud.google.com/vpc.", action)
 		}
 	}
+}
+
+// RunWorkflowWithCancelSignal runs Daisy workflow with accepting Ctrl-C signal
+func RunWorkflowWithCancelSignal(ctx context.Context, w *daisy.Workflow) error {
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func(w *daisy.Workflow) {
+		select {
+		case <-c:
+			w.LogWorkflowInfo("\nCtrl-C caught, sending cancel signal to %q...\n", w.Name)
+			close(w.Cancel)
+		case <-w.Cancel:
+		}
+	}(w)
+	return w.Run(ctx)
+}
+
+// NewStep creates a new step for the workflow along with dependencies.
+func NewStep(w *daisy.Workflow, name string, dependencies ...*daisy.Step) (*daisy.Step, error) {
+	s, err := w.NewStep(name)
+	if err != nil {
+		return nil, err
+	}
+
+	err = w.AddDependency(s, dependencies...)
+	return s, err
+}
+
+// GetResourceID gets resource id from its URI. Definition of resource ID:
+// https://cloud.google.com/apis/design/resource_names#resource_id
+func GetResourceID(resourceURI string) string {
+	dm := strings.Split(resourceURI, "/")
+	return dm[len(dm)-1]
+}
+
+// GetDeviceURI gets a URI for a device based on its attributes. A device is a disk
+// attached to a instance.
+func GetDeviceURI(project, zone, name string) string {
+	return fmt.Sprintf("projects/%v/zones/%v/devices/%v", project, zone, name)
+}
+
+// GetDiskURI gets a URI for a disk based on its attributes. Introduction
+// to a disk resource: https://cloud.google.com/compute/docs/reference/rest/v1/disks
+func GetDiskURI(project, zone, name string) string {
+	return fmt.Sprintf("projects/%v/zones/%v/disks/%v", project, zone, name)
+}
+
+// GetInstanceURI gets a URI for a instance based on its attributes. Introduction
+// to a instance resource: https://cloud.google.com/compute/docs/reference/rest/v1/instances
+func GetInstanceURI(project, zone, name string) string {
+	return fmt.Sprintf("projects/%v/zones/%v/instances/%v", project, zone, name)
 }

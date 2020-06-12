@@ -15,345 +15,192 @@
 package importer
 
 import (
-	"fmt"
-	"io/ioutil"
-	"strings"
+	"context"
+	"errors"
 	"testing"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/test"
-	"github.com/GoogleCloudPlatform/compute-image-tools/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	currentExecutablePath, clientID, imageName, osID, customTranWorkflow, sourceFile, sourceImage,
-	family, description, network, subnet, labels string
-	dataDisk, noGuestEnvironment bool
-)
-
-func TestGetWorkflowPathsFromImage(t *testing.T) {
-	resetArgs()
-	sourceImage = "image-1"
-	osID = "ubuntu-1404"
-	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath) || translate != "ubuntu/translate_ubuntu_1404.wf.json" {
-		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportFromImageWorkflow)
+func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
+	inflaterLogs := []string{"log-a", "log-b"}
+	processorLogs := []string{"log-c", "log-d"}
+	expectedLogs := []string{"log-a", "log-b", "log-c", "log-d"}
+	mockProcessor := mockProcessor{
+		serialLogs: processorLogs,
 	}
-}
-
-func TestGetWorkflowPathsDataDisk(t *testing.T) {
-	resetArgs()
-	dataDisk = true
-	osID = ""
-	sourceImage = ""
-	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportWorkflow, currentExecutablePath) || translate != "" {
-		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportWorkflow)
+	importer := importer{
+		inflater: &mockInflater{
+			serialLogs: inflaterLogs,
+			pd: persistentDisk{
+				sizeGb:     100,
+				sourceGb:   10,
+				sourceType: "vmdk",
+			},
+		},
+		processorProvider: &mockProcessorProvider{
+			processor: &mockProcessor,
+		},
 	}
+	loggable, actualError := importer.Run(context.Background())
+	assert.Nil(t, actualError)
+	assert.NotNil(t, loggable)
+	assert.Equal(t, expectedLogs, loggable.ReadSerialPortLogs())
+	assert.Equal(t, "vmdk", loggable.GetValue("import-file-format"))
+	assert.Equal(t, []int64{10}, loggable.GetValueAsInt64Slice("source-size-gb"))
+	assert.Equal(t, []int64{100}, loggable.GetValueAsInt64Slice("target-size-gb"))
+	assert.Equal(t, 1, mockProcessor.interactions)
 }
 
-func TestGetWorkflowPathsWithCustomTranslateWorkflow(t *testing.T) {
-	resetArgs()
-	imageName = "image-a"
-	sourceImage = "image-1"
-	customTranWorkflow = "custom.wf"
-	osID = ""
+func TestRun_DeleteDisk(t *testing.T) {
+	project := "project"
+	zone := "zone"
+	diskURI := "uri"
+	mockDiskClient := mockDiskClient{}
 
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err != nil {
-
-		t.Errorf("Unexpected flags error: %v", err)
+	importer := importer{
+		project:    project,
+		zone:       zone,
+		diskClient: &mockDiskClient,
+		inflater: &mockInflater{
+			pd: persistentDisk{
+				uri: diskURI,
+			},
+		},
+		processorProvider: &mockProcessorProvider{
+			processor: &mockProcessor{},
+		},
 	}
-	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
-	if workflow != path.ToWorkingDir(WorkflowDir+ImportFromImageWorkflow, currentExecutablePath) || translate != customTranWorkflow {
-		t.Errorf("%v != %v and/or translate not empty", workflow, WorkflowDir+ImportFromImageWorkflow)
+	_, actualError := importer.Run(context.Background())
+	assert.NoError(t, actualError)
+	assert.Equal(t, 1, mockDiskClient.interactions)
+	assert.Equal(t, project, mockDiskClient.project)
+	assert.Equal(t, zone, mockDiskClient.zone)
+	assert.Equal(t, diskURI, mockDiskClient.uri)
+}
+
+func TestRun_DontRunProcessIfInflateFails(t *testing.T) {
+	expectedError := errors.New("the errors")
+	mockProcessorProvider := mockProcessorProvider{}
+	importer := importer{
+		inflater: &mockInflater{
+			err: expectedError,
+		},
+		processorProvider: &mockProcessorProvider,
 	}
+	loggable, actualError := importer.Run(context.Background())
+	assert.NotNil(t, loggable)
+	assert.Equal(t, expectedError, actualError)
+	assert.Equal(t, 0, mockProcessorProvider.interactions)
 }
 
-func TestFlagsUnexpectedCustomTranslateWorkflowWithOs(t *testing.T) {
-	resetArgs()
-	imageName = "image-a"
-	customTranWorkflow = "custom.wf"
-
-	_, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels)
-	expected := fmt.Errorf("-os and -custom_translate_workflow can't be both specified")
-	validateExpectedError(err, expected, t)
-}
-
-func TestFlagsUnexpectedCustomTranslateWorkflowWithDataDisk(t *testing.T) {
-	resetArgs()
-	imageName = "image-a"
-	dataDisk = true
-	osID = ""
-	customTranWorkflow = "custom.wf"
-
-	_, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels)
-	expected := fmt.Errorf("when -data_disk is specified, -os and -custom_translate_workflow should be empty")
-	validateExpectedError(err, expected, t)
-}
-
-func TestGetWorkflowPathsFromFile(t *testing.T) {
-	homeDir := "/home/gce/"
-
-	resetArgs()
-	imageName = "image-a"
-	sourceImage = ""
-	currentExecutablePath = homeDir + "executable"
-
-	workflow, translate := getWorkflowPaths(dataDisk, osID, sourceImage, customTranWorkflow, currentExecutablePath)
-
-	if workflow != homeDir+WorkflowDir+ImportAndTranslateWorkflow {
-		t.Errorf("resulting workflow path `%v` does not match expected `%v`", workflow, homeDir+WorkflowDir+ImportAndTranslateWorkflow)
+func TestRun_IncludeInflaterLogs_WhenFailureToCreateProcessor(t *testing.T) {
+	mockProcessor := mockProcessor{}
+	expectedError := errors.New("the errors")
+	expectedLogs := []string{"log-a", "log-b"}
+	importer := importer{
+		inflater: &mockInflater{
+			serialLogs: expectedLogs,
+			pd: persistentDisk{
+				sizeGb:     100,
+				sourceGb:   10,
+				sourceType: "vmdk",
+			},
+		},
+		processorProvider: &mockProcessorProvider{
+			err:       expectedError,
+			processor: &mockProcessor,
+		},
 	}
+	loggable, actualError := importer.Run(context.Background())
+	assert.Equal(t, expectedError, actualError)
+	assert.NotNil(t, loggable)
+	assert.Equal(t, expectedLogs, loggable.ReadSerialPortLogs())
+	assert.Equal(t, "vmdk", loggable.GetValue("import-file-format"))
+	assert.Equal(t, []int64{10}, loggable.GetValueAsInt64Slice("source-size-gb"))
+	assert.Equal(t, []int64{100}, loggable.GetValueAsInt64Slice("target-size-gb"))
+	assert.Equal(t, 0, mockProcessor.interactions)
+}
 
-	if translate != "ubuntu/translate_ubuntu_1404.wf.json" {
-		t.Errorf("resulting translate workflow path `%v` does not match expected `%v`", translate, "ubuntu/translate_ubuntu_1404.wf.json")
+func TestRun_DeleteDisk_WhenFailureToCreateProcessor(t *testing.T) {
+	project := "project"
+	zone := "zone"
+	diskURI := "uri"
+	mockDiskClient := mockDiskClient{}
+
+	expectedError := errors.New("the errors")
+	importer := importer{
+		project:    project,
+		zone:       zone,
+		diskClient: &mockDiskClient,
+		inflater: &mockInflater{
+			pd: persistentDisk{
+				uri: diskURI,
+			},
+		},
+		processorProvider: &mockProcessorProvider{
+			err: expectedError,
+		},
 	}
+	_, actualError := importer.Run(context.Background())
+	assert.Equal(t, expectedError, actualError)
+	assert.Equal(t, 1, mockDiskClient.interactions)
+	assert.Equal(t, project, mockDiskClient.project)
+	assert.Equal(t, zone, mockDiskClient.zone)
+	assert.Equal(t, diskURI, mockDiskClient.uri)
 }
 
-func TestFlagsImageNameNotProvided(t *testing.T) {
-	resetArgs()
-	imageName = ""
-	_, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels)
-	expected := fmt.Errorf("The flag -image_name must be provided")
-	validateExpectedError(err, expected, t)
+type mockProcessorProvider struct {
+	processor    processor
+	err          error
+	interactions int
 }
 
-func assertErrorOnValidate(errorMsg string, t *testing.T) {
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err == nil {
-		t.Error(errorMsg)
-	}
+func (m *mockProcessorProvider) provide(pd persistentDisk) (processor, error) {
+	m.interactions++
+	return m.processor, m.err
 }
 
-func TestFlagsClientIdNotProvided(t *testing.T) {
-	resetArgs()
-	clientID = ""
-	assertErrorOnValidate("Expected error for missing client_id flag", t)
+type mockProcessor struct {
+	serialLogs   []string
+	err          error
+	interactions int
 }
 
-func TestFlagsDataDiskOrOSFlagsNotProvided(t *testing.T) {
-	resetArgs()
-	osID = ""
-	dataDisk = false
-	assertErrorOnValidate("Expected error for missing os or data_disk flag", t)
+func (m *mockProcessor) process(ctx context.Context) error {
+	m.interactions++
+	return m.err
 }
 
-func TestFlagsDataDiskAndOSFlagsBothProvided(t *testing.T) {
-	resetArgs()
-	dataDisk = true
-	assertErrorOnValidate("Expected error for both os and data_disk set at the same time", t)
+func (m mockProcessor) traceLogs() []string {
+	return m.serialLogs
 }
 
-func TestFlagsSourceFileOrSourceImageNotProvided(t *testing.T) {
-	resetArgs()
-	sourceFile = ""
-	sourceImage = ""
-	dataDisk = false
-	assertErrorOnValidate("Expected error for missing source_file or source_image flag", t)
+type mockInflater struct {
+	serialLogs   []string
+	pd           persistentDisk
+	err          error
+	interactions int
 }
 
-func TestFlagsSourceFileAndSourceImageBothProvided(t *testing.T) {
-	resetArgs()
-	sourceFile = "gs://source_bucket/source_file"
-	dataDisk = false
-	assertErrorOnValidate("Expected error for both source_file and source_image flags set", t)
+func (m *mockInflater) inflate(ctx context.Context) (persistentDisk, error) {
+	m.interactions++
+	return m.pd, m.err
 }
 
-func TestFlagsSourceFile(t *testing.T) {
-	resetArgs()
-	sourceFile = "gs://source_bucket/source_file"
-	sourceImage = ""
-	dataDisk = false
-
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
+func (m mockInflater) traceLogs() []string {
+	return m.serialLogs
 }
 
-func TestFlagSourceFileEmpty(t *testing.T) {
-	emptyReader := ioutil.NopCloser(strings.NewReader(""))
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(emptyReader, nil)
-
-	err := validateSourceFile(mockStorageClient, "", "")
-	assert.NotNil(t, err, "Expected error")
-	assert.Contains(t, err.Error(), "cannot import an image from an empty file")
+type mockDiskClient struct {
+	interactions       int
+	project, zone, uri string
 }
 
-func TestFlagSourceFileCompressed(t *testing.T) {
-	fileString := test.CreateCompressedFile()
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(fileString)), nil)
-
-	err := validateSourceFile(mockStorageClient, "", "")
-	assert.NotNil(t, err, "Expected error")
-}
-
-func TestFlagSourceFileUncompressed(t *testing.T) {
-	fileString := "random content"
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().GetObjectReader(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(fileString)), nil)
-
-	err := validateSourceFile(mockStorageClient, "", "")
-	assert.Nil(t, err, "Unexpected error")
-}
-
-func TestFlagsInvalidSourceFile(t *testing.T) {
-	resetArgs()
-	sourceFile = "invalidSourceFile"
-	sourceImage = ""
-
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err == nil {
-		t.Errorf("Expected error")
-	}
-}
-
-func TestFlagsSourceImage(t *testing.T) {
-	resetArgs()
-	sourceFile = ""
-
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-}
-
-func TestFlagsDataDisk(t *testing.T) {
-	resetArgs()
-	sourceFile = "gs://source_bucket/source_file"
-	sourceImage = ""
-	osID = ""
-	dataDisk = true
-
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-}
-
-func TestFlagsInvalidOS(t *testing.T) {
-	resetArgs()
-	sourceFile = "gs://source_bucket/source_file"
-	sourceImage = ""
-	osID = "invalidOs"
-
-	if _, _, _, err := validateAndParseFlags(clientID, imageName, sourceFile, sourceImage, dataDisk,
-		osID, customTranWorkflow, labels); err == nil {
-		t.Errorf("Expected error")
-	}
-}
-
-func TestBuildDaisyVarsFromDisk(t *testing.T) {
-	resetArgs()
-	imageName = "image-a"
-	noGuestEnvironment = true
-	sourceFile = "source-file-path"
-	sourceImage = ""
-	family = "a-family"
-	description = "a-description"
-	network = "a-network"
-	subnet = "a-subnet"
-	region := "a-region"
-
-	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
-
-	assert.Equal(t, got["image_name"], "image-a")
-	assert.Equal(t, got["translate_workflow"], "translate/workflow/path")
-	assert.Equal(t, got["install_gce_packages"], "false")
-	assert.Equal(t, got["source_disk_file"], "source-file-path")
-	assert.Equal(t, got["family"], "a-family")
-	assert.Equal(t, got["description"], "a-description")
-	assert.Equal(t, got["import_network"], "global/networks/a-network")
-	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
-	assert.Equal(t, got["is_windows"], "false")
-	assert.Equal(t, len(got), 9)
-}
-
-func TestBuildDaisyVarsFromImage(t *testing.T) {
-	resetArgs()
-	imageName = "image-a"
-	noGuestEnvironment = true
-	sourceFile = ""
-	sourceImage = "source-image"
-	family = "a-family"
-	description = "a-description"
-	network = "a-network"
-	subnet = "a-subnet"
-	region := "a-region"
-
-	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
-
-	assert.Equal(t, got["image_name"], "image-a")
-	assert.Equal(t, got["translate_workflow"], "translate/workflow/path")
-	assert.Equal(t, got["install_gce_packages"], "false")
-	assert.Equal(t, got["source_image"], "global/images/source-image")
-	assert.Equal(t, got["family"], "a-family")
-	assert.Equal(t, got["description"], "a-description")
-	assert.Equal(t, got["import_network"], "global/networks/a-network")
-	assert.Equal(t, got["import_subnet"], "regions/a-region/subnetworks/a-subnet")
-	assert.Equal(t, got["is_windows"], "false")
-	assert.Equal(t, len(got), 9)
-}
-
-func TestBuildDaisyVarsWindow(t *testing.T) {
-	resetArgs()
-	imageName = "image-a"
-
-	region := ""
-	got := buildDaisyVars("translate/workflow/path/windows", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
-
-	assert.Equal(t, "true", got["is_windows"])
-}
-
-func TestBuildDaisyVarsImageNameLowercase(t *testing.T) {
-	resetArgs()
-	imageName = "IMAGE-a"
-
-	region := ""
-	got := buildDaisyVars("translate/workflow/path", imageName, sourceFile,
-		sourceImage, family, description, region, subnet, network, noGuestEnvironment)
-
-	assert.Equal(t, got["image_name"], "image-a")
-}
-
-func validateExpectedError(err error, expected error, t *testing.T) {
-	if err != expected {
-		if err == nil {
-			t.Errorf("nil != %v", expected)
-		} else if err.Error() != expected.Error() {
-			t.Errorf("%v != %v", err, expected)
-		}
-	}
-}
-
-func resetArgs() {
-	sourceFile = ""
-	sourceImage = "anImage"
-	osID = "ubuntu-1404"
-	dataDisk = false
-	imageName = "img"
-	clientID = "aClient"
-	customTranWorkflow = ""
-	currentExecutablePath = ""
-	labels = "userkey1=uservalue1,userkey2=uservalue2"
+func (m *mockDiskClient) DeleteDisk(project, zone, uri string) error {
+	m.interactions++
+	m.project = project
+	m.zone = zone
+	m.uri = uri
+	return nil
 }

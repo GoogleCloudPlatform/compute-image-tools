@@ -21,7 +21,6 @@ import (
 	"net"
 	"net/http"
 	"regexp"
-	"sync"
 
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
@@ -29,31 +28,13 @@ import (
 )
 
 var (
-	networkCache struct {
-		exists map[string][]string
-		mu     sync.Mutex
-	}
 	networkURLRegex = regexp.MustCompile(fmt.Sprintf(`^(projects/(?P<project>%[1]s)/)?global/networks/(?P<network>%[2]s)$`, projectRgxStr, rfc1035))
 )
 
-func networkExists(client daisyCompute.Client, project, name string) (bool, DError) {
-	networkCache.mu.Lock()
-	defer networkCache.mu.Unlock()
-	if networkCache.exists == nil {
-		networkCache.exists = map[string][]string{}
-	}
-	if _, ok := networkCache.exists[project]; !ok {
-		nl, err := client.ListNetworks(project)
-		if err != nil {
-			return false, Errf("error listing networks for project %q: %v", project, err)
-		}
-		var networks []string
-		for _, n := range nl {
-			networks = append(networks, n.Name)
-		}
-		networkCache.exists[project] = networks
-	}
-	return strIn(name, networkCache.exists[project]), nil
+func (w *Workflow) networkExists(project, network string) (bool, DError) {
+	return w.networkCache.resourceExists(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListNetworks(project)
+	}, project, network)
 }
 
 // Network is used to create a GCE network.
@@ -121,7 +102,7 @@ func newNetworkRegistry(w *Workflow) *networkRegistry {
 }
 
 func (nr *networkRegistry) deleteFn(res *Resource) DError {
-	m := namedSubexp(networkURLRegex, res.link)
+	m := NamedSubexp(networkURLRegex, res.link)
 	err := nr.w.ComputeClient.DeleteNetwork(m["project"], m["network"])
 	if gErr, ok := err.(*googleapi.Error); ok && gErr.Code == http.StatusNotFound {
 		return typedErr(resourceDNEError, "failed to delete network", err)

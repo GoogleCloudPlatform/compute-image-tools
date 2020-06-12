@@ -16,6 +16,7 @@ package logging
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -33,22 +34,31 @@ func (e *LogEntry) String() string {
 	return fmt.Sprintf("%s %s", e.LocalTimestamp.Format("2006-01-02T15:04:05Z"), e.Message)
 }
 
-// Logger is responsible for logging to stdout
-type Logger struct {
-	Prefix string
-}
-
 // LoggerInterface is logger abstraction
 type LoggerInterface interface {
 	Log(message string)
 }
 
-// NewLogger creates a new logger which uses prefix for all messages logged
-func NewLogger(prefix string) *Logger {
-	return &Logger{Prefix: prefix}
+// NewStdoutLogger creates a new logger which uses prefix for all messages logged.
+// All messages are sent to stdout.
+func NewStdoutLogger(prefix string) LoggerInterface {
+	return stdoutLogger{prefix: prefix}
 }
 
+type stdoutLogger struct{ prefix string }
+
 // Log logs a message
-func (l *Logger) Log(message string) {
-	fmt.Printf("%s %s\n", l.Prefix, newLogEntry(message))
+func (l stdoutLogger) Log(message string) {
+	fmt.Printf("%s %s\n", l.prefix, newLogEntry(message))
+}
+
+// NewDefaultLogger creates a new logger that sends all messages to the default logger.
+func NewDefaultLogger() LoggerInterface {
+	return defaultLogger{}
+}
+
+type defaultLogger struct{}
+
+func (d defaultLogger) Log(message string) {
+	log.Printf("%s\n", newLogEntry(message))
 }

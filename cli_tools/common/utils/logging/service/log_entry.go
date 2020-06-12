@@ -80,9 +80,11 @@ type ComputeImageToolsLogExtension struct {
 // InputParams contains the union of all APIs' param info. To simplify logging service, we
 // avoid defining different schemas for each API.
 type InputParams struct {
-	ImageImportParams    *ImageImportParams    `json:"image_import_input_params,omitempty"`
-	ImageExportParams    *ImageExportParams    `json:"image_export_input_params,omitempty"`
-	InstanceImportParams *InstanceImportParams `json:"instance_import_input_params,omitempty"`
+	ImageImportParams        *ImageImportParams        `json:"image_import_input_params,omitempty"`
+	ImageExportParams        *ImageExportParams        `json:"image_export_input_params,omitempty"`
+	InstanceImportParams     *InstanceImportParams     `json:"instance_import_input_params,omitempty"`
+	MachineImageImportParams *MachineImageImportParams `json:"machine_image_import_input_params,omitempty"`
+	WindowsUpgradeParams     *WindowsUpgradeParams     `json:"windows_upgrade_input_params,omitempty"`
 }
 
 // ImageImportParams contains all input params for image import
@@ -141,6 +143,35 @@ type InstanceImportParams struct {
 	NodeAffinityLabel           string `json:"node_affinity_label,omitempty"`
 }
 
+// MachineImageImportParams contains all input params for machine image import
+type MachineImageImportParams struct {
+	*CommonParams
+
+	MachineImageName            string `json:"machine_image_name,omitempty"`
+	OvfGcsPath                  string `json:"ovf_gcs_path,omitempty"`
+	CanIPForward                bool   `json:"can_ip_forward"`
+	DeletionProtection          bool   `json:"deletion_protection"`
+	MachineType                 string `json:"machine_type,omitempty"`
+	NetworkInterface            string `json:"network_interface,omitempty"`
+	NetworkTier                 string `json:"network_tier,omitempty"`
+	PrivateNetworkIP            string `json:"private_network_ip,omitempty"`
+	NoExternalIP                bool   `json:"no_external_ip,omitempty"`
+	NoRestartOnFailure          bool   `json:"no_restart_on_failure"`
+	OS                          string `json:"os,omitempty"`
+	ShieldedIntegrityMonitoring bool   `json:"shielded_integrity_monitoring"`
+	ShieldedSecureBoot          bool   `json:"shielded_secure_boot"`
+	ShieldedVtpm                bool   `json:"shielded_vtpm"`
+	Tags                        string `json:"tags,omitempty"`
+	HasBootDiskKmsKey           bool   `json:"has_boot_disk_kms_key"`
+	HasBootDiskKmsKeyring       bool   `json:"has_boot_disk_kms_keyring"`
+	HasBootDiskKmsLocation      bool   `json:"has_boot_disk_kms_location"`
+	HasBootDiskKmsProject       bool   `json:"has_boot_disk_kms_project"`
+	NoGuestEnvironment          bool   `json:"no_guest_environment"`
+	NodeAffinityLabel           string `json:"node_affinity_label,omitempty"`
+	Hostname                    string `json:"hostname,omitempty"`
+	MachineImageStorageLocation string `json:"machine_image_storage_location,omitempty"`
+}
+
 // CommonParams is only used to organize the code without impacting hierarchy of data
 type CommonParams struct {
 	ClientID                string `json:"client_id,omitempty"`
@@ -157,6 +188,18 @@ type CommonParams struct {
 	DisableGcsLogging       bool   `json:"disable_gcs_logging"`
 	DisableCloudLogging     bool   `json:"disable_cloud_logging"`
 	DisableStdoutLogging    bool   `json:"disable_stdout_logging"`
+}
+
+// WindowsUpgradeParams contains all input params for windows upgrade
+type WindowsUpgradeParams struct {
+	*CommonParams
+
+	Instance               string `json:"instance,omitempty"`
+	CreateMachineBackup    bool   `json:"create_machine_backup"`
+	AutoRollback           bool   `json:"auto_rollback"`
+	SourceOS               string `json:"source_os,omitempty"`
+	TargetOS               string `json:"target_os,omitempty"`
+	UseStagingInstallMedia bool   `json:"use_staging_install_media"`
 }
 
 // OutputInfo contains output values from the tools execution
@@ -198,5 +241,13 @@ func (l *Logger) updateParams(projectPointer *string) {
 	if l.Params.InstanceImportParams != nil {
 		l.Params.InstanceImportParams.CommonParams.Project = project
 		l.Params.InstanceImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	}
+	if l.Params.MachineImageImportParams != nil {
+		l.Params.MachineImageImportParams.CommonParams.Project = project
+		l.Params.MachineImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	}
+	if l.Params.WindowsUpgradeParams != nil {
+		l.Params.WindowsUpgradeParams.CommonParams.Project = project
+		l.Params.WindowsUpgradeParams.CommonParams.ObfuscatedProject = obfuscatedProject
 	}
 }

@@ -158,7 +158,7 @@ class RepoString(object):
     return self.url_root + (url_branch % self.repo_version)
 
 
-def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
+def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi):
   """Builds kickstart config from shards.
 
   Args:
@@ -179,9 +179,6 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
   # pre and post
   # Each section must be in a specific order, but items in that section do not
   # have to be.
-  packages = ""
-  if nge:
-    packages = "google-guest-agent"
 
   # Common
   pre = ''
@@ -196,7 +193,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
     pre = FetchConfigPart('el6-pre.cfg')
     ks_options = FetchConfigPart('el6-options.cfg')
     rhel_post = FetchConfigPart('rhel6-post.cfg')
-    el_post = FetchConfigPart('el6-post.cfg').replace('__PACKAGES__', packages)
+    el_post = FetchConfigPart('el6-post.cfg')
     custom_post = '\n'.join([rhel_post, el_post])
     if byos:
       custom_post = '\n'.join([custom_post, rhel_byos_post])
@@ -206,8 +203,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
     logging.info('Building CentOS 6 image.')
     pre = FetchConfigPart('el6-pre.cfg')
     ks_options = FetchConfigPart('el6-options.cfg')
-    custom_post = FetchConfigPart('el6-post.cfg').replace('__PACKAGES__',
-                                                          packages)
+    custom_post = FetchConfigPart('el6-post.cfg')
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
   elif release == 'rhel7' or release.startswith('rhel-7'):
@@ -231,13 +227,10 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
         logging.info('Building RHEL 7.7 for SAP')
         point = FetchConfigPart('rhel7-7-post.cfg')
       rhel_post = '\n'.join([point, FetchConfigPart('rhel7-sap-post.cfg')])
-    el_post = FetchConfigPart('el7-post.cfg').replace('__PACKAGES__', packages)
+    el_post = FetchConfigPart('el7-post.cfg')
     custom_post = '\n'.join([rhel_post, el_post])
     if byos:
       custom_post = '\n'.join([custom_post, rhel_byos_post])
-    if uefi:
-      el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg')
-      custom_post = '\n'.join([custom_post, el7_uefi_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "centos7":
@@ -247,12 +240,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
       ks_options = FetchConfigPart('el7-uefi-options.cfg')
     else:
       ks_options = FetchConfigPart('el7-options.cfg')
-    custom_post = FetchConfigPart('el7-post.cfg').replace('__PACKAGES__',
-                                                          packages)
-    if uefi:
-      el7_uefi_post = FetchConfigPart('el7-uefi-post.cfg').replace('redhat',
-                                                                   "centos")
-      custom_post = '\n'.join([custom_post, el7_uefi_post])
+    custom_post = FetchConfigPart('el7-post.cfg')
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
   elif release == "oraclelinux6":
@@ -260,7 +248,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
     pre = FetchConfigPart('el6-pre.cfg')
     ks_options = FetchConfigPart('el6-options.cfg')
     ol_post = FetchConfigPart('ol6-post.cfg')
-    el_post = FetchConfigPart('el6-post.cfg').replace('__PACKAGES__', packages)
+    el_post = FetchConfigPart('el6-post.cfg')
     custom_post = '\n'.join([ol_post, el_post])
     cleanup = FetchConfigPart('el6-cleanup.cfg')
     repo_version = 'el6'
@@ -268,7 +256,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
     logging.info('Building Oracle Linux 7 image.')
     ks_options = FetchConfigPart('el7-options.cfg')
     ol_post = FetchConfigPart('ol7-post.cfg')
-    el_post = FetchConfigPart('el7-post.cfg').replace('__PACKAGES__', packages)
+    el_post = FetchConfigPart('el7-post.cfg')
     custom_post = '\n'.join([ol_post, el_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
@@ -280,7 +268,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
       logging.info('Building RHEL 8 for UEFI')
       ks_options = FetchConfigPart('el8-uefi-options.cfg')
     rhel_post = FetchConfigPart('rhel8-post.cfg')
-    el_post = FetchConfigPart('el8-post.cfg').replace('__PACKAGES__', packages)
+    el_post = FetchConfigPart('el8-post.cfg')
     custom_post = '\n'.join([rhel_post, el_post])
     if byos:
       custom_post = '\n'.join([custom_post, rhel_byos_post])
@@ -293,8 +281,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi, nge):
     if uefi:
       logging.info('Building CentOS 8 for UEFI')
       ks_options = FetchConfigPart('el8-uefi-options.cfg')
-    custom_post = FetchConfigPart('el8-post.cfg').replace('__PACKAGES__',
-                                                          packages)
+    custom_post = FetchConfigPart('el8-post.cfg')
     cleanup = FetchConfigPart('el8-cleanup.cfg')
     repo_version = 'el8'
   else:

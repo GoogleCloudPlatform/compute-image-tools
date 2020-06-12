@@ -33,10 +33,6 @@
     "rhel_uefi": {
       "Value": "true",
       "Description": "Create a RHEL UEFI image."
-    },
-    "install_nge": {
-      "Value": "false",
-      "Description": "Whether to install the new guest agent"
     }
   },
   "Sources": {
@@ -48,8 +44,7 @@
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
     "build_files/save_logs.py": "./save_logs.py",
-    "installerprep_startup_script": "../../linux_common/bootstrap.sh",
-    "build_files/sb_keys": "gs://gce-image-build-resources/linux/SecureBootKeys/"
+    "installerprep_startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
     "setup-disks": {
@@ -62,15 +57,15 @@
         },
         {
           "Name": "disk-installer",
-          "SourceImage": "projects/bct-uefi-images/global/images/uefi-feature-disk",
           "SizeGb": "50",
-          "Type": "pd-ssd"
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
         },
         {
           "Name": "${install_disk}",
-          "SourceImage": "projects/bct-uefi-images/global/images/uefi-feature-disk",
-          "SizeGb": "10",
-          "Type": "pd-ssd"
+          "SizeGb": "20",
+          "Type": "pd-ssd",
+          "GuestOsFeatures": [{"type": "UEFI_COMPATIBLE"}]
         }
       ]
     },
@@ -90,8 +85,7 @@
             "google_cloud_repo": "${google_cloud_repo}",
             "rhel_byos": "${rhel_byos}",
             "rhel_sap": "${rhel_sap}",
-            "rhel_uefi": "${rhel_uefi}",
-            "install_nge": "${install_nge}"
+            "rhel_uefi": "${rhel_uefi}"
           },
           "StartupScript": "installerprep_startup_script"
         }

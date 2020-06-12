@@ -41,7 +41,9 @@ type Client interface {
 	CreateImage(project string, i *compute.Image) error
 	CreateImageBeta(project string, i *computeBeta.Image) error
 	CreateInstance(project, zone string, i *compute.Instance) error
+	CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error
 	CreateNetwork(project string, n *compute.Network) error
+	CreateSnapshot(project, zone, disk string, s *compute.Snapshot) error
 	CreateSubnetwork(project, region string, n *compute.Subnetwork) error
 	CreateTargetInstance(project, zone string, ti *compute.TargetInstance) error
 	DeleteDisk(project, zone, name string) error
@@ -60,6 +62,7 @@ type Client interface {
 	GetSerialPortOutput(project, zone, name string, port, start int64) (*compute.SerialPortOutput, error)
 	GetZone(project, zone string) (*compute.Zone, error)
 	GetInstance(project, zone, name string) (*compute.Instance, error)
+	GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
@@ -73,6 +76,7 @@ type Client interface {
 	InstanceStatus(project, zone, name string) (string, error)
 	InstanceStopped(project, zone, name string) (bool, error)
 	ListMachineTypes(project, zone string, opts ...ListCallOption) ([]*compute.MachineType, error)
+	ListLicenses(project string, opts ...ListCallOption) ([]*compute.License, error)
 	ListZones(project string, opts ...ListCallOption) ([]*compute.Zone, error)
 	ListRegions(project string, opts ...ListCallOption) ([]*compute.Region, error)
 	AggregatedListInstances(project string, opts ...ListCallOption) ([]*compute.Instance, error)
@@ -92,6 +96,7 @@ type Client interface {
 	ResizeDisk(project, zone, disk string, drr *compute.DisksResizeRequest) error
 	SetInstanceMetadata(project, zone, name string, md *compute.Metadata) error
 	SetCommonInstanceMetadata(project string, md *compute.Metadata) error
+	SetDiskAutoDelete(project, zone, instance string, autoDelete bool, deviceName string) error
 
 	// Beta API calls
 	GetGuestAttributes(project, zone, name, queryPath, variableKey string) (*computeBeta.GuestAttributes, error)
@@ -271,7 +276,7 @@ type operationGetterFunc func() (*compute.Operation, error)
 
 func (c *client) zoneOperationsWait(project, zone, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.ZoneOperations.Get(project, zone, name).Do)
+		op, err = c.Retry(c.raw.ZoneOperations.Wait(project, zone, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get zone operation %s: %v", name, err)
 		}
@@ -281,7 +286,7 @@ func (c *client) zoneOperationsWait(project, zone, name string) error {
 
 func (c *client) regionOperationsWait(project, region, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.RegionOperations.Get(project, region, name).Do)
+		op, err = c.Retry(c.raw.RegionOperations.Wait(project, region, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get region operation %s: %v", name, err)
 		}
@@ -291,7 +296,7 @@ func (c *client) regionOperationsWait(project, region, name string) error {
 
 func (c *client) globalOperationsWait(project, name string) error {
 	return c.operationsWaitHelper(project, name, func() (op *compute.Operation, err error) {
-		op, err = c.Retry(c.raw.GlobalOperations.Get(project, name).Do)
+		op, err = c.Retry(c.raw.GlobalOperations.Wait(project, name).Do)
 		if err != nil {
 			err = fmt.Errorf("failed to get global operation %s: %v", name, err)
 		}
@@ -502,6 +507,25 @@ func (c *client) CreateInstance(project, zone string, i *compute.Instance) error
 	return nil
 }
 
+// CreateInstanceBeta creates a GCE image using Beta API.
+func (c *client) CreateInstanceBeta(project, zone string, i *computeBeta.Instance) error {
+	op, err := c.RetryBeta(c.rawBeta.Instances.Insert(project, zone, i).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
+		return err
+	}
+
+	var createdInstance *computeBeta.Instance
+	if createdInstance, err = c.i.GetInstanceBeta(project, zone, i.Name); err != nil {
+		return err
+	}
+	*i = *createdInstance
+	return nil
+}
+
 func (c *client) CreateNetwork(project string, n *compute.Network) error {
 	op, err := c.Retry(c.raw.Networks.Insert(project, n).Do)
 	if err != nil {
@@ -581,6 +605,16 @@ func (c *client) DeleteImage(project, name string) error {
 // DeleteDisk deletes a GCE persistent disk.
 func (c *client) DeleteDisk(project, zone, name string) error {
 	op, err := c.Retry(c.raw.Disks.Delete(project, zone, name).Do)
+	if err != nil {
+		return err
+	}
+
+	return c.i.zoneOperationsWait(project, zone, op.Name)
+}
+
+// SetDiskAutoDelete set auto-delete of an attached disk
+func (c *client) SetDiskAutoDelete(project, zone, instance string, autoDelete bool, deviceName string) error {
+	op, err := c.Retry(c.raw.Instances.SetDiskAutoDelete(project, zone, instance, autoDelete, deviceName).Do)
 	if err != nil {
 		return err
 	}
@@ -776,11 +810,20 @@ func (c *client) ListRegions(project string, opts ...ListCallOption) ([]*compute
 	}
 }
 
-// GetInstance gets a GCE Instance.
+// GetInstance gets a GCE Instance using GA API.
 func (c *client) GetInstance(project, zone, name string) (*compute.Instance, error) {
 	i, err := c.raw.Instances.Get(project, zone, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
 		return c.raw.Instances.Get(project, zone, name).Do()
+	}
+	return i, err
+}
+
+// GetInstance gets a GCE Instance using GA API.
+func (c *client) GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error) {
+	i, err := c.rawBeta.Instances.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.rawBeta.Instances.Get(project, zone, name).Do()
 	}
 	return i, err
 }
@@ -1009,6 +1052,26 @@ func (c *client) ListImages(project string, opts ...ListCallOption) ([]*compute.
 	}
 }
 
+// CreateSnapshot creates a GCE snapshot.
+// SourceDisk is the url (full or partial) to the source disk.
+func (c *client) CreateSnapshot(project, zone, disk string, s *compute.Snapshot) error {
+	op, err := c.Retry(c.raw.Disks.CreateSnapshot(project, zone, disk, s).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
+		return err
+	}
+
+	var createdSnapshot *compute.Snapshot
+	if createdSnapshot, err = c.i.GetSnapshot(project, s.Name); err != nil {
+		return err
+	}
+	*s = *createdSnapshot
+	return nil
+}
+
 // GetSnapshot gets a GCE Snapshot.
 func (c *client) GetSnapshot(project, name string) (*compute.Snapshot, error) {
 	n, err := c.raw.Snapshots.Get(project, name).Do()
@@ -1185,6 +1248,30 @@ func (c *client) GetLicense(project, name string) (*compute.License, error) {
 	return l, err
 }
 
+// ListLicenses gets a list GCE Licenses.
+func (c *client) ListLicenses(project string, opts ...ListCallOption) ([]*compute.License, error) {
+	var ls []*compute.License
+	var pt string
+	call := c.raw.Licenses.List(project)
+	for _, opt := range opts {
+		call = opt.listCallOptionApply(call).(*compute.LicensesListCall)
+	}
+	for ll, err := call.PageToken(pt).Do(); ; ll, err = call.PageToken(pt).Do() {
+		if shouldRetryWithWait(c.hc.Transport, err, 2) {
+			ll, err = call.PageToken(pt).Do()
+		}
+		if err != nil {
+			return nil, err
+		}
+		ls = append(ls, ll.Items...)
+
+		if ll.NextPageToken == "" {
+			return ls, nil
+		}
+		pt = ll.NextPageToken
+	}
+}
+
 // InstanceStatus returns an instances Status.
 func (c *client) InstanceStatus(project, zone, name string) (string, error) {
 	is, err := c.raw.Instances.Get(project, zone, name).Do()
@@ -1205,7 +1292,7 @@ func (c *client) InstanceStopped(project, zone, name string) (bool, error) {
 		return false, err
 	}
 	switch status {
-	case "PROVISIONING", "RUNNING", "STAGING", "STOPPING":
+	case "PROVISIONING", "REPAIRING", "RUNNING", "STAGING", "STOPPING":
 		return false, nil
 	case "TERMINATED", "STOPPED":
 		return true, nil

@@ -15,32 +15,11 @@
 package daisy
 
 import (
-	"sync"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 )
 
-var zonesCache struct {
-	exists map[string][]string
-	mu     sync.Mutex
-}
-
-func zoneExists(client compute.Client, project, zone string) (bool, DError) {
-	zonesCache.mu.Lock()
-	defer zonesCache.mu.Unlock()
-	if zonesCache.exists == nil {
-		zonesCache.exists = map[string][]string{}
-	}
-	if _, ok := zonesCache.exists[project]; !ok {
-		zl, err := client.ListZones(project)
-		if err != nil {
-			return false, typedErr(apiError, "failed to list zones", err)
-		}
-		var zones []string
-		for _, z := range zl {
-			zones = append(zones, z.Name)
-		}
-		zonesCache.exists[project] = zones
-	}
-	return strIn(zone, zonesCache.exists[project]), nil
+func (w *Workflow) zoneExists(project, zone string) (bool, DError) {
+	return w.zonesCache.resourceExists(func(project string, opts ...daisyCompute.ListCallOption) (interface{}, error) {
+		return w.ComputeClient.ListZones(project)
+	}, project, zone)
 }

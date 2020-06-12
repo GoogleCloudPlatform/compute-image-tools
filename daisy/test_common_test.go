@@ -33,6 +33,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	emptypb "github.com/golang/protobuf/ptypes/empty"
 	godebugDiff "github.com/kylelemons/godebug/diff"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
@@ -40,7 +41,10 @@ import (
 	"google.golang.org/grpc"
 )
 
-const DNE = "DNE!"
+const (
+	DNE  = "DNE!"
+	p403 = "p403"
+)
 
 type mockStep struct {
 	populateImpl func(context.Context, *Step) DError
@@ -79,6 +83,7 @@ var (
 	testFirewallRule   = "test-firewall-rule"
 	testImage          = "test-image"
 	testMachineImage   = "test-machine-image"
+	testSnapshot       = "test-snapshot"
 	testInstance       = "test-instance"
 	testMachineType    = "test-machine-type"
 	testLicense        = "test-license"
@@ -155,6 +160,9 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return nil, errors.New("bad zone")
 	}
+	c.GetInstanceFn = func(project, zone, name string) (*compute.Instance, error) {
+		return &compute.Instance{Disks: []*compute.AttachedDisk{{DeviceName: testDisk}}}, nil
+	}
 	c.GetMachineTypeFn = func(_, _, mt string) (*compute.MachineType, error) {
 		if mt == testMachineType {
 			return nil, nil
@@ -194,6 +202,12 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return []*compute.Disk{{Name: testDisk}}, nil
 	}
+	c.ListSnapshotsFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Snapshot, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		return []*compute.Snapshot{{Name: testSnapshot}}, nil
+	}
 	c.ListForwardingRulesFn = func(p, r string, _ ...daisyCompute.ListCallOption) ([]*compute.ForwardingRule, error) {
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
@@ -203,14 +217,14 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 		}
 		return []*compute.ForwardingRule{{Name: testForwardingRule}}, nil
 	}
-	c.GetLicenseFn = func(p, l string) (*compute.License, error) {
+	c.ListLicensesFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.License, error) {
+		if p == p403 {
+			return nil, &googleapi.Error{Code: 403}
+		}
 		if p != testProject {
 			return nil, errors.New("bad project: " + p)
 		}
-		if l != testLicense {
-			return nil, errors.New("bad license: " + l)
-		}
-		return nil, nil
+		return []*compute.License{{Name: testLicense}}, nil
 	}
 	c.ListNetworksFn = func(p string, _ ...daisyCompute.ListCallOption) ([]*compute.Network, error) {
 		if p != testProject {
@@ -274,6 +288,12 @@ func newTestGCEClient() (*daisyCompute.TestClient, error) {
 			return errors.New("bad instance")
 		}
 		return nil
+	}
+	c.ListMachineImagesFn = func(p string, opts ...daisyCompute.ListCallOption) ([]*computeBeta.MachineImage, error) {
+		if p != testProject {
+			return nil, errors.New("bad project: " + p)
+		}
+		return []*computeBeta.MachineImage{{Name: testMachineImage}}, nil
 	}
 
 	return c, err
