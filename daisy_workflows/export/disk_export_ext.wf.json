@@ -33,6 +33,10 @@
     "export_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the export instance"
+    },
+    "no_external_ip": {
+      "Value": "false",
+      "Description": "Specifies to create the export instance without an external IP address"
     }
   },
   "Sources": {
@@ -82,6 +86,7 @@
             }
           ],
           "RetryWhenExternalIPDenied": true,
+          "NoExternalIP": "${no_external_ip}",
           "Scopes": ["https://www.googleapis.com/auth/devstorage.full_control", "https://www.googleapis.com/auth/compute"]
         }
       ]

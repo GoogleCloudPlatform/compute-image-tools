@@ -103,6 +103,9 @@ type InstanceBase struct {
 	// RetryWhenExternalIPDenied indicates whether to retry CreateInstances when
 	// it fails due to external IP denied by organization IP.
 	RetryWhenExternalIPDenied bool `json:",omitempty"`
+	// NoExternalIP indicates whether to try CreateInstances with
+	// an external IP in the first place.
+	NoExternalIP string `json:",omitempty"`
 	// Should an existing instance of the same name be deleted, defaults to false
 	// which will fail validation.
 	OverWrite bool `json:",omitempty"`
@@ -116,6 +119,7 @@ type Instance struct {
 
 	// Additional metadata to set for the instance.
 	Metadata map[string]string `json:"metadata,omitempty"`
+
 }
 
 // InstanceBeta is used to create a GCE instance using Beta API.
@@ -500,7 +504,11 @@ func (i *Instance) populateNetworks() DError {
 	}
 	for _, n := range i.NetworkInterfaces {
 		if n.AccessConfigs == nil {
-			n.AccessConfigs = defaultAcs
+			if i.NoExternalIP == "true" {
+				n.AccessConfigs = []*compute.AccessConfig{}
+			} else {
+				n.AccessConfigs = defaultAcs
+			}
 		}
 
 		// Only set deafult if no subnetwork or network set.
@@ -528,7 +536,11 @@ func (i *InstanceBeta) populateNetworks() DError {
 	}
 	for _, n := range i.NetworkInterfaces {
 		if n.AccessConfigs == nil {
-			n.AccessConfigs = defaultAcs
+			if i.NoExternalIP == "true" {
+				n.AccessConfigs = []*computeBeta.AccessConfig{}
+			} else {
+				n.AccessConfigs = defaultAcs
+			}
 		}
 
 		// Only set deafult if no subnetwork or network set.

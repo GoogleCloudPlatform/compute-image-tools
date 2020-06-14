@@ -33,6 +33,10 @@
     "export_subnet": {
       "Value": "",
       "Description": "SubNetwork to use for the export instance"
+    },
+    "no_external_ip": {
+      "Value": "false",
+      "Description": "Specifies to create the export instance without an external IP address"
     }
   },
   "Steps": {
@@ -57,7 +61,8 @@
           "export_instance_disk_size": "${export_instance_disk_size}",
           "export_instance_disk_type": "${export_instance_disk_type}",
           "export_network": "${export_network}",
-          "export_subnet": "${export_subnet}"
+          "export_subnet": "${export_subnet}",
+          "no_external_ip": "${no_external_ip}"
         }
       }
     },
