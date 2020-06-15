@@ -25,6 +25,7 @@ import (
 // Implementers can expose detailed logs using the traceLogs() method.
 type processor interface {
 	process(ctx context.Context) error
+	cancel(reason string)
 	traceLogs() []string
 }
 

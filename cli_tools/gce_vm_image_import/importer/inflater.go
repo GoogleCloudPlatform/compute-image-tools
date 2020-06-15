@@ -37,6 +37,7 @@ const (
 // Implementers can expose detailed logs using the traceLogs() method.
 type inflater interface {
 	inflate(ctx context.Context) (persistentDisk, error)
+	cancel()
 	traceLogs() []string
 }
 
@@ -50,6 +51,7 @@ type daisyInflater struct {
 
 func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
 	err := inflater.wf.Run(ctx)
+
 	if err != nil {
 		return persistentDisk{}, err
 	}
@@ -66,6 +68,10 @@ func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, erro
 		sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
 		sourceType: importFileFormat,
 	}, nil
+}
+
+func (inflater daisyInflater) cancel() {
+	inflater.wf.CancelWithReason("timed-out")
 }
 
 type persistentDisk struct {

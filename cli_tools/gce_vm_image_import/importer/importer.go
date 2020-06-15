@@ -17,6 +17,7 @@ package importer
 import (
 	"context"
 	"path"
+	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/google/logger"
@@ -37,9 +38,10 @@ func NewImporter(args ImportArguments, client compute.Client) (Importer, error) 
 	if err != nil {
 		return nil, err
 	}
-	return importer{
+	return &importer{
 		project:           args.Project,
 		zone:              args.Zone,
+		timeout:           args.Timeout,
 		preValidator:      newPreValidator(args, client),
 		inflater:          inflater,
 		processorProvider: defaultProcessorProvider{ImportArguments: args, imageClient: client},
@@ -58,9 +60,13 @@ type importer struct {
 	processorProvider processorProvider
 	traceLogs         []string
 	diskClient        diskClient
+	timeout           time.Duration
+	isInProcess       bool
+	processor         processor
 }
 
 func (i importer) Run(ctx context.Context) (loggable service.Loggable, err error) {
+	go i.handleTimeout()
 
 	if err = i.preValidator.validate(); err != nil {
 		return i.buildLoggable(), err
@@ -70,6 +76,7 @@ func (i importer) Run(ctx context.Context) (loggable service.Loggable, err error
 		return i.buildLoggable(), err
 	}
 
+	i.isInProcess = true
 	defer i.cleanupDisk()
 
 	err = i.runProcess(ctx)
@@ -91,8 +98,9 @@ func (i *importer) runInflate(ctx context.Context) (err error) {
 	return err
 }
 
-func (i *importer) runProcess(ctx context.Context) (err error) {
-	processor, err := i.processorProvider.provide(i.pd)
+func (i *importer) runProcess(ctx context.Context) error {
+	var err error
+	i.processor, err = i.processorProvider.provide(i.pd)
 	if err != nil {
 		return err
 	}
@@ -100,8 +108,8 @@ func (i *importer) runProcess(ctx context.Context) (err error) {
 	case <-ctx.Done():
 		err = ctx.Err()
 	default:
-		err = processor.process(ctx)
-		i.traceLogs = append(i.traceLogs, processor.traceLogs()...)
+		err = i.processor.process(ctx)
+		i.traceLogs = append(i.traceLogs, i.processor.traceLogs()...)
 	}
 	return err
 }
@@ -116,8 +124,18 @@ func (i *importer) cleanupDisk() {
 	}
 }
 
-func (i importer) buildLoggable() service.Loggable {
+func (i *importer) buildLoggable() service.Loggable {
 	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.traceLogs)
+}
+
+func (i *importer) handleTimeout() {
+	time.Sleep(i.timeout)
+	logger.Errorf("Timeout %v exceeded, stopping the import", i.timeout)
+	if i.isInProcess {
+		i.processor.cancel("timed-out")
+	} else {
+		i.inflater.cancel()
+	}
 }
 
 // diskClient is the subset of the GCP API that is used by importer.

@@ -49,6 +49,10 @@ func (b bootableDiskProcessor) process(ctx context.Context) (err error) {
 	return err
 }
 
+func (b bootableDiskProcessor) cancel(reason string) {
+	b.workflow.CancelWithReason(reason)
+}
+
 func (b bootableDiskProcessor) traceLogs() []string {
 	if b.workflow.Logger != nil {
 		return b.workflow.Logger.ReadSerialPortLogs()

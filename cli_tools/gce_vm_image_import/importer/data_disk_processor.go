@@ -61,6 +61,10 @@ func (d dataDiskProcessor) process(ctx context.Context) (err error) {
 	return d.client.CreateImage(d.project, &d.request)
 }
 
+func (d dataDiskProcessor) cancel(reason string) {
+	//not possible to cancel direct calls to compute client
+}
+
 // createImageClient is the subset of the GCP compute API that is used by dataDiskProcessor.
 type createImageClient interface {
 	CreateImage(project string, i *compute.Image) error
