@@ -24,9 +24,9 @@ try {
   if ("$($ver.Major).$($ver.Minor)" -ne "6.1") {
     if ("$($ver.Major).$($ver.Minor)" -eq "6.3") {
       Write-Host "GCEMetadataScripts: The instance is already running Windows 2012R2!"
-      Write-Host "GCEMetadataScripts: Rerunning upgrade.ps1 for post-upgrade step..."
+      Write-Host "GCEMetadataScripts: Rerunning upgrade.ps1 as the post-upgrade step."
     } else {
-      throw "The instance is not running Windows 2008R2!"
+      throw "The instance is not running Windows 2008R2 (6.1). It is $($new_ver.Major).$($new_ver.Minor)."
     }
   }
 
@@ -61,7 +61,7 @@ online disk noerr
   $new_ver=[System.Environment]::OSVersion.Version
   if ("$($ver.Major).$($ver.Minor)" -eq "6.3")
   {
-    Write-Host "GCEMetadataScripts: post-upgrade step is done!"
+    Write-Host "GCEMetadataScripts: post-upgrade step is done."
   }
   Write-Host "windows_upgrade_current_version=$($new_ver.Major).$($new_ver.Minor)"
 }
