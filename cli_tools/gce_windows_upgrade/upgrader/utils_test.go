@@ -84,12 +84,14 @@ func TestGetCleanupIntroduction(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		u := upgrader{
-			derivedVars: &derivedVars{
-				originalWindowsStartupScriptURL: tc.scriptURLPtr,
-			},
-		}
-		_, err := getCleanupIntroduction(&u)
-		assert.NoError(t, err, "[test name: %v]", tc.name)
+		t.Run(tc.name, func(t *testing.T) {
+			u := upgrader{
+				derivedVars: &derivedVars{
+					originalWindowsStartupScriptURL: tc.scriptURLPtr,
+				},
+			}
+			_, err := getCleanupIntroduction(&u)
+			assert.NoError(t, err)
+		})
 	}
 }
