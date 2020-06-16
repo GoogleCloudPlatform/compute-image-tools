@@ -15,7 +15,8 @@
 
 set -o pipefail
 
-# Enable case-insensitive match; used by fileIsOva.
+# Enable case-insensitive match when checking for
+# the ova filetype.
 shopt -s nocasematch
 
 # Verify VM has access to Google APIs
@@ -28,7 +29,7 @@ fi
 BYTES_1GB=1073741824
 URL="http://metadata/computeMetadata/v1/instance"
 DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-sources-path)"
-SOURCE_URL="$DAISY_SOURCE_URL/source_disk_file"
+SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/source_disk_file)"
 DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk_name)"
 SCRATCH_DISK_NAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/scratch_disk_name)"
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
@@ -83,23 +84,6 @@ function resizeDisk() {
   exit
 }
 
-# Determines whether a file is an OVA archive; the check isn't
-# comprehensive to *all* OVAs, but focuses on the OVAs supported
-# by this script (OVAs that use VMDKs).
-# Arguments:
-#   File to check.
-# Returns:
-#   0 if the file is a tar file, non-zero otherwise.
-function fileIsOvaWithVmdk() {
-  if [[ $(file --mime-type "$1") =~ application/x-tar ]]; then
-    contents=$(tar --list -f "$1")
-    if [[ "$contents" =~ ovf && "$contents" =~ vmdk ]]; then
-      return 0
-    fi
-  fi
-  return 1
-}
-
 function copyImageToScratchDisk() {
   # We allocate an extra 10% capacity to account for ext4's
   # filesystem overhead. According to https://petermolnar.net/why-use-btrfs-for-media-storage/ ,
@@ -109,8 +93,8 @@ function copyImageToScratchDisk() {
   local scratchDiskSizeGigabytes=$(awk "BEGIN {print int((${SOURCE_SIZE_GB} * 1.1) + 1)}")
   # We allocate double capacity for OVA, which would
   # require making an additional copy of its enclosed VMDK.
-  if fileIsOvaWithVmdk "${IMAGE_PATH}"; then
-    scratchDiskSizeGigabytes=$((scratchDiskSizeGigabytes * 2))
+  if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
+     scratchDiskSizeGigabytes=$((scratchDiskSizeGigabytes * 2))
   fi
 
   # This disk is initially created with 10GB of space.
@@ -160,7 +144,7 @@ function serialOutputKeyValuePair() {
 copyImageToScratchDisk
 
 # If the image is an OVA, then copy out its VMDK.
-if fileIsOvaWithVmdk "${IMAGE_PATH}"; then
+if [[ "${IMAGE_PATH}" =~ \.ova$ ]]; then
   echo "Import: Unpacking VMDK files from ova."
   VMDK="$(tar --list -f "${IMAGE_PATH}" | grep -m1 vmdk)"
   tar -C /daisy-scratch -xf "${IMAGE_PATH}" "${VMDK}"
