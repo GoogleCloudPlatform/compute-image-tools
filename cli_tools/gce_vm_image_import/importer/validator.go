@@ -45,8 +45,8 @@ func (v validateImageNameAvailable) validate() error {
 	// then the image name may be available.
 	image, _ := v.client.GetImage(v.project, v.name)
 	if image != nil {
-		return fmt.Errorf("the image %q already exists. Please remove it, "+
-			"or pick a name that isn't already used", v.name)
+		return fmt.Errorf("The resource '%s' already exists. "+
+			"Please pick an image name that isn't already used.", v.name)
 	}
 	return nil
 }

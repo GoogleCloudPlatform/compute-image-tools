@@ -36,7 +36,7 @@ func TestPreValidator(t *testing.T) {
 		{
 			testName:        "fail when image already exists",
 			imageFromClient: &compute.Image{},
-			expectedError:   "the image \"image-name\" already exists. Please remove it, or pick a name that isn't already used",
+			expectedError:   "The resource 'image-name' already exists. Please pick an image name that isn't already used.",
 		},
 	}
 
