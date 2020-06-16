@@ -160,7 +160,7 @@ func (u *upgrader) runUpgradeWorkflow() (*daisy.Workflow, error) {
 
 	// If upgrade failed, run cleanup or rollback before exiting.
 	defer func() {
-		u.handleFailure(err)
+		u.handleResult(err)
 	}()
 
 	// step 1: preparation - take snapshot, attach install media, backup/set startup script
@@ -193,13 +193,16 @@ func (u *upgrader) runUpgradeWorkflow() (*daisy.Workflow, error) {
 	return retryUpgradeWf, err
 }
 
-func (u *upgrader) handleFailure(err error) {
+func (u *upgrader) handleResult(err error) {
 	if err == nil {
 		fmt.Printf("\nSuccessfully upgraded instance '%v' to '%v!'\n", u.instanceURI, u.TargetOS)
 		// TODO: update the help guide link. b/154838004
 		fmt.Printf("\nPlease verify your application's functionality on the " +
 			"instance, and if you run into any issues, please manually rollback following " +
 			"the instructions in the guide.\n\n")
+		if cleanupIntro, err := getCleanupIntroduction(u); err == nil {
+			fmt.Printf(cleanupIntro)
+		}
 		return
 	}
 
