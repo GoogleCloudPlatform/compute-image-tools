@@ -32,6 +32,7 @@ type Importer interface {
 
 // NewImporter constructs an Importer instance.
 func NewImporter(args ImportArguments, client compute.Client) (Importer, error) {
+
 	inflater, err := createDaisyInflater(args)
 	if err != nil {
 		return nil, err
@@ -39,6 +40,7 @@ func NewImporter(args ImportArguments, client compute.Client) (Importer, error) 
 	return importer{
 		project:           args.Project,
 		zone:              args.Zone,
+		preValidator:      newPreValidator(args, client),
 		inflater:          inflater,
 		processorProvider: defaultProcessorProvider{ImportArguments: args, imageClient: client},
 		traceLogs:         []string{},
@@ -51,6 +53,7 @@ func NewImporter(args ImportArguments, client compute.Client) (Importer, error) 
 type importer struct {
 	project, zone     string
 	pd                persistentDisk
+	preValidator      validator
 	inflater          inflater
 	processorProvider processorProvider
 	traceLogs         []string
@@ -58,6 +61,11 @@ type importer struct {
 }
 
 func (i importer) Run(ctx context.Context) (loggable service.Loggable, err error) {
+
+	if err = i.preValidator.validate(); err != nil {
+		return i.buildLoggable(), err
+	}
+
 	if err = i.runInflate(ctx); err != nil {
 		return i.buildLoggable(), err
 	}
