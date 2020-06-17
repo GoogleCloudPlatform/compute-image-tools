@@ -52,11 +52,11 @@ const (
 		"3. Detach the install media disk from the instance and delete the disk.\n" +
 		"4. Delete 'windows-startup-script-url' from the instance's metadata if there isn't an original value for the script. " +
 		"If there is an original value for the script, restore the value. The original value is backed up as metadata 'windows-startup-script-url-backup'.\n" +
-		"\n" +
-		"After verifying that the upgrading succeeds and you no longer need to rollback:\n" +
-		"1. Delete the original OS disk.\n" +
-		"2. Delete the machine image.\n" +
-		"3. Delete the snapshot.\n" +
+		"\n"
+	cleanupIntroductionTemplate = "After verifying that the upgrading succeeds and you no longer need to rollback:\n" +
+		"1. Delete the original OS disk: {{.osDiskName}}\n" +
+		"2. Delete the machine image (if you created one): {{.machineImageName}}\n" +
+		"3. Delete the snapshot: {{.osDiskSnapshotName}}\n" +
 		"\n"
 )
 
@@ -75,7 +75,7 @@ func SupportedTargetOSVersions() []string {
 	return collections.GetKeys(supportedTargetOSVersions)
 }
 
-func getIntroHelpText(u *upgrader) (string, error) {
+func getIntroVarMap(u *upgrader) map[string]interface{} {
 	originalStartupScriptURL := "None."
 	if u.originalWindowsStartupScriptURL != nil {
 		originalStartupScriptURL = *u.originalWindowsStartupScriptURL
@@ -83,12 +83,6 @@ func getIntroHelpText(u *upgrader) (string, error) {
 	if u.machineImageBackupName == "" {
 		u.machineImageBackupName = "Not created. Machine Image backup is disabled."
 	}
-
-	t, err := template.New("guide").Option("missingkey=error").Parse(upgradeIntroductionTemplate)
-	if err != nil {
-		return "", daisy.Errf("Failed to parse upgrade guide.")
-	}
-	var buf bytes.Buffer
 	varMap := map[string]interface{}{
 		"project":                  u.instanceProject,
 		"zone":                     u.instanceZone,
@@ -102,8 +96,34 @@ func getIntroHelpText(u *upgrader) (string, error) {
 		"machineImageName":         u.machineImageBackupName,
 		"originalStartupScriptURL": originalStartupScriptURL,
 	}
+	return varMap
+}
+
+func getIntroHelpText(u *upgrader) (string, error) {
+	varMap := getIntroVarMap(u)
+
+	introductionTemplate := upgradeIntroductionTemplate + cleanupIntroductionTemplate
+	t, err := template.New("guide").Option("missingkey=error").Parse(introductionTemplate)
+	if err != nil {
+		return "", daisy.Errf("Failed to parse upgrade guide.")
+	}
+	var buf bytes.Buffer
 	if err := t.Execute(&buf, varMap); err != nil {
 		return "", daisy.Errf("Failed to generate upgrade guide.")
+	}
+	return string(buf.Bytes()), nil
+}
+
+func getCleanupIntroduction(u *upgrader) (string, error) {
+	varMap := getIntroVarMap(u)
+
+	t, err := template.New("guide").Option("missingkey=error").Parse(cleanupIntroductionTemplate)
+	if err != nil {
+		return "", daisy.Errf("Failed to parse cleanup guide.")
+	}
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, varMap); err != nil {
+		return "", daisy.Errf("Failed to generate cleanup guide.")
 	}
 	return string(buf.Bytes()), nil
 }
