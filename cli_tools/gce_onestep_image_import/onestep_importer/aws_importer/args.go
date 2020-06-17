@@ -5,20 +5,28 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 )
 
 // AWSImportArguments holds the structured results of parsing CLI arguments,
 // and optionally allows for validating and populating the arguments.
-type AwsImportArguments struct {
+type AWSImportArguments struct {
+	// Passed in by user
 	AccessKeyId      string
-	SecretAccessKey  string
-	SessionToken			string
-	Region           string
-	ImageId		      string
 	ExportLocation		string
 	ExportedAMIPath  string
+	GcsComputeEndpoint  string
+	GcsProject          string
+	GcsZone             string
+	GcsRegion           string
+	GcsScratchBucket    string
+	GcsStorageLocation 	string
+	ImageId		      string
+	Region           string
 	ResumeExportedAMI   bool
+	SecretAccessKey  string
+	SessionToken			string
 
 	ExportBucket     string
 	ExportPrefix     string
@@ -28,14 +36,14 @@ type AwsImportArguments struct {
 
 const (
 	// TODO: add comment for flag key
-	ImageIdFlagKey = "aws-image-id"
-	ExportLocationFlagKey = "aws-export-location"
-	AccessKeyIdFlagKey = "aws-access-key-id"
-	SecretAccessKeyFlagKey = "aws-secret-access-key"
-	SessionTokenFlagKey = "aws-session-token"
-	RegionFlagKey = "aws-region"
-	ExportedAMIPathFlagKey = "aws-exported-ami-path"
-	ResumeExportedAMIFlagKey = "resume-exported-ami"
+	ImageIdFlag = "aws_image_id"
+	ExportLocationFlag = "aws_export_location"
+	AccessKeyIdFlag = "aws_access_key_id"
+	SecretAccessKeyFlag = "aws_secret_access_key"
+	SessionTokenFlag = "aws_session_token"
+	RegionFlag = "aws_region"
+	ExportedAMIPathFlag = "aws_exported_ami_path"
+	ResumeExportedAMIFlag = "resume_exported_ami"
 )
 
 var (
@@ -43,45 +51,46 @@ var (
 	s3PathRegex       = regexp.MustCompile(fmt.Sprintf(`^s3://(%s)(\/.*)?$`, bucketNameRegex))
 )
 
-func Parse(imageId, exportLocation, accessKeyId, secrectAccessKey, sessionToken, region, exportedAMIPath string, resumeExportedAMI bool) (*AwsImportArguments, error){
-	args := &AwsImportArguments{accessKeyId, secrectAccessKey, sessionToken, region, imageId, exportLocation, exportedAMIPath, resumeExportedAMI,"", "", "", 0}
+func(args *AWSImportArguments)ValidateAndPopulate(populator param.Populator) error{
 	err := args.validate()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = args.getMetadata()
+	err = populator.PopulateMissingParameters(&args.GcsProject, &args.GcsZone, &args.GcsRegion,
+		&args.GcsScratchBucket, "", &args.GcsStorageLocation);
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return args, nil
+
+	return args.getMetadata()
 }
 
-func(args *AwsImportArguments) validate() error {
-	if err := validation.ValidateStringFlagNotEmpty(args.AccessKeyId, AccessKeyIdFlagKey); err != nil {
+func(args *AWSImportArguments) validate() error {
+	if err := validation.ValidateStringFlagNotEmpty(args.AccessKeyId, AccessKeyIdFlag); err != nil {
 		return err
 	}
-	if err := validation.ValidateStringFlagNotEmpty(args.SecretAccessKey, SecretAccessKeyFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(args.SecretAccessKey, SecretAccessKeyFlag); err != nil {
 		return err
 	}
-	if err := validation.ValidateStringFlagNotEmpty(args.Region, RegionFlagKey); err != nil {
+	if err := validation.ValidateStringFlagNotEmpty(args.Region, RegionFlag); err != nil {
 		return err
 	}
 
 	if args.ResumeExportedAMI {
 		if args.ExportedAMIPath == "" {
-			return fmt.Errorf("To resume exported AMI, flag -%v must be provided", ExportedAMIPathFlagKey)
+			return fmt.Errorf("To resume exported AMI, flag -%v must be provided", ExportedAMIPathFlag)
 		}
 	} else {
 		if args.ImageId == "" || args.ExportLocation == ""{
-			return fmt.Errorf("To export AMI, flags -%v and -%v must be provided", ImageIdFlagKey, ExportLocationFlagKey)
+			return fmt.Errorf("To export AMI, flags -%v and -%v must be provided", ImageIdFlag, ExportLocationFlag)
 		}
 	}
 
 	return nil
 }
 
-func (args *AwsImportArguments)getMetadata() error {
+func (args *AWSImportArguments)getMetadata() error {
 	var err error
 	if args.ResumeExportedAMI {
 		args.ExportBucket, args.ExportKey, err = splitS3Path(args.ExportedAMIPath)
@@ -110,3 +119,4 @@ func splitS3Path(path string) (string, string, error){
 	}
 	return "", "", fmt.Errorf("%q is not a valid AWS S3 path", path)
 }
+

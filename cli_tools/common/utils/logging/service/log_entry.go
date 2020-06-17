@@ -84,7 +84,6 @@ type InputParams struct {
 	ImageExportParams        *ImageExportParams        `json:"image_export_input_params,omitempty"`
 	InstanceImportParams     *InstanceImportParams     `json:"instance_import_input_params,omitempty"`
 	MachineImageImportParams *MachineImageImportParams `json:"machine_image_import_input_params,omitempty"`
-	OnestepImageImportAWSParams *OnestepImageImportAWSParams `json:"onestep_image_import_aws_input_params,omitempty"`
 	WindowsUpgradeParams     *WindowsUpgradeParams     `json:"windows_upgrade_input_params,omitempty"`
 }
 
@@ -106,22 +105,7 @@ type ImageImportParams struct {
 	HasKmsLocation     bool   `json:"has_kms_location"`
 	HasKmsProject      bool   `json:"has_kms_project"`
 	StorageLocation    string `json:"storage_location,omitempty"`
-}
-
-// OnestepImageImportAWSParams contains all input params for onestep image import from AWS
-type OnestepImageImportAWSParams struct {
-	*ImageImportParams
-
-	AccessKeyId      	 string `json:"access_key_id,omitempty"`
-	SecretAccessKey  	 string `json:"secret_access_key,omitempty"`
-	SessionToken			 string `json:"session_token,omitempty"`
-	Region           	 string `json:"region,omitempty"`
-	ImageId		      	 string `json:"image_id,omitempty"`
-	ExportLocation		 string `json:"export_location,omitempty"`
-	ExportedAMIPath  	 string `json:"exported_ami_path,omitempty"`
-	ResumeExportedAMI  bool
-	OS                 string `json:"os,omitempty"`
-	CloudProvider			 string `json:"cloud_provider,omitempty"`
+	CloudProvider      string `json:"cloud_provider,omitempty"`
 }
 
 // ImageExportParams contains all input params for image export
