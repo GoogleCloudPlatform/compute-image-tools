@@ -95,6 +95,8 @@ type Image struct {
 	IgnoreLicenseValidationIfForbidden bool `json:",omitempty"`
 	// Optional DeprecationStatus.Obsolete entry for the image (RFC 3339).
 	ObsoleteDate *time.Time `json:",omitempty"`
+	// Optional ShieldedInstanceInitialState entry for secure-boot feature.
+	ShieldedInstanceInitialState *compute.InitialStateConfig `json:",omitempty"`
 }
 
 var (
@@ -259,11 +261,12 @@ func publishImage(p *Publish, img *Image, pubImgs []*compute.Image, skipDuplicat
 
 	ci := daisy.Image{
 		Image: compute.Image{
-			Name:        publishName,
-			Description: img.Description,
-			Licenses:    img.Licenses,
-			Family:      img.Family,
-			Deprecated:  ds,
+			Name:                         publishName,
+			Description:                  img.Description,
+			Licenses:                     img.Licenses,
+			Family:                       img.Family,
+			Deprecated:                   ds,
+			ShieldedInstanceInitialState: img.ShieldedInstanceInitialState,
 		},
 		ImageBase: daisy.ImageBase{
 			Resource: daisy.Resource{
