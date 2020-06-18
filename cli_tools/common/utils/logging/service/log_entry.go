@@ -84,8 +84,8 @@ type InputParams struct {
 	ImageExportParams        *ImageExportParams        `json:"image_export_input_params,omitempty"`
 	InstanceImportParams     *InstanceImportParams     `json:"instance_import_input_params,omitempty"`
 	MachineImageImportParams *MachineImageImportParams `json:"machine_image_import_input_params,omitempty"`
-	OnestepImageImportParams *OnestepImageImportParams `json:"onestep_image_import_input_params,omitempty"`
 	WindowsUpgradeParams     *WindowsUpgradeParams     `json:"windows_upgrade_input_params,omitempty"`
+	OnestepImageImportParams *OnestepImageImportParams `json:"onestep_image_import_input_params,omitempty"`
 }
 
 // ImageImportParams contains all input params for image import

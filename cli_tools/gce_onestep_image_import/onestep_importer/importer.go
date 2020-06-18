@@ -1,25 +1,33 @@
+//  Copyright 2020 Google Inc. All Rights Reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
 package importer
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
-	"strings"
 	"time"
 
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
-	awsImporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_image_import/onestep_importer/aws_importer"
-	onestepUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_image_import/onestep_utils"
 )
 
-// ImportArguments holds the structured results of parsing CLI arguments,
+// OneStepImportArguments holds the structured results of parsing CLI arguments,
 // and optionally allows for validating and populating the arguments.
-type ImportArguments struct {
+type OneStepImportArguments struct {
 	ClientID             string
 	CloudLogsDisabled    bool
 	CloudProvider        string
@@ -40,6 +48,7 @@ type ImportArguments struct {
 	Project              string
 	Region               string
 	ScratchBucketGcsPath string
+	SourceFile           string
 	StdoutLogsDisabled   bool
 	StorageLocation      string
 	Subnet               string
@@ -66,19 +75,26 @@ const (
 	osFlag            = "os"
 )
 
-// NewImportArguments parse the provides cli arguments and creates a new ImportArguments instance.
-func NewImportArguments(args []string) (*ImportArguments, error) {
-	importArgs := &ImportArguments{}
+// NewOneStepImportArguments parse the provides cli arguments and creates a new ImportArguments instance.
+func NewOneStepImportArguments(args []string) (*OneStepImportArguments, error) {
+	importArgs := &OneStepImportArguments{}
 	importArgs.ExecutablePath = os.Args[0]
 	flagSet := importArgs.getFlagSet()
 	if err := flagSet.Parse(args); err != nil {
 		return nil, err
 	}
+
+	// add label to indicate the image import is run from onestep import
+	if importArgs.Labels == nil {
+		importArgs.Labels = make(map[string]string)
+	}
+	importArgs.Labels["onestep-image-import"] = importArgs.CloudProvider
+
 	return importArgs, nil
 }
 
 // getFlagSet gets the FlagSet used to parse arguments.
-func (args *ImportArguments) getFlagSet() *flag.FlagSet {
+func (args *OneStepImportArguments) getFlagSet() *flag.FlagSet {
 	flagSet := flag.NewFlagSet("onestep-image-import", flag.ContinueOnError)
 	flagSet.SetOutput(ioutil.Discard)
 	args.registerFlags(flagSet)
@@ -86,17 +102,17 @@ func (args *ImportArguments) getFlagSet() *flag.FlagSet {
 }
 
 // registerFlags defines the flags to parse.
-func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
+func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	//TODO: add comment for aws flags
-	flagSet.Var((*trimmedString)(&args.AWSAccessKeyID), awsImporter.AccessKeyIDFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSImageID), awsImporter.ImageIDFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSExportLocation), awsImporter.ExportLocationFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSExportedAMIPath), awsImporter.ExportedAMIPathFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSRegion), awsImporter.RegionFlag, ".")
-	flagSet.BoolVar(&args.AWSResumeExportedAMI, awsImporter.ResumeExportedAMIFlag, false,
+	flagSet.Var((*trimmedString)(&args.AWSAccessKeyID), awsAccessKeyIDFlag, ".")
+	flagSet.Var((*trimmedString)(&args.AWSImageID), awsImageIDFlag, ".")
+	flagSet.Var((*trimmedString)(&args.AWSExportLocation), awsExportLocationFlag, ".")
+	flagSet.Var((*trimmedString)(&args.AWSExportedAMIPath), awsExportedAMIPathFlag, ".")
+	flagSet.Var((*trimmedString)(&args.AWSRegion), awsRegionFlag, ".")
+	flagSet.BoolVar(&args.AWSResumeExportedAMI, awsResumeExportedAMIFlag, false,
 		".")
-	flagSet.Var((*trimmedString)(&args.AWSSessionToken), awsImporter.SessionTokenFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSSecretAccessKey), awsImporter.SecretAccessKeyFlag, ".")
+	flagSet.Var((*trimmedString)(&args.AWSSessionToken), awsSessionTokenFlag, ".")
+	flagSet.Var((*trimmedString)(&args.AWSSecretAccessKey), awsSecretAccessKeyFlag, ".")
 
 	flagSet.Var((*lowerTrimmedString)(&args.CloudProvider), cloudProviderFlag,
 		"Identifies the cloud provider of the import source, e.g. 'aws'.")
@@ -194,7 +210,7 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 		"Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
 }
 
-func (args *ImportArguments) validate() error {
+func (args *OneStepImportArguments) validate() error {
 	if err := validation.ValidateStringFlagNotEmpty(args.ImageName, imageNameFlag); err != nil {
 		return err
 	}
@@ -214,143 +230,12 @@ func (args *ImportArguments) validate() error {
 	return nil
 }
 
-// buildAWSImportArgs creates a new AWSImportArgument instance.
-func (args *ImportArguments) buildAWSImportArgs() *awsImporter.AWSImportArguments {
-	return &awsImporter.AWSImportArguments{
-		AccessKeyID:        args.AWSAccessKeyID,
-		ExecutablePath:     args.ExecutablePath,
-		ExportLocation:     args.AWSExportLocation,
-		ExportedAMIPath:    args.AWSExportedAMIPath,
-		GcsComputeEndpoint: args.ComputeEndpoint,
-		GcsProject:         args.Project,
-		GcsZone:            args.Zone,
-		GcsRegion:          args.Region,
-		GcsScratchBucket:   args.ScratchBucketGcsPath,
-		GcsStorageLocation: args.StorageLocation,
-		ImageID:            args.AWSImageID,
-		Region:             args.AWSRegion,
-		ResumeExportedAMI:  args.AWSResumeExportedAMI,
-		SecretAccessKey:    args.AWSSecretAccessKey,
-		SessionToken:       args.AWSSessionToken,
-	}
-}
-
 // Run performs onestep image import.
-func Run(args *ImportArguments) (service.Loggable, error) {
-	// 1. Validate required flags that are not cloud-provider specific.
+func Run(args *OneStepImportArguments) (service.Loggable, error) {
+	// validate required flags that are not cloud-provider specific.
 	if err := args.validate(); err != nil {
 		return nil, err
 	}
 
-	if args.CloudProvider == "aws" {
-		return importAMI(args)
-	}
-
-	return nil, fmt.Errorf("import from cloud provider %v is currently not supported", args.CloudProvider)
-}
-
-// importAMI imports image from AWS.
-func importAMI(args *ImportArguments) (service.Loggable, error) {
-	importer, err := awsImporter.NewImporter(args.Oauth, args.buildAWSImportArgs())
-	if err != nil {
-		return nil, err
-	}
-	exportedGCSPath, err := importer.Run()
-	if err != nil {
-		return nil, err
-	}
-
-	err = runImageImport(exportedGCSPath, args)
-	if err != nil {
-		log.Println("Failed to import image.",
-			fmt.Sprintf("The image file has been copied to Google Cloud Storage, located at %v.", exportedGCSPath),
-			"To resume the import process, please directly use image import from GCS.")
-	}
-	return nil, err
-}
-
-// runImageImport imports image from the provided GCS path.
-func runImageImport(exportedGCSPath string, args *ImportArguments) error {
-	if args.Labels == nil {
-		args.Labels = make(map[string]string)
-		args.Labels["onestep-image-import"] = args.CloudProvider
-	}
-	err := onestepUtils.RunCmd("gce_vm_image_import", []string{
-		fmt.Sprintf("-image_name=%v", args.ImageName),
-		fmt.Sprintf("-client_id=%v", args.ClientID),
-		fmt.Sprintf("-os=%v", args.OS),
-		fmt.Sprintf("-source_file=%v", exportedGCSPath),
-		fmt.Sprintf("-no_guest_environment=%v", args.NoGuestEnvironment),
-		fmt.Sprintf("-family=%v", args.Family),
-		fmt.Sprintf("-description=%v", args.Description),
-		fmt.Sprintf("-network=%v", args.Network),
-		fmt.Sprintf("-subnet=%v", args.Subnet),
-		fmt.Sprintf("-zone=%v", args.Zone),
-		fmt.Sprintf("-timeout=%v", args.Timeout),
-		fmt.Sprintf("-project=%v", args.Project),
-		fmt.Sprintf("-scratch_bucket_gcs_path=%v", args.ScratchBucketGcsPath),
-		fmt.Sprintf("-oauth=%v", args.Oauth),
-		fmt.Sprintf("-compute_endpoint_override=%v", args.ComputeEndpoint),
-		fmt.Sprintf("-disable_gcs_logging=%v", args.GcsLogsDisabled),
-		fmt.Sprintf("-disable_cloud_logging=%v", args.CloudLogsDisabled),
-		fmt.Sprintf("-disable_stdout_logging=%v", args.StdoutLogsDisabled),
-		fmt.Sprintf("-no_external_ip=%v", args.NoExternalIP),
-		fmt.Sprintf("-labels=%v", keyValueString(args.Labels).String()),
-		fmt.Sprintf("-storage_location=%v", args.StorageLocation)})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-//TODO: put these into a common utils section
-
-// keyValueString is an implementation of flag.Value that creates a map
-// from the user's argument prior to storing it. It expects the argument
-// is in the form KEY1=AB,KEY2=CD. For more info on the format, see
-// param.ParseKeyValues.
-type keyValueString map[string]string
-
-func (s keyValueString) String() string {
-	parts := []string{}
-	for k, v := range s {
-		parts = append(parts, fmt.Sprintf("%s=%s", k, v))
-	}
-	return strings.Join(parts, ",")
-}
-
-func (s *keyValueString) Set(input string) error {
-	if *s != nil {
-		return fmt.Errorf("only one instance of this flag is allowed")
-	}
-
-	*s = make(map[string]string)
-	if input != "" {
-		var err error
-		*s, err = param.ParseKeyValues(input)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// trimmedString is an implementation of flag.Value that trims whitespace
-// from the incoming argument prior to storing it.
-type trimmedString string
-
-func (s trimmedString) String() string { return (string)(s) }
-func (s *trimmedString) Set(input string) error {
-	*s = trimmedString(strings.TrimSpace(input))
-	return nil
-}
-
-// lowerTrimmedString is an implementation of flag.Value that trims whitespace
-// and converts to lowercase the incoming argument prior to storing it.
-type lowerTrimmedString string
-
-func (s lowerTrimmedString) String() string { return (string)(s) }
-func (s *lowerTrimmedString) Set(input string) error {
-	*s = lowerTrimmedString(strings.ToLower(strings.TrimSpace(input)))
-	return nil
+	return nil, importFromCloudProvider(args)
 }

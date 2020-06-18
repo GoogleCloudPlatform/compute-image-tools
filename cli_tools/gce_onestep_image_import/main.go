@@ -21,31 +21,30 @@ import (
 	"os"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
-	onestepImporter "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_image_import/onestep_importer"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_image_import/onestep_importer"
 )
 
 func main() {
-	log.SetPrefix("[onestep-import-image] ")
+	log.SetPrefix("[import-image-from-cloud] ")
 	// 1. Parse flags
-	importerArgs, err := onestepImporter.NewImportArguments(os.Args[1:])
+	importerArgs, err := importer.NewOneStepImportArguments(os.Args[1:])
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
 
 	importEntry := func() (service.Loggable, error) {
-		return onestepImporter.Run(importerArgs)
+		return importer.Run(importerArgs)
 	}
 
 	// 2. Run Onestep Importer
-	project := importerArgs.Project
 	if err := service.RunWithServerLogging(
-		service.OneStepImageImportAction, initLoggingParams(importerArgs), &project, importEntry); err != nil {
+		service.OneStepImageImportAction, initLoggingParams(importerArgs), &importerArgs.Project, importEntry); err != nil {
 		os.Exit(1)
 	}
 }
 
-func initLoggingParams(args *onestepImporter.ImportArguments) service.InputParams {
+func initLoggingParams(args *importer.OneStepImportArguments) service.InputParams {
 	return service.InputParams{
 		OnestepImageImportParams: &service.OnestepImageImportParams{
 			ImageImportParams: &service.ImageImportParams{
@@ -72,6 +71,7 @@ func initLoggingParams(args *onestepImporter.ImportArguments) service.InputParam
 				Family:             args.Family,
 				Description:        args.Description,
 				NoExternalIP:       args.NoExternalIP,
+				SourceFile:         args.SourceFile,
 				StorageLocation:    args.StorageLocation,
 			},
 			CloudProvider:        args.CloudProvider,
