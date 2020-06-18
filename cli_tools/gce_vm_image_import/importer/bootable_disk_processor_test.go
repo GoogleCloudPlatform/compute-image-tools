@@ -157,7 +157,7 @@ func TestSerials_ReadsFromDaisyLogger(t *testing.T) {
 	args := defaultImportArgs()
 	args.WorkflowDir = "testdata/image_import"
 	translator, e := newBootableDiskProcessor(args, persistentDisk{})
-	realTranslator := translator.(bootableDiskProcessor)
+	realTranslator := translator.(*bootableDiskProcessor)
 	realTranslator.workflow.Logger = daisyLogger{
 		serials: expected,
 	}
@@ -169,13 +169,13 @@ func createAndRunPrePostFunctions(t *testing.T, pd persistentDisk, args ImportAr
 	args.WorkflowDir = "testdata/image_import"
 	translator, e := newBootableDiskProcessor(args, pd)
 	assert.NoError(t, e)
-	realTranslator := translator.(bootableDiskProcessor)
+	realTranslator := translator.(*bootableDiskProcessor)
 	// A concrete logger is required since the import/export logging framework writes a log entry
 	// when the workflow starts. Without this there's a panic.
 	realTranslator.workflow.Logger = daisyLogger{}
 	realTranslator.preValidateFunc()(realTranslator.workflow)
 	realTranslator.postValidateFunc()(realTranslator.workflow)
-	return &realTranslator
+	return realTranslator
 }
 
 func getFirstCreatedDisk(t *testing.T, workflow *daisy.Workflow) daisy.Disk {

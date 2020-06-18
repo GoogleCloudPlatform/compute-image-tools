@@ -25,8 +25,8 @@ import (
 // Implementers can expose detailed logs using the traceLogs() method.
 type processor interface {
 	process(ctx context.Context) error
-	cancel(reason string)
 	traceLogs() []string
+	cancel(reason string)
 }
 
 // processorProvider allows the processor to be determined after the pd has been inflated.

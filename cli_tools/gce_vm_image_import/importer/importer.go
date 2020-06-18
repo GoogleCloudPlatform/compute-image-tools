@@ -17,10 +17,13 @@ package importer
 import (
 	"context"
 	"path"
+	"sync"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/google/logger"
+	"google.golang.org/api/compute/v1"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 )
@@ -32,7 +35,7 @@ type Importer interface {
 }
 
 // NewImporter constructs an Importer instance.
-func NewImporter(args ImportArguments, client compute.Client) (Importer, error) {
+func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, error) {
 
 	inflater, err := createDaisyInflater(args)
 	if err != nil {
@@ -41,12 +44,12 @@ func NewImporter(args ImportArguments, client compute.Client) (Importer, error) 
 	return &importer{
 		project:           args.Project,
 		zone:              args.Zone,
-		timeout:           args.Timeout,
 		preValidator:      newPreValidator(args, client),
 		inflater:          inflater,
 		processorProvider: defaultProcessorProvider{ImportArguments: args, imageClient: client},
 		traceLogs:         []string{},
 		diskClient:        client,
+		timeout:           args.Timeout,
 	}, nil
 }
 
@@ -61,23 +64,24 @@ type importer struct {
 	traceLogs         []string
 	diskClient        diskClient
 	timeout           time.Duration
-	isInProcess       bool
 	processor         processor
 }
 
-func (i importer) Run(ctx context.Context) (loggable service.Loggable, err error) {
-	go i.handleTimeout()
-
+func (i *importer) Run(ctx context.Context) (loggable service.Loggable, err error) {
+	if i.timeout.Nanoseconds() > 0 {
+		var cancel func()
+		ctx, cancel = context.WithTimeout(ctx, i.timeout)
+		defer cancel()
+	}
 	if err = i.preValidator.validate(); err != nil {
 		return i.buildLoggable(), err
 	}
 
-	if err = i.runInflate(ctx); err != nil {
+	defer i.cleanupDisk()
+
+	if err := i.runInflate(ctx); err != nil {
 		return i.buildLoggable(), err
 	}
-
-	i.isInProcess = true
-	defer i.cleanupDisk()
 
 	err = i.runProcess(ctx)
 	if err != nil {
@@ -88,57 +92,70 @@ func (i importer) Run(ctx context.Context) (loggable service.Loggable, err error
 }
 
 func (i *importer) runInflate(ctx context.Context) (err error) {
-	select {
-	case <-ctx.Done():
-		err = ctx.Err()
-	default:
+	return i.runStep(ctx, func(ctx context.Context) error {
+		var err error
 		i.pd, err = i.inflater.inflate(ctx)
-		i.traceLogs = append(i.traceLogs, i.inflater.traceLogs()...)
-	}
-	return err
+		return err
+	}, i.inflater.cancel, i.inflater.traceLogs)
 }
 
-func (i *importer) runProcess(ctx context.Context) error {
-	var err error
+func (i *importer) runProcess(ctx context.Context) (err error) {
 	i.processor, err = i.processorProvider.provide(i.pd)
 	if err != nil {
 		return err
 	}
+	return i.runStep(ctx, func(ctx context.Context) error { return i.processor.process(ctx) }, i.processor.cancel, i.processor.traceLogs)
+}
+
+func (i *importer) runStep(ctx context.Context, step func(context.Context) error, cancel func(string), getTraceLogs func() []string) (err error) {
+	e := make(chan error)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		err = step(ctx)
+		wg.Done()
+		e <- err
+	}()
+
 	select {
 	case <-ctx.Done():
-		err = ctx.Err()
-	default:
-		err = i.processor.process(ctx)
-		i.traceLogs = append(i.traceLogs, i.processor.traceLogs()...)
+		if ctxErr := ctx.Err(); ctxErr == context.DeadlineExceeded {
+			err = daisy.Errf("Import did not complete within the specified timeout of %s", i.timeout)
+		} else {
+			err = ctxErr
+		}
+		cancel("timed-out")
+		wg.Wait()
+	case inflaterErr := <-e:
+		err = inflaterErr
 	}
+	i.traceLogs = append(i.traceLogs, getTraceLogs()...)
 	return err
 }
 
 func (i *importer) cleanupDisk() {
-	if i.pd.uri != "" {
-		diskName := path.Base(i.pd.uri)
-		err := i.diskClient.DeleteDisk(i.project, i.zone, diskName)
-		if err != nil {
-			logger.Errorf("Failed to remove temporary disk %v: %e", i.pd, err)
-		}
+	if i.pd.uri == "" {
+		return
+	}
+
+	diskName := path.Base(i.pd.uri)
+
+	disk, err := i.diskClient.GetDisk(i.project, i.zone, diskName)
+	if err != nil || disk == nil {
+		return
+	}
+	err = i.diskClient.DeleteDisk(i.project, i.zone, diskName)
+	if err != nil {
+		logger.Errorf("Failed to remove temporary disk %v: %e", i.pd, err)
 	}
 }
 
-func (i *importer) buildLoggable() service.Loggable {
+func (i importer) buildLoggable() service.Loggable {
 	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.traceLogs)
-}
-
-func (i *importer) handleTimeout() {
-	time.Sleep(i.timeout)
-	logger.Errorf("Timeout %v exceeded, stopping the import", i.timeout)
-	if i.isInProcess {
-		i.processor.cancel("timed-out")
-	} else {
-		i.inflater.cancel()
-	}
 }
 
 // diskClient is the subset of the GCP API that is used by importer.
 type diskClient interface {
+	GetDisk(project, zone, name string) (*compute.Disk, error)
 	DeleteDisk(project, zone, uri string) error
 }
