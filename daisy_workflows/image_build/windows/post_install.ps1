@@ -359,6 +359,51 @@ function Set-Repos {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' addrepo 'google-compute-engine-stable' 'https://packages.cloud.google.com/yuck/repos/google-compute-engine-stable'
 }
 
+function Export-ImageMetadata {
+  $edition = Get-MetadataValue -key 'edition'
+  $family = Get-MetadataValue -key 'family'
+  $name = Get-MetadataValue -key 'name'
+  $release_date = Get-Date -Format "yyyyMMdd"
+  $release_time = (Get-Date -UFormat "%s").substring(0, 10)
+  $image_metadata = @{'id' = $id,
+                      'family' = $family;
+                      'version' = $edition;
+                      'name' = $name;
+                      'location' = "";
+                      'release_date' = $release_date;
+                      'release_time' = $release_time;
+                      'state' = "Active";
+                      'environment' = "Prod";
+                      'packages' = @()}
+
+  # Get Googet packages.
+  $out = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
+  $out = $out[1..$out.length]
+  [array]::sort($out)
+
+  foreach ($package_line in $out) {
+    $split = $package_line.Trim() -split '\s+'
+    $name = $split[0]
+    $version = $split[1]
+    # TODO: Currently, Installed command only return name and version. We need to update command to get all info.
+    $commit_hash = ""
+    $release_date = ""
+    $stage = "stable"
+    $package_metadata = @{'id' = $id;
+                          'name' = $name;
+                          'version' = $version;
+                          'commmit_hash' = $commit_hash;
+                          'release_date' = $release_date;
+                          'stage' = $stage}
+    $image_metadata[packages] += $package_metadata
+  }
+
+  # Save the JSON image_metadata.
+  $image_metadata_json = $image_metadata | ConvertTo-Json -Compress
+  $image_metadata_json | & 'gsutil' -m cp - "${script:outs_dir}/metadata.json"
+}
+
+
 try {
   Write-Output 'Beginning post install powershell script.'
 
@@ -378,6 +423,7 @@ try {
   Setup-NTP
   Install-Packages
   Set-Repos
+  Export-ImageMetadata
 
   Write-Output 'Launching sysprep.'
   & "$script:gce_install_dir\sysprep\gcesysprep.bat"

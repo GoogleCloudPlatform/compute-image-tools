@@ -2,6 +2,9 @@
   "Vars": {
     "media": {"Required": true, "Description": "GCS or local path to Windows Server ISO."},
     "edition": {"Required": true, "Description": "Windows Server Edition to install."},
+    "family": {"Required": true, "Description": "Desired image family of the output image"},
+    "name": {"Required": true, "Description": "The name of the output image."},
+    "build_date": {"Required": true},
     "cloud_sdk": {"Required": true, "Description": "GCS or local path to Google Cloud SDK installer."},
     "drivers_bucket": {"Required": true, "Description": "GCS location containing drivers."},
     "product_key": {"Description": "Windows product key."},
@@ -49,6 +52,9 @@
             "components-path": "${SOURCESPATH}/components",
             "drivers-path": "${SOURCESPATH}/drivers",
             "edition": "${edition}",
+            "family": "${family}",
+            "name": "${name}",
+            "build_date": "${build_date}",
             "product-key": "${product_key}",
             "google-cloud-repo": "${googet_repo}"
           },
