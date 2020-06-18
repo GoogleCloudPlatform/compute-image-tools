@@ -34,10 +34,14 @@ import utils
 
 def main():
   # Get Parameters.
-  repo = utils.GetMetadataAttribute('google_cloud_repo', raise_on_not_found=True).strip()
-  el_release_name = utils.GetMetadataAttribute('el_release', raise_on_not_found=True)
-  build_date = utils.GetMetadataAttribute('build_date', raise_on_not_found=True)
-  destination_prefix = utils.GetMetadataAttribute('destination_prefix', raise_on_not_found=True)
+  repo = utils.GetMetadataAttribute('google_cloud_repo',
+                                    raise_on_not_found=True).strip()
+  el_release_name = utils.GetMetadataAttribute('el_release',
+                                               raise_on_not_found=True)
+  build_date = utils.GetMetadataAttribute('build_date',
+                                          raise_on_not_found=True)
+  destination_prefix = utils.GetMetadataAttribute('destination_prefix',
+                                                  raise_on_not_found=True)
   uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
 
   # Mount the installer disk.
@@ -70,7 +74,8 @@ def main():
 
   for package in guest_packages:
     # The URL is a github repo link which don't contain commit hash
-    cmd = "rpm -q --queryformat='%{NAME} %{VERSION} %{RELEASE} %{URL}\n'" + package
+    cmd = "rpm -q --queryformat='%{NAME} %{VERSION} %{RELEASE} %{URL}\n'" \
+          + package
     code, stdout = utils.Excute(cmd, capture_output=True)
     if code == 0:
       splits = stdout.decode('utf-8').split('\t\b')
@@ -93,6 +98,7 @@ def main():
       logging.info('Uploading image metadata.')
       metadata_dest = os.path.join(destination_prefix, 'metadata.json')
       utils.UploadFile('/tmp/metadata.json', metadata_dest)
+
 
 if __name__ == '__main__':
   try:
