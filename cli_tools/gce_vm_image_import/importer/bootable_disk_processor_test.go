@@ -165,6 +165,18 @@ func TestSerials_ReadsFromDaisyLogger(t *testing.T) {
 	assert.Equal(t, expected, translator.traceLogs())
 }
 
+func TestBootableDiskProcessorCancel(t *testing.T) {
+	args := defaultImportArgs()
+	args.WorkflowDir = "testdata/image_import"
+	processor, e := newBootableDiskProcessor(args, persistentDisk{})
+	assert.NoError(t, e)
+
+	realProcessor := processor.(*bootableDiskProcessor)
+	realProcessor.cancel("timed-out")
+	_, channelOpen := <-realProcessor.workflow.Cancel
+	assert.False(t, channelOpen, "realProcessor.workflow.Cancel should be closed on timeout")
+}
+
 func createAndRunPrePostFunctions(t *testing.T, pd persistentDisk, args ImportArguments) *bootableDiskProcessor {
 	args.WorkflowDir = "testdata/image_import"
 	translator, e := newBootableDiskProcessor(args, pd)
