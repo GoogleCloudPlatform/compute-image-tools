@@ -27,6 +27,21 @@ import (
 
 func TestPublishImage(t *testing.T) {
 	now := time.Now()
+	fakeInitialState := &compute.InitialStateConfig{
+		Dbs: []*compute.FileContentBuffer{
+			{
+				Content:  "abc",
+				FileType: "BIN",
+			},
+		},
+		Dbxs: []*compute.FileContentBuffer{
+			{
+				Content:  "abc",
+				FileType: "X509",
+			},
+		},
+		NullFields: []string{"Keks", "Pk"},
+	}
 
 	tests := []struct {
 		desc    string
@@ -211,6 +226,19 @@ func TestPublishImage(t *testing.T) {
 			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-3"}, IgnoreLicenseValidationIfForbidden: false}, Image: compute.Image{
 				Name: "foo-3", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-3"}, GuestOsFeatures: []string{"foo-feature"}},
 			}},
+			nil,
+			false,
+		},
+		{
+			"new image from src, with ShieldedInstanceInitialState",
+			&Publish{SourceProject: "bar-project", PublishProject: "foo-project"},
+			&Image{Prefix: "foo-x", Family: "foo-family", ShieldedInstanceInitialState: fakeInitialState},
+			[]*compute.Image{},
+			false,
+			false,
+			&daisy.CreateImages{Images: []*daisy.Image{{ImageBase: daisy.ImageBase{Resource: daisy.Resource{Project: "foo-project", NoCleanup: true, RealName: "foo-x"}}, Image: compute.Image{
+				Name: "foo-x", Family: "foo-family", SourceImage: "projects/bar-project/global/images/foo-x", ShieldedInstanceInitialState: fakeInitialState},
+			}}},
 			nil,
 			false,
 		},
