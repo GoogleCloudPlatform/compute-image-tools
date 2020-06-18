@@ -49,7 +49,6 @@ func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, er
 		processorProvider: defaultProcessorProvider{ImportArguments: args, imageClient: client},
 		traceLogs:         []string{},
 		diskClient:        client,
-		timeout:           args.Timeout,
 	}, nil
 }
 
@@ -150,7 +149,7 @@ func (i *importer) cleanupDisk() {
 	}
 }
 
-func (i importer) buildLoggable() service.Loggable {
+func (i *importer) buildLoggable() service.Loggable {
 	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.traceLogs)
 }
 
