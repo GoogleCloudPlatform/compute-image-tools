@@ -1,31 +1,52 @@
-## Compute Engine VM Image Export
+## Compute Engine One-step Image Import
 
-The `gce_vm_image_export` tool exports a VM image to Google Cloud Storage.
-It uses Daisy to perform exports while adding additional logic to perform
-export setup and clean-up, such as validating flags.
+The `gce_onestep_image_import` tool imports a VM image from other cloud providers to Google Compute Engine
+image. It uses Daisy to perform imports while adding additional logic to perform
+import setup and clean-up, such as creating a temporary bucket, validating
+flags etc.  
 
 ### Build
 Download and install [Go](https://golang.org/doc/install). Then pull and 
-install the `gce_vm_image_export` tool, this should place the binary in the 
+install the `gce_onestep_image_import` tool, this should place the binary in the 
 [Go bin directory](https://golang.org/doc/code.html#GOPATH):
 
 ```
-go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image_export
+go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_image_import
 ```
 
 ### Flags
 
 #### Required flags
++ `-image_name=IMAGE_NAME` Name of the disk image to create.
 + `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
   `pantheon`.
-+ `-destination_uri=DESTINATION_URI` The Google Cloud Storage URI destination for the exported
-  virtual disk file. For example: gs://my-bucket/my-exported-image.vmdk.
-+ `-source_image=SOURCE_IMAGE` An existing Compute Engine image URI from which to 
-  export.
++ `-cloud_provider=CLOUD_PROVIDER` Identifies the cloud provider of the source image.
+    Only aws is currently supported.
++ `-os=OS` Specifies the OS of the image being imported. 
+  OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, 
+  rhel-7-byol, ubuntu-1404, ubuntu-1604, ubuntu-1804, windows-10-byol, windows-2008r2, windows-2008r2-byol,
+  windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, windows-2016,
+  windows-2016-byol, windows-7-byol.
+  
+To import from AWS, all of these must be specified:
++ `-aws_access_key_id=CLOUD_PROVIDER` Identifies the cloud provider of the source image. CLOUD_PROVIDER must be: aws
++ `-aws_secret_access_key=CLOUD_PROVIDER` Identifies the cloud provider of the source image. CLOUD_PROVIDER must be: aws
++ `-aws_region=CLOUD_PROVIDER` Identifies the cloud provider of the source image. CLOUD_PROVIDER must be: aws
+
+To import from AWS, exactly one of the groups must be specified:
+
++ To resume image import from exported file in S3:
+    + `-resume_exported_ami` Set if image has been exported to S3 bucket.
+    + `-aws_exported_ami_path=AWS_EXPORTED_AMI_PATH` The path of the exported image source file
+
++ To directly import image:
+    + `-aws_image_id=AWS_IMAGE_ID` The image ID of the AWS image.
+    + `-aws_export_location=AWS_EXPORT_LOCATION` The location in S3 to export the image.
 
 #### Optional flags  
-+ `-format=FORMAT` Specify the format to export to, such as vmdk, vhdx, vpc, or qcow2.
-+ `-project=PROJECT` Project to run in, overrides what is set in workflow.
++ `-no_guest_environment` Google Guest Environment will not be installed on the image.
++ `-family=FAMILY` Family to set for the translated image.
++ `-description=DESCRIPTION` Description to set for the translated image.
 + `-network=NETWORK` Name of the network in your project to use for the image import. The network 
   must have access to Google Cloud Storage. If not specified, the  network named 'default' is used.
 + `-subnet=SUBNET` Name of the subnetwork in your project to use for the image import. If the 
@@ -37,22 +58,37 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_vm_image
   this command invocation.  
 + `-timeout=TIMEOUT` Maximum time a build can last before it is failed as "TIMEOUT". For example,
   specifying 2h will fail the process after 2 hours.
++ `-project=PROJECT` Project to run in, overrides what is set in workflow.
 + `-scratch_bucket_gcs_path=PATH` GCS scratch bucket to use, overrides default set in Daisy.
 + `-oauth=OAUTH_PATH` Path to oauth json file, overrides what is set in workflow.
 + `-compute_endpoint_override=ENDPOINT` Compute API endpoint to override default.
 + `-disable_gcs_logging` Do not stream logs to GCS
 + `-disable_cloud_logging` Do not stream logs to Cloud Logging
 + `-disable_stdout_logging` Do not display individual workflow logs on stdout
++ `-kms-key=KMS_KEY_ID` ID of the key or fully qualified identifier for the key. This flag
+  must be specified if any of the other arguments below are specified.
++ `-kms-keyring=KMS_KEYRING` The KMS keyring of the key.
++ `-kms-location=KMS_LOCATION` The Cloud location for the key.
++ `-kms-project=KMS_PROJECT` The Cloud project for the key
++ `-no_external_ip` Set if VPC does not allow external IPs
 + `-labels=[KEY=VALUE,...]` labels: List of label KEY=VALUE pairs to add. Keys must start with a
   lowercase character and contain only hyphens (-), underscores (_), lowercase characters, and 
   numbers. Values must contain only hyphens (-), underscores (_), lowercase characters, and numbers.
-  
++ `-storage_location` Location for the imported image which can be any GCS location. If the location
+  parameter is not included, images are created in the multi-region associated with the source disk,
+  image, snapshot or GCS bucket.  
+
 ### Usage
 
 ```
-gce_vm_image_export -client_id=CLIENT_ID -destionation_uri=DESTINATION_URI
-        -source_image=SOURCE_IMAGE [-format=FORMAT] [-project=PROJECT] [-network=NETWORK]
-        [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-scratch_bucket_gcs_path=PATH]
+gce_onestep_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID -os=OS
+        ([-resume_exported_ami -aws_exported_ami_path=AWS_EXPORTED_AMI_PATH]|
+         [-aws_image_id=AWS_IMAGE_ID -aws_export_location=AWS_EXPORT_LOCATION]) 
+        [-no-guest-environment] 
+        [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK] [-subnet=SUBNET]
+        [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT] [-scratch_bucket_gcs_path=PATH]
         [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
-        [-disable_cloud_logging] [-disable_stdout_logging] [-labels=KEY=VALUE,...]
+        [-disable_cloud_logging] [-disable_stdout_logging]
+        [-kms-key=KMS_KEY -kms-keyring=KMS_KEYRING -kms-location=KMS_LOCATION
+        -kms-project=KMS_PROJECT] [-labels=KEY=VALUE,...]
 ```

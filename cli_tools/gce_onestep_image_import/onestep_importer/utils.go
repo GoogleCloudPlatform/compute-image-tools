@@ -69,11 +69,7 @@ func importFromCloudProvider(args *OneStepImportArguments) error {
 		return fmt.Errorf("import from cloud provider %v is currently not supported", args.CloudProvider)
 	}
 
-	// 2. update flags
-	if args.Labels == nil {
-		args.Labels = make(map[string]string)
-	}
-	args.Labels["onestep-image-import"] = args.CloudProvider
+	// 2. update source file flag
 	args.SourceFile = exportedGCSPath
 
 	// 3. run image import
