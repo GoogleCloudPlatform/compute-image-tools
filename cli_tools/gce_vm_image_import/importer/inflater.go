@@ -52,8 +52,9 @@ type daisyInflater struct {
 	zone            string
 }
 
-func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
-	err := inflater.wf.Run(context.Background())
+func (inflater *daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
+	err := inflater.wf.Run(ctx)
+
 	if err != nil {
 		return persistentDisk{
 			uri: inflater.inflatedDiskURI,

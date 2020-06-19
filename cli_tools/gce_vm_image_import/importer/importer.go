@@ -44,6 +44,7 @@ func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, er
 	return &importer{
 		project:           args.Project,
 		zone:              args.Zone,
+		timeout:           args.Timeout,
 		preValidator:      newPreValidator(args, client),
 		inflater:          inflater,
 		processorProvider: defaultProcessorProvider{ImportArguments: args, imageClient: client},
