@@ -17,6 +17,7 @@ package importer
 import (
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 )
@@ -59,17 +60,31 @@ func TestCreateDaisyInflater_Image_NotWindows(t *testing.T) {
 
 func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
-		Source:      fileSource{gcsPath: "gs://bucket/vmdk"},
-		Subnet:      "projects/subnet/subnet",
-		Network:     "projects/network/network",
-		Zone:        "us-west1-c",
-		ExecutionID: "1234",
+		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
+		Subnet:       "projects/subnet/subnet",
+		Network:      "projects/network/network",
+		Zone:         "us-west1-c",
+		ExecutionID:  "1234",
+		NoExternalIP: false,
 	})
 
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
 	assert.Equal(t, "gs://bucket/vmdk", inflater.wf.Vars["source_disk_file"].Value)
 	assert.Equal(t, "projects/subnet/subnet", inflater.wf.Vars["import_subnet"].Value)
 	assert.Equal(t, "projects/network/network", inflater.wf.Vars["import_network"].Value)
+
+	network := getWorkerNetwork(t, inflater.wf)
+	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
+}
+
+func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {
+	inflater := createDaisyInflaterSafe(t, ImportArguments{
+		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
+		NoExternalIP: true,
+	})
+
+	network := getWorkerNetwork(t, inflater.wf)
+	assert.NotNil(t, network.AccessConfigs, "To disable external IPs, AccessConfigs must be non-nil.")
 }
 
 func TestCreateDaisyInflater_File_Windows(t *testing.T) {
@@ -103,4 +118,17 @@ func createDaisyInflaterSafe(t *testing.T, args ImportArguments) daisyInflater {
 	realInflater, ok := inflater.(daisyInflater)
 	assert.True(t, ok)
 	return realInflater
+}
+
+func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkInterface {
+	for _, step := range workflow.Steps {
+		if step.CreateInstances != nil {
+			instances := step.CreateInstances.Instances
+			assert.Len(t, instances, 1)
+			network := instances[0].NetworkInterfaces
+			assert.Len(t, network, 1)
+			return network[0]
+		}
+	}
+	panic("expected create instance step with single network")
 }
