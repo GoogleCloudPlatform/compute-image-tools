@@ -360,6 +360,7 @@ function Set-Repos {
 }
 
 function Export-ImageMetadata {
+  $id =  (Get-WmiObject -Class Win32_ComputerSystemProduct).UUID.ToLower()
   $edition = Get-MetadataValue -key 'edition'
   $family = Get-MetadataValue -key 'family'
   $name = Get-MetadataValue -key 'name'
@@ -383,6 +384,7 @@ function Export-ImageMetadata {
 
   foreach ($package_line in $out) {
     $split = $package_line.Trim() -split '\s+'
+    $id =  (Get-WmiObject -Class Win32_ComputerSystemProduct).UUID.ToLower()
     $name = $split[0]
     $version = $split[1]
     # TODO: Currently, Installed command only return name and version. We need to update command to get all info.
