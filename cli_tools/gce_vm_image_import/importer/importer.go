@@ -37,7 +37,7 @@ type Importer interface {
 // NewImporter constructs an Importer instance.
 func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, error) {
 
-	inflater, err := createDaisyInflater(args)
+	inflater, err := createDaisyInflater(args, client)
 	if err != nil {
 		return nil, err
 	}
