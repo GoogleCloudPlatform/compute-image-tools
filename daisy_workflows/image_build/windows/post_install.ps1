@@ -360,19 +360,16 @@ function Set-Repos {
 }
 
 function Export-ImageMetadata {
-  $id =  (Get-WmiObject -Class Win32_ComputerSystemProduct).UUID.ToLower()
-  $edition = Get-MetadataValue -key 'edition'
-  $family = Get-MetadataValue -key 'family'
-  $name = Get-MetadataValue -key 'name'
+  $version = (Get-ComputerInfo).OsVersion
+  $family = 'windows-' + (Get-ComputerInfo).windowsversion
+  $name =  (Get-ComputerInfo).OSName
   $release_date = (Get-Date).ToUniversalTime()
-  $image_metadata = @{'id' = $id,
-                      'family' = $family;
+  $image_metadata = @{'family' = $family;
                       'version' = $edition;
                       'name' = $name;
                       'location' = ${script:outs_dir};
-                      'release_date' = $release_date;
-                      'state' = "Active";
-                      'environment' = "Prod";
+                      'build_date' = $release_date;
+                      'build_repo' = $stage;
                       'packages' = @()}
 
   # Get Googet packages.
@@ -382,20 +379,15 @@ function Export-ImageMetadata {
 
   foreach ($package_line in $out) {
     $split = $package_line.Trim() -split '\s+'
-    $package_id =  (Get-WmiObject -Class Win32_ComputerSystemProduct).UUID.ToLower()
     $name = $split[0]
     $version = $split[1]
-    # TODO: Currently, Installed command only return name and version. We need to update command to get all info.
+    # TODO: Currently, "Googet Installed" command only return name and version.
+    # We need to update googet command to get all info.
     $commit_hash = ""
-    $release_date = ""
-    $stage = "stable"
-    $package_metadata = @{'id' = $package_id;
-                          'name' = $name;
+    $package_metadata = @{'name' = $name;
                           'version' = $version;
-                          'commmit_hash' = $commit_hash;
-                          'release_date' = $release_date;
-                          'stage' = $stage}
-    $image_metadata[packages] += $package_metadata
+                          'commmit_hash' = $commit_hash}
+    $image_metadata['packages'] += $package_metadata
   }
 
   # Save the JSON image_metadata.
