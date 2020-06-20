@@ -23,14 +23,14 @@ debian_version: The FAI tool debian version to be requested.
 image_dest: The Cloud Storage destination for the resultant image.
 google_cloud_repo: The repository branch to use for packages.cloud.google.com.
 """
+from datetime import datetime, timezone
+import datetime
 import json
 import logging
 import os
 import tarfile
-import time
 import urllib.request
 import uuid
-
 import utils
 
 
@@ -185,8 +185,7 @@ def main():
       "name": "debian-10" + debian_version + "v" + build_date,
       "version": debian_version,
       "location": image_dest,
-      "release_date": build_date,
-      "release_time": time.time(),
+      "release_date": datetime.now(timezone.utc),
       "state": "Active",
       "environment": "prod",
       "packages": []
@@ -206,14 +205,14 @@ def main():
       package_commit_hash = splits[2][splits[2].rindex('/'):len(splits[2])]
       start = package_version.index(":")
       end = package_version.rindex(".")
-      package_release_time = package_version[start: end]
+      package_release_date = package_version[start: end]
 
       metadata = {
           "id": uuid.uuid4(),
           "name": package_name,
           "version": package_version,
           "commit_hash": package_commit_hash,
-          "release_date": package_release_time,
+          "release_date": package_release_date,
           "stage": google_cloud_repo
       }
       image["packages"].append(metadata)

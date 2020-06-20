@@ -28,6 +28,8 @@ import logging
 import os
 import time
 import uuid
+from datetime import datetime
+from datetime import timezone
 
 import utils
 
@@ -54,15 +56,13 @@ def main():
 
   # Create and upload metadata of the image and packages
   logging.info('Creating image metadata.')
-  release_time = time.time()
   image = {
       "id": uuid.uuid4(),
       "family": el_release_name,
       "name": el_release_name + build_date,
       "version": build_date,
       "location": "gs://gce-image-archive/centos-uefi/centos-7-v${build_date}",
-      "release_date": build_date,
-      "release_time": release_time,
+      "release_date": datetime.now(timezone.utc),
       "state": "Active",
       "environment": "prod",
       "packages": []
@@ -81,13 +81,14 @@ def main():
       splits = stdout.decode('utf-8').split('\t\b')
       package_name = splits[0]
       package_version = splits[1] + "-" + splits[2]
-      package_release_time = package_version[0:package_version.index(".")]
+      package_release_date = package_version[0:package_version.index(".")]
       metadata = {
           "id": uuid.uuid4(),
           "name": package_name,
           "version": package_version,
+          # For el, we don't have commit hash
           "commit_hash": "",
-          "release_date": package_release_time,
+          "release_date": package_release_date,
           "stage": repo
       }
       image["packages"].append(metadata)

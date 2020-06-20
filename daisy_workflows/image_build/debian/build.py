@@ -34,6 +34,7 @@ import time
 import urllib.request
 import uuid
 import zipfile
+from datetime import datetime, timezone
 
 import utils
 
@@ -128,16 +129,13 @@ def main():
 
   # Create and upload metadata of the image and packages
   logging.info('Creating image metadata.')
-  release_date = time.strftime("%Y%m%d", time.localtime())
-  release_time = time.time()
   image = {
       "id": uuid.uuid4(),
       "family": "debian-9",
       "name": re.match("debian-9-[\\w-]*", image_dest),
-      "version": release_date,
+      "version": "stretch",
       "location": image_dest,
-      "release_date": release_date,
-      "release_time": release_time,
+      "release_date": datetime.now(timezone.utc),
       "state": "Active",
       "environment": "prod",
       "packages": []
@@ -157,13 +155,13 @@ def main():
       package_commit_hash = splits[2][splits[2].rindex('/'):len(splits[2])]
       start = package_version.index(":")
       end = package_version.rindex(".")
-      package_release_time = package_version[start: end]
+      package_release_date = package_version[start: end]
       metadata = {
           "id": uuid.uuid4(),
           "name": package_name,
           "version": package_version,
           "commit_hash": package_commit_hash,
-          "release_date": package_release_time,
+          "release_date": package_release_date,
           "stage": repo
       }
       image["packages"].append(metadata)
