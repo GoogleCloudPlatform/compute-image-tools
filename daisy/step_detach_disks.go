@@ -61,7 +61,12 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		addErrs(errs, err)
 
 		// Ensure disk is in the same project and zone.
-		disk := NamedSubexp(deviceNameURLRgx, dr.link)
+		rgx := diskURLRgx
+		if isAttached {
+			// An attached device will be registered with a full device URL.
+			rgx = deviceNameURLRgx
+		}
+		disk := NamedSubexp(rgx, dr.link)
 		if disk["project"] != instance["project"] {
 			errs = addErrs(errs, Errf("cannot detach disk in project %q from instance in project %q: %q", disk["project"], instance["project"], dd.DeviceName))
 		}
