@@ -1,4 +1,4 @@
-# Copyright 2018 Google Inc. All Rights Reserved.
+# Copyright 2020 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Build binaries to test
-FROM golang
-WORKDIR /cli_tools
-COPY cli_tools/ .
-RUN cd gce_onestep_image_import && CGO_ENABLED=0 go build -o /gce_onestep_image_import
-RUN chmod +x /gce_onestep_image_import
 
-# Build container
-FROM google/cloud-sdk:slim
+
+FROM debian
+
 # 1 - aws cli
 RUN apt-get update
 RUN apt-get -y install zip unzip curl
-RUN curl "https://d1vvhvl2y92vvt.cloudfront.net/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+RUN curl https://d1vvhvl2y92vvt.cloudfront.net/awscli-exe-linux-x86_64.zip -o awscliv2.zip
 RUN unzip awscliv2.zip
 RUN ./aws/install
+
 # 2 - onestep-importer cli
-COPY --from=0 /gce_onestep_image_import gce_onestep_image_import
-COPY /daisy_workflows/ /daisy_workflows/
+COPY linux/gce_onestep_image_import /gce_onestep_image_import
+COPY linux/gce_vm_image_import /gce_vm_image_import
+COPY daisy_workflows/ /daisy_workflows/
 
 ENTRYPOINT ["/gce_onestep_image_import"]

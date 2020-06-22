@@ -29,21 +29,30 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_
   windows-2016-byol, windows-7-byol.
   
 To import from AWS, all of these must be specified:
-+ `-aws_access_key_id=CLOUD_PROVIDER` Identifies the cloud provider of the source image. CLOUD_PROVIDER must be: aws
-+ `-aws_secret_access_key=CLOUD_PROVIDER` Identifies the cloud provider of the source image. CLOUD_PROVIDER must be: aws
-+ `-aws_region=CLOUD_PROVIDER` Identifies the cloud provider of the source image. CLOUD_PROVIDER must be: aws
++ `-aws_access_key_id=AWS_ACCESS_KEY_ID` The Access Key Id part of an AWS credential.
+  This credential is associated with an IAM user or role. This IAM user must have
+  permissions to import image.
++ `-aws_secret_access_key=AWS_SECRET_ACCESS_KEY` The Secret Access Key part of
+  an AWS credential. This credential is associated with an IAM user or role.
+  This IAM user must have permissions to import image.
++ `-aws_region=AWS_REGION` The AWS region of the image to import.
 
 To import from AWS, exactly one of the groups must be specified:
 
-+ To resume image import from exported file in S3:
-    + `-resume_exported_ami` Set if image has been exported to S3 bucket.
-    + `-aws_exported_ami_path=AWS_EXPORTED_AMI_PATH` The path of the exported image source file
++ To import from an exported image file in S3:
+    + `-resume_exported_ami` Set if image has already been exported. The image
+      import process will directly import from the provided S3 path.
+    + `-aws_exported_ami_path=AWS_EXPORTED_AMI_PATH` The S3 resource path of the
+      exported image file.
 
-+ To directly import image:
-    + `-aws_image_id=AWS_IMAGE_ID` The image ID of the AWS image.
-    + `-aws_export_location=AWS_EXPORT_LOCATION` The location in S3 to export the image.
++ To import from a VM instance:
+    + `-aws_image_id=AWS_IMAGE_ID` The AWS image ID of the image to import.
+    + `-aws_export_location=AWS_EXPORT_LOCATION` A location inside an AWS S3
+      Bucket to export the image.
 
-#### Optional flags  
+#### Optional flags
++ `-aws_session_token=AWS_SESSION_TOKEN` The AWS session token value that is
+  required if you are using temporary security credentials.
 + `-no_guest_environment` Google Guest Environment will not be installed on the image.
 + `-family=FAMILY` Family to set for the translated image.
 + `-description=DESCRIPTION` Description to set for the translated image.
@@ -83,11 +92,12 @@ To import from AWS, exactly one of the groups must be specified:
 ```
 gce_onestep_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID -os=OS
         ([-resume_exported_ami -aws_exported_ami_path=AWS_EXPORTED_AMI_PATH]|
-         [-aws_image_id=AWS_IMAGE_ID -aws_export_location=AWS_EXPORT_LOCATION]) 
-        [-no-guest-environment] 
-        [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK] [-subnet=SUBNET]
-        [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT] [-scratch_bucket_gcs_path=PATH]
-        [-oauth=OAUTH_PATH] [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
+         [-aws_image_id=AWS_IMAGE_ID -aws_export_location=AWS_EXPORT_LOCATION])
+        [aws-session-token=AWS_SESSION_TOKEN] [-no-guest-environment]
+        [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK]
+        [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT]
+        [-scratch_bucket_gcs_path=PATH] [-oauth=OAUTH_PATH] 
+        [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]
         [-disable_cloud_logging] [-disable_stdout_logging]
         [-kms-key=KMS_KEY -kms-keyring=KMS_KEYRING -kms-location=KMS_LOCATION
         -kms-project=KMS_PROJECT] [-labels=KEY=VALUE,...]
