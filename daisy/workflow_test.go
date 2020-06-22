@@ -943,6 +943,49 @@ func TestRunStepTimeout(t *testing.T) {
 	}
 }
 
+func TestRunStepContextDoneDeadlineExceeded(t *testing.T) {
+	w := testWorkflow()
+	s, _ := w.NewStep("test")
+	s.timeout = 1 * time.Second
+	s.testType = &mockStep{runImpl: func(ctx context.Context, s *Step) DError {
+		time.Sleep(2 * time.Second)
+		return nil
+	}}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Nanosecond)
+	defer cancel()
+	want := `step "test" did not complete within the specified timeout of 1s`
+	start := time.Now()
+	if err := w.runStep(ctx, s); err == nil || err.Error() != want {
+		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
+	}
+	if time.Since(start) >= 2*time.Second {
+		t.Errorf("step should have been cancelled due to context expiration in less than 1 second")
+	}
+}
+
+func TestRunStepContextDoneOtherError(t *testing.T) {
+	w := testWorkflow()
+	s, _ := w.NewStep("test")
+	s.timeout = 1 * time.Second
+	s.testType = &mockStep{runImpl: func(ctx context.Context, s *Step) DError {
+		time.Sleep(2 * time.Second)
+		return nil
+	}}
+	ctx, cancel := context.WithCancel(context.Background())
+	want := `step "test" error: context canceled`
+	start := time.Now()
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cancel()
+	}()
+	if err := w.runStep(ctx, s); err == nil || err.Error() != want {
+		t.Errorf("did not get expected error, got: %q, want: %q", err.Error(), want)
+	}
+	if time.Since(start) >= 1*time.Second {
+		t.Errorf("step should have been cancelled due to context expiration in less than 1 second")
+	}
+}
+
 func TestPopulateClients(t *testing.T) {
 	w := testWorkflow()
 

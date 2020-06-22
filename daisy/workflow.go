@@ -670,6 +670,13 @@ func (w *Workflow) runStep(ctx context.Context, s *Step) DError {
 	select {
 	case err := <-e:
 		return err
+	case <-ctx.Done():
+		if err := ctx.Err(); err == context.DeadlineExceeded {
+			return s.getTimeoutError()
+		} else if err != nil {
+			return Errf("step %q error: %s", s.name, err)
+		}
+		return nil
 	case <-timeout:
 		return s.getTimeoutError()
 	}
