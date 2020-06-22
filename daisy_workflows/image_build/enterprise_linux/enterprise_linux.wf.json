@@ -30,7 +30,7 @@
       "Value": "false",
       "Description": "Create a RHEL for SAP image."
     },
-    "destination_prefix": {
+    "destination": {
       "Required": true,
       "Description": "GCS path to export image metadata to"
     }
@@ -44,7 +44,7 @@
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
     "build_files/save_logs.py": "./save_logs.py",
-    "build_files/retrieve_metadata.py": "./retrieve_metadata.py",
+    "build_files/export_metadata.py": "./export_metadata.py",
     "build_files/guest_package": "../../guest_package.txt",
     "installerprep_startup_script": "../../linux_common/bootstrap.sh"
   },
@@ -153,9 +153,8 @@
             "files_gcs_dir": "${SOURCESPATH}/build_files",
             "prefix": "ExportMetadata",
             "script": "export_metadata.py",
-            "build_date": "${build_date}",
             "el_release": "${el_release}",
-            "destination_prefix": "${destination_prefix}"
+            "destination": "${destination}"
           },
           "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
           "StartupScript": "installerprep_startup_script"

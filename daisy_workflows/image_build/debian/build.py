@@ -30,9 +30,7 @@ import logging
 import os
 import re
 import shutil
-import time
 import urllib.request
-import uuid
 import zipfile
 from datetime import datetime, timezone
 
@@ -130,14 +128,11 @@ def main():
   # Create and upload metadata of the image and packages
   logging.info('Creating image metadata.')
   image = {
-      "id": uuid.uuid4(),
       "family": "debian-9",
       "name": re.match("debian-9-[\\w-]*", image_dest),
       "version": "stretch",
       "location": image_dest,
       "release_date": datetime.now(timezone.utc),
-      "state": "Active",
-      "environment": "prod",
       "packages": []
   }
   # Read list of guest package
@@ -145,33 +140,34 @@ def main():
     guest_packages = f.read().splitlines()
 
   for package in guest_packages:
-    cmd = "dpkg-query -W --showformat '${Package} ${Version} ${Git}\n'" \
+    cmd = "dpkg-query -W --showformat '${Package}:${Version}:${Git}'" \
           + package
     code, stdout = utils.Excute(cmd, capture_output=True)
     if code == 0:
-      splits = stdout.decode('utf-8').split('\t\b')
+      splits = stdout.decode('utf-8').split(':')
       package_name = splits[0]
       package_version = splits[1]
-      package_commit_hash = splits[2][splits[2].rindex('/'):len(splits[2])]
+      package_git_url = splits[2]
       start = package_version.index(":")
       end = package_version.rindex(".")
       package_release_date = package_version[start: end]
       metadata = {
-          "id": uuid.uuid4(),
           "name": package_name,
           "version": package_version,
-          "commit_hash": package_commit_hash,
+          "commit_hash": package_git_url,
           "release_date": package_release_date,
           "stage": repo
       }
       image["packages"].append(metadata)
-      with open('/tmp/metadata.json', 'w') as f:
-        f.write(json.dumps(image))
 
-      logging.info('Uploading image metadata.')
-      metadata_dest = os.path.join(image_dest.strip("root.tar.gz"),
-                                   'metadata.json')
-      utils.UploadFile('/tmp/metadata.json', metadata_dest)
+    # Write image metadata to a file
+    with open('/tmp/metadata.json', 'w') as f:
+      f.write(json.dumps(image))
+
+    logging.info('Uploading image metadata.')
+    metadata_dest = os.path.join(image_dest.strip("root.tar.gz"),
+                                 'metadata.json')
+    utils.UploadFile('/tmp/metadata.json', metadata_dest)
 
 
 if __name__ == '__main__':

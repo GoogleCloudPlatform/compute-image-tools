@@ -26,8 +26,6 @@ destination_prefix: The CS path to export image metadata to
 import json
 import logging
 import os
-import time
-import uuid
 from datetime import datetime
 from datetime import timezone
 
@@ -37,12 +35,10 @@ import utils
 def main():
   # Get Parameters.
   repo = utils.GetMetadataAttribute('google_cloud_repo',
-                                    raise_on_not_found=True).strip()
+                                    raise_on_not_found=True)
   el_release_name = utils.GetMetadataAttribute('el_release',
                                                raise_on_not_found=True)
-  build_date = utils.GetMetadataAttribute('build_date',
-                                          raise_on_not_found=True)
-  destination_prefix = utils.GetMetadataAttribute('destination_prefix',
+  destination = utils.GetMetadataAttribute('destination',
                                                   raise_on_not_found=True)
   uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
 
@@ -56,15 +52,14 @@ def main():
 
   # Create and upload metadata of the image and packages
   logging.info('Creating image metadata.')
+  build_date = datetime.today().strftime('%Y%m%d')
   image = {
-      "id": uuid.uuid4(),
       "family": el_release_name,
       "name": el_release_name + build_date,
       "version": build_date,
-      "location": "gs://gce-image-archive/centos-uefi/centos-7-v${build_date}",
+      "location": destination_prefix,
       "release_date": datetime.now(timezone.utc),
       "state": "Active",
-      "environment": "prod",
       "packages": []
   }
 
@@ -74,31 +69,31 @@ def main():
 
   for package in guest_packages:
     # The URL is a github repo link which don't contain commit hash
-    cmd = "rpm -q --queryformat='%{NAME} %{VERSION} %{RELEASE} %{URL}\n'" \
+    cmd = "rpm -q --queryformat='%{NAME}\n%{VERSION}\n%{RELEASE}\n%{URL}'" \
           + package
     code, stdout = utils.Excute(cmd, capture_output=True)
     if code == 0:
-      splits = stdout.decode('utf-8').split('\t\b')
+      splits = stdout.decode('utf-8').split('\n')
       package_name = splits[0]
       package_version = splits[1] + "-" + splits[2]
+      package_url = splits[3]
       package_release_date = package_version[0:package_version.index(".")]
-      metadata = {
-          "id": uuid.uuid4(),
+      package_metadata = {
           "name": package_name,
           "version": package_version,
           # For el, we don't have commit hash
-          "commit_hash": "",
+          "commit_hash": package_url,
           "release_date": package_release_date,
           "stage": repo
       }
-      image["packages"].append(metadata)
+      image["packages"].append(package_metadata)
 
-      with open('/tmp/metadata.json', 'w') as f:
-        f.write(json.dumps(image))
+    # Write image metadata to a file
+    with open('/tmp/metadata.json', 'w') as f:
+      f.write(json.dumps(image))
 
-      logging.info('Uploading image metadata.')
-      metadata_dest = os.path.join(destination_prefix, 'metadata.json')
-      utils.UploadFile('/tmp/metadata.json', metadata_dest)
+    logging.info('Uploading image metadata.')
+    utils.UploadFile('/tmp/metadata.json', destination)
 
 
 if __name__ == '__main__':
