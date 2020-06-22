@@ -86,8 +86,7 @@
           "networkInterfaces": [
             {
               "network": "${import_network}",
-              "subnetwork": "${import_subnet}",
-              "accessConfigs": []
+              "subnetwork": "${import_subnet}"
             }
           ],
           "Scopes": [

@@ -21,6 +21,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 
+	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
@@ -104,6 +105,7 @@ func createDaisyInflater(args ImportArguments) (inflater, error) {
 		return nil, err
 	}
 
+	daisy_utils.UpdateAllInstanceNoExternalIP(wf, args.NoExternalIP)
 	for k, v := range vars {
 		wf.AddVar(k, v)
 	}
