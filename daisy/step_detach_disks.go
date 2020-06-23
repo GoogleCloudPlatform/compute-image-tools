@@ -53,7 +53,7 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 
 		instance := NamedSubexp(instanceURLRgx, ir.link)
 
-		dr, isAttached, err := s.w.disks.regUseDeviceName(dd.DeviceName, instance["project"], instance["zone"], instance["instance"], s)
+		dr, isAttached, err := s.w.disks.regUseDeviceName(dd.DeviceName, instance["project"], instance["zone"], instance["instance"], dd.Instance, s)
 		if dr == nil {
 			// Return now, the rest of this function can't be run without dr.
 			return addErrs(errs, Errf("cannot detach disk: %v", err))
@@ -63,7 +63,7 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		// Ensure disk is in the same project and zone.
 		rgx := diskURLRgx
 		if isAttached {
-			// An attached device will be registered with a full device URL.
+			// If it's an attached device, it will be registered by regUseDeviceName with a full device URL.
 			rgx = deviceNameURLRgx
 		}
 		disk := NamedSubexp(rgx, dr.link)

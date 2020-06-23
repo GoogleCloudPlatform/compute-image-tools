@@ -145,6 +145,7 @@ func (d *Disk) validate(ctx context.Context, s *Step) DError {
 }
 
 type diskAttachment struct {
+	diskName           string
 	mode               string
 	attacher, detacher *Step
 }
@@ -188,7 +189,7 @@ func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *St
 		return nil
 	}
 
-	pre := fmt.Sprintf("step %q cannot detach disk %q from instance %q", s.name, dName, iName)
+	pre := fmt.Sprintf("step %q cannot detach disk with device name = %q from instance %q", s.name, dName, iName)
 
 	var att *diskAttachment
 
@@ -212,17 +213,17 @@ func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *St
 }
 
 // registerAttachment is called by Instance.regCreate and AttachDisks.validate and marks a disk as attached to an instance by Step s.
-func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) DError {
+func (dr *diskRegistry) regAttach(deviceName, diskName, iName, mode string, s *Step) DError {
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 
-	pre := fmt.Sprintf("step %q cannot attach disk %q to instance %q", s.name, dName, iName)
+	pre := fmt.Sprintf("step %q cannot attach disk %q to instance %q", s.name, deviceName, iName)
 	var errs DError
 	// Iterate over disk's attachments. Check for concurrent conflicts.
 	// Step s is concurrent with other attachments if the attachment detacher == nil
 	// or s does not depend on the detacher.
 	// If this is a repeat attachment (same disk and instance already attached), do nothing and return.
-	for attIName, att := range dr.attachments[dName] {
+	for attIName, att := range dr.attachments[deviceName] {
 		// Is this a concurrent attachment?
 		if att.detacher == nil || !s.nestedDepends(att.detacher) {
 			if attIName == iName {
@@ -232,17 +233,17 @@ func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) DError {
 				// Can't have concurrent attachment in RW mode.
 				return Errf(
 					"%s: concurrent RW attachment of disk %q between instances %q (%s) and %q (%s)",
-					pre, dName, iName, mode, attIName, att.mode)
+					pre, deviceName, iName, mode, attIName, att.mode)
 			}
 		}
 	}
 
 	var im map[string]*diskAttachment
-	if im, _ = dr.attachments[dName]; im == nil {
+	if im, _ = dr.attachments[deviceName]; im == nil {
 		im = map[string]*diskAttachment{}
-		dr.attachments[dName] = im
+		dr.attachments[deviceName] = im
 	}
-	im[iName] = &diskAttachment{mode: mode, attacher: s}
+	im[iName] = &diskAttachment{diskName: diskName, mode: mode, attacher: s}
 	return nil
 }
 

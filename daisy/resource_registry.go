@@ -243,7 +243,8 @@ func (r *baseResourceRegistry) regUse(name string, s *Step) (*Resource, DError) 
 
 // regUseDeviceName registers a Step s as a user of a disk device resource.
 // "DeviceName" is only used by DetachDisks API.
-func (dr *diskRegistry) regUseDeviceName(deviceName, project, zone, instance string, s *Step) (*Resource, bool, DError) {
+// "daisyInstanceName" represents the name in daisy workflow definition, which is a shorter name
+func (dr *diskRegistry) regUseDeviceName(deviceName, project, zone, instance, daisyInstanceName string, s *Step) (*Resource, bool, DError) {
 	// Check:
 	// deviceName either has a creator/attacher, or has been attached before the workflow's execution
 	// - s depends on creator of deviceName, if there is a creator.
@@ -251,11 +252,10 @@ func (dr *diskRegistry) regUseDeviceName(deviceName, project, zone, instance str
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 	var isAttached bool
-	var ok bool
 	var res *Resource
+	var err DError
 
 	if deviceNameURLRgx.MatchString(deviceName) {
-		var err DError
 		// check whether it's attached before the workflow's execution
 		isAttached, err = isDiskAttached(dr.w.ComputeClient, deviceName, project, zone, instance)
 		if err != nil {
@@ -270,8 +270,8 @@ func (dr *diskRegistry) regUseDeviceName(deviceName, project, zone, instance str
 		}
 	} else if strings.Contains(deviceName, "/") {
 		return nil, isAttached, Errf("unexpected url for %s: %q", dr.typeName, deviceName)
-	} else if res, ok = dr.m[deviceName]; !ok {
-		return nil, isAttached, Errf("missing reference for %s %q", dr.typeName, deviceName)
+	} else if res, err = dr.findDiskResourceByDeviceName(deviceName, daisyInstanceName); err != nil {
+		return nil, isAttached, err
 	}
 
 	if res.creator != nil && !s.nestedDepends(res.creator) {
@@ -283,4 +283,16 @@ func (dr *diskRegistry) regUseDeviceName(deviceName, project, zone, instance str
 
 	res.users = append(res.users, s)
 	return res, isAttached, nil
+}
+
+func (dr *diskRegistry) findDiskResourceByDeviceName(deviceName, instance string) (*Resource, DError) {
+	attachmentMap, ok := dr.attachments[deviceName]
+	if !ok {
+		return nil, Errf("missing registered disk attachment for device name '%v'", deviceName)
+	}
+	attachment, ok := attachmentMap[instance]
+	if !ok  {
+		return nil, Errf("missing registered disk attachment for instance '%v'", instance)
+	}
+	return dr.m[attachment.diskName], nil
 }
