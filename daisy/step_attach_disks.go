@@ -85,12 +85,7 @@ func (a *AttachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		ad.zone = disk["zone"]
 
 		// Register disk attachments.
-		// If device name is not given explicitly, its device name will be the same as disk name.
-		deviceName := ad.Source
-		if ad.DeviceName != "" {
-			deviceName = ad.DeviceName
-		}
-		errs = addErrs(errs, s.w.instances.w.disks.regAttach(deviceName, ad.Source, ad.Instance, ad.Mode, s))
+		errs = addErrs(errs, s.w.instances.w.disks.regAttach(ad.DeviceName, ad.Source, ad.Instance, ad.Mode, s))
 	}
 	return errs
 }

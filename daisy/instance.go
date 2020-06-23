@@ -223,11 +223,8 @@ func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DEr
 			}
 			diskName = d.InitializeParams.DiskName
 		}
-		deviceName := d.DeviceName
-		if deviceName == "" {
-			deviceName = diskName
-		}
-		errs = addErrs(errs, ir.w.disks.regAttach(deviceName, diskName, name, d.Mode, s))
+
+		errs = addErrs(errs, ir.w.disks.regAttach(d.DeviceName, diskName, name, d.Mode, s))
 	}
 
 	// Register network connections.
@@ -334,11 +331,7 @@ func (i *InstanceBeta) register(name string, s *Step, ir *instanceRegistry, errs
 			}
 			diskName = d.InitializeParams.DiskName
 		}
-		deviceName := d.DeviceName
-		if deviceName == "" {
-			deviceName = diskName
-		}
-		errs = addErrs(errs, ir.w.disks.regAttach(deviceName, diskName, name, d.Mode, s))
+		errs = addErrs(errs, ir.w.disks.regAttach(d.DeviceName, diskName, name, d.Mode, s))
 	}
 
 	// Register network connections.
