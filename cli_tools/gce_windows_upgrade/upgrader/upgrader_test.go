@@ -211,7 +211,7 @@ func initTestUpgrader(t *testing.T) *TestUpgrader {
 	}
 	tu.prepareFn = func() (workflow *daisy.Workflow, e error) {
 		// Test workaround: let newOSDiskName to be the same as current disk name
-		// in order to pretend the enw OS disk has been attached.
+		// in order to pretend the new OS disk has been attached.
 		tu.newOSDiskName = testDisk
 		return nil, nil
 	}
