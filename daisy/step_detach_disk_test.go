@@ -76,7 +76,7 @@ func TestDetachDisksValidate(t *testing.T) {
 			"bad":    {Project: "bad", RealName: testDisk, link: "link"},
 		}
 		instanceRegisterName := testInstance
-		if  (*tt.dds)[0].Instance == testInstanceURL {
+		if (*tt.dds)[0].Instance == testInstanceURL {
 			instanceRegisterName = testInstanceURL
 		}
 

@@ -291,7 +291,7 @@ func (dr *diskRegistry) findDiskResourceByDeviceName(deviceName, instance string
 		return nil, Errf("missing registered disk attachment for device name '%v'", deviceName)
 	}
 	attachment, ok := attachmentMap[instance]
-	if !ok  {
+	if !ok {
 		return nil, Errf("missing registered disk attachment for instance '%v'", instance)
 	}
 	return dr.m[attachment.diskName], nil
