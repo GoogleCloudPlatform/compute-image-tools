@@ -210,21 +210,21 @@ func (u *upgrader) handleResult(err error) {
 	if u.AutoRollback {
 		if isNewOSDiskAttached {
 			fmt.Printf("\nUpgrade failed to finish. Rolling back to the "+
-				"original state from the original OS disk '%v'...\n\n", u.osDiskURI)
+				"original state from the original boot disk '%v'...\n\n", u.osDiskURI)
 			_, err := u.rollback()
 			if err != nil {
 				fmt.Printf("\nRollback failed. Error: %v\n"+
 					"Please rollback the image manually following the instructions in the guide.\n\n", err)
 			} else {
-				fmt.Printf("\nCompleted rollback to the original OS disk. Please " +
+				fmt.Printf("\nCompleted rollback to the original boot disk. Please " +
 					"verify the rollback. If the rollback does not function as expected, " +
 					"consider restoring the instance from the machine image.\n\n")
 			}
 			return
 		}
-		fmt.Printf("\nNo OS disk attached during the failure. No need to rollback. "+
+		fmt.Printf("\nNo boot disk attached during the failure. No need to rollback. "+
 			"If the instance doesn't work as expected, please verify that the original "+
-			"OS disk (%v) is attached and whether the instance has started. If necessary, "+
+			"boot disk (%v) is attached and whether the instance has started. If necessary, "+
 			"please manually rollback by using the instructions in the guide..\n\n", u.osDiskURI)
 	}
 

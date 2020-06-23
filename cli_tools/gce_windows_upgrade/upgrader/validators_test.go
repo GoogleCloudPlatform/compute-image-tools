@@ -359,7 +359,7 @@ func TestValidateOSDisk(t *testing.T) {
 			"Disk not exist",
 			&compute.AttachedDisk{Source: daisy.GetDiskURI(testProject, testZone, DNE),
 				DeviceName: testDiskDeviceName, AutoDelete: testDiskAutoDelete, Boot: true},
-			"Failed to get OS disk info: googleapi: got HTTP response code 404 with body: ",
+			"Failed to get boot disk info: googleapi: got HTTP response code 404 with body: ",
 		},
 		{
 			"Disk not boot",
