@@ -48,7 +48,7 @@ func TestDetachDisksPopulate(t *testing.T) {
 
 func TestDetachDisksValidate(t *testing.T) {
 	ctx := context.Background()
-	//testDeviceURL := fmt.Sprintf("projects/%s/zones/%s/devices/%s", testProject, testZone, testDisk)
+	testDeviceURL := fmt.Sprintf("projects/%s/zones/%s/devices/%s", testProject, testZone, testDisk)
 	testInstanceURL := fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, testInstance)
 
 	tests := []struct {
@@ -57,14 +57,14 @@ func TestDetachDisksValidate(t *testing.T) {
 		dds              *DetachDisks
 		wantErr          bool
 	}{
-		//{"empty source case", "", &DetachDisks{{Instance: testInstance, DeviceName: ""}}, true},
-		//{"bad source case", "", &DetachDisks{{Instance: testInstance, DeviceName: "bad"}}, true},
-		//{"bad instance case", "", &DetachDisks{{Instance: "bad", DeviceName: testDisk}}, true},
-		//{"bad project and zone case", "", &DetachDisks{{Instance: testInstance, DeviceName: "projects/bad/zones/bad/devices/bad"}}, true},
-		//{"wrong url (disk url) case", "", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, true},
-		//{"instance url + device url case (instance pre-exists, device pre-attached)", "", &DetachDisks{{Instance: testInstanceURL, DeviceName: testDeviceURL}}, false},
-		//{"instance url + device name case (instance pre-exists, device attached in workflow)", "", &DetachDisks{{Instance: testInstanceURL, DeviceName: testDisk}}, false},
-		//{"instance name + device name case", "", &DetachDisks{{Instance: testInstance, DeviceName: testDisk}}, false},
+		{"empty source case", "", &DetachDisks{{Instance: testInstance, DeviceName: ""}}, true},
+		{"bad source case", "", &DetachDisks{{Instance: testInstance, DeviceName: "bad"}}, true},
+		{"bad instance case", "", &DetachDisks{{Instance: "bad", DeviceName: testDisk}}, true},
+		{"bad project and zone case", "", &DetachDisks{{Instance: testInstance, DeviceName: "projects/bad/zones/bad/devices/bad"}}, true},
+		{"wrong url (disk url) case", "", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, true},
+		{"instance url + device url case (instance pre-exists, device pre-attached)", "", &DetachDisks{{Instance: testInstanceURL, DeviceName: testDeviceURL}}, false},
+		{"instance url + device name case (instance pre-exists, device attached in workflow)", "", &DetachDisks{{Instance: testInstanceURL, DeviceName: testDisk}}, false},
+		{"instance name + device name case", "", &DetachDisks{{Instance: testInstance, DeviceName: testDisk}}, false},
 		{"device name != disk name case", "device-name", &DetachDisks{{Instance: testInstance, DeviceName: "device-name"}}, false},
 	}
 	for _, tt := range tests {

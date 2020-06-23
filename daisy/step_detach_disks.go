@@ -53,20 +53,22 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 
 		instance := NamedSubexp(instanceURLRgx, ir.link)
 
-		dr, isAttached, err := s.w.disks.regUseDeviceName(dd.DeviceName, instance["project"], instance["zone"], instance["instance"], dd.Instance, s)
-		if dr == nil {
-			// Return now, the rest of this function can't be run without dr.
+		res, isAttached, err := s.w.disks.regUseDeviceName(dd.DeviceName, instance["project"], instance["zone"], instance["instance"], dd.Instance, s)
+		if res == nil {
+			// Return now, the rest of this function can't be run without resource.
 			return addErrs(errs, Errf("cannot detach disk: %v", err))
 		}
 		addErrs(errs, err)
 
-		// Ensure disk is in the same project and zone.
-		rgx := diskURLRgx
-		if isAttached {
-			// If it's an attached device, it will be registered by regUseDeviceName with a full device URL.
-			rgx = deviceNameURLRgx
+		// While it's a full URL, no need to do more validation about project/zone since it has been validated in regUseDeviceName.
+		if deviceNameURLRgx.MatchString(dd.DeviceName) {
+			return errs
 		}
-		disk := NamedSubexp(rgx, dr.link)
+
+		rgx := diskURLRgx
+
+		// Ensure disk is in the same project and zone.
+		disk := NamedSubexp(rgx, res.link)
 		if disk["project"] != instance["project"] {
 			errs = addErrs(errs, Errf("cannot detach disk in project %q from instance in project %q: %q", disk["project"], instance["project"], dd.DeviceName))
 		}
