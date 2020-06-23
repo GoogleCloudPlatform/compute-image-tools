@@ -493,7 +493,7 @@ func (w *Workflow) populate(ctx context.Context) DError {
 		w.GCSPath = "gs://" + dBkt
 	}
 	bkt, p, derr := splitGCSPath(w.GCSPath)
-	if err != nil {
+	if derr != nil {
 		return derr
 	}
 	w.bucket = bkt
