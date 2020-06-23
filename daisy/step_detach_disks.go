@@ -60,24 +60,25 @@ func (a *DetachDisks) validate(ctx context.Context, s *Step) (errs DError) {
 		}
 		addErrs(errs, err)
 
-		// While it's a full URL, no need to do more validation about project/zone since it has been validated in regUseDeviceName.
 		if deviceNameURLRgx.MatchString(dd.DeviceName) {
-			return errs
-		}
+			// While it's a device URL, no need to do more validation about project/zone
+			// since it has been validated in regUseDeviceName.
+			device := NamedSubexp(deviceNameURLRgx, res.link)
+			dd.project = device["project"]
+			dd.zone = device["zone"]
+		} else {
+			// Ensure disk is in the same project and zone.
+			disk := NamedSubexp(diskURLRgx, res.link)
+			if disk["project"] != instance["project"] {
+				errs = addErrs(errs, Errf("cannot detach disk in project %q from instance in project %q: %q", disk["project"], instance["project"], dd.DeviceName))
+			}
+			if disk["zone"] != instance["zone"] {
+				errs = addErrs(errs, Errf("cannot detach disk in zone %q from instance in zone %q: %q", disk["zone"], instance["zone"], dd.DeviceName))
+			}
 
-		rgx := diskURLRgx
-
-		// Ensure disk is in the same project and zone.
-		disk := NamedSubexp(rgx, res.link)
-		if disk["project"] != instance["project"] {
-			errs = addErrs(errs, Errf("cannot detach disk in project %q from instance in project %q: %q", disk["project"], instance["project"], dd.DeviceName))
+			dd.project = disk["project"]
+			dd.zone = disk["zone"]
 		}
-		if disk["zone"] != instance["zone"] {
-			errs = addErrs(errs, Errf("cannot detach disk in zone %q from instance in zone %q: %q", disk["zone"], instance["zone"], dd.DeviceName))
-		}
-
-		dd.project = disk["project"]
-		dd.zone = disk["zone"]
 
 		// Register disk detachments.
 		errs = addErrs(errs, s.w.instances.w.disks.regDetach(dd.DeviceName, dd.Instance, isAttached, s))
