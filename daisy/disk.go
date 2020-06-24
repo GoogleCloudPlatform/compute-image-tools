@@ -145,6 +145,7 @@ func (d *Disk) validate(ctx context.Context, s *Step) DError {
 }
 
 type diskAttachment struct {
+	diskName           string
 	mode               string
 	attacher, detacher *Step
 }
@@ -178,9 +179,9 @@ func (dr *diskRegistry) deleteFn(res *Resource) DError {
 
 // detachHelper marks s as the detacher between dName and iName.
 // Returns an error if the detacher doesn't depend on the attacher.
-func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *Step) DError {
+func (dr *diskRegistry) detachHelper(deviceName, iName string, isAttached bool, s *Step) DError {
 	if dr.testDetachHelper != nil {
-		return dr.testDetachHelper(dName, iName, s)
+		return dr.testDetachHelper(deviceName, iName, s)
 	}
 
 	// if the disk has already been attached before workflow is executed, skip validating its attacher
@@ -188,7 +189,7 @@ func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *St
 		return nil
 	}
 
-	pre := fmt.Sprintf("step %q cannot detach disk %q from instance %q", s.name, dName, iName)
+	pre := fmt.Sprintf("step %q cannot detach disk with device name '%q' from instance '%q'", s.name, deviceName, iName)
 
 	var att *diskAttachment
 
@@ -197,7 +198,7 @@ func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *St
 		return nil
 	}
 
-	if im, _ := dr.attachments[dName]; im == nil {
+	if im, _ := dr.attachments[deviceName]; im == nil {
 		return Errf("%s: not attached", pre)
 	} else if att, _ = im[iName]; att == nil {
 		return Errf("%s: not attached", pre)
@@ -212,17 +213,22 @@ func (dr *diskRegistry) detachHelper(dName, iName string, isAttached bool, s *St
 }
 
 // registerAttachment is called by Instance.regCreate and AttachDisks.validate and marks a disk as attached to an instance by Step s.
-func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) DError {
+func (dr *diskRegistry) regAttach(deviceName, diskName, iName, mode string, s *Step) DError {
+	// If device name is not given explicitly, its device name will be the same as disk name.
+	if deviceName == "" {
+		deviceName = diskName
+	}
+
 	dr.mx.Lock()
 	defer dr.mx.Unlock()
 
-	pre := fmt.Sprintf("step %q cannot attach disk %q to instance %q", s.name, dName, iName)
+	pre := fmt.Sprintf("step %q cannot attach disk '%q' to instance '%q'", s.name, diskName, iName)
 	var errs DError
 	// Iterate over disk's attachments. Check for concurrent conflicts.
 	// Step s is concurrent with other attachments if the attachment detacher == nil
 	// or s does not depend on the detacher.
 	// If this is a repeat attachment (same disk and instance already attached), do nothing and return.
-	for attIName, att := range dr.attachments[dName] {
+	for attIName, att := range dr.attachments[deviceName] {
 		// Is this a concurrent attachment?
 		if att.detacher == nil || !s.nestedDepends(att.detacher) {
 			if attIName == iName {
@@ -232,17 +238,17 @@ func (dr *diskRegistry) regAttach(dName, iName, mode string, s *Step) DError {
 				// Can't have concurrent attachment in RW mode.
 				return Errf(
 					"%s: concurrent RW attachment of disk %q between instances %q (%s) and %q (%s)",
-					pre, dName, iName, mode, attIName, att.mode)
+					pre, deviceName, iName, mode, attIName, att.mode)
 			}
 		}
 	}
 
 	var im map[string]*diskAttachment
-	if im, _ = dr.attachments[dName]; im == nil {
+	if im, _ = dr.attachments[deviceName]; im == nil {
 		im = map[string]*diskAttachment{}
-		dr.attachments[dName] = im
+		dr.attachments[deviceName] = im
 	}
-	im[iName] = &diskAttachment{mode: mode, attacher: s}
+	im[iName] = &diskAttachment{diskName: diskName, mode: mode, attacher: s}
 	return nil
 }
 

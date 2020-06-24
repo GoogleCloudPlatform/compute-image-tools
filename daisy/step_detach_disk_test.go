@@ -18,8 +18,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-
-	"google.golang.org/api/compute/v1"
 )
 
 func TestDetachDisksPopulate(t *testing.T) {
@@ -50,33 +48,47 @@ func TestDetachDisksPopulate(t *testing.T) {
 
 func TestDetachDisksValidate(t *testing.T) {
 	ctx := context.Background()
-	w := testWorkflow()
-	s, _ := w.NewStep("DetacherStep")
-	w.instances.m = map[string]*Resource{testInstance: {Project: testProject, RealName: testInstance, link: fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, testInstance)}}
-	w.disks.m = map[string]*Resource{
-		testDisk: {Project: testProject, RealName: testDisk, link: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)},
-		"bad":    {Project: "bad", RealName: testDisk, link: "link"},
-	}
-
-	// Attaching the sampleDisk on another step to respect dependency
-	as, _ := w.NewStep("AttacherStep")
-	sampleDisk := compute.Disk{Name: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}
-	w.disks.regAttach(sampleDisk.Name, testInstance, "", as)
-	w.AddDependency(s, as)
+	testDeviceURL := fmt.Sprintf("projects/%s/zones/%s/devices/%s", testProject, testZone, testDisk)
+	testInstanceURL := fmt.Sprintf("projects/%s/zones/%s/instances/%s", testProject, testZone, testInstance)
 
 	tests := []struct {
-		desc    string
-		dds     *DetachDisks
-		wantErr bool
+		desc             string
+		attachDeviceName string
+		dds              *DetachDisks
+		wantErr          bool
 	}{
-		{"empty source case", &DetachDisks{{Instance: testInstance, DeviceName: ""}}, true},
-		{"bad source case", &DetachDisks{{Instance: testInstance, DeviceName: "bad"}}, true},
-		{"bad instance case", &DetachDisks{{Instance: "bad", DeviceName: testDisk}}, true},
-		{"bad project and zone case", &DetachDisks{{Instance: testInstance, DeviceName: "projects/bad/zones/bad/devices/bad"}}, true},
-		{"wrong url (disk url) case", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, true},
-		{"url case", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/devices/%s", testProject, testZone, testDisk)}}, false},
+		{"empty source case", "", &DetachDisks{{Instance: testInstance, DeviceName: ""}}, true},
+		{"bad source case", "", &DetachDisks{{Instance: testInstance, DeviceName: "bad"}}, true},
+		{"bad instance case", "", &DetachDisks{{Instance: "bad", DeviceName: testDisk}}, true},
+		{"bad project and zone case", "", &DetachDisks{{Instance: testInstance, DeviceName: "projects/bad/zones/bad/devices/bad"}}, true},
+		{"wrong url (disk url) case", "", &DetachDisks{{Instance: testInstance, DeviceName: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)}}, true},
+		{"instance url + device url case (instance pre-exists, device pre-attached)", "", &DetachDisks{{Instance: testInstanceURL, DeviceName: testDeviceURL}}, false},
+		{"instance url + device name case (instance pre-exists, device attached in workflow)", "", &DetachDisks{{Instance: testInstanceURL, DeviceName: testDisk}}, false},
+		{"instance name + device name case", "", &DetachDisks{{Instance: testInstance, DeviceName: testDisk}}, false},
+		{"device name != disk name case", "device-name", &DetachDisks{{Instance: testInstance, DeviceName: "device-name"}}, false},
 	}
 	for _, tt := range tests {
+		w := testWorkflow()
+		s, _ := w.NewStep("DetacherStep")
+		w.instances.m = map[string]*Resource{testInstance: {Project: testProject, RealName: testInstance, link: testInstanceURL}}
+		w.disks.m = map[string]*Resource{
+			testDisk: {Project: testProject, RealName: testDisk, link: fmt.Sprintf("projects/%s/zones/%s/disks/%s", testProject, testZone, testDisk)},
+			"bad":    {Project: "bad", RealName: testDisk, link: "link"},
+		}
+		instanceRegisterName := testInstance
+		if (*tt.dds)[0].Instance == testInstanceURL {
+			instanceRegisterName = testInstanceURL
+		}
+
+		// Register the instance/disk to respect dependency
+		as, _ := w.NewStep("AttacherStep")
+		attachDeviceName := tt.attachDeviceName
+		if attachDeviceName == "" {
+			attachDeviceName = testDisk
+		}
+		w.instances.regURL(instanceRegisterName, false)
+		w.disks.regAttach(attachDeviceName, testDisk, instanceRegisterName, "", as)
+		w.AddDependency(s, as)
 
 		err := tt.dds.validate(ctx, s)
 		if !tt.wantErr && err != nil {
