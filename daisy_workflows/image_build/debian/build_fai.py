@@ -24,12 +24,12 @@ image_dest: The Cloud Storage destination for the resultant image.
 google_cloud_repo: The repository branch to use for packages.cloud.google.com.
 """
 from datetime import datetime, timezone
-import datetime
 import json
 import logging
 import os
 import tarfile
 import urllib.request
+
 import utils
 
 
@@ -48,8 +48,8 @@ def main():
       'debian_version', raise_on_not_found=True)
   google_cloud_repo = utils.GetMetadataAttribute(
       'google_cloud_repo', raise_on_not_found=True)
-  image_dest = utils.GetMetadataAttribute('image_dest',
-                                          raise_on_not_found=True)
+  image_dest = utils.GetMetadataAttribute(
+      'image_dest', raise_on_not_found=True)
 
   logging.info('debian-cloud-images version: %s' % debian_cloud_images_version)
   logging.info('debian version: %s' % debian_version)

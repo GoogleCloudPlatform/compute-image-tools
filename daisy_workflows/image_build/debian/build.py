@@ -23,8 +23,8 @@ google_cloud_repo: The repo to use to build Debian. Must be one of
   ['stable' (default), 'unstable', 'staging'].
 image_dest: The Cloud Storage destination for the resultant image.
 """
-
 import collections
+from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -32,7 +32,6 @@ import re
 import shutil
 import urllib.request
 import zipfile
-from datetime import datetime, timezone
 
 import utils
 

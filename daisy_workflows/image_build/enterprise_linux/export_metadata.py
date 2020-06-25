@@ -23,11 +23,10 @@ image_dest: The Cloud Storage destination for the resultant image.
 destination_prefix: The CS path to export image metadata to
 """
 
+from datetime import datetime, timezone
 import json
 import logging
 import os
-from datetime import datetime
-from datetime import timezone
 
 import utils
 
@@ -39,7 +38,7 @@ def main():
   el_release_name = utils.GetMetadataAttribute('el_release',
                                                raise_on_not_found=True)
   destination = utils.GetMetadataAttribute('destination',
-                                                  raise_on_not_found=True)
+                                           raise_on_not_found=True)
   uefi = utils.GetMetadataAttribute('rhel_uefi') == 'true'
 
   # Mount the installer disk.
@@ -57,7 +56,7 @@ def main():
       "family": el_release_name,
       "name": el_release_name + build_date,
       "version": build_date,
-      "location": destination_prefix,
+      "location": destination,
       "release_date": datetime.now(timezone.utc),
       "state": "Active",
       "packages": []
