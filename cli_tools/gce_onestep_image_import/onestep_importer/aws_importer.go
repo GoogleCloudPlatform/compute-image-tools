@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -45,7 +44,7 @@ import (
 const (
 	downloadBufSize = "100MB"
 	downloadBufNum  = 3
-	uploadBufSize   = "500MB"
+	uploadBufSize   = "200MB"
 	logPrefix       = "[onestep-import-image-aws]"
 )
 
@@ -143,7 +142,7 @@ func (importer *awsImporter) run() (string, error) {
 
 	log.Println("Starting to copy ...")
 	start := time.Now()
-	gcsFilePath, err := importer.copyToGCS()
+	gcsFilePath, err := importer.copyFromS3ToGCS()
 	if err != nil {
 		return "", err
 	}
@@ -256,7 +255,7 @@ func (importer *awsImporter) exportAWSImage() error {
 }
 
 // copyToGCS copies vmdk file from S3 to GCS
-func (importer *awsImporter) copyToGCS() (string, error) {
+func (importer *awsImporter) copyFromS3ToGCS() (string, error) {
 	// 1. get GCS path as copy destination.
 	gcsFilePath := pathutils.JoinURL(importer.args.gcsScratchBucket,
 		fmt.Sprintf("onestep-image-import-aws-%v.vmdk", pathutils.RandString(5)))
@@ -292,8 +291,8 @@ func (importer *awsImporter) copyToGCS() (string, error) {
 func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 	totalSize := humanize.IBytes(uint64(importer.args.exportFileSize))
 
-	// allow max 3 download chunks waiting to be uploaded
-	downloadSem := make(chan struct{}, downloadBufNum)
+	// allow max 3 chunks waiting to be uploaded
+	uploadSem := make(chan *io.ReadCloser, downloadBufNum)
 	// used to synchronize upload chunks
 	var uploadMutex sync.Mutex
 
@@ -304,16 +303,19 @@ func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 	s3Client := s3.New(sess)
 
 	// setup download
-	readSize, err := humanize.ParseBytes(downloadBufSize)
+	output, err := humanize.ParseBytes(downloadBufSize)
 	if err != nil {
 		return err
 	}
-	readers := int64(math.Ceil(float64(importer.args.exportFileSize) / float64(readSize)))
+	readSize := int64(output)
+	// take ceiling
+	readers := (importer.args.exportFileSize - 1) / readSize +1
 
 	wg := new(sync.WaitGroup)
+
 	for i := int64(0); i < readers; i++ {
-		startRange := i * int64(readSize)
-		endRange := startRange + int64(readSize) - 1
+		startRange := i * readSize
+		endRange := startRange + readSize - 1
 		res, err := s3Client.GetObject(&s3.GetObjectInput{
 			Bucket: aws.String(importer.args.exportBucket),
 			Key:    aws.String(importer.args.exportKey),
@@ -325,19 +327,18 @@ func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 			return err
 		}
 
-		downloadSem <- struct{}{}
+		uploadSem <- &res.Body
 		wg.Add(1)
 
-		go func(writer io.WriteCloser, reader io.ReadCloser) {
+		go func(writer *io.WriteCloser, reader *io.ReadCloser) {
 			defer wg.Done()
-			defer reader.Close()
+			defer (*reader).Close()
 			uploadMutex.Lock()
-			io.Copy(writer, reader)
+			io.Copy(*writer, *reader)
 			uploadMutex.Unlock()
-			<-downloadSem
-		}(writer, res.Body)
+		}(&writer, <-uploadSem)
 
-		uploadTotal := humanize.IBytes(uint64(math.Min(float64(endRange), float64(importer.args.exportFileSize))))
+		uploadTotal := humanize.IBytes(uint64(minInt64(endRange,importer.args.exportFileSize)))
 		log.Println(fmt.Sprintf("Total written size: %v of %v.", uploadTotal, totalSize))
 	}
 

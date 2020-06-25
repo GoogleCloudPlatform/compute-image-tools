@@ -19,6 +19,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
@@ -51,29 +52,41 @@ func runCmdAndGetOutputWithoutLog(cmdString string, args []string) ([]byte, erro
 	return output, nil
 }
 
-// importFromCloudProvider imports image from the specified cloud provider
-func importFromCloudProvider(args *OneStepImportArguments) error {
-	var exportedGCSPath string
+// cloudProviderImporter represents the importer for various cloud providers.
+type cloudProviderImporter interface {
+	run() (string, error)
+}
 
-	// 1. import from specified cloud provider
+// newImporterFormCloudProvider evaluates the cloud provider of the source image
+// and creates a new instance of cloudProviderImporter
+func newImporterForCloudProvider(args *OneStepImportArguments) (cloudProviderImporter, error) {
 	if args.CloudProvider == "aws" {
 		importer, err := newAWSImporter(args.Oauth, newAWSImportArguments(args))
 		if err != nil {
-			return err
+			return nil, err
 		}
+		return importer, nil
+	}
+	return nil, fmt.Errorf("import from cloud provider %v is currently not supported", args.CloudProvider)
+}
 
-		if exportedGCSPath, err = importer.run(); err != nil {
-			return err
-		}
-	} else {
-		return fmt.Errorf("import from cloud provider %v is currently not supported", args.CloudProvider)
+// importFromCloudProvider imports image from the specified cloud provider
+func importFromCloudProvider(args *OneStepImportArguments) error {
+	// 1. import from specified cloud provider
+	importer, err := newImporterForCloudProvider(args)
+	if err != nil {
+		return err
+	}
+	exportedGCSPath, err := importer.run()
+	if err != nil {
+		return err
 	}
 
 	// 2. update source file flag
 	args.SourceFile = exportedGCSPath
 
 	// 3. run image import
-	err := runImageImport(args)
+	err = runImageImport(args)
 	if err != nil {
 		log.Println("Failed to import image.",
 			fmt.Sprintf("The image file has been copied to Google Cloud Storage, located at %v.", exportedGCSPath),
@@ -84,7 +97,8 @@ func importFromCloudProvider(args *OneStepImportArguments) error {
 
 // runImageImport calls image import
 func runImageImport(args *OneStepImportArguments) error {
-	err := runCmd("gce_vm_image_import", []string{
+	imageImportPath := filepath.Join(filepath.Dir(args.ExecutablePath), "gce_vm_image_import")
+	err := runCmd(imageImportPath, []string{
 		fmt.Sprintf("-image_name=%v", args.ImageName),
 		fmt.Sprintf("-client_id=%v", args.ClientID),
 		fmt.Sprintf("-os=%v", args.OS),
@@ -112,6 +126,14 @@ func runImageImport(args *OneStepImportArguments) error {
 	return nil
 }
 
+func minInt64(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// TODO: delete once this is refactored to common utils
 // keyValueString is an implementation of flag.Value that creates a map
 // from the user's argument prior to storing it. It expects the argument
 // is in the form KEY1=AB,KEY2=CD. For more info on the format, see

@@ -13,13 +13,12 @@
 # limitations under the License.
 
 
-
 FROM debian
 
 # 1 - aws cli
 RUN apt-get update
 RUN apt-get -y install zip unzip curl
-RUN curl https://d1vvhvl2y92vvt.cloudfront.net/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+RUN curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
 RUN unzip awscliv2.zip
 RUN ./aws/install
 

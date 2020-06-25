@@ -103,16 +103,36 @@ func (args *OneStepImportArguments) getFlagSet() *flag.FlagSet {
 
 // registerFlags defines the flags to parse.
 func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
-	//TODO: add comment for aws flags
-	flagSet.Var((*trimmedString)(&args.AWSAccessKeyID), awsAccessKeyIDFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSImageID), awsImageIDFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSExportLocation), awsExportLocationFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSExportedAMIPath), awsExportedAMIPathFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSRegion), awsRegionFlag, ".")
+	// TODO: Get input from tech writer
+	flagSet.Var((*trimmedString)(&args.AWSAccessKeyID), awsAccessKeyIDFlag,
+		"The Access Key Id part of an AWS credential. " +
+		"This credential is associated with an IAM user or role. " +
+		"This IAM user must have permissions to import image.")
+
+	flagSet.Var((*trimmedString)(&args.AWSImageID), awsImageIDFlag,
+		"The AWS image ID of the image to import.")
+
+	flagSet.Var((*trimmedString)(&args.AWSExportLocation), awsExportLocationFlag,
+		"A location inside an AWS S3 Bucket to export the image.")
+
+	flagSet.Var((*trimmedString)(&args.AWSExportedAMIPath), awsExportedAMIPathFlag,
+		"The S3 resource path of the exported image file.")
+
+	flagSet.Var((*trimmedString)(&args.AWSRegion), awsRegionFlag,
+		"The AWS region of the image to import.")
+
 	flagSet.BoolVar(&args.AWSResumeExportedAMI, awsResumeExportedAMIFlag, false,
-		".")
-	flagSet.Var((*trimmedString)(&args.AWSSessionToken), awsSessionTokenFlag, ".")
-	flagSet.Var((*trimmedString)(&args.AWSSecretAccessKey), awsSecretAccessKeyFlag, ".")
+		"Set if image has already been exported. " +
+		"The image import process will directly import from the provided S3 path.")
+
+	flagSet.Var((*trimmedString)(&args.AWSSessionToken), awsSessionTokenFlag,
+		"The AWS session token value that is required if you are using " +
+		"temporary security credentials.")
+
+	flagSet.Var((*trimmedString)(&args.AWSSecretAccessKey), awsSecretAccessKeyFlag,
+		"The Secret Access Key part of an AWS credential. " +
+				"This credential is associated with an IAM user or role. " +
+				"This IAM user must have permissions to import image.")
 
 	flagSet.Var((*lowerTrimmedString)(&args.CloudProvider), cloudProviderFlag,
 		"Identifies the cloud provider of the import source, e.g. 'aws'.")

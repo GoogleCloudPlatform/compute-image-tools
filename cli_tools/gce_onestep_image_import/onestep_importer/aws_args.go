@@ -43,7 +43,7 @@ type awsImportArguments struct {
 	secretAccessKey    string
 	sessionToken       string
 
-	// Not passed in
+	// Internal generated
 	exportBucket   string
 	exportFolder   string
 	exportKey      string
@@ -102,7 +102,7 @@ func (args *awsImportArguments) validateAndPopulate(populator param.Populator) e
 		return err
 	}
 
-	return args.getS3PathElements()
+	return args.generateS3PathElements()
 }
 
 func (args *awsImportArguments) validate() error {
@@ -129,9 +129,9 @@ func (args *awsImportArguments) validate() error {
 	return nil
 }
 
-// getS3PathElements gets bucket name, and folder or object key depending on if
+// generateS3PathElements gets bucket name, and folder or object key depending on if
 // AMI has been exported, for a valid object path. Error is returned otherwise.
-func (args *awsImportArguments) getS3PathElements() error {
+func (args *awsImportArguments) generateS3PathElements() error {
 	var err error
 
 	// AMI already exported, should provide object path
