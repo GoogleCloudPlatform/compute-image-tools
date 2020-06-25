@@ -309,7 +309,7 @@ func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 	}
 	readSize := int64(output)
 	// take ceiling
-	readers := (importer.args.exportFileSize - 1) / readSize +1
+	readers := (importer.args.exportFileSize-1)/readSize + 1
 
 	wg := new(sync.WaitGroup)
 
@@ -338,7 +338,7 @@ func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 			uploadMutex.Unlock()
 		}(&writer, <-uploadSem)
 
-		uploadTotal := humanize.IBytes(uint64(minInt64(endRange,importer.args.exportFileSize)))
+		uploadTotal := humanize.IBytes(uint64(minInt64(endRange, importer.args.exportFileSize)))
 		log.Println(fmt.Sprintf("Total written size: %v of %v.", uploadTotal, totalSize))
 	}
 
