@@ -140,18 +140,25 @@ def ClearEtcResolv(g):
   Args:
     g (guestfs.GuestFS): A mounted GuestFS instance.
   """
+  _ClearImmutableAttr(g, '/etc/resolv.conf')
+  g.sh('echo "" > /etc/resolv.conf')
 
-  # Remove immutable attr if present.
-  if g.exists('/etc/resolv.conf'):
+
+def _ClearImmutableAttr(g, fname):
+  """Clears the immutable attr on the file associated with fname.
+
+  Args:
+    g (guestfs.GuestFS): A mounted GuestFS instance.
+    fname (str): File to have its immutable attr cleared.
+  """
+  if g.exists(fname):
     try:
-      g.set_e2attrs('/etc/resolv.conf', 'i', clear=True)
+      g.set_e2attrs(fname, 'i', clear=True)
     except BaseException:
       # set_e2attrs will throw an error if the filesystem
-      # doesn't support chattr, in which case we won't have
-      # a problem overwriting /etc/resolv.conf.
+      # doesn't support chattr, in which case the file
+      # won't have the attr at all.
       pass
-
-  g.sh('echo "" > /etc/resolv.conf')
 
 
 def HttpGet(url, headers=None):
@@ -212,6 +219,7 @@ def GetServiceAccountUniqueIDUser():
 def CommonRoutines(g):
   # Remove udev file to force it to be re-generated
   logging.info('Removing udev 70-persistent-net.rules.')
+  _ClearImmutableAttr(g, '/etc/udev/rules.d/70-persistent-net.rules')
   g.rm_f('/etc/udev/rules.d/70-persistent-net.rules')
 
   # Remove SSH host keys.
