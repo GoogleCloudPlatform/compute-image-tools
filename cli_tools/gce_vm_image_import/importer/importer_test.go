@@ -247,7 +247,7 @@ func TestRun_DontRunProcessIfTimedOutDuringInflate(t *testing.T) {
 		preValidator:      mockValidator{},
 		inflater:          inflater,
 		processorProvider: &mockProcessorProvider,
-		timeout:           5 * time.Millisecond,
+		timeout:           50 * time.Millisecond,
 	}
 	start := time.Now()
 	loggable, actualError := importer.Run(context.Background())
