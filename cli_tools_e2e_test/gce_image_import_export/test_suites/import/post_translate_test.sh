@@ -1,0 +1,1 @@
+../../../../daisy_integration_tests/scripts/post_translate_test.sh

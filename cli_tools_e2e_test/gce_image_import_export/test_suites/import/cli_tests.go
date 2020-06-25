@@ -32,11 +32,11 @@ import (
 )
 
 const (
-	testSuiteName = "ImageImportTests"
+	testSuiteName = "CLI"
 )
 
-// TestSuite is image import test suite.
-func TestSuite(
+// CLITestSuite ensures that gcloud and the wrapper have consistent behavior for image imports.
+func CLITestSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
 	testProjectConfig *testconfig.Project) {
@@ -52,17 +52,17 @@ func TestSuite(
 
 	for _, testType := range testTypes {
 		imageImportDataDiskTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import data disk"))
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import data disk"))
 		imageImportOSTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import OS"))
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import OS"))
 		imageImportOSFromImageTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import OS from image"))
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import OS from image"))
 		imageImportWithRichParamsTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import with rich params"))
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with rich params"))
 		imageImportWithDifferentNetworkParamStylesTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import with different network param styles"))
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with different network param styles"))
 		imageImportWithSubnetWithoutNetworkSpecifiedTestCase := junitxml.NewTestCase(
-			testSuiteName, fmt.Sprintf("[%v][ImageImport] %v", testType, "Import with subnet but without network"))
+			testSuiteName, fmt.Sprintf("[%v][CLI] %v", testType, "Import with subnet but without network"))
 
 		testsMap[testType] = map[*junitxml.TestCase]func(
 			context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}

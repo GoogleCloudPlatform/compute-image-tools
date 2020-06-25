@@ -32,10 +32,13 @@ func main() {
 	exportTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
 		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){exporttestsuites.TestSuite},
 		"[ImageExportTests]")
-	importTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){importtestsuites.TestSuite},
+	importCLIRegressionSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){importtestsuites.CLITestSuite},
+		"[CLIRegressionImageImportTests]")
+	imageImportSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){importtestsuites.ImageImportSuite},
 		"[ImageImportTests]")
-	if !exportTestSuccess || !importTestSuccess {
+	if !exportTestSuccess || !importCLIRegressionSuccess || !imageImportSuccess {
 		os.Exit(1)
 	}
 }
