@@ -38,6 +38,8 @@ func main() {
 	// validation allows us to log the intermediate, non-validated values, if
 	// there's an error setting up dependencies.
 	importArgs, err := importer.NewImportArguments(os.Args[1:])
+	importArgs.WorkflowDir = "/usr/local/google/home/zoranl/go/src/github.com/GoogleCloudPlatform/compute-image-tools/daisy_workflows/image_import/"
+
 	if err != nil {
 		terminate(importArgs, err)
 	}

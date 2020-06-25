@@ -79,7 +79,7 @@ func TestRun_DeleteDisk(t *testing.T) {
 	}
 	_, actualError := importer.Run(context.Background())
 	assert.NoError(t, actualError)
-	assert.Equal(t, 2, mockDiskClient.interactions)
+	assert.Equal(t, 1, mockDiskClient.interactions)
 	assert.Equal(t, project, mockDiskClient.project)
 	assert.Equal(t, zone, mockDiskClient.zone)
 	assert.Equal(t, diskURI, mockDiskClient.uri)
@@ -227,7 +227,7 @@ func TestRun_DeleteDisk_WhenFailureToCreateProcessor(t *testing.T) {
 	}
 	_, actualError := importer.Run(context.Background())
 	assert.Equal(t, expectedError, actualError)
-	assert.Equal(t, 2, mockDiskClient.interactions)
+	assert.Equal(t, 1, mockDiskClient.interactions)
 	assert.Equal(t, project, mockDiskClient.project)
 	assert.Equal(t, zone, mockDiskClient.zone)
 	assert.Equal(t, diskURI, mockDiskClient.uri)
@@ -374,14 +374,6 @@ func (m *mockDiskClient) DeleteDisk(project, zone, uri string) error {
 	m.zone = zone
 	m.uri = uri
 	return nil
-}
-
-func (m *mockDiskClient) GetDisk(project, zone, name string) (*compute.Disk, error) {
-	m.interactions++
-	m.project = project
-	m.zone = zone
-	m.diskName = name
-	return m.disk, m.getDiskError
 }
 
 type mockValidator struct {

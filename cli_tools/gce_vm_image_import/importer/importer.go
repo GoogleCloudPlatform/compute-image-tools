@@ -20,12 +20,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"github.com/google/logger"
-	"google.golang.org/api/compute/v1"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
+	"google.golang.org/api/googleapi"
 )
 
 // Importer runs the end-to-end import workflow, and exposes the results
@@ -153,13 +152,11 @@ func (i *importer) cleanupDisk() {
 
 	diskName := path.Base(i.pd.uri)
 
-	disk, err := i.diskClient.GetDisk(i.project, i.zone, diskName)
-	if err != nil || disk == nil {
-		return
-	}
-	err = i.diskClient.DeleteDisk(i.project, i.zone, diskName)
-	if err != nil {
-		logger.Errorf("Failed to remove temporary disk %v: %e", i.pd, err)
+	if err := i.diskClient.DeleteDisk(i.project, i.zone, diskName); err != nil {
+		gAPIErr, isGAPIErr := err.(*googleapi.Error)
+		if isGAPIErr && gAPIErr.Code != 404 {
+			logger.Errorf("Failed to remove temporary disk %v: %e", i.pd, err)
+		}
 	}
 }
 
@@ -169,6 +166,5 @@ func (i *importer) buildLoggable() service.Loggable {
 
 // diskClient is the subset of the GCP API that is used by importer.
 type diskClient interface {
-	GetDisk(project, zone, name string) (*compute.Disk, error)
 	DeleteDisk(project, zone, uri string) error
 }
