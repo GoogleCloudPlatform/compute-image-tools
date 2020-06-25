@@ -176,8 +176,7 @@ func GcloudAuth(logger *log.Logger, testCase *junitxml.TestCase) bool {
 	return true
 }
 
-// GcloudUpdate runs "gcloud update" to pull from either prod repository or "latest" repository.
-func GcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) bool {
+func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) bool {
 	gcloudUpdateLock.Lock()
 	defer gcloudUpdateLock.Unlock()
 
@@ -233,14 +232,14 @@ func RunTestForTestTypeWithError(cmd string, args []string, testType CLITestType
 			return false
 		}
 	case GcloudProdWrapperLatest:
-		if !GcloudUpdate(logger, testCase, false) {
+		if !gcloudUpdate(logger, testCase, false) {
 			return false
 		}
 		if !RunTestCommand(cmd, args, logger, testCase, allowError) {
 			return false
 		}
 	case GcloudLatestWrapperLatest:
-		if !GcloudUpdate(logger, testCase, true) {
+		if !gcloudUpdate(logger, testCase, true) {
 			return false
 		}
 		if !RunTestCommand(cmd, args, logger, testCase, allowError) {

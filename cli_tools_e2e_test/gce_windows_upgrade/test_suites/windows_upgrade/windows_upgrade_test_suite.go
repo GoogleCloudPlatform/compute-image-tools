@@ -42,8 +42,8 @@ const (
 var (
 	cmds = map[utils.CLITestType]string{
 		utils.Wrapper:                   "./gce_windows_upgrade",
-		utils.GcloudProdWrapperLatest:   "google-cloud-sdk/bin/gcloud",
-		utils.GcloudLatestWrapperLatest: "google-cloud-sdk/bin/gcloud",
+		utils.GcloudProdWrapperLatest:   "gcloud",
+		utils.GcloudLatestWrapperLatest: "gcloud",
 	}
 )
 
@@ -54,6 +54,7 @@ func TestSuite(
 	testProjectConfig *testconfig.Project) {
 
 	testTypes := []utils.CLITestType{
+		utils.Wrapper,
 		utils.GcloudProdWrapperLatest,
 		utils.GcloudLatestWrapperLatest,
 	}
