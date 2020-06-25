@@ -112,24 +112,37 @@ func (i *importer) runStep(ctx context.Context, step func(context.Context) error
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		err = step(ctx)
-		wg.Done()
-		e <- err
+		//this select checks if context expired prior to runStep being called
+		//if not, step is run
+		select {
+		case <-ctx.Done():
+			e <- i.getCtxError(ctx)
+		default:
+			stepErr := step(ctx)
+			wg.Done()
+			e <- stepErr
+		}
 	}()
 
+	// this select waits for either context expiration or step to finish (with either an error or success)
 	select {
 	case <-ctx.Done():
-		if ctxErr := ctx.Err(); ctxErr == context.DeadlineExceeded {
-			err = daisy.Errf("Import did not complete within the specified timeout of %s", i.timeout)
-		} else {
-			err = ctxErr
-		}
+		err = i.getCtxError(ctx)
 		cancel("timed-out")
 		wg.Wait()
 	case inflaterErr := <-e:
 		err = inflaterErr
 	}
 	i.traceLogs = append(i.traceLogs, getTraceLogs()...)
+	return err
+}
+
+func (i *importer) getCtxError(ctx context.Context) (err error) {
+	if ctxErr := ctx.Err(); ctxErr == context.DeadlineExceeded {
+		err = daisy.Errf("Import did not complete within the specified timeout of %s", i.timeout)
+	} else {
+		err = ctxErr
+	}
 	return err
 }
 
