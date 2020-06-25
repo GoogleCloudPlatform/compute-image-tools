@@ -131,13 +131,18 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 }
 
 // RunTestCommand runs given test command
-func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase, allowError bool) bool {
+func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) bool {
 	if err := runCliTool(logger, testCase, cmd, args); err != nil {
-		if allowError {
-			logger.Printf("[%v] %v", testCase.Name, fmt.Sprintf("Error running cmd: %v\n", err))
-		} else {
-			Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
-		}
+		Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
+		return false
+	}
+	return true
+}
+
+// RunTestCommandIgnoringError runs given test command. The test case won't be marked as fail even error happens.
+func RunTestCommandIgnoringError(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) bool {
+	if err := runCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("[%v] %v", testCase.Name, fmt.Sprintf("Error running cmd: %v\n", err))
 		return false
 	}
 	return true
@@ -176,7 +181,8 @@ func GcloudAuth(logger *log.Logger, testCase *junitxml.TestCase) bool {
 	return true
 }
 
-func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) bool {
+// GcloudUpdate runs "gcloud update" to pull either latest or prod version
+func GcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) bool {
 	gcloudUpdateLock.Lock()
 	defer gcloudUpdateLock.Unlock()
 
@@ -221,28 +227,23 @@ func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) 
 
 // RunTestForTestType runs test for given test type
 func RunTestForTestType(cmd string, args []string, testType CLITestType, logger *log.Logger, testCase *junitxml.TestCase) bool {
-	return RunTestForTestTypeWithError(cmd, args, testType, logger, testCase, false)
-}
-
-// RunTestForTestTypeWithError runs test for given test type with error happening
-func RunTestForTestTypeWithError(cmd string, args []string, testType CLITestType, logger *log.Logger, testCase *junitxml.TestCase, allowError bool) bool {
 	switch testType {
 	case Wrapper:
-		if !RunTestCommand(cmd, args, logger, testCase, allowError) {
+		if !RunTestCommand(cmd, args, logger, testCase) {
 			return false
 		}
 	case GcloudProdWrapperLatest:
-		if !gcloudUpdate(logger, testCase, false) {
+		if !GcloudUpdate(logger, testCase, false) {
 			return false
 		}
-		if !RunTestCommand(cmd, args, logger, testCase, allowError) {
+		if !RunTestCommand(cmd, args, logger, testCase) {
 			return false
 		}
 	case GcloudLatestWrapperLatest:
-		if !gcloudUpdate(logger, testCase, true) {
+		if !GcloudUpdate(logger, testCase, true) {
 			return false
 		}
-		if !RunTestCommand(cmd, args, logger, testCase, allowError) {
+		if !RunTestCommand(cmd, args, logger, testCase) {
 			return false
 		}
 	}

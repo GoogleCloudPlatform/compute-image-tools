@@ -318,7 +318,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 		"compute", "instances", "create", fmt.Sprintf("--image=%v", image),
 		"--boot-disk-type=pd-ssd", "--machine-type=n1-standard-4", fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 		fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID), instanceName,
-	}, logger, testCase, false) {
+	}, logger, testCase) {
 		return
 	}
 
@@ -330,7 +330,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID), "--size=10gb",
 			"--image=projects/compute-image-tools-test/global/images/empty-ntfs-10g",
 			diskName,
-		}, logger, testCase, false) {
+		}, logger, testCase) {
 			return
 		}
 
@@ -338,7 +338,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 			"compute", "instances", "attach-disk", instanceName, fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
 			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
 			fmt.Sprintf("--disk=%v", diskName),
-		}, logger, testCase, false) {
+		}, logger, testCase) {
 			return
 		}
 	}
@@ -394,7 +394,15 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 			success = true
 		}
 	} else {
-		success = utils.RunTestForTestTypeWithError(cmd, args, testType, logger, testCase, true)
+		isLatestGcloud := true
+		if testType == utils.GcloudProdWrapperLatest {
+			isLatestGcloud = false
+		}
+		if !utils.GcloudUpdate(logger, testCase, isLatestGcloud) {
+			success = false
+		} else {
+			success = utils.RunTestCommandIgnoringError(cmd, args, logger, testCase)
+		}
 	}
 
 	verifyUpgradedInstance(ctx, logger, testCase, testProjectConfig, instanceName, success,
