@@ -53,7 +53,7 @@ type daisyInflater struct {
 }
 
 func (inflater *daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
-	err := inflater.wf.Run(ctx)
+	err := inflater.wf.Run(context.Background())
 
 	if err != nil {
 		return persistentDisk{

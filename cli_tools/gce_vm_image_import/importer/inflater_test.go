@@ -111,26 +111,6 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 	})
 }
 
-func TestInflaterCancel(t *testing.T) {
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
-		Source: fileSource{gcsPath: "gs://bucket/vmdk"},
-		OS:     "ubuntu-1804",
-	})
-
-	inflater.cancel("timed-out")
-
-	inflater.wf.IterateWorkflowSteps(func(step *daisy.Step) {
-		if step.CreateDisks != nil {
-			for _, disk := range *step.CreateDisks {
-				assert.False(t, disk.NoCleanup)
-			}
-		}
-	})
-
-	_, channelOpen := <-inflater.wf.Cancel
-	assert.False(t, channelOpen, "inflater.wf.Cancel should be closed on timeout")
-}
-
 func createDaisyInflaterSafe(t *testing.T, args ImportArguments) *daisyInflater {
 	args.WorkflowDir = "testdata/image_import"
 	inflater, err := createDaisyInflater(args)
