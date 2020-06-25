@@ -19,7 +19,6 @@ import (
 	"path"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/google/logger"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 )
@@ -109,10 +108,8 @@ func (i *importer) runProcess(ctx context.Context) (err error) {
 func (i *importer) cleanupDisk() {
 	if i.pd.uri != "" {
 		diskName := path.Base(i.pd.uri)
-		err := i.diskClient.DeleteDisk(i.project, i.zone, diskName)
-		if err != nil {
-			logger.Errorf("Failed to remove temporary disk %v: %e", i.pd, err)
-		}
+		// Ignoring the result since this cleanup is best-effort.
+		i.diskClient.DeleteDisk(i.project, i.zone, diskName)
 	}
 }
 

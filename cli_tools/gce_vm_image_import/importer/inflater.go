@@ -49,7 +49,8 @@ type daisyInflater struct {
 }
 
 func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
-	err := inflater.wf.Run(ctx)
+	inflater.watchForCancel(ctx)
+	err := inflater.wf.Run(context.Background())
 	if err != nil {
 		return persistentDisk{}, err
 	}
@@ -145,4 +146,9 @@ func getDisk(workflow *daisy.Workflow, diskIndex int) *daisy.Disk {
 	}
 
 	panic("Did not find CreateDisks step.")
+}
+
+func (inflater daisyInflater) watchForCancel(ctx context.Context) {
+	<-ctx.Done()
+	inflater.wf.CancelWithReason("Timed out.")
 }

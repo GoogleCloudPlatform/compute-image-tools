@@ -31,6 +31,7 @@ import (
 )
 
 func main() {
+
 	log.SetPrefix("[import-image] ")
 	ctx := context.Background()
 
@@ -73,6 +74,11 @@ func main() {
 	}
 
 	importClosure := func() (service.Loggable, error) {
+		if importArgs.Timeout.Nanoseconds() < 1 {
+			panic("Timeout must be positive.")
+		}
+		ctx, cancel := context.WithTimeout(ctx, importArgs.Timeout)
+		defer cancel()
 		return importRunner.Run(ctx)
 	}
 

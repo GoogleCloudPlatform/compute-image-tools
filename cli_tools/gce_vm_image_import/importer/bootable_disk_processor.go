@@ -38,7 +38,8 @@ type bootableDiskProcessor struct {
 }
 
 func (b bootableDiskProcessor) process(ctx context.Context) (err error) {
-	err = b.workflow.RunWithModifiers(ctx, b.preValidateFunc(), b.postValidateFunc())
+	go b.watchForCancel(ctx)
+	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.network, b.workflow)
 		err = customizeErrorToDetectionResults(b.OS,
@@ -129,4 +130,9 @@ func (b bootableDiskProcessor) preValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		w.SetLogProcessHook(daisy_utils.RemovePrivacyLogTag)
 	}
+}
+
+func (b bootableDiskProcessor) watchForCancel(ctx context.Context) {
+	<-ctx.Done()
+	b.workflow.CancelWithReason("Timed out.")
 }
