@@ -131,9 +131,13 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 }
 
 // RunTestCommand runs given test command
-func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) bool {
+func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase, allowError bool) bool {
 	if err := runCliTool(logger, testCase, cmd, args); err != nil {
-		Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
+		if allowError {
+			logger.Printf("[%v] %v", testCase.Name, fmt.Sprintf("Error running cmd: %v\n", err))
+		} else {
+			Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
+		}
 		return false
 	}
 	return true
@@ -172,7 +176,8 @@ func GcloudAuth(logger *log.Logger, testCase *junitxml.TestCase) bool {
 	return true
 }
 
-func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) bool {
+// GcloudUpdate runs "gcloud update" to pull from either prod repository or "latest" repository.
+func GcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) bool {
 	gcloudUpdateLock.Lock()
 	defer gcloudUpdateLock.Unlock()
 
@@ -217,23 +222,28 @@ func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) 
 
 // RunTestForTestType runs test for given test type
 func RunTestForTestType(cmd string, args []string, testType CLITestType, logger *log.Logger, testCase *junitxml.TestCase) bool {
+	return RunTestForTestTypeWithError(cmd, args, testType, logger, testCase, false)
+}
+
+// RunTestForTestTypeWithError runs test for given test type with error happening
+func RunTestForTestTypeWithError(cmd string, args []string, testType CLITestType, logger *log.Logger, testCase *junitxml.TestCase, allowError bool) bool {
 	switch testType {
 	case Wrapper:
-		if !RunTestCommand(cmd, args, logger, testCase) {
+		if !RunTestCommand(cmd, args, logger, testCase, allowError) {
 			return false
 		}
 	case GcloudProdWrapperLatest:
-		if !gcloudUpdate(logger, testCase, false) {
+		if !GcloudUpdate(logger, testCase, false) {
 			return false
 		}
-		if !RunTestCommand(cmd, args, logger, testCase) {
+		if !RunTestCommand(cmd, args, logger, testCase, allowError) {
 			return false
 		}
 	case GcloudLatestWrapperLatest:
-		if !gcloudUpdate(logger, testCase, true) {
+		if !GcloudUpdate(logger, testCase, true) {
 			return false
 		}
-		if !RunTestCommand(cmd, args, logger, testCase) {
+		if !RunTestCommand(cmd, args, logger, testCase, allowError) {
 			return false
 		}
 	}
