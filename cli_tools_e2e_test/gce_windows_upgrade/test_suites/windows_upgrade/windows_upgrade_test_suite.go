@@ -322,6 +322,8 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 		return
 	}
 
+	defer cleanupTestInstance(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName, logger, testCase)
+
 	// create and attach data disks
 	for dataDiskIndex := 1; dataDiskIndex <= dataDiskCount; dataDiskIndex++ {
 		diskName := fmt.Sprintf("%v-%v", instanceName, dataDiskIndex)
@@ -537,4 +539,13 @@ func verifyCleanup(instance *computeUtils.Instance, testCase *junitxml.TestCase,
 	if windowsStartupScriptURLBackup != "" {
 		utils.Failure(testCase, logger, fmt.Sprintf("Unexpected startup script URL backup: %v", windowsStartupScriptURLBackup))
 	}
+}
+
+func cleanupTestInstance(project, zone, instanceName string, logger *log.Logger, testCase *junitxml.TestCase) {
+	// Run gcloud to delete the instance, ignoring error.
+	utils.RunCliTool(logger, testCase, "gcloud", []string{
+		"compute", "instances", "delete", "--quiet",
+		fmt.Sprintf("--zone=%v", zone),
+		fmt.Sprintf("--project=%v", project), instanceName,
+	})
 }
