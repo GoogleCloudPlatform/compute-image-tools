@@ -139,6 +139,15 @@ func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *jun
 	return true
 }
 
+// RunTestCommandIgnoringError runs given test command. The test case won't be marked as fail even error happens.
+func RunTestCommandIgnoringError(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) bool {
+	if err := runCliTool(logger, testCase, cmd, args); err != nil {
+		logger.Printf("[%v] %v", testCase.Name, fmt.Sprintf("Error running cmd: %v\n", err))
+		return false
+	}
+	return true
+}
+
 func runCliToolAsync(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) (*exec.Cmd, error) {
 	logger.Printf("[%v] Running command: '%s %s'", testCase.Name, cmdString, strings.Join(args, " "))
 	cmd := exec.Command(cmdString, args...)
@@ -172,7 +181,8 @@ func GcloudAuth(logger *log.Logger, testCase *junitxml.TestCase) bool {
 	return true
 }
 
-func gcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) bool {
+// GcloudUpdate runs "gcloud update" to pull either latest or prod version
+func GcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) bool {
 	gcloudUpdateLock.Lock()
 	defer gcloudUpdateLock.Unlock()
 
@@ -223,14 +233,14 @@ func RunTestForTestType(cmd string, args []string, testType CLITestType, logger 
 			return false
 		}
 	case GcloudProdWrapperLatest:
-		if !gcloudUpdate(logger, testCase, false) {
+		if !GcloudUpdate(logger, testCase, false) {
 			return false
 		}
 		if !RunTestCommand(cmd, args, logger, testCase) {
 			return false
 		}
 	case GcloudLatestWrapperLatest:
-		if !gcloudUpdate(logger, testCase, true) {
+		if !GcloudUpdate(logger, testCase, true) {
 			return false
 		}
 		if !RunTestCommand(cmd, args, logger, testCase) {
