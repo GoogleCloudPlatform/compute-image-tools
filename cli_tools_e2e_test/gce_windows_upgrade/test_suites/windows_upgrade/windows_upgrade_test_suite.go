@@ -322,6 +322,17 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 		return
 	}
 
+	defer func() {
+		// delete the test instance when test is done
+		if !utils.RunTestCommandIgnoringError("gcloud", []string{
+			"compute", "instances", "delete",  "--quiet",
+			fmt.Sprintf("--zone=%v", testProjectConfig.TestZone),
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID), instanceName,
+		}, logger, testCase) {
+			return
+		}
+	} ()
+
 	// create and attach data disks
 	for dataDiskIndex := 1; dataDiskIndex <= dataDiskCount; dataDiskIndex++ {
 		diskName := fmt.Sprintf("%v-%v", instanceName, dataDiskIndex)
