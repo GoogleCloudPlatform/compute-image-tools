@@ -118,7 +118,8 @@ func runTestCases(ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
 	return tests
 }
 
-func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) error {
+// RunCliTool runs a cli tool with given args
+func RunCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString string, args []string) error {
 	prefix := "Test Env"
 	if testCase != nil {
 		prefix = testCase.Name
@@ -132,7 +133,7 @@ func runCliTool(logger *log.Logger, testCase *junitxml.TestCase, cmdString strin
 
 // RunTestCommand runs given test command
 func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) bool {
-	if err := runCliTool(logger, testCase, cmd, args); err != nil {
+	if err := RunCliTool(logger, testCase, cmd, args); err != nil {
 		Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
 		return false
 	}
@@ -141,7 +142,7 @@ func RunTestCommand(cmd string, args []string, logger *log.Logger, testCase *jun
 
 // RunTestCommandIgnoringError runs given test command. The test case won't be marked as fail even error happens.
 func RunTestCommandIgnoringError(cmd string, args []string, logger *log.Logger, testCase *junitxml.TestCase) bool {
-	if err := runCliTool(logger, testCase, cmd, args); err != nil {
+	if err := RunCliTool(logger, testCase, cmd, args); err != nil {
 		logger.Printf("[%v] %v", testCase.Name, fmt.Sprintf("Error running cmd: %v\n", err))
 		return false
 	}
@@ -174,7 +175,7 @@ func GcloudAuth(logger *log.Logger, testCase *junitxml.TestCase) bool {
 	credsPath := "/etc/compute-image-tools-test-service-account/creds.json"
 	cmd := "gcloud"
 	args := []string{"auth", "activate-service-account", "--key-file=" + credsPath}
-	if err := runCliTool(logger, testCase, cmd, args); err != nil {
+	if err := RunCliTool(logger, testCase, cmd, args); err != nil {
 		Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
 		return false
 	}
@@ -196,14 +197,14 @@ func GcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) 
 	if latest {
 		args := []string{"components", "repositories", "add",
 			"https://storage.googleapis.com/cloud-sdk-testing/ci/staging/components-2.json", "--quiet"}
-		if err := runCliTool(logger, testCase, cmd, args); err != nil {
+		if err := RunCliTool(logger, testCase, cmd, args); err != nil {
 			logger.Printf("Error running cmd: %v\n", err)
 			testCase.WriteFailure("Error running cmd: %v", err)
 			return false
 		}
 	} else {
 		args := []string{"components", "repositories", "remove", "--all"}
-		if err := runCliTool(logger, testCase, cmd, args); err != nil {
+		if err := RunCliTool(logger, testCase, cmd, args); err != nil {
 			logger.Printf("Error running cmd: %v\n", err)
 			testCase.WriteFailure("Error running cmd: %v", err)
 			return false
@@ -211,7 +212,7 @@ func GcloudUpdate(logger *log.Logger, testCase *junitxml.TestCase, latest bool) 
 	}
 
 	args := []string{"components", "update", "--quiet"}
-	if err := runCliTool(logger, testCase, cmd, args); err != nil {
+	if err := RunCliTool(logger, testCase, cmd, args); err != nil {
 		logger.Printf("Error running cmd: %v\n", err)
 		testCase.WriteFailure("Error running cmd: %v", err)
 		return false

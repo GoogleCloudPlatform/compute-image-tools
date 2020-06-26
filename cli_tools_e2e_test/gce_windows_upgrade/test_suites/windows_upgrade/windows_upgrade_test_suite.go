@@ -542,9 +542,10 @@ func verifyCleanup(instance *computeUtils.Instance, testCase *junitxml.TestCase,
 }
 
 func cleanupTestInstance(project, zone, instanceName string, logger *log.Logger, testCase *junitxml.TestCase) {
-	utils.RunTestCommandIgnoringError("gcloud", []string{
+	// Run gcloud to delete the instance, ignoring error.
+	utils.RunCliTool(logger, testCase, "gcloud", []string{
 		"compute", "instances", "delete", "--quiet",
 		fmt.Sprintf("--zone=%v", zone),
 		fmt.Sprintf("--project=%v", project), instanceName,
-	}, logger, testCase)
+	})
 }
