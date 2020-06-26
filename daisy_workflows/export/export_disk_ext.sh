@@ -87,11 +87,12 @@ echo "GCEExport: $(serialOutputKeyValuePair "target-size-gb" "${TARGET_SIZE_GB}"
 set -x
 
 echo "GCEExport: Copying output image to target GCS path..."
-if ! out=$(gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>&1); then
-  echo "ExportFailed: Failed to copy output image to GCS [Privacy-> ${GS_PATH}, error: ${out} <-Privacy]"
+gsutil -o GSUtil:parallel_composite_upload_threshold=150M cp "/gs/${IMAGE_OUTPUT_PATH}" "${GS_PATH}" 2>gsutil_err.txt
+if [[ $? -ne 0 ]] ; then
+  echo "ExportFailed: Failed to copy output image to GCS [Privacy-> ${GS_PATH}, error: $(<gsutil_err.txt) <-Privacy]"
   exit
 fi
-echo ${out}
+cat gsutil_err.txt
 
 echo "export success"
 sync
