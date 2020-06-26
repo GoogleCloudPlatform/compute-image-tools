@@ -92,6 +92,7 @@ if [[ $? -ne 0 ]] ; then
   echo "ExportFailed: Failed to copy output image to GCS [Privacy-> ${GS_PATH}, error: $(<gsutil_err.txt) <-Privacy]"
   exit
 fi
+cat gsutil_err.txt
 
 echo "export success"
 sync
