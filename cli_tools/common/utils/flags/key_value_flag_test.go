@@ -58,6 +58,9 @@ func TestKeyValueSetReturnsErrorIfWrongStringFormat(t *testing.T) {
 func TestKeyValueStringReturnsFormattedString(t *testing.T) {
 	var s KeyValueString = map[string]string{"KEY1": "AB", "KEY2": "CD"}
 	output := s.String()
-	expected := "KEY1=AB,KEY2=CD"
-	assert.Equal(t, expected, output)
+	// Both strings can be valid output, as order is not maintained in map.
+	validOutput1 := "KEY1=AB,KEY2=CD"
+	validOutput2 := "KEY2=CD,KEY1=AB"
+	expected := []string{validOutput1, validOutput2}
+	assert.Contains(t, expected, output)
 }
