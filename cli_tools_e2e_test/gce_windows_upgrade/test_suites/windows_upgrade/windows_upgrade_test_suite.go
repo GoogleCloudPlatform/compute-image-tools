@@ -394,10 +394,7 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 			success = true
 		}
 	} else {
-		isLatestGcloud := true
-		if testType == utils.GcloudProdWrapperLatest {
-			isLatestGcloud = false
-		}
+		isLatestGcloud := testType == utils.GcloudLatestWrapperLatest
 		if !utils.GcloudUpdate(logger, testCase, isLatestGcloud) {
 			success = false
 		} else {
