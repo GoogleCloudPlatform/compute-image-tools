@@ -21,6 +21,7 @@ import (
 	"time"
 
 	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
 )
@@ -102,65 +103,65 @@ func (args *OneStepImportArguments) getFlagSet() *flag.FlagSet {
 
 // registerFlags defines the flags to parse.
 func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
-	flagSet.Var((*trimmedString)(&args.AWSAccessKeyID), awsAccessKeyIDFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSAccessKeyID), awsAccessKeyIDFlag,
 		"The Access Key Id for an AWS credential. "+
 			"This credential is associated with an IAM user or role. "+
 			"This IAM user must have permissions to import images.")
 
-	flagSet.Var((*trimmedString)(&args.AWSAMIID), awsAMIIDFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSAMIID), awsAMIIDFlag,
 		"The AWS AMI ID of the image to import.")
 
-	flagSet.Var((*trimmedString)(&args.AWSExportLocation), awsExportLocationFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSExportLocation), awsExportLocationFlag,
 		"The AWS S3 Bucket location where you want to export the image.")
 
-	flagSet.Var((*trimmedString)(&args.AWSExportedAMIPath), awsExportedAMIPathFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSExportedAMIPath), awsExportedAMIPathFlag,
 		"The S3 resource path of the exported image file.")
 
-	flagSet.Var((*trimmedString)(&args.AWSRegion), awsRegionFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSRegion), awsRegionFlag,
 		"The AWS region for the image that you want to import.")
 
-	flagSet.Var((*trimmedString)(&args.AWSSessionToken), awsSessionTokenFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSSessionToken), awsSessionTokenFlag,
 		"The AWS session token value that is required if you are using "+
 			"temporary security credentials. ")
 
-	flagSet.Var((*trimmedString)(&args.AWSSecretAccessKey), awsSecretAccessKeyFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSSecretAccessKey), awsSecretAccessKeyFlag,
 		"The secret access key for yourAWS credential. "+
 			"This credential is associated with an IAM user or role. "+
 			"This IAM user must have permissions to import images.")
 
-	flagSet.Var((*lowerTrimmedString)(&args.CloudProvider), cloudProviderFlag,
+	flagSet.Var((*flags.LowerTrimmedString)(&args.CloudProvider), cloudProviderFlag,
 		"Identifies the cloud provider of the source image. "+
 			"Currently only one cloud provider is supported. CLOUD_PROVIDER must be aws.")
 
-	flagSet.Var((*lowerTrimmedString)(&args.ClientID), clientFlag,
+	flagSet.Var((*flags.LowerTrimmedString)(&args.ClientID), clientFlag,
 		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
 
-	flagSet.Var((*trimmedString)(&args.Project), "project",
+	flagSet.Var((*flags.TrimmedString)(&args.Project), "project",
 		"The project where workflows will be run, and where the resulting image will be stored.")
 
-	flagSet.Var((*trimmedString)(&args.Network), "network",
+	flagSet.Var((*flags.TrimmedString)(&args.Network), "network",
 		"Name of the network in your project to use for the image import. "+
 			"The network must have access to Google Cloud Storage. "+
 			"If not specified, the network named default is used.")
 
-	flagSet.Var((*trimmedString)(&args.Subnet), "subnet",
+	flagSet.Var((*flags.TrimmedString)(&args.Subnet), "subnet",
 		"Name of the subnetwork in your project to use for the image import. "+
 			"If the network resource is in legacy mode, do not provide this property. "+
 			"If the network is in auto subnet mode, providing the subnetwork is optional. "+
 			"If the network is in custom subnet mode, then this field should be specified. "+
 			"Zone should be specified if this field is specified.")
 
-	flagSet.Var((*lowerTrimmedString)(&args.Zone), "zone",
+	flagSet.Var((*flags.LowerTrimmedString)(&args.Zone), "zone",
 		"The zone where workflows will be run, and where the resulting image will be stored.")
 
-	flagSet.Var((*trimmedString)(&args.ScratchBucketGcsPath), "scratch_bucket_gcs_path",
+	flagSet.Var((*flags.TrimmedString)(&args.ScratchBucketGcsPath), "scratch_bucket_gcs_path",
 		"A system-generated bucket name will be used if omitted. "+
 			"If the bucket doesn't exist, it will be created. If it does exist, it will be reused.")
 
-	flagSet.Var((*trimmedString)(&args.Oauth), "oauth",
+	flagSet.Var((*flags.TrimmedString)(&args.Oauth), "oauth",
 		"Path to oauth json file.")
 
-	flagSet.Var((*trimmedString)(&args.ComputeEndpoint), "compute_endpoint_override",
+	flagSet.Var((*flags.TrimmedString)(&args.ComputeEndpoint), "compute_endpoint_override",
 		"API endpoint to override default.")
 
 	flagSet.BoolVar(&args.GcsLogsDisabled, "disable_gcs_logging", false,
@@ -180,25 +181,25 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	flagSet.Bool("kms_location", false, "Reserved for future use.")
 	flagSet.Bool("kms_project", false, "Reserved for future use.")
 
-	flagSet.Var((*lowerTrimmedString)(&args.ImageName), imageNameFlag,
+	flagSet.Var((*flags.LowerTrimmedString)(&args.ImageName), imageNameFlag,
 		"Name of the disk image to create.")
 
-	flagSet.Var((*trimmedString)(&args.Family), "family",
+	flagSet.Var((*flags.TrimmedString)(&args.Family), "family",
 		"Family to set for the imported image.")
 
-	flagSet.Var((*trimmedString)(&args.Description), "description",
+	flagSet.Var((*flags.TrimmedString)(&args.Description), "description",
 		"Description to set for the imported image.")
 
-	flagSet.Var((*keyValueString)(&args.Labels), "labels",
+	flagSet.Var((*flags.KeyValueString)(&args.Labels), "labels",
 		"List of label KEY=VALUE pairs to add. "+
 			"For more information, see: https://cloud.google.com/compute/docs/labeling-resources")
 
-	flagSet.Var((*lowerTrimmedString)(&args.StorageLocation), "storage_location",
+	flagSet.Var((*flags.LowerTrimmedString)(&args.StorageLocation), "storage_location",
 		"Specifies a Cloud Storage location, either regional or multi-regional, "+
 			"where image content is to be stored. If not specified, the multi-region "+
 			"location closest to the source is chosen automatically.")
 
-	flagSet.Var((*lowerTrimmedString)(&args.OS), osFlag,
+	flagSet.Var((*flags.LowerTrimmedString)(&args.OS), osFlag,
 		"Specifies the OS of the disk image being imported. "+
 			"This must be specified if cloud provider is specified. "+
 			"OS must be one of: centos-6, centos-7, debian-8, debian-9, opensuse-15, "+
@@ -215,7 +216,7 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 			"specifying 2h will fail the process after 2 hours. See $ gcloud topic datetimes "+
 			"for information on duration formats.")
 
-	flagSet.Var((*trimmedString)(&args.CustomWorkflow), "custom_translate_workflow",
+	flagSet.Var((*flags.TrimmedString)(&args.CustomWorkflow), "custom_translate_workflow",
 		"A Daisy workflow JSON file to use for translation.")
 
 	flagSet.BoolVar(&args.UefiCompatible, "uefi_compatible", false,

@@ -24,7 +24,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/dustin/go-humanize"
 )
 
@@ -105,7 +105,7 @@ func runImageImport(args *OneStepImportArguments) error {
 		fmt.Sprintf("-disable_cloud_logging=%v", args.CloudLogsDisabled),
 		fmt.Sprintf("-disable_stdout_logging=%v", args.StdoutLogsDisabled),
 		fmt.Sprintf("-no_external_ip=%v", args.NoExternalIP),
-		fmt.Sprintf("-labels=%v", keyValueString(args.Labels).String()),
+		fmt.Sprintf("-labels=%v", flags.KeyValueString(args.Labels).String()),
 		fmt.Sprintf("-storage_location=%v", args.StorageLocation)})
 	if err != nil {
 		return err
@@ -146,55 +146,4 @@ func (uploader *uploader) cleanup() {
 	}
 	uploader.writer.Close()
 	uploader.Done()
-}
-
-// TODO: delete once this is refactored to common utils
-// keyValueString is an implementation of flag.Value that creates a map
-// from the user's argument prior to storing it. It expects the argument
-// is in the form KEY1=AB,KEY2=CD. For more info on the format, see
-// param.ParseKeyValues.
-type keyValueString map[string]string
-
-func (s keyValueString) String() string {
-	parts := []string{}
-	for k, v := range s {
-		parts = append(parts, fmt.Sprintf("%s=%s", k, v))
-	}
-	return strings.Join(parts, ",")
-}
-
-func (s *keyValueString) Set(input string) error {
-	if *s != nil {
-		return fmt.Errorf("only one instance of this flag is allowed")
-	}
-
-	*s = make(map[string]string)
-	if input != "" {
-		var err error
-		*s, err = param.ParseKeyValues(input)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// trimmedString is an implementation of flag.Value that trims whitespace
-// from the incoming argument prior to storing it.
-type trimmedString string
-
-func (s trimmedString) String() string { return (string)(s) }
-func (s *trimmedString) Set(input string) error {
-	*s = trimmedString(strings.TrimSpace(input))
-	return nil
-}
-
-// lowerTrimmedString is an implementation of flag.Value that trims whitespace
-// and converts to lowercase the incoming argument prior to storing it.
-type lowerTrimmedString string
-
-func (s lowerTrimmedString) String() string { return (string)(s) }
-func (s *lowerTrimmedString) Set(input string) error {
-	*s = lowerTrimmedString(strings.ToLower(strings.TrimSpace(input)))
-	return nil
 }
