@@ -21,12 +21,12 @@ import (
 )
 
 type dataDiskProcessor struct {
-	client  imageClient
+	client  createImageClient
 	project string
 	request compute.Image
 }
 
-func newDataDiskProcessor(pd persistentDisk, client imageClient, project string,
+func newDataDiskProcessor(pd persistentDisk, client createImageClient, project string,
 	userLabels map[string]string, userStorageLocation string,
 	description string, family string, imageName string) processor {
 	labels := map[string]string{"gce-image-import": "true"}
@@ -61,7 +61,7 @@ func (d dataDiskProcessor) process(ctx context.Context) (err error) {
 	return d.client.CreateImage(d.project, &d.request)
 }
 
-// imageClient is the subset of the GCP compute API that is used by dataDiskProcessor.
-type imageClient interface {
+// createImageClient is the subset of the GCP compute API that is used by dataDiskProcessor.
+type createImageClient interface {
 	CreateImage(project string, i *compute.Image) error
 }

@@ -30,6 +30,7 @@ func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
 		serialLogs: processorLogs,
 	}
 	importer := importer{
+		preValidator: mockValidator{},
 		inflater: &mockInflater{
 			serialLogs: inflaterLogs,
 			pd: persistentDisk{
@@ -59,9 +60,10 @@ func TestRun_DeleteDisk(t *testing.T) {
 	mockDiskClient := mockDiskClient{}
 
 	importer := importer{
-		project:    project,
-		zone:       zone,
-		diskClient: &mockDiskClient,
+		project:      project,
+		zone:         zone,
+		diskClient:   &mockDiskClient,
+		preValidator: mockValidator{},
 		inflater: &mockInflater{
 			pd: persistentDisk{
 				uri: diskURI,
@@ -79,10 +81,24 @@ func TestRun_DeleteDisk(t *testing.T) {
 	assert.Equal(t, diskURI, mockDiskClient.uri)
 }
 
+func TestRun_DontRunInflate_IfPreValidationFails(t *testing.T) {
+	expectedError := errors.New("failed validation")
+	inflater := mockInflater{}
+	importer := importer{
+		preValidator: mockValidator{err: errors.New("failed validation")},
+		inflater:     &inflater,
+	}
+	loggable, actualError := importer.Run(context.Background())
+	assert.NotNil(t, loggable)
+	assert.Equal(t, expectedError, actualError)
+	assert.Equal(t, 0, inflater.interactions)
+}
+
 func TestRun_DontRunProcessIfInflateFails(t *testing.T) {
 	expectedError := errors.New("the errors")
 	mockProcessorProvider := mockProcessorProvider{}
 	importer := importer{
+		preValidator: mockValidator{},
 		inflater: &mockInflater{
 			err: expectedError,
 		},
@@ -99,6 +115,7 @@ func TestRun_IncludeInflaterLogs_WhenFailureToCreateProcessor(t *testing.T) {
 	expectedError := errors.New("the errors")
 	expectedLogs := []string{"log-a", "log-b"}
 	importer := importer{
+		preValidator: mockValidator{},
 		inflater: &mockInflater{
 			serialLogs: expectedLogs,
 			pd: persistentDisk{
@@ -130,9 +147,10 @@ func TestRun_DeleteDisk_WhenFailureToCreateProcessor(t *testing.T) {
 
 	expectedError := errors.New("the errors")
 	importer := importer{
-		project:    project,
-		zone:       zone,
-		diskClient: &mockDiskClient,
+		project:      project,
+		zone:         zone,
+		diskClient:   &mockDiskClient,
+		preValidator: mockValidator{},
 		inflater: &mockInflater{
 			pd: persistentDisk{
 				uri: diskURI,
@@ -203,4 +221,12 @@ func (m *mockDiskClient) DeleteDisk(project, zone, uri string) error {
 	m.zone = zone
 	m.uri = uri
 	return nil
+}
+
+type mockValidator struct {
+	err error
+}
+
+func (m mockValidator) validate() error {
+	return m.err
 }

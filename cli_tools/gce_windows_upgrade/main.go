@@ -75,8 +75,6 @@ func main() {
 			CommonParams: &service.CommonParams{
 				ClientID:                *clientID,
 				Timeout:                 *timeout,
-				Project:                 *project,
-				ObfuscatedProject:       service.Hash(*project),
 				Zone:                    *zone,
 				ScratchBucketGcsPath:    *scratchBucketGcsPath,
 				Oauth:                   *oauth,
@@ -85,11 +83,11 @@ func main() {
 				DisableCloudLogging:     *cloudLogsDisabled,
 				DisableStdoutLogging:    *stdoutLogsDisabled,
 			},
+			SourceOS:               *sourceOS,
+			TargetOS:               *targetOS,
 			Instance:               *instance,
 			CreateMachineBackup:    *createMachineBackup,
 			AutoRollback:           *autoRollback,
-			SourceOS:               *sourceOS,
-			TargetOS:               *targetOS,
 			UseStagingInstallMedia: *useStagingInstallMedia,
 		},
 	}

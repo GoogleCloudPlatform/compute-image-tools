@@ -35,7 +35,7 @@ type processorProvider interface {
 
 type defaultProcessorProvider struct {
 	ImportArguments
-	imageClient imageClient
+	imageClient createImageClient
 }
 
 func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) {

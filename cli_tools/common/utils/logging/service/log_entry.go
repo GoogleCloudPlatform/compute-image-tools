@@ -208,11 +208,11 @@ type CommonParams struct {
 type WindowsUpgradeParams struct {
 	*CommonParams
 
+	SourceOS               string `json:"source_os,omitempty"`
+	TargetOS               string `json:"target_os,omitempty"`
 	Instance               string `json:"instance,omitempty"`
 	CreateMachineBackup    bool   `json:"create_machine_backup"`
 	AutoRollback           bool   `json:"auto_rollback"`
-	SourceOS               string `json:"source_os,omitempty"`
-	TargetOS               string `json:"target_os,omitempty"`
 	UseStagingInstallMedia bool   `json:"use_staging_install_media"`
 }
 
@@ -259,9 +259,5 @@ func (l *Logger) updateParams(projectPointer *string) {
 	if l.Params.MachineImageImportParams != nil {
 		l.Params.MachineImageImportParams.CommonParams.Project = project
 		l.Params.MachineImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
-	}
-	if l.Params.WindowsUpgradeParams != nil {
-		l.Params.WindowsUpgradeParams.CommonParams.Project = project
-		l.Params.WindowsUpgradeParams.CommonParams.ObfuscatedProject = obfuscatedProject
 	}
 }

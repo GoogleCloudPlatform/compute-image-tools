@@ -506,6 +506,7 @@ func (u *upgrader) runWorkflowWithSteps(workflowName string, timeout string, pop
 		return w, err
 	}
 
+	w.SetLogProcessHook(daisyutils.RemovePrivacyLogTag)
 	setWorkflowAttributes(w, u)
 	err = daisyutils.RunWorkflowWithCancelSignal(u.ctx, w)
 	return w, err

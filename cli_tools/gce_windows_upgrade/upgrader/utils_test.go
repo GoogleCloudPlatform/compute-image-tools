@@ -70,3 +70,28 @@ func TestGetIntroHelpText(t *testing.T) {
 		assert.NoError(t, err, "[test name: %v]", tc.name)
 	}
 }
+
+func TestGetCleanupIntroduction(t *testing.T) {
+	type testCase struct {
+		name         string
+		scriptURLPtr *string
+	}
+
+	testURL := "url"
+	tcs := []testCase{
+		{"has no script url", nil},
+		{"has a script url", &testURL},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			u := upgrader{
+				derivedVars: &derivedVars{
+					originalWindowsStartupScriptURL: tc.scriptURLPtr,
+				},
+			}
+			_, err := getCleanupIntroduction(&u)
+			assert.NoError(t, err)
+		})
+	}
+}
