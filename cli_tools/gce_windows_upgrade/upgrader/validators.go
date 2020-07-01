@@ -193,7 +193,7 @@ func validateAndDeriveOSDisk(osDisk *compute.AttachedDisk, derivedVars *derivedV
 	osDiskName := daisyutils.GetResourceID(osDisk.Source)
 	d, err := computeClient.GetDisk(derivedVars.instanceProject, derivedVars.instanceZone, osDiskName)
 	if err != nil {
-		return daisy.Errf("Failed to get OS disk info: %v", err)
+		return daisy.Errf("Failed to get boot disk info: %v", err)
 	}
 
 	derivedVars.osDiskURI = param.GetZonalResourcePath(derivedVars.instanceZone, "disks", osDisk.Source)

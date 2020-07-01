@@ -20,10 +20,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 )
@@ -160,35 +160,35 @@ func (args *ImportArguments) populateNetwork() error {
 }
 
 func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
-	flagSet.Var((*lowerTrimmedString)(&args.ClientID), clientFlag,
+	flagSet.Var((*flags.LowerTrimmedString)(&args.ClientID), clientFlag,
 		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
 
-	flagSet.Var((*trimmedString)(&args.Project), "project",
+	flagSet.Var((*flags.TrimmedString)(&args.Project), "project",
 		"The project where workflows will be run, and where the resulting image will be stored.")
 
-	flagSet.Var((*trimmedString)(&args.Network), "network",
+	flagSet.Var((*flags.TrimmedString)(&args.Network), "network",
 		"Name of the network in your project to use for the image import. "+
 			"The network must have access to Google Cloud Storage. "+
 			"If not specified, the network named default is used.")
 
-	flagSet.Var((*trimmedString)(&args.Subnet), "subnet",
+	flagSet.Var((*flags.TrimmedString)(&args.Subnet), "subnet",
 		"Name of the subnetwork in your project to use for the image import. "+
 			"If the network resource is in legacy mode, do not provide this property. "+
 			"If the network is in auto subnet mode, providing the subnetwork is optional. "+
 			"If the network is in custom subnet mode, then this field should be specified. "+
 			"Zone should be specified if this field is specified.")
 
-	flagSet.Var((*lowerTrimmedString)(&args.Zone), "zone",
+	flagSet.Var((*flags.LowerTrimmedString)(&args.Zone), "zone",
 		"The zone where workflows will be run, and where the resulting image will be stored.")
 
-	flagSet.Var((*trimmedString)(&args.ScratchBucketGcsPath), "scratch_bucket_gcs_path",
+	flagSet.Var((*flags.TrimmedString)(&args.ScratchBucketGcsPath), "scratch_bucket_gcs_path",
 		"A system-generated bucket name will be used if omitted. "+
 			"If the bucket doesn't exist, it will be created. If it does exist, it will be reused.")
 
-	flagSet.Var((*trimmedString)(&args.Oauth), "oauth",
+	flagSet.Var((*flags.TrimmedString)(&args.Oauth), "oauth",
 		"Path to oauth json file.")
 
-	flagSet.Var((*trimmedString)(&args.ComputeEndpoint), "compute_endpoint_override",
+	flagSet.Var((*flags.TrimmedString)(&args.ComputeEndpoint), "compute_endpoint_override",
 		"API endpoint to override default.")
 
 	flagSet.BoolVar(&args.GcsLogsDisabled, "disable_gcs_logging", false,
@@ -208,35 +208,35 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	flagSet.Bool("kms_location", false, "Reserved for future use.")
 	flagSet.Bool("kms_project", false, "Reserved for future use.")
 
-	flagSet.Var((*lowerTrimmedString)(&args.ImageName), imageFlag,
+	flagSet.Var((*flags.LowerTrimmedString)(&args.ImageName), imageFlag,
 		"Name of the disk image to create.")
 
-	flagSet.Var((*trimmedString)(&args.Family), "family",
+	flagSet.Var((*flags.TrimmedString)(&args.Family), "family",
 		"Family to set for the imported image.")
 
-	flagSet.Var((*trimmedString)(&args.Description), "description",
+	flagSet.Var((*flags.TrimmedString)(&args.Description), "description",
 		"Description to set for the imported image.")
 
-	flagSet.Var((*keyValueString)(&args.Labels), "labels",
+	flagSet.Var((*flags.KeyValueString)(&args.Labels), "labels",
 		"List of label KEY=VALUE pairs to add. "+
 			"For more information, see: https://cloud.google.com/compute/docs/labeling-resources")
 
-	flagSet.Var((*lowerTrimmedString)(&args.StorageLocation), "storage_location",
+	flagSet.Var((*flags.LowerTrimmedString)(&args.StorageLocation), "storage_location",
 		"Specifies a Cloud Storage location, either regional or multi-regional, "+
 			"where image content is to be stored. If not specified, the multi-region "+
 			"location closest to the source is chosen automatically.")
 
-	flagSet.Var((*trimmedString)(&args.SourceFile), "source_file",
+	flagSet.Var((*flags.TrimmedString)(&args.SourceFile), "source_file",
 		"The Cloud Storage URI of the virtual disk file to import.")
 
-	flagSet.Var((*trimmedString)(&args.SourceImage), "source_image",
+	flagSet.Var((*flags.TrimmedString)(&args.SourceImage), "source_image",
 		"An existing Compute Engine image from which to import.")
 
 	flagSet.BoolVar(&args.DataDisk, dataDiskFlag, false,
 		"Specifies that the disk has no bootable OS installed on it. "+
 			"Imports the disk without making it bootable or installing Google tools on it.")
 
-	flagSet.Var((*lowerTrimmedString)(&args.OS), osFlag,
+	flagSet.Var((*flags.LowerTrimmedString)(&args.OS), osFlag,
 		"Specifies the OS of the image being imported. OS must be one of: "+
 			"centos-6, centos-7, debian-8, debian-9, opensuse-15, sles-12-byol, "+
 			"sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, "+
@@ -252,7 +252,7 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 			"specifying 2h will fail the process after 2 hours. See $ gcloud topic datetimes "+
 			"for information on duration formats.")
 
-	flagSet.Var((*trimmedString)(&args.CustomWorkflow), customWorkflowFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.CustomWorkflow), customWorkflowFlag,
 		"A Daisy workflow JSON file to use for translation.")
 
 	flagSet.BoolVar(&args.UefiCompatible, "uefi_compatible", false,
@@ -261,54 +261,4 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.BoolVar(&args.SysprepWindows, "sysprep_windows", false,
 		"Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
-}
-
-// keyValueString is an implementation of flag.Value that creates a map
-// from the user's argument prior to storing it. It expects the argument
-// is in the form KEY1=AB,KEY2=CD. For more info on the format, see
-// param.ParseKeyValues.
-type keyValueString map[string]string
-
-func (s keyValueString) String() string {
-	parts := []string{}
-	for k, v := range s {
-		parts = append(parts, fmt.Sprintf("%s=%s", k, v))
-	}
-	return strings.Join(parts, ",")
-}
-
-func (s *keyValueString) Set(input string) error {
-	if *s != nil {
-		return fmt.Errorf("only one instance of this flag is allowed")
-	}
-
-	*s = make(map[string]string)
-	if input != "" {
-		var err error
-		*s, err = param.ParseKeyValues(input)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// trimmedString is an implementation of flag.Value that trims whitespace
-// from the incoming argument prior to storing it.
-type trimmedString string
-
-func (s trimmedString) String() string { return (string)(s) }
-func (s *trimmedString) Set(input string) error {
-	*s = trimmedString(strings.TrimSpace(input))
-	return nil
-}
-
-// lowerTrimmedString is an implementation of flag.Value that trims whitespace
-// and converts to lowercase the incoming argument prior to storing it.
-type lowerTrimmedString string
-
-func (s lowerTrimmedString) String() string { return (string)(s) }
-func (s *lowerTrimmedString) Set(input string) error {
-	*s = lowerTrimmedString(strings.ToLower(strings.TrimSpace(input)))
-	return nil
 }

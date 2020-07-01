@@ -23,7 +23,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/domain"

@@ -162,10 +162,11 @@ func main() {
 	}
 
 	if *signedURL != "" {
+		log.Printf("Diagnostics: logs uploading to [[%s]].", *signedURL)
 		if err = uploadToSignedURL(zipFile, *signedURL); err != nil {
 			log.Fatalf("Error uploading to signed url: %v. Logs can be found at %s", err, zipFile)
 		}
-		log.Print("Logs uploaded to the supplied url successfully.")
+		log.Print("Diagnostics: logs uploaded to the supplied url successfully.")
 	} else {
 		knownZipPath, err := moveZipFile(zipFile)
 		if err != nil {

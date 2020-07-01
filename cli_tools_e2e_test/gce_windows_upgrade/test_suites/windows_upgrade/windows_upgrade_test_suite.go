@@ -55,6 +55,8 @@ func TestSuite(
 
 	testTypes := []utils.CLITestType{
 		utils.Wrapper,
+		utils.GcloudProdWrapperLatest,
+		utils.GcloudLatestWrapperLatest,
 	}
 
 	testsMap := map[utils.CLITestType]map[*junitxml.TestCase]func(
@@ -112,6 +114,20 @@ func runWindowsUpgradeNormalCase(ctx context.Context, testCase *junitxml.TestCas
 			fmt.Sprintf("-target-os=%v", "windows-2012r2"),
 			fmt.Sprintf("-instance=%v", instance),
 		},
+		utils.GcloudProdWrapperLatest: {
+			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
+			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
+			instance,
+		},
+		utils.GcloudLatestWrapperLatest: {
+			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
+			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
+			instance,
+		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
 		true, false, "", false, 0, false)
@@ -137,6 +153,30 @@ func runWindowsUpgradeWithRichParamsAndLatestInstallMedia(ctx context.Context, t
 			fmt.Sprintf("-project=%v", "compute-image-test-pool-002"),
 			fmt.Sprintf("-zone=%v", "fake-zone"),
 			"-use-staging-install-media",
+		},
+		utils.GcloudProdWrapperLatest: {
+			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
+			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
+			fmt.Sprintf("--no-create-machine-backup"),
+			fmt.Sprintf("--auto-rollback"),
+			fmt.Sprintf("--timeout=2h"),
+			fmt.Sprintf("--zone=%v", "us-east1-b"),
+			"--use-staging-install-media",
+			instance,
+		},
+		utils.GcloudLatestWrapperLatest: {
+			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
+			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
+			fmt.Sprintf("--no-create-machine-backup"),
+			fmt.Sprintf("--auto-rollback"),
+			fmt.Sprintf("--timeout=2h"),
+			fmt.Sprintf("--zone=%v", "us-east1-b"),
+			"--use-staging-install-media",
+			instance,
 		},
 	}
 	runTest(ctx, standardImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
@@ -203,6 +243,22 @@ func runWindowsUpgradeInsufficientDiskSpace(ctx context.Context, testCase *junit
 			fmt.Sprintf("-instance=%v", instance),
 			fmt.Sprintf("-auto-rollback"),
 		},
+		utils.GcloudProdWrapperLatest: {
+			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
+			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
+			fmt.Sprintf("--auto-rollback"),
+			instance,
+		},
+		utils.GcloudLatestWrapperLatest: {
+			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
+			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
+			fmt.Sprintf("--auto-rollback"),
+			instance,
+		},
 	}
 	runTest(ctx, insufficientDiskSpaceImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
 		false, false, "original", true, 0, false)
@@ -224,6 +280,22 @@ func runWindowsUpgradeBYOL(ctx context.Context, testCase *junitxml.TestCase, log
 			fmt.Sprintf("-instance=%v", instance),
 			fmt.Sprintf("-create-machine-backup=false"),
 		},
+		utils.GcloudProdWrapperLatest: {
+			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
+			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
+			fmt.Sprintf("--no-create-machine-backup"),
+			instance,
+		},
+		utils.GcloudLatestWrapperLatest: {
+			"beta", "compute", "os-config", "os-upgrade", "--quiet", "--docker-image-tag=latest",
+			fmt.Sprintf("--project=%v", testProjectConfig.TestProjectID),
+			fmt.Sprintf("--source-os=%v", "windows-2008r2"),
+			fmt.Sprintf("--target-os=%v", "windows-2012r2"),
+			fmt.Sprintf("--no-create-machine-backup"),
+			instance,
+		},
 	}
 	runTest(ctx, byolImage, argsMap[testType], testType, testProjectConfig, instanceName, logger, testCase,
 		false, false, "", false, 0, true)
@@ -233,6 +305,9 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 	testProjectConfig *testconfig.Project, instanceName string, logger *log.Logger, testCase *junitxml.TestCase,
 	expectSuccess bool, triggerFailure bool, expectedScriptURL string, autoRollback bool, dataDiskCount int, expectValidationFailure bool) {
 
+	if args == nil {
+		return
+	}
 	cmd, ok := cmds[testType]
 	if !ok {
 		return
@@ -246,6 +321,8 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 	}, logger, testCase) {
 		return
 	}
+
+	defer cleanupTestInstance(testProjectConfig.TestProjectID, testProjectConfig.TestZone, instanceName, logger, testCase)
 
 	// create and attach data disks
 	for dataDiskIndex := 1; dataDiskIndex <= dataDiskCount; dataDiskIndex++ {
@@ -319,7 +396,12 @@ func runTest(ctx context.Context, image string, args []string, testType utils.CL
 			success = true
 		}
 	} else {
-		success = utils.RunTestForTestType(cmd, args, testType, logger, testCase)
+		isLatestGcloud := testType == utils.GcloudLatestWrapperLatest
+		if !utils.GcloudUpdate(logger, testCase, isLatestGcloud) {
+			success = false
+		} else {
+			success = utils.RunTestCommandIgnoringError(cmd, args, logger, testCase)
+		}
 	}
 
 	verifyUpgradedInstance(ctx, logger, testCase, testProjectConfig, instanceName, success,
@@ -457,4 +539,13 @@ func verifyCleanup(instance *computeUtils.Instance, testCase *junitxml.TestCase,
 	if windowsStartupScriptURLBackup != "" {
 		utils.Failure(testCase, logger, fmt.Sprintf("Unexpected startup script URL backup: %v", windowsStartupScriptURLBackup))
 	}
+}
+
+func cleanupTestInstance(project, zone, instanceName string, logger *log.Logger, testCase *junitxml.TestCase) {
+	// Run gcloud to delete the instance, ignoring error.
+	utils.RunCliTool(logger, testCase, "gcloud", []string{
+		"compute", "instances", "delete", "--quiet",
+		fmt.Sprintf("--zone=%v", zone),
+		fmt.Sprintf("--project=%v", project), instanceName,
+	})
 }

@@ -175,7 +175,7 @@ func TestDiskRegAttach(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := w.disks.regAttach(tt.d, tt.i, tt.mode, tt.s)
+		err := w.disks.regAttach(tt.d, tt.d, tt.i, tt.mode, tt.s)
 		if tt.shouldErr && err == nil {
 			t.Errorf("%s: should have err'ed but didn't", tt.desc)
 		} else if !tt.shouldErr && err != nil {
@@ -186,16 +186,16 @@ func TestDiskRegAttach(t *testing.T) {
 	want := map[string]map[string]*diskAttachment{
 		"dDetached": {
 			"iPrevAtt": w.disks.attachments["dDetached"]["iPrevAtt"], // no changes
-			"i":        {diskModeRW, s, nil},
+			"i":        {"dDetached", diskModeRW, s, nil},
 		},
 		"dIWDetached": {
 			"iIW":  w.disks.attachments["dIWDetached"]["iIW"], // no changes
-			"iIW2": {diskModeRW, iw2SubStep, nil},
+			"iIW2": {"dIWDetached", diskModeRW, iw2SubStep, nil},
 		},
 		"dIWAttached": w.disks.attachments["dIWAttached"], // no changes
 		"d": {
-			"i":  {diskModeRO, s, nil},
-			"i2": {diskModeRO, s, nil},
+			"i":  {"d", diskModeRO, s, nil},
+			"i2": {"d", diskModeRO, s, nil},
 		},
 	}
 	if diffRes := diff(w.disks.attachments, want, 7); diffRes != "" {

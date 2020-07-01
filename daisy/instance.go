@@ -215,15 +215,16 @@ func (i *Instance) setSourceMachineImage(machineImage string) {}
 func (i *Instance) register(name string, s *Step, ir *instanceRegistry, errs DError) {
 	// Register disk attachments.
 	for _, d := range i.Disks {
-		dName := d.Source
+		diskName := d.Source
 		if d.InitializeParams != nil {
 			parts := NamedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
 			if parts["disktype"] == "local-ssd" {
 				continue
 			}
-			dName = d.InitializeParams.DiskName
+			diskName = d.InitializeParams.DiskName
 		}
-		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))
+
+		errs = addErrs(errs, ir.w.disks.regAttach(d.DeviceName, diskName, name, d.Mode, s))
 	}
 
 	// Register network connections.
@@ -322,15 +323,15 @@ func (i *InstanceBeta) setSourceMachineImage(machineImage string) {
 func (i *InstanceBeta) register(name string, s *Step, ir *instanceRegistry, errs DError) {
 	// Register disk attachments.
 	for _, d := range i.Disks {
-		dName := d.Source
+		diskName := d.Source
 		if d.InitializeParams != nil {
 			parts := NamedSubexp(diskTypeURLRgx, d.InitializeParams.DiskType)
 			if parts["disktype"] == "local-ssd" {
 				continue
 			}
-			dName = d.InitializeParams.DiskName
+			diskName = d.InitializeParams.DiskName
 		}
-		errs = addErrs(errs, ir.w.disks.regAttach(dName, name, d.Mode, s))
+		errs = addErrs(errs, ir.w.disks.regAttach(d.DeviceName, diskName, name, d.Mode, s))
 	}
 
 	// Register network connections.
