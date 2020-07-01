@@ -12,6 +12,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-ole/go-ole v1.2.4
 	github.com/golang/mock v1.4.3
+	github.com/golang/protobuf v1.4.2
 	github.com/google/logger v1.1.0
 	github.com/google/uuid v1.1.1
 	github.com/klauspost/compress v1.10.8 // indirect

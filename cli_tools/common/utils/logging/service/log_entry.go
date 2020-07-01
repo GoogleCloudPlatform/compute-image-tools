@@ -124,7 +124,7 @@ type OnestepImageImportParams struct {
 	CloudProvider string `json:"cloud_provider,omitempty"`
 
 	// AWS related params
-	AWSImageID           string `json:"aws_image_id,omitempty"`
+	AWSAMIID             string `json:"aws_ami_id,omitempty"`
 	AWSExportLocation    string `json:"aws_export_location,omitempty"`
 	AWSExportedAMIPath   string `json:"aws_exported_ami_path,omitempty"`
 	AWSResumeExportedAMI bool   `json:"aws_resume_exported_ami"`

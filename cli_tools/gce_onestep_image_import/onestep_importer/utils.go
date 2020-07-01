@@ -16,13 +16,16 @@ package importer
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
+	"github.com/dustin/go-humanize"
 )
 
 // runCmd executes the named program with given arguments.
@@ -33,23 +36,6 @@ func runCmd(name string, args []string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
-}
-
-// runCmdAndGetOutput executes the named program with given arguments.
-// Logs the running command. Returns the output of the executed program, and error if any.
-func runCmdAndGetOutput(cmdString string, args []string) ([]byte, error) {
-	log.Printf("Running command: '%s %s'", cmdString, strings.Join(args, " "))
-	return runCmdAndGetOutputWithoutLog(cmdString, args)
-}
-
-// runCmdAndGetOutputWithoutLog executes the named program with given arguments.
-// Returns the output of the executed program, and error if any.
-func runCmdAndGetOutputWithoutLog(cmdString string, args []string) ([]byte, error) {
-	output, err := exec.Command(cmdString, args...).CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("%v%v", string(output), err)
-	}
-	return output, nil
 }
 
 // cloudProviderImporter represents the importer for various cloud providers.
@@ -67,7 +53,8 @@ func newImporterForCloudProvider(args *OneStepImportArguments) (cloudProviderImp
 		}
 		return importer, nil
 	}
-	return nil, fmt.Errorf("import from cloud provider %v is currently not supported", args.CloudProvider)
+	return nil, fmt.Errorf("image import from cloud provider %v is "+
+		"currently not supported", args.CloudProvider)
 }
 
 // importFromCloudProvider imports image from the specified cloud provider
@@ -88,9 +75,9 @@ func importFromCloudProvider(args *OneStepImportArguments) error {
 	// 3. run image import
 	err = runImageImport(args)
 	if err != nil {
-		log.Println("Failed to import image.",
-			fmt.Sprintf("The image file has been copied to Google Cloud Storage, located at %v.", exportedGCSPath),
-			"To resume the import process, please directly use image import from GCS.")
+		log.Printf("Failed to import image. "+
+			"The image file is copied to  Cloud Storage, located at %v. "+
+			"To resume the import process, please directly use image import from Cloud Storage.\n", exportedGCSPath)
 	}
 	return err
 }
@@ -126,11 +113,39 @@ func runImageImport(args *OneStepImportArguments) error {
 	return nil
 }
 
-func minInt64(a, b int64) int64 {
-	if a < b {
-		return a
+// uploader is responsible for receiving file chunks and upload it to a destination
+type uploader struct {
+	readerChan    chan io.ReadCloser
+	writer        io.WriteCloser
+	totalUploaded int64
+	totalFileSize int64
+	err           error
+	sync.Mutex
+	sync.WaitGroup
+}
+
+// uploadFile uploads file chunks to writer
+func (uploader *uploader) uploadFile() {
+	defer uploader.Done()
+	for reader := range uploader.readerChan {
+		defer reader.Close()
+		n, err := io.Copy(uploader.writer, reader)
+		if err != nil {
+			uploader.err = err
+		}
+		uploader.totalUploaded += n
+		log.Printf("Total written size: %v of %v.", humanize.IBytes(uint64(uploader.totalUploaded)), humanize.IBytes(uint64(uploader.totalFileSize)))
 	}
-	return b
+}
+
+// cleanup cleans up all resources.
+func (uploader *uploader) cleanup() {
+	close(uploader.readerChan)
+	for reader := range uploader.readerChan {
+		reader.Close()
+	}
+	uploader.writer.Close()
+	uploader.Done()
 }
 
 // TODO: delete once this is refactored to common utils

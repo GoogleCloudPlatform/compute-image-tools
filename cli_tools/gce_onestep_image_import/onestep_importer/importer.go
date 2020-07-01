@@ -57,14 +57,13 @@ type OneStepImportArguments struct {
 	UefiCompatible       bool
 	Zone                 string
 
-	AWSAccessKeyID       string
-	AWSSecretAccessKey   string
-	AWSSessionToken      string
-	AWSRegion            string
-	AWSImageID           string
-	AWSExportLocation    string
-	AWSExportedAMIPath   string
-	AWSResumeExportedAMI bool
+	AWSAccessKeyID     string
+	AWSSecretAccessKey string
+	AWSSessionToken    string
+	AWSRegion          string
+	AWSAMIID           string
+	AWSExportLocation  string
+	AWSExportedAMIPath string
 }
 
 // Flags that are validated.
@@ -103,39 +102,35 @@ func (args *OneStepImportArguments) getFlagSet() *flag.FlagSet {
 
 // registerFlags defines the flags to parse.
 func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
-	// TODO: Get input from tech writer
 	flagSet.Var((*trimmedString)(&args.AWSAccessKeyID), awsAccessKeyIDFlag,
-		"The Access Key Id part of an AWS credential. "+
+		"The Access Key Id for an AWS credential. "+
 			"This credential is associated with an IAM user or role. "+
-			"This IAM user must have permissions to import image.")
+			"This IAM user must have permissions to import images.")
 
-	flagSet.Var((*trimmedString)(&args.AWSImageID), awsImageIDFlag,
-		"The AWS image ID of the image to import.")
+	flagSet.Var((*trimmedString)(&args.AWSAMIID), awsAMIIDFlag,
+		"The AWS AMI ID of the image to import.")
 
 	flagSet.Var((*trimmedString)(&args.AWSExportLocation), awsExportLocationFlag,
-		"A location inside an AWS S3 Bucket to export the image.")
+		"The AWS S3 Bucket location where you want to export the image.")
 
 	flagSet.Var((*trimmedString)(&args.AWSExportedAMIPath), awsExportedAMIPathFlag,
 		"The S3 resource path of the exported image file.")
 
 	flagSet.Var((*trimmedString)(&args.AWSRegion), awsRegionFlag,
-		"The AWS region of the image to import.")
-
-	flagSet.BoolVar(&args.AWSResumeExportedAMI, awsResumeExportedAMIFlag, false,
-		"Set if image has already been exported. "+
-			"The image import process will directly import from the provided S3 path.")
+		"The AWS region for the image that you want to import.")
 
 	flagSet.Var((*trimmedString)(&args.AWSSessionToken), awsSessionTokenFlag,
 		"The AWS session token value that is required if you are using "+
-			"temporary security credentials.")
+			"temporary security credentials. ")
 
 	flagSet.Var((*trimmedString)(&args.AWSSecretAccessKey), awsSecretAccessKeyFlag,
-		"The Secret Access Key part of an AWS credential. "+
+		"The secret access key for yourAWS credential. "+
 			"This credential is associated with an IAM user or role. "+
-			"This IAM user must have permissions to import image.")
+			"This IAM user must have permissions to import images.")
 
 	flagSet.Var((*lowerTrimmedString)(&args.CloudProvider), cloudProviderFlag,
-		"Identifies the cloud provider of the import source, e.g. 'aws'.")
+		"Identifies the cloud provider of the source image. "+
+			"Currently only one cloud provider is supported. CLOUD_PROVIDER must be aws.")
 
 	flagSet.Var((*lowerTrimmedString)(&args.ClientID), clientFlag,
 		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
@@ -204,12 +199,13 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 			"location closest to the source is chosen automatically.")
 
 	flagSet.Var((*lowerTrimmedString)(&args.OS), osFlag,
-		"Specifies the OS of the image being imported. OS must be one of: "+
-			"centos-6, centos-7, debian-8, debian-9, opensuse-15, sles-12-byol, "+
-			"sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, ubuntu-1404, "+
-			"ubuntu-1604, ubuntu-1804, windows-10-byol, windows-2008r2, windows-2008r2-byol, "+
-			"windows-2012, windows-2012-byol, windows-2012r2, windows-2012r2-byol, "+
-			"windows-2016, windows-2016-byol, windows-7-byol.")
+		"Specifies the OS of the disk image being imported. "+
+			"This must be specified if cloud provider is specified. "+
+			"OS must be one of: centos-6, centos-7, debian-8, debian-9, opensuse-15, "+
+			"sles-12-byol, sles-15-byol, rhel-6, rhel-6-byol, rhel-7, rhel-7-byol, "+
+			"ubuntu-1404, ubuntu-1604, ubuntu-1804, windows-10-byol, windows-2008r2, "+
+			"windows-2008r2-byol, windows-2012, windows-2012-byol, windows-2012r2, "+
+			"windows-2012r2-byol, windows-2016, windows-2016-byol, windows-7-byol.")
 
 	flagSet.BoolVar(&args.NoGuestEnvironment, "no_guest_environment", false,
 		"When enabled, the Google Guest Environment will not be installed.")

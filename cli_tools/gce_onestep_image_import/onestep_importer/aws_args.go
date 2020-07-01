@@ -28,6 +28,7 @@ import (
 type awsImportArguments struct {
 	// Passed in by user
 	accessKeyID        string
+	amiID              string
 	executablePath     string
 	exportLocation     string
 	exportedAMIPath    string
@@ -37,9 +38,7 @@ type awsImportArguments struct {
 	gcsRegion          string
 	gcsScratchBucket   string
 	gcsStorageLocation string
-	imageID            string
 	region             string
-	resumeExportedAMI  bool
 	secretAccessKey    string
 	sessionToken       string
 
@@ -52,14 +51,13 @@ type awsImportArguments struct {
 
 // Flags
 const (
-	awsImageIDFlag           = "aws_image_id"
-	awsExportLocationFlag    = "aws_export_location"
-	awsAccessKeyIDFlag       = "aws_access_key_id"
-	awsSecretAccessKeyFlag   = "aws_secret_access_key"
-	awsSessionTokenFlag      = "aws_session_token"
-	awsRegionFlag            = "aws_region"
-	awsExportedAMIPathFlag   = "aws_exported_ami_path"
-	awsResumeExportedAMIFlag = "resume_exported_ami"
+	awsAMIIDFlag           = "aws_ami_id"
+	awsExportLocationFlag  = "aws_export_location"
+	awsAccessKeyIDFlag     = "aws_access_key_id"
+	awsSecretAccessKeyFlag = "aws_secret_access_key"
+	awsSessionTokenFlag    = "aws_session_token"
+	awsRegionFlag          = "aws_region"
+	awsExportedAMIPathFlag = "aws_exported_ami_path"
 )
 
 var (
@@ -71,6 +69,7 @@ var (
 func newAWSImportArguments(args *OneStepImportArguments) *awsImportArguments {
 	return &awsImportArguments{
 		accessKeyID:        args.AWSAccessKeyID,
+		amiID:              args.AWSAMIID,
 		executablePath:     args.ExecutablePath,
 		exportLocation:     args.AWSExportLocation,
 		exportedAMIPath:    args.AWSExportedAMIPath,
@@ -80,9 +79,7 @@ func newAWSImportArguments(args *OneStepImportArguments) *awsImportArguments {
 		gcsRegion:          args.Region,
 		gcsScratchBucket:   args.ScratchBucketGcsPath,
 		gcsStorageLocation: args.StorageLocation,
-		imageID:            args.AWSImageID,
 		region:             args.AWSRegion,
-		resumeExportedAMI:  args.AWSResumeExportedAMI,
 		secretAccessKey:    args.AWSSecretAccessKey,
 		sessionToken:       args.AWSSessionToken,
 	}
@@ -116,14 +113,13 @@ func (args *awsImportArguments) validate() error {
 		return err
 	}
 
-	if args.resumeExportedAMI {
-		if args.exportedAMIPath == "" {
-			return fmt.Errorf("To resume exported AMI, flag -%v must be provided", awsExportedAMIPathFlag)
-		}
-	} else {
-		if args.imageID == "" || args.exportLocation == "" {
-			return fmt.Errorf("To export AMI, flags -%v and -%v must be provided", awsImageIDFlag, awsExportLocationFlag)
-		}
+	isExport := args.amiID != "" && args.exportLocation != "" && args.exportedAMIPath == ""
+	isResumeExported := args.exportedAMIPath != "" && args.amiID == "" && args.exportLocation == ""
+
+	if !(isExport || isResumeExported) {
+		return fmt.Errorf("specify -%v to import from "+
+			"exported image file, or both -%v and -%v to "+
+			"import from AMI", awsExportedAMIPathFlag, awsAMIIDFlag, awsExportLocationFlag)
 	}
 
 	return nil
@@ -135,7 +131,7 @@ func (args *awsImportArguments) generateS3PathElements() error {
 	var err error
 
 	// AMI already exported, should provide object path
-	if args.resumeExportedAMI {
+	if args.exportedAMIPath != "" {
 		args.exportBucket, args.exportKey, err = splitS3Path(args.exportedAMIPath)
 		if err != nil {
 			return err

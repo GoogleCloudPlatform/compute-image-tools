@@ -74,11 +74,10 @@ func initLoggingParams(args *importer.OneStepImportArguments) service.InputParam
 				SourceFile:         args.SourceFile,
 				StorageLocation:    args.StorageLocation,
 			},
-			CloudProvider:        args.CloudProvider,
-			AWSImageID:           args.AWSImageID,
-			AWSExportLocation:    args.AWSExportLocation,
-			AWSExportedAMIPath:   args.AWSExportedAMIPath,
-			AWSResumeExportedAMI: args.AWSResumeExportedAMI,
+			CloudProvider:      args.CloudProvider,
+			AWSAMIID:           args.AWSAMIID,
+			AWSExportLocation:  args.AWSExportLocation,
+			AWSExportedAMIPath: args.AWSExportedAMIPath,
 		},
 	}
 }
