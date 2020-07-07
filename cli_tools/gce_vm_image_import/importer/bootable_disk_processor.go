@@ -37,7 +37,7 @@ type bootableDiskProcessor struct {
 	OS              string
 }
 
-func (b *bootableDiskProcessor) process(ctx context.Context) (err error) {
+func (b bootableDiskProcessor) process(ctx context.Context) (err error) {
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.network, b.workflow)
@@ -49,11 +49,12 @@ func (b *bootableDiskProcessor) process(ctx context.Context) (err error) {
 	return err
 }
 
-func (b *bootableDiskProcessor) cancel(reason string) {
+func (b bootableDiskProcessor) cancel(reason string) bool {
 	b.workflow.CancelWithReason(reason)
+	return true
 }
 
-func (b *bootableDiskProcessor) traceLogs() []string {
+func (b bootableDiskProcessor) traceLogs() []string {
 	if b.workflow.Logger != nil {
 		return b.workflow.Logger.ReadSerialPortLogs()
 	}
@@ -99,7 +100,7 @@ func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processo
 	}, err
 }
 
-func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
+func (b bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		buildID := os.Getenv(daisy_utils.BuildIDOSEnvVarName)
 		w.LogWorkflowInfo("Cloud Build ID: %s", buildID)
@@ -129,7 +130,7 @@ func (b *bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 	}
 }
 
-func (b *bootableDiskProcessor) preValidateFunc() daisy.WorkflowModifier {
+func (b bootableDiskProcessor) preValidateFunc() daisy.WorkflowModifier {
 	return func(w *daisy.Workflow) {
 		w.SetLogProcessHook(daisy_utils.RemovePrivacyLogTag)
 	}

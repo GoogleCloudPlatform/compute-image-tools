@@ -26,7 +26,7 @@ import (
 type processor interface {
 	process(ctx context.Context) error
 	traceLogs() []string
-	cancel(reason string)
+	cancel(reason string) bool
 }
 
 // processorProvider allows the processor to be determined after the pd has been inflated.

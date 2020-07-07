@@ -16,6 +16,7 @@ package importer
 
 import (
 	"context"
+	"log"
 	"path"
 	"sync"
 	"time"
@@ -23,7 +24,6 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
-	"github.com/google/logger"
 	"google.golang.org/api/googleapi"
 )
 
@@ -40,6 +40,7 @@ func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, er
 	if err != nil {
 		return nil, err
 	}
+
 	return &importer{
 		project:           args.Project,
 		zone:              args.Zone,
@@ -106,7 +107,7 @@ func (i *importer) runProcess(ctx context.Context) (err error) {
 	return i.runStep(ctx, func(ctx context.Context) error { return i.processor.process(ctx) }, i.processor.cancel, i.processor.traceLogs)
 }
 
-func (i *importer) runStep(ctx context.Context, step func(context.Context) error, cancel func(string), getTraceLogs func() []string) (err error) {
+func (i *importer) runStep(ctx context.Context, step func(context.Context) error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
 	e := make(chan error)
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -126,11 +127,14 @@ func (i *importer) runStep(ctx context.Context, step func(context.Context) error
 	// this select waits for either context expiration or step to finish (with either an error or success)
 	select {
 	case <-ctx.Done():
-		err = i.getCtxError(ctx)
-		cancel("timed-out")
+		if cancel("timed-out") {
+			//Only return timeout error if step was able to cancel on time-out.
+			//Otherwise, step has finished and import succeeded even though it timed out
+			err = i.getCtxError(ctx)
+		}
 		wg.Wait()
-	case inflaterErr := <-e:
-		err = inflaterErr
+	case stepErr := <-e:
+		err = stepErr
 	}
 	i.traceLogs = append(i.traceLogs, getTraceLogs()...)
 	return err
@@ -155,7 +159,7 @@ func (i *importer) cleanupDisk() {
 	if err := i.diskClient.DeleteDisk(i.project, i.zone, diskName); err != nil {
 		gAPIErr, isGAPIErr := err.(*googleapi.Error)
 		if isGAPIErr && gAPIErr.Code != 404 {
-			logger.Errorf("Failed to remove temporary disk %v: %e", i.pd, err)
+			log.Printf("Failed to remove temporary disk %v: %e", i.pd, err)
 		}
 	}
 }

@@ -16,6 +16,7 @@ package importer
 
 import (
 	"context"
+	"log"
 
 	"google.golang.org/api/compute/v1"
 )
@@ -53,16 +54,18 @@ func newDataDiskProcessor(pd persistentDisk, client createImageClient, project s
 	}
 }
 
-func (d *dataDiskProcessor) traceLogs() []string {
+func (d dataDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func (d *dataDiskProcessor) process(ctx context.Context) (err error) {
+func (d dataDiskProcessor) process(ctx context.Context) (err error) {
+	log.Printf("Creating image \"%v\"", d.request.Name)
 	return d.client.CreateImage(d.project, &d.request)
 }
 
-func (d *dataDiskProcessor) cancel(reason string) {
-	//not possible to cancel direct calls to compute client and not likely to take long
+func (d dataDiskProcessor) cancel(reason string) bool {
+	//indicate cancel was not performed
+	return false
 }
 
 // createImageClient is the subset of the GCP compute API that is used by dataDiskProcessor.

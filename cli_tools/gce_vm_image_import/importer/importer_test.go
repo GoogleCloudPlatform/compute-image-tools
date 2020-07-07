@@ -278,15 +278,42 @@ func TestRun_ProcessInterruptedTimeout(t *testing.T) {
 		timeout:           time.Duration(100) * time.Millisecond,
 	}
 	start := time.Now()
-	loggable, _ := importer.Run(context.Background())
+	loggable, actualError := importer.Run(context.Background())
 	duration := time.Since(start)
 
 	assert.NotNil(t, loggable)
+	assert.NotNil(t, actualError)
 	assert.Equal(t, 1, mockInflater.interactions)
 	assert.Equal(t, 1, mockProcessor.interactions)
 
 	// to ensure processor got interrupted and didn't run the full 10 seconds
 	assert.True(t, duration < time.Duration(1)*time.Second)
+}
+
+func TestRun_ProcessCantTimeoutImportSucceeds(t *testing.T) {
+	mockProcessor := mockProcessor{
+		processingTime: time.Duration(300) * time.Second,
+		cantCancel:     true,
+	}
+	mockProcessorProvider := mockProcessorProvider{
+		processor: &mockProcessor,
+	}
+	mockInflater := &mockInflater{}
+	importer := importer{
+		preValidator:      mockValidator{},
+		inflater:          mockInflater,
+		processorProvider: &mockProcessorProvider,
+		timeout:           time.Duration(100) * time.Millisecond,
+	}
+	start := time.Now()
+	loggable, actualError := importer.Run(context.Background())
+	duration := time.Since(start)
+
+	assert.NotNil(t, loggable)
+	assert.Nil(t, actualError)
+	assert.Equal(t, 1, mockInflater.interactions)
+	assert.Equal(t, 1, mockProcessor.interactions)
+	assert.True(t, duration > importer.timeout)
 }
 
 type mockProcessorProvider struct {
@@ -307,6 +334,7 @@ type mockProcessor struct {
 	processingTime time.Duration
 	processingChan chan bool
 	cancelError    error
+	cantCancel     bool
 }
 
 func (m *mockProcessor) process(ctx context.Context) error {
@@ -328,7 +356,8 @@ func (m *mockProcessor) traceLogs() []string {
 	return m.serialLogs
 }
 
-func (m *mockProcessor) cancel(reason string) {
+func (m *mockProcessor) cancel(reason string) bool {
+	return !m.cantCancel
 }
 
 type mockInflater struct {
@@ -358,7 +387,8 @@ func (m *mockInflater) traceLogs() []string {
 	return m.serialLogs
 }
 
-func (m *mockInflater) cancel(reason string) {
+func (m *mockInflater) cancel(reason string) bool {
+	return true
 }
 
 type mockDiskClient struct {

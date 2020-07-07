@@ -38,7 +38,7 @@ const (
 type inflater interface {
 	inflate(ctx context.Context) (persistentDisk, error)
 	traceLogs() []string
-	cancel(reason string)
+	cancel(reason string) bool
 }
 
 // daisyInflater implements an inflater using daisy workflows, and is capable
@@ -156,6 +156,7 @@ func getDisk(workflow *daisy.Workflow, diskIndex int) *daisy.Disk {
 	panic("Did not find CreateDisks step.")
 }
 
-func (inflater *daisyInflater) cancel(reason string) {
+func (inflater *daisyInflater) cancel(reason string) bool {
 	inflater.wf.CancelWithReason(reason)
+	return true
 }
