@@ -50,6 +50,8 @@ def main():
       'google_cloud_repo', raise_on_not_found=True)
   image_dest = utils.GetMetadataAttribute(
       'image_dest', raise_on_not_found=True)
+  image_meta = utils.GetMetadataAttribute(
+      'image_meta', raise_on_not_found=True)
 
   logging.info('debian-cloud-images version: %s' % debian_cloud_images_version)
   logging.info('debian version: %s' % debian_version)
@@ -180,10 +182,10 @@ def main():
   logging.info('Creating image metadata.')
   image = {
       "family": "debian-10",
-      "name": "debian-10" + debian_version + "v" + build_date,
       "version": debian_version,
       "location": image_dest,
-      "release_date": datetime.now(timezone.utc),
+      "build_date": datetime.now(timezone.utc),
+      "build_repo": google_cloud_repo,
       "packages": []
   }
   # Read list of guest package
@@ -191,35 +193,23 @@ def main():
     guest_packages = f.read().splitlines()
 
   for package in guest_packages:
-    cmd = "dpkg-query -W --showformat '${Package}:${Version}:${Git}'" \
+    cmd = "dpkg-query -W --showformat '${Package}\n${Version}\n${Git}'" \
           + package
-    code, stdout = utils.Excute(cmd, capture_output=True)
-    if code == 0:
-      splits = stdout.decode('utf-8').split(':')
-      package_name = splits[0]
-      package_version = splits[1]
-      package_git_url = splits[2]
-      start = package_version.index(":")
-      end = package_version.rindex(".")
-      package_release_date = package_version[start: end]
-
-      metadata = {
-          "name": package_name,
-          "version": package_version,
-          "commit_hash": package_git_url,
-          "release_date": package_release_date,
-          "stage": google_cloud_repo
-      }
-      image["packages"].append(metadata)
+    _, stdout = utils.Excute(cmd, capture_output=True)
+    package, version, git = stdout.decode('utf-8').split(':', 2)
+    metadata = {
+        "name": package,
+        "version": version,
+        "commit_hash": git,
+    }
+    image["packages"].append(metadata)
 
     # Write image metadata to a file
     with open('/tmp/metadata.json', 'w') as f:
       f.write(json.dumps(image))
 
     logging.info('Uploading image metadata.')
-    metadata_dest = os.path.join(image_dest.strip("root.tar.gz"),
-                                 'metadata.json')
-    utils.UploadFile('/tmp/metadata.json', metadata_dest)
+    utils.UploadFile('/tmp/metadata.json', image_meta)
 
 
 if __name__ == '__main__':

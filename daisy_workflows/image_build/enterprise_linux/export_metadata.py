@@ -58,7 +58,7 @@ def main():
       "version": build_date,
       "location": destination,
       "release_date": datetime.now(timezone.utc),
-      "state": "Active",
+      "build_repo": repo,
       "packages": []
   }
 
@@ -67,25 +67,16 @@ def main():
     guest_packages = f.read().splitlines()
 
   for package in guest_packages:
-    # The URL is a github repo link which don't contain commit hash
-    cmd = "rpm -q --queryformat='%{NAME}\n%{VERSION}\n%{RELEASE}\n%{URL}'" \
+    cmd = "rpm -q --queryformat='%{NAME}\n%{VERSION}\n%{RELEASE}\n%{Vcs}'" \
           + package
-    code, stdout = utils.Excute(cmd, capture_output=True)
-    if code == 0:
-      splits = stdout.decode('utf-8').split('\n')
-      package_name = splits[0]
-      package_version = splits[1] + "-" + splits[2]
-      package_url = splits[3]
-      package_release_date = package_version[0:package_version.index(".")]
-      package_metadata = {
-          "name": package_name,
-          "version": package_version,
-          # For el, we don't have commit hash
-          "commit_hash": package_url,
-          "release_date": package_release_date,
-          "stage": repo
-      }
-      image["packages"].append(package_metadata)
+    _, stdout = utils.Excute(cmd, capture_output=True)
+    package, version, release, vcs = stdout.decode('utf-8').split('\n', 3)
+    package_metadata = {
+        "name": package,
+        "version": version + "-" + release,
+        "commit_hash": vcs
+    }
+    image["packages"].append(package_metadata)
 
     # Write image metadata to a file
     with open('/tmp/metadata.json', 'w') as f:
