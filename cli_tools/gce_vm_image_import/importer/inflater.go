@@ -36,7 +36,7 @@ const (
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type inflater interface {
-	inflate(ctx context.Context) (persistentDisk, error)
+	inflate() (persistentDisk, error)
 	traceLogs() []string
 	cancel(reason string) bool
 }
@@ -52,7 +52,7 @@ type daisyInflater struct {
 	zone            string
 }
 
-func (inflater *daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
+func (inflater *daisyInflater) inflate() (persistentDisk, error) {
 	err := inflater.wf.Run(context.Background())
 
 	if err != nil {

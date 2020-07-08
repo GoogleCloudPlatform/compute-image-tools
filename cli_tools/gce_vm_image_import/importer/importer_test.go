@@ -247,7 +247,7 @@ func TestRun_DontRunProcessIfTimedOutDuringInflate(t *testing.T) {
 		preValidator:      mockValidator{},
 		inflater:          inflater,
 		processorProvider: &mockProcessorProvider,
-		timeout:           1 * time.Millisecond,
+		timeout:           100 * time.Millisecond,
 	}
 	start := time.Now()
 	loggable, actualError := importer.Run(context.Background())
@@ -292,7 +292,7 @@ func TestRun_ProcessInterruptedTimeout(t *testing.T) {
 
 func TestRun_ProcessCantTimeoutImportSucceeds(t *testing.T) {
 	mockProcessor := mockProcessor{
-		processingTime: time.Duration(300) * time.Second,
+		processingTime: time.Duration(1) * time.Second,
 		cantCancel:     true,
 	}
 	mockProcessorProvider := mockProcessorProvider{
@@ -335,14 +335,16 @@ type mockProcessor struct {
 	processingChan chan bool
 	cancelError    error
 	cantCancel     bool
+	cancelChan     chan bool
 }
 
-func (m *mockProcessor) process(ctx context.Context) error {
+func (m *mockProcessor) process() error {
 	m.interactions++
+	m.cancelChan = make(chan bool)
 
 	if m.processingTime > 0 {
 		select {
-		case <-ctx.Done():
+		case <-m.cancelChan:
 			break
 		case <-time.After(m.processingTime):
 			break
@@ -357,6 +359,7 @@ func (m *mockProcessor) traceLogs() []string {
 }
 
 func (m *mockProcessor) cancel(reason string) bool {
+	m.cancelChan <- true
 	return !m.cantCancel
 }
 
@@ -366,14 +369,16 @@ type mockInflater struct {
 	err           error
 	interactions  int
 	inflationTime time.Duration
+	cancelChan    chan bool
 }
 
-func (m *mockInflater) inflate(ctx context.Context) (persistentDisk, error) {
+func (m *mockInflater) inflate() (persistentDisk, error) {
 	m.interactions++
+	m.cancelChan = make(chan bool)
 
 	if m.inflationTime > 0 {
 		select {
-		case <-ctx.Done():
+		case <-m.cancelChan:
 			break
 		case <-time.After(m.inflationTime):
 			break
@@ -388,6 +393,7 @@ func (m *mockInflater) traceLogs() []string {
 }
 
 func (m *mockInflater) cancel(reason string) bool {
+	m.cancelChan <- true
 	return true
 }
 

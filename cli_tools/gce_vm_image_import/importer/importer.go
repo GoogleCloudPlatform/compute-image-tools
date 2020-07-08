@@ -92,9 +92,9 @@ func (i *importer) Run(ctx context.Context) (loggable service.Loggable, err erro
 }
 
 func (i *importer) runInflate(ctx context.Context) (err error) {
-	return i.runStep(ctx, func(ctx context.Context) error {
+	return i.runStep(ctx, func() error {
 		var err error
-		i.pd, err = i.inflater.inflate(ctx)
+		i.pd, err = i.inflater.inflate()
 		return err
 	}, i.inflater.cancel, i.inflater.traceLogs)
 }
@@ -104,10 +104,10 @@ func (i *importer) runProcess(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	return i.runStep(ctx, func(ctx context.Context) error { return i.processor.process(ctx) }, i.processor.cancel, i.processor.traceLogs)
+	return i.runStep(ctx, func() error { return i.processor.process() }, i.processor.cancel, i.processor.traceLogs)
 }
 
-func (i *importer) runStep(ctx context.Context, step func(context.Context) error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
+func (i *importer) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
 	e := make(chan error)
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -118,7 +118,7 @@ func (i *importer) runStep(ctx context.Context, step func(context.Context) error
 		case <-ctx.Done():
 			e <- i.getCtxError(ctx)
 		default:
-			stepErr := step(ctx)
+			stepErr := step()
 			wg.Done()
 			e <- stepErr
 		}

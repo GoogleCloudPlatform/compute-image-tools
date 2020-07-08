@@ -37,7 +37,7 @@ type bootableDiskProcessor struct {
 	OS              string
 }
 
-func (b bootableDiskProcessor) process(ctx context.Context) (err error) {
+func (b bootableDiskProcessor) process() (err error) {
 	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.network, b.workflow)
