@@ -64,7 +64,6 @@ type importer struct {
 	traceLogs         []string
 	diskClient        diskClient
 	timeout           time.Duration
-	processor         processor
 }
 
 func (i *importer) Run(ctx context.Context) (loggable service.Loggable, err error) {
@@ -100,11 +99,11 @@ func (i *importer) runInflate(ctx context.Context) (err error) {
 }
 
 func (i *importer) runProcess(ctx context.Context) (err error) {
-	i.processor, err = i.processorProvider.provide(i.pd)
+	processor, err := i.processorProvider.provide(i.pd)
 	if err != nil {
 		return err
 	}
-	return i.runStep(ctx, func() error { return i.processor.process() }, i.processor.cancel, i.processor.traceLogs)
+	return i.runStep(ctx, func() error { return processor.process() }, processor.cancel, processor.traceLogs)
 }
 
 func (i *importer) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
