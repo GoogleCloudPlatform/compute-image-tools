@@ -15,13 +15,18 @@
 package importer
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
@@ -85,12 +90,18 @@ func TestRun_DeleteDisk(t *testing.T) {
 	assert.Equal(t, diskURI, mockDiskClient.uri)
 }
 
-func TestRun_DontDeleteDiskIfDoesntExist(t *testing.T) {
+func TestRun_NoErrorLoggedWhenDeletingDiskThatWasNotCreated(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
 	project := "project"
 	zone := "zone"
 	diskURI := "uri"
 	mockDiskClient := mockDiskClient{
-		disk: nil,
+		disk:            nil,
+		deleteDiskError: &googleapi.Error{Code: 404},
 	}
 
 	importer := importer{
@@ -112,15 +123,21 @@ func TestRun_DontDeleteDiskIfDoesntExist(t *testing.T) {
 	assert.Equal(t, 1, mockDiskClient.interactions)
 	assert.Equal(t, project, mockDiskClient.project)
 	assert.Equal(t, zone, mockDiskClient.zone)
+	assert.Equal(t, "", buf.String())
 }
 
-func TestRun_DontDeleteDiskIfErrorWhenRetrievingDisk(t *testing.T) {
+func TestRun_ErrorLoggedWhenErrorDeletingDisk(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
 	project := "project"
 	zone := "zone"
 	diskURI := "uri"
 	mockDiskClient := mockDiskClient{
-		disk:         nil,
-		getDiskError: errors.New(""),
+		disk:            nil,
+		deleteDiskError: &googleapi.Error{Code: 403},
 	}
 
 	importer := importer{
@@ -142,6 +159,7 @@ func TestRun_DontDeleteDiskIfErrorWhenRetrievingDisk(t *testing.T) {
 	assert.Equal(t, 1, mockDiskClient.interactions)
 	assert.Equal(t, project, mockDiskClient.project)
 	assert.Equal(t, zone, mockDiskClient.zone)
+	assert.True(t, strings.Contains(buf.String(), "Failed to remove temporary disk"))
 }
 
 func TestRun_DontRunInflate_IfPreValidationFails(t *testing.T) {
@@ -333,7 +351,6 @@ type mockProcessor struct {
 	interactions   int
 	processingTime time.Duration
 	processingChan chan bool
-	cancelError    error
 	cantCancel     bool
 	cancelChan     chan bool
 }
@@ -401,7 +418,7 @@ type mockDiskClient struct {
 	interactions                 int
 	project, zone, uri, diskName string
 	disk                         *compute.Disk
-	getDiskError                 error
+	deleteDiskError              error
 }
 
 func (m *mockDiskClient) DeleteDisk(project, zone, uri string) error {
@@ -409,7 +426,7 @@ func (m *mockDiskClient) DeleteDisk(project, zone, uri string) error {
 	m.project = project
 	m.zone = zone
 	m.uri = uri
-	return nil
+	return m.deleteDiskError
 }
 
 type mockValidator struct {

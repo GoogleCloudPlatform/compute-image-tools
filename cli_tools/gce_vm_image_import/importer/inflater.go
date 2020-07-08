@@ -48,8 +48,6 @@ type daisyInflater struct {
 	inflatedDiskURI string
 	serialLogs      []string
 	diskClient      diskClient
-	project         string
-	zone            string
 }
 
 func (inflater *daisyInflater) inflate() (persistentDisk, error) {
@@ -124,8 +122,6 @@ func createDaisyInflater(args ImportArguments) (inflater, error) {
 	return &daisyInflater{
 		wf:              wf,
 		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", args.Zone, diskName),
-		project:         args.Project,
-		zone:            args.Zone,
 	}, nil
 }
 
