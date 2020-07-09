@@ -36,8 +36,9 @@ const (
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type inflater interface {
-	inflate(ctx context.Context) (persistentDisk, error)
+	inflate() (persistentDisk, error)
 	traceLogs() []string
+	cancel(reason string) bool
 }
 
 // daisyInflater implements an inflater using daisy workflows, and is capable
@@ -46,13 +47,11 @@ type daisyInflater struct {
 	wf              *daisy.Workflow
 	inflatedDiskURI string
 	serialLogs      []string
+	diskClient      diskClient
 }
 
-func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
-	err := inflater.wf.Run(ctx)
-	if err != nil {
-		return persistentDisk{}, err
-	}
+func (inflater *daisyInflater) inflate() (persistentDisk, error) {
+	err := inflater.wf.Run(context.Background())
 	if inflater.wf.Logger != nil {
 		inflater.serialLogs = inflater.wf.Logger.ReadSerialPortLogs()
 	}
@@ -65,7 +64,7 @@ func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, erro
 		sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
 		sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
 		sourceType: importFileFormat,
-	}, nil
+	}, err
 }
 
 type persistentDisk struct {
@@ -114,13 +113,13 @@ func createDaisyInflater(args ImportArguments) (inflater, error) {
 		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
 	}
 
-	return daisyInflater{
+	return &daisyInflater{
 		wf:              wf,
 		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", args.Zone, diskName),
 	}, nil
 }
 
-func (inflater daisyInflater) traceLogs() []string {
+func (inflater *daisyInflater) traceLogs() []string {
 	return inflater.serialLogs
 }
 
@@ -145,4 +144,9 @@ func getDisk(workflow *daisy.Workflow, diskIndex int) *daisy.Disk {
 	}
 
 	panic("Did not find CreateDisks step.")
+}
+
+func (inflater *daisyInflater) cancel(reason string) bool {
+	inflater.wf.CancelWithReason(reason)
+	return true
 }

@@ -15,11 +15,18 @@
 package importer
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func TestRun_HappyCase_CollectAllLogs(t *testing.T) {
@@ -57,7 +64,9 @@ func TestRun_DeleteDisk(t *testing.T) {
 	project := "project"
 	zone := "zone"
 	diskURI := "uri"
-	mockDiskClient := mockDiskClient{}
+	mockDiskClient := mockDiskClient{
+		disk: &compute.Disk{},
+	}
 
 	importer := importer{
 		project:      project,
@@ -79,6 +88,78 @@ func TestRun_DeleteDisk(t *testing.T) {
 	assert.Equal(t, project, mockDiskClient.project)
 	assert.Equal(t, zone, mockDiskClient.zone)
 	assert.Equal(t, diskURI, mockDiskClient.uri)
+}
+
+func TestRun_NoErrorLoggedWhenDeletingDiskThatWasNotCreated(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+	project := "project"
+	zone := "zone"
+	diskURI := "uri"
+	mockDiskClient := mockDiskClient{
+		disk:            nil,
+		deleteDiskError: &googleapi.Error{Code: 404},
+	}
+
+	importer := importer{
+		project:      project,
+		zone:         zone,
+		diskClient:   &mockDiskClient,
+		preValidator: mockValidator{},
+		inflater: &mockInflater{
+			pd: persistentDisk{
+				uri: diskURI,
+			},
+		},
+		processorProvider: &mockProcessorProvider{
+			processor: &mockProcessor{},
+		},
+	}
+	_, actualError := importer.Run(context.Background())
+	assert.NoError(t, actualError)
+	assert.Equal(t, 1, mockDiskClient.interactions)
+	assert.Equal(t, project, mockDiskClient.project)
+	assert.Equal(t, zone, mockDiskClient.zone)
+	assert.Equal(t, "", buf.String())
+}
+
+func TestRun_ErrorLoggedWhenErrorDeletingDisk(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+	project := "project"
+	zone := "zone"
+	diskURI := "uri"
+	mockDiskClient := mockDiskClient{
+		disk:            nil,
+		deleteDiskError: &googleapi.Error{Code: 403},
+	}
+
+	importer := importer{
+		project:      project,
+		zone:         zone,
+		diskClient:   &mockDiskClient,
+		preValidator: mockValidator{},
+		inflater: &mockInflater{
+			pd: persistentDisk{
+				uri: diskURI,
+			},
+		},
+		processorProvider: &mockProcessorProvider{
+			processor: &mockProcessor{},
+		},
+	}
+	_, actualError := importer.Run(context.Background())
+	assert.NoError(t, actualError)
+	assert.Equal(t, 1, mockDiskClient.interactions)
+	assert.Equal(t, project, mockDiskClient.project)
+	assert.Equal(t, zone, mockDiskClient.zone)
+	assert.True(t, strings.Contains(buf.String(), "Failed to remove temporary disk"))
 }
 
 func TestRun_DontRunInflate_IfPreValidationFails(t *testing.T) {
@@ -143,7 +224,9 @@ func TestRun_DeleteDisk_WhenFailureToCreateProcessor(t *testing.T) {
 	project := "project"
 	zone := "zone"
 	diskURI := "uri"
-	mockDiskClient := mockDiskClient{}
+	mockDiskClient := mockDiskClient{
+		disk: &compute.Disk{},
+	}
 
 	expectedError := errors.New("the errors")
 	importer := importer{
@@ -168,6 +251,89 @@ func TestRun_DeleteDisk_WhenFailureToCreateProcessor(t *testing.T) {
 	assert.Equal(t, diskURI, mockDiskClient.uri)
 }
 
+func TestRun_DontRunProcessIfTimedOutDuringInflate(t *testing.T) {
+	mockProcessor := mockProcessor{
+		processingTime: 10 * time.Second,
+	}
+	mockProcessorProvider := mockProcessorProvider{
+		processor: &mockProcessor,
+	}
+	inflater := &mockInflater{
+		inflationTime: 5 * time.Second,
+	}
+	importer := importer{
+		preValidator:      mockValidator{},
+		inflater:          inflater,
+		processorProvider: &mockProcessorProvider,
+		timeout:           100 * time.Millisecond,
+	}
+	start := time.Now()
+	loggable, actualError := importer.Run(context.Background())
+	duration := time.Since(start)
+
+	assert.NotNil(t, loggable)
+	assert.NotNil(t, actualError)
+	assert.Equal(t, 1, inflater.interactions)
+	assert.Equal(t, 0, mockProcessorProvider.interactions)
+	assert.Equal(t, 0, mockProcessor.interactions)
+
+	// to ensure inflater got interrupted and didn't run the full 10 seconds
+	assert.True(t, duration < time.Duration(1)*time.Second)
+}
+
+func TestRun_ProcessInterruptedTimeout(t *testing.T) {
+	mockProcessor := mockProcessor{
+		processingTime: time.Duration(10) * time.Second,
+	}
+	mockProcessorProvider := mockProcessorProvider{
+		processor: &mockProcessor,
+	}
+	mockInflater := &mockInflater{}
+	importer := importer{
+		preValidator:      mockValidator{},
+		inflater:          mockInflater,
+		processorProvider: &mockProcessorProvider,
+		timeout:           time.Duration(100) * time.Millisecond,
+	}
+	start := time.Now()
+	loggable, actualError := importer.Run(context.Background())
+	duration := time.Since(start)
+
+	assert.NotNil(t, loggable)
+	assert.NotNil(t, actualError)
+	assert.Equal(t, 1, mockInflater.interactions)
+	assert.Equal(t, 1, mockProcessor.interactions)
+
+	// to ensure processor got interrupted and didn't run the full 10 seconds
+	assert.True(t, duration < time.Duration(1)*time.Second)
+}
+
+func TestRun_ProcessCantTimeoutImportSucceeds(t *testing.T) {
+	mockProcessor := mockProcessor{
+		processingTime: time.Duration(1) * time.Second,
+		cantCancel:     true,
+	}
+	mockProcessorProvider := mockProcessorProvider{
+		processor: &mockProcessor,
+	}
+	mockInflater := &mockInflater{}
+	importer := importer{
+		preValidator:      mockValidator{},
+		inflater:          mockInflater,
+		processorProvider: &mockProcessorProvider,
+		timeout:           time.Duration(100) * time.Millisecond,
+	}
+	start := time.Now()
+	loggable, actualError := importer.Run(context.Background())
+	duration := time.Since(start)
+
+	assert.NotNil(t, loggable)
+	assert.Nil(t, actualError)
+	assert.Equal(t, 1, mockInflater.interactions)
+	assert.Equal(t, 1, mockProcessor.interactions)
+	assert.True(t, duration > importer.timeout)
+}
+
 type mockProcessorProvider struct {
 	processor    processor
 	err          error
@@ -180,39 +346,79 @@ func (m *mockProcessorProvider) provide(pd persistentDisk) (processor, error) {
 }
 
 type mockProcessor struct {
-	serialLogs   []string
-	err          error
-	interactions int
+	serialLogs     []string
+	err            error
+	interactions   int
+	processingTime time.Duration
+	processingChan chan bool
+	cantCancel     bool
+	cancelChan     chan bool
 }
 
-func (m *mockProcessor) process(ctx context.Context) error {
+func (m *mockProcessor) process() error {
 	m.interactions++
+	m.cancelChan = make(chan bool)
+
+	if m.processingTime > 0 {
+		select {
+		case <-m.cancelChan:
+			break
+		case <-time.After(m.processingTime):
+			break
+		}
+	}
+
 	return m.err
 }
 
-func (m mockProcessor) traceLogs() []string {
+func (m *mockProcessor) traceLogs() []string {
 	return m.serialLogs
+}
+
+func (m *mockProcessor) cancel(reason string) bool {
+	m.cancelChan <- true
+	return !m.cantCancel
 }
 
 type mockInflater struct {
-	serialLogs   []string
-	pd           persistentDisk
-	err          error
-	interactions int
+	serialLogs    []string
+	pd            persistentDisk
+	err           error
+	interactions  int
+	inflationTime time.Duration
+	cancelChan    chan bool
 }
 
-func (m *mockInflater) inflate(ctx context.Context) (persistentDisk, error) {
+func (m *mockInflater) inflate() (persistentDisk, error) {
 	m.interactions++
+	m.cancelChan = make(chan bool)
+
+	if m.inflationTime > 0 {
+		select {
+		case <-m.cancelChan:
+			break
+		case <-time.After(m.inflationTime):
+			break
+		}
+	}
+
 	return m.pd, m.err
 }
 
-func (m mockInflater) traceLogs() []string {
+func (m *mockInflater) traceLogs() []string {
 	return m.serialLogs
 }
 
+func (m *mockInflater) cancel(reason string) bool {
+	m.cancelChan <- true
+	return true
+}
+
 type mockDiskClient struct {
-	interactions       int
-	project, zone, uri string
+	interactions                 int
+	project, zone, uri, diskName string
+	disk                         *compute.Disk
+	deleteDiskError              error
 }
 
 func (m *mockDiskClient) DeleteDisk(project, zone, uri string) error {
@@ -220,7 +426,7 @@ func (m *mockDiskClient) DeleteDisk(project, zone, uri string) error {
 	m.project = project
 	m.zone = zone
 	m.uri = uri
-	return nil
+	return m.deleteDiskError
 }
 
 type mockValidator struct {

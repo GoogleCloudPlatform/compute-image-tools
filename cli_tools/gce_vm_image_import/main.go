@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/compute"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging"
@@ -31,7 +32,8 @@ import (
 )
 
 func main() {
-	log.SetPrefix("[import-image] ")
+	log.SetFlags(0)
+	log.SetOutput(new(logWriter))
 	ctx := context.Background()
 
 	// 1. Parse the args without validating or populating. Splitting parsing and
@@ -81,6 +83,12 @@ func main() {
 		service.ImageImportAction, initLoggingParams(importArgs), &project, importClosure); err != nil {
 		os.Exit(1)
 	}
+}
+
+type logWriter struct{}
+
+func (l *logWriter) Write(bytes []byte) (int, error) {
+	return fmt.Printf("[import-image]: %v %v", time.Now().UTC().Format("2006-01-02T15:04:05.999Z"), string(bytes))
 }
 
 // terminate is used when there is a failure prior to running import. It sends
