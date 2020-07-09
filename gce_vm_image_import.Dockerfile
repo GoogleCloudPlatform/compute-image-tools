@@ -14,11 +14,13 @@
 
 FROM debian:stretch
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y curl qemu-utils gnupg
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y qemu-utils gnupg
 RUN echo "deb http://packages.cloud.google.com/apt gcsfuse-stretch main" > /etc/apt/sources.list.d/gcsfuse.list
+# gcsfuse, installed using instructions from:
+#  https://github.com/GoogleCloudPlatform/gcsfuse/blob/master/docs/installing.md
 COPY gcsfuse-apt-key.gpg .
 RUN apt-key add gcsfuse-apt-key.gpg
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y gcsfuse qemu-utils
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y gcsfuse
 COPY linux/gce_vm_image_import /gce_vm_image_import
 COPY daisy_workflows/ /daisy_workflows/
 

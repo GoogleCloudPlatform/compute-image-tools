@@ -17,18 +17,18 @@ package vdisk
 import (
 	"context"
 	"fmt"
-	"net/url"
+	"math"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/gcsfuse"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 
 	"github.com/cenkalti/backoff/v4"
 )
 
-const bytesPerBG = int64(1024 * 1024 * 1024)
+const bytesPerGB = int64(1024 * 1024 * 1024)
 
 // VirtualDiskFileMetadata contains metadata about a virtual disk file.
 type VirtualDiskFileMetadata struct {
@@ -74,18 +74,18 @@ func (inspector gcsInspector) Inspect(ctx context.Context, gcsURI string) (metad
 }
 
 func (inspector gcsInspector) inspectOnce(ctx context.Context, gcsURI string) (metadata VirtualDiskFileMetadata, err error) {
-	bucket, object, err := segmentGCSURI(gcsURI)
+	bucket, object, err := storage.GetGCSObjectPathElements(gcsURI)
 	if err != nil {
 		return metadata, err
 	}
 	mountedDirectory, err := inspector.fuseClient.MountToTemp(ctx, bucket)
+	defer inspector.fuseClient.Unmount(mountedDirectory)
 	if err != nil {
 		return metadata, err
 	}
-	defer inspector.fuseClient.Unmount(mountedDirectory)
 	absPath := path.Join(mountedDirectory, object)
 	if !files.Exists(absPath) {
-		return metadata, fmt.Errorf("the file %q was not found", absPath)
+		return metadata, fmt.Errorf("the file %q was not found", gcsURI)
 	}
 	imageInfo, err := inspector.qemuClient.GetInfo(ctx, absPath)
 	if err != nil {
@@ -98,27 +98,7 @@ func (inspector gcsInspector) inspectOnce(ctx context.Context, gcsURI string) (m
 	}, nil
 }
 
-func segmentGCSURI(gcsURI string) (bucket string, object string, err error) {
-	if !strings.HasPrefix(gcsURI, "gs://") {
-		return "", "", fmt.Errorf("unrecognized GCS URI: %q", gcsURI)
-	}
-	u, err := url.Parse(gcsURI)
-	if err != nil {
-		return "", "", err
-	}
-	bucket = u.Hostname()
-	object = strings.TrimPrefix(u.Path, "/")
-	if bucket == "" || object == "" {
-		return "", "", fmt.Errorf("unrecognized GCS URI: %q", gcsURI)
-	}
-	return bucket, object, nil
-}
-
 // bytesToGB rounds up to the nearest GB.
 func bytesToGB(bytes int64) int64 {
-	gb := bytes / bytesPerBG
-	if bytes%bytesPerBG == 0 {
-		return gb
-	}
-	return gb + 1
+	return int64(math.Ceil(float64(bytes) / float64(bytesPerGB)))
 }

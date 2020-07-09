@@ -43,7 +43,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			sizeArg:               "50G",
 			formatArg:             "vmdk",
 			expectedFormat:        FormatVMDK,
-			expectedVirtualSizeGB: 50 * bytesPerBG,
+			expectedVirtualSizeGB: 50 * bytesPerGB,
 		},
 
 		{
@@ -67,7 +67,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			sizeArg:               "1G",
 			formatArg:             "vdi",
 			expectedFormat:        FormatVDI,
-			expectedVirtualSizeGB: bytesPerBG,
+			expectedVirtualSizeGB: bytesPerGB,
 		},
 
 		{
@@ -75,7 +75,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			sizeArg:               "2G",
 			formatArg:             "qcow2",
 			expectedFormat:        FormatQCOW2,
-			expectedVirtualSizeGB: 2 * bytesPerBG,
+			expectedVirtualSizeGB: 2 * bytesPerGB,
 		},
 
 		{
@@ -83,7 +83,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			sizeArg:               "4G",
 			formatArg:             "raw",
 			expectedFormat:        FormatRAW,
-			expectedVirtualSizeGB: 4 * bytesPerBG,
+			expectedVirtualSizeGB: 4 * bytesPerGB,
 		},
 	}
 
@@ -108,7 +108,7 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			// Testing to the nearest GB, since that's what the GCP APIs use, and
 			// because some image formats have additional overhead such that
 			// the virtual size doesn't match the requested size in qemu-img create.
-			assert.Equal(t, tt.expectedVirtualSizeGB/bytesPerBG, imageInfo.VirtualSizeBytes/bytesPerBG)
+			assert.Equal(t, tt.expectedVirtualSizeGB/bytesPerGB, imageInfo.VirtualSizeBytes/bytesPerGB)
 		})
 	}
 }

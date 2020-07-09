@@ -36,6 +36,9 @@ const (
 	// values used by inspection. When using default values, the worker may
 	// need to resize the PDs, which requires escalated privileges.
 	inspectionTimeout = time.Second * 3
+
+	// 10GB is the default disk size used in inflate_file.wf.json.
+	defaultInflationDiskSizeGB = 10
 )
 
 // inflater constructs a new persistentDisk, typically starting from a
@@ -181,16 +184,16 @@ func calculateScratchDiskSize(metadata vdisk.VirtualDiskFileMetadata) int64 {
 	// This uses the historic padding calculation from import_image.sh: add ten percent,
 	// and round up.
 	padded := int64(float64(metadata.PhysicalSizeGB)*1.1) + 1
-	if padded < 10 {
-		return 10
+	if padded < defaultInflationDiskSizeGB {
+		return defaultInflationDiskSizeGB
 	}
 	return padded
 }
 
 // Ensure a minimum of 10GB (the minimum size of a GCP disk)
 func calculateInflatedSize(metadata vdisk.VirtualDiskFileMetadata) int64 {
-	if metadata.VirtualSizeGB < 10 {
-		return 10
+	if metadata.VirtualSizeGB < defaultInflationDiskSizeGB {
+		return defaultInflationDiskSizeGB
 	}
 	return metadata.VirtualSizeGB
 }

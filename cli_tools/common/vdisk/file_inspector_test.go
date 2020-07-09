@@ -42,25 +42,25 @@ func TestGCSInspector_RoundBytesUp(t *testing.T) {
 
 		{
 			name:              "whole doesn't round up",
-			actualSizeBytes:   bytesPerBG * 10,
+			actualSizeBytes:   bytesPerGB * 10,
 			expectedActualGB:  10,
-			virtualSizeBytes:  bytesPerBG * 8,
+			virtualSizeBytes:  bytesPerGB * 8,
 			expectedVirtualGB: 8,
 		},
 
 		{
 			name:              "plus one rounds up",
-			actualSizeBytes:   bytesPerBG + 1,
+			actualSizeBytes:   bytesPerGB + 1,
 			expectedActualGB:  2,
-			virtualSizeBytes:  (bytesPerBG * 2) + 1,
+			virtualSizeBytes:  (bytesPerGB * 2) + 1,
 			expectedVirtualGB: 3,
 		},
 
 		{
 			name:              "minus one rounds up",
-			actualSizeBytes:   bytesPerBG - 1,
+			actualSizeBytes:   bytesPerGB - 1,
 			expectedActualGB:  1,
-			virtualSizeBytes:  (bytesPerBG * 2) - 1,
+			virtualSizeBytes:  (bytesPerGB * 2) - 1,
 			expectedVirtualGB: 2,
 		},
 	}
@@ -198,69 +198,4 @@ func (m *mockQemuClient) GetInfo(ctx context.Context, filename string) (ImageInf
 		return ImageInfo{}, err
 	}
 	return m.returnValue, nil
-}
-
-func Test_segmentGCSURI(t *testing.T) {
-	tests := []struct {
-		name       string
-		gcsURI     string
-		wantBucket string
-		wantObject string
-		wantErr    string
-	}{
-		{
-			name:       "empty input",
-			gcsURI:     "",
-			wantBucket: "",
-			wantObject: "",
-			wantErr:    "unrecognized GCS URI",
-		},
-		{
-			name:       "missing protocol",
-			gcsURI:     "bucket/object",
-			wantBucket: "",
-			wantObject: "",
-			wantErr:    "unrecognized GCS URI",
-		},
-		{
-			name:       "missing object 1",
-			gcsURI:     "gcs://bucket",
-			wantBucket: "",
-			wantObject: "",
-			wantErr:    "unrecognized GCS URI",
-		},
-		{
-			name:       "missing object 2",
-			gcsURI:     "gs://bucket/",
-			wantBucket: "",
-			wantObject: "",
-			wantErr:    "unrecognized GCS URI",
-		},
-		{
-			name:       "object with internal slash",
-			gcsURI:     "gs://bucket/path/object",
-			wantBucket: "bucket",
-			wantObject: "path/object",
-		},
-		{
-			name:       "object with internal slash",
-			gcsURI:     "gs://bucket/path/object",
-			wantBucket: "bucket",
-			wantObject: "path/object",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotBucket, gotObject, err := segmentGCSURI(tt.gcsURI)
-			t.Logf("%s %s %s", gotBucket, gotObject, err)
-			if tt.wantErr == "" {
-				assert.NoError(t, err)
-			} else {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.wantErr)
-			}
-			assert.Equal(t, tt.wantBucket, gotBucket)
-			assert.Equal(t, tt.wantObject, gotObject)
-		})
-	}
 }
