@@ -99,8 +99,9 @@ def DistroSpecific(g):
   ubu_release = utils.GetMetadataAttribute('ubuntu_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
 
-  # Remove any hard coded DNS settings in resolvconf.
-  if ubu_release != 'bionic':
+  # If present, remove any hard coded DNS settings in resolvconf.
+  if ubu_release != 'bionic' and \
+      g.exists('/etc/resolvconf/resolv.conf.d/base'):
     logging.info('Resetting resolvconf base.')
     g.sh('echo "" > /etc/resolvconf/resolv.conf.d/base')
 
