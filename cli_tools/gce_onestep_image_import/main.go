@@ -39,7 +39,7 @@ func main() {
 
 	// 2. Run Onestep Importer
 	if err := service.RunWithServerLogging(
-		service.OneStepImageImportAction, initLoggingParams(importerArgs), &importerArgs.Project, importEntry); err != nil {
+		service.OneStepImageImportAction, initLoggingParams(importerArgs), importerArgs.ProjectPtr, importEntry); err != nil {
 		os.Exit(1)
 	}
 }
@@ -54,8 +54,8 @@ func initLoggingParams(args *importer.OneStepImportArguments) service.InputParam
 					Subnet:                  args.Subnet,
 					Zone:                    args.Zone,
 					Timeout:                 args.Timeout.String(),
-					Project:                 args.Project,
-					ObfuscatedProject:       service.Hash(args.Project),
+					Project:                 *args.ProjectPtr,
+					ObfuscatedProject:       service.Hash(*args.ProjectPtr),
 					Labels:                  fmt.Sprintf("%v", args.Labels),
 					ScratchBucketGcsPath:    args.ScratchBucketGcsPath,
 					Oauth:                   args.Oauth,

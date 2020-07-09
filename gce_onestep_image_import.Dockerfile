@@ -12,17 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM gcr.io/distroless/base
 
-FROM debian
-
-# 1 - aws cli
-RUN apt-get update
-RUN apt-get -y install zip unzip curl
-RUN curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
-RUN unzip awscliv2.zip
-RUN ./aws/install
-
-# 2 - onestep-importer cli
 COPY linux/gce_onestep_image_import /gce_onestep_image_import
 COPY linux/gce_vm_image_import /gce_vm_image_import
 COPY daisy_workflows/ /daisy_workflows/

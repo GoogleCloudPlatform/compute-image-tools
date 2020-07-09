@@ -23,8 +23,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/dustin/go-humanize"
 )
 
@@ -38,48 +40,61 @@ func runCmd(name string, args []string) error {
 	return cmd.Run()
 }
 
+// handleTimeout signals caller by closing the timeout channel after the
+// specified time has elapsed.
+func handleTimeout(timeout time.Duration, timeoutChan chan struct{}) {
+	time.Sleep(timeout)
+	close(timeoutChan)
+}
+
 // cloudProviderImporter represents the importer for various cloud providers.
 type cloudProviderImporter interface {
-	run() (string, error)
+	run(args *OneStepImportArguments) error
 }
 
 // newImporterFormCloudProvider evaluates the cloud provider of the source image
 // and creates a new instance of cloudProviderImporter
 func newImporterForCloudProvider(args *OneStepImportArguments) (cloudProviderImporter, error) {
 	if args.CloudProvider == "aws" {
-		importer, err := newAWSImporter(args.Oauth, newAWSImportArguments(args))
+		importer, err := newAWSImporter(args.Oauth, args.TimeoutChan, newAWSImportArguments(args))
 		if err != nil {
 			return nil, err
 		}
 		return importer, nil
 	}
-	return nil, fmt.Errorf("image import from cloud provider %v is "+
+	return nil, daisy.Errf("image import from cloud provider %v is "+
 		"currently not supported", args.CloudProvider)
 }
 
 // importFromCloudProvider imports image from the specified cloud provider
 func importFromCloudProvider(args *OneStepImportArguments) error {
-	// 1. import from specified cloud provider
+	cleanup := sync.WaitGroup{}
+	// 1. Get importer
 	importer, err := newImporterForCloudProvider(args)
 	if err != nil {
 		return err
 	}
-	exportedGCSPath, err := importer.run()
-	if err != nil {
+
+	// 2. Run importer
+	errChan := make(chan error, 1)
+	cleanup.Add(1)
+	go func() {
+		errChan <- importer.run(args)
+		cleanup.Done()
+	}()
+
+	// 3. Run timeout
+	go handleTimeout(args.Timeout, args.TimeoutChan)
+
+	// 4. Ensure timeout is not exceeded before workflow is finished
+	select {
+	case err := <-errChan:
 		return err
+	case <-args.TimeoutChan:
+		// wait to make sure importer has cancelled running tasks
+		cleanup.Wait()
+		return daisy.Errf("timeout exceeded")
 	}
-
-	// 2. update source file flag
-	args.SourceFile = exportedGCSPath
-
-	// 3. run image import
-	err = runImageImport(args)
-	if err != nil {
-		log.Printf("Failed to import image. "+
-			"The image file is copied to  Cloud Storage, located at %v. "+
-			"To resume the import process, please directly use image import from Cloud Storage.\n", exportedGCSPath)
-	}
-	return err
 }
 
 // runImageImport calls image import
@@ -97,7 +112,7 @@ func runImageImport(args *OneStepImportArguments) error {
 		fmt.Sprintf("-subnet=%v", args.Subnet),
 		fmt.Sprintf("-zone=%v", args.Zone),
 		fmt.Sprintf("-timeout=%v", args.Timeout),
-		fmt.Sprintf("-project=%v", args.Project),
+		fmt.Sprintf("-project=%v", *args.ProjectPtr),
 		fmt.Sprintf("-scratch_bucket_gcs_path=%v", args.ScratchBucketGcsPath),
 		fmt.Sprintf("-oauth=%v", args.Oauth),
 		fmt.Sprintf("-compute_endpoint_override=%v", args.ComputeEndpoint),
@@ -108,7 +123,7 @@ func runImageImport(args *OneStepImportArguments) error {
 		fmt.Sprintf("-labels=%v", flags.KeyValueString(args.Labels).String()),
 		fmt.Sprintf("-storage_location=%v", args.StorageLocation)})
 	if err != nil {
-		return err
+		return daisy.Errf("failed to import image: %v", err)
 	}
 	return nil
 }
@@ -119,20 +134,31 @@ type uploader struct {
 	writer        io.WriteCloser
 	totalUploaded int64
 	totalFileSize int64
-	err           error
+	uploadErr     error
 	sync.Mutex
 	sync.WaitGroup
+
+	uploadFileFn func()
+	cleanupFn    func()
 }
 
 // uploadFile uploads file chunks to writer
 func (uploader *uploader) uploadFile() {
+	// Used to test.
+	if uploader.uploadFileFn != nil {
+		uploader.uploadFileFn()
+		return
+	}
+
 	defer uploader.Done()
 	for reader := range uploader.readerChan {
 		defer reader.Close()
 		n, err := io.Copy(uploader.writer, reader)
+		uploader.Lock()
 		if err != nil {
-			uploader.err = err
+			uploader.uploadErr = err
 		}
+		uploader.Unlock()
 		uploader.totalUploaded += n
 		log.Printf("Total written size: %v of %v.", humanize.IBytes(uint64(uploader.totalUploaded)), humanize.IBytes(uint64(uploader.totalFileSize)))
 	}
@@ -140,10 +166,18 @@ func (uploader *uploader) uploadFile() {
 
 // cleanup cleans up all resources.
 func (uploader *uploader) cleanup() {
+	// Used to test.
+	if uploader.cleanupFn != nil {
+		uploader.cleanupFn()
+		return
+	}
+
+	uploader.Lock()
 	close(uploader.readerChan)
 	for reader := range uploader.readerChan {
 		reader.Close()
 	}
 	uploader.writer.Close()
 	uploader.Done()
+	uploader.Unlock()
 }

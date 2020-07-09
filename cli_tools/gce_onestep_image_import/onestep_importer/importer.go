@@ -24,6 +24,7 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/flags"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // OneStepImportArguments holds the structured results of parsing CLI arguments,
@@ -46,7 +47,7 @@ type OneStepImportArguments struct {
 	NoGuestEnvironment   bool
 	Oauth                string
 	OS                   string
-	Project              string
+	ProjectPtr           *string
 	Region               string
 	ScratchBucketGcsPath string
 	SourceFile           string
@@ -55,6 +56,7 @@ type OneStepImportArguments struct {
 	Subnet               string
 	SysprepWindows       bool
 	Timeout              time.Duration
+	TimeoutChan          chan struct{}
 	UefiCompatible       bool
 	Zone                 string
 
@@ -79,9 +81,11 @@ const (
 func NewOneStepImportArguments(args []string) (*OneStepImportArguments, error) {
 	importArgs := &OneStepImportArguments{}
 	importArgs.ExecutablePath = os.Args[0]
+	importArgs.TimeoutChan = make(chan struct{})
+	importArgs.ProjectPtr = new(string)
 	flagSet := importArgs.getFlagSet()
 	if err := flagSet.Parse(args); err != nil {
-		return nil, err
+		return nil, daisy.ToDError(err)
 	}
 
 	// add label to indicate the image import is run from onestep import
@@ -136,7 +140,7 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	flagSet.Var((*flags.LowerTrimmedString)(&args.ClientID), clientFlag,
 		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
 
-	flagSet.Var((*flags.TrimmedString)(&args.Project), "project",
+	flagSet.Var((*flags.TrimmedString)(args.ProjectPtr), "project",
 		"The project where workflows will be run, and where the resulting image will be stored.")
 
 	flagSet.Var((*flags.TrimmedString)(&args.Network), "network",

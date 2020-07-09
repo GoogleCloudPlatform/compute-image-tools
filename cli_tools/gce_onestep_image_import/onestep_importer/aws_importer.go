@@ -31,11 +31,14 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	pathutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/path"
 	storageutils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/dustin/go-humanize"
 	"google.golang.org/api/option"
 	htransport "google.golang.org/api/transport/http"
@@ -48,22 +51,31 @@ const (
 	logPrefix       = "[onestep-import-image-aws]"
 )
 
-// awsImporter is responsible for importing image from AWS
+// awsImporter is responsible for importing image from AWS.
 type awsImporter struct {
 	args           *awsImportArguments
 	gcsClient      domain.StorageClientInterface
 	ctx            context.Context
 	oauth          string
 	paramPopulator param.Populator
+	timeout        chan struct{}
+	uploader       uploader
 
 	// AWS clients for SDK
-	ec2Client *ec2.EC2
-	s3Client  *s3.S3
+	ec2Client ec2iface.EC2API
+	s3Client  s3iface.S3API
+
+	// Mock functions for test
+	exportAWSImageFn            func() error
+	monitorAWSExportImageTaskFn func() error
+	getAWSFileSizeFn            func() error
+	copyFromS3ToGCSFn           func() (string, error)
+	transferFileFn              func() error
 }
 
 // newAWSImporter creates an new awsImporter instance.
 // Automatically populating dependencies, such as compute/storage clients.
-func newAWSImporter(oauth string, args *awsImportArguments) (*awsImporter, error) {
+func newAWSImporter(oauth string, timeout chan struct{}, args *awsImportArguments) (*awsImporter, error) {
 	ctx := context.Background()
 	client, err := createGCSClient(ctx, oauth)
 	if err != nil {
@@ -96,6 +108,8 @@ func newAWSImporter(oauth string, args *awsImportArguments) (*awsImporter, error
 		ctx:            ctx,
 		oauth:          oauth,
 		paramPopulator: paramPopulator,
+		timeout:        timeout,
+		uploader:       uploader{},
 	}
 
 	return importer, nil
@@ -118,68 +132,94 @@ func createGCSClient(ctx context.Context, oauth string) (domain.StorageClientInt
 	}
 	transport, err := htransport.NewTransport(ctx, baseTransport)
 	if err != nil {
-		return nil, err
+		return nil, daisy.Errf("failed to create Cloud Storage client: %v", err)
 	}
 
-	return storageutils.NewStorageClient(ctx, logger, option.WithHTTPClient(&http.Client{Transport: transport}),
+	storage, err := storageutils.NewStorageClient(ctx, logger, option.WithHTTPClient(&http.Client{Transport: transport}),
 		option.WithCredentialsFile(oauth))
+	if err != nil {
+		return nil, daisy.Errf("failed to create Cloud Storage client: %v", err)
+	}
+	return storage, nil
 }
 
 // createAWSSession creates a new Session for AWS SDK.
 func createAWSSession(region, accessKeyID, secretAccessKey, sessionToken string) (*session.Session, error) {
-	return session.NewSession(&aws.Config{
+	session, err := session.NewSession(&aws.Config{
 		Region: aws.String(region),
 		Credentials: credentials.NewStaticCredentials(
 			accessKeyID,
 			secretAccessKey,
 			sessionToken),
 	})
+	if err != nil {
+		return nil, daisy.Errf("failed to create AWS session: %v", err)
+	}
+	return session, nil
 }
 
-// Run runs aws import workflow.
-func (importer *awsImporter) run() (string, error) {
-	//0. validate AWS args
+// run runs the aws importer to import AMI.
+func (importer *awsImporter) run(args *OneStepImportArguments) error {
+	start := time.Now()
+	//1. validate AWS args
 	err := importer.args.validateAndPopulate(importer.paramPopulator)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	// 1. export AMI to AWS S3 if user did not specify an exported AMI path.
-	if importer.args.exportedAMIPath == "" {
+	// 2. export AMI to AWS S3 if user did not specify an exported AMI path.
+	if importer.args.isExportRequired() {
+		log.Println("Starting to export image ...")
 		err = importer.exportAWSImage()
 		if err != nil {
-			return "", err
+			return err
 		}
 	}
-
-	// 2. copy from S3 to GCS
 	if err := importer.getAWSFileSize(); err != nil {
-		return "", err
+		return err
 	}
 
+	// 3. copy from S3 to GCS
 	log.Println("Starting to copy ...")
-	start := time.Now()
 	gcsFilePath, err := importer.copyFromS3ToGCS()
 	if err != nil {
-		return "", err
+		return err
 	}
-	log.Printf("Successfully copied to %v in %v.\n", gcsFilePath, time.Since(start))
 
-	return gcsFilePath, nil
+	// 4. run image import
+	log.Println("Starting to import image ...")
+
+	// update source file flag to copied GCS destination
+	args.SourceFile = gcsFilePath
+	// adjust timeout, accounting for clean up time
+	args.Timeout = args.Timeout - time.Since(start) - time.Minute*2
+	err = runImageImport(args)
+	if err != nil {
+		log.Printf("Failed to import image. "+
+			"The image file is copied to  Cloud Storage, located at %v. "+
+			"To resume the import process, please directly use image import from Cloud Storage.\n", gcsFilePath)
+		return err
+	}
+
+	return nil
 }
 
 // getAWSFileSize gets the size of the file to copy from S3 to GCS.
 func (importer *awsImporter) getAWSFileSize() error {
+	if importer.getAWSFileSizeFn != nil {
+		return importer.getAWSFileSizeFn()
+	}
+
 	resp, err := importer.s3Client.HeadObject(&s3.HeadObjectInput{
 		Bucket: aws.String(importer.args.exportBucket),
 		Key:    aws.String(importer.args.exportKey),
 	})
 	if err != nil {
-		return err
+		return daisy.Errf("failed to get file size: %v", err)
 	}
-	fileSize := *resp.ContentLength
+	fileSize := aws.Int64Value(resp.ContentLength)
 	if fileSize <= 0 {
-		return fmt.Errorf("file is empty")
+		return daisy.Errf("file is empty")
 	}
 
 	importer.args.exportFileSize = fileSize
@@ -193,6 +233,10 @@ func getExportImageTask(task *ec2.ExportImageTask) (string, string, string) {
 
 // exportAWSImage calls 'aws ec2 export-image' command to export AMI to S3
 func (importer *awsImporter) exportAWSImage() error {
+	if importer.exportAWSImageFn != nil {
+		return importer.exportAWSImageFn()
+	}
+
 	// 1. send export request
 	s3ExportLocation := &ec2.ExportTaskS3LocationRequest{
 		S3Bucket: aws.String(importer.args.exportBucket),
@@ -206,46 +250,20 @@ func (importer *awsImporter) exportAWSImage() error {
 	})
 
 	if err != nil {
-		return err
+		return daisy.Errf("failed to begin export AWS image: %v", err)
 	}
+
 	// 2. get export task id from response
 	taskID := aws.StringValue(resp.ExportImageTaskId)
 	if taskID == "" {
-		return fmt.Errorf("empty task id returned")
+		return daisy.Errf("empty task id returned")
 	}
 
 	// 3. monitor export task progress
-	describeExportInput := ec2.DescribeExportImageTasksInput{
-		ExportImageTaskIds: []*string{resp.ExportImageTaskId},
-	}
-	var (
-		taskStatus, taskStatusMessage, taskProgress string
-	)
-	for {
-		err := importer.ec2Client.DescribeExportImageTasksPages(&describeExportInput,
-			func(page *ec2.DescribeExportImageTasksOutput, lastPage bool) bool {
-				if len(page.ExportImageTasks) != 1 {
-					err = fmt.Errorf("unexpected response of describe-export-image-tasks")
-				}
-				taskStatus, taskStatusMessage, taskProgress = getExportImageTask(page.ExportImageTasks[0])
-				return false
-			})
-		if err != nil {
-			return err
-		}
-
-		if taskStatus != "active" {
-			if taskStatus != "completed" {
-				return fmt.Errorf("AWS export task wasn't completed successfully")
-			}
-			log.Println("AWS export task is completed!")
-			break
-		}
-
-		log.Printf("AWS export task status: %v, status message: %v, "+
-			"progress: %v.\n", taskStatus, taskStatusMessage, taskProgress)
-
-		time.Sleep(time.Millisecond * 3000)
+	err = importer.monitorAWSExportImageTask(taskID)
+	if err != nil {
+		importer.cancelAWSExportImageTask(taskID)
+		return err
 	}
 
 	// 4. set exported file data
@@ -256,8 +274,65 @@ func (importer *awsImporter) exportAWSImage() error {
 	return nil
 }
 
-// copyToGCS copies vmdk file from S3 to GCS
+// monitorAWSExportImageTask monitors the progress of the AWS export image task.
+// It calls AWS SDK to get the progress of taskID, and outputs status if task is active or completed.
+// Else, there is an error with the export image task, and the error is returned.
+func (importer *awsImporter) monitorAWSExportImageTask(taskID string) error {
+	if importer.monitorAWSExportImageTaskFn != nil {
+		return importer.monitorAWSExportImageTaskFn()
+	}
+
+	describeExportInput := &ec2.DescribeExportImageTasksInput{
+		ExportImageTaskIds: []*string{aws.String(taskID)},
+	}
+	var taskStatus, taskStatusMessage, taskProgress string
+
+	for {
+		output, err := importer.ec2Client.DescribeExportImageTasks(describeExportInput)
+		if err != nil {
+			return daisy.Errf("failed to get export task status: %v", err)
+		}
+		if len(output.ExportImageTasks) != 1 {
+			return daisy.Errf("failed to get export task status: unexpected response")
+		}
+		taskStatus, taskStatusMessage, taskProgress = getExportImageTask(output.ExportImageTasks[0])
+
+		if taskStatus != "active" {
+			if taskStatus != "completed" {
+				return daisy.Errf("AWS export task wasn't completed successfully")
+			}
+			log.Println("AWS export task is completed!")
+			break
+		}
+
+		log.Printf("AWS export task status: %v, status message: %v, "+
+			"progress: %v.\n", taskStatus, taskStatusMessage, taskProgress)
+
+		select {
+		case <-importer.timeout:
+			return daisy.Errf("timeout exceeded during image export")
+		default:
+			// Do nothing
+		}
+
+		time.Sleep(time.Second * 10)
+	}
+	return nil
+}
+
+// cancelAWSExportImageTask cancels the AWS export task.
+func (importer *awsImporter) cancelAWSExportImageTask(taskID string) {
+	log.Printf("Cancelling export task ...")
+	importer.ec2Client.CancelExportTask(&ec2.CancelExportTaskInput{ExportTaskId: aws.String(taskID)})
+}
+
+// copyFromS3ToGCS copies VMDK file from S3 to GCS.
 func (importer *awsImporter) copyFromS3ToGCS() (string, error) {
+	if importer.copyFromS3ToGCSFn != nil {
+		return importer.copyFromS3ToGCSFn()
+	}
+
+	start := time.Now()
 	// 1. get GCS path as copy destination.
 	gcsFilePath := pathutils.JoinURL(importer.args.gcsScratchBucket,
 		fmt.Sprintf("onestep-image-import-aws-%v.vmdk", pathutils.RandString(5)))
@@ -269,14 +344,14 @@ func (importer *awsImporter) copyFromS3ToGCS() (string, error) {
 
 	err := os.Mkdir(path, 0755)
 	if err != nil {
-		return "", err
+		return "", daisy.ToDError(err)
 	}
 	defer os.RemoveAll(path)
 
 	// 3. get writer
 	bs, err := humanize.ParseBytes(uploadBufSize)
 	if err != nil {
-		return "", err
+		return "", daisy.ToDError(err)
 	}
 	bkt, obj, err := storageutils.GetGCSObjectPathElements(gcsFilePath)
 	if err != nil {
@@ -285,62 +360,95 @@ func (importer *awsImporter) copyFromS3ToGCS() (string, error) {
 	workers := int64(runtime.NumCPU())
 	writer := storageutils.NewBufferedWriter(importer.ctx, int64(bs), workers, createGCSClient, importer.oauth, path, bkt, obj)
 
-	return gcsFilePath, importer.transferFile(writer)
+	// 4. Transfer file from S3 to GCS
+	if err := importer.transferFile(writer); err != nil {
+		return gcsFilePath, err
+	}
+	log.Printf("Successfully copied to %v in %v.\n", gcsFilePath, time.Since(start))
+
+	return gcsFilePath, nil
 }
 
-// transferFile downloads S3 file and uploads to GCS concurrently
+// transferFile downloads S3 file and uploads to GCS concurrently.
 func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
+	if importer.transferFileFn != nil {
+		return importer.transferFileFn()
+	}
 	// 1. Set up download size and get number of chunks to download
 	output, err := humanize.ParseBytes(downloadBufSize)
 	if err != nil {
-		return err
+		return daisy.ToDError(err)
 	}
 	readSize := int64(output)
-	// take ceiling
+	// Take ceiling to get number of chunks to download.
 	readers := (importer.args.exportFileSize-1)/readSize + 1
+	// Set up download retry delay interval
+	delayTime := []int{1, 2, 4, 8, 8}
+	maxRetryTimes := len(delayTime)
 
 	// 2. Set up upload info
-	uploader := &uploader{
-		readerChan:    make(chan io.ReadCloser, downloadBufNum),
-		writer:        writer,
-		totalFileSize: importer.args.exportFileSize,
-		totalUploaded: 0,
-		err:           nil,
-	}
-	uploader.Add(1)
-	go uploader.uploadFile()
+	importer.uploader.readerChan = make(chan io.ReadCloser, downloadBufNum)
+	importer.uploader.writer = writer
+	importer.uploader.totalFileSize = importer.args.exportFileSize
+	importer.uploader.totalUploaded = 0
+	importer.uploader.uploadErr = nil
+
+	importer.uploader.Add(1)
+	go importer.uploader.uploadFile()
 
 	// 3. Range download
-	retryer := &retryer{}
 	for i := int64(0); i < readers; i++ {
 		startRange := i * readSize
 		endRange := startRange + readSize - 1
-		req, res := importer.s3Client.GetObjectRequest(&s3.GetObjectInput{
-			Bucket: aws.String(importer.args.exportBucket),
-			Key:    aws.String(importer.args.exportKey),
-			Range:  aws.String(fmt.Sprintf("bytes=%v-%v", startRange, endRange)),
-		})
-		req.Retryer = retryer
-		err := req.Send()
-		if err != nil {
-			log.Printf("Error in downloading from %v.\n",
-				importer.args.exportedAMIPath)
-			uploader.cleanup()
-			return err
+		for retryAttempt := 0; ; retryAttempt++ {
+			err := func() error {
+				res, err := importer.s3Client.GetObject(&s3.GetObjectInput{
+					Bucket: aws.String(importer.args.exportBucket),
+					Key:    aws.String(importer.args.exportKey),
+					Range:  aws.String(fmt.Sprintf("bytes=%v-%v", startRange, endRange)),
+				})
+				if err != nil {
+					return daisy.Errf("error in downloading from %v: %v", importer.args.exportedAMIPath, err)
+				}
+				importer.uploader.readerChan <- res.Body
+				return nil
+			}()
+			if err != nil {
+				if retryAttempt >= maxRetryTimes {
+					return err
+				}
+				time.Sleep(time.Duration(delayTime[retryAttempt]) * time.Second)
+				continue
+			}
+			break
 		}
 
-		uploader.readerChan <- res.Body
-
 		// Stop downloading as soon as one of the upload fails.
-		if uploader.err != nil {
-			uploader.cleanup()
-			return uploader.err
+		importer.uploader.Lock()
+		if importer.uploader.uploadErr != nil {
+			importer.uploader.Unlock()
+			importer.uploader.cleanup()
+			return importer.uploader.uploadErr
+		}
+		importer.uploader.Unlock()
+
+		// Stop downloading if timeout exceeded.
+		select {
+		case <-importer.timeout:
+			importer.uploader.cleanup()
+			return daisy.Errf("timeout exceeded during transfer file")
+		default:
+			// Do nothing
 		}
 	}
 
-	// all file chunks are downloaded, wait for upload to finish
-	close(uploader.readerChan)
-	uploader.Wait()
+	// All file chunks are downloaded, wait for upload to finish.
+	close(importer.uploader.readerChan)
+	importer.uploader.Wait()
 
-	return uploader.writer.Close()
+	err = importer.uploader.writer.Close()
+	if err != nil {
+		return daisy.ToDError(err)
+	}
+	return nil
 }

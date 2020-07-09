@@ -21,6 +21,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/param"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/validation"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 // awsImportArguments holds the structured results of parsing CLI arguments,
@@ -33,7 +34,7 @@ type awsImportArguments struct {
 	exportLocation     string
 	exportedAMIPath    string
 	gcsComputeEndpoint string
-	gcsProject         string
+	gcsProjectPtr      *string
 	gcsZone            string
 	gcsRegion          string
 	gcsScratchBucket   string
@@ -74,7 +75,7 @@ func newAWSImportArguments(args *OneStepImportArguments) *awsImportArguments {
 		exportLocation:     args.AWSExportLocation,
 		exportedAMIPath:    args.AWSExportedAMIPath,
 		gcsComputeEndpoint: args.ComputeEndpoint,
-		gcsProject:         args.Project,
+		gcsProjectPtr:      args.ProjectPtr,
 		gcsZone:            args.Zone,
 		gcsRegion:          args.Region,
 		gcsScratchBucket:   args.ScratchBucketGcsPath,
@@ -93,7 +94,7 @@ func (args *awsImportArguments) validateAndPopulate(populator param.Populator) e
 		return err
 	}
 
-	err = populator.PopulateMissingParameters(&args.gcsProject, &args.gcsZone, &args.gcsRegion,
+	err = populator.PopulateMissingParameters(args.gcsProjectPtr, &args.gcsZone, &args.gcsRegion,
 		&args.gcsScratchBucket, "", &args.gcsStorageLocation)
 	if err != nil {
 		return err
@@ -113,11 +114,11 @@ func (args *awsImportArguments) validate() error {
 		return err
 	}
 
-	isExport := args.amiID != "" && args.exportLocation != "" && args.exportedAMIPath == ""
-	isResumeExported := args.exportedAMIPath != "" && args.amiID == "" && args.exportLocation == ""
+	needsExport := args.amiID != "" && args.exportLocation != "" && args.exportedAMIPath == ""
+	isResumeExported := args.amiID == "" && args.exportLocation == "" && args.exportedAMIPath != ""
 
-	if !(isExport || isResumeExported) {
-		return fmt.Errorf("specify -%v to import from "+
+	if !(needsExport || isResumeExported) {
+		return daisy.Errf("specify -%v to import from "+
 			"exported image file, or both -%v and -%v to "+
 			"import from AMI", awsExportedAMIPathFlag, awsAMIIDFlag, awsExportLocationFlag)
 	}
@@ -125,31 +126,34 @@ func (args *awsImportArguments) validate() error {
 	return nil
 }
 
+// isExportRequired returns true if AMI needs to be exported, false otherwise.
+func (args *awsImportArguments) isExportRequired() bool {
+	return args.exportedAMIPath == ""
+}
+
 // generateS3PathElements gets bucket name, and folder or object key depending on if
 // AMI has been exported, for a valid object path. Error is returned otherwise.
 func (args *awsImportArguments) generateS3PathElements() error {
 	var err error
 
-	// AMI already exported, should provide object path
-	if args.exportedAMIPath != "" {
-		args.exportBucket, args.exportKey, err = splitS3Path(args.exportedAMIPath)
-		if err != nil {
-			return err
-		}
-		if args.exportBucket == "" || args.exportKey == "" {
-			return fmt.Errorf("%q is not a valid S3 file path", args.exportedAMIPath)
-		}
-		// Not exported, should provide export location
-	} else {
+	// Export required, get metadata from provided export location.
+	if args.isExportRequired() {
 		args.exportBucket, args.exportFolder, err = splitS3Path(args.exportLocation)
 		if err != nil {
 			return err
 		}
-		if args.exportBucket == "" {
-			return fmt.Errorf("%q is not a valid S3 path", args.exportLocation)
-		}
+
 		if args.exportFolder != "" && !strings.HasSuffix(args.exportFolder, "/") {
 			args.exportFolder += "/"
+		}
+		// AMI already exported, get metadata from provide object path.
+	} else {
+		args.exportBucket, args.exportKey, err = splitS3Path(args.exportedAMIPath)
+		if err != nil {
+			return err
+		}
+		if args.exportKey == "" {
+			return daisy.Errf("%v is not a valid S3 file path", args.exportedAMIPath)
 		}
 	}
 	return nil
@@ -161,5 +165,5 @@ func splitS3Path(path string) (string, string, error) {
 	if matches != nil {
 		return matches[1], strings.TrimLeft(matches[2], "/"), nil
 	}
-	return "", "", fmt.Errorf("%q is not a valid AWS S3 path", path)
+	return "", "", daisy.Errf("%v is not a valid AWS S3 path", path)
 }
