@@ -360,33 +360,33 @@ function Set-Repos {
 }
 
 function Export-ImageMetadata {
-  $version = (Get-ComputerInfo).OsVersion
-  $family = 'windows-' + (Get-ComputerInfo).windowsversion
-  $name =  (Get-ComputerInfo).OSName
+  $computer_info = Get-ComputerInfo
+  $version = $computer_info.OsVersion
+  $family = 'windows-' + $computer_info.windowsversion
+  $name =  $computer_info.OSName
   $release_date = (Get-Date).ToUniversalTime()
   $image_metadata = @{'family' = $family;
                       'version' = $edition;
                       'name' = $name;
                       'location' = ${script:outs_dir};
                       'build_date' = $release_date;
-                      'build_repo' = $stage;
+                      'build_repo' = "stable";
                       'packages' = @()}
 
   # Get Googet packages.
-  $out = & 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
+  $out = Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
   $out = $out[1..$out.length]
   [array]::sort($out)
 
   foreach ($package_line in $out) {
-    $split = $package_line.Trim() -split '\s+'
-    $name = $split[0]
-    $version = $split[1]
-    # TODO: Currently, "Googet Installed" command only return name and version.
-    # We need to update googet command to get all info.
-    $commit_hash = ""
+    $name = $package_line.split(" ")[0]
+    # Get Package Info for each package
+    $info = Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
+    $version = $info[2]
+    $source = $info[6]
     $package_metadata = @{'name' = $name;
                           'version' = $version;
-                          'commmit_hash' = $commit_hash}
+                          'commmit_hash' = $source}
     $image_metadata['packages'] += $package_metadata
   }
 
