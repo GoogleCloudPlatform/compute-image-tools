@@ -52,12 +52,6 @@ type daisyInflater struct {
 
 func (inflater *daisyInflater) inflate() (persistentDisk, error) {
 	err := inflater.wf.Run(context.Background())
-
-	if err != nil {
-		return persistentDisk{
-			uri: inflater.inflatedDiskURI,
-		}, err
-	}
 	if inflater.wf.Logger != nil {
 		inflater.serialLogs = inflater.wf.Logger.ReadSerialPortLogs()
 	}
@@ -70,7 +64,7 @@ func (inflater *daisyInflater) inflate() (persistentDisk, error) {
 		sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
 		sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
 		sourceType: importFileFormat,
-	}, nil
+	}, err
 }
 
 type persistentDisk struct {
