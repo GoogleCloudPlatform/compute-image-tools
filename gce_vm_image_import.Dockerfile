@@ -12,8 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM gcr.io/distroless/base
+FROM debian:stretch
 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y curl qemu-utils gnupg
+RUN echo "deb http://packages.cloud.google.com/apt gcsfuse-stretch main" > /etc/apt/sources.list.d/gcsfuse.list
+COPY gcsfuse-apt-key.gpg .
+RUN apt-key add gcsfuse-apt-key.gpg
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -q -y gcsfuse qemu-utils
 COPY linux/gce_vm_image_import /gce_vm_image_import
 COPY daisy_workflows/ /daisy_workflows/
 
