@@ -47,7 +47,6 @@ type daisyInflater struct {
 	wf              *daisy.Workflow
 	inflatedDiskURI string
 	serialLogs      []string
-	diskClient      diskClient
 }
 
 func (inflater *daisyInflater) inflate() (persistentDisk, error) {
