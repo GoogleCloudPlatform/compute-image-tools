@@ -54,7 +54,6 @@ def main():
   build_date = datetime.today().strftime('%Y%m%d')
   image = {
       "family": el_release_name,
-      "name": el_release_name + build_date,
       "version": build_date,
       "location": destination,
       "release_date": datetime.now(timezone.utc),
@@ -67,7 +66,7 @@ def main():
     guest_packages = f.read().splitlines()
 
   for package in guest_packages:
-    cmd = "rpm -q --queryformat='%{NAME}\n%{VERSION}\n%{RELEASE}\n%{Vcs}'" \
+    cmd = "rpm -q --queryformat='%{NAME}\n%{VERSION}\n%{RELEASE}\n%{Vcs}' " \
           + package
     _, stdout = utils.Excute(cmd, capture_output=True)
     package, version, release, vcs = stdout.decode('utf-8').split('\n', 3)
