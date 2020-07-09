@@ -103,7 +103,7 @@ func (i *importer) runProcess(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	return i.runStep(ctx, func() error { return processor.process() }, processor.cancel, processor.traceLogs)
+	return i.runStep(ctx, processor.process, processor.cancel, processor.traceLogs)
 }
 
 func (i *importer) runStep(ctx context.Context, step func() error, cancel func(string) bool, getTraceLogs func() []string) (err error) {
