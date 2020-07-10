@@ -16,6 +16,7 @@ package importer
 
 import (
 	"bufio"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -107,4 +108,13 @@ func setUpAWSArgs(requiredFlagToTest string, needsExport bool, args ...string) [
 func getAWSImportArgs(args []string) *awsImportArguments {
 	importerArgs, _ := NewOneStepImportArguments(args)
 	return newAWSImportArguments(importerArgs)
+}
+
+func getTestUploader(writer io.WriteCloser) *uploader {
+	return &uploader{
+		readerChan:    make(chan io.ReadCloser, 3),
+		writer:        writer,
+		totalFileSize: 100,
+		uploadErrChan: make(chan error),
+	}
 }

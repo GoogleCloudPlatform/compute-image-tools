@@ -68,7 +68,7 @@ func newImporterForCloudProvider(args *OneStepImportArguments) (cloudProviderImp
 
 // importFromCloudProvider imports image from the specified cloud provider
 func importFromCloudProvider(args *OneStepImportArguments) error {
-	cleanup := sync.WaitGroup{}
+	cleanupWg := sync.WaitGroup{}
 	// 1. Get importer
 	importer, err := newImporterForCloudProvider(args)
 	if err != nil {
@@ -77,10 +77,10 @@ func importFromCloudProvider(args *OneStepImportArguments) error {
 
 	// 2. Run importer
 	errChan := make(chan error, 1)
-	cleanup.Add(1)
+	cleanupWg.Add(1)
 	go func() {
+		defer cleanupWg.Done()
 		errChan <- importer.run(args)
-		cleanup.Done()
 	}()
 
 	// 3. Run timeout
@@ -92,7 +92,7 @@ func importFromCloudProvider(args *OneStepImportArguments) error {
 		return err
 	case <-args.TimeoutChan:
 		// wait to make sure importer has cancelled running tasks
-		cleanup.Wait()
+		cleanupWg.Wait()
 		return daisy.Errf("timeout exceeded")
 	}
 }
@@ -134,7 +134,7 @@ type uploader struct {
 	writer        io.WriteCloser
 	totalUploaded int64
 	totalFileSize int64
-	uploadErr     error
+	uploadErrChan chan error
 	sync.Mutex
 	sync.WaitGroup
 
@@ -144,21 +144,19 @@ type uploader struct {
 
 // uploadFile uploads file chunks to writer
 func (uploader *uploader) uploadFile() {
-	// Used to test.
 	if uploader.uploadFileFn != nil {
 		uploader.uploadFileFn()
 		return
 	}
 
 	defer uploader.Done()
+	defer close(uploader.uploadErrChan)
 	for reader := range uploader.readerChan {
 		defer reader.Close()
 		n, err := io.Copy(uploader.writer, reader)
-		uploader.Lock()
 		if err != nil {
-			uploader.uploadErr = err
+			uploader.uploadErrChan <- err
 		}
-		uploader.Unlock()
 		uploader.totalUploaded += n
 		log.Printf("Total written size: %v of %v.", humanize.IBytes(uint64(uploader.totalUploaded)), humanize.IBytes(uint64(uploader.totalFileSize)))
 	}
@@ -166,18 +164,16 @@ func (uploader *uploader) uploadFile() {
 
 // cleanup cleans up all resources.
 func (uploader *uploader) cleanup() {
-	// Used to test.
 	if uploader.cleanupFn != nil {
 		uploader.cleanupFn()
 		return
 	}
 
 	uploader.Lock()
+	defer uploader.Unlock()
 	close(uploader.readerChan)
 	for reader := range uploader.readerChan {
 		reader.Close()
 	}
 	uploader.writer.Close()
-	uploader.Done()
-	uploader.Unlock()
 }

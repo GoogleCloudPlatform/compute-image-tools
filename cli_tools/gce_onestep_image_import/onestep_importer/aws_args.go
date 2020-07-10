@@ -136,8 +136,8 @@ func (args *awsImportArguments) isExportRequired() bool {
 func (args *awsImportArguments) generateS3PathElements() error {
 	var err error
 
-	// Export required, get metadata from provided export location.
 	if args.isExportRequired() {
+		// Export required, get metadata from provided export location.
 		args.exportBucket, args.exportFolder, err = splitS3Path(args.exportLocation)
 		if err != nil {
 			return err
@@ -146,8 +146,8 @@ func (args *awsImportArguments) generateS3PathElements() error {
 		if args.exportFolder != "" && !strings.HasSuffix(args.exportFolder, "/") {
 			args.exportFolder += "/"
 		}
-		// AMI already exported, get metadata from provide object path.
 	} else {
+		// AMI already exported, get metadata from provide object path.
 		args.exportBucket, args.exportKey, err = splitS3Path(args.exportedAMIPath)
 		if err != nil {
 			return err

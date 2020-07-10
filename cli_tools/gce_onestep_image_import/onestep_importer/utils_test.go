@@ -17,11 +17,9 @@ package importer
 import (
 	"bufio"
 	"bytes"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
-	"sync"
 	"testing"
 	"testing/iotest"
 	"time"
@@ -78,17 +76,6 @@ func TestImportReturnOnError(t *testing.T) {
 	assert.Regexp(t, ".*must be provided", err.Error())
 }
 
-func initTestUploader(writer io.WriteCloser) uploader {
-	return uploader{
-		readerChan:    make(chan io.ReadCloser, 3),
-		writer:        writer,
-		totalFileSize: 100,
-		uploadErr:     nil,
-		Mutex:         sync.Mutex{},
-		WaitGroup:     sync.WaitGroup{},
-	}
-}
-
 func TestUploaderCopiesFile(t *testing.T) {
 	const data = "test"
 	// writer
@@ -97,7 +84,7 @@ func TestUploaderCopiesFile(t *testing.T) {
 	// reader
 	r := ioutil.NopCloser(bytes.NewReader([]byte(data)))
 
-	uploader := initTestUploader(writerCloser)
+	uploader := getTestUploader(writerCloser)
 	uploader.Add(1)
 	go uploader.uploadFile()
 
@@ -117,7 +104,7 @@ func TestUploaderOutputsProgress(t *testing.T) {
 	writerCloser := testWriteCloser{Writer: bufio.NewWriter(&output)}
 	r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 
-	uploader := initTestUploader(writerCloser)
+	uploader := getTestUploader(writerCloser)
 	uploader.Add(1)
 	go uploader.uploadFile()
 
@@ -134,7 +121,7 @@ func TestUploaderHasErrorWhenCopyFail(t *testing.T) {
 	// iotest.TimeoutReader will return error on second empty read.
 	r := ioutil.NopCloser(iotest.TimeoutReader(bytes.NewReader([]byte(""))))
 
-	uploader := initTestUploader(writerCloser)
+	uploader := getTestUploader(writerCloser)
 	uploader.Add(1)
 	go uploader.uploadFile()
 
@@ -143,8 +130,7 @@ func TestUploaderHasErrorWhenCopyFail(t *testing.T) {
 	uploader.readerChan <- r
 
 	close(uploader.readerChan)
-	uploader.Wait()
-	assert.Equal(t, uploader.uploadErr, iotest.ErrTimeout)
+	assert.Equal(t, <-uploader.uploadErrChan, iotest.ErrTimeout)
 }
 
 func TestUploaderCleanUp(t *testing.T) {
@@ -152,13 +138,12 @@ func TestUploaderCleanUp(t *testing.T) {
 	writerCloser := testWriteCloser{Writer: bufio.NewWriter(&output)}
 	r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 
-	uploader := initTestUploader(writerCloser)
+	uploader := getTestUploader(writerCloser)
 	uploader.Add(1)
 	uploader.readerChan <- r
 	assert.Len(t, uploader.readerChan, 1)
 
-	go uploader.cleanup()
-	uploader.Wait()
+	uploader.cleanup()
 	assert.Len(t, uploader.readerChan, 0)
 }
 

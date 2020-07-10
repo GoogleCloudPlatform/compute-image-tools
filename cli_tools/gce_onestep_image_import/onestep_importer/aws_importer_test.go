@@ -99,7 +99,7 @@ func TestNewImporterPopulates(t *testing.T) {
 	assert.NotNil(t, awsImporter.args)
 	assert.NotNil(t, awsImporter.gcsClient)
 	assert.NotNil(t, awsImporter.paramPopulator)
-	assert.NotNil(t, awsImporter.timeout)
+	assert.NotNil(t, awsImporter.timeoutChan)
 	assert.NotNil(t, awsImporter.s3Client)
 	assert.NotNil(t, awsImporter.ec2Client)
 }
@@ -177,6 +177,18 @@ func TestRunImporterUpdateImageImporterArgs(t *testing.T) {
 
 	assert.Equal(t, importer.SourceFile, "gs://test-file-path")
 	assert.NotEqual(t, importer.Timeout, originalTimeout)
+}
+
+func TestRunImporterReturnTimeoutError(t *testing.T) {
+	args := setUpAWSArgs("", false)
+	awsImporter := getAWSImporter(t, args)
+	importer, err := NewOneStepImportArguments(args)
+	assert.Nil(t, err)
+
+	importer.Timeout = 0
+	err = awsImporter.run(importer)
+
+	assert.EqualError(t, err, "timeout exceeded")
 }
 
 func TestExportImageReturnErrorWhenCallError(t *testing.T) {
@@ -287,7 +299,7 @@ func TestMonitorExportTaskLogTaskStatus(t *testing.T) {
 	args := setUpAWSArgs("", false)
 	awsImporter := getAWSImporter(t, args)
 	// timeout so monitorAWSExportImageTask only checks status once for this test
-	close(awsImporter.timeout)
+	close(awsImporter.timeoutChan)
 	awsImporter.monitorAWSExportImageTaskFn = nil
 	exportTask := &ec2.ExportImageTask{
 		Status:        aws.String("active"),
@@ -305,7 +317,7 @@ func TestMonitorExportTaskReturnErrorWhenTimeout(t *testing.T) {
 	resetAPIOutput()
 	args := setUpAWSArgs("", false)
 	awsImporter := getAWSImporter(t, args)
-	close(awsImporter.timeout)
+	close(awsImporter.timeoutChan)
 
 	awsImporter.monitorAWSExportImageTaskFn = nil
 	exportTask := &ec2.ExportImageTask{
@@ -452,6 +464,14 @@ func TestTransferFileDownloadToReaderChan(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewReader([]byte("file data"))),
 	}
 
+	awsImporter.getUploaderFn = func() *uploader {
+		u := getTestUploader(writer)
+		u.uploadFileFn = func() {
+			awsImporter.uploader.Done()
+		}
+		return u
+	}
+
 	err := awsImporter.transferFile(writer)
 	assert.NoError(t, err)
 	assert.Len(t, awsImporter.uploader.readerChan, 1)
@@ -474,10 +494,15 @@ func TestTransferFileErrorWhenUploadError(t *testing.T) {
 		Body: ioutil.NopCloser(bytes.NewReader([]byte("file data"))),
 	}
 
-	awsImporter.uploader.uploadFileFn = func() {
-		awsImporter.uploader.uploadErr = fmt.Errorf("upload error")
-		awsImporter.uploader.Done()
+	awsImporter.getUploaderFn = func() *uploader {
+		u := getTestUploader(writer)
+		u.uploadFileFn = func() {
+			awsImporter.uploader.uploadErrChan <- fmt.Errorf("upload error")
+			awsImporter.uploader.Done()
+		}
+		return u
 	}
+
 	// delay during getObject so uploadFileFn has time to finish updating uploadErr
 	shouldSetGetObjectDelay = true
 	err := awsImporter.transferFile(writer)
@@ -492,15 +517,19 @@ func TestTransferFileCallsCleanupWhenTimeout(t *testing.T) {
 
 	args := setUpAWSArgs("", false)
 	awsImporter := getAWSImporter(t, args)
-	close(awsImporter.timeout)
+	close(awsImporter.timeoutChan)
 	awsImporter.transferFileFn = nil
 	getObjectResp.output = &s3.GetObjectOutput{
 		Body: ioutil.NopCloser(bytes.NewReader([]byte("file data"))),
 	}
 
 	var isCleanupCalled = false
-	awsImporter.uploader.cleanupFn = func() {
-		isCleanupCalled = true
+	awsImporter.getUploaderFn = func() *uploader {
+		u := getTestUploader(writer)
+		u.cleanupFn = func() {
+			isCleanupCalled = true
+		}
+		return u
 	}
 
 	err := awsImporter.transferFile(writer)
@@ -535,12 +564,6 @@ func getAWSImporter(t *testing.T, args []string) *awsImporter {
 	awsImporter.ec2Client = &mockEC2Client{}
 	awsImporter.s3Client = &mockS3Client{}
 	awsImporter.paramPopulator = mockPopulator{}
-	awsImporter.uploader = uploader{
-		uploadFileFn: func() {
-			awsImporter.uploader.Done()
-		},
-		cleanupFn: func() {},
-	}
 
 	awsImporter.exportAWSImageFn = func() error { return nil }
 	awsImporter.monitorAWSExportImageTaskFn = func() error { return nil }

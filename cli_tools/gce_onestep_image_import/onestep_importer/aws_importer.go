@@ -58,24 +58,25 @@ type awsImporter struct {
 	ctx            context.Context
 	oauth          string
 	paramPopulator param.Populator
-	timeout        chan struct{}
-	uploader       uploader
+	timeoutChan    chan struct{}
+	uploader       *uploader
 
 	// AWS clients for SDK
 	ec2Client ec2iface.EC2API
 	s3Client  s3iface.S3API
 
-	// Mock functions for test
+	// Impl of the functions
 	exportAWSImageFn            func() error
 	monitorAWSExportImageTaskFn func() error
 	getAWSFileSizeFn            func() error
 	copyFromS3ToGCSFn           func() (string, error)
 	transferFileFn              func() error
+	getUploaderFn               func() *uploader
 }
 
 // newAWSImporter creates an new awsImporter instance.
 // Automatically populating dependencies, such as compute/storage clients.
-func newAWSImporter(oauth string, timeout chan struct{}, args *awsImportArguments) (*awsImporter, error) {
+func newAWSImporter(oauth string, timeoutChan chan struct{}, args *awsImportArguments) (*awsImporter, error) {
 	ctx := context.Background()
 	client, err := createGCSClient(ctx, oauth)
 	if err != nil {
@@ -108,8 +109,7 @@ func newAWSImporter(oauth string, timeout chan struct{}, args *awsImportArgument
 		ctx:            ctx,
 		oauth:          oauth,
 		paramPopulator: paramPopulator,
-		timeout:        timeout,
-		uploader:       uploader{},
+		timeoutChan:    timeoutChan,
 	}
 
 	return importer, nil
@@ -192,11 +192,15 @@ func (importer *awsImporter) run(args *OneStepImportArguments) error {
 	// update source file flag to copied GCS destination
 	args.SourceFile = gcsFilePath
 	// adjust timeout, accounting for clean up time
-	args.Timeout = args.Timeout - time.Since(start) - time.Minute*2
+	args.Timeout = args.Timeout - time.Since(start) - time.Minute*3
+	if args.Timeout <= 0 {
+		return daisy.Errf("timeout exceeded")
+	}
+
 	err = runImageImport(args)
 	if err != nil {
 		log.Printf("Failed to import image. "+
-			"The image file is copied to  Cloud Storage, located at %v. "+
+			"The image file is copied to Cloud Storage, located at %v. "+
 			"To resume the import process, please directly use image import from Cloud Storage.\n", gcsFilePath)
 		return err
 	}
@@ -309,10 +313,10 @@ func (importer *awsImporter) monitorAWSExportImageTask(taskID string) error {
 			"progress: %v.\n", taskStatus, taskStatusMessage, taskProgress)
 
 		select {
-		case <-importer.timeout:
+		case <-importer.timeoutChan:
 			return daisy.Errf("timeout exceeded during image export")
 		default:
-			// Do nothing
+			// Did not timeout, continue to check task status.
 		}
 
 		time.Sleep(time.Second * 10)
@@ -369,6 +373,20 @@ func (importer *awsImporter) copyFromS3ToGCS() (string, error) {
 	return gcsFilePath, nil
 }
 
+func (importer *awsImporter) getUploader(writer io.WriteCloser) *uploader {
+	if importer.getUploaderFn != nil {
+		return importer.getUploaderFn()
+	}
+
+	return &uploader{
+		readerChan:    make(chan io.ReadCloser, downloadBufNum),
+		writer:        writer,
+		totalUploaded: 0,
+		totalFileSize: importer.args.exportFileSize,
+		uploadErrChan: make(chan error),
+	}
+}
+
 // transferFile downloads S3 file and uploads to GCS concurrently.
 func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 	if importer.transferFileFn != nil {
@@ -387,12 +405,7 @@ func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 	maxRetryTimes := len(delayTime)
 
 	// 2. Set up upload info
-	importer.uploader.readerChan = make(chan io.ReadCloser, downloadBufNum)
-	importer.uploader.writer = writer
-	importer.uploader.totalFileSize = importer.args.exportFileSize
-	importer.uploader.totalUploaded = 0
-	importer.uploader.uploadErr = nil
-
+	importer.uploader = importer.getUploader(writer)
 	importer.uploader.Add(1)
 	go importer.uploader.uploadFile()
 
@@ -401,44 +414,38 @@ func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 		startRange := i * readSize
 		endRange := startRange + readSize - 1
 		for retryAttempt := 0; ; retryAttempt++ {
-			err := func() error {
-				res, err := importer.s3Client.GetObject(&s3.GetObjectInput{
-					Bucket: aws.String(importer.args.exportBucket),
-					Key:    aws.String(importer.args.exportKey),
-					Range:  aws.String(fmt.Sprintf("bytes=%v-%v", startRange, endRange)),
-				})
-				if err != nil {
-					return daisy.Errf("error in downloading from %v: %v", importer.args.exportedAMIPath, err)
-				}
-				importer.uploader.readerChan <- res.Body
-				return nil
-			}()
+			res, err := importer.s3Client.GetObject(&s3.GetObjectInput{
+				Bucket: aws.String(importer.args.exportBucket),
+				Key:    aws.String(importer.args.exportKey),
+				Range:  aws.String(fmt.Sprintf("bytes=%v-%v", startRange, endRange)),
+			})
 			if err != nil {
 				if retryAttempt >= maxRetryTimes {
-					return err
+					return daisy.Errf("error in downloading from %v: %v", importer.args.exportedAMIPath, err)
 				}
 				time.Sleep(time.Duration(delayTime[retryAttempt]) * time.Second)
 				continue
 			}
+			importer.uploader.readerChan <- res.Body
 			break
 		}
 
 		// Stop downloading as soon as one of the upload fails.
-		importer.uploader.Lock()
-		if importer.uploader.uploadErr != nil {
-			importer.uploader.Unlock()
+		select {
+		case err := <-importer.uploader.uploadErrChan:
 			importer.uploader.cleanup()
-			return importer.uploader.uploadErr
+			return err
+		default:
+			// No error, continue to download.
 		}
-		importer.uploader.Unlock()
 
 		// Stop downloading if timeout exceeded.
 		select {
-		case <-importer.timeout:
+		case <-importer.timeoutChan:
 			importer.uploader.cleanup()
 			return daisy.Errf("timeout exceeded during transfer file")
 		default:
-			// Do nothing
+			// Did not timeout, continue to download.
 		}
 	}
 
