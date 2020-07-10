@@ -140,8 +140,8 @@ def main():
     guest_packages = f.read().splitlines()
 
   for package in guest_packages:
-    cmd = "dpkg-query -W --showformat '${Package}\n${Version}\n${Git}'" \
-          + package
+    cmd = "dpkg-query -W --showformat '${Package}\n${Version}\n${Git}' " \
+          "%s" % package
     _, stdout = utils.Excute(cmd, capture_output=True)
     package, version, git = stdout.decode('utf-8').split(':', 2)
     metadata = {
