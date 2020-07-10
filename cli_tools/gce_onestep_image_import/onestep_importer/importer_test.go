@@ -212,7 +212,7 @@ func TestRunReturnErrorWhenImporterFail(t *testing.T) {
 	importArgs, _ := NewOneStepImportArguments(args)
 
 	_, err := Run(importArgs)
-	assert.EqualError(t, err, "timeout exceeded")
+	assert.EqualError(t, err, "timeout exceeded: timeout must be at least 3 minutes")
 }
 
 func expectFailedValidation(t *testing.T, args []string) error {

@@ -191,8 +191,8 @@ func (importer *awsImporter) run(args *OneStepImportArguments) error {
 
 	// update source file flag to copied GCS destination
 	args.SourceFile = gcsFilePath
-	// adjust timeout, accounting for clean up time
-	args.Timeout = args.Timeout - time.Since(start) - time.Minute*3
+	// adjust timeout to pass into image import
+	args.Timeout = args.Timeout - time.Since(start)
 	if args.Timeout <= 0 {
 		return daisy.Errf("timeout exceeded")
 	}

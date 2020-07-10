@@ -75,16 +75,21 @@ func importFromCloudProvider(args *OneStepImportArguments) error {
 		return err
 	}
 
-	// 2. Run importer
+	// 2. Run timeout will close timeout channel when time is up.
+	// Deduct 3 minutes to reserve time for clean up.
+	timeout := args.Timeout - time.Minute*3
+	if timeout <= 0 {
+		return daisy.Errf("timeout exceeded: timeout must be at least 3 minutes")
+	}
+	go handleTimeout(timeout, args.TimeoutChan)
+
+	// 3. Run importer
 	errChan := make(chan error, 1)
 	cleanupWg.Add(1)
 	go func() {
 		defer cleanupWg.Done()
 		errChan <- importer.run(args)
 	}()
-
-	// 3. Run timeout
-	go handleTimeout(args.Timeout, args.TimeoutChan)
 
 	// 4. Ensure timeout is not exceeded before workflow is finished
 	select {

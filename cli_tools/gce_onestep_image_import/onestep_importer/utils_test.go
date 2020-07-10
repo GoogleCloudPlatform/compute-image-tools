@@ -62,8 +62,15 @@ func TestImportFromCloudProviderFailWhenNewImporterFail(t *testing.T) {
 	assert.Equal(t, actualErr, ExpectedErr)
 }
 
-func TestImportReturnOnTimeoutExceeded(t *testing.T) {
+func TestImportReturnOnTimeoutLessThan3Minutes(t *testing.T) {
 	args := expectSuccessfulParse(t, "-timeout=0s")
+	err := importFromCloudProvider(args)
+	assert.EqualError(t, err, "timeout exceeded: timeout must be at least 3 minutes")
+}
+
+func TestImportReturnOnTimeoutExceeded(t *testing.T) {
+	args := expectSuccessfulParse(t)
+	close(args.TimeoutChan)
 	err := importFromCloudProvider(args)
 	assert.EqualError(t, err, "timeout exceeded")
 }
