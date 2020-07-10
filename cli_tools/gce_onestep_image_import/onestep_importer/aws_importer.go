@@ -273,7 +273,7 @@ func (importer *awsImporter) exportAWSImage() error {
 	// 4. set exported file data
 	importer.args.exportKey = fmt.Sprintf("%v%v.vmdk", importer.args.exportFolder, taskID)
 	importer.args.exportedAMIPath = fmt.Sprintf("s3://%v/%v", importer.args.exportBucket, importer.args.exportKey)
-	log.Printf("Exported location is %v.\n", importer.args.exportedAMIPath)
+	log.Printf("Image export location is %v.\n", importer.args.exportedAMIPath)
 
 	return nil
 }
