@@ -370,7 +370,7 @@ function Export-ImageMetadata {
                       'name' = $name;
                       'location' = ${script:outs_dir};
                       'build_date' = $release_date;
-                      'build_repo' = "stable";
+                      'build_repo' = 'stable';
                       'packages' = @()}
 
   # Get Googet packages.
@@ -379,7 +379,7 @@ function Export-ImageMetadata {
   [array]::sort($out)
 
   foreach ($package_line in $out) {
-    $name = $package_line.split(" ")[0]
+    $name = $package_line.split(' ')[0]
     # Get Package Info for each package
     $info = Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
     $version = $info[2]
