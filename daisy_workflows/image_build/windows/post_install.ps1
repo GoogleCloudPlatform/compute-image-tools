@@ -370,7 +370,6 @@ function Export-ImageMetadata {
                       'name' = $name;
                       'location' = ${script:outs_dir};
                       'build_date' = $release_date;
-                      'build_repo' = 'stable';
                       'packages' = @()}
 
   # Get Googet packages.
