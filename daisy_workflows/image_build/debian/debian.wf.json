@@ -9,7 +9,8 @@
       "Description": "The image used to run bootstrap-vz."
     },
     "google_cloud_repo": {"Required": true, "Description": "The Google Cloud Repo branch to use."},
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."}
+    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
+    "image_meta": {"Required": true, "Description": "The GCS path for the destination image metadata json"}
   },
   "Sources": {
     "build_files/build.py": "./build.py",
@@ -17,6 +18,7 @@
     "build_files/utils/diskutils.py": "../../linux_common/utils/diskutils.py",
     "build_files/utils/__init__.py": "../../linux_common/utils/__init__.py",
     "build_files/google_cloud_test_repos": "./google_cloud_test_repos/",
+    "build_files/guest_package": "../../guest_package.txt",
     "startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
@@ -44,7 +46,8 @@
             "script": "build.py",
             "prefix": "Build",
             "google_cloud_repo": "${google_cloud_repo}",
-            "image_dest": "${image_dest}"
+            "image_dest": "${image_dest}",
+            "image_meta": "${image_meta}"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write"

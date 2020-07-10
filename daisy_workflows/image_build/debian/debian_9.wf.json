@@ -3,6 +3,7 @@
   "Vars": {
     "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
+    "image_meta": {"Required": true, "Description": "The GCS path for the destination image metadata json"},
     "bootstrap_vz_version": {
       "Value": "https://github.com/hopkiw/bootstrap-vz/archive/master.zip",
       "Description": "The bootstrap-vz release to use."
@@ -18,7 +19,8 @@
           "bootstrap_vz_version": "${bootstrap_vz_version}",
           "builder_source_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
           "google_cloud_repo": "${google_cloud_repo}",
-          "image_dest": "${image_dest}"
+          "image_dest": "${image_dest}",
+          "image_meta": "${image_meta}"
         }
       }
     }
