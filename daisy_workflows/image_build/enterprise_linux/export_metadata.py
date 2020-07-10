@@ -66,9 +66,9 @@ def main():
     guest_packages = f.read().splitlines()
 
   for package in guest_packages:
-    cmd = "rpm -q " \
-          "--queryformat='%%{NAME}\n%%{VERSION}\n%%{RELEASE}\n%%{Vcs}' " \
-          "%s" % package
+    cmd = ("rpm -q "
+          "--queryformat='%%{NAME}\n%%{VERSION}\n%%{RELEASE}\n%%{Vcs}' "
+          "%s") % package
     _, stdout = utils.Excute(cmd, capture_output=True)
     package, version, release, vcs = stdout.decode('utf-8').split('\n', 3)
     package_metadata = {
