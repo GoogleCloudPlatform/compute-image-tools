@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package vdisk
+package imagefile
 
 import (
 	"context"
@@ -30,41 +30,41 @@ import (
 
 const bytesPerGB = int64(1024 * 1024 * 1024)
 
-// VirtualDiskFileMetadata contains metadata about a virtual disk file.
-type VirtualDiskFileMetadata struct {
-	// Gigabytes used by the file itself, rounded up to the nearest GB.
+// Metadata contains metadata about an image file.
+type Metadata struct {
+	// PhysicalSizeGB is the size of the file itself, rounded up to the nearest GB.
 	PhysicalSizeGB int64
 
-	// Gigabytes used by the disk, after inflation. Rounded up to the nearest GB.
+	// VirtualSizeGB is the size of the disk, after inflation. Rounded up to the nearest GB.
 	VirtualSizeGB int64
 
-	// The file format used for encoding the VM disk.
-	FileFormat Format
+	// FileFormat is the format used for encoding the VM disk.
+	FileFormat string
 }
 
-// VirtualDiskFileInspector returns metadata about virtual disk files.
-type VirtualDiskFileInspector interface {
-	// Inspect returns VirtualDiskFileMetadata for the virtual disk file associated
+// Inspector returns metadata about image files.
+type Inspector interface {
+	// Inspect returns Metadata for the image file associated
 	// with a reference. IO operations will be retried until the context is cancelled.
-	Inspect(ctx context.Context, reference string) (VirtualDiskFileMetadata, error)
+	Inspect(ctx context.Context, reference string) (Metadata, error)
 }
 
-// NewGCSInspector returns a virtualDiskFileInspector that inspects virtual
-// disk files that are stored in the GCS bucket. The Inspect method expects
+// NewGCSInspector returns an inspector that inspects image
+// files that are stored in the GCS bucket. The Inspect method expects
 // a GCS URI to the file to be inspected.
-func NewGCSInspector() VirtualDiskFileInspector {
+func NewGCSInspector() Inspector {
 	return gcsInspector{
 		qemuClient: NewInfoClient(),
 		fuseClient: gcsfuse.NewClient()}
 }
 
-// gcsInspector implements virtualDiskFileInspector using qemu-img gcsfuse.
+// gcsInspector implements inspector using qemu-img gcsfuse.
 type gcsInspector struct {
 	qemuClient InfoClient
 	fuseClient gcsfuse.Client
 }
 
-func (inspector gcsInspector) Inspect(ctx context.Context, gcsURI string) (metadata VirtualDiskFileMetadata, err error) {
+func (inspector gcsInspector) Inspect(ctx context.Context, gcsURI string) (metadata Metadata, err error) {
 	operation := func() error {
 		metadata, err = inspector.inspectOnce(ctx, gcsURI)
 		return err
@@ -73,7 +73,7 @@ func (inspector gcsInspector) Inspect(ctx context.Context, gcsURI string) (metad
 		backoff.WithContext(backoff.NewConstantBackOff(50*time.Millisecond), ctx))
 }
 
-func (inspector gcsInspector) inspectOnce(ctx context.Context, gcsURI string) (metadata VirtualDiskFileMetadata, err error) {
+func (inspector gcsInspector) inspectOnce(ctx context.Context, gcsURI string) (metadata Metadata, err error) {
 	bucket, object, err := storage.GetGCSObjectPathElements(gcsURI)
 	if err != nil {
 		return metadata, err
@@ -91,7 +91,7 @@ func (inspector gcsInspector) inspectOnce(ctx context.Context, gcsURI string) (m
 	if err != nil {
 		return metadata, err
 	}
-	return VirtualDiskFileMetadata{
+	return Metadata{
 		PhysicalSizeGB: bytesToGB(imageInfo.ActualSizeBytes),
 		VirtualSizeGB:  bytesToGB(imageInfo.VirtualSizeBytes),
 		FileFormat:     imageInfo.Format,

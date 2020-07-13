@@ -22,9 +22,9 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/vdisk"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
@@ -83,7 +83,7 @@ type persistentDisk struct {
 	sourceType string
 }
 
-func createDaisyInflater(args ImportArguments, fileInspector vdisk.VirtualDiskFileInspector) (inflater, error) {
+func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector) (inflater, error) {
 	diskName := "disk-" + args.ExecutionID
 	var wfPath string
 	var vars map[string]string
@@ -156,7 +156,7 @@ func (inflater *daisyInflater) cancel(reason string) bool {
 }
 
 func createDaisyVarsForFile(args ImportArguments,
-	fileInspector vdisk.VirtualDiskFileInspector, diskName string) map[string]string {
+	fileInspector imagefile.Inspector, diskName string) map[string]string {
 	vars := map[string]string{
 		"source_disk_file": args.Source.Path(),
 		"import_network":   args.Network,
@@ -180,7 +180,7 @@ func createDaisyVarsForFile(args ImportArguments,
 
 // Allocate extra room for filesystem overhead, and
 // ensure a minimum of 10GB (the minimum size of a GCP disk).
-func calculateScratchDiskSize(metadata vdisk.VirtualDiskFileMetadata) int64 {
+func calculateScratchDiskSize(metadata imagefile.Metadata) int64 {
 	// This uses the historic padding calculation from import_image.sh: add ten percent,
 	// and round up.
 	padded := int64(float64(metadata.PhysicalSizeGB)*1.1) + 1
@@ -191,7 +191,7 @@ func calculateScratchDiskSize(metadata vdisk.VirtualDiskFileMetadata) int64 {
 }
 
 // Ensure a minimum of 10GB (the minimum size of a GCP disk)
-func calculateInflatedSize(metadata vdisk.VirtualDiskFileMetadata) int64 {
+func calculateInflatedSize(metadata imagefile.Metadata) int64 {
 	if metadata.VirtualSizeGB < defaultInflationDiskSizeGB {
 		return defaultInflationDiskSizeGB
 	}

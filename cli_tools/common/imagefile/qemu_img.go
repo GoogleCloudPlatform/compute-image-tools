@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package vdisk
+package imagefile
 
 import (
 	"context"
@@ -24,38 +24,18 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/files"
 )
 
-// Format is an enum type for representing VM disk encoding formats.
-type Format string
+// FormatUnknown means that qemu-img could not determine the file's format.
+const FormatUnknown string = "unknown"
 
-const (
-	// FormatUnknown means that qemu-img could not determine the file's format.
-	FormatUnknown Format = "unknown"
-	// FormatVMDK means that the file uses the vmdk file format.
-	FormatVMDK Format = "vmdk"
-	// FormatVHDX means that the file uses the vhdx file format.
-	FormatVHDX Format = "vhdx"
-	// FormatVPC means that the file uses the vpc file format.
-	FormatVPC Format = "vpc"
-	// FormatVDI means that the file uses the vdi file format.
-	FormatVDI Format = "vdi"
-	// FormatQCOW2 means that the file uses the qcow2 file format.
-	FormatQCOW2 Format = "qcow2"
-	// FormatRAW means that the file uses the raw file format.
-	FormatRAW Format = "raw"
-)
-
-var formats = map[string]Format{
-	"vmdk":  FormatVMDK,
-	"vhdx":  FormatVHDX,
-	"vpc":   FormatVPC,
-	"vdi":   FormatVDI,
-	"qcow2": FormatQCOW2,
-	"raw":   FormatRAW,
-}
+// The output of `qemu-img --help` contains this list.
+var qemuImgFormats = "blkdebug blklogwrites blkreplay blkverify bochs cloop " +
+	"copy-on-read dmg file ftp ftps gluster host_cdrom host_device http " +
+	"https iscsi iser luks nbd nfs null-aio null-co nvme parallels qcow " +
+	"qcow2 qed quorum raw rbd replication sheepdog ssh throttle vdi vhdx vmdk vpc vvfat"
 
 // ImageInfo includes metadata returned by `qemu-img info`.
 type ImageInfo struct {
-	Format           Format
+	Format           string
 	ActualSizeBytes  int64
 	VirtualSizeBytes int64
 }
@@ -98,10 +78,10 @@ func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (i
 	}, nil
 }
 
-func lookupFileFormat(s string) Format {
-	format := formats[strings.ToLower(s)]
-	if format != "" {
-		return format
+func lookupFileFormat(s string) string {
+	lower := strings.ToLower(s)
+	if strings.Contains(qemuImgFormats, lower) {
+		return lower
 	}
 	return FormatUnknown
 }

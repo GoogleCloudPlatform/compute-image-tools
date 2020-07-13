@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package vdisk
+package imagefile
 
 import (
 	"context"
@@ -135,7 +135,7 @@ func TestGCSInspector_PerformRetry_WhenInspectionFails(t *testing.T) {
 }
 
 func setupClient(t *testing.T, mountFailures, inspectFailures int, qemuResult ImageInfo) (
-	string, VirtualDiskFileInspector) {
+	string, Inspector) {
 	pathToFakeMount, err := ioutil.TempFile("", "")
 	assert.NoError(t, err)
 	defer pathToFakeMount.Close()

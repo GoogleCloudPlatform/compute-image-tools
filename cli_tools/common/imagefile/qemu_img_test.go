@@ -12,7 +12,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 
-package vdisk
+package imagefile
 
 import (
 	"context"
@@ -33,56 +33,49 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 
 	cases := []struct {
 		filename              string
-		sizeArg               string
-		formatArg             string
-		expectedFormat        Format
+		size                  string
+		format                string
 		expectedVirtualSizeGB int64
 	}{
 		{
 			filename:              "test.vmdk",
-			sizeArg:               "50G",
-			formatArg:             "vmdk",
-			expectedFormat:        FormatVMDK,
+			size:                  "50G",
+			format:                "vmdk",
 			expectedVirtualSizeGB: 50 * bytesPerGB,
 		},
 
 		{
 			filename:              "test.vhdx",
-			sizeArg:               "500M",
-			formatArg:             "vhdx",
-			expectedFormat:        FormatVHDX,
+			size:                  "500M",
+			format:                "vhdx",
 			expectedVirtualSizeGB: 500 * bytesPerMB,
 		},
 
 		{
 			filename:              "test.vpc",
-			sizeArg:               "10M",
-			formatArg:             "vpc",
-			expectedFormat:        FormatVPC,
+			size:                  "10M",
+			format:                "vpc",
 			expectedVirtualSizeGB: 10 * bytesPerMB,
 		},
 
 		{
 			filename:              "test.vdi",
-			sizeArg:               "1G",
-			formatArg:             "vdi",
-			expectedFormat:        FormatVDI,
+			size:                  "1G",
+			format:                "vdi",
 			expectedVirtualSizeGB: bytesPerGB,
 		},
 
 		{
 			filename:              "test.qcow2",
-			sizeArg:               "2G",
-			formatArg:             "qcow2",
-			expectedFormat:        FormatQCOW2,
+			size:                  "2G",
+			format:                "qcow2",
 			expectedVirtualSizeGB: 2 * bytesPerGB,
 		},
 
 		{
 			filename:              "test.raw",
-			sizeArg:               "4G",
-			formatArg:             "raw",
-			expectedFormat:        FormatRAW,
+			size:                  "4G",
+			format:                "raw",
 			expectedVirtualSizeGB: 4 * bytesPerGB,
 		},
 	}
@@ -97,14 +90,14 @@ func TestGetInfo_FormatDetection(t *testing.T) {
 			absPath := path.Join(dir, tt.filename)
 
 			// 2. Create image in temp dir
-			cmd := exec.Command("qemu-img", "create", absPath, "-f", tt.formatArg, tt.sizeArg)
+			cmd := exec.Command("qemu-img", "create", absPath, "-f", tt.format, tt.size)
 			_, err = cmd.Output()
 			assert.NoError(t, err)
 
 			// 3. Run inspection, and verify results
 			imageInfo, err := client.GetInfo(context.Background(), absPath)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedFormat, imageInfo.Format)
+			assert.Equal(t, tt.format, imageInfo.Format)
 			// Testing to the nearest GB, since that's what the GCP APIs use, and
 			// because some image formats have additional overhead such that
 			// the virtual size doesn't match the requested size in qemu-img create.
@@ -140,7 +133,7 @@ func TestGetInfo_InspectionClassifiesCompressedAsRaw(t *testing.T) {
 	client := NewInfoClient()
 	info, err := client.GetInfo(context.Background(), tempFile.Name())
 	assert.NoError(t, err)
-	assert.Equal(t, FormatRAW, info.Format)
+	assert.Equal(t, "raw", info.Format)
 }
 
 func skipIfQemuImgNotInstalled(t *testing.T) {

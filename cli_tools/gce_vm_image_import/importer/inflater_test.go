@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/vdisk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 )
 
 func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
@@ -72,11 +72,11 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
 		NoExternalIP: false,
-	}, mockVirtualDiskFileInspector{
+	}, mockInspector{
 		t:                 t,
 		expectedReference: source.gcsPath,
 		errorToReturn:     nil,
-		metaToReturn:      vdisk.VirtualDiskFileMetadata{},
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
@@ -93,11 +93,11 @@ func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
 		Source:       source,
 		NoExternalIP: true,
-	}, mockVirtualDiskFileInspector{
+	}, mockInspector{
 		t:                 t,
 		expectedReference: source.gcsPath,
 		errorToReturn:     nil,
-		metaToReturn:      vdisk.VirtualDiskFileMetadata{},
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	network := getWorkerNetwork(t, inflater.wf)
@@ -109,11 +109,11 @@ func TestCreateDaisyInflater_File_UsesFallbackSizes_WhenInspectionFails(t *testi
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
 		Source:       source,
 		NoExternalIP: true,
-	}, mockVirtualDiskFileInspector{
+	}, mockInspector{
 		t:                 t,
 		expectedReference: source.gcsPath,
 		errorToReturn:     errors.New("inspection failed"),
-		metaToReturn:      vdisk.VirtualDiskFileMetadata{},
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	// The 10GB defaults are hardcoded in inflate_file.wf.json.
@@ -152,10 +152,10 @@ func TestCreateDaisyInflater_File_SetsSizesFromInspectedFile(t *testing.T) {
 			inflater := createDaisyInflaterSafe(t, ImportArguments{
 				Source:       source,
 				NoExternalIP: true,
-			}, mockVirtualDiskFileInspector{
+			}, mockInspector{
 				t:                 t,
 				expectedReference: source.gcsPath,
-				metaToReturn: vdisk.VirtualDiskFileMetadata{
+				metaToReturn: imagefile.Metadata{
 					VirtualSizeGB:  tt.virtualSize,
 					PhysicalSizeGB: tt.physicalSize,
 				},
@@ -172,11 +172,11 @@ func TestCreateDaisyInflater_File_Windows(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
 		Source: source,
 		OS:     "windows-2019",
-	}, mockVirtualDiskFileInspector{
+	}, mockInspector{
 		t:                 t,
 		expectedReference: source.gcsPath,
 		errorToReturn:     nil,
-		metaToReturn:      vdisk.VirtualDiskFileMetadata{},
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	inflatedDisk := getDisk(inflater.wf, 1)
@@ -190,11 +190,11 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
 		Source: source,
 		OS:     "ubuntu-1804",
-	}, mockVirtualDiskFileInspector{
+	}, mockInspector{
 		t:                 t,
 		expectedReference: source.gcsPath,
 		errorToReturn:     nil,
-		metaToReturn:      vdisk.VirtualDiskFileMetadata{},
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	inflatedDisk := getDisk(inflater.wf, 1)
@@ -204,7 +204,7 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 }
 
 func createDaisyInflaterSafe(t *testing.T, args ImportArguments,
-	inspector vdisk.VirtualDiskFileInspector) *daisyInflater {
+	inspector imagefile.Inspector) *daisyInflater {
 	args.WorkflowDir = "testdata/image_import"
 	inflater, err := createDaisyInflater(args, inspector)
 	assert.NoError(t, err)
@@ -230,15 +230,15 @@ func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkIn
 	panic("expected create instance step with single network")
 }
 
-type mockVirtualDiskFileInspector struct {
+type mockInspector struct {
 	t                 *testing.T
 	expectedReference string
 	errorToReturn     error
-	metaToReturn      vdisk.VirtualDiskFileMetadata
+	metaToReturn      imagefile.Metadata
 }
 
-func (m mockVirtualDiskFileInspector) Inspect(
-	ctx context.Context, reference string) (vdisk.VirtualDiskFileMetadata, error) {
+func (m mockInspector) Inspect(
+	ctx context.Context, reference string) (imagefile.Metadata, error) {
 	assert.Equal(m.t, m.expectedReference, reference)
 	return m.metaToReturn, m.errorToReturn
 }

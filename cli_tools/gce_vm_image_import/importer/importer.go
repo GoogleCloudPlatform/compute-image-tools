@@ -25,8 +25,8 @@ import (
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/googleapi"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/vdisk"
 )
 
 // Importer runs the end-to-end import workflow, and exposes the results
@@ -38,7 +38,7 @@ type Importer interface {
 // NewImporter constructs an Importer instance.
 func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, error) {
 
-	inflater, err := createDaisyInflater(args, vdisk.NewGCSInspector())
+	inflater, err := createDaisyInflater(args, imagefile.NewGCSInspector())
 	if err != nil {
 		return nil, err
 	}
