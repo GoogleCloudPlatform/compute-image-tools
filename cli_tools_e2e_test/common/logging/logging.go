@@ -55,7 +55,7 @@ func (l goLogToDaisyLog) Flush() {
 	// no-op
 }
 
-// goLogToDaisyLog is an implementation of io.Writer that writes to a log.Logger backend.
+// goLogToIoWriter is an implementation of io.Writer that writes to a log.Logger backend.
 type goLogToIoWriter struct {
 	logger *log.Logger
 }
