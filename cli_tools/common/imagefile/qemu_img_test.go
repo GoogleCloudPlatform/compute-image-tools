@@ -136,6 +136,14 @@ func TestGetInfo_InspectionClassifiesCompressedAsRaw(t *testing.T) {
 	assert.Equal(t, "raw", info.Format)
 }
 
+func TestLookupFileFormat_ReturnsUnknown_WhenFormatNotFound(t *testing.T) {
+	assert.Equal(t, "unknown", lookupFileFormat("not-found"))
+}
+
+func TestLookupFileFormat_PerformsCaseInsensitiveSearch(t *testing.T) {
+	assert.Equal(t, "vmdk", lookupFileFormat("VmDK"))
+}
+
 func skipIfQemuImgNotInstalled(t *testing.T) {
 	cmd := exec.Command("qemu-img", "--version")
 	_, err := cmd.Output()

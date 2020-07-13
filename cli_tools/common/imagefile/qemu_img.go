@@ -28,10 +28,10 @@ import (
 const FormatUnknown string = "unknown"
 
 // The output of `qemu-img --help` contains this list.
-var qemuImgFormats = "blkdebug blklogwrites blkreplay blkverify bochs cloop " +
-	"copy-on-read dmg file ftp ftps gluster host_cdrom host_device http " +
-	"https iscsi iser luks nbd nfs null-aio null-co nvme parallels qcow " +
-	"qcow2 qed quorum raw rbd replication sheepdog ssh throttle vdi vhdx vmdk vpc vvfat"
+var qemuImgFormats = strings.Split("blkdebug blklogwrites blkreplay blkverify bochs cloop "+
+	"copy-on-read dmg file ftp ftps gluster host_cdrom host_device http "+
+	"https iscsi iser luks nbd nfs null-aio null-co nvme parallels qcow "+
+	"qcow2 qed quorum raw rbd replication sheepdog ssh throttle vdi vhdx vmdk vpc vvfat", " ")
 
 // ImageInfo includes metadata returned by `qemu-img info`.
 type ImageInfo struct {
@@ -80,8 +80,10 @@ func (client defaultInfoClient) GetInfo(ctx context.Context, filename string) (i
 
 func lookupFileFormat(s string) string {
 	lower := strings.ToLower(s)
-	if strings.Contains(qemuImgFormats, lower) {
-		return lower
+	for _, format := range qemuImgFormats {
+		if format == lower {
+			return format
+		}
 	}
 	return FormatUnknown
 }
