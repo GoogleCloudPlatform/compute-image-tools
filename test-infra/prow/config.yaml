@@ -230,6 +230,7 @@ periodics:
    interval: 5h
    agent: kubernetes
    spec:
+    activeDeadlineSeconds: 7200
     containers:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
@@ -277,6 +278,7 @@ periodics:
    interval: 1h
    agent: kubernetes
    spec:
+    activeDeadlineSeconds: 7200
     containers:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
@@ -325,6 +327,7 @@ periodics:
    interval: 3h
    agent: kubernetes
    spec:
+    activeDeadlineSeconds: 7200
     containers:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
@@ -372,6 +375,7 @@ periodics:
    interval: 5h
    agent: kubernetes
    spec:
+    activeDeadlineSeconds: 7200
     containers:
     - image: gcr.io/compute-image-tools-test/osconfig-tests:latest
       args:
