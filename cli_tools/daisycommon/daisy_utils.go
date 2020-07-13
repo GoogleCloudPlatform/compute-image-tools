@@ -35,36 +35,52 @@ Loop:
 		return nil, daisy.Errf("unknown workflow Var %q passed to Workflow %q", k, w.Name)
 	}
 
-	SetWorkflowAttributes(w, project, zone, gcsPath, oauth, dTimeout, cEndpoint, disableGCSLogs, disableCloudLogs, disableStdoutLogs)
+	SetWorkflowAttributes(w, WorkflowAttributes{
+		Project:           project,
+		Zone:              zone,
+		GCSPath:           gcsPath,
+		OAuth:             oauth,
+		Timeout:           dTimeout,
+		ComputeEndpoint:   cEndpoint,
+		DisableGCSLogs:    disableGCSLogs,
+		DisableCloudLogs:  disableCloudLogs,
+		DisableStdoutLogs: disableStdoutLogs,
+	})
 
 	return w, nil
 }
 
+// WorkflowAttributes holds common attributes that are required to instantiate a daisy workflow.
+type WorkflowAttributes struct {
+	Project, Zone, GCSPath, OAuth, Timeout, ComputeEndpoint           string
+	DisableGCSLogs, DisableCloudLogs, DisableStdoutLogs, NoExternalIP bool
+}
+
 // SetWorkflowAttributes sets workflow running attributes.
-func SetWorkflowAttributes(w *daisy.Workflow, project, zone, gcsPath, oauth, dTimeout, cEndpoint string, disableGCSLogs, disableCloudLogs, disableStdoutLogs bool) {
-	w.Project = project
-	w.Zone = zone
-	if gcsPath != "" {
-		w.GCSPath = gcsPath
+func SetWorkflowAttributes(w *daisy.Workflow, attrs WorkflowAttributes) {
+	w.Project = attrs.Project
+	w.Zone = attrs.Zone
+	if attrs.GCSPath != "" {
+		w.GCSPath = attrs.GCSPath
 	}
-	if oauth != "" {
-		w.OAuthPath = oauth
+	if attrs.OAuth != "" {
+		w.OAuthPath = attrs.OAuth
 	}
-	if dTimeout != "" {
-		w.DefaultTimeout = dTimeout
-	}
-
-	if cEndpoint != "" {
-		w.ComputeEndpoint = cEndpoint
+	if attrs.Timeout != "" {
+		w.DefaultTimeout = attrs.Timeout
 	}
 
-	if disableGCSLogs {
+	if attrs.ComputeEndpoint != "" {
+		w.ComputeEndpoint = attrs.ComputeEndpoint
+	}
+
+	if attrs.DisableGCSLogs {
 		w.DisableGCSLogging()
 	}
-	if disableCloudLogs {
+	if attrs.DisableCloudLogs {
 		w.DisableCloudLogging()
 	}
-	if disableStdoutLogs {
+	if attrs.DisableStdoutLogs {
 		w.DisableStdoutLogging()
 	}
 }

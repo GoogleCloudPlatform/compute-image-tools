@@ -1,0 +1,5 @@
+To generate disk.pb.go, run the following command:
+
+  protoc -I=. --go_out=. disk.proto
+
+For info on setting up the `protoc` tool, see:  https://developers.google.com/protocol-buffers/docs/gotutorial

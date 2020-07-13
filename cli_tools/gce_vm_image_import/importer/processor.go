@@ -14,6 +14,11 @@
 
 package importer
 
+import (
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"log"
+)
+
 // processor represents the second (and final) phase of import. For bootable
 // disks, this means translation and publishing the final image. For data
 // disks, this means publishing the image.
@@ -32,7 +37,8 @@ type processorProvider interface {
 
 type defaultProcessorProvider struct {
 	ImportArguments
-	imageClient createImageClient
+	imageClient   createImageClient
+	diskInspector disk.Inspector
 }
 
 func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) {
@@ -40,6 +46,15 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) 
 		return newDataDiskProcessor(pd, d.imageClient, d.Project,
 			d.Labels, d.StorageLocation, d.Description,
 			d.Family, d.ImageName), nil
+	}
+	if d.Inspect && d.diskInspector != nil {
+		log.Printf("Running experimental disk inspections on %v.", pd.uri)
+		inspectionResult, err := d.diskInspector.Inspect(pd.uri)
+		if err != nil {
+			log.Printf("Inspection error=%v", err)
+		} else {
+			log.Printf("Inspection result=%v", inspectionResult.String())
+		}
 	}
 	return newBootableDiskProcessor(d.ImportArguments, pd)
 }

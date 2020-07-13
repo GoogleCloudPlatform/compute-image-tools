@@ -16,6 +16,7 @@ package importer
 
 import (
 	"context"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
 	"log"
 	"path"
 	"sync"
@@ -43,13 +44,19 @@ func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, er
 		return nil, err
 	}
 
+	inspector, err := disk.NewInspector(
+		args.Network, args.Subnet, args.DaisyAttrs())
+	if err != nil {
+		return nil, err
+	}
+
 	return &importer{
 		project:           args.Project,
 		zone:              args.Zone,
 		timeout:           args.Timeout,
 		preValidator:      newPreValidator(args, client),
 		inflater:          inflater,
-		processorProvider: defaultProcessorProvider{ImportArguments: args, imageClient: client},
+		processorProvider: defaultProcessorProvider{args, client, inspector},
 		traceLogs:         []string{},
 		diskClient:        client,
 	}, nil

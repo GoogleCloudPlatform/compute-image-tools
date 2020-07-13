@@ -17,6 +17,7 @@ package importer
 import (
 	"flag"
 	"fmt"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -52,6 +53,7 @@ type ImportArguments struct {
 	Family               string
 	GcsLogsDisabled      bool
 	ImageName            string
+	Inspect              bool
 	Labels               map[string]string
 	Network              string
 	NoExternalIP         bool
@@ -203,6 +205,9 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	flagSet.BoolVar(&args.NoExternalIP, "no_external_ip", false,
 		"VPC doesn't allow external IPs.")
 
+	flagSet.BoolVar(&args.Inspect, "inspect", false,
+		"Run experimental disk inspections.")
+
 	flagSet.Bool("kms_key", false, "Reserved for future use.")
 	flagSet.Bool("kms_keyring", false, "Reserved for future use.")
 	flagSet.Bool("kms_location", false, "Reserved for future use.")
@@ -261,4 +266,21 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.BoolVar(&args.SysprepWindows, "sysprep_windows", false,
 		"Whether to generalize image using Windows Sysprep. Only applicable to Windows.")
+}
+
+// DaisyAttrs returns the subset of DaisyAttrs that are required to instantiate
+// a daisy workflow.
+func (args ImportArguments) DaisyAttrs() daisycommon.WorkflowAttributes {
+	return daisycommon.WorkflowAttributes{
+		Project:           args.Project,
+		Zone:              args.Zone,
+		GCSPath:           args.ScratchBucketGcsPath,
+		OAuth:             args.Oauth,
+		Timeout:           args.Timeout.String(),
+		ComputeEndpoint:   args.ComputeEndpoint,
+		DisableGCSLogs:    args.GcsLogsDisabled,
+		DisableCloudLogs:  args.CloudLogsDisabled,
+		DisableStdoutLogs: args.StdoutLogsDisabled,
+		NoExternalIP:      args.NoExternalIP,
+	}
 }
