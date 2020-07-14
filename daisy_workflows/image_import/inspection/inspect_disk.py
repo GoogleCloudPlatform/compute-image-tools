@@ -13,5 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-print("Status: <serial-output key:'partition_scheme' value:'mbr'>")
+# Example of communicating a key-value pair back to Daisy:
+#   print("Status: <serial-output key:'partition_scheme' value:'mbr'>")
+
 print("Success: Done!")

@@ -16,6 +16,7 @@ package disk
 
 import (
 	"context"
+
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
@@ -26,6 +27,8 @@ const (
 
 // Inspector finds partition and boot-related properties for a disk.
 type Inspector interface {
+	// Inspect finds partition and boot-related properties for a disk and
+	// returns an InspectionResult. The reference is implementation specific.
 	Inspect(reference string) (InspectionResult, error)
 }
 
@@ -48,6 +51,9 @@ type defaultInspector struct {
 	wf *daisy.Workflow
 }
 
+// Inspect finds partition and boot-related properties for a GCP persistent disk, and
+// returns an InspectionResult. `reference` is a fully-qualified PD URI, such as
+// "projects/project-name/zones/us-central1-a/disks/disk-name".
 func (inspector defaultInspector) Inspect(reference string) (InspectionResult, error) {
 	inspector.wf.AddVar("pd_uri", reference)
 	err := inspector.wf.Run(context.Background())

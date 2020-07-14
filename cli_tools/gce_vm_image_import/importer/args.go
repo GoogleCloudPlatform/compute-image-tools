@@ -205,8 +205,7 @@ func (args *ImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	flagSet.BoolVar(&args.NoExternalIP, "no_external_ip", false,
 		"VPC doesn't allow external IPs.")
 
-	flagSet.BoolVar(&args.Inspect, "inspect", false,
-		"Run experimental disk inspections.")
+	flagSet.BoolVar(&args.Inspect, "inspect", false, "Run disk inspections.")
 
 	flagSet.Bool("kms_key", false, "Reserved for future use.")
 	flagSet.Bool("kms_keyring", false, "Reserved for future use.")
