@@ -5,14 +5,6 @@
     "pd_uri": {
       "Required": true,
       "Description": "PD that will be inspected (URI)."
-    },
-    "network": {
-      "Value": "global/networks/default",
-      "Description": "Network to use for the inspection worker."
-    },
-    "subnet": {
-      "Value": "",
-      "Description": "Subnet to use for the inspection worker."
     }
   },
   "Sources": {
@@ -39,12 +31,7 @@
           "Metadata": {
             "startup-script": "${SOURCE:inspect_disk.py}"
           },
-          "networkInterfaces": [
-            {
-              "network": "${network}",
-              "subnetwork": "${subnet}"
-            }
-          ]
+          "networkInterfaces": [{}]
         }
       ]
     },

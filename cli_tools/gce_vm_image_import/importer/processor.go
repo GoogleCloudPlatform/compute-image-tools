@@ -53,7 +53,7 @@ func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) 
 		if err != nil {
 			log.Printf("Inspection error=%v", err)
 		} else {
-			log.Printf("Inspection result=%v", inspectionResult.String())
+			log.Printf("Inspection result=%v", inspectionResult)
 		}
 	}
 	return newBootableDiskProcessor(d.ImportArguments, pd)

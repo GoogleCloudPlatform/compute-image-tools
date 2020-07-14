@@ -20,21 +20,25 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
-const workflowFile = "daisy_workflows/image_import/inspection/inspect-disk.wf.json"
+const (
+	workflowFile = "daisy_workflows/image_import/inspection/inspect-disk.wf.json"
+)
 
 // Inspector finds partition and boot-related properties for a disk.
 type Inspector interface {
-	Inspect(reference string) (Disk, error)
+	Inspect(reference string) (InspectionResult, error)
+}
+
+// InspectionResult contains the partition and boot-related properties of a disk.
+type InspectionResult struct {
 }
 
 // NewInspector creates an Inspector that can inspect GCP disks.
-func NewInspector(network, subnet string, wfAttributes daisycommon.WorkflowAttributes) (Inspector, error) {
+func NewInspector(wfAttributes daisycommon.WorkflowAttributes) (Inspector, error) {
 	wf, err := daisy.NewFromFile(workflowFile)
 	if err != nil {
 		return nil, err
 	}
-	wf.AddVar("network", network)
-	wf.AddVar("subnet", subnet)
 	daisycommon.SetWorkflowAttributes(wf, wfAttributes)
 	return defaultInspector{wf}, nil
 }
@@ -44,24 +48,8 @@ type defaultInspector struct {
 	wf *daisy.Workflow
 }
 
-func (inspector defaultInspector) Inspect(reference string) (Disk, error) {
+func (inspector defaultInspector) Inspect(reference string) (InspectionResult, error) {
 	inspector.wf.AddVar("pd_uri", reference)
 	err := inspector.wf.Run(context.Background())
-	if err != nil {
-		return Disk{}, err
-	}
-	return populateDisk(inspector.wf), err
-}
-
-func populateDisk(wf *daisy.Workflow) Disk {
-	scheme := PartitionScheme_NONE
-	switch wf.GetSerialConsoleOutputValue("partition_scheme") {
-	case "mbr":
-		scheme = PartitionScheme_MBR
-	case "gpt":
-		scheme = PartitionScheme_GPT
-	}
-	return Disk{
-		PartitionScheme: scheme,
-	}
+	return InspectionResult{}, err
 }

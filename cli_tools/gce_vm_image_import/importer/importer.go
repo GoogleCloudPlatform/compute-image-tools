@@ -44,8 +44,7 @@ func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, er
 		return nil, err
 	}
 
-	inspector, err := disk.NewInspector(
-		args.Network, args.Subnet, args.DaisyAttrs())
+	inspector, err := disk.NewInspector(args.DaisyAttrs())
 	if err != nil {
 		return nil, err
 	}
