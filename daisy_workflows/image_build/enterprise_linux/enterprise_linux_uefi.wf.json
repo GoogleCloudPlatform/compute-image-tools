@@ -33,6 +33,10 @@
     "rhel_uefi": {
       "Value": "true",
       "Description": "Create a RHEL UEFI image."
+    },
+    "destination": {
+      "Required": true,
+      "Description": "GCS path to export image metadata to"
     }
   },
   "Sources": {
@@ -44,6 +48,8 @@
     "build_files/kickstart": "./kickstart/",
     "build_files/ks_helpers.py": "./ks_helpers.py",
     "build_files/save_logs.py": "./save_logs.py",
+    "build_files/export_metadata.py": "./export_metadata.py",
+    "build_files/guest_package": "../../guest_package.txt",
     "installerprep_startup_script": "../../linux_common/bootstrap.sh"
   },
   "Steps": {
@@ -145,6 +151,38 @@
         }
       ]
     },
+    "export-metadata": {
+      "CreateInstances": [
+        {
+          "Name": "inst-exportmetadata",
+          "Disks": [{"Source": "disk-installerprep"}, {"Source": "disk-installer"}],
+          "MachineType": "n1-standard-4",
+          "Metadata": {
+            "files_gcs_dir": "${SOURCESPATH}/build_files",
+            "prefix": "ExportMetadata",
+            "script": "export_metadata.py",
+            "el_release": "${el_release}",
+            "destination": "${destination}"
+          },
+          "Scopes": ["https://www.googleapis.com/auth/devstorage.read_write"],
+          "StartupScript": "installerprep_startup_script"
+        }
+      ]
+    },
+    "wait-for-export-metadata": {
+      "Timeout": "5m",
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-exportmetadata",
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "ExportMetadataFailed:",
+            "SuccessMatch": "ExportMetadataSuccess:",
+            "StatusMatch": "ExportMetadataStatus:"
+          }
+        }
+      ]
+    },
     "wait-for-build-logs": {
       "Timeout": "5m",
       "WaitForInstancesSignal": [
@@ -168,6 +206,8 @@
     "wait-installation": ["run-installation"],
     "cleanup-inst-build": ["wait-installation"],
     "save-build-logs": ["cleanup-inst-build"],
-    "wait-for-build-logs": ["save-build-logs"]
+    "export-metadata": ["cleanup-inst-build"],
+    "wait-for-build-logs": ["save-build-logs"],
+    "wait-for-export-metadata": ["export-metadata"]
   }
 }

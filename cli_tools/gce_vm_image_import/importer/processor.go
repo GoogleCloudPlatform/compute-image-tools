@@ -14,18 +14,15 @@
 
 package importer
 
-import (
-	"context"
-)
-
 // processor represents the second (and final) phase of import. For bootable
 // disks, this means translation and publishing the final image. For data
 // disks, this means publishing the image.
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type processor interface {
-	process(ctx context.Context) error
+	process() error
 	traceLogs() []string
+	cancel(reason string) bool
 }
 
 // processorProvider allows the processor to be determined after the pd has been inflated.

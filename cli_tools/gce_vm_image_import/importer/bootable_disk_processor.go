@@ -37,8 +37,8 @@ type bootableDiskProcessor struct {
 	OS              string
 }
 
-func (b bootableDiskProcessor) process(ctx context.Context) (err error) {
-	err = b.workflow.RunWithModifiers(ctx, b.preValidateFunc(), b.postValidateFunc())
+func (b bootableDiskProcessor) process() (err error) {
+	err = b.workflow.RunWithModifiers(context.Background(), b.preValidateFunc(), b.postValidateFunc())
 	if err != nil {
 		daisy_utils.PostProcessDErrorForNetworkFlag("image import", err, b.network, b.workflow)
 		err = customizeErrorToDetectionResults(b.OS,
@@ -47,6 +47,11 @@ func (b bootableDiskProcessor) process(ctx context.Context) (err error) {
 			b.workflow.GetSerialConsoleOutputValue("detected_minor_version"), err)
 	}
 	return err
+}
+
+func (b bootableDiskProcessor) cancel(reason string) bool {
+	b.workflow.CancelWithReason(reason)
+	return true
 }
 
 func (b bootableDiskProcessor) traceLogs() []string {
@@ -84,7 +89,7 @@ func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processo
 		return nil, err
 	}
 
-	return bootableDiskProcessor{
+	return &bootableDiskProcessor{
 		workflow:        workflow,
 		userLabels:      args.Labels,
 		storageLocation: args.StorageLocation,

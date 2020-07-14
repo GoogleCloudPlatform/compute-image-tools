@@ -17,10 +17,12 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"google.golang.org/api/compute/v1"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
 	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
@@ -29,6 +31,14 @@ import (
 const (
 	inflateFilePath  = "inflate_file.wf.json"
 	inflateImagePath = "inflate_image.wf.json"
+
+	// When exceeded, we use default values for PDs, rather than more accurate
+	// values used by inspection. When using default values, the worker may
+	// need to resize the PDs, which requires escalated privileges.
+	inspectionTimeout = time.Second * 3
+
+	// 10GB is the default disk size used in inflate_file.wf.json.
+	defaultInflationDiskSizeGB = 10
 )
 
 // inflater constructs a new persistentDisk, typically starting from a
@@ -36,8 +46,9 @@ const (
 //
 // Implementers can expose detailed logs using the traceLogs() method.
 type inflater interface {
-	inflate(ctx context.Context) (persistentDisk, error)
+	inflate() (persistentDisk, error)
 	traceLogs() []string
+	cancel(reason string) bool
 }
 
 // daisyInflater implements an inflater using daisy workflows, and is capable
@@ -48,11 +59,8 @@ type daisyInflater struct {
 	serialLogs      []string
 }
 
-func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, error) {
-	err := inflater.wf.Run(ctx)
-	if err != nil {
-		return persistentDisk{}, err
-	}
+func (inflater *daisyInflater) inflate() (persistentDisk, error) {
+	err := inflater.wf.Run(context.Background())
 	if inflater.wf.Logger != nil {
 		inflater.serialLogs = inflater.wf.Logger.ReadSerialPortLogs()
 	}
@@ -65,7 +73,7 @@ func (inflater daisyInflater) inflate(ctx context.Context) (persistentDisk, erro
 		sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
 		sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
 		sourceType: importFileFormat,
-	}, nil
+	}, err
 }
 
 type persistentDisk struct {
@@ -75,7 +83,7 @@ type persistentDisk struct {
 	sourceType string
 }
 
-func createDaisyInflater(args ImportArguments) (inflater, error) {
+func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector) (inflater, error) {
 	diskName := "disk-" + args.ExecutionID
 	var wfPath string
 	var vars map[string]string
@@ -89,12 +97,7 @@ func createDaisyInflater(args ImportArguments) (inflater, error) {
 		inflationDiskIndex = 0 // Workflow only uses one disk.
 	} else {
 		wfPath = inflateFilePath
-		vars = map[string]string{
-			"source_disk_file": args.Source.Path(),
-			"import_network":   args.Network,
-			"import_subnet":    args.Subnet,
-			"disk_name":        diskName,
-		}
+		vars = createDaisyVarsForFile(args, fileInspector, diskName)
 		inflationDiskIndex = 1 // First disk is for the worker
 	}
 
@@ -114,13 +117,13 @@ func createDaisyInflater(args ImportArguments) (inflater, error) {
 		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
 	}
 
-	return daisyInflater{
+	return &daisyInflater{
 		wf:              wf,
 		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", args.Zone, diskName),
 	}, nil
 }
 
-func (inflater daisyInflater) traceLogs() []string {
+func (inflater *daisyInflater) traceLogs() []string {
 	return inflater.serialLogs
 }
 
@@ -145,4 +148,52 @@ func getDisk(workflow *daisy.Workflow, diskIndex int) *daisy.Disk {
 	}
 
 	panic("Did not find CreateDisks step.")
+}
+
+func (inflater *daisyInflater) cancel(reason string) bool {
+	inflater.wf.CancelWithReason(reason)
+	return true
+}
+
+func createDaisyVarsForFile(args ImportArguments,
+	fileInspector imagefile.Inspector, diskName string) map[string]string {
+	vars := map[string]string{
+		"source_disk_file": args.Source.Path(),
+		"import_network":   args.Network,
+		"import_subnet":    args.Subnet,
+		"disk_name":        diskName,
+	}
+
+	// To reduce the runtime permissions used on the inflation worker, we pre-allocate
+	// disks sufficient to hold the disk file and the inflated disk. If inspection fails,
+	// then the default values in the daisy workflow will be used. The scratch disk gets
+	// a padding factor to account for filesystem overhead.
+	deadline, cancelFunc := context.WithDeadline(context.Background(), time.Now().Add(inspectionTimeout))
+	defer cancelFunc()
+	metadata, err := fileInspector.Inspect(deadline, args.Source.Path())
+	if err == nil {
+		vars["inflated_disk_size_gb"] = fmt.Sprintf("%d", calculateInflatedSize(metadata))
+		vars["scratch_disk_size_gb"] = fmt.Sprintf("%d", calculateScratchDiskSize(metadata))
+	}
+	return vars
+}
+
+// Allocate extra room for filesystem overhead, and
+// ensure a minimum of 10GB (the minimum size of a GCP disk).
+func calculateScratchDiskSize(metadata imagefile.Metadata) int64 {
+	// This uses the historic padding calculation from import_image.sh: add ten percent,
+	// and round up.
+	padded := int64(float64(metadata.PhysicalSizeGB)*1.1) + 1
+	if padded < defaultInflationDiskSizeGB {
+		return defaultInflationDiskSizeGB
+	}
+	return padded
+}
+
+// Ensure a minimum of 10GB (the minimum size of a GCP disk)
+func calculateInflatedSize(metadata imagefile.Metadata) int64 {
+	if metadata.VirtualSizeGB < defaultInflationDiskSizeGB {
+		return defaultInflationDiskSizeGB
+	}
+	return metadata.VirtualSizeGB
 }

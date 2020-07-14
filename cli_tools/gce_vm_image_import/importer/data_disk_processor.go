@@ -15,7 +15,7 @@
 package importer
 
 import (
-	"context"
+	"log"
 
 	"google.golang.org/api/compute/v1"
 )
@@ -38,7 +38,7 @@ func newDataDiskProcessor(pd persistentDisk, client createImageClient, project s
 		storageLocation = []string{userStorageLocation}
 	}
 
-	return dataDiskProcessor{
+	return &dataDiskProcessor{
 		client:  client,
 		project: project,
 		request: compute.Image{
@@ -57,8 +57,14 @@ func (d dataDiskProcessor) traceLogs() []string {
 	return []string{}
 }
 
-func (d dataDiskProcessor) process(ctx context.Context) (err error) {
+func (d dataDiskProcessor) process() (err error) {
+	log.Printf("Creating image \"%v\"", d.request.Name)
 	return d.client.CreateImage(d.project, &d.request)
+}
+
+func (d dataDiskProcessor) cancel(reason string) bool {
+	//indicate cancel was not performed
+	return false
 }
 
 // createImageClient is the subset of the GCP compute API that is used by dataDiskProcessor.

@@ -15,15 +15,20 @@
 package importer
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/api/compute/v1"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 )
 
 func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
 		Source:      imageSource{uri: "projects/test/uri/image"},
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
@@ -37,7 +42,7 @@ func TestCreateDaisyInflater_Image_HappyCase(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_Image_Windows(t *testing.T) {
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
 		Source: imageSource{uri: "image/uri"},
 		OS:     "windows-2019",
 	})
@@ -48,7 +53,7 @@ func TestCreateDaisyInflater_Image_Windows(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_Image_NotWindows(t *testing.T) {
-	inflater := createDaisyInflaterSafe(t, ImportArguments{
+	inflater := createDaisyInflaterForImageSafe(t, ImportArguments{
 		Source: imageSource{uri: "image/uri"},
 		OS:     "ubunt-1804",
 	})
@@ -59,13 +64,19 @@ func TestCreateDaisyInflater_Image_NotWindows(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
+	source := fileSource{gcsPath: "gs://bucket/vmdk"}
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
-		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
+		Source:       source,
 		Subnet:       "projects/subnet/subnet",
 		Network:      "projects/network/network",
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
 		NoExternalIP: false,
+	}, mockInspector{
+		t:                 t,
+		expectedReference: source.gcsPath,
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", inflater.inflatedDiskURI)
@@ -78,19 +89,94 @@ func TestCreateDaisyInflater_File_HappyCase(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_File_NoExternalIP(t *testing.T) {
+	source := fileSource{gcsPath: "gs://bucket/vmdk"}
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
-		Source:       fileSource{gcsPath: "gs://bucket/vmdk"},
+		Source:       source,
 		NoExternalIP: true,
+	}, mockInspector{
+		t:                 t,
+		expectedReference: source.gcsPath,
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	network := getWorkerNetwork(t, inflater.wf)
 	assert.NotNil(t, network.AccessConfigs, "To disable external IPs, AccessConfigs must be non-nil.")
 }
 
-func TestCreateDaisyInflater_File_Windows(t *testing.T) {
+func TestCreateDaisyInflater_File_UsesFallbackSizes_WhenInspectionFails(t *testing.T) {
+	source := fileSource{gcsPath: "gs://bucket/vmdk"}
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
-		Source: fileSource{gcsPath: "gs://bucket/vmdk"},
+		Source:       source,
+		NoExternalIP: true,
+	}, mockInspector{
+		t:                 t,
+		expectedReference: source.gcsPath,
+		errorToReturn:     errors.New("inspection failed"),
+		metaToReturn:      imagefile.Metadata{},
+	})
+
+	// The 10GB defaults are hardcoded in inflate_file.wf.json.
+	assert.Equal(t, "10", inflater.wf.Vars["scratch_disk_size_gb"].Value)
+	assert.Equal(t, "10", inflater.wf.Vars["inflated_disk_size_gb"].Value)
+}
+
+func TestCreateDaisyInflater_File_SetsSizesFromInspectedFile(t *testing.T) {
+	tests := []struct {
+		physicalSize     int64
+		virtualSize      int64
+		expectedInflated string
+		expectedScratch  string
+	}{
+		{
+			virtualSize:      1,
+			expectedInflated: "10",
+			expectedScratch:  "10",
+		},
+		{
+			physicalSize:     8,
+			virtualSize:      9,
+			expectedInflated: "10",
+			expectedScratch:  "10",
+		},
+		{
+			physicalSize:     1008,
+			virtualSize:      1024,
+			expectedInflated: "1024",
+			expectedScratch:  "1109",
+		},
+	}
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			source := fileSource{gcsPath: "gs://bucket/vmdk"}
+			inflater := createDaisyInflaterSafe(t, ImportArguments{
+				Source:       source,
+				NoExternalIP: true,
+			}, mockInspector{
+				t:                 t,
+				expectedReference: source.gcsPath,
+				metaToReturn: imagefile.Metadata{
+					VirtualSizeGB:  tt.virtualSize,
+					PhysicalSizeGB: tt.physicalSize,
+				},
+			})
+
+			assert.Equal(t, tt.expectedInflated, inflater.wf.Vars["inflated_disk_size_gb"].Value)
+			assert.Equal(t, tt.expectedScratch, inflater.wf.Vars["scratch_disk_size_gb"].Value)
+		})
+	}
+}
+
+func TestCreateDaisyInflater_File_Windows(t *testing.T) {
+	source := fileSource{gcsPath: "gs://bucket/vmdk"}
+	inflater := createDaisyInflaterSafe(t, ImportArguments{
+		Source: source,
 		OS:     "windows-2019",
+	}, mockInspector{
+		t:                 t,
+		expectedReference: source.gcsPath,
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	inflatedDisk := getDisk(inflater.wf, 1)
@@ -100,9 +186,15 @@ func TestCreateDaisyInflater_File_Windows(t *testing.T) {
 }
 
 func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
+	source := fileSource{gcsPath: "gs://bucket/vmdk"}
 	inflater := createDaisyInflaterSafe(t, ImportArguments{
-		Source: fileSource{gcsPath: "gs://bucket/vmdk"},
+		Source: source,
 		OS:     "ubuntu-1804",
+	}, mockInspector{
+		t:                 t,
+		expectedReference: source.gcsPath,
+		errorToReturn:     nil,
+		metaToReturn:      imagefile.Metadata{},
 	})
 
 	inflatedDisk := getDisk(inflater.wf, 1)
@@ -111,13 +203,18 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 	})
 }
 
-func createDaisyInflaterSafe(t *testing.T, args ImportArguments) daisyInflater {
+func createDaisyInflaterSafe(t *testing.T, args ImportArguments,
+	inspector imagefile.Inspector) *daisyInflater {
 	args.WorkflowDir = "testdata/image_import"
-	inflater, err := createDaisyInflater(args)
+	inflater, err := createDaisyInflater(args, inspector)
 	assert.NoError(t, err)
-	realInflater, ok := inflater.(daisyInflater)
+	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
 	return realInflater
+}
+
+func createDaisyInflaterForImageSafe(t *testing.T, args ImportArguments) *daisyInflater {
+	return createDaisyInflaterSafe(t, args, nil)
 }
 
 func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkInterface {
@@ -131,4 +228,17 @@ func getWorkerNetwork(t *testing.T, workflow *daisy.Workflow) *compute.NetworkIn
 		}
 	}
 	panic("expected create instance step with single network")
+}
+
+type mockInspector struct {
+	t                 *testing.T
+	expectedReference string
+	errorToReturn     error
+	metaToReturn      imagefile.Metadata
+}
+
+func (m mockInspector) Inspect(
+	ctx context.Context, reference string) (imagefile.Metadata, error) {
+	assert.Equal(m.t, m.expectedReference, reference)
+	return m.metaToReturn, m.errorToReturn
 }

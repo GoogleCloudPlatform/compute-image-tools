@@ -17,6 +17,7 @@ package daisy
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 
 	"google.golang.org/api/compute/v1"
@@ -29,13 +30,22 @@ type ResizeDisks []*ResizeDisk
 type ResizeDisk struct {
 	compute.DisksResizeRequest
 	// Name of the disk to be resized
-	Name string
+	Name   string
+	SizeGb string "json:\"sizeGb,omitempty\""
 }
 
 func (r *ResizeDisks) populate(ctx context.Context, s *Step) DError {
+	var errs DError
 	for _, rd := range *r {
 		if diskURLRgx.MatchString(rd.Name) {
 			rd.Name = extendPartialURL(rd.Name, s.w.Project)
+		}
+		if rd.SizeGb != "" && rd.DisksResizeRequest.SizeGb == 0 {
+			size, err := strconv.ParseInt(rd.SizeGb, 10, 64)
+			if err != nil {
+				return addErrs(errs, Errf("cannot convert %s to int64, error msg: (%v)", rd.SizeGb, err))
+			}
+			rd.DisksResizeRequest.SizeGb = size
 		}
 	}
 	return nil
@@ -53,7 +63,7 @@ func (r *ResizeDisks) validate(ctx context.Context, s *Step) DError {
 		rd.Name = dr.RealName
 
 		pre := fmt.Sprintf("cannot resize disk %q", rd.Name)
-		if rd.SizeGb <= 0 {
+		if rd.DisksResizeRequest.SizeGb <= 0 {
 			errs = addErrs(errs, Errf("%s: SizeGb can't be zero: it's a mandatory field.", pre))
 		}
 	}
@@ -69,7 +79,7 @@ func (r *ResizeDisks) run(ctx context.Context, s *Step) DError {
 		go func(rd *ResizeDisk) {
 			defer wg.Done()
 
-			w.LogStepInfo(s.name, "ResizeDisks", "Resizing disk %q to %v GB.", rd.Name, rd.SizeGb)
+			w.LogStepInfo(s.name, "ResizeDisks", "Resizing disk %q to %v GB.", rd.Name, rd.DisksResizeRequest.SizeGb)
 			if err := w.ComputeClient.ResizeDisk(s.w.Project, s.w.Zone, rd.Name, &rd.DisksResizeRequest); err != nil {
 				e <- newErr("failed to resize disk", err)
 				return

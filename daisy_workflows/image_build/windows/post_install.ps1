@@ -359,6 +359,42 @@ function Set-Repos {
   Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' addrepo 'google-compute-engine-stable' 'https://packages.cloud.google.com/yuck/repos/google-compute-engine-stable'
 }
 
+function Export-ImageMetadata {
+  $computer_info = Get-ComputerInfo
+  $version = $computer_info.OsVersion
+  $family = 'windows-' + $computer_info.windowsversion
+  $name =  $computer_info.OSName
+  $release_date = (Get-Date).ToUniversalTime()
+  $image_metadata = @{'family' = $family;
+                      'version' = $edition;
+                      'name' = $name;
+                      'location' = ${script:outs_dir};
+                      'build_date' = $release_date;
+                      'packages' = @()}
+
+  # Get Googet packages.
+  $out = Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed'
+  $out = $out[1..$out.length]
+  [array]::sort($out)
+
+  foreach ($package_line in $out) {
+    $name = $package_line.split(' ')[0]
+    # Get Package Info for each package
+    $info = Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' 'installed' '-info' $name
+    $version = $info[2]
+    $source = $info[6]
+    $package_metadata = @{'name' = $name;
+                          'version' = $version;
+                          'commmit_hash' = $source}
+    $image_metadata['packages'] += $package_metadata
+  }
+
+  # Save the JSON image_metadata.
+  $image_metadata_json = $image_metadata | ConvertTo-Json -Compress
+  $image_metadata_json | & 'gsutil' -m cp - "${script:outs_dir}/metadata.json"
+}
+
+
 try {
   Write-Output 'Beginning post install powershell script.'
 
@@ -378,6 +414,7 @@ try {
   Setup-NTP
   Install-Packages
   Set-Repos
+  Export-ImageMetadata
 
   Write-Output 'Launching sysprep.'
   & "$script:gce_install_dir\sysprep\gcesysprep.bat"
