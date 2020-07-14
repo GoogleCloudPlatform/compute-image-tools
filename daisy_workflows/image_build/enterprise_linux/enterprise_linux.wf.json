@@ -198,8 +198,8 @@
     "wait-installation": ["run-installation"],
     "cleanup-inst-build": ["wait-installation"],
     "save-build-logs": ["cleanup-inst-build"],
-    "export-metadata": ["cleanup-inst-build"],
     "wait-for-build-logs": ["save-build-logs"],
+    "export-metadata": ["wait-for-build-logs"],
     "wait-for-export-metadata": ["export-metadata"]
   }
 }
