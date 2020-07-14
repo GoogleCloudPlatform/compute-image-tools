@@ -16,6 +16,7 @@ package importer
 
 import (
 	"errors"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"strings"
 	"testing"
 	"time"
@@ -353,6 +354,34 @@ func TestSysprepSettable(t *testing.T) {
 	assert.False(t, expectSuccessfulParse(t, "-sysprep_windows=false").SysprepWindows)
 	assert.True(t, expectSuccessfulParse(t, "-sysprep_windows=true").SysprepWindows)
 	assert.True(t, expectSuccessfulParse(t, "-sysprep_windows").SysprepWindows)
+}
+
+func TestImportArguments_DaisyAttrs(t *testing.T) {
+	args := ImportArguments{
+		Project:              "panda",
+		Zone:                 "us-west",
+		ScratchBucketGcsPath: "gcs://bucket/path",
+		Oauth:                "oauth-info",
+		Timeout:              time.Hour * 3,
+		ComputeEndpoint:      "endpoint-uri",
+		GcsLogsDisabled:      true,
+		CloudLogsDisabled:    true,
+		StdoutLogsDisabled:   true,
+		NoExternalIP:         true,
+	}
+	expected := daisycommon.WorkflowAttributes{
+		Project:           "panda",
+		Zone:              "us-west",
+		GCSPath:           "gcs://bucket/path",
+		OAuth:             "oauth-info",
+		Timeout:           "3h0m0s",
+		ComputeEndpoint:   "endpoint-uri",
+		DisableGCSLogs:    true,
+		DisableCloudLogs:  true,
+		DisableStdoutLogs: true,
+		NoExternalIP:      true,
+	}
+	assert.Equal(t, expected, args.DaisyAttrs())
 }
 
 type mockPopulator struct {

@@ -1,0 +1,67 @@
+{
+  "Name": "inspect-disk",
+  "DefaultTimeout": "5m",
+  "Vars": {
+    "pd_uri": {
+      "Required": true,
+      "Description": "PD that will be inspected (URI)."
+    }
+  },
+  "Sources": {
+    "inspect_disk.py": "./inspect_disk.py"
+  },
+  "Steps": {
+    "run-inspection": {
+      "CreateInstances": [
+        {
+          "Name": "run-inspection",
+          "Disks": [
+            {
+              "AutoDelete": true,
+              "boot": true,
+              "initializeParams": {
+                "sourceImage":  "projects/compute-image-tools/global/images/family/debian-9-worker"
+              }
+            },
+            {
+              "Source": "${pd_uri}"
+            }
+          ],
+          "MachineType": "n1-standard-4",
+          "Metadata": {
+            "startup-script": "${SOURCE:inspect_disk.py}"
+          },
+          "networkInterfaces": [{}]
+        }
+      ]
+    },
+    "wait-for-signal": {
+      "WaitForInstancesSignal": [
+        {
+          "Name": "run-inspection",
+          "SerialOutput": {
+            "Port": 1,
+            "SuccessMatch": "Success:",
+            "FailureMatch": "Failed:",
+            "StatusMatch": "Status:"
+          }
+        }
+      ]
+    },
+    "cleanup": {
+      "DeleteResources": {
+        "Instances": [
+          "run-inspection"
+        ]
+      }
+    }
+  },
+  "Dependencies": {
+    "wait-for-signal": [
+      "run-inspection"
+    ],
+    "cleanup": [
+      "wait-for-signal"
+    ]
+  }
+}

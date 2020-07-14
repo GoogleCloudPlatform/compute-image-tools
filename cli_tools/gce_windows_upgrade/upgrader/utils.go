@@ -161,6 +161,15 @@ func needReboot(err error) bool {
 }
 
 func setWorkflowAttributes(w *daisy.Workflow, u *upgrader) {
-	daisycommon.SetWorkflowAttributes(w, u.instanceProject, u.instanceZone, u.ScratchBucketGcsPath,
-		u.Oauth, u.Timeout, u.Ce, u.GcsLogsDisabled, u.CloudLogsDisabled, u.StdoutLogsDisabled)
+	daisycommon.SetWorkflowAttributes(w, daisycommon.WorkflowAttributes{
+		Project:           u.instanceProject,
+		Zone:              u.instanceZone,
+		GCSPath:           u.ScratchBucketGcsPath,
+		OAuth:             u.Oauth,
+		Timeout:           u.Timeout,
+		ComputeEndpoint:   u.Ce,
+		DisableGCSLogs:    u.GcsLogsDisabled,
+		DisableCloudLogs:  u.CloudLogsDisabled,
+		DisableStdoutLogs: u.StdoutLogsDisabled,
+	})
 }
