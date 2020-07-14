@@ -32,6 +32,8 @@ DAISY_SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/daisy-so
 SOURCE_URL="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/source_disk_file)"
 DISKNAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/disk_name)"
 SCRATCH_DISK_NAME="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/scratch_disk_name)"
+SCRATCH_DISK_SIZE_GB="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/scratch_disk_size_gb)"
+INFLATED_DISK_SIZE_GB="$(curl -f -H Metadata-Flavor:Google ${URL}/attributes/inflated_disk_size_gb)"
 ME="$(curl -f -H Metadata-Flavor:Google ${URL}/name)"
 ZONE=$(curl -f -H Metadata-Flavor:Google ${URL}/zone)
 
@@ -46,6 +48,8 @@ echo "#################" 2> /dev/null
 echo "IMAGE_PATH: ${IMAGE_PATH}" 2> /dev/null
 echo "SOURCE_URL: ${SOURCE_URL}" 2> /dev/null
 echo "SOURCE_SIZE_BYTES: ${SOURCE_SIZE_BYTES}" 2> /dev/null
+echo "SCRATCH_DISK_SIZE_GB: ${SCRATCH_DISK_SIZE_GB}" 2> /dev/null
+echo "INFLATED_DISK_SIZE_GB: ${INFLATED_DISK_SIZE_GB}" 2> /dev/null
 echo "DISKNAME: ${DISKNAME}" 2> /dev/null
 echo "ME: ${ME}" 2> /dev/null
 echo "ZONE: ${ZONE}" 2> /dev/null
@@ -97,9 +101,7 @@ function copyImageToScratchDisk() {
      scratchDiskSizeGigabytes=$((scratchDiskSizeGigabytes * 2))
   fi
 
-  # This disk is initially created with 10GB of space.
-  # Enlarge it if that's insufficient to hold the input image.
-  if [[ ${scratchDiskSizeGigabytes} -gt 10 ]]; then
+  if [[ ${scratchDiskSizeGigabytes} -gt ${SCRATCH_DISK_SIZE_GB} ]]; then
     resizeDisk "${SCRATCH_DISK_NAME}" "${scratchDiskSizeGigabytes}" "${ZONE}" /dev/sdb
   fi
 
@@ -181,10 +183,8 @@ echo "Import: $(serialOutputKeyValuePair "import-file-format" "${IMPORT_FILE_FOR
 set -x
 
 # Ensure the disk referenced by $DISKNAME is large enough to
-# hold the inflated disk. For the common case, we initialize
-# it to have a capacity of 10 GB, and then resize it if qemu-img
-# tells us that it will be larger than 10 GB.
-if [[ ${SIZE_GB} -gt 10 ]]; then
+# hold the inflated disk.
+if [[ ${SIZE_GB} -gt ${INFLATED_DISK_SIZE_GB} ]]; then
   resizeDisk "${DISKNAME}" "${SIZE_GB}" "${ZONE}" /dev/sdc
 fi
 

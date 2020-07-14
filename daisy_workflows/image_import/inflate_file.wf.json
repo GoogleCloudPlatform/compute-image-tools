@@ -6,6 +6,14 @@
       "Required": true,
       "Description": "The GCS path to the virtual disk to import."
     },
+    "inflated_disk_size_gb": {
+      "Value": "10",
+      "Description": "Estimate of the size of PD required after inflation for the source disk file."
+    },
+    "scratch_disk_size_gb": {
+      "Value": "10",
+      "Description": "Estimate of the size of PD required to hold the source disk file."
+    },
     "importer_instance_disk_size": {
       "Value": "10",
       "Description": "size of the importer instance disk, additional disk space is unused for the import but a larger size increases PD write speed"
@@ -48,7 +56,7 @@
         },
         {
           "Name": "${disk_name}",
-          "SizeGb": "10",
+          "SizeGb": "${inflated_disk_size_gb}",
           "Type": "pd-ssd",
           "ExactName": true,
           "NoCleanup": true,
@@ -58,7 +66,7 @@
         },
         {
           "Name": "disk-${NAME}-scratch-${ID}",
-          "SizeGb": "10",
+          "SizeGb": "${scratch_disk_size_gb}",
           "Type": "pd-ssd",
           "ExactName": true,
           "FallbackToPdStandard": true
@@ -79,6 +87,8 @@
             "block-project-ssh-keys": "true",
             "disk_name": "${disk_name}",
             "scratch_disk_name": "disk-${NAME}-scratch-${ID}",
+            "inflated_disk_size_gb": "${inflated_disk_size_gb}",
+            "scratch_disk_size_gb": "${scratch_disk_size_gb}",
             "source_disk_file": "${source_disk_file}",
             "shutdown-script": "echo 'Worker instance terminated'",
             "startup-script": "${SOURCE:import_image.sh}"
