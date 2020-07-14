@@ -48,6 +48,7 @@ const (
 	ImageExportAction        = "ImageExport"
 	InstanceImportAction     = "InstanceImport"
 	MachineImageImportAction = "MachineImageImport"
+	OneStepImageImportAction = "OneStepImageImport"
 	WindowsUpgrade           = "WindowsUpgrade"
 
 	// These strings should be interleaved to construct the real URL. This is just to (hopefully)
