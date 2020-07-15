@@ -32,16 +32,6 @@ func TestTrimAndLowerImageName(t *testing.T) {
 	assert.Equal(t, "imagename", expectSuccessfulParse(t, args...).ImageName)
 }
 
-func TestFailWhenCloudProviderNotProvided(t *testing.T) {
-	args := setUpArgs(cloudProviderFlag)
-	assert.EqualError(t, expectFailedValidation(t, args), "The flag -cloud_provider must be provided")
-}
-
-func TestTrimAndLowerCloudProvider(t *testing.T) {
-	args := setUpArgs(cloudProviderFlag, "-cloud_provider=   AwS   ")
-	assert.Equal(t, "aws", expectSuccessfulParse(t, args...).CloudProvider)
-}
-
 func TestFailWhenClientIDNotProvided(t *testing.T) {
 	args := setUpArgs(clientFlag)
 	assert.EqualError(t, expectFailedValidation(t, args), "The flag -client_id must be provided")
@@ -88,13 +78,13 @@ func TestTrimAMIID(t *testing.T) {
 	assert.Equal(t, "my-ami-id", expectSuccessfulParse(t, "-aws_ami_id=   my-ami-id  ").AWSAMIID)
 }
 
-func TestTrimExportedAMIPath(t *testing.T) {
-	assert.Equal(t, "my-exported-path", expectSuccessfulParse(t, "-aws_exported_ami_path=   my-exported-path  ").AWSExportedAMIPath)
+func TestTrimSourceAMIFilePath(t *testing.T) {
+	assert.Equal(t, "my-source-file-path", expectSuccessfulParse(t, "-aws_source_ami_file_path=   my-source-file-path  ").AWSSourceAMIFilePath)
 }
 
-func TestTrimExportLocation(t *testing.T) {
-	args := setUpAWSArgs(awsExportLocationFlag, true, "-aws_export_location=   my-export-location  ")
-	assert.Equal(t, "my-export-location", expectSuccessfulParse(t, args...).AWSExportLocation)
+func TestTrimAMIExportLocation(t *testing.T) {
+	args := setUpAWSArgs(awsAMIExportLocationFlag, true, "-aws_ami_export_location=   my-ami_export-location  ")
+	assert.Equal(t, "my-ami_export-location", expectSuccessfulParse(t, args...).AWSAMIExportLocation)
 }
 
 func TestTrimFamily(t *testing.T) {
@@ -143,7 +133,7 @@ func TestTrimCustomWorkflow(t *testing.T) {
 }
 
 func TestParseLabelsToMap(t *testing.T) {
-	expected := map[string]string{"internal": "true", "onestep-image-import": "aws", "private": "false"}
+	expected := map[string]string{"internal": "true", "private": "false"}
 	assert.Equal(t, expected, expectSuccessfulParse(t, "-labels=internal=true,private=false").Labels)
 }
 
@@ -226,10 +216,9 @@ func expectFailedValidation(t *testing.T, args []string) error {
 
 func setUpArgs(requiredFlagToTest string, args ...string) []string {
 	var (
-		appendClientID      = requiredFlagToTest != clientFlag
-		appendImageName     = requiredFlagToTest != imageNameFlag
-		appendOS            = requiredFlagToTest != osFlag
-		appendCloudProvider = requiredFlagToTest != cloudProviderFlag
+		appendClientID  = requiredFlagToTest != clientFlag
+		appendImageName = requiredFlagToTest != imageNameFlag
+		appendOS        = requiredFlagToTest != osFlag
 	)
 
 	for _, arg := range args {
@@ -239,8 +228,6 @@ func setUpArgs(requiredFlagToTest string, args ...string) []string {
 			appendImageName = false
 		} else if strings.HasPrefix(arg, "-os") {
 			appendOS = false
-		} else if strings.HasPrefix(arg, "-cloud_provider") {
-			appendCloudProvider = false
 		}
 	}
 
@@ -254,10 +241,6 @@ func setUpArgs(requiredFlagToTest string, args ...string) []string {
 
 	if appendOS {
 		args = append(args, "-os=ubuntu-1804")
-	}
-
-	if appendCloudProvider {
-		args = append(args, "-cloud_provider=aws")
 	}
 
 	return args

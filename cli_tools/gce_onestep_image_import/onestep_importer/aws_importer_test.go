@@ -29,7 +29,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/mocks"
 )
 
 var (
@@ -41,6 +44,10 @@ var (
 	}
 	headObjectResp struct {
 		output *s3.HeadObjectOutput
+		err    error
+	}
+	deleteObjectResp struct {
+		output *s3.DeleteObjectOutput
 		err    error
 	}
 	exportImageResp struct {
@@ -56,6 +63,7 @@ var (
 func resetAPIOutput() {
 	getObjectResp.output, getObjectResp.err = &s3.GetObjectOutput{}, nil
 	headObjectResp.output, headObjectResp.err = &s3.HeadObjectOutput{ContentLength: aws.Int64(10)}, nil
+	deleteObjectResp.output, deleteObjectResp.err = &s3.DeleteObjectOutput{}, nil
 	exportImageResp.output, exportImageResp.err = &ec2.ExportImageOutput{}, nil
 	describeExportTaskResp.output, describeExportTaskResp.err = &ec2.DescribeExportImageTasksOutput{}, nil
 }
@@ -74,6 +82,10 @@ func (m *mockS3Client) GetObject(*s3.GetObjectInput) (*s3.GetObjectOutput, error
 		time.Sleep(time.Second * 3)
 	}
 	return getObjectResp.output, getObjectResp.err
+}
+
+func (m *mockS3Client) DeleteObject(*s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error) {
+	return deleteObjectResp.output, deleteObjectResp.err
 }
 
 type mockEC2Client struct {
@@ -126,8 +138,8 @@ func TestRunImporterExportAMI(t *testing.T) {
 	importer, err := NewOneStepImportArguments(args)
 	assert.Nil(t, err)
 
-	awsImporter.exportAWSImageFn = func() error {
-		return fmt.Errorf("failed")
+	awsImporter.exportAWSImageFn = func() (string, error) {
+		return "", fmt.Errorf("failed")
 	}
 	err = awsImporter.run(importer)
 	assert.EqualError(t, err, "failed")
@@ -139,8 +151,8 @@ func TestRunImporterSkipExportAMI(t *testing.T) {
 	importer, err := NewOneStepImportArguments(args)
 	assert.Nil(t, err)
 
-	awsImporter.exportAWSImageFn = func() error {
-		return fmt.Errorf("export image failed")
+	awsImporter.exportAWSImageFn = func() (string, error) {
+		return "", fmt.Errorf("export image failed")
 	}
 	awsImporter.getAWSFileSizeFn = func() error {
 		return fmt.Errorf("get file size failed")
@@ -162,33 +174,31 @@ func TestRunImporterCopyFile(t *testing.T) {
 	assert.EqualError(t, err, "failed")
 }
 
-func TestRunImporterUpdateImageImporterArgs(t *testing.T) {
+func TestRunImporterImportImage(t *testing.T) {
 	args := setUpAWSArgs("", false)
 	awsImporter := getAWSImporter(t, args)
 	importer, err := NewOneStepImportArguments(args)
 	assert.Nil(t, err)
 
-	awsImporter.copyFromS3ToGCSFn = func() (string, error) {
-		return "gs://test-file-path", nil
+	awsImporter.importImageFn = func() error {
+		return fmt.Errorf("failed")
 	}
-
-	originalTimeout := importer.Timeout
 	err = awsImporter.run(importer)
-
-	assert.Equal(t, importer.SourceFile, "gs://test-file-path")
-	assert.NotEqual(t, importer.Timeout, originalTimeout)
+	assert.EqualError(t, err, "failed")
 }
 
-func TestRunImporterReturnTimeoutError(t *testing.T) {
+func TestRunImporterCleanup(t *testing.T) {
 	args := setUpAWSArgs("", false)
 	awsImporter := getAWSImporter(t, args)
 	importer, err := NewOneStepImportArguments(args)
 	assert.Nil(t, err)
 
-	importer.Timeout = 0
+	isCleanUpCalled := false
+	awsImporter.cleanUpFn = func() {
+		isCleanUpCalled = true
+	}
 	err = awsImporter.run(importer)
-
-	assert.EqualError(t, err, "timeout exceeded")
+	assert.True(t, isCleanUpCalled)
 }
 
 func TestExportImageReturnErrorWhenCallError(t *testing.T) {
@@ -198,7 +208,7 @@ func TestExportImageReturnErrorWhenCallError(t *testing.T) {
 
 	awsImporter.exportAWSImageFn = nil
 	exportImageResp.err = fmt.Errorf("export image failed")
-	err := awsImporter.exportAWSImage()
+	_, err := awsImporter.exportAWSImage()
 	assert.Contains(t, err.Error(), "export image failed")
 }
 
@@ -209,7 +219,7 @@ func TestExportImageReturnErrorWhenEmptyTaskID(t *testing.T) {
 
 	awsImporter.exportAWSImageFn = nil
 	exportImageResp.output.ExportImageTaskId = aws.String("")
-	err := awsImporter.exportAWSImage()
+	_, err := awsImporter.exportAWSImage()
 	assert.Contains(t, err.Error(), "empty task id returned")
 }
 
@@ -222,7 +232,7 @@ func TestExportImageReturnErrorWhenMonitorTaskError(t *testing.T) {
 	awsImporter.monitorAWSExportImageTaskFn = func() error {
 		return fmt.Errorf("failed")
 	}
-	err := awsImporter.exportAWSImage()
+	_, err := awsImporter.exportAWSImage()
 	assert.Equal(t, err.Error(), "failed")
 }
 
@@ -239,7 +249,7 @@ func TestExportImageCancelTaskWhenError(t *testing.T) {
 		return fmt.Errorf("failed")
 	}
 
-	err := awsImporter.exportAWSImage()
+	_, err := awsImporter.exportAWSImage()
 	assert.Equal(t, err.Error(), "failed")
 	assert.Contains(t, buf.String(), "Cancelling export task ...")
 }
@@ -359,9 +369,9 @@ func TestExportImageUpdatesImporterArgs(t *testing.T) {
 	taskID := "my-task-id"
 	exportImageResp.output.ExportImageTaskId = aws.String(taskID)
 
-	err := awsImporter.exportAWSImage()
+	s3FilePath, err := awsImporter.exportAWSImage()
 	assert.Contains(t, awsImporter.args.exportKey, taskID)
-	assert.Contains(t, awsImporter.args.exportedAMIPath, taskID)
+	assert.Contains(t, s3FilePath, taskID)
 	assert.NoError(t, err)
 }
 
@@ -556,6 +566,106 @@ func TestTransferFileReturnErrorWhenWriterCloseFail(t *testing.T) {
 	assert.Contains(t, err.Error(), "close writer failed")
 }
 
+func TestImportImageUpdateImporterArgs(t *testing.T) {
+	args := setUpAWSArgs("", false)
+	awsImporter := getAWSImporter(t, args)
+	importer, err := NewOneStepImportArguments(args)
+	assert.Nil(t, err)
+
+	awsImporter.copyFromS3ToGCSFn = func() (string, error) {
+		return "gs://test-file-path", nil
+	}
+	awsImporter.importImageFn = nil
+
+	originalTimeout := importer.Timeout
+	err = awsImporter.run(importer)
+
+	assert.Equal(t, importer.SourceFile, "gs://test-file-path")
+	assert.NotEqual(t, importer.Timeout, originalTimeout)
+}
+
+func TestImportImageReturnTimeoutError(t *testing.T) {
+	args := setUpAWSArgs("", false)
+	awsImporter := getAWSImporter(t, args)
+	importer, err := NewOneStepImportArguments(args)
+	assert.Nil(t, err)
+
+	importer.Timeout = 0
+	awsImporter.importImageFn = nil
+	err = awsImporter.run(importer)
+
+	assert.EqualError(t, err, "timeout exceeded")
+}
+
+func TestImportImageReturnsError(t *testing.T) {
+	args := setUpAWSArgs("", false)
+	importer, err := NewOneStepImportArguments(args)
+	awsImporter := getAWSImporter(t, args)
+	awsImporter.importImageFn = func() error {
+		return fmt.Errorf("image import failed")
+	}
+	err = awsImporter.importImage(importer, time.Now(), "")
+	assert.EqualError(t, err, "image import failed")
+}
+
+func TestCleanupDeleteGCSPath(t *testing.T) {
+	gcsPath := "gcsPath"
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().DeleteGcsPath("gcsPath")
+	mockStorageClient.EXPECT().Close()
+
+	args := setUpAWSArgs("", false)
+	awsImporter := getAWSImporter(t, args)
+	awsImporter.gcsClient = mockStorageClient
+	awsImporter.cleanUpFn = nil
+	awsImporter.cleanUp(gcsPath, "")
+}
+
+func TestCleanupDeleteGCSPathError(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	gcsPath := "gcsPath"
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().DeleteGcsPath("gcsPath").Return(fmt.Errorf("delete error"))
+	mockStorageClient.EXPECT().Close()
+
+	args := setUpAWSArgs("", false)
+	awsImporter := getAWSImporter(t, args)
+	awsImporter.gcsClient = mockStorageClient
+	awsImporter.cleanUpFn = nil
+	awsImporter.cleanUp(gcsPath, "")
+
+	assert.Contains(t, buf.String(), "delete error")
+}
+
+func TestCleanupDeleteS3PathError(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().DeleteGcsPath("")
+	mockStorageClient.EXPECT().Close()
+	deleteObjectResp.err = fmt.Errorf("delete error")
+
+	args := setUpAWSArgs("", false)
+	awsImporter := getAWSImporter(t, args)
+	awsImporter.gcsClient = mockStorageClient
+	awsImporter.cleanUpFn = nil
+	awsImporter.cleanUp("", "")
+
+	assert.Contains(t, buf.String(), "delete error")
+}
+
 func getAWSImporter(t *testing.T, args []string) *awsImporter {
 	awsArgs := getAWSImportArgs(args)
 	awsImporter, err := newAWSImporter("", make(chan struct{}), awsArgs)
@@ -565,11 +675,13 @@ func getAWSImporter(t *testing.T, args []string) *awsImporter {
 	awsImporter.s3Client = &mockS3Client{}
 	awsImporter.paramPopulator = mockPopulator{}
 
-	awsImporter.exportAWSImageFn = func() error { return nil }
+	awsImporter.exportAWSImageFn = func() (string, error) { return "", nil }
 	awsImporter.monitorAWSExportImageTaskFn = func() error { return nil }
 	awsImporter.getAWSFileSizeFn = func() error { return nil }
 	awsImporter.copyFromS3ToGCSFn = func() (string, error) { return "", nil }
 	awsImporter.transferFileFn = func() error { return nil }
+	awsImporter.importImageFn = func() error { return nil }
+	awsImporter.cleanUpFn = func() {}
 
 	return awsImporter
 }

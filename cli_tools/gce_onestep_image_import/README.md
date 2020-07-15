@@ -20,8 +20,6 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_
 + `-image_name=IMAGE_NAME` Name of the disk image to create.
 + `-client_id=CLIENT_ID` Identifies the client of the importer. For example: `gcloud` or
   `pantheon`.
-+ `-cloud_provider=CLOUD_PROVIDER` Identifies the cloud provider of the source image.
-  Currently only one cloud provider is supported. CLOUD_PROVIDER must be aws.
 + `-os=OS` Specifies the OS of the image being imported.
   This must be specified if cloud provider is specified.
   OS must be one of: centos-6, centos-7, debian-8, debian-9, rhel-6, rhel-6-byol, rhel-7, 
@@ -30,10 +28,13 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_
   windows-2016-byol, windows-7-byol.
   
 To import from AWS, all of these must be specified:
-+ `-aws_access_key_id=AWS_ACCESS_KEY_ID` The Access Key Id for an AWS credential.
++ `-aws_access_key_id=AWS_ACCESS_KEY_ID` The access key ID for an AWS credential.
   This credential is associated with an IAM user or role.
   This IAM user must have permissions to import images.
-+ `-aws_secret_access_key=AWS_SECRET_ACCESS_KEY` The Secret Access Key for an AWS credential.
++ `-aws_secret_access_key=AWS_SECRET_ACCESS_KEY` The secret access key for an AWS credential.
+  This credential is associated with an IAM user or role.
+  This IAM user must have permissions to import images.
++ `-aws_session_token=AWS_SESSION_TOKEN The session token for an AWS credential.
   This credential is associated with an IAM user or role.
   This IAM user must have permissions to import images.
 + `-aws_region=AWS_REGION` The AWS region for the image that you want to import.
@@ -41,17 +42,15 @@ To import from AWS, all of these must be specified:
 To import from AWS, exactly one of the groups must be specified:
 
 + To import from an exported image file in S3:
-    + `-aws_exported_ami_path=AWS_EXPORTED_AMI_PATH` The S3 resource path of
+    + `-aws_source_ami_file_path=AWS_SOURCE_AMI_FILE_PATH` The S3 resource path of
       the exported image file.
 
 + To import from a VM instance:
     + `-aws_ami_id=AWS_AMI_ID` The AWS AMI ID of the image to import.
-    + `-aws_export_location=AWS_EXPORT_LOCATION` TheAWS S3 Bucket location
+    + `-aws_ami_export_location=AWS_AMI_EXPORT_LOCATION` The AWS S3 Bucket location
       where you want to export the image.
 
 #### Optional flags
-+ `-aws_session_token=AWS_SESSION_TOKEN`  The AWS session token value that is
-  required if you are using temporary security credentials.
 + `-no_guest_environment` Google Guest Environment will not be installed on the image.
 + `-family=FAMILY` Family to set for the translated image.
 + `-description=DESCRIPTION` Description to set for the translated image.
@@ -90,10 +89,11 @@ To import from AWS, exactly one of the groups must be specified:
 
 ```
 gce_onestep_image_import -image_name=IMAGE_NAME -client_id=CLIENT_ID -os=OS
-        ([-aws_exported_ami_path=AWS_EXPORTED_AMI_PATH]|
-         [-aws_ami_id=AWS_AMI_ID -aws_export_location=AWS_EXPORT_LOCATION])
-        [aws-session-token=AWS_SESSION_TOKEN] [-no-guest-environment]
-        [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK]
+        -aws_access_key_id=AWS_ACCESS_KEY_ID -aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+        -aws_session_token=AWS_SESSION_TOKEN -aws_region=AWS_REGION
+        (-aws_source_ami_file_path=AWS_SOURCE_AMI_FILE_PATH |
+         -aws_ami_id=AWS_AMI_ID -aws_ami_export_location=AWS_AMI_EXPORT_LOCATION)
+         [-no-guest-environment] [-family=FAMILY] [-description=DESCRIPTION] [-network=NETWORK]
         [-subnet=SUBNET] [-zone=ZONE] [-timeout=TIMEOUT] [-project=PROJECT]
         [-scratch_bucket_gcs_path=PATH] [-oauth=OAUTH_PATH] 
         [-compute_endpoint_override=ENDPOINT] [-disable_gcs_logging]

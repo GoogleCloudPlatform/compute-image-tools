@@ -66,12 +66,14 @@ type awsImporter struct {
 	s3Client  s3iface.S3API
 
 	// Impl of the functions
-	exportAWSImageFn            func() error
+	exportAWSImageFn            func() (string, error)
 	monitorAWSExportImageTaskFn func() error
 	getAWSFileSizeFn            func() error
 	copyFromS3ToGCSFn           func() (string, error)
 	transferFileFn              func() error
 	getUploaderFn               func() *uploader
+	importImageFn               func() error
+	cleanUpFn                   func()
 }
 
 // newAWSImporter creates an new awsImporter instance.
@@ -159,8 +161,8 @@ func createAWSSession(region, accessKeyID, secretAccessKey, sessionToken string)
 }
 
 // run runs the aws importer to import AMI.
-func (importer *awsImporter) run(args *OneStepImportArguments) error {
-	start := time.Now()
+func (importer *awsImporter) run(importArgs *OneStepImportArguments) error {
+	startTime := time.Now()
 	//1. validate AWS args
 	err := importer.args.validateAndPopulate(importer.paramPopulator)
 	if err != nil {
@@ -168,9 +170,10 @@ func (importer *awsImporter) run(args *OneStepImportArguments) error {
 	}
 
 	// 2. export AMI to AWS S3 if user did not specify an exported AMI path.
+	var s3FilePath string
 	if importer.args.isExportRequired() {
 		log.Println("Starting to export image ...")
-		err = importer.exportAWSImage()
+		s3FilePath, err = importer.exportAWSImage()
 		if err != nil {
 			return err
 		}
@@ -188,23 +191,73 @@ func (importer *awsImporter) run(args *OneStepImportArguments) error {
 
 	// 4. run image import
 	log.Println("Starting to import image ...")
+	err = importer.importImage(importArgs, startTime, gcsFilePath)
+	if err != nil {
+		return err
+	}
+	log.Println("Image import from AWS finished successfully!")
+
+	// 5. clean up
+	log.Println("Cleaning up ...")
+	importer.cleanUp(gcsFilePath, s3FilePath)
+
+	return nil
+}
+
+// cleanUp deletes temporary files created during image import, and closes GCS client.
+func (importer *awsImporter) cleanUp(gcsFilePath, s3FilePath string) {
+	if importer.cleanUpFn != nil {
+		importer.cleanUpFn()
+		return
+	}
+
+	err := importer.gcsClient.DeleteGcsPath(gcsFilePath)
+	if err != nil {
+		log.Printf("Could not delete image file %v: %v. To avoid being charged, "+
+			"please manually delete the file.\n", gcsFilePath, err.Error())
+	}
+
+	importer.gcsClient.Close()
+
+	_, err = importer.s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(importer.args.exportBucket),
+		Key:    aws.String(importer.args.exportKey),
+	})
+	if err != nil {
+		log.Printf("Could not delete image file %v: %v. To avoid being charged, "+
+			"please manually delete the file.\n", s3FilePath, err.Error())
+	}
+}
+
+// importImage updates importArgs to contain the image source file and updated timeout duration.
+// It runs image import to import from gcsFilePath to Compute Engine.
+func (importer *awsImporter) importImage(importArgs *OneStepImportArguments, startTime time.Time, gcsFilePath string) error {
+	if importer.importImageFn != nil {
+		return importer.importImageFn()
+	}
 
 	// update source file flag to copied GCS destination
-	args.SourceFile = gcsFilePath
+	importArgs.SourceFile = gcsFilePath
+
 	// adjust timeout to pass into image import
-	args.Timeout = args.Timeout - time.Since(start)
-	if args.Timeout <= 0 {
+	importArgs.Timeout = importArgs.Timeout - time.Since(startTime)
+	if importArgs.Timeout <= 0 {
 		return daisy.Errf("timeout exceeded")
 	}
 
-	err = runImageImport(args)
+	// add label to indicate the image import is run from onestep import
+	if importArgs.Labels == nil {
+		importArgs.Labels = make(map[string]string)
+	}
+	importArgs.Labels["onestep-image-import"] = "aws"
+
+	err := runImageImport(importArgs)
 	if err != nil {
 		log.Printf("Failed to import image. "+
 			"The image file is copied to Cloud Storage, located at %v. "+
 			"To resume the import process, please directly use image import from Cloud Storage.\n", gcsFilePath)
 		return err
 	}
-
 	return nil
 }
 
@@ -236,7 +289,7 @@ func getExportImageTask(task *ec2.ExportImageTask) (string, string, string) {
 }
 
 // exportAWSImage calls 'aws ec2 export-image' command to export AMI to S3
-func (importer *awsImporter) exportAWSImage() error {
+func (importer *awsImporter) exportAWSImage() (string, error) {
 	if importer.exportAWSImageFn != nil {
 		return importer.exportAWSImageFn()
 	}
@@ -254,28 +307,29 @@ func (importer *awsImporter) exportAWSImage() error {
 	})
 
 	if err != nil {
-		return daisy.Errf("failed to begin export AWS image: %v", err)
+		return "", daisy.Errf("failed to begin export AWS image: %v", err)
 	}
 
 	// 2. get export task id from response
 	taskID := aws.StringValue(resp.ExportImageTaskId)
 	if taskID == "" {
-		return daisy.Errf("empty task id returned")
+		return "", daisy.Errf("empty task id returned")
 	}
 
 	// 3. monitor export task progress
 	err = importer.monitorAWSExportImageTask(taskID)
 	if err != nil {
 		importer.cancelAWSExportImageTask(taskID)
-		return err
+		return "", err
 	}
 
 	// 4. set exported file data
 	importer.args.exportKey = fmt.Sprintf("%v%v.vmdk", importer.args.exportFolder, taskID)
-	importer.args.exportedAMIPath = fmt.Sprintf("s3://%v/%v", importer.args.exportBucket, importer.args.exportKey)
-	log.Printf("Image export location is %v.\n", importer.args.exportedAMIPath)
+	s3FilePath := fmt.Sprintf("s3://%v/%v", importer.args.exportBucket, importer.args.exportKey)
+	importer.args.sourceFilePath = s3FilePath
+	log.Printf("Image export location is %v.\n", s3FilePath)
 
-	return nil
+	return s3FilePath, nil
 }
 
 // monitorAWSExportImageTask monitors the progress of the AWS export image task.
@@ -341,7 +395,7 @@ func (importer *awsImporter) copyFromS3ToGCS() (string, error) {
 	gcsFilePath := pathutils.JoinURL(importer.args.gcsScratchBucket,
 		fmt.Sprintf("onestep-image-import-aws-%v.vmdk", pathutils.RandString(5)))
 
-	log.Printf("Copying %v to %v.\n", importer.args.exportedAMIPath, gcsFilePath)
+	log.Printf("Copying %v to %v.\n", importer.args.sourceFilePath, gcsFilePath)
 
 	// 2. create a new folder for local buffer
 	path := filepath.Join(filepath.Dir(importer.args.executablePath), fmt.Sprint("upload", pathutils.RandString(5)))
@@ -421,7 +475,7 @@ func (importer *awsImporter) transferFile(writer io.WriteCloser) error {
 			})
 			if err != nil {
 				if retryAttempt >= maxRetryTimes {
-					return daisy.Errf("error in downloading from %v: %v", importer.args.exportedAMIPath, err)
+					return daisy.Errf("error in downloading from %v: %v", importer.args.sourceFilePath, err)
 				}
 				time.Sleep(time.Duration(delayTime[retryAttempt]) * time.Second)
 				continue
