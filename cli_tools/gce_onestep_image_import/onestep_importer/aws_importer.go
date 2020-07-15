@@ -66,7 +66,7 @@ type awsImporter struct {
 	s3Client  s3iface.S3API
 
 	// Impl of the functions
-	exportAWSImageFn            func() (string, error)
+	exportAWSImageFn            func() error
 	monitorAWSExportImageTaskFn func() error
 	getAWSFileSizeFn            func() error
 	copyFromS3ToGCSFn           func() (string, error)
@@ -162,6 +162,7 @@ func createAWSSession(region, accessKeyID, secretAccessKey, sessionToken string)
 
 // run runs the aws importer to import AMI.
 func (importer *awsImporter) run(importArgs *OneStepImportArguments) error {
+	needsExport := importer.args.isExportRequired()
 	startTime := time.Now()
 	//1. validate AWS args
 	err := importer.args.validateAndPopulate(importer.paramPopulator)
@@ -170,10 +171,9 @@ func (importer *awsImporter) run(importArgs *OneStepImportArguments) error {
 	}
 
 	// 2. export AMI to AWS S3 if user did not specify an exported AMI path.
-	var s3FilePath string
-	if importer.args.isExportRequired() {
+	if needsExport {
 		log.Println("Starting to export image ...")
-		s3FilePath, err = importer.exportAWSImage()
+		err = importer.exportAWSImage()
 		if err != nil {
 			return err
 		}
@@ -199,13 +199,13 @@ func (importer *awsImporter) run(importArgs *OneStepImportArguments) error {
 
 	// 5. clean up
 	log.Println("Cleaning up ...")
-	importer.cleanUp(gcsFilePath, s3FilePath)
+	importer.cleanUp(gcsFilePath, needsExport)
 
 	return nil
 }
 
 // cleanUp deletes temporary files created during image import, and closes GCS client.
-func (importer *awsImporter) cleanUp(gcsFilePath, s3FilePath string) {
+func (importer *awsImporter) cleanUp(gcsFilePath string, shouldDeleteS3File bool) {
 	if importer.cleanUpFn != nil {
 		importer.cleanUpFn()
 		return
@@ -219,13 +219,16 @@ func (importer *awsImporter) cleanUp(gcsFilePath, s3FilePath string) {
 
 	importer.gcsClient.Close()
 
-	_, err = importer.s3Client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(importer.args.exportBucket),
-		Key:    aws.String(importer.args.exportKey),
-	})
-	if err != nil {
-		log.Printf("Could not delete image file %v: %v. To avoid being charged, "+
-			"please manually delete the file.\n", s3FilePath, err.Error())
+	// Only delete s3 file if the file is not pased
+	if shouldDeleteS3File {
+		_, err = importer.s3Client.DeleteObject(&s3.DeleteObjectInput{
+			Bucket: aws.String(importer.args.exportBucket),
+			Key:    aws.String(importer.args.exportKey),
+		})
+		if err != nil {
+			log.Printf("Could not delete image file %v: %v. To avoid being charged, "+
+				"please manually delete the file.\n", importer.args.sourceFilePath, err.Error())
+		}
 	}
 }
 
@@ -258,6 +261,7 @@ func (importer *awsImporter) importImage(importArgs *OneStepImportArguments, sta
 			"To resume the import process, please directly use image import from Cloud Storage.\n", gcsFilePath)
 		return err
 	}
+
 	return nil
 }
 
@@ -289,7 +293,7 @@ func getExportImageTask(task *ec2.ExportImageTask) (string, string, string) {
 }
 
 // exportAWSImage calls 'aws ec2 export-image' command to export AMI to S3
-func (importer *awsImporter) exportAWSImage() (string, error) {
+func (importer *awsImporter) exportAWSImage() error {
 	if importer.exportAWSImageFn != nil {
 		return importer.exportAWSImageFn()
 	}
@@ -307,29 +311,28 @@ func (importer *awsImporter) exportAWSImage() (string, error) {
 	})
 
 	if err != nil {
-		return "", daisy.Errf("failed to begin export AWS image: %v", err)
+		return daisy.Errf("failed to begin export AWS image: %v", err)
 	}
 
 	// 2. get export task id from response
 	taskID := aws.StringValue(resp.ExportImageTaskId)
 	if taskID == "" {
-		return "", daisy.Errf("empty task id returned")
+		return daisy.Errf("empty task id returned")
 	}
 
 	// 3. monitor export task progress
 	err = importer.monitorAWSExportImageTask(taskID)
 	if err != nil {
 		importer.cancelAWSExportImageTask(taskID)
-		return "", err
+		return err
 	}
 
 	// 4. set exported file data
 	importer.args.exportKey = fmt.Sprintf("%v%v.vmdk", importer.args.exportFolder, taskID)
-	s3FilePath := fmt.Sprintf("s3://%v/%v", importer.args.exportBucket, importer.args.exportKey)
-	importer.args.sourceFilePath = s3FilePath
-	log.Printf("Image export location is %v.\n", s3FilePath)
+	importer.args.sourceFilePath = fmt.Sprintf("s3://%v/%v", importer.args.exportBucket, importer.args.exportKey)
+	log.Printf("Image export location is %v.\n", importer.args.sourceFilePath)
 
-	return s3FilePath, nil
+	return nil
 }
 
 // monitorAWSExportImageTask monitors the progress of the AWS export image task.

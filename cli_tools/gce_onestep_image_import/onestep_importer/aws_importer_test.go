@@ -138,8 +138,8 @@ func TestRunImporterExportAMI(t *testing.T) {
 	importer, err := NewOneStepImportArguments(args)
 	assert.Nil(t, err)
 
-	awsImporter.exportAWSImageFn = func() (string, error) {
-		return "", fmt.Errorf("failed")
+	awsImporter.exportAWSImageFn = func() error {
+		return fmt.Errorf("failed")
 	}
 	err = awsImporter.run(importer)
 	assert.EqualError(t, err, "failed")
@@ -151,8 +151,8 @@ func TestRunImporterSkipExportAMI(t *testing.T) {
 	importer, err := NewOneStepImportArguments(args)
 	assert.Nil(t, err)
 
-	awsImporter.exportAWSImageFn = func() (string, error) {
-		return "", fmt.Errorf("export image failed")
+	awsImporter.exportAWSImageFn = func() error {
+		return fmt.Errorf("export image failed")
 	}
 	awsImporter.getAWSFileSizeFn = func() error {
 		return fmt.Errorf("get file size failed")
@@ -208,7 +208,7 @@ func TestExportImageReturnErrorWhenCallError(t *testing.T) {
 
 	awsImporter.exportAWSImageFn = nil
 	exportImageResp.err = fmt.Errorf("export image failed")
-	_, err := awsImporter.exportAWSImage()
+	err := awsImporter.exportAWSImage()
 	assert.Contains(t, err.Error(), "export image failed")
 }
 
@@ -219,7 +219,7 @@ func TestExportImageReturnErrorWhenEmptyTaskID(t *testing.T) {
 
 	awsImporter.exportAWSImageFn = nil
 	exportImageResp.output.ExportImageTaskId = aws.String("")
-	_, err := awsImporter.exportAWSImage()
+	err := awsImporter.exportAWSImage()
 	assert.Contains(t, err.Error(), "empty task id returned")
 }
 
@@ -232,7 +232,7 @@ func TestExportImageReturnErrorWhenMonitorTaskError(t *testing.T) {
 	awsImporter.monitorAWSExportImageTaskFn = func() error {
 		return fmt.Errorf("failed")
 	}
-	_, err := awsImporter.exportAWSImage()
+	err := awsImporter.exportAWSImage()
 	assert.Equal(t, err.Error(), "failed")
 }
 
@@ -249,7 +249,7 @@ func TestExportImageCancelTaskWhenError(t *testing.T) {
 		return fmt.Errorf("failed")
 	}
 
-	_, err := awsImporter.exportAWSImage()
+	err := awsImporter.exportAWSImage()
 	assert.Equal(t, err.Error(), "failed")
 	assert.Contains(t, buf.String(), "Cancelling export task ...")
 }
@@ -369,9 +369,9 @@ func TestExportImageUpdatesImporterArgs(t *testing.T) {
 	taskID := "my-task-id"
 	exportImageResp.output.ExportImageTaskId = aws.String(taskID)
 
-	s3FilePath, err := awsImporter.exportAWSImage()
+	err := awsImporter.exportAWSImage()
 	assert.Contains(t, awsImporter.args.exportKey, taskID)
-	assert.Contains(t, s3FilePath, taskID)
+	assert.Contains(t, awsImporter.args.sourceFilePath, taskID)
 	assert.NoError(t, err)
 }
 
@@ -621,7 +621,7 @@ func TestCleanupDeleteGCSPath(t *testing.T) {
 	awsImporter := getAWSImporter(t, args)
 	awsImporter.gcsClient = mockStorageClient
 	awsImporter.cleanUpFn = nil
-	awsImporter.cleanUp(gcsPath, "")
+	awsImporter.cleanUp(gcsPath, false)
 }
 
 func TestCleanupDeleteGCSPathError(t *testing.T) {
@@ -640,7 +640,7 @@ func TestCleanupDeleteGCSPathError(t *testing.T) {
 	awsImporter := getAWSImporter(t, args)
 	awsImporter.gcsClient = mockStorageClient
 	awsImporter.cleanUpFn = nil
-	awsImporter.cleanUp(gcsPath, "")
+	awsImporter.cleanUp(gcsPath, false)
 
 	assert.Contains(t, buf.String(), "delete error")
 }
@@ -661,7 +661,7 @@ func TestCleanupDeleteS3PathError(t *testing.T) {
 	awsImporter := getAWSImporter(t, args)
 	awsImporter.gcsClient = mockStorageClient
 	awsImporter.cleanUpFn = nil
-	awsImporter.cleanUp("", "")
+	awsImporter.cleanUp("", true)
 
 	assert.Contains(t, buf.String(), "delete error")
 }
@@ -675,7 +675,7 @@ func getAWSImporter(t *testing.T, args []string) *awsImporter {
 	awsImporter.s3Client = &mockS3Client{}
 	awsImporter.paramPopulator = mockPopulator{}
 
-	awsImporter.exportAWSImageFn = func() (string, error) { return "", nil }
+	awsImporter.exportAWSImageFn = func() error { return nil }
 	awsImporter.monitorAWSExportImageTaskFn = func() error { return nil }
 	awsImporter.getAWSFileSizeFn = func() error { return nil }
 	awsImporter.copyFromS3ToGCSFn = func() (string, error) { return "", nil }
