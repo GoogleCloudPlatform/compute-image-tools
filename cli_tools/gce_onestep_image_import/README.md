@@ -28,15 +28,17 @@ go get github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/gce_onestep_
   windows-2016-byol, windows-7-byol.
   
 To import from AWS, all of these must be specified:
-+ `-aws_access_key_id=AWS_ACCESS_KEY_ID` The access key ID for an AWS credential.
-  This credential is associated with an IAM user or role.
-  This IAM user must have permissions to import images.
-+ `-aws_secret_access_key=AWS_SECRET_ACCESS_KEY` The secret access key for an AWS credential.
-  This credential is associated with an IAM user or role.
-  This IAM user must have permissions to import images.
-+ `-aws_session_token=AWS_SESSION_TOKEN The session token for an AWS credential.
-  This credential is associated with an IAM user or role.
-  This IAM user must have permissions to import images.
++ `-aws_access_key_id=AWS_ACCESS_KEY_ID` The access key ID for a temporary AWS
+  credential generated from AWS Security Token Service.
++ `-aws_secret_access_key=AWS_SECRET_ACCESS_KEY` The secret access key for a temporary AWS
+  credential generated from AWS Security Token Service.
++ `-aws_session_token=AWS_SESSION_TOKEN` The session token for a temporary AWS
+  credential generated from AWS Security Token Service.<br><br>
+  The temporary AWS credential must be associated with an AWS user or role
+  that has permissions to export image. This temporary credential will be visible
+  to all project viewers. <br>
+  Please follow https://docs.aws.amazon.com/vm-import/latest/userguide/vmie_prereqs.html#iam-permissions-image to set up AWS user permission.<br>
+  Please follow https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_request.html to generate a temporary AWS credential from the AWS user.<br><br>
 + `-aws_region=AWS_REGION` The AWS region for the image that you want to import.
 
 To import from AWS, exactly one of the groups must be specified:

@@ -197,7 +197,7 @@ func (importer *awsImporter) run(importArgs *OneStepImportArguments) error {
 	}
 	log.Println("Image import from AWS finished successfully!")
 
-	// 5. clean up
+	// 5. clean up temporary image files created in AWS and GCS
 	log.Println("Cleaning up ...")
 	importer.cleanUp(gcsFilePath, needsExport)
 
