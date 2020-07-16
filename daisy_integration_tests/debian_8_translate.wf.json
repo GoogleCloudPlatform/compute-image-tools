@@ -37,6 +37,9 @@
               "source": "disk-import-test"
             }
           ],
+          "Metadata": {
+            "osconfig_not_supported": "true"
+          },
           "machineType": "n1-standard-4",
           "name": "inst-import-test",
           "StartupScript": "post_translate_test.sh"

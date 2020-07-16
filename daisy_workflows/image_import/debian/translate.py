@@ -70,12 +70,15 @@ def DistroSpecific(g):
     pkgs = ['google-cloud-packages-archive-keyring', 'google-compute-engine']
     # Debian 8 differences:
     #   1. No NGE
-    #   2. No Cloud SDK, since it requires Python 3.5+
+    #   2. No Cloud SDK, since it requires Python 3.5+.
+    #   3. No OS config agent.
     if deb_release == 'jessie':
+      # Debian 8 doesn't support the new guest agent, so we need to install
+      # the legacy Python version.
       pkgs += ['python-google-compute-engine',
                'python3-google-compute-engine']
     else:
-      pkgs += ['google-cloud-sdk']
+      pkgs += ['google-cloud-sdk', 'google-osconfig-agent']
     utils.install_apt_packages(g, *pkgs)
 
   # Update grub config to log to console.

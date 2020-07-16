@@ -23,6 +23,7 @@ Parameters (retrieved from instance metadata):
 import json
 import logging
 import re
+from textwrap import dedent
 
 import utils
 import utils.diskutils as diskutils
@@ -66,7 +67,8 @@ class _SuseRelease:
 
 _packages = [
     _Package('google-compute-engine-init', gce=True),
-    _Package('google-compute-engine-oslogin', gce=True)
+    _Package('google-compute-engine-oslogin', gce=True),
+    _Package('google-osconfig-agent', gce=True)
 ]
 
 _distros = [
@@ -171,6 +173,31 @@ def _disambiguate_suseconnect_product_error(g, product, error) -> Exception:
     'Unable to find an active SLES subscription. SCC returned: %s' % statuses)
 
 
+def _install_gce_repos(distro, g, include_gce_packages):
+  """Add Zypper repositories that are required for installing GCE packages."""
+  if not include_gce_packages:
+    return
+  # Installing OS Config agent via instructions:
+  #    https://cloud.google.com/compute/docs/manage-os
+  repo = """
+    # Enabled for GCE OS config agent
+    [google-compute-engine]
+    name=Google Compute Engine
+    baseurl=https://packages.cloud.google.com/yum/repos/google-compute-engine-sles{major}-stable
+    enabled=1
+    gpgcheck=1
+    repo_gpgcheck=1
+    gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg
+           https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+    """.format(major=distro.major)
+  g.write('/etc/zypp/repos.d/google-compute-engine.repo', dedent(repo))
+  g.command([
+    "rpm",
+    "--import", "https://packages.cloud.google.com/yum/doc/yum-key.gpg",
+    "--import", "https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+  ])
+
+
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def _install_product(distro, g):
   """Executes SuseConnect -p for each product on `distro`.
@@ -217,7 +244,7 @@ def install_packages(g, *pkgs):
 @utils.RetryOnFailure(stop_after_seconds=5 * 60, initial_delay_seconds=1)
 def refresh_zypper(g):
   try:
-    g.command(['zypper', 'refresh'])
+    g.command(['zypper', '--non-interactive', 'refresh'])
   except Exception as e:
     raise ValueError('Failed to call zypper refresh', e)
 
@@ -258,6 +285,7 @@ def translate():
   distro = _get_distro(g)
 
   _install_product(distro, g)
+  _install_gce_repos(distro, g, include_gce_packages)
   _install_packages(g, include_gce_packages)
   _install_virtio_drivers(g)
   if include_gce_packages:

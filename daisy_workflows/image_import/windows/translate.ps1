@@ -240,6 +240,11 @@ function Install-Packages {
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-balloon -ErrorAction SilentlyContinue
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-driver-pvpanic -ErrorAction SilentlyContinue
     Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-compute-engine-vss -ErrorAction SilentlyContinue
+    if (([System.Environment]::OSVersion.Version) -ge 6.2) {
+      Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-osconfig-agent
+    } else {
+      Write-Output 'Skipping installation of OS Config agent. Requires 2012 or newer.'
+    }
   }
 }
 

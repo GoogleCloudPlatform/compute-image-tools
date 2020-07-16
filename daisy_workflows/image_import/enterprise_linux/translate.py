@@ -152,7 +152,7 @@ def DistroSpecific(g):
       g.write_append(
           '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
       yum_install(g, 'google-cloud-sdk')
-    yum_install(g, 'google-compute-engine')
+    yum_install(g, 'google-compute-engine', 'google-osconfig-agent')
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
@@ -193,7 +193,7 @@ def yum_install(g, *packages):
 
   Args:
     g (guestfs.GuestFS): A mounted GuestFS instance.
-    *packages (list of str): The YUM packages to be installed.
+    *packages: The YUM packages to be installed.
 
   Raises:
       RuntimeError: If there is a failure during installation.
