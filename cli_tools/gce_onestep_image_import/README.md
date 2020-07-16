@@ -47,7 +47,7 @@ To import from AWS, exactly one of the groups must be specified:
     + `-aws_source_ami_file_path=AWS_SOURCE_AMI_FILE_PATH` The S3 resource path of
       the exported image file.
 
-+ To import from a VM instance:
++ To import from a VM image:
     + `-aws_ami_id=AWS_AMI_ID` The AWS AMI ID of the image to import.
     + `-aws_ami_export_location=AWS_AMI_EXPORT_LOCATION` The AWS S3 Bucket location
       where you want to export the image.
