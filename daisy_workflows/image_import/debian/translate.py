@@ -77,6 +77,8 @@ def DistroSpecific(g):
       # the legacy Python version.
       pkgs += ['python-google-compute-engine',
                'python3-google-compute-engine']
+      logging.info('Skipping installation of OS Config agent. '
+                   'Requires Debian 9 or newer.')
     else:
       pkgs += ['google-cloud-sdk', 'google-osconfig-agent']
     utils.install_apt_packages(g, *pkgs)

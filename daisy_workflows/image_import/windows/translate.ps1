@@ -243,7 +243,7 @@ function Install-Packages {
     if (([System.Environment]::OSVersion.Version) -ge 6.2) {
       Run-Command 'C:\ProgramData\GooGet\googet.exe' -root 'C:\ProgramData\GooGet' -noconfirm install google-osconfig-agent
     } else {
-      Write-Output 'Skipping installation of OS Config agent. Requires 2012 or newer.'
+      Write-Output 'Skipping installation of OS Config agent. Requires Windows 2012 or newer.'
     }
   }
 }
