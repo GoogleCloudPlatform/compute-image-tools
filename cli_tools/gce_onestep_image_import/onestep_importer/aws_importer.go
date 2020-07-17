@@ -213,21 +213,24 @@ func (importer *awsImporter) cleanUp(gcsFilePath string, shouldDeleteS3File bool
 
 	err := importer.gcsClient.DeleteGcsPath(gcsFilePath)
 	if err != nil {
-		log.Printf("Could not delete image file %v: %v. To avoid being charged, "+
-			"please manually delete the file.\n", gcsFilePath, err.Error())
+		log.Printf("Could not delete image file %v: %v. "+
+			"To avoid incurring charges to your billing account, "+
+			"you must manually delete the file from the storage location.\n", gcsFilePath, err.Error())
 	}
 
 	importer.gcsClient.Close()
 
 	// Only delete s3 file if the file is not pased
 	if shouldDeleteS3File {
+		log.Printf("Deleting %v.\n", importer.args.sourceFilePath)
 		_, err = importer.s3Client.DeleteObject(&s3.DeleteObjectInput{
 			Bucket: aws.String(importer.args.exportBucket),
 			Key:    aws.String(importer.args.exportKey),
 		})
 		if err != nil {
-			log.Printf("Could not delete image file %v: %v. To avoid being charged, "+
-				"please manually delete the file.\n", importer.args.sourceFilePath, err.Error())
+			log.Printf("Could not delete image file %v: %v. "+
+				"To avoid incurring charges to your billing account, "+
+				"you must manually delete the file from the storage location.\n", importer.args.sourceFilePath, err.Error())
 		}
 	}
 }
@@ -257,8 +260,7 @@ func (importer *awsImporter) importImage(importArgs *OneStepImportArguments, sta
 	err := runImageImport(importArgs)
 	if err != nil {
 		log.Printf("Failed to import image. "+
-			"The image file is copied to Cloud Storage, located at %v. "+
-			"To resume the import process, please directly use image import from Cloud Storage.\n", gcsFilePath)
+			"The image file is copied to Cloud Storage, located at %v.\n", gcsFilePath)
 		return err
 	}
 

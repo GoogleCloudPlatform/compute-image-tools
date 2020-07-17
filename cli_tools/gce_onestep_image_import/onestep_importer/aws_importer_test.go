@@ -608,6 +608,20 @@ func TestImportImageReturnsError(t *testing.T) {
 	assert.EqualError(t, err, "image import failed")
 }
 
+func TestImportImageLogOnError(t *testing.T) {
+	gcsFilePath := "gcsFilePath"
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+
+	args := setUpAWSArgs("", false)
+	importer, _ := NewOneStepImportArguments(args)
+	awsImporter := getAWSImporter(t, args)
+	awsImporter.importImageFn = nil
+
+	awsImporter.importImage(importer, time.Now(), gcsFilePath)
+	assert.Contains(t, buf.String(), fmt.Sprintf("Failed to import image. The image file is copied to Cloud Storage, located at %v.", gcsFilePath))
+}
+
 func TestCleanupDeleteGCSPath(t *testing.T) {
 	gcsPath := "gcsPath"
 	mockCtrl := gomock.NewController(t)
@@ -628,12 +642,13 @@ func TestCleanupDeleteGCSPathError(t *testing.T) {
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
 	gcsPath := "gcsPath"
+	errMsg := "delete error"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
-	mockStorageClient.EXPECT().DeleteGcsPath("gcsPath").Return(fmt.Errorf("delete error"))
+	mockStorageClient.EXPECT().DeleteGcsPath(gcsPath).Return(fmt.Errorf(errMsg))
 	mockStorageClient.EXPECT().Close()
 
 	args := setUpAWSArgs("", false)
@@ -642,12 +657,15 @@ func TestCleanupDeleteGCSPathError(t *testing.T) {
 	awsImporter.cleanUpFn = nil
 	awsImporter.cleanUp(gcsPath, false)
 
-	assert.Contains(t, buf.String(), "delete error")
+	assert.Contains(t, buf.String(), fmt.Sprintf("Could not delete image file %v: %v. "+
+		"To avoid incurring charges to your billing account, "+
+		"you must manually delete the file from the storage location.", gcsPath, errMsg))
 }
 
 func TestCleanupDeleteS3PathError(t *testing.T) {
 	var buf bytes.Buffer
 	log.SetOutput(&buf)
+	errMsg := "delete error"
 
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -655,7 +673,7 @@ func TestCleanupDeleteS3PathError(t *testing.T) {
 	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
 	mockStorageClient.EXPECT().DeleteGcsPath("")
 	mockStorageClient.EXPECT().Close()
-	deleteObjectResp.err = fmt.Errorf("delete error")
+	deleteObjectResp.err = fmt.Errorf(errMsg)
 
 	args := setUpAWSArgs("", false)
 	awsImporter := getAWSImporter(t, args)
@@ -663,7 +681,9 @@ func TestCleanupDeleteS3PathError(t *testing.T) {
 	awsImporter.cleanUpFn = nil
 	awsImporter.cleanUp("", true)
 
-	assert.Contains(t, buf.String(), "delete error")
+	assert.Contains(t, buf.String(), fmt.Sprintf("Could not delete image file %v: %v. "+
+		"To avoid incurring charges to your billing account, "+
+		"you must manually delete the file from the storage location.", "s3://bucket/object", errMsg))
 }
 
 func getAWSImporter(t *testing.T, args []string) *awsImporter {
