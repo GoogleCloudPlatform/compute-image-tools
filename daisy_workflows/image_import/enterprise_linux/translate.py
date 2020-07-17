@@ -117,9 +117,6 @@ def DistroSpecific(g):
       # python27 SCL environment.
       logging.info('Installing python27 from SCL.')
       yum_install(g, 'python27')
-      g.command(['scl', 'enable', 'python27',
-                 'pip2.7 install --upgrade pip'])
-
       logging.info('Installing Google Cloud SDK from tar.')
       sdk_base_url = 'https://dl.google.com/dl/cloudsdk/channels/rapid'
       sdk_base_tar = '%s/google-cloud-sdk.tar.gz' % sdk_base_url
