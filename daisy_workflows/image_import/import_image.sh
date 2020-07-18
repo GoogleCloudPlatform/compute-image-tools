@@ -43,8 +43,8 @@ IMAGE_PATH="/daisy-scratch/$(basename "${SOURCE_URL}")"
 
 # Validate input
 
-[[ -z "$SCRATCH_DISK_SIZE_GB" ]] && echo "ImportFailed: metadata scratch_disk_size_gb is unset" && exit 1
-[[ -z "$INFLATED_DISK_SIZE_GB" ]] && echo "ImportFailed: metadata inflated_disk_size_gb is unset" && exit 1
+[[ -z "$SCRATCH_DISK_SIZE_GB" ]] && echo "ImportFailed: metadata scratch_disk_size_gb is not set" && exit 1
+[[ -z "$INFLATED_DISK_SIZE_GB" ]] && echo "ImportFailed: metadata inflated_disk_size_gb is not set" && exit 1
 
 # Print info.
 echo "#################" 2> /dev/null
