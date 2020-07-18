@@ -117,11 +117,6 @@ def DistroSpecific(g):
       # python27 SCL environment.
       logging.info('Installing python27 from SCL.')
       yum_install(g, 'python27')
-      g.command(['scl', 'enable', 'python27',
-                 'pip2.7 install --upgrade pip'])
-      g.command(['scl', 'enable', 'python27',
-                 'pip2.7 install --upgrade google_compute_engine'])
-
       logging.info('Installing Google Cloud SDK from tar.')
       sdk_base_url = 'https://dl.google.com/dl/cloudsdk/channels/rapid'
       sdk_base_tar = '%s/google-cloud-sdk.tar.gz' % sdk_base_url
@@ -157,11 +152,7 @@ def DistroSpecific(g):
       g.write_append(
           '/etc/yum.repos.d/google-cloud.repo', repo_sdk % el_release)
       yum_install(g, 'google-cloud-sdk')
-
-    if el_release == '8':
-      yum_install(g, 'google-compute-engine', 'python3-google-compute-engine')
-    else:
-      yum_install(g, 'google-compute-engine', 'python-google-compute-engine')
+    yum_install(g, 'google-compute-engine')
 
   logging.info('Updating initramfs')
   for kver in g.ls('/lib/modules'):
