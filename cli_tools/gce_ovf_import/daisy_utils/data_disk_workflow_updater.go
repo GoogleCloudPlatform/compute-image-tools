@@ -24,7 +24,7 @@ import (
 
 const (
 	createInstanceStepName = "create-instance"
-	importerDiskSize       = "10"
+	gceMinimumDiskSizeGB   = "10"
 )
 
 // AddDiskImportSteps adds Daisy steps to OVF import workflow to import disks
@@ -54,7 +54,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					SourceImage: "projects/compute-image-tools/global/images/family/debian-9-worker",
 					Type:        "pd-ssd",
 				},
-				SizeGb:               importerDiskSize,
+				SizeGb:               gceMinimumDiskSizeGB,
 				FallbackToPdStandard: true,
 			},
 			{
@@ -62,7 +62,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					Name: diskNames[i],
 					Type: "pd-ssd",
 				},
-				SizeGb:               "10",
+				SizeGb:               gceMinimumDiskSizeGB,
 				FallbackToPdStandard: true,
 				Resource: daisy.Resource{
 					ExactName: true,
@@ -74,7 +74,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 					Name: scratchDiskDiskName,
 					Type: "pd-ssd",
 				},
-				SizeGb:               "10",
+				SizeGb:               gceMinimumDiskSizeGB,
 				FallbackToPdStandard: true,
 				Resource: daisy.Resource{
 					ExactName: true,
@@ -87,6 +87,7 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 		createDiskImporterInstanceStep := daisy.NewStepDefaultTimeout(createDiskImporterInstanceStepName, w)
 
 		sTrue := "true"
+		diskSizeGB := gceMinimumDiskSizeGB
 		dataDiskImporterInstanceName := fmt.Sprintf("data-disk-importer-%v", dataDiskIndex)
 		createDiskImporterInstanceStep.CreateInstances = &daisy.CreateInstances{
 			Instances: []*daisy.Instance{{
@@ -103,6 +104,8 @@ func AddDiskImportSteps(w *daisy.Workflow, dataDiskInfos []ovfutils.DiskInfo) {
 							{Key: "disk_name", Value: &diskNames[i]},
 							{Key: "scratch_disk_name", Value: &scratchDiskDiskName},
 							{Key: "source_disk_file", Value: &dataDiskFilePath},
+							{Key: "scratch_disk_size_gb", Value: &diskSizeGB},
+							{Key: "inflated_disk_size_gb", Value: &diskSizeGB},
 						},
 					},
 					NetworkInterfaces: []*compute.NetworkInterface{

@@ -41,6 +41,11 @@ SOURCE_SIZE_BYTES="$(gsutil du "${SOURCE_URL}" | grep -o '^[0-9]\+')"
 SOURCE_SIZE_GB=$(awk "BEGIN {print int(((${SOURCE_SIZE_BYTES}-1)/${BYTES_1GB}) + 1)}")
 IMAGE_PATH="/daisy-scratch/$(basename "${SOURCE_URL}")"
 
+# Validate input
+
+[[ -z "$SCRATCH_DISK_SIZE_GB" ]] && echo "ImportFailed: metadata scratch_disk_size_gb is not set" && exit 1
+[[ -z "$INFLATED_DISK_SIZE_GB" ]] && echo "ImportFailed: metadata inflated_disk_size_gb is not set" && exit 1
+
 # Print info.
 echo "#################" 2> /dev/null
 echo "# Configuration #" 2> /dev/null
@@ -64,6 +69,7 @@ function resizeDisk() {
   echo "Import: Resizing ${diskId} to ${requiredSizeInGb}GB in ${zone}."
   if ! out=$(gcloud -q compute disks resize "${diskId}" --size="${requiredSizeInGb}"GB --zone="${zone}" 2>&1 | tr "\n\r" " "); then
     if echo "$out" | grep -qP "compute\.disks\.resize"; then
+      echo $out
       echo "ImportFailed: Failed to resize disk. The Compute Engine default service account needs the role: roles/compute.storageAdmin"
     else
       echo "ImportFailed: Failed to resize disk. [Privacy-> resize disk ${diskId} to ${requiredSizeInGb}GB in ${zone}, error: ${out} <-Privacy]"
