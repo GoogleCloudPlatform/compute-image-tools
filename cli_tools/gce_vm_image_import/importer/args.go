@@ -36,7 +36,7 @@ const (
 	dataDiskFlag       = "data_disk"
 	osFlag             = "os"
 	customWorkflowFlag = "custom_translate_workflow"
-	workflowDir        = "daisy_workflows/image_import/"
+	workflowDir        = "daisy_workflows"
 )
 
 // ImportArguments holds the structured results of parsing CLI arguments,
@@ -281,5 +281,6 @@ func (args ImportArguments) DaisyAttrs() daisycommon.WorkflowAttributes {
 		DisableCloudLogs:  args.CloudLogsDisabled,
 		DisableStdoutLogs: args.StdoutLogsDisabled,
 		NoExternalIP:      args.NoExternalIP,
+		WorkflowDirectory: args.WorkflowDir,
 	}
 }

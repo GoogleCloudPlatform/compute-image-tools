@@ -68,7 +68,7 @@ func TestTrimAndLowerStorageLocation(t *testing.T) {
 }
 
 func TestPopulateWorkflowDir(t *testing.T) {
-	assert.Regexp(t, ".*/daisy_workflows/image_import", expectSuccessfulParse(t).WorkflowDir)
+	assert.Regexp(t, ".*/daisy_workflows", expectSuccessfulParse(t).WorkflowDir)
 }
 
 func TestFailWhenClientIdMissing(t *testing.T) {

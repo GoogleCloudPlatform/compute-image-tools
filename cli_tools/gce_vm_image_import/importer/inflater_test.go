@@ -205,7 +205,7 @@ func TestCreateDaisyInflater_File_NotWindows(t *testing.T) {
 
 func createDaisyInflaterSafe(t *testing.T, args ImportArguments,
 	inspector imagefile.Inspector) *daisyInflater {
-	args.WorkflowDir = "testdata/image_import"
+	args.WorkflowDir = "testdata"
 	inflater, err := createDaisyInflater(args, inspector)
 	assert.NoError(t, err)
 	realInflater, ok := inflater.(*daisyInflater)

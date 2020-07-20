@@ -155,7 +155,7 @@ func TestImage_StorageLocation_NotSet(t *testing.T) {
 func TestSerials_ReadsFromDaisyLogger(t *testing.T) {
 	expected := []string{"serials"}
 	args := defaultImportArgs()
-	args.WorkflowDir = "testdata/image_import"
+	args.WorkflowDir = "testdata"
 	translator, e := newBootableDiskProcessor(args, persistentDisk{})
 	realTranslator := translator.(*bootableDiskProcessor)
 	realTranslator.workflow.Logger = daisyLogger{
@@ -167,7 +167,7 @@ func TestSerials_ReadsFromDaisyLogger(t *testing.T) {
 
 func TestBootableDiskProcessorCancel(t *testing.T) {
 	args := defaultImportArgs()
-	args.WorkflowDir = "testdata/image_import"
+	args.WorkflowDir = "testdata"
 	processor, e := newBootableDiskProcessor(args, persistentDisk{})
 	assert.NoError(t, e)
 
@@ -178,7 +178,7 @@ func TestBootableDiskProcessorCancel(t *testing.T) {
 }
 
 func createAndRunPrePostFunctions(t *testing.T, pd persistentDisk, args ImportArguments) *bootableDiskProcessor {
-	args.WorkflowDir = "testdata/image_import"
+	args.WorkflowDir = "testdata"
 	translator, e := newBootableDiskProcessor(args, pd)
 	assert.NoError(t, e)
 	realTranslator := translator.(*bootableDiskProcessor)

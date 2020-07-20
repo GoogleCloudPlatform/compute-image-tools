@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	inflateFilePath  = "inflate_file.wf.json"
-	inflateImagePath = "inflate_image.wf.json"
+	inflateFilePath  = "image_import/inflate_file.wf.json"
+	inflateImagePath = "image_import/inflate_image.wf.json"
 
 	// When exceeded, we use default values for PDs, rather than more accurate
 	// values used by inspection. When using default values, the worker may
