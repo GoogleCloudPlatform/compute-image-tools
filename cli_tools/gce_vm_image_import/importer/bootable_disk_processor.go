@@ -67,7 +67,7 @@ func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processo
 		translateWorkflowPath = args.CustomWorkflow
 	} else {
 		relPath := daisy_utils.GetTranslateWorkflowPath(args.OS)
-		translateWorkflowPath = path.Join(args.WorkflowDir, relPath)
+		translateWorkflowPath = path.Join(args.WorkflowDir, "image_import", relPath)
 	}
 
 	vars := map[string]string{

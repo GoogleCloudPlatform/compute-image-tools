@@ -16,13 +16,14 @@ package disk
 
 import (
 	"context"
+	"path"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 )
 
 const (
-	workflowFile = "daisy_workflows/image_import/inspection/inspect-disk.wf.json"
+	workflowFile = "image_import/inspection/inspect-disk.wf.json"
 )
 
 // Inspector finds partition and boot-related properties for a disk.
@@ -38,7 +39,7 @@ type InspectionResult struct {
 
 // NewInspector creates an Inspector that can inspect GCP disks.
 func NewInspector(wfAttributes daisycommon.WorkflowAttributes) (Inspector, error) {
-	wf, err := daisy.NewFromFile(workflowFile)
+	wf, err := daisy.NewFromFile(path.Join(wfAttributes.WorkflowDirectory, workflowFile))
 	if err != nil {
 		return nil, err
 	}

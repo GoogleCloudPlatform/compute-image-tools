@@ -52,8 +52,8 @@ Loop:
 
 // WorkflowAttributes holds common attributes that are required to instantiate a daisy workflow.
 type WorkflowAttributes struct {
-	Project, Zone, GCSPath, OAuth, Timeout, ComputeEndpoint           string
-	DisableGCSLogs, DisableCloudLogs, DisableStdoutLogs, NoExternalIP bool
+	Project, Zone, GCSPath, OAuth, Timeout, ComputeEndpoint, WorkflowDirectory string
+	DisableGCSLogs, DisableCloudLogs, DisableStdoutLogs, NoExternalIP          bool
 }
 
 // SetWorkflowAttributes sets workflow running attributes.
