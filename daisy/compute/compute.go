@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/googleapi"
@@ -36,6 +37,7 @@ type Client interface {
 	AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error
 	DetachDisk(project, zone, instance, disk string) error
 	CreateDisk(project, zone string, d *compute.Disk) error
+	CreateDiskAlpha(project, zone string, d *computeAlpha.Disk) error
 	CreateForwardingRule(project, region string, fr *compute.ForwardingRule) error
 	CreateFirewallRule(project string, i *compute.Firewall) error
 	CreateImage(project string, i *compute.Image) error
@@ -64,6 +66,7 @@ type Client interface {
 	GetInstance(project, zone, name string) (*compute.Instance, error)
 	GetInstanceBeta(project, zone, name string) (*computeBeta.Instance, error)
 	GetDisk(project, zone, name string) (*compute.Disk, error)
+	GetDiskAlpha(project, zone, name string) (*computeAlpha.Disk, error)
 	GetForwardingRule(project, region, name string) (*compute.ForwardingRule, error)
 	GetFirewallRule(project, name string) (*compute.Firewall, error)
 	GetImage(project, name string) (*compute.Image, error)
@@ -193,10 +196,11 @@ type clientImpl interface {
 }
 
 type client struct {
-	i       clientImpl
-	hc      *http.Client
-	raw     *compute.Service
-	rawBeta *computeBeta.Service
+	i        clientImpl
+	hc       *http.Client
+	raw      *compute.Service
+	rawBeta  *computeBeta.Service
+	rawAlpha *computeAlpha.Service
 }
 
 // shouldRetryWithWait returns true if the HTTP response / error indicates
@@ -241,7 +245,17 @@ func shouldRetryWithWait(tripper http.RoundTripper, err error, multiplier int) b
 
 // NewClient creates a new Google Cloud Compute client.
 func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error) {
-	o := []option.ClientOption{option.WithScopes(compute.ComputeScope, compute.DevstorageReadWriteScope)}
+	// Set these scopes to be align with compute.NewService
+	o := []option.ClientOption{
+		option.WithScopes(
+			compute.CloudPlatformScope,
+			compute.ComputeScope,
+			compute.ComputeReadonlyScope,
+			compute.DevstorageFullControlScope,
+			compute.DevstorageReadOnlyScope,
+			compute.DevstorageReadWriteScope,
+		),
+	}
 	opts = append(o, opts...)
 	hc, ep, err := transport.NewHTTPClient(ctx, opts...)
 	if err != nil {
@@ -261,7 +275,15 @@ func NewClient(ctx context.Context, opts ...option.ClientOption) (Client, error)
 	if ep != "" {
 		rawBetaService.BasePath = ep
 	}
-	c := &client{hc: hc, raw: rawService, rawBeta: rawBetaService}
+	rawAlphaService, err := computeAlpha.New(hc)
+	if err != nil {
+		return nil, fmt.Errorf("alpha compute client: %v", err)
+	}
+	if ep != "" {
+		rawAlphaService.BasePath = ep
+	}
+
+	c := &client{hc: hc, raw: rawService, rawBeta: rawBetaService, rawAlpha: rawAlphaService}
 	c.i = c
 
 	return c, nil
@@ -369,6 +391,22 @@ func (c *client) RetryBeta(f func(opts ...googleapi.CallOption) (*computeBeta.Op
 	return
 }
 
+// RetryAlpha invokes the given function, retrying it multiple times if the HTTP
+// status response indicates the request should be attempted again or the
+// oauth Token is no longer valid.
+func (c *client) RetryAlpha(f func(opts ...googleapi.CallOption) (*computeAlpha.Operation, error), opts ...googleapi.CallOption) (op *computeAlpha.Operation, err error) {
+	for i := 1; i < 4; i++ {
+		op, err = f(opts...)
+		if err == nil {
+			return op, nil
+		}
+		if !shouldRetryWithWait(c.hc.Transport, err, i) {
+			return nil, err
+		}
+	}
+	return
+}
+
 // AttachDisk attaches a GCE persistent disk to an instance.
 func (c *client) AttachDisk(project, zone, instance string, d *compute.AttachedDisk) error {
 	op, err := c.Retry(c.raw.Instances.AttachDisk(project, zone, instance, d).Do)
@@ -402,6 +440,25 @@ func (c *client) CreateDisk(project, zone string, d *compute.Disk) error {
 
 	var createdDisk *compute.Disk
 	if createdDisk, err = c.i.GetDisk(project, zone, d.Name); err != nil {
+		return err
+	}
+	*d = *createdDisk
+	return nil
+}
+
+// CreateDiskAlpha creates a GCE persistent disk.
+func (c *client) CreateDiskAlpha(project, zone string, d *computeAlpha.Disk) error {
+	op, err := c.RetryAlpha(c.rawAlpha.Disks.Insert(project, zone, d).Do)
+	if err != nil {
+		return err
+	}
+
+	if err := c.i.zoneOperationsWait(project, zone, op.Name); err != nil {
+		return err
+	}
+
+	var createdDisk *computeAlpha.Disk
+	if createdDisk, err = c.i.GetDiskAlpha(project, zone, d.Name); err != nil {
 		return err
 	}
 	*d = *createdDisk
@@ -882,6 +939,15 @@ func (c *client) GetDisk(project, zone, name string) (*compute.Disk, error) {
 	d, err := c.raw.Disks.Get(project, zone, name).Do()
 	if shouldRetryWithWait(c.hc.Transport, err, 2) {
 		return c.raw.Disks.Get(project, zone, name).Do()
+	}
+	return d, err
+}
+
+// GetDiskAlpha gets a GCE Disk.
+func (c *client) GetDiskAlpha(project, zone, name string) (*computeAlpha.Disk, error) {
+	d, err := c.rawAlpha.Disks.Get(project, zone, name).Do()
+	if shouldRetryWithWait(c.hc.Transport, err, 2) {
+		return c.rawAlpha.Disks.Get(project, zone, name).Do()
 	}
 	return d, err
 }
