@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/googleapi"
@@ -37,9 +38,8 @@ type Importer interface {
 }
 
 // NewImporter constructs an Importer instance.
-func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, error) {
-
-	inflater, err := createDaisyInflater(args, imagefile.NewGCSInspector())
+func NewImporter(args ImportArguments, computeClient compute.Client, storageClient storage.Client) (Importer, error) {
+	inflater, err := createInflater(args, computeClient, imagefile.NewGCSInspector(), storageClient)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +53,11 @@ func NewImporter(args ImportArguments, client daisycompute.Client) (Importer, er
 		project:           args.Project,
 		zone:              args.Zone,
 		timeout:           args.Timeout,
-		preValidator:      newPreValidator(args, client),
+		preValidator:      newPreValidator(args, computeClient),
 		inflater:          inflater,
-		processorProvider: defaultProcessorProvider{args, client, inspector},
+		processorProvider: defaultProcessorProvider{args, computeClient, inspector},
 		traceLogs:         []string{},
-		diskClient:        client,
+		diskClient:        computeClient,
 	}, nil
 }
 
@@ -172,7 +172,9 @@ func (i *importer) cleanupDisk() {
 }
 
 func (i *importer) buildLoggable() service.Loggable {
-	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb, i.traceLogs)
+	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb,
+		i.pd.matchResult, i.pd.inflationType, int64(i.pd.inflationTime.Seconds()),
+		int64(i.pd.shadowInflationTime.Seconds()), i.traceLogs)
 }
 
 // diskClient is the subset of the GCP API that is used by importer.
