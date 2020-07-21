@@ -136,7 +136,7 @@ def main():
       "packages": []
   }
   # Read list of guest package
-  with open("guest_package.txt") as f:
+  with open("guest_package") as f:
     guest_packages = f.read().splitlines()
 
   for package in guest_packages:
