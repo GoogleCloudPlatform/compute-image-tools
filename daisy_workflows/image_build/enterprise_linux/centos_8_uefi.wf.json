@@ -31,8 +31,7 @@
           "el_release": "centos8",
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
-          "installer_iso": "${installer_iso}",
-          "destination": "${destination}"
+          "installer_iso": "${installer_iso}"
         }
       }
     },

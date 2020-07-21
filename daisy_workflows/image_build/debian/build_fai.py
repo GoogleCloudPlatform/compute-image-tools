@@ -23,8 +23,7 @@ debian_version: The FAI tool debian version to be requested.
 image_dest: The Cloud Storage destination for the resultant image.
 google_cloud_repo: The repository branch to use for packages.cloud.google.com.
 """
-from datetime import datetime, timezone
-import json
+
 import logging
 import os
 import tarfile
@@ -48,10 +47,8 @@ def main():
       'debian_version', raise_on_not_found=True)
   google_cloud_repo = utils.GetMetadataAttribute(
       'google_cloud_repo', raise_on_not_found=True)
-  image_dest = utils.GetMetadataAttribute(
-      'image_dest', raise_on_not_found=True)
-  image_meta = utils.GetMetadataAttribute(
-      'image_meta', raise_on_not_found=True)
+  image_dest = utils.GetMetadataAttribute('image_dest',
+                                          raise_on_not_found=True)
 
   logging.info('debian-cloud-images version: %s' % debian_cloud_images_version)
   logging.info('debian version: %s' % debian_version)
@@ -177,39 +174,6 @@ def main():
   # Upload tar.
   logging.info('Saving %s to %s' % (disk_tar_gz, image_dest))
   utils.UploadFile(disk_tar_gz, image_dest)
-
-  # Create and upload metadata of the image and packages
-  logging.info('Creating image metadata.')
-  image = {
-      "family": "debian-10",
-      "version": debian_version,
-      "location": image_dest,
-      "build_date": datetime.now(timezone.utc),
-      "build_repo": google_cloud_repo,
-      "packages": []
-  }
-  # Read list of guest package
-  with open("guest_package.txt") as f:
-    guest_packages = f.read().splitlines()
-
-  for package in guest_packages:
-    cmd = ("dpkg-query -W --showformat '${Package}\n${Version}\n${Git}' "
-          "%s") % package
-    _, stdout = utils.Excute(cmd, capture_output=True)
-    package, version, git = stdout.decode('utf-8').split(':', 2)
-    metadata = {
-        "name": package,
-        "version": version,
-        "commit_hash": git,
-    }
-    image["packages"].append(metadata)
-
-    # Write image metadata to a file
-    with open('/tmp/metadata.json', 'w') as f:
-      f.write(json.dumps(image))
-
-    logging.info('Uploading image metadata.')
-    utils.UploadFile('/tmp/metadata.json', image_meta)
 
 
 if __name__ == '__main__':

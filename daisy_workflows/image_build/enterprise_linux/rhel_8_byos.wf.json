@@ -20,10 +20,6 @@
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
-    },
-    "destination": {
-      "Required": true,
-      "Description": "GCS path to export image metadata to"
     }
   },
   "Steps": {
@@ -36,8 +32,7 @@
           "google_cloud_repo": "${google_cloud_repo}",
           "install_disk": "${install_disk}",
           "installer_iso": "${installer_iso}",
-          "rhel_byos": "true",
-          "destination": "${destination}"
+          "rhel_byos": "true"
         }
       }
     },

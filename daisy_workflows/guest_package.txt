@@ -1,6 +1,0 @@
-google-cloud-packages-archive-keyring
-google-compute-engine
-google-compute-engine-oslogin
-google-guest-agent
-google-osconfig-agent
-gce-disk-expand

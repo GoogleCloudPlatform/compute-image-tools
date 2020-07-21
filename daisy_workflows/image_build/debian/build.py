@@ -23,8 +23,8 @@ google_cloud_repo: The repo to use to build Debian. Must be one of
   ['stable' (default), 'unstable', 'staging'].
 image_dest: The Cloud Storage destination for the resultant image.
 """
+
 import collections
-from datetime import datetime, timezone
 import json
 import logging
 import os
@@ -54,8 +54,6 @@ def main():
       'bootstrap_vz_version', raise_on_not_found=True)
   repo = utils.GetMetadataAttribute('google_cloud_repo',
                                     raise_on_not_found=True).strip()
-  image_meta = utils.GetMetadataAttribute('image_meta',
-                                          raise_on_not_found=True)
   image_dest = utils.GetMetadataAttribute('image_dest',
                                           raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
@@ -124,39 +122,6 @@ def main():
   logging.info('Uploading image synopsis.')
   synopsis_dest = os.path.join(outs_path, 'synopsis.json')
   utils.UploadFile('/tmp/synopsis.json', synopsis_dest)
-
-  # Create and upload metadata of the image and packages
-  logging.info('Creating image metadata.')
-  image = {
-      "family": "debian-9",
-      "version": "stretch",
-      "location": image_dest,
-      "build_date,": datetime.now(timezone.utc),
-      "build_repo": repo,
-      "packages": []
-  }
-  # Read list of guest package
-  with open("guest_package.txt") as f:
-    guest_packages = f.read().splitlines()
-
-  for package in guest_packages:
-    cmd = ("dpkg-query -W --showformat '${Package}\n${Version}\n${Git}' "
-           "%s") % package
-    _, stdout = utils.Excute(cmd, capture_output=True)
-    package, version, git = stdout.decode('utf-8').split(':', 2)
-    metadata = {
-        "name": package,
-        "version": version,
-        "commit_hash": git,
-    }
-    image["packages"].append(metadata)
-
-    # Write image metadata to a file
-    with open('/tmp/metadata.json', 'w') as f:
-      f.write(json.dumps(image))
-
-    logging.info('Uploading image metadata.')
-    utils.UploadFile('/tmp/metadata.json', image_meta)
 
 
 if __name__ == '__main__':
