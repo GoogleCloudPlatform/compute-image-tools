@@ -3,7 +3,6 @@
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
     "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
-    "image_meta": {"Required": true, "Description": "The GCS path for the destination image metadata json"},
     "debian_cloud_images_version": {
       "Value": "master",
       "Description": "The debian-cloud-images scripts git commit ID or branch to use."
@@ -28,7 +27,6 @@
           "debian_version": "${debian_version}",
           "builder_source_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
           "image_dest": "${image_dest}",
-          "image_meta": "${image_meta}",
           "google_cloud_repo": "${google_cloud_repo}"
         }
       }
