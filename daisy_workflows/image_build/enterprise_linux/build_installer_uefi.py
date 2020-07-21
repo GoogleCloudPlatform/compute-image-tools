@@ -62,9 +62,9 @@ def main():
   utils.Execute(['parted', '/dev/sdb', 'mklabel', 'gpt'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'fat32', '1MB',
-                 '601MB'])
+                 '1024MB'])
   utils.Execute(['sync'])
-  utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'ext2', '601MB',
+  utils.Execute(['parted', '/dev/sdb', 'mkpart', 'primary', 'ext2', '1024MB',
                  '100%'])
   utils.Execute(['sync'])
   utils.Execute(['parted', '/dev/sdb', 'set', '1', 'boot', 'on'])
@@ -110,7 +110,7 @@ def main():
 
     # Change labels to explicit partitions.
     if release.startswith(('centos7', 'rhel7', 'rhel-7', 'oraclelinux7',
-                           'centos8', 'rhel8')):
+                           'centos8', 'rhel8', 'rhel-8')):
       cfg = re.sub(r'LABEL=[^ ]+', 'LABEL=INSTALLER', cfg)
 
     # Print out a the modifications.

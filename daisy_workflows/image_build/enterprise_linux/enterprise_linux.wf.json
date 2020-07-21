@@ -114,7 +114,18 @@
     },
     "wait-installation": {
       "Timeout": "60m",
-      "WaitForInstancesSignal": [{"Name": "inst-build", "Stopped": true}]
+      "WaitForInstancesSignal": [
+        {
+          "Name": "inst-build",
+          "Stopped": true,
+          "SerialOutput": {
+            "Port": 1,
+            "FailureMatch": "BuildFailed:",
+            "SuccessMatch": "BuildSuccess:",
+            "StatusMatch": "BuildStatus:"
+          }
+        }
+      ]
     },
     "cleanup-inst-build": {
       "DeleteResources": {

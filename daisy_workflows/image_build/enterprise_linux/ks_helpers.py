@@ -260,7 +260,7 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi):
     custom_post = '\n'.join([ol_post, el_post])
     cleanup = FetchConfigPart('el7-cleanup.cfg')
     repo_version = 'el7'
-  elif release == "rhel8":
+  elif release == "rhel8" or release.startswith('rhel-8'):
     logging.info('Building RHEL 8 image.')
     ks_packages = FetchConfigPart('el8-packages.cfg')
     ks_options = FetchConfigPart('el8-options.cfg')
@@ -268,6 +268,13 @@ def BuildKsConfig(release, google_cloud_repo, byos, sap, uefi):
       logging.info('Building RHEL 8 for UEFI')
       ks_options = FetchConfigPart('el8-uefi-options.cfg')
     rhel_post = FetchConfigPart('rhel8-post.cfg')
+    if sap:
+      logging.info('Building RHEL 8 for SAP')
+      point = ''
+      if release == 'rhel-8-1':
+        logging.info('Building RHEL 8.1 for SAP')
+        point = FetchConfigPart('rhel8-1-post.cfg')
+      rhel_post = '\n'.join([point, FetchConfigPart('rhel8-sap-post.cfg')])
     el_post = FetchConfigPart('el8-post.cfg')
     custom_post = '\n'.join([rhel_post, el_post])
     if byos:
