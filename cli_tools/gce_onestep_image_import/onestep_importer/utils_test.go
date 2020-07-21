@@ -40,26 +40,9 @@ func TestHandleTimeout(t *testing.T) {
 	}
 }
 
-func TestNewImporterFailWhenCloudProviderNotAWS(t *testing.T) {
-	args := setUpArgs(cloudProviderFlag, "-cloud_provider=gcloud")
-	_, err := newImporterForCloudProvider(expectSuccessfulParse(t, args...))
-	assert.EqualError(t, err, "image import from cloud provider gcloud is "+
-		"currently not supported")
-}
-
 func TestNewImporter(t *testing.T) {
 	_, err := newImporterForCloudProvider(expectSuccessfulParse(t))
 	assert.Nil(t, err)
-}
-
-func TestImportFromCloudProviderFailWhenNewImporterFail(t *testing.T) {
-	args := setUpArgs(cloudProviderFlag, "-cloud_provider=gcloud")
-	importerArgs, err := NewOneStepImportArguments(args)
-	assert.Nil(t, err)
-
-	_, actualErr := newImporterForCloudProvider(expectSuccessfulParse(t, args...))
-	ExpectedErr := importFromCloudProvider(importerArgs)
-	assert.Equal(t, actualErr, ExpectedErr)
 }
 
 func TestImportReturnOnTimeoutLessThan3Minutes(t *testing.T) {
@@ -152,6 +135,22 @@ func TestUploaderCleanUp(t *testing.T) {
 
 	uploader.cleanup()
 	assert.Len(t, uploader.readerChan, 0)
+}
+
+func TestUploderRunsImplementation(t *testing.T) {
+	isUploadFileFuncCalled := false
+	isCleanupFuncCalled := false
+	u := uploader{
+		uploadFileFn: func() {
+			isUploadFileFuncCalled = true
+		},
+		cleanupFn: func() {
+			isCleanupFuncCalled = true
+		}}
+	u.uploadFile()
+	u.cleanup()
+	assert.True(t, isUploadFileFuncCalled)
+	assert.True(t, isCleanupFuncCalled)
 }
 
 func TestRunImageImportFailedWhenCmdError(t *testing.T) {

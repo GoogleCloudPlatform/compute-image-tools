@@ -32,7 +32,7 @@ type awsImportArguments struct {
 	amiID              string
 	executablePath     string
 	exportLocation     string
-	exportedAMIPath    string
+	sourceFilePath     string
 	gcsComputeEndpoint string
 	gcsProjectPtr      *string
 	gcsZone            string
@@ -52,13 +52,13 @@ type awsImportArguments struct {
 
 // Flags
 const (
-	awsAMIIDFlag           = "aws_ami_id"
-	awsExportLocationFlag  = "aws_export_location"
-	awsAccessKeyIDFlag     = "aws_access_key_id"
-	awsSecretAccessKeyFlag = "aws_secret_access_key"
-	awsSessionTokenFlag    = "aws_session_token"
-	awsRegionFlag          = "aws_region"
-	awsExportedAMIPathFlag = "aws_exported_ami_path"
+	awsAMIIDFlag             = "aws_ami_id"
+	awsAMIExportLocationFlag = "aws_ami_export_location"
+	awsAccessKeyIDFlag       = "aws_access_key_id"
+	awsSecretAccessKeyFlag   = "aws_secret_access_key"
+	awsSessionTokenFlag      = "aws_session_token"
+	awsRegionFlag            = "aws_region"
+	awsSourceAMIFilePathFlag = "aws_source_ami_file_path"
 )
 
 var (
@@ -72,8 +72,8 @@ func newAWSImportArguments(args *OneStepImportArguments) *awsImportArguments {
 		accessKeyID:        args.AWSAccessKeyID,
 		amiID:              args.AWSAMIID,
 		executablePath:     args.ExecutablePath,
-		exportLocation:     args.AWSExportLocation,
-		exportedAMIPath:    args.AWSExportedAMIPath,
+		exportLocation:     args.AWSAMIExportLocation,
+		sourceFilePath:     args.AWSSourceAMIFilePath,
 		gcsComputeEndpoint: args.ComputeEndpoint,
 		gcsProjectPtr:      args.ProjectPtr,
 		gcsZone:            args.Zone,
@@ -113,14 +113,17 @@ func (args *awsImportArguments) validate() error {
 	if err := validation.ValidateStringFlagNotEmpty(args.region, awsRegionFlag); err != nil {
 		return err
 	}
+	if err := validation.ValidateStringFlagNotEmpty(args.sessionToken, awsSessionTokenFlag); err != nil {
+		return err
+	}
 
-	needsExport := args.amiID != "" && args.exportLocation != "" && args.exportedAMIPath == ""
-	isResumeExported := args.amiID == "" && args.exportLocation == "" && args.exportedAMIPath != ""
+	needsExport := args.amiID != "" && args.exportLocation != "" && args.sourceFilePath == ""
+	isResumeExported := args.amiID == "" && args.exportLocation == "" && args.sourceFilePath != ""
 
 	if !(needsExport || isResumeExported) {
 		return daisy.Errf("specify -%v to import from "+
 			"exported image file, or both -%v and -%v to "+
-			"import from AMI", awsExportedAMIPathFlag, awsAMIIDFlag, awsExportLocationFlag)
+			"import from AMI", awsSourceAMIFilePathFlag, awsAMIIDFlag, awsAMIExportLocationFlag)
 	}
 
 	return nil
@@ -128,7 +131,7 @@ func (args *awsImportArguments) validate() error {
 
 // isExportRequired returns true if AMI needs to be exported, false otherwise.
 func (args *awsImportArguments) isExportRequired() bool {
-	return args.exportedAMIPath == ""
+	return args.sourceFilePath == ""
 }
 
 // generateS3PathElements gets bucket name, and folder or object key depending on if
@@ -148,12 +151,12 @@ func (args *awsImportArguments) generateS3PathElements() error {
 		}
 	} else {
 		// AMI already exported, get metadata from provide object path.
-		args.exportBucket, args.exportKey, err = splitS3Path(args.exportedAMIPath)
+		args.exportBucket, args.exportKey, err = splitS3Path(args.sourceFilePath)
 		if err != nil {
 			return err
 		}
 		if args.exportKey == "" {
-			return daisy.Errf("%v is not a valid S3 file path", args.exportedAMIPath)
+			return daisy.Errf("%v is not a valid S3 file path", args.sourceFilePath)
 		}
 	}
 	return nil

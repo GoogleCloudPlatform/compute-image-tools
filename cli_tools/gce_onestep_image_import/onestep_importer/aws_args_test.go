@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const exportFlagErrorMsg = "specify -aws_exported_ami_path to import from exported image file, or both -aws_ami_id and -aws_export_location to import from AMI"
+const exportFlagErrorMsg = "specify -aws_source_ami_file_path to import from exported image file, or both -aws_ami_id and -aws_ami_export_location to import from AMI"
 
 func TestSplitS3PathObjectInFolder(t *testing.T) {
 	bucket, object, err := splitS3Path("s3://bucket_name/folder_name/object_name")
@@ -74,32 +74,32 @@ func TestSplitS3PathErrorOnInvalidPath(t *testing.T) {
 }
 
 func TestGenerateS3PathElementsErrorWhenExportedAMIPathInvalid(t *testing.T) {
-	args := setUpAWSArgs(awsExportedAMIPathFlag, false, "-aws_exported_ami_path=s3://")
+	args := setUpAWSArgs(awsSourceAMIFilePathFlag, false, "-aws_source_ami_file_path=s3://")
 	awsArgs := getAWSImportArgs(args)
 	assert.Error(t, awsArgs.generateS3PathElements())
 }
 
 func TestGenerateS3PathElementsErrorWhenExportedAMIPathEmptyKay(t *testing.T) {
-	args := setUpAWSArgs(awsExportedAMIPathFlag, false, "-aws_exported_ami_path=s3://bucket")
+	args := setUpAWSArgs(awsSourceAMIFilePathFlag, false, "-aws_source_ami_file_path=s3://bucket")
 	awsArgs := getAWSImportArgs(args)
 	assert.Error(t, awsArgs.generateS3PathElements())
 }
 
 func TestGenerateS3PathElementsErrorWhenExportLocationInvalid(t *testing.T) {
-	args := setUpAWSArgs(awsExportLocationFlag, true, "-aws_export_location=s3://")
+	args := setUpAWSArgs(awsAMIExportLocationFlag, true, "-aws_ami_export_location=s3://")
 	awsArgs := getAWSImportArgs(args)
 	assert.Error(t, awsArgs.generateS3PathElements())
 }
 
 func TestGenerateS3PathElementsAppendSlashOnExportFolder(t *testing.T) {
-	args := setUpAWSArgs(awsExportLocationFlag, true, "-aws_export_location=s3://bucket/folder")
+	args := setUpAWSArgs(awsAMIExportLocationFlag, true, "-aws_ami_export_location=s3://bucket/folder")
 	awsArgs := getAWSImportArgs(args)
 	assert.NoError(t, awsArgs.generateS3PathElements())
 	assert.Equal(t, awsArgs.exportFolder, "folder/")
 }
 
 func TestGenerateS3PathElementsDoesNotAppendExtraSlashOnExportFolder(t *testing.T) {
-	args := setUpAWSArgs(awsExportLocationFlag, true, "-aws_export_location=s3://bucket/folder/")
+	args := setUpAWSArgs(awsAMIExportLocationFlag, true, "-aws_ami_export_location=s3://bucket/folder/")
 	awsArgs := getAWSImportArgs(args)
 	assert.NoError(t, awsArgs.generateS3PathElements())
 	assert.Equal(t, awsArgs.exportFolder, "folder/")
@@ -175,18 +175,23 @@ func TestFailWhenRegionNotProvided(t *testing.T) {
 	assert.EqualError(t, expectFailedAWSValidation(t, args), "The flag -aws_region must be provided")
 }
 
+func TestFailWhenSessionTokenNotProvided(t *testing.T) {
+	args := setUpAWSArgs(awsSessionTokenFlag, true)
+	assert.EqualError(t, expectFailedAWSValidation(t, args), "The flag -aws_session_token must be provided")
+}
+
 func TestFailWhenOnlyAMIIDNotProvided(t *testing.T) {
 	args := setUpAWSArgs(awsAMIIDFlag, true)
 	assert.EqualError(t, expectFailedAWSValidation(t, args), exportFlagErrorMsg)
 }
 
 func TestFailWhenOnlyExportLocationNotProvided(t *testing.T) {
-	args := setUpAWSArgs(awsExportLocationFlag, true)
+	args := setUpAWSArgs(awsAMIExportLocationFlag, true)
 	assert.EqualError(t, expectFailedAWSValidation(t, args), exportFlagErrorMsg)
 }
 
 func TestFailWhenAllExportFlagsProvided(t *testing.T) {
-	args := setUpAWSArgs("", true, "-aws_exported_ami_path=s3://bucket/object")
+	args := setUpAWSArgs("", true, "-aws_source_ami_file_path=s3://bucket/object")
 	assert.EqualError(t, expectFailedAWSValidation(t, args), exportFlagErrorMsg)
 }
 

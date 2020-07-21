@@ -53,17 +53,10 @@ type cloudProviderImporter interface {
 }
 
 // newImporterFormCloudProvider evaluates the cloud provider of the source image
-// and creates a new instance of cloudProviderImporter
+// and creates a new instance of cloudProviderImporter. Currently, only AWS cloud
+// provider is supported.
 func newImporterForCloudProvider(args *OneStepImportArguments) (cloudProviderImporter, error) {
-	if args.CloudProvider == "aws" {
-		importer, err := newAWSImporter(args.Oauth, args.TimeoutChan, newAWSImportArguments(args))
-		if err != nil {
-			return nil, err
-		}
-		return importer, nil
-	}
-	return nil, daisy.Errf("image import from cloud provider %v is "+
-		"currently not supported", args.CloudProvider)
+	return newAWSImporter(args.Oauth, args.TimeoutChan, newAWSImportArguments(args))
 }
 
 // importFromCloudProvider imports image from the specified cloud provider

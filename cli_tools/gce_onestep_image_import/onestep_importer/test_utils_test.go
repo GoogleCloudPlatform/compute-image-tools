@@ -94,12 +94,12 @@ func setUpAWSArgs(requiredFlagToTest string, needsExport bool, args ...string) [
 		if requiredFlagToTest != awsAMIIDFlag {
 			args = append(args, "-aws_ami_id=my-ami-id")
 		}
-		if requiredFlagToTest != awsExportLocationFlag {
-			args = append(args, "-aws_export_location=s3://bucket")
+		if requiredFlagToTest != awsAMIExportLocationFlag {
+			args = append(args, "-aws_ami_export_location=s3://bucket")
 		}
 	} else {
-		if requiredFlagToTest != awsExportedAMIPathFlag {
-			args = append(args, "-aws_exported_ami_path=s3://bucket/object")
+		if requiredFlagToTest != awsSourceAMIFilePathFlag {
+			args = append(args, "-aws_source_ami_file_path=s3://bucket/object")
 		}
 	}
 	return args

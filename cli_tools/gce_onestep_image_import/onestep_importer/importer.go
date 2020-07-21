@@ -32,7 +32,6 @@ import (
 type OneStepImportArguments struct {
 	ClientID             string
 	CloudLogsDisabled    bool
-	CloudProvider        string
 	ComputeEndpoint      string
 	CustomWorkflow       string
 	DataDisk             bool
@@ -60,21 +59,20 @@ type OneStepImportArguments struct {
 	UefiCompatible       bool
 	Zone                 string
 
-	AWSAccessKeyID     string
-	AWSSecretAccessKey string
-	AWSSessionToken    string
-	AWSRegion          string
-	AWSAMIID           string
-	AWSExportLocation  string
-	AWSExportedAMIPath string
+	AWSAccessKeyID       string
+	AWSSecretAccessKey   string
+	AWSSessionToken      string
+	AWSRegion            string
+	AWSAMIID             string
+	AWSAMIExportLocation string
+	AWSSourceAMIFilePath string
 }
 
 // Flags that are validated.
 const (
-	cloudProviderFlag = "cloud_provider"
-	clientFlag        = "client_id"
-	imageNameFlag     = "image_name"
-	osFlag            = "os"
+	clientFlag    = "client_id"
+	imageNameFlag = "image_name"
+	osFlag        = "os"
 )
 
 // NewOneStepImportArguments parse the provides cli arguments and creates a new ImportArguments instance.
@@ -87,12 +85,6 @@ func NewOneStepImportArguments(args []string) (*OneStepImportArguments, error) {
 	if err := flagSet.Parse(args); err != nil {
 		return nil, daisy.ToDError(err)
 	}
-
-	// add label to indicate the image import is run from onestep import
-	if importArgs.Labels == nil {
-		importArgs.Labels = make(map[string]string)
-	}
-	importArgs.Labels["onestep-image-import"] = importArgs.CloudProvider
 
 	return importArgs, nil
 }
@@ -108,34 +100,31 @@ func (args *OneStepImportArguments) getFlagSet() *flag.FlagSet {
 // registerFlags defines the flags to parse.
 func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 	flagSet.Var((*flags.TrimmedString)(&args.AWSAccessKeyID), awsAccessKeyIDFlag,
-		"The Access Key Id for an AWS credential. "+
+		"The access key ID for an AWS credential. "+
 			"This credential is associated with an IAM user or role. "+
 			"This IAM user must have permissions to import images.")
 
 	flagSet.Var((*flags.TrimmedString)(&args.AWSAMIID), awsAMIIDFlag,
 		"The AWS AMI ID of the image to import.")
 
-	flagSet.Var((*flags.TrimmedString)(&args.AWSExportLocation), awsExportLocationFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSAMIExportLocation), awsAMIExportLocationFlag,
 		"The AWS S3 Bucket location where you want to export the image.")
 
-	flagSet.Var((*flags.TrimmedString)(&args.AWSExportedAMIPath), awsExportedAMIPathFlag,
+	flagSet.Var((*flags.TrimmedString)(&args.AWSSourceAMIFilePath), awsSourceAMIFilePathFlag,
 		"The S3 resource path of the exported image file.")
 
 	flagSet.Var((*flags.TrimmedString)(&args.AWSRegion), awsRegionFlag,
 		"The AWS region for the image that you want to import.")
 
 	flagSet.Var((*flags.TrimmedString)(&args.AWSSessionToken), awsSessionTokenFlag,
-		"The AWS session token value that is required if you are using "+
-			"temporary security credentials. ")
-
-	flagSet.Var((*flags.TrimmedString)(&args.AWSSecretAccessKey), awsSecretAccessKeyFlag,
-		"The secret access key for yourAWS credential. "+
+		"The session token for your AWS credential. "+
 			"This credential is associated with an IAM user or role. "+
 			"This IAM user must have permissions to import images.")
 
-	flagSet.Var((*flags.LowerTrimmedString)(&args.CloudProvider), cloudProviderFlag,
-		"Identifies the cloud provider of the source image. "+
-			"Currently only one cloud provider is supported. CLOUD_PROVIDER must be aws.")
+	flagSet.Var((*flags.TrimmedString)(&args.AWSSecretAccessKey), awsSecretAccessKeyFlag,
+		"The secret access key for your AWS credential. "+
+			"This credential is associated with an IAM user or role. "+
+			"This IAM user must have permissions to import images.")
 
 	flagSet.Var((*flags.LowerTrimmedString)(&args.ClientID), clientFlag,
 		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
@@ -233,9 +222,6 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 func (args *OneStepImportArguments) validate() error {
 	if err := validation.ValidateStringFlagNotEmpty(args.ImageName, imageNameFlag); err != nil {
-		return err
-	}
-	if err := validation.ValidateStringFlagNotEmpty(args.CloudProvider, cloudProviderFlag); err != nil {
 		return err
 	}
 	if err := validation.ValidateStringFlagNotEmpty(args.OS, osFlag); err != nil {

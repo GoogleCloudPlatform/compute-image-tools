@@ -119,15 +119,25 @@ type ImageExportParams struct {
 
 // OnestepImageImportParams contains all input params for onestep image import
 type OnestepImageImportParams struct {
-	*ImageImportParams
+	*CommonParams
 
-	CloudProvider string `json:"cloud_provider,omitempty"`
+	// Image import params
+	ImageName          string `json:"image_name,omitempty"`
+	OS                 string `json:"os,omitempty"`
+	NoGuestEnvironment bool   `json:"no_guest_environment"`
+	Family             string `json:"family,omitempty"`
+	Description        string `json:"description,omitempty"`
+	NoExternalIP       bool   `json:"no_external_ip"`
+	HasKmsKey          bool   `json:"has_kms_key"`
+	HasKmsKeyring      bool   `json:"has_kms_keyring"`
+	HasKmsLocation     bool   `json:"has_kms_location"`
+	HasKmsProject      bool   `json:"has_kms_project"`
+	StorageLocation    string `json:"storage_location,omitempty"`
 
 	// AWS related params
 	AWSAMIID             string `json:"aws_ami_id,omitempty"`
-	AWSExportLocation    string `json:"aws_export_location,omitempty"`
-	AWSExportedAMIPath   string `json:"aws_exported_ami_path,omitempty"`
-	AWSResumeExportedAMI bool   `json:"aws_resume_exported_ami"`
+	AWSAMIExportLocation string `json:"aws_ami_export_location,omitempty"`
+	AWSSourceAMIFilePath string `json:"aws_source_ami_file_path,omitempty"`
 }
 
 // InstanceImportParams contains all input params for instance import
@@ -259,5 +269,9 @@ func (l *Logger) updateParams(projectPointer *string) {
 	if l.Params.MachineImageImportParams != nil {
 		l.Params.MachineImageImportParams.CommonParams.Project = project
 		l.Params.MachineImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
+	}
+	if l.Params.OnestepImageImportParams != nil {
+		l.Params.OnestepImageImportParams.CommonParams.Project = project
+		l.Params.OnestepImageImportParams.CommonParams.ObfuscatedProject = obfuscatedProject
 	}
 }
