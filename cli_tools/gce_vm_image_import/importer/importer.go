@@ -24,7 +24,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	daisycompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/googleapi"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
@@ -39,7 +39,7 @@ type Importer interface {
 
 // NewImporter constructs an Importer instance.
 func NewImporter(args ImportArguments, computeClient compute.Client, storageClient storage.Client) (Importer, error) {
-	inflater, err := createInflater(args, computeClient, imagefile.NewGCSInspector(), storageClient)
+	inflater, err := createInflater(args, computeClient, storageClient, imagefile.NewGCSInspector())
 	if err != nil {
 		return nil, err
 	}

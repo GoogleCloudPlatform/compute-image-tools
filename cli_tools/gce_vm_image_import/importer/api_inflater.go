@@ -50,7 +50,7 @@ type apiInflater struct {
 }
 
 func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client) inflater {
-	return apiInflater{
+	return &apiInflater{
 		serialLogs:    []string{},
 		args:          args,
 		computeClient: computeClient,
@@ -58,15 +58,16 @@ func createAPIInflater(args ImportArguments, computeClient daisyCompute.Client, 
 	}
 }
 
-func (inflater apiInflater) traceLogs() []string {
+func (inflater *apiInflater) traceLogs() []string {
 	return inflater.serialLogs
 }
 
-func (inflater apiInflater) addTraceLog(l string) {
+func (inflater *apiInflater) addTraceLog(l string) {
 	inflater.serialLogs = append(inflater.serialLogs, l)
 }
 
-func (inflater apiInflater) inflate(ctx context.Context) (persistentDisk, error) {
+func (inflater *apiInflater) inflate() (persistentDisk, error) {
+	ctx := context.Background()
 	startTime := time.Now()
 	diskName := fmt.Sprintf("shadow-disk-%v", inflater.args.ExecutionID)
 	cd := computeAlpha.Disk{
@@ -106,8 +107,13 @@ func (inflater apiInflater) inflate(ctx context.Context) (persistentDisk, error)
 	return pd, err
 }
 
+// Can't cancel the single disk.insert API call
+func (inflater *apiInflater) cancel(reason string) bool {
+	return false
+}
+
 // run a workflow to calculate checksum
-func (inflater apiInflater) calculateChecksum(ctx context.Context, diskURI string) (string, error) {
+func (inflater *apiInflater) calculateChecksum(ctx context.Context, diskURI string) (string, error) {
 	w := daisy.New()
 	w.Name = "shadow-disk-checksum"
 	checksumScript := checksumScriptConst
@@ -172,9 +178,17 @@ func (inflater apiInflater) calculateChecksum(ctx context.Context, diskURI strin
 	}
 
 	// Calculate checksum within 20min.
-	daisycommon.SetWorkflowAttributes(w, inflater.args.Project, inflater.args.Zone, inflater.args.ScratchBucketGcsPath,
-		inflater.args.Oauth, "20m", inflater.args.ComputeEndpoint, inflater.args.GcsLogsDisabled,
-		inflater.args.CloudLogsDisabled, inflater.args.StdoutLogsDisabled)
+	daisycommon.SetWorkflowAttributes(w, daisycommon.WorkflowAttributes{
+		Project:           inflater.args.Project,
+		Zone:              inflater.args.Zone,
+		GCSPath:           inflater.args.ScratchBucketGcsPath,
+		OAuth:             inflater.args.Oauth,
+		Timeout:           "20m",
+		ComputeEndpoint:   inflater.args.ComputeEndpoint,
+		DisableGCSLogs:    inflater.args.GcsLogsDisabled,
+		DisableCloudLogs:  inflater.args.CloudLogsDisabled,
+		DisableStdoutLogs: inflater.args.StdoutLogsDisabled,
+	})
 	err := daisyUtils.RunWorkflowWithCancelSignal(ctx, w)
 	if err != nil {
 		return "", err

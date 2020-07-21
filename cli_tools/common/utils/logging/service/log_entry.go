@@ -234,9 +234,9 @@ type OutputInfo struct {
 	// Inflation type (qemu, API, etc)
 	InflationType string `json:"inflation_type,omitempty"`
 	// Inflation time (seconds)
-	InflationTime []int64 `json:"inflation_time,omitempty"`
+	InflationTime []int64 `json:"inflation_time_ms,omitempty"`
 	// Inflation time (seconds) of the shadow disk
-	ShadowInflationTime []int64 `json:"shadow_inflation_time,omitempty"`
+	ShadowInflationTime []int64 `json:"shadow_inflation_time_ms,omitempty"`
 	// Shadow disk match result for shadow disk inflater
 	ShadowDiskMatchResult string `json:"shadow_disk_match_result,omitempty"`
 }
