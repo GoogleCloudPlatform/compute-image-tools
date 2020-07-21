@@ -58,9 +58,13 @@ const (
 	keyP1           = "AzSCO1066k_gFH2sJg3I"
 	keyP2           = "IaymztUIWu9U8THBeTx"
 
-	targetSizeGb     = "target-size-gb"
-	sourceSizeGb     = "source-size-gb"
-	importFileFormat = "import-file-format"
+	targetSizeGb          = "target-size-gb"
+	sourceSizeGb          = "source-size-gb"
+	importFileFormat      = "import-file-format"
+	inflationType         = "inflation-type"
+	inflationTime         = "inflation-time"
+	shadowInflationTime   = "shadow-inflation-time"
+	shadowDiskMatchResult = "shadow-disk-match-result"
 
 	statusStart   = "Start"
 	statusSuccess = "Success"

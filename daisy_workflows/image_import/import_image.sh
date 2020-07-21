@@ -149,6 +149,22 @@ function serialOutputKeyValuePair() {
   echo "<serial-output key:'$1' value:'$2'>"
 }
 
+# Dup logic in api_inflater.go. If change anything here, please change in both places.
+function diskChecksum() {
+  set +x
+  CHECK_DEVICE=sdc
+  BLOCK_COUNT=$(cat /sys/class/block/$CHECK_DEVICE/size)
+
+  # Check size = 200000*512 = 100MB
+  CHECK_COUNT=200000
+  CHECKSUM1=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=0 count=$CHECK_COUNT | md5sum)
+  CHECKSUM2=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 2000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
+  CHECKSUM3=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( 20000000 - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
+  CHECKSUM4=$(sudo dd if=/dev/$CHECK_DEVICE ibs=512 skip=$(( $BLOCK_COUNT - $CHECK_COUNT )) count=$CHECK_COUNT | md5sum)
+  echo "Import: $(serialOutputKeyValuePair "disk-checksum" "$CHECKSUM1-$CHECKSUM2-$CHECKSUM3-$CHECKSUM4")"
+  set -x
+}
+
 copyImageToScratchDisk
 
 # If the image is an OVA, then copy out its VMDK.
@@ -214,6 +230,8 @@ if ! out=$(qemu-img convert "${IMAGE_PATH}" -p -O raw -S 512b /dev/sdc 2>&1); th
   exit
 fi
 echo "${out}"
+
+diskChecksum
 
 sync
 
