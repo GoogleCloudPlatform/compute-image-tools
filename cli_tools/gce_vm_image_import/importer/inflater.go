@@ -19,14 +19,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
+	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
+	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
 	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
-
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
-	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
 )
 
 const (
@@ -56,14 +56,14 @@ const (
 	sigShadowInflaterErr  = "shadow err"
 )
 
-func (facade inflaterFacade) inflate(ctx context.Context) (persistentDisk, error) {
+func (facade *inflaterFacade) inflate() (persistentDisk, error) {
 	inflaterChan := make(chan string)
 
 	// Launch main inflater.
 	var pd persistentDisk
 	var err error
 	go func() {
-		pd, err = facade.mainInflater.inflate(ctx)
+		pd, err = facade.mainInflater.inflate()
 		if err != nil {
 			inflaterChan <- sigMainInflaterErr
 		} else {
@@ -75,7 +75,7 @@ func (facade inflaterFacade) inflate(ctx context.Context) (persistentDisk, error
 	var shadowPd persistentDisk
 	var shadowErr error
 	go func() {
-		shadowPd, shadowErr = facade.shadowInflater.inflate(ctx)
+		shadowPd, shadowErr = facade.shadowInflater.inflate()
 		if shadowErr != nil {
 			inflaterChan <- sigShadowInflaterErr
 		} else {
@@ -98,7 +98,7 @@ func (facade inflaterFacade) inflate(ctx context.Context) (persistentDisk, error
 		if mainResult == sigMainInflaterErr {
 			pd.matchResult = "Main inflater failed while shadow inflater succeeded"
 		} else {
-			facade.compareWithShadowInflater(ctx, &pd, &shadowPd)
+			facade.compareWithShadowInflater(&pd, &shadowPd)
 		}
 	} else if result == sigShadowInflaterErr && mainResult == sigMainInflaterDone {
 		if isCausedByUnsupportedFormat(shadowErr) {
@@ -113,11 +113,16 @@ func (facade inflaterFacade) inflate(ctx context.Context) (persistentDisk, error
 	return pd, err
 }
 
-func (facade inflaterFacade) traceLogs() []string {
+func (facade *inflaterFacade) cancel(reason string) bool {
+	facade.shadowInflater.cancel(reason)
+	return facade.mainInflater.cancel(reason)
+}
+
+func (facade *inflaterFacade) traceLogs() []string {
 	return facade.mainInflater.traceLogs()
 }
 
-func (facade inflaterFacade) compareWithShadowInflater(ctx context.Context, mainPd, shadowPd *persistentDisk) {
+func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk) {
 	matchFormat := "sizeGb-%v,sourceGb-%v,content-%v"
 	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
 	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
@@ -164,10 +169,10 @@ func (inflater *daisyInflater) inflate() (persistentDisk, error) {
 	importFileFormat := inflater.wf.GetSerialConsoleOutputValue("import-file-format")
 	checksum := inflater.wf.GetSerialConsoleOutputValue("disk-checksum")
 	return persistentDisk{
-		uri:        inflater.inflatedDiskURI,
-		sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
-		sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
-		sourceType: importFileFormat,
+		uri:           inflater.inflatedDiskURI,
+		sizeGb:        string_utils.SafeStringToInt(targetSizeGB),
+		sourceGb:      string_utils.SafeStringToInt(sourceSizeGB),
+		sourceType:    importFileFormat,
 		checksum:      checksum,
 		inflationTime: time.Since(startTime),
 	}, err
@@ -187,8 +192,8 @@ type persistentDisk struct {
 	inflationType       string
 }
 
-func createInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client) (inflater, error) {
-	di, err := createDaisyInflater(args)
+func createInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client, inspector imagefile.Inspector) (inflater, error) {
+	di, err := createDaisyInflater(args, inspector)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +203,7 @@ func createInflater(args ImportArguments, computeClient daisyCompute.Client, sto
 	}
 
 	ai := createAPIInflater(args, computeClient, storageClient)
-	return inflaterFacade{
+	return &inflaterFacade{
 		mainInflater:   di,
 		shadowInflater: ai,
 	}, nil

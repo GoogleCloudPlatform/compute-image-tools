@@ -53,13 +53,24 @@ func TestSingleImageImportLoggable(t *testing.T) {
 	sourceGb := int64(12)
 	targetGb := int64(100)
 	traceLogs := []string{"log-a", "log-b"}
+	inflationTypeValue := "qemu"
+	inflationTimeValue := int64(10000)
+	shadowInflationTimeValue := int64(5000)
+	matchResultValue := "true"
 	expected := literalLoggable{
-		strings: map[string]string{importFileFormat: format},
+		strings: map[string]string{
+			importFileFormat:      format,
+			inflationType:         inflationTypeValue,
+			shadowDiskMatchResult: matchResultValue,
+		},
 		int64s: map[string][]int64{
-			sourceSizeGb: {sourceGb},
-			targetSizeGb: {targetGb},
+			sourceSizeGb:        {sourceGb},
+			targetSizeGb:        {targetGb},
+			inflationTime:       {inflationTimeValue},
+			shadowInflationTime: {shadowInflationTimeValue},
 		},
 		traceLogs: traceLogs,
 	}
-	assert.Equal(t, expected, SingleImageImportLoggable(format, sourceGb, targetGb, traceLogs))
+	assert.Equal(t, expected, SingleImageImportLoggable(format, sourceGb, targetGb,
+		matchResultValue, inflationTypeValue, inflationTimeValue, shadowInflationTimeValue, traceLogs))
 }

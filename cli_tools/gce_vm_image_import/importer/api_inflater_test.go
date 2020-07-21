@@ -17,6 +17,7 @@ package importer
 import (
 	"testing"
 
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,13 +30,21 @@ func TestCreateInflater_File(t *testing.T) {
 		Zone:         "us-west1-c",
 		ExecutionID:  "1234",
 		NoExternalIP: false,
-		WorkflowDir:  "testdata/image_import",
-	}, nil, storage.Client{})
+		WorkflowDir:  "testdata",
+	},
+		nil,
+		storage.Client{},
+		mockInspector{
+			t:                 t,
+			expectedReference: "gs://bucket/vmdk",
+			errorToReturn:     nil,
+			metaToReturn:      imagefile.Metadata{},
+		})
 	assert.NoError(t, err)
-	realInflater, ok := inflater.(inflaterFacade)
+	realInflater, ok := inflater.(*inflaterFacade)
 	assert.True(t, ok)
 
-	mainInflater, ok := realInflater.mainInflater.(daisyInflater)
+	mainInflater, ok := realInflater.mainInflater.(*daisyInflater)
 	assert.True(t, ok)
 	assert.Equal(t, "zones/us-west1-c/disks/disk-1234", mainInflater.inflatedDiskURI)
 	assert.Equal(t, "gs://bucket/vmdk", mainInflater.wf.Vars["source_disk_file"].Value)
@@ -45,7 +54,7 @@ func TestCreateInflater_File(t *testing.T) {
 	network := getWorkerNetwork(t, mainInflater.wf)
 	assert.Nil(t, network.AccessConfigs, "AccessConfigs must be nil to allow ExternalIP to be allocated.")
 
-	_, ok = realInflater.shadowInflater.(apiInflater)
+	_, ok = realInflater.shadowInflater.(*apiInflater)
 	assert.True(t, ok)
 }
 
@@ -54,10 +63,10 @@ func TestCreateInflater_Image(t *testing.T) {
 		Source:      imageSource{uri: "projects/test/uri/image"},
 		Zone:        "us-west1-b",
 		ExecutionID: "1234",
-		WorkflowDir: "testdata/image_import",
-	}, nil, storage.Client{})
+		WorkflowDir: "testdata",
+	}, nil, storage.Client{}, nil)
 	assert.NoError(t, err)
-	realInflater, ok := inflater.(daisyInflater)
+	realInflater, ok := inflater.(*daisyInflater)
 	assert.True(t, ok)
 	assert.Equal(t, "zones/us-west1-b/disks/disk-1234", realInflater.inflatedDiskURI)
 	assert.Equal(t, "projects/test/uri/image", realInflater.wf.Vars["source_image"].Value)
