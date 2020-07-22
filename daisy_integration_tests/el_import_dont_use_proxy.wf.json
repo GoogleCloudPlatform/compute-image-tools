@@ -54,7 +54,7 @@
       }
     },
     "translate-disk": {
-      "Timeout": "30m",
+      "Timeout": "60m",
       "IncludeWorkflow": {
         "Path": "../daisy_workflows/image_import/enterprise_linux/translate_centos_7.wf.json",
         "Vars": {
