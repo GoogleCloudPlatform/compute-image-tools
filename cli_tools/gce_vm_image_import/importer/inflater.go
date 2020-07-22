@@ -184,7 +184,7 @@ type persistentDisk struct {
 	sourceGb   int64
 	sourceType string
 
-	// Below fields are for experiment
+	// Below fields are for shadow API inflation test
 	checksum            string
 	inflationTime       time.Duration
 	shadowInflationTime time.Duration
