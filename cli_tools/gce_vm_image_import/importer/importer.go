@@ -30,6 +30,11 @@ import (
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/logging/service"
 )
 
+// LogPrefix is a string that conforms to gcloud's output filter.
+// To ensure that a line is shown by gcloud, emit a line to stdout
+// using this string surrounded in brackets.
+const LogPrefix = "import-image"
+
 // Importer runs the end-to-end import workflow, and exposes the results
 // via an error and Loggable.
 type Importer interface {

@@ -117,6 +117,9 @@ func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector
 		addFeatureToDisk(wf, "WINDOWS", inflationDiskIndex)
 	}
 
+	// Temporary fix to ensure gcloud shows daisy's output.
+	// A less fragile approach is tracked in b/161567644.
+	wf.Name = LogPrefix
 	return &daisyInflater{
 		wf:              wf,
 		inflatedDiskURI: fmt.Sprintf("zones/%s/disks/%s", args.Zone, diskName),
