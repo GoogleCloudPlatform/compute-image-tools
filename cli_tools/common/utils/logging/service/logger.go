@@ -182,6 +182,10 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.TargetsSizeGb = loggable.GetValueAsInt64Slice(targetSizeGb)
 		o.SourcesSizeGb = loggable.GetValueAsInt64Slice(sourceSizeGb)
 		o.ImportFileFormat = loggable.GetValue(importFileFormat)
+		o.InflationType = loggable.GetValue(inflationType)
+		o.InflationTime = loggable.GetValueAsInt64Slice(inflationTime)
+		o.ShadowInflationTime = loggable.GetValueAsInt64Slice(shadowInflationTime)
+		o.ShadowDiskMatchResult = loggable.GetValue(shadowDiskMatchResult)
 	}
 
 	if err != nil {
