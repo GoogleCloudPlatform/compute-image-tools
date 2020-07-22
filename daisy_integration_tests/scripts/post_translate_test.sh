@@ -135,6 +135,14 @@ function check_google_cloud_sdk {
     fi
   fi
 
+    # Skip for Debian 8, (Cloud SDK requires Python 3.5+)
+  if [ -f /etc/os-release ]; then
+    grep -qi "jessie" /etc/os-release
+    if [ $? -eq 0 ]; then
+      return
+    fi
+  fi
+
   # Skip for SUSE (gcloud and gsutil aren't in all of their repos)
   if [ -f /etc/os-release ]; then
     grep -qi "suse" /etc/os-release
