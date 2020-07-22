@@ -102,7 +102,7 @@ func (facade *inflaterFacade) inflate() (persistentDisk, error) {
 		}
 	} else if result == sigShadowInflaterErr && mainResult == sigMainInflaterDone {
 		if isCausedByUnsupportedFormat(shadowErr) {
-			pd.matchResult = "Shadow inflater doesn't support the format while main inflater supports"
+			pd.matchResult = "Shadow inflater doesn't support the format while main inflater does"
 		} else if isCausedByAlphaAPIAccess(shadowErr) {
 			pd.matchResult = "Shadow inflater not executed: no Alpha API access"
 		} else {
