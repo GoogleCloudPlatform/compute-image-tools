@@ -70,7 +70,7 @@ def DistroSpecific(g):
     pkgs = ['google-cloud-packages-archive-keyring', 'google-compute-engine']
     # Debian 8 differences:
     #   1. No NGE
-    #   2. No Cloud SDK b/161567418
+    #   2. No Cloud SDK, since it requires Python 3.5+
     if deb_release == 'jessie':
       pkgs += ['python-google-compute-engine',
                'python3-google-compute-engine']

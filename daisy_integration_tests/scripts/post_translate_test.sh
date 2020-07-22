@@ -135,7 +135,7 @@ function check_google_cloud_sdk {
     fi
   fi
 
-    # Skip for Debian 8: b/161567418
+    # Skip for Debian 8, (Cloud SDK requires Python 3.5+)
   if [ -f /etc/os-release ]; then
     grep -qi "jessie" /etc/os-release
     if [ $? -eq 0 ]; then
