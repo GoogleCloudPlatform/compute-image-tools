@@ -654,7 +654,7 @@ func TestGetOSIdNilOSIdInDescriptor(t *testing.T) {
 	assert.Equal(t, "", osID)
 	assert.NotNil(t, err)
 	assert.Equal(t,
-		"OperatingSystemSection.OSType or OperatingSystemSection.ID in OVF descriptor must be defined to retrieve OS info",
+		"OVF descriptor error: OperatingSystemSection.OSType or OperatingSystemSection.ID must be defined to retrieve OS info. Use --os flag to specify OS",
 		err.Error())
 }
 

@@ -377,14 +377,14 @@ func GetOVFDescriptorAndDiskPaths(ovfDescriptorLoader domain.OvfDescriptorLoader
 func GetOSId(ovfDescriptor *ovf.Envelope) (string, error) {
 
 	if ovfDescriptor.VirtualSystem == nil {
-		return "", daisy.Errf("VirtualSystem must be defined to retrieve OS info")
+		return "", daisy.Errf("OVF descriptor error: VirtualSystem must be defined to retrieve OS info. Use --os flag to specify OS")
 	}
 	if ovfDescriptor.VirtualSystem.OperatingSystem == nil ||
 		len(ovfDescriptor.VirtualSystem.OperatingSystem) == 0 {
-		return "", daisy.Errf("OperatingSystemSection must be defined to retrieve OS info")
+		return "", daisy.Errf("OVF descriptor error: OperatingSystemSection must be defined to retrieve OS info. Use --os flag to specify OS")
 	}
 	if ovfDescriptor.VirtualSystem.OperatingSystem[0].OSType == nil && ovfDescriptor.VirtualSystem.OperatingSystem[0].ID == 0 {
-		return "", daisy.Errf("OperatingSystemSection.OSType or OperatingSystemSection.ID in OVF descriptor must be defined to retrieve OS info")
+		return "", daisy.Errf("OVF descriptor error: OperatingSystemSection.OSType or OperatingSystemSection.ID must be defined to retrieve OS info. Use --os flag to specify OS")
 	}
 
 	var osInfoFromOSType, osInfoFromOSID *osInfo
