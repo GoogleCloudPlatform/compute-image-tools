@@ -50,7 +50,8 @@ function wait_for_connectivity {
   exit 1
 }
 
-# Assert that a service is running; supports upstart and systemd.
+# Assert that a service is running; first trying `initctl`,
+# then trying `service`.
 function assert_running {
   local service="${1}"
   status "Checking $service"
@@ -209,10 +210,10 @@ function check_package_install {
 wait_for_connectivity
 
 # Run tests.
-check_package_install
 check_google_services
 check_google_cloud_sdk
 check_cloud_init
+check_package_install
 check_metadata_connectivity
 check_internet_connectivity
 

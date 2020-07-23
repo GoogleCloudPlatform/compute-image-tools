@@ -193,7 +193,7 @@ def yum_install(g, *packages):
 
   Args:
     g (guestfs.GuestFS): A mounted GuestFS instance.
-    *packages: The YUM packages to be installed.
+    *packages (list of str): The YUM packages to be installed.
 
   Raises:
       RuntimeError: If there is a failure during installation.
