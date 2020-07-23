@@ -433,7 +433,7 @@ func (oi *OVFImporter) setUpImportWorkflow() (*daisy.Workflow, error) {
 			return nil, err
 		}
 		oi.Logger.Log(
-			fmt.Sprintf("Found valid osType in OVF descriptor, importing VM with `%v` as OS.",
+			fmt.Sprintf("Found valid OS info in OVF descriptor, importing VM with `%v` as OS.",
 				osIDValue))
 	} else if err = daisyutils.ValidateOS(oi.params.OsID); err != nil {
 		return nil, err
