@@ -89,6 +89,10 @@ func newBootableDiskProcessor(args ImportArguments, pd persistentDisk) (processo
 		return nil, err
 	}
 
+	// Temporary fix to ensure gcloud shows daisy's output.
+	// A less fragile approach is tracked in b/161567644.
+	workflow.Name = LogPrefix
+
 	return &bootableDiskProcessor{
 		workflow:        workflow,
 		userLabels:      args.Labels,
