@@ -164,7 +164,7 @@ periodics:
       secret:
        secretName: compute-image-tools-test-service-account
  - name: ci-ovf-import-e2e-tests-daily
-   interval: 24h
+   interval: 12h
    agent: kubernetes
    spec:
      containers:
