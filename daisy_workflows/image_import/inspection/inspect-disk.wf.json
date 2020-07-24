@@ -8,7 +8,12 @@
     }
   },
   "Sources": {
-    "inspect_disk.py": "./inspect_disk.py"
+    "daisy-shim.sh": "daisy-shim.sh",
+    "daisy_shim.py": "daisy_shim.py",
+    "inspection.py": "inspection.py",
+    "model.py": "model.py",
+    "inspectors": "inspectors/",
+    "system": "system/"
   },
   "Steps": {
     "run-inspection": {
@@ -20,7 +25,7 @@
               "AutoDelete": true,
               "boot": true,
               "initializeParams": {
-                "sourceImage":  "projects/compute-image-tools/global/images/family/debian-9-worker"
+                "sourceImage": "projects/compute-image-tools/global/images/family/debian-9-worker"
               }
             },
             {
@@ -28,10 +33,7 @@
             }
           ],
           "MachineType": "n1-standard-4",
-          "Metadata": {
-            "startup-script": "${SOURCE:inspect_disk.py}"
-          },
-          "networkInterfaces": [{}]
+          "StartupScript": "daisy-shim.sh"
         }
       ]
     },

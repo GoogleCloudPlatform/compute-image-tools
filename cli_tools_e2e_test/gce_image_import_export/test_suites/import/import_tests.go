@@ -75,7 +75,11 @@ var cases = []testCase{
 		caseName:  "windows-2019-uefi",
 		source:    "projects/compute-image-tools-test/global/images/windows-2019-uefi-nodrivers",
 		os:        "windows-2019",
-		extraArgs: []string{"-uefi_compatible=true"},
+		extraArgs: []string{"-uefi_compatible=true"}
+	}, {
+		caseName: "windows-8-x86-byol",
+		source:   "projects/compute-image-tools-test/global/images/windows-8-1-ent-x86-nodrivers",
+		os:       "windows-8-x86-byol",
 	},
 }
 
@@ -109,6 +113,7 @@ func (t testCase) runImport(junit *junitxml.TestCase, logger *log.Logger,
 	testProjectConfig *testconfig.Project, imageName string) (*bytes.Buffer, error) {
 	args := []string{
 		"-client_id", "e2e",
+		"-inspect",
 		"-os", t.os,
 		"-project", testProjectConfig.TestProjectID,
 		"-zone", testProjectConfig.TestZone,
