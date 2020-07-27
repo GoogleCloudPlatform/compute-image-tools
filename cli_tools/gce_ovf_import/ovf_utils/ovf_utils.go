@@ -36,15 +36,28 @@ const (
 )
 
 type osInfo struct {
-	description      string
-	importerOSIDs    []string
+	// description holds OS description that can be used for messages shown to users
+	description string
+
+	// importerOSIDs holds a list of OS IDs as expected by the importer (--os flag)
+	importerOSIDs []string
+
+	// nonDeterministic when set to true indicates OVF import can't determine
+	// which OS to use for translate because the mapping is not 1:1 or we don't
+	// want to assume the mapping due to potential legal issues. For example,
+	// windows 7/8/10 (client) images can only be imported as BYOL but we don't
+	// know if BYOL agreement is in place for the customer. In that case, customers
+	// have to explicitly provide --os flag.
 	nonDeterministic bool
 }
 
+// isDeterministic returns true if, based on osInfo, importer OS ID can be determined.
+// if false is returned, the customer needs to provide OS value via the --os flag.
 func (oi *osInfo) isDeterministic() bool {
 	return len(oi.importerOSIDs) == 1 && !oi.nonDeterministic
 }
 
+// hasImporterOSIDs returns true if osInfo has any mappings to importer OS IDs.
 func (oi *osInfo) hasImporterOSIDs() bool {
 	return len(oi.importerOSIDs) > 0
 }
