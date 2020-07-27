@@ -65,7 +65,6 @@ func (oi *osInfo) hasImporterOSIDs() bool {
 //Mapping OVF OS ID to OS info
 //Full list: http://schemas.dmtf.org/wbem/cim-html/2/CIM_OperatingSystem.html
 var ovfOSIDToImporterOSID = map[int16]osInfo{
-	1:   {description: "Other", importerOSIDs: []string{}},
 	2:   {description: "MACOS", importerOSIDs: []string{}},
 	3:   {description: "ATTUNIX", importerOSIDs: []string{}},
 	4:   {description: "DGUX", importerOSIDs: []string{}},
@@ -166,7 +165,6 @@ var ovfOSIDToImporterOSID = map[int16]osInfo{
 	99:  {description: "Linux 2.6.x", importerOSIDs: []string{}},
 	100: {description: "Linux 2.6.x 64-Bit", importerOSIDs: []string{}},
 	101: {description: "Linux 64-Bit", importerOSIDs: []string{}},
-	102: {description: "Other 64-Bit", importerOSIDs: []string{}},
 	103: {description: "Microsoft Windows Server 2008 R2", importerOSIDs: []string{"windows-2008r2", "windows-2008r2-byol"}},
 	104: {description: "VMware ESXi", importerOSIDs: []string{}},
 	105: {description: "Microsoft Windows 7", importerOSIDs: []string{"windows-7-x64-byol", "windows-7-x86-byol"}},
