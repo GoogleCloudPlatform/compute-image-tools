@@ -173,8 +173,8 @@ func (i *importer) cleanupDisk() {
 
 func (i *importer) buildLoggable() service.Loggable {
 	return service.SingleImageImportLoggable(i.pd.sourceType, i.pd.sourceGb, i.pd.sizeGb,
-		i.pd.matchResult, i.pd.inflationType, int64(i.pd.inflationTime.Seconds()),
-		int64(i.pd.shadowInflationTime.Seconds()), i.traceLogs)
+		i.pd.matchResult, i.pd.inflationType, int64(i.pd.inflationTime.Milliseconds()),
+		int64(i.pd.shadowInflationTime.Milliseconds()), i.traceLogs)
 }
 
 // diskClient is the subset of the GCP API that is used by importer.
