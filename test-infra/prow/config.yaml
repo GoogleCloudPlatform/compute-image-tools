@@ -285,7 +285,8 @@ periodics:
       - "-out_dir=/artifacts"
       - "-agent_repo=unstable"
       - "-test_project_ids=compute-image-osconfig-agent,compute-image-osconfig-agent-2"
-      - "-endpoint={zone}-staging-osconfig.sandbox.googleapis.com:443"
+      - "-agent_endpoint={zone}-staging-osconfig.sandbox.googleapis.com:443"
+      - "-endpoint=staging-osconfig.sandbox.googleapis.com:443"
       - -test_zones={
                       "us-central1-a":10,
                       "us-central1-b":10,
