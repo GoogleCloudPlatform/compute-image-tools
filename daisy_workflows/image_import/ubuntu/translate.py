@@ -154,7 +154,7 @@ def DistroSpecific(g):
         'and ensure that the following command executes successfully: '
         'apt-get install -y --no-install-recommends cloud-init '
         '&& cloud-init -d init')
-    install_gce_packages(g, ubuntu_release)
+    install_gce_packages(g)
 
   # Update grub config to log to console.
   g.command(
@@ -169,36 +169,13 @@ def add_gce_repositories(g, ubuntu_release):
   g.write(
     '/etc/apt/sources.list.d/partner.list',
     partner_repo.format(ubuntu_release=ubuntu_release))
-  if ubuntu_release in ['xenial', 'bionic']:
-    # The OS config agent is currently supported for Ubuntu 16.04 and 18.04.
-    # For adding 20.04, see b/161470431.
-    utils.update_apt(g)
-    utils.install_apt_packages(g, 'gnupg', 'wget')
-    g.command(
-      ['wget', 'https://packages.cloud.google.com/apt/doc/apt-key.gpg',
-       '-O', '/tmp/gce_key'])
-    g.command(['apt-key', 'add', '/tmp/gce_key'])
-    g.rm('/tmp/gce_key')
-    # OS Config agent is only supported for xenial and bionic.
-    # Installing via instructions:
-    #    https://cloud.google.com/compute/docs/manage-os
-    g.write('/etc/apt/sources.list.d/google-compute-engine.list',
-            os_config_repo.format(ubuntu_release=ubuntu_release))
 
 
-def install_gce_packages(g, ubuntu_release):
+def install_gce_packages(g):
   logging.info('Installing GCE packages.')
   utils.update_apt(g)
-  pkgs = ['gce-compute-image-packages', 'google-cloud-sdk']
-  if ubuntu_release in ['xenial', 'bionic']:
-    # OS Config agent is only supported for xenial and bionic.
-    # Installing via instructions:
-    #    https://cloud.google.com/compute/docs/manage-os
-    pkgs.append('google-osconfig-agent')
-  else:
-    logging.info('Skipping installation of OS Config agent. '
-                 'Requires Ubuntu 16.04 or newer.')
-  utils.install_apt_packages(g, *pkgs)
+  utils.install_apt_packages(g, 'gce-compute-image-packages',
+                             'google-cloud-sdk')
 
 
 def remove_azure_agents(g):
