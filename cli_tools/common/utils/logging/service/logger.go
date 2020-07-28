@@ -58,9 +58,13 @@ const (
 	keyP1           = "AzSCO1066k_gFH2sJg3I"
 	keyP2           = "IaymztUIWu9U8THBeTx"
 
-	targetSizeGb     = "target-size-gb"
-	sourceSizeGb     = "source-size-gb"
-	importFileFormat = "import-file-format"
+	targetSizeGb          = "target-size-gb"
+	sourceSizeGb          = "source-size-gb"
+	importFileFormat      = "import-file-format"
+	inflationType         = "inflation-type"
+	inflationTime         = "inflation-time"
+	shadowInflationTime   = "shadow-inflation-time"
+	shadowDiskMatchResult = "shadow-disk-match-result"
 
 	statusStart   = "Start"
 	statusSuccess = "Success"
@@ -178,6 +182,10 @@ func (l *Logger) getOutputInfo(loggable Loggable, err error) *OutputInfo {
 		o.TargetsSizeGb = loggable.GetValueAsInt64Slice(targetSizeGb)
 		o.SourcesSizeGb = loggable.GetValueAsInt64Slice(sourceSizeGb)
 		o.ImportFileFormat = loggable.GetValue(importFileFormat)
+		o.InflationType = loggable.GetValue(inflationType)
+		o.InflationTime = loggable.GetValueAsInt64Slice(inflationTime)
+		o.ShadowInflationTime = loggable.GetValueAsInt64Slice(shadowInflationTime)
+		o.ShadowDiskMatchResult = loggable.GetValue(shadowDiskMatchResult)
 	}
 
 	if err != nil {

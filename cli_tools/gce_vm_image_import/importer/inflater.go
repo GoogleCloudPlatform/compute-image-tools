@@ -19,13 +19,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
-	"google.golang.org/api/compute/v1"
-
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/imagefile"
-	daisy_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	daisyUtils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/daisy"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/storage"
 	string_utils "github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/utils/string"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/compute/v1"
 )
 
 const (
@@ -40,6 +41,103 @@ const (
 	// 10GB is the default disk size used in inflate_file.wf.json.
 	defaultInflationDiskSizeGB = 10
 )
+
+// inflaterFacade implements an inflater using other concrete implementations.
+type inflaterFacade struct {
+	mainInflater   inflater
+	shadowInflater inflater
+}
+
+// signals to control the verification towards shadow inflater
+const (
+	sigMainInflaterDone   = "main done"
+	sigMainInflaterErr    = "main err"
+	sigShadowInflaterDone = "shadow done"
+	sigShadowInflaterErr  = "shadow err"
+)
+
+func (facade *inflaterFacade) inflate() (persistentDisk, error) {
+	inflaterChan := make(chan string)
+
+	// Launch main inflater.
+	var pd persistentDisk
+	var err error
+	go func() {
+		pd, err = facade.mainInflater.inflate()
+		if err != nil {
+			inflaterChan <- sigMainInflaterErr
+		} else {
+			inflaterChan <- sigMainInflaterDone
+		}
+	}()
+
+	// Launch shadow inflater.
+	var shadowPd persistentDisk
+	var shadowErr error
+	go func() {
+		shadowPd, shadowErr = facade.shadowInflater.inflate()
+		if shadowErr != nil {
+			inflaterChan <- sigShadowInflaterErr
+		} else {
+			inflaterChan <- sigShadowInflaterDone
+		}
+	}()
+
+	// Return early if main inflater finished first.
+	result := <-inflaterChan
+	if result == sigMainInflaterDone || result == sigMainInflaterErr {
+		if result == sigMainInflaterDone {
+			pd.matchResult = "Main inflater finished earlier"
+		}
+		return pd, err
+	}
+
+	// Wait for main inflater to finish, then process shadow inflater's result.
+	mainResult := <-inflaterChan
+	if result == sigShadowInflaterDone {
+		if mainResult == sigMainInflaterErr {
+			pd.matchResult = "Main inflater failed while shadow inflater succeeded"
+		} else {
+			facade.compareWithShadowInflater(&pd, &shadowPd)
+		}
+	} else if result == sigShadowInflaterErr && mainResult == sigMainInflaterDone {
+		if isCausedByUnsupportedFormat(shadowErr) {
+			pd.matchResult = "Shadow inflater doesn't support the format while main inflater supports"
+		} else if isCausedByAlphaAPIAccess(shadowErr) {
+			pd.matchResult = "Shadow inflater not executed: no Alpha API access"
+		} else {
+			pd.matchResult = "Shadow inflater failed while main inflater succeeded"
+		}
+	}
+
+	return pd, err
+}
+
+func (facade *inflaterFacade) cancel(reason string) bool {
+	facade.shadowInflater.cancel(reason)
+	return facade.mainInflater.cancel(reason)
+}
+
+func (facade *inflaterFacade) traceLogs() []string {
+	return facade.mainInflater.traceLogs()
+}
+
+func (facade *inflaterFacade) compareWithShadowInflater(mainPd, shadowPd *persistentDisk) {
+	matchFormat := "sizeGb-%v,sourceGb-%v,content-%v"
+	sizeGbMatch := shadowPd.sizeGb == mainPd.sizeGb
+	sourceGbMatch := shadowPd.sourceGb == mainPd.sourceGb
+	contentMatch := shadowPd.checksum == mainPd.checksum
+	match := sizeGbMatch && sourceGbMatch && contentMatch
+
+	var result string
+	if match {
+		result = "true"
+	} else {
+		result = fmt.Sprintf(matchFormat, sizeGbMatch, sourceGbMatch, contentMatch)
+	}
+	mainPd.matchResult = result
+	mainPd.shadowInflationTime = shadowPd.inflationTime
+}
 
 // inflater constructs a new persistentDisk, typically starting from a
 // frozen representation of a disk, such as a VMDK file or a GCP disk image.
@@ -60,6 +158,7 @@ type daisyInflater struct {
 }
 
 func (inflater *daisyInflater) inflate() (persistentDisk, error) {
+	startTime := time.Now()
 	err := inflater.wf.Run(context.Background())
 	if inflater.wf.Logger != nil {
 		inflater.serialLogs = inflater.wf.Logger.ReadSerialPortLogs()
@@ -68,11 +167,14 @@ func (inflater *daisyInflater) inflate() (persistentDisk, error) {
 	targetSizeGB := inflater.wf.GetSerialConsoleOutputValue("target-size-gb")
 	sourceSizeGB := inflater.wf.GetSerialConsoleOutputValue("source-size-gb")
 	importFileFormat := inflater.wf.GetSerialConsoleOutputValue("import-file-format")
+	checksum := inflater.wf.GetSerialConsoleOutputValue("disk-checksum")
 	return persistentDisk{
-		uri:        inflater.inflatedDiskURI,
-		sizeGb:     string_utils.SafeStringToInt(targetSizeGB),
-		sourceGb:   string_utils.SafeStringToInt(sourceSizeGB),
-		sourceType: importFileFormat,
+		uri:           inflater.inflatedDiskURI,
+		sizeGb:        string_utils.SafeStringToInt(targetSizeGB),
+		sourceGb:      string_utils.SafeStringToInt(sourceSizeGB),
+		sourceType:    importFileFormat,
+		checksum:      checksum,
+		inflationTime: time.Since(startTime),
 	}, err
 }
 
@@ -81,6 +183,30 @@ type persistentDisk struct {
 	sizeGb     int64
 	sourceGb   int64
 	sourceType string
+
+	// Below fields are for shadow API inflation test
+	checksum            string
+	inflationTime       time.Duration
+	shadowInflationTime time.Duration
+	matchResult         string
+	inflationType       string
+}
+
+func createInflater(args ImportArguments, computeClient daisyCompute.Client, storageClient storage.Client, inspector imagefile.Inspector) (inflater, error) {
+	di, err := createDaisyInflater(args, inspector)
+	if err != nil {
+		return nil, err
+	}
+
+	if isImage(args.Source) {
+		return di, nil
+	}
+
+	ai := createAPIInflater(args, computeClient, storageClient)
+	return &inflaterFacade{
+		mainInflater:   di,
+		shadowInflater: ai,
+	}, nil
 }
 
 func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector) (inflater, error) {
@@ -108,7 +234,7 @@ func createDaisyInflater(args ImportArguments, fileInspector imagefile.Inspector
 		return nil, err
 	}
 
-	daisy_utils.UpdateAllInstanceNoExternalIP(wf, args.NoExternalIP)
+	daisyUtils.UpdateAllInstanceNoExternalIP(wf, args.NoExternalIP)
 	for k, v := range vars {
 		wf.AddVar(k, v)
 	}

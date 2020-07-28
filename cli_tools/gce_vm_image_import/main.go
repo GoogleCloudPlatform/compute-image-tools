@@ -69,7 +69,7 @@ func main() {
 		terminate(importArgs, err)
 	}
 
-	importRunner, err := importer.NewImporter(importArgs, computeClient)
+	importRunner, err := importer.NewImporter(importArgs, computeClient, *storageClient)
 	if err != nil {
 		terminate(importArgs, err)
 	}

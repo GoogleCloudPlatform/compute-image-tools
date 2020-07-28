@@ -28,12 +28,18 @@ func (w literalLoggable) ReadSerialPortLogs() []string { return w.traceLogs }
 
 // SingleImageImportLoggable returns a Loggable that is pre-initialized with the metadata
 // fields that are relevant when importing a single image file.
-func SingleImageImportLoggable(fileFormat string, sourceSize, resultSize int64, traceLogs []string) Loggable {
+func SingleImageImportLoggable(fileFormat string, sourceSize, resultSize int64, matchResult string, inflationTypeStr string, inflationTimeInt64 int64, shadowInflationTimeInt64 int64, traceLogs []string) Loggable {
 	return literalLoggable{
-		strings: map[string]string{importFileFormat: fileFormat},
+		strings: map[string]string{
+			importFileFormat:      fileFormat,
+			inflationType:         inflationTypeStr,
+			shadowDiskMatchResult: matchResult,
+		},
 		int64s: map[string][]int64{
-			sourceSizeGb: {sourceSize},
-			targetSizeGb: {resultSize},
+			sourceSizeGb:        {sourceSize},
+			targetSizeGb:        {resultSize},
+			inflationTime:       {inflationTimeInt64},
+			shadowInflationTime: {shadowInflationTimeInt64},
 		},
 		traceLogs: traceLogs,
 	}
