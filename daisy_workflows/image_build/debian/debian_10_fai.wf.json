@@ -2,7 +2,7 @@
   "Name": "build-debian-10-fai",
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
+    "destination": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "debian_cloud_images_version": {
       "Value": "c6229b38a95ba2dd9eedf679a36d3168272ac157",
       "Description": "The debian-cloud-images scripts git commit ID or branch to use."
@@ -14,6 +14,10 @@
     "google_cloud_repo": {
       "Value": "stable",
       "Description": "The Google Cloud Repo branch to use."
+    },
+    "publish_project": {
+      "Value": "${PROJECT}",
+      "Description": "A project to publish the resulting image to."
     }
   },
   "Steps": {
@@ -30,6 +34,29 @@
           "google_cloud_repo": "${google_cloud_repo}"
         }
       }
-    }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "debian-10-v${build_date}",
+          "RawDisk": {
+            "Source": "${destination}"
+          },
+          "Description": "Debian, Debian, ${debian_version}, x86_64 built on ${build_date}",
+          "Family": "debian-10",
+          "Project": "${publish_project}",
+          "NoCleanup": true,
+          "ExactName": true
+        }
+      ]
+    },
+    "CreateDisks": [
+      {
+        "Name": "disk-debian-10",
+        "SourceImage": "projects/${publish_project}/global/images/debian-10-v${build_date}",
+        "SizeGb": "20",
+        "Type": "pd-ssd"
+      }
+    ]
   }
 }

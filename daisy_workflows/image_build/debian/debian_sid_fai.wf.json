@@ -2,7 +2,7 @@
   "Name": "build-debian-sid-fai",
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
-    "image_dest": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
+    "destination": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "debian_cloud_images_version": {
       "Value": "master",
       "Description": "The debian-cloud-images scripts git commit ID or branch to use."
@@ -26,10 +26,33 @@
           "debian_cloud_images_version": "${debian_cloud_images_version}",
           "debian_version": "${debian_version}",
           "builder_source_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
-          "image_dest": "${image_dest}",
+          "destination": "${destination}",
           "google_cloud_repo": "${google_cloud_repo}"
         }
       }
-    }
+    },
+    "create-image": {
+      "CreateImages": [
+        {
+          "Name": "debian-sid-fai-v${build_date}",
+          "RawDisk": {
+            "Source": "${destination}"
+          },
+          "Description": "Debian, Debian, ${debian_version}, x86_64 built on ${build_date}",
+          "Family": "debian-sid-fai",
+          "Project": "${publish_project}",
+          "NoCleanup": true,
+          "ExactName": true
+        }
+      ]
+    },
+    "CreateDisks": [
+      {
+        "Name": "disk-debian-10",
+        "SourceImage": "projects/${publish_project}/global/images/debian-sid-fai-v${build_date}",
+        "SizeGb": "20",
+        "Type": "pd-ssd"
+      }
+    ]
   }
 }
