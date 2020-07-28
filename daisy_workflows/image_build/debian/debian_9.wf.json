@@ -2,7 +2,6 @@
   "Name": "build-debian-9",
   "Vars": {
     "google_cloud_repo": {"Value": "stable", "Description": "The Google Cloud Repo branch to use."},
-    "destination": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "bootstrap_vz_version": {
       "Value": "https://github.com/hopkiw/bootstrap-vz/archive/master.zip",
       "Description": "The bootstrap-vz release to use."
@@ -10,6 +9,10 @@
     "publish_project": {
       "Value": "${PROJECT}",
       "Description": "A project to publish the resulting image to."
+    },
+    "build_date": {
+      "Value": "${DATE}",
+      "Description": "Build datestamp used to version the image."
     }
   },
   "Steps": {
@@ -21,17 +24,24 @@
           "bootstrap_vz_manifest": "official/gce/stretch.yml",
           "bootstrap_vz_version": "${bootstrap_vz_version}",
           "builder_source_image": "projects/compute-image-tools/global/images/family/debian-9-worker",
-          "google_cloud_repo": "${google_cloud_repo}",
-          "destination": "${destination}"
+          "google_cloud_repo": "${google_cloud_repo}"
         }
       }
+    },
+    "copy-gcs-object": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/root.tar.gz",
+          "Destination": "${OUTSPATH}/root.tar.gz"
+        }
+      ]
     },
     "create-image": {
       "CreateImages": [
         {
           "Name": "debian-9-v${build_date}",
           "RawDisk": {
-            "Source": "${destination}"
+            "Source": "${OUTSPATH}/root.tar.gz"
           },
           "Description": "Debian, Debian, 9, x86_64 built on ${build_date}",
           "Family": "debian-9",
@@ -41,14 +51,20 @@
         }
       ]
     },
-    "CreateDisks": [
-      {
-        "Name": "disk-debian-9",
-        "SourceImage": "projects/${publish_project}/global/images/debian-9-v${build_date}",
-        "SizeGb": "20",
-        "Type": "pd-ssd"
-      }
-    ]
+    "create-disk": {
+      "CreateDisks": [
+        {
+          "Name": "disk-debian-9",
+          "SourceImage": "debian-9-v${build_date}",
+          "SizeGb": "20",
+          "Type": "pd-ssd"
+        }
+      ]
+    }
   },
-  "Dependencies": {}
+  "Dependencies": {
+    "copy-gcs-object": ["build-debian-9"],
+    "create-image": ["copy-gcs-object"],
+    "create-disk": ["create-image"]
+  }
 }

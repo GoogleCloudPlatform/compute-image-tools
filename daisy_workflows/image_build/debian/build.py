@@ -54,8 +54,6 @@ def main():
       'bootstrap_vz_version', raise_on_not_found=True)
   repo = utils.GetMetadataAttribute('google_cloud_repo',
                                     raise_on_not_found=True).strip()
-  destination = utils.GetMetadataAttribute('destination',
-                                          raise_on_not_found=True)
   outs_path = utils.GetMetadataAttribute('daisy-outs-path',
                                          raise_on_not_found=True)
 
@@ -104,9 +102,10 @@ def main():
 
   # Upload tar.
   image_tar_gz = '/target/disk.tar.gz'
+  image_dest = os.path.join(outs_path, 'root.tar.gz')
   if os.path.exists(image_tar_gz):
-    logging.info('Saving %s to %s' % (image_tar_gz, destination))
-    utils.UploadFile(image_tar_gz, destination)
+    logging.info('Saving %s to %s' % (image_tar_gz, image_dest))
+    utils.UploadFile(image_tar_gz, image_dest)
 
   # Create and upload the synopsis of the image.
   logging.info('Creating image synopsis.')

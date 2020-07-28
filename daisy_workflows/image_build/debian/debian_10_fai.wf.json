@@ -2,7 +2,6 @@
   "Name": "build-debian-10-fai",
   "Vars": {
     "build_date": {"Value": "${DATE}", "Description": "Build datestamp used to version the image."},
-    "destination": {"Required": true, "Description": "The GCS path for the destination image tar.gz."},
     "debian_cloud_images_version": {
       "Value": "c6229b38a95ba2dd9eedf679a36d3168272ac157",
       "Description": "The debian-cloud-images scripts git commit ID or branch to use."
@@ -35,12 +34,20 @@
         }
       }
     },
+    "copy-gcs-object": {
+      "CopyGCSObjects": [
+        {
+          "Source": "${OUTSPATH}/root.tar.gz",
+          "Destination": "${OUTSPATH}/root.tar.gz"
+        }
+      ]
+    },
     "create-image": {
       "CreateImages": [
         {
           "Name": "debian-10-v${build_date}",
           "RawDisk": {
-            "Source": "${destination}"
+            "Source": "${OUTSPATH}/root.tar.gz"
           },
           "Description": "Debian, Debian, ${debian_version}, x86_64 built on ${build_date}",
           "Family": "debian-10",
@@ -53,10 +60,15 @@
     "CreateDisks": [
       {
         "Name": "disk-debian-10",
-        "SourceImage": "projects/${publish_project}/global/images/debian-10-v${build_date}",
+        "SourceImage": "debian-10-v${build_date}",
         "SizeGb": "20",
         "Type": "pd-ssd"
       }
     ]
+  },
+  "Dependencies": {
+    "copy-gcs-object": ["build"],
+    "create-image": ["copy-gcs-object"],
+    "create-disk": ["create-image"]
   }
 }
