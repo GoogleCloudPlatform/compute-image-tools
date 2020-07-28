@@ -45,6 +45,24 @@ var (
 			}, Annotation: annotationStr,
 		},
 	}
+
+	vboxOSDescriptorStr = "<Envelope><VirtualSystem ovf:id=\"vm\"><OperatingSystemSection ovf:id=\"96\"> <Info>The kind of installed guest operating system</Info> <Description>Debian_64</Description> <vbox:OSType ovf:required=\"false\">Debian_64</vbox:OSType></OperatingSystemSection></VirtualSystem></Envelope>"
+	vboxOSDescriptor    = &ovf.Envelope{
+		References: nil,
+		VirtualSystem: &ovf.VirtualSystem{
+			Content: ovf.Content{
+				ID: "vm",
+			},
+			OperatingSystem: []ovf.OperatingSystemSection{
+				ovf.OperatingSystemSection{
+					Section: ovf.Section{
+						Info: "The kind of installed guest operating system",
+					},
+					ID: 96, Description: func(s string) *string { return &s }("Debian_64"),
+				},
+			},
+		},
+	}
 )
 
 func TestOvfDescriptorLoader(t *testing.T) {
@@ -116,4 +134,22 @@ func TestOvfDescriptorLoaderErrorValidatingDescriptor(t *testing.T) {
 
 	assert.Equal(t, err, resultError)
 	assert.Nil(t, result)
+}
+
+func TestOvfDescriptorLoaderFromVbox(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockStorageClient := mocks.NewMockStorageClientInterface(mockCtrl)
+	mockStorageClient.EXPECT().FindGcsFileDepthLimited(ovfPath, ".ovf", 0).Return(ovfObjectHandle, nil).Times(1)
+	mockStorageClient.EXPECT().GetGcsFileContent(ovfObjectHandle).Return([]byte(vboxOSDescriptorStr), nil).Times(1)
+
+	mockOvfDescriptorValidator := mocks.NewMockAbstractOvfDescriptorValidator(mockCtrl)
+	mockOvfDescriptorValidator.EXPECT().ValidateOvfPackage(vboxOSDescriptor, ovfPath).Return(vboxOSDescriptor, nil).Times(1)
+
+	l := OvfDescriptorLoader{storageClient: mockStorageClient, validator: mockOvfDescriptorValidator}
+	result, resultError := l.Load(ovfPath)
+
+	assert.Equal(t, result, vboxOSDescriptor)
+	assert.Nil(t, resultError)
 }

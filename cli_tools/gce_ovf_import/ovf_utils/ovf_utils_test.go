@@ -626,17 +626,17 @@ func TestGetOSIdInvalidOSType(t *testing.T) {
 	assert.Equal(t, "", osID)
 	assert.NotNil(t, err)
 	assert.Equal(t,
-		"osType attribute value `not-an-OS` found in OVF descriptor cannot be mapped to an OS supported by Google Compute Engine. Use --os flag to specify OS for this VM",
+		"cannot determine OS from OVF descriptor. Use --os flag to specify OS",
 		err.Error())
 
 }
 
 func TestGetOSIdNonDeterministicSingleOption(t *testing.T) {
-	osID, err := GetOSId(createOVFDescriptorWithOSType("ubuntuGuest"))
+	osID, err := GetOSId(createOVFDescriptorWithOS("windows8_64Guest", 115))
 	assert.Equal(t, "", osID)
 	assert.NotNil(t, err)
 	assert.Equal(t,
-		"cannot determine OS from osType attribute value `ubuntuGuest` found in OVF descriptor. Use --os flag to specify OS for this VM. Potential valid values for given osType attribute are: ubuntu-1404",
+		"cannot determine OS from OVF descriptor. Use --os flag to specify OS. Potential valid values for given osType attribute are: windows-8-x64-byol",
 		err.Error())
 }
 
@@ -645,7 +645,7 @@ func TestGetOSIdNonDeterministicMultiOption(t *testing.T) {
 	assert.Equal(t, "", osID)
 	assert.NotNil(t, err)
 	assert.Equal(t,
-		"cannot determine OS from osType attribute value `windows8Server64Guest` found in OVF descriptor. Use --os flag to specify OS for this VM. Potential valid values for given osType attribute are: windows-2012, windows-2012r2",
+		"cannot determine OS from OVF descriptor. Use --os flag to specify OS. Potential valid values for given osType attribute are: windows-2012, windows-2012r2, windows-2012-byol, windows-2012r2-byol",
 		err.Error())
 }
 
@@ -654,7 +654,31 @@ func TestGetOSIdNilOSIdInDescriptor(t *testing.T) {
 	assert.Equal(t, "", osID)
 	assert.NotNil(t, err)
 	assert.Equal(t,
-		"OperatingSystemSection.OSType must be defined to retrieve OS info",
+		"OVF descriptor error: OperatingSystemSection.OSType or OperatingSystemSection.ID must be defined to retrieve OS info. Use --os flag to specify OS",
+		err.Error())
+}
+
+func TestGetOSIdDeterministic(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOS("centos6_64Guest", 107))
+	assert.Equal(t, "centos-6", osID)
+	assert.Nil(t, err)
+}
+
+func TestGetOSIdPickMoreSpecificNonDeterministic(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOS("windows8Server64Guest", 116))
+	assert.Equal(t, "", osID)
+	assert.NotNil(t, err)
+	assert.Equal(t,
+		"cannot determine OS from OVF descriptor. Use --os flag to specify OS. Potential valid values for given osType attribute are: windows-2012r2, windows-2012r2-byol",
+		err.Error())
+}
+
+func TestGetOSIdNotSupported(t *testing.T) {
+	osID, err := GetOSId(createOVFDescriptorWithOS("MSDOS", 14))
+	assert.Equal(t, "", osID)
+	assert.NotNil(t, err)
+	assert.Equal(t,
+		"operating system `MSDOS` detected but is not supported by Google Compute Engine. Use --os flag to specify OS",
 		err.Error())
 }
 
@@ -668,6 +692,19 @@ func createOVFDescriptorWithOSTypeAsReference(osType *string) *ovf.Envelope {
 			OperatingSystem: []ovf.OperatingSystemSection{
 				{
 					OSType: osType,
+				},
+			},
+		},
+	}
+}
+
+func createOVFDescriptorWithOS(osType string, osID int16) *ovf.Envelope {
+	return &ovf.Envelope{
+		VirtualSystem: &ovf.VirtualSystem{
+			OperatingSystem: []ovf.OperatingSystemSection{
+				{
+					OSType: &osType,
+					ID:     osID,
 				},
 			},
 		},
