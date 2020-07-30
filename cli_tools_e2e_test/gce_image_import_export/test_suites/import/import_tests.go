@@ -147,6 +147,9 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 		"image_under_test": {
 			Value: imagePath,
 		},
+		"startup_script": {
+			Value: "post_translate_test.sh",
+		},
 	}
 	wf.Logger = logging.AsDaisyLogger(logger)
 	wf.Project = testProjectConfig.TestProjectID

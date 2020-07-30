@@ -8,6 +8,7 @@ require (
 	github.com/GoogleCloudPlatform/compute-image-tools/cli_tools v0.0.0-20200509011135-708185c39890
 	github.com/GoogleCloudPlatform/compute-image-tools/daisy v0.0.0-20200509011135-708185c39890
 	github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils v0.0.0-20200509011135-708185c39890
+	github.com/aws/aws-sdk-go v1.33.16
 	github.com/golang/protobuf v1.4.1 // indirect
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f // indirect
 	golang.org/x/sys v0.0.0-20200508214444-3aab700007d7 // indirect

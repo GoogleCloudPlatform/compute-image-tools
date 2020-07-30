@@ -23,6 +23,7 @@ import (
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/gce_image_import_export/test_suites/export"
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/gce_image_import_export/test_suites/import"
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/gce_image_import_export/test_suites/onestep_import"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/junitxml"
 	"github.com/GoogleCloudPlatform/compute-image-tools/go/e2e_test_utils/test_config"
@@ -38,7 +39,10 @@ func main() {
 	imageImportSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
 		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){importtestsuites.ImageImportSuite},
 		"[ImageImportTests]")
-	if !exportTestSuccess || !importCLIRegressionSuccess || !imageImportSuccess {
+	onestepImageImportSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){onestepimporttestsuites.OnestepImageImportSuite},
+		"[OnestepImageImportTests]")
+	if !exportTestSuccess || !importCLIRegressionSuccess || !imageImportSuccess || !onestepImageImportSuccess {
 		os.Exit(1)
 	}
 }

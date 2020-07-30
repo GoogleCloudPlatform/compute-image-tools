@@ -1,13 +1,17 @@
 {
   "Name": "post-translate-test",
-  "Sources": {
-    "post_translate_test.sh": "post_translate_test.sh"
-  },
   "Vars": {
     "image_under_test": {
       "Description": "The ID of this test run.",
       "Required": true
+    },
+    "startup_script": {
+      "Required": true,
+      "Description": "The start up script of the instance for this test run."
     }
+  },
+  "Sources": {
+    "${startup_script}": "${startup_script}"
   },
   "Steps": {
     "create-instance": {
@@ -22,7 +26,7 @@
           ],
           "machineType": "n1-standard-4",
           "name": "inst-import-test",
-          "StartupScript": "post_translate_test.sh"
+          "startupScript": "${startup_script}"
         }
       ]
     },
