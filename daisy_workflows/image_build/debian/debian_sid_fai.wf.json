@@ -55,19 +55,10 @@
           "ExactName": true
         }
       ]
-    },
-    "CreateDisks": [
-      {
-        "Name": "disk-debian-10",
-        "SourceImage": "debian-sid-fai-v${build_date}}",
-        "SizeGb": "20",
-        "Type": "pd-ssd"
-      }
-    ]
+    }
   },
   "Dependencies": {
     "copy-gcs-object": ["build"],
-    "create-image": ["copy-gcs-object"],
-    "create-disk": ["create-image"]
+    "create-image": ["copy-gcs-object"]
   }
 }

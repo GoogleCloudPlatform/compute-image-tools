@@ -50,21 +50,10 @@
           "ExactName": true
         }
       ]
-    },
-    "create-disk": {
-      "CreateDisks": [
-        {
-          "Name": "disk-debian-9",
-          "SourceImage": "debian-9-v${build_date}",
-          "SizeGb": "20",
-          "Type": "pd-ssd"
-        }
-      ]
     }
   },
   "Dependencies": {
     "copy-gcs-object": ["build-debian-9"],
     "create-image": ["copy-gcs-object"],
-    "create-disk": ["create-image"]
   }
 }
