@@ -301,8 +301,9 @@ func runImageImportLinuxUEFITest(ctx context.Context, testCase *junitxml.TestCas
 func runImageImportLinuxUEFIFromImageTest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
 		testProjectConfig *testconfig.Project, testType utils.CLITestType) {
 
+	// // image created from projects/gce-uefi-images/global/images/rhel-7-v20200403
 	runImageImportUEFITest(ctx, testCase, logger, testProjectConfig, testType,
-		"rhel-7", "projects/gce-uefi-images/global/images/rhel-7-v20200403", false, true)
+		"rhel-7", "projects/compute-image-tools-test/global/images/linux-uefi-no-guestosfeature-rhel7", false, true)
 }
 
 func runImageImportLinuxNonUEFITest(ctx context.Context, testCase *junitxml.TestCase, logger *log.Logger,
