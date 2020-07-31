@@ -18,10 +18,11 @@ const (
 	awsRegion = "us-east-2"
 	awsBucket = "s3://fionaliu-init"
 
-	ubuntuAMIID         = "ami-0b0361fee657fe4ea"
-	windowsAMIID        = "ami-03599982c8775acc9"
+	ubuntuAMIID  = "ami-0b0361fee657fe4ea"
+	windowsAMIID = "ami-0b1e1288576b4d3bc"
+
 	ubuntuVMDKFilePath  = "s3://fionaliu-init/ubuntu1804.vmdk"
-	windowsVMDKFilePath = "s3://fionaliu-init/export-ami-0ac5eaad663347858.vmdk"
+	windowsVMDKFilePath = "s3://fionaliu-init/windows2019.vmdk"
 )
 
 var (
@@ -31,14 +32,13 @@ var (
 type onestepImportAWSTestProperties struct {
 	imageName         string
 	amiID             string
-	amiExportLocation string
 	sourceAMIFilePath string
 	os                string
 	timeout           string
 	startupScript     string
 }
 
-// setAWSAuth sets "aws auth"
+// setAWSAuth downloads AWS credentials and sets access keys.
 func setAWSAuth(logger *log.Logger, testCase *junitxml.TestCase) error {
 	credsPath := "gs://compute-image-test-pool-001-daisy-bkt-us-east1/aws_cred"
 	cmd := "gsutil"
@@ -50,6 +50,7 @@ func setAWSAuth(logger *log.Logger, testCase *junitxml.TestCase) error {
 	return getAWSTemporaryCredentials()
 }
 
+// getAWSTemporaryCredentials calls AWS API to get temporary access keys.
 func getAWSTemporaryCredentials() error {
 	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "aws_cred")
 	mySession := session.Must(session.NewSession())

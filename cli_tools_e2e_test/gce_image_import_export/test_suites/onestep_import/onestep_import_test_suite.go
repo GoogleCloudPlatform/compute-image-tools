@@ -94,11 +94,10 @@ func runOnestepImageImportFromAWSUbuntuAMI(ctx context.Context, testCase *junitx
 	imageName := "e2e-test-onestep-image-import" + path.RandString(5)
 
 	props := &onestepImportAWSTestProperties{
-		imageName:         imageName,
-		os:                "ubuntu-1804",
-		amiID:             ubuntuAMIID,
-		amiExportLocation: awsBucket,
-		startupScript:     "post_translate_test.sh",
+		imageName:     imageName,
+		amiID:         ubuntuAMIID,
+		os:            "ubuntu-1804",
+		startupScript: "post_translate_test.sh",
 	}
 
 	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
@@ -123,12 +122,11 @@ func runOnestepImageImportFromAWSWindowsAMI(ctx context.Context, testCase *junit
 	imageName := "e2e-test-onestep-image-import" + path.RandString(5)
 
 	props := &onestepImportAWSTestProperties{
-		imageName:         imageName,
-		amiID:             windowsAMIID,
-		amiExportLocation: awsBucket,
-		os:                "windows-2019",
-		timeout:           "4h",
-		startupScript:     "post_translate_test.ps1",
+		imageName:     imageName,
+		amiID:         windowsAMIID,
+		os:            "windows-2019",
+		timeout:       "4h",
+		startupScript: "post_translate_test.ps1",
 	}
 
 	runOnestepImportTest(ctx, props, testProjectConfig, testType, logger, testCase)
@@ -175,6 +173,7 @@ func buildTestArgs(props *onestepImportAWSTestProperties, testProjectConfig *tes
 		fmt.Sprintf("--aws-region=%v", awsRegion),
 		fmt.Sprintf("--os=%v", props.os),
 	}
+
 	wrapperArgs := []string{
 		"-client_id=e2e",
 		fmt.Sprintf("-image_name=%v", props.imageName),
@@ -186,17 +185,14 @@ func buildTestArgs(props *onestepImportAWSTestProperties, testProjectConfig *tes
 		fmt.Sprintf("-os=%v", props.os),
 	}
 
-	if props.sourceAMIFilePath != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--aws-source-ami-file-path=%v", props.sourceAMIFilePath))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-aws_source_ami_file_path=%v", props.sourceAMIFilePath))
-	}
 	if props.amiID != "" {
+		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--aws-ami-export-location=%v", awsBucket))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-aws_ami_export_location=%v", awsBucket))
 		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--aws-ami-id=%v", props.amiID))
 		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-aws_ami_id=%v", props.amiID))
-	}
-	if props.amiExportLocation != "" {
-		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--aws-ami-export-location=%v", props.amiExportLocation))
-		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-aws_ami_export_location=%v", props.amiExportLocation))
+	} else {
+		gcloudArgs = append(gcloudArgs, fmt.Sprintf("--aws-source-ami-file-path=%v", props.sourceAMIFilePath))
+		wrapperArgs = append(wrapperArgs, fmt.Sprintf("-aws_source_ami_file_path=%v", props.sourceAMIFilePath))
 	}
 
 	if props.timeout != "" {
