@@ -83,6 +83,7 @@ func (inflater *apiInflater) inflate() (persistentDisk, error) {
 
 	err := inflater.computeClient.CreateDiskBeta(inflater.args.Project, inflater.args.Zone, &cd)
 	if err != nil {
+		fmt.Println(">>>>>", err)
 		return persistentDisk{}, err
 	}
 
