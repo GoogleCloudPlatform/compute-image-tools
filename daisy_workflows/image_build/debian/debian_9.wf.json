@@ -43,17 +43,21 @@
           "RawDisk": {
             "Source": "${OUTSPATH}/root.tar.gz"
           },
-          "Description": "Debian, Debian, 9, x86_64 built on ${build_date}",
+          "Description": "Debian, Debian GNU/Linux, 9 (stretch), amd64 built on ${build_date}",
           "Family": "debian-9",
           "Project": "${publish_project}",
           "NoCleanup": true,
-          "ExactName": true
+          "ExactName": true,
+          "GuestOsFeatures": ["VIRTIO_SCSI_MULTIQUEUE"],
+          "Licenses": [
+            "projects/debian-cloud/global/licenses/debian-9-stretch"
+          ]
         }
       ]
     }
   },
   "Dependencies": {
     "copy-gcs-object": ["build-debian-9"],
-    "create-image": ["copy-gcs-object"],
+    "create-image": ["copy-gcs-object"]
   }
 }
