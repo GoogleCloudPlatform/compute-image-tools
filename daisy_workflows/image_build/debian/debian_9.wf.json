@@ -11,7 +11,7 @@
       "Description": "A project to publish the resulting image to."
     },
     "build_date": {
-      "Value": "${DATE}",
+      "Value": "${TIMESTAMP}",
       "Description": "Build datestamp used to version the image."
     }
   },
