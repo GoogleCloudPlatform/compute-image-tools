@@ -17,16 +17,17 @@ package importer
 import (
 	"log"
 
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
 	"google.golang.org/api/compute/v1"
 )
 
 type dataDiskProcessor struct {
-	client  createImageClient
+	client  daisyCompute.Client
 	project string
 	request compute.Image
 }
 
-func newDataDiskProcessor(pd persistentDisk, client createImageClient, project string,
+func newDataDiskProcessor(pd persistentDisk, client daisyCompute.Client, project string,
 	userLabels map[string]string, userStorageLocation string,
 	description string, family string, imageName string) processor {
 	labels := map[string]string{"gce-image-import": "true"}

@@ -96,10 +96,10 @@ func runTestCases(ctx context.Context, logger *log.Logger, regex *regexp.Regexp,
 					if tc.FilterTestCase(regex) {
 						tc.Finish(tests)
 					} else {
+						defer logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
 						defer tc.Finish(tests)
 						logger.Printf("Running TestCase %s.%q", tc.Classname, tc.Name)
 						f(ctx, tc, logger, testProjectConfig, tt)
-						logger.Printf("TestCase %s.%q finished in %fs", tc.Classname, tc.Name, tc.Time)
 					}
 				}(ctx, &wg, tc, tt, f)
 			}

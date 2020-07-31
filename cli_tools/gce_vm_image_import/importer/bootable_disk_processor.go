@@ -128,9 +128,6 @@ func (b bootableDiskProcessor) postValidateFunc() daisy.WorkflowModifier {
 			}}
 		rl.LabelResources(w)
 		daisy_utils.UpdateAllInstanceNoExternalIP(w, b.noExternalIP)
-		if b.uefiCompatible {
-			daisy_utils.UpdateToUEFICompatible(w)
-		}
 	}
 }
 

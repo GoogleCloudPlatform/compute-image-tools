@@ -16,6 +16,7 @@ package disk
 
 import (
 	"context"
+	"fmt"
 	"path"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/daisycommon"
@@ -35,6 +36,8 @@ type Inspector interface {
 
 // InspectionResult contains the partition and boot-related properties of a disk.
 type InspectionResult struct {
+	// HasEFIPartition indicates whether the disk has a EFI partition.
+	HasEFIPartition bool
 }
 
 // NewInspector creates an Inspector that can inspect GCP disks.
@@ -55,8 +58,19 @@ type defaultInspector struct {
 // Inspect finds partition and boot-related properties for a GCP persistent disk, and
 // returns an InspectionResult. `reference` is a fully-qualified PD URI, such as
 // "projects/project-name/zones/us-central1-a/disks/disk-name".
-func (inspector defaultInspector) Inspect(reference string) (InspectionResult, error) {
+func (inspector defaultInspector) Inspect(reference string) (ir InspectionResult, err error) {
 	inspector.wf.AddVar("pd_uri", reference)
-	err := inspector.wf.Run(context.Background())
-	return InspectionResult{}, err
+	fmt.Println(">>>>inspect1")
+	err = inspector.wf.Run(context.Background())
+	if err != nil {
+		fmt.Println(">>>>inspect err")
+		return
+	}
+
+	fmt.Println(">>>>inspect2")
+	if inspector.wf.GetSerialConsoleOutputValue("has_efi_partition") == "true" {
+		fmt.Println(">>>>inspect3")
+		ir.HasEFIPartition = true
+	}
+	return
 }

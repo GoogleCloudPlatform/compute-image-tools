@@ -15,8 +15,13 @@
 package importer
 
 import (
-	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"fmt"
 	"log"
+
+	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools/common/disk"
+	"github.com/GoogleCloudPlatform/compute-image-tools/daisy"
+	daisyCompute "github.com/GoogleCloudPlatform/compute-image-tools/daisy/compute"
+	"google.golang.org/api/compute/v1"
 )
 
 // processor represents the second (and final) phase of import. For bootable
@@ -37,23 +42,52 @@ type processorProvider interface {
 
 type defaultProcessorProvider struct {
 	ImportArguments
-	imageClient   createImageClient
+	computeClient daisyCompute.Client
 	diskInspector disk.Inspector
 }
 
 func (d defaultProcessorProvider) provide(pd persistentDisk) (processor, error) {
 	if d.DataDisk {
-		return newDataDiskProcessor(pd, d.imageClient, d.Project,
+		return newDataDiskProcessor(pd, d.computeClient, d.Project,
 			d.Labels, d.StorageLocation, d.Description,
 			d.Family, d.ImageName), nil
 	}
-	if d.Inspect && d.diskInspector != nil {
-		log.Printf("Running experimental disk inspections on %v.", pd.uri)
-		inspectionResult, err := d.diskInspector.Inspect(pd.uri)
+	var err error
+	pd, err = d.inspectDisk(pd)
+	if err != nil {
+		return nil, err
+	}
+	return newBootableDiskProcessor(d.ImportArguments, pd)
+}
+
+func (d defaultProcessorProvider) inspectDisk(pd persistentDisk) (persistentDisk, error) {
+	if !d.Inspect || d.diskInspector == nil {
+		return pd, nil
+	}
+
+	log.Printf("Running experimental disk inspections on %v.", pd.uri)
+	inspectionResult, err := d.diskInspector.Inspect(pd.uri)
+	if err != nil {
+		log.Printf("Disk inspection error=%v", err)
+		return pd, daisy.Errf("Disk inspection error: %v", err)
+	}
+
+	log.Printf("Disk inspection result=%v", inspectionResult)
+
+	// If this tag is enforced in user input args, it has been honored in inflation stage.
+	if !d.ImportArguments.UefiCompatible && inspectionResult.HasEFIPartition {
+		// Create a copy of the disk with UEFI_COMPATIBLE
+		diskName := fmt.Sprintf("disk-%v-uefi", d.ImportArguments.ExecutionID)
+		err := d.computeClient.CreateDisk(d.ImportArguments.Project, d.ImportArguments.Zone, &compute.Disk {
+			Name: diskName,
+			SourceDisk: pd.uri,
+			GuestOsFeatures: []*compute.GuestOsFeature{{Type: "UEFI_COMPATIBLE"}},
+		})
 		if err != nil {
 			return nil, err
 		}
 		log.Printf("Inspection result=%v", inspectionResult)
 	}
-	return newBootableDiskProcessor(d.ImportArguments, pd)
+
+	return pd, nil
 }

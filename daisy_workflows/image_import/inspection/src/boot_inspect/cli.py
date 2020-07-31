@@ -16,6 +16,7 @@
 
 import argparse
 import json
+import os
 
 from boot_inspect import inspection
 from boot_inspect import model
@@ -33,6 +34,8 @@ def _output_daisy(results: model.InspectionResults):
     print(_daisy_kv('distro', results.os.distro.value))
     print(_daisy_kv('major', results.os.version.major))
     print(_daisy_kv('minor', results.os.version.minor))
+    if results.has_efi_partition:
+      print(_daisy_kv('has_efi_partition', 'true'))
   print('Success: Done!')
 
 
@@ -44,6 +47,23 @@ def _output_json(results: model.InspectionResults, indent=None):
 def _output_human(results: model.InspectionResults):
   _output_json(results, indent=4)
 
+
+def _inspect_uefi(device):
+  try:
+    os.system('fdisk -l {} -o type'.format(device))
+    stream = os.popen('fdisk -l {} -o type'.format(device))
+    output = stream.read()
+
+    # 1. For GPT, the ESP output should be "EFI System", which matches partition
+    # GUID "C12A7328-F81F-11D2-BA4B-00A0C93EC93B".
+    # 2. For MBR, the ESP output should be "EFI (FAT-12/16/32)", which matches
+    # partition type "0xef"
+    if "EFI" in output:
+      return True
+  except Exception as e:
+    print("Failed to inspect disk partition: ", e)
+
+  return False
 
 def main():
   format_options_and_help = {
@@ -72,6 +92,7 @@ def main():
   g.add_drive_opts(args.device, readonly=1)
   g.launch()
   results = inspection.inspect_device(g, args.device)
+  results.has_efi_partition = _inspect_uefi(args.device)
   globals()['_output_' + args.format](results)
 
 

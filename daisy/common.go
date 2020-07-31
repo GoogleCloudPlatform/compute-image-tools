@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	computeAlpha "google.golang.org/api/compute/v0.alpha"
 	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/compute/v1"
 )
@@ -271,6 +272,32 @@ func CombineGuestOSFeaturesBeta(features1 []*computeBeta.GuestOsFeature,
 	ret := make([]*computeBeta.GuestOsFeature, 0)
 	for feature := range featureSet {
 		ret = append(ret, &computeBeta.GuestOsFeature{
+			Type: feature,
+		})
+	}
+	// Sort elements by type, lexically. This ensures
+	// stability of output ordering for tests.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Type < ret[j].Type
+	})
+	return ret
+}
+
+// CombineGuestOSFeaturesAlpha merges two slices of Alpha Guest OS features and
+// returns a new slice instance. Duplicates are removed.
+func CombineGuestOSFeaturesAlpha(features1 []*computeAlpha.GuestOsFeature,
+		features2 ...string) []*computeAlpha.GuestOsFeature {
+
+	featureSet := map[string]bool{}
+	for _, feature := range features2 {
+		featureSet[feature] = true
+	}
+	for _, feature := range features1 {
+		featureSet[feature.Type] = true
+	}
+	ret := make([]*computeAlpha.GuestOsFeature, 0)
+	for feature := range featureSet {
+		ret = append(ret, &computeAlpha.GuestOsFeature{
 			Type: feature,
 		})
 	}
