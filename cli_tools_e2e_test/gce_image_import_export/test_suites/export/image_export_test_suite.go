@@ -36,7 +36,7 @@ const (
 
 // TestSuite is image export test suite.
 func TestSuite(ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
-	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project) {
+	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp, testProjectConfig *testconfig.Project, _ map[string]string) {
 
 	testTypes := []utils.CLITestType{
 		utils.Wrapper,

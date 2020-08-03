@@ -38,7 +38,7 @@ const (
 func OnestepImageImportSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project) {
+	testProjectConfig *testconfig.Project, argMap map[string]string) {
 
 	testTypes := []utils.CLITestType{
 		utils.Wrapper,
@@ -78,6 +78,15 @@ func OnestepImageImportSuite(
 
 	if err := setAWSAuth(logger, nil); err != nil {
 		utils.Failure(nil, logger, fmt.Sprintf("Failed to get aws credentials: %v\n", err))
+		testSuite := junitxml.NewTestSuite(testSuiteName)
+		testSuite.Failures = 1
+		testSuite.Finish(testSuites)
+		tswg.Done()
+		return
+	}
+
+	if !getAWSTestArgs(argMap) {
+		utils.Failure(nil, logger, fmt.Sprintln("Failed to get aws test args"))
 		testSuite := junitxml.NewTestSuite(testSuiteName)
 		testSuite.Failures = 1
 		testSuite.Finish(testSuites)

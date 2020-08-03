@@ -164,7 +164,7 @@ func (t testCase) runPostTranslateTest(ctx context.Context, imagePath string,
 func ImageImportSuite(
 	ctx context.Context, tswg *sync.WaitGroup, testSuites chan *junitxml.TestSuite,
 	logger *log.Logger, testSuiteRegex, testCaseRegex *regexp.Regexp,
-	testProjectConfig *testconfig.Project) {
+	testProjectConfig *testconfig.Project, _ map[string]string) {
 
 	junits := map[*junitxml.TestCase]func(
 		context.Context, *junitxml.TestCase, *log.Logger, *testconfig.Project, utils.CLITestType){}

@@ -1,3 +1,18 @@
+//  Copyright 2020 Google Inc. All Rights Reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+
+// Package onestepimporttestsuites contains e2e tests for gce_onestep_image_import
 package onestepimporttestsuites
 
 import (
@@ -15,18 +30,17 @@ import (
 )
 
 const (
-	awsRegion = "us-east-2"
-	awsBucket = "s3://fionaliu-init"
-
-	ubuntuAMIID  = "ami-0b0361fee657fe4ea"
-	windowsAMIID = "ami-0b1e1288576b4d3bc"
-
-	ubuntuVMDKFilePath  = "s3://fionaliu-init/ubuntu1804.vmdk"
-	windowsVMDKFilePath = "s3://fionaliu-init/windows2019.vmdk"
+	awsRegionFlag   = "aws_region"
+	awsBucketFlag   = "aws_bucket"
+	ubuntuAMIFlag   = "ubuntu_ami_id"
+	windowsAMIFlag  = "windows_ami_id"
+	ubuntuVMDKFlag  = "ubuntu_vmdk"
+	windowsVMDKFlag = "windows_vmdk"
 )
 
 var (
-	awsAccessKeyID, awsSecretAccessKey, awsSessionToken string
+	awsAccessKeyID, awsSecretAccessKey, awsSessionToken, awsRegion, awsBucket,
+	ubuntuAMIID, windowsAMIID, ubuntuVMDKFilePath, windowsVMDKFilePath string
 )
 
 type onestepImportAWSTestProperties struct {
@@ -69,4 +83,33 @@ func getAWSTemporaryCredentials() error {
 	awsSecretAccessKey = aws.StringValue(output.Credentials.SecretAccessKey)
 	awsSessionToken = aws.StringValue(output.Credentials.SessionToken)
 	return nil
+}
+
+// getAWSTestArgs assigns aws test variables from input variable map.
+func getAWSTestArgs(argMap map[string]string) bool {
+	for key, val := range argMap {
+		switch key {
+		case awsRegionFlag:
+			awsRegion = val
+		case awsBucketFlag:
+			awsBucket = val
+		case ubuntuAMIFlag:
+			ubuntuAMIID = val
+		case windowsAMIFlag:
+			windowsAMIID = val
+		case ubuntuVMDKFlag:
+			ubuntuVMDKFilePath = val
+		case windowsVMDKFlag:
+			windowsVMDKFilePath = val
+		default:
+			// args not related to onestep import aws tests
+		}
+	}
+
+	if awsRegion == "" || awsBucket == "" || ubuntuAMIID == "" ||
+		windowsAMIID == "" || ubuntuVMDKFilePath == "" || windowsVMDKFilePath == "" {
+		return false
+	}
+
+	return true
 }

@@ -29,7 +29,7 @@ import (
 
 func main() {
 	windowsUpgradeTestSuccess := e2etestutils.RunTestsAndOutput([]func(context.Context, *sync.WaitGroup, chan *junitxml.TestSuite, *log.Logger,
-		*regexp.Regexp, *regexp.Regexp, *testconfig.Project){testsuite.TestSuite},
+		*regexp.Regexp, *regexp.Regexp, *testconfig.Project, map[string]string){testsuite.TestSuite},
 		"[WindowsUpgradeTests]")
 	if !windowsUpgradeTestSuccess {
 		os.Exit(1)

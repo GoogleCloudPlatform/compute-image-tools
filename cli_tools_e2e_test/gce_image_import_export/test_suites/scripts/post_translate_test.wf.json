@@ -49,11 +49,9 @@
         "Images": [
           "${image_under_test}"
         ],
-        "DeleteResources": {
-          "Instances": [
-            "inst-import-test"
-          ]
-        }
+        "Instances": [
+          "inst-import-test"
+        ]
       }
     }
   },
