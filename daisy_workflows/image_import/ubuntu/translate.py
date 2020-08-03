@@ -45,16 +45,10 @@ ConnectPort 443
 ConnectPort 563
 '''
 
-partner_repo = '''
+partner_list = '''
 # Enabled for Google Cloud SDK
-deb http://archive.canonical.com/ubuntu {ubuntu_release} partner
+deb http://archive.canonical.com/ubuntu {ubu_release} partner
 '''
-
-# https://cloud.google.com/compute/docs/manage-os
-os_config_repo = '''
-# Enabled for GCE OS config agent
-deb http://packages.cloud.google.com/apt google-compute-engine-{ubuntu_release}-stable main
-'''  # noqa: E501
 
 gce_system = '''
 datasource_list: [ GCE ]
@@ -102,19 +96,19 @@ source /etc/network/interfaces.d/*.cfg
 
 
 def DistroSpecific(g):
-  ubuntu_release = utils.GetMetadataAttribute('ubuntu_release')
+  ubu_release = utils.GetMetadataAttribute('ubuntu_release')
   install_gce = utils.GetMetadataAttribute('install_gce_packages')
 
   # If present, remove any hard coded DNS settings in resolvconf.
-  if ubuntu_release != 'bionic' and \
+  if ubu_release != 'bionic' and \
       g.exists('/etc/resolvconf/resolv.conf.d/base'):
     logging.info('Resetting resolvconf base.')
     g.sh('echo "" > /etc/resolvconf/resolv.conf.d/base')
 
   # Try to reset the network to DHCP.
-  if ubuntu_release == 'trusty':
+  if ubu_release == 'trusty':
     g.write('/etc/network/interfaces', trusty_network)
-  elif ubuntu_release == 'xenial':
+  elif ubu_release == 'xenial':
     g.write('/etc/network/interfaces', xenial_network)
 
   if install_gce == 'true':
@@ -129,13 +123,15 @@ def DistroSpecific(g):
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*walinuxagent*')
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*aws*')
     g.sh('rm -f /etc/cloud/cloud.cfg.d/*amazon*')
-    if ubuntu_release == 'bionic':
+    if ubu_release == 'bionic':
       g.sh('rm -f /etc/netplan/*')
       logging.debug(g.sh('cloud-init clean'))
 
     remove_azure_agents(g)
 
-    add_gce_repositories(g, ubuntu_release)
+    g.write(
+        '/etc/apt/sources.list.d/partner.list',
+        partner_list.format(ubu_release=ubu_release))
 
     g.write('/etc/cloud/cloud.cfg.d/91-gce-system.cfg', gce_system)
 
@@ -154,8 +150,10 @@ def DistroSpecific(g):
         'and ensure that the following command executes successfully: '
         'apt-get install -y --no-install-recommends cloud-init '
         '&& cloud-init -d init')
-    install_gce_packages(g)
-
+    logging.info('Installing GCE packages.')
+    utils.update_apt(g)
+    utils.install_apt_packages(g, 'gce-compute-image-packages',
+                               'google-cloud-sdk')
   # Update grub config to log to console.
   g.command(
       ['sed', '-i',
@@ -163,19 +161,6 @@ def DistroSpecific(g):
       '/etc/default/grub'])
 
   g.command(['update-grub2'])
-
-
-def add_gce_repositories(g, ubuntu_release):
-  g.write(
-    '/etc/apt/sources.list.d/partner.list',
-    partner_repo.format(ubuntu_release=ubuntu_release))
-
-
-def install_gce_packages(g):
-  logging.info('Installing GCE packages.')
-  utils.update_apt(g)
-  utils.install_apt_packages(g, 'gce-compute-image-packages',
-                             'google-cloud-sdk')
 
 
 def remove_azure_agents(g):
