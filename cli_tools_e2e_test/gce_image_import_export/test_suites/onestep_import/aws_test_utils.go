@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"time"
 
 	"github.com/GoogleCloudPlatform/compute-image-tools/cli_tools_e2e_test/common/utils"
@@ -30,6 +31,7 @@ import (
 )
 
 const (
+	awsCredFlag     = "aws_cred_file_path"
 	awsRegionFlag   = "aws_region"
 	awsBucketFlag   = "aws_bucket"
 	ubuntuAMIFlag   = "ubuntu_ami_id"
@@ -39,7 +41,7 @@ const (
 )
 
 var (
-	awsAccessKeyID, awsSecretAccessKey, awsSessionToken, awsRegion, awsBucket,
+	awsCredFilePath, awsAccessKeyID, awsSecretAccessKey, awsSessionToken, awsRegion, awsBucket,
 	ubuntuAMIID, windowsAMIID, ubuntuVMDKFilePath, windowsVMDKFilePath string
 )
 
@@ -54,9 +56,8 @@ type onestepImportAWSTestProperties struct {
 
 // setAWSAuth downloads AWS credentials and sets access keys.
 func setAWSAuth(logger *log.Logger, testCase *junitxml.TestCase) error {
-	credsPath := "gs://compute-image-test-pool-001-daisy-bkt-us-east1/aws_cred"
 	cmd := "gsutil"
-	args := []string{"cp", credsPath, "."}
+	args := []string{"cp", awsCredFilePath, "."}
 	if err := utils.RunCliTool(logger, testCase, cmd, args); err != nil {
 		utils.Failure(testCase, logger, fmt.Sprintf("Error running cmd: %v\n", err))
 		return err
@@ -66,7 +67,8 @@ func setAWSAuth(logger *log.Logger, testCase *junitxml.TestCase) error {
 
 // getAWSTemporaryCredentials calls AWS API to get temporary access keys.
 func getAWSTemporaryCredentials() error {
-	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", "aws_cred")
+	_, credFileName := path.Split(awsCredFilePath)
+	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", credFileName)
 	mySession := session.Must(session.NewSession())
 	svc := sts.New(mySession)
 	sessionDuration := int64((time.Hour * 3).Seconds())
@@ -89,6 +91,8 @@ func getAWSTemporaryCredentials() error {
 func getAWSTestArgs(argMap map[string]string) bool {
 	for key, val := range argMap {
 		switch key {
+		case awsCredFlag:
+			awsCredFilePath = val
 		case awsRegionFlag:
 			awsRegion = val
 		case awsBucketFlag:
@@ -106,8 +110,9 @@ func getAWSTestArgs(argMap map[string]string) bool {
 		}
 	}
 
-	if awsRegion == "" || awsBucket == "" || ubuntuAMIID == "" ||
-		windowsAMIID == "" || ubuntuVMDKFilePath == "" || windowsVMDKFilePath == "" {
+	if awsCredFilePath == "" || awsRegion == "" || awsBucket == "" ||
+		ubuntuAMIID == "" || windowsAMIID == "" || ubuntuVMDKFilePath == "" ||
+		windowsVMDKFilePath == "" {
 		return false
 	}
 
