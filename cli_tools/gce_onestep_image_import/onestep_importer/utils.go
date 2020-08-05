@@ -101,6 +101,7 @@ func runImageImport(args *OneStepImportArguments) error {
 	err := runCmd(imageImportPath, []string{
 		fmt.Sprintf("-image_name=%v", args.ImageName),
 		fmt.Sprintf("-client_id=%v", args.ClientID),
+		fmt.Sprintf("-client_version=%v", args.ClientVersion),
 		fmt.Sprintf("-os=%v", args.OS),
 		fmt.Sprintf("-source_file=%v", args.SourceFile),
 		fmt.Sprintf("-no_guest_environment=%v", args.NoGuestEnvironment),

@@ -30,6 +30,7 @@ var (
 	instanceNames               = flag.String(ovfimportparams.InstanceNameFlagKey, "", "VM Instance names to be created, separated by commas.")
 	machineImageName            = flag.String(ovfimportparams.MachineImageNameFlagKey, "", "Name of the machine image to create.")
 	clientID                    = flag.String(ovfimportparams.ClientIDFlagKey, "", "Identifies the client of the importer, e.g. `gcloud` or `pantheon`")
+	clientVersion               = flag.String("client-version", "", "Identifies the version of the client of the importer")
 	ovfOvaGcsPath               = flag.String(ovfimportparams.OvfGcsPathFlagKey, "", " Google Cloud Storage URI of the OVF or OVA file to import. For example: gs://my-bucket/my-vm.ovf.")
 	noGuestEnvironment          = flag.Bool("no-guest-environment", false, "Google Guest Environment will not be installed on the image.")
 	canIPForward                = flag.Bool("can-ip-forward", false, "If provided, allows the instances to send and receive packets with non-matching destination or source IP addresses.")
@@ -200,6 +201,7 @@ func createMachineImageImportInputParams() service.InputParams {
 func createCommonInputParams() *service.CommonParams {
 	return &service.CommonParams{
 		ClientID:                *clientID,
+		ClientVersion:           *clientVersion,
 		Network:                 *network,
 		Subnet:                  *subnet,
 		Zone:                    *zoneFlag,

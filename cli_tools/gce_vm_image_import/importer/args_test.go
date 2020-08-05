@@ -79,6 +79,10 @@ func TestTrimAndLowerClientId(t *testing.T) {
 	assert.Equal(t, "pantheon", expectSuccessfulParse(t, "-client_id", " Pantheon ").ClientID)
 }
 
+func TestTrimClientVersion(t *testing.T) {
+	assert.Equal(t, "301.0.0B", expectSuccessfulParse(t, "-client_version", " 301.0.0B ").ClientVersion)
+}
+
 func TestTrimProject(t *testing.T) {
 	assert.Equal(t, "TestProject", expectSuccessfulParse(t, "-project", " TestProject ").Project)
 }

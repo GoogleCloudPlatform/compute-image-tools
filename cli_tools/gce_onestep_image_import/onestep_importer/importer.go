@@ -31,6 +31,7 @@ import (
 // and optionally allows for validating and populating the arguments.
 type OneStepImportArguments struct {
 	ClientID             string
+	ClientVersion        string
 	CloudLogsDisabled    bool
 	ComputeEndpoint      string
 	CustomWorkflow       string
@@ -128,6 +129,9 @@ func (args *OneStepImportArguments) registerFlags(flagSet *flag.FlagSet) {
 
 	flagSet.Var((*flags.LowerTrimmedString)(&args.ClientID), clientFlag,
 		"Identifies the client of the importer, e.g. 'gcloud', 'pantheon', or 'api'.")
+
+	flagSet.Var((*flags.TrimmedString)(&args.ClientVersion), "client_version",
+		"Identifies the version of the client of the importer.")
 
 	flagSet.Var((*flags.TrimmedString)(args.ProjectPtr), "project",
 		"The project where workflows will be run, and where the resulting image will be stored.")
