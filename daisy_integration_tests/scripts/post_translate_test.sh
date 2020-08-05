@@ -15,6 +15,19 @@
 
 # Basic image tests to validate if Linux image translation was successful.
 
+
+# To disable checking for the OS config agent, add an instance metadata
+# value of osconfig_not_supported: true.
+url=http://metadata.google.internal/computeMetadata/v1/instance/attributes/osconfig_not_supported
+if command -v curl; then
+  OSCONFIG_NOT_SUPPORTED="$(curl --header "Metadata-Flavor: Google" $url)"
+elif command -v wget; then
+  OSCONFIG_NOT_SUPPORTED="$(wget --header "Metadata-Flavor: Google" -O - $url)"
+else
+  echo "TestFailed: Either curl or wget is required to run test suite."
+  exit 1
+fi
+
 FAIL=0
 FAILURES=""
 
@@ -35,6 +48,22 @@ function wait_for_connectivity {
 
   echo "FAILED: Unable to initialize network connection."
   exit 1
+}
+
+# Assert that a service is running; first trying `initctl`,
+# then trying `service`.
+function assert_running {
+  local service="${1}"
+  status "Checking $service"
+  if command -v initctl; then
+    if ! initctl status "$service"; then
+      fail "$service not running."
+    fi
+  else
+    if ! service "$service" status; then
+      fail "$service not running."
+    fi
+  fi
 }
 
 function status {
@@ -71,58 +100,20 @@ function check_internet_connectivity {
 # Check Google services.
 function check_google_services {
   if [[ -f /usr/bin/google_guest_agent ]]; then
-    status "Checking google-guest-agent"
+    # Services expected when using the new guest environment (NGE).
+    assert_running google-guest-agent
+  else
+     # Services expected when using the legacy guest environment.
+    assert_running google-accounts-daemon
+    assert_running google-network-daemon
+    assert_running google-clock-skew-daemon
+  fi
 
-    # Upstart
-    if [[ -d /etc/init ]]; then
-      if initctl status google-guest-agent | grep -qv 'running'; then
-        fail "Google guest agent not running."
-      fi
-    else
-      service google-guest-agent status
-      if [[ $? -ne 0 ]]; then
-        fail "Google guest agent not running."
-      fi
-    fi
-
+  if [[ $OSCONFIG_NOT_SUPPORTED =~ "true" ]]; then
+    status "Skipping check for google-osconfig-agent, since it's not supported for this distro."
     return 0
   fi
-
-  # Upstart
-  if [[ -d /etc/init ]]; then
-    status "Checking google-accounts-daemon."
-    if initctl status google-accounts-daemon | grep -qv 'running'; then
-      fail "Google accounts daemon not running."
-    fi
-
-    status "Checking google-network-daemon."
-    if initctl status google-network-daemon | grep -qv 'running'; then
-      fail "Google Network daemon not running."
-    fi
-
-    status "Checking google-clock-skew-daemon."
-    if initctl status google-clock-skew-daemon | grep -qv 'running'; then
-      fail "Google Clock Skew daemon not running."
-    fi
-  else
-    status "Checking google-accounts-daemon."
-    service google-accounts-daemon status
-    if [[ $? -ne 0 ]]; then
-      fail "Google accounts daemon not running."
-    fi
-
-    status "Checking google-network-daemon."
-    service google-network-daemon status
-    if [[ $? -ne 0 ]]; then
-      fail "Google Network daemon not running."
-    fi
-
-    status "Checking google-clock-skew-daemon."
-    service google-clock-skew-daemon status
-    if [[ $? -ne 0 ]]; then
-      fail "Google Clock Skew daemon not running."
-    fi
-  fi
+  assert_running google-osconfig-agent
 }
 
 # Check Google Cloud SDK.
